@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS waitlist (
+  id SERIAL PRIMARY KEY,
+  email TEXT NOT NULL UNIQUE,
+  source TEXT DEFAULT 'landing_page',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);

@@ -15,6 +15,7 @@ export interface NewBidSummary {
   source_url: string;
   location: string;
   due_date: string | null;
+  bid_id?: number;
 }
 
 // ── Client Initialization ──────────────────────────────────────────────────────

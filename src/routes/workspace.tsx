@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { createNotification } from "~/lib/notifications";
 
 type Role = "estimator" | "proposal_writer" | "accountant" | "project_manager";
 type Member = { id: number; email: string; role: Role; status: "pending" | "active" | "declined"; invited_at: string };
@@ -38,9 +39,14 @@ async function owner() { const u = await getCurrentUser(); if (!u) throw new Err
 
 const getWorkspace = createServerFn({ method: "GET" }).handler(async () => { const u = await owner(); try { await ensureTables(); } catch { return { allowed: true, members: [], activity: [] as Activity[] }; } const members = await sql()`SELECT id,email,role,status,invited_at FROM team_members WHERE owner_id=${u.id} ORDER BY invited_at DESC`; const emails = [u.email, ...(members as any[]).map(m => m.email)]; const activity = await sql()`SELECT a.id,a.member_email,a.action,a.details,a.created_at,b.title AS bid_title FROM team_activity a LEFT JOIN bids b ON b.id=a.bid_id WHERE a.member_email = ANY(${emails}) ORDER BY a.created_at DESC LIMIT 50`; return { allowed: true, members: members as Member[], activity: activity as Activity[] }; });
 
-const inviteMember = createServerFn({ method: "POST" }).validator((d: unknown) => d as { email: string; role: Role }).handler(async ({ data }) => { const u = await owner(); await ensureTables(); const email = data.email.trim().toLowerCase(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address"); if (!roles.some(r => r.key === data.role)) throw new Error("Choose a valid role"); if (email === u.email.toLowerCase()) throw new Error("You cannot invite yourself"); const rows = await sql()`INSERT INTO team_members(owner_id,email,role) VALUES(${u.id},${email},${data.role}) RETURNING id,email,role,status,invited_at`; return rows[0] as Member; });
+const inviteMember = createServerFn({ method: "POST" }).validator((d: unknown) => d as { email: string; role: Role }).handler(async ({ data }) => { const u = await owner(); await ensureTables(); const email = data.email.trim().toLowerCase(); if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Enter a valid email address"); if (!roles.some(r => r.key === data.role)) throw new Error("Choose a valid role"); if (email === u.email.toLowerCase()) throw new Error("You cannot invite yourself"); const rows = await sql()`INSERT INTO team_members(owner_id,email,role) VALUES(${u.id},${email},${data.role}) RETURNING id,email,role,status,invited_at`; await createTeamActivityNotifications(u.id, "member_invited", email, `invited ${email} as ${data.role}`); return rows[0] as Member; });
 
-const removeMember = createServerFn({ method: "POST" }).validator((d: unknown) => d as { email: string }).handler(async ({ data }) => { const u = await owner(); await ensureTables(); await sql()`DELETE FROM team_members WHERE owner_id=${u.id} AND email=${data.email}`; return { success: true }; });
+const removeMember = createServerFn({ method: "POST" }).validator((d: unknown) => d as { email: string }).handler(async ({ data }) => { const u = await owner(); await ensureTables(); await sql()`DELETE FROM team_members WHERE owner_id=${u.id} AND email=${data.email}`; await createTeamActivityNotifications(u.id, "member_removed", data.email, `removed ${data.email} from the team`); return { success: true }; });
+
+async function createTeamActivityNotifications(ownerId: number, action: string, memberEmail: string, details: string) {
+  const recipients = await sql()`SELECT ${ownerId} AS user_id UNION SELECT id AS user_id FROM users WHERE lower(email)=lower(${memberEmail}) UNION SELECT u.id AS user_id FROM users u JOIN team_members tm ON lower(tm.email)=lower(u.email) WHERE tm.owner_id=${ownerId}` as any[];
+  await Promise.all(recipients.map((r) => createNotification({ userId: Number(r.user_id), type: "team_activity", title: "Team activity", message: details })));
+}
 
 // --- Integration server functions ---
 

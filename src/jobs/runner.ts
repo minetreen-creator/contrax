@@ -29,6 +29,7 @@ import { fetchBids as fetchFl } from "./sources/fl";
 import { fetchBids as fetchCities } from "./sources/cities";
 import type { RawBid } from "./sources/sam-gov";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
+import { createNotification } from "../lib/notifications";
 
 interface SyncSource {
   name: string;
@@ -98,6 +99,7 @@ async function syncSource(
         if (result.length > 0) {
           newCount++;
           newBids.push({
+            bid_id: Number((result[0] as { id: number }).id),
             title: bid.title,
             agency: bid.agency,
             source_url: bid.source_url,
@@ -169,6 +171,30 @@ export async function runSync(): Promise<SyncResult> {
       for (const err of r.errors) {
         console.log(`   [${source}] ${err}`);
       }
+    }
+  }
+
+  // Notify matching profiles without allowing notification failures to break sync.
+  if (totalNew > 0) {
+    try {
+      const profiles = await sql`SELECT user_id, industry, locations, service_categories FROM business_profiles WHERE user_id IS NOT NULL` as any[];
+      let notified = 0;
+      for (const bid of allNewBids) {
+        const text = `${bid.title} ${bid.agency} ${bid.location || ""}`.toLowerCase();
+        for (const profile of profiles) {
+          const locations = Array.isArray(profile.locations) ? profile.locations : [];
+          const services = Array.isArray(profile.service_categories) ? profile.service_categories : [];
+          const industry = String(profile.industry || "").toLowerCase();
+          const matches = !industry || text.includes(industry) || services.some((s: unknown) => text.includes(String(s).toLowerCase())) || locations.some((l: unknown) => text.includes(String(l).toLowerCase()));
+          if (matches) {
+            await createNotification({ userId: Number(profile.user_id), type: "new_bid_match", title: "New bid matches your profile", message: `"${bid.title}" from ${bid.agency} matches your business profile.`, bidId: bid.bid_id });
+            notified++;
+          }
+        }
+      }
+      console.log(`🔔 Created ${notified} bid match notification(s)`);
+    } catch (err) {
+      console.error("🔔 Failed to create bid match notifications:", (err as Error).message);
     }
   }
 

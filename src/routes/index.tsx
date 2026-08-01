@@ -34,8 +34,39 @@ const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
   }
 });
 
+const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    // Healthcare NAICS codes + keyword match for nursing/staffing bids
+    const rows = await sql()`SELECT title, agency, estimated_value, due_date, location
+      FROM bids
+      WHERE category ILIKE '%health%'
+         OR category ILIKE '%medical%'
+         OR category ILIKE '%nurs%'
+         OR title ILIKE '%nurs%'
+         OR title ILIKE '%health%'
+         OR title ILIKE '%medical%'
+         OR title ILIKE '%physician%'
+         OR title ILIKE '%clinical%'
+         OR title ILIKE '%staffing%'
+         OR description ILIKE '%nurs%'
+         OR description ILIKE '%healthcare%'
+         OR description ILIKE '%clinical staffing%'
+      ORDER BY created_at DESC
+      LIMIT 6`;
+    return rows.map((r) => ({
+      title: r.title as string,
+      agency: r.agency as string,
+      estimated_value: (r.estimated_value as string | null) ?? null,
+      due_date: r.due_date ? String(r.due_date) : null,
+      location: (r.location as string | null) ?? null,
+    }));
+  } catch {
+    return [];
+  }
+});
+
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, user, bids] = await Promise.all([
+  const [businessName, user, bids, healthcareBids] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -48,8 +79,9 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     })(),
     getCurrentUser(),
     getRecentBids(),
+    getHealthcareBids(),
   ]);
-  return { businessName, user, bids };
+  return { businessName, user, bids, healthcareBids };
 });
 
 const submitLeadEmail = createServerFn({ method: "POST" })
@@ -87,7 +119,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -108,6 +140,7 @@ function Home() {
       <Navbar user={user} />
       <Hero businessName={businessName} />
       <BidTicker bids={bids} />
+      {healthcareBids.length > 0 && <HealthcareOpportunities bids={healthcareBids} />}
       <HowItWorks />
       <Example />
       <WhoItsFor />
@@ -332,6 +365,56 @@ function BidTicker({ bids }: { bids: Bid[] }) {
             </div>
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Healthcare Opportunities ───────────────────────────────────────────────────
+
+function HealthcareOpportunities({ bids }: { bids: Bid[] }) {
+  return (
+    <section className="bg-gradient-to-br from-blue-50 to-white py-14">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mb-8 flex items-center gap-2">
+          <span className="text-2xl">🏥</span>
+          <h2 className="text-2xl font-bold text-slate-900">Healthcare Staffing Opportunities</h2>
+        </div>
+        <p className="mb-8 text-gray-500">
+          Nursing, physician, and clinical staffing contracts from federal, state, and local agencies.
+        </p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {bids.map((bid, i) => (
+            <div
+              key={i}
+              className="rounded-xl border border-blue-100 bg-white p-5 shadow-sm transition-all hover:shadow-md hover:border-blue-300"
+            >
+              <span className="mb-2 inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                {bid.agency.length > 40 ? bid.agency.slice(0, 40) + "..." : bid.agency}
+              </span>
+              <p
+                className="line-clamp-2 text-sm font-semibold text-slate-800"
+                title={bid.title}
+              >
+                {bid.title}
+              </p>
+              <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
+                {bid.location && <span>{bid.location}</span>}
+                {bid.due_date && (
+                  <span className="text-amber-600 font-medium">
+                    Due {new Date(bid.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        {bids.length === 0 && (
+          <p className="text-center text-gray-400 text-sm py-8">
+            No healthcare staffing bids right now — check back soon or{" "}
+            <a href="/signup" className="text-blue-600 underline">sign up</a> to get alerts when new ones post.
+          </p>
+        )}
       </div>
     </section>
   );

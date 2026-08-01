@@ -81,6 +81,40 @@ const connectIntegration = createServerFn({ method: "POST" })
     return { url: oauthUrls[data.provider] || null };
   });
 
+type ApiKeyRow = { id: number; name: string; last_used_at: string | null; created_at: string; revoked: boolean };
+type Entity = { id: number; business_name: string; industry: string };
+
+async function agencyUser() {
+  const u = await getCurrentUser();
+  if (!u) throw new Error("Not authenticated");
+  const rows = await sql()`SELECT plan_tier FROM users WHERE id=${u.id}`;
+  if (!rows.length || (rows[0] as any).plan_tier !== "agency") throw new Error("Agency plan required");
+  return u;
+}
+const getAgencyData = createServerFn({ method: "GET" }).handler(async () => {
+  const u = await agencyUser();
+  await sql()`CREATE TABLE IF NOT EXISTS api_keys (id SERIAL PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id),key_hash TEXT NOT NULL UNIQUE,name TEXT NOT NULL DEFAULT 'Default key',last_used_at TIMESTAMPTZ,created_at TIMESTAMPTZ DEFAULT NOW(),revoked BOOLEAN NOT NULL DEFAULT FALSE)`;
+  const [keys, entities, profile] = await Promise.all([
+    sql()`SELECT id,name,last_used_at,created_at,revoked FROM api_keys WHERE user_id=${u.id} ORDER BY created_at DESC`,
+    sql()`SELECT id,business_name,industry FROM business_profiles WHERE user_id=${u.id} ORDER BY created_at`,
+    sql()`SELECT active_profile_id FROM users WHERE id=${u.id}`,
+  ]);
+  return { keys: keys as ApiKeyRow[], entities: entities as Entity[], activeProfileId: (profile[0] as any)?.active_profile_id ?? null };
+});
+const createApiKey = createServerFn({ method: "POST" }).validator((d: unknown) => d as { name?: string }).handler(async ({data}) => {
+  const u = await agencyUser();
+  const raw = "ctx_" + crypto.randomUUID().replaceAll("-", "") + crypto.randomUUID().replaceAll("-", "").slice(0, 8);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw));
+  const hash = Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+  await sql()`INSERT INTO api_keys(user_id,key_hash,name) VALUES(${u.id},${hash},${(data.name || "API key").trim().slice(0,80) || "API key"})`;
+  return { key: raw };
+});
+const revokeApiKey = createServerFn({ method: "POST" }).validator((d: unknown) => d as { id: number }).handler(async ({data}) => { const u = await agencyUser(); await sql()`UPDATE api_keys SET revoked=TRUE WHERE id=${data.id} AND user_id=${u.id}`; return {success:true}; });
+const saveBranding = createServerFn({ method: "POST" }).validator((d: unknown) => d as { businessName: string; logoUrl: string }).handler(async ({data}) => { const u=await agencyUser(); await sql()`UPDATE business_profiles SET business_name=${data.businessName.trim().slice(0,200)}, logo_url=${data.logoUrl.trim().slice(0,2000)}, is_agency=TRUE, updated_at=NOW() WHERE user_id=${u.id} AND id=COALESCE((SELECT active_profile_id FROM users WHERE id=${u.id}), (SELECT id FROM business_profiles WHERE user_id=${u.id} ORDER BY created_at LIMIT 1))`; return {success:true}; });
+const switchEntity = createServerFn({ method: "POST" }).validator((d: unknown) => d as { id: number }).handler(async ({data}) => { const u=await agencyUser(); await sql()`UPDATE users SET active_profile_id=${data.id} WHERE id=${u.id} AND EXISTS (SELECT 1 FROM business_profiles WHERE id=${data.id} AND user_id=${u.id})`; return {success:true}; });
+const createEntity = createServerFn({ method: "POST" }).validator((d: unknown) => d as { businessName: string; industry: string }).handler(async ({data}) => { const u=await agencyUser(); const rows=await sql()`INSERT INTO business_profiles(user_id,business_name,industry,is_agency) VALUES(${u.id},${data.businessName.trim().slice(0,200)},${data.industry.trim().slice(0,120) || "General"},TRUE) RETURNING id`; return {id:(rows[0] as any).id}; });
+const deleteEntity = createServerFn({ method: "POST" }).validator((d: unknown) => d as { id: number }).handler(async ({data}) => { const u=await agencyUser(); await sql()`DELETE FROM business_profiles WHERE id=${data.id} AND user_id=${u.id} AND (SELECT COUNT(*) FROM business_profiles WHERE user_id=${u.id}) > 1`; return {success:true}; });
+
 const disconnectIntegration = createServerFn({ method: "POST" })
   .validator((d: unknown) => d as { provider: string })
   .handler(async ({ data }) => {
@@ -106,11 +140,22 @@ function WorkspacePage() {
   const [email,setEmail]=useState("");
   const [busy,setBusy]=useState(false);
   const [integrationsBusy, setIntegrationsBusy] = useState<string | null>(null);
+  const [agency, setAgency] = useState<{keys: ApiKeyRow[]; entities: Entity[]; activeProfileId: number | null} | null>(null);
+  const [newKey, setNewKey] = useState("");
+  const [brandName, setBrandName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [entityName, setEntityName] = useState("");
+  const [entityIndustry, setEntityIndustry] = useState("");
 
   const load=()=>getWorkspace().then(r=>setData(r as any)).catch(e=>setError(e.message));
   const loadIntegrations = () => getIntegrations().then(r => setIntegrationsData(r)).catch(() => {});
 
-  useEffect(()=>{load(); loadIntegrations();},[]);
+  const loadAgency = () => getAgencyData().then(r => { setAgency(r); const current = r.entities.find(e => e.id === r.activeProfileId) || r.entities[0]; if (current) setBrandName(current.business_name); }).catch(() => {});
+  useEffect(()=>{load(); loadIntegrations(); loadAgency();},[]);
+
+  async function generateKey() { try { const r = await createApiKey({data:{name:"CRM integration"}}); setNewKey(r.key); await loadAgency(); } catch(e) { setError(e instanceof Error ? e.message : "Could not create key"); } }
+  async function saveBrand() { try { await saveBranding({data:{businessName:brandName,logoUrl}}); await loadAgency(); } catch(e) { setError(e instanceof Error ? e.message : "Could not save branding"); } }
+  async function addEntity() { if (!entityName.trim()) return; try { await createEntity({data:{businessName:entityName,industry:entityIndustry}}); setEntityName(""); setEntityIndustry(""); await loadAgency(); } catch(e) { setError(e instanceof Error ? e.message : "Could not add entity"); } }
 
   async function send(){if(!invite)return;setBusy(true);setError("");try{await inviteMember({data:{email,role:invite}});setEmail("");setInvite(null);await load()}catch(e){setError(e instanceof Error?e.message:"Invite failed")}finally{setBusy(false)}}
   async function remove(member:Member){if(!confirm(`Remove ${member.email}?`))return;await removeMember({data:{email:member.email}});load()}
@@ -207,6 +252,13 @@ function WorkspacePage() {
           </div>}
         </div>
       </section>
+
+      {/* Agency controls */}
+      {showIntegrations && agency && <>
+        <section><div className="mb-4"><h2 className="text-xl font-bold text-slate-900">Branding</h2><p className="text-sm text-slate-500">White-label proposal exports with your company identity.</p></div><div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3"><input value={brandName} onChange={e=>setBrandName(e.target.value)} placeholder="Company name" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"/><input value={logoUrl} onChange={e=>setLogoUrl(e.target.value)} placeholder="Logo URL (optional)" className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"/><button onClick={saveBrand} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">Save branding</button></div></section>
+        <section><div className="mb-4"><h2 className="text-xl font-bold text-slate-900">API Access</h2><p className="text-sm text-slate-500">Use Bearer keys with GET /api/v1/bids, /api/v1/bids/:id, and /api/v1/matches (60 requests/minute).</p></div><div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">{newKey && <div className="mb-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Copy this key now — it will not be shown again: <code className="font-bold">{newKey}</code></div>}<button onClick={generateKey} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">Generate API key</button><div className="mt-4 space-y-2">{agency.keys.length ? agency.keys.map(k=><div key={k.id} className="flex items-center justify-between border-b py-2 text-sm"><span>{k.name} · {k.revoked ? "Revoked" : "Active"}</span>{!k.revoked && <button onClick={async()=>{await revokeApiKey({data:{id:k.id}});loadAgency()}} className="text-red-600">Revoke</button>}</div>) : <p className="text-sm text-slate-500">No API keys yet.</p>}</div></div></section>
+        <section><div className="mb-4"><h2 className="text-xl font-bold text-slate-900">Entities</h2><p className="text-sm text-slate-500">Manage separate businesses under this Agency account.</p></div><div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className="space-y-2">{agency.entities.map(e=><div key={e.id} className="flex items-center justify-between border-b py-2 text-sm"><button onClick={async()=>{await switchEntity({data:{id:e.id}});loadAgency()}} className={`font-semibold ${agency.activeProfileId===e.id?"text-blue-600":"text-slate-700"}`}>{e.business_name} ({e.industry})</button>{agency.entities.length>1 && <button onClick={async()=>{await deleteEntity({data:{id:e.id}});loadAgency()}} className="text-red-600">Delete</button>}</div>)}</div><div className="mt-4 flex gap-2"><input value={entityName} onChange={e=>setEntityName(e.target.value)} placeholder="New entity name" className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm"/><input value={entityIndustry} onChange={e=>setEntityIndustry(e.target.value)} placeholder="Industry" className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm"/><button onClick={addEntity} className="rounded-lg bg-slate-900 px-3 py-2 text-sm text-white">Add</button></div></div></section>
+      </>}
 
       {/* Integrations Section — Agency only */}
       {showIntegrations && (

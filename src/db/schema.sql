@@ -9,19 +9,37 @@ CREATE TABLE IF NOT EXISTS users (
     stripe_customer_id TEXT,
     subscription_status TEXT,
     plan_tier TEXT,
-    trial_started_at TIMESTAMPTZ
+    trial_started_at TIMESTAMPTZ,
+    active_profile_id INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS business_profiles (
     id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id) UNIQUE,
+    user_id INTEGER REFERENCES users(id),
     business_name TEXT NOT NULL,
     industry TEXT NOT NULL,
     locations JSONB NOT NULL DEFAULT '[]',
     service_categories JSONB NOT NULL DEFAULT '[]',
     naics_codes JSONB NOT NULL DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    logo_url TEXT,
+    is_agency BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+-- Agency migrations: preserve existing installations while enabling entities.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS active_profile_id INTEGER;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS logo_url TEXT;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS is_agency BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE IF NOT EXISTS api_keys (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    key_hash TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL DEFAULT 'Default key',
+    last_used_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    revoked BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS bids (

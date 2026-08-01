@@ -224,7 +224,7 @@ function HeroSection() {
             </div>
             <h1 className="font-serif text-[44px] sm:text-[52px] lg:text-[64px] leading-[1.05] tracking-tight text-[#26251f]">
               The average person overpays{" "}
-              <span className="text-[#6C8A55] italic font-medium">$487 a year.</span>{" "}
+              <span className="text-[#6C8A55] italic font-medium"> $487 a year.</span>{" "}
               Are you one of them?
             </h1>
             <p className="mt-6 text-[17px] leading-relaxed text-[#5c5b53] max-w-xl">

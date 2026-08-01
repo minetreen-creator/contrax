@@ -105,7 +105,7 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
       // Update plan_tier if the webhook didn't set it yet
       if (planTier && !existing[0].plan_tier) {
         await db`
-          UPDATE users SET plan_tier = ${planTier}, subscription_status = 'active'
+          UPDATE users SET plan_tier = ${planTier}, subscription_status = 'active', trial_started_at = NULL
           WHERE id = ${userId}
         `;
       }
@@ -115,8 +115,8 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
         crypto.randomUUID() + crypto.randomUUID(),
       );
       const inserted = await db`
-        INSERT INTO users (email, password_hash, subscription_status, plan_tier)
-        VALUES (${email}, ${passwordHash}, 'active', ${planTier})
+        INSERT INTO users (email, password_hash, subscription_status, plan_tier, trial_started_at)
+        VALUES (${email}, ${passwordHash}, 'active', ${planTier}, NULL)
         RETURNING id
       `;
       userId = inserted[0].id as number;

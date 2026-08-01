@@ -530,6 +530,14 @@ const downloadPdf = createServerFn({ method: "POST" }).validator((data: unknown)
 });
 
 const handleLogout = createServerFn({ method: "POST" }).handler(async () => logout());
+export interface TrialStatus { active: boolean; daysLeft: number; expired: boolean; }
+export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Promise<TrialStatus> => {
+ const user = await getCurrentUser(); if (!user) return {active:false,daysLeft:0,expired:false};
+ const rows = await sql()`SELECT plan_tier, trial_started_at FROM users WHERE id=${user.id}`; const r=rows[0] as any;
+ if (r?.plan_tier && r.plan_tier !== "trial") return {active:false,daysLeft:0,expired:false};
+ const daysLeft = r?.trial_started_at ? Math.max(0, Math.ceil((21*86400000-(Date.now()-new Date(r.trial_started_at).getTime()))/86400000)) : 0;
+ return {active:daysLeft>0,daysLeft,expired:daysLeft<=0};
+});
 
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/dashboard")({
@@ -658,6 +666,9 @@ function DeadlineAlertBanner({ count }: { count: number }) {
   );
 }
 
+function TrialBanner({daysLeft}:{daysLeft:number}) { return <div className="mx-auto max-w-5xl px-4 pt-4"><div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"><strong>Your 21-day trial</strong> · {daysLeft} day{daysLeft===1?"":"s"} left <a className="ml-2 font-semibold underline" href="/upgrade">Subscribe now →</a></div></div>; }
+function TrialExpired() { return <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4"><div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm"><h1 className="text-2xl font-bold text-slate-900">Your trial has ended</h1><p className="mt-3 text-slate-600">Subscribe to continue using Contrax.</p><a href="/upgrade" className="mt-7 inline-flex rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white">View plans →</a></div></div>; }
+
 // ── Component ────────────────────────────────────────────────────────────────
 function DashboardPage() {
   const currentUser = Route.useLoaderData() as AuthUser | null;
@@ -668,6 +679,8 @@ function DashboardPage() {
     return null;
   }
 
+  const [trial, setTrial] = useState<TrialStatus | null>(null);
+  useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -697,6 +710,7 @@ function DashboardPage() {
   const [downloadingPdf, setDownloadingPdf] = useState<Set<number>>(new Set());
   const [aiError, setAiError] = useState<Record<number, string>>({});
 
+  if (trial?.expired) return <TrialExpired />;
   useEffect(() => {
     let cancelled = false;
     fetchDashboardData().then((d) => {
@@ -1046,7 +1060,7 @@ function DashboardPage() {
         )}
 
         {/* Upgrade Banner */}
-        <UpgradeBanner />
+        {trial?.active && <TrialBanner daysLeft={trial.daysLeft} />}
 
         {/* Bid Matches */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

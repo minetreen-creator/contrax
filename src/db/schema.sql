@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     stripe_customer_id TEXT,
     subscription_status TEXT,
-    plan_tier TEXT
+    plan_tier TEXT,
+    trial_started_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS business_profiles (
@@ -131,6 +132,9 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='plan_tier') THEN
         ALTER TABLE users ADD COLUMN plan_tier TEXT;
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='trial_started_at') THEN
+        ALTER TABLE users ADD COLUMN trial_started_at TIMESTAMPTZ;
     END IF;
 END $$;
 

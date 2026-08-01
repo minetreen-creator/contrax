@@ -48,8 +48,8 @@ const signupFn = createServerFn({ method: "POST" })
     // Hash password and create user
     const passwordHash = await Bun.password.hash(data.password);
     const inserted = await sql()`
-      INSERT INTO users (email, password_hash)
-      VALUES (${data.email}, ${passwordHash})
+      INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
+      VALUES (${data.email}, ${passwordHash}, 'trial', NOW())
       RETURNING id, email, created_at
     `;
     const user = inserted[0] as { id: number; email: string; created_at: Date };

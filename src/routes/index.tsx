@@ -1266,25 +1266,7 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <button
-                type="button"
-                onClick={() =>
-                  redirectToCheckout(
-                    plan.name === "Starter"
-                      ? "starter"
-                      : plan.name === "Professional"
-                        ? "professional"
-                        : "agency",
-                  )
-                }
-                className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
-                  plan.featured
-                    ? "bg-amber-500 text-white shadow-md shadow-amber-500/25 hover:bg-amber-400"
-                    : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
-                }`}
-              >
-                {plan.cta}
-              </button>
+              <a href="/signup" className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${plan.featured ? "bg-amber-500 text-white" : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"}`}>{plan.cta}</a>
             </div>
           ))}
         </div>

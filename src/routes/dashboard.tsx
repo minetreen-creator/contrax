@@ -503,6 +503,28 @@ Services: ${JSON.stringify(profile.service_categories)}`;
     return { bid_id: data.bidId, draft_text: draftText, generated_at: new Date().toISOString() };
   });
 
+const downloadPdf = createServerFn({ method: "POST" }).validator((data: unknown) => {
+  const bidId = Number((data as { bidId?: number }).bidId);
+  if (!Number.isInteger(bidId) || bidId < 1) throw new Error("Invalid bid ID");
+  return { bidId };
+}).handler(async ({ data }): Promise<{ base64: string; filename: string }> => {
+  const user = await getCurrentUser(); if (!user) throw new Error("Not authenticated");
+  const rows = await sql()`SELECT p.draft_text, b.title, b.agency FROM proposal_drafts p JOIN bids b ON b.id = p.bid_id WHERE p.bid_id = ${data.bidId} AND p.user_id = ${user.id} LIMIT 1`;
+  if (!rows.length) throw new Error("Proposal draft not found");
+  const row = rows[0] as any, title = String(row.title || "Proposal Draft"), agency = String(row.agency || "");
+  const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+  const esc = (v: string) => v.replace(/[^\x20-\x7E]/g, "?").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  const lines: string[] = ["Contrax", title, agency, `Prepared ${date}`, ""];
+  for (const raw of String(row.draft_text || "").split(/\r?\n/)) { let line = raw; while (line.length > 88) { lines.push(line.slice(0, 88)); line = line.slice(88); } lines.push(line); }
+  const pages: string[][] = []; for (let i = 0; i < lines.length; i += 46) pages.push(lines.slice(i, i + 46));
+  const objects: string[] = [], add = (s: string) => { objects.push(s); return objects.length; };
+  const catalog = add(""), pagesObj = add(""), font = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"), pageIds: number[] = [];
+  for (const page of pages) { const commands = ["BT", "/F1 20 Tf", "0.08 0.12 0.20 rg", "50 750 Td", `(${esc(page[0] || "Contrax")}) Tj`, "/F1 11 Tf", "0 -30 Td", "0.12 0.15 0.20 rg"]; for (const line of page.slice(1)) commands.push(`(${esc(line)}) Tj`, "0 -15 Td"); commands.push("ET", "BT", "/F1 9 Tf", "0.45 0.48 0.54 rg", "50 35 Td", "(Contrax - AI-assisted proposal draft) Tj", "ET"); const content = commands.join("\n"), contentId = add(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`); pageIds.push(add(`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${font} 0 R >> >> /Contents ${contentId} 0 R >>`)); }
+  objects[pagesObj - 1] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`; objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesObj} 0 R >>`;
+  let pdf = "%PDF-1.4\n"; const offsets = [0]; objects.forEach((body, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${body}\nendobj\n`; }); const xref = pdf.length; pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`; for (let i = 1; i < offsets.length; i++) pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`; pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return { base64: btoa(pdf), filename: `proposal-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "draft"}.pdf` };
+});
+
 const handleLogout = createServerFn({ method: "POST" }).handler(async () => logout());
 
 // ── Route ────────────────────────────────────────────────────────────────────
@@ -668,6 +690,7 @@ function DashboardPage() {
   const [pricingLoading, setPricingLoading] = useState<Set<number>>(new Set());
   const [generatingSummary, setGeneratingSummary] = useState<Set<number>>(new Set());
   const [generatingProposal, setGeneratingProposal] = useState<Set<number>>(new Set());
+  const [downloadingPdf, setDownloadingPdf] = useState<Set<number>>(new Set());
   const [aiError, setAiError] = useState<Record<number, string>>({});
 
   useEffect(() => {
@@ -803,6 +826,18 @@ function DashboardPage() {
     } finally {
       setGeneratingProposal((p) => { const n = new Set(p); n.delete(bidId); return n; });
     }
+  }, []);
+
+  const doDownloadPdf = useCallback(async (bid: Bid) => {
+    setDownloadingPdf((p) => new Set(p).add(bid.id));
+    try {
+      const result = await downloadPdf({ data: { bidId: bid.id } });
+      const bytes = Uint8Array.from(atob(result.base64), (c) => c.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+      const anchor = document.createElement("a"); anchor.href = url; anchor.download = result.filename; anchor.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { setAiError((p) => ({ ...p, [bid.id]: err instanceof Error ? err.message : "PDF download failed" })); }
+    finally { setDownloadingPdf((p) => { const n = new Set(p); n.delete(bid.id); return n; }); }
   }, []);
 
   const doScore = useCallback(async (bidId: number, regenerate = false) => {
@@ -1404,6 +1439,9 @@ function DashboardPage() {
                                   <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{draft.draft_text}</div>
                                 </div>
                                 <div className="flex items-center gap-3">
+                                  <button type="button" onClick={() => doDownloadPdf(bid)} disabled={downloadingPdf.has(bid.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 active:scale-[0.98] transition-all">
+                                    {downloadingPdf.has(bid.id) ? "Preparing PDF…" : "📄 Download PDF"}
+                                  </button>
                                   <button
                                     type="button"
                                     onClick={() => doCopyDraft(bid.id, draft.draft_text)}

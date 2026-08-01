@@ -77,9 +77,18 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  const profileRows = await sql()`
-    SELECT id, business_name, industry, locations, service_categories, naics_codes
-    FROM business_profiles WHERE user_id = ${user.id}`;
+  // Check for active_profile_id (agency entity switching)
+  let activeProfileId: number | null = null;
+  try {
+    const userRows = await sql()`SELECT active_profile_id FROM users WHERE id = ${user.id}`;
+    activeProfileId = (userRows[0] as any)?.active_profile_id ?? null;
+  } catch { /* column may not exist yet */ }
+
+  const profileRows = activeProfileId
+    ? await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes FROM business_profiles WHERE id = ${activeProfileId} AND user_id = ${user.id}`
+    : await sql()`
+      SELECT id, business_name, industry, locations, service_categories, naics_codes
+      FROM business_profiles WHERE user_id = ${user.id}`;
   let profile: BusinessProfile | null = null;
   if (profileRows.length > 0) {
     const p = profileRows[0] as any;
@@ -278,7 +287,7 @@ interface DigestResult { entries: DigestEntry[]; hasRecentBids: boolean; }
 const fetchDigest = createServerFn({ method: "GET" }).handler(async (): Promise<DigestResult> => {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
-  const profiles = await sql()`SELECT id FROM business_profiles WHERE user_id = ${user.id}`;
+  let activeIdForDigest: number | null = null; try { const ur = await sql()`SELECT active_profile_id FROM users WHERE id = ${user.id}`; activeIdForDigest = (ur[0] as any)?.active_profile_id ?? null; } catch {} const profiles = activeIdForDigest ? await sql()`SELECT id FROM business_profiles WHERE id = ${activeIdForDigest} AND user_id = ${user.id}` : await sql()`SELECT id FROM business_profiles WHERE user_id = ${user.id}`;
   if (!profiles.length) return { entries: [], hasRecentBids: false };
 
   const recent = await sql()`SELECT id, title, agency, estimated_value FROM bids WHERE created_at > NOW() - INTERVAL '24 hours' ORDER BY created_at DESC LIMIT 7`;
@@ -517,18 +526,91 @@ const downloadPdf = createServerFn({ method: "POST" }).validator((data: unknown)
   if (!rows.length) throw new Error("Proposal draft not found");
   const row = rows[0] as any, title = String(row.title || "Proposal Draft"), agency = String(row.agency || "");
   const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
-  const esc = (v: string) => v.replace(/[^\x20-\x7E]/g, "?").replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
-  const lines: string[] = ["Contrax", title, agency, `Prepared ${date}`, ""];
-  for (const raw of String(row.draft_text || "").split(/\r?\n/)) { let line = raw; while (line.length > 88) { lines.push(line.slice(0, 88)); line = line.slice(88); } lines.push(line); }
-  const pages: string[][] = []; for (let i = 0; i < lines.length; i += 46) pages.push(lines.slice(i, i + 46));
-  const objects: string[] = [], add = (s: string) => { objects.push(s); return objects.length; };
-  const catalog = add(""), pagesObj = add(""), font = add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"), pageIds: number[] = [];
-  for (const page of pages) { const commands = ["BT", "/F1 20 Tf", "0.08 0.12 0.20 rg", "50 750 Td", `(${esc(page[0] || "Contrax")}) Tj`, "/F1 11 Tf", "0 -30 Td", "0.12 0.15 0.20 rg"]; for (const line of page.slice(1)) commands.push(`(${esc(line)}) Tj`, "0 -15 Td"); commands.push("ET", "BT", "/F1 9 Tf", "0.45 0.48 0.54 rg", "50 35 Td", "(Contrax - AI-assisted proposal draft) Tj", "ET"); const content = commands.join("\n"), contentId = add(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`); pageIds.push(add(`<< /Type /Page /Parent ${pagesObj} 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 ${font} 0 R >> >> /Contents ${contentId} 0 R >>`)); }
-  objects[pagesObj - 1] = `<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`; objects[catalog - 1] = `<< /Type /Catalog /Pages ${pagesObj} 0 R >>`;
-  let pdf = "%PDF-1.4\n"; const offsets = [0]; objects.forEach((body, i) => { offsets.push(pdf.length); pdf += `${i + 1} 0 obj\n${body}\nendobj\n`; }); const xref = pdf.length; pdf += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n`; for (let i = 1; i < offsets.length; i++) pdf += `${String(offsets[i]).padStart(10, "0")} 00000 n \n`; pdf += `trailer\n<< /Size ${objects.length + 1} /Root ${catalog} 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  return { base64: btoa(pdf), filename: `proposal-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) || "draft"}.pdf` };
-});
 
+  // White-label: check for agency branding
+  let brandName = "Contrax";
+  let logoBase64: string | null = null;
+  try {
+    const userRows = await sql()`SELECT active_profile_id FROM users WHERE id = ${user.id}`;
+    const activeId = (userRows[0] as any)?.active_profile_id ?? null;
+    const bpRows = activeId
+      ? await sql()`SELECT business_name, logo_url, logo_data FROM business_profiles WHERE id = ${activeId} AND user_id = ${user.id}`
+      : await sql()`SELECT business_name, logo_url, logo_data FROM business_profiles WHERE user_id = ${user.id} ORDER BY created_at LIMIT 1`;
+    if (bpRows.length) {
+      const bp = bpRows[0] as any;
+      if (bp.business_name) brandName = bp.business_name;
+      if (bp.logo_data) logoBase64 = bp.logo_data;
+      else if (bp.logo_url && bp.logo_url.startsWith("data:")) logoBase64 = bp.logo_url;
+    }
+  } catch { /* non-critical: fall back to Contrax branding */ }
+
+  // Generate PDF using jsPDF
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "pt", format: "letter" });
+  const pageW = 612, pageH = 792;
+  let y = 50;
+
+  if (logoBase64) {
+    try {
+      const imgData = logoBase64.includes("base64,") ? logoBase64.split("base64,")[1] : logoBase64;
+      doc.addImage(imgData, "PNG", 50, y, 40, 40);
+      y += 8;
+    } catch { /* skip invalid logo */ }
+  }
+  y += 38;
+
+  doc.setFontSize(20);
+  doc.setTextColor(20, 30, 50);
+  doc.text(brandName, 50, y);
+  y += 28;
+
+  doc.setFontSize(14);
+  doc.setTextColor(30, 40, 60);
+  doc.text(title, 50, y);
+  y += 20;
+
+  doc.setFontSize(11);
+  doc.setTextColor(80, 90, 110);
+  doc.text(agency, 50, y);
+  y += 18;
+
+  doc.setFontSize(10);
+  doc.setTextColor(120, 130, 140);
+  doc.text("Prepared " + date, 50, y);
+  y += 30;
+
+  doc.setDrawColor(200, 205, 210);
+  doc.line(50, y, pageW - 50, y);
+  y += 20;
+
+  doc.setFontSize(10);
+  doc.setTextColor(40, 45, 55);
+  const draftText = String(row.draft_text || "");
+  const lines = draftText.split(/\r?\n/);
+  for (const line of lines) {
+    if (y > pageH - 60) { doc.addPage(); y = 50; }
+    const wrapped = doc.splitTextToSize(line, pageW - 100);
+    for (const w of wrapped) {
+      if (y > pageH - 60) { doc.addPage(); y = 50; }
+      doc.text(w, 50, y);
+      y += 14;
+    }
+  }
+
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(9);
+    doc.setTextColor(115, 120, 135);
+    doc.text(brandName + " - AI-assisted proposal draft", 50, pageH - 30);
+    doc.text("Page " + i + " of " + pageCount, pageW - 80, pageH - 30);
+  }
+
+  const pdfOutput = doc.output("arraybuffer");
+  const base64 = btoa(String.fromCharCode(...new Uint8Array(pdfOutput)));
+  const filename = "proposal-" + title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 80) + ".pdf";
+  return { base64, filename };
+});
 const handleLogout = createServerFn({ method: "POST" }).handler(async () => logout());
 export interface TrialStatus { active: boolean; daysLeft: number; expired: boolean; }
 export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Promise<TrialStatus> => {

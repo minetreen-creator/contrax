@@ -245,9 +245,20 @@ const scoreBid = createServerFn({ method: "POST" })
       }
       if (cached.length) { const r = cached[0] as any; return { bid_id: r.bid_id, win_probability: Number(r.win_probability), competition_level: r.competition_level, agency_sentiment: r.agency_sentiment || '', size_fit: r.size_fit || '', experience_match: r.experience_match || '', similar_awards_note: r.similar_awards_note || '', naics_match: r.naics_match || '', ai_explanation: r.ai_explanation, generated_at: String(r.generated_at) } as BidScore; }
     }
+    // Lazy migration for business profile enrichment columns on existing databases.
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cage_code TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS sam_expiration DATE`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS duns TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS years_in_business INTEGER`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`; } catch {}
     const bids = await sql()`SELECT title, agency, description, category, location, estimated_value, due_date FROM bids WHERE id = ${data.bidId}`;
     if (!bids.length) throw new Error("Bid not found");
-    const profiles = await sql()`SELECT industry, locations, service_categories, naics_codes FROM business_profiles WHERE user_id = ${user.id}`;
+    const profiles = await sql()`SELECT industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement FROM business_profiles WHERE user_id = ${user.id}`;
     if (!profiles.length) throw new Error("Business profile not found — complete onboarding first");
     const bid = bids[0] as any, profile = profiles[0] as any;
     const profileNaicsCodes: string[] = Array.isArray(profile.naics_codes) ? profile.naics_codes : [];
@@ -266,7 +277,7 @@ Consider these factors:
 Return ONLY: {"win_probability": number 0-100, "competition_level":"Low"|"Moderate"|"High", "agency_sentiment":"...", "size_fit":"...", "experience_match":"...", "similar_awards_note":"...", "naics_match":"...", "ai_explanation":"..."}
 
 Learned patterns from the user's win/loss history:\n${learningCtxScore}\n\nOpportunity: title=${bid.title}; agency=${bid.agency}; description=${bid.description || "Not provided"}; category=${bid.category}; location=${bid.location}; estimated value=${bid.estimated_value}; due date=${bid.due_date}
-Business: industry=${profile.industry}; locations=${JSON.stringify(profile.locations)}; service categories=${JSON.stringify(profile.service_categories)}${profileNaicsCodes.length > 0 ? `; NAICS codes=${JSON.stringify(profileNaicsCodes)}` : ""}`;
+Business: industry=${profile.industry}; locations=${JSON.stringify(profile.locations)}; service categories=${JSON.stringify(profile.service_categories)}; NAICS codes=${profileNaicsCodes.length ? JSON.stringify(profileNaicsCodes) : "Not provided"}; UEI / CAGE Code=${profile.uei || "Not provided"} / ${profile.cage_code || "Not provided"}; SAM Registration Expiration=${profile.sam_expiration || "Not provided"}; Certifications=${JSON.stringify(profile.certifications || [])}; Years in Business / Employees / Annual Revenue=${profile.years_in_business ?? "Not provided"} / ${profile.employee_count ?? "Not provided"} / ${profile.annual_revenue || "Not provided"}; Past Performance Summary=${profile.past_performance_summary || "Not provided"}; Capability Statement=${profile.capability_statement || "Not provided"}`;
     try {
       const apiKey = process.env.OPENAI_API_KEY; if (!apiKey) throw new Error("OpenAI API key not configured");
       const response = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 900, temperature: 0.2 }) });
@@ -447,7 +458,18 @@ const generateProposal = createServerFn({ method: "GET" }).handler(async ({ data
     if (bidRows.length === 0) throw new Error("Bid not found");
     const bid = bidRows[0] as any;
 
-    const profileRows = await sql()`SELECT business_name, industry, locations, service_categories FROM business_profiles WHERE user_id = ${user.id}`;
+    // Lazy migration for business profile enrichment columns on existing databases.
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cage_code TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS sam_expiration DATE`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS duns TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS years_in_business INTEGER`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`; } catch {}
+    const profileRows = await sql()`SELECT business_name, industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement FROM business_profiles WHERE user_id = ${user.id}`;
     if (profileRows.length === 0) throw new Error("Business profile not found — complete onboarding first");
     const profile = profileRows[0] as any;
 
@@ -475,7 +497,14 @@ Business:
 Name: ${profile.business_name}
 Industry: ${profile.industry}
 Locations: ${JSON.stringify(profile.locations)}
-Services: ${JSON.stringify(profile.service_categories)}`;
+Services: ${JSON.stringify(profile.service_categories)}
+NAICS Codes: ${Array.isArray(profile.naics_codes) && profile.naics_codes.length ? JSON.stringify(profile.naics_codes) : "Not provided"}
+UEI / CAGE Code: ${profile.uei || "Not provided"} / ${profile.cage_code || "Not provided"}
+SAM Registration Expiration: ${profile.sam_expiration || "Not provided"}
+Certifications: ${JSON.stringify(profile.certifications || [])}
+Years in Business / Employees / Annual Revenue: ${profile.years_in_business ?? "Not provided"} / ${profile.employee_count ?? "Not provided"} / ${profile.annual_revenue || "Not provided"}
+Past Performance Summary: ${profile.past_performance_summary || "Not provided"}
+Capability Statement: ${profile.capability_statement || "Not provided"}`;
 
     let draftText: string;
     try {

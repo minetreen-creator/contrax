@@ -620,6 +620,7 @@ function WhoItsFor() {
     { name: "Plumbing & Electrical", icon: "🔧" },
     { name: "Marketing Agencies", icon: "📊" },
     { name: "Manufacturing", icon: "🏭" },
+    { name: "Healthcare", icon: "🏥" },
   ];
 
   return (

@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { detectCredentialRequirements, licenseMatches, daysUntilExpiry, type License } from "~/lib/healthcare";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ComplianceIssue {
@@ -25,6 +26,10 @@ interface ComplianceResult {
 }
 interface CheckResult {
   result: ComplianceResult;
+}
+interface LicenseProfile {
+  licenses: License[];
+  requiredCredentials: string[];
 }
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
@@ -70,6 +75,18 @@ const getBidContext = createServerFn({ method: "GET" }).handler(async ({ data }:
     bidDescription: bid.description ? String(bid.description) : null,
     proposalText: drafts.length > 0 ? String(drafts[0].draft_text) : null,
   };
+});
+
+const getLicenseProfile = createServerFn({ method: "GET" }).handler(async (): Promise<LicenseProfile> => {
+  const user = await getCurrentUser(); if (!user) return { licenses: [], requiredCredentials: [] };
+  try {
+    await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`;
+    const rows = await sql()`SELECT licenses FROM business_profiles WHERE user_id = ${user.id} LIMIT 1`;
+    const licenses = rows.length && Array.isArray((rows[0] as any).licenses) ? (rows[0] as any).licenses : [];
+    return { licenses, requiredCredentials: [] };
+  } catch {
+    return { licenses: [], requiredCredentials: [] };
+  }
 });
 
 export const checkCompliance = createServerFn({ method: "POST" })
@@ -138,10 +155,58 @@ ${data.proposalText.substring(0, 8000)}
       recommendation: String(i.recommendation || "Review and address this gap."),
     }));
 
-    const passCount = Math.max(0, Number(parsed.passCount) || 0);
-    const failCount = Math.max(0, Number(parsed.failCount) || issues.filter(i => i.severity === "CRITICAL" || i.severity === "HIGH").length);
-    const warningCount = Math.max(0, Number(parsed.warningCount) || issues.filter(i => i.severity === "MEDIUM" || i.severity === "LOW").length);
-    const summary = String(parsed.summary || "Compliance analysis complete. Review the flagged issues below.");
+    let passCount = Math.max(0, Number(parsed.passCount) || 0);
+    let failCount = Math.max(0, Number(parsed.failCount) || issues.filter(i => i.severity === "CRITICAL" || i.severity === "HIGH").length);
+    let warningCount = Math.max(0, Number(parsed.warningCount) || issues.filter(i => i.severity === "MEDIUM" || i.severity === "LOW").length);
+    let summary = String(parsed.summary || "Compliance analysis complete. Review the flagged issues below.");
+
+    // ── License & credential gap check ─────────────────────────────────────
+    // Cross-reference credentials the solicitation requires against the user's
+    // stored licenses and flag gaps / expirations.
+    const licenseIssues: ComplianceIssue[] = [];
+    try {
+      await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`;
+      const lrows = await sql()`SELECT licenses FROM business_profiles WHERE user_id = ${user.id} LIMIT 1`;
+      const licenses: License[] = lrows.length && Array.isArray((lrows[0] as any).licenses) ? (lrows[0] as any).licenses : [];
+      const required = detectCredentialRequirements(data.rfpText);
+      for (const req of required) {
+        const match = licenses.find((l) => licenseMatches(l, req));
+        if (!match) {
+          licenseIssues.push({
+            severity: "HIGH",
+            requirement: `Credential requirement: ${req}`,
+            finding: `⚠️ This RFP requires ${req} — not found in your profile's licenses`,
+            recommendation: `Add ${req} to your Licenses & Credentials in Settings, or obtain it before bidding.`,
+          });
+        } else if (match.expires) {
+          const days = daysUntilExpiry(match.expires);
+          if (days !== null && days < 0) {
+            licenseIssues.push({
+              severity: "HIGH",
+              requirement: `Credential requirement: ${req}`,
+              finding: `⚠️ Your stored ${req} expired on ${String(match.expires).slice(0, 10)}`,
+              recommendation: `Renew ${req} before submitting — an expired credential can disqualify your proposal.`,
+            });
+          } else if (days !== null && days <= 90) {
+            licenseIssues.push({
+              severity: "MEDIUM",
+              requirement: `Credential requirement: ${req}`,
+              finding: `Your stored ${req} expires in ${days} day${days === 1 ? "" : "s"} (${String(match.expires).slice(0, 10)})`,
+              recommendation: `Renew ${req} before it lapses to stay compliant for this contract.`,
+            });
+          }
+        }
+      }
+    } catch { /* licenses column may not exist on older databases — skip gap check */ }
+
+    if (licenseIssues.length > 0) {
+      issues.unshift(...licenseIssues);
+      for (const li of licenseIssues) {
+        if (li.severity === "CRITICAL" || li.severity === "HIGH") failCount += 1;
+        else if (li.severity === "MEDIUM" || li.severity === "LOW") warningCount += 1;
+      }
+      summary = summary + " License gap check found " + licenseIssues.length + " credential issue" + (licenseIssues.length === 1 ? "" : "s") + " (see flagged items).";
+    }
 
     const insert = await sql()`INSERT INTO compliance_checks (user_email, bid_title, rfp_text, proposal_text, compliance_score, issues, pass_count, fail_count, warning_count, summary) VALUES (${user.email}, ${data.bidTitle || null}, ${data.rfpText}, ${data.proposalText}, ${score}, ${JSON.stringify(issues)}::jsonb, ${passCount}, ${failCount}, ${warningCount}, ${summary}) RETURNING *`;
     return { result: mapResult(insert[0]) };
@@ -271,6 +336,12 @@ function CompliancePage() {
   const [form, setForm] = useState({ rfpText: "", proposalText: "", bidTitle: "" });
   const [loadingContext, setLoadingContext] = useState(false);
   const [contextBidTitle, setContextBidTitle] = useState<string | null>(null);
+  const [licenseProfile, setLicenseProfile] = useState<License[] | null>(null);
+
+  // On mount, load the user's stored licenses for the gap check
+  useEffect(() => {
+    getLicenseProfile().then((lp) => setLicenseProfile(lp.licenses)).catch(() => {});
+  }, []);
 
   // On mount, check for ?bid_id=X query param
   useEffect(() => {
@@ -347,6 +418,36 @@ function CompliancePage() {
               <h1 className="text-3xl font-bold text-slate-900">Compliance Checker</h1>
               <p className="mt-2 text-slate-500">Paste an RFP and your proposal draft — AI checks for compliance gaps, missing sections, and evaluation criteria mismatches.</p>
             </div>
+
+            {/* Stored licenses (cross-referenced by the gap check) */}
+            {licenseProfile && (
+              <div className="mb-6 rounded-2xl border border-teal-200 bg-teal-50/60 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-teal-700 mb-2">
+                  Credentials cross-referenced from your profile ({licenseProfile.length})
+                </p>
+                {licenseProfile.length === 0 ? (
+                  <p className="text-xs text-teal-700/70">
+                    No licenses stored yet — the license gap check will flag every credential this RFP requires.{" "}
+                    <a href="/settings" className="font-semibold underline hover:text-teal-900">Add licenses in Settings →</a>
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {licenseProfile.map((lic, i) => {
+                      const days = daysUntilExpiry(lic.expires);
+                      const expired = days !== null && days < 0;
+                      const expiringSoon = days !== null && !expired && days <= 90;
+                      return (
+                        <span key={i} className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${expired ? "border-red-200 bg-red-50 text-red-700" : expiringSoon ? "border-amber-200 bg-amber-50 text-amber-700" : "border-teal-200 bg-white text-teal-800"}`}>
+                          {lic.type}
+                          {lic.state ? ` (${lic.state})` : ""}
+                          {expired ? <span className="font-bold">● Expired</span> : expiringSoon ? <span className="font-bold">● {days}d left</span> : null}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Context banner */}
             {contextBidTitle && (

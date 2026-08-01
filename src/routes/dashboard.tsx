@@ -8,19 +8,34 @@ import { getPricingRecommendation, fetchPricingCache, type PricingRecommendation
 import { trackBid, untrackBid } from "~/routes/tracking";
 import { getLearningContext, getUserPatterns } from "~/lib/learning";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
+import { isHealthcareBid, countRoleMatches, type License } from "~/lib/healthcare";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface BusinessProfile {
   id: number; business_name: string; industry: string;
   locations: string[]; service_categories: string[]; naics_codes: string[];
+  specialties: string[]; licenses: License[];
 }
 interface Bid {
   id: number; title: string; agency: string; description: string;
   location: string; category: string; due_date: string; estimated_value: string;
-  source_url: string | null;
+  source_url: string | null; role_matches: number;
 }
 interface BidSummary {
   bid_id: number; summary_text: string; key_requirements: string[];
+  generated_at: string;
+}
+interface HealthcareSummary {
+  bid_id: number;
+  is_healthcare: boolean;
+  required_roles: { role: string; headcount: string }[];
+  shift_schedules: string;
+  facility_type: string;
+  credential_requirements: string[];
+  contract_duration: string;
+  renewal_terms: string;
+  key_notes: string;
+  summary_text: string;
   generated_at: string;
 }
 interface ProposalDraft {
@@ -40,6 +55,7 @@ interface BidScore {
   experience_match: string;
   similar_awards_note: string;
   naics_match: string;
+  role_fit: string;
   ai_explanation: string; generated_at: string;
 }
 interface SavedMatch { bid_id: number; status: string; }
@@ -84,10 +100,14 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
     activeProfileId = (userRows[0] as any)?.active_profile_id ?? null;
   } catch { /* column may not exist yet */ }
 
+  // Lazy migration guards for healthcare staffing columns.
+  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
+  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
+
   const profileRows = activeProfileId
-    ? await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes FROM business_profiles WHERE id = ${activeProfileId} AND user_id = ${user.id}`
+    ? await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes, specialties, licenses FROM business_profiles WHERE id = ${activeProfileId} AND user_id = ${user.id}`
     : await sql()`
-      SELECT id, business_name, industry, locations, service_categories, naics_codes
+      SELECT id, business_name, industry, locations, service_categories, naics_codes, specialties, licenses
       FROM business_profiles WHERE user_id = ${user.id}`;
   let profile: BusinessProfile | null = null;
   if (profileRows.length > 0) {
@@ -97,6 +117,8 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
       locations: Array.isArray(p.locations) ? p.locations : [],
       service_categories: Array.isArray(p.service_categories) ? p.service_categories : [],
       naics_codes: Array.isArray(p.naics_codes) ? p.naics_codes : [],
+      specialties: Array.isArray(p.specialties) ? p.specialties : [],
+      licenses: Array.isArray(p.licenses) ? p.licenses : [],
     };
   }
 
@@ -110,10 +132,12 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS naics_match TEXT DEFAULT ''`; } catch {}
 
   const bidRows = await sql()`SELECT id, title, agency, description, location, category, due_date, estimated_value, source_url FROM bids ORDER BY due_date ASC`;
+  const userSpecialties = profile?.specialties || [];
   const bids: Bid[] = (bidRows as any[]).map((b) => ({
     id: b.id, title: b.title, agency: b.agency, description: b.description,
     location: b.location, category: b.category, due_date: String(b.due_date),
     estimated_value: b.estimated_value, source_url: b.source_url,
+    role_matches: countRoleMatches(b as any, userSpecialties),
   }));
 
   const matchRows = await sql()`SELECT bid_id, status FROM saved_matches WHERE user_id = ${user.id}`;
@@ -133,7 +157,7 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   // Fetch scores with backward compat: try new columns first, fall back to old names
   let scoreRows: any[];
   try {
-    scoreRows = await sql()`SELECT bid_id, win_probability, competition_level, agency_sentiment, size_fit, experience_match, similar_awards_note, naics_match, ai_explanation, generated_at FROM bid_scores WHERE user_id = ${user.id}`;
+    scoreRows = await sql()`SELECT bid_id, win_probability, competition_level, agency_sentiment, size_fit, experience_match, similar_awards_note, naics_match, role_fit, ai_explanation, generated_at FROM bid_scores WHERE user_id = ${user.id}`;
   } catch {
     // Fallback: old schema with match_score/naics_fit/similarity_notes/profitability_estimate
     const oldRows = await sql()`SELECT bid_id, match_score, competition_level, naics_fit, similarity_notes, profitability_estimate, ai_explanation, generated_at FROM bid_scores WHERE user_id = ${user.id}`;
@@ -146,11 +170,12 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
       experience_match: r.similarity_notes || '',
       similar_awards_note: '',
       naics_match: '',
+      role_fit: '',
       ai_explanation: r.ai_explanation,
       generated_at: String(r.generated_at),
     }));
   }
-  const scores: BidScore[] = (scoreRows as any[]).map((s) => ({ bid_id: s.bid_id, win_probability: Number(s.win_probability), competition_level: s.competition_level, agency_sentiment: s.agency_sentiment || '', size_fit: s.size_fit || '', experience_match: s.experience_match || '', similar_awards_note: s.similar_awards_note || '', naics_match: s.naics_match || '', ai_explanation: s.ai_explanation, generated_at: String(s.generated_at) }));
+  const scores: BidScore[] = (scoreRows as any[]).map((s) => ({ bid_id: s.bid_id, win_probability: Number(s.win_probability), competition_level: s.competition_level, agency_sentiment: s.agency_sentiment || '', size_fit: s.size_fit || '', experience_match: s.experience_match || '', similar_awards_note: s.similar_awards_note || '', naics_match: s.naics_match || '', role_fit: s.role_fit || '', ai_explanation: s.ai_explanation, generated_at: String(s.generated_at) }));
 
   await sql()`CREATE TABLE IF NOT EXISTS bid_recommendations (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, win_probability INTEGER, effort_level TEXT DEFAULT 'medium', competition_level TEXT DEFAULT 'medium', strategic_fit TEXT DEFAULT 'moderate', recommendation TEXT DEFAULT 'CAUTIOUS', summary TEXT DEFAULT '', factors JSONB DEFAULT '[]'::jsonb, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
   const recommendationRows = await sql()`SELECT bid_id, bid_title, win_probability, effort_level, competition_level, strategic_fit, recommendation, summary, factors, created_at FROM bid_recommendations WHERE user_email = ${user.email}`;
@@ -230,20 +255,21 @@ const scoreBid = createServerFn({ method: "POST" })
     try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS experience_match TEXT DEFAULT ''`; } catch {}
     try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS similar_awards_note TEXT DEFAULT ''`; } catch {}
     try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS naics_match TEXT DEFAULT ''`; } catch {}
+    try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS role_fit TEXT DEFAULT ''`; } catch {}
     if (!data.regenerate) {
       let cached: any[];
       try {
-        cached = await sql()`SELECT bid_id, win_probability, competition_level, agency_sentiment, size_fit, experience_match, similar_awards_note, naics_match, ai_explanation, generated_at FROM bid_scores WHERE user_id = ${user.id} AND bid_id = ${data.bidId}`;
+        cached = await sql()`SELECT bid_id, win_probability, competition_level, agency_sentiment, size_fit, experience_match, similar_awards_note, naics_match, role_fit, ai_explanation, generated_at FROM bid_scores WHERE user_id = ${user.id} AND bid_id = ${data.bidId}`;
       } catch {
         // Fallback: old schema
         const oldCached = await sql()`SELECT bid_id, match_score, competition_level, naics_fit, similarity_notes, profitability_estimate, ai_explanation, generated_at FROM bid_scores WHERE user_id = ${user.id} AND bid_id = ${data.bidId}`;
         if (oldCached.length) {
           const r = oldCached[0] as any;
-          return { bid_id: r.bid_id, win_probability: Number(r.match_score), competition_level: r.competition_level, agency_sentiment: r.naics_fit || '', size_fit: r.profitability_estimate || '', experience_match: r.similarity_notes || '', similar_awards_note: '', naics_match: '', ai_explanation: r.ai_explanation, generated_at: String(r.generated_at) } as BidScore;
+          return { bid_id: r.bid_id, win_probability: Number(r.match_score), competition_level: r.competition_level, agency_sentiment: r.naics_fit || '', size_fit: r.profitability_estimate || '', experience_match: r.similarity_notes || '', similar_awards_note: '', naics_match: '', role_fit: '', ai_explanation: r.ai_explanation, generated_at: String(r.generated_at) } as BidScore;
         }
         cached = [];
       }
-      if (cached.length) { const r = cached[0] as any; return { bid_id: r.bid_id, win_probability: Number(r.win_probability), competition_level: r.competition_level, agency_sentiment: r.agency_sentiment || '', size_fit: r.size_fit || '', experience_match: r.experience_match || '', similar_awards_note: r.similar_awards_note || '', naics_match: r.naics_match || '', ai_explanation: r.ai_explanation, generated_at: String(r.generated_at) } as BidScore; }
+      if (cached.length) { const r = cached[0] as any; return { bid_id: r.bid_id, win_probability: Number(r.win_probability), competition_level: r.competition_level, agency_sentiment: r.agency_sentiment || '', size_fit: r.size_fit || '', experience_match: r.experience_match || '', similar_awards_note: r.similar_awards_note || '', naics_match: r.naics_match || '', role_fit: r.role_fit || '', ai_explanation: r.ai_explanation, generated_at: String(r.generated_at) } as BidScore; }
     }
     // Lazy migration for business profile enrichment columns on existing databases.
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT`; } catch {}
@@ -256,9 +282,11 @@ const scoreBid = createServerFn({ method: "POST" })
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT`; } catch {}
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT`; } catch {}
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
     const bids = await sql()`SELECT title, agency, description, category, location, estimated_value, due_date FROM bids WHERE id = ${data.bidId}`;
     if (!bids.length) throw new Error("Bid not found");
-    const profiles = await sql()`SELECT industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement FROM business_profiles WHERE user_id = ${user.id}`;
+    const profiles = await sql()`SELECT industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses FROM business_profiles WHERE user_id = ${user.id}`;
     if (!profiles.length) throw new Error("Business profile not found — complete onboarding first");
     const bid = bids[0] as any, profile = profiles[0] as any;
     const profileNaicsCodes: string[] = Array.isArray(profile.naics_codes) ? profile.naics_codes : [];
@@ -273,11 +301,12 @@ Consider these factors:
 5. Your experience — does the user's profile/services match what's being asked for?
 6. Past award winners — who usually wins these and why? Incumbent advantage, set-aside patterns, etc.
 7. NAICS Code Match — how well do the user's NAICS codes align with this bid's category and description? NAICS codes are the standard industry classification for government contracting.
+8. Role Fit — for staffing agencies: does the bid require roles the user staffs (e.g. RN, LPN, CNA, physician, physical therapist)? Strong role overlap raises win probability; required roles the user cannot staff lower it. Mention specific roles in your analysis.
 
-Return ONLY: {"win_probability": number 0-100, "competition_level":"Low"|"Moderate"|"High", "agency_sentiment":"...", "size_fit":"...", "experience_match":"...", "similar_awards_note":"...", "naics_match":"...", "ai_explanation":"..."}
+Return ONLY: {"win_probability": number 0-100, "competition_level":"Low"|"Moderate"|"High", "agency_sentiment":"...", "size_fit":"...", "experience_match":"...", "similar_awards_note":"...", "naics_match":"...", "role_fit":"...", "ai_explanation":"..."}
 
 Learned patterns from the user's win/loss history:\n${learningCtxScore}\n\nOpportunity: title=${bid.title}; agency=${bid.agency}; description=${bid.description || "Not provided"}; category=${bid.category}; location=${bid.location}; estimated value=${bid.estimated_value}; due date=${bid.due_date}
-Business: industry=${profile.industry}; locations=${JSON.stringify(profile.locations)}; service categories=${JSON.stringify(profile.service_categories)}; NAICS codes=${profileNaicsCodes.length ? JSON.stringify(profileNaicsCodes) : "Not provided"}; UEI / CAGE Code=${profile.uei || "Not provided"} / ${profile.cage_code || "Not provided"}; SAM Registration Expiration=${profile.sam_expiration || "Not provided"}; Certifications=${JSON.stringify(profile.certifications || [])}; Years in Business / Employees / Annual Revenue=${profile.years_in_business ?? "Not provided"} / ${profile.employee_count ?? "Not provided"} / ${profile.annual_revenue || "Not provided"}; Past Performance Summary=${profile.past_performance_summary || "Not provided"}; Capability Statement=${profile.capability_statement || "Not provided"}`;
+Business: industry=${profile.industry}; locations=${JSON.stringify(profile.locations)}; service categories=${JSON.stringify(profile.service_categories)}; NAICS codes=${profileNaicsCodes.length ? JSON.stringify(profileNaicsCodes) : "Not provided"}; Staffing specialties=${JSON.stringify(Array.isArray(profile.specialties) ? profile.specialties : [])}; Staff licenses & credentials=${JSON.stringify(Array.isArray(profile.licenses) ? profile.licenses : [])}; UEI / CAGE Code=${profile.uei || "Not provided"} / ${profile.cage_code || "Not provided"}; SAM Registration Expiration=${profile.sam_expiration || "Not provided"}; Certifications=${JSON.stringify(profile.certifications || [])}; Years in Business / Employees / Annual Revenue=${profile.years_in_business ?? "Not provided"} / ${profile.employee_count ?? "Not provided"} / ${profile.annual_revenue || "Not provided"}; Past Performance Summary=${profile.past_performance_summary || "Not provided"}; Capability Statement=${profile.capability_statement || "Not provided"}`;
     try {
       const apiKey = process.env.OPENAI_API_KEY; if (!apiKey) throw new Error("OpenAI API key not configured");
       const response = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 900, temperature: 0.2 }) });
@@ -285,8 +314,8 @@ Business: industry=${profile.industry}; locations=${JSON.stringify(profile.locat
       const json = await response.json() as any, content = json.choices?.[0]?.message?.content;
       const match = content?.match(/\{[\s\S]*\}/); if (!match) throw new Error("Could not parse AI response");
       const parsed = JSON.parse(match[0]);
-      const score = { bid_id: data.bidId, win_probability: Math.max(0, Math.min(100, Math.round(Number(parsed.win_probability)))), competition_level: ["Low","Moderate","High"].includes(parsed.competition_level) ? parsed.competition_level : "Moderate", agency_sentiment: String(parsed.agency_sentiment || "No agency sentiment analysis provided."), size_fit: String(parsed.size_fit || "No size fit analysis provided."), experience_match: String(parsed.experience_match || "No experience match analysis provided."), similar_awards_note: String(parsed.similar_awards_note || "No similar awards data available."), naics_match: String(parsed.naics_match || "No NAICS code match analysis provided."), ai_explanation: String(parsed.ai_explanation || "No explanation provided."), generated_at: new Date().toISOString() } as BidScore;
-      await sql()`INSERT INTO bid_scores (user_id, bid_id, win_probability, competition_level, agency_sentiment, size_fit, experience_match, similar_awards_note, naics_match, ai_explanation) VALUES (${user.id}, ${data.bidId}, ${score.win_probability}, ${score.competition_level}, ${score.agency_sentiment}, ${score.size_fit}, ${score.experience_match}, ${score.similar_awards_note}, ${score.naics_match}, ${score.ai_explanation}) ON CONFLICT (user_id, bid_id) DO UPDATE SET win_probability=EXCLUDED.win_probability, competition_level=EXCLUDED.competition_level, agency_sentiment=EXCLUDED.agency_sentiment, size_fit=EXCLUDED.size_fit, experience_match=EXCLUDED.experience_match, similar_awards_note=EXCLUDED.similar_awards_note, naics_match=EXCLUDED.naics_match, ai_explanation=EXCLUDED.ai_explanation, generated_at=NOW()`;
+      const score = { bid_id: data.bidId, win_probability: Math.max(0, Math.min(100, Math.round(Number(parsed.win_probability)))), competition_level: ["Low","Moderate","High"].includes(parsed.competition_level) ? parsed.competition_level : "Moderate", agency_sentiment: String(parsed.agency_sentiment || "No agency sentiment analysis provided."), size_fit: String(parsed.size_fit || "No size fit analysis provided."), experience_match: String(parsed.experience_match || "No experience match analysis provided."), similar_awards_note: String(parsed.similar_awards_note || "No similar awards data available."), naics_match: String(parsed.naics_match || "No NAICS code match analysis provided."), role_fit: String(parsed.role_fit || "No role fit analysis provided."), ai_explanation: String(parsed.ai_explanation || "No explanation provided."), generated_at: new Date().toISOString() } as BidScore;
+      await sql()`INSERT INTO bid_scores (user_id, bid_id, win_probability, competition_level, agency_sentiment, size_fit, experience_match, similar_awards_note, naics_match, role_fit, ai_explanation) VALUES (${user.id}, ${data.bidId}, ${score.win_probability}, ${score.competition_level}, ${score.agency_sentiment}, ${score.size_fit}, ${score.experience_match}, ${score.similar_awards_note}, ${score.naics_match}, ${score.role_fit}, ${score.ai_explanation}) ON CONFLICT (user_id, bid_id) DO UPDATE SET win_probability=EXCLUDED.win_probability, competition_level=EXCLUDED.competition_level, agency_sentiment=EXCLUDED.agency_sentiment, size_fit=EXCLUDED.size_fit, experience_match=EXCLUDED.experience_match, similar_awards_note=EXCLUDED.similar_awards_note, naics_match=EXCLUDED.naics_match, role_fit=EXCLUDED.role_fit, ai_explanation=EXCLUDED.ai_explanation, generated_at=NOW()`;
       await trackActivity(user.email, "scored_bid", data.bidId, `${score.win_probability}% Win Chance`);
       return score;
     } catch (err) { throw new Error(`Win probability analysis failed: ${err instanceof Error ? err.message : "AI request failed"}`); }
@@ -440,6 +469,97 @@ Estimated Value: ${bid.estimated_value || "Not specified"}`;
       key_requirements: parsed.requirements,
       generated_at: new Date().toISOString(),
     };
+  });
+
+const generateHealthcareSummary = createServerFn({ method: "POST" })
+  .validator((data: unknown) => ({ bidId: Number((data as { bidId: number }).bidId) }))
+  .handler(async ({ data }) => {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Not authenticated");
+
+    const bidRows = await sql()`SELECT title, agency, description, category, due_date, estimated_value FROM bids WHERE id = ${data.bidId}`;
+    if (bidRows.length === 0) throw new Error("Bid not found");
+    const bid = bidRows[0] as any;
+
+    // Only produce a healthcare summary for healthcare opportunities.
+    if (!isHealthcareBid(bid)) {
+      return { bid_id: data.bidId, is_healthcare: false, required_roles: [], shift_schedules: "", facility_type: "", credential_requirements: [], contract_duration: "", renewal_terms: "", key_notes: "", summary_text: "", generated_at: new Date().toISOString() } as HealthcareSummary;
+    }
+
+    // Cache the structured summary per bid.
+    await sql()`CREATE TABLE IF NOT EXISTS healthcare_bid_summaries (id SERIAL PRIMARY KEY, bid_id INTEGER UNIQUE REFERENCES bids(id), summary_json JSONB NOT NULL DEFAULT '{}'::jsonb, created_at TIMESTAMPTZ DEFAULT NOW())`;
+    const cached = await sql()`SELECT summary_json, created_at FROM healthcare_bid_summaries WHERE bid_id = ${data.bidId}`;
+    if (cached.length > 0) {
+      const c = cached[0] as any;
+      return { bid_id: data.bidId, is_healthcare: true, ...(typeof c.summary_json === "object" ? c.summary_json : {}), generated_at: String(c.created_at || new Date().toISOString()) } as HealthcareSummary;
+    }
+
+    const prompt = `You are a healthcare staffing procurement analyst. This opportunity appears to be a healthcare staffing contract. Extract the staffing-relevant details and return ONLY valid JSON — no markdown, no code fences.
+
+Required JSON shape:
+{
+  "required_roles": [{"role": "RN", "headcount": "5 full-time"}],
+  "shift_schedules": "Shifts, hours per week, coverage windows",
+  "facility_type": "hospital | clinic | correctional | military | long-term care | home health | other",
+  "credential_requirements": ["Active RN license (state)", "ACLS", "BLS", "background check"],
+  "contract_duration": "Base period and any option periods",
+  "renewal_terms": "Renewal / extension terms if stated",
+  "key_notes": "Anything else a staffing agency must know (onboarding, EMR systems, uniforms, ratios)",
+  "summary_text": "2-3 sentence plain-English overview of what the contract asks a staffing vendor to deliver"
+}
+
+Rules:
+- Pull specific role names and headcounts from the text. If headcount is not stated, say "Not specified".
+- Only list credentials that are actually mentioned or clearly implied by the requirements.
+- If a field is not addressed in the text, use "Not specified" (or [] for lists).
+
+Opportunity:
+Title: ${bid.title}
+Agency: ${bid.agency}
+Description: ${bid.description || "Not provided"}
+Category: ${bid.category || "Not specified"}
+Due Date: ${String(bid.due_date)}
+Estimated Value: ${bid.estimated_value || "Not specified"}`;
+
+    let parsed: any;
+    try {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) throw new Error("OpenAI API key not configured");
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
+        body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 1200, temperature: 0.2 }),
+      });
+      if (!response.ok) throw new Error(`OpenAI API error (${response.status})`);
+      const json = await response.json() as any;
+      const content = json.choices?.[0]?.message?.content;
+      if (!content) throw new Error("No content in OpenAI response");
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error("Could not parse JSON from AI response");
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "AI request failed";
+      throw new Error(`Healthcare summary generation failed: ${msg}`);
+    }
+
+    const result: HealthcareSummary = {
+      bid_id: data.bidId,
+      is_healthcare: true,
+      required_roles: Array.isArray(parsed.required_roles) ? parsed.required_roles.slice(0, 30).map((r: any) => ({ role: String(r.role || "Role"), headcount: String(r.headcount || "Not specified") })) : [],
+      shift_schedules: String(parsed.shift_schedules || "Not specified"),
+      facility_type: String(parsed.facility_type || "Not specified"),
+      credential_requirements: Array.isArray(parsed.credential_requirements) ? parsed.credential_requirements.map((c: any) => String(c)) : [],
+      contract_duration: String(parsed.contract_duration || "Not specified"),
+      renewal_terms: String(parsed.renewal_terms || "Not specified"),
+      key_notes: String(parsed.key_notes || "Not specified"),
+      summary_text: String(parsed.summary_text || "No summary provided."),
+      generated_at: new Date().toISOString(),
+    };
+
+    const { generated_at: _g, ...cacheable } = result;
+    await sql()`INSERT INTO healthcare_bid_summaries (bid_id, summary_json) VALUES (${data.bidId}, ${JSON.stringify(cacheable)}::jsonb) ON CONFLICT (bid_id) DO UPDATE SET summary_json = EXCLUDED.summary_json, created_at = NOW()`;
+    await trackActivity(user.email, "healthcare_summary", data.bidId, "Healthcare View summary");
+    return result;
   });
 
 const generateProposal = createServerFn({ method: "GET" }).handler(async ({ data }: { data: { bidId: number } }) => {
@@ -810,6 +930,9 @@ function DashboardPage() {
 
   // AI state
   const [summaries, setSummaries] = useState<Record<number, BidSummary>>({});
+  const [healthcareSummaries, setHealthcareSummaries] = useState<Record<number, HealthcareSummary>>({});
+  const [healthcareView, setHealthcareView] = useState<Record<number, boolean>>({});
+  const [generatingHealthcare, setGeneratingHealthcare] = useState<Set<number>>(new Set());
   const [drafts, setDrafts] = useState<Record<number, ProposalDraft>>({});
   const [scores, setScores] = useState<Record<number, BidScore>>({});
   const [recommendations, setRecommendations] = useState<Record<number, BidRecommendation>>({});
@@ -884,6 +1007,10 @@ function DashboardPage() {
 
   const filtered = profile ? bids.filter((b) => matchBid(b, profile) && !dismissedBids.has(b.id)) : [];
   const sorted = [...filtered].sort((a, b) => {
+    // Role-match boost: bids matching the user's staffing specialties float to the top.
+    const aBoost = (a.role_matches || 0) > 0 ? 0 : 1;
+    const bBoost = (b.role_matches || 0) > 0 ? 0 : 1;
+    if (aBoost !== bBoost) return aBoost - bBoost;
     if (sortBy === "newest") return new Date(b.due_date).getTime() - new Date(a.due_date).getTime();
     if (sortBy === "value") return (b.estimated_value?.length || 0) - (a.estimated_value?.length || 0);
     return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
@@ -940,6 +1067,20 @@ function DashboardPage() {
       setAiError((p) => ({ ...p, [bidId]: err instanceof Error ? err.message : "Summary generation failed" }));
     } finally {
       setGeneratingSummary((p) => { const n = new Set(p); n.delete(bidId); return n; });
+    }
+  }, []);
+
+  const doGenerateHealthcareSummary = useCallback(async (bidId: number) => {
+    setGeneratingHealthcare((p) => new Set(p).add(bidId));
+    setAiError((p) => { const n = { ...p }; delete n[bidId]; return n; });
+    try {
+      const result = await generateHealthcareSummary({ data: { bidId } });
+      setHealthcareSummaries((p) => ({ ...p, [bidId]: result }));
+      if (result.is_healthcare) setHealthcareView((p) => ({ ...p, [bidId]: true }));
+    } catch (err) {
+      setAiError((p) => ({ ...p, [bidId]: err instanceof Error ? err.message : "Healthcare summary generation failed" }));
+    } finally {
+      setGeneratingHealthcare((p) => { const n = new Set(p); n.delete(bidId); return n; });
     }
   }, []);
 
@@ -1228,6 +1369,10 @@ function DashboardPage() {
               const isGenSummary = generatingSummary.has(bid.id);
               const isGenProposal = generatingProposal.has(bid.id);
               const errMsg = aiError[bid.id];
+              const hcBid = isHealthcareBid(bid);
+              const hcOn = hcBid && !!healthcareView[bid.id];
+              const hcSummary = healthcareSummaries[bid.id];
+              const isGenHealthcare = generatingHealthcare.has(bid.id);
 
               return (
                 <div key={bid.id} className={`rounded-2xl border bg-white shadow-sm transition-all ${isExpanded ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200 hover:border-slate-300"}`}>
@@ -1263,6 +1408,12 @@ function DashboardPage() {
                         </span>
                         <span className="font-medium text-slate-700">{bid.estimated_value}</span>
                         <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{bid.category}</span>
+                        {bid.role_matches > 0 && (
+                          <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">🔵 {bid.role_matches} role match{bid.role_matches !== 1 ? "es" : ""}</span>
+                        )}
+                        {isHealthcareBid(bid) && (
+                          <span className="inline-flex items-center rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-700">🩺 Healthcare</span>
+                        )}
                       </div>
                     </div>
                     <svg className={`hidden sm:block h-5 w-5 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -1457,7 +1608,89 @@ function DashboardPage() {
                         {/* Summary Tab */}
                         {currentTab === "summary" && (
                           <div>
-                            {summary ? (
+                            {hcBid && (
+                            <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-teal-200 bg-teal-50/70 px-4 py-2.5">
+                              <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-teal-700">🩺 Healthcare View</span>
+                              <div className="flex rounded-lg border border-slate-200 bg-white p-0.5 shadow-sm">
+                                <button type="button" onClick={() => setHealthcareView((p) => ({ ...p, [bid.id]: false }))} className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${!hcOn ? "bg-teal-600 text-white" : "text-slate-600 hover:text-slate-800"}`}>Standard</button>
+                                <button type="button" onClick={() => { if (!hcSummary && !isGenHealthcare) doGenerateHealthcareSummary(bid.id); setHealthcareView((p) => ({ ...p, [bid.id]: true })); }} className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${hcOn ? "bg-teal-600 text-white" : "text-slate-600 hover:text-slate-800"}`}>Healthcare</button>
+                              </div>
+                              <span className="text-xs text-teal-600">{hcOn && hcSummary ? "Staffing-focused breakdown" : hcOn ? "Generating staffing breakdown…" : "Extract roles, shifts, credentials & contract terms"}</span>
+                            </div>
+                          )}
+                          {hcOn ? (
+                            hcSummary ? (
+                              <div className="space-y-4">
+                                <div className="rounded-xl border border-teal-200 bg-gradient-to-br from-teal-50 to-white p-5">
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-teal-600 mb-2 flex items-center gap-1.5">🩺 AI Healthcare Summary</p>
+                                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{hcSummary.summary_text}</p>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-white p-5">
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Required Roles &amp; Headcount</p>
+                                  {hcSummary.required_roles.length > 0 ? (
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                      {hcSummary.required_roles.map((r, i) => (
+                                        <div key={i} className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2.5">
+                                          <span className="text-sm font-semibold text-slate-800">{r.role}</span>
+                                          <span className="text-xs text-slate-500">{r.headcount}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : <p className="text-sm text-slate-400">Not specified</p>}
+                                </div>
+                                <div className="grid gap-4 sm:grid-cols-3">
+                                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Facility Type</p><p className="text-sm text-slate-700">{hcSummary.facility_type}</p></div>
+                                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Contract Duration</p><p className="text-sm text-slate-700">{hcSummary.contract_duration}</p></div>
+                                  <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Renewal Terms</p><p className="text-sm text-slate-700">{hcSummary.renewal_terms}</p></div>
+                                </div>
+                                <div className="rounded-xl border border-slate-200 bg-white p-4"><p className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">Shift Schedules / Hours</p><p className="text-sm text-slate-700 whitespace-pre-line">{hcSummary.shift_schedules}</p></div>
+                                <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+                                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 mb-2">Credential Requirements</p>
+                                  {hcSummary.credential_requirements.length > 0 ? (
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {hcSummary.credential_requirements.map((c, i) => (
+                                        <span key={i} className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs font-medium text-amber-800">🪪 {c}</span>
+                                      ))}
+                                    </div>
+                                  ) : <p className="text-sm text-slate-400">Not specified</p>}
+                                  <a href={`/compliance?bid_id=${bid.id}`} className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-600">Check against your licenses →</a>
+                                </div>
+                                {hcSummary.key_notes && hcSummary.key_notes !== "Not specified" && (
+                                  <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-700 mb-1">Key Notes</p>
+                                    <p className="text-sm text-slate-700 whitespace-pre-line">{hcSummary.key_notes}</p>
+                                  </div>
+                                )}
+                                <div className="flex items-center gap-3">
+                                  <button type="button" onClick={() => doGenerateHealthcareSummary(bid.id)} disabled={isGenHealthcare} className="text-xs font-medium text-slate-400 hover:text-teal-600 disabled:opacity-50">{isGenHealthcare ? "Regenerating..." : "Regenerate"}</button>
+                                  <p className="text-xs text-slate-400">Generated {fmtDateTime(hcSummary.generated_at)}</p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center py-8 text-center">
+                                {isGenHealthcare ? (
+                                  <>
+                                    <div className="flex items-center gap-1 mb-3">
+                                      <span className="h-2 w-2 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+                                      <span className="h-2 w-2 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+                                      <span className="h-2 w-2 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: "300ms" }} />
+                                    </div>
+                                    <p className="text-sm font-medium text-slate-600">Extracting staffing requirements...</p>
+                                    <p className="text-xs text-slate-400 mt-1">Roles, headcount, shifts, credentials, and contract terms</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 mb-4 shadow-lg shadow-teal-200">
+                                      <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 21s-6-4.35-9-8.5C1.5 9.5 3.5 6 6.5 6c2 0 3.5 1 4.5 2.5C12 7 13.5 6 15.5 6c3 0 5 3.5 4.5 6.5C18 16.65 12 21 12 21z" /></svg>
+                                    </div>
+                                    <p className="text-sm font-semibold text-slate-700">Generate the Healthcare View</p>
+                                    <p className="text-xs text-slate-500 mt-1 mb-4 max-w-xs">AI extracts required roles, headcount, shift schedules, facility type, credentials, and contract terms for your staffing team.</p>
+                                    <button type="button" onClick={() => doGenerateHealthcareSummary(bid.id)} className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-teal-700 active:scale-[0.98] transition-all">🩺 Generate Healthcare Summary</button>
+                                  </>
+                                )}
+                              </div>
+                            )
+                          ) : summary ? (
                               <div className="space-y-4">
                                 <div className="rounded-xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5">
                                   <div className="flex items-center justify-between mb-3">
@@ -1539,6 +1772,9 @@ function DashboardPage() {
                             </div>
                             {score.naics_match && (
                               <div className="rounded-lg border border-purple-100 bg-purple-50/50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-purple-600">NAICS Code Match</p><p className="mt-1 text-sm leading-relaxed text-slate-700">{score.naics_match}</p></div>
+                            )}
+                            {score.role_fit && (
+                              <div className="rounded-lg border border-teal-100 bg-teal-50/50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-teal-600">Role Fit (Staffing)</p><p className="mt-1 text-sm leading-relaxed text-slate-700">{score.role_fit}</p></div>
                             )}
                             <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-blue-600">AI Analysis</p><p className="mt-1 text-sm leading-relaxed text-slate-700">{score.ai_explanation}</p></div>
                             <button type="button" onClick={() => doScore(bid.id, true)} disabled={isScoring} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">{isScoring ? "Regenerating…" : "Regenerate Score"}</button>

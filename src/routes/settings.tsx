@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { SPECIALTY_OPTIONS, daysUntilExpiry, type License } from "~/lib/healthcare";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -65,6 +66,8 @@ interface BusinessProfileFull {
   annual_revenue: string | null;
   past_performance_summary: string | null;
   capability_statement: string | null;
+  specialties: string[];
+  licenses: License[];
 }
 
 interface SettingsFormData {
@@ -82,6 +85,8 @@ interface SettingsFormData {
   industry: string;
   locations: string[];
   naicsCodes: string;
+  specialties: string[];
+  licenses: License[];
 }
 
 // ── Server Functions ─────────────────────────────────────────────────────────
@@ -90,11 +95,16 @@ const fetchProfile = createServerFn({ method: "GET" }).handler(async (): Promise
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
+  // Lazy migration guards for the healthcare staffing columns.
+  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
+  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
+
   const rows = await sql()`
     SELECT id, business_name, industry, locations, service_categories, naics_codes,
            uei, cage_code, duns, sam_expiration, certifications,
            years_in_business, employee_count, annual_revenue,
-           past_performance_summary, capability_statement
+           past_performance_summary, capability_statement,
+           specialties, licenses
     FROM business_profiles
     WHERE user_id = ${user.id}
     LIMIT 1
@@ -120,6 +130,8 @@ const fetchProfile = createServerFn({ method: "GET" }).handler(async (): Promise
     annual_revenue: p.annual_revenue ?? null,
     past_performance_summary: p.past_performance_summary ?? null,
     capability_statement: p.capability_statement ?? null,
+    specialties: Array.isArray(p.specialties) ? p.specialties : [],
+    licenses: Array.isArray(p.licenses) ? p.licenses : [],
   };
 });
 
@@ -147,11 +159,17 @@ const saveProfile = createServerFn({ method: "POST" })
       industry: d.industry?.trim() || "",
       locations: d.locations || [],
       naicsCodes: d.naicsCodes?.trim() || null,
+      specialties: Array.isArray(d.specialties) ? d.specialties.filter((s: string) => typeof s === "string" && s.trim().length > 0).map((s: string) => s.trim()) : [],
+      licenses: Array.isArray(d.licenses) ? d.licenses.filter((l: License) => l && typeof l.type === "string" && l.type.trim().length > 0).map((l: License) => ({ type: l.type.trim(), state: (l.state || "").trim() || null, expires: (l.expires || "").trim() || null })) : [],
     };
   })
   .handler(async ({ data }) => {
     const user = await getCurrentUser();
     if (!user) throw new Error("Not authenticated");
+
+    // Lazy migration guards for the healthcare staffing columns.
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
 
     // Parse comma-separated NAICS codes into array
     const naicsArray = data.naicsCodes
@@ -179,6 +197,8 @@ const saveProfile = createServerFn({ method: "POST" })
             annual_revenue = ${data.annualRevenue},
             past_performance_summary = ${data.pastPerformance},
             capability_statement = ${data.capabilityStatement},
+            specialties = ${JSON.stringify(data.specialties)}::jsonb,
+            licenses = ${JSON.stringify(data.licenses)}::jsonb,
             updated_at = NOW()
         WHERE user_id = ${user.id}
       `;
@@ -188,7 +208,8 @@ const saveProfile = createServerFn({ method: "POST" })
           user_id, business_name, industry, locations, naics_codes,
           uei, cage_code, duns, sam_expiration, certifications,
           years_in_business, employee_count, annual_revenue,
-          past_performance_summary, capability_statement
+          past_performance_summary, capability_statement,
+          specialties, licenses
         )
         VALUES (
           ${user.id}, ${data.businessName}, ${data.industry},
@@ -197,7 +218,9 @@ const saveProfile = createServerFn({ method: "POST" })
           ${data.samExpiration ? data.samExpiration : null}::date,
           ${JSON.stringify(data.certifications)}::jsonb,
           ${data.yearsInBusiness}, ${data.employeeCount}, ${data.annualRevenue},
-          ${data.pastPerformance}, ${data.capabilityStatement}
+          ${data.pastPerformance}, ${data.capabilityStatement},
+          ${JSON.stringify(data.specialties)}::jsonb,
+          ${JSON.stringify(data.licenses)}::jsonb
         )
       `;
     }
@@ -261,6 +284,8 @@ function SettingsPage() {
     industry: "",
     locations: [],
     naicsCodes: "",
+    specialties: [],
+    licenses: [],
   });
 
   // Fetch profile on mount
@@ -285,6 +310,8 @@ function SettingsPage() {
             industry: profile.industry,
             locations: profile.locations,
             naicsCodes: profile.naics_codes.join(", "),
+            specialties: profile.specialties,
+            licenses: Array.isArray(profile.licenses) ? profile.licenses : [],
           });
         }
       } catch {
@@ -317,6 +344,40 @@ function SettingsPage() {
         ? prev.locations.filter((l) => l !== state)
         : [...prev.locations, state],
     }));
+  }, []);
+
+  const toggleSpecialty = useCallback((spec: string) => {
+    setForm((prev) => ({
+      ...prev,
+      specialties: prev.specialties.includes(spec)
+        ? prev.specialties.filter((s) => s !== spec)
+        : [...prev.specialties, spec],
+    }));
+  }, []);
+
+  const addCustomSpecialty = useCallback((value: string) => {
+    const spec = value.trim();
+    if (!spec) return;
+    setForm((prev) =>
+      prev.specialties.some((s) => s.toLowerCase() === spec.toLowerCase())
+        ? prev
+        : { ...prev, specialties: [...prev.specialties, spec] },
+    );
+  }, []);
+
+  const updateLicense = useCallback((idx: number, patch: Partial<License>) => {
+    setForm((prev) => ({
+      ...prev,
+      licenses: prev.licenses.map((l, i) => (i === idx ? { ...l, ...patch } : l)),
+    }));
+  }, []);
+
+  const addLicense = useCallback(() => {
+    setForm((prev) => ({ ...prev, licenses: [...prev.licenses, { type: "", state: "", expires: "" }] }));
+  }, []);
+
+  const removeLicense = useCallback((idx: number) => {
+    setForm((prev) => ({ ...prev, licenses: prev.licenses.filter((_, i) => i !== idx) }));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -497,6 +558,167 @@ function SettingsPage() {
                 );
               })}
             </div>
+          </section>
+
+          {/* Section: Staffing Specialties */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-900 mb-1">Staffing Specialties</h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Select the healthcare roles your agency staffs. Contrax uses these to prioritize matching bids and to score role fit in win probability.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {SPECIALTY_OPTIONS.map((spec) => {
+                const checked = form.specialties.includes(spec);
+                return (
+                  <button
+                    key={spec}
+                    type="button"
+                    onClick={() => toggleSpecialty(spec)}
+                    className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all ${
+                      checked
+                        ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
+                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    <div
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
+                        checked ? "border-teal-500 bg-teal-500" : "border-slate-300"
+                      }`}
+                    >
+                      {checked && (
+                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    {spec}
+                  </button>
+                );
+              })}
+            </div>
+            {/* Custom specialty tag input */}
+            <div className="mt-4 flex gap-2">
+              <input
+                id="customSpecialty"
+                type="text"
+                placeholder="Add a custom role (e.g., School Nurse, Telehealth RN)"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomSpecialty((e.target as HTMLInputElement).value);
+                    (e.target as HTMLInputElement).value = "";
+                  }
+                }}
+                onBlur={(e) => {
+                  if (e.target.value.trim()) {
+                    addCustomSpecialty(e.target.value);
+                    e.target.value = "";
+                  }
+                }}
+                className="flex-1 rounded-lg border border-slate-300 px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const input = document.getElementById("customSpecialty") as HTMLInputElement | null;
+                  if (input && input.value.trim()) {
+                    addCustomSpecialty(input.value);
+                    input.value = "";
+                  }
+                }}
+                className="rounded-lg bg-teal-600 px-4 py-3 text-sm font-semibold text-white hover:bg-teal-700 transition-colors"
+              >
+                Add
+              </button>
+            </div>
+            {form.specialties.filter((s) => !SPECIALTY_OPTIONS.includes(s)).length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {form.specialties.filter((s) => !SPECIALTY_OPTIONS.includes(s)).map((s) => (
+                  <span key={s} className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700">
+                    {s}
+                    <button type="button" onClick={() => toggleSpecialty(s)} className="text-teal-400 hover:text-teal-600">&times;</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <p className="mt-2 text-sm text-slate-500">
+              {form.specialties.length} role{form.specialties.length !== 1 ? "s" : ""} selected
+            </p>
+          </section>
+
+          {/* Section: Licenses & Credentials */}
+          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-lg font-semibold text-slate-900">Licenses &amp; Credentials</h2>
+              <button
+                type="button"
+                onClick={addLicense}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                Add License
+              </button>
+            </div>
+            <p className="text-sm text-slate-500 mb-4">
+              Track licenses, certifications, and clearances your staff hold. The compliance checker cross-references these against RFP requirements.
+            </p>
+            {form.licenses.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-400">
+                No licenses added yet. Click &ldquo;Add License&rdquo; to track RN licenses, ACLS, BLS, clearances, and more.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {form.licenses.map((lic, idx) => {
+                  const days = daysUntilExpiry(lic.expires);
+                  const expired = days !== null && days < 0;
+                  const expiringSoon = days !== null && !expired && days <= 90;
+                  return (
+                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/50 p-3">
+                      <input
+                        type="text"
+                        value={lic.type}
+                        onChange={(e) => updateLicense(idx, { type: e.target.value })}
+                        placeholder="e.g., RN License, ACLS, BLS"
+                        className="flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <select
+                        value={lic.state || ""}
+                        onChange={(e) => updateLicense(idx, { state: e.target.value })}
+                        className="w-full sm:w-40 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none bg-white"
+                      >
+                        <option value="">State (optional)</option>
+                        {US_STATES.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="date"
+                        value={lic.expires || ""}
+                        onChange={(e) => updateLicense(idx, { expires: e.target.value })}
+                        className="w-full sm:w-44 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      />
+                      <div className="flex items-center gap-2 shrink-0">
+                        {expired ? (
+                          <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-1 text-xs font-bold text-red-700">● Expired</span>
+                        ) : expiringSoon ? (
+                          <span className="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-1 text-xs font-bold text-amber-700">● {days === 0 ? "Expires today" : `${days}d left`}</span>
+                        ) : lic.expires ? (
+                          <span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-1 text-xs font-bold text-green-700">✓ Valid</span>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={() => removeLicense(idx)}
+                          className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600 transition-colors"
+                          aria-label="Remove license"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           {/* Section: Company Size */}

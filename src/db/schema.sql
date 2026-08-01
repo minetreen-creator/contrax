@@ -34,7 +34,9 @@ CREATE TABLE IF NOT EXISTS business_profiles (
     employee_count INTEGER,
     annual_revenue TEXT,
     past_performance_summary TEXT,
-    capability_statement TEXT
+    capability_statement TEXT,
+    specialties JSONB DEFAULT '[]'::jsonb,
+    licenses JSONB DEFAULT '[]'::jsonb
 );
 
 -- Agency migrations: preserve existing installations while enabling entities.
@@ -51,6 +53,8 @@ ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb;
 
 CREATE TABLE IF NOT EXISTS api_keys (
     id SERIAL PRIMARY KEY,
@@ -387,3 +391,11 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read);
+
+-- Healthcare staffing: cached AI healthcare summaries (structured sections).
+CREATE TABLE IF NOT EXISTS healthcare_bid_summaries (
+    id SERIAL PRIMARY KEY,
+    bid_id INTEGER UNIQUE REFERENCES bids(id),
+    summary_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);

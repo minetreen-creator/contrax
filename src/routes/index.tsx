@@ -1327,12 +1327,17 @@ function Footer() {
         <p className="text-sm text-gray-400">
           &copy; {new Date().getFullYear()} Contrax. All rights reserved.
         </p>
-        <a
-          href="mailto:bidpilot-de2cdfa5@ctomail.io"
-          className="text-sm text-gray-400 transition-colors hover:text-white"
-        >
-          bidpilot-de2cdfa5@ctomail.io
-        </a>
+        <div className="flex items-center gap-5">
+          <a href="/compare" className="text-sm text-gray-400 transition-colors hover:text-white">
+            Compare
+          </a>
+          <a
+            href="mailto:bidpilot-de2cdfa5@ctomail.io"
+            className="text-sm text-gray-400 transition-colors hover:text-white"
+          >
+            bidpilot-de2cdfa5@ctomail.io
+          </a>
+        </div>
       </div>
     </footer>
   );

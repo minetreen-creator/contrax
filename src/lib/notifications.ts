@@ -31,6 +31,21 @@ async function ensureNotificationsTable() {
   await sql()`CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), type TEXT NOT NULL, title TEXT NOT NULL, message TEXT NOT NULL, bid_id INTEGER REFERENCES bids(id), read BOOLEAN NOT NULL DEFAULT false, created_at TIMESTAMPTZ DEFAULT NOW())`;
 }
 
+/** Insert a notification for a user. Safe for event handlers and server functions. */
+export async function createNotification(input: {
+  userId: number;
+  type: Notification["type"];
+  title: string;
+  message: string;
+  bidId?: number | null;
+}): Promise<void> {
+  await ensureNotificationsTable();
+  // Event handlers may be retried; suppress an identical alert created recently.
+  const duplicate = await sql()`SELECT id FROM notifications WHERE user_id=${input.userId} AND type=${input.type} AND title=${input.title} AND COALESCE(bid_id,0)=COALESCE(${input.bidId ?? null},0) AND created_at > NOW() - INTERVAL '24 hours' LIMIT 1`;
+  if ((duplicate as any[]).length) return;
+  await sql()`INSERT INTO notifications (user_id,type,title,message,bid_id) VALUES (${input.userId},${input.type},${input.title},${input.message},${input.bidId ?? null})`;
+}
+
 // ── Fetch ────────────────────────────────────────────────────────────────────
 
 export const getNotifications = createServerFn({ method: "GET" }).handler(

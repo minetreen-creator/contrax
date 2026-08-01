@@ -174,16 +174,16 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
                 Sign In
               </a>
               <a
-                href="/signup"
-                className="inline-flex items-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
+              href="/signup"
+              className="inline-flex items-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
               >
-                Get Started
+              Start Free Trial
               </a>
-            </>
-          )}
-        </div>
-      </div>
-    </nav>
+              </>
+              )}
+              </div>
+              </div>
+              </nav>
   );
 }
 
@@ -218,7 +218,7 @@ function Hero({ businessName }: { businessName: string }) {
               href="/signup"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
             >
-              Get Started
+              Start Free Trial
               <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -1174,7 +1174,7 @@ function Pricing() {
         "Up to 2 location preferences",
         "Weekly digest emails",
       ],
-      cta: "Get Started",
+      cta: "Start Free Trial",
       featured: false,
     },
     {
@@ -1190,7 +1190,7 @@ function Pricing() {
         "Calendar integration",
         "Priority email & chat support",
       ],
-      cta: "Get Started",
+      cta: "Start Free Trial",
       featured: true,
     },
     {
@@ -1206,7 +1206,7 @@ function Pricing() {
         "Team collaboration tools",
         "Dedicated account manager",
       ],
-      cta: "Get Started",
+      cta: "Start Free Trial",
       featured: false,
     },
   ];
@@ -1291,14 +1291,14 @@ function WaitlistSection() {
             Ready to find your next government contract?
           </h2>
           <p className="mt-4 text-lg text-blue-100/70">
-            Start finding and winning more contracts today. Plans start at $49/month.
+            Start finding and winning more contracts today. 21-day free trial — no credit card required.
           </p>
           <div className="mt-10">
             <a
               href="/signup"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
             >
-              Get Started Free
+              Start Free Trial
               <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>

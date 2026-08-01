@@ -317,3 +317,17 @@ CREATE TABLE IF NOT EXISTS award_trends_cache (
     computed_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(trend_type, period)
 );
+
+-- Agency-tier integrations (OAuth-connected external services)
+CREATE TABLE IF NOT EXISTS integrations (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    provider TEXT NOT NULL CHECK (provider IN ('google_calendar', 'outlook_calendar', 'slack', 'teams', 'google_drive', 'onedrive')),
+    access_token TEXT,
+    refresh_token TEXT,
+    status TEXT NOT NULL DEFAULT 'disconnected' CHECK (status IN ('active', 'disconnected')),
+    connected_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, provider)
+);

@@ -7,6 +7,7 @@ import { redirectToCheckout } from "~/lib/checkout";
 import { getPricingRecommendation, fetchPricingCache, type PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
 import { getLearningContext, getUserPatterns } from "~/lib/learning";
+import { createDeadlineAlertsForUser } from "~/lib/notifications";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface BusinessProfile {
@@ -167,6 +168,9 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
     const urgentRows = await sql()`SELECT COUNT(*) as count FROM tracked_bids WHERE user_email = ${user.email} AND due_date::date <= (NOW() + INTERVAL '3 days')::date AND due_date::date >= NOW()::date`;
     urgentTrackedCount = Number(urgentRows[0]?.count || 0);
   } catch { /* tracking table may not exist yet */ }
+
+  // Best-effort: generate deadline alert notifications for this user
+  try { createDeadlineAlertsForUser(user.id, user.email).catch(() => {}); } catch { /* non-blocking */ }
 
   return { profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, lossesCount, urgentTrackedCount };
 });

@@ -331,3 +331,17 @@ CREATE TABLE IF NOT EXISTS integrations (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id, provider)
 );
+
+-- In-app notifications
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    type TEXT NOT NULL CHECK (type IN ('deadline_alert', 'new_bid_match', 'team_activity')),
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    bid_id INTEGER REFERENCES bids(id),
+    read BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON notifications(user_id, read);

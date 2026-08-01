@@ -110,6 +110,14 @@ function SectionSwitcher() {
         >
           ⚖️ Compare
         </Link>
+        <Link
+          to="/settings"
+          className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800 [&.active]:bg-slate-800 [&.active]:text-white"
+          activeProps={{ className: "bg-slate-800 text-white" }}
+          inactiveProps={{ className: "text-slate-300" }}
+        >
+          ⚙️ Settings
+        </Link>
 
         {/* Spacer pushes bell to the right */}
         <div className="flex-1" />

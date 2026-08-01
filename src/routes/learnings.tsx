@@ -2,19 +2,21 @@ import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
-import { getUserPatterns, generateInsights, type UserPatterns } from "~/lib/learning";
+import { getUserPatterns, generateInsights, getImplicitPreferences, type UserPatterns, type ImplicitPreference } from "~/lib/learning";
 
 // ── Server Functions ─────────────────────────────────────────────────────────
 
 const fetchLearnings = createServerFn({ method: "GET" }).handler(async (): Promise<{
   patterns: UserPatterns;
   insights: string[];
+  preferences: ImplicitPreference[];
 }> => {
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
   const patterns = await getUserPatterns(user.email);
   const insights = patterns.total >= 2 ? await generateInsights(user.email) : [];
-  return { patterns, insights };
+  const preferences = await getImplicitPreferences(user.email);
+  return { patterns, insights, preferences };
 });
 
 // ── Route ────────────────────────────────────────────────────────────────────
@@ -52,8 +54,9 @@ function winRateBg(rate: number): string {
 
 function LearningsPage() {
   const navigate = useNavigate();
-  const data = Route.useLoaderData() as { patterns: UserPatterns; insights: string[] } | null;
+  const data = Route.useLoaderData() as { patterns: UserPatterns; insights: string[]; preferences: ImplicitPreference[] } | null;
   const [loading, setLoading] = useState(false);
+  const [preferences, setPreferences] = useState<ImplicitPreference[]>(data?.preferences ?? []);
   const [patterns, setPatterns] = useState<UserPatterns | null>(data?.patterns ?? null);
   const [insights, setInsights] = useState<string[]>(data?.insights ?? []);
   const [insightsLoading, setInsightsLoading] = useState(false);
@@ -63,7 +66,7 @@ function LearningsPage() {
     if (!data) {
       setLoading(true);
       fetchLearnings()
-        .then((d) => { setPatterns(d.patterns); setInsights(d.insights); })
+        .then((d) => { setPatterns(d.patterns); setInsights(d.insights); setPreferences(d.preferences); })
         .catch((err) => setError(err instanceof Error ? err.message : "Failed to load"))
         .finally(() => setLoading(false));
     }
@@ -76,6 +79,7 @@ function LearningsPage() {
       const d = await fetchLearnings();
       setInsights(d.insights);
       setPatterns(d.patterns);
+      setPreferences(d.preferences);
     } catch {
       setError("Failed to refresh insights");
     } finally {
@@ -139,6 +143,13 @@ function LearningsPage() {
             Your win/loss history feeds back into the AI to make bid predictions smarter over time.
           </p>
         </div>
+
+        {/* Learned Preferences */}
+        <section className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-6">
+          <h2 className="text-lg font-bold text-slate-900">✨ Learned Preferences</h2>
+          <p className="mt-1 text-sm text-slate-600">Inferred from the bids you save and dismiss, not just your onboarding profile.</p>
+          {preferences.length > 0 ? <ul className="mt-4 space-y-3">{preferences.map((pref) => <li key={pref.label} className="flex items-start gap-3 text-sm text-slate-700"><span className="mt-1 text-amber-600">•</span><span><strong>{pref.label}</strong> — {pref.detail}</span></li>)}</ul> : <p className="mt-4 text-sm text-slate-500">Save or dismiss a few bids to reveal your preferences.</p>}
+        </section>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">

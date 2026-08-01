@@ -29,6 +29,23 @@ export interface UserPatterns {
   recentOutcomes: LearningOutcome[];
 }
 
+export interface ImplicitPreference {
+  label: string;
+  detail: string;
+  saved: number;
+  dismissed: number;
+}
+
+export interface AgencyPattern {
+  agency: string;
+  outcomes: number;
+  wins: number;
+  winRate: number;
+  topNaics: string;
+  topValueRange: string;
+  insight: string;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────────
 
 async function ensureTable() {
@@ -156,6 +173,54 @@ export async function getUserPatterns(userEmail: string): Promise<UserPatterns> 
   return { total, wins, losses, winRate, byNaics, byAgency, byValueRange, recentOutcomes: outcomes.slice(0, 20) };
 }
 
+/** Infer preferences from the user's save/dismiss activity, independent of stated profile. */
+export async function getImplicitPreferences(userEmail: string): Promise<ImplicitPreference[]> {
+  try {
+    const rows = await sql()`
+      SELECT b.category, b.agency, b.estimated_value, COUNT(*) FILTER (WHERE sm.status IN ('saved','tracked','interested'))::int AS saved,
+             COUNT(*) FILTER (WHERE sm.status IN ('dismissed','rejected','hidden'))::int AS dismissed
+      FROM saved_matches sm JOIN users u ON u.id = sm.user_id JOIN bids b ON b.id = sm.bid_id
+      WHERE u.email = ${userEmail} GROUP BY b.category, b.agency, b.estimated_value`;
+    const categories = new Map<string, { saved: number; dismissed: number }>();
+    const ranges = new Map<string, { saved: number; dismissed: number }>();
+    for (const row of rows as any[]) {
+      const saved = Number(row.saved || 0), dismissed = Number(row.dismissed || 0);
+      const category = String(row.category || '').trim();
+      if (category) { const x = categories.get(category) || { saved: 0, dismissed: 0 }; x.saved += saved; x.dismissed += dismissed; categories.set(category, x); }
+      const range = estimateValueRange(String(row.estimated_value || ''));
+      if (range !== 'Unknown') { const x = ranges.get(range) || { saved: 0, dismissed: 0 }; x.saved += saved; x.dismissed += dismissed; ranges.set(range, x); }
+    }
+    const preferences: ImplicitPreference[] = [];
+    const topCategory = [...categories.entries()].sort((a,b) => b[1].saved - a[1].saved)[0];
+    if (topCategory && topCategory[1].saved > 0) preferences.push({ label: topCategory[0], detail: `You saved ${topCategory[1].saved} ${topCategory[0]} bids but dismissed ${topCategory[1].dismissed}.`, saved: topCategory[1].saved, dismissed: topCategory[1].dismissed });
+    const topRange = [...ranges.entries()].sort((a,b) => b[1].saved - a[1].saved)[0];
+    if (topRange && topRange[1].saved > 0) preferences.push({ label: topRange[0], detail: `You saved ${topRange[1].saved} bids in this range (${topRange[1].dismissed} dismissed).`, saved: topRange[1].saved, dismissed: topRange[1].dismissed });
+    return preferences;
+  } catch { return []; }
+}
+
+/** Analyze anonymized, cross-user agency outcomes and market awards. */
+export async function analyzeAgencyPatterns(): Promise<AgencyPattern[]> {
+  try {
+    const rows = await sql()`SELECT agency, naics_code, estimated_value, won FROM learning_outcomes WHERE NULLIF(TRIM(agency),'') IS NOT NULL`;
+    const map = new Map<string, { outcomes: number; wins: number; naics: Map<string, number>; ranges: Map<string, number> }>();
+    for (const row of rows as any[]) {
+      const agency = String(row.agency).trim(); const x = map.get(agency) || { outcomes: 0, wins: 0, naics: new Map(), ranges: new Map() };
+      x.outcomes++; if (row.won) x.wins++;
+      const n = naicsPrefix(String(row.naics_code || '')); if (n) x.naics.set(n, (x.naics.get(n) || 0) + 1);
+      const range = estimateValueRange(String(row.estimated_value || '')); if (range !== 'Unknown') x.ranges.set(range, (x.ranges.get(range) || 0) + 1);
+      map.set(agency, x);
+    }
+    // Awards are intentionally optional: installations without the catalog still get outcomes intelligence.
+    try { const awards = await sql()`SELECT agency, naics_code, award_amount FROM awarded_contracts WHERE NULLIF(TRIM(agency),'') IS NOT NULL`;
+      for (const row of awards as any[]) { const agency = String(row.agency).trim(); const x = map.get(agency) || { outcomes: 0, wins: 0, naics: new Map(), ranges: new Map() }; const n = naicsPrefix(String(row.naics_code || '')); if (n) x.naics.set(n, (x.naics.get(n) || 0) + 1); const r = estimateValueRange(String(row.award_amount || '')); if (r !== 'Unknown') x.ranges.set(r, (x.ranges.get(r) || 0) + 1); map.set(agency, x); }
+    } catch { /* awards catalog may not be installed yet */ }
+    return [...map.entries()].map(([agency, x]) => { const top = (m: Map<string, number>) => [...m.entries()].sort((a,b) => b[1]-a[1])[0]?.[0] || '—'; const topNaics = top(x.naics), topValueRange = top(x.ranges); return { agency, outcomes: x.outcomes, wins: x.wins, winRate: x.outcomes ? Math.round(x.wins / x.outcomes * 100) : 0, topNaics, topValueRange, insight: x.outcomes ? `${agency} shows a ${Math.round(x.wins / x.outcomes * 100)}% observed win rate; activity concentrates in NAICS ${topNaics} and ${topValueRange}.` : `${agency} market awards concentrate in NAICS ${topNaics} and ${topValueRange}.` }; }).sort((a,b) => (b.outcomes - a.outcomes) || a.agency.localeCompare(b.agency)).slice(0, 20);
+  } catch { return []; }
+}
+
+export const getAgencyIntelligence = analyzeAgencyPatterns;
+
 /** Build a text summary of the user's learning history for use in AI prompts. */
 export async function getLearningContext(
   userEmail: string,
@@ -164,10 +229,19 @@ export async function getLearningContext(
   naics: string,
   estimatedValue: string,
 ): Promise<string> {
-  const patterns = await getUserPatterns(userEmail);
-  if (patterns.total === 0) return "";
+  const [patterns, implicitPreferences, agencyPatterns] = await Promise.all([
+    getUserPatterns(userEmail),
+    getImplicitPreferences(userEmail),
+    analyzeAgencyPatterns(),
+  ]);
+  if (patterns.total === 0 && implicitPreferences.length === 0 && agencyPatterns.length === 0) return "";
 
   const parts: string[] = [];
+  if (implicitPreferences.length > 0) {
+    parts.push(`Implicit preferences inferred from saved versus dismissed bids: ${implicitPreferences.map((p) => `${p.label} (${p.detail})`).join(" ")}`);
+  }
+  const agencyMatch = agencyPatterns.find((p) => p.agency.toLowerCase() === agency.toLowerCase());
+  if (agencyMatch) parts.push(`Cross-user agency intelligence for ${agencyMatch.agency}: ${agencyMatch.insight}`);
 
   // Overall stats
   parts.push(`User's win/loss history: ${patterns.total} total bids tracked, ${patterns.wins} won (${patterns.winRate}% win rate).`);

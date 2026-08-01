@@ -27,6 +27,8 @@ rm -f .vercel/output/static/index.html   # SSR owns "/", not a static shell
 
 echo "[3/3] bundle SSR handler + deps into the render function"
 bun build vercel-entry.ts --target node \
+  --external '#tanstack-router-entry' --external '#tanstack-start-entry' \
+  --external 'tanstack-start-manifest:v' \
   --outfile .vercel/output/functions/render.func/index.mjs
 
 cat > .vercel/output/functions/render.func/.vc-config.json <<'JSON'

@@ -24,13 +24,33 @@ CREATE TABLE IF NOT EXISTS business_profiles (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     logo_url TEXT,
-    is_agency BOOLEAN NOT NULL DEFAULT FALSE
+    is_agency BOOLEAN NOT NULL DEFAULT FALSE,
+    uei TEXT,
+    cage_code TEXT,
+    sam_expiration DATE,
+    duns TEXT,
+    certifications JSONB DEFAULT '[]'::jsonb,
+    years_in_business INTEGER,
+    employee_count INTEGER,
+    annual_revenue TEXT,
+    past_performance_summary TEXT,
+    capability_statement TEXT
 );
 
 -- Agency migrations: preserve existing installations while enabling entities.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS active_profile_id INTEGER;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS logo_url TEXT;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS is_agency BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cage_code TEXT;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS sam_expiration DATE;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS duns TEXT;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS years_in_business INTEGER;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT;
 
 CREATE TABLE IF NOT EXISTS api_keys (
     id SERIAL PRIMARY KEY,

@@ -871,6 +871,7 @@ function UpgradeBanner() {
 function LoadingSkeleton() {
   return (
     <div className="min-h-screen bg-slate-50">
+      {currentUser.email === "demo@contrax.company" && <div className="border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900">🔍 You're exploring a demo account with sample data. When you're ready, <a href="/signup" className="font-bold underline">create your free account</a> to track real bids.</div>}
       <header className="border-b border-slate-200 bg-white"><div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between"><div className="h-8 w-28 bg-slate-200 rounded-lg animate-pulse" /><div className="h-5 w-16 bg-slate-200 rounded animate-pulse" /></div></header>
       <main className="mx-auto max-w-5xl px-4 py-8 space-y-6">
         <div className="rounded-2xl border border-slate-200 bg-white p-6 space-y-3">
@@ -1191,6 +1192,7 @@ function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {currentUser.email === "demo@contrax.company" && <div className="border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900">🔍 You're exploring a demo account with sample data. When you're ready, <a href="/signup" className="font-bold underline">create your free account</a> to track real bids.</div>}
       {/* Header */}
       <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">

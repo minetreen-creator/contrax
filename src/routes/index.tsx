@@ -316,7 +316,7 @@ function Hero({ businessName }: { businessName: string }) {
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="/signup"
+              href="/demo"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
             >
               Start Free Trial
@@ -356,7 +356,8 @@ function BidTicker({ bids }: { bids: Bid[] }) {
   if (bids.length === 0) {
     return (
       <section className="bg-white py-14">
-        <div className="mx-auto max-w-7xl px-6 text-center">
+        <a href="/demo" className="fixed bottom-6 right-6 z-40 rounded-full bg-blue-600 px-5 py-3 font-bold text-white shadow-lg">Try Demo</a>
+      <div className="mx-auto max-w-7xl px-6 text-center">
           <div className="mb-3 flex items-center justify-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />

@@ -122,47 +122,45 @@ const LEARN_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Government Contract Bidding Resources — Contrax</title>
-<meta name="description" content="Free guides and resources on government contract bidding, RFP proposal writing, and winning public-sector contracts as a small business.">
+<title>Free Government Contracting Resources &amp; Guides | Contrax</title>
+<meta name="description" content="Free government contracting guides for small businesses — including 8(a), WOSB/EDWOSB, SDVOSB, and HUBZone certification guides, proposal templates, capability statement examples, compliance checklists, and more.">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://contrax.company/learn">
-<meta property="og:title" content="Government Contract Bidding Resources — Contrax">
-<meta property="og:description" content="Free guides and resources on government contract bidding, RFP proposal writing, and winning public-sector contracts as a small business.">
+<meta property="og:title" content="Free Government Contracting Resources &amp; Guides | Contrax">
+<meta property="og:description" content="Free government contracting guides for small businesses — including 8(a), WOSB/EDWOSB, SDVOSB, and HUBZone certification guides.">
 <meta property="og:site_name" content="Contrax">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Government Contract Bidding Resources — Contrax">
-<meta name="twitter:description" content="Free guides and resources on government contract bidding, RFP proposal writing, and winning public-sector contracts as a small business.">
+<meta name="twitter:title" content="Free Government Contracting Resources &amp; Guides | Contrax">
+<meta name="twitter:description" content="Free government contracting guides for small businesses — including 8(a), WOSB/EDWOSB, SDVOSB, and HUBZone certification guides.">
 <link rel="canonical" href="https://contrax.company/learn">
 ${SEO_HEAD}
+<style>
+  .learn-hero{background:linear-gradient(135deg,#020617,#0f172a,#172554);padding:5rem 1.5rem;text-align:center;color:#fff}
+  .learn-hero p{max-width:42rem;margin:1.5rem auto 0;color:#dbeafe;font-size:1.125rem;line-height:1.75}
+  .learn-wrap{max-width:80rem;margin:0 auto;padding:3.5rem 1.5rem}
+  .learn-guides{background:#fff}.learn-eyebrow{color:#b45309;font-size:.875rem;font-weight:700;letter-spacing:.15em;text-transform:uppercase}
+  .learn-heading{margin:.5rem 0 0;font-size:2.25rem;color:#0f172a}.learn-intro{max-width:42rem;color:#4b5563;line-height:1.6}
+  .guide-grid,.resource-grid{display:grid;gap:1.5rem}.guide-grid{grid-template-columns:repeat(4,minmax(0,1fr));margin-top:2rem}
+  .guide-card,.resource-card{display:flex;flex-direction:column;border:1px solid #e2e8f0;border-radius:1rem;background:#fff;padding:1.5rem;text-decoration:none;box-shadow:0 1px 2px #0000000d}
+  .guide-card:hover,.resource-card:hover{border-color:#fcd34d;box-shadow:0 10px 20px #00000012}.badge{align-self:flex-start;border-radius:999px;background:#fffbeb;padding:.25rem .75rem;color:#b45309;font-size:.75rem;font-weight:700;text-transform:uppercase}
+  .guide-card h3,.resource-card h3{margin:1rem 0 .75rem;color:#0f172a;font-size:1.125rem}.guide-card p,.resource-card p{margin:0;color:#475569;font-size:.875rem;line-height:1.6;flex:1}.read{margin-top:1.25rem;color:#2563eb;font-size:.875rem;font-weight:600}
+  .resources{background:#f8fafc}.resource-search{display:flex;gap:1rem;margin-top:2rem}.resource-search input{flex:1;border:1px solid #e2e8f0;border-radius:.75rem;background:#fff;padding:.8rem 1.25rem;font-size:1rem}.resource-search button{border:0;border-radius:.75rem;background:#2563eb;padding:.8rem 1.5rem;color:#fff;font-weight:600}.filters{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.5rem}.filters span{border-radius:999px;background:#fff;padding:.5rem 1rem;color:#475569;font-size:.875rem;box-shadow:inset 0 0 0 1px #e2e8f0}.resource-grid{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:1.5rem}
+  @media(max-width:900px){.guide-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.guide-grid,.resource-grid{grid-template-columns:1fr}.learn-heading{font-size:1.8rem}.resource-search{flex-direction:column}}
+</style>
 </head>
-<body class="antialiased bg-white">
+<body class="antialiased bg-slate-50">
 ${SEO_NAV}
-<main class="mx-auto max-w-4xl px-6 py-12">
-<h1 class="text-4xl font-bold text-slate-900 mb-4">Government Contract Bidding Resources</h1>
-<p class="text-lg text-slate-600 mb-10">Free guides to help small businesses find, bid on, and win government contracts. Written by the team at Contrax.</p>
-<div class="grid gap-6">
-<article class="border border-slate-200 rounded-xl p-6 hover:border-blue-300 transition-colors">
-<a href="/learn/government-contracting-guide" class="no-underline"><h2 class="text-2xl font-semibold text-blue-600 hover:text-blue-800 mb-2">How to Bid on Government Contracts: The Complete Guide</h2></a>
-<p class="text-slate-600 mb-3">A step-by-step walkthrough of the government procurement process — from SAM.gov registration to winning your first RFP. Covers federal, state, and local contracts.</p>
-<div class="flex items-center gap-4 text-sm text-slate-500"><span>📖 12 min read</span><span>🏛️ Beginner-friendly</span></div>
-</article>
-<article class="border border-slate-200 rounded-xl p-6 hover:border-blue-300 transition-colors">
-<a href="/learn/ai-proposal-writing" class="no-underline"><h2 class="text-2xl font-semibold text-blue-600 hover:text-blue-800 mb-2">AI-Powered RFP Proposal Writing for Government Contracts</h2></a>
-<p class="text-slate-600 mb-3">How AI is transforming proposal writing for government RFPs. Learn how to use AI tools to draft compliant, persuasive proposals in hours instead of days.</p>
-<div class="flex items-center gap-4 text-sm text-slate-500"><span>📖 10 min read</span><span>🤖 AI + Automation</span></div>
-</article>
-<article class="border border-slate-200 rounded-xl p-6 hover:border-blue-300 transition-colors">
-<a href="/learn/small-business-government-contracting" class="no-underline"><h2 class="text-2xl font-semibold text-blue-600 hover:text-blue-800 mb-2">Small Business Government Contracting: Opportunities & Set-Asides</h2></a>
-<p class="text-slate-600 mb-3">The US government sets aside billions in contracts for small businesses every year. Learn about set-aside programs, eligibility, and how to compete.</p>
-<div class="flex items-center gap-4 text-sm text-slate-500"><span>📖 8 min read</span><span>🏢 Small Business Focus</span></div>
-</article>
-</div>
-<div class="mt-12 bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-8 text-white text-center">
-<h2 class="text-2xl font-bold mb-2">Ready to start winning contracts?</h2>
-<p class="text-blue-100 mb-6">Contrax monitors 8 procurement sources, summarizes bid documents with AI, and drafts proposals — all in one platform.</p>
-<a href="/" class="inline-block bg-white text-blue-700 font-semibold px-8 py-3 rounded-lg hover:bg-blue-50 transition-colors">Try Contrax Free →</a>
-</div>
+<main>
+<section class="learn-hero"><p class="learn-eyebrow" style="color:#fbbf24">The Contrax Resource Hub</p><h1 class="mt-4 text-4xl font-extrabold sm:text-6xl">Government Contracting Resources</h1><p>Free, practical guides and templates to help small businesses register, find opportunities, and submit stronger federal proposals.</p></section>
+<section class="learn-guides"><div class="learn-wrap"><p class="learn-eyebrow">Certification guides</p><h2 class="learn-heading">Get certified, then win set-asides</h2><p class="learn-intro">8(a), WOSB/EDWOSB, SDVOSB, and HUBZone certifications unlock billions in federal set-aside contracts — but only if you qualify, certify, and bid. Start with the guide for your business.</p>
+<div class="guide-grid">
+<a class="guide-card" href="/learn/8a-certification-guide"><span class="badge">8(a)</span><h3>How to Get 8(a) Certified: The Complete Guide</h3><p>Eligibility, the application process, and the 9-year program timeline — in plain English.</p><span class="read">Read the guide →</span></a>
+<a class="guide-card" href="/learn/wosb-edwosb-guide"><span class="badge">WOSB</span><h3>WOSB/EDWOSB Set-Aside Guide: Winning as a Women-Owned Business</h3><p>WOSB vs EDWOSB, how to get certified, and where the set-aside opportunities are.</p><span class="read">Read the guide →</span></a>
+<a class="guide-card" href="/learn/sdvosb-guide"><span class="badge">SDVOSB</span><h3>SDVOSB Government Contracts: Veteran-Owned Business Guide</h3><p>SDVOSB eligibility, verification through the SBA, and the set-aside advantages.</p><span class="read">Read the guide →</span></a>
+<a class="guide-card" href="/learn/hubzone-guide"><span class="badge">HUBZone</span><h3>HUBZone Explained: Contracting Advantages for Underutilized Areas</h3><p>How the HUBZone map works, how to get certified, and the benefits for your pricing.</p><span class="read">Read the guide →</span></a>
+</div></div></section>
+<section class="resources"><div class="learn-wrap"><h2 class="learn-heading" style="font-size:1.75rem">Browse resources</h2><div class="resource-search"><input aria-label="Search resources" placeholder="Search guides, templates, NAICS, SAM.gov…"><button>Search</button></div><div class="filters"><span>All resources</span><span>Capability Statements</span><span>Proposal Templates</span><span>Compliance Checklists</span><span>Solicitations</span><span>FAQs</span><span>Guides</span></div><h2 class="learn-heading" style="font-size:1.5rem;margin-top:3rem">Free guides and tools</h2><div class="resource-grid"><article class="resource-card"><span class="badge" style="background:#eff6ff;color:#1d4ed8">Guide</span><h3>Government Contracting Guide</h3><p>Practical guidance for finding opportunities, understanding solicitations, and preparing stronger proposals.</p><span class="read">Read resource →</span></article><article class="resource-card"><span class="badge" style="background:#eff6ff;color:#1d4ed8">Proposal Template</span><h3>AI-Powered RFP Proposal Writing</h3><p>Learn how to organize a compliant, persuasive response to a government RFP.</p><span class="read">Read resource →</span></article><article class="resource-card"><span class="badge" style="background:#eff6ff;color:#1d4ed8">Set-Asides</span><h3>Small Business Contracting Opportunities</h3><p>Understand federal set-aside programs and how small businesses can compete.</p><span class="read">Read resource →</span></article></div></div></section>
 </main>
 ${SEO_FOOTER}
 ${SEO_SCRIPTS}

@@ -804,10 +804,10 @@ function recommendationStyle(rec: BidRecommendation | undefined) {
 }
 function levelStyle(level: string) { return level === "low" || level === "strong" ? "bg-green-100 text-green-700" : level === "high" || level === "extreme" || level === "weak" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"; }
 function matchBid(bid: Bid, profile: BusinessProfile): boolean {
-  const cat = bid.category.toLowerCase();
-  const ind = profile.industry.toLowerCase();
+  const cat = (bid.category || "").toLowerCase();
+  const ind = (profile.industry || "").toLowerCase();
   const catMatch = cat === ind || ind.includes(cat) || cat.includes(ind);
-  const locMatch = profile.locations.some((l) => bid.location.toLowerCase().includes(l.toLowerCase()));
+  const locMatch = (profile.locations || []).some((l) => bid.location?.toLowerCase().includes((l || "").toLowerCase()));
   return catMatch || locMatch;
 }
 

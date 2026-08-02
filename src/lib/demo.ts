@@ -28,6 +28,8 @@ export const ensureDemoSession = createServerFn({ method: "GET" }).handler(async
   const user = users[0] as any;
   const profileCount = await sql()`SELECT COUNT(*)::int AS count FROM business_profiles WHERE user_id=${user.id}`;
   if (Number((profileCount[0] as any)?.count || 0) === 0) await sql()`INSERT INTO business_profiles (user_id,business_name,industry,locations,service_categories) VALUES (${user.id},'GreenScape Construction','Construction',${JSON.stringify(["Virginia","Maryland","Washington, DC"]) }::jsonb,${JSON.stringify(["General Construction","Commercial Renovation","Concrete & Masonry","Facilities Maintenance","Site Work","Electrical"]) }::jsonb)`;
+  // Always refresh demo profile columns (fixes stale profiles from earlier attempts)
+  try { await sql()`UPDATE business_profiles SET industry='Construction', locations=${JSON.stringify(["Virginia","Maryland","Washington, DC"]) }::jsonb, service_categories=${JSON.stringify(["General Construction","Commercial Renovation","Concrete & Masonry","Facilities Maintenance","Site Work","Electrical"]) }::jsonb WHERE user_id=${user.id}`; } catch {}
   const existing = await sql()`SELECT COUNT(*)::int AS count FROM bids WHERE source = 'contrax-demo'`;
   if (Number((existing[0] as any)?.count || 0) === 0) {
     for (const b of sampleBids) await sql()`INSERT INTO bids (title,agency,description,location,category,due_date,estimated_value,source,external_id) VALUES (${b[0]},${b[1]},${b[2]},${b[3]},${b[4]},${b[5]},${b[6]},'contrax-demo',${`demo-${sampleBids.indexOf(b) + 1}`}) ON CONFLICT DO NOTHING`;

@@ -427,7 +427,7 @@ CREATE TABLE IF NOT EXISTS knowledge_documents (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
     title TEXT NOT NULL,
-    doc_type TEXT NOT NULL CHECK (doc_type IN ('capability_statement', 'proposal_template', 'compliance_checklist', 'solicitation', 'faq', 'other')),
+    doc_type TEXT NOT NULL CHECK (doc_type IN ('capability_statement', 'proposal_template', 'compliance_checklist', 'solicitation', 'faq', 'guide', 'other')),
     content TEXT NOT NULL,
     description TEXT,
     is_public BOOLEAN NOT NULL DEFAULT false,

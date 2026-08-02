@@ -783,7 +783,18 @@ export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Pr
 
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/dashboard")({
-  loader: () => getCurrentUser(),
+  // Load ALL dashboard data (user + profile + bids + AI artifacts) in the route
+  // loader so SSR renders the full page once and hydration reuses that markup.
+  // Previously the component re-fetched this data in a useEffect, which made the
+  // bid cards render twice (SSR payload + client render) and produced duplicate
+  // listings side-by-side. This is the single source of truth for the page.
+  loader: async (): Promise<{ user: AuthUser | null; data: DashboardData | null }> => {
+    const user = await getCurrentUser();
+    if (!user) return { user: null, data: null };
+    const data = await fetchDashboardData();
+    return { user, data };
+  },
+  pendingComponent: LoadingSkeleton,
   component: DashboardPage,
 });
 
@@ -984,7 +995,8 @@ function TrialExpired() { return <div className="min-h-screen bg-slate-50 flex i
 
 // ── Component ────────────────────────────────────────────────────────────────
 function DashboardPage() {
-  const currentUser = Route.useLoaderData() as AuthUser | null;
+  // Data comes from the route loader — single source of truth for SSR + hydration.
+  const { user: currentUser, data } = Route.useLoaderData();
   const navigate = useNavigate();
 
   if (!currentUser) {
@@ -994,14 +1006,12 @@ function DashboardPage() {
 
   const [trial, setTrial] = useState<TrialStatus | null>(null);
   useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
   const [digest, setDigest] = useState<DigestResult | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
 
-  const [savedBids, setSavedBids] = useState<Set<number>>(new Set());
-  const [dismissedBids, setDismissedBids] = useState<Set<number>>(new Set());
+  // Seed saved/dismissed sets from loader data (no client re-fetch).
+  const [savedBids, setSavedBids] = useState<Set<number>>(() => new Set((data?.savedMatches ?? []).filter((m) => m.status === "saved").map((m) => m.bid_id)));
+  const [dismissedBids, setDismissedBids] = useState<Set<number>>(() => new Set((data?.savedMatches ?? []).filter((m) => m.status === "dismissed").map((m) => m.bid_id)));
   const [trackedBidIds, setTrackedBidIds] = useState<Set<string>>(new Set());
   const [expandedBid, setExpandedBid] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Record<number, string>>({});
@@ -1011,14 +1021,31 @@ function DashboardPage() {
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [trackingLoading, setTrackingLoading] = useState<Set<number>>(new Set());
 
-  // AI state
-  const [summaries, setSummaries] = useState<Record<number, BidSummary>>({});
+  // AI state — pre-populated from loader data so SSR-rendered cards already show
+  // their summaries/scores/recommendations without a client-side re-fetch.
+  const [summaries, setSummaries] = useState<Record<number, BidSummary>>(() => {
+    const map: Record<number, BidSummary> = {};
+    (data?.summaries ?? []).forEach((s) => { map[s.bid_id] = s; });
+    return map;
+  });
   const [healthcareSummaries, setHealthcareSummaries] = useState<Record<number, HealthcareSummary>>({});
   const [healthcareView, setHealthcareView] = useState<Record<number, boolean>>({});
   const [generatingHealthcare, setGeneratingHealthcare] = useState<Set<number>>(new Set());
-  const [drafts, setDrafts] = useState<Record<number, ProposalDraft>>({});
-  const [scores, setScores] = useState<Record<number, BidScore>>({});
-  const [recommendations, setRecommendations] = useState<Record<number, BidRecommendation>>({});
+  const [drafts, setDrafts] = useState<Record<number, ProposalDraft>>(() => {
+    const map: Record<number, ProposalDraft> = {};
+    (data?.drafts ?? []).forEach((d) => { map[d.bid_id] = d; });
+    return map;
+  });
+  const [scores, setScores] = useState<Record<number, BidScore>>(() => {
+    const map: Record<number, BidScore> = {};
+    (data?.scores ?? []).forEach((s) => { map[s.bid_id] = s; });
+    return map;
+  });
+  const [recommendations, setRecommendations] = useState<Record<number, BidRecommendation>>(() => {
+    const map: Record<number, BidRecommendation> = {};
+    (data?.recommendations ?? []).forEach((r) => { map[Number(r.bid_id)] = r; });
+    return map;
+  });
   const [pricing, setPricing] = useState<Record<number, PricingRecommendation>>({});
   const [scoring, setScoring] = useState<Set<number>>(new Set());
   const [pricingLoading, setPricingLoading] = useState<Set<number>>(new Set());
@@ -1028,40 +1055,17 @@ function DashboardPage() {
   const [aiError, setAiError] = useState<Record<number, string>>({});
 
   if (trial?.expired) return <TrialExpired />;
+
+  // Load cached pricing recommendations (lightweight; bid-card data comes from the
+  // route loader, so this effect no longer re-fetches the full dashboard).
   useEffect(() => {
     let cancelled = false;
-    fetchDashboardData().then((d) => {
-      if (!cancelled) {
-        setData(d);
-        setSavedBids(new Set(d.savedMatches.filter((m) => m.status === "saved").map((m) => m.bid_id)));
-        setDismissedBids(new Set(d.savedMatches.filter((m) => m.status === "dismissed").map((m) => m.bid_id)));
-        // Populate summaries and drafts from initial load
-        const sumMap: Record<number, BidSummary> = {};
-        d.summaries.forEach((s) => { sumMap[s.bid_id] = s; });
-        setSummaries(sumMap);
-        const draftMap: Record<number, ProposalDraft> = {};
-        d.drafts.forEach((d) => { draftMap[d.bid_id] = d; });
-        setDrafts(draftMap);
-        const scoreMap: Record<number, BidScore> = {};
-        d.scores.forEach((s) => { scoreMap[s.bid_id] = s; });
-        setScores(scoreMap);
-        const recMap: Record<number, BidRecommendation> = {};
-        d.recommendations.forEach((r) => { recMap[Number(r.bid_id)] = r; });
-        setRecommendations(recMap);
-        setLoading(false);
-        // Load cached pricing recommendations
-        fetchPricingCache().then((pricingList) => {
-          const pricingMap: Record<number, PricingRecommendation> = {};
-          pricingList.forEach((p) => { pricingMap[Number(p.bid_id)] = p; });
-          setPricing(pricingMap);
-        }).catch(() => {});
-      }
-    }).catch((err) => {
-      if (!cancelled) {
-        setLoadError(err instanceof Error ? err.message : "Failed to load dashboard");
-        setLoading(false);
-      }
-    });
+    fetchPricingCache().then((pricingList) => {
+      if (cancelled) return;
+      const pricingMap: Record<number, PricingRecommendation> = {};
+      pricingList.forEach((p) => { pricingMap[Number(p.bid_id)] = p; });
+      setPricing(pricingMap);
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, []);
 
@@ -1260,20 +1264,6 @@ function DashboardPage() {
       setTimeout(() => setCopiedBid(null), 2000);
     }
   }, []);
-
-  if (loading) return <LoadingSkeleton />;
-
-  if (loadError) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <h1 className="text-xl font-bold text-slate-900">Something went wrong</h1>
-          <p className="mt-2 text-sm text-slate-500">{loadError}</p>
-          <a href="/dashboard" className="mt-4 inline-block text-sm font-medium text-blue-600 hover:text-blue-500">Try again</a>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-slate-50">

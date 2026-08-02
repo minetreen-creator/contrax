@@ -249,7 +249,7 @@ export const listDocuments = createServerFn({ method: "GET" })
     `) as Record<string, unknown>[];
     const total = Number(countRows[0]?.count ?? 0);
     return {
-      docs: rows.map((r) => toListItem(r, user.id, keywords)),
+      docs: rows.map((r) => toListItem(r, user?.id ?? -1, keywords)),
       total,
       page: data.page,
       pageSize: PAGE_SIZE,
@@ -283,7 +283,7 @@ export const searchDocuments = createServerFn({ method: "GET" })
       .filter((x) => x.score > 0)
       .sort((a, b) => b.score - a.score)
       .slice(0, 20);
-    return { results: ranked.map(({ row }) => toListItem(row, user.id, keywords)) };
+    return { results: ranked.map(({ row }) => toListItem(row, user?.id ?? -1, keywords)) };
   });
 
 /** Fetch one document's full content (public docs, or the owner's own). */

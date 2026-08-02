@@ -21,7 +21,9 @@ const sampleBids = [
 ];
 
 export const ensureDemoSession = createServerFn({ method: "GET" }).handler(async () => {
-  const passwordHash = await Bun.password.hash(crypto.randomUUID());
+  const encoder = new TextEncoder();
+  const hashBuf = await crypto.subtle.digest("SHA-256", encoder.encode(crypto.randomUUID()));
+  const passwordHash = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
   const users = await sql()`INSERT INTO users (email, password_hash, plan_tier, subscription_status) VALUES (${DEMO_EMAIL}, ${passwordHash}, 'demo', 'active') ON CONFLICT (email) DO UPDATE SET email=EXCLUDED.email RETURNING id, email, created_at`;
   const user = users[0] as any;
   const profileCount = await sql()`SELECT COUNT(*)::int AS count FROM business_profiles WHERE user_id=${user.id}`;

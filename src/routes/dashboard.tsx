@@ -144,6 +144,7 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS experience_match TEXT DEFAULT ''`; } catch {}
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS similar_awards_note TEXT DEFAULT ''`; } catch {}
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS naics_match TEXT DEFAULT ''`; } catch {}
+  try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS role_fit TEXT DEFAULT ''`; } catch {}
 
   const bidRows = await sql()`SELECT id, title, agency, description, location, category, due_date, estimated_value, source_url FROM bids ORDER BY due_date ASC`;
   const userSpecialties = profile?.specialties || [];

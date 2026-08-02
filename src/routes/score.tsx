@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { getCurrentUser } from "~/lib/auth";
+import { sql } from "~/db";
+import { buildProfileContext } from "~/lib/profile-context";
+import type { BusinessProfile } from "~/components/CompanyProfile";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import {
   AlertTriangle,
@@ -55,6 +59,28 @@ const scoreSolicitation = createServerFn({ method: "POST" })
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("OpenAI API key not configured");
 
+    // Fetch business profile if user is logged in
+    let profileContext = "";
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        const profiles = await sql()`
+          SELECT id, business_name, industry, locations, service_categories, naics_codes,
+                 uei, cage_code, sam_expiration, duns, certifications,
+                 years_in_business, employee_count, annual_revenue,
+                 past_performance_summary, capability_statement, specialties, licenses,
+                 typical_contract_value, is_agency, logo_url
+          FROM business_profiles WHERE user_id = ${user.id} LIMIT 1`;
+        if (profiles.length > 0) {
+          profileContext = buildProfileContext(profiles[0] as unknown as BusinessProfile);
+        }
+      }
+    } catch { /* anonymous user or DB not ready — use textarea only */ }
+
+    const businessBlock = profileContext
+      ? `===== BUSINESS PROFILE (from user's Contrax account) =====\n${profileContext}\n\n===== ADDITIONAL BUSINESS NOTES (for this bid) =====\n${data.businessInfo || "(None provided)"}`
+      : `===== BUSINESS DESCRIPTION =====\n${data.businessInfo || "(Not provided — evaluate on the solicitation alone and note assumptions.)"}`;
+
     const systemPrompt = `You are a seasoned government contracting analyst with 20 years of experience reviewing federal, state, and local solicitations (RFPs, RFQs, RFIs, ITBs) for small businesses. Your job is to give an honest, critical, evidence-based assessment of whether a business can win a specific solicitation — NOT to be encouraging. Small businesses lose government contracts far more often than they win them; a realistic analysis is the most valuable thing you can provide. Be blunt about gaps, missing certifications, competition, and effort. Never inflate scores. Return ONLY valid JSON.`;
 
     const userPrompt = `Analyze the solicitation and business description below, then return ONLY a valid JSON object with exactly these fields:
@@ -87,8 +113,7 @@ Be critical and honest. Do not reward effort — only demonstrated fit.
 ===== SOLICITATION =====
 ${data.solicitation}
 
-===== BUSINESS DESCRIPTION =====
-${data.businessInfo || "(Not provided — evaluate on the solicitation alone and note assumptions.)"}`;
+${businessBlock}`;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -369,7 +394,7 @@ function ScorePage() {
             className="mt-2 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-[15px] leading-relaxed text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 disabled:opacity-60"
           />
           <p className="mt-2 text-[13px] text-slate-500">
-            Add this so the analysis can check certifications, past performance, and size against your actual business.
+            Add this so the analysis can check certifications, past performance, and size against your actual business. If you&rsquo;re logged in, your saved Contrax profile is used automatically.
           </p>
 
           <button

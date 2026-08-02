@@ -10,13 +10,10 @@ import { getLearningContext, getUserPatterns } from "~/lib/learning";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
 import { isHealthcareBid, countRoleMatches, type License } from "~/lib/healthcare";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
+import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
+import { buildProfileContext, buildScoringWeights } from "~/lib/profile-context";
 
 // ── Types ────────────────────────────────────────────────────────────────────
-interface BusinessProfile {
-  id: number; business_name: string; industry: string;
-  locations: string[]; service_categories: string[]; naics_codes: string[];
-  specialties: string[]; licenses: License[];
-}
 interface Bid {
   id: number; title: string; agency: string; description: string;
   location: string; category: string; due_date: string; estimated_value: string;
@@ -101,14 +98,16 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
     activeProfileId = (userRows[0] as any)?.active_profile_id ?? null;
   } catch { /* column may not exist yet */ }
 
-  // Lazy migration guards for healthcare staffing columns.
+  // Lazy migration guards for healthcare staffing + profile enrichment columns.
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
+  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
 
+  const PROFILE_COLUMNS = `id, business_name, industry, locations, service_categories, naics_codes, logo_url, is_agency, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value`;
   const profileRows = activeProfileId
-    ? await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes, specialties, licenses FROM business_profiles WHERE id = ${activeProfileId} AND user_id = ${user.id}`
+    ? await sql()`SELECT ${PROFILE_COLUMNS} FROM business_profiles WHERE id = ${activeProfileId} AND user_id = ${user.id}`
     : await sql()`
-      SELECT id, business_name, industry, locations, service_categories, naics_codes, specialties, licenses
+      SELECT ${PROFILE_COLUMNS}
       FROM business_profiles WHERE user_id = ${user.id}`;
   let profile: BusinessProfile | null = null;
   if (profileRows.length > 0) {
@@ -118,8 +117,21 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
       locations: Array.isArray(p.locations) ? p.locations : [],
       service_categories: Array.isArray(p.service_categories) ? p.service_categories : [],
       naics_codes: Array.isArray(p.naics_codes) ? p.naics_codes : [],
+      logo_url: p.logo_url ?? null,
+      is_agency: Boolean(p.is_agency),
+      uei: p.uei ?? null,
+      cage_code: p.cage_code ?? null,
+      sam_expiration: p.sam_expiration ? String(p.sam_expiration).slice(0, 10) : null,
+      duns: p.duns ?? null,
+      certifications: Array.isArray(p.certifications) ? p.certifications : [],
+      years_in_business: p.years_in_business ?? null,
+      employee_count: p.employee_count ?? null,
+      annual_revenue: p.annual_revenue ?? null,
+      past_performance_summary: p.past_performance_summary ?? null,
+      capability_statement: p.capability_statement ?? null,
       specialties: Array.isArray(p.specialties) ? p.specialties : [],
       licenses: Array.isArray(p.licenses) ? p.licenses : [],
+      typical_contract_value: p.typical_contract_value ?? null,
     };
   }
 
@@ -285,11 +297,12 @@ const scoreBid = createServerFn({ method: "POST" })
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`; } catch {}
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
     const bids = await sql()`SELECT title, agency, description, category, location, estimated_value, due_date FROM bids WHERE id = ${data.bidId}`;
     if (!bids.length) throw new Error("Bid not found");
-    const profiles = await sql()`SELECT industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses FROM business_profiles WHERE user_id = ${user.id}`;
+    const profiles = await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value FROM business_profiles WHERE user_id = ${user.id}`;
     if (!profiles.length) throw new Error("Business profile not found — complete onboarding first");
-    const bid = bids[0] as any, profile = profiles[0] as any;
+    const bid = bids[0] as any, profile = profiles[0] as BusinessProfile;
     const profileNaicsCodes: string[] = Array.isArray(profile.naics_codes) ? profile.naics_codes : [];
     const learningCtxScore = await getLearningContext(user.email, bid.title, bid.agency, profileNaicsCodes[0] || "", bid.estimated_value || "");
     const prompt = `You are a government contracting analyst estimating win probability for a small business. Analyze this opportunity and return ONLY valid JSON — no markdown, no code fences.
@@ -307,7 +320,7 @@ Consider these factors:
 Return ONLY: {"win_probability": number 0-100, "competition_level":"Low"|"Moderate"|"High", "agency_sentiment":"...", "size_fit":"...", "experience_match":"...", "similar_awards_note":"...", "naics_match":"...", "role_fit":"...", "ai_explanation":"..."}
 
 Learned patterns from the user's win/loss history:\n${learningCtxScore}\n\nOpportunity: title=${bid.title}; agency=${bid.agency}; description=${bid.description || "Not provided"}; category=${bid.category}; location=${bid.location}; estimated value=${bid.estimated_value}; due date=${bid.due_date}
-Business: industry=${profile.industry}; locations=${JSON.stringify(profile.locations)}; service categories=${JSON.stringify(profile.service_categories)}; NAICS codes=${profileNaicsCodes.length ? JSON.stringify(profileNaicsCodes) : "Not provided"}; Staffing specialties=${JSON.stringify(Array.isArray(profile.specialties) ? profile.specialties : [])}; Staff licenses & credentials=${JSON.stringify(Array.isArray(profile.licenses) ? profile.licenses : [])}; UEI / CAGE Code=${profile.uei || "Not provided"} / ${profile.cage_code || "Not provided"}; SAM Registration Expiration=${profile.sam_expiration || "Not provided"}; Certifications=${JSON.stringify(profile.certifications || [])}; Years in Business / Employees / Annual Revenue=${profile.years_in_business ?? "Not provided"} / ${profile.employee_count ?? "Not provided"} / ${profile.annual_revenue || "Not provided"}; Past Performance Summary=${profile.past_performance_summary || "Not provided"}; Capability Statement=${profile.capability_statement || "Not provided"}`;
+Business profile:\n${buildProfileContext(profile)}\n\nScoring emphasis — prioritize these factors for THIS business (higher = more weight):\n${JSON.stringify(buildScoringWeights(profile))}`;
     try {
       const apiKey = process.env.OPENAI_API_KEY; if (!apiKey) throw new Error("OpenAI API key not configured");
       const response = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 900, temperature: 0.2 }) });
@@ -590,9 +603,10 @@ const generateProposal = createServerFn({ method: "GET" }).handler(async ({ data
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT`; } catch {}
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT`; } catch {}
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`; } catch {}
-    const profileRows = await sql()`SELECT business_name, industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement FROM business_profiles WHERE user_id = ${user.id}`;
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
+    const profileRows = await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value FROM business_profiles WHERE user_id = ${user.id}`;
     if (profileRows.length === 0) throw new Error("Business profile not found — complete onboarding first");
-    const profile = profileRows[0] as any;
+    const profile = profileRows[0] as BusinessProfile;
 
     const prompt = `You are a government proposal writer. Draft a professional proposal response for this contract opportunity based on the business profile provided.
 
@@ -614,18 +628,8 @@ Category: ${bid.category || "Not specified"}
 Due Date: ${String(bid.due_date)}
 Estimated Value: ${bid.estimated_value || "Not specified"}
 
-Business:
-Name: ${profile.business_name}
-Industry: ${profile.industry}
-Locations: ${JSON.stringify(profile.locations)}
-Services: ${JSON.stringify(profile.service_categories)}
-NAICS Codes: ${Array.isArray(profile.naics_codes) && profile.naics_codes.length ? JSON.stringify(profile.naics_codes) : "Not provided"}
-UEI / CAGE Code: ${profile.uei || "Not provided"} / ${profile.cage_code || "Not provided"}
-SAM Registration Expiration: ${profile.sam_expiration || "Not provided"}
-Certifications: ${JSON.stringify(profile.certifications || [])}
-Years in Business / Employees / Annual Revenue: ${profile.years_in_business ?? "Not provided"} / ${profile.employee_count ?? "Not provided"} / ${profile.annual_revenue || "Not provided"}
-Past Performance Summary: ${profile.past_performance_summary || "Not provided"}
-Capability Statement: ${profile.capability_statement || "Not provided"}`;
+Business profile:
+${buildProfileContext(profile)}`;
 
     let draftText: string;
     try {
@@ -1276,6 +1280,9 @@ function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* How Contrax understands your business — collapsible profile summary */}
+        {profile && <CompanyProfile profile={profile} />}
 
         <a href="/losses" className="mb-4 block rounded-2xl border border-purple-100 bg-white p-5 shadow-sm transition hover:border-purple-300"><div className="flex items-center justify-between"><div><h2 className="font-bold text-slate-900">Why You Lost</h2><p className="mt-1 text-sm text-slate-500">{data?.lossesCount || 0} lost bid{data?.lossesCount === 1 ? "" : "s"} analyzed · track recurring weaknesses</p></div><span className="text-purple-600">View losses →</span></div></a>
         <a href="/learnings" className="mb-8 block rounded-2xl border border-green-200 bg-white p-5 shadow-sm transition hover:border-green-400"><div className="flex items-center justify-between"><div><h2 className="font-bold text-slate-900">🧠 Learning Engine</h2><p className="mt-1 text-sm text-slate-500">Win/loss patterns feed back into AI — smarter predictions with every outcome</p></div><span className="text-green-600">View learnings →</span></div></a>

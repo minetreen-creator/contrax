@@ -36,7 +36,8 @@ CREATE TABLE IF NOT EXISTS business_profiles (
     past_performance_summary TEXT,
     capability_statement TEXT,
     specialties JSONB DEFAULT '[]'::jsonb,
-    licenses JSONB DEFAULT '[]'::jsonb
+    licenses JSONB DEFAULT '[]'::jsonb,
+    typical_contract_value TEXT
 );
 
 -- Agency migrations: preserve existing installations while enabling entities.
@@ -55,6 +56,7 @@ ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary 
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT;
 
 CREATE TABLE IF NOT EXISTS api_keys (
     id SERIAL PRIMARY KEY,

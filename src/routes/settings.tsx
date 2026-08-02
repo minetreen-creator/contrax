@@ -68,6 +68,7 @@ interface BusinessProfileFull {
   capability_statement: string | null;
   specialties: string[];
   licenses: License[];
+  typical_contract_value: string | null;
 }
 
 interface SettingsFormData {
@@ -87,6 +88,7 @@ interface SettingsFormData {
   naicsCodes: string;
   specialties: string[];
   licenses: License[];
+  typicalContractValue: string;
 }
 
 // ── Server Functions ─────────────────────────────────────────────────────────
@@ -98,13 +100,14 @@ const fetchProfile = createServerFn({ method: "GET" }).handler(async (): Promise
   // Lazy migration guards for the healthcare staffing columns.
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
+  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
 
   const rows = await sql()`
     SELECT id, business_name, industry, locations, service_categories, naics_codes,
            uei, cage_code, duns, sam_expiration, certifications,
            years_in_business, employee_count, annual_revenue,
            past_performance_summary, capability_statement,
-           specialties, licenses
+           specialties, licenses, typical_contract_value
     FROM business_profiles
     WHERE user_id = ${user.id}
     LIMIT 1
@@ -132,6 +135,7 @@ const fetchProfile = createServerFn({ method: "GET" }).handler(async (): Promise
     capability_statement: p.capability_statement ?? null,
     specialties: Array.isArray(p.specialties) ? p.specialties : [],
     licenses: Array.isArray(p.licenses) ? p.licenses : [],
+    typical_contract_value: p.typical_contract_value ?? null,
   };
 });
 
@@ -161,6 +165,7 @@ const saveProfile = createServerFn({ method: "POST" })
       naicsCodes: d.naicsCodes?.trim() || null,
       specialties: Array.isArray(d.specialties) ? d.specialties.filter((s: string) => typeof s === "string" && s.trim().length > 0).map((s: string) => s.trim()) : [],
       licenses: Array.isArray(d.licenses) ? d.licenses.filter((l: License) => l && typeof l.type === "string" && l.type.trim().length > 0).map((l: License) => ({ type: l.type.trim(), state: (l.state || "").trim() || null, expires: (l.expires || "").trim() || null })) : [],
+      typicalContractValue: d.typicalContractValue?.trim() || null,
     };
   })
   .handler(async ({ data }) => {
@@ -170,6 +175,7 @@ const saveProfile = createServerFn({ method: "POST" })
     // Lazy migration guards for the healthcare staffing columns.
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
 
     // Parse comma-separated NAICS codes into array
     const naicsArray = data.naicsCodes
@@ -199,6 +205,7 @@ const saveProfile = createServerFn({ method: "POST" })
             capability_statement = ${data.capabilityStatement},
             specialties = ${JSON.stringify(data.specialties)}::jsonb,
             licenses = ${JSON.stringify(data.licenses)}::jsonb,
+            typical_contract_value = ${data.typicalContractValue},
             updated_at = NOW()
         WHERE user_id = ${user.id}
       `;
@@ -209,7 +216,7 @@ const saveProfile = createServerFn({ method: "POST" })
           uei, cage_code, duns, sam_expiration, certifications,
           years_in_business, employee_count, annual_revenue,
           past_performance_summary, capability_statement,
-          specialties, licenses
+          specialties, licenses, typical_contract_value
         )
         VALUES (
           ${user.id}, ${data.businessName}, ${data.industry},
@@ -220,7 +227,8 @@ const saveProfile = createServerFn({ method: "POST" })
           ${data.yearsInBusiness}, ${data.employeeCount}, ${data.annualRevenue},
           ${data.pastPerformance}, ${data.capabilityStatement},
           ${JSON.stringify(data.specialties)}::jsonb,
-          ${JSON.stringify(data.licenses)}::jsonb
+          ${JSON.stringify(data.licenses)}::jsonb,
+          ${data.typicalContractValue}
         )
       `;
     }
@@ -286,6 +294,7 @@ function SettingsPage() {
     naicsCodes: "",
     specialties: [],
     licenses: [],
+    typicalContractValue: "",
   });
 
   // Fetch profile on mount
@@ -307,6 +316,7 @@ function SettingsPage() {
             annualRevenue: profile.annual_revenue ?? "",
             pastPerformance: profile.past_performance_summary ?? "",
             capabilityStatement: profile.capability_statement ?? "",
+            typicalContractValue: profile.typical_contract_value ?? "",
             industry: profile.industry,
             locations: profile.locations,
             naicsCodes: profile.naics_codes.join(", "),
@@ -769,6 +779,36 @@ function SettingsPage() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Typical Contract Value */}
+            <div>
+              <label htmlFor="typicalContractValue" className="block text-sm font-medium text-slate-700">
+                Typical Contract Value
+              </label>
+              <p className="mt-1 text-xs text-slate-400">
+                The range of contract sizes you usually pursue (e.g., "$50K–$250K" or "Under $500K").
+              </p>
+              <select
+                id="typicalContractValue"
+                value={form.typicalContractValue}
+                onChange={(e) => updateField("typicalContractValue", e.target.value)}
+                className="mt-1.5 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none bg-white"
+              >
+                <option value="">Select range...</option>
+                <option value="Under $50K">Under $50K</option>
+                <option value="$50K–$250K">$50K–$250K</option>
+                <option value="$250K–$1M">$250K–$1M</option>
+                <option value="$1M–$5M">$1M–$5M</option>
+                <option value="$5M+">$5M+</option>
+              </select>
+              <input
+                type="text"
+                placeholder="Or enter a custom range..."
+                value={form.typicalContractValue}
+                onChange={(e) => updateField("typicalContractValue", e.target.value)}
+                className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              />
             </div>
           </section>
 

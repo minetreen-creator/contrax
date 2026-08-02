@@ -177,7 +177,7 @@ function Home() {
       "Contrax is the AI coach for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
     url: "https://contrax.company",
     logo: "https://contrax.company/favicon.svg",
-    email: "hello@contrax.company",
+    email: "minetreen@gmail.com",
     sameAs: [],
   };
   const webSiteJsonLd = {

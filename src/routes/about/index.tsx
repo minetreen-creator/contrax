@@ -42,7 +42,7 @@ const jsonLd = {
     "Contrax is the AI coach for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
   url: PROD_URL,
   logo: `${PROD_URL}/favicon.svg`,
-  email: "hello@contrax.company",
+  email: "minetreen@gmail.com",
   sameAs: [],
   knowsAbout: [
     "Government contracting",

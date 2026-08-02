@@ -9,6 +9,7 @@ import { trackBid, untrackBid } from "~/routes/tracking";
 import { getLearningContext, getUserPatterns } from "~/lib/learning";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
 import { isHealthcareBid, countRoleMatches, type License } from "~/lib/healthcare";
+import { FeedbackWidget } from "~/components/FeedbackWidget";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface BusinessProfile {
@@ -1777,6 +1778,7 @@ function DashboardPage() {
                               <div className="rounded-lg border border-teal-100 bg-teal-50/50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-teal-600">Role Fit (Staffing)</p><p className="mt-1 text-sm leading-relaxed text-slate-700">{score.role_fit}</p></div>
                             )}
                             <div className="rounded-lg border border-blue-100 bg-blue-50/50 p-4"><p className="text-xs font-semibold uppercase tracking-wide text-blue-600">AI Analysis</p><p className="mt-1 text-sm leading-relaxed text-slate-700">{score.ai_explanation}</p></div>
+                            <FeedbackWidget context="win_probability" solicitationRef={String(bid.id)} aiOutputSummary={`${score.win_probability}% win probability: ${score.ai_explanation}`} />
                             <button type="button" onClick={() => doScore(bid.id, true)} disabled={isScoring} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">{isScoring ? "Regenerating…" : "Regenerate Score"}</button>
                           </div> : <div className="py-8 text-center"><p className="text-sm text-slate-600">{isScoring ? "Analyzing win probability…" : "No win probability yet."}</p><button type="button" onClick={() => doScore(bid.id)} disabled={isScoring} className="mt-4 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white">{isScoring ? "Analyzing…" : "Calculate Win Probability"}</button></div>}</div>
                         )}
@@ -1802,6 +1804,7 @@ function DashboardPage() {
                                     </button>
                                   </div>
                                   <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{draft.draft_text}</div>
+                                  <FeedbackWidget context="proposal" solicitationRef={String(bid.id)} aiOutputSummary={draft.draft_text.slice(0, 500)} />
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <button type="button" onClick={() => doDownloadPdf(bid)} disabled={downloadingPdf.has(bid.id)} className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 active:scale-[0.98] transition-all">

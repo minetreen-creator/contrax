@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
+import { FeedbackWidget } from "~/components/FeedbackWidget";
 import {
   AlertTriangle,
   ArrowRight,
@@ -574,6 +575,7 @@ function ScorePage() {
                 </button>
               </div>
             </div>
+            <FeedbackWidget context="score" solicitationRef="" aiOutputSummary={`Solicitation scored at ${result.overallFit}/100`} />
           </div>
         )}
       </main>

@@ -156,6 +156,21 @@ CREATE TABLE IF NOT EXISTS analytics_events (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS ai_feedback (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    session_id TEXT,
+    context TEXT NOT NULL,
+    solicitation_ref TEXT,
+    ai_output_summary TEXT,
+    was_helpful BOOLEAN,
+    unhelpful_reason TEXT,
+    unhelpful_detail TEXT,
+    did_bid BOOLEAN,
+    did_win BOOLEAN,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS waitlist (
     id SERIAL PRIMARY KEY,
     email TEXT NOT NULL UNIQUE,

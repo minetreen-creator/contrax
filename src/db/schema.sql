@@ -75,6 +75,7 @@ CREATE TABLE IF NOT EXISTS bids (
     description TEXT,
     location TEXT,
     category TEXT,
+    set_aside TEXT,
     due_date TIMESTAMPTZ,
     estimated_value TEXT,
     source_url TEXT,
@@ -130,6 +131,14 @@ BEGIN
     ) THEN
         UPDATE bids SET external_id = 'seed-legacy-' || id::text WHERE external_id IS NULL;
         ALTER TABLE bids ADD CONSTRAINT bids_source_external_id_key UNIQUE (source, external_id);
+    END IF;
+END $$;
+
+-- Migration: Add set_aside column to existing bids table if missing
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bids' AND column_name='set_aside') THEN
+        ALTER TABLE bids ADD COLUMN set_aside TEXT;
     END IF;
 END $$;
 

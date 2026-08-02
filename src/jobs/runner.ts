@@ -80,13 +80,14 @@ async function syncSource(
     for (const bid of bids) {
       try {
         const result = await sql`
-          INSERT INTO bids (title, agency, description, location, category, due_date, estimated_value, source_url, source, external_id)
+          INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id)
           VALUES (
             ${bid.title},
             ${bid.agency},
             ${bid.description},
             ${bid.location},
             ${bid.category},
+            ${bid.set_aside ?? null},
             ${bid.due_date ? new Date(bid.due_date).toISOString() : null}::timestamptz,
             ${bid.estimated_value},
             ${bid.source_url},

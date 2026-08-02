@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
@@ -169,11 +169,14 @@ export const Route = createFileRoute("/copilot")({
   component: CopilotPage,
   head: () => ({
     meta: [
-      { title: "Contract Intelligence Copilot | Contrax" },
+      {
+        title:
+          "Contract Intelligence Copilot — AI Government Contracting Strategist | Contrax",
+      },
       {
         name: "description",
         content:
-          "Chat with Contrax Copilot — your AI government contracting strategist with full context on your certifications, bids, win/loss patterns, and knowledge base.",
+          "AI copilot for government contracting, set-aside bid strategy, and federal proposal assistance. Contrax knows your certifications, bids, and win/loss patterns.",
       },
     ],
   }),
@@ -183,12 +186,86 @@ export const Route = createFileRoute("/copilot")({
 
 function CopilotPage() {
   const currentUser = Route.useLoaderData();
-  const navigate = useNavigate();
-  if (!currentUser) {
-    navigate({ to: "/login" });
-    return null;
-  }
 
+  if (!currentUser) return <PublicCopilot />;
+
+  return <AuthenticatedCopilot />;
+}
+
+function PublicCopilot() {
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+      <main>
+        <section className="relative overflow-hidden px-4 pb-20 pt-20 sm:px-6 lg:px-8 lg:pb-28 lg:pt-28">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.28),_transparent_45%)]" />
+          <div className="relative mx-auto max-w-6xl">
+            <div className="max-w-3xl">
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-3 py-1.5 text-sm font-medium text-blue-200">
+                <span aria-hidden="true">✦</span> Contract Intelligence Copilot
+              </div>
+              <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
+                Your AI Government Contracting Strategist
+              </h1>
+              <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
+                Turn your certifications, active bids, win/loss history, and business knowledge into specific, actionable guidance for your next federal contract.
+              </p>
+              <div className="mt-9 flex flex-wrap gap-4">
+                <a href="/signup" className="rounded-xl bg-blue-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 transition hover:bg-blue-400">
+                  Start Your Free Trial <span aria-hidden="true">→</span>
+                </a>
+                <a href="#how-it-works" className="rounded-xl border border-slate-700 px-6 py-3.5 text-sm font-semibold text-slate-200 transition hover:border-slate-500 hover:bg-slate-900">
+                  See how it works
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="how-it-works" className="bg-white px-4 py-20 text-slate-900 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-6xl">
+            <div className="max-w-3xl">
+              <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">A strategist built around your business</p>
+              <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Go beyond generic AI answers</h2>
+              <div className="mt-6 space-y-4 text-base leading-7 text-slate-600">
+                <p>The Contract Intelligence Copilot is an AI government contracting strategist designed for the decisions that determine whether a small business wins federal work. It helps you understand which opportunities deserve your team's limited time, how to position your capabilities, and what to do next. Instead of returning broad procurement advice, it connects every recommendation to the opportunities and outcomes in your Contrax workspace.</p>
+                <p>Copilot uses your business context: certifications such as 8(a), SDVOSB, WOSB, or HUBZone; NAICS codes and capabilities; active bids and their scores; past awards; win/loss history; learning patterns; pricing data; and documents in your knowledge base. That context lets it identify set-aside fit, surface competitive patterns, and explain tradeoffs in plain language. As your team records results and adds proposal knowledge, its guidance becomes more relevant to how your business actually competes.</p>
+                <p>Ask practical questions such as “Which of my active bids should I prioritize?”, “What's my win rate on 8(a) set-asides?”, or “Draft a capability statement for this NAICS.” Copilot can help compare deadlines and competition, suggest teaming or pricing angles, reveal recurring weaknesses across losses, and turn your own source documents into a focused next step. Unlike ChatGPT, the Copilot already knows your business — you do not have to rebuild your context in every conversation, and it will not pretend to know facts that are not in your account.</p>
+              </div>
+            </div>
+
+            <div className="mt-14 grid gap-5 md:grid-cols-3">
+              <FeatureCard icon="◈" title="Knows Your Business" text="Your certifications, NAICS codes, active opportunities, and past wins are part of every strategic conversation." />
+              <FeatureCard icon="✦" title="Strategic Guidance" text="Prioritize bids, sharpen pricing, evaluate set-aside fit, and find teaming suggestions grounded in your goals." />
+              <FeatureCard icon="↗" title="Learns From Your Results" text="Win/loss patterns and recurring weaknesses turn each proposal outcome into a smarter next decision." />
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-blue-600 px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+            <div>
+              <h2 className="text-3xl font-bold">Make every bid decision count.</h2>
+              <p className="mt-2 text-blue-100">Start your free trial. Plans start at $49/month, with Professional at $149 and Agency at $399.</p>
+            </div>
+            <a href="/signup" className="shrink-0 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-blue-700 shadow-lg transition hover:bg-blue-50">Start Your Free Trial <span aria-hidden="true">→</span></a>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function FeatureCard({ icon, title, text }: { icon: string; title: string; text: string }) {
+  return (
+    <article className="rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-lg text-blue-700" aria-hidden="true">{icon}</div>
+      <h3 className="mt-5 text-lg font-bold text-slate-900">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-600">{text}</p>
+    </article>
+  );
+}
+
+function AuthenticatedCopilot() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);

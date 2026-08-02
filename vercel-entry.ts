@@ -54,7 +54,7 @@ const PRIVACY_HTML = `<!DOCTYPE html>
 <section><h2>7. Changes</h2><p>We may update this policy. Material changes will be notified via email or through the service.</p></section>
 <section><h2>8. Contact</h2><p>Questions? Contact <a href="mailto:privacy@contrax.app">privacy@contrax.app</a>.</p></section>
 </div>
-<footer><div class="f-inner"><span>© 2026 Contrax. All rights reserved.</span><div style="display:flex;gap:1.5rem"><a href="/privacy" style="color:#64748b">Privacy Policy</a><a href="/terms" style="color:#64748b">Terms of Service</a><a href="mailto:hello@contrax.app" style="color:#64748b">Contact</a></div></div></footer>
+<footer><div class="f-inner"><span>© 2026 Contrax. All rights reserved.</span><div style="display:flex;gap:1.5rem"><a href="/privacy" style="color:#64748b">Privacy Policy</a><a href="/terms" style="color:#64748b">Terms of Service</a><a href="mailto:minetreen@gmail.com" style="color:#64748b">Contact</a></div></div></footer>
 </body>
 </html>`;
 
@@ -101,7 +101,7 @@ const TERMS_HTML = `<!DOCTYPE html>
 <section><h2>10. Governing Law</h2><p>These terms are governed by United States law. Disputes shall be resolved through binding arbitration.</p></section>
 <section><h2>11. Contact</h2><p>For questions, contact <a href="mailto:legal@contrax.app">legal@contrax.app</a>.</p></section>
 </div>
-<footer><div class="f-inner"><span>© 2026 Contrax. All rights reserved.</span><div style="display:flex;gap:1.5rem"><a href="/privacy" style="color:#64748b">Privacy Policy</a><a href="/terms" style="color:#64748b">Terms of Service</a><a href="mailto:hello@contrax.app" style="color:#64748b">Contact</a></div></div></footer>
+<footer><div class="f-inner"><span>© 2026 Contrax. All rights reserved.</span><div style="display:flex;gap:1.5rem"><a href="/privacy" style="color:#64748b">Privacy Policy</a><a href="/terms" style="color:#64748b">Terms of Service</a><a href="mailto:minetreen@gmail.com" style="color:#64748b">Contact</a></div></div></footer>
 </body>
 </html>`;
 
@@ -113,7 +113,7 @@ const SEO_HEAD = `<link rel="stylesheet" href="/assets/app-BvI_ZJ4P.css">
 
 const SEO_NAV = `<nav class="sticky top-0 z-50 bg-slate-900 border-b border-slate-700"><div class="mx-auto flex max-w-7xl items-center gap-1 px-6 py-2"><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/">📄 Contracts</a><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/savings">💰 Savings</a><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/learn">📚 Learn</a></div></nav>`;
 
-const SEO_FOOTER = `<footer class="border-t border-slate-200 bg-slate-50 mt-16"><div class="mx-auto max-w-7xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4"><p class="text-sm text-slate-500">© 2026 Contrax. All rights reserved.</p><div class="flex items-center gap-6"><a href="/privacy" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Privacy Policy</a><a href="/terms" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Terms of Service</a><a href="/learn" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Learn</a><a href="mailto:hello@contrax.app" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Contact</a></div></div></footer>`;
+const SEO_FOOTER = `<footer class="border-t border-slate-200 bg-slate-50 mt-16"><div class="mx-auto max-w-7xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4"><p class="text-sm text-slate-500">© 2026 Contrax. All rights reserved.</p><div class="flex items-center gap-6"><a href="/privacy" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Privacy Policy</a><a href="/terms" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Terms of Service</a><a href="/learn" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Learn</a><a href="mailto:minetreen@gmail.com" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Contact</a></div></div></footer>`;
 
 const SEO_SCRIPTS = `<script class="$tsr" id="$tsr-stream-barrier">(self.$R=self.$R||{})["tsr"]=[];self.$_TSR={h(){this.hydrated=!0,this.c()},e(){this.streamEnded=!0,this.c()},c(){this.hydrated&&this.streamEnded&&(delete self.$_TSR,delete self.$R.tsr)},p(e){this.initialized?e():this.buffer.push(e)},buffer:[]};$_TSR.router=($R=>$R[0]={manifest:$R[1]={routes:$R[2]={__root__:$R[3]={preloads:$R[4]=["/assets/index-V6s2zK7C.js"],scripts:$R[5]=[$R[6]={attrs:$R[7]={type:"module",async:!0,src:"/assets/index-V6s2zK7C.js"}}]}}},matches:$R[8]=[$R[9]={i:"__root__",u:1785481081647,s:"success",ssr:!0,g:!0}],lastMatchId:"__root__"})($R["tsr"]);$_TSR.e();document.currentScript.remove()</script><script type="module" async src="/assets/index-V6s2zK7C.js"></script><script>(function(){try{var p=location.pathname+location.search;var r=document.referrer||"";fetch("/api/analytics",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:p,referrer:r})})}catch(e){}})();</script>`;
 

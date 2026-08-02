@@ -603,7 +603,7 @@ function CompliancePage() {
           <div className="flex items-center gap-6">
             <a href="/privacy" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Privacy Policy</a>
             <a href="/terms" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Terms of Service</a>
-            <a href="mailto:hello@contrax.app" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Contact</a>
+            <a href="mailto:minetreen@gmail.com" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Contact</a>
           </div>
         </div>
       </footer>

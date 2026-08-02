@@ -469,3 +469,26 @@ END $$;
 
 -- Index for loading a user's recent chat history
 CREATE INDEX IF NOT EXISTS idx_copilot_messages_user_created ON copilot_messages(user_email, created_at);
+
+-- Knowledge-base semantic retrieval (pgvector is optional at bootstrap).
+CREATE TABLE IF NOT EXISTS knowledge_documents (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    title TEXT NOT NULL,
+    doc_type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    description TEXT,
+    is_public BOOLEAN NOT NULL DEFAULT false,
+    tags TEXT[],
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+DO $$
+BEGIN
+  BEGIN
+    CREATE EXTENSION IF NOT EXISTS vector;
+    ALTER TABLE knowledge_documents ADD COLUMN IF NOT EXISTS embedding VECTOR(1536);
+    CREATE INDEX IF NOT EXISTS idx_knowledge_embedding ON knowledge_documents USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+  EXCEPTION WHEN OTHERS THEN NULL;
+  END;
+END $$;

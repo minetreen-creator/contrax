@@ -17,7 +17,7 @@ import { buildProfileContext, buildScoringWeights } from "~/lib/profile-context"
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Bid {
   id: number; title: string; agency: string; description: string;
-  location: string; category: string; due_date: string; estimated_value: string;
+  location: string; category: string; set_aside: string | null; due_date: string; estimated_value: string;
   source_url: string | null; role_matches: number;
 }
 interface BidSummary {
@@ -146,11 +146,12 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS naics_match TEXT DEFAULT ''`; } catch {}
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS role_fit TEXT DEFAULT ''`; } catch {}
 
-  const bidRows = await sql()`SELECT id, title, agency, description, location, category, due_date, estimated_value, source_url FROM bids ORDER BY due_date ASC`;
+  const bidRows = await sql()`SELECT id, title, agency, description, location, category, set_aside, due_date, estimated_value, source_url FROM bids ORDER BY due_date ASC`;
   const userSpecialties = profile?.specialties || [];
   const bids: Bid[] = (bidRows as any[]).map((b) => ({
     id: b.id, title: b.title, agency: b.agency, description: b.description,
-    location: b.location, category: b.category, due_date: String(b.due_date),
+    location: b.location, category: b.category, set_aside: b.set_aside ?? null,
+    due_date: String(b.due_date),
     estimated_value: b.estimated_value, source_url: b.source_url,
     role_matches: countRoleMatches(b as any, userSpecialties),
   }));
@@ -803,12 +804,83 @@ function recommendationStyle(rec: BidRecommendation | undefined) {
   return { label: "CAUTIOUS", detail: "Proceed carefully — mixed signals", bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200", dot: "🟡" };
 }
 function levelStyle(level: string) { return level === "low" || level === "strong" ? "bg-green-100 text-green-700" : level === "high" || level === "extreme" || level === "weak" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"; }
+function setAsideLabel(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const v = String(raw).trim();
+  if (!v || /^(none|no|not set aside|n\/a|na)$/i.test(v)) return null;
+  const lower = v.toLowerCase();
+  const map: Record<string, string> = {
+    sba: "8(a)",
+    "8a": "8(a)",
+    "8(a)": "8(a)",
+    sdvosbc: "SDVOSB",
+    sdvosb: "SDVOSB",
+    vosbc: "VOSB",
+    vosb: "VOSB",
+    wosb: "WOSB",
+    edwosb: "EDWOSB",
+    "wosb/edwosb": "WOSB/EDWOSB",
+    hzc: "HUBZone",
+    hubzone: "HUBZone",
+    mbe: "MBE",
+    wbe: "WBE",
+    dbe: "DBE",
+  };
+  if (map[lower]) return map[lower];
+  if (lower.includes("8(a)") || (lower.includes("8a") && lower.includes("sba"))) return "8(a)";
+  if (lower.includes("service-disabled") || lower.includes("sdvosb")) return "SDVOSB";
+  if (lower.includes("economically disadvantaged")) return "EDWOSB";
+  if (lower.includes("women-owned") || lower.includes("women owned") || lower.includes("wosb")) return "WOSB";
+  if (lower.includes("veteran-owned") || lower.includes("veteran owned") || lower.includes("vosb")) return "VOSB";
+  if (lower.includes("hubzone") || lower.includes("hub zone")) return "HUBZone";
+  if (lower.includes("minority")) return "Minority-Owned";
+  if (lower.includes("disadvantaged")) return "Disadvantaged";
+  return v;
+}
+
+// Does a bid's set-aside designation match any of the user's certifications?
+// Maps SAM.gov set-aside labels loosely to the profile cert keys (8a, sdvosb,
+// wosb, edwosb, hubzone, vosb, minority_owned, disadvantaged).
+function setAsideMatchesCertifications(bidSetAside: string | null | undefined, certifications: string[]): boolean {
+  const label = setAsideLabel(bidSetAside);
+  if (!label) return false;
+  const certs = (certifications || []).map((c) => String(c).toLowerCase());
+  switch (label.toLowerCase()) {
+    case "8(a)":
+      return certs.includes("8a") || certs.includes("8(a)") || certs.includes("sba") || certs.includes("disadvantaged");
+    case "sdvosb":
+      return certs.includes("sdvosb") || certs.includes("service_disabled_veteran");
+    case "vosb":
+      // SDVOSB firms are also veteran-owned and may bid VOSB set-asides.
+      return certs.includes("vosb") || certs.includes("veteran") || certs.includes("sdvosb");
+    case "wosb":
+      return certs.includes("wosb") || certs.includes("wosb_edwosb");
+    case "edwosb":
+    case "wosb/edwosb":
+      return certs.includes("edwosb") || certs.includes("wosb") || certs.includes("wosb_edwosb");
+    case "hubzone":
+      return certs.includes("hubzone");
+    case "minority-owned":
+      return certs.includes("minority_owned") || certs.includes("minority");
+    case "disadvantaged":
+      return certs.includes("disadvantaged") || certs.includes("8a") || certs.includes("8(a)");
+    default:
+      return certs.includes(label.toLowerCase());
+  }
+}
+
 function matchBid(bid: Bid, profile: BusinessProfile): boolean {
   const cat = (bid.category || "").toLowerCase();
   const ind = (profile.industry || "").toLowerCase();
   const catMatch = cat === ind || ind.includes(cat) || cat.includes(ind);
   const locMatch = (profile.locations || []).some((l) => bid.location?.toLowerCase().includes((l || "").toLowerCase()));
-  return catMatch || locMatch;
+  // Set-aside-first: a bid reserved for a certification the user holds is a
+  // match even when category/location don't line up.
+  const setAsideMatch = setAsideMatchesCertifications(
+    bid.set_aside,
+    Array.isArray(profile.certifications) ? profile.certifications : [],
+  );
+  return catMatch || locMatch || setAsideMatch;
 }
 
 // ── Upgrade Banner ────────────────────────────────────────────────────────────
@@ -934,6 +1006,7 @@ function DashboardPage() {
   const [expandedBid, setExpandedBid] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Record<number, string>>({});
   const [sortBy, setSortBy] = useState<"due_date" | "newest" | "value">("due_date");
+  const [setAsideOnly, setSetAsideOnly] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [trackingLoading, setTrackingLoading] = useState<Set<number>>(new Set());
@@ -1015,8 +1088,20 @@ function DashboardPage() {
   const bids = data?.bids ?? [];
   const urgentTrackedCount = data?.urgentTrackedCount ?? 0;
 
-  const filtered = profile ? bids.filter((b) => matchBid(b, profile) && !dismissedBids.has(b.id)) : [];
+  const profileCerts = Array.isArray(profile?.certifications) ? profile.certifications : [];
+  const filtered = profile
+    ? bids.filter(
+        (b) =>
+          matchBid(b, profile) &&
+          !dismissedBids.has(b.id) &&
+          (!setAsideOnly || setAsideLabel(b.set_aside) !== null),
+      )
+    : [];
   const sorted = [...filtered].sort((a, b) => {
+    // Set-aside-first boost: bids reserved for certifications the user holds float to the top.
+    const aSetAsideBoost = setAsideMatchesCertifications(a.set_aside, profileCerts) ? 0 : 1;
+    const bSetAsideBoost = setAsideMatchesCertifications(b.set_aside, profileCerts) ? 0 : 1;
+    if (aSetAsideBoost !== bSetAsideBoost) return aSetAsideBoost - bSetAsideBoost;
     // Role-match boost: bids matching the user's staffing specialties float to the top.
     const aBoost = (a.role_matches || 0) > 0 ? 0 : 1;
     const bBoost = (b.role_matches || 0) > 0 ? 0 : 1;
@@ -1343,7 +1428,22 @@ function DashboardPage() {
             )}
           </div>
           {profile && sorted.length > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setSetAsideOnly((v) => !v)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                  setAsideOnly
+                    ? "bg-purple-600 text-white shadow-sm"
+                    : "border border-slate-300 bg-white text-slate-600 hover:bg-purple-50 hover:text-purple-700"
+                }`}
+                title="Show only bids with a set-aside designation"
+              >
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                Set-Aside Only
+              </button>
               <label htmlFor="sort" className="text-sm font-medium text-slate-600">Sort by:</label>
               <select id="sort" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
                 <option value="due_date">Due date (closest)</option>
@@ -1424,6 +1524,25 @@ function DashboardPage() {
                         <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{bid.category}</span>
                         {bid.role_matches > 0 && (
                           <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">🔵 {bid.role_matches} role match{bid.role_matches !== 1 ? "es" : ""}</span>
+                        )}
+                        {setAsideLabel(bid.set_aside) && (
+                          <span
+                            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+                              setAsideMatchesCertifications(bid.set_aside, profileCerts)
+                                ? "bg-purple-600 text-white"
+                                : "border border-purple-300 bg-purple-50 text-purple-700"
+                            }`}
+                            title={
+                              setAsideMatchesCertifications(bid.set_aside, profileCerts)
+                                ? "This set-aside matches one of your certifications"
+                                : "Set-aside designation"
+                            }
+                          >
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                            </svg>
+                            {setAsideLabel(bid.set_aside)} Set-Aside
+                          </span>
                         )}
                         {isHealthcareBid(bid) && (
                           <span className="inline-flex items-center rounded-full bg-teal-100 px-2 py-0.5 text-xs font-semibold text-teal-700">🩺 Healthcare</span>

@@ -21,6 +21,7 @@ export interface RawBid {
   due_date: string | null;
   estimated_value: string;
   source_url: string;
+  set_aside?: string | null;
 }
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
@@ -90,6 +91,108 @@ function mapCategory(typeValue: string, title: string, description: string): str
   return "Other";
 }
 
+
+const DETAIL_API = "https://sam.gov/api/prod/opps/v2/opportunities/";
+
+/**
+ * Normalizes a raw SAM.gov set-aside value (code or label) into a display label.
+ * Codes observed from SAM.gov: "SBA" (SBA Certified 8(a) Program), "SDVOSBC",
+ * "VOSBC", "WOSB", "EDWOSB", "HZC", "NONE". Accepts strings or {code, value}
+ * objects (e.g. {code: "8a", value: "SBA Certified 8(a) Program"}).
+ */
+export function normalizeSetAside(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  let v = String(value).trim();
+  if (!v || /^(none|no|not set aside|n\/a|na)$/i.test(v)) return null;
+  const lower = v.toLowerCase();
+  const map: Record<string, string> = {
+    sba: "8(a)",
+    "8a": "8(a)",
+    "8(a)": "8(a)",
+    sdvosbc: "SDVOSB",
+    sdvosb: "SDVOSB",
+    "service-disabled": "SDVOSB",
+    vosbc: "VOSB",
+    vosb: "VOSB",
+    wosb: "WOSB",
+    edwosb: "EDWOSB",
+    "wosb/edwosb": "WOSB/EDWOSB",
+    hzc: "HUBZone",
+    hubzone: "HUBZone",
+    hub: "HUBZone",
+    mbe: "MBE",
+    wbe: "WBE",
+    dbe: "DBE",
+  };
+  if (map[lower]) return map[lower];
+  if (lower.includes("8(a)") || (lower.includes("8a") && lower.includes("sba"))) return "8(a)";
+  if (lower.includes("service-disabled") || lower.includes("sdvosb")) return "SDVOSB";
+  if (lower.includes("economically disadvantaged")) return "EDWOSB";
+  if (lower.includes("women-owned") || lower.includes("women owned") || lower.includes("wosb")) return "WOSB";
+  if (lower.includes("veteran-owned") || lower.includes("veteran owned") || lower.includes("vosb")) return "VOSB";
+  if (lower.includes("hubzone") || lower.includes("hub zone")) return "HUBZone";
+  if (lower.includes("minority")) return "Minority-Owned";
+  if (lower.includes("disadvantaged")) return "Disadvantaged";
+  return v;
+}
+
+/**
+ * Extracts a set-aside designation from a SAM.gov search-result item.
+ * The v1 search response usually does not carry the field, so this checks any
+ * structured field that could be present (setAside / typeOfSetAside /
+ * setAsideType / data2.solicitation.setAside) and falls back to scanning the
+ * opportunity text for "set aside" phrases.
+ */
+function extractSetAsideFromItem(item: any, description: string): string | null {
+  const candidates = [
+    item?.setAside,
+    item?.typeOfSetAside,
+    item?.setAsideType,
+    item?.data2?.solicitation?.setAside,
+  ];
+  for (const c of candidates) {
+    const raw = typeof c === "object" && c !== null ? c?.value ?? c?.code ?? c : c;
+    const label = normalizeSetAside(raw);
+    if (label) return label;
+  }
+
+  const text = `${item?.title || ""} ${description}`.toLowerCase().replace(/\s+/g, " ");
+  const idx = text.indexOf("set-aside") >= 0 ? text.indexOf("set-aside") : text.indexOf("set aside");
+  if (idx >= 0) {
+    const window = text.slice(Math.max(0, idx - 100), idx + 100);
+    const pairs: [RegExp, string][] = [
+      [/\b8\s?\(\s?a\s?\)|sba certified/, "8(a)"],
+      [/\bedwosb\b/, "EDWOSB"],
+      [/\bsdvosb\b|service[- ]disabled/, "SDVOSB"],
+      [/\bwosb\b|women[- ]owned/, "WOSB"],
+      [/\bhubzone\b|hub[- ]?zone/, "HUBZone"],
+      [/\bvosb\b|veteran[- ]owned/, "VOSB"],
+    ];
+    for (const [re, label] of pairs) if (re.test(window)) return label;
+  }
+  return null;
+}
+
+/**
+ * Fetches the authoritative set-aside designation from the SAM.gov opportunity
+ * detail endpoint (data2.solicitation.setAside). Best-effort: any failure
+ * returns null so a detail fetch can never break the sync.
+ */
+async function fetchSetAsideDetail(noticeId: string): Promise<string | null> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const resp = await fetch(`${DETAIL_API}${noticeId}`, { headers: HEADERS, signal: controller.signal });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return normalizeSetAside(data?.data2?.solicitation?.setAside);
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function fetchBids(): Promise<RawBid[]> {
   const results: RawBid[] = [];
 
@@ -136,6 +239,13 @@ export async function fetchBids(): Promise<RawBid[]> {
             ? `https://sam.gov/opp/${noticeId}/view`
             : "https://sam.gov/search/";
 
+          // Set-aside designation: structured field first, then opportunity detail.
+          let setAside = extractSetAsideFromItem(item, description);
+          if (!setAside && noticeId) {
+            setAside = await fetchSetAsideDetail(noticeId);
+            await new Promise((r) => setTimeout(r, 120));
+          }
+
           results.push({
             external_id: `sam-${item._id || item.solicitationNumber || `page${page}-${results.length}`}`,
             title: item.title || "Untitled Opportunity",
@@ -146,6 +256,7 @@ export async function fetchBids(): Promise<RawBid[]> {
             due_date: dueDate,
             estimated_value: estimatedValue,
             source_url: sourceUrl,
+            set_aside: setAside,
           });
         } catch (e) {
           console.error(`  SAM.gov: error parsing item:`, (e as Error).message);

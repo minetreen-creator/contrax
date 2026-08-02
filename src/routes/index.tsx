@@ -1501,6 +1501,12 @@ function Footer() {
           <a href="/compare" className="text-sm text-gray-400 transition-colors hover:text-white">
             Compare
           </a>
+          <a href="/about" className="text-sm text-gray-400 transition-colors hover:text-white">
+            About
+          </a>
+          <a href="/security" className="text-sm text-gray-400 transition-colors hover:text-white">
+            Security
+          </a>
           <a href="/privacy" className="text-sm text-gray-400 transition-colors hover:text-white">
             Privacy Policy
           </a>

@@ -61,6 +61,7 @@ interface BusinessProfileFull {
   duns: string | null;
   sam_expiration: string | null;
   certifications: string[];
+  certification_dates: Record<string, string>;
   years_in_business: number | null;
   employee_count: number | null;
   annual_revenue: string | null;
@@ -78,6 +79,7 @@ interface SettingsFormData {
   duns: string;
   samExpiration: string;
   certifications: string[];
+  certificationDates: Record<string, string>;
   yearsInBusiness: string;
   employeeCount: string;
   annualRevenue: string;
@@ -101,10 +103,11 @@ const fetchProfile = createServerFn({ method: "GET" }).handler(async (): Promise
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
+  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certification_dates JSONB DEFAULT '{}'::jsonb`; } catch {}
 
   const rows = await sql()`
     SELECT id, business_name, industry, locations, service_categories, naics_codes,
-           uei, cage_code, duns, sam_expiration, certifications,
+           uei, cage_code, duns, sam_expiration, certifications, certification_dates,
            years_in_business, employee_count, annual_revenue,
            past_performance_summary, capability_statement,
            specialties, licenses, typical_contract_value
@@ -128,6 +131,7 @@ const fetchProfile = createServerFn({ method: "GET" }).handler(async (): Promise
     duns: p.duns ?? null,
     sam_expiration: p.sam_expiration ? String(p.sam_expiration).slice(0, 10) : null,
     certifications: Array.isArray(p.certifications) ? p.certifications : [],
+    certification_dates: p.certification_dates && typeof p.certification_dates === "object" && !Array.isArray(p.certification_dates) ? p.certification_dates : {},
     years_in_business: p.years_in_business ?? null,
     employee_count: p.employee_count ?? null,
     annual_revenue: p.annual_revenue ?? null,
@@ -155,6 +159,7 @@ const saveProfile = createServerFn({ method: "POST" })
       duns: d.duns?.trim() || null,
       samExpiration: d.samExpiration?.trim() || null,
       certifications: d.certifications || [],
+      certificationDates: d.certificationDates && typeof d.certificationDates === "object" ? Object.fromEntries(Object.entries(d.certificationDates).filter(([key, value]) => d.certifications.includes(key) && typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value as string))) : {},
       yearsInBusiness: d.yearsInBusiness ? parseInt(d.yearsInBusiness, 10) || null : null,
       employeeCount: d.employeeCount ? parseInt(d.employeeCount, 10) || null : null,
       annualRevenue: d.annualRevenue?.trim() || null,
@@ -176,6 +181,7 @@ const saveProfile = createServerFn({ method: "POST" })
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certification_dates JSONB DEFAULT '{}'::jsonb`; } catch {}
 
     // Parse comma-separated NAICS codes into array
     const naicsArray = data.naicsCodes
@@ -198,6 +204,7 @@ const saveProfile = createServerFn({ method: "POST" })
             duns = ${data.duns},
             sam_expiration = ${data.samExpiration ? data.samExpiration : null}::date,
             certifications = ${JSON.stringify(data.certifications)}::jsonb,
+            certification_dates = ${JSON.stringify(data.certificationDates)}::jsonb,
             years_in_business = ${data.yearsInBusiness},
             employee_count = ${data.employeeCount},
             annual_revenue = ${data.annualRevenue},
@@ -213,7 +220,7 @@ const saveProfile = createServerFn({ method: "POST" })
       await sql()`
         INSERT INTO business_profiles (
           user_id, business_name, industry, locations, naics_codes,
-          uei, cage_code, duns, sam_expiration, certifications,
+          uei, cage_code, duns, sam_expiration, certifications, certification_dates,
           years_in_business, employee_count, annual_revenue,
           past_performance_summary, capability_statement,
           specialties, licenses, typical_contract_value
@@ -224,6 +231,7 @@ const saveProfile = createServerFn({ method: "POST" })
           ${data.uei}, ${data.cageCode}, ${data.duns},
           ${data.samExpiration ? data.samExpiration : null}::date,
           ${JSON.stringify(data.certifications)}::jsonb,
+          ${JSON.stringify(data.certificationDates)}::jsonb,
           ${data.yearsInBusiness}, ${data.employeeCount}, ${data.annualRevenue},
           ${data.pastPerformance}, ${data.capabilityStatement},
           ${JSON.stringify(data.specialties)}::jsonb,
@@ -284,6 +292,7 @@ function SettingsPage() {
     duns: "",
     samExpiration: "",
     certifications: [],
+    certificationDates: {},
     yearsInBusiness: "",
     employeeCount: "",
     annualRevenue: "",
@@ -311,6 +320,7 @@ function SettingsPage() {
             duns: profile.duns ?? "",
             samExpiration: profile.sam_expiration ?? "",
             certifications: profile.certifications,
+            certificationDates: profile.certification_dates,
             yearsInBusiness: profile.years_in_business != null ? String(profile.years_in_business) : "",
             employeeCount: profile.employee_count != null ? String(profile.employee_count) : "",
             annualRevenue: profile.annual_revenue ?? "",
@@ -344,6 +354,13 @@ function SettingsPage() {
       certifications: prev.certifications.includes(cert)
         ? prev.certifications.filter((c) => c !== cert)
         : [...prev.certifications, cert],
+    }));
+  }, []);
+
+  const updateCertificationDate = useCallback((cert: string, date: string) => {
+    setForm((prev) => ({
+      ...prev,
+      certificationDates: { ...prev.certificationDates, [cert]: date },
     }));
   }, []);
 
@@ -537,34 +554,32 @@ function SettingsPage() {
 
           {/* Section: Certifications */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Certifications</h2>
+            <h2 className="text-lg font-semibold text-slate-900 mb-1">Certifications</h2>
+            <p className="text-sm text-slate-500 mb-4">Track certification expiration dates so you never miss a renewal deadline. Dates are optional.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {CERTIFICATIONS.map((cert) => {
                 const checked = form.certifications.includes(cert.value);
+                const date = form.certificationDates[cert.value] || "";
+                const expiry = date ? new Date(`${date}T00:00:00`) : null;
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const twelveMonths = new Date(today);
+                twelveMonths.setFullYear(twelveMonths.getFullYear() + 1);
+                const status = expiry && expiry < today ? "Expired" : expiry && expiry <= twelveMonths ? "Expiring soon" : expiry ? "Valid" : null;
                 return (
-                  <button
-                    key={cert.value}
-                    type="button"
-                    onClick={() => toggleCertification(cert.value)}
-                    className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all ${
-                      checked
-                        ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                        : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    <div
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
-                        checked ? "border-blue-500 bg-blue-500" : "border-slate-300"
-                      }`}
-                    >
-                      {checked && (
-                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                    {cert.label}
-                  </button>
+                  <div key={cert.value} className={`rounded-lg border p-3 transition-all ${checked ? "border-blue-500 bg-blue-50 shadow-sm" : "border-slate-200 bg-white"}`}>
+                    <button type="button" onClick={() => toggleCertification(cert.value)} className={`flex w-full items-center gap-3 text-left text-sm ${checked ? "text-blue-700" : "text-slate-700"}`}>
+                      <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${checked ? "border-blue-500 bg-blue-500" : "border-slate-300"}`}>
+                        {checked && <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                      </div>
+                      <span className="font-medium">{cert.label}</span>
+                      {status && <span className={`ml-auto inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${status === "Valid" ? "bg-green-100 text-green-700" : status === "Expired" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>{status === "Valid" ? "🟢" : status === "Expired" ? "🔴" : "🟡"} {status}</span>}
+                    </button>
+                    {checked && <div className="mt-3 border-t border-blue-100 pt-2">
+                      <label htmlFor={`cert-expiry-${cert.value}`} className="block text-xs font-medium text-slate-600">Expiration date <span className="font-normal text-slate-400">(optional)</span></label>
+                      <input id={`cert-expiry-${cert.value}`} type="date" value={date} onChange={(e) => updateCertificationDate(cert.value, e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                    </div>}
+                  </div>
                 );
               })}
             </div>

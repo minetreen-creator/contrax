@@ -449,3 +449,23 @@ DO $$ BEGIN ALTER TABLE knowledge_documents ADD COLUMN IF NOT EXISTS embedding V
 -- Full-text search index
 CREATE INDEX IF NOT EXISTS idx_knowledge_content ON knowledge_documents USING GIN (to_tsvector('english', content));
 CREATE INDEX IF NOT EXISTS idx_knowledge_type ON knowledge_documents (doc_type);
+
+-- Contract Intelligence Copilot — persistent chat message history.
+CREATE TABLE IF NOT EXISTS copilot_messages (
+    id SERIAL PRIMARY KEY,
+    user_email TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Backward-compatible copilot_messages migration (older installs)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='copilot_messages' AND column_name='role') THEN
+        ALTER TABLE copilot_messages ADD COLUMN role TEXT NOT NULL DEFAULT 'user';
+    END IF;
+END $$;
+
+-- Index for loading a user's recent chat history
+CREATE INDEX IF NOT EXISTS idx_copilot_messages_user_created ON copilot_messages(user_email, created_at);

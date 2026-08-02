@@ -28,13 +28,23 @@ const SERVICES_BY_INDUSTRY: Record<string, string[]> = {
   Janitorial: ["Office Cleaning", "Floor Care", "Window Cleaning", "Waste Management", "Disinfection", "Pressure Washing"],
 };
 
-const US_STATES = [
+export const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
   "HI","ID","IL","IN","IA","KS","KY","LA","ME","MD",
   "MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
   "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC",
   "SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
 ];
+
+export const CERTIFICATIONS = [
+  { value: "8a", label: "8(a) Business Development" },
+  { value: "hubzone", label: "HUBZone" },
+  { value: "wosb", label: "WOSB/EDWOSB" },
+  { value: "sdvosb", label: "SDVOSB" },
+  { value: "vosb", label: "VOSB" },
+  { value: "minority_owned", label: "Minority-Owned" },
+  { value: "disadvantaged", label: "Disadvantaged" },
+] as const;
 
 // ── Server Function ───────────────────────────────────────────────────────────
 
@@ -49,6 +59,7 @@ const saveProfile = createServerFn({ method: "POST" })
       locations: string[];
       services: string[];
       naicsCodes: string[];
+      certifications: string[];
     };
     if (!d.businessName || d.businessName.trim().length === 0) {
       throw new Error("Business name is required.");
@@ -68,6 +79,7 @@ const saveProfile = createServerFn({ method: "POST" })
       locations: d.locations,
       services: d.services,
       naicsCodes: d.naicsCodes || [],
+      certifications: d.certifications || [],
     };
   })
   .handler(async ({ data }) => {
@@ -76,8 +88,9 @@ const saveProfile = createServerFn({ method: "POST" })
       throw new Error("Not authenticated");
     }
 
-    // Ensure naics_codes column exists (backward compat)
+    // Ensure new profile columns exist (backward compat)
     try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS naics_codes JSONB DEFAULT '[]'::jsonb`; } catch {}
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`; } catch {}
 
     // Upsert business profile
     const existing = await sql()`
@@ -92,13 +105,14 @@ const saveProfile = createServerFn({ method: "POST" })
             locations = ${JSON.stringify(data.locations)}::jsonb,
             service_categories = ${JSON.stringify(data.services)}::jsonb,
             naics_codes = ${JSON.stringify(data.naicsCodes)}::jsonb,
+            certifications = ${JSON.stringify(data.certifications)}::jsonb,
             updated_at = NOW()
         WHERE user_id = ${user.id}
       `;
     } else {
       await sql()`
-        INSERT INTO business_profiles (user_id, business_name, industry, locations, service_categories, naics_codes)
-        VALUES (${user.id}, ${data.businessName}, ${data.industry}, ${JSON.stringify(data.locations)}::jsonb, ${JSON.stringify(data.services)}::jsonb, ${JSON.stringify(data.naicsCodes)}::jsonb)
+        INSERT INTO business_profiles (user_id, business_name, industry, locations, service_categories, naics_codes, certifications)
+        VALUES (${user.id}, ${data.businessName}, ${data.industry}, ${JSON.stringify(data.locations)}::jsonb, ${JSON.stringify(data.services)}::jsonb, ${JSON.stringify(data.naicsCodes)}::jsonb, ${JSON.stringify(data.certifications)}::jsonb)
       `;
     }
 
@@ -122,6 +136,7 @@ interface WizardState {
   services: string[];
   customServiceInput: string;
   naicsCodes: string[];
+  certifications: string[];
 }
 
 // ── Step Indicator ───────────────────────────────────────────────────────────
@@ -132,7 +147,8 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
     { num: 2, label: "Locations" },
     { num: 3, label: "Services" },
     { num: 4, label: "NAICS" },
-    { num: 5, label: "Confirm" },
+    { num: 5, label: "Certifications" },
+    { num: 6, label: "Confirm" },
   ];
 
   return (
@@ -596,7 +612,44 @@ function StepNAICS({
   );
 }
 
-// ── Step 5: Review ───────────────────────────────────────────────────────────
+// ── Step 5: Certifications ───────────────────────────────────────────────────
+
+function StepCertifications({ certifications, onToggle, onBack, onNext }: {
+  certifications: string[];
+  onToggle: (certification: string) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900">Which certifications do you hold?</h2>
+        <p className="mt-1 text-sm text-slate-500">Select your business certifications so we can prioritize contracts you qualify for.</p>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {CERTIFICATIONS.map((cert) => {
+          const checked = certifications.includes(cert.value);
+          return (
+            <button key={cert.value} type="button" onClick={() => onToggle(cert.value)}
+              className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all ${checked ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}>
+              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${checked ? "border-blue-500 bg-blue-500" : "border-slate-300"}`}>
+                {checked && <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+              </span>
+              {cert.label}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-sm text-slate-500">{certifications.length} certification{certifications.length !== 1 ? "s" : ""} selected</p>
+      <div className="flex justify-between pt-4">
+        <button onClick={onBack} className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98]">Back</button>
+        <button onClick={onNext} className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md active:scale-[0.98]">Continue</button>
+      </div>
+    </div>
+  );
+}
+
+// ── Step 6: Review ───────────────────────────────────────────────────────────
 
 function StepReview({
   businessName,
@@ -604,6 +657,7 @@ function StepReview({
   locations,
   services,
   naicsCodes,
+  certifications,
   saving,
   onBack,
   onFinish,
@@ -613,6 +667,7 @@ function StepReview({
   locations: string[];
   services: string[];
   naicsCodes: string[];
+  certifications: string[];
   saving: boolean;
   onBack: () => void;
   onFinish: () => void;
@@ -672,6 +727,17 @@ function StepReview({
             )}
           </div>
         </div>
+
+        <div className="border-t border-slate-200 pt-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Certifications</p>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {certifications.length > 0 ? certifications.map((value) => (
+              <span key={value} className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                {CERTIFICATIONS.find((cert) => cert.value === value)?.label || value}
+              </span>
+            )) : <span className="text-sm text-slate-400">None provided</span>}
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -725,6 +791,7 @@ function OnboardingPage() {
     services: [],
     customServiceInput: "",
     naicsCodes: [],
+    certifications: [],
   });
 
   const [naicsInput, setNaicsInput] = useState("");
@@ -772,6 +839,12 @@ function OnboardingPage() {
     }));
   };
 
+  const handleToggleCertification = (certification: string) => {
+    setState((prev) => ({ ...prev, certifications: prev.certifications.includes(certification)
+      ? prev.certifications.filter((c) => c !== certification)
+      : [...prev.certifications, certification] }));
+  };
+
   const handleAddNaicsCode = () => {
     const code = naicsInput.trim();
     if (!code || !/^\d{6}$/.test(code)) return;
@@ -804,6 +877,7 @@ function OnboardingPage() {
           locations: state.locations,
           services: state.services,
           naicsCodes: state.naicsCodes,
+          certifications: state.certifications,
         },
       });
       navigate({ to: "/dashboard" });
@@ -900,14 +974,24 @@ function OnboardingPage() {
           )}
 
           {state.step === 5 && (
+            <StepCertifications
+              certifications={state.certifications}
+              onToggle={handleToggleCertification}
+              onBack={() => setState((prev) => ({ ...prev, step: 4 }))}
+              onNext={() => setState((prev) => ({ ...prev, step: 6 }))}
+            />
+          )}
+
+          {state.step === 6 && (
             <StepReview
               businessName={state.businessName}
               industry={state.industry}
               locations={state.locations}
               services={state.services}
               naicsCodes={state.naicsCodes}
+              certifications={state.certifications}
               saving={saving}
-              onBack={() => setState((prev) => ({ ...prev, step: 4 }))}
+              onBack={() => setState((prev) => ({ ...prev, step: 5 }))}
               onFinish={handleFinish}
             />
           )}

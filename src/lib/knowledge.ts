@@ -13,6 +13,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getCurrentUser } from "~/lib/auth";
 import { sql } from "~/db";
+import { chunkText, getEmbedding } from "~/lib/ai";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export const KNOWLEDGE_DOC_TYPES = [
@@ -82,6 +83,25 @@ async function ensureTable() {
   // pgvector is optional — try to enable it, but never fail if unavailable.
   try { await sql()`CREATE EXTENSION IF NOT EXISTS vector`; } catch {}
   try { await sql()`ALTER TABLE knowledge_documents ADD COLUMN IF NOT EXISTS embedding VECTOR(1536)`; } catch {}
+  try { await sql()`CREATE INDEX IF NOT EXISTS idx_knowledge_embedding ON knowledge_documents USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)`; } catch { /* pgvector may not be installed */ }
+}
+
+function pgvectorString(vector: number[]): string {
+  return JSON.stringify(vector);
+}
+
+async function embedDocument(content: string): Promise<number[]> {
+  const chunks = chunkText(content);
+  if (chunks.length === 0) throw new Error("Cannot embed empty document");
+  const vectors = await Promise.all(chunks.map(getEmbedding));
+  if (vectors.length === 1) return vectors[0];
+  const average = vectors[0].map((_, i) => vectors.reduce((sum, v) => sum + v[i], 0) / vectors.length);
+  return average;
+}
+
+async function saveEmbedding(id: number, content: string): Promise<void> {
+  const embedding = await embedDocument(content);
+  await sql()`UPDATE knowledge_documents SET embedding = ${pgvectorString(embedding)}::vector WHERE id = ${id}`;
 }
 
 const STOP_WORDS = new Set([
@@ -198,7 +218,10 @@ export const uploadDocument = createServerFn({ method: "POST" })
       INSERT INTO knowledge_documents (user_id, title, doc_type, content, description, is_public, tags, updated_at)
       VALUES (${user.id}, ${data.title}, ${data.docType}, ${data.content}, ${data.description}, ${data.isPublic}, ${data.tags}, NOW())
       RETURNING id, user_id, title, doc_type, content, description, is_public, tags, created_at, updated_at`;
-    return mapDoc(rows[0] as Record<string, unknown>);
+    const doc = mapDoc(rows[0] as Record<string, unknown>);
+    // Embedding generation should not delay a successful document save.
+    void saveEmbedding(doc.id, doc.content).catch(() => {});
+    return doc;
   });
 
 /**
@@ -342,40 +365,60 @@ export const seedLearnContent = createServerFn({ method: "GET" }).handler(async 
 export async function getRelevantContext(query: string, limit = 5): Promise<string> {
   try {
     const keywords = tokenize(query);
-    if (keywords.length === 0) return "";
+    if (!query.trim()) return "";
     await ensureTable();
     const user = await getCurrentUser();
-    const patterns = likePatterns(keywords);
-    const db = sql();
-    let rows: Record<string, unknown>[];
-    if (user) {
-      rows = (await db`
-        SELECT kd.id, kd.title, kd.doc_type, kd.content, kd.tags
+    const visibility = user ? sql()`(kd.is_public = true OR kd.user_id = ${user.id})` : sql()`kd.is_public = true`;
+    let rows: Record<string, unknown>[] = [];
+    // Prefer semantic retrieval when pgvector and the embeddings API are available.
+    try {
+      const embedding = await getEmbedding(query);
+      const vector = pgvectorString(embedding);
+      rows = (await sql()`
+        SELECT kd.id, kd.title, kd.doc_type, kd.content, kd.tags,
+               1 - (kd.embedding <=> ${vector}::vector) AS similarity
         FROM knowledge_documents kd
-        WHERE (kd.is_public = true OR kd.user_id = ${user.id})
-          AND (kd.title ILIKE ANY(${patterns}) OR kd.content ILIKE ANY(${patterns}) OR array_to_string(COALESCE(kd.tags, '{}'), ' ') ILIKE ANY(${patterns}))
-        LIMIT 40`) as Record<string, unknown>[];
-    } else {
-      rows = (await db`
-        SELECT kd.id, kd.title, kd.doc_type, kd.content, kd.tags
-        FROM knowledge_documents kd
-        WHERE kd.is_public = true
-          AND (kd.title ILIKE ANY(${patterns}) OR kd.content ILIKE ANY(${patterns}) OR array_to_string(COALESCE(kd.tags, '{}'), ' ') ILIKE ANY(${patterns}))
-        LIMIT 40`) as Record<string, unknown>[];
+        WHERE ${visibility} AND kd.embedding IS NOT NULL
+        ORDER BY kd.embedding <=> ${vector}::vector
+        LIMIT ${Math.max(1, limit)}`) as Record<string, unknown>[];
+    } catch {
+      // Fall through to keyword search below.
     }
-    const scored = rows
-      .map((r) => ({ row: r, score: scoreDoc(r, keywords) }))
-      .filter((x) => x.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
-    if (scored.length === 0) return "";
-    const blocks = scored.map(({ row }) => {
+    if (rows.length === 0 && keywords.length > 0) {
+      const patterns = likePatterns(keywords);
+      rows = (await sql()`
+        SELECT kd.id, kd.title, kd.doc_type, kd.content, kd.tags
+        FROM knowledge_documents kd
+        WHERE ${visibility}
+          AND (kd.title ILIKE ANY(${patterns}) OR kd.content ILIKE ANY(${patterns}) OR array_to_string(COALESCE(kd.tags, '{}'), ' ') ILIKE ANY(${patterns}))
+        LIMIT 40`) as Record<string, unknown>[];
+      rows = rows.map((r) => ({ ...r, _score: scoreDoc(r, keywords) }))
+        .sort((a, b) => Number(b._score) - Number(a._score)).slice(0, limit);
+    }
+    if (rows.length === 0) return "";
+    const blocks = rows.map((row) => {
       const type = String(row.doc_type).replace(/_/g, " ");
       const excerpt = makeSnippet(String(row.content ?? ""), keywords, 1000);
       return `- [${row.title}] (${type}): ${excerpt}`;
     });
     return `RELEVANT KNOWLEDGE BASE:\n${blocks.join("\n")}`;
   } catch {
-    return ""; // never break the calling AI feature
+    return "";
   }
 }
+
+/** Generate embeddings for all documents that do not have one yet. */
+export const backfillEmbeddings = createServerFn({ method: "POST" }).handler(async () => {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  await ensureTable();
+  const docs = (await sql()`SELECT id, content FROM knowledge_documents WHERE embedding IS NULL`) as Record<string, unknown>[];
+  let backfilled = 0;
+  for (const doc of docs) {
+    try {
+      await saveEmbedding(Number(doc.id), String(doc.content ?? ""));
+      backfilled++;
+    } catch { /* leave failed documents for a later retry */ }
+  }
+  return { backfilled, remaining: docs.length - backfilled };
+});

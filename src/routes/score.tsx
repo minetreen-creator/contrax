@@ -4,6 +4,7 @@ import { useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { sql } from "~/db";
 import { buildProfileContext } from "~/lib/profile-context";
+import { getRelevantContext } from "~/lib/knowledge";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import {
@@ -80,6 +81,7 @@ const scoreSolicitation = createServerFn({ method: "POST" })
     const businessBlock = profileContext
       ? `===== BUSINESS PROFILE (from user's Contrax account) =====\n${profileContext}\n\n===== ADDITIONAL BUSINESS NOTES (for this bid) =====\n${data.businessInfo || "(None provided)"}`
       : `===== BUSINESS DESCRIPTION =====\n${data.businessInfo || "(Not provided — evaluate on the solicitation alone and note assumptions.)"}`;
+    const knowledgeCtx = await getRelevantContext(data.solicitation.slice(0, 2500));
 
     const systemPrompt = `You are a seasoned government contracting analyst with 20 years of experience reviewing federal, state, and local solicitations (RFPs, RFQs, RFIs, ITBs) for small businesses. Your job is to give an honest, critical, evidence-based assessment of whether a business can win a specific solicitation — NOT to be encouraging. Small businesses lose government contracts far more often than they win them; a realistic analysis is the most valuable thing you can provide. Be blunt about gaps, missing certifications, competition, and effort. Never inflate scores. Return ONLY valid JSON.`;
 
@@ -113,7 +115,10 @@ Be critical and honest. Do not reward effort — only demonstrated fit.
 ===== SOLICITATION =====
 ${data.solicitation}
 
-${businessBlock}`;
+${businessBlock}${knowledgeCtx ? `
+
+Use these excerpts from the user's knowledge base to ground your analysis (they may include prior capability statements, proposal templates, or compliance checklists):
+${knowledgeCtx}` : ""}`;
 
     try {
       const response = await fetch("https://api.openai.com/v1/chat/completions", {

@@ -7,6 +7,7 @@ import { redirectToCheckout } from "~/lib/checkout";
 import { getPricingRecommendation, fetchPricingCache, type PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
 import { getLearningContext, getUserPatterns } from "~/lib/learning";
+import { getRelevantContext } from "~/lib/knowledge";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
 import { isHealthcareBid, countRoleMatches, type License } from "~/lib/healthcare";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
@@ -305,6 +306,7 @@ const scoreBid = createServerFn({ method: "POST" })
     const bid = bids[0] as any, profile = profiles[0] as BusinessProfile;
     const profileNaicsCodes: string[] = Array.isArray(profile.naics_codes) ? profile.naics_codes : [];
     const learningCtxScore = await getLearningContext(user.email, bid.title, bid.agency, profileNaicsCodes[0] || "", bid.estimated_value || "");
+    const knowledgeCtx = await getRelevantContext(`${bid.title} ${bid.description || ""} ${bid.category || ""}`);
     const prompt = `You are a government contracting analyst estimating win probability for a small business. Analyze this opportunity and return ONLY valid JSON — no markdown, no code fences.
 
 Consider these factors:
@@ -319,7 +321,7 @@ Consider these factors:
 
 Return ONLY: {"win_probability": number 0-100, "competition_level":"Low"|"Moderate"|"High", "agency_sentiment":"...", "size_fit":"...", "experience_match":"...", "similar_awards_note":"...", "naics_match":"...", "role_fit":"...", "ai_explanation":"..."}
 
-Learned patterns from the user's win/loss history:\n${learningCtxScore}\n\nOpportunity: title=${bid.title}; agency=${bid.agency}; description=${bid.description || "Not provided"}; category=${bid.category}; location=${bid.location}; estimated value=${bid.estimated_value}; due date=${bid.due_date}
+Learned patterns from the user's win/loss history:\n${learningCtxScore}\n\n${knowledgeCtx}\n\nOpportunity: title=${bid.title}; agency=${bid.agency}; description=${bid.description || "Not provided"}; category=${bid.category}; location=${bid.location}; estimated value=${bid.estimated_value}; due date=${bid.due_date}
 Business profile:\n${buildProfileContext(profile)}\n\nScoring emphasis — prioritize these factors for THIS business (higher = more weight):\n${JSON.stringify(buildScoringWeights(profile))}`;
     try {
       const apiKey = process.env.OPENAI_API_KEY; if (!apiKey) throw new Error("OpenAI API key not configured");
@@ -607,6 +609,7 @@ const generateProposal = createServerFn({ method: "GET" }).handler(async ({ data
     const profileRows = await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value FROM business_profiles WHERE user_id = ${user.id}`;
     if (profileRows.length === 0) throw new Error("Business profile not found — complete onboarding first");
     const profile = profileRows[0] as BusinessProfile;
+    const knowledgeCtx = await getRelevantContext(`${bid.title} ${bid.description || ""} proposal template capability statement compliance checklist`);
 
     const prompt = `You are a government proposal writer. Draft a professional proposal response for this contract opportunity based on the business profile provided.
 
@@ -629,7 +632,8 @@ Due Date: ${String(bid.due_date)}
 Estimated Value: ${bid.estimated_value || "Not specified"}
 
 Business profile:
-${buildProfileContext(profile)}`;
+${buildProfileContext(profile)}
+${knowledgeCtx}`;
 
     let draftText: string;
     try {

@@ -416,3 +416,27 @@ CREATE TABLE IF NOT EXISTS healthcare_bid_summaries (
     summary_json JSONB NOT NULL DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Knowledge base: searchable document library powering RAG retrieval for AI features.
+-- pgvector is optional — some managed Postgres instances don't ship the extension.
+-- The table is created WITHOUT the embedding column so migrations never fail;
+-- the vector column is added below only when the `vector` type is available.
+-- Full-text ILIKE search is the MVP retrieval path regardless.
+DO $$ BEGIN CREATE EXTENSION IF NOT EXISTS vector; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+CREATE TABLE IF NOT EXISTS knowledge_documents (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    title TEXT NOT NULL,
+    doc_type TEXT NOT NULL CHECK (doc_type IN ('capability_statement', 'proposal_template', 'compliance_checklist', 'solicitation', 'faq', 'other')),
+    content TEXT NOT NULL,
+    description TEXT,
+    is_public BOOLEAN NOT NULL DEFAULT false,
+    tags TEXT[],
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+-- Add the embedding column only if pgvector became available (guarded).
+DO $$ BEGIN ALTER TABLE knowledge_documents ADD COLUMN IF NOT EXISTS embedding VECTOR(1536); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+-- Full-text search index
+CREATE INDEX IF NOT EXISTS idx_knowledge_content ON knowledge_documents USING GIN (to_tsvector('english', content));
+CREATE INDEX IF NOT EXISTS idx_knowledge_type ON knowledge_documents (doc_type);

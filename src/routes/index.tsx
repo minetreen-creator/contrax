@@ -126,7 +126,7 @@ function Home() {
     "@type": "Organization",
     name: "Contrax",
     description:
-      "AI-powered platform that helps small businesses discover, understand, and win government contracts. Contrax monitors procurement sites, summarizes bid documents, and drafts proposals.",
+      "Stop searching thousands of government contracts. Let AI find the ones you can actually win. Contrax is the AI layer that makes government contracting understandable — monitoring procurement sites, summarizing bid documents, and drafting proposals.",
     url: "https://contrax.company",
     sameAs: [],
   };
@@ -237,14 +237,15 @@ function Hero({ businessName }: { businessName: string }) {
             AI-powered government contracting
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Never miss another{" "}
+            Stop searching thousands of{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-              {" "}government contract.
+              {" "}government contracts.
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            {businessName} monitors procurement sites, summarizes complex bid documents, and drafts proposals
-            — so you can focus on winning contracts instead of hunting for them.
+            Let AI find the ones you can actually win. {businessName} cuts through the noise — monitoring
+            procurement sites, summarizing complex bid documents, and drafting proposals so you submit
+            faster and win more.
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a

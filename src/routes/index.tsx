@@ -127,7 +127,7 @@ function Home() {
     name: "Contrax",
     description:
       "AI-powered platform that helps small businesses discover, understand, and win government contracts. Contrax monitors procurement sites, summarizes bid documents, and drafts proposals.",
-    url: "https://pricedoctor.net",
+    url: "https://contrax.company",
     sameAs: [],
   };
 

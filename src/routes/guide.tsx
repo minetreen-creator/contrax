@@ -13,14 +13,14 @@ export const Route = createFileRoute("/guide")({
 
       // Open Graph
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://pricedoctor.net/guide" },
+      { property: "og:url", content: "https://contrax.company/guide" },
       { property: "og:title", content: "The Small Business Government Contracting Playbook" },
       {
         property: "og:description",
         content:
           "A step-by-step guide for small businesses to win government contracts. From SAM.gov registration and UEI numbers to RFPs, proposals, and common mistakes to avoid.",
       },
-      { property: "og:image", content: "https://pricedoctor.net/og-image.svg" },
+      { property: "og:image", content: "https://contrax.company/og-image.svg" },
       { property: "og:image:type", content: "image/svg+xml" },
       { property: "og:image:alt", content: "Contrax — The Small Business Government Contracting Playbook" },
       { property: "og:image:width", content: "1200" },
@@ -35,10 +35,10 @@ export const Route = createFileRoute("/guide")({
         content:
           "A step-by-step guide for small businesses to win government contracts. From SAM.gov registration and UEI numbers to RFPs, proposals, and common mistakes to avoid.",
       },
-      { name: "twitter:image", content: "https://pricedoctor.net/og-image.svg" },
+      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
       { name: "twitter:image:alt", content: "Contrax — The Small Business Government Contracting Playbook" },
     ],
-    links: [{ rel: "canonical", href: "https://pricedoctor.net/guide" }],
+    links: [{ rel: "canonical", href: "https://contrax.company/guide" }],
   }),
   component: GuidePage,
 });

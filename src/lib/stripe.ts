@@ -135,7 +135,7 @@ async function getPriceIdForPlanTier(planTier: PlanTier): Promise<string> {
 
 // ── Checkout Session Creation ──────────────────────────────────────────────────
 
-const BASE_URL = process.env.PROD_URL || "https://pricedoctor.net";
+const BASE_URL = process.env.PROD_URL || "https://contrax.company";
 
 /**
  * Create a Stripe Checkout Session for a given plan tier.

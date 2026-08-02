@@ -126,14 +126,14 @@ const LEARN_HTML = `<!DOCTYPE html>
 <meta name="description" content="Free guides and resources on government contract bidding, RFP proposal writing, and winning public-sector contracts as a small business.">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://pricedoctor.net/learn">
+<meta property="og:url" content="https://contrax.company/learn">
 <meta property="og:title" content="Government Contract Bidding Resources — Contrax">
 <meta property="og:description" content="Free guides and resources on government contract bidding, RFP proposal writing, and winning public-sector contracts as a small business.">
 <meta property="og:site_name" content="Contrax">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Government Contract Bidding Resources — Contrax">
 <meta name="twitter:description" content="Free guides and resources on government contract bidding, RFP proposal writing, and winning public-sector contracts as a small business.">
-<link rel="canonical" href="https://pricedoctor.net/learn">
+<link rel="canonical" href="https://contrax.company/learn">
 ${SEO_HEAD}
 </head>
 <body class="antialiased bg-white">
@@ -178,14 +178,14 @@ const GOV_CONTRACTING_GUIDE_HTML = `<!DOCTYPE html>
 <meta name="description" content="Step-by-step guide to bidding on government contracts for small businesses. Learn SAM.gov registration, finding RFPs, writing winning proposals, and avoiding common mistakes.">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="article">
-<meta property="og:url" content="https://pricedoctor.net/learn/government-contracting-guide">
+<meta property="og:url" content="https://contrax.company/learn/government-contracting-guide">
 <meta property="og:title" content="How to Bid on Government Contracts: Complete Guide (2026) — Contrax">
 <meta property="og:description" content="Step-by-step guide to bidding on government contracts for small businesses. Learn SAM.gov registration, finding RFPs, writing winning proposals, and avoiding common mistakes.">
 <meta property="og:site_name" content="Contrax">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="How to Bid on Government Contracts: Complete Guide (2026)">
 <meta name="twitter:description" content="Step-by-step guide to bidding on government contracts for small businesses. SAM.gov registration, finding RFPs, writing proposals.">
-<link rel="canonical" href="https://pricedoctor.net/learn/government-contracting-guide">
+<link rel="canonical" href="https://contrax.company/learn/government-contracting-guide">
 ${SEO_HEAD}
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"How to Bid on Government Contracts: Complete Guide (2026)","description":"Step-by-step guide to bidding on government contracts for small businesses.","author":{"@type":"Organization","name":"Contrax"},"publisher":{"@type":"Organization","name":"Contrax"}}</script>
 </head>
@@ -273,14 +273,14 @@ const AI_PROPOSAL_WRITING_HTML = `<!DOCTYPE html>
 <meta name="description" content="How artificial intelligence is transforming government RFP proposal writing. Learn to use AI tools to draft compliant, winning proposals in hours instead of days.">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="article">
-<meta property="og:url" content="https://pricedoctor.net/learn/ai-proposal-writing">
+<meta property="og:url" content="https://contrax.company/learn/ai-proposal-writing">
 <meta property="og:title" content="AI-Powered RFP Proposal Writing for Government Contracts — Contrax">
 <meta property="og:description" content="How AI is transforming government RFP proposal writing. Draft compliant, winning proposals in hours instead of days.">
 <meta property="og:site_name" content="Contrax">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AI-Powered RFP Proposal Writing for Government Contracts">
 <meta name="twitter:description" content="How AI is transforming government RFP proposal writing. Draft compliant, winning proposals in hours.">
-<link rel="canonical" href="https://pricedoctor.net/learn/ai-proposal-writing">
+<link rel="canonical" href="https://contrax.company/learn/ai-proposal-writing">
 ${SEO_HEAD}
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"AI-Powered RFP Proposal Writing for Government Contracts","description":"How artificial intelligence is transforming government RFP proposal writing.","author":{"@type":"Organization","name":"Contrax"},"publisher":{"@type":"Organization","name":"Contrax"}}</script>
 </head>
@@ -358,14 +358,14 @@ const SMALL_BIZ_CONTRACTING_HTML = `<!DOCTYPE html>
 <meta name="description" content="The US government sets aside billions in contracts for small businesses. Learn about SBA programs, set-aside categories, eligibility requirements, and how to compete successfully.">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="article">
-<meta property="og:url" content="https://pricedoctor.net/learn/small-business-government-contracting">
+<meta property="og:url" content="https://contrax.company/learn/small-business-government-contracting">
 <meta property="og:title" content="Small Business Government Contracting: Set-Asides & Opportunities — Contrax">
 <meta property="og:description" content="The US government sets aside billions in contracts for small businesses. Learn about SBA programs, set-aside categories, and eligibility.">
 <meta property="og:site_name" content="Contrax">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Small Business Government Contracting: Set-Asides & Opportunities">
 <meta name="twitter:description" content="Billions in government contracts are set aside for small businesses. Learn how to compete.">
-<link rel="canonical" href="https://pricedoctor.net/learn/small-business-government-contracting">
+<link rel="canonical" href="https://contrax.company/learn/small-business-government-contracting">
 ${SEO_HEAD}
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Small Business Government Contracting: Set-Asides & Opportunities","description":"The US government sets aside billions in contracts for small businesses.","author":{"@type":"Organization","name":"Contrax"},"publisher":{"@type":"Organization","name":"Contrax"}}</script>
 </head>

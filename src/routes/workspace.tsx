@@ -71,7 +71,7 @@ const connectIntegration = createServerFn({ method: "POST" })
     if (!PROVIDERS.some(p => p.key === data.provider)) throw new Error("Unknown provider");
 
     const baseUrl = process.env.NODE_ENV === "production"
-      ? (process.env.PUBLIC_URL || "https://pricedoctor.net")
+      ? (process.env.PUBLIC_URL || "https://contrax.company")
       : "http://localhost:3000";
     const redirectUri = `${baseUrl}/api/integrations/callback?provider=${data.provider}`;
     const state = Buffer.from(JSON.stringify({ userId: u.id, provider: data.provider })).toString("base64");

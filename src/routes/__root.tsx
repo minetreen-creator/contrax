@@ -15,7 +15,7 @@ import {
   type Notification,
 } from "~/lib/notifications";
 
-const PROD_URL = "https://pricedoctor.net";
+const PROD_URL = "https://contrax.company";
 const SITE_TITLE = "Contrax — AI-Powered Government Contract Bidding for Small Businesses";
 const SITE_DESCRIPTION =
   "Contrax monitors government procurement sites, summarizes complex bid documents, and drafts proposals with AI — so small businesses can find and win more public-sector contracts.";

@@ -1,47 +1,47 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://pricedoctor.net/</loc>
+    <loc>https://contrax.company/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://pricedoctor.net/guide</loc>
+    <loc>https://contrax.company/guide</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://pricedoctor.net/savings</loc>
+    <loc>https://contrax.company/savings</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://pricedoctor.net/learn</loc>
+    <loc>https://contrax.company/learn</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://pricedoctor.net/learn/government-contracting-guide</loc>
+    <loc>https://contrax.company/learn/government-contracting-guide</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pricedoctor.net/learn/ai-proposal-writing</loc>
+    <loc>https://contrax.company/learn/ai-proposal-writing</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pricedoctor.net/learn/small-business-government-contracting</loc>
+    <loc>https://contrax.company/learn/small-business-government-contracting</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://pricedoctor.net/privacy</loc>
+    <loc>https://contrax.company/privacy</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://pricedoctor.net/terms</loc>
+    <loc>https://contrax.company/terms</loc>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

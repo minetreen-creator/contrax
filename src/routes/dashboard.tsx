@@ -146,6 +146,8 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS naics_match TEXT DEFAULT ''`; } catch {}
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS role_fit TEXT DEFAULT ''`; } catch {}
 
+  // Lazy migration: ensure set_aside column exists on bids (old DBs predate it).
+  try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS set_aside TEXT`; } catch {}
   const bidRows = await sql()`SELECT id, title, agency, description, location, category, set_aside, due_date, estimated_value, source_url FROM bids ORDER BY due_date ASC`;
   const userSpecialties = profile?.specialties || [];
   const bids: Bid[] = (bidRows as any[]).map((b) => ({

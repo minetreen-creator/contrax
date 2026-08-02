@@ -103,6 +103,9 @@ function AboutPage() {
               opportunities, explains what matters, scores your odds, and drafts
               the proposal — so you can compete on capability, not on headcount.
             </p>
+            <p className="mt-4 text-lg leading-relaxed text-gray-600">
+              Contrax was founded in 2026 by Nathaniel Minetree.
+            </p>
           </div>
         </div>
       </section>

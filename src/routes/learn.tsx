@@ -29,13 +29,13 @@ export const Route = createFileRoute("/learn")({
 });
 
 function LearnPage() {
-  const initial = Route.useLoaderData();
-  const [docs, setDocs] = useState<KnowledgeListItem[]>(initial.docs);
+  const initial = Route.useLoaderData() as { docs: KnowledgeListItem[]; total: number; hasMore: boolean } | null;
+  const [docs, setDocs] = useState<KnowledgeListItem[]>((initial?.docs ?? []).filter(Boolean));
   const [active, setActive] = useState("");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<KnowledgeDocument | null>(null);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { setDocs(initial.docs); }, [initial.docs]);
+  useEffect(() => { setDocs((initial?.docs ?? []).filter(Boolean)); }, [initial?.docs]);
   async function refresh(type = active, q = query) {
     setBusy(true);
     try {

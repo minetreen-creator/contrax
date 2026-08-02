@@ -62,7 +62,13 @@ function PrivacyPage() {
             <p className="mt-3">Your data is stored on secure servers (Neon PostgreSQL, Vercel). We use industry-standard encryption. No method of electronic storage is 100% secure.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">4. Third-Party Services</h2>
+            <h2 className="text-xl font-semibold text-slate-900">4. Security</h2>
+            <p className="mt-3">We protect personal and business information using administrative, technical, and physical safeguards appropriate to the nature of the data. Data is encrypted in transit using HTTPS/TLS, and our database and hosted application environments use encryption at rest provided by our infrastructure providers.</p>
+            <p className="mt-3">Access to production systems is restricted to authorized personnel and services, with credentials managed through secure, access-controlled systems. We retain information only as long as needed to provide the service, meet legal obligations, resolve disputes, and enforce agreements. No method of electronic transmission or storage is completely secure, so we cannot guarantee absolute security.</p>
+            <p className="mt-3">Contrax is hosted on Vercel and stores application data in Neon PostgreSQL. AI processing is provided by OpenAI; we send only the information needed for the requested feature and rely on our providers’ security controls. If we learn of a security incident affecting your information, we will provide notice as required by applicable law.</p>
+          </section>
+          <section>
+            <h2 className="text-xl font-semibold text-slate-900">5. Third-Party Services</h2>
             <p className="mt-3">We use Stripe (payments), OpenAI (AI processing), Resend (email), and Vercel (hosting). See their privacy policies for details.</p>
           </section>
           <section>
@@ -70,15 +76,15 @@ function PrivacyPage() {
             <p className="mt-3">We use essential cookies for login sessions. No advertising or tracking cookies.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">6. Your Rights</h2>
+            <h2 className="text-xl font-semibold text-slate-900">9. Your Rights</h2>
             <p className="mt-3">You may request access, correction, or deletion of your data at privacy@contrax.app. We will respond within 30 days.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">7. Changes</h2>
+            <h2 className="text-xl font-semibold text-slate-900">9. Changes</h2>
             <p className="mt-3">We may update this policy. Material changes will be notified via email or through the service.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">8. Contact</h2>
+            <h2 className="text-xl font-semibold text-slate-900">9. Contact</h2>
             <p className="mt-3">Questions? Contact <a href="mailto:privacy@contrax.app" className="text-blue-600 hover:text-blue-500">privacy@contrax.app</a>.</p>
           </section>
         </div>

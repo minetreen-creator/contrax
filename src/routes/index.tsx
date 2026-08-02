@@ -277,7 +277,7 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
               href="/signup"
               className="inline-flex items-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
               >
-              Start Free Trial
+              Get Started
               </a>
               </>
               )}
@@ -319,7 +319,7 @@ function Hero({ businessName }: { businessName: string }) {
               href="/demo"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
             >
-              Start Free Trial
+              Get Started
               <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -929,7 +929,7 @@ function ROICalculator() {
               href="/signup"
               className="mt-6 block w-full rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-white shadow-md shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
             >
-              Start Your 21-Day Free Trial
+              Get Started
             </a>
           </div>
         </div>
@@ -1336,7 +1336,7 @@ function Pricing() {
         "Up to 2 location preferences",
         "Weekly digest emails",
       ],
-      cta: "Start Free Trial",
+      cta: "Get Started",
       featured: false,
     },
     {
@@ -1352,7 +1352,7 @@ function Pricing() {
         "Calendar integration",
         "Priority email & chat support",
       ],
-      cta: "Start Free Trial",
+      cta: "Get Started",
       featured: true,
     },
     {
@@ -1368,7 +1368,7 @@ function Pricing() {
         "Team collaboration tools",
         "Dedicated account manager",
       ],
-      cta: "Start Free Trial",
+      cta: "Get Started",
       featured: false,
     },
   ];
@@ -1433,9 +1433,9 @@ function Pricing() {
           ))}
         </div>
 
-        {/* Free trial note */}
+        {/* Billing note */}
         <p className="mt-8 text-center text-sm text-gray-500">
-          All plans include a <span className="font-semibold text-slate-700">21-day free trial</span>. Cancel anytime.
+          Plans are billed monthly. Cancel anytime.
         </p>
         <p className="mt-3 text-center">
           <a href="/demo" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
@@ -1458,14 +1458,14 @@ function WaitlistSection() {
             Ready to find your next government contract?
           </h2>
           <p className="mt-4 text-lg text-blue-100/70">
-            Start finding and winning more contracts today. 21-day free trial — no credit card required.
+            Start finding and winning more contracts today with a plan built for your business.
           </p>
           <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
             <a
               href="/signup"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
             >
-              Start Free Trial
+              Get Started
               <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -1500,6 +1500,12 @@ function Footer() {
         <div className="flex items-center gap-5">
           <a href="/compare" className="text-sm text-gray-400 transition-colors hover:text-white">
             Compare
+          </a>
+          <a href="/privacy" className="text-sm text-gray-400 transition-colors hover:text-white">
+            Privacy Policy
+          </a>
+          <a href="/terms" className="text-sm text-gray-400 transition-colors hover:text-white">
+            Terms of Service
           </a>
           <a
             href="mailto:bidpilot-de2cdfa5@ctomail.io"

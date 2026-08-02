@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 const PROD_URL = "https://contrax.company";
 const TITLE = "About Contrax";
 const DESC =
-  "Contrax helps small businesses compete for government contracts with AI — opportunity discovery, bid summarization, win-probability scoring, proposal drafting, and team workspace in one platform.";
+  "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses compete for set-aside government contracts with AI — opportunity matching, bid summarization, win-probability scoring, proposal drafting, and team workspace in one platform.";
 
 export const Route = createFileRoute("/about/")({
   component: AboutPage,
@@ -39,7 +39,7 @@ const jsonLd = {
   "@type": "Organization",
   name: "Contrax",
   description:
-    "We help small businesses win government contracts. Contrax is an AI coach — not another database of RFPs — that finds the right opportunities, summarizes bid documents, and drafts proposals so small firms compete and win.",
+    "Contrax is the AI coach for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
   url: PROD_URL,
   logo: `${PROD_URL}/favicon.svg`,
   email: "hello@contrax.company",
@@ -73,9 +73,9 @@ function AboutPage() {
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            Our mission is simple: help small businesses compete for government
-            contracts with AI — so a five-person shop can research, bid, and win
-            like the big firms.
+            Our mission is simple: help minority-, veteran-, and women-owned businesses pursue
+            the set-aside contracts created for them — so a five-person shop can research, bid, and
+            win with the same intelligence as the big firms.
           </p>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent" />
@@ -89,16 +89,16 @@ function AboutPage() {
               Our Mission
             </h2>
             <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Helping small businesses compete for government contracts with AI
+              Helping set-aside businesses compete for government contracts with AI
             </h3>
             <p className="mt-6 text-lg leading-relaxed text-gray-600">
               Every year, governments award hundreds of billions of dollars in
-              contracts — but small businesses often struggle to even get in the
-              game. Procurement portals are dense, bid documents are long, and
+              contracts — but certified small businesses often struggle to even get in the
+              game — despite programs designed to open that door. Procurement portals are dense, bid documents are long, and
               proposals demand resources most small teams simply don't have.
             </p>
             <p className="mt-4 text-lg leading-relaxed text-gray-600">
-              Contrax was built to remove those barriers. Instead of another
+              Contrax was built for the businesses America&apos;s procurement system was designed to help. Instead of another
               database of RFPs, we built an AI coach that finds the right
               opportunities, explains what matters, scores your odds, and drafts
               the proposal — so you can compete on capability, not on headcount.
@@ -217,13 +217,12 @@ function AboutPage() {
                 Who It's For
               </h2>
               <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                Small and mid-size businesses ready to enter the government market
+                Certified businesses ready to win their share of the government market
               </h3>
               <p className="mt-6 text-lg leading-relaxed text-gray-600">
-                Contrax is built for companies that are new to government
-                contracting or growing their public-sector pipeline — from
-                first-time bidders learning the ropes to established small firms
-                looking to bid smarter and scale their pursuit team.
+                Contrax is built for minority-, veteran-, and women-owned companies with an 8(a), SDVOSB,
+                WOSB, or HUBZone certification — from first-time bidders learning the ropes to
+                established firms looking to bid smarter and grow their set-aside pipeline.
               </p>
               <p className="mt-4 text-lg leading-relaxed text-gray-600">
                 No prior contracting experience required. Set up a profile in
@@ -232,7 +231,7 @@ function AboutPage() {
                 into submittable proposals.
               </p>
               <div className="mt-8 flex flex-wrap gap-2">
-                {["First-time bidders", "Small businesses", "8(a) & certified firms", "Growing pursuit teams", "Staffing & services companies"].map((tag) => (
+                {["First-time bidders", "8(a) firms", "SDVOSB / WOSB", "HUBZone businesses", "Growing pursuit teams"].map((tag) => (
                   <span key={tag} className="rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700">
                     {tag}
                   </span>

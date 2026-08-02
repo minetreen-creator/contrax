@@ -127,21 +127,21 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "Contrax — AI Government Contract Bidding for Small Businesses" },
+      { title: "Contrax — AI Government Contracting for Set-Aside Businesses" },
       {
         name: "description",
         content:
-          "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals with AI so small businesses find and win more contracts.",
+          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts with AI.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://contrax.company" },
-      { property: "og:title", content: "Contrax — AI Government Contract Bidding for Small Businesses" },
+      { property: "og:title", content: "Contrax — AI Government Contracting for Set-Aside Businesses" },
       {
         property: "og:description",
         content:
-          "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals with AI so small businesses find and win more contracts.",
+          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts with AI.",
       },
       { property: "og:image", content: "https://contrax.company/og-image.svg" },
       { property: "og:image:type", content: "image/svg+xml" },
@@ -151,11 +151,11 @@ export const Route = createFileRoute("/")({
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Contrax — AI Government Contract Bidding for Small Businesses" },
+      { name: "twitter:title", content: "Contrax — AI Government Contracting for Set-Aside Businesses" },
       {
         name: "twitter:description",
         content:
-          "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals with AI so small businesses find and win more contracts.",
+          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts with AI.",
       },
       { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
       { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
@@ -174,7 +174,7 @@ function Home() {
     "@type": "Organization",
     name: "Contrax",
     description:
-      "We help small businesses win government contracts. Contrax is an AI coach — not another database of RFPs — that finds the right opportunities, summarizes bid documents, and drafts proposals so small firms compete and win.",
+      "Contrax is the AI coach for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
     url: "https://contrax.company",
     logo: "https://contrax.company/favicon.svg",
     email: "hello@contrax.company",
@@ -186,7 +186,7 @@ function Home() {
     name: "Contrax",
     url: "https://contrax.company",
     description:
-      "AI-powered government contract discovery, win probability scoring, and proposal drafting for small businesses.",
+      "AI-powered set-aside opportunity matching, win probability scoring, and proposal drafting for 8(a), SDVOSB, WOSB, and HUBZone businesses.",
     potentialAction: {
       "@type": "SearchAction",
       target: "https://contrax.company/?q={search_term_string}",
@@ -304,15 +304,15 @@ function Hero({ businessName }: { businessName: string }) {
             AI-powered government contracting
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            We help small businesses{" "}
+            Built for the businesses{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-              {" "}win government contracts.
+              America&apos;s procurement system was designed to help.
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            Not another database of RFPs. {businessName} is your AI coach — finding the right
-            opportunities, summarizing what matters, and drafting proposals so you compete like
-            the big firms and win more contracts.
+            Not another database of RFPs. {businessName} is your AI coach for 8(a), SDVOSB, WOSB, and
+            HUBZone-certified businesses — matching you to set-aside opportunities, summarizing what
+            matters, and drafting proposals so you can compete and win more contracts.
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
@@ -709,11 +709,11 @@ function WhoItsFor() {
             Who It&rsquo;s For
           </h2>
           <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Built for businesses that win government work
+            Built for certified businesses that win government work
           </h3>
           <p className="mt-4 text-lg text-gray-600">
-            From solo contractors to mid-size firms, Contrax works for any business pursuing
-            public-sector contracts.
+            Contrax is purpose-built for minority-, veteran-, and women-owned businesses pursuing
+            8(a), SDVOSB, WOSB, and HUBZone set-aside contracts.
           </p>
         </div>
 
@@ -729,22 +729,22 @@ function WhoItsFor() {
           ))}
         </div>
 
-        {/* Highlighted callout */}
-        <div className="mt-10 mx-auto max-w-2xl rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 sm:p-8 text-center">
-          <svg className="mx-auto mb-4 h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
-          </svg>
-          <h3 className="text-lg font-bold text-slate-900">
-            Special focus on diverse businesses
-          </h3>
-          <p className="mt-2 text-gray-600">
-            Contrax is designed to help{" "}
-            <strong className="text-slate-900">
-              minority-owned, veteran-owned, and women-owned businesses
-            </strong>{" "}
-            identify set-aside contracts and diversity-focused procurement opportunities that
-            larger firms often overlook.
-          </p>
+        {/* Set-aside focus */}
+        <div className="mt-10 grid gap-6 md:grid-cols-2">
+          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 text-center sm:p-8">
+            <svg className="mx-auto mb-4 h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-lg font-bold text-slate-900">Set-Aside Matching</h3>
+            <p className="mt-2 text-gray-600">Automatically match bids to your certifications: 8(a), SDVOSB, WOSB, HUBZone</p>
+          </div>
+          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 text-center sm:p-8">
+            <svg className="mx-auto mb-4 h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499l2.125 5.111 5.518.442-4.204 3.602 1.285 5.385L12 14.654l-4.204 2.885 1.285-5.385-4.204-3.602 5.518-.442L12.52 3.5a.562.562 0 01-1.04 0z" />
+            </svg>
+            <h3 className="text-lg font-bold text-slate-900">Built around the set-aside journey</h3>
+            <p className="mt-2 text-gray-600">Designed to help minority-, veteran-, and women-owned businesses identify and pursue the set-aside contracts their certifications make possible.</p>
+          </div>
         </div>
       </div>
     </section>

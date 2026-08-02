@@ -20,7 +20,11 @@ export const Route = createFileRoute("/learn")({
       { name: "twitter:description", content: DESC }, { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
     ], links: [{ rel: "canonical", href: "https://contrax.company/learn" }],
   }),
-  loader: async () => { await seedLearnContent(); return listDocuments({ data: { isPublic: true, page: 1, query: "", docType: "" } }); },
+  loader: async () => {
+    try { await seedLearnContent(); } catch {}
+    try { return listDocuments({ data: { isPublic: true, page: 1, query: "", docType: "" } }); }
+    catch { return { docs: [], total: 0, hasMore: false }; }
+  },
   component: LearnPage,
 });
 

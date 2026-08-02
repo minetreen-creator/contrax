@@ -1,0 +1,234 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { setCookie } from "@tanstack/react-start/server";
+import { useState } from "react";
+import { sql } from "~/db";
+import { getCurrentUser, SESSION_COOKIE } from "~/lib/auth";
+
+const SESSION_TTL_DAYS = 30;
+
+// ── Server Functions ──────────────────────────────────────────────────────────
+
+const signupFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) => {
+    if (typeof data !== "object" || data === null) {
+      throw new Error("Invalid request");
+    }
+    const { email, password, confirmPassword } = data as {
+      email: string;
+      password: string;
+      confirmPassword: string;
+    };
+
+    const errors: string[] = [];
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push("Please enter a valid email address.");
+    }
+    if (!password || password.length < 8) {
+      errors.push("Password must be at least 8 characters.");
+    }
+    if (password !== confirmPassword) {
+      errors.push("Passwords do not match.");
+    }
+
+    if (errors.length > 0) {
+      throw new Error(errors.join(" "));
+    }
+
+    return { email: email.trim().toLowerCase(), password };
+  })
+  .handler(async ({ data }) => {
+    // Check for duplicate email
+    const existing = await sql()`SELECT id FROM users WHERE email = ${data.email}`;
+    if (existing.length > 0) {
+      throw new Error("An account with this email already exists.");
+    }
+
+    // Hash password and create user
+    const passwordHash = await Bun.password.hash(data.password);
+    const inserted = await sql()`
+      INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
+      VALUES (${data.email}, ${passwordHash}, 'trial', NOW())
+      RETURNING id, email, created_at
+    `;
+    const user = inserted[0] as { id: number; email: string; created_at: Date };
+
+    // Create session token and set cookie
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
+
+    await sql()`
+      INSERT INTO sessions (user_id, token, expires_at)
+      VALUES (${user.id}, ${token}, ${expiresAt.toISOString()})
+    `;
+
+    setCookie(SESSION_COOKIE, token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
+    });
+
+    return {
+      success: true,
+      user: { id: user.id, email: user.email, created_at: String(user.created_at) },
+    };
+  });
+
+// ── Route ─────────────────────────────────────────────────────────────────────
+
+export const Route = createFileRoute("/signup")({
+  loader: () => getCurrentUser(),
+  component: SignupPage,
+});
+
+// ── Page Component ────────────────────────────────────────────────────────────
+
+function SignupPage() {
+  const currentUser = Route.useLoaderData();
+  const navigate = useNavigate();
+
+  // If already logged in, redirect to dashboard
+  if (currentUser) {
+    navigate({ to: "/dashboard" });
+    return null;
+  }
+
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      await signupFn({ data: { email, password, confirmPassword } });
+      navigate({ to: "/onboarding" });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <a href="/" className="inline-flex items-center gap-2">
+            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900">
+              <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </span>
+            <span className="text-xl font-bold tracking-tight text-slate-900">Contrax</span>
+          </a>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+          <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Start finding and winning government contracts.
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            {/* Email */}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                className="mt-1.5 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="you@company.com"
+              />
+            </div>
+
+            {/* Password */}
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                minLength={8}
+                className="mt-1.5 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="At least 8 characters"
+              />
+            </div>
+
+            {/* Confirm Password */}
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirm password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                autoComplete="new-password"
+                minLength={8}
+                className="mt-1.5 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="Re-enter your password"
+              />
+            </div>
+
+            {/* Error */}
+            {error && (
+              <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
+            {/* Submit */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]"
+            >
+              {loading ? (
+                <span className="inline-flex items-center gap-2">
+                  <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Creating account...
+                </span>
+              ) : (
+                "Create account"
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* Footer link */}
+        <p className="mt-6 text-center text-sm text-gray-500">
+          Already have an account?{" "}
+          <a href="/login" className="font-semibold text-blue-600 hover:text-blue-500">
+            Sign in
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}

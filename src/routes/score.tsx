@@ -264,6 +264,9 @@ export const Route = createFileRoute("/score")({
       },
       { property: "og:image", content: "https://contrax.company/og-image.svg" },
       { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:alt", content: "Contrax — Can I win this bid? Free AI win probability scoring tool" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
@@ -274,7 +277,9 @@ export const Route = createFileRoute("/score")({
           "Paste any government solicitation and get an honest AI-powered win probability analysis — fit score, certification gaps, competition, effort, and a GO/CAUTIOUS/NO-GO recommendation.",
       },
       { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image:alt", content: "Contrax — Can I win this bid? Free AI win probability scoring tool" },
     ],
+    links: [{ rel: "canonical", href: "https://contrax.company/score" }],
   }),
   component: ScorePage,
 });
@@ -325,6 +330,23 @@ function ScorePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "Can I Win This Bid? — Contrax Bid Score",
+            url: "https://contrax.company/score",
+            description:
+              "Free AI-powered government bid scoring tool. Paste any solicitation and get a win probability analysis with a GO, CAUTIOUS, or NO-GO recommendation.",
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Any",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+            publisher: { "@type": "Organization", name: "Contrax", url: "https://contrax.company" },
+          }),
+        }}
+      />
       <main className="mx-auto max-w-4xl px-4 py-10 lg:py-14">
         {/* ── Header ─────────────────────────────────────────────────── */}
         <div className="text-center">

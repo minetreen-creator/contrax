@@ -82,6 +82,43 @@ const signupFn = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/signup")({
   loader: () => getCurrentUser(),
   component: SignupPage,
+  head: () => ({
+    meta: [
+      { title: "Create a Contrax Account" },
+      {
+        name: "description",
+        content:
+          "Create your Contrax account to discover government bids, analyze opportunities, and draft proposals with AI.",
+      },
+      { name: "robots", content: "noindex, nofollow" },
+      // Open Graph
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://contrax.company/signup" },
+      { property: "og:title", content: "Create a Contrax Account" },
+      {
+        property: "og:description",
+        content:
+          "Create your Contrax account to discover government bids, analyze opportunities, and draft proposals with AI.",
+      },
+      { property: "og:image", content: "https://contrax.company/og-image.svg" },
+      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:site_name", content: "Contrax" },
+      // Twitter Card
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Create a Contrax Account" },
+      {
+        name: "twitter:description",
+        content:
+          "Create your Contrax account to discover government bids, analyze opportunities, and draft proposals with AI.",
+      },
+      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+    ],
+    links: [{ rel: "canonical", href: "https://contrax.company/signup" }],
+  }),
 });
 
 // ── Page Component ────────────────────────────────────────────────────────────
@@ -134,7 +171,7 @@ function SignupPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Create your Contrax account</h1>
           <p className="mt-2 text-sm text-gray-500">
             Start finding and winning government contracts.
           </p>

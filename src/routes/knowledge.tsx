@@ -46,7 +46,26 @@ export const Route = createFileRoute("/knowledge")({
     meta: [
       { title: "Knowledge Base | Contrax" },
       { name: "description", content: "Store capability statements, proposal templates, compliance checklists, and FAQs. The AI uses your knowledge base to write smarter proposals and score bids." },
+      { name: "robots", content: "noindex, nofollow" },
+      // Open Graph
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://contrax.company/knowledge" },
+      { property: "og:title", content: "Knowledge Base | Contrax" },
+      { property: "og:description", content: "Store capability statements, proposal templates, compliance checklists, and FAQs. The AI uses your knowledge base to write smarter proposals and score bids." },
+      { property: "og:image", content: "https://contrax.company/og-image.svg" },
+      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:site_name", content: "Contrax" },
+      // Twitter Card
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Knowledge Base | Contrax" },
+      { name: "twitter:description", content: "Store capability statements, proposal templates, compliance checklists, and FAQs. The AI uses your knowledge base to write smarter proposals and score bids." },
+      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
     ],
+    links: [{ rel: "canonical", href: "https://contrax.company/knowledge" }],
   }),
 });
 

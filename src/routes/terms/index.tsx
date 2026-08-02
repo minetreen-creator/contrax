@@ -2,6 +2,43 @@ import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/terms/")({
   component: TermsPage,
+  head: () => ({
+    meta: [
+      { title: "Terms of Service | Contrax" },
+      {
+        name: "description",
+        content:
+          "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
+      },
+      { name: "robots", content: "index, follow" },
+      // Open Graph
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://contrax.company/terms" },
+      { property: "og:title", content: "Terms of Service | Contrax" },
+      {
+        property: "og:description",
+        content:
+          "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
+      },
+      { property: "og:image", content: "https://contrax.company/og-image.svg" },
+      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:site_name", content: "Contrax" },
+      // Twitter Card
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Terms of Service | Contrax" },
+      {
+        name: "twitter:description",
+        content:
+          "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
+      },
+      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+    ],
+    links: [{ rel: "canonical", href: "https://contrax.company/terms" }],
+  }),
 });
 
 function TermsPage() {

@@ -16,13 +16,13 @@ const rows = [
 export const Route = createFileRoute("/compare/")({
   head: () => ({
     meta: [
-      { title: "Contrax vs GovWin, BidNet & More | Government Contract Software Comparison" },
-      { name: "description", content: "Compare Contrax vs GovWin, BidNet, GovSpend, SAM.gov manual bidding, and consultants. See pricing, AI proposal tools, bid coverage, and the best government contract software for small businesses." },
+      { title: "Contrax vs GovWin & BidNet — Platform Comparison" },
+      { name: "description", content: "Compare Contrax vs GovWin, BidNet, GovSpend, SAM.gov, and consultants on pricing, bid coverage, AI proposal tools, and ease of use for small businesses." },
       { name: "robots", content: "index, follow" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://contrax.company/compare" },
-      { property: "og:title", content: "Contrax vs GovWin, BidNet & More" },
-      { property: "og:description", content: "A clear government contract software comparison for small businesses choosing between Contrax, GovWin, BidNet, SAM.gov, and consultants." },
+      { property: "og:title", content: "Contrax vs GovWin & BidNet — Platform Comparison" },
+      { property: "og:description", content: "Compare Contrax vs GovWin, BidNet, GovSpend, SAM.gov, and consultants on pricing, bid coverage, AI proposal tools, and ease of use for small businesses." },
       { property: "og:image", content: "https://contrax.company/og-image.svg" },
       { property: "og:image:type", content: "image/svg+xml" },
       { property: "og:image:alt", content: "Contrax government contract software comparison" },
@@ -30,9 +30,10 @@ export const Route = createFileRoute("/compare/")({
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Contrax vs GovWin, BidNet & More" },
-      { name: "twitter:description", content: "Compare pricing, coverage, AI proposal drafting, and collaboration across government contracting tools." },
+      { name: "twitter:title", content: "Contrax vs GovWin & BidNet — Platform Comparison" },
+      { name: "twitter:description", content: "Compare Contrax vs GovWin, BidNet, GovSpend, SAM.gov, and consultants on pricing, bid coverage, AI proposal tools, and ease of use for small businesses." },
       { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image:alt", content: "Contrax government contract software comparison" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company/compare" }],
   }),
@@ -47,6 +48,21 @@ function Mark({ value }: { value: string }) {
 
 function ComparePage() {
   return <div className="min-h-screen bg-white">
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Contrax vs GovWin & BidNet — Platform Comparison",
+          url: "https://contrax.company/compare",
+          description:
+            "Compare Contrax vs GovWin, BidNet, GovSpend, SAM.gov, and consultants on pricing, bid coverage, AI proposal tools, and ease of use for small businesses.",
+          about: "Government contract software comparison",
+          publisher: { "@type": "Organization", name: "Contrax", url: "https://contrax.company" },
+        }),
+      }}
+    />
     <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 py-20 sm:py-28">
       <div className="mx-auto max-w-5xl px-6 text-center"><p className="text-sm font-semibold uppercase tracking-widest text-amber-400">Government contracting software comparison</p><h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white sm:text-5xl">Contrax vs. the Competition — How We Stack Up Against GovWin, BidNet &amp; More</h1><p className="mx-auto mt-6 max-w-3xl text-lg leading-relaxed text-blue-100/80">Choosing the right contracting platform is a big decision. Compare pricing, coverage, AI capabilities, and collaboration tools so you can make an informed choice for your business.</p></div>
     </section>

@@ -78,6 +78,43 @@ const loginFn = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/login")({
   loader: () => getCurrentUser(),
   component: LoginPage,
+  head: () => ({
+    meta: [
+      { title: "Sign In to Contrax" },
+      {
+        name: "description",
+        content:
+          "Sign in to Contrax to find government contract opportunities, score bids, and draft stronger proposals with AI.",
+      },
+      { name: "robots", content: "noindex, nofollow" },
+      // Open Graph
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://contrax.company/login" },
+      { property: "og:title", content: "Sign In to Contrax" },
+      {
+        property: "og:description",
+        content:
+          "Sign in to Contrax to find government contract opportunities, score bids, and draft stronger proposals with AI.",
+      },
+      { property: "og:image", content: "https://contrax.company/og-image.svg" },
+      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:site_name", content: "Contrax" },
+      // Twitter Card
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Sign In to Contrax" },
+      {
+        name: "twitter:description",
+        content:
+          "Sign in to Contrax to find government contract opportunities, score bids, and draft stronger proposals with AI.",
+      },
+      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+    ],
+    links: [{ rel: "canonical", href: "https://contrax.company/login" }],
+  }),
 });
 
 // ── Page Component ────────────────────────────────────────────────────────────
@@ -129,7 +166,7 @@ function LoginPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Sign in to your Contrax account</h1>
           <p className="mt-2 text-sm text-gray-500">
             Sign in to your Contrax account.
           </p>

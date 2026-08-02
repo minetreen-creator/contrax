@@ -21,7 +21,14 @@ const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
 
 const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
   try {
-    const rows = await sql()`SELECT title, agency, estimated_value, due_date, location FROM bids ORDER BY created_at DESC LIMIT 10`;
+    // Prefer bids with richer data (location + due_date present), fall back to newest
+    const rows = await sql()`SELECT title, agency, estimated_value, due_date, location FROM bids
+      ORDER BY
+        (CASE WHEN location IS NOT NULL AND location != '' THEN 1 ELSE 0 END) +
+        (CASE WHEN due_date IS NOT NULL THEN 1 ELSE 0 END) +
+        (CASE WHEN estimated_value IS NOT NULL AND estimated_value != '' THEN 1 ELSE 0 END) DESC,
+        created_at DESC
+      LIMIT 10`;
     return rows.map((r) => ({
       title: r.title as string,
       agency: r.agency as string,
@@ -51,7 +58,11 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
          OR description ILIKE '%nurs%'
          OR description ILIKE '%healthcare%'
          OR description ILIKE '%clinical staffing%'
-      ORDER BY created_at DESC
+      ORDER BY
+        (CASE WHEN location IS NOT NULL AND location != '' THEN 1 ELSE 0 END) +
+        (CASE WHEN due_date IS NOT NULL THEN 1 ELSE 0 END) +
+        (CASE WHEN estimated_value IS NOT NULL AND estimated_value != '' THEN 1 ELSE 0 END) DESC,
+        created_at DESC
       LIMIT 6`;
     return rows.map((r) => ({
       title: r.title as string,
@@ -114,6 +125,43 @@ const submitLeadEmail = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/")({
   loader: () => getLandingData(),
   component: Home,
+  head: () => ({
+    meta: [
+      { title: "Contrax — AI Government Contract Bidding for Small Businesses" },
+      {
+        name: "description",
+        content:
+          "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals with AI so small businesses find and win more contracts.",
+      },
+      { name: "robots", content: "index, follow" },
+      // Open Graph
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://contrax.company" },
+      { property: "og:title", content: "Contrax — AI Government Contract Bidding for Small Businesses" },
+      {
+        property: "og:description",
+        content:
+          "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals with AI so small businesses find and win more contracts.",
+      },
+      { property: "og:image", content: "https://contrax.company/og-image.svg" },
+      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:site_name", content: "Contrax" },
+      // Twitter Card
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Contrax — AI Government Contract Bidding for Small Businesses" },
+      {
+        name: "twitter:description",
+        content:
+          "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals with AI so small businesses find and win more contracts.",
+      },
+      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+    ],
+    links: [{ rel: "canonical", href: "https://contrax.company" }],
+  }),
 });
 
 // ── Page Component ────────────────────────────────────────────────────────────
@@ -128,7 +176,22 @@ function Home() {
     description:
       "We help small businesses win government contracts. Contrax is an AI coach — not another database of RFPs — that finds the right opportunities, summarizes bid documents, and drafts proposals so small firms compete and win.",
     url: "https://contrax.company",
+    logo: "https://contrax.company/favicon.svg",
+    email: "hello@contrax.company",
     sameAs: [],
+  };
+  const webSiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "Contrax",
+    url: "https://contrax.company",
+    description:
+      "AI-powered government contract discovery, win probability scoring, and proposal drafting for small businesses.",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://contrax.company/?q={search_term_string}",
+      "query-input": "required name=search_term_string",
+    },
   };
 
   return (
@@ -136,6 +199,10 @@ function Home() {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
       />
       <Navbar user={user} />
       <Hero businessName={businessName} />
@@ -304,7 +371,15 @@ function BidTicker({ bids }: { bids: Bid[] }) {
     );
   }
 
-  const tickerBids = [...bids, ...bids];
+  // Dedupe by title + agency, then double for seamless scroll
+  const seen = new Set<string>();
+  const unique = bids.filter((b) => {
+    const key = `${b.title}|${b.agency}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const tickerBids = unique.length > 0 ? [...unique, ...unique] : [];
 
   return (
     <section className="overflow-hidden bg-white py-14">
@@ -464,12 +539,12 @@ function HowItWorks() {
     <section id="how-it-works" className="bg-gray-50 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
             How It Works
-          </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            From search to submission in three steps
           </h2>
+          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            From search to submission in three steps
+          </h3>
           <p className="mt-4 text-lg text-gray-600">
             Stop spending hours digging through procurement portals. Contrax automates the entire
             workflow.
@@ -503,12 +578,13 @@ function Example() {
     <section className="py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-amber-600">
-            See It In Action
-          </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            How a landscaping company wins more work
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-600">
+            Simulation — See It In Action
           </h2>
+          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            How a landscaping company wins more work
+          </h3>
+          <p className="mt-2 text-sm text-amber-700">This is a simulated dashboard showing how Contrax works for a fictional business. Real results vary by industry, location, and market conditions.</p>
         </div>
 
         <div className="mt-14 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
@@ -628,12 +704,12 @@ function WhoItsFor() {
     <section className="bg-gray-50 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
             Who It&rsquo;s For
-          </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Built for businesses that win government work
           </h2>
+          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            Built for businesses that win government work
+          </h3>
           <p className="mt-4 text-lg text-gray-600">
             From solo contractors to mid-size firms, Contrax works for any business pursuing
             public-sector contracts.
@@ -985,12 +1061,12 @@ function CompetitorComparison() {
       <div className="mx-auto max-w-7xl px-6">
         {/* Section heading */}
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
             Why Contrax?
-          </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Why small businesses choose Contrax
           </h2>
+          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            Why small businesses choose Contrax
+          </h3>
           <p className="mt-4 text-lg text-gray-600">
             See how Contrax stacks up against the alternatives — and why it&rsquo;s the fastest way from bid discovery to signed contract.
           </p>
@@ -1300,12 +1376,12 @@ function Pricing() {
     <section id="pricing" className="py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-amber-600">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-600">
             Pricing
-          </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Plans for every stage of growth
           </h2>
+          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            Plans for every stage of growth
+          </h3>
           <p className="mt-4 text-lg text-gray-600">
             Start small and scale up as your contracting pipeline grows. No long-term contracts
             required.

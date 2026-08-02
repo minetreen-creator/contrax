@@ -2,6 +2,43 @@ import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/privacy/")({
   component: PrivacyPage,
+  head: () => ({
+    meta: [
+      { title: "Privacy Policy | Contrax" },
+      {
+        name: "description",
+        content:
+          "Learn how Contrax collects, uses, stores, and protects account, business, bid, and proposal information.",
+      },
+      { name: "robots", content: "index, follow" },
+      // Open Graph
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://contrax.company/privacy" },
+      { property: "og:title", content: "Privacy Policy | Contrax" },
+      {
+        property: "og:description",
+        content:
+          "Learn how Contrax collects, uses, stores, and protects account, business, bid, and proposal information.",
+      },
+      { property: "og:image", content: "https://contrax.company/og-image.svg" },
+      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { property: "og:site_name", content: "Contrax" },
+      // Twitter Card
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Privacy Policy | Contrax" },
+      {
+        name: "twitter:description",
+        content:
+          "Learn how Contrax collects, uses, stores, and protects account, business, bid, and proposal information.",
+      },
+      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+    ],
+    links: [{ rel: "canonical", href: "https://contrax.company/privacy" }],
+  }),
 });
 
 function PrivacyPage() {

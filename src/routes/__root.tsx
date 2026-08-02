@@ -16,9 +16,9 @@ import {
 } from "~/lib/notifications";
 
 const PROD_URL = "https://contrax.company";
-const SITE_TITLE = "Contrax — AI-Powered Government Contract Bidding for Small Businesses";
+const SITE_TITLE = "Contrax — AI Government Contract Bidding for Small Businesses";
 const SITE_DESCRIPTION =
-  "Contrax monitors government procurement sites, summarizes complex bid documents, and drafts proposals with AI — so small businesses can find and win more public-sector contracts.";
+  "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals with AI so small businesses find and win more contracts.";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -50,7 +50,6 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "canonical", href: PROD_URL },
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
     ],
   }),

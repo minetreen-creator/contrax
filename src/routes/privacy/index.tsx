@@ -72,15 +72,15 @@ function PrivacyPage() {
             <p className="mt-3">We use Stripe (payments), OpenAI (AI processing), Resend (email), and Vercel (hosting). See their privacy policies for details.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">5. Cookies</h2>
+            <h2 className="text-xl font-semibold text-slate-900">6. Cookies</h2>
             <p className="mt-3">We use essential cookies for login sessions. No advertising or tracking cookies.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">9. Your Rights</h2>
+            <h2 className="text-xl font-semibold text-slate-900">7. Your Rights</h2>
             <p className="mt-3">You may request access, correction, or deletion of your data at privacy@contrax.app. We will respond within 30 days.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">9. Changes</h2>
+            <h2 className="text-xl font-semibold text-slate-900">8. Changes</h2>
             <p className="mt-3">We may update this policy. Material changes will be notified via email or through the service.</p>
           </section>
           <section>

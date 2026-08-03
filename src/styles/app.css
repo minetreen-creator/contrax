@@ -25,3 +25,28 @@
     @apply bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
   }
 }
+
+@keyframes word-sidebar-in {
+  from { transform: translateX(105%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes word-redline {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes word-comment {
+  from { opacity: 0; transform: scale(.6); }
+  to { opacity: 1; transform: scale(1); }
+}
+.word-tool { @apply flex h-9 w-9 items-center justify-center rounded border border-slate-200 bg-white text-lg shadow-sm; }
+.sidebar-enter { animation: word-sidebar-in .55s cubic-bezier(.22,1,.36,1) 1s both; }
+.sidebar-closed { transform: translateX(105%); opacity: 0; pointer-events: none; }
+.redline { display: inline-block; opacity: 0; animation: word-redline .45s ease-out both; }
+.redline-delete { color: #c2415a; text-decoration: line-through; text-decoration-thickness: 1.5px; }
+.redline-add { display: inline-block; margin-left: .2em; color: #c2415a; text-decoration: underline; text-decoration-style: wavy; text-decoration-thickness: 1px; opacity: 0; animation: word-redline .45s ease-out both; }
+.redline-author { margin-left: .2em; color: #c2415a; font-size: 8px; font-weight: 700; vertical-align: super; }
+.document-copy .redline-author::after { content: ""; position: absolute; right: -24px; top: 2px; width: 17px; height: 17px; border-radius: 50%; background: #c2415a; box-shadow: 0 1px 4px #c2415a55; animation: word-comment .4s ease-out both; animation-delay: inherit; }
+@media (max-width: 640px) {
+  .word-paper { min-height: 900px; padding-bottom: 56px; }
+  .contrax-sidebar { position: fixed; top: 48px; bottom: 0; height: auto; }
+}

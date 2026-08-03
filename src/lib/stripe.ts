@@ -183,7 +183,7 @@ export async function createCheckoutSession(
       ],
       metadata,
       success_url: `${BASE_URL}/post-checkout?session_id={CHECKOUT_SESSION_ID}&plan=${planTier}`,
-      cancel_url: `${BASE_URL}/pricing`,
+      cancel_url: `${BASE_URL}/`,
     });
 
     if (!session.url) {

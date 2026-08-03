@@ -28,13 +28,18 @@ export const Route = createRootRoute({
       { property: "og:title", content: SITE_TITLE },
       { property: "og:description", content: SITE_DESCRIPTION },
       { property: "og:site_name", content: "Contrax" },
+      { property: "og:image", content: "https://contrax.company/logo.png" },
 
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: SITE_TITLE },
       { name: "twitter:description", content: SITE_DESCRIPTION },
+      { name: "twitter:image", content: "https://contrax.company/logo.png" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [
+      { rel: "stylesheet", href: appCss },
+      { rel: "icon", type: "image/png", href: "/logo.png" },
+    ],
   }),
   notFoundComponent: () => (
     <div className="flex min-h-screen items-center justify-center bg-gray-50">

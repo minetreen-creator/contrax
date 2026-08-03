@@ -71,11 +71,11 @@ export const Route = createFileRoute("/")({
         content:
           "Contrax is the Contract Intelligence Platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
-      { property: "og:image", content: "https://contrax.company/og-image.svg" },
-      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image", content: "https://contrax.company/logo.png" },
+      { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for government contract bidding" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
+      { property: "og:image:width", content: "1254" },
+      { property: "og:image:height", content: "1254" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
@@ -85,7 +85,7 @@ export const Route = createFileRoute("/")({
         content:
           "Contrax is the Contract Intelligence Platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
-      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image", content: "https://contrax.company/logo.png" },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for government contract bidding" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company" }],
@@ -104,7 +104,7 @@ function Home() {
     description:
       "Contrax is the Contract Intelligence Platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
     url: "https://contrax.company",
-    logo: "https://contrax.company/favicon.svg",
+    logo: "https://contrax.company/logo.png",
     email: "minetreen@gmail.com",
     sameAs: [],
   };
@@ -164,10 +164,8 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
     <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <a href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-900">
-            <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-slate-900">
+            <img src="/logo.png" alt="" className="h-full w-full object-contain" />
           </span>
           <span className="text-xl font-bold tracking-tight text-slate-900">Contrax</span>
         </a>

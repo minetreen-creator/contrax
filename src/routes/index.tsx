@@ -334,6 +334,13 @@ function Hero({ businessName }: { businessName: string }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </a>
+            <a
+              href="/word-demo"
+              className="inline-flex items-center gap-2 rounded-xl border border-blue-300/40 bg-white/5 px-6 py-4 text-base font-medium text-blue-100 transition-all hover:border-amber-300/70 hover:bg-white/10 hover:text-white"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded bg-[#2b579a] text-xs font-bold text-white">W</span>
+              See it in Word
+            </a>
           </div>
         </div>
       </div>

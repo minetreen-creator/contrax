@@ -291,7 +291,7 @@ const showcaseItems = [
     title: "The Complete Platform",
     description:
       "Set-aside-first bid matching, proposal drafting, compliance checks, pricing intelligence, and team workspaces — built for certified small businesses.",
-    href: "/demo",
+    href: "/signup",
     cta: "Get started",
   },
 ];
@@ -393,7 +393,7 @@ function BidTicker({ bids }: { bids: Bid[] }) {
   if (bids.length === 0) {
     return (
       <section className="bg-white py-14">
-        <a href="/demo" className="fixed bottom-6 right-6 z-40 rounded-full bg-blue-600 px-5 py-3 font-bold text-white shadow-lg">Try Demo</a>
+        <a href="/word-demo" className="fixed bottom-6 right-6 z-40 rounded-full bg-blue-600 px-5 py-3 font-bold text-white shadow-lg">Try Demo</a>
       <div className="mx-auto max-w-7xl px-6 text-center">
           <div className="mb-3 flex items-center justify-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
@@ -1478,7 +1478,7 @@ function Pricing() {
           Plans are billed monthly. Cancel anytime.
         </p>
         <p className="mt-3 text-center">
-          <a href="/demo" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
+          <a href="/word-demo" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
             Or try the free demo first →
           </a>
         </p>
@@ -1510,7 +1510,7 @@ function WaitlistSection() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </a>
-            <a href="/demo" className="text-sm font-medium text-blue-300 hover:text-white transition-colors">
+            <a href="/word-demo" className="text-sm font-medium text-blue-300 hover:text-white transition-colors">
               Try the demo first →
             </a>
           </div>

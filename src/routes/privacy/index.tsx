@@ -20,7 +20,7 @@ export const Route = createFileRoute("/privacy/")({
         content:
           "Learn how Contrax collects, uses, stores, and protects account, business, bid, and proposal information.",
       },
-      { property: "og:image", content: "https://contrax.company/og-image.svg" },
+      { property: "og:image", content: "https://contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/svg+xml" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/privacy/")({
         content:
           "Learn how Contrax collects, uses, stores, and protects account, business, bid, and proposal information.",
       },
-      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company/privacy" }],

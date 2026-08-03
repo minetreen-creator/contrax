@@ -28,20 +28,20 @@ export const Route = createRootRoute({
       { property: "og:title", content: SITE_TITLE },
       { property: "og:description", content: SITE_DESCRIPTION },
       { property: "og:site_name", content: "Contrax" },
-      { property: "og:image", content: `${PROD_URL}/logo-square.svg` },
-      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image", content: `${PROD_URL}/logo-square.png` },
+      { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
 
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: SITE_TITLE },
       { name: "twitter:description", content: SITE_DESCRIPTION },
-      { name: "twitter:image", content: `${PROD_URL}/logo-square.svg` },
+      { name: "twitter:image", content: `${PROD_URL}/logo-square.png` },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "icon", type: "image/png", href: "/favicon.png" },
     ],
   }),
   notFoundComponent: () => (

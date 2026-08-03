@@ -20,7 +20,7 @@ export const Route = createFileRoute("/terms/")({
         content:
           "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
       },
-      { property: "og:image", content: "https://contrax.company/og-image.svg" },
+      { property: "og:image", content: "https://contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/svg+xml" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/terms/")({
         content:
           "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
       },
-      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company/terms" }],

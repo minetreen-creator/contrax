@@ -9,9 +9,9 @@ import type { ReactNode } from "react";
 import appCss from "~/styles/app.css?url";
 
 const PROD_URL = "https://contrax.company";
-const SITE_TITLE = "Contrax — AI Government Contracting for Set-Aside Businesses";
+const SITE_TITLE = "Contrax — Contract Intelligence Platform for Set-Aside Businesses";
 const SITE_DESCRIPTION =
-  "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals with AI so small businesses find and win more contracts.";
+  "Contrax is the Contract Intelligence Platform that monitors government procurement sites, summarizes bid documents, and drafts proposals so small businesses find and win more contracts.";
 
 export const Route = createRootRoute({
   head: () => ({

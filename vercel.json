@@ -1,4 +1,5 @@
 {
+  "buildCommand": "bash build-vercel.sh",
   "crons": [
     {
       "path": "/api/sync-bids",

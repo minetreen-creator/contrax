@@ -13,6 +13,7 @@ import { isHealthcareBid, countRoleMatches, type License } from "~/lib/healthcar
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
 import { buildProfileContext, buildScoringWeights } from "~/lib/profile-context";
+import { checkTrial, type TrialStatus } from "~/lib/trial";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Bid {
@@ -776,7 +777,7 @@ const downloadPdf = createServerFn({ method: "POST" }).validator((data: unknown)
 const handleLogout = createServerFn({ method: "POST" }).handler(async () => logout());
 // Trial status lives in ~/lib/trial (shared with settings, upgrade, and the
 // TrialGate component). Re-exported here so existing imports keep working.
-export { checkTrial, type TrialStatus } from "~/lib/trial";
+export { checkTrial, type TrialStatus };
 
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/dashboard")({

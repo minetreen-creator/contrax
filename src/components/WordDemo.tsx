@@ -1,0 +1,49 @@
+import { useState } from "react";
+
+const redlines = [
+  { type: "delete", text: "best efforts", replacement: "commercially reasonable efforts", author: "CT", delay: "1.6s" },
+  { type: "add", text: "including set-aside eligibility and subcontracting goals", author: "CT", delay: "1.9s" },
+  { type: "delete", text: "within thirty (30) days", replacement: "within ten (10) business days", author: "CT", delay: "2.2s" },
+];
+
+function Redline({ item }: { item: (typeof redlines)[number] }) {
+  return <span className="relative inline"><span className={`redline redline-${item.type}`} style={{ animationDelay: item.delay }}>{item.type === "delete" ? item.text : item.replacement ?? item.text}</span><sup className="redline-author">[{item.author}]</sup>{item.type === "delete" && <span className="redline-add" style={{ animationDelay: item.delay }}>{item.replacement}</span>}</span>;
+}
+function Check({ text }: { text: string }) { return <div className="mt-2 flex items-center gap-2 text-xs text-emerald-900"><span className="font-bold text-emerald-600">✓</span>{text}</div>; }
+function Suggestion({ text }: { text: string }) { return <div className="mb-2 border-l-2 border-amber-400 pl-2 text-xs leading-5 text-amber-950">{text}</div>; }
+
+export default function WordDemo() {
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  return (
+    <main className="word-demo min-h-screen overflow-hidden bg-[#e8ebef] text-slate-900">
+      {/* Word title bar */}
+      <div className="flex h-12 items-center justify-between bg-[#17365d] px-4 text-white shadow-sm">
+        <div className="flex items-center gap-3 text-sm"><span className="flex h-7 w-7 items-center justify-center rounded bg-[#2b579a] text-lg font-bold">W</span><span className="hidden sm:inline">RFP Response — Draft</span><span className="text-blue-200">• Saved to this PC</span></div>
+        <div className="flex items-center gap-4 text-xs text-blue-100"><span className="hidden sm:inline">Share</span><span className="rounded border border-blue-300/40 px-3 py-1">Comments</span><span className="h-7 w-7 rounded-full bg-amber-500 text-center leading-7 font-bold">JD</span></div>
+      </div>
+      {/* Ribbon */}
+      <div className="border-b border-[#b8c4d1] bg-[#f3f6f9] shadow-sm">
+        <div className="flex h-10 items-end gap-1 px-3 text-xs font-medium text-slate-600"><span className="border-b-2 border-[#2b579a] px-5 pb-2 pt-2 text-[#17365d]">Home</span><span className="px-4 pb-2 pt-2">Insert</span><span className="px-4 pb-2 pt-2">Design</span><span className="px-4 pb-2 pt-2">Layout</span><span className="px-4 pb-2 pt-2">References</span><span className="px-4 pb-2 pt-2">Review</span><span className="px-4 pb-2 pt-2">View</span></div>
+        <div className="flex h-16 items-center gap-4 border-t border-slate-200 px-4 text-slate-500">
+          <div className="flex gap-1 border-r border-slate-300 pr-4"><span className="word-tool">↶</span><span className="word-tool">↷</span></div><div className="flex flex-col items-center text-[10px]"><span className="flex gap-1 text-lg font-bold"><b>B</b><i>I</i><u>U</u></span><span>Font</span></div><div className="h-9 border-l border-slate-300" /><div className="flex flex-col items-center text-[10px]"><span className="text-lg">≡ ≡ ≡</span><span>Paragraph</span></div><div className="ml-auto hidden items-center gap-2 text-xs sm:flex"><span className="rounded border bg-white px-3 py-1.5">Editing ▾</span><button onClick={() => setSidebarOpen(true)} className="rounded bg-amber-500 px-3 py-1.5 font-semibold text-white hover:bg-amber-400">Connect Contrax</button></div>
+        </div>
+      </div>
+      {/* Ruler */}
+      <div className="flex items-center gap-3 border-b border-slate-300 bg-[#f3f6f9] px-16 py-1 text-[10px] text-slate-400"><span>1</span><div className="h-2 flex-1 border-x border-slate-400 bg-gradient-to-r from-transparent via-slate-300 to-transparent" /><span>6.5 in</span></div>
+      {/* Document area */}
+      <div className="relative flex min-h-[calc(100vh-138px)] justify-center gap-8 bg-[#e8ebef] p-5 sm:p-10">
+        <article className="word-paper relative w-full max-w-[780px] bg-white px-8 py-12 shadow-[0_2px_12px_rgba(30,50,70,.18)] sm:px-20 sm:py-16">
+          <div className="mb-12 flex items-start justify-between border-b border-slate-200 pb-5"><div><div className="text-[10px] font-bold uppercase tracking-[.18em] text-slate-400">Solicitation No. 47QRAA-24-R-0012</div><h1 className="mt-2 text-xl font-bold text-slate-800 sm:text-2xl">Statement of Work Response</h1></div><div className="text-right text-[10px] text-slate-500"><b>ACME FEDERAL SOLUTIONS</b><br />Revision 3.2<br />June 14, 2025</div></div>
+          <div className="document-copy space-y-5 text-[13px] leading-7 text-slate-700 sm:text-sm"><h2 className="text-base font-bold text-slate-900">1.0 Technical Approach</h2><p>Acme Federal Solutions, LLC (the "Offeror") understands the Government's requirement to provide secure, responsive program support for the Office of Small and Disadvantaged Business Utilization. Our team will deliver measurable outcomes while maintaining rigorous quality controls.</p><p>We will perform the services described in Section C with <Redline item={redlines[0]} /> and maintain a dedicated program office throughout the period of performance. Our approach is designed to meet the Government's mission objectives, <Redline item={redlines[1]} />, and provide transparent reporting to the Contracting Officer.</p><h2 className="pt-2 text-base font-bold text-slate-900">2.0 Key Personnel and Transition</h2><p>The Program Manager will coordinate transition activities, establish the integrated master schedule, and provide weekly status reports. Following notice to proceed, the Offeror will submit a transition plan <Redline item={redlines[2]} /> of contract award.</p><p>All deliverables will be reviewed against the acceptance criteria in Section E. Any exceptions will be documented in the risk register and elevated to the Government within one business day.</p><h2 className="pt-2 text-base font-bold text-slate-900">3.0 Small Business Commitment</h2><p>Our subcontracting plan prioritizes qualified small businesses and supports the Government's socioeconomic objectives. We will report utilization quarterly and continuously seek opportunities to expand participation by certified partners.</p></div>
+          <div className="absolute bottom-6 left-0 right-0 text-center text-[10px] text-slate-400">ACME Federal Solutions • Confidential Proposal • Page 1 of 4</div>
+        </article>
+        {/* Contrax sidebar */}
+        <aside className={`contrax-sidebar absolute right-0 top-0 z-20 h-full w-[min(340px,calc(100vw-24px))] border-l border-amber-200 bg-white shadow-[-8px_0_24px_rgba(15,23,42,.12)] ${sidebarOpen ? "sidebar-enter" : "sidebar-closed"}`}>
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-900 px-5 py-4 text-white"><div className="flex items-center gap-2"><span className="flex h-7 w-7 items-center justify-center rounded bg-amber-500 text-sm font-bold">C</span><div><div className="font-semibold">Contrax</div><div className="text-[10px] text-slate-300">Contract intelligence</div></div></div><button aria-label="Close Contrax panel" onClick={() => setSidebarOpen(false)} className="rounded p-1 text-slate-300 hover:bg-white/10 hover:text-white">›</button></div>
+          <div className="space-y-5 p-5"><div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><div className="flex items-center justify-between"><span className="text-xs font-bold uppercase tracking-wider text-emerald-800">Compliance Check</span><span className="rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">92%</span></div><Check text="Section C requirements found" /><Check text="Past performance included" /><Check text="Socioeconomic goals addressed" /></div><div className="rounded-xl border border-amber-200 bg-amber-50 p-3"><div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-amber-900"><span className="text-lg">✦</span> Clause Suggestions</div><Suggestion text="Use 'commercially reasonable efforts' to align with FAR 52.212-4." /><Suggestion text="Add set-aside language to strengthen eligibility." /></div><div className="rounded-xl border border-rose-200 bg-rose-50 p-3"><div className="mb-3 flex items-center justify-between text-xs font-bold uppercase tracking-wider text-rose-800"><span>Risk Flags</span><span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] text-white">1 review</span></div><p className="text-xs leading-5 text-rose-900"><b>Delivery timeline</b><br />The proposed deadline may create operational risk. Confirm staffing availability before submission.</p></div><div className="border-t border-slate-200 pt-4 text-center text-[11px] text-slate-400">AI review complete · Updated just now</div></div>
+        </aside>
+        {!sidebarOpen && <button onClick={() => setSidebarOpen(true)} className="fixed bottom-5 right-5 z-30 flex items-center gap-2 rounded-full bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:bg-slate-800"><span className="text-amber-400">C</span> Open Contrax</button>}
+      </div>
+    </main>
+  );
+}

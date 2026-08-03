@@ -3,17 +3,41 @@ import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
+import { sql } from "~/db";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+type Bid = {
+  title: string;
+  agency: string;
+  estimated_value: string | null;
+  due_date: string | null;
+  location: string | null;
+};
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
 const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
-  // Clean landing-page base: no database layer — the live bid ticker renders
-  // its empty state ("Bid data will appear here once the sync runs.").
-  return [];
+  const rows = await sql()`
+    SELECT title, agency, estimated_value, due_date, location
+    FROM bids
+    ORDER BY created_at DESC NULLS LAST
+    LIMIT 50
+  `;
+  return rows as Bid[];
 });
 
 const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => {
-  return [];
+  const rows = await sql()`
+    SELECT title, agency, estimated_value, due_date, location
+    FROM bids
+    WHERE LOWER(category) LIKE '%health%'
+       OR LOWER(category) LIKE '%medical%'
+       OR LOWER(title) LIKE '%health%'
+       OR LOWER(title) LIKE '%medical%'
+    ORDER BY created_at DESC NULLS LAST
+    LIMIT 10
+  `;
+  return rows as Bid[];
 });
 
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
@@ -378,14 +402,6 @@ function ProductShowcase() {
 }
 
 // ── Live Bid Ticker ───────────────────────────────────────────────────────────
-
-type Bid = {
-  title: string;
-  agency: string;
-  estimated_value: string | null;
-  due_date: string | null;
-  location: string | null;
-};
 
 function BidTicker({ bids }: { bids: Bid[] }) {
   if (bids.length === 0) {

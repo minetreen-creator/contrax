@@ -17,7 +17,7 @@ export const Route = createFileRoute("/about/")({
       { property: "og:url", content: `${PROD_URL}/about` },
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESC },
-      { property: "og:image", content: `${PROD_URL}/og-image.svg` },
+      { property: "og:image", content: `${PROD_URL}/logo-square.svg` },
       { property: "og:image:type", content: "image/svg+xml" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/about/")({
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: TITLE },
       { name: "twitter:description", content: DESC },
-      { name: "twitter:image", content: `${PROD_URL}/og-image.svg` },
+      { name: "twitter:image", content: `${PROD_URL}/logo-square.svg` },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [{ rel: "canonical", href: `${PROD_URL}/about` }],
@@ -41,7 +41,7 @@ const jsonLd = {
   description:
     "We help small businesses win government contracts. Contrax is a contract intelligence platform — not another database of RFPs — that finds the right opportunities, summarizes bid documents, and drafts proposals so small firms compete and win.",
   url: PROD_URL,
-  logo: `${PROD_URL}/favicon.svg`,
+  logo: `${PROD_URL}/logo-square.svg`,
   email: "hello@contrax.company",
   sameAs: [],
   knowsAbout: [

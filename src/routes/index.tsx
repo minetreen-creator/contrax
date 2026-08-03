@@ -1508,7 +1508,7 @@ function WaitlistSection() {
               </svg>
             </a>
             <a href="/signup" className="text-sm font-medium text-blue-300 hover:text-white transition-colors">
-              Start Free Trial →
+              No credit card required →
             </a>
           </div>
         </div>

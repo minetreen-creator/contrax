@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { setCookie } from "@tanstack/react-start/server";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, SESSION_COOKIE } from "~/lib/auth";
 
@@ -138,17 +138,19 @@ function SignupPage() {
   const navigate = useNavigate();
   const { plan } = Route.useSearch();
 
-  // If already logged in, redirect to dashboard
-  if (currentUser) {
-    navigate({ to: "/dashboard" });
-    return null;
-  }
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // If already logged in, redirect to dashboard (in an effect so hooks
+  // always run in the same order on every render).
+  useEffect(() => {
+    if (currentUser) navigate({ to: "/dashboard" });
+  }, [currentUser, navigate]);
+
+  if (currentUser) return null;
 
   const planLabel = plan === "professional" ? "Professional" : plan === "agency" ? "Agency" : "Starter";
 

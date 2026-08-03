@@ -24,7 +24,7 @@ export function getStripe(): Stripe {
     throw new Error("STRIPE_SECRET_KEY is not set");
   }
   stripeClient = new Stripe(key, {
-    apiVersion: "2025-06-16.acacia" as any, // Latest stable at time of writing
+    apiVersion: "2024-12-18.acacia" as any, // Latest stable at time of writing
   });
   return stripeClient;
 }

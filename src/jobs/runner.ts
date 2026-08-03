@@ -239,4 +239,11 @@ async function main() {
   }
 }
 
-main();
+// Only run the CLI entrypoint when this file is executed directly
+// (e.g. `bun run src/jobs/runner.ts`). When imported — e.g. by the
+// /api/sync-bids route for Vercel Cron — import.meta.main is undefined in the
+// server bundle, so main() must not run (it would trigger a full sync and
+// call process.exit(), killing the request handler).
+if ((import.meta as ImportMeta & { main?: boolean }).main) {
+  main();
+}

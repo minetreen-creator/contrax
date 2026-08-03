@@ -139,9 +139,9 @@ function SignupPage() {
   const navigate = useNavigate();
   const { plan } = Route.useSearch();
 
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [email] = useState("");
+  const [password] = useState("");
+  const [confirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -155,10 +155,15 @@ function SignupPage() {
 
   const planLabel = plan === "professional" ? "Professional" : plan === "agency" ? "Agency" : "Starter";
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = (formData.get("email") as string || "").trim().toLowerCase();
+    const password = formData.get("password") as string || "";
+    const confirmPassword = formData.get("confirmPassword") as string || "";
 
     try {
       await signupFn({ data: { email, password, confirmPassword, plan } });
@@ -200,9 +205,9 @@ function SignupPage() {
               </label>
               <input
                 id="email"
+                name="email"
                 type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                defaultValue={email}
                 required
                 autoComplete="email"
                 className="mt-1.5 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -217,9 +222,9 @@ function SignupPage() {
               </label>
               <input
                 id="password"
+                name="password"
                 type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                defaultValue={password}
                 required
                 autoComplete="new-password"
                 minLength={8}
@@ -235,9 +240,9 @@ function SignupPage() {
               </label>
               <input
                 id="confirmPassword"
+                name="confirmPassword"
                 type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
+                defaultValue={confirmPassword}
                 required
                 autoComplete="new-password"
                 minLength={8}

@@ -21,7 +21,7 @@ export const Route = createFileRoute("/privacy/")({
           "Learn how Contrax collects, uses, stores, and protects account, business, bid, and proposal information.",
       },
       { property: "og:image", content: "https://contrax.company/logo-square.png" },
-      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },

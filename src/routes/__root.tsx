@@ -31,6 +31,8 @@ export const Route = createRootRoute({
       { property: "og:image", content: `${PROD_URL}/logo-square.png` },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
 
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
@@ -41,7 +43,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: "/favicon.png" },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
     ],
   }),
   notFoundComponent: () => (

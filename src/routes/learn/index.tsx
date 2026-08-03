@@ -16,9 +16,11 @@ export const Route = createFileRoute("/learn/")({
       { title: TITLE }, { name: "description", content: DESC }, { name: "robots", content: "index, follow" },
       { property: "og:type", content: "website" }, { property: "og:url", content: "https://contrax.company/learn" },
       { property: "og:title", content: TITLE }, { property: "og:description", content: DESC },
-      { property: "og:image", content: "https://contrax.company/og-image.svg" }, { property: "og:site_name", content: "Contrax" },
+      { property: "og:image", content: "https://contrax.company/logo-square.png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" }, { property: "og:site_name", content: "Contrax" },
       { name: "twitter:card", content: "summary_large_image" }, { name: "twitter:title", content: TITLE },
-      { name: "twitter:description", content: DESC }, { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:description", content: DESC }, { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
     ], links: [{ rel: "canonical", href: "https://contrax.company/learn" }],
   }),
   loader: async () => {

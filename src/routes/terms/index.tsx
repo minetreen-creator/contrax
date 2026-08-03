@@ -21,7 +21,7 @@ export const Route = createFileRoute("/terms/")({
           "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
       },
       { property: "og:image", content: "https://contrax.company/logo-square.png" },
-      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },

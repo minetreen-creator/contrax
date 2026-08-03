@@ -262,8 +262,8 @@ export const Route = createFileRoute("/score")({
         content:
           "Paste any government solicitation and get an honest AI-powered win probability analysis — fit score, certification gaps, competition, effort, and a GO/CAUTIOUS/NO-GO recommendation.",
       },
-      { property: "og:image", content: "https://contrax.company/og-image.svg" },
-      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image", content: "https://contrax.company/logo-square.png" },
+      { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Can I win this bid? Free AI win probability scoring tool" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
@@ -276,7 +276,7 @@ export const Route = createFileRoute("/score")({
         content:
           "Paste any government solicitation and get an honest AI-powered win probability analysis — fit score, certification gaps, competition, effort, and a GO/CAUTIOUS/NO-GO recommendation.",
       },
-      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
+      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Can I win this bid? Free AI win probability scoring tool" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company/score" }],

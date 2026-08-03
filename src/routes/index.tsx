@@ -189,7 +189,7 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
     <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <a href="/" className="flex items-center" aria-label="Contrax home">
-          <img src="/logo.png" alt="Contrax" className="h-9 w-auto" />
+          <img src="/logo.svg" alt="Contrax" className="h-9 w-auto" />
         </a>
 
         <div className="flex items-center gap-3">

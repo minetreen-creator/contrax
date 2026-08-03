@@ -18,7 +18,7 @@ export const Route = createFileRoute("/security/")({
       { property: "og:title", content: TITLE },
       { property: "og:description", content: DESC },
       { property: "og:image", content: `${PROD_URL}/logo-square.png` },
-      { property: "og:image:type", content: "image/svg+xml" },
+      { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },

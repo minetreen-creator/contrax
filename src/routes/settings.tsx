@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { checkTrial, type TrialStatus } from "~/lib/trial";
 import { SPECIALTY_OPTIONS, daysUntilExpiry, type License } from "~/lib/healthcare";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -284,6 +285,8 @@ function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [toast, setToast] = useState("");
+  const [trial, setTrial] = useState<TrialStatus | null>(null);
+  useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
 
   const [form, setForm] = useState<SettingsFormData>({
     businessName: "",
@@ -466,6 +469,63 @@ function SettingsPage() {
             Update your business profile to get better bid matches and stronger proposals.
           </p>
         </div>
+
+        {/* Section: Plan & Trial */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-1">Plan &amp; Trial</h2>
+              <p className="text-sm text-slate-500">Your subscription status and 21-day free trial.</p>
+            </div>
+            <a href="/upgrade" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
+              Manage plan
+            </a>
+          </div>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current plan</p>
+              <p className="mt-1 text-lg font-bold text-slate-900 capitalize">{trial?.planTier ?? "—"}</p>
+              {trial?.active ? (
+                <p className="mt-1 text-xs text-amber-700">Free trial — no card required</p>
+              ) : trial && !trial.expired && trial.planTier ? (
+                <p className="mt-1 text-xs text-green-700">Active subscription</p>
+              ) : (
+                <p className="mt-1 text-xs text-slate-400">No plan selected</p>
+              )}
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Trial status</p>
+              {trial?.active ? (
+                <p className="mt-1 text-lg font-bold text-slate-900">
+                  {trial.daysLeft} day{trial.daysLeft === 1 ? "" : "s"} left
+                </p>
+              ) : trial?.expired ? (
+                <p className="mt-1 text-lg font-bold text-red-600">Trial ended</p>
+              ) : (
+                <p className="mt-1 text-lg font-bold text-slate-900">{trial ? "Not in trial" : "…"}</p>
+              )}
+              {trial?.endsAt ? (
+                <p className="mt-1 text-xs text-slate-500">
+                  Ends {new Date(trial.endsAt).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+              ) : trial && !trial.expired && trial.planTier ? (
+                <p className="mt-1 text-xs text-green-700">Paid plan — no trial</p>
+              ) : null}
+            </div>
+          </div>
+          {trial?.active && (
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+              <span>Your 21-day free trial is almost over — keep bid matching, AI scoring, and proposal drafting after it ends.</span>
+              <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">Upgrade now →</a>
+            </div>
+          )}
+          {trial?.expired && (
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 sm:flex-row sm:items-center sm:justify-between">
+              <span>Your trial has ended — subscribe to regain access to your workspace and bid matches.</span>
+              <a href="/upgrade" className="shrink-0 font-semibold text-red-800 underline hover:text-red-900">View plans →</a>
+            </div>
+          )}
+        </section>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Error */}

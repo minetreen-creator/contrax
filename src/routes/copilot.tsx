@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
+import { TrialGate } from "~/components/TrialGate";
 import { callAI } from "~/lib/ai";
 import { fetchCopilotContext } from "~/lib/copilot";
 import { normalizeCert } from "~/lib/profile-context";
@@ -189,7 +190,12 @@ function CopilotPage() {
 
   if (!currentUser) return <PublicCopilot />;
 
-  return <AuthenticatedCopilot />;
+  // Trial-gate the authenticated product; the public marketing page stays open.
+  return (
+    <TrialGate>
+      <AuthenticatedCopilot />
+    </TrialGate>
+  );
 }
 
 function PublicCopilot() {

@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { TrialGate } from "~/components/TrialGate";
 import { recordOutcomeWithValue } from "~/lib/learning";
 
 type Weakness = { weakness: string; severity: string; recurring?: boolean };
@@ -42,7 +43,16 @@ export const analyzeLoss = createServerFn({method:"POST"}).validator((d:unknown)
 export const getWeaknessSummary=createServerFn({method:"GET"}).handler(async()=>{const x=await getLosses();return x.summary;});
 export const recordWin=createServerFn({method:"POST"}).validator((d:unknown)=>d as {bidTitle:string;agency:string;estimatedValue:string;naicsCode:string;notes:string}).handler(async({data})=>{const user=await getCurrentUser();if(!user)throw new Error("Not authenticated");await recordOutcomeWithValue(user.email,data.bidTitle,data.agency,data.naicsCode||"",data.estimatedValue||"",true,data.notes||"");return{success:true}});
 
-export const Route=createFileRoute("/losses")({loader:async()=>{const user=await getCurrentUser(); if(!user) throw redirect({to:"/login"}); return getLosses();},component:LossesPage,head:()=>({meta:[{title:"Why You Lost | Contrax"},{name:"description",content:"Learn why government bids were lost and track recurring weaknesses with AI-powered debrief analysis."}]})});
+export const Route=createFileRoute("/losses")({loader:async()=>{const user=await getCurrentUser(); if(!user) throw redirect({to:"/login"}); return getLosses();},component:LossesPageGated,head:()=>({meta:[{title:"Why You Lost | Contrax"},{name:"description",content:"Learn why government bids were lost and track recurring weaknesses with AI-powered debrief analysis."}]})});
+
+/** Trial gate: expired-trial users see an upgrade prompt instead of the page. */
+function LossesPageGated() {
+  return (
+    <TrialGate>
+      <LossesPage />
+    </TrialGate>
+  );
+}
 const sev=(s:string)=>({critical:"bg-red-100 text-red-700",high:"bg-orange-100 text-orange-700",medium:"bg-amber-100 text-amber-700",low:"bg-green-100 text-green-700"}[s]||"bg-slate-100 text-slate-600");
 function Badge({value}:{value:string}){return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase ${sev(value)}`}>{value}</span>}
 function LossesPage(){const user=Route.useLoaderData(); const [losses,setLosses]=useState(user.losses); const [summary,setSummary]=useState(user.summary); const [analysis,setAnalysis]=useState<{loss:Loss;analysis:Analysis}|null>(null); const [expanded,setExpanded]=useState<number|null>(null); const [busy,setBusy]=useState(false); const [error,setError]=useState(""); const [form,setForm]=useState({bidTitle:"",agency:"",estimatedValue:"",awardedTo:"",debriefNotes:"",naicsCode:""});const [formMode,setFormMode]=useState<"loss"|"win">("loss");const [winForm,setWinForm]=useState({bidTitle:"",agency:"",estimatedValue:"",naicsCode:"",notes:""});const [winBusy,setWinBusy]=useState(false);const [winMsg,setWinMsg]=useState("");

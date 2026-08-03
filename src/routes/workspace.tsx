@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { TrialGate } from "~/components/TrialGate";
 import { createNotification } from "~/lib/notifications";
 
 type Role = "estimator" | "proposal_writer" | "accountant" | "project_manager";
@@ -136,7 +137,16 @@ const disconnectIntegration = createServerFn({ method: "POST" })
 function relative(date: string) { const mins = Math.floor((Date.now()-new Date(date).getTime())/60000); if (mins < 1) return "just now"; if (mins < 60) return `${mins} minute${mins===1?"":"s"} ago`; const hours=Math.floor(mins/60); if(hours<24)return `${hours} hour${hours===1?"":"s"} ago`; const days=Math.floor(hours/24); return days===1?"yesterday":`${days} days ago`; }
 function activityText(a: Activity) { const who = a.member_email.split("@")[0]; const title = a.bid_title || "a bid"; if(a.action === "scored_bid") return `${who} scored a bid${a.details ? ` — ${a.details}` : ""} on ${title}`; if(a.action === "drafted_proposal") return `${who} drafted a proposal for ${title}`; if(a.action === "saved_bid") return `${who} saved ${a.details || "a bid"} to track`; if(a.action === "dismissed_bid") return `${who} dismissed ${title}`; return `${who} ${a.details || a.action}`; }
 
-export const Route = createFileRoute("/workspace")({ loader: () => getCurrentUser(), component: WorkspacePage });
+export const Route = createFileRoute("/workspace")({ loader: () => getCurrentUser(), component: WorkspacePageGated });
+
+/** Trial gate: expired-trial users see an upgrade prompt instead of the page. */
+function WorkspacePageGated() {
+  return (
+    <TrialGate>
+      <WorkspacePage />
+    </TrialGate>
+  );
+}
 
 function WorkspacePage() {
   const [data,setData]=useState<{members:Member[];activity:Activity[]}|null>(null);

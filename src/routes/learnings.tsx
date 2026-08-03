@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
+import { TrialGate } from "~/components/TrialGate";
 import { getUserPatterns, generateInsights, getImplicitPreferences, type UserPatterns, type ImplicitPreference } from "~/lib/learning";
 
 // ── Server Functions ─────────────────────────────────────────────────────────
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/learnings")({
     if (!user) throw redirect({ to: "/login" });
     return fetchLearnings();
   },
-  component: LearningsPage,
+
   head: () => ({
     meta: [
       { title: "Learning Engine | Contrax" },
@@ -35,6 +36,16 @@ export const Route = createFileRoute("/learnings")({
     ],
   }),
 });
+
+/** Trial gate: expired-trial users see an upgrade prompt instead of the page. */
+function LearningsPageGated() {
+  return (
+    <TrialGate>
+      <LearningsPage />
+    </TrialGate>
+  );
+}
+
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

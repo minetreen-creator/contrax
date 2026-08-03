@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect, useCallback } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
+import { TrialGate } from "~/components/TrialGate";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface TrackedBid {
@@ -219,8 +220,17 @@ export const Route = createFileRoute("/tracking")({
   head: () => ({
     meta: [{ title: "Bid Tracking | Contrax" }],
   }),
-  component: TrackingPage,
+  component: TrackingPageGated,
 });
+
+/** Trial gate: expired-trial users see an upgrade prompt instead of the page. */
+function TrackingPageGated() {
+  return (
+    <TrialGate>
+      <TrackingPage />
+    </TrialGate>
+  );
+}
 
 // ── Loading Skeleton ─────────────────────────────────────────────────────────
 function LoadingSkeleton() {

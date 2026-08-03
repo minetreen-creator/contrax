@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { TrialGate } from "~/components/TrialGate";
 import { detectCredentialRequirements, licenseMatches, daysUntilExpiry, type License } from "~/lib/healthcare";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -219,9 +220,19 @@ export const Route = createFileRoute("/compliance")({
     if (!user) throw redirect({ to: "/login" });
     return getHistory();
   },
-  component: CompliancePage,
+  component: CompliancePageGated,
   head: () => ({ meta: [{ title: "Compliance Checker | Contrax" }, { name: "description", content: "Check your proposal against RFP requirements with AI-powered compliance scanning." }] }),
 });
+
+/** Trial gate: expired-trial users see an upgrade prompt instead of the page. */
+function CompliancePageGated() {
+  return (
+    <TrialGate>
+      <CompliancePage />
+    </TrialGate>
+  );
+}
+
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 const severityStyles: Record<string, string> = {

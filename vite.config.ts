@@ -13,6 +13,24 @@ export default defineConfig({
     // rejects a proxied request with "Blocked request".
     allowedHosts: true,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return;
+
+          // Keep the framework dependencies in stable, cacheable chunks while
+          // leaving application code (including route definitions) in the entry.
+          if (/node_modules\/(?:react|react-dom|scheduler)(?:\/|$)/.test(id)) {
+            return "vendor";
+          }
+          if (/node_modules\/@tanstack\/(?:react-router|router)(?:\/|$)/.test(id)) {
+            return "router";
+          }
+        },
+      },
+    },
+  },
   plugins: [
     tailwindcss(),
     tsConfigPaths({

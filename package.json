@@ -9,13 +9,14 @@
     "start": "bun run serve.ts",
     "publish": "bash ./publish.sh",
     "go-live": "bash ./go-live.sh",
+    "db:setup": "bun run db/setup.ts",
     "sync-bids": "bun run src/jobs/runner.ts",
     "format": "prettier --write ."
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
-    "@tanstack/react-router": "1.158.1",
-    "@tanstack/react-start": "1.158.3",
+    "@tanstack/react-router": "1.170.16",
+    "@tanstack/react-start": "1.168.26",
     "jspdf": "^4.2.1",
     "lucide-react": "^1.28.0",
     "react": "^19.2.4",

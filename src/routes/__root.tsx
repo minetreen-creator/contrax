@@ -11,7 +11,7 @@ import appCss from "~/styles/app.css?url";
 const PROD_URL = "https://contrax.company";
 const SITE_TITLE = "Contrax — Contract Intelligence Platform for Set-Aside Businesses";
 const SITE_DESCRIPTION =
-  "Contrax is the Contract Intelligence Platform that monitors government procurement sites, summarizes bid documents, and drafts proposals so small businesses find and win more contracts.";
+  "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals so small businesses find and win more contracts.";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -28,17 +28,22 @@ export const Route = createRootRoute({
       { property: "og:title", content: SITE_TITLE },
       { property: "og:description", content: SITE_DESCRIPTION },
       { property: "og:site_name", content: "Contrax" },
-      { property: "og:image", content: "https://contrax.company/logo.png" },
+      { property: "og:image", content: `${PROD_URL}/logo-square.png` },
+      { property: "og:image:type", content: "image/png" },
+      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
 
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: SITE_TITLE },
       { name: "twitter:description", content: SITE_DESCRIPTION },
-      { name: "twitter:image", content: "https://contrax.company/logo.png" },
+      { name: "twitter:image", content: `${PROD_URL}/logo-square.png` },
+      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", type: "image/png", href: "/logo.png" },
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
     ],
   }),
   notFoundComponent: () => (

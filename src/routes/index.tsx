@@ -2,17 +2,42 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useState } from "react";
+import { getCurrentUser } from "~/lib/auth";
+import { sql } from "~/db";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+type Bid = {
+  title: string;
+  agency: string;
+  estimated_value: string | null;
+  due_date: string | null;
+  location: string | null;
+};
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
 const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
-  // Clean landing-page base: no database layer — the live bid ticker renders
-  // its empty state ("Bid data will appear here once the sync runs.").
-  return [];
+  const rows = await sql()`
+    SELECT title, agency, estimated_value, due_date, location
+    FROM bids
+    ORDER BY created_at DESC NULLS LAST
+    LIMIT 50
+  `;
+  return rows as Bid[];
 });
 
 const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => {
-  return [];
+  const rows = await sql()`
+    SELECT title, agency, estimated_value, due_date, location
+    FROM bids
+    WHERE LOWER(category) LIKE '%health%'
+       OR LOWER(category) LIKE '%medical%'
+       OR LOWER(title) LIKE '%health%'
+       OR LOWER(title) LIKE '%medical%'
+    ORDER BY created_at DESC NULLS LAST
+    LIMIT 10
+  `;
+  return rows as Bid[];
 });
 
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
@@ -27,7 +52,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
         return "Contrax";
       }
     })(),
-    null, // no auth in clean landing-page base — Navbar renders the signed-out state
+    getCurrentUser(),
     getRecentBids(),
     getHealthcareBids(),
   ]);
@@ -59,7 +84,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Contrax is the Contract Intelligence Platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — find set-aside opportunities, understand bid documents, and win more government contracts.",
+          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
@@ -69,13 +94,13 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Contrax is the Contract Intelligence Platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — find set-aside opportunities, understand bid documents, and win more government contracts.",
+          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
-      { property: "og:image", content: "https://contrax.company/logo.png" },
+      { property: "og:image", content: "https://contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for government contract bidding" },
-      { property: "og:image:width", content: "1254" },
-      { property: "og:image:height", content: "1254" },
+      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
@@ -83,10 +108,10 @@ export const Route = createFileRoute("/")({
       {
         name: "twitter:description",
         content:
-          "Contrax is the Contract Intelligence Platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — find set-aside opportunities, understand bid documents, and win more government contracts.",
+          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
-      { name: "twitter:image", content: "https://contrax.company/logo.png" },
-      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for government contract bidding" },
+      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
+      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company" }],
   }),
@@ -102,35 +127,18 @@ function Home() {
     "@type": "Organization",
     name: "Contrax",
     description:
-      "Contrax is the Contract Intelligence Platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
+      "Contrax is the contract intelligence platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
     url: "https://contrax.company",
-    logo: "https://contrax.company/logo.png",
-    email: "minetreen@gmail.com",
-    sameAs: [],
+    logo: "https://contrax.company/logo-square.png",
+    email: "hello@contrax.company",
   };
-  const webSiteJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Contrax",
-    url: "https://contrax.company",
-    description:
-      "Contract Intelligence Platform: set-aside opportunity matching, win probability scoring, and proposal drafting for 8(a), SDVOSB, WOSB, and HUBZone businesses.",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: "https://contrax.company/?q={search_term_string}",
-      "query-input": "required name=search_term_string",
-    },
-  };
+
 
   return (
     <div className="min-h-screen bg-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
       />
       <Navbar user={user} />
       <Hero businessName={businessName} />
@@ -163,11 +171,8 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-        <a href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg bg-slate-900">
-            <img src="/logo.png" alt="" className="h-full w-full object-contain" />
-          </span>
-          <span className="text-xl font-bold tracking-tight text-slate-900">Contrax</span>
+        <a href="/" className="flex items-center" aria-label="Contrax home">
+          <img src="/logo.svg" alt="Contrax" className="h-9 w-auto" />
         </a>
 
         <div className="flex items-center gap-3">
@@ -215,7 +220,7 @@ function Hero({ businessName }: { businessName: string }) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
       {/* Subtle background pattern */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+      <div className="absolute inset-0 bg-[url('data:image/png;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
       <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-28 sm:pb-32 sm:pt-36 lg:pb-40 lg:pt-44">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-1.5 text-sm font-medium text-blue-200">
@@ -232,16 +237,16 @@ function Hero({ businessName }: { businessName: string }) {
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            Not another database of RFPs. {businessName} is your Contract Intelligence Platform for 8(a), SDVOSB, WOSB, and
+            Not another database of RFPs. {businessName} is your contract intelligence platform for 8(a), SDVOSB, WOSB, and
             HUBZone-certified businesses — matching you to set-aside opportunities, summarizing what
             matters, and drafting proposals so you can compete and win more contracts.
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="/demo"
+              href="/signup"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
             >
-              Get Started
+              Start Free Trial
               <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -269,21 +274,21 @@ function Hero({ businessName }: { businessName: string }) {
 const showcaseItems = [
   {
     src: "/screenshots/score-tool.png",
-    alt: "Can I Win This? — Contrax AI solicitation scoring tool",
+    alt: "Can I Win This? — Contrax solicitation scoring tool",
     badge: "Free · no login",
     title: "Can I Win This?",
     description:
-      "Paste any solicitation and get an instant AI win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO. Free, no login required.",
+      "Paste any solicitation and get an instant win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO. Free, no login required.",
     href: "/score",
     cta: "Score a solicitation",
   },
   {
     src: "/screenshots/copilot.png",
-    alt: "Contract Intelligence Copilot — Contrax AI strategist",
-    badge: "AI strategist",
+    alt: "Contract Intelligence Copilot — Contrax strategist",
+    badge: "Strategist",
     title: "Contract Intelligence Copilot",
     description:
-      "Your AI strategist knows your certifications, active bids, and win/loss history. Ask it anything about your pipeline — it answers with your context in mind.",
+      "Your strategist knows your certifications, active bids, and win/loss history. Ask it anything about your pipeline — it answers with your context in mind.",
     href: "/copilot",
     cta: "Meet the copilot",
   },
@@ -294,7 +299,7 @@ const showcaseItems = [
     title: "The Complete Platform",
     description:
       "Set-aside-first bid matching, proposal drafting, compliance checks, pricing intelligence, and team workspaces — built for certified small businesses.",
-    href: "/demo",
+    href: "/signup",
     cta: "Get started",
   },
 ];
@@ -311,7 +316,7 @@ function ProductShowcase() {
             See Contrax in Action
           </h3>
           <p className="mt-4 text-lg text-gray-600">
-            From a free win-probability check to an AI strategist that knows your bid history —
+            From a free win-probability check to a strategist that knows your bid history —
             here&apos;s what you can do in your first five minutes.
           </p>
         </div>
@@ -368,13 +373,10 @@ function ProductShowcase() {
             </p>
           </div>
           <a
-            href="/word-demo"
+            href="/signup"
             className="inline-flex flex-shrink-0 items-center gap-2.5 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-[#2b579a] text-xs font-bold text-white">
-              W
-            </span>
-            See it in Word
+            Start Free Trial
           </a>
         </div>
       </div>
@@ -384,19 +386,10 @@ function ProductShowcase() {
 
 // ── Live Bid Ticker ───────────────────────────────────────────────────────────
 
-type Bid = {
-  title: string;
-  agency: string;
-  estimated_value: string | null;
-  due_date: string | null;
-  location: string | null;
-};
-
 function BidTicker({ bids }: { bids: Bid[] }) {
   if (bids.length === 0) {
     return (
       <section className="bg-white py-14">
-        <a href="/demo" className="fixed bottom-6 right-6 z-40 rounded-full bg-blue-600 px-5 py-3 font-bold text-white shadow-lg">Try Demo</a>
       <div className="mx-auto max-w-7xl px-6 text-center">
           <div className="mb-3 flex items-center justify-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
@@ -556,7 +549,7 @@ function HowItWorks() {
       number: "02",
       title: "We find your matches",
       description:
-        "Our AI monitors federal, state, and local procurement sites 24/7, filtering thousands of opportunities to surface only the ones relevant to your business.",
+        "Contrax monitors federal, state, and local procurement sites 24/7, filtering thousands of opportunities to surface only the ones relevant to your business.",
       icon: (
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -567,7 +560,7 @@ function HowItWorks() {
       number: "03",
       title: "Win more contracts",
       description:
-        "Get plain-English summaries, AI-drafted proposal responses, and compliance checklists for every opportunity — so you submit faster and win more.",
+        "Get plain-English summaries, drafted proposal responses, and compliance checklists for every opportunity — so you submit faster and win more.",
       icon: (
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -704,7 +697,7 @@ function Example() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
                     </svg>
                     <p className="text-sm text-gray-700">
-                      AI-drafted proposal based on previous winning submissions
+                      Drafted proposal based on previous winning submissions
                     </p>
                   </div>
                   <div className="flex items-start gap-3 rounded-lg bg-white p-3 shadow-sm">
@@ -985,7 +978,7 @@ function CompetitorComparison() {
     {
       label: "Bid discovery",
       tooltip: "Who finds opportunities for you?",
-      contrax: { value: "AI scans 24/7 across federal, state & local sites", positive: true },
+      contrax: { value: "Scans 24/7 across federal, state & local sites", positive: true },
       manual: { value: "You search SAM.gov, state portals & city sites manually", positive: false },
       consultant: { value: "Consultant checks known sources during business hours", positive: false },
       tools: { value: "Requires you to set up searches & filters yourself", positive: false },
@@ -993,7 +986,7 @@ function CompetitorComparison() {
     {
       label: "Time to proposal",
       tooltip: "How fast from finding to submitting?",
-      contrax: { value: "Hours — AI drafts in minutes", positive: true },
+      contrax: { value: "Hours — drafts in minutes", positive: true },
       manual: { value: "Days to weeks — research + writing from scratch", positive: false },
       consultant: { value: "Days — depends on their availability & backlog", positive: false },
       tools: { value: "Days — you still write the content", positive: false },
@@ -1008,8 +1001,8 @@ function CompetitorComparison() {
     },
     {
       label: "Proposal quality",
-      tooltip: "AI-drafted vs. manual vs. template",
-      contrax: { value: "AI-drafted, tailored to each RFP", positive: true },
+      tooltip: "Drafted vs. manual vs. template",
+      contrax: { value: "Tailored drafts for each RFP", positive: true },
       manual: { value: "Depends entirely on your writing skills", positive: false },
       consultant: { value: "Professional — but expensive", positive: false },
       tools: { value: "Template-based — generic, not tailored", positive: false },
@@ -1035,7 +1028,7 @@ function CompetitorComparison() {
   const columns = [
     {
       name: "Contrax",
-      subtitle: "Contract Intelligence Platform",
+      subtitle: "Contract Intelligence",
       key: "contrax" as const,
       highlight: true,
       icon: (
@@ -1371,12 +1364,13 @@ function Pricing() {
       description: "For small businesses getting started with government contracting.",
       features: [
         "Bid alerts for up to 3 categories",
-        "AI-powered bid summaries",
+        "Plain-English bid summaries",
         "Email notifications",
         "Up to 2 location preferences",
         "Weekly digest emails",
       ],
       cta: "Get Started",
+      slug: "starter",
       featured: false,
     },
     {
@@ -1387,12 +1381,13 @@ function Pricing() {
       features: [
         "Everything in Starter",
         "Unlimited bid tracking",
-        "AI proposal drafting",
+        "Proposal drafting",
         "Competitor tracking",
         "Calendar integration",
         "Priority email & chat support",
       ],
       cta: "Get Started",
+      slug: "professional",
       featured: true,
     },
     {
@@ -1409,6 +1404,7 @@ function Pricing() {
         "Dedicated account manager",
       ],
       cta: "Get Started",
+      slug: "agency",
       featured: false,
     },
   ];
@@ -1468,7 +1464,7 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <a href="/signup" className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${plan.featured ? "bg-amber-500 text-white" : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"}`}>{plan.cta}</a>
+              <a href={`/signup?plan=${plan.slug}`} className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${plan.featured ? "bg-amber-500 text-white" : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"}`}>{plan.cta}</a>
             </div>
           ))}
         </div>
@@ -1478,8 +1474,8 @@ function Pricing() {
           Plans are billed monthly. Cancel anytime.
         </p>
         <p className="mt-3 text-center">
-          <a href="/demo" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
-            Or try the free demo first →
+          <a href="/signup" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
+            Or start your free trial →
           </a>
         </p>
       </div>
@@ -1510,8 +1506,8 @@ function WaitlistSection() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </a>
-            <a href="/demo" className="text-sm font-medium text-blue-300 hover:text-white transition-colors">
-              Try the demo first →
+            <a href="/signup" className="text-sm font-medium text-blue-300 hover:text-white transition-colors">
+              No credit card required →
             </a>
           </div>
         </div>
@@ -1554,10 +1550,10 @@ function Footer() {
             Terms of Service
           </a>
           <a
-            href="mailto:bidpilot-de2cdfa5@ctomail.io"
+            href="mailto:minetreen@gmail.com"
             className="text-sm text-gray-400 transition-colors hover:text-white"
           >
-            bidpilot-de2cdfa5@ctomail.io
+            minetreen@gmail.com
           </a>
         </div>
       </div>

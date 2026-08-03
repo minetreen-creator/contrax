@@ -366,13 +366,10 @@ function ProductShowcase() {
             </p>
           </div>
           <a
-            href="/word-demo"
+            href="/signup"
             className="inline-flex flex-shrink-0 items-center gap-2.5 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-[#2b579a] text-xs font-bold text-white">
-              W
-            </span>
-            See it in Word
+            Start Free Trial
           </a>
         </div>
       </div>
@@ -1478,8 +1475,8 @@ function Pricing() {
           Plans are billed monthly. Cancel anytime.
         </p>
         <p className="mt-3 text-center">
-          <a href="/word-demo" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
-            Or try the free demo first →
+          <a href="/signup" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
+            Or start your free trial →
           </a>
         </p>
       </div>
@@ -1510,8 +1507,8 @@ function WaitlistSection() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </a>
-            <a href="/word-demo" className="text-sm font-medium text-blue-300 hover:text-white transition-colors">
-              Try the demo first →
+            <a href="/signup" className="text-sm font-medium text-blue-300 hover:text-white transition-colors">
+              Start Free Trial →
             </a>
           </div>
         </div>

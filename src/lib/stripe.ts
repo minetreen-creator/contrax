@@ -60,9 +60,9 @@ export interface CreateCheckoutSessionResult {
 //   s.prices.list({limit:20}).then(p => p.data.forEach(pr => console.log(pr.id, pr.product, pr.unit_amount)))'
 
 const FALLBACK_PRICE_IDS: Record<PlanTier, string | null> = {
-  starter: "price_1TxnzpRgqhxm74mTkyEfvYdY",
-  professional: "price_1TxnzpRgqhxm74mThJnrL2XA",
-  agency: "price_1TxnzqRgqhxm74mTl1LeJ0rl",
+  starter: "price_1U0KVIGdL43e7acFz6JxgRfO",
+  professional: "price_1U0KWFGdL43e7acFg4YV4l37",
+  agency: "price_1U0KWFGdL43e7acFb4xrwVpb",
   savings_premium: "price_1Tz7wZRgqhxm74mTtb7yMkXs",
 };
 

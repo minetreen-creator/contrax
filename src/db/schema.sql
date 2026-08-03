@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS users (
     subscription_status TEXT,
     plan_tier TEXT,
     trial_started_at TIMESTAMPTZ,
-    active_profile_id INTEGER
+    active_profile_id INTEGER,
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE IF NOT EXISTS business_profiles (
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS business_profiles (
 
 -- Agency migrations: preserve existing installations while enabling entities.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS active_profile_id INTEGER;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS logo_url TEXT;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS is_agency BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT;

@@ -112,6 +112,19 @@ async function setup() {
     console.log("Created savings_bills");
   }
 
+  // 005: is_admin flag for the users table
+  console.log("\n--- Migration 005: is_admin ---");
+  const adminCols = await db`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name='users' AND column_name = 'is_admin'
+  `;
+  if (adminCols.length === 0) {
+    await db`ALTER TABLE users ADD COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE`;
+    console.log("Added is_admin to users");
+  } else {
+    console.log("is_admin already exists");
+  }
+
   console.log("\n✅ All migrations complete");
 }
 

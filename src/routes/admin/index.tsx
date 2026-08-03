@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { sql } from "~/db";
+import { getCurrentUser } from "~/lib/auth";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface AdminMetrics {
@@ -13,15 +14,22 @@ interface AdminMetrics {
   totalBills: number;
 }
 
-interface WaitlistRow {
-  email: string;
-  source: string;
-  created_at: string;
-}
-
 // ── Server Functions ─────────────────────────────────────────────────────────
 
+/**
+ * Requires an authenticated admin. Throws for anonymous users and for
+ * authenticated non-admins. Used by every server function on this page so the
+ * data endpoints are gated even when called directly (not just via the UI).
+ */
+async function requireAdmin() {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Not authenticated");
+  if (!user.is_admin) throw new Error("Admin access required");
+  return user;
+}
+
 const fetchMetrics = createServerFn({ method: "GET" }).handler(async (): Promise<AdminMetrics> => {
+  await requireAdmin();
   const [userCount, planRows, waitlistCount, recentWaitlist, diagCount, billCount] = await Promise.all([
     sql()`SELECT COUNT(*) as count FROM users`,
     sql()`SELECT plan_tier, COUNT(*) as count FROM users GROUP BY plan_tier ORDER BY count DESC`,
@@ -49,6 +57,7 @@ const fetchMetrics = createServerFn({ method: "GET" }).handler(async (): Promise
 });
 
 const exportWaitlistCsv = createServerFn({ method: "GET" }).handler(async (): Promise<string> => {
+  await requireAdmin();
   const rows = await sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC`;
   const header = "email,source,created_at";
   const dataRows = (rows as any[]).map((r) =>
@@ -59,7 +68,16 @@ const exportWaitlistCsv = createServerFn({ method: "GET" }).handler(async (): Pr
 
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/admin/")({
+  // Gate the page: anonymous visitors go to /login, authenticated non-admins
+  // are redirected to /dashboard with a notice.
+  loader: async () => {
+    const user = await getCurrentUser();
+    if (!user) throw redirect({ to: "/login" });
+    if (!user.is_admin) throw redirect({ href: "/dashboard?notice=admin-only" });
+    return { user };
+  },
   component: AdminPage,
+  head: () => ({ meta: [{ title: "Admin | Contrax" }] }),
 });
 
 // ── Component ────────────────────────────────────────────────────────────────

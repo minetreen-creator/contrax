@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect } from "react";
 import { sql } from "~/db";
@@ -1000,6 +1000,7 @@ function DashboardPage() {
   // Data comes from the route loader — single source of truth for SSR + hydration.
   const { user: currentUser, data } = Route.useLoaderData();
   const navigate = useNavigate();
+  const location = useLocation();
 
   if (!currentUser) {
     navigate({ to: "/login" });
@@ -1270,6 +1271,11 @@ function DashboardPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       {currentUser.email === "demo@contrax.company" && <div className="border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900">🔍 You're exploring a demo account with sample data. When you're ready, <a href="/signup" className="font-bold underline">create your free account</a> to track real bids.</div>}
+      {location.search.notice === "admin-only" && (
+        <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-900">
+          Admin access is restricted to authorized users only.
+        </div>
+      )}
       {/* Header */}
       <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
@@ -1295,7 +1301,7 @@ function DashboardPage() {
             <a href="/losses" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Losses</a>
             <a href="/learnings" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">🧠 Learnings</a>
             <a href="/compliance" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Compliance</a>
-              <a href="/admin" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Admin</a>
+              {currentUser.is_admin && <a href="/admin" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Admin</a>}
             <span className="text-sm text-slate-500 hidden sm:inline">{currentUser.email}</span>
             <button
               type="button"

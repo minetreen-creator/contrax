@@ -2,8 +2,7 @@
   "crons": [
     {
       "path": "/api/sync-bids",
-      "schedule": "0 6 * * *",
-      "secret": "cx-sync-4f8a2c1e9b3d7f5a6e0c4b8d2a1f9e3c"
+      "schedule": "0 6 * * *"
     }
   ]
 }

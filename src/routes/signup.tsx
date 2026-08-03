@@ -4,6 +4,7 @@ import { setCookie } from "@tanstack/react-start/server";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, SESSION_COOKIE } from "~/lib/auth";
+import { hashPassword } from "~/lib/password";
 
 const SESSION_TTL_DAYS = 30;
 
@@ -53,7 +54,7 @@ const signupFn = createServerFn({ method: "POST" })
     }
 
     // Hash password and create user
-    const passwordHash = await Bun.password.hash(data.password);
+    const passwordHash = await hashPassword(data.password);
     const inserted = await sql()`
       INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
       VALUES (${data.email}, ${passwordHash}, ${data.plan}, NOW())

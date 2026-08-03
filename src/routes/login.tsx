@@ -4,6 +4,7 @@ import { setCookie } from "@tanstack/react-start/server";
 import { useState } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, SESSION_COOKIE } from "~/lib/auth";
+import { verifyPassword } from "~/lib/password";
 
 const SESSION_TTL_DAYS = 30;
 
@@ -45,7 +46,7 @@ const loginFn = createServerFn({ method: "POST" })
     };
 
     // Verify password
-    const valid = await Bun.password.verify(data.password, user.password_hash);
+    const valid = await verifyPassword(data.password, user.password_hash);
     if (!valid) {
       throw new Error("Invalid email or password.");
     }

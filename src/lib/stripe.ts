@@ -10,6 +10,7 @@
 import Stripe from "stripe";
 import { sql } from "~/db";
 import { sendWelcomeEmail } from "~/lib/email";
+import { hashPassword } from "~/lib/password";
 
 // ── Client Initialization ──────────────────────────────────────────────────────
 
@@ -311,7 +312,7 @@ export async function handleStripeWebhook(
       `;
     } else {
       // Create new user with a secure random password
-      const passwordHash = await Bun.password.hash(
+      const passwordHash = await hashPassword(
         crypto.randomUUID() + crypto.randomUUID(),
       );
       const inserted = await db`

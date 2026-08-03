@@ -15,6 +15,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { setCookie } from "@tanstack/react-start/server";
 import { useEffect, useState, useCallback } from "react";
+import { hashPassword } from "~/lib/password";
 
 const SESSION_TTL_DAYS = 30;
 const SESSION_COOKIE = "contrax_session";
@@ -111,7 +112,7 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
       }
     } else {
       // Webhook hasn't fired yet — create user now
-      const passwordHash = await Bun.password.hash(
+      const passwordHash = await hashPassword(
         crypto.randomUUID() + crypto.randomUUID(),
       );
       const inserted = await db`

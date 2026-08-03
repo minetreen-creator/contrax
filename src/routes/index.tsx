@@ -55,38 +55,38 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "Contrax — AI Government Contracting for Set-Aside Businesses" },
+      { title: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       {
         name: "description",
         content:
-          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts with AI.",
+          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://contrax.company" },
-      { property: "og:title", content: "Contrax — AI Government Contracting for Set-Aside Businesses" },
+      { property: "og:title", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       {
         property: "og:description",
         content:
-          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts with AI.",
+          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
       { property: "og:image", content: "https://contrax.company/og-image.svg" },
       { property: "og:image:type", content: "image/svg+xml" },
-      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Contrax — AI Government Contracting for Set-Aside Businesses" },
+      { name: "twitter:title", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       {
         name: "twitter:description",
         content:
-          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts with AI.",
+          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
       { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
-      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company" }],
   }),
@@ -102,7 +102,7 @@ function Home() {
     "@type": "Organization",
     name: "Contrax",
     description:
-      "Contrax is the AI coach for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
+      "Contrax is the contract intelligence platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
     url: "https://contrax.company",
     logo: "https://contrax.company/favicon.svg",
     email: "minetreen@gmail.com",
@@ -114,7 +114,7 @@ function Home() {
     name: "Contrax",
     url: "https://contrax.company",
     description:
-      "AI-powered set-aside opportunity matching, win probability scoring, and proposal drafting for 8(a), SDVOSB, WOSB, and HUBZone businesses.",
+      "Set-aside-first opportunity matching, win probability scoring, and proposal drafting for 8(a), SDVOSB, WOSB, and HUBZone businesses.",
     potentialAction: {
       "@type": "SearchAction",
       target: "https://contrax.company/?q={search_term_string}",
@@ -225,7 +225,7 @@ function Hero({ businessName }: { businessName: string }) {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
             </span>
-            AI-powered government contracting
+            Contract Intelligence Platform
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             Built for the businesses{" "}
@@ -234,7 +234,7 @@ function Hero({ businessName }: { businessName: string }) {
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            Not another database of RFPs. {businessName} is your AI coach for 8(a), SDVOSB, WOSB, and
+            Not another database of RFPs. {businessName} is your contract intelligence platform for 8(a), SDVOSB, WOSB, and
             HUBZone-certified businesses — matching you to set-aside opportunities, summarizing what
             matters, and drafting proposals so you can compete and win more contracts.
           </p>
@@ -271,21 +271,21 @@ function Hero({ businessName }: { businessName: string }) {
 const showcaseItems = [
   {
     src: "/screenshots/score-tool.png",
-    alt: "Can I Win This? — Contrax AI solicitation scoring tool",
+    alt: "Can I Win This? — Contrax solicitation scoring tool",
     badge: "Free · no login",
     title: "Can I Win This?",
     description:
-      "Paste any solicitation and get an instant AI win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO. Free, no login required.",
+      "Paste any solicitation and get an instant win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO. Free, no login required.",
     href: "/score",
     cta: "Score a solicitation",
   },
   {
     src: "/screenshots/copilot.png",
-    alt: "Contract Intelligence Copilot — Contrax AI strategist",
-    badge: "AI strategist",
+    alt: "Contract Intelligence Copilot — Contrax strategist",
+    badge: "Strategist",
     title: "Contract Intelligence Copilot",
     description:
-      "Your AI strategist knows your certifications, active bids, and win/loss history. Ask it anything about your pipeline — it answers with your context in mind.",
+      "Your strategist knows your certifications, active bids, and win/loss history. Ask it anything about your pipeline — it answers with your context in mind.",
     href: "/copilot",
     cta: "Meet the copilot",
   },
@@ -313,7 +313,7 @@ function ProductShowcase() {
             See Contrax in Action
           </h3>
           <p className="mt-4 text-lg text-gray-600">
-            From a free win-probability check to an AI strategist that knows your bid history —
+            From a free win-probability check to a strategist that knows your bid history —
             here&apos;s what you can do in your first five minutes.
           </p>
         </div>
@@ -558,7 +558,7 @@ function HowItWorks() {
       number: "02",
       title: "We find your matches",
       description:
-        "Our AI monitors federal, state, and local procurement sites 24/7, filtering thousands of opportunities to surface only the ones relevant to your business.",
+        "Contrax monitors federal, state, and local procurement sites 24/7, filtering thousands of opportunities to surface only the ones relevant to your business.",
       icon: (
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -569,7 +569,7 @@ function HowItWorks() {
       number: "03",
       title: "Win more contracts",
       description:
-        "Get plain-English summaries, AI-drafted proposal responses, and compliance checklists for every opportunity — so you submit faster and win more.",
+        "Get plain-English summaries, drafted proposal responses, and compliance checklists for every opportunity — so you submit faster and win more.",
       icon: (
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -706,7 +706,7 @@ function Example() {
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
                     </svg>
                     <p className="text-sm text-gray-700">
-                      AI-drafted proposal based on previous winning submissions
+                      Drafted proposal based on previous winning submissions
                     </p>
                   </div>
                   <div className="flex items-start gap-3 rounded-lg bg-white p-3 shadow-sm">
@@ -987,7 +987,7 @@ function CompetitorComparison() {
     {
       label: "Bid discovery",
       tooltip: "Who finds opportunities for you?",
-      contrax: { value: "AI scans 24/7 across federal, state & local sites", positive: true },
+      contrax: { value: "Scans 24/7 across federal, state & local sites", positive: true },
       manual: { value: "You search SAM.gov, state portals & city sites manually", positive: false },
       consultant: { value: "Consultant checks known sources during business hours", positive: false },
       tools: { value: "Requires you to set up searches & filters yourself", positive: false },
@@ -995,7 +995,7 @@ function CompetitorComparison() {
     {
       label: "Time to proposal",
       tooltip: "How fast from finding to submitting?",
-      contrax: { value: "Hours — AI drafts in minutes", positive: true },
+      contrax: { value: "Hours — drafts in minutes", positive: true },
       manual: { value: "Days to weeks — research + writing from scratch", positive: false },
       consultant: { value: "Days — depends on their availability & backlog", positive: false },
       tools: { value: "Days — you still write the content", positive: false },
@@ -1010,8 +1010,8 @@ function CompetitorComparison() {
     },
     {
       label: "Proposal quality",
-      tooltip: "AI-drafted vs. manual vs. template",
-      contrax: { value: "AI-drafted, tailored to each RFP", positive: true },
+      tooltip: "Drafted vs. manual vs. template",
+      contrax: { value: "Tailored drafts for each RFP", positive: true },
       manual: { value: "Depends entirely on your writing skills", positive: false },
       consultant: { value: "Professional — but expensive", positive: false },
       tools: { value: "Template-based — generic, not tailored", positive: false },
@@ -1037,7 +1037,7 @@ function CompetitorComparison() {
   const columns = [
     {
       name: "Contrax",
-      subtitle: "AI-Powered",
+      subtitle: "Contract Intelligence",
       key: "contrax" as const,
       highlight: true,
       icon: (
@@ -1373,7 +1373,7 @@ function Pricing() {
       description: "For small businesses getting started with government contracting.",
       features: [
         "Bid alerts for up to 3 categories",
-        "AI-powered bid summaries",
+        "Plain-English bid summaries",
         "Email notifications",
         "Up to 2 location preferences",
         "Weekly digest emails",
@@ -1389,7 +1389,7 @@ function Pricing() {
       features: [
         "Everything in Starter",
         "Unlimited bid tracking",
-        "AI proposal drafting",
+        "Proposal drafting",
         "Competitor tracking",
         "Calendar integration",
         "Priority email & chat support",

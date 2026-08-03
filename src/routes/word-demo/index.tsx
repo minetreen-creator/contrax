@@ -5,7 +5,7 @@ export const Route = createFileRoute("/word-demo/")({
   component: WordDemo,
   head: () => ({
     meta: [
-      { title: "Contrax in Word — AI Contract Intelligence" },
+      { title: "Contrax in Word — Contract Intelligence" },
       {
         name: "description",
         content:

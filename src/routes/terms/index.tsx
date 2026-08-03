@@ -22,7 +22,7 @@ export const Route = createFileRoute("/terms/")({
       },
       { property: "og:image", content: "https://contrax.company/og-image.svg" },
       { property: "og:image:type", content: "image/svg+xml" },
-      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/terms/")({
           "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
       },
       { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
-      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company/terms" }],
   }),
@@ -54,7 +54,7 @@ function TermsPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">2. Description of Service</h2>
-            <p className="mt-3">Contrax is an AI-powered platform that helps small businesses discover, understand, and respond to government contract opportunities, and provides consumer savings analysis through bill and receipt review.</p>
+            <p className="mt-3">Contrax is a contract intelligence platform that helps small businesses discover, understand, and respond to government contract opportunities, and provides consumer savings analysis through bill and receipt review.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">3. Accounts and Billing</h2>

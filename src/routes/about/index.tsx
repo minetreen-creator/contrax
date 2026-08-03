@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 const PROD_URL = "https://contrax.company";
 const TITLE = "About Contrax";
 const DESC =
-  "Contrax helps small businesses compete for government contracts with AI — opportunity discovery, bid summarization, win-probability scoring, proposal drafting, and team workspace in one platform.";
+  "Contrax helps small businesses compete for government contracts — opportunity discovery, bid summarization, win-probability scoring, proposal drafting, and team workspace in one platform.";
 
 export const Route = createFileRoute("/about/")({
   component: AboutPage,
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/about/")({
       { property: "og:description", content: DESC },
       { property: "og:image", content: `${PROD_URL}/og-image.svg` },
       { property: "og:image:type", content: "image/svg+xml" },
-      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/about/")({
       { name: "twitter:title", content: TITLE },
       { name: "twitter:description", content: DESC },
       { name: "twitter:image", content: `${PROD_URL}/og-image.svg` },
-      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [{ rel: "canonical", href: `${PROD_URL}/about` }],
   }),
@@ -39,7 +39,7 @@ const jsonLd = {
   "@type": "Organization",
   name: "Contrax",
   description:
-    "We help small businesses win government contracts. Contrax is an AI coach — not another database of RFPs — that finds the right opportunities, summarizes bid documents, and drafts proposals so small firms compete and win.",
+    "We help small businesses win government contracts. Contrax is a contract intelligence platform — not another database of RFPs — that finds the right opportunities, summarizes bid documents, and drafts proposals so small firms compete and win.",
   url: PROD_URL,
   logo: `${PROD_URL}/favicon.svg`,
   email: "hello@contrax.company",
@@ -74,7 +74,7 @@ function AboutPage() {
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
             Our mission is simple: help small businesses compete for government
-            contracts with AI — so a five-person shop can research, bid, and win
+            contracts — so a five-person shop can research, bid, and win
             like the big firms.
           </p>
         </div>
@@ -89,7 +89,7 @@ function AboutPage() {
               Our Mission
             </h2>
             <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Helping small businesses compete for government contracts with AI
+              Helping small businesses compete for government contracts with contract intelligence
             </h3>
             <p className="mt-6 text-lg leading-relaxed text-gray-600">
               Every year, governments award hundreds of billions of dollars in
@@ -99,7 +99,7 @@ function AboutPage() {
             </p>
             <p className="mt-4 text-lg leading-relaxed text-gray-600">
               Contrax was built to remove those barriers. Instead of another
-              database of RFPs, we built an AI coach that finds the right
+              database of RFPs, we built a contract intelligence platform that finds the right
               opportunities, explains what matters, scores your odds, and drafts
               the proposal — so you can compete on capability, not on headcount.
             </p>
@@ -144,7 +144,7 @@ function AboutPage() {
               </div>
               <h3 className="text-xl font-semibold text-slate-900">Bid Summarization</h3>
               <p className="mt-3 leading-relaxed text-gray-600">
-                AI reads dense solicitation documents and distills them into
+                Contrax reads dense solicitation documents and distills them into
                 plain-English summaries — scope, deadlines, requirements, and
                 evaluation criteria — in seconds.
               </p>
@@ -170,7 +170,7 @@ function AboutPage() {
               </div>
               <h3 className="text-xl font-semibold text-slate-900">Proposal Drafting</h3>
               <p className="mt-3 leading-relaxed text-gray-600">
-                AI drafts tailored proposal responses grounded in your company
+                Drafts tailored proposal responses grounded in your company
                 profile and past performance, with compliance checklists and PDF
                 export so you can review, refine, and submit with confidence.
               </p>
@@ -245,7 +245,7 @@ function AboutPage() {
                   ["Discover", "Relevant opportunities delivered daily, matched to your industry, location, and services."],
                   ["Understand", "Plain-English summaries and compliance checklists instead of 100-page PDFs."],
                   ["Decide", "Honest win-probability scores and GO / NO-GO / CAUTIOUS recommendations."],
-                  ["Win", "AI-drafted proposals, competitive pricing guidance, and team collaboration."],
+                  ["Win", "Drafted proposals, competitive pricing guidance, and team collaboration."],
                 ].map(([step, desc]) => (
                   <li key={step} className="flex gap-4">
                     <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">

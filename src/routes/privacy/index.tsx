@@ -22,7 +22,7 @@ export const Route = createFileRoute("/privacy/")({
       },
       { property: "og:image", content: "https://contrax.company/og-image.svg" },
       { property: "og:image:type", content: "image/svg+xml" },
-      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/privacy/")({
           "Learn how Contrax collects, uses, stores, and protects account, business, bid, and proposal information.",
       },
       { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
-      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company/privacy" }],
   }),
@@ -55,7 +55,7 @@ function PrivacyPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">2. How We Use Your Information</h2>
-            <p className="mt-3">We use your information to: provide our services, match your business with government contracts, generate AI-powered summaries and proposals, analyze bills for savings, send notifications, and provide support.</p>
+            <p className="mt-3">We use your information to: provide our services, match your business with government contracts, generate plain-English summaries and proposals, analyze bills for savings, send notifications, and provide support.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">3. Data Storage and Security</h2>

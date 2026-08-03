@@ -5,10 +5,27 @@
 }
 
 @keyframes progress {
-  0% { transform: translateX(-100%); }
-  50% { transform: translateX(0%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  html,
+  body {
+    @apply bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
+  }
+}
+
 
 @keyframes word-sidebar-in {
   from { transform: translateX(105%); opacity: 0; }
@@ -33,14 +50,4 @@
 @media (max-width: 640px) {
   .word-paper { min-height: 900px; padding-bottom: 56px; }
   .contrax-sidebar { position: fixed; top: 48px; bottom: 0; height: auto; }
-}
-
-@layer base {
-  html {
-    scroll-behavior: smooth;
-  }
-  html,
-  body {
-    @apply bg-white text-gray-900 antialiased dark:bg-gray-950 dark:text-gray-100;
-  }
 }

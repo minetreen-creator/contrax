@@ -334,13 +334,6 @@ function Hero({ businessName }: { businessName: string }) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
               </svg>
             </a>
-            <a
-              href="/word-demo"
-              className="inline-flex items-center gap-2 rounded-xl border border-blue-300/40 bg-white/5 px-6 py-4 text-base font-medium text-blue-100 transition-all hover:border-amber-300/70 hover:bg-white/10 hover:text-white"
-            >
-              <span className="flex h-5 w-5 items-center justify-center rounded bg-[#2b579a] text-xs font-bold text-white">W</span>
-              See it in Word
-            </a>
           </div>
         </div>
       </div>
@@ -442,6 +435,26 @@ function ProductShowcase() {
               </div>
             </a>
           ))}
+        </div>
+
+        {/* See it in Word CTA */}
+        <div className="mt-12 flex flex-col items-center justify-between gap-6 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-8 text-center shadow-sm sm:flex-row sm:p-10 sm:text-left">
+          <div>
+            <p className="text-xl font-bold text-slate-900">See Contrax inside Microsoft Word</p>
+            <p className="mt-2 text-sm leading-relaxed text-gray-600">
+              Watch the Word plugin redline a live RFP response — clause suggestions, compliance
+              checks, and risk flags appear right in the document as you work.
+            </p>
+          </div>
+          <a
+            href="/word-demo"
+            className="inline-flex flex-shrink-0 items-center gap-2.5 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
+          >
+            <span className="flex h-6 w-6 items-center justify-center rounded bg-[#2b579a] text-xs font-bold text-white">
+              W
+            </span>
+            See it in Word
+          </a>
         </div>
       </div>
     </section>

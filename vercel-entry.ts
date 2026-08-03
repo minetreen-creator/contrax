@@ -498,7 +498,10 @@ async function handleCreateCheckoutSession(
 ): Promise<{ status: number; body: string }> {
   try {
     const rawBody = await readRawBody(req);
-    const parsed = JSON.parse(rawBody || "{}") as { planTier?: string };
+    const parsed = JSON.parse(rawBody || "{}") as {
+      planTier?: string;
+      mode?: "payment" | "subscription";
+    };
 
     const validTiers = ["starter", "professional", "agency", "savings_premium"];
     if (!parsed.planTier || !validTiers.includes(parsed.planTier)) {
@@ -509,9 +512,25 @@ async function handleCreateCheckoutSession(
         }),
       };
     }
+    if (parsed.mode && !["payment", "subscription"].includes(parsed.mode)) {
+      return {
+        status: 400,
+        body: JSON.stringify({
+          error: `Invalid mode. Must be "payment" or "subscription"`,
+        }),
+      };
+    }
 
-    const { createCheckoutSession } = await import("./src/lib/stripe.ts");
-    const result = await createCheckoutSession(parsed.planTier as any);
+    const { createCheckoutSession, resolveUserIdFromCookie } = await import(
+      "./src/lib/stripe.ts"
+    );
+    // Attribute the checkout to the logged-in user (if any) via session cookie
+    const cookieHeader = (req.headers.cookie as string | undefined) ?? null;
+    const userId = await resolveUserIdFromCookie(cookieHeader);
+    const result = await createCheckoutSession(parsed.planTier as any, {
+      userId,
+      mode: parsed.mode ?? "subscription",
+    });
 
     if (!result.success) {
       return {

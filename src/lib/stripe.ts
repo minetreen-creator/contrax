@@ -137,30 +137,50 @@ async function getPriceIdForPlanTier(planTier: PlanTier): Promise<string> {
 
 const BASE_URL = process.env.PROD_URL || "https://contrax.company";
 
+export type CheckoutMode = "payment" | "subscription";
+
+export interface CreateCheckoutSessionOptions {
+  /** Logged-in Contrax user id — stored in session metadata so the webhook can
+   *  attribute the payment to the right account without relying on email. */
+  userId?: number | string | null;
+  /**
+   * "payment" for one-time prices, "subscription" for recurring (monthly)
+   * prices. Defaults to "subscription" — all three Contrax plans are billed
+   * monthly, and a recurring price rejected in "payment" mode.
+   */
+  mode?: CheckoutMode;
+}
+
 /**
  * Create a Stripe Checkout Session for a given plan tier.
  *
  * The returned URL should be used to redirect the customer to Stripe's hosted
  * checkout page. On completion, the webhook handler will receive the
- * `checkout.session.completed` event with `metadata.plan_tier` set.
+ * `checkout.session.completed` event with `metadata.plan_tier` (and
+ * `metadata.user_id` when the buyer was logged in) set.
  */
 export async function createCheckoutSession(
   planTier: PlanTier,
+  opts: CreateCheckoutSessionOptions = {},
 ): Promise<CreateCheckoutSessionResult> {
   try {
     const priceId = await getPriceIdForPlanTier(planTier);
+    const mode: CheckoutMode = opts.mode ?? "subscription";
+
+    const metadata: Record<string, string> = { plan_tier: planTier };
+    if (opts.userId != null) {
+      metadata.user_id = String(opts.userId);
+    }
 
     const session = await getStripe().checkout.sessions.create({
-      mode: "payment",
+      mode,
       line_items: [
         {
           price: priceId,
           quantity: 1,
         },
       ],
-      metadata: {
-        plan_tier: planTier,
-      },
+      metadata,
       success_url: `${BASE_URL}/post-checkout?session_id={CHECKOUT_SESSION_ID}&plan=${planTier}`,
       cancel_url: `${BASE_URL}/pricing`,
     });
@@ -218,6 +238,10 @@ export async function handleStripeWebhook(
   const customerEmail = session.customer_details?.email;
   const stripeCustomerId =
     typeof session.customer === "string" ? session.customer : session.customer?.id;
+  const stripeSubscriptionId =
+    typeof session.subscription === "string"
+      ? session.subscription
+      : session.subscription?.id ?? null;
 
   if (!customerEmail) {
     console.error("Checkout session completed without customer email:", session.id);
@@ -238,24 +262,51 @@ export async function handleStripeWebhook(
     );
   }
 
+  // When the buyer was logged in, createCheckoutSession stored their Contrax
+  // user id in metadata — attribute the payment to that account directly.
+  const metadataUserId = session.metadata?.user_id
+    ? Number(session.metadata.user_id)
+    : null;
+
   try {
     const db = sql();
 
-    // Look for existing user by email
-    const existing = await db`
-      SELECT id, email FROM users WHERE email = ${email}
-    `;
+    let userId: number | null = null;
 
-    let userId: number;
+    if (metadataUserId && Number.isInteger(metadataUserId)) {
+      // Prefer the account captured at checkout time (most reliable).
+      const byId = await db`
+        SELECT id FROM users WHERE id = ${metadataUserId} LIMIT 1
+      `;
+      if (byId.length > 0) {
+        userId = (byId[0] as { id: number }).id;
+      } else {
+        console.warn(
+          `Checkout session ${session.id} references user_id=${metadataUserId} ` +
+            `which does not exist — falling back to email match`,
+        );
+      }
+    }
 
-    if (existing.length > 0) {
-      // Update existing user with Stripe info
-      userId = existing[0].id as number;
+    if (userId == null) {
+      // Look for existing user by email
+      const existing = await db`
+        SELECT id FROM users WHERE email = ${email} LIMIT 1
+      `;
+      if (existing.length > 0) {
+        userId = (existing[0] as { id: number }).id;
+      }
+    }
+
+    if (userId != null) {
+      // Update existing user with Stripe info; payment ends the trial for good
       await db`
         UPDATE users
         SET stripe_customer_id = ${stripeCustomerId ?? null},
+            stripe_subscription_id = ${stripeSubscriptionId},
             subscription_status = 'active',
-            plan_tier = ${planTier}
+            plan_tier = ${planTier},
+            trial_started_at = NULL
         WHERE id = ${userId}
       `;
     } else {
@@ -264,11 +315,11 @@ export async function handleStripeWebhook(
         crypto.randomUUID() + crypto.randomUUID(),
       );
       const inserted = await db`
-        INSERT INTO users (email, password_hash, stripe_customer_id, subscription_status, plan_tier)
-        VALUES (${email}, ${passwordHash}, ${stripeCustomerId ?? null}, 'active', ${planTier})
+        INSERT INTO users (email, password_hash, stripe_customer_id, stripe_subscription_id, subscription_status, plan_tier, trial_started_at)
+        VALUES (${email}, ${passwordHash}, ${stripeCustomerId ?? null}, ${stripeSubscriptionId}, 'active', ${planTier}, NULL)
         RETURNING id
       `;
-      userId = inserted[0].id as number;
+      userId = (inserted[0] as { id: number }).id;
     }
 
     // Create session token
@@ -302,5 +353,47 @@ export async function handleStripeWebhook(
   } catch (err) {
     console.error("Failed to process Stripe checkout:", (err as Error).message);
     return { success: false, error: "Database error" };
+  }
+}
+
+// ── Session-cookie → user resolution (for raw API-route interceptors) ──────────
+//
+// The Stripe API endpoints live behind lightweight interceptors in serve.ts /
+// vercel-entry.ts (they must handle raw bodies before SSR). Those interceptors
+// can't use the @tanstack/react-start server cookie helpers, so they pass the
+// raw `cookie` header here. Returns the logged-in user id, or null.
+
+const SESSION_COOKIE_NAME = "contrax_session";
+
+export function parseSessionCookie(cookieHeader: string | null | undefined): string | null {
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(";")) {
+    const idx = part.indexOf("=");
+    if (idx === -1) continue;
+    const name = part.slice(0, idx).trim();
+    if (name === SESSION_COOKIE_NAME) {
+      const value = part.slice(idx + 1).trim();
+      return value || null;
+    }
+  }
+  return null;
+}
+
+export async function resolveUserIdFromCookie(
+  cookieHeader: string | null | undefined,
+): Promise<number | null> {
+  const token = parseSessionCookie(cookieHeader);
+  if (!token) return null;
+  try {
+    const rows = await sql()`
+      SELECT s.user_id FROM sessions s
+      WHERE s.token = ${token} AND s.expires_at > NOW()
+      LIMIT 1
+    `;
+    if (rows.length === 0) return null;
+    return (rows[0] as { user_id: number }).user_id;
+  } catch (err) {
+    console.error("Failed to resolve user from session cookie:", (err as Error).message);
+    return null;
   }
 }

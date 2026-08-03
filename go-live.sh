@@ -46,6 +46,8 @@ ENV_ARGS=()
 if [ -n "${DATABASE_URL:-}" ]; then ENV_ARGS+=(-e "DATABASE_URL=$DATABASE_URL"); fi
 if [ -n "${RESEND_API_KEY:-}" ]; then ENV_ARGS+=(-e "RESEND_API_KEY=$RESEND_API_KEY"); fi
 if [ -n "${SYNC_TOKEN:-}" ]; then ENV_ARGS+=(-e "SYNC_TOKEN=$SYNC_TOKEN"); fi
+if [ -n "${STRIPE_SECRET_KEY:-}" ]; then ENV_ARGS+=(-e "STRIPE_SECRET_KEY=$STRIPE_SECRET_KEY"); fi
+if [ -n "${STRIPE_WEBHOOK_SECRET:-}" ]; then ENV_ARGS+=(-e "STRIPE_WEBHOOK_SECRET=$STRIPE_WEBHOOK_SECRET"); fi
 
 echo "==> deploying${VERCEL_SCOPE:+ (scope: $VERCEL_SCOPE)}"
 DEPLOY_OUT="$($VERCEL deploy --prebuilt --yes --prod --token "$VERCEL_TOKEN" \

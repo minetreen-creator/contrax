@@ -125,7 +125,22 @@ async function setup() {
     console.log("is_admin already exists");
   }
 
-  console.log("\n✅ All migrations complete");
+    // 006: Stripe subscription id + trial_started_at on the users table
+  console.log("\n--- Migration 006: Stripe subscription + trial columns ---");
+  const stripeCols = await db`
+    SELECT column_name FROM information_schema.columns
+    WHERE table_name='users' AND column_name IN ('stripe_subscription_id', 'trial_started_at')
+  `;
+  const stripeExisting = new Set((stripeCols as any[]).map((c: any) => c.column_name));
+  if (!stripeExisting.has("stripe_subscription_id")) {
+    await db`ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT`;
+    console.log("Added stripe_subscription_id");
+  }
+  if (!stripeExisting.has("trial_started_at")) {
+    await db`ALTER TABLE users ADD COLUMN trial_started_at TIMESTAMPTZ`;
+    console.log("Added trial_started_at");
+  }
+console.log("\n✅ All migrations complete");
 }
 
 setup()

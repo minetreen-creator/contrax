@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useState } from "react";
+import { getCurrentUser } from "~/lib/auth";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
@@ -27,7 +28,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
         return "Contrax";
       }
     })(),
-    null, // no auth in clean landing-page base — Navbar renders the signed-out state
+    getCurrentUser(),
     getRecentBids(),
     getHealthcareBids(),
   ]);
@@ -393,7 +394,6 @@ function BidTicker({ bids }: { bids: Bid[] }) {
   if (bids.length === 0) {
     return (
       <section className="bg-white py-14">
-        <a href="/word-demo" className="fixed bottom-6 right-6 z-40 rounded-full bg-blue-600 px-5 py-3 font-bold text-white shadow-lg">Try Demo</a>
       <div className="mx-auto max-w-7xl px-6 text-center">
           <div className="mb-3 flex items-center justify-center gap-2">
             <span className="relative flex h-2.5 w-2.5">
@@ -1554,10 +1554,10 @@ function Footer() {
             Terms of Service
           </a>
           <a
-            href="mailto:bidpilot-de2cdfa5@ctomail.io"
+            href="mailto:minetreen@gmail.com"
             className="text-sm text-gray-400 transition-colors hover:text-white"
           >
-            bidpilot-de2cdfa5@ctomail.io
+            minetreen@gmail.com
           </a>
         </div>
       </div>

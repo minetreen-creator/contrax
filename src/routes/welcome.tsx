@@ -91,7 +91,7 @@ function Welcome() {
 
         <p className="mt-8 text-xs text-blue-100/40">
           Have questions?{" "}
-          <a href="mailto:bidpilot-de2cdfa5@ctomail.io" className="underline hover:text-blue-100/60">
+          <a href="mailto:minetreen@gmail.com" className="underline hover:text-blue-100/60">
             Contact support
           </a>
         </p>

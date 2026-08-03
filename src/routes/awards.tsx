@@ -79,6 +79,26 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promis
 
 // ── Route ──────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/awards")({
+  head: () => ({
+    meta: [
+      { title: "Government Contract Awards Database — Contrax" },
+      { name: "description", content: "Browse recent government contract awards from SAM.gov. See who won, for how much, and which incumbents they replaced — research your competition and find recompete opportunities." },
+      { name: "robots", content: "index, follow" },
+      { property: "og:title", content: "Government Contract Awards Database — Contrax" },
+      { property: "og:description", content: "Browse recent government contract awards from SAM.gov. See who won, for how much, and which incumbents they replaced." },
+      { property: "og:image", content: "https://contrax.company/logo-square.png" },
+      { property: "og:image:type", content: "image/png" },
+      { property: "og:image:width", content: "1200" },
+      { property: "og:image:height", content: "630" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Government Contract Awards Database — Contrax" },
+      { name: "twitter:description", content: "Browse recent government contract awards from SAM.gov — research your competition and find recompete opportunities." },
+      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
+    ],
+    links: [
+      { rel: "canonical", href: "https://contrax.company/awards" },
+    ],
+  }),
   loader: () => getAwardsData(),
   component: AwardsPage,
 });

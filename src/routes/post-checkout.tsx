@@ -152,6 +152,7 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/post-checkout")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   validateSearch: (search: Record<string, unknown>) => ({
     session_id:
       typeof search.session_id === "string" ? search.session_id : undefined,

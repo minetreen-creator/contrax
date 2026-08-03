@@ -122,6 +122,7 @@ const saveProfile = createServerFn({ method: "POST" })
 // ── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/onboarding")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   loader: () => getCurrentUser(),
   component: OnboardingPage,
 });

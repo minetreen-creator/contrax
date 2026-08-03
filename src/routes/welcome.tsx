@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/welcome")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   component: Welcome,
 });
 

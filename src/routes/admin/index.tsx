@@ -77,7 +77,7 @@ export const Route = createFileRoute("/admin/")({
     return { user };
   },
   component: AdminPage,
-  head: () => ({ meta: [{ title: "Admin | Contrax" }] }),
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" },{ title: "Admin | Contrax" }] }),
 });
 
 // ── Component ────────────────────────────────────────────────────────────────

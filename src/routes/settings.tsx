@@ -248,6 +248,7 @@ const saveProfile = createServerFn({ method: "POST" })
 // ── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/settings")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   loader: () => getCurrentUser(),
   component: SettingsPage,
 });

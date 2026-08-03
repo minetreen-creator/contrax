@@ -169,7 +169,7 @@ export const Route = createFileRoute("/copilot")({
   loader: () => getCurrentUser(),
   component: CopilotPage,
   head: () => ({
-    meta: [
+    meta: [{ name: "robots", content: "noindex, nofollow" },
       {
         title:
           "Contract Intelligence Copilot — AI Government Contracting Strategist | Contrax",

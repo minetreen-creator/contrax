@@ -130,32 +130,15 @@ function Home() {
       "Contrax is the contract intelligence platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
     url: "https://contrax.company",
     logo: "https://contrax.company/logo-square.png",
-    email: "minetreen@gmail.com",
-    sameAs: [],
+    email: "hello@contrax.company",
   };
-  const webSiteJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    name: "Contrax",
-    url: "https://contrax.company",
-    description:
-      "Set-aside-first opportunity matching, win probability scoring, and proposal drafting for 8(a), SDVOSB, WOSB, and HUBZone businesses.",
-    potentialAction: {
-      "@type": "SearchAction",
-      target: "https://contrax.company/?q={search_term_string}",
-      "query-input": "required name=search_term_string",
-    },
-  };
+
 
   return (
     <div className="min-h-screen bg-white">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(webSiteJsonLd) }}
       />
       <Navbar user={user} />
       <Hero businessName={businessName} />

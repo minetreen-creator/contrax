@@ -781,6 +781,7 @@ export { checkTrial, type TrialStatus };
 
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/dashboard")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   // Load ALL dashboard data (user + profile + bids + AI artifacts) in the route
   // loader so SSR renders the full page once and hydration reuses that markup.
   // Previously the component re-fetched this data in a useEffect, which made the

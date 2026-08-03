@@ -43,7 +43,7 @@ export const analyzeLoss = createServerFn({method:"POST"}).validator((d:unknown)
 export const getWeaknessSummary=createServerFn({method:"GET"}).handler(async()=>{const x=await getLosses();return x.summary;});
 export const recordWin=createServerFn({method:"POST"}).validator((d:unknown)=>d as {bidTitle:string;agency:string;estimatedValue:string;naicsCode:string;notes:string}).handler(async({data})=>{const user=await getCurrentUser();if(!user)throw new Error("Not authenticated");await recordOutcomeWithValue(user.email,data.bidTitle,data.agency,data.naicsCode||"",data.estimatedValue||"",true,data.notes||"");return{success:true}});
 
-export const Route=createFileRoute("/losses")({loader:async()=>{const user=await getCurrentUser(); if(!user) throw redirect({to:"/login"}); return getLosses();},component:LossesPageGated,head:()=>({meta:[{title:"Why You Lost | Contrax"},{name:"description",content:"Learn why government bids were lost and track recurring weaknesses with AI-powered debrief analysis."}]})});
+export const Route=createFileRoute("/losses")({loader:async()=>{const user=await getCurrentUser(); if(!user) throw redirect({to:"/login"}); return getLosses();},component:LossesPageGated,head:()=>({meta:[{ name: "robots", content: "noindex, nofollow" },{title:"Why You Lost | Contrax"},{name:"description",content:"Learn why government bids were lost and track recurring weaknesses with AI-powered debrief analysis."}]})});
 
 /** Trial gate: expired-trial users see an upgrade prompt instead of the page. */
 function LossesPageGated() {

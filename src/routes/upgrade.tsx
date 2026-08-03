@@ -10,6 +10,7 @@ const getStatus = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const Route = createFileRoute("/upgrade")({
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   loader: () => getStatus(),
   component: Upgrade,
 });

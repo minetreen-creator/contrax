@@ -137,7 +137,7 @@ const disconnectIntegration = createServerFn({ method: "POST" })
 function relative(date: string) { const mins = Math.floor((Date.now()-new Date(date).getTime())/60000); if (mins < 1) return "just now"; if (mins < 60) return `${mins} minute${mins===1?"":"s"} ago`; const hours=Math.floor(mins/60); if(hours<24)return `${hours} hour${hours===1?"":"s"} ago`; const days=Math.floor(hours/24); return days===1?"yesterday":`${days} days ago`; }
 function activityText(a: Activity) { const who = a.member_email.split("@")[0]; const title = a.bid_title || "a bid"; if(a.action === "scored_bid") return `${who} scored a bid${a.details ? ` — ${a.details}` : ""} on ${title}`; if(a.action === "drafted_proposal") return `${who} drafted a proposal for ${title}`; if(a.action === "saved_bid") return `${who} saved ${a.details || "a bid"} to track`; if(a.action === "dismissed_bid") return `${who} dismissed ${title}`; return `${who} ${a.details || a.action}`; }
 
-export const Route = createFileRoute("/workspace")({ loader: () => getCurrentUser(), component: WorkspacePageGated });
+export const Route = createFileRoute("/workspace")({ loader: () => getCurrentUser(), head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }), component: WorkspacePageGated });
 
 /** Trial gate: expired-trial users see an upgrade prompt instead of the page. */
 function WorkspacePageGated() {

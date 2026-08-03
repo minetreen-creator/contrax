@@ -221,7 +221,7 @@ export const Route = createFileRoute("/compliance")({
     return getHistory();
   },
   component: CompliancePageGated,
-  head: () => ({ meta: [{ title: "Compliance Checker | Contrax" }, { name: "description", content: "Check your proposal against RFP requirements with AI-powered compliance scanning." }] }),
+  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" },{ title: "Compliance Checker | Contrax" }, { name: "description", content: "Check your proposal against RFP requirements with AI-powered compliance scanning." }] }),
 });
 
 /** Trial gate: expired-trial users see an upgrade prompt instead of the page. */

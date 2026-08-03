@@ -4,7 +4,7 @@ import WordDemo from "~/components/WordDemo";
 export const Route = createFileRoute("/word-demo/")({
   component: WordDemo,
   head: () => ({
-    meta: [
+    meta: [{ name: "robots", content: "noindex, nofollow" },
       { title: "Contrax in Word — Contract Intelligence" },
       {
         name: "description",

@@ -30,7 +30,7 @@ export const Route = createFileRoute("/learnings")({
   },
 
   head: () => ({
-    meta: [
+    meta: [{ name: "robots", content: "noindex, nofollow" },
       { title: "Learning Engine | Contrax" },
       { name: "description", content: "Track win/loss patterns and get AI-powered recommendations to improve your government contract bid strategy." },
     ],

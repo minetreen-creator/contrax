@@ -218,7 +218,7 @@ function groupByDeadline(bids: TrackedBid[]): CalendarGroup[] {
 export const Route = createFileRoute("/tracking")({
   loader: () => getCurrentUser(),
   head: () => ({
-    meta: [{ title: "Bid Tracking | Contrax" }],
+    meta: [{ name: "robots", content: "noindex, nofollow" },{ title: "Bid Tracking | Contrax" }],
   }),
   component: TrackingPageGated,
 });

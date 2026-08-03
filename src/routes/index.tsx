@@ -2,78 +2,17 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useState } from "react";
-import { getCurrentUser, logout } from "~/lib/auth";
-import { redirectToCheckout } from "~/lib/checkout";
-import { sql } from "~/db";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
-const getBusinessName = createServerFn({ method: "GET" }).handler(async () => {
-  try {
-    const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
-      businessName?: string;
-    };
-    return cfg.businessName?.trim() ?? "Contrax";
-  } catch {
-    return "Contrax";
-  }
-});
-
 const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
-  try {
-    // Prefer bids with richer data (location + due_date present), fall back to newest
-    const rows = await sql()`SELECT title, agency, estimated_value, due_date, location FROM bids
-      ORDER BY
-        (CASE WHEN location IS NOT NULL AND location != '' THEN 1 ELSE 0 END) +
-        (CASE WHEN due_date IS NOT NULL THEN 1 ELSE 0 END) +
-        (CASE WHEN estimated_value IS NOT NULL AND estimated_value != '' THEN 1 ELSE 0 END) DESC,
-        created_at DESC
-      LIMIT 10`;
-    return rows.map((r) => ({
-      title: r.title as string,
-      agency: r.agency as string,
-      estimated_value: (r.estimated_value as string | null) ?? null,
-      due_date: r.due_date ? String(r.due_date) : null,
-      location: (r.location as string | null) ?? null,
-    }));
-  } catch {
-    return [];
-  }
+  // Clean landing-page base: no database layer — the live bid ticker renders
+  // its empty state ("Bid data will appear here once the sync runs.").
+  return [];
 });
 
 const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => {
-  try {
-    // Healthcare NAICS codes + keyword match for nursing/staffing bids
-    const rows = await sql()`SELECT title, agency, estimated_value, due_date, location
-      FROM bids
-      WHERE category ILIKE '%health%'
-         OR category ILIKE '%medical%'
-         OR category ILIKE '%nurs%'
-         OR title ILIKE '%nurs%'
-         OR title ILIKE '%health%'
-         OR title ILIKE '%medical%'
-         OR title ILIKE '%physician%'
-         OR title ILIKE '%clinical%'
-         OR title ILIKE '%staffing%'
-         OR description ILIKE '%nurs%'
-         OR description ILIKE '%healthcare%'
-         OR description ILIKE '%clinical staffing%'
-      ORDER BY
-        (CASE WHEN location IS NOT NULL AND location != '' THEN 1 ELSE 0 END) +
-        (CASE WHEN due_date IS NOT NULL THEN 1 ELSE 0 END) +
-        (CASE WHEN estimated_value IS NOT NULL AND estimated_value != '' THEN 1 ELSE 0 END) DESC,
-        created_at DESC
-      LIMIT 6`;
-    return rows.map((r) => ({
-      title: r.title as string,
-      agency: r.agency as string,
-      estimated_value: (r.estimated_value as string | null) ?? null,
-      due_date: r.due_date ? String(r.due_date) : null,
-      location: (r.location as string | null) ?? null,
-    }));
-  } catch {
-    return [];
-  }
+  return [];
 });
 
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
@@ -88,7 +27,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
         return "Contrax";
       }
     })(),
-    getCurrentUser(),
+    null, // no auth in clean landing-page base — Navbar renders the signed-out state
     getRecentBids(),
     getHealthcareBids(),
   ]);
@@ -96,28 +35,17 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 const submitLeadEmail = createServerFn({ method: "POST" })
-  .validator((data: unknown) => {
+  .inputValidator((data: unknown) => {
     if (typeof data !== "string" || !data.includes("@")) {
       throw new Error("Invalid email");
     }
     return data as string;
   })
   .handler(async ({ data: email }) => {
-    try {
-      const db = sql();
-      // Create table if it doesn't exist
-      await db`CREATE TABLE IF NOT EXISTS lead_emails (
-        id SERIAL PRIMARY KEY,
-        email TEXT UNIQUE NOT NULL,
-        created_at TIMESTAMPTZ DEFAULT NOW()
-      )`;
-      // Insert email, ignore duplicates
-      await db`INSERT INTO lead_emails (email) VALUES (${email}) ON CONFLICT (email) DO NOTHING`;
-      return { success: true };
-    } catch (err) {
-      console.error("Failed to store lead email:", err);
-      return { success: false, error: "Something went wrong. Please try again." };
-    }
+    // Clean landing-page base: the database layer was removed, so leads are not
+    // persisted here. Accept and acknowledge so the UI can show its success state.
+    void email;
+    return { success: true, error: undefined };
   });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -229,12 +157,7 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    try {
-      await logout();
-      window.location.href = "/";
-    } catch {
-      setLoggingOut(false);
-    }
+    window.location.href = "/";
   };
 
   return (

@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
-
-Sitemap: https://contrax.company/sitemap.xml

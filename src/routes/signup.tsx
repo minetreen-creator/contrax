@@ -7,6 +7,10 @@ import { getCurrentUser, SESSION_COOKIE } from "~/lib/auth";
 
 const SESSION_TTL_DAYS = 30;
 
+type SignupSearch = { plan?: string };
+
+const validPlans = ["starter", "professional", "agency"] as const;
+
 // ── Server Functions ──────────────────────────────────────────────────────────
 
 const signupFn = createServerFn({ method: "POST" })
@@ -14,10 +18,11 @@ const signupFn = createServerFn({ method: "POST" })
     if (typeof data !== "object" || data === null) {
       throw new Error("Invalid request");
     }
-    const { email, password, confirmPassword } = data as {
+    const { email, password, confirmPassword, plan } = data as {
       email: string;
       password: string;
       confirmPassword: string;
+      plan?: string;
     };
 
     const errors: string[] = [];
@@ -36,7 +41,9 @@ const signupFn = createServerFn({ method: "POST" })
       throw new Error(errors.join(" "));
     }
 
-    return { email: email.trim().toLowerCase(), password };
+    const validPlan = plan && ["starter", "professional", "agency"].includes(plan) ? plan : "starter";
+
+    return { email: email.trim().toLowerCase(), password, plan: validPlan };
   })
   .handler(async ({ data }) => {
     // Check for duplicate email
@@ -49,7 +56,7 @@ const signupFn = createServerFn({ method: "POST" })
     const passwordHash = await Bun.password.hash(data.password);
     const inserted = await sql()`
       INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-      VALUES (${data.email}, ${passwordHash}, 'trial', NOW())
+      VALUES (${data.email}, ${passwordHash}, ${data.plan}, NOW())
       RETURNING id, email, created_at
     `;
     const user = inserted[0] as { id: number; email: string; created_at: Date };
@@ -80,6 +87,9 @@ const signupFn = createServerFn({ method: "POST" })
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/signup")({
+  validateSearch: (search: Record<string, unknown>): SignupSearch => ({
+    plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "starter",
+  }),
   loader: () => getCurrentUser(),
   component: SignupPage,
   head: () => ({
@@ -88,7 +98,7 @@ export const Route = createFileRoute("/signup")({
       {
         name: "description",
         content:
-          "Create your Contrax account to discover government bids, analyze opportunities, and draft proposals with AI.",
+          "Create your Contrax account to discover government bids, analyze opportunities, and draft proposals.",
       },
       { name: "robots", content: "noindex, nofollow" },
       // Open Graph
@@ -98,11 +108,11 @@ export const Route = createFileRoute("/signup")({
       {
         property: "og:description",
         content:
-          "Create your Contrax account to discover government bids, analyze opportunities, and draft proposals with AI.",
+          "Create your Contrax account to discover government bids, analyze opportunities, and draft proposals.",
       },
-      { property: "og:image", content: "https://contrax.company/og-image.svg" },
-      { property: "og:image:type", content: "image/svg+xml" },
-      { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { property: "og:image", content: "https://contrax.company/contrax-logo.png" },
+      { property: "og:image:type", content: "image/png" },
+      { property: "og:image:alt", content: "Contrax — government contract bidding platform" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
@@ -112,10 +122,10 @@ export const Route = createFileRoute("/signup")({
       {
         name: "twitter:description",
         content:
-          "Create your Contrax account to discover government bids, analyze opportunities, and draft proposals with AI.",
+          "Create your Contrax account to discover government bids, analyze opportunities, and draft proposals.",
       },
-      { name: "twitter:image", content: "https://contrax.company/og-image.svg" },
-      { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
+      { name: "twitter:image", content: "https://contrax.company/contrax-logo.png" },
+      { name: "twitter:image:alt", content: "Contrax — government contract bidding platform" },
     ],
     links: [{ rel: "canonical", href: "https://contrax.company/signup" }],
   }),
@@ -126,6 +136,7 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const currentUser = Route.useLoaderData();
   const navigate = useNavigate();
+  const { plan } = Route.useSearch();
 
   // If already logged in, redirect to dashboard
   if (currentUser) {
@@ -139,13 +150,15 @@ function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const planLabel = plan === "professional" ? "Professional" : plan === "agency" ? "Agency" : "Starter";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
     try {
-      await signupFn({ data: { email, password, confirmPassword } });
+      await signupFn({ data: { email, password, confirmPassword, plan } });
       navigate({ to: "/onboarding" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
@@ -173,7 +186,7 @@ function SignupPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Create your Contrax account</h1>
           <p className="mt-2 text-sm text-gray-500">
-            Start finding and winning government contracts.
+            {planLabel} plan — 21-day free trial. No credit card required.
           </p>
 
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">

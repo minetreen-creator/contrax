@@ -235,10 +235,10 @@ function Hero({ businessName }: { businessName: string }) {
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="/demo"
+              href="/signup"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
             >
-              Get Started
+              Start Free Trial
               <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
@@ -1374,6 +1374,7 @@ function Pricing() {
         "Weekly digest emails",
       ],
       cta: "Get Started",
+      slug: "starter",
       featured: false,
     },
     {
@@ -1390,6 +1391,7 @@ function Pricing() {
         "Priority email & chat support",
       ],
       cta: "Get Started",
+      slug: "professional",
       featured: true,
     },
     {
@@ -1406,6 +1408,7 @@ function Pricing() {
         "Dedicated account manager",
       ],
       cta: "Get Started",
+      slug: "agency",
       featured: false,
     },
   ];
@@ -1465,7 +1468,7 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <a href="/signup" className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${plan.featured ? "bg-amber-500 text-white" : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"}`}>{plan.cta}</a>
+              <a href={`/signup?plan=${plan.slug}`} className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${plan.featured ? "bg-amber-500 text-white" : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"}`}>{plan.cta}</a>
             </div>
           ))}
         </div>

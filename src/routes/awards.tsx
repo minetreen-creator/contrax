@@ -31,52 +31,49 @@ const SEED_AWARDS = [
 // ── Server Functions ───────────────────────────────────────────────────────────
 
 const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promise<{ awards: Award[]; similarBids: Record<number, SimilarBid[]> }> => {
-  // Ensure table
-  await sql()`CREATE TABLE IF NOT EXISTS awarded_contracts (id SERIAL PRIMARY KEY, title TEXT NOT NULL, agency TEXT NOT NULL, solicitation_number TEXT, winning_company TEXT NOT NULL, award_amount TEXT NOT NULL, award_date TEXT NOT NULL, incumbent TEXT, category TEXT, location TEXT, naics_code TEXT, description TEXT, source_url TEXT, created_at TIMESTAMPTZ DEFAULT NOW())`;
-
-  // Seed if empty
-  const existing = await sql()`SELECT COUNT(*) as cnt FROM awarded_contracts`;
-  if (Number((existing[0] as any).cnt) === 0) {
-    for (const a of SEED_AWARDS) {
-      await sql()`INSERT INTO awarded_contracts (title, agency, solicitation_number, winning_company, award_amount, award_date, incumbent, category, location, naics_code, description, source_url) VALUES (${a.title}, ${a.agency}, ${a.solicitation_number}, ${a.winning_company}, ${a.award_amount}, ${a.award_date}, ${a.incumbent ?? null}, ${a.category}, ${a.location}, ${a.naics_code ?? null}, ${a.description}, ${a.source_url})`;
-    }
-  }
-
-  // Fetch awards
-  const rows = await sql()`SELECT * FROM awarded_contracts ORDER BY award_date DESC`;
+  // The sync job stores procurement opportunities in `bids`.  Do not use the
+  // legacy `awarded_contracts` table here: it is unrelated to synced data and
+  // is not present in every production database.
+  const rows = await sql()`
+    SELECT id, title, agency, description, location, category, due_date,
+           estimated_value, source_url, created_at
+    FROM bids
+    ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
+    LIMIT 100
+  `;
   const awards: Award[] = (rows as any[]).map((r) => ({
-    id: r.id, title: r.title, agency: r.agency, solicitation_number: r.solicitation_number,
-    winning_company: r.winning_company, award_amount: r.award_amount, award_date: String(r.award_date).slice(0, 10),
-    incumbent: r.incumbent, category: r.category, location: r.location,
-    naics_code: r.naics_code, description: r.description, source_url: r.source_url,
+    id: Number(r.id),
+    title: r.title || "Untitled opportunity",
+    agency: r.agency || "Unknown agency",
+    solicitation_number: null,
+    // Synced records are opportunities, not completed awards. Keep the shared
+    // award card shape while making that distinction explicit to users.
+    winning_company: "Open opportunity",
+    award_amount: r.estimated_value || "Not specified",
+    award_date: String(r.created_at || r.due_date || new Date().toISOString()).slice(0, 10),
+    incumbent: null,
+    category: r.category || null,
+    location: r.location || null,
+    naics_code: null,
+    description: r.description || null,
+    source_url: r.source_url || null,
   }));
 
-  // Fetch similar future bids for each award (match by category + location)
   const similarBids: Record<number, SimilarBid[]> = {};
-  try {
-    for (const award of awards) {
-      const cat = award.category;
-      const loc = award.location;
-      if (!cat) { similarBids[award.id] = []; continue; }
-      const parts = loc ? loc.split(",")[0].trim() : "";
-      let bidRows: any[];
-      if (parts) {
-        bidRows = await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"} ORDER BY due_date ASC LIMIT 5`;
-      } else {
-        bidRows = await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC LIMIT 5`;
-      }
-      similarBids[award.id] = bidRows.map((b: any) => ({
-        id: b.id, title: b.title, agency: b.agency,
-        due_date: String(b.due_date).slice(0, 10),
-        estimated_value: b.estimated_value || "Not specified",
-        category: b.category || "",
-      }));
-    }
-  } catch {
-    // bids table might not exist yet
-    for (const award of awards) { similarBids[award.id] = []; }
+  for (const award of awards) {
+    const cat = award.category;
+    const loc = award.location;
+    if (!cat) { similarBids[award.id] = []; continue; }
+    const parts = loc ? loc.split(",")[0].trim() : "";
+    const bidRows = parts
+      ? await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT 5`
+      : await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
+    similarBids[award.id] = (bidRows as any[]).map((b) => ({
+      id: Number(b.id), title: b.title, agency: b.agency,
+      due_date: b.due_date ? String(b.due_date).slice(0, 10) : "Not specified",
+      estimated_value: b.estimated_value || "Not specified", category: b.category || "",
+    }));
   }
-
   return { awards, similarBids };
 });
 

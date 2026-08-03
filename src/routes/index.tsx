@@ -206,6 +206,7 @@ function Home() {
       />
       <Navbar user={user} />
       <Hero businessName={businessName} />
+      <ProductShowcase />
       <BidTicker bids={bids} />
       {healthcareBids.length > 0 && <HealthcareOpportunities bids={healthcareBids} />}
       <HowItWorks />
@@ -338,6 +339,104 @@ function Hero({ businessName }: { businessName: string }) {
       </div>
       {/* Bottom fade */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent" />
+    </section>
+  );
+}
+
+// ── Product Showcase ──────────────────────────────────────────────────────────
+
+const showcaseItems = [
+  {
+    src: "/screenshots/score-tool.png",
+    alt: "Can I Win This? — Contrax AI solicitation scoring tool",
+    badge: "Free · no login",
+    title: "Can I Win This?",
+    description:
+      "Paste any solicitation and get an instant AI win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO. Free, no login required.",
+    href: "/score",
+    cta: "Score a solicitation",
+  },
+  {
+    src: "/screenshots/copilot.png",
+    alt: "Contract Intelligence Copilot — Contrax AI strategist",
+    badge: "AI strategist",
+    title: "Contract Intelligence Copilot",
+    description:
+      "Your AI strategist knows your certifications, active bids, and win/loss history. Ask it anything about your pipeline — it answers with your context in mind.",
+    href: "/copilot",
+    cta: "Meet the copilot",
+  },
+  {
+    src: "/screenshots/hero.png",
+    alt: "Contrax full platform overview",
+    badge: "Full platform",
+    title: "The Complete Platform",
+    description:
+      "Set-aside-first bid matching, proposal drafting, compliance checks, pricing intelligence, and team workspaces — built for certified small businesses.",
+    href: "/demo",
+    cta: "Get started",
+  },
+];
+
+function ProductShowcase() {
+  return (
+    <section id="product-showcase" className="bg-white py-20 sm:py-28">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-600">
+            Product Tour
+          </h2>
+          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            See Contrax in Action
+          </h3>
+          <p className="mt-4 text-lg text-gray-600">
+            From a free win-probability check to an AI strategist that knows your bid history —
+            here&apos;s what you can do in your first five minutes.
+          </p>
+        </div>
+
+        <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+          {showcaseItems.map((item) => (
+            <a
+              key={item.title}
+              href={item.href}
+              className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-300 hover:shadow-xl hover:shadow-slate-900/10"
+            >
+              <div className="relative overflow-hidden border-b border-gray-100">
+                <img
+                  src={item.src}
+                  alt={item.alt}
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[1280/577] w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
+                />
+                <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/80 px-2.5 py-1 text-xs font-medium text-amber-300 backdrop-blur-sm">
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+                  {item.badge}
+                </span>
+              </div>
+              <div className="flex flex-1 flex-col p-6">
+                <h4 className="text-lg font-bold text-slate-900">{item.title}</h4>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-gray-600">
+                  {item.description}
+                </p>
+                <span className="mt-4 inline-flex items-center text-sm font-semibold text-amber-600 transition-colors group-hover:text-amber-500">
+                  {item.cta}
+                  <svg
+                    className="ml-1.5 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </span>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

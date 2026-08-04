@@ -41,11 +41,6 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
   return rows as Bid[];
 });
 
-const getUnreadAlertCount = async (user: { id: number } | null) => {
-  if (!user) return 0;
-  try { const rows = await sql()`SELECT COUNT(*)::int AS count FROM bid_alerts WHERE user_id=${user.id} AND is_read=false`; return Number((rows[0] as any)?.count || 0); } catch { return 0; }
-};
-
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   const [businessName, user, bids, healthcareBids] = await Promise.all([
     (async () => {
@@ -62,7 +57,14 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getRecentBids(),
     getHealthcareBids(),
   ]);
-  const alertCount = await getUnreadAlertCount(user);
+  let alertCount = 0;
+  if (user) {
+    try {
+      await sql()`CREATE TABLE IF NOT EXISTS bid_alerts (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), bid_id INTEGER NOT NULL REFERENCES bids(id), alert_type TEXT DEFAULT 'new_match', is_read BOOLEAN DEFAULT false, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, bid_id, alert_type))`;
+      const rows = await sql()`SELECT COUNT(*)::int AS count FROM bid_alerts WHERE user_id=${user.id} AND is_read=false`;
+      alertCount = Number((rows[0] as any)?.count || 0);
+    } catch { /* table or query failed — safe to return 0 */ }
+  }
   return { businessName, user, bids, healthcareBids, alertCount };
 });
 

@@ -181,6 +181,12 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
           ) : (
             <>
               <a
+                href="/pricing"
+                className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900"
+              >
+                Pricing
+              </a>
+              <a
                 href="/login"
                 className="inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
               >
@@ -1207,7 +1213,7 @@ function CompetitorComparison() {
         {/* Bottom CTA */}
         <div className="mt-12 text-center">
           <a
-            href="#pricing"
+            href="/pricing"
             className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 px-8 py-3 text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98]"
           >
             See plans

@@ -81,10 +81,10 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promis
 export const Route = createFileRoute("/awards")({
   head: () => ({
     meta: [
-      { title: "Government Contract Awards Database — Contrax" },
+      { title: "Government Contract Database — Contrax" },
       { name: "description", content: "Browse recent government contract awards from SAM.gov. See who won, for how much, and which incumbents they replaced — research your competition and find recompete opportunities." },
       { name: "robots", content: "index, follow" },
-      { property: "og:title", content: "Government Contract Awards Database — Contrax" },
+      { property: "og:title", content: "Government Contract Database — Contrax" },
       { property: "og:description", content: "Browse recent government contract awards from SAM.gov. See who won, for how much, and which incumbents they replaced." },
       { property: "og:image", content: "https://contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
@@ -148,8 +148,8 @@ function AwardsPage() {
       <main className="mx-auto max-w-5xl px-4 py-8">
         {/* Hero */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Past Awards</h1>
-          <p className="mt-2 text-lg text-slate-500">Learn from awarded contracts to sharpen your bids</p>
+          <h1 className="text-3xl font-bold text-slate-900">Contract Database</h1>
+          <p className="mt-2 text-lg text-slate-500">Past awards and open opportunities to sharpen your bids</p>
         </div>
 
         {/* Filters */}

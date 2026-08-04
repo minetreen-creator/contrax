@@ -27,6 +27,7 @@ import { fetchBids as fetchMdDc } from "./sources/md-dc";
 import { fetchBids as fetchTx } from "./sources/tx";
 import { fetchBids as fetchFl } from "./sources/fl";
 import { fetchBids as fetchCities } from "./sources/cities";
+import { nycSocrataSource, nysSocrataSource } from "./sources/socrata";
 import type { RawBid } from "./sources/sam-gov";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
 import { createNotification } from "../lib/notifications";
@@ -44,6 +45,8 @@ const SOURCES: SyncSource[] = [
   { name: "tx", fetchFn: fetchTx },
   { name: "fl", fetchFn: fetchFl },
   { name: "cities", fetchFn: fetchCities },
+  { name: "nyc_socrata", fetchFn: nycSocrataSource },
+  { name: "nys_socrata", fetchFn: nysSocrataSource },
 ];
 
 export interface SyncSourceResult {

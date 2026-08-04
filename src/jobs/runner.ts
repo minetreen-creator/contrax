@@ -27,8 +27,9 @@ import { fetchBids as fetchMdDc } from "./sources/md-dc";
 import { fetchBids as fetchTx } from "./sources/tx";
 import { fetchBids as fetchFl } from "./sources/fl";
 import { fetchBids as fetchCities } from "./sources/cities";
-import { nycSocrataSource, nysSocrataSource } from "./sources/socrata";
+import { nysSocrataSource } from "./sources/socrata";
 import type { RawBid } from "./sources/sam-gov";
+import { CITY_SOURCES } from "../lib/city-procurement";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
 import { createNotification } from "../lib/notifications";
 import { generateBidAlerts } from "../lib/bid-alerts";
@@ -46,8 +47,10 @@ const SOURCES: SyncSource[] = [
   { name: "tx", fetchFn: fetchTx },
   { name: "fl", fetchFn: fetchFl },
   { name: "cities", fetchFn: fetchCities },
-  { name: "nyc_socrata", fetchFn: nycSocrataSource },
   { name: "nys_socrata", fetchFn: nysSocrataSource },
+  // City open-data procurement portals (each isolated — one city failing
+  // never blocks the others). NYC replaces the legacy nyc_socrata source.
+  ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 
 export interface SyncSourceResult {

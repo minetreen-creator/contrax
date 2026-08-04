@@ -83,7 +83,7 @@ CREATE TABLE IF NOT EXISTS bids (
     due_date TIMESTAMPTZ,
     estimated_value TEXT,
     source_url TEXT,
-    source TEXT NOT NULL DEFAULT 'seed',
+    source TEXT NOT NULL DEFAULT 'sam_gov',
     external_id TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(source, external_id)
@@ -130,7 +130,7 @@ CREATE TABLE IF NOT EXISTS sync_logs (
 DO $$$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bids' AND column_name='source') THEN
-        ALTER TABLE bids ADD COLUMN source TEXT NOT NULL DEFAULT 'seed';
+        ALTER TABLE bids ADD COLUMN source TEXT NOT NULL DEFAULT 'sam_gov';
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bids' AND column_name='external_id') THEN
         ALTER TABLE bids ADD COLUMN external_id TEXT;
@@ -154,6 +154,14 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bids' AND column_name='set_aside') THEN
         ALTER TABLE bids ADD COLUMN set_aside TEXT;
     END IF;
+END $$;
+
+-- Migration: bids.source default aligns with the canonical SAM.gov source
+-- (city procurement feeds are stored under their own source values, e.g.
+-- nyc_open_data). The ALTER is a no-op when the default is already set.
+DO $$
+BEGIN
+    ALTER TABLE bids ALTER COLUMN source SET DEFAULT 'sam_gov';
 END $$;
 
 CREATE TABLE IF NOT EXISTS bid_summaries (

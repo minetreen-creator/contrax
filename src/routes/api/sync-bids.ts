@@ -6,6 +6,9 @@ import { runSync } from "../../jobs/runner";
  *
  * Endpoint invoked by the Vercel Cron Job (see vercel.json) daily at 6 AM to
  * sync government bids from all procurement sources into the database.
+ * Federal/state sources (SAM.gov, VA eVA, NC, MD/DC, TX, FL, NYS) run first,
+ * then city open-data portals (NYC, Chicago, LA, SF, Austin) — each city is an
+ * isolated source so one failure never blocks the others.
  *
  * Auth: protected by a shared token. The caller must present it either as
  * `Authorization: Bearer <token>` (how Vercel Cron sends the cron `secret`)
@@ -19,7 +22,8 @@ import { runSync } from "../../jobs/runner";
  * NOTE: do not import node builtins at the top level of this file — TanStack
  * Start API routes are bundled for the server, but keep the module free of
  * server-only imports to stay compatible with the client-bundle protection.
- * The runner chain (src/jobs/*) uses only global fetch + neon, so it is safe.
+ * The runner chain (src/jobs/*, src/lib/city-procurement.ts) uses only global
+ * fetch + neon, so it is safe.
  */
 
 const FALLBACK_SYNC_TOKEN = "cx-sync-4f8a2c1e9b3d7f5a6e0c4b8d2a1f9e3c";
@@ -42,12 +46,27 @@ async function handler({ request }: { request: Request }) {
 
     const result = await runSync();
 
+    // Per-source breakdown so cron logs and the admin button show where
+    // bids came from (sam_gov vs. each city open-data portal).
+    const sources = Object.entries(result.results).map(([name, r]) => ({
+      source: name,
+      fetched: r.fetched,
+      new: r.new,
+      errors: r.errors,
+    }));
+    for (const s of sources) {
+      console.log(
+        `[sync-bids] ${s.source}: fetched=${s.fetched} new=${s.new} errors=${s.errors.length}`,
+      );
+    }
+
     return Response.json({
       success: true,
       count: result.totalNew,
       fetched: result.totalFetched,
       errors: result.totalErrors,
       duration: result.duration,
+      sources,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

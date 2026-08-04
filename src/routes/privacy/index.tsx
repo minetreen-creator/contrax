@@ -72,19 +72,31 @@ function PrivacyPage() {
             <p className="mt-3">We use Stripe (payments), OpenAI (AI processing), Resend (email), and Vercel (hosting). See their privacy policies for details.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">6. Cookies</h2>
+            <h2 className="text-xl font-semibold text-slate-900">6. AI Data Handling</h2>
+            <p className="mt-3">Contrax uses OpenAI (gpt-4o-mini and text-embedding-3-small) to power several features. Here&rsquo;s exactly what happens with your data when you use them:</p>
+            <ul className="mt-3 space-y-3 list-disc list-inside text-slate-700">
+              <li><strong>AI Copilot &amp; Proposal Drafting.</strong> The text you enter to draft proposals, analyze bids, or generate content is sent to OpenAI for processing. OpenAI does not use API-submitted data to train or improve their models. See <a href="https://openai.com/enterprise-privacy" className="text-blue-600 hover:text-blue-500" target="_blank" rel="noopener">OpenAI&rsquo;s enterprise privacy policy</a>.</li>
+              <li><strong>AI Chat Support.</strong> Messages you send through the floating chat widget are processed by OpenAI to generate responses. Chat history is stored only in your browser session and is cleared when you close the page. Contrax does not store chat transcripts.</li>
+              <li><strong>Win Probability Scoring.</strong> Bid details (title, agency, category, description) are sent to OpenAI to assess win likelihood. Scores and analysis are stored in our database so you can review them later.</li>
+              <li><strong>Bid Summaries.</strong> Bid document text is sent to OpenAI for summarization. Summaries are stored in our database for your reference.</li>
+            </ul>
+            <p className="mt-3">We send only the minimum data needed for each feature. We do not send your account credentials, payment information, or full business profile to AI providers. All AI API calls use HTTPS encryption in transit.</p>
+            <p className="mt-3">You can request deletion of your AI-generated content at any time by contacting us. We do not use your bid data or proposals to train AI models, build competing products, or share with third parties beyond our service providers.</p>
+          </section>
+          <section>
+            <h2 className="text-xl font-semibold text-slate-900">7. Cookies</h2>
             <p className="mt-3">We use essential cookies for login sessions. No advertising or tracking cookies.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">7. Your Rights</h2>
+            <h2 className="text-xl font-semibold text-slate-900">8. Your Rights</h2>
             <p className="mt-3">You may request access, correction, or deletion of your data at privacy@contrax.company. We will respond within 30 days.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">8. Changes</h2>
+            <h2 className="text-xl font-semibold text-slate-900">9. Changes</h2>
             <p className="mt-3">We may update this policy. Material changes will be notified via email or through the service.</p>
           </section>
           <section>
-            <h2 className="text-xl font-semibold text-slate-900">9. Contact</h2>
+            <h2 className="text-xl font-semibold text-slate-900">10. Contact</h2>
             <p className="mt-3">Questions? Contact <a href="mailto:privacy@contrax.company" className="text-blue-600 hover:text-blue-500">privacy@contrax.company</a>.</p>
           </section>
         </div>

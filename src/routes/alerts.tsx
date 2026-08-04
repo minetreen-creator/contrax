@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { sql } from "~/db";
@@ -20,7 +20,7 @@ const markAlertRead = createServerFn({ method: "POST" }).validator((d: unknown) 
 const markAllAlertsRead = createServerFn({ method: "POST" }).handler(async () => { const user = await getCurrentUser(); if (!user) throw new Error("Not authenticated"); await ensureBidAlertsTable(); await sql()`UPDATE bid_alerts SET is_read=true WHERE user_id=${user.id}`; return { ok: true }; });
 
 export const Route = createFileRoute("/alerts")({
-  loader: () => getAlerts(),
+  loader: async () => { const user = await getCurrentUser(); if (!user) throw redirect({ to: "/login" }); return getAlerts(); },
   head: () => ({ meta: [{ title: "Bid Alerts — Contrax" }, { name: "description", content: "Review new government opportunities matched to your business profile." }, { name: "robots", content: "noindex, nofollow" }] }),
   component: AlertsPage,
 });

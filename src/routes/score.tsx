@@ -369,6 +369,9 @@ function ScorePage() {
 
         {/* ── Input card ─────────────────────────────────────────────── */}
         <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
+          <p className="mb-4 text-xs text-slate-400">
+            Bid data is sent to OpenAI for processing. Data is not used for model training. <a href="/privacy#6-ai-data-handling" className="underline underline-offset-2 hover:text-slate-600">Learn more →</a>
+          </p>
           <label htmlFor="solicitation" className="flex items-center gap-2 text-sm font-semibold text-slate-800">
             <FileText className="h-4 w-4 text-blue-600" />
             Solicitation text

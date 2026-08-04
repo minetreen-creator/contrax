@@ -114,12 +114,17 @@ export function ChatWidget() {
           </div>
 
           {/* Input */}
+          <div className="border-t border-slate-200 bg-white px-3 pt-2.5">
+            <p className="text-[10px] text-slate-400">
+              AI-powered · Your data is not used for training. <a href="/privacy#6-ai-data-handling" className="underline underline-offset-2 hover:text-slate-600">Learn more</a>
+            </p>
+          </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               send();
             }}
-            className="flex items-center gap-2 border-t border-slate-200 bg-white px-3 py-2.5"
+            className="flex items-center gap-2 bg-white px-3 pb-2.5 pt-1"
           >
             <input
               ref={inputRef}

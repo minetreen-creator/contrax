@@ -435,6 +435,9 @@ function AuthenticatedCopilot() {
                   </button>
                 ))}
               </div>
+              <p className="mb-3 text-xs text-slate-400">
+                Your input is sent to OpenAI for processing. Data is not used for model training. <a href="/privacy#6-ai-data-handling" className="underline underline-offset-2 hover:text-slate-600">Learn more →</a>
+              </p>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();

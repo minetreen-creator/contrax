@@ -17,7 +17,7 @@ import { getRelevantContext } from "~/lib/knowledge";
 import { sql } from "~/db";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
-const PROFILE_COLUMNS = `id, business_name, industry, locations, service_categories, naics_codes, logo_url, is_agency, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value`;
+const PROFILE_COLUMNS = `id, business_name, industry, locations, service_categories, naics_codes, logo_url, is_agency, uei, cage_code, sam_expiration, duns, certifications, certification_dates, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value`;
 
 /** Looks up the user id for an email (or null). */
 async function findUserId(userEmail: string): Promise<number | null> {
@@ -52,6 +52,7 @@ async function loadProfile(userId: number | null): Promise<BusinessProfile | nul
       sam_expiration: p.sam_expiration ? String(p.sam_expiration).slice(0, 10) : null,
       duns: p.duns ? String(p.duns) : null,
       certifications: Array.isArray(p.certifications) ? p.certifications.map(String) : [],
+      certification_dates: p.certification_dates && typeof p.certification_dates === "object" && !Array.isArray(p.certification_dates) ? (p.certification_dates as Record<string, string>) : {},
       years_in_business: p.years_in_business != null ? Number(p.years_in_business) : null,
       employee_count: p.employee_count != null ? Number(p.employee_count) : null,
       annual_revenue: p.annual_revenue ? String(p.annual_revenue) : null,

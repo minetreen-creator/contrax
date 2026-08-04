@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { TrialGate } from "~/components/TrialGate";
+import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface TrackedBid {
@@ -60,6 +61,59 @@ export const untrackBid = createServerFn({ method: "POST" })
     const user = await getCurrentUser();
     if (!user) throw new Error("Not authenticated");
     await sql()`DELETE FROM tracked_bids WHERE user_email = ${user.email} AND bid_id = ${data.bid_id}`;
+    return { success: true };
+  });
+// ── Certification deadline tracking ──────────────────────────────────────────
+export interface CertificationDatesData {
+  certifications: string[];
+  certification_dates: Record<string, string>;
+}
+const getCertificationDates = createServerFn({ method: "GET" }).handler(
+  async (): Promise<CertificationDatesData> => {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Not authenticated");
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certification_dates JSONB DEFAULT '{}'::jsonb`; } catch {}
+    const rows = await sql()`
+      SELECT certifications, certification_dates
+      FROM business_profiles WHERE user_id = ${user.id} LIMIT 1
+    `;
+    if (rows.length === 0) return { certifications: [], certification_dates: {} };
+    const p = rows[0] as any;
+    return {
+      certifications: Array.isArray(p.certifications) ? p.certifications : [],
+      certification_dates:
+        p.certification_dates && typeof p.certification_dates === "object" && !Array.isArray(p.certification_dates)
+          ? p.certification_dates
+          : {},
+    };
+  },
+);
+const saveCertificationDates = createServerFn({ method: "POST" })
+  .validator((data: unknown) => {
+    const d = data as any;
+    if (!d || typeof d !== "object") throw new Error("Invalid input");
+    const dates: Record<string, string> = {};
+    if (d.certificationDates && typeof d.certificationDates === "object") {
+      for (const [key, value] of Object.entries(d.certificationDates)) {
+        if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          dates[key] = value;
+        }
+      }
+    }
+    return { certificationDates: dates };
+  })
+  .handler(async ({ data }) => {
+    const user = await getCurrentUser();
+    if (!user) throw new Error("Not authenticated");
+    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certification_dates JSONB DEFAULT '{}'::jsonb`; } catch {}
+    const rows = await sql()`SELECT id FROM business_profiles WHERE user_id = ${user.id} LIMIT 1`;
+    if (rows.length === 0) throw new Error("No business profile found — complete onboarding first.");
+    await sql()`
+      UPDATE business_profiles
+      SET certification_dates = ${JSON.stringify(data.certificationDates)}::jsonb,
+          updated_at = NOW()
+      WHERE user_id = ${user.id}
+    `;
     return { success: true };
   });
 
@@ -279,6 +333,125 @@ function EmptyState() {
   );
 }
 
+// ── Certifications Panel ────────────────────────────────────────────────────
+function CertificationsPanel({
+  data,
+  loading,
+  saving,
+  error,
+  dates,
+  onDateChange,
+  onSave,
+}: {
+  data: CertificationDatesData | null;
+  loading: boolean;
+  saving: boolean;
+  error: string;
+  dates: Record<string, string>;
+  onDateChange: (cert: string, date: string) => void;
+  onSave: () => void;
+}) {
+  const held = (data?.certifications ?? []).filter((c) =>
+    CERTIFICATIONS.some((m) => m.value === c),
+  );
+  if (loading && !data) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
+        Loading your certifications...
+      </div>
+    );
+  }
+  if (!data || held.length === 0) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
+          <svg className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-semibold text-slate-700">No certifications tracked yet</h3>
+        <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">
+          Add the set-aside certifications your business holds (8(a), SDVOSB, WOSB, HUBZone) and we&apos;ll track renewal deadlines for you.
+        </p>
+        <a href="/settings" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 active:scale-[0.98] transition-all">
+          Manage Certifications
+        </a>
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">🛡️ Certification Renewals</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Keep expiration dates current — expired certifications can disqualify you from set-aside contracts.
+          </p>
+        </div>
+        <span className="inline-flex w-fit items-center rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+          {held.length} tracked
+        </span>
+      </div>
+      {error && (
+        <div className="mb-4 rounded-xl bg-red-50 border border-red-200 p-3 text-sm text-red-700">{error}</div>
+      )}
+      <div className="space-y-3">
+        {held.map((cert) => {
+          const meta = CERTIFICATIONS.find((m) => m.value === cert);
+          const date = dates[cert] ?? "";
+          const days = certificationDaysRemaining(date);
+          const status = certificationStatus(days);
+          return (
+            <div key={cert} className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-slate-200 p-4">
+              <div className="min-w-0 flex-1">
+                <p className="font-semibold text-slate-900">{meta?.label ?? cert}</p>
+                {meta?.cadence && <p className="mt-0.5 text-xs text-slate-500">{meta.cadence}</p>}
+              </div>
+              <div className="flex items-center gap-3">
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => onDateChange(cert, e.target.value)}
+                  className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                />
+                <span className={`inline-flex w-fit shrink-0 items-center rounded-full px-2.5 py-1 text-xs font-bold ${status.badge}`}>
+                  {status.label}
+                </span>
+              </div>
+              <p className={`sm:w-40 shrink-0 text-right text-xs font-medium ${status.text}`}>
+                {status.kind === "missing"
+                  ? "Set an expiration date"
+                  : status.kind === "expired"
+                    ? `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? "s" : ""} ago`
+                    : days === 0
+                      ? "Expires today"
+                      : `${days} day${days !== 1 ? "s" : ""} left`}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+        <p className="text-xs text-slate-400">
+          Dates are stored on your business profile and appear on the dashboard.
+        </p>
+        <div className="flex gap-3">
+          <a href="/settings" className="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+            Full profile settings
+          </a>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={saving}
+            className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save dates"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ── Component ────────────────────────────────────────────────────────────────
 function TrackingPage() {
   const currentUser = Route.useLoaderData() as AuthUser | null;
@@ -294,6 +467,47 @@ function TrackingPage() {
   const [error, setError] = useState("");
   const [untracking, setUntracking] = useState<Set<string>>(new Set());
   const [expandedBid, setExpandedBid] = useState<string | null>(null);
+  // Certification tracking state
+  const [tab, setTab] = useState<"bids" | "certifications">(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "certifications"
+      ? "certifications"
+      : "bids",
+  );
+  const [certData, setCertData] = useState<CertificationDatesData | null>(null);
+  const [certLoading, setCertLoading] = useState(false);
+  const [certSaving, setCertSaving] = useState(false);
+  const [certError, setCertError] = useState("");
+  const [certDates, setCertDates] = useState<Record<string, string>>({});
+  const loadCerts = useCallback(async () => {
+    setCertLoading(true);
+    setCertError("");
+    try {
+      const result = await getCertificationDates();
+      setCertData(result);
+      setCertDates({ ...(result.certification_dates ?? {}) });
+    } catch {
+      setCertError("Couldn't load your certifications.");
+    } finally {
+      setCertLoading(false);
+    }
+  }, []);
+  useEffect(() => {
+    if (tab === "certifications" && !certData) loadCerts();
+  }, [tab, certData, loadCerts]);
+  const saveCerts = useCallback(async () => {
+    setCertSaving(true);
+    setCertError("");
+    try {
+      await saveCertificationDates({ certificationDates: certDates });
+      const result = await getCertificationDates();
+      setCertData(result);
+      setCertDates({ ...(result.certification_dates ?? {}) });
+    } catch {
+      setCertError("Couldn't save certification dates.");
+    } finally {
+      setCertSaving(false);
+    }
+  }, [certDates]);
 
   const loadBids = useCallback(async () => {
     try {
@@ -348,13 +562,31 @@ function TrackingPage() {
 
       <main className="mx-auto max-w-5xl px-4 py-8">
         {/* Page Heading */}
-        <div className="mb-8">
+        <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900">📅 Bid Tracking</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Monitor deadlines, amendments, and changes for bids you&apos;re tracking.
+            Monitor bid deadlines and certification renewals in one place.
           </p>
         </div>
-
+        {/* Tabs */}
+        <div className="mb-6 flex w-fit gap-1 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setTab("bids")}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${tab === "bids" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+          >
+            Tracked Bids
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("certifications")}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${tab === "certifications" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+          >
+            Certifications
+          </button>
+        </div>
+        {tab === "bids" ? (
+          <>
         {error && (
           <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-sm text-red-700">
             {error}
@@ -582,6 +814,18 @@ function TrackingPage() {
               </section>
             </div>
           </div>
+        )}
+          </>
+        ) : (
+          <CertificationsPanel
+            data={certData}
+            loading={certLoading}
+            saving={certSaving}
+            error={certError}
+            dates={certDates}
+            onDateChange={(cert, date) => setCertDates((prev) => ({ ...prev, [cert]: date }))}
+            onSave={saveCerts}
+          />
         )}
       </main>
     </div>

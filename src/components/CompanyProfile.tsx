@@ -29,6 +29,8 @@ export interface BusinessProfile {
   sam_expiration: string | null;
   duns: string | null;
   certifications: string[];
+  /** Expiration dates keyed by certification value (e.g. { "8a": "2031-06-30" }). */
+  certification_dates?: Record<string, string>;
   years_in_business: number | null;
   employee_count: number | null;
   annual_revenue: string | null;

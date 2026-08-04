@@ -5,6 +5,7 @@ import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
 import { checkTrial, type TrialStatus } from "~/lib/trial";
 import { SPECIALTY_OPTIONS, daysUntilExpiry, type License } from "~/lib/healthcare";
+import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus } from "~/lib/certifications";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -29,15 +30,8 @@ const US_STATES = [
   "SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
 ];
 
-const CERTIFICATIONS = [
-  { value: "8a", label: "8(a) Business Development" },
-  { value: "hubzone", label: "HUBZone" },
-  { value: "wosb", label: "WOSB/EDWOSB" },
-  { value: "sdvosb", label: "SDVOSB" },
-  { value: "vosb", label: "VOSB" },
-  { value: "minority_owned", label: "Minority-Owned" },
-  { value: "disadvantaged", label: "Disadvantaged" },
-] as const;
+// CERTIFICATIONS is imported from ~/lib/certifications (shared with the
+// dashboard status card and /tracking certifications tab).
 
 const REVENUE_RANGES = [
   { value: "Under $500K", label: "Under $500K" },
@@ -621,12 +615,9 @@ function SettingsPage() {
               {CERTIFICATIONS.map((cert) => {
                 const checked = form.certifications.includes(cert.value);
                 const date = form.certificationDates[cert.value] || "";
-                const expiry = date ? new Date(`${date}T00:00:00`) : null;
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const twelveMonths = new Date(today);
-                twelveMonths.setFullYear(twelveMonths.getFullYear() + 1);
-                const status = expiry && expiry < today ? "Expired" : expiry && expiry <= twelveMonths ? "Expiring soon" : expiry ? "Valid" : null;
+                const certDays = certificationDaysRemaining(date);
+                const certSt = certificationStatus(certDays);
+                const status = certSt.kind === "missing" ? null : certSt.label;
                 return (
                   <div key={cert.value} className={`rounded-lg border p-3 transition-all ${checked ? "border-blue-500 bg-blue-50 shadow-sm" : "border-slate-200 bg-white"}`}>
                     <button type="button" onClick={() => toggleCertification(cert.value)} className={`flex w-full items-center gap-3 text-left text-sm ${checked ? "text-blue-700" : "text-slate-700"}`}>
@@ -634,11 +625,20 @@ function SettingsPage() {
                         {checked && <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                       </div>
                       <span className="font-medium">{cert.label}</span>
-                      {status && <span className={`ml-auto inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${status === "Valid" ? "bg-green-100 text-green-700" : status === "Expired" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>{status === "Valid" ? "🟢" : status === "Expired" ? "🔴" : "🟡"} {status}</span>}
+                      {status && <span className={`ml-auto inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-bold ${certSt.badge}`}>{certSt.kind === "active" ? "🟢" : certSt.kind === "expired" ? "🔴" : "🟡"} {status}</span>}
                     </button>
                     {checked && <div className="mt-3 border-t border-blue-100 pt-2">
                       <label htmlFor={`cert-expiry-${cert.value}`} className="block text-xs font-medium text-slate-600">Expiration date <span className="font-normal text-slate-400">(optional)</span></label>
                       <input id={`cert-expiry-${cert.value}`} type="date" value={date} onChange={(e) => updateCertificationDate(cert.value, e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                      {certSt.kind !== "missing" && (
+                        <p className={`mt-1 text-[11px] font-medium ${certSt.text}`}>
+                          {certSt.kind === "expired"
+                            ? `Expired ${Math.abs(certDays)} day${Math.abs(certDays) !== 1 ? "s" : ""} ago`
+                            : certDays === 0
+                              ? "Expires today"
+                              : `${certDays} day${certDays !== 1 ? "s" : ""} remaining`}
+                        </p>
+                      )}
                     </div>}
                   </div>
                 );

@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS business_profiles (
     sam_expiration DATE,
     duns TEXT,
     certifications JSONB DEFAULT '[]'::jsonb,
+    certification_dates JSONB DEFAULT '{}'::jsonb,
     years_in_business INTEGER,
     employee_count INTEGER,
     annual_revenue TEXT,
@@ -51,6 +52,7 @@ ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cage_code TEXT;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS sam_expiration DATE;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS duns TEXT;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certification_dates JSONB DEFAULT '{}'::jsonb;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS years_in_business INTEGER;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT;

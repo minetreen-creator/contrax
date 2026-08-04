@@ -14,6 +14,7 @@ import { FeedbackWidget } from "~/components/FeedbackWidget";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
 import { buildProfileContext, buildScoringWeights } from "~/lib/profile-context";
 import { checkTrial, type TrialStatus } from "~/lib/trial";
+import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Bid {
@@ -105,7 +106,7 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
 
-  const PROFILE_COLUMNS = `id, business_name, industry, locations, service_categories, naics_codes, logo_url, is_agency, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value`;
+  const PROFILE_COLUMNS = `id, business_name, industry, locations, service_categories, naics_codes, logo_url, is_agency, uei, cage_code, sam_expiration, duns, certifications, certification_dates, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value`;
   const profileRows = activeProfileId
     ? await sql()`SELECT ${PROFILE_COLUMNS} FROM business_profiles WHERE id = ${activeProfileId} AND user_id = ${user.id}`
     : await sql()`
@@ -126,6 +127,7 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
       sam_expiration: p.sam_expiration ? String(p.sam_expiration).slice(0, 10) : null,
       duns: p.duns ?? null,
       certifications: Array.isArray(p.certifications) ? p.certifications : [],
+      certification_dates: p.certification_dates && typeof p.certification_dates === "object" && !Array.isArray(p.certification_dates) ? p.certification_dates : {},
       years_in_business: p.years_in_business ?? null,
       employee_count: p.employee_count ?? null,
       annual_revenue: p.annual_revenue ?? null,
@@ -1005,6 +1007,86 @@ function TrialBanner({ daysLeft, planTier, endsAt }: { daysLeft: number; planTie
 function TrialExpired() { return <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4"><div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm"><h1 className="text-2xl font-bold text-slate-900">Your trial has ended</h1><p className="mt-3 text-slate-600">Subscribe to continue using Contrax.</p><a href="/upgrade" className="mt-7 inline-flex rounded-xl bg-slate-900 px-6 py-3 font-semibold text-white">View plans →</a></div></div>; }
 
 // ── Component ────────────────────────────────────────────────────────────────
+// ── Certification Status Card ───────────────────────────────────────────────
+function CertificationStatusCard({ profile }: { profile: BusinessProfile }) {
+  const held = (profile.certifications ?? []).filter((c) =>
+    CERTIFICATIONS.some((m) => m.value === c),
+  );
+  const dates = profile.certification_dates ?? {};
+  const withDates = held.filter((c) => dates[c]);
+  const anyExpiring = withDates.some((c) => certificationDaysRemaining(dates[c]) <= 90);
+  return (
+    <section
+      className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+      aria-labelledby="cert-status-heading"
+    >
+      <div className="mb-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h2 id="cert-status-heading" className="text-xl font-bold text-slate-900">🛡️ Certification Status</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {held.length === 0
+              ? "Add your set-aside certifications so Contrax can track their renewal deadlines."
+              : withDates.length === 0
+                ? "Set expiration dates to get renewal reminders before it&apos;s too late."
+                : `${withDates.length} of ${held.length} certification${held.length !== 1 ? "s" : ""} have dates on file.`}
+          </p>
+        </div>
+        <a
+          href="/tracking?tab=certifications"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 active:scale-[0.98] transition-all"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          Update dates
+        </a>
+      </div>
+      {held.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center">
+          <p className="text-sm text-slate-600">
+            No certifications on file yet.{" "}
+            <a href="/settings" className="font-semibold text-blue-600 hover:underline">Add certifications in Settings</a>{" "}
+            to start tracking renewal deadlines.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {held.map((cert) => {
+            const date = dates[cert] ?? "";
+            const days = certificationDaysRemaining(date);
+            const status = certificationStatus(days);
+            const meta = CERTIFICATIONS.find((m) => m.value === cert);
+            return (
+              <div key={cert} className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-slate-900">{meta?.label ?? cert}</p>
+                  <p className={`mt-0.5 text-xs font-medium ${status.text}`}>
+                    {status.kind === "missing"
+                      ? "No expiration date set"
+                      : status.kind === "expired"
+                        ? `Expired ${Math.abs(days)} day${Math.abs(days) !== 1 ? "s" : ""} ago`
+                        : days === 0
+                          ? "Expires today"
+                          : `${fmtCertDate(date)} · ${days} day${days !== 1 ? "s" : ""} left`}
+                  </p>
+                </div>
+                <span className={`shrink-0 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${status.badge}`}>
+                  {status.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {anyExpiring && (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          ⚠️ One or more certifications expire within 90 days. Review your renewal timeline in{" "}
+          <a href="/tracking?tab=certifications" className="font-semibold underline">Certification Tracking</a>.
+        </p>
+      )}
+    </section>
+  );
+}
 function DashboardPage() {
   // Data comes from the route loader — single source of truth for SSR + hydration.
   const { user: currentUser, data } = Route.useLoaderData();
@@ -1379,6 +1461,8 @@ function DashboardPage() {
           </div>
         )}
 
+        {/* Certification status — deadlines for held set-aside certifications */}
+        {profile && <CertificationStatusCard profile={profile} />}
         {/* How Contrax understands your business — collapsible profile summary */}
         {profile && <CompanyProfile profile={profile} />}
 

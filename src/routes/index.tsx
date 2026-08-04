@@ -59,20 +59,6 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   return { businessName, user, bids, healthcareBids };
 });
 
-const submitLeadEmail = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => {
-    if (typeof data !== "string" || !data.includes("@")) {
-      throw new Error("Invalid email");
-    }
-    return data as string;
-  })
-  .handler(async ({ data: email }) => {
-    // Clean landing-page base: the database layer was removed, so leads are not
-    // persisted here. Accept and acknowledge so the UI can show its success state.
-    void email;
-    return { success: true, error: undefined };
-  });
-
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/")({
@@ -1235,66 +1221,9 @@ function CompetitorComparison() {
   );
 }
 
-// ── Lead Capture ──────────────────────────────────────────────────────────────
+// ── Guide CTA ─────────────────────────────────────────────────────────────────
 
 function LeadCapture() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email.trim() || !email.includes("@")) {
-      setErrorMsg("Please enter a valid email address.");
-      setStatus("error");
-      return;
-    }
-    setStatus("loading");
-    setErrorMsg("");
-    try {
-      const result = await submitLeadEmail({ data: email.trim() });
-      if (result.success) {
-        setStatus("success");
-      } else {
-        setErrorMsg(result.error ?? "Something went wrong.");
-        setStatus("error");
-      }
-    } catch {
-      setErrorMsg("Something went wrong. Please try again.");
-      setStatus("error");
-    }
-  };
-
-  if (status === "success") {
-    return (
-      <section className="bg-slate-900 py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-900/50">
-              <svg className="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="mt-6 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-              Guide sent! Check your inbox
-            </h2>
-            <p className="mt-3 text-lg text-blue-100/70">
-              We've emailed you the step-by-step checklist. In the meantime, you can also download it directly.
-            </p>
-            <div className="mt-8">
-              <a
-                href="/guide"
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
-              >
-                Download the guide →
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="bg-slate-900 py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-6">
@@ -1303,55 +1232,22 @@ function LeadCapture() {
             Free Guide: Win Your First Government Contract
           </h2>
           <p className="mt-4 text-lg text-blue-100/70">
-            Download our step-by-step checklist for small businesses — from SAM.gov registration to your first award.
+            A step-by-step checklist for small businesses — from SAM.gov registration to your first award. No sign-up required.
           </p>
-          <form onSubmit={handleSubmit} className="mt-8 sm:mx-auto sm:max-w-md">
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <label htmlFor="lead-email" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="lead-email"
-                type="email"
-                required
-                placeholder="you@company.com"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (status === "error") setStatus("idle");
-                }}
-                className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-base text-white placeholder:text-slate-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
-              />
-              <button
-                type="submit"
-                disabled={status === "loading"}
-                className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {status === "loading" ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Sending...
-                  </span>
-                ) : (
-                  "Send Me the Guide"
-                )}
-              </button>
-            </div>
-            {status === "error" && errorMsg && (
-              <p className="mt-3 text-sm text-red-600">{errorMsg}</p>
-            )}
-            <p className="mt-3 text-xs text-slate-500">
-              No spam, ever. Unsubscribe anytime. We respect your inbox.
-            </p>
-          </form>
+          <div className="mt-8">
+            <a
+              href="/guide"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
+            >
+              Read the free guide →
+            </a>
+          </div>
         </div>
       </div>
     </section>
   );
 }
+
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 

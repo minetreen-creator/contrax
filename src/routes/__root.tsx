@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 
+import { ChatWidget } from "~/components/ChatWidget";
 import appCss from "~/styles/app.css?url";
 
 const PROD_URL = "https://contrax.company";
@@ -82,6 +83,7 @@ function RootComponent() {
   return (
     <RootDocument>
       <Outlet />
+      <ChatWidget />
     </RootDocument>
   );
 }

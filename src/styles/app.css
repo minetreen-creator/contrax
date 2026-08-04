@@ -38,6 +38,13 @@
   from { opacity: 0; transform: scale(.6); }
   to { opacity: 1; transform: scale(1); }
 }
+@keyframes chat-slide-up {
+  from { transform: translateY(14px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-chat-slide-up {
+  animation: chat-slide-up 0.25s ease-out both;
+}
 .word-tool { @apply flex h-9 w-9 items-center justify-center rounded border border-slate-200 bg-white text-lg shadow-sm; }
 .sidebar-enter { animation: word-sidebar-in .55s cubic-bezier(.22,1,.36,1) 1s both; }
 .sidebar-closed { transform: translateX(105%); opacity: 0; pointer-events: none; }

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useState } from "react";
+import { Menu, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { sql } from "~/db";
 
@@ -148,11 +149,13 @@ function Home() {
 
 function Navbar({ user }: { user: { id: number; email: string } | null }) {
   const [loggingOut, setLoggingOut] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     setLoggingOut(true);
     window.location.href = "/";
   };
+  const closeMenu = () => setMenuOpen(false);
 
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
@@ -161,7 +164,8 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
           <img src="/logo.png" alt="Contrax" className="h-9 w-auto" />
         </a>
 
-        <div className="flex items-center gap-3">
+        {/* Desktop nav — unchanged, hidden below lg */}
+        <div className="hidden items-center gap-3 lg:flex">
           {user ? (
             <>
               <a
@@ -199,16 +203,105 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
                 Sign In
               </a>
               <a
-              href="/signup"
-              className="inline-flex items-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
+                href="/signup"
+                className="inline-flex items-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
               >
-              Get Started
+                Get Started
               </a>
+            </>
+          )}
+        </div>
+
+        {/* Mobile hamburger — visible below lg */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-expanded={menuOpen}
+          aria-controls="mobile-nav"
+          aria-label={menuOpen ? "Close menu" : "Open menu"}
+          className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 lg:hidden"
+        >
+          <span className="relative inline-flex h-5 w-5">
+            <X
+              className={`absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out ${
+                menuOpen ? "rotate-0 opacity-100" : "rotate-90 opacity-0"
+              }`}
+            />
+            <Menu
+              className={`absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out ${
+                menuOpen ? "-rotate-90 opacity-0" : "rotate-0 opacity-100"
+              }`}
+            />
+          </span>
+        </button>
+      </div>
+
+      {/* Mobile slide-down panel — same links as desktop */}
+      <div
+        id="mobile-nav"
+        aria-hidden={!menuOpen}
+        className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-in-out lg:hidden ${
+          menuOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+        }`}
+      >
+        <div className="min-h-0 overflow-hidden" inert={!menuOpen}>
+          <div className="space-y-2 border-t border-gray-100 px-6 pb-6 pt-4">
+            {user ? (
+              <>
+                <a
+                  href="/dashboard"
+                  onClick={closeMenu}
+                  className="block w-full rounded-lg bg-slate-900 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800"
+                >
+                  Dashboard
+                </a>
+                <button
+                  onClick={() => {
+                    closeMenu();
+                    handleLogout();
+                  }}
+                  disabled={loggingOut}
+                  className="block w-full rounded-lg border border-gray-200 px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50"
+                >
+                  {loggingOut ? "Signing out..." : "Sign out"}
+                </button>
               </>
-              )}
-              </div>
-              </div>
-              </nav>
+            ) : (
+              <>
+                <a
+                  href="/pricing"
+                  onClick={closeMenu}
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
+                >
+                  Pricing
+                </a>
+                <a
+                  href="/demo"
+                  onClick={closeMenu}
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
+                >
+                  Request a demo
+                </a>
+                <a
+                  href="/login"
+                  onClick={closeMenu}
+                  className="block w-full rounded-lg border border-gray-200 px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
+                >
+                  Sign In
+                </a>
+                <a
+                  href="/signup"
+                  onClick={closeMenu}
+                  className="block w-full rounded-lg bg-amber-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
+                >
+                  Get Started
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
   );
 }
 

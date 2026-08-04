@@ -89,6 +89,16 @@ CREATE TABLE IF NOT EXISTS bids (
     UNIQUE(source, external_id)
 );
 
+CREATE TABLE IF NOT EXISTS bid_alerts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    bid_id INTEGER NOT NULL REFERENCES bids(id),
+    alert_type TEXT DEFAULT 'new_match',
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(user_id, bid_id, alert_type)
+);
+
 CREATE TABLE IF NOT EXISTS saved_matches (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),

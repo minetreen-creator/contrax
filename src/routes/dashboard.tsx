@@ -79,6 +79,7 @@ interface DashboardData {
   urgentTrackedCount: number;
   topCompetitor: { name: string; awards: number } | null;
   activeAwardees: number;
+  unreadAlerts: number;
 }
 
 // ── Server Functions ─────────────────────────────────────────────────────────
@@ -238,7 +239,8 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   // Best-effort: generate deadline alert notifications for this user
   try { createDeadlineAlertsForUser(user.id, user.email).catch(() => {}); } catch { /* non-blocking */ }
 
-  return { profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees };
+  let unreadAlerts = 0; try { const ar = await sql()`SELECT COUNT(*)::int AS count FROM bid_alerts WHERE user_id = ${user.id} AND is_read=false`; unreadAlerts = Number((ar[0] as any)?.count || 0); } catch {}
+  return { profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts };
 });
 
 // ── Fetch tracked bid IDs for the current user ──────────────────────────────
@@ -1390,6 +1392,7 @@ function DashboardPage() {
             <span className="text-lg font-bold tracking-tight text-slate-900">Contrax</span>
           </a>
           <div className="flex items-center gap-4">
+            <a href="/alerts" className="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors">🔔 Alerts {data?.unreadAlerts ? <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">{data.unreadAlerts}</span> : null}</a>
             <a href="/tracking" className="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors">
               📅 Tracking
               {urgentTrackedCount > 0 && (

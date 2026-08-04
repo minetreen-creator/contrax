@@ -31,6 +31,7 @@ import { nycSocrataSource, nysSocrataSource } from "./sources/socrata";
 import type { RawBid } from "./sources/sam-gov";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
 import { createNotification } from "../lib/notifications";
+import { generateBidAlerts } from "../lib/bid-alerts";
 
 interface SyncSource {
   name: string;
@@ -176,6 +177,12 @@ export async function runSync(): Promise<SyncResult> {
         console.log(`   [${source}] ${err}`);
       }
     }
+  }
+
+  // Generate durable in-app bid alerts for every matching profile.
+  if (totalNew > 0) {
+    try { console.log(`🔔 Created ${await generateBidAlerts(allNewBids.map((b) => b.bid_id))} durable bid alert(s)`); }
+    catch (err) { console.error("🔔 Failed to generate bid alerts:", (err as Error).message); }
   }
 
   // Notify matching profiles without allowing notification failures to break sync.

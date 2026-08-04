@@ -41,6 +41,11 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
   return rows as Bid[];
 });
 
+const getUnreadAlertCount = async (user: { id: number } | null) => {
+  if (!user) return 0;
+  try { const rows = await sql()`SELECT COUNT(*)::int AS count FROM bid_alerts WHERE user_id=${user.id} AND is_read=false`; return Number((rows[0] as any)?.count || 0); } catch { return 0; }
+};
+
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   const [businessName, user, bids, healthcareBids] = await Promise.all([
     (async () => {
@@ -57,7 +62,8 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getRecentBids(),
     getHealthcareBids(),
   ]);
-  return { businessName, user, bids, healthcareBids };
+  const alertCount = await getUnreadAlertCount(user);
+  return { businessName, user, bids, healthcareBids, alertCount };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -107,7 +113,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -169,6 +175,7 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
           {user ? (
             <>
               <a href="/competitors" className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900">Competitors</a>
+              <a href="/alerts" aria-label="Bid alerts" className="relative inline-flex items-center rounded-lg px-3 py-2 text-lg text-gray-600 hover:text-gray-900">🔔{alertCount > 0 && <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">{alertCount}</span>}</a>
               <a
                 href="/dashboard"
                 className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800"
@@ -250,6 +257,7 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
             {user ? (
               <>
                 <a href="/competitors" onClick={closeMenu} className="block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900">Competitors</a>
+                <a href="/alerts" onClick={closeMenu} className="block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900">🔔 Bid alerts{alertCount > 0 ? ` (${alertCount})` : ""}</a>
                 <a
                   href="/dashboard"
                   onClick={closeMenu}

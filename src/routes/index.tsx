@@ -135,7 +135,7 @@ function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Navbar user={user} />
+      <Navbar user={user} alertCount={alertCount} />
       <Hero businessName={businessName} />
       <ProductShowcase />
       <BidTicker bids={bids} />
@@ -155,7 +155,7 @@ function Home() {
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
 
-function Navbar({ user }: { user: { id: number; email: string } | null }) {
+function Navbar({ user, alertCount }: { user: { id: number; email: string } | null; alertCount: number }) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 

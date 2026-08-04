@@ -549,7 +549,7 @@ function HowItWorks() {
       number: "02",
       title: "We find your matches",
       description:
-        "Contrax monitors federal procurement sites daily, filtering thousands of opportunities to surface only the ones relevant to your business.",
+        "Contrax monitors federal and city procurement sites daily, filtering thousands of opportunities to surface only the ones relevant to your business.",
       icon: (
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -978,7 +978,7 @@ function CompetitorComparison() {
     {
       label: "Bid discovery",
       tooltip: "Who finds opportunities for you?",
-      contrax: { value: "Scans federal procurement sites daily", positive: true },
+      contrax: { value: "Scans federal and city procurement sites daily", positive: true },
       manual: { value: "You search SAM.gov, state portals & city sites manually", positive: false },
       consultant: { value: "Consultant checks known sources during business hours", positive: false },
       tools: { value: "Requires you to set up searches & filters yourself", positive: false },

@@ -4,7 +4,7 @@ const columns = ["Contrax", "GovWin / Deltek", "BidNet / Bonfire", "GovSpend", "
 const rows = [
   ["Pricing", "$49–399/mo with free trial", "$5K–20K+/yr (enterprise)", "$300–800/mo", "Varies by plan", "$0 (but cost of time)", "$3–10K+/mo retainer"],
   ["Free trial", "21-day free trial", "No or limited", "No or limited", "No or limited", "N/A", "No"],
-  ["Bid coverage", "Federal (SAM.gov, synced daily)", "Federal only (strong)", "State/Local focused", "Federal spend data", "Limited to what you search", "Depends on their expertise"],
+  ["Bid coverage", "Federal + City (SAM.gov + NYC, synced daily)", "Federal only (strong)", "State/Local focused", "Federal spend data", "Limited to what you search", "Depends on their expertise"],
   ["Proposal drafting", "Yes (tailored to each RFP)", "No built-in drafting", "No", "No", "N/A", "Depends on consultant"],
   ["Win probability scoring", "Yes", "Partial (spend analytics)", "No", "Spend analytics", "N/A", "Subjective"],
   ["Ease of use / onboarding", "Minutes (4-step wizard)", "Weeks (enterprise onboarding)", "Moderate", "Moderate", "Steep (learn each system)", "Quick, but onboarding takes weeks"],

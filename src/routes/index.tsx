@@ -168,6 +168,7 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
         <div className="hidden items-center gap-3 lg:flex">
           {user ? (
             <>
+              <a href="/competitors" className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900">Competitors</a>
               <a
                 href="/dashboard"
                 className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800"
@@ -248,6 +249,7 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
           <div className="space-y-2 border-t border-gray-100 px-6 pb-6 pt-4">
             {user ? (
               <>
+                <a href="/competitors" onClick={closeMenu} className="block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900">Competitors</a>
                 <a
                   href="/dashboard"
                   onClick={closeMenu}

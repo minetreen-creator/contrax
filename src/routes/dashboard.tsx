@@ -77,6 +77,8 @@ interface DashboardData {
   totalBids: number;
   lossesCount: number;
   urgentTrackedCount: number;
+  topCompetitor: { name: string; awards: number } | null;
+  activeAwardees: number;
 }
 
 // ── Server Functions ─────────────────────────────────────────────────────────
@@ -217,6 +219,15 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   try { const lossRows = await sql()`SELECT COUNT(*) as count FROM bid_losses WHERE user_email = ${user.email}`; lossesCount = Number(lossRows[0]?.count || 0); } catch {}
 
   // Urgent tracked bids count (due within 3 days)
+  let topCompetitor: { name: string; awards: number } | null = null;
+  let activeAwardees = 0;
+  try {
+    const codes = (profile?.naics_codes || []).map(String);
+    const rows = codes.length ? await sql()`SELECT winning_company, COUNT(*)::int AS awards FROM awarded_contracts WHERE winning_company IS NOT NULL AND naics_code = ANY(${codes}) GROUP BY winning_company ORDER BY awards DESC LIMIT 1` : [];
+    topCompetitor = rows[0] ? { name: String((rows[0] as any).winning_company), awards: Number((rows[0] as any).awards) } : null;
+    const count = codes.length ? await sql()`SELECT COUNT(DISTINCT winning_company)::int AS count FROM awarded_contracts WHERE winning_company IS NOT NULL AND naics_code = ANY(${codes})` : [];
+    activeAwardees = Number((count[0] as any)?.count || 0);
+  } catch {}
   let urgentTrackedCount = 0;
   try {
     await sql()`CREATE TABLE IF NOT EXISTS tracked_bids (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'tracked', last_checked TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
@@ -227,7 +238,7 @@ const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): P
   // Best-effort: generate deadline alert notifications for this user
   try { createDeadlineAlertsForUser(user.id, user.email).catch(() => {}); } catch { /* non-blocking */ }
 
-  return { profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, lossesCount, urgentTrackedCount };
+  return { profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees };
 });
 
 // ── Fetch tracked bid IDs for the current user ──────────────────────────────
@@ -1466,6 +1477,7 @@ function DashboardPage() {
         {/* How Contrax understands your business — collapsible profile summary */}
         {profile && <CompanyProfile profile={profile} />}
 
+        <a href="/competitors" className="mb-4 block rounded-2xl border border-blue-100 bg-white p-5 shadow-sm transition hover:border-blue-300"><div className="flex items-center justify-between gap-4"><div><h2 className="font-bold text-slate-900">Competitor intelligence</h2><p className="mt-1 text-sm text-slate-600">Top competing firm: <b>{data?.topCompetitor?.name || "No match yet"}</b>{data?.topCompetitor ? ` (${data.topCompetitor.awards} recent awards)` : ""}</p><p className="mt-1 text-xs text-slate-500">Competition in your categories: <b>{(data?.activeAwardees || 0) > 20 ? "High" : (data?.activeAwardees || 0) > 7 ? "Medium" : "Low"}</b></p></div><span className="shrink-0 text-sm font-semibold text-blue-700">View competitors →</span></div></a>
         <a href="/losses" className="mb-4 block rounded-2xl border border-purple-100 bg-white p-5 shadow-sm transition hover:border-purple-300"><div className="flex items-center justify-between"><div><h2 className="font-bold text-slate-900">Why You Lost</h2><p className="mt-1 text-sm text-slate-500">{data?.lossesCount || 0} lost bid{data?.lossesCount === 1 ? "" : "s"} analyzed · track recurring weaknesses</p></div><span className="text-purple-600">View losses →</span></div></a>
         <a href="/learnings" className="mb-8 block rounded-2xl border border-green-200 bg-white p-5 shadow-sm transition hover:border-green-400"><div className="flex items-center justify-between"><div><h2 className="font-bold text-slate-900">🧠 Learning Engine</h2><p className="mt-1 text-sm text-slate-500">Win/loss patterns feed back into AI — smarter predictions with every outcome</p></div><span className="text-green-600">View learnings →</span></div></a>
 

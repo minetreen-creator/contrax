@@ -1,23 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ensureDemoSession } from "~/lib/demo";
-
-export const Route = createFileRoute("/demo")({
+export const Route = createFileRoute("/try-demo")({
   component: DemoPage,
   head: () => ({
-    title: "Contrax Demo — Try AI-Powered Government Contract Bidding",
+    title: "Try Contrax — Interactive Demo with Sample Data",
     meta: [
       { name: "description", content: "Explore Contrax with a pre-loaded demo account. See real government bids, AI win-probability scores, proposal drafts, and your full contracting dashboard — no signup required." },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://contrax.company/demo" },
-      { property: "og:title", content: "Contrax Demo — Try AI-Powered Government Contract Bidding" },
+      { property: "og:url", content: "https://contrax.company/try-demo" },
+      { property: "og:title", content: "Try Contrax — Interactive Demo with Sample Data" },
       { property: "og:description", content: "Explore Contrax with a pre-loaded demo account. See real government bids, AI scores, and proposal drafts — no signup required." },
     ],
-    links: [{ rel: "canonical", href: "https://contrax.company/demo" }],
+    links: [{ rel: "canonical", href: "https://contrax.company/try-demo" }],
   }),
 });
-
 function DemoPage() {
   const navigate = useNavigate();
   const [error, setError] = useState("");

@@ -187,6 +187,12 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
                 Pricing
               </a>
               <a
+                href="/demo"
+                className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900"
+              >
+                Request a demo
+              </a>
+              <a
                 href="/login"
                 className="inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
               >

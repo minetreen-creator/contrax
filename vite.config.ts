@@ -18,15 +18,11 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return;
-
-          // Keep the framework dependencies in stable, cacheable chunks while
-          // leaving application code (including route definitions) in the entry.
-          if (/node_modules\/(?:react|react-dom|scheduler)(?:\/|$)/.test(id)) {
-            return "vendor";
-          }
-          if (/node_modules\/@tanstack\/(?:react-router|router)(?:\/|$)/.test(id)) {
-            return "router";
-          }
+          // Keep framework dependencies in stable, cacheable chunks. Heavy
+          // browser/server-only dependencies must never inflate marketing entry.
+          if (/node_modules\/(?:react|react-dom|scheduler)(?:\/|$)/.test(id)) return "vendor";
+          if (/node_modules\/@tanstack\/(?:react-router|router)(?:\/|$)/.test(id)) return "router";
+          if (/node_modules\/(?:jspdf|stripe|resend)(?:\/|$)/.test(id)) return "app-vendor";
         },
       },
     },

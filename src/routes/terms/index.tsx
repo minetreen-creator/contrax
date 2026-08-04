@@ -54,7 +54,7 @@ function TermsPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">2. Description of Service</h2>
-            <p className="mt-3">Contrax is a contract intelligence platform that helps small businesses discover, understand, and respond to government contract opportunities, and provides consumer savings analysis through bill and receipt review.</p>
+            <p className="mt-3">Contrax is a contract intelligence platform that helps small businesses discover, understand, and respond to government contract opportunities with AI-powered tools.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">3. Accounts and Billing</h2>
@@ -90,7 +90,7 @@ function TermsPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">11. Contact</h2>
-            <p className="mt-3">For questions, contact <a href="mailto:legal@contrax.app" className="text-blue-600 hover:text-blue-500">legal@contrax.app</a>.</p>
+            <p className="mt-3">For questions, contact <a href="mailto:legal@contrax.company" className="text-blue-600 hover:text-blue-500">legal@contrax.company</a>.</p>
           </section>
         </div>
       </div>

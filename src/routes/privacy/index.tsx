@@ -51,11 +51,11 @@ function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-slate-900">1. Information We Collect</h2>
             <p className="mt-3">When you use Contrax, we collect information you provide directly: your name, email address, business details, and preferences when you create an account. We also collect information about your use of our services, including bid preferences, saved searches, and proposal activity.</p>
-            <p className="mt-3">For our Savings product, we collect bill images, receipt data, and pricing information you upload for analysis.</p>
+            <p className="mt-3">For our proposal and bid tools, we collect bid documents, solicitation text, and business information you provide for analysis and drafting.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">2. How We Use Your Information</h2>
-            <p className="mt-3">We use your information to: provide our services, match your business with government contracts, generate plain-English summaries and proposals, analyze bills for savings, send notifications, and provide support.</p>
+            <p className="mt-3">We use your information to: provide our services, match your business with government contracts, generate plain-English summaries and proposals, score win probability, track certification deadlines, send notifications, and provide support.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">3. Data Storage and Security</h2>
@@ -77,7 +77,7 @@ function PrivacyPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">7. Your Rights</h2>
-            <p className="mt-3">You may request access, correction, or deletion of your data at privacy@contrax.app. We will respond within 30 days.</p>
+            <p className="mt-3">You may request access, correction, or deletion of your data at privacy@contrax.company. We will respond within 30 days.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">8. Changes</h2>
@@ -85,7 +85,7 @@ function PrivacyPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">9. Contact</h2>
-            <p className="mt-3">Questions? Contact <a href="mailto:privacy@contrax.app" className="text-blue-600 hover:text-blue-500">privacy@contrax.app</a>.</p>
+            <p className="mt-3">Questions? Contact <a href="mailto:privacy@contrax.company" className="text-blue-600 hover:text-blue-500">privacy@contrax.company</a>.</p>
           </section>
         </div>
       </div>

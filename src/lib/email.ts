@@ -51,7 +51,7 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
     }
 
     await resend.emails.send({
-      from: "Contrax <hello@contrax.app>",
+      from: "Contrax <hello@contrax.company>",
       to: [to],
       subject: "Welcome to Contrax — let's find your first contract",
       html: welcomeEmailHtml(to),
@@ -89,8 +89,8 @@ export async function sendBidDigest(
     }
 
     await resend.emails.send({
-      from: "Contrax <hello@contrax.app>",
-      to: ["hello@contrax.app"],
+      from: "Contrax <hello@contrax.company>",
+      to: ["hello@contrax.company"],
       bcc: recipients,
       subject: `🆕 ${newBids.length} new government bids found — Contrax`,
       html: bidDigestHtml(newBids),

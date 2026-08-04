@@ -204,7 +204,7 @@ function SecurityPage() {
               },
               {
                 title: "Deletion",
-                detail: "You can request deletion of your account and associated data at any time via privacy@contrax.app. We respond to access and deletion requests within 30 days and remove or anonymize data we no longer need.",
+                detail: "You can request deletion of your account and associated data at any time via privacy@contrax.company. We respond to access and deletion requests within 30 days and remove or anonymize data we no longer need.",
               },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-gray-200/60 bg-white p-8 shadow-sm">
@@ -295,8 +295,8 @@ function SecurityPage() {
           <p className="mx-auto mt-8 max-w-3xl text-sm leading-relaxed text-gray-500">
             We will update this page if we add or change subprocessors. Questions
             about security or data handling? Email{" "}
-            <a href="mailto:privacy@contrax.app" className="font-medium text-blue-600 hover:text-blue-500">
-              privacy@contrax.app
+            <a href="mailto:privacy@contrax.company" className="font-medium text-blue-600 hover:text-blue-500">
+              privacy@contrax.company
             </a>.
           </p>
         </div>

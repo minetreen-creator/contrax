@@ -1446,10 +1446,10 @@ function Footer() {
             Terms of Service
           </a>
           <a
-            href="mailto:minetreen@gmail.com"
+            href="mailto:hello@contrax.company"
             className="text-sm text-gray-400 transition-colors hover:text-white"
           >
-            minetreen@gmail.com
+            hello@contrax.company
           </a>
         </div>
       </div>

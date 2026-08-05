@@ -8,7 +8,7 @@ import { hashPassword } from "~/lib/password";
 
 const SESSION_TTL_DAYS = 30;
 
-type SignupSearch = { plan?: string };
+type SignupSearch = { plan?: string; ticker_bid?: string; ticker_agency?: string };
 
 const validPlans = ["starter", "professional", "agency"] as const;
 
@@ -90,6 +90,8 @@ const signupFn = createServerFn({ method: "POST" })
 export const Route = createFileRoute("/signup")({
   validateSearch: (search: Record<string, unknown>): SignupSearch => ({
     plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "starter",
+    ticker_bid: typeof search.ticker_bid === "string" ? search.ticker_bid : undefined,
+    ticker_agency: typeof search.ticker_agency === "string" ? search.ticker_agency : undefined,
   }),
   loader: () => getCurrentUser(),
   component: SignupPage,
@@ -137,7 +139,7 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const currentUser = Route.useLoaderData();
   const navigate = useNavigate();
-  const { plan } = Route.useSearch();
+  const { plan, ticker_bid, ticker_agency } = Route.useSearch();
 
   const [email] = useState("");
   const [password] = useState("");
@@ -189,6 +191,22 @@ function SignupPage() {
             <span className="text-xl font-bold tracking-tight text-slate-900">Contrax</span>
           </a>
         </div>
+
+        {/* Ticker contextual banner */}
+        {ticker_bid && (
+          <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 p-5">
+            <p className="text-sm font-semibold text-amber-800">
+              Want to see the full details and generate a proposal draft for this contract?
+            </p>
+            <p className="mt-1 text-sm text-amber-700 line-clamp-2">
+              <span className="font-medium">{ticker_agency ? `${ticker_agency} — ` : ""}</span>
+              {ticker_bid}
+            </p>
+            <p className="mt-3 text-xs text-amber-600">
+              Start your free trial below to unlock the full opportunity.
+            </p>
+          </div>
+        )}
 
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">

@@ -549,15 +549,16 @@ function BidTicker({ bids }: { bids: Bid[] }) {
 
       <div className="ticker-track px-6">
         {tickerBids.map((bid, i) => (
-          <div
+          <a
             key={i}
-            className="w-72 flex-shrink-0 rounded-lg border border-gray-200 bg-white p-3 shadow-sm"
+            href={`/signup?ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}`}
+            className="group w-72 flex-shrink-0 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:border-amber-300 hover:shadow-md no-underline"
           >
-            <span className="mb-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+            <span className="mb-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 group-hover:bg-amber-100 group-hover:text-amber-700">
               {bid.agency}
             </span>
             <p
-              className="line-clamp-1 text-sm font-medium text-slate-800"
+              className="line-clamp-1 text-sm font-medium text-slate-800 group-hover:text-amber-700"
               title={bid.title}
             >
               {bid.title.length > 80 ? bid.title.slice(0, 80) + "..." : bid.title}
@@ -576,7 +577,10 @@ function BidTicker({ bids }: { bids: Bid[] }) {
                 </span>
               ) : null}
             </div>
-          </div>
+            <p className="mt-2 text-xs font-medium text-amber-600 opacity-0 transition-opacity group-hover:opacity-100">
+              View details & draft proposal →
+            </p>
+          </a>
         ))}
       </div>
     </section>

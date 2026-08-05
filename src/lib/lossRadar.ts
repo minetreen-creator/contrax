@@ -140,10 +140,13 @@ async function loadAwardGroups(): Promise<AwardGroup[]> {
 /** Loss signals: firms named as the winner of bids our users logged as losses. */
 async function loadLossGroups(): Promise<LossGroup[]> {
   if (!(await hasTable("public.bid_losses"))) return [];
-  // Guard against DBs where the awarded_to column hasn't been added yet
+  // Self-heal: DBs created before the awarded_to column existed get it added
+  // on first load, so loss signals populate instead of silently staying empty.
   try {
     const colCheck = await sql()`SELECT column_name FROM information_schema.columns WHERE table_name = 'bid_losses' AND column_name = 'awarded_to'`;
-    if (!colCheck.length) return [];
+    if (!colCheck.length) {
+      await sql()`ALTER TABLE bid_losses ADD COLUMN IF NOT EXISTS awarded_to TEXT`;
+    }
   } catch { return []; }
   try {
     const rows = await sql()`

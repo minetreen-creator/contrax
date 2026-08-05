@@ -80,6 +80,35 @@ function LossRadarPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  /**
+   * Downloads the current prospect list as a CSV file. Pure client-side: builds
+   * the CSV string from the already-loaded `data`, then triggers a download via
+   * Blob + object URL (no server round-trip).
+   */
+  const handleExportCsv = () => {
+    if (!data || data.prospects.length === 0) return;
+    const header = ["Company", "NAICS", "Award Count", "Total Value", "Loss Count", "Prospect Score"];
+    const escape = (value: string | number) => {
+      const s = String(value);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const lines = [
+      header.join(","),
+      ...data.prospects.map((p) =>
+        [p.company, p.naics, p.awardCount, p.totalValue, p.lossCount, p.prospectScore].map(escape).join(","),
+      ),
+    ];
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `loss-radar-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -146,7 +175,21 @@ function LossRadarPage() {
               Companies active in NAICS spaces where Contrax users compete — ranked by award volume, recency, and loss signals.
             </p>
           </div>
-          <p className="text-xs text-slate-400">Updated {new Date(data.lastUpdated).toLocaleString()}</p>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={!data || data.prospects.length === 0}
+              className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              title={data && data.prospects.length === 0 ? "No prospects to export yet" : "Download the prospect list as CSV"}
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Export CSV
+            </button>
+            <p className="text-xs text-slate-400">Updated {new Date(data.lastUpdated).toLocaleString()}</p>
+          </div>
         </div>
 
         {/* Summary stats */}

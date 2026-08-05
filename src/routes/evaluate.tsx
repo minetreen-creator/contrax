@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState, type ChangeEvent } from "react";
 import { getCurrentUser } from "~/lib/auth";
-import { TrialGate } from "~/components/TrialGate";
+import { TrialGate, PlanGate } from "~/components/TrialGate";
 import { evaluateProposal, type ProposalEvaluation } from "~/lib/evaluator";
 import { sql } from "~/db";
 
@@ -12,7 +12,7 @@ const loadBids = createServerFn({ method: "GET" }).handler(async () => {
 });
 const runEvaluation = createServerFn({ method: "POST" }).validator((d: unknown) => { const x = d as { rfp?: string; proposal?: string }; if (!x.rfp?.trim() || !x.proposal?.trim()) throw new Error("RFP and proposal are required"); return { rfp: x.rfp.trim(), proposal: x.proposal.trim() }; }).handler(async ({ data }) => { if (!(await getCurrentUser())) throw new Error("Not authenticated"); return evaluateProposal(data.rfp, data.proposal); });
 export const Route = createFileRoute("/evaluate")({ loader: () => getCurrentUser(), component: EvaluatePage, head: () => ({ meta: [{ title: "Proposal Evaluator — Section M Scoring | Contrax" }, { name: "description", content: "Score your government proposal draft against the RFP's Section M evaluation criteria with Contrax AI." }] }) });
-function EvaluatePage() { const user = Route.useLoaderData(); if (!user) return <div className="min-h-screen bg-slate-950 p-10 text-white"><h1 className="text-4xl font-bold">Proposal Evaluator</h1><p className="mt-4">Sign in to evaluate a proposal draft.</p><a className="mt-6 inline-block rounded-lg bg-amber-500 px-5 py-3 font-semibold" href="/login">Sign in →</a></div>; return <TrialGate><Evaluator /></TrialGate>; }
+function EvaluatePage() { const user = Route.useLoaderData(); if (!user) return <div className="min-h-screen bg-slate-950 p-10 text-white"><h1 className="text-4xl font-bold">Proposal Evaluator</h1><p className="mt-4">Sign in to evaluate a proposal draft.</p><a className="mt-6 inline-block rounded-lg bg-amber-500 px-5 py-3 font-semibold" href="/login">Sign in →</a></div>; return <TrialGate><PlanGate featureName="Proposal Evaluator"><Evaluator /></PlanGate></TrialGate>; }
 function Evaluator() { const [bids, setBids] = useState<{bid_id:string;bid_title:string;agency:string}[]>([]); const [rfp, setRfp] = useState(""); const [proposal, setProposal] = useState(""); const [result, setResult] = useState<ProposalEvaluation | null>(null); const [loading, setLoading] = useState(false); const [error, setError] = useState(""); useEffect(() => { loadBids().then(setBids).catch(() => {}); }, []);
  const submit = async () => { setError(""); setLoading(true); try { setResult(await runEvaluation({ data: { rfp, proposal } })); } catch (e) { setError(e instanceof Error ? e.message : "Evaluation failed"); } finally { setLoading(false); } };
  const readFile = async (e: ChangeEvent<HTMLInputElement>) => { const file=e.target.files?.[0]; if (!file) return; if (file.type === "text/plain" || file.name.endsWith(".txt")) setProposal(await file.text()); else setError("PDF/DOCX files must be pasted as text in this version."); };

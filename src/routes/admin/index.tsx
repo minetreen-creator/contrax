@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { loadLossRadar } from "~/lib/lossRadar";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface AdminMetrics {
@@ -66,6 +67,19 @@ const exportWaitlistCsv = createServerFn({ method: "GET" }).handler(async (): Pr
   return [header, ...dataRows].join("\n");
 });
 
+/** Count of Loss Radar prospects at or above the high-value threshold. */
+const getLossRadarSummary = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ highValueProspects: number }> => {
+    await requireAdmin();
+    try {
+      const data = await loadLossRadar();
+      return { highValueProspects: data.highValueCount };
+    } catch {
+      return { highValueProspects: 0 };
+    }
+  },
+);
+
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/admin/")({
   // Gate the page: anonymous visitors go to /login, authenticated non-admins
@@ -86,10 +100,14 @@ function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [lossRadarCount, setLossRadarCount] = useState(0);
 
   useEffect(() => {
-    fetchMetrics()
-      .then(setMetrics)
+    Promise.all([fetchMetrics(), getLossRadarSummary()])
+      .then(([m, s]) => {
+        setMetrics(m);
+        setLossRadarCount(s.highValueProspects);
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load metrics"))
       .finally(() => setLoading(false));
   }, []);
@@ -171,6 +189,31 @@ function AdminPage() {
 
       <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
         <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+
+        {/* Loss Radar Section */}
+        <section>
+          <a
+            href="/admin/loss-radar"
+            className="group flex flex-col gap-1 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-white p-6 shadow-sm transition-colors hover:border-amber-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-2xl shadow-sm">
+                🎯
+              </span>
+              <div>
+                <p className="text-lg font-bold text-slate-900">Loss Radar</p>
+                <p className="mt-0.5 text-sm text-slate-600">
+                  {lossRadarCount > 0
+                    ? `${lossRadarCount} high-value ${lossRadarCount === 1 ? "prospect" : "prospects"} identified for outreach`
+                    : "No high-value prospects identified yet — open Loss Radar to scan award activity"}
+                </p>
+              </div>
+            </div>
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-amber-700 group-hover:text-amber-800 sm:mt-0">
+              Open radar <span aria-hidden="true">&rarr;</span>
+            </span>
+          </a>
+        </section>
 
         {/* Users Section */}
         <section>

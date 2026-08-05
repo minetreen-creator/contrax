@@ -149,3 +149,9 @@ setup()
     console.error("❌ Setup failed:", e);
     process.exit(1);
   });
+
+  // 007: FPDS / USASpending incumbent intelligence cache
+  console.log("\n--- Migration 007: fpds_lookups ---");
+  await db`CREATE TABLE IF NOT EXISTS fpds_lookups (id SERIAL PRIMARY KEY, lookup_key TEXT NOT NULL UNIQUE, incumbent_name TEXT, incumbent_uei TEXT, total_obligated DECIMAL(14,2), pop_start_date TEXT, pop_end_date TEXT, historical_pricing JSONB DEFAULT '[]'::jsonb, fetched_at TIMESTAMPTZ DEFAULT NOW())`;
+  console.log("fpds_lookups ready");
+

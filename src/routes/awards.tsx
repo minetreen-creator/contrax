@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { sql } from "~/db";
+import { IncumbentCard } from "~/components/IncumbentCard";
+import { getFPDSIntel, type FPDSIntel } from "~/lib/fpds";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Award {
@@ -9,32 +11,10 @@ interface Award {
   winning_company: string; award_amount: string; award_date: string;
   incumbent: string | null; category: string | null; location: string | null;
   naics_code: string | null; description: string | null; source_url: string | null;
-  source: string | null;
 }
 interface SimilarBid {
   id: number; title: string; agency: string; due_date: string;
   estimated_value: string; category: string;
-}
-
-// City open-data sources map to a visible city name; every other source
-// (sam_gov, va_evirginia, nc, md_dc, tx, fl, cities, nys_socrata) is federal/state.
-const CITY_LABELS: Record<string, string> = {
-  nyc_open_data: "New York City",
-  chicago_open_data: "Chicago",
-  la_open_data: "Los Angeles",
-  sf_open_data: "San Francisco",
-  austin_open_data: "Austin",
-};
-function isCitySource(source: string | null | undefined): boolean {
-  return !!source && !!CITY_LABELS[source];
-}
-function sourceLabel(source: string | null | undefined): string {
-  return source && CITY_LABELS[source] ? CITY_LABELS[source] : "Federal";
-}
-function sourceBadgeClass(source: string | null | undefined): string {
-  return isCitySource(source)
-    ? "bg-emerald-100 text-emerald-700"
-    : "bg-blue-100 text-blue-700";
 }
 
 const SEED_AWARDS = [
@@ -58,7 +38,7 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promis
   // is not present in every production database.
   const rows = await sql()`
     SELECT id, title, agency, description, location, category, due_date,
-           estimated_value, source_url, source, created_at
+           estimated_value, source_url, created_at
     FROM bids
     ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
     LIMIT 100
@@ -79,7 +59,6 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promis
     naics_code: null,
     description: r.description || null,
     source_url: r.source_url || null,
-    source: r.source || null,
   }));
 
   const similarBids: Record<number, SimilarBid[]> = {};
@@ -100,28 +79,12 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promis
   return { awards, similarBids };
 });
 
+const getIncumbentIntel = createServerFn({ method: "GET" }).handler(async ({ data }: { data: { naicsCode: string; agency: string; title: string } }): Promise<FPDSIntel | null> => {
+  return getFPDSIntel(data.naicsCode, data.agency, data.title);
+});
+
 // ── Route ──────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/awards")({
-  head: () => ({
-    meta: [
-      { title: "Government Contract Database — Contrax" },
-      { name: "description", content: "Browse recent government contract awards from SAM.gov. See who won, for how much, and which incumbents they replaced — research your competition and find recompete opportunities." },
-      { name: "robots", content: "index, follow" },
-      { property: "og:title", content: "Government Contract Database — Contrax" },
-      { property: "og:description", content: "Browse recent government contract awards from SAM.gov. See who won, for how much, and which incumbents they replaced." },
-      { property: "og:image", content: "https://contrax.company/logo-square.png" },
-      { property: "og:image:type", content: "image/png" },
-      { property: "og:image:width", content: "1200" },
-      { property: "og:image:height", content: "630" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Government Contract Awards Database — Contrax" },
-      { name: "twitter:description", content: "Browse recent government contract awards from SAM.gov — research your competition and find recompete opportunities." },
-      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
-    ],
-    links: [
-      { rel: "canonical", href: "https://contrax.company/awards" },
-    ],
-  }),
   loader: () => getAwardsData(),
   component: AwardsPage,
 });
@@ -138,8 +101,16 @@ function AwardsPage() {
   const [search, setSearch] = useState("");
   const [agencyFilter, setAgencyFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
-  const [sourceFilter, setSourceFilter] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [intel, setIntel] = useState<Record<number, FPDSIntel | null | undefined>>({});
+  const [loadingIntel, setLoadingIntel] = useState<number | null>(null);
+  async function loadIntel(award: Award) {
+    if (!award.naics_code || loadingIntel === award.id) return;
+    if (intel[award.id] !== undefined) { setExpandedId(award.id); return; }
+    setLoadingIntel(award.id); setExpandedId(award.id);
+    const result = await getIncumbentIntel({ data: { naicsCode: award.naics_code, agency: award.agency, title: award.title } });
+    setIntel((prev) => ({ ...prev, [award.id]: result })); setLoadingIntel(null);
+  }
 
   const agencies = [...new Set(awards.map((a) => a.agency))].sort();
   const categories = [...new Set(awards.filter((a) => a.category).map((a) => a.category!))].sort();
@@ -151,8 +122,6 @@ function AwardsPage() {
     }
     if (agencyFilter && a.agency !== agencyFilter) return false;
     if (categoryFilter && a.category !== categoryFilter) return false;
-    if (sourceFilter === "federal" && isCitySource(a.source)) return false;
-    if (sourceFilter !== "" && sourceFilter !== "federal" && a.source !== sourceFilter) return false;
     return true;
   });
 
@@ -174,8 +143,8 @@ function AwardsPage() {
       <main className="mx-auto max-w-5xl px-4 py-8">
         {/* Hero */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-slate-900">Contract Database</h1>
-          <p className="mt-2 text-lg text-slate-500">Past awards and open opportunities to sharpen your bids</p>
+          <h1 className="text-3xl font-bold text-slate-900">Past Awards</h1>
+          <p className="mt-2 text-lg text-slate-500">Learn from awarded contracts to sharpen your bids</p>
         </div>
 
         {/* Filters */}
@@ -206,18 +175,6 @@ function AwardsPage() {
           >
             <option value="">All Categories</option>
             {categories.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          <select
-            value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
-            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-            aria-label="Filter by source"
-          >
-            <option value="">All Sources</option>
-            <option value="federal">Federal</option>
-            {Object.entries(CITY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
           </select>
         </div>
 
@@ -258,7 +215,6 @@ function AwardsPage() {
                       <span>·</span>
                       <span>{fmtDate(award.award_date)}</span>
                       {award.category && <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{award.category}</span>}
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${sourceBadgeClass(award.source)}`}>{sourceLabel(award.source)}</span>
                     </div>
                   </div>
 
@@ -266,7 +222,6 @@ function AwardsPage() {
                   <div className="hidden sm:flex sm:flex-1 sm:items-center sm:gap-4 min-w-0">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-slate-900 truncate text-sm">{award.title}</h3>
-                      <span className={`mt-0.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${sourceBadgeClass(award.source)}`}>{sourceLabel(award.source)}</span>
                     </div>
                     <span className="w-16 shrink-0 text-sm font-medium text-slate-600">{award.agency}</span>
                     <span className="w-36 shrink-0 text-sm text-slate-600 truncate">{award.winning_company}</span>
@@ -289,9 +244,15 @@ function AwardsPage() {
                   </div>
                 )}
 
+                <div className="border-t border-slate-100 px-4 sm:px-5 py-3">
+                  {award.naics_code ? <button type="button" onClick={(e) => { e.stopPropagation(); loadIntel(award); }} className="text-sm font-semibold text-indigo-700 hover:text-indigo-900">🔍 {loadingIntel === award.id ? "Loading incumbent intelligence…" : intel[award.id] ? "Hide Incumbent Intelligence" : "View Incumbent"}</button> : <span className="text-xs text-slate-400">FPDS lookup unavailable — no NAICS code</span>}
+                </div>
+
                 {/* Expanded Detail Panel */}
                 {isExpanded && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 space-y-5">
+                    {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No FPDS data available for this NAICS + agency combination.</p>}
+                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} />}
                     {/* Key Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">
@@ -347,7 +308,6 @@ function AwardsPage() {
                       {award.location && <div className="rounded-lg border border-slate-100 bg-white p-3"><p className="font-medium text-slate-400 text-xs uppercase">Location</p><p className="text-slate-800 font-medium">{award.location}</p></div>}
                       {award.naics_code && <div className="rounded-lg border border-slate-100 bg-white p-3"><p className="font-medium text-slate-400 text-xs uppercase">NAICS Code</p><p className="text-slate-800 font-mono font-medium">{award.naics_code}</p></div>}
                       <div className="rounded-lg border border-slate-100 bg-white p-3"><p className="font-medium text-slate-400 text-xs uppercase">Agency</p><p className="text-slate-800 font-medium">{award.agency}</p></div>
-                      <div className="rounded-lg border border-slate-100 bg-white p-3"><p className="font-medium text-slate-400 text-xs uppercase">Source</p><p className="text-slate-800 font-medium">{sourceLabel(award.source)}</p></div>
                     </div>
 
                     {/* Description */}

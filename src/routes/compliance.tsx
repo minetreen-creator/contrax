@@ -5,6 +5,7 @@ import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
 import { TrialGate } from "~/components/TrialGate";
 import { detectCredentialRequirements, licenseMatches, daysUntilExpiry, type License } from "~/lib/healthcare";
+import { searchFARClauses, type FARClause } from "~/lib/far-dfars";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface ComplianceIssue {
@@ -90,6 +91,15 @@ const getLicenseProfile = createServerFn({ method: "GET" }).handler(async (): Pr
   }
 });
 
+/** FAR/DFARS clauses most relevant to the RFP text — shown as a reference section. */
+const getFarReference = createServerFn({ method: "POST" })
+  .validator((d: unknown) => ({ rfpText: String((d as { rfpText?: unknown })?.rfpText ?? "").slice(0, 8000) }))
+  .handler(async ({ data }): Promise<FARClause[]> => {
+    const user = await getCurrentUser(); if (!user) throw new Error("Not authenticated");
+    if (!data.rfpText.trim()) return [];
+    return searchFARClauses(data.rfpText, 6);
+  });
+
 export const checkCompliance = createServerFn({ method: "POST" })
   .validator((d: unknown) => d as { rfpText: string; proposalText: string; bidTitle?: string })
   .handler(async ({ data }): Promise<CheckResult> => {
@@ -98,6 +108,22 @@ export const checkCompliance = createServerFn({ method: "POST" })
 
     if (!data.rfpText || !data.rfpText.trim()) throw new Error("RFP text is required");
     if (!data.proposalText || !data.proposalText.trim()) throw new Error("Proposal draft text is required");
+
+    // Cross-reference the RFP against the live FAR/DFARS clause database so the
+    // AI flags mandatory clauses with exact citations (e.g. "per FAR 52.212-1")
+    // instead of guessing which regulations apply.
+    let farBlock = "";
+    try {
+      const clauses = await searchFARClauses(data.rfpText, 8);
+      if (clauses.length > 0) {
+        farBlock = `RELEVANT FAR/DFARS REGULATIONS (cite exact clause numbers in your findings — e.g. "per FAR 52.212-1" — and flag any of these clauses the RFP incorporates that the proposal fails to address):\n` +
+          clauses.map((c) => {
+            const src = c.source === "dfars" ? "DFARS" : "FAR";
+            const snippet = c.full_text.length > 500 ? `${c.full_text.slice(0, 500)}…` : c.full_text;
+            return `- ${src} ${c.clause_number} — ${c.title}: ${snippet}`;
+          }).join("\n");
+      }
+    } catch { /* regulatory lookup must never block a compliance check */ }
 
     const prompt = `You are a government contract compliance expert. Your job is to compare a proposal draft against an RFP/solicitation and identify every compliance issue.
 
@@ -121,7 +147,7 @@ Also provide:
 Return ONLY valid JSON, no markdown:
 {"complianceScore": number, "summary": "string", "passCount": number, "failCount": number, "warningCount": number, "issues": [{ "severity": "CRITICAL"|"HIGH"|"MEDIUM"|"LOW", "requirement": "string", "finding": "string", "recommendation": "string" }]}
 
-RFP / SOLICITATION TEXT:
+${farBlock ? `${farBlock}\n\n` : ""}RFP / SOLICITATION TEXT:
 ---
 ${data.rfpText.substring(0, 8000)}
 ---
@@ -348,6 +374,8 @@ function CompliancePage() {
   const [loadingContext, setLoadingContext] = useState(false);
   const [contextBidTitle, setContextBidTitle] = useState<string | null>(null);
   const [licenseProfile, setLicenseProfile] = useState<License[] | null>(null);
+  const [farRef, setFarRef] = useState<FARClause[] | null>(null);
+  const [farRefExpanded, setFarRefExpanded] = useState(false);
 
   // On mount, load the user's stored licenses for the gap check
   useEffect(() => {
@@ -382,6 +410,11 @@ function CompliancePage() {
       const r = await checkCompliance({ data: form });
       setResults(r.result);
       setAllHistory(prev => [r.result, ...prev]);
+      // Load the FAR/DFARS reference for this RFP alongside the results.
+      setFarRef(null);
+      getFarReference({ data: { rfpText: form.rfpText } })
+        .then((clauses) => setFarRef(clauses))
+        .catch(() => setFarRef([]));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Compliance check failed");
     } finally {
@@ -558,6 +591,42 @@ function CompliancePage() {
                       </div>
                     ) : (
                       <IssuesList issues={results.issues} />
+                    )}
+                  </div>
+
+                  {/* FAR/DFARS Reference */}
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setFarRefExpanded(v => !v)}
+                      className="flex w-full items-center justify-between gap-3 text-left"
+                    >
+                      <div>
+                        <h3 className="font-semibold text-slate-900">FAR/DFARS Reference</h3>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          {farRef === null
+                            ? "Looking up clauses relevant to this RFP…"
+                            : farRef.length === 0
+                              ? "No matching clauses found for this RFP text"
+                              : `${farRef.length} clause${farRef.length === 1 ? "" : "s"} matched — exact regulatory text the AI cites above`}
+                        </p>
+                      </div>
+                      <svg className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${farRefExpanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    {farRefExpanded && farRef && farRef.length > 0 && (
+                      <div className="mt-4 divide-y divide-slate-100">
+                        {farRef.map((c) => (
+                          <div key={c.clause_number} className="py-3 first:pt-0 last:pb-0">
+                            <p className="text-sm font-semibold text-slate-900">
+                              <span className={`mr-1.5 inline-flex rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${c.source === "dfars" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>{c.source}</span>
+                              {c.clause_number} — {c.title}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500 leading-relaxed line-clamp-4">
+                              {c.full_text.length > 700 ? `${c.full_text.slice(0, 700)}…` : c.full_text}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>

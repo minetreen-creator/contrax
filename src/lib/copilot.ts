@@ -14,6 +14,7 @@
 import { buildProfileContext } from "~/lib/profile-context";
 import { getLearningContext } from "~/lib/learning";
 import { getRelevantContext } from "~/lib/knowledge";
+import { getRegulatoryContext } from "~/lib/far-dfars";
 import { sql } from "~/db";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
@@ -184,6 +185,28 @@ export async function fetchCopilotContext(userEmail: string): Promise<string> {
     knowledgeBlock = "";
   }
   sections.push(`KNOWLEDGE BASE:\n${knowledgeBlock || "No relevant knowledge-base documents found."}`);
+
+  // 7. FAR/DFARS regulatory context (RAG over live FAR + DFARS clause text).
+  // Query built from the business's industry / NAICS / certifications so the
+  // Copilot surfaces the clauses that actually govern their bids — and cites
+  // exact clause numbers (e.g. "per FAR 52.212-1") instead of guessing.
+  const certNames = Array.isArray(profile?.certifications) ? profile.certifications.join(" ") : "";
+  const regQuery = [
+    "government contracting FAR DFARS clauses",
+    profile?.industry ?? "",
+    naicsQuery,
+    certNames,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  let regBlock = "";
+  try {
+    regBlock = await getRegulatoryContext(regQuery || "government contracting small business set-aside clauses", 6);
+  } catch {
+    regBlock = "";
+  }
+  sections.push(`FAR/DFARS REGULATIONS:\n${regBlock || "No FAR/DFARS clauses retrieved — answer from general regulatory knowledge but avoid citing specific clause numbers you cannot verify."}`);
 
   return sections.join("\n\n");
 }

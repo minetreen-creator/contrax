@@ -514,3 +514,20 @@ BEGIN
   EXCEPTION WHEN OTHERS THEN NULL;
   END;
 END $$;
+
+-- FAR/DFARS regulatory knowledge base — exact clause text for AI citation.
+-- Populated by /api/sync-far (admin button + daily cron) from acquisition.gov
+-- compiled HTML; bootstrapped from the bundled seed on first query when empty.
+CREATE TABLE IF NOT EXISTS far_clauses (
+    id SERIAL PRIMARY KEY,
+    clause_number TEXT NOT NULL UNIQUE,
+    title TEXT NOT NULL,
+    part TEXT,
+    subpart TEXT,
+    section TEXT,
+    full_text TEXT NOT NULL,
+    source TEXT DEFAULT 'far',
+    last_updated TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_far_clauses_search ON far_clauses USING gin(to_tsvector('english', title || ' ' || full_text));
+CREATE INDEX IF NOT EXISTS idx_far_clauses_source ON far_clauses (source);

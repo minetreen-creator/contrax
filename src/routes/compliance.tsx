@@ -436,12 +436,7 @@ function CompliancePage() {
       <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <a href="/dashboard" className="inline-flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
-              <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </span>
-            <span className="text-lg font-bold tracking-tight text-slate-900">Contrax</span>
+            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
           </a>
           <div className="flex items-center gap-4">
             <a href="/dashboard" className="text-sm font-medium text-slate-400 hover:text-slate-600 transition-colors">Dashboard</a>

@@ -133,10 +133,7 @@ function AwardsPage() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-5xl px-4 py-4 flex items-center justify-between">
           <a href="/" className="inline-flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-900">
-              <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </span>
-            <span className="text-lg font-bold tracking-tight text-slate-900">Contrax</span>
+            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
           </a>
           <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">Dashboard</a>
         </div>

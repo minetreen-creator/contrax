@@ -32,6 +32,7 @@ async function ensurePartners() {
   for (const statement of [
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS id SERIAL`,
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS company_name TEXT`,
+    sql() `ALTER TABLE partner_companies ALTER COLUMN name DROP NOT NULL`,
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS capabilities JSONB NOT NULL DEFAULT '[]'::jsonb`,
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS naics_codes JSONB NOT NULL DEFAULT '[]'::jsonb`,
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS past_awards JSONB NOT NULL DEFAULT '[]'::jsonb`,
@@ -44,7 +45,7 @@ async function ensurePartners() {
   // If table was created with 'name' instead of 'company_name', migrate data.
   try { await sql()`UPDATE partner_companies SET company_name = name WHERE company_name IS NULL AND name IS NOT NULL`; } catch {}
   const count = await sql() `SELECT COUNT(*) AS count FROM partner_companies`;
-  if (Number((count[0] as any)?.count || 0) === 0) for (const p of SEED) await sql() `INSERT INTO partner_companies (company_name,capabilities,naics_codes,past_awards,location,contact_info,partner_type,rating,description) VALUES (${p[0]},${JSON.stringify(p[1])}::jsonb,${JSON.stringify(p[2])}::jsonb,${JSON.stringify(p[3])}::jsonb,${p[4]},${p[5]},${p[6]},${p[7]},${p[8]})`;
+  if (Number((count[0] as any)?.count || 0) === 0) for (const p of SEED) await sql() `INSERT INTO partner_companies (company_name,name,capabilities,naics_codes,past_awards,location,contact_info,partner_type,rating,description) VALUES (${p[0]},${p[0]},${JSON.stringify(p[1])}::jsonb,${JSON.stringify(p[2])}::jsonb,${JSON.stringify(p[3])}::jsonb,${p[4]},${p[5]},${p[6]},${p[7]},${p[8]})`;
 }
 
 export const findPartners = createServerFn({ method: "GET" }).validator((data: unknown) => (data || {}) as { bid_id?: number }).handler(async ({ data }) => {

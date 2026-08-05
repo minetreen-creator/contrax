@@ -79,6 +79,8 @@ async function syncSource(
   let newCount = 0;
 
   try {
+    // Migration is idempotent and lets the next cron run upgrade existing databases.
+    await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`;
     console.log(`\n📡 Fetching from ${source.name}...`);
     const bids = await source.fetchFn();
     fetched = bids.length;
@@ -87,7 +89,7 @@ async function syncSource(
     for (const bid of bids) {
       try {
         const result = await sql`
-          INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id)
+          INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code)
           VALUES (
             ${bid.title},
             ${bid.agency},
@@ -99,9 +101,10 @@ async function syncSource(
             ${bid.estimated_value},
             ${bid.source_url},
             ${source.name},
-            ${bid.external_id}
+            ${bid.external_id},
+            ${bid.naics_code ?? null}
           )
-          ON CONFLICT (source, external_id) DO NOTHING
+          ON CONFLICT (source, external_id) DO UPDATE SET naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code)
           RETURNING id
         `;
         if (result.length > 0) {

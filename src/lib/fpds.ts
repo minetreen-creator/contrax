@@ -28,13 +28,14 @@ async function request(path: string, init?: RequestInit): Promise<any> {
 function key(...parts: string[]) { let h = 2166136261; for (const c of parts.join("|").toLowerCase()) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0).toString(16); }
 function filters(naicsCode: string, agency: string, keywords: string, years?: boolean) {
   const now = new Date(); const end = now.toISOString().slice(0, 10); const start = new Date(now.getFullYear() - 5, 0, 1).toISOString().slice(0, 10);
-  return { filters: { time_period: years ? [{ start_date: start, end_date: end }] : undefined, naics_codes: [naicsCode], keywords: [keywords, agency].filter(Boolean), award_type_codes: ["A", "B", "C", "D"] }, limit: 100, page: 1, subawards: false };
+  return { filters: { time_period: years ? [{ start_date: start, end_date: end }] : undefined, naics_codes: naicsCode ? [naicsCode] : undefined, keywords: [keywords, agency].filter(Boolean), award_type_codes: ["A", "B", "C", "D"] }, limit: 100, page: 1, subawards: false };
 }
 async function search(body: unknown) { return request("/search/spending_by_award/", { method: "POST", body: JSON.stringify(body) }); }
 
 export async function searchFPDSIncumbent(naicsCode: string, agency: string, keywords: string): Promise<FPDSIncumbent | null> {
-  if (!naicsCode) return null;
   try {
+    // NAICS is ideal, but older synced bids may not have it. Agency + title still
+    // gives USASpending a useful match instead of failing before the request.
     const data = await search(filters(naicsCode, agency, keywords));
     const row = data?.results?.[0]; if (!row) return null;
     const detail = row.generated_unique_award_id ? await request(`/awards/${encodeURIComponent(row.generated_unique_award_id)}/`) : row;
@@ -56,8 +57,7 @@ export async function searchFPDSContract(solicitationNumber: string): Promise<FP
   try { const data = await search({ filters: { keywords: [solicitationNumber] }, limit: 10, page: 1 }); const row = data?.results?.[0]; if (!row) return null; return { incumbent_name: row.recipient_name || "", incumbent_uei: row.recipient_uei || null, total_obligated: Number(row.total_obligation || 0), pop_start_date: row.period_of_performance_start_date || null, pop_end_date: row.period_of_performance_current_end_date || null }; } catch { return null; }
 }
 export async function getFPDSIntel(naicsCode: string, agency: string, keywords: string): Promise<FPDSIntel | null> {
-  if (!naicsCode) return null;
-  const lookupKey = key(naicsCode, agency, keywords);
+  const lookupKey = key(naicsCode || "none", agency, keywords);
   try {
     await sql()`${sql().unsafe(`CREATE TABLE IF NOT EXISTS fpds_lookups (id SERIAL PRIMARY KEY, lookup_key TEXT NOT NULL UNIQUE, incumbent_name TEXT, incumbent_uei TEXT, total_obligated DECIMAL(14,2), pop_start_date TEXT, pop_end_date TEXT, historical_pricing JSONB DEFAULT '[]'::jsonb, fetched_at TIMESTAMPTZ DEFAULT NOW())`)}`;
     const cached = await sql()`SELECT * FROM fpds_lookups WHERE lookup_key=${lookupKey} AND fetched_at > NOW() - INTERVAL '30 days' LIMIT 1`;

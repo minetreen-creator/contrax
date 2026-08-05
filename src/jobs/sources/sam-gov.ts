@@ -22,6 +22,7 @@ export interface RawBid {
   estimated_value: string;
   source_url: string;
   set_aside?: string | null;
+  naics_code?: string | null;
 }
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
@@ -193,6 +194,15 @@ async function fetchSetAsideDetail(noticeId: string): Promise<string | null> {
   }
 }
 
+function extractNaicsCode(item: any): string | null {
+  const candidates = [item?.naicsCode, item?.naics_code, item?.data2?.solicitation?.naicsCode, item?.data2?.solicitation?.naicsCodes?.[0], item?.naics?.[0]?.code, item?.naics?.code];
+  for (const value of candidates) {
+    const code = typeof value === "object" && value !== null ? value.code ?? value.value : value;
+    if (code && /^\d{2,6}$/.test(String(code).trim())) return String(code).trim();
+  }
+  return null;
+}
+
 export async function fetchBids(): Promise<RawBid[]> {
   const results: RawBid[] = [];
 
@@ -257,6 +267,7 @@ export async function fetchBids(): Promise<RawBid[]> {
             estimated_value: estimatedValue,
             source_url: sourceUrl,
             set_aside: setAside,
+            naics_code: extractNaicsCode(item),
           });
         } catch (e) {
           console.error(`  SAM.gov: error parsing item:`, (e as Error).message);

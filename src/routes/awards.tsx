@@ -38,7 +38,7 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promis
   // is not present in every production database.
   const rows = await sql()`
     SELECT id, title, agency, description, location, category, due_date,
-           estimated_value, source_url, created_at
+           estimated_value, source_url, created_at, naics_code
     FROM bids
     ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
     LIMIT 100
@@ -52,11 +52,11 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promis
     // award card shape while making that distinction explicit to users.
     winning_company: "Open opportunity",
     award_amount: r.estimated_value || "Not specified",
-    award_date: String(r.created_at || r.due_date || new Date().toISOString()).slice(0, 10),
+    award_date: r.created_at || r.due_date ? String(r.created_at || r.due_date).slice(0, 10) : "",
     incumbent: null,
     category: r.category || null,
     location: r.location || null,
-    naics_code: null,
+    naics_code: r.naics_code || null,
     description: r.description || null,
     source_url: r.source_url || null,
   }));
@@ -90,8 +90,10 @@ export const Route = createFileRoute("/awards")({
 });
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+function fmtDate(d: string | null | undefined) {
+  if (!d) return "Not specified";
+  const date = new Date(d);
+  return Number.isNaN(date.getTime()) ? "Not specified" : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
 // ── Component ──────────────────────────────────────────────────────────────────
@@ -105,7 +107,7 @@ function AwardsPage() {
   const [intel, setIntel] = useState<Record<number, FPDSIntel | null | undefined>>({});
   const [loadingIntel, setLoadingIntel] = useState<number | null>(null);
   async function loadIntel(award: Award) {
-    if (!award.naics_code || loadingIntel === award.id) return;
+    if (loadingIntel === award.id) return;
     if (intel[award.id] !== undefined) { setExpandedId(award.id); return; }
     setLoadingIntel(award.id); setExpandedId(award.id);
     const result = await getIncumbentIntel({ data: { naicsCode: award.naics_code, agency: award.agency, title: award.title } });
@@ -227,6 +229,7 @@ function AwardsPage() {
                     <span className="w-36 shrink-0 text-sm text-slate-600 truncate">{award.winning_company}</span>
                     <span className="w-24 shrink-0 text-sm font-semibold text-green-700 text-right">{award.award_amount}</span>
                     <span className="w-24 shrink-0 text-sm text-slate-500 text-right">{fmtDate(award.award_date)}</span>
+                    <span className="w-16 shrink-0 text-xs font-mono text-slate-500 text-right">{award.naics_code || "—"}</span>
                   </div>
 
                   <svg className={`hidden sm:block h-5 w-5 shrink-0 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -240,18 +243,19 @@ function AwardsPage() {
                     <span className="w-36 shrink-0">Winner</span>
                     <span className="w-24 shrink-0 text-right">Amount</span>
                     <span className="w-24 shrink-0 text-right">Date</span>
+                    <span className="w-16 shrink-0 text-right">NAICS</span>
                     <span className="w-5 shrink-0" />
                   </div>
                 )}
 
                 <div className="border-t border-slate-100 px-4 sm:px-5 py-3">
-                  {award.naics_code ? <button type="button" onClick={(e) => { e.stopPropagation(); loadIntel(award); }} className="text-sm font-semibold text-indigo-700 hover:text-indigo-900">🔍 {loadingIntel === award.id ? "Loading incumbent intelligence…" : intel[award.id] ? "Hide Incumbent Intelligence" : "View Incumbent"}</button> : <span className="text-xs text-slate-400">FPDS lookup unavailable — no NAICS code</span>}
+                  <button type="button" onClick={(e) => { e.stopPropagation(); loadIntel(award); }} className="text-sm font-semibold text-indigo-700 hover:text-indigo-900">🔍 {loadingIntel === award.id ? "Loading incumbent intelligence…" : intel[award.id] ? "Hide Incumbent Intelligence" : "View Incumbent Intelligence"}</button>
                 </div>
 
                 {/* Expanded Detail Panel */}
                 {isExpanded && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 space-y-5">
-                    {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No FPDS data available for this NAICS + agency combination.</p>}
+                    {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No matching award history found for this agency and opportunity title.</p>}
                     {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} />}
                     {/* Key Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

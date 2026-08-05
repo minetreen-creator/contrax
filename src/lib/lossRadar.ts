@@ -140,22 +140,31 @@ async function loadAwardGroups(): Promise<AwardGroup[]> {
 /** Loss signals: firms named as the winner of bids our users logged as losses. */
 async function loadLossGroups(): Promise<LossGroup[]> {
   if (!(await hasTable("public.bid_losses"))) return [];
-  const rows = await sql()`
-    SELECT awarded_to AS company,
-           naics_code AS naics,
-           COUNT(*)::int AS loss_count,
-           MAX(created_at)::text AS last_loss_date
-    FROM bid_losses
-    WHERE awarded_to IS NOT NULL
-      AND BTRIM(awarded_to) <> ''
-    GROUP BY awarded_to, naics_code
-  `;
-  return (rows as any[]).map((r) => ({
-    company: String(r.company).trim(),
-    naics: r.naics ? String(r.naics).trim() : "",
-    loss_count: Number(r.loss_count) || 0,
-    last_loss_date: r.last_loss_date ? String(r.last_loss_date) : null,
-  }));
+  // Guard against DBs where the awarded_to column hasn't been added yet
+  try {
+    const colCheck = await sql()`SELECT column_name FROM information_schema.columns WHERE table_name = 'bid_losses' AND column_name = 'awarded_to'`;
+    if (!colCheck.length) return [];
+  } catch { return []; }
+  try {
+    const rows = await sql()`
+      SELECT awarded_to AS company,
+             naics_code AS naics,
+             COUNT(*)::int AS loss_count,
+             MAX(created_at)::text AS last_loss_date
+      FROM bid_losses
+      WHERE awarded_to IS NOT NULL
+        AND BTRIM(awarded_to) <> ''
+      GROUP BY awarded_to, naics_code
+    `;
+    return (rows as any[]).map((r) => ({
+      company: String(r.company).trim(),
+      naics: r.naics ? String(r.naics).trim() : "",
+      loss_count: Number(r.loss_count) || 0,
+      last_loss_date: r.last_loss_date ? String(r.last_loss_date) : null,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 /**

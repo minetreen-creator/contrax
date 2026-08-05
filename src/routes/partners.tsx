@@ -30,6 +30,8 @@ async function ensurePartners() {
   await sql() `CREATE TABLE IF NOT EXISTS partner_companies (id SERIAL PRIMARY KEY, company_name TEXT NOT NULL, capabilities JSONB NOT NULL DEFAULT '[]'::jsonb, naics_codes JSONB NOT NULL DEFAULT '[]'::jsonb, past_awards JSONB NOT NULL DEFAULT '[]'::jsonb, location TEXT, contact_info TEXT, partner_type TEXT NOT NULL DEFAULT 'both', rating INTEGER DEFAULT 3, description TEXT, created_at TIMESTAMPTZ DEFAULT NOW())`;
   // Safe migrations for databases created by an earlier version.
   for (const statement of [
+    sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS id SERIAL`,
+    sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS company_name TEXT`,
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS capabilities JSONB NOT NULL DEFAULT '[]'::jsonb`,
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS naics_codes JSONB NOT NULL DEFAULT '[]'::jsonb`,
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS past_awards JSONB NOT NULL DEFAULT '[]'::jsonb`,
@@ -39,6 +41,8 @@ async function ensurePartners() {
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS rating INTEGER DEFAULT 3`,
     sql() `ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS description TEXT`,
   ]) { try { await statement; } catch {} }
+  // If table was created with 'name' instead of 'company_name', migrate data.
+  try { await sql()`UPDATE partner_companies SET company_name = name WHERE company_name IS NULL AND name IS NOT NULL`; } catch {}
   const count = await sql() `SELECT COUNT(*) AS count FROM partner_companies`;
   if (Number((count[0] as any)?.count || 0) === 0) for (const p of SEED) await sql() `INSERT INTO partner_companies (company_name,capabilities,naics_codes,past_awards,location,contact_info,partner_type,rating,description) VALUES (${p[0]},${JSON.stringify(p[1])}::jsonb,${JSON.stringify(p[2])}::jsonb,${JSON.stringify(p[3])}::jsonb,${p[4]},${p[5]},${p[6]},${p[7]},${p[8]})`;
 }

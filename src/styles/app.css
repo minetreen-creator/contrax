@@ -83,3 +83,61 @@
 @media (prefers-reduced-motion: reduce) {
   .demo-analyzing, .demo-output, .demo-ready { animation: none; opacity: 1; transform: none; }
 }
+
+/* ── Blog prose ─────────────────────────────────────────────────────────────── */
+.prose-blog h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+  margin: 2.5rem 0 1rem;
+  letter-spacing: -0.01em;
+}
+.prose-blog h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+  margin: 2.25rem 0 0.875rem;
+  letter-spacing: -0.01em;
+}
+.prose-blog h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.35;
+  margin: 1.75rem 0 0.75rem;
+}
+.prose-blog p {
+  margin: 1.125rem 0;
+}
+.prose-blog ul,
+.prose-blog ol {
+  margin: 1.125rem 0;
+  padding-left: 1.5rem;
+}
+.prose-blog ul {
+  list-style: disc;
+}
+.prose-blog ol {
+  list-style: decimal;
+}
+.prose-blog li {
+  margin: 0.5rem 0;
+}
+.prose-blog strong {
+  font-weight: 600;
+  color: #0f172a;
+}
+.prose-blog a {
+  color: #2563eb;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-blog a:hover {
+  color: #1d4ed8;
+}
+.prose-blog :first-child {
+  margin-top: 0;
+}

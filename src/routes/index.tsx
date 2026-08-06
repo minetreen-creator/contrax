@@ -32,7 +32,7 @@ const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
 const HEALTHCARE_KEYWORDS = [
   "health", "medical", "nurse", "nursing", "physician", "clinician", "clinical",
   "hospital", "tricare", "medicare", "medicaid", "pharma", "pharmacy", "dental",
-  "behavioral", "mental health", "substance abuse", "rehab", "telehealth",
+  "behavioral", "mental health", "substance abuse", "telehealth",
   "telemedicine", "emr", "ehr", "hipaa",
 ];
 
@@ -1570,6 +1570,9 @@ function Footer() {
         <div className="flex items-center gap-5">
           <a href="/compare" className="text-sm text-gray-400 transition-colors hover:text-white">
             Compare
+          </a>
+          <a href="/blog" className="text-sm text-gray-400 transition-colors hover:text-white">
+            Blog
           </a>
           <a href="/about" className="text-sm text-gray-400 transition-colors hover:text-white">
             About

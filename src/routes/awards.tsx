@@ -36,7 +36,7 @@ const SEED_AWARDS = [
 const HEALTHCARE_KEYWORDS = [
   "health", "medical", "nurse", "nursing", "physician", "clinician", "clinical",
   "hospital", "tricare", "medicare", "medicaid", "pharma", "pharmacy", "dental",
-  "behavioral", "mental health", "substance abuse", "rehab", "telehealth",
+  "behavioral", "mental health", "substance abuse", "telehealth",
   "telemedicine", "emr", "ehr", "hipaa",
 ];
 
@@ -78,7 +78,7 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }:
           title ILIKE '%behavioral%' OR description ILIKE '%behavioral%' OR
           title ILIKE '%mental health%' OR description ILIKE '%mental health%' OR
           title ILIKE '%substance abuse%' OR description ILIKE '%substance abuse%' OR
-          title ILIKE '%rehab%' OR description ILIKE '%rehab%' OR
+
           title ILIKE '%telehealth%' OR description ILIKE '%telehealth%' OR
           title ILIKE '%telemedicine%' OR description ILIKE '%telemedicine%' OR
           title ILIKE '%emr%' OR description ILIKE '%emr%' OR

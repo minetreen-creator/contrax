@@ -56,6 +56,26 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://contrax.company/blog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://contrax.company/blog/find-set-aside-contracts</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://contrax.company/blog/8a-certification-guide</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://contrax.company/blog/proposal-writing-tips</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://contrax.company/demo</loc>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>

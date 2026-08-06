@@ -14,25 +14,46 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { checkTrial, type TrialStatus } from "~/lib/trial";
 
-/** Tiers that get access to premium/enterprise features. */
-const PREMIUM_TIERS = new Set(["professional", "agency"]);
+/** Tier ladder — higher is more capable. */
+const TIER_ORDER: Record<string, number> = { starter: 1, professional: 2, agency: 3 };
+
+export type PlanTier = "starter" | "professional" | "agency";
 
 /**
  * Full-screen takeover shown when a user's plan doesn't include a premium
- * feature. Directs them to upgrade to Professional or Agency.
+ * feature. Directs them to upgrade to the required tier.
  */
-export function PlanUpgradeScreen({ featureName }: { featureName: string }) {
+export function PlanUpgradeScreen({
+  featureName,
+  minTier = "professional",
+}: {
+  featureName: string;
+  minTier?: PlanTier;
+}) {
+  const agencyOnly = minTier === "agency";
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm">
         <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-blue-100 text-2xl" aria-hidden="true">
           🔒
         </span>
-        <h1 className="mt-4 text-2xl font-bold text-slate-900">Professional feature</h1>
+        <h1 className="mt-4 text-2xl font-bold text-slate-900">
+          {agencyOnly ? "Agency feature" : "Professional feature"}
+        </h1>
         <p className="mt-3 text-slate-600">
-          {featureName} is available on the <strong>Professional</strong> ($149/mo) and{" "}
-          <strong>Agency</strong> ($399/mo) plans. Upgrade to unlock it, or keep exploring the
-          rest of Contrax on your current plan.
+          {agencyOnly ? (
+            <>
+              {featureName} is available on the <strong>Agency</strong> ($399/mo) plan — the
+              tier for firms running multiple clients and large contract portfolios. Upgrade to
+              unlock it, or keep exploring the rest of Contrax on your current plan.
+            </>
+          ) : (
+            <>
+              {featureName} is available on the <strong>Professional</strong> ($149/mo) and{" "}
+              <strong>Agency</strong> ($399/mo) plans. Upgrade to unlock it, or keep exploring the
+              rest of Contrax on your current plan.
+            </>
+          )}
         </p>
         <a
           href="/upgrade"
@@ -49,9 +70,12 @@ export function PlanUpgradeScreen({ featureName }: { featureName: string }) {
 }
 
 /**
- * Gates content behind Premium (Professional + Agency) plans.
- * Renders children only when the user's plan_tier is professional or agency;
- * otherwise shows the PlanUpgradeScreen.
+ * Gates content behind a minimum plan tier.
+ * - Default `minTier="professional"` (backwards compatible): Professional +
+ *   Agency plans pass.
+ * - `minTier="agency"`: only Agency ($399/mo) passes.
+ * Renders children only when the user's plan_tier is at or above the required
+ * tier; otherwise shows the PlanUpgradeScreen.
  *
  * While tier is loading renders children to avoid a flash — the gate snaps
  * into place once the server responds.
@@ -59,9 +83,11 @@ export function PlanUpgradeScreen({ featureName }: { featureName: string }) {
 export function PlanGate({
   children,
   featureName = "This feature",
+  minTier = "professional",
 }: {
   children: ReactNode;
   featureName?: string;
+  minTier?: PlanTier;
 }) {
   const [tier, setTier] = useState<string | null | undefined>(undefined);
   useEffect(() => {
@@ -71,10 +97,10 @@ export function PlanGate({
   }, []);
   // Still loading — show children to avoid flash
   if (tier === undefined) return <>{children}</>;
-  // Premium tier — allowed
-  if (tier && PREMIUM_TIERS.has(tier)) return <>{children}</>;
-  // Not premium — show upgrade screen
-  return <PlanUpgradeScreen featureName={featureName} />;
+  // At or above required tier — allowed
+  if (tier && (TIER_ORDER[tier] ?? 0) >= TIER_ORDER[minTier]) return <>{children}</>;
+  // Below required tier — show upgrade screen
+  return <PlanUpgradeScreen featureName={featureName} minTier={minTier} />;
 }
 
 /** Full-screen takeover shown when a user's trial has expired. */

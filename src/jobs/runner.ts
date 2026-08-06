@@ -20,6 +20,7 @@
  */
 
 import { neon } from "@neondatabase/serverless";
+import { US_STATES } from "../lib/states";
 import { fetchBids as fetchSamGov } from "./sources/sam-gov";
 import { fetchBids as fetchVaEv } from "./sources/va-ev";
 import { fetchBids as fetchNc } from "./sources/nc";
@@ -46,7 +47,7 @@ const SOURCES: SyncSource[] = [
     // returned by both queries is represented once (and remains national).
     fetchFn: async () => {
       const national = await fetchSamGov();
-      const regional = await fetchSamGov({ states: ["DC", "VA", "MD", "WV", "NC", "GA", "AL", "NM"] });
+      const regional = await fetchSamGov({ states: [...US_STATES] });
       const seen = new Set(national.map((bid) => bid.external_id));
       return national.concat(regional.filter((bid) => !seen.has(bid.external_id)));
     },

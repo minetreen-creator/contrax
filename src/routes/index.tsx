@@ -32,9 +32,51 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
     SELECT title, agency, estimated_value, due_date, location
     FROM bids
     WHERE LOWER(category) LIKE '%health%'
-       OR LOWER(category) LIKE '%medical%'
        OR LOWER(title) LIKE '%health%'
+       OR LOWER(category) LIKE '%medical%'
        OR LOWER(title) LIKE '%medical%'
+       OR LOWER(category) LIKE '%nurse%'
+       OR LOWER(title) LIKE '%nurse%'
+       OR LOWER(category) LIKE '%nursing%'
+       OR LOWER(title) LIKE '%nursing%'
+       OR LOWER(category) LIKE '%physician%'
+       OR LOWER(title) LIKE '%physician%'
+       OR LOWER(category) LIKE '%clinician%'
+       OR LOWER(title) LIKE '%clinician%'
+       OR LOWER(category) LIKE '%clinical%'
+       OR LOWER(title) LIKE '%clinical%'
+       OR LOWER(category) LIKE '%hospital%'
+       OR LOWER(title) LIKE '%hospital%'
+       OR LOWER(category) LIKE '%tricare%'
+       OR LOWER(title) LIKE '%tricare%'
+       OR LOWER(category) LIKE '%medicare%'
+       OR LOWER(title) LIKE '%medicare%'
+       OR LOWER(category) LIKE '%medicaid%'
+       OR LOWER(title) LIKE '%medicaid%'
+       OR LOWER(category) LIKE '%pharma%'
+       OR LOWER(title) LIKE '%pharma%'
+       OR LOWER(category) LIKE '%pharmacy%'
+       OR LOWER(title) LIKE '%pharmacy%'
+       OR LOWER(category) LIKE '%dental%'
+       OR LOWER(title) LIKE '%dental%'
+       OR LOWER(category) LIKE '%behavioral%'
+       OR LOWER(title) LIKE '%behavioral%'
+       OR LOWER(category) LIKE '%mental health%'
+       OR LOWER(title) LIKE '%mental health%'
+       OR LOWER(category) LIKE '%substance abuse%'
+       OR LOWER(title) LIKE '%substance abuse%'
+       OR LOWER(category) LIKE '%rehab%'
+       OR LOWER(title) LIKE '%rehab%'
+       OR LOWER(category) LIKE '%telehealth%'
+       OR LOWER(title) LIKE '%telehealth%'
+       OR LOWER(category) LIKE '%telemedicine%'
+       OR LOWER(title) LIKE '%telemedicine%'
+       OR LOWER(category) LIKE '%emr%'
+       OR LOWER(title) LIKE '%emr%'
+       OR LOWER(category) LIKE '%ehr%'
+       OR LOWER(title) LIKE '%ehr%'
+       OR LOWER(category) LIKE '%hipaa%'
+       OR LOWER(title) LIKE '%hipaa%'
     ORDER BY created_at DESC NULLS LAST
     LIMIT 10
   `;
@@ -139,7 +181,7 @@ function Home() {
       <Hero businessName={businessName} />
       <ProductShowcase />
       <BidTicker bids={bids} />
-      {healthcareBids.length > 0 && <HealthcareOpportunities bids={healthcareBids} />}
+      <HealthcareOpportunities bids={healthcareBids} />
       <HowItWorks />
       <Example />
       <WhoItsFor />
@@ -592,48 +634,57 @@ function BidTicker({ bids }: { bids: Bid[] }) {
 // ── Healthcare Opportunities ───────────────────────────────────────────────────
 
 function HealthcareOpportunities({ bids }: { bids: Bid[] }) {
+  const formatValue = (value: string | null) => {
+    if (!value) return null;
+    const amount = Number(value);
+    return Number.isFinite(amount)
+      ? amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
+      : value;
+  };
+
   return (
-    <section className="bg-gradient-to-br from-blue-50 to-white py-14">
+    <section className="bg-gradient-to-br from-blue-50 to-white py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-8 flex items-center gap-2">
-          <span className="text-2xl">🏥</span>
-          <h2 className="text-2xl font-bold text-slate-900">Healthcare Staffing Opportunities</h2>
+        <div className="mx-auto max-w-3xl text-center">
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-2xl" aria-hidden="true">🏥</span>
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Healthcare Government Contracting</h2>
+          </div>
+          <p className="mt-4 text-lg leading-relaxed text-gray-600">
+            The federal government is the largest healthcare purchaser in the United States — VA, HHS, DHA, and IHS spend billions annually on staffing, IT, supplies, and facilities contracts. Many are set aside for certified small businesses.
+          </p>
+          <p className="mt-4 text-sm font-semibold text-blue-700">
+            {bids.length} active healthcare opportunities tracked
+          </p>
         </div>
-        <p className="mb-8 text-gray-500">
-          Nursing, physician, and clinical staffing contracts from federal, state, and local agencies.
-        </p>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {bids.map((bid, i) => (
-            <div
-              key={i}
-              className="rounded-xl border border-blue-100 bg-white p-5 shadow-sm transition-all hover:shadow-md hover:border-blue-300"
-            >
-              <span className="mb-2 inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                {bid.agency.length > 40 ? bid.agency.slice(0, 40) + "..." : bid.agency}
-              </span>
-              <p
-                className="line-clamp-2 text-sm font-semibold text-slate-800"
-                title={bid.title}
-              >
-                {bid.title}
-              </p>
-              <div className="mt-3 flex items-center justify-between text-xs text-gray-500">
-                {bid.location && <span>{bid.location}</span>}
-                {bid.due_date && (
-                  <span className="text-amber-600 font-medium">
-                    Due {new Date(bid.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </span>
-                )}
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {bids.map((bid, i) => {
+            const value = formatValue(bid.estimated_value);
+            return (
+              <div key={i} className="rounded-xl border border-blue-100 bg-white p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md">
+                <span className="mb-3 inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                  {bid.agency.length > 40 ? bid.agency.slice(0, 40) + "..." : bid.agency}
+                </span>
+                <p className="line-clamp-2 text-sm font-semibold text-slate-800" title={bid.title}>{bid.title}</p>
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  {value ? <span className="text-sm font-bold text-emerald-600">{value}</span> : <span />}
+                  {bid.due_date && <span className="text-sm font-semibold text-amber-700">Due {new Date(bid.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
+                </div>
+                {bid.location && <p className="mt-3 text-xs text-gray-500">📍 {bid.location}</p>}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         {bids.length === 0 && (
-          <p className="text-center text-gray-400 text-sm py-8">
-            No healthcare staffing bids right now — check back soon or{" "}
-            <a href="/signup" className="text-blue-600 underline">sign up</a> to get alerts when new ones post.
+          <p className="py-8 text-center text-sm text-gray-500">
+            We’re scanning federal healthcare opportunities now. Sign up to be among the first to hear when a strong-fit contract is found.
           </p>
         )}
+        <div className="mt-10 text-center">
+          <a href="/signup?interest=healthcare" className="font-semibold text-blue-700 transition-colors hover:text-blue-900">
+            View all healthcare opportunities →
+          </a>
+        </div>
       </div>
     </section>
   );

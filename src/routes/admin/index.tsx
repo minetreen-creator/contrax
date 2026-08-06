@@ -36,6 +36,8 @@ interface TrafficMetrics {
  */
 async function loadTrafficMetrics(): Promise<TrafficMetrics> {
   try {
+    // Purge any admin page views that were recorded before the exclusion filter was added.
+    try { await sql()`DELETE FROM page_views WHERE path LIKE '/admin%'`; } catch { /* ok if table doesn't exist yet */ }
     const [total, today, week, top, unique] = await Promise.all([
       sql()`SELECT COUNT(*) as count FROM page_views`,
       sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= CURRENT_DATE`,

@@ -13,6 +13,8 @@ type Bid = {
   estimated_value: string | null;
   due_date: string | null;
   location: string | null;
+  category?: string | null;
+  description?: string | null;
 };
 
 // ── Server Functions ──────────────────────────────────────────────────────────
@@ -27,60 +29,48 @@ const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
   return rows as Bid[];
 });
 
+const HEALTHCARE_KEYWORDS = [
+  "health", "medical", "nurse", "nursing", "physician", "clinician", "clinical",
+  "hospital", "tricare", "medicare", "medicaid", "pharma", "pharmacy", "dental",
+  "behavioral", "mental health", "substance abuse", "rehab", "telehealth",
+  "telemedicine", "emr", "ehr", "hipaa",
+];
+
+const HEALTHCARE_EXCLUSIONS = [
+  "truck", "trailer", "vehicle", "van", "bus", "bulldozer", "excavator", "crane",
+  "forklift", "paving", "roofing", "concrete", "dumpster", "fence", "gate",
+  "landscaping", "janitorial", "elevator", "hvac", "plumbing", "electrical",
+  "generator", "fuel", "gas", "diesel",
+];
+
 const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => {
+  const patterns = HEALTHCARE_KEYWORDS.map((keyword) => `%${keyword}%`);
   const rows = await sql()`
-    SELECT title, agency, estimated_value, due_date, location
+    SELECT title, agency, estimated_value, due_date, location, category, description
     FROM bids
-    WHERE LOWER(category) LIKE '%health%'
-       OR LOWER(title) LIKE '%health%'
-       OR LOWER(category) LIKE '%medical%'
-       OR LOWER(title) LIKE '%medical%'
-       OR LOWER(category) LIKE '%nurse%'
-       OR LOWER(title) LIKE '%nurse%'
-       OR LOWER(category) LIKE '%nursing%'
-       OR LOWER(title) LIKE '%nursing%'
-       OR LOWER(category) LIKE '%physician%'
-       OR LOWER(title) LIKE '%physician%'
-       OR LOWER(category) LIKE '%clinician%'
-       OR LOWER(title) LIKE '%clinician%'
-       OR LOWER(category) LIKE '%clinical%'
-       OR LOWER(title) LIKE '%clinical%'
-       OR LOWER(category) LIKE '%hospital%'
-       OR LOWER(title) LIKE '%hospital%'
-       OR LOWER(category) LIKE '%tricare%'
-       OR LOWER(title) LIKE '%tricare%'
-       OR LOWER(category) LIKE '%medicare%'
-       OR LOWER(title) LIKE '%medicare%'
-       OR LOWER(category) LIKE '%medicaid%'
-       OR LOWER(title) LIKE '%medicaid%'
-       OR LOWER(category) LIKE '%pharma%'
-       OR LOWER(title) LIKE '%pharma%'
-       OR LOWER(category) LIKE '%pharmacy%'
-       OR LOWER(title) LIKE '%pharmacy%'
-       OR LOWER(category) LIKE '%dental%'
-       OR LOWER(title) LIKE '%dental%'
-       OR LOWER(category) LIKE '%behavioral%'
-       OR LOWER(title) LIKE '%behavioral%'
-       OR LOWER(category) LIKE '%mental health%'
-       OR LOWER(title) LIKE '%mental health%'
-       OR LOWER(category) LIKE '%substance abuse%'
-       OR LOWER(title) LIKE '%substance abuse%'
-       OR LOWER(category) LIKE '%rehab%'
-       OR LOWER(title) LIKE '%rehab%'
-       OR LOWER(category) LIKE '%telehealth%'
-       OR LOWER(title) LIKE '%telehealth%'
-       OR LOWER(category) LIKE '%telemedicine%'
-       OR LOWER(title) LIKE '%telemedicine%'
-       OR LOWER(category) LIKE '%emr%'
-       OR LOWER(title) LIKE '%emr%'
-       OR LOWER(category) LIKE '%ehr%'
-       OR LOWER(title) LIKE '%ehr%'
-       OR LOWER(category) LIKE '%hipaa%'
-       OR LOWER(title) LIKE '%hipaa%'
+    WHERE LOWER(category) ILIKE ANY(${patterns}::text[])
+       OR LOWER(title) ILIKE ANY(${patterns}::text[])
+       OR LOWER(description) ILIKE ANY(${patterns}::text[])
     ORDER BY created_at DESC NULLS LAST
     LIMIT 10
   `;
-  return rows as Bid[];
+
+  return (rows as Bid[]).filter((bid) => {
+    const title = bid.title?.toLowerCase() ?? "";
+    const category = bid.category?.toLowerCase() ?? "";
+    const description = bid.description?.toLowerCase() ?? "";
+    const categoryMatchesHealthcare = HEALTHCARE_KEYWORDS.some((keyword) =>
+      category.includes(keyword),
+    );
+    const text = `${title} ${description}`;
+    const healthcareMatchCount = HEALTHCARE_KEYWORDS.filter((keyword) =>
+      text.includes(keyword),
+    ).length;
+    const hasStrongHealthcareSignal = categoryMatchesHealthcare || healthcareMatchCount >= 2;
+    const hasExcludedTerm = HEALTHCARE_EXCLUSIONS.some((term) => title.includes(term));
+
+    return hasStrongHealthcareSignal && (!hasExcludedTerm || categoryMatchesHealthcare);
+  });
 });
 
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {

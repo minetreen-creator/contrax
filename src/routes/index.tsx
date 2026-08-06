@@ -66,7 +66,7 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
     const healthcareMatchCount = HEALTHCARE_KEYWORDS.filter((keyword) =>
       text.includes(keyword),
     ).length;
-    const hasStrongHealthcareSignal = categoryMatchesHealthcare || healthcareMatchCount >= 2;
+    const hasStrongHealthcareSignal = categoryMatchesHealthcare || healthcareMatchCount >= 1;
     const hasExcludedTerm = HEALTHCARE_EXCLUSIONS.some((term) => title.includes(term));
 
     return hasStrongHealthcareSignal && (!hasExcludedTerm || categoryMatchesHealthcare);

@@ -126,10 +126,25 @@ function AwardsPage() {
   const agencies = [...new Set(awards.map((a) => a.agency))].sort();
   const categories = [...new Set(awards.filter((a) => a.category).map((a) => a.category!))].sort();
 
+  // When searching for "healthcare", expand to the full set of healthcare keywords
+  const HEALTHCARE_KEYWORDS = [
+    "health", "medical", "nurse", "nursing", "physician", "clinician", "clinical",
+    "hospital", "tricare", "medicare", "medicaid", "pharma", "pharmacy", "dental",
+    "behavioral", "mental health", "substance abuse", "rehab", "telehealth",
+    "telemedicine", "emr", "ehr", "hipaa",
+  ];
+
   const filtered = awards.filter((a) => {
     if (search) {
-      const q = search.toLowerCase();
-      if (!a.title.toLowerCase().includes(q) && !a.winning_company.toLowerCase().includes(q) && !(a.description || "").toLowerCase().includes(q)) return false;
+      if (search.toLowerCase() === "healthcare") {
+        const haystack = [
+          a.title, a.winning_company, a.description, a.category,
+        ].filter(Boolean).join(" ").toLowerCase();
+        if (!HEALTHCARE_KEYWORDS.some((kw) => haystack.includes(kw))) return false;
+      } else {
+        const q = search.toLowerCase();
+        if (!a.title.toLowerCase().includes(q) && !a.winning_company.toLowerCase().includes(q) && !(a.description || "").toLowerCase().includes(q)) return false;
+      }
     }
     if (agencyFilter && a.agency !== agencyFilter) return false;
     if (categoryFilter && a.category !== categoryFilter) return false;

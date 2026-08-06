@@ -43,6 +43,7 @@ const HEALTHCARE_EXCLUSIONS = [
   "generator", "fuel", "gas", "diesel", "manhole", "sewer", "drainage", "pipeline",
   "asphalt", "pavement", "sidewalk", "curb", "gutter", "road", "highway", "bridge",
   "culvert", "demolition", "waste", "trash", "recycling", "sanitation",
+  "street", "wastewater", "rehabilitation", "renewal",
 ];
 
 const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => {

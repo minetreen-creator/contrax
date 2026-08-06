@@ -12,6 +12,9 @@ import proposalTips from "../content/blog/proposal-writing-tips.md?raw";
 import sdvosbContracts from "../content/blog/sdvosb-government-contracts.md?raw";
 import samGovGuide from "../content/blog/sam-gov-registration-guide.md?raw";
 import beginnersGuide from "../content/blog/government-contracting-beginners.md?raw";
+import samGovVsContrax from "../content/blog/sam-gov-vs-contrax.md?raw";
+import contractTeardown from "../content/blog/contract-teardown-set-aside-rfp.md?raw";
+import hubzoneWorthIt from "../content/blog/hubzone-certification-worth-it.md?raw";
 
 export type BlogPost = {
   slug: string;
@@ -140,6 +143,9 @@ const RAW_POSTS: { slug: string; raw: string }[] = [
   { slug: "sdvosb-government-contracts", raw: sdvosbContracts },
   { slug: "sam-gov-registration-guide", raw: samGovGuide },
   { slug: "government-contracting-beginners", raw: beginnersGuide },
+  { slug: "sam-gov-vs-contrax", raw: samGovVsContrax },
+  { slug: "contract-teardown-set-aside-rfp", raw: contractTeardown },
+  { slug: "hubzone-certification-worth-it", raw: hubzoneWorthIt },
 ];
 
 export const BLOG_POSTS: BlogPost[] = RAW_POSTS.map(({ slug, raw }) => {

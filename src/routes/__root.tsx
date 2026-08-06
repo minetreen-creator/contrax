@@ -3,8 +3,9 @@ import {
   Outlet,
   Scripts,
   createRootRoute,
+  useLocation,
 } from "@tanstack/react-router";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import { ChatWidget } from "~/components/ChatWidget";
 import appCss from "~/styles/app.css?url";
@@ -64,6 +65,49 @@ export const Route = createRootRoute({
   component: RootComponent,
 });
 
+// ── Page View Analytics ──────────────────────────────────────────────────────
+// Self-hosted traffic tracking. Fires a fire-and-forget POST to /api/page-view
+// on the initial load and on every route change. Same-path hits are deduped to
+// once per 5 minutes (per browser session). Never blocks rendering and never
+// surfaces errors to the user — the endpoint itself swallows failures too.
+const PAGE_VIEW_DEDUPE_MS = 5 * 60 * 1000;
+
+function recordPageView(path: string) {
+  if (typeof window === "undefined") return;
+  const payload = { path, referrer: document.referrer || undefined };
+  try {
+    fetch("/api/page-view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      keepalive: true,
+    }).catch(() => {
+      /* fire-and-forget — never surface tracking failures */
+    });
+  } catch {
+    /* never let tracking break rendering */
+  }
+}
+
+function PageViewTracker() {
+  const location = useLocation();
+  // Module-scoped so the dedupe window survives across route navigations
+  // (the root component stays mounted for the whole session).
+  const lastSentRef = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (!path) return;
+    const now = Date.now();
+    const lastSent = lastSentRef.current.get(path) ?? 0;
+    if (now - lastSent < PAGE_VIEW_DEDUPE_MS) return;
+    lastSentRef.current.set(path, now);
+    recordPageView(path);
+  }, [location.pathname]);
+
+  return null;
+}
+
 // ── Root Document ──────────────────────────────────────────────────────────────
 function RootDocument({ children }: { children: ReactNode }) {
   return (
@@ -83,6 +127,7 @@ function RootComponent() {
   return (
     <RootDocument>
       <Outlet />
+      <PageViewTracker />
       <ChatWidget />
     </RootDocument>
   );

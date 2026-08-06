@@ -14,6 +14,52 @@ interface AdminMetrics {
   recentWaitlist: { email: string; source: string; created_at: string }[];
   totalDiagnoses: number;
   totalBills: number;
+  totalPageViews: number;
+  pageViewsToday: number;
+  pageViewsThisWeek: number;
+  topPages: { path: string; count: number }[];
+  uniqueVisitorsToday: number;
+}
+
+interface TrafficMetrics {
+  totalPageViews: number;
+  pageViewsToday: number;
+  pageViewsThisWeek: number;
+  topPages: { path: string; count: number }[];
+  uniqueVisitorsToday: number;
+}
+
+/**
+ * Page-view stats from the self-hosted `page_views` table. Wrapped in a guard
+ * so the admin dashboard degrades to zeros on the very first deploy, before
+ * the table exists (it is created lazily by the first /api/page-view call).
+ */
+async function loadTrafficMetrics(): Promise<TrafficMetrics> {
+  try {
+    const [total, today, week, top, unique] = await Promise.all([
+      sql()`SELECT COUNT(*) as count FROM page_views`,
+      sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= CURRENT_DATE`,
+      sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= NOW() - INTERVAL '7 days'`,
+      sql()`SELECT path, COUNT(*) as count FROM page_views GROUP BY path ORDER BY count DESC LIMIT 5`,
+      sql()`SELECT COUNT(DISTINCT ip) as count FROM page_views WHERE created_at >= CURRENT_DATE`,
+    ]);
+    return {
+      totalPageViews: Number(total[0].count),
+      pageViewsToday: Number(today[0].count),
+      pageViewsThisWeek: Number(week[0].count),
+      topPages: (top as any[]).map((r) => ({ path: r.path, count: Number(r.count) })),
+      uniqueVisitorsToday: Number(unique[0].count),
+    };
+  } catch {
+    // page_views may not exist yet — don't fail the whole dashboard.
+    return {
+      totalPageViews: 0,
+      pageViewsToday: 0,
+      pageViewsThisWeek: 0,
+      topPages: [],
+      uniqueVisitorsToday: 0,
+    };
+  }
 }
 
 // ── Server Functions ─────────────────────────────────────────────────────────
@@ -32,13 +78,14 @@ async function requireAdmin() {
 
 const fetchMetrics = createServerFn({ method: "GET" }).handler(async (): Promise<AdminMetrics> => {
   await requireAdmin();
-  const [userCount, planRows, waitlistCount, recentWaitlist, diagCount, billCount] = await Promise.all([
+  const [userCount, planRows, waitlistCount, recentWaitlist, diagCount, billCount, traffic] = await Promise.all([
     sql()`SELECT COUNT(*) as count FROM users`,
     sql()`SELECT plan_tier, COUNT(*) as count FROM users GROUP BY plan_tier ORDER BY count DESC`,
     sql()`SELECT COUNT(*) as count FROM waitlist`,
     sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC LIMIT 10`,
     sql()`SELECT COUNT(*) as count FROM savings_diagnoses`,
     sql()`SELECT COUNT(*) as count FROM savings_bills`,
+    loadTrafficMetrics(),
   ]);
 
   return {
@@ -55,6 +102,7 @@ const fetchMetrics = createServerFn({ method: "GET" }).handler(async (): Promise
     })),
     totalDiagnoses: Number(diagCount[0].count),
     totalBills: Number(billCount[0].count),
+    ...traffic,
   };
 });
 
@@ -411,6 +459,43 @@ function AdminPage() {
               <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Tracked Bills</p>
               <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.totalBills}</p>
               <p className="mt-1 text-xs text-slate-400">Bills saved for monitoring</p>
+            </div>
+          </div>
+        </section>
+
+        {/* Traffic Section */}
+        <section>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">📊 Traffic</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Total Page Views</p>
+              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.totalPageViews.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-400">Self-hosted, no third-party analytics</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Views Today</p>
+              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.pageViewsToday.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-400">Unique visitors: {metrics.uniqueVisitorsToday.toLocaleString()}</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Views This Week</p>
+              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.pageViewsThisWeek.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-400">Rolling 7-day window</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Top Pages</p>
+              {metrics.topPages.length === 0 ? (
+                <p className="mt-2 text-sm text-slate-400">No page views yet</p>
+              ) : (
+                <div className="mt-2 space-y-1.5">
+                  {metrics.topPages.map((p) => (
+                    <div key={p.path} className="flex items-center justify-between gap-3">
+                      <span className="truncate text-sm font-medium text-slate-700 font-mono">{p.path}</span>
+                      <span className="shrink-0 text-sm font-bold text-slate-900">{p.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>

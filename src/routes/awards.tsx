@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { sql } from "~/db";
 import { IncumbentCard } from "~/components/IncumbentCard";
 import { getFPDSIntel, type FPDSIntel } from "~/lib/fpds";
@@ -86,6 +86,9 @@ const getIncumbentIntel = createServerFn({ method: "GET" }).handler(async ({ dat
 
 // ── Route ──────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/awards")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    search: typeof search.search === "string" ? search.search : undefined,
+  }),
   loader: () => getAwardsData(),
   component: AwardsPage,
 });
@@ -100,18 +103,14 @@ function fmtDate(d: string | null | undefined) {
 // ── Component ──────────────────────────────────────────────────────────────────
 function AwardsPage() {
   const { awards, similarBids } = Route.useLoaderData();
+  const routeSearch = Route.useSearch();
+  const initialSearch = routeSearch.search ?? "";
 
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [agencyFilter, setAgencyFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
 
-  // Pre-fill search from ?search= query param on first load
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const q = params.get("search");
-    if (q) setSearch(q);
-  }, []);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [intel, setIntel] = useState<Record<number, FPDSIntel | null | undefined>>({});
   const [loadingIntel, setLoadingIntel] = useState<number | null>(null);

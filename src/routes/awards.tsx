@@ -128,7 +128,7 @@ function AwardsPage() {
     if (stateFilter) {
       // SAM.gov locations are normalized as "City, ST" (and some records
       // contain just the state code). Match the extracted state code only.
-      const match = (a.location || "").match(/(?:^|,\s*)(DC|VA|MD|WV)(?:$|\s|,)/i);
+      const match = (a.location || "").match(/(?:^|,\s*)(DC|VA|MD|WV|NC|GA|AL|NM)(?:$|\s|,)/i);
       if (!match || match[1].toUpperCase() !== stateFilter) return false;
     }
     return true;
@@ -185,6 +185,10 @@ function AwardsPage() {
             <option value="VA">VA</option>
             <option value="MD">MD</option>
             <option value="WV">WV</option>
+            <option value="NC">NC</option>
+            <option value="GA">GA</option>
+            <option value="AL">AL</option>
+            <option value="NM">NM</option>
           </select>
           <select
             value={categoryFilter}

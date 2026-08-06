@@ -46,7 +46,7 @@ const SOURCES: SyncSource[] = [
     // returned by both queries is represented once (and remains national).
     fetchFn: async () => {
       const national = await fetchSamGov();
-      const regional = await fetchSamGov({ states: ["DC", "VA", "MD", "WV"] });
+      const regional = await fetchSamGov({ states: ["DC", "VA", "MD", "WV", "NC", "GA", "AL", "NM"] });
       const seen = new Set(national.map((bid) => bid.external_id));
       return national.concat(regional.filter((bid) => !seen.has(bid.external_id)));
     },

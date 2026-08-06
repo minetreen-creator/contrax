@@ -36,6 +36,7 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promis
   // The sync job stores procurement opportunities in `bids`.  Do not use the
   // legacy `awarded_contracts` table here: it is unrelated to synced data and
   // is not present in every production database.
+  try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
   const rows = await sql()`
     SELECT id, title, agency, description, location, category, due_date,
            estimated_value, source_url, created_at, naics_code

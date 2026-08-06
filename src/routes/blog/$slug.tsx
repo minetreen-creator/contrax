@@ -73,13 +73,8 @@ function BlogPostPage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <header className="border-b border-slate-800 bg-slate-900">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <a href="/" className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-700">
-              <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </span>
-            <span className="text-lg font-bold text-white">Contrax</span>
+          <a href="/">
+            <img src="/logo.png" alt="Contrax" className="h-9 w-auto" />
           </a>
           <nav className="flex items-center gap-5 text-sm">
             <a href="/" className="text-gray-400 transition-colors hover:text-white">Home</a>
@@ -167,12 +162,7 @@ function BlogPostPage() {
       <footer className="border-t border-gray-800 bg-slate-900 py-10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-700">
-              <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </span>
-            <span className="text-lg font-bold text-white">Contrax</span>
+            <img src="/logo.png" alt="Contrax" className="h-7 w-auto" />
           </div>
           <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Contrax. All rights reserved.</p>
           <div className="flex items-center gap-5">

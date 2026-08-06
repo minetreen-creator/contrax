@@ -32,18 +32,70 @@ const SEED_AWARDS = [
 
 // ── Server Functions ───────────────────────────────────────────────────────────
 
-const getAwardsData = createServerFn({ method: "GET" }).handler(async (): Promise<{ awards: Award[]; similarBids: Record<number, SimilarBid[]> }> => {
+const HEALTHCARE_KEYWORDS = [
+  "health", "medical", "nurse", "nursing", "physician", "clinician", "clinical",
+  "hospital", "tricare", "medicare", "medicaid", "pharma", "pharmacy", "dental",
+  "behavioral", "mental health", "substance abuse", "rehab", "telehealth",
+  "telemedicine", "emr", "ehr", "hipaa",
+];
+
+const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }: { data: { search?: string } }): Promise<{ awards: Award[]; similarBids: Record<number, SimilarBid[]> }> => {
   // The sync job stores procurement opportunities in `bids`.  Do not use the
   // legacy `awarded_contracts` table here: it is unrelated to synced data and
   // is not present in every production database.
   try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
-  const rows = await sql()`
-    SELECT id, title, agency, description, location, category, due_date,
-           estimated_value, source_url, created_at, naics_code
-    FROM bids
-    ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
-    LIMIT 100
-  `;
+  const search = data.search?.trim() ?? "";
+  // Keep the URL-driven filter in the server query so SSR never serializes
+  // unrelated opportunities into the initial HTML payload.
+  const rows = search.toLowerCase() === "healthcare"
+    ? await sql()`
+        SELECT id, title, agency, description, location, category, due_date,
+               estimated_value, source_url, created_at, naics_code
+        FROM bids
+        WHERE (
+          title ILIKE '%health%' OR description ILIKE '%health%' OR
+          title ILIKE '%medical%' OR description ILIKE '%medical%' OR
+          title ILIKE '%nurse%' OR description ILIKE '%nurse%' OR
+          title ILIKE '%nursing%' OR description ILIKE '%nursing%' OR
+          title ILIKE '%physician%' OR description ILIKE '%physician%' OR
+          title ILIKE '%clinician%' OR description ILIKE '%clinician%' OR
+          title ILIKE '%clinical%' OR description ILIKE '%clinical%' OR
+          title ILIKE '%hospital%' OR description ILIKE '%hospital%' OR
+          title ILIKE '%tricare%' OR description ILIKE '%tricare%' OR
+          title ILIKE '%medicare%' OR description ILIKE '%medicare%' OR
+          title ILIKE '%medicaid%' OR description ILIKE '%medicaid%' OR
+          title ILIKE '%pharma%' OR description ILIKE '%pharma%' OR
+          title ILIKE '%pharmacy%' OR description ILIKE '%pharmacy%' OR
+          title ILIKE '%dental%' OR description ILIKE '%dental%' OR
+          title ILIKE '%behavioral%' OR description ILIKE '%behavioral%' OR
+          title ILIKE '%mental health%' OR description ILIKE '%mental health%' OR
+          title ILIKE '%substance abuse%' OR description ILIKE '%substance abuse%' OR
+          title ILIKE '%rehab%' OR description ILIKE '%rehab%' OR
+          title ILIKE '%telehealth%' OR description ILIKE '%telehealth%' OR
+          title ILIKE '%telemedicine%' OR description ILIKE '%telemedicine%' OR
+          title ILIKE '%emr%' OR description ILIKE '%emr%' OR
+          title ILIKE '%ehr%' OR description ILIKE '%ehr%' OR
+          title ILIKE '%hipaa%' OR description ILIKE '%hipaa%'
+        )
+        ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
+        LIMIT 100
+      `
+    : search
+      ? await sql()`
+          SELECT id, title, agency, description, location, category, due_date,
+                 estimated_value, source_url, created_at, naics_code
+          FROM bids
+          WHERE (title ILIKE ${"%" + search + "%"} OR description ILIKE ${"%" + search + "%"})
+          ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
+          LIMIT 100
+        `
+      : await sql()`
+          SELECT id, title, agency, description, location, category, due_date,
+                 estimated_value, source_url, created_at, naics_code
+          FROM bids
+          ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
+          LIMIT 100
+        `;
   const awards: Award[] = (rows as any[]).map((r) => ({
     id: Number(r.id),
     title: r.title || "Untitled opportunity",
@@ -89,7 +141,7 @@ export const Route = createFileRoute("/awards")({
   validateSearch: (search: Record<string, unknown>) => ({
     search: typeof search.search === "string" ? search.search : undefined,
   }),
-  loader: () => getAwardsData(),
+  loader: ({ context }) => getAwardsData({ data: { search: context.search } }),
   component: AwardsPage,
 });
 
@@ -104,9 +156,8 @@ function fmtDate(d: string | null | undefined) {
 function AwardsPage() {
   const { awards, similarBids } = Route.useLoaderData();
   const routeSearch = Route.useSearch();
-  const initialSearch = routeSearch.search ?? "";
-
-  const [search, setSearch] = useState(initialSearch);
+  const [search, setSearch] = useState("");
+  const inputSearch = search || routeSearch.search || "";
   const [agencyFilter, setAgencyFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
@@ -126,13 +177,6 @@ function AwardsPage() {
   const categories = [...new Set(awards.filter((a) => a.category).map((a) => a.category!))].sort();
 
   // When searching for "healthcare", expand to the full set of healthcare keywords
-  const HEALTHCARE_KEYWORDS = [
-    "health", "medical", "nurse", "nursing", "physician", "clinician", "clinical",
-    "hospital", "tricare", "medicare", "medicaid", "pharma", "pharmacy", "dental",
-    "behavioral", "mental health", "substance abuse", "rehab", "telehealth",
-    "telemedicine", "emr", "ehr", "hipaa",
-  ];
-
   const filtered = awards.filter((a) => {
     if (search) {
       if (search.toLowerCase() === "healthcare") {
@@ -183,7 +227,7 @@ function AwardsPage() {
               id="award-search"
               type="text"
               placeholder="Search by title, company, or keyword..."
-              value={search}
+              value={inputSearch}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
             />

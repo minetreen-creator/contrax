@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { sql } from "~/db";
+import { US_STATES } from "~/lib/states";
 import { IncumbentCard } from "~/components/IncumbentCard";
 import { getFPDSIntel, type FPDSIntel } from "~/lib/fpds";
 
@@ -38,6 +39,13 @@ const HEALTHCARE_KEYWORDS = [
   "behavioral", "mental health", "substance abuse", "rehab", "telehealth",
   "telemedicine", "emr", "ehr", "hipaa",
 ];
+
+// SAM.gov locations are normalized as "City, ST" (and some records contain just
+// the state code). Match the extracted state code against every US state + DC.
+const STATE_LOCATION_REGEX = new RegExp(
+  `(?:^|,\\s*)(${US_STATES.join("|")})(?:$|\\s|,)`,
+  "i",
+);
 
 const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }: { data: { search?: string } }): Promise<{ awards: Award[]; similarBids: Record<number, SimilarBid[]> }> => {
   // The sync job stores procurement opportunities in `bids`.  Do not use the
@@ -194,7 +202,7 @@ function AwardsPage() {
     if (stateFilter) {
       // SAM.gov locations are normalized as "City, ST" (and some records
       // contain just the state code). Match the extracted state code only.
-      const match = (a.location || "").match(/(?:^|,\s*)(DC|VA|MD|WV|NC|GA|AL|NM)(?:$|\s|,)/i);
+      const match = (a.location || "").match(STATE_LOCATION_REGEX);
       if (!match || match[1].toUpperCase() !== stateFilter) return false;
     }
     return true;
@@ -247,14 +255,7 @@ function AwardsPage() {
             className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           >
             <option value="">All Regions</option>
-            <option value="DC">DC</option>
-            <option value="VA">VA</option>
-            <option value="MD">MD</option>
-            <option value="WV">WV</option>
-            <option value="NC">NC</option>
-            <option value="GA">GA</option>
-            <option value="AL">AL</option>
-            <option value="NM">NM</option>
+            {US_STATES.map((st) => <option key={st} value={st}>{st}</option>)}
           </select>
           <select
             value={categoryFilter}

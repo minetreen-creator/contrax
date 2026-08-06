@@ -57,3 +57,29 @@
   .word-paper { min-height: 900px; padding-bottom: 56px; }
   .contrax-sidebar { position: fixed; top: 48px; bottom: 0; height: auto; }
 }
+
+@keyframes demo-analyzing {
+  0%, 12% { opacity: .35; }
+  18%, 82% { opacity: 1; }
+  90%, 100% { opacity: .35; }
+}
+@keyframes demo-output {
+  0%, 18% { opacity: 0; transform: translateY(8px); }
+  24%, 82% { opacity: 1; transform: translateY(0); }
+  90%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+@keyframes demo-ready {
+  0%, 76% { opacity: 0; transform: translateY(8px); }
+  82%, 90% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+.demo-analyzing { animation: demo-analyzing 18s ease-in-out infinite; }
+.demo-output { animation: demo-output 18s ease-in-out infinite; }
+.demo-output-1 { animation-delay: 2.2s; }
+.demo-output-2 { animation-delay: 4.4s; }
+.demo-output-3 { animation-delay: 6.6s; }
+.demo-output-4 { animation-delay: 8.8s; }
+.demo-ready { animation: demo-ready 18s ease-in-out infinite; animation-delay: 0s; }
+@media (prefers-reduced-motion: reduce) {
+  .demo-analyzing, .demo-output, .demo-ready { animation: none; opacity: 1; transform: none; }
+}

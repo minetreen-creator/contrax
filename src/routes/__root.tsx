@@ -74,6 +74,7 @@ const PAGE_VIEW_DEDUPE_MS = 5 * 60 * 1000;
 
 function recordPageView(path: string) {
   if (typeof window === "undefined") return;
+  if (path.startsWith("/admin")) return; // don't track admin views
   const payload = { path, referrer: document.referrer || undefined };
   try {
     fetch("/api/page-view", {

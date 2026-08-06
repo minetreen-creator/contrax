@@ -33,3 +33,9 @@ Benefits may include access to 8(a) competitive and sole-source contracting, men
 - Forgetting annual eligibility reviews and continuing obligations after approval.
 
 Keep copies of submissions and calendar every renewal and annual-review date. If your situation is complex, seek qualified advice. The SBA’s current guidance is the source of truth, and an approval is not a guarantee of contract awards.
+
+## Related articles
+
+- [How to Find Government Set-Aside Contracts in 2026](/blog/find-set-aside-contracts)
+- [Government Contracting for Beginners: How to Start Federal Contracting](/blog/government-contracting-beginners)
+- [5 Proposal Writing Tips That Win Government Contracts](/blog/proposal-writing-tips)

@@ -9,6 +9,9 @@
 import findSetAside from "../content/blog/find-set-aside-contracts.md?raw";
 import eightACertification from "../content/blog/8a-certification-guide.md?raw";
 import proposalTips from "../content/blog/proposal-writing-tips.md?raw";
+import sdvosbContracts from "../content/blog/sdvosb-government-contracts.md?raw";
+import samGovGuide from "../content/blog/sam-gov-registration-guide.md?raw";
+import beginnersGuide from "../content/blog/government-contracting-beginners.md?raw";
 
 export type BlogPost = {
   slug: string;
@@ -134,6 +137,9 @@ const RAW_POSTS: { slug: string; raw: string }[] = [
   { slug: "find-set-aside-contracts", raw: findSetAside },
   { slug: "8a-certification-guide", raw: eightACertification },
   { slug: "proposal-writing-tips", raw: proposalTips },
+  { slug: "sdvosb-government-contracts", raw: sdvosbContracts },
+  { slug: "sam-gov-registration-guide", raw: samGovGuide },
+  { slug: "government-contracting-beginners", raw: beginnersGuide },
 ];
 
 export const BLOG_POSTS: BlogPost[] = RAW_POSTS.map(({ slug, raw }) => {

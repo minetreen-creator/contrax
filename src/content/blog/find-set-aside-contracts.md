@@ -30,3 +30,9 @@ Read the **NAICS code and size standard** together. Your certification may quali
 Set a weekly review cadence. For each candidate, record the agency, contracting office, set-aside type, NAICS, deadline, estimated value, incumbent, and one-sentence fit assessment. Then qualify quickly: can you meet the place of performance, security requirements, contract vehicle, and minimum experience?
 
 The best search is one you revisit consistently. Contrax helps set-aside businesses surface matching opportunities, summarize the documents, and keep certification deadlines visible—so your team can spend less time sorting and more time preparing a compliant response.
+
+## Related articles
+
+- [Government Contracting for Beginners: How to Start Federal Contracting](/blog/government-contracting-beginners)
+- [SDVOSB Government Contracts: A Practical Guide](/blog/sdvosb-government-contracts)
+- [How to Register in SAM.gov: A Step-by-Step Guide](/blog/sam-gov-registration-guide)

@@ -46,27 +46,39 @@ function BlogPostPage() {
   const url = `${PROD_URL}/blog/${post.slug}`;
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Article",
-    headline: post.title,
-    description: post.excerpt,
-    datePublished: `${post.date}T00:00:00Z`,
-    dateModified: `${post.date}T00:00:00Z`,
-    mainEntityOfPage: url,
-    url,
-    author: {
-      "@type": "Organization",
-      name: "Contrax",
-      url: PROD_URL,
-    },
-    publisher: {
-      "@type": "Organization",
-      name: "Contrax",
-      url: PROD_URL,
-      logo: {
-        "@type": "ImageObject",
-        url: `${PROD_URL}/logo-square.png`,
+    "@graph": [
+      {
+        "@type": "Article",
+        headline: post.title,
+        description: post.excerpt,
+        datePublished: `${post.date}T00:00:00Z`,
+        dateModified: `${post.date}T00:00:00Z`,
+        mainEntityOfPage: url,
+        url,
+        author: {
+          "@type": "Organization",
+          name: "Contrax",
+          url: PROD_URL,
+        },
+        publisher: {
+          "@type": "Organization",
+          name: "Contrax",
+          url: PROD_URL,
+          logo: {
+            "@type": "ImageObject",
+            url: `${PROD_URL}/logo-square.png`,
+          },
+        },
       },
-    },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: PROD_URL },
+          { "@type": "ListItem", position: 2, name: "Blog", item: `${PROD_URL}/blog` },
+          { "@type": "ListItem", position: 3, name: post.title, item: url },
+        ],
+      },
+    ],
   };
   return (
     <div className="min-h-screen bg-white">

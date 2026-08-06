@@ -103,6 +103,7 @@ function AwardsPage() {
   const [search, setSearch] = useState("");
   const [agencyFilter, setAgencyFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [stateFilter, setStateFilter] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [intel, setIntel] = useState<Record<number, FPDSIntel | null | undefined>>({});
   const [loadingIntel, setLoadingIntel] = useState<number | null>(null);
@@ -124,6 +125,12 @@ function AwardsPage() {
     }
     if (agencyFilter && a.agency !== agencyFilter) return false;
     if (categoryFilter && a.category !== categoryFilter) return false;
+    if (stateFilter) {
+      // SAM.gov locations are normalized as "City, ST" (and some records
+      // contain just the state code). Match the extracted state code only.
+      const match = (a.location || "").match(/(?:^|,\s*)(DC|VA|MD|WV)(?:$|\s|,)/i);
+      if (!match || match[1].toUpperCase() !== stateFilter) return false;
+    }
     return true;
   });
 
@@ -166,6 +173,18 @@ function AwardsPage() {
           >
             <option value="">All Agencies</option>
             {agencies.map((a) => <option key={a} value={a}>{a}</option>)}
+          </select>
+          <select
+            value={stateFilter}
+            onChange={(e) => setStateFilter(e.target.value)}
+            aria-label="Filter by state"
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm text-slate-900 bg-white focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="">All Regions</option>
+            <option value="DC">DC</option>
+            <option value="VA">VA</option>
+            <option value="MD">MD</option>
+            <option value="WV">WV</option>
           </select>
           <select
             value={categoryFilter}

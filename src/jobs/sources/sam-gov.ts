@@ -23,6 +23,8 @@ export interface RawBid {
   source_url: string;
   set_aside?: string | null;
   naics_code?: string | null;
+  /** Identifies whether the bid came from the national or regional pass. */
+  source_label?: "sam_gov" | "sam_gov_regional";
 }
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
@@ -203,12 +205,15 @@ function extractNaicsCode(item: any): string | null {
   return null;
 }
 
-export async function fetchBids(): Promise<RawBid[]> {
+export async function fetchBids(options: { states?: string[] } = {}): Promise<RawBid[]> {
+  const states = options.states?.filter((state) => /^[A-Z]{2}$/.test(state)).join(",");
+  const sourceLabel = states ? "sam_gov_regional" as const : "sam_gov" as const;
   const results: RawBid[] = [];
 
   for (let page = 0; page < MAX_PAGES; page++) {
     try {
-      const url = `${SAM_API}?page=${page}&size=${PAGE_SIZE}&sort=-modifiedDate&mode=opportunities&q=&is_active=true`;
+      const stateFilter = states ? `&placeOfPerformance.state=${states}` : "";
+      const url = `${SAM_API}?page=${page}&size=${PAGE_SIZE}&sort=-modifiedDate&mode=opportunities&q=&is_active=true${stateFilter}`;
       console.log(`  SAM.gov: fetching page ${page + 1}/${MAX_PAGES}...`);
 
       const resp = await fetch(url, { headers: HEADERS });
@@ -268,6 +273,7 @@ export async function fetchBids(): Promise<RawBid[]> {
             source_url: sourceUrl,
             set_aside: setAside,
             naics_code: extractNaicsCode(item),
+            source_label: sourceLabel,
           });
         } catch (e) {
           console.error(`  SAM.gov: error parsing item:`, (e as Error).message);

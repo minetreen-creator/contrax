@@ -40,7 +40,17 @@ interface SyncSource {
 }
 
 const SOURCES: SyncSource[] = [
-  { name: "sam_gov", fetchFn: fetchSamGov },
+  {
+    name: "sam_gov",
+    // The regional pass is additive. Keep national records first so a bid
+    // returned by both queries is represented once (and remains national).
+    fetchFn: async () => {
+      const national = await fetchSamGov();
+      const regional = await fetchSamGov({ states: ["DC", "VA", "MD", "WV"] });
+      const seen = new Set(national.map((bid) => bid.external_id));
+      return national.concat(regional.filter((bid) => !seen.has(bid.external_id)));
+    },
+  },
   { name: "va_evirginia", fetchFn: fetchVaEv },
   { name: "nc", fetchFn: fetchNc },
   { name: "md_dc", fetchFn: fetchMdDc },
@@ -100,7 +110,7 @@ async function syncSource(
             ${bid.due_date ? new Date(bid.due_date).toISOString() : null}::timestamptz,
             ${bid.estimated_value},
             ${bid.source_url},
-            ${source.name},
+            ${bid.source_label ?? source.name},
             ${bid.external_id},
             ${bid.naics_code ?? null}
           )

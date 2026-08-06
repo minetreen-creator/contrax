@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { IncumbentCard } from "~/components/IncumbentCard";
 import { getFPDSIntel, type FPDSIntel } from "~/lib/fpds";
@@ -105,6 +105,13 @@ function AwardsPage() {
   const [agencyFilter, setAgencyFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [stateFilter, setStateFilter] = useState("");
+
+  // Pre-fill search from ?search= query param on first load
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get("search");
+    if (q) setSearch(q);
+  }, []);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [intel, setIntel] = useState<Record<number, FPDSIntel | null | undefined>>({});
   const [loadingIntel, setLoadingIntel] = useState<number | null>(null);

@@ -681,7 +681,7 @@ function HealthcareOpportunities({ bids }: { bids: Bid[] }) {
           </p>
         )}
         <div className="mt-10 text-center">
-          <a href="/signup?interest=healthcare" className="font-semibold text-blue-700 transition-colors hover:text-blue-900">
+          <a href="/awards" className="font-semibold text-blue-700 transition-colors hover:text-blue-900">
             View all healthcare opportunities →
           </a>
         </div>

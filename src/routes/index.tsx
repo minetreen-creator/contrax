@@ -183,12 +183,12 @@ function Home() {
       <BidTicker bids={bids} />
       <HealthcareOpportunities bids={healthcareBids} />
       <HowItWorks />
+      <Pricing />
       <Example />
       <WhoItsFor />
       <ROICalculator />
       <CompetitorComparison />
       <LeadCapture />
-      <Pricing />
       <WaitlistSection />
       <Footer />
     </div>
@@ -376,6 +376,12 @@ function Hero({ businessName }: { businessName: string }) {
               <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
             </span>
             Contract Intelligence Platform
+          </div>
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3.5 py-1 text-xs font-medium text-emerald-200">
+            <svg className="h-3.5 w-3.5 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+            </svg>
+            Transparent pricing from $49/mo — 21-day free trial
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             Built for the businesses{" "}
@@ -768,109 +774,74 @@ function HowItWorks() {
 // ── Example / See It In Action ────────────────────────────────────────────────
 
 function Example() {
+  const outputs = [
+    "Identified 23 FAR clauses applicable",
+    "Drafted Executive Summary (340 words)",
+    "Generated Past Performance matrix",
+    "Built compliance checklist",
+  ];
+
   return (
-    <section className="py-20 sm:py-28">
+    <section className="bg-gray-50 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-600">
-            Simulation — See It In Action
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+            See It In Action
           </h2>
           <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            How a landscaping company wins more work
+            From RFP to proposal draft in minutes
           </h3>
-          <p className="mt-2 text-sm text-amber-700">This is a simulated dashboard showing how Contrax works for a fictional business. Real results vary by industry, location, and market conditions.</p>
+          <p className="mt-4 text-lg text-gray-600">
+            Let Contrax handle the heavy lifting while you focus on winning the work.
+          </p>
         </div>
 
-        <div className="mt-14 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-lg">
-          {/* Top bar */}
-          <div className="border-b border-gray-100 bg-gray-50 px-6 py-4 sm:px-8">
+        <div className="demo-shell mt-14 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-900 px-5 py-3 sm:px-7">
             <div className="flex items-center gap-2">
-              <span className="flex h-3 w-3 rounded-full bg-red-400" />
-              <span className="flex h-3 w-3 rounded-full bg-yellow-400" />
-              <span className="flex h-3 w-3 rounded-full bg-green-400" />
-              <span className="ml-3 text-sm font-medium text-gray-500">Contrax Dashboard</span>
+              <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
+              <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
+              <span className="ml-2 text-xs font-medium text-slate-300">Contract Intelligence Copilot</span>
+            </div>
+            <span className="text-xs text-slate-400">Live workspace</span>
+          </div>
+          <div className="grid gap-6 p-5 sm:p-8 lg:grid-cols-[.9fr_1.1fr] lg:gap-10 lg:p-10">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
+              <div className="mb-5 flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Source document</span>
+                <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">RFP</span>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-sm font-semibold leading-relaxed text-slate-900">RFP: VA Medical Center IT Modernization</p>
+                <p className="mt-2 text-xs text-slate-500">Solicitation VA-26-IT-0042 &nbsp;•&nbsp; 120 pages</p>
+                <div className="mt-5 space-y-2">
+                  <div className="h-2 w-full rounded bg-slate-100" /><div className="h-2 w-4/5 rounded bg-slate-100" /><div className="h-2 w-11/12 rounded bg-slate-100" />
+                </div>
+              </div>
+              <div className="demo-analyzing mt-5 flex items-center gap-2 text-xs font-medium text-blue-700">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-blue-600" />
+                Analyzing RFP requirements...
+              </div>
+            </div>
+            <div className="flex min-h-[280px] flex-col rounded-xl border border-blue-100 bg-blue-50/40 p-5 sm:p-6">
+              <div className="mb-5 flex items-center gap-2 border-b border-blue-100 pb-4">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white">C</span>
+                <span className="text-sm font-semibold text-slate-900">Contrax Copilot</span>
+                <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Working</span>
+              </div>
+              <div className="flex flex-1 flex-col justify-center gap-3">
+                {outputs.map((output, i) => (
+                  <div key={output} className={`demo-output demo-output-${i + 1} flex items-start gap-2.5 rounded-lg bg-white px-3.5 py-3 text-sm text-slate-700 shadow-sm`}>
+                    <span className="font-bold text-emerald-600">✓</span><span>{output}</span>
+                  </div>
+                ))}
+                <div className="demo-ready mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-700">Proposal draft ready in under 3 minutes</div>
+              </div>
             </div>
           </div>
-          {/* Content */}
-          <div className="p-6 sm:p-8 lg:p-10">
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-12">
-              {/* Left: scenario */}
-              <div className="flex-1 space-y-6">
-                <div className="flex items-center gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-green-100 text-2xl">
-                    🌿
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-500">Business Profile</p>
-                    <p className="text-lg font-semibold text-slate-900">
-                      GreenScape Landscaping
-                    </p>
-                    <p className="text-sm text-gray-500">VA &bull; NC &bull; DC metro</p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {["Landscaping", "Snow Removal", "Grounds Maintenance"].map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-gray-600">
-                  A landscaping company serving Virginia, North Carolina, and DC signs up with three
-                  service categories. Contrax immediately begins scanning.
-                </p>
-              </div>
-
-              {/* Right: results */}
-              <div className="flex-1 space-y-5 rounded-xl border border-gray-100 bg-gray-50/60 p-6 sm:p-8">
-                <p className="text-sm font-semibold uppercase tracking-widest text-gray-400">
-                  This Week&rsquo;s Results
-                </p>
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-                  <div className="rounded-xl bg-white p-4 text-center shadow-sm">
-                    <p className="text-3xl font-bold text-blue-600">14</p>
-                    <p className="mt-1 text-sm text-gray-500">New Matches</p>
-                  </div>
-                  <div className="rounded-xl bg-white p-4 text-center shadow-sm">
-                    <p className="text-3xl font-bold text-amber-500">12</p>
-                    <p className="mt-1 text-sm text-gray-500">Days to Bid</p>
-                  </div>
-                  <div className="rounded-xl bg-white p-4 text-center shadow-sm sm:col-span-1 col-span-2">
-                    <p className="text-3xl font-bold text-green-600">$180K</p>
-                    <p className="mt-1 text-sm text-gray-500">Est. Contract Value</p>
-                  </div>
-                </div>
-                <div className="space-y-3 pt-3">
-                  <div className="flex items-start gap-3 rounded-lg bg-white p-3 shadow-sm">
-                    <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
-                    </svg>
-                    <p className="text-sm text-gray-700">
-                      Required documents flagged and organized
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3 rounded-lg bg-white p-3 shadow-sm">
-                    <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
-                    </svg>
-                    <p className="text-sm text-gray-700">
-                      Drafted proposal based on previous winning submissions
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-3 rounded-lg bg-white p-3 shadow-sm">
-                    <svg className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4" />
-                    </svg>
-                    <p className="text-sm text-gray-700">
-                      Compliance checklist ready for review
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="border-t border-slate-100 px-5 py-5 text-center sm:px-8">
+            <a href="/signup" className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">Try it free <span className="ml-1.5">→</span></a>
           </div>
         </div>
       </div>
@@ -1492,6 +1463,7 @@ function Pricing() {
             Start small and scale up as your contracting pipeline grows. No long-term contracts
             required.
           </p>
+          <p className="mt-3 text-sm font-medium text-slate-500">All plans include a 21-day free trial. No hidden fees. Cancel anytime.</p>
         </div>
 
         <div className="mt-14 grid gap-8 lg:grid-cols-3">

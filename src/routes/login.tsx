@@ -1,80 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { setCookie } from "@tanstack/react-start/server";
 import { useState } from "react";
-import { sql } from "~/db";
-import { getCurrentUser, SESSION_COOKIE } from "~/lib/auth";
-import { verifyPassword } from "~/lib/password";
-
-const SESSION_TTL_DAYS = 30;
+import { getCurrentUser } from "~/lib/auth";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
-
-// ── Server Functions ──────────────────────────────────────────────────────────
-
-const loginFn = createServerFn({ method: "POST" })
-  .validator((data: unknown) => {
-    if (typeof data !== "object" || data === null) {
-      throw new Error("Invalid request");
-    }
-    const { email, password } = data as { email: string; password: string };
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      throw new Error("Please enter a valid email address.");
-    }
-    if (!password) {
-      throw new Error("Password is required.");
-    }
-
-    return { email: email.trim().toLowerCase(), password };
-  })
-  .handler(async ({ data }) => {
-    // Look up user
-    const rows = await sql()`
-      SELECT id, email, password_hash, created_at
-      FROM users
-      WHERE email = ${data.email}
-    `;
-
-    if (rows.length === 0) {
-      throw new Error("Invalid email or password.");
-    }
-
-    const user = rows[0] as {
-      id: number;
-      email: string;
-      password_hash: string;
-      created_at: Date;
-    };
-
-    // Verify password
-    const valid = await verifyPassword(data.password, user.password_hash);
-    if (!valid) {
-      throw new Error("Invalid email or password.");
-    }
-
-    // Create session token and set cookie
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
-
-    await sql()`
-      INSERT INTO sessions (user_id, token, expires_at)
-      VALUES (${user.id}, ${token}, ${expiresAt.toISOString()})
-    `;
-
-    setCookie(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
-    });
-
-    return {
-      success: true,
-      user: { id: user.id, email: user.email, created_at: String(user.created_at) },
-    };
-  });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
@@ -145,7 +73,15 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      await loginFn({ data: { email, password } });
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const json = await res.json() as { error?: string; success?: boolean };
+      if (!res.ok || json.error) {
+        throw new Error(json.error || "Login failed. Please try again.");
+      }
       navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed. Please try again.");
@@ -200,7 +136,7 @@ function LoginPage() {
               </div>
             </div>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">

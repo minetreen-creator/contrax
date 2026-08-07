@@ -125,66 +125,6 @@ const fetchMetrics = createServerFn({ method: "GET" }).handler(async (): Promise
   };
 });
 
-/**
- * Tables whose `user_id` foreign key references `users(id)` without
- * ON DELETE CASCADE. Dependents must be removed before the user row itself,
- * otherwise the DELETE throws a foreign-key violation. Only tables that
- * actually exist in the live DB are touched (several are created lazily).
- */
-const USER_DEPENDENT_TABLES = [
-  "google_accounts",
-  "business_profiles",
-  "api_keys",
-  "bid_alerts",
-  "saved_matches",
-  "sessions",
-  "proposal_drafts",
-  "ai_feedback",
-  "savings_diagnoses",
-  "savings_bills",
-  "integrations",
-  "notifications",
-  "knowledge_documents",
-];
-
-/**
- * Permanently deletes a user and all of their dependent rows (profiles,
- * sessions, alerts, drafts, etc.). The owner account (minetreen@gmail.com)
- * is protected and cannot be deleted. Runs inside a single transaction so a
- * mid-way failure leaves the user row intact.
- */
-const deleteUser = createServerFn({ method: "POST" })
-  .validator((d: unknown) => {
-    const userId = Number((d as { userId?: unknown })?.userId);
-    if (!Number.isInteger(userId) || userId <= 0) {
-      throw new Error("Invalid user id");
-    }
-    return { userId };
-  })
-  .handler(async ({ data }): Promise<{ success: boolean }> => {
-    await requireAdmin();
-    const db = sql();
-    const found = await db`SELECT id, email FROM users WHERE id = ${data.userId} LIMIT 1`;
-    if (found.length === 0) throw new Error("User not found");
-    const email = String((found[0] as any).email ?? "").toLowerCase();
-    if (email === "minetreen@gmail.com") {
-      throw new Error("The owner account cannot be deleted");
-    }
-    // Clean up dependent rows (guarded to tables that exist on this install),
-    // then remove the user — all in one transaction.
-    const existing = await db`
-      SELECT table_name FROM information_schema.tables
-      WHERE table_schema = 'public' AND table_name = ANY(${USER_DEPENDENT_TABLES}::text[])
-    `;
-    await db.transaction(async (tx) => {
-      for (const r of existing as { table_name: string }[]) {
-        await tx`DELETE FROM ${tx.unsafe(r.table_name)} WHERE user_id = ${data.userId}`;
-      }
-      await tx`DELETE FROM users WHERE id = ${data.userId}`;
-    });
-    return { success: true };
-  });
-
 const exportWaitlistCsv = createServerFn({ method: "GET" }).handler(async (): Promise<string> => {
   await requireAdmin();
   const rows = await sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC`;
@@ -310,7 +250,15 @@ function AdminPage() {
     if (!window.confirm(`Delete user ${user.email}? This cannot be undone.`)) return;
     setDeletingId(user.id);
     try {
-      await deleteUser({ data: { userId: user.id } });
+      const res = await fetch("/api/admin/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to delete user" }));
+        throw new Error(err.error || "Failed to delete user");
+      }
       setMetrics(await fetchMetrics());
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete user");

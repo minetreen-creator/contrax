@@ -86,8 +86,6 @@ function SignupPage() {
     setError("");
     setLoading(true);
 
-    console.log("[signup] handleSubmit called");
-
     const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string || "").trim().toLowerCase();
     const password = formData.get("password") as string || "";

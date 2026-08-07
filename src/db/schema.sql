@@ -13,6 +13,15 @@ CREATE TABLE IF NOT EXISTS users (
     active_profile_id INTEGER,
     is_admin BOOLEAN NOT NULL DEFAULT FALSE
 );
+CREATE TABLE IF NOT EXISTS google_accounts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    google_id TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL,
+    name TEXT,
+    avatar_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 
 CREATE TABLE IF NOT EXISTS business_profiles (
     id SERIAL PRIMARY KEY,

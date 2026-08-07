@@ -4,6 +4,7 @@ import { setCookie } from "@tanstack/react-start/server";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, SESSION_COOKIE } from "~/lib/auth";
+import { getGoogleAuthUrl } from "~/lib/google-oauth";
 import { hashPassword } from "~/lib/password";
 
 const SESSION_TTL_DAYS = 30;
@@ -93,7 +94,10 @@ export const Route = createFileRoute("/signup")({
     ticker_bid: typeof search.ticker_bid === "string" ? search.ticker_bid : undefined,
     ticker_agency: typeof search.ticker_agency === "string" ? search.ticker_agency : undefined,
   }),
-  loader: () => getCurrentUser(),
+  loader: async () => ({
+    currentUser: await getCurrentUser(),
+    googleAuthUrl: await getGoogleAuthUrl(),
+  }),
   component: SignupPage,
   head: () => ({
     meta: [
@@ -137,7 +141,7 @@ export const Route = createFileRoute("/signup")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function SignupPage() {
-  const currentUser = Route.useLoaderData();
+  const { currentUser, googleAuthUrl } = Route.useLoaderData();
   const navigate = useNavigate();
   const { plan, ticker_bid, ticker_agency } = Route.useSearch();
 
@@ -214,6 +218,34 @@ function SignupPage() {
             {planLabel} plan — 21-day free trial. No credit card required.
           </p>
 
+          {/* Continue with Google */}
+          {googleAuthUrl && (
+            <>
+              <a
+                href={googleAuthUrl}
+                className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98]"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" />
+                  <path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" />
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
+                </svg>
+                Continue with Google
+              </a>
+
+              {/* Divider */}
+              <div className="relative mt-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase tracking-wide text-gray-400">
+                  <span className="bg-white px-3">or</span>
+                </div>
+              </div>
+            </>
+          )}
+
           <form onSubmit={handleSubmit} className="mt-8 space-y-5">
             {/* Email */}
             <div>
@@ -224,7 +256,6 @@ function SignupPage() {
                 id="email"
                 name="email"
                 type="email"
-                defaultValue={email}
                 required
                 autoComplete="email"
                 className="mt-1.5 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"

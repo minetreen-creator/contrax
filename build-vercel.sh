@@ -12,6 +12,23 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 umask 002
+# ── Runtime environment variables ─────────────────────────────────────────────
+# All secrets are read at REQUEST TIME via `process.env.X` inside the serverless
+# function — they are NOT inlined at build time, so this script does not need to
+# pass them through. Set them in the Vercel project (Settings → Environment
+# Variables, both Preview and Production):
+#
+#   DATABASE_URL          — Neon Postgres connection string
+#   GOOGLE_CLIENT_ID      — Google OAuth client ID ("Continue with Google")
+#   GOOGLE_CLIENT_SECRET  — Google OAuth client secret (callback code exchange)
+#   SYNC_TOKEN            — cron token for /api/sync-bids, /api/sync-far
+#   STRIPE_SECRET_KEY     — Stripe API key (checkout)
+#   STRIPE_WEBHOOK_SECRET — Stripe webhook signing secret
+#   OPENAI_API_KEY        — AI features
+#   RESEND_API_KEY        — email (Resend)
+#
+# `bunx vercel deploy --prebuilt` inherits the project env, so nothing more is
+# needed here.
 
 echo "[1/3] vite build (light — safe under the sandbox memory cap)"
 # The workspace starts as sources only (deps live with the image's pre-built

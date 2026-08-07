@@ -10,6 +10,14 @@ import { getFarClauseStats, syncFarDfars, type FARClauseStats, type FarDfarsSync
 interface AdminMetrics {
   totalUsers: number;
   usersByPlan: { plan_tier: string | null; count: number }[];
+  recentUsers: {
+    id: number;
+    email: string;
+    plan_tier: string | null;
+    trial_started_at: string | null;
+    subscription_status: string | null;
+    created_at: string;
+  }[];
   totalWaitlist: number;
   recentWaitlist: { email: string; source: string; created_at: string }[];
   totalDiagnoses: number;
@@ -80,9 +88,10 @@ async function requireAdmin() {
 
 const fetchMetrics = createServerFn({ method: "GET" }).handler(async (): Promise<AdminMetrics> => {
   await requireAdmin();
-  const [userCount, planRows, waitlistCount, recentWaitlist, diagCount, billCount, traffic] = await Promise.all([
+  const [userCount, planRows, recentUsers, waitlistCount, recentWaitlist, diagCount, billCount, traffic] = await Promise.all([
     sql()`SELECT COUNT(*) as count FROM users`,
     sql()`SELECT plan_tier, COUNT(*) as count FROM users GROUP BY plan_tier ORDER BY count DESC`,
+    sql()`SELECT id, email, plan_tier, trial_started_at, subscription_status, created_at FROM users ORDER BY created_at DESC`,
     sql()`SELECT COUNT(*) as count FROM waitlist`,
     sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC LIMIT 10`,
     sql()`SELECT COUNT(*) as count FROM savings_diagnoses`,
@@ -95,6 +104,14 @@ const fetchMetrics = createServerFn({ method: "GET" }).handler(async (): Promise
     usersByPlan: (planRows as any[]).map((r) => ({
       plan_tier: r.plan_tier,
       count: Number(r.count),
+    })),
+    recentUsers: (recentUsers as any[]).map((r) => ({
+      id: Number(r.id),
+      email: r.email,
+      plan_tier: r.plan_tier,
+      trial_started_at: r.trial_started_at ? String(r.trial_started_at) : null,
+      subscription_status: r.subscription_status,
+      created_at: String(r.created_at),
     })),
     totalWaitlist: Number(waitlistCount[0].count),
     recentWaitlist: (recentWaitlist as any[]).map((r) => ({
@@ -394,6 +411,66 @@ function AdminPage() {
                 )}
               </div>
             </div>
+          </div>
+
+          <div className="mt-4 rounded-xl border border-slate-200 bg-white overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-100">
+              <h2 className="font-bold text-slate-900">User Signups</h2>
+            </div>
+            {metrics.recentUsers.length === 0 ? (
+              <p className="px-5 py-4 text-sm text-slate-400">No users yet</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
+                      <th className="px-5 py-3 font-medium">Email</th>
+                      <th className="px-5 py-3 font-medium">Plan</th>
+                      <th className="px-5 py-3 font-medium">Trial</th>
+                      <th className="px-5 py-3 font-medium">Signed Up</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {metrics.recentUsers.map((user) => {
+                      const trialActive = user.trial_started_at
+                        ? new Date(user.trial_started_at).getTime() + 21 * 24 * 60 * 60 * 1000 > Date.now()
+                        : false;
+                      return (
+                        <tr key={user.id} className="border-t border-slate-50">
+                          <td className="px-5 py-3">
+                            <a href={`mailto:${user.email}`} className="text-blue-600 hover:text-blue-700 hover:underline">
+                              {user.email}
+                            </a>
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium capitalize text-slate-700">
+                              {user.plan_tier || (trialActive ? "Free trial" : "No plan")}
+                            </span>
+                          </td>
+                          <td className="px-5 py-3 whitespace-nowrap">
+                            {trialActive ? (
+                              <div className="flex flex-col items-start gap-1">
+                                <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Active</span>
+                                <span className="text-xs text-slate-400">
+                                  Started {new Date(user.trial_started_at!).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                                </span>
+                              </div>
+                            ) : user.trial_started_at ? (
+                              <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Expired</span>
+                            ) : (
+                              <span className="text-slate-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-5 py-3 whitespace-nowrap text-slate-500">
+                            {new Date(user.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </section>
 

@@ -169,7 +169,7 @@ function SignupPage() {
 
     try {
       await signupFn({ data: { email, password, confirmPassword, plan } });
-      navigate({ to: "/onboarding" });
+      navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
     } finally {

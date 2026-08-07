@@ -12,6 +12,7 @@ import { createDeadlineAlertsForUser } from "~/lib/notifications";
 import { isHealthcareBid, countRoleMatches, type License } from "~/lib/healthcare";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
+import { GettingStarted } from "~/components/GettingStarted";
 import { buildProfileContext, buildScoringWeights } from "~/lib/profile-context";
 import { checkTrial, type TrialStatus } from "~/lib/trial";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
@@ -1475,6 +1476,7 @@ function DashboardPage() {
         {profile && <CertificationStatusCard profile={profile} />}
         {/* How Contrax understands your business — collapsible profile summary */}
         {profile && <CompanyProfile profile={profile} />}
+        {profile && <GettingStarted hasSavedBids={data.savedMatches.length > 0} hasDrafts={data.drafts.length > 0} />}
 
         <a href="/evaluate" className="mb-4 block rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-white p-5 shadow-sm transition hover:border-red-300"><div className="flex items-center justify-between gap-4"><div><div className="flex items-center gap-2"><h2 className="font-bold text-slate-900">🔴 Red Team</h2><span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Agency</span></div><p className="mt-1 text-sm text-slate-600">AI proposal auditing — find the holes before submission</p></div><span className="shrink-0 text-sm font-semibold text-red-700">Run review →</span></div></a>
         <a href="/competitors" className="mb-4 block rounded-2xl border border-blue-100 bg-white p-5 shadow-sm transition hover:border-blue-300"><div className="flex items-center justify-between gap-4"><div><h2 className="font-bold text-slate-900">Competitor intelligence</h2><p className="mt-1 text-sm text-slate-600">Top competing firm: <b>{data?.topCompetitor?.name || "No match yet"}</b>{data?.topCompetitor ? ` (${data.topCompetitor.awards} recent awards)` : ""}</p><p className="mt-1 text-xs text-slate-500">Competition in your categories: <b>{(data?.activeAwardees || 0) > 20 ? "High" : (data?.activeAwardees || 0) > 7 ? "Medium" : "Low"}</b></p></div><span className="shrink-0 text-sm font-semibold text-blue-700">View competitors →</span></div></a>

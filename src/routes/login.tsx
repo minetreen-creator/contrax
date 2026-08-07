@@ -125,7 +125,7 @@ export const Route = createFileRoute("/login")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function LoginPage() {
-  const currentUser = Route.useLoaderData();
+  const { currentUser } = Route.useLoaderData();
   const navigate = useNavigate();
 
   // If already logged in, redirect to dashboard

@@ -141,7 +141,7 @@ export const Route = createFileRoute("/signup")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function SignupPage() {
-  const currentUser = Route.useLoaderData();
+  const { currentUser } = Route.useLoaderData();
   const navigate = useNavigate();
   const { plan, ticker_bid, ticker_agency } = Route.useSearch();
 

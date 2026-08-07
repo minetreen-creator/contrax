@@ -50,8 +50,37 @@ async function ensurePageViewsTable(): Promise<void> {
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views (created_at)`;
 }
 
+/**
+ * Returns true when the user-agent looks like a bot/crawler/spider/scraper.
+ * Case-insensitive substring match against a curated denylist — intentionally
+ * conservative (false negatives cost a row; false positives cost a real view).
+ */
+function isBot(userAgent: string | null): boolean {
+  if (!userAgent) return false; // empty UA could be curl/wget — still signal, so keep
+  const ua = userAgent.toLowerCase();
+  const botPatterns = [
+    "bot", "crawler", "spider", "scraper", "headless",
+    "chrome-lighthouse", "lighthouse",
+    "ahrefs", "semrush", "mozdot", "rogerbot", "mj12bot", "dotbot",
+    "baiduspider", "yandex", "sogou", "exabot", "facebot",
+    "python-requests", "python-urllib", "go-http-client", "node-fetch",
+    "axios", "okhttp", "wget", "curl",
+    "petalbot", "barkrowler", "blexbot", "grapeshot",
+    "twitterbot", "slack", "discord", "whatsapp",
+    "ia_archiver", "checks.panopta", "uptime",
+    "google-ping", "google-read-aloud",
+  ];
+  return botPatterns.some((pattern) => ua.includes(pattern));
+}
+
 async function handler({ request }: { request: Request }) {
   try {
+    // Skip known bots/crawlers — don't pollute page view counts
+    const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
+    if (isBot(userAgent)) {
+      return Response.json({ ok: true, bot: true });
+    }
+
     // Parse the body defensively — a malformed payload must not 500.
     let path = "/";
     let referrer: string | null = null;
@@ -67,7 +96,6 @@ async function handler({ request }: { request: Request }) {
       // No/invalid JSON — record the hit with the default path.
     }
 
-    const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
     const ip = getClientIp(request);
 
     const insert = () =>

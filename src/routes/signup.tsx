@@ -1,91 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
-import { setCookie } from "@tanstack/react-start/server";
 import { useEffect, useState } from "react";
-import { sql } from "~/db";
-import { getCurrentUser, SESSION_COOKIE } from "~/lib/auth";
-import { hashPassword } from "~/lib/password";
-
-const SESSION_TTL_DAYS = 30;
+import { getCurrentUser } from "~/lib/auth";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
 
 type SignupSearch = { plan?: string; ticker_bid?: string; ticker_agency?: string };
 
 const validPlans = ["starter", "professional", "agency"] as const;
-
-// ── Server Functions ──────────────────────────────────────────────────────────
-
-const signupFn = createServerFn({ method: "POST" })
-  .validator((data: unknown) => {
-    if (typeof data !== "object" || data === null) {
-      throw new Error("Invalid request");
-    }
-    const { email, password, confirmPassword, plan } = data as {
-      email: string;
-      password: string;
-      confirmPassword: string;
-      plan?: string;
-    };
-
-    const errors: string[] = [];
-
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.push("Please enter a valid email address.");
-    }
-    if (!password || password.length < 8) {
-      errors.push("Password must be at least 8 characters.");
-    }
-    if (password !== confirmPassword) {
-      errors.push("Passwords do not match.");
-    }
-
-    if (errors.length > 0) {
-      throw new Error(errors.join(" "));
-    }
-
-    const validPlan = plan && ["starter", "professional", "agency"].includes(plan) ? plan : "starter";
-
-    return { email: email.trim().toLowerCase(), password, plan: validPlan };
-  })
-  .handler(async ({ data }) => {
-    // Check for duplicate email
-    const existing = await sql()`SELECT id FROM users WHERE email = ${data.email}`;
-    if (existing.length > 0) {
-      throw new Error("An account with this email already exists.");
-    }
-
-    // Hash password and create user
-    const passwordHash = await hashPassword(data.password);
-    const inserted = await sql()`
-      INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-      VALUES (${data.email}, ${passwordHash}, ${data.plan}, NOW())
-      RETURNING id, email, created_at
-    `;
-    const user = inserted[0] as { id: number; email: string; created_at: Date };
-
-    // Create session token and set cookie
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 24 * 60 * 60 * 1000);
-
-    await sql()`
-      INSERT INTO sessions (user_id, token, expires_at)
-      VALUES (${user.id}, ${token}, ${expiresAt.toISOString()})
-    `;
-
-    setCookie(SESSION_COOKIE, token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
-    });
-
-    return {
-      success: true,
-      user: { id: user.id, email: user.email, created_at: String(user.created_at) },
-    };
-  });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
@@ -171,7 +92,15 @@ function SignupPage() {
     const confirmPassword = formData.get("confirmPassword") as string || "";
 
     try {
-      await signupFn({ data: { email, password, confirmPassword, plan } });
+      const res = await fetch("/api/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password, confirmPassword, plan }),
+      });
+      const json = await res.json() as { error?: string; success?: boolean };
+      if (!res.ok || json.error) {
+        throw new Error(json.error || "Signup failed. Please try again.");
+      }
       navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");

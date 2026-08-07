@@ -86,6 +86,8 @@ function SignupPage() {
     setError("");
     setLoading(true);
 
+    console.log("[signup] handleSubmit called");
+
     const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string || "").trim().toLowerCase();
     const password = formData.get("password") as string || "";
@@ -171,7 +173,7 @@ function SignupPage() {
               </div>
             </div>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">

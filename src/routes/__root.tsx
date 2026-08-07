@@ -23,6 +23,7 @@ export const Route = createRootRoute({
       { title: SITE_TITLE },
       { name: "description", content: SITE_DESCRIPTION },
       { name: "robots", content: "index, follow" },
+      { name: "google-site-verification", content: "14cRTUtBuCR8nXM6pL0FhR8H1TTtm3OpmFZgOYCxNBc" },
 
       // Open Graph
       { property: "og:type", content: "website" },

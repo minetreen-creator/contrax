@@ -125,6 +125,66 @@ const fetchMetrics = createServerFn({ method: "GET" }).handler(async (): Promise
   };
 });
 
+/**
+ * Tables whose `user_id` foreign key references `users(id)` without
+ * ON DELETE CASCADE. Dependents must be removed before the user row itself,
+ * otherwise the DELETE throws a foreign-key violation. Only tables that
+ * actually exist in the live DB are touched (several are created lazily).
+ */
+const USER_DEPENDENT_TABLES = [
+  "google_accounts",
+  "business_profiles",
+  "api_keys",
+  "bid_alerts",
+  "saved_matches",
+  "sessions",
+  "proposal_drafts",
+  "ai_feedback",
+  "savings_diagnoses",
+  "savings_bills",
+  "integrations",
+  "notifications",
+  "knowledge_documents",
+];
+
+/**
+ * Permanently deletes a user and all of their dependent rows (profiles,
+ * sessions, alerts, drafts, etc.). The owner account (minetreen@gmail.com)
+ * is protected and cannot be deleted. Runs inside a single transaction so a
+ * mid-way failure leaves the user row intact.
+ */
+const deleteUser = createServerFn({ method: "POST" })
+  .validator((d: unknown) => {
+    const userId = Number((d as { userId?: unknown })?.userId);
+    if (!Number.isInteger(userId) || userId <= 0) {
+      throw new Error("Invalid user id");
+    }
+    return { userId };
+  })
+  .handler(async ({ data }): Promise<{ success: boolean }> => {
+    await requireAdmin();
+    const db = sql();
+    const found = await db`SELECT id, email FROM users WHERE id = ${data.userId} LIMIT 1`;
+    if (found.length === 0) throw new Error("User not found");
+    const email = String((found[0] as any).email ?? "").toLowerCase();
+    if (email === "minetreen@gmail.com") {
+      throw new Error("The owner account cannot be deleted");
+    }
+    // Clean up dependent rows (guarded to tables that exist on this install),
+    // then remove the user — all in one transaction.
+    const existing = await db`
+      SELECT table_name FROM information_schema.tables
+      WHERE table_schema = 'public' AND table_name = ANY(${USER_DEPENDENT_TABLES}::text[])
+    `;
+    await db.transaction(async (tx) => {
+      for (const r of existing as { table_name: string }[]) {
+        await tx`DELETE FROM ${tx.unsafe(r.table_name)} WHERE user_id = ${data.userId}`;
+      }
+      await tx`DELETE FROM users WHERE id = ${data.userId}`;
+    });
+    return { success: true };
+  });
+
 const exportWaitlistCsv = createServerFn({ method: "GET" }).handler(async (): Promise<string> => {
   await requireAdmin();
   const rows = await sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC`;
@@ -199,6 +259,7 @@ function AdminPage() {
   const [farStats, setFarStats] = useState<FARClauseStats | null>(null);
   const [syncingFar, setSyncingFar] = useState(false);
   const [farSyncResult, setFarSyncResult] = useState<FarDfarsSyncResult | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     Promise.all([fetchMetrics(), getLossRadarSummary(), getFarStats()])
@@ -242,6 +303,19 @@ function AdminPage() {
       alert(err instanceof Error ? err.message : "Export failed");
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleDeleteUser = async (user: { id: number; email: string }) => {
+    if (!window.confirm(`Delete user ${user.email}? This cannot be undone.`)) return;
+    setDeletingId(user.id);
+    try {
+      await deleteUser({ data: { userId: user.id } });
+      setMetrics(await fetchMetrics());
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete user");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -428,6 +502,7 @@ function AdminPage() {
                       <th className="px-5 py-3 font-medium">Plan</th>
                       <th className="px-5 py-3 font-medium">Trial</th>
                       <th className="px-5 py-3 font-medium">Signed Up</th>
+                      <th className="px-5 py-3 font-medium">Delete</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -463,6 +538,31 @@ function AdminPage() {
                           </td>
                           <td className="px-5 py-3 whitespace-nowrap text-slate-500">
                             {new Date(user.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </td>
+                          <td className="px-5 py-3 whitespace-nowrap">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteUser(user)}
+                              disabled={deletingId === user.id || user.email.toLowerCase() === "minetreen@gmail.com"}
+                              title={
+                                user.email.toLowerCase() === "minetreen@gmail.com"
+                                  ? "Owner account — cannot be deleted"
+                                  : `Delete ${user.email}`
+                              }
+                              aria-label={`Delete user ${user.email}`}
+                              className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-200 bg-white text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white disabled:active:scale-100"
+                            >
+                              {deletingId === user.id ? (
+                                <svg className="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                              ) : (
+                                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              )}
+                            </button>
                           </td>
                         </tr>
                       );

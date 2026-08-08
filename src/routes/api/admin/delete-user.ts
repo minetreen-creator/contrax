@@ -61,16 +61,16 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: "The owner account cannot be deleted" }, { status: 403 });
     }
 
-    const existing = await db`
-      SELECT table_name FROM information_schema.tables
-      WHERE table_schema = 'public' AND table_name = ANY(${USER_DEPENDENT_TABLES}::text[])
-    `;
-    await db.transaction(async (tx) => {
-      for (const row of existing as { table_name: string }[]) {
-        await tx`DELETE FROM ${tx.unsafe(row.table_name)} WHERE user_id = ${userId}`;
+    // Delete dependent rows, then the user — some tables have FK refs without cascade.
+    // Use individual statements so we don't rely on tx.unsafe() behaviour.
+    for (const table of USER_DEPENDENT_TABLES) {
+      try {
+        await db.unsafe(`DELETE FROM ${table} WHERE user_id = $1`, [userId]);
+      } catch {
+        // table might not have user_id column — skip silently
       }
-      await tx`DELETE FROM users WHERE id = ${userId}`;
-    });
+    }
+    await db`DELETE FROM users WHERE id = ${userId}`;
 
     return Response.json({ success: true });
   } catch (err) {

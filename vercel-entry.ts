@@ -633,15 +633,6 @@ export default async function vercelHandler(
       `https://${req.headers.host ?? "localhost"}`,
     );
 
-    // Stripe checkout session — handle before SSR
-    if (url.pathname === "/api/stripe/create-checkout-session" && req.method === "POST") {
-      const { status, body } = await handleCreateCheckoutSession(req);
-      res.statusCode = status;
-      res.setHeader("content-type", "application/json");
-      res.end(body);
-      return;
-    }
-
     // Stripe webhook — needs raw body, handle before SSR
     if (url.pathname === "/api/stripe/webhook" && req.method === "POST") {
       const { status, body } = await handleStripeWebhookRoute(req);

@@ -1,10 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
-import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
-import { loadLossRadar } from "~/lib/lossRadar";
-import { getFarClauseStats, syncFarDfars, type FARClauseStats, type FarDfarsSyncResult } from "~/lib/far-dfars";
+import type { FARClauseStats, FarDfarsSyncResult } from "~/lib/far-dfars";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface AdminMetrics {
@@ -29,151 +26,58 @@ interface AdminMetrics {
   uniqueVisitorsToday: number;
 }
 
-interface TrafficMetrics {
-  totalPageViews: number;
-  pageViewsToday: number;
-  pageViewsThisWeek: number;
-  topPages: { path: string; count: number }[];
-  uniqueVisitorsToday: number;
-}
-
-/**
- * Page-view stats from the self-hosted `page_views` table. Wrapped in a guard
- * so the admin dashboard degrades to zeros on the very first deploy, before
- * the table exists (it is created lazily by the first /api/page-view call).
- */
-async function loadTrafficMetrics(): Promise<TrafficMetrics> {
-  try {
-    // Purge any admin page views that were recorded before the exclusion filter was added.
-    try { await sql()`DELETE FROM page_views WHERE path LIKE '/admin%'`; } catch { /* ok if table doesn't exist yet */ }
-    const [total, today, week, top, unique] = await Promise.all([
-      sql()`SELECT COUNT(*) as count FROM page_views`,
-      sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= CURRENT_DATE`,
-      sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= NOW() - INTERVAL '7 days'`,
-      sql()`SELECT path, COUNT(*) as count FROM page_views GROUP BY path ORDER BY count DESC LIMIT 5`,
-      sql()`SELECT COUNT(DISTINCT ip) as count FROM page_views WHERE created_at >= CURRENT_DATE`,
-    ]);
-    return {
-      totalPageViews: Number(total[0].count),
-      pageViewsToday: Number(today[0].count),
-      pageViewsThisWeek: Number(week[0].count),
-      topPages: (top as any[]).map((r) => ({ path: r.path, count: Number(r.count) })),
-      uniqueVisitorsToday: Number(unique[0].count),
-    };
-  } catch {
-    // page_views may not exist yet — don't fail the whole dashboard.
-    return {
-      totalPageViews: 0,
-      pageViewsToday: 0,
-      pageViewsThisWeek: 0,
-      topPages: [],
-      uniqueVisitorsToday: 0,
-    };
+async function fetchAdminMetrics(): Promise<AdminMetrics> {
+  const res = await fetch("/api/admin/metrics");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to load metrics" }));
+    throw new Error(err.error || "Failed to load metrics");
   }
+  return res.json();
 }
-
-// ── Server Functions ─────────────────────────────────────────────────────────
-
-/**
- * Requires an authenticated admin. Throws for anonymous users and for
- * authenticated non-admins. Used by every server function on this page so the
- * data endpoints are gated even when called directly (not just via the UI).
- */
-async function requireAdmin() {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-  if (!user.is_admin) throw new Error("Admin access required");
-  return user;
-}
-
-const fetchMetrics = createServerFn({ method: "GET" }).handler(async (): Promise<AdminMetrics> => {
-  await requireAdmin();
-  const [userCount, planRows, recentUsers, waitlistCount, recentWaitlist, diagCount, billCount, traffic] = await Promise.all([
-    sql()`SELECT COUNT(*) as count FROM users`,
-    sql()`SELECT plan_tier, COUNT(*) as count FROM users GROUP BY plan_tier ORDER BY count DESC`,
-    sql()`SELECT id, email, plan_tier, trial_started_at, subscription_status, created_at FROM users ORDER BY created_at DESC`,
-    sql()`SELECT COUNT(*) as count FROM waitlist`,
-    sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC LIMIT 10`,
-    sql()`SELECT COUNT(*) as count FROM savings_diagnoses`,
-    sql()`SELECT COUNT(*) as count FROM savings_bills`,
-    loadTrafficMetrics(),
-  ]);
-
-  return {
-    totalUsers: Number(userCount[0].count),
-    usersByPlan: (planRows as any[]).map((r) => ({
-      plan_tier: r.plan_tier,
-      count: Number(r.count),
-    })),
-    recentUsers: (recentUsers as any[]).map((r) => ({
-      id: Number(r.id),
-      email: r.email,
-      plan_tier: r.plan_tier,
-      trial_started_at: r.trial_started_at ? String(r.trial_started_at) : null,
-      subscription_status: r.subscription_status,
-      created_at: String(r.created_at),
-    })),
-    totalWaitlist: Number(waitlistCount[0].count),
-    recentWaitlist: (recentWaitlist as any[]).map((r) => ({
-      email: r.email,
-      source: r.source || "landing_page",
-      created_at: String(r.created_at),
-    })),
-    totalDiagnoses: Number(diagCount[0].count),
-    totalBills: Number(billCount[0].count),
-    ...traffic,
-  };
-});
-
-const exportWaitlistCsv = createServerFn({ method: "GET" }).handler(async (): Promise<string> => {
-  await requireAdmin();
-  const rows = await sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC`;
-  const header = "email,source,created_at";
-  const dataRows = (rows as any[]).map((r) =>
-    `${r.email},${r.source || "landing_page"},${String(r.created_at)}`
-  );
-  return [header, ...dataRows].join("\n");
-});
 
 /** Count of Loss Radar prospects at or above the high-value threshold. */
-const getLossRadarSummary = createServerFn({ method: "GET" }).handler(
-  async (): Promise<{ highValueProspects: number }> => {
-    await requireAdmin();
-    try {
-      const data = await loadLossRadar();
-      return { highValueProspects: data.highValueCount };
-    } catch {
-      return { highValueProspects: 0 };
-    }
-  },
-);
+async function fetchLossRadarSummary(): Promise<{ highValueProspects: number }> {
+  const res = await fetch("/api/admin/loss-radar-summary");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to load loss radar summary" }));
+    throw new Error(err.error || "Failed to load loss radar summary");
+  }
+  return res.json();
+}
 
 /** FAR/DFARS clause counts for the admin card. */
-const getFarStats = createServerFn({ method: "GET" }).handler(
-  async (): Promise<FARClauseStats> => {
-    await requireAdmin();
-    return getFarClauseStats();
-  },
-);
+async function fetchFarStats(): Promise<FARClauseStats> {
+  const res = await fetch("/api/admin/far-stats");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to load FAR stats" }));
+    throw new Error(err.error || "Failed to load FAR stats");
+  }
+  return res.json();
+}
 
-/**
- * Admin-triggered FAR/DFARS sync. Defaults to the two clause parts that matter
- * most to proposal work (FAR 52, DFARS 252) so the button completes inside a
- * serverless function; pass `parts` to target others. The daily cron
- * (/api/sync-far) refreshes the full corpus.
- */
-const triggerFarSync = createServerFn({ method: "POST" })
-  .validator((d: unknown) => {
-    const parts = (d as { parts?: unknown })?.parts;
-    const list = Array.isArray(parts)
-      ? parts.map((p) => Number(p)).filter((p) => Number.isInteger(p) && p > 0)
-      : [52, 252];
-    return { parts: list };
-  })
-  .handler(async ({ data }): Promise<FarDfarsSyncResult> => {
-    await requireAdmin();
-    return syncFarDfars({ parts: data.parts, concurrency: 4 });
+/** Admin-triggered FAR/DFARS sync of the core clause parts (FAR 52, DFARS 252). */
+async function triggerFarSync(): Promise<FarDfarsSyncResult> {
+  const res = await fetch("/api/admin/far-sync", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ parts: [52, 252] }),
   });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "FAR/DFARS sync failed" }));
+    throw new Error(err.error || "FAR/DFARS sync failed");
+  }
+  return res.json();
+}
+
+/** Downloads the waitlist as a CSV string for the client-side blob export. */
+async function exportWaitlistCsv(): Promise<string> {
+  const res = await fetch("/api/admin/waitlist-csv");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Export failed" }));
+    throw new Error(err.error || "Export failed");
+  }
+  return res.text();
+}
 
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/admin/")({
@@ -202,7 +106,7 @@ function AdminPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
-    Promise.all([fetchMetrics(), getLossRadarSummary(), getFarStats()])
+    Promise.all([fetchAdminMetrics(), fetchLossRadarSummary(), fetchFarStats()])
       .then(([m, s, f]) => {
         setMetrics(m);
         setLossRadarCount(s.highValueProspects);
@@ -216,9 +120,9 @@ function AdminPage() {
     setSyncingFar(true);
     setFarSyncResult(null);
     try {
-      const result = await triggerFarSync({ data: { parts: [52, 252] } });
+      const result = await triggerFarSync();
       setFarSyncResult(result);
-      setFarStats(await getFarStats());
+      setFarStats(await fetchFarStats());
     } catch (err) {
       alert(err instanceof Error ? err.message : "FAR/DFARS sync failed");
     } finally {
@@ -259,7 +163,7 @@ function AdminPage() {
         const err = await res.json().catch(() => ({ error: "Failed to delete user" }));
         throw new Error(err.error || "Failed to delete user");
       }
-      setMetrics(await fetchMetrics());
+      setMetrics(await fetchAdminMetrics());
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to delete user");
     } finally {

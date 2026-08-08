@@ -147,13 +147,13 @@ function AuthenticatedCopilot() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/copilot/history").then((r) => r.json())
+    fetch("/api/copilot-history").then((r) => r.json())
       .then((res) => {
         setMessages(res);
         setHistoryLoaded(true);
       })
       .catch(() => setHistoryLoaded(true));
-    fetch("/api/copilot/stats").then((r) => r.json()).then(setStats).catch(() => {});
+    fetch("/api/copilot-stats").then((r) => r.json()).then(setStats).catch(() => {});
   }, []);
 
   useEffect(() => {

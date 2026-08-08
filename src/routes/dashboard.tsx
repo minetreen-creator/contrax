@@ -786,7 +786,7 @@ function DashboardPage() {
   // route loader, so this effect no longer re-fetches the full dashboard).
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/pricing/cache").then((r) => r.json()).then((pricingList) => {
+    fetch("/api/pricing-cache").then((r) => r.json()).then((pricingList) => {
       if (cancelled) return;
       const pricingMap: Record<number, PricingRecommendation> = {};
       pricingList.forEach((p) => { pricingMap[Number(p.bid_id)] = p; });
@@ -962,7 +962,7 @@ function DashboardPage() {
         const rec = recRes;
         setRecommendations((p) => ({ ...p, [bidId]: rec }));
         await new Promise((r) => setTimeout(r, 300));
-        fetch("/api/pricing/recommend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bid_title: bid.title, bid_id: String(bid.id), agency: bid.agency, description: bid.description, estimated_value: bid.estimated_value, naics_codes: profile.naics_codes }) }).then((r) => r.json()).then((pr) => setPricing((pp) => ({ ...pp, [bidId]: pr }))).catch(() => {});
+        fetch("/api/pricing-recommend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bid_title: bid.title, bid_id: String(bid.id), agency: bid.agency, description: bid.description, estimated_value: bid.estimated_value, naics_codes: profile.naics_codes }) }).then((r) => r.json()).then((pr) => setPricing((pp) => ({ ...pp, [bidId]: pr }))).catch(() => {});
       }
     }
     catch (err) { setAiError((p) => ({ ...p, [bidId]: err instanceof Error ? err.message : "Score generation failed" })); }
@@ -973,7 +973,7 @@ function DashboardPage() {
     setPricingLoading((p) => new Set(p).add(bidId));
     setAiError((p) => { const n = { ...p }; delete n[bidId]; return n; });
     try {
-      const result = await fetch("/api/pricing/recommend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bid_title: bid.title, bid_id: String(bid.id), agency: bid.agency, description: bid.description, estimated_value: bid.estimated_value, naics_codes: profile?.naics_codes || [] }) }).then((r) => r.json());
+      const result = await fetch("/api/pricing-recommend", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bid_title: bid.title, bid_id: String(bid.id), agency: bid.agency, description: bid.description, estimated_value: bid.estimated_value, naics_codes: profile?.naics_codes || [] }) }).then((r) => r.json());
       setPricing((p) => ({ ...p, [bidId]: result }));
     } catch (err) {
       setAiError((p) => ({ ...p, [bidId]: err instanceof Error ? err.message : "Pricing analysis failed" }));

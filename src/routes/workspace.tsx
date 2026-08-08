@@ -26,61 +26,9 @@ const PROVIDERS: { key: string; label: string; icon: string; color: string; bg: 
   { key: "onedrive", label: "OneDrive", icon: "☁️", color: "#0078D4", bg: "#E6F0FA" },
 ];
 
-async function ensureTables() {
-  await sql()`CREATE TABLE IF NOT EXISTS team_members (id SERIAL PRIMARY KEY, owner_id INTEGER NOT NULL REFERENCES users(id), email TEXT NOT NULL, role TEXT NOT NULL CHECK (role IN ('estimator','proposal_writer','accountant','project_manager')), status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','active','declined')), invited_at TIMESTAMPTZ DEFAULT NOW(), accepted_at TIMESTAMPTZ, UNIQUE(owner_id,email))`;
-  await sql()`CREATE TABLE IF NOT EXISTS team_activity (id SERIAL PRIMARY KEY, member_email TEXT NOT NULL, action TEXT NOT NULL, bid_id INTEGER REFERENCES bids(id), details TEXT, created_at TIMESTAMPTZ DEFAULT NOW())`;
-}
-
 async function ensureIntegrationsTable() {
   await sql()`CREATE TABLE IF NOT EXISTS integrations (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), provider TEXT NOT NULL CHECK (provider IN ('google_calendar','outlook_calendar','slack','teams','google_drive','onedrive')), access_token TEXT, refresh_token TEXT, status TEXT NOT NULL DEFAULT 'disconnected' CHECK (status IN ('active','disconnected')), connected_at TIMESTAMPTZ, created_at TIMESTAMPTZ DEFAULT NOW(), updated_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, provider))`;
 }
-
-async function owner() { const u = await getCurrentUser(); if (!u) throw new Error("Not authenticated"); const p = await sql()`SELECT id FROM business_profiles WHERE user_id=${u.id} LIMIT 1`; if (!p.length) throw new Error("Only the business owner can access the workspace"); return u; }
-
-const getWorkspace = createServerFn({ method: "GET" }).handler(async () => { const u = await owner(); try { await ensureTables(); } catch { return { allowed: true, members: [], activity: [] as Activity[] }; } const members = await sql()`SELECT id,email,role,status,invited_at FROM team_members WHERE owner_id=${u.id} ORDER BY invited_at DESC`; const emails = [u.email, ...(members as any[]).map(m => m.email)]; const activity = await sql()`SELECT a.id,a.member_email,a.action,a.details,a.created_at,b.title AS bid_title FROM team_activity a LEFT JOIN bids b ON b.id=a.bid_id WHERE a.member_email = ANY(${emails}) ORDER BY a.created_at DESC LIMIT 50`; return { allowed: true, members: members as Member[], activity: activity as Activity[] }; });
-
-
-
-
-// --- Integration server functions ---
-
-const getIntegrations = createServerFn({ method: "GET" }).handler(async (): Promise<IntegrationsData> => {
-  const u = await getCurrentUser();
-  if (!u) throw new Error("Not authenticated");
-  await ensureIntegrationsTable();
-  const userRows = await sql()`SELECT plan_tier FROM users WHERE id=${u.id} LIMIT 1`;
-  const planTier = (userRows.length ? (userRows[0] as any).plan_tier : null) as string | null;
-  const rows = await sql()`SELECT id, provider, status, connected_at FROM integrations WHERE user_id=${u.id} ORDER BY provider`;
-  return { planTier, integrations: rows as Integration[] };
-});
-
-const connectIntegration = createServerFn({ method: "POST" })
-  .validator((d: unknown) => d as { provider: string })
-  .handler(async ({ data }) => {
-    const u = await getCurrentUser();
-    if (!u) throw new Error("Not authenticated");
-    const userRows = await sql()`SELECT plan_tier FROM users WHERE id=${u.id} LIMIT 1`;
-    const planTier = (userRows.length ? (userRows[0] as any).plan_tier : null) as string | null;
-    if (planTier !== "agency") throw new Error("Agency plan required for integrations");
-    if (!PROVIDERS.some(p => p.key === data.provider)) throw new Error("Unknown provider");
-
-    const baseUrl = process.env.NODE_ENV === "production"
-      ? (process.env.PUBLIC_URL || "https://contrax.company")
-      : "http://localhost:3000";
-    const redirectUri = `${baseUrl}/api/integrations/callback?provider=${data.provider}`;
-    const state = Buffer.from(JSON.stringify({ userId: u.id, provider: data.provider })).toString("base64");
-
-    const oauthUrls: Record<string, string> = {
-      google_calendar: `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_CLIENT_ID || "PLACEHOLDER"}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=https://www.googleapis.com/auth/calendar.events&state=${state}&access_type=offline&prompt=consent`,
-      outlook_calendar: `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${process.env.OUTLOOK_CLIENT_ID || "PLACEHOLDER"}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=Calendars.ReadWrite&state=${state}`,
-      slack: `https://slack.com/oauth/v2/authorize?client_id=${process.env.SLACK_CLIENT_ID || "PLACEHOLDER"}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=chat:write,channels:read&state=${state}&user_scope=`,
-      teams: `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${process.env.TEAMS_CLIENT_ID || "PLACEHOLDER"}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=Team.ReadBasic.All,ChannelMessage.Send&state=${state}`,
-      google_drive: `https://accounts.google.com/o/oauth2/v2/auth?client_id=${process.env.GOOGLE_DRIVE_CLIENT_ID || "PLACEHOLDER"}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=https://www.googleapis.com/auth/drive.file&state=${state}&access_type=offline&prompt=consent`,
-      onedrive: `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${process.env.ONEDRIVE_CLIENT_ID || "PLACEHOLDER"}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=Files.ReadWrite&state=${state}`,
-    };
-    return { url: oauthUrls[data.provider] || null };
-  });
-
 type ApiKeyRow = { id: number; name: string; last_used_at: string | null; created_at: string; revoked: boolean };
 type Entity = { id: number; business_name: string; industry: string };
 
@@ -158,8 +106,8 @@ function WorkspacePage() {
   const [entityName, setEntityName] = useState("");
   const [entityIndustry, setEntityIndustry] = useState("");
 
-  const load=()=>getWorkspace().then(r=>setData(r as any)).catch(e=>setError(e.message));
-  const loadIntegrations = () => getIntegrations().then(r => setIntegrationsData(r)).catch(() => {});
+  const load=()=>fetch("/api/workspace").then(async r=>{const body=await r.json();if(!r.ok)throw new Error(body.error||"Workspace load failed");return body}).then(r=>setData(r as any)).catch(e=>setError(e.message));
+  const loadIntegrations = () => fetch("/api/integrations").then(async r=>{const body=await r.json();if(!r.ok)throw new Error(body.error||"Integrations load failed");return body}).then(r=>setIntegrationsData(r)).catch(() => {});
 
   const loadAgency = () => getAgencyData().then(r => { setAgency(r); const current = r.entities.find(e => e.id === r.activeProfileId) || r.entities[0]; if (current) setBrandName(current.business_name); }).catch(() => {});
   useEffect(()=>{load(); loadIntegrations(); loadAgency();},[]);
@@ -175,7 +123,9 @@ function WorkspacePage() {
     setIntegrationsBusy(provider);
     setError("");
     try {
-      const result = await connectIntegration({ data: { provider } }) as any;
+      const response = await fetch("/api/integrations/connect", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Connection failed");
       if (result.url) window.location.href = result.url;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Connection failed");

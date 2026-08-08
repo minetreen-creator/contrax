@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 
-async function getProfileHandler(request: Request): Promise<Response> {
+async function getProfileHandler({ request }: { request: Request }): Promise<Response> {
   try {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });

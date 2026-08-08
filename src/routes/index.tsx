@@ -1357,33 +1357,88 @@ function CompetitorComparison() {
   );
 }
 
-// ── Guide CTA ─────────────────────────────────────────────────────────────────
-
+// ── Lead Capture ──────────────────────────────────────────────────────────────
 function LeadCapture() {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const value = email.trim();
+    if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setErrorMsg("Please enter a valid email address.");
+      setStatus("error");
+      return;
+    }
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const response = await fetch("/api/lead-capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value }),
+      });
+      const result = (await response.json()) as { success?: boolean; error?: string };
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Something went wrong. Please try again.");
+      }
+      setStatus("success");
+    } catch (error) {
+      setErrorMsg(error instanceof Error ? error.message : "Something went wrong. Please try again.");
+      setStatus("error");
+    }
+  };
+
+  if (status === "success") {
+    return (
+      <section className="bg-slate-900 py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-900/50">
+              <svg className="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="mt-6 text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              Thanks! We&apos;ll be in touch.
+            </h2>
+            <p className="mt-3 text-lg text-blue-100/70">
+              Your interest is on file. You can read the free guide now.
+            </p>
+            <div className="mt-8">
+              <a href="/guide" className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]">
+                Read the guide →
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="bg-slate-900 py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Free Guide: Win Your First Government Contract
-          </h2>
-          <p className="mt-4 text-lg text-blue-100/70">
-            A step-by-step checklist for small businesses — from SAM.gov registration to your first award. No sign-up required.
-          </p>
-          <div className="mt-8">
-            <a
-              href="/guide"
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
-            >
-              Read the free guide →
-            </a>
-          </div>
+          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Free Guide: Win Your First Government Contract</h2>
+          <p className="mt-4 text-lg text-blue-100/70">Get the step-by-step checklist for small businesses — from SAM.gov registration to your first award.</p>
+          <form onSubmit={handleSubmit} className="mt-8 sm:mx-auto sm:max-w-md">
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <label htmlFor="lead-email" className="sr-only">Email address</label>
+              <input id="lead-email" type="email" required placeholder="you@company.com" value={email} onChange={(event) => { setEmail(event.target.value); if (status === "error") setStatus("idle"); }} className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-base text-white placeholder:text-slate-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
+              <button type="submit" disabled={status === "loading"} className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60">
+                {status === "loading" ? "Saving..." : "Get the Guide"}
+              </button>
+            </div>
+            {status === "error" && errorMsg && <p className="mt-3 text-sm text-red-300">{errorMsg}</p>}
+            <p className="mt-3 text-xs text-slate-400">We&apos;ll save your email and may follow up about Contrax. No fake delivery promises.</p>
+          </form>
         </div>
       </div>
     </section>
   );
 }
-
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 

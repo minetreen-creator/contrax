@@ -533,23 +533,9 @@ function ProductShowcase() {
 // ── Live Bid Ticker ───────────────────────────────────────────────────────────
 
 function BidTicker({ bids }: { bids: Bid[] }) {
-  if (bids.length === 0) {
-    return (
-      <section className="bg-white py-14">
-      <div className="mx-auto max-w-7xl px-6 text-center">
-          <div className="mb-3 flex items-center justify-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
-            </span>
-            <h2 className="text-2xl font-bold text-slate-900">Live Opportunities</h2>
-          </div>
-          <p className="text-gray-500">Real government contracts being tracked right now</p>
-          <p className="mt-2 text-sm text-gray-400">Bid data will appear here once the sync runs.</p>
-        </div>
-      </section>
-    );
-  }
+  // Do not expose an internal sync-status message when there are no bids yet.
+  // The ticker is only useful when it has real opportunities to display.
+  if (bids.length === 0) return null;
 
   // Dedupe by title + agency, then double for seamless scroll
   const seen = new Set<string>();

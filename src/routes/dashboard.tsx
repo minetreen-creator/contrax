@@ -6,15 +6,11 @@ import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { redirectToCheckout } from "~/lib/checkout";
 import { getPricingRecommendation, fetchPricingCache, type PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
-import { getRelevantContext } from "~/lib/knowledge";
-import { createDeadlineAlertsForUser } from "~/lib/notifications";
-import { isHealthcareBid, countRoleMatches, type License } from "~/lib/healthcare";
+import { isHealthcareBid, type License } from "~/lib/healthcare";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
 import { GettingStarted } from "~/components/GettingStarted";
-import { buildProfileContext } from "~/lib/profile-context";
 import { checkTrial, type TrialStatus } from "~/lib/trial";
-import { scoreBidServer } from "~/lib/score-bid";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -94,214 +90,7 @@ async function trackActivity(memberEmail: string, action: string, bidId?: number
   } catch { /* workspace telemetry is intentionally non-blocking */ }
 }
 
-const fetchDashboardData = createServerFn({ method: "GET" }).handler(async (): Promise<DashboardData> => {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-
-  // Check for active_profile_id (agency entity switching)
-  let activeProfileId: number | null = null;
-  try {
-    const userRows = await sql()`SELECT active_profile_id FROM users WHERE id = ${user.id}`;
-    activeProfileId = (userRows[0] as any)?.active_profile_id ?? null;
-  } catch { /* column may not exist yet */ }
-
-  // Lazy migration guards for healthcare staffing + profile enrichment columns.
-  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS naics_codes JSONB DEFAULT '[]'::jsonb`; } catch {}
-  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
-  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
-  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
-
-  const PROFILE_COLUMNS = `id, business_name, industry, locations, service_categories, naics_codes, logo_url, is_agency, uei, cage_code, sam_expiration, duns, certifications, certification_dates, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value`;
-  const profileRows = activeProfileId
-    ? await sql()`SELECT ${PROFILE_COLUMNS} FROM business_profiles WHERE id = ${activeProfileId} AND user_id = ${user.id}`
-    : await sql()`
-      SELECT ${PROFILE_COLUMNS}
-      FROM business_profiles WHERE user_id = ${user.id}`;
-  let profile: BusinessProfile | null = null;
-  if (profileRows.length > 0) {
-    const p = profileRows[0] as any;
-    profile = {
-      id: p.id, business_name: p.business_name, industry: p.industry,
-      locations: Array.isArray(p.locations) ? p.locations : [],
-      service_categories: Array.isArray(p.service_categories) ? p.service_categories : [],
-      naics_codes: Array.isArray(p.naics_codes) ? p.naics_codes : [],
-      logo_url: p.logo_url ?? null,
-      is_agency: Boolean(p.is_agency),
-      uei: p.uei ?? null,
-      cage_code: p.cage_code ?? null,
-      sam_expiration: p.sam_expiration ? String(p.sam_expiration).slice(0, 10) : null,
-      duns: p.duns ?? null,
-      certifications: Array.isArray(p.certifications) ? p.certifications : [],
-      certification_dates: p.certification_dates && typeof p.certification_dates === "object" && !Array.isArray(p.certification_dates) ? p.certification_dates : {},
-      years_in_business: p.years_in_business ?? null,
-      employee_count: p.employee_count ?? null,
-      annual_revenue: p.annual_revenue ?? null,
-      past_performance_summary: p.past_performance_summary ?? null,
-      capability_statement: p.capability_statement ?? null,
-      specialties: Array.isArray(p.specialties) ? p.specialties : [],
-      licenses: Array.isArray(p.licenses) ? p.licenses : [],
-      typical_contract_value: p.typical_contract_value ?? null,
-    };
-  }
-
-  await sql()`CREATE TABLE IF NOT EXISTS bid_scores (id SERIAL PRIMARY KEY, user_id TEXT NOT NULL, bid_id INTEGER NOT NULL REFERENCES bids(id), win_probability INTEGER NOT NULL, competition_level TEXT NOT NULL, agency_sentiment TEXT NOT NULL, size_fit TEXT NOT NULL DEFAULT '', experience_match TEXT NOT NULL, similar_awards_note TEXT NOT NULL DEFAULT '', ai_explanation TEXT NOT NULL, generated_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, bid_id))`;
-  // Backward compat: add new columns if they don't exist yet (old DB may have match_score/naics_fit/similarity_notes/profitability_estimate)
-  try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS win_probability INTEGER DEFAULT 50`; } catch {}
-  try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS agency_sentiment TEXT DEFAULT ''`; } catch {}
-  try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS size_fit TEXT DEFAULT ''`; } catch {}
-  try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS experience_match TEXT DEFAULT ''`; } catch {}
-  try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS similar_awards_note TEXT DEFAULT ''`; } catch {}
-  try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS naics_match TEXT DEFAULT ''`; } catch {}
-  try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS role_fit TEXT DEFAULT ''`; } catch {}
-
-  // Lazy migration: ensure set_aside column exists on bids (old DBs predate it).
-  try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS set_aside TEXT`; } catch {}
-  const bidRows = await sql()`SELECT id, title, agency, description, location, category, set_aside, due_date, estimated_value, source_url FROM bids ORDER BY due_date ASC`;
-  const userSpecialties = profile?.specialties || [];
-  const bids: Bid[] = (bidRows as any[]).map((b) => ({
-    id: b.id, title: b.title, agency: b.agency, description: b.description,
-    location: b.location, category: b.category, set_aside: b.set_aside ?? null,
-    due_date: String(b.due_date),
-    estimated_value: b.estimated_value, source_url: b.source_url,
-    role_matches: countRoleMatches(b as any, userSpecialties),
-  }));
-
-  const matchRows = await sql()`SELECT bid_id, status FROM saved_matches WHERE user_id = ${user.id}`;
-  const savedMatches: SavedMatch[] = (matchRows as any[]).map((m) => ({
-    bid_id: m.bid_id, status: m.status,
-  }));
-
-  // Fetch summaries and drafts for this user's saved/viewable bids
-  const summaryRows = await sql()`SELECT bid_id, summary_text, key_requirements, generated_at FROM bid_summaries`;
-  const summaries: BidSummary[] = (summaryRows as any[]).map((s) => ({
-    bid_id: s.bid_id,
-    summary_text: s.summary_text,
-    key_requirements: Array.isArray(s.key_requirements) ? s.key_requirements : [],
-    generated_at: String(s.generated_at),
-  }));
-
-  // Fetch scores with backward compat: try new columns first, fall back to old names
-  let scoreRows: any[];
-  try {
-    scoreRows = await sql()`SELECT bid_id, win_probability, competition_level, agency_sentiment, size_fit, experience_match, similar_awards_note, naics_match, role_fit, ai_explanation, generated_at FROM bid_scores WHERE user_id = ${user.id}`;
-  } catch {
-    // Fallback: old schema with match_score/naics_fit/similarity_notes/profitability_estimate
-    const oldRows = await sql()`SELECT bid_id, match_score, competition_level, naics_fit, similarity_notes, profitability_estimate, ai_explanation, generated_at FROM bid_scores WHERE user_id = ${user.id}`;
-    scoreRows = (oldRows as any[]).map((r: any) => ({
-      bid_id: r.bid_id,
-      win_probability: Number(r.match_score),
-      competition_level: r.competition_level,
-      agency_sentiment: r.naics_fit || '',
-      size_fit: r.profitability_estimate || '',
-      experience_match: r.similarity_notes || '',
-      similar_awards_note: '',
-      naics_match: '',
-      role_fit: '',
-      ai_explanation: r.ai_explanation,
-      generated_at: String(r.generated_at),
-    }));
-  }
-  const scores: BidScore[] = (scoreRows as any[]).map((s) => ({ bid_id: s.bid_id, win_probability: Number(s.win_probability), competition_level: s.competition_level, agency_sentiment: s.agency_sentiment || '', size_fit: s.size_fit || '', experience_match: s.experience_match || '', similar_awards_note: s.similar_awards_note || '', naics_match: s.naics_match || '', role_fit: s.role_fit || '', ai_explanation: s.ai_explanation, generated_at: String(s.generated_at) }));
-
-  await sql()`CREATE TABLE IF NOT EXISTS bid_recommendations (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, win_probability INTEGER, effort_level TEXT DEFAULT 'medium', competition_level TEXT DEFAULT 'medium', strategic_fit TEXT DEFAULT 'moderate', recommendation TEXT DEFAULT 'CAUTIOUS', summary TEXT DEFAULT '', factors JSONB DEFAULT '[]'::jsonb, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
-  const recommendationRows = await sql()`SELECT bid_id, bid_title, win_probability, effort_level, competition_level, strategic_fit, recommendation, summary, factors, created_at FROM bid_recommendations WHERE user_email = ${user.email}`;
-  const recommendations: BidRecommendation[] = (recommendationRows as any[]).map((r) => ({ ...r, bid_id: String(r.bid_id), win_probability: r.win_probability == null ? null : Number(r.win_probability), factors: Array.isArray(r.factors) ? r.factors : [], created_at: String(r.created_at) }));
-
-  const draftRows = await sql()`SELECT bid_id, draft_text, generated_at FROM proposal_drafts WHERE user_id = ${user.id}`;
-  const drafts: ProposalDraft[] = (draftRows as any[]).map((d) => ({
-    bid_id: d.bid_id,
-    draft_text: d.draft_text,
-    generated_at: String(d.generated_at),
-  }));
-
-  const syncRows = await sql()`SELECT created_at FROM sync_logs ORDER BY created_at DESC LIMIT 1`;
-  const lastSynced = syncRows.length > 0 ? String(syncRows[0].created_at) : null;
-  const countRows = await sql()`SELECT COUNT(*) as count FROM bids`;
-  const totalBids = countRows.length > 0 ? Number(countRows[0].count) : 0;
-  let lossesCount = 0;
-  try { const lossRows = await sql()`SELECT COUNT(*) as count FROM bid_losses WHERE user_email = ${user.email}`; lossesCount = Number(lossRows[0]?.count || 0); } catch {}
-
-  // Urgent tracked bids count (due within 3 days)
-  let topCompetitor: { name: string; awards: number } | null = null;
-  let activeAwardees = 0;
-  try {
-    const codes = (profile?.naics_codes || []).map(String);
-    const rows = codes.length ? await sql()`SELECT winning_company, COUNT(*)::int AS awards FROM awarded_contracts WHERE winning_company IS NOT NULL AND naics_code = ANY(${codes}) GROUP BY winning_company ORDER BY awards DESC LIMIT 1` : [];
-    topCompetitor = rows[0] ? { name: String((rows[0] as any).winning_company), awards: Number((rows[0] as any).awards) } : null;
-    const count = codes.length ? await sql()`SELECT COUNT(DISTINCT winning_company)::int AS count FROM awarded_contracts WHERE winning_company IS NOT NULL AND naics_code = ANY(${codes})` : [];
-    activeAwardees = Number((count[0] as any)?.count || 0);
-  } catch {}
-  let urgentTrackedCount = 0;
-  try {
-    await sql()`CREATE TABLE IF NOT EXISTS tracked_bids (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'tracked', last_checked TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
-    const urgentRows = await sql()`SELECT COUNT(*) as count FROM tracked_bids WHERE user_email = ${user.email} AND due_date::date <= (NOW() + INTERVAL '3 days')::date AND due_date::date >= NOW()::date`;
-    urgentTrackedCount = Number(urgentRows[0]?.count || 0);
-  } catch { /* tracking table may not exist yet */ }
-
-  // Best-effort: generate deadline alert notifications for this user
-  try { createDeadlineAlertsForUser(user.id, user.email).catch(() => {}); } catch { /* non-blocking */ }
-
-  let unreadAlerts = 0; try { const ar = await sql()`SELECT COUNT(*)::int AS count FROM bid_alerts WHERE user_id = ${user.id} AND is_read=false`; unreadAlerts = Number((ar[0] as any)?.count || 0); } catch {}
-  return { profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts };
-});
-
-// ── Fetch tracked bid IDs for the current user ──────────────────────────────
-const fetchTrackedBidIds = createServerFn({ method: "GET" }).handler(async (): Promise<string[]> => {
-  const user = await getCurrentUser();
-  if (!user) return [];
-  try {
-    await sql()`CREATE TABLE IF NOT EXISTS tracked_bids (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'tracked', last_checked TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
-    const rows = await sql()`SELECT bid_id FROM tracked_bids WHERE user_email = ${user.email}`;
-    return (rows as any[]).map((r) => String(r.bid_id));
-  } catch {
-    return [];
-  }
-});
-
 interface DigestResult { entries: DigestEntry[]; hasRecentBids: boolean; }
-
-// Curates recently created opportunities while reusing scoreBid's persisted scoring path.
-const fetchDigest = createServerFn({ method: "GET" }).handler(async (): Promise<DigestResult> => {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-  let activeIdForDigest: number | null = null; try { const ur = await sql()`SELECT active_profile_id FROM users WHERE id = ${user.id}`; activeIdForDigest = (ur[0] as any)?.active_profile_id ?? null; } catch {} const profiles = activeIdForDigest ? await sql()`SELECT id FROM business_profiles WHERE id = ${activeIdForDigest} AND user_id = ${user.id}` : await sql()`SELECT id FROM business_profiles WHERE user_id = ${user.id}`;
-  if (!profiles.length) return { entries: [], hasRecentBids: false };
-
-  const recent = await sql()`SELECT id, title, agency, estimated_value FROM bids WHERE created_at > NOW() - INTERVAL '24 hours' ORDER BY created_at DESC LIMIT 7`;
-  if (!recent.length) return { entries: [], hasRecentBids: false };
-  const scored: DigestEntry[] = [];
-  for (const row of recent as any[]) {
-    let scoreRows: any[] = [];
-    try {
-      scoreRows = await sql()`SELECT bid_id, win_probability, ai_explanation FROM bid_scores WHERE user_id = ${user.id} AND bid_id = ${row.id}`;
-    } catch { /* scoreBid below will create/migrate the cache table */ }
-    let score: any = scoreRows[0];
-    if (!score) {
-      try { score = await scoreBidServer({ user, bidId: Number(row.id), regenerate: false }); }
-      catch { continue; }
-    }
-    const explanation = String(score.ai_explanation || "").trim();
-    scored.push({
-      bid_id: Number(row.id), title: String(row.title), agency: String(row.agency),
-      estimated_value: String(row.estimated_value || "Not specified"),
-      win_probability: Number(score.win_probability) || 0,
-      reason: (explanation.split(/(?<=[.!?])\\s+/)[0] || "Strong fit for your business.").slice(0, 180),
-    });
-  }
-  scored.sort((a, b) => b.win_probability - a.win_probability);
-  return { entries: scored.slice(0, 5), hasRecentBids: true };
-});
-
-const saveBid = createServerFn({ method: "POST" })
-  .validator((data: unknown) => ({ bidId: (data as { bidId: number }).bidId }))
-  .handler(async ({ data }) => {
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Not authenticated");
-    await sql()`INSERT INTO saved_matches (user_id, bid_id, status) VALUES (${user.id}, ${data.bidId}, 'saved') ON CONFLICT (user_id, bid_id) DO UPDATE SET status = 'saved'`;
-    await trackActivity(user.email, "saved_bid", data.bidId, "a bid");
-    return { success: true };
-  });
-
 const dismissBid = createServerFn({ method: "POST" })
   .validator((data: unknown) => ({ bidId: (data as { bidId: number }).bidId }))
   .handler(async ({ data }) => {
@@ -499,102 +288,6 @@ Estimated Value: ${bid.estimated_value || "Not specified"}`;
     return result;
   });
 
-const generateProposal = createServerFn({ method: "GET" }).handler(async ({ data }: { data: { bidId: number } }) => {
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Not authenticated");
-
-    // Check cache
-    const existing = await sql()`SELECT draft_text, generated_at FROM proposal_drafts WHERE bid_id = ${data.bidId} AND user_id = ${user.id}`;
-    if (existing.length > 0) {
-      const row = existing[0] as any;
-      return { bid_id: data.bidId, draft_text: row.draft_text, generated_at: String(row.generated_at) };
-    }
-
-    // Fetch bid and business profile
-    const bidRows = await sql()`SELECT title, agency, description, location, category, due_date, estimated_value FROM bids WHERE id = ${data.bidId}`;
-    if (bidRows.length === 0) throw new Error("Bid not found");
-    const bid = bidRows[0] as any;
-
-    // Lazy migration for business profile enrichment columns on existing databases.
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cage_code TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS sam_expiration DATE`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS duns TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS years_in_business INTEGER`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
-    const profileRows = await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value FROM business_profiles WHERE user_id = ${user.id}`;
-    if (profileRows.length === 0) throw new Error("Business profile not found — complete onboarding first");
-    const profile = profileRows[0] as BusinessProfile;
-    const knowledgeCtx = await getRelevantContext(`${bid.title} ${bid.description || ""} proposal template capability statement compliance checklist`);
-
-    const prompt = `You are a government proposal writer. Draft a professional proposal response for this contract opportunity based on the business profile provided.
-
-Include:
-1. Cover letter introducing the business
-2. Executive summary of understanding the requirements
-3. Relevant experience and qualifications
-4. Proposed approach and methodology
-5. Pricing summary (if applicable)
-
-Format as a formal business proposal with sections and professional tone.
-
-Bid:
-Title: ${bid.title}
-Agency: ${bid.agency}
-Description: ${bid.description || "Not provided"}
-Location: ${bid.location || "Not specified"}
-Category: ${bid.category || "Not specified"}
-Due Date: ${String(bid.due_date)}
-Estimated Value: ${bid.estimated_value || "Not specified"}
-
-Business profile:
-${buildProfileContext(profile)}
-${knowledgeCtx}`;
-
-    let draftText: string;
-    try {
-      const apiKey = process.env.OPENAI_API_KEY;
-      if (!apiKey) throw new Error("OpenAI API key not configured");
-
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [{ role: "user", content: prompt }],
-          max_tokens: 1500,
-          temperature: 0.4,
-        }),
-      });
-
-      if (!response.ok) {
-        const errBody = await response.text();
-        throw new Error(`OpenAI API error (${response.status}): ${errBody.substring(0, 200)}`);
-      }
-
-      const json = await response.json() as any;
-      draftText = json.choices?.[0]?.message?.content;
-      if (!draftText) throw new Error("No content in OpenAI response");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "AI proposal generation failed";
-      throw new Error(`Proposal generation failed: ${msg}`);
-    }
-
-    // Store in DB
-    await sql()`INSERT INTO proposal_drafts (bid_id, user_id, draft_text)
-      VALUES (${data.bidId}, ${user.id}, ${draftText})
-      ON CONFLICT (bid_id, user_id) DO UPDATE
-      SET draft_text = ${draftText}, generated_at = NOW()`;
-    await trackActivity(user.email, "drafted_proposal", data.bidId);
-
-    return { bid_id: data.bidId, draft_text: draftText, generated_at: new Date().toISOString() };
-  });
-
 const downloadPdf = createServerFn({ method: "POST" }).validator((data: unknown) => {
   const bidId = Number((data as { bidId?: number }).bidId);
   if (!Number.isInteger(bidId) || bidId < 1) throw new Error("Invalid bid ID");
@@ -697,16 +390,12 @@ export { checkTrial, type TrialStatus };
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/dashboard")({
   head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
-  // Load ALL dashboard data (user + profile + bids + AI artifacts) in the route
-  // loader so SSR renders the full page once and hydration reuses that markup.
-  // Previously the component re-fetched this data in a useEffect, which made the
-  // bid cards render twice (SSR payload + client render) and produced duplicate
-  // listings side-by-side. This is the single source of truth for the page.
-  loader: async (): Promise<{ user: AuthUser | null; data: DashboardData | null }> => {
+  // Auth-only loader. Dashboard data now loads client-side from the
+  // /api/dashboard-data API route (createServerFn client RPCs silently fail on
+  // production, so the data can no longer be fetched from the loader).
+  loader: async (): Promise<{ user: AuthUser | null }> => {
     const user = await getCurrentUser();
-    if (!user) return { user: null, data: null };
-    const data = await fetchDashboardData();
-    return { user, data };
+    return { user };
   },
   pendingComponent: LoadingSkeleton,
   component: DashboardPage,
@@ -1001,8 +690,9 @@ function CertificationStatusCard({ profile }: { profile: BusinessProfile }) {
   );
 }
 function DashboardPage() {
-  // Data comes from the route loader — single source of truth for SSR + hydration.
-  const { user: currentUser, data } = Route.useLoaderData();
+  // Dashboard data loads client-side from /api/dashboard-data (createServerFn
+  // client RPCs silently fail on production, so the loader only resolves auth).
+  const { user: currentUser } = Route.useLoaderData();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -1015,8 +705,19 @@ function DashboardPage() {
   useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
   const [digest, setDigest] = useState<DigestResult | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/dashboard-data")
+      .then((r) => { if (!r.ok) throw new Error("Failed to load dashboard data"); return r.json(); })
+      .then((d: DashboardData) => { if (!cancelled) setData(d); })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setDataLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
-  // Seed saved/dismissed sets from loader data (no client re-fetch).
+  // Seed saved/dismissed sets from dashboard data (re-hydrated when the fetch resolves).
   const [savedBids, setSavedBids] = useState<Set<number>>(() => new Set((data?.savedMatches ?? []).filter((m) => m.status === "saved").map((m) => m.bid_id)));
   const [dismissedBids, setDismissedBids] = useState<Set<number>>(() => new Set((data?.savedMatches ?? []).filter((m) => m.status === "dismissed").map((m) => m.bid_id)));
   const [trackedBidIds, setTrackedBidIds] = useState<Set<string>>(new Set());
@@ -1060,6 +761,24 @@ function DashboardPage() {
   const [generatingProposal, setGeneratingProposal] = useState<Set<number>>(new Set());
   const [downloadingPdf, setDownloadingPdf] = useState<Set<number>>(new Set());
   const [aiError, setAiError] = useState<Record<number, string>>({});
+  // Hydrate the seeded collections once the client-side dashboard data arrives.
+  useEffect(() => {
+    if (!data) return;
+    setSavedBids(new Set((data.savedMatches ?? []).filter((m) => m.status === "saved").map((m) => m.bid_id)));
+    setDismissedBids(new Set((data.savedMatches ?? []).filter((m) => m.status === "dismissed").map((m) => m.bid_id)));
+    const sMap: Record<number, BidSummary> = {};
+    (data.summaries ?? []).forEach((s) => { sMap[s.bid_id] = s; });
+    setSummaries(sMap);
+    const dMap: Record<number, ProposalDraft> = {};
+    (data.drafts ?? []).forEach((d) => { dMap[d.bid_id] = d; });
+    setDrafts(dMap);
+    const scMap: Record<number, BidScore> = {};
+    (data.scores ?? []).forEach((s) => { scMap[s.bid_id] = s; });
+    setScores(scMap);
+    const rMap: Record<number, BidRecommendation> = {};
+    (data.recommendations ?? []).forEach((r) => { rMap[Number(r.bid_id)] = r; });
+    setRecommendations(rMap);
+  }, [data]);
 
   if (trial?.expired) return <TrialExpired />;
 
@@ -1079,7 +798,7 @@ function DashboardPage() {
   // Fetch tracked bid IDs
   useEffect(() => {
     let cancelled = false;
-    fetchTrackedBidIds().then((ids) => {
+    fetch("/api/dashboard-tracked").then((r) => r.json()).then((ids: string[]) => {
       if (!cancelled) setTrackedBidIds(new Set(ids));
     }).catch(() => {});
     return () => { cancelled = true; };
@@ -1089,7 +808,7 @@ function DashboardPage() {
     if (!data?.profile) return;
     let cancelled = false;
     setDigestLoading(true);
-    fetchDigest().then((result) => { if (!cancelled) setDigest(result); })
+    fetch("/api/dashboard-digest").then((r) => r.json()).then((result: DigestResult) => { if (!cancelled) setDigest(result); })
       .catch(() => { if (!cancelled) setDigest({ entries: [], hasRecentBids: false }); })
       .finally(() => { if (!cancelled) setDigestLoading(false); });
     return () => { cancelled = true; };
@@ -1125,7 +844,8 @@ function DashboardPage() {
   const doSave = useCallback(async (bidId: number) => {
     setActionLoading(bidId);
     try {
-      await saveBid({ data: { bidId } });
+      const res = await fetch("/api/bids-save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bidId }) });
+      if (!res.ok) { const b = await res.json().catch(() => null); throw new Error(b?.error || "Failed to save bid"); }
       setSavedBids((p) => new Set(p).add(bidId));
       setDismissedBids((p) => { const n = new Set(p); n.delete(bidId); return n; });
     } catch {} finally { setActionLoading(null); }
@@ -1194,7 +914,9 @@ function DashboardPage() {
     setGeneratingProposal((p) => new Set(p).add(bidId));
     setAiError((p) => { const n = { ...p }; delete n[bidId]; return n; });
     try {
-      const result = await generateProposal({ data: { bidId } });
+      const res = await fetch("/api/bids-draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bidId }) });
+      if (!res.ok) { const b = await res.json().catch(() => null); throw new Error(b?.error || "Proposal generation failed"); }
+      const result = await res.json();
       setDrafts((p) => ({ ...p, [bidId]: result }));
       setActiveTab((p) => ({ ...p, [bidId]: "draft" }));
     } catch (err) {
@@ -1285,6 +1007,7 @@ function DashboardPage() {
       setTimeout(() => setCopiedBid(null), 2000);
     }
   }, []);
+  if (dataLoading && !data) return <LoadingSkeleton />;
 
   return (
     <div className="min-h-screen bg-slate-50">

@@ -62,12 +62,13 @@ async function handler({ request }: { request: Request }) {
     }
 
     // Delete dependent rows, then the user — some tables have FK refs without cascade.
-    // Use individual statements so we don't rely on tx.unsafe() behaviour.
+    // Neon's unsafe() takes a single raw SQL string (no $1 params); call with empty
+    // template for execution. userId is validated as integer above — safe to inline.
     for (const table of USER_DEPENDENT_TABLES) {
       try {
-        await db.unsafe(`DELETE FROM ${table} WHERE user_id = $1`, [userId]);
+        await db.unsafe(`DELETE FROM ${table} WHERE user_id = ${userId}`)``;
       } catch {
-        // table might not have user_id column — skip silently
+        // table might not exist or lack user_id — skip silently
       }
     }
     await db`DELETE FROM users WHERE id = ${userId}`;

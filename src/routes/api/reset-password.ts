@@ -10,20 +10,28 @@ async function handler({ request }: { request: Request }) {
       email?: string;
       newPassword?: string;
       secret?: string;
+      token?: string;
     };
 
+    const newPassword = body.newPassword || "";
+    if (newPassword.length < 6) {
+      return Response.json({ error: "Password must be at least 6 characters." }, { status: 400 });
+    }
+
+    // Self-service path: a one-time token issued by /api/forgot-password.
+    const token = (body.token || "").trim();
+    if (token) {
+      return await handleTokenReset(token, newPassword);
+    }
+
+    // Admin path: shared secret.
     if (body.secret !== RESET_SECRET) {
       return Response.json({ error: "Invalid reset secret." }, { status: 401 });
     }
 
     const email = (body.email || "").trim().toLowerCase();
-    const newPassword = body.newPassword || "";
-
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return Response.json({ error: "Please enter a valid email address." }, { status: 400 });
-    }
-    if (newPassword.length < 6) {
-      return Response.json({ error: "Password must be at least 6 characters." }, { status: 400 });
     }
 
     const passwordHash = await hashPassword(newPassword);
@@ -43,6 +51,45 @@ async function handler({ request }: { request: Request }) {
     console.error("[api/reset-password] error:", err);
     return Response.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
+}
+
+async function handleTokenReset(token: string, newPassword: string): Promise<Response> {
+  // Atomically claim the token: it must exist, be unused, and not be expired.
+  // The UPDATE acts as a lock — only one request can claim it, so the token
+  // can never be used twice.
+  const claimed = await sql()`
+    UPDATE password_reset_tokens
+    SET used = TRUE
+    WHERE token = ${token} AND used = FALSE AND expires_at > NOW()
+    RETURNING id, email
+  `;
+
+  if (claimed.length === 0) {
+    return Response.json(
+      { error: "This reset link has expired or has already been used." },
+      { status: 401 },
+    );
+  }
+
+  const { email } = claimed[0] as { id: number; email: string };
+
+  const passwordHash = await hashPassword(newPassword);
+  const updated = await sql()`
+    UPDATE users
+    SET password_hash = ${passwordHash}
+    WHERE email = ${email}
+    RETURNING id
+  `;
+
+  if (updated.length === 0) {
+    // Account was deleted after the token was issued — treat as invalid.
+    return Response.json(
+      { error: "This reset link has expired or has already been used." },
+      { status: 401 },
+    );
+  }
+
+  return Response.json({ success: true });
 }
 
 export const Route = createFileRoute("/api/reset-password")({

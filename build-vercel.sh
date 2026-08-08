@@ -30,19 +30,25 @@ umask 002
 # `bunx vercel deploy --prebuilt` inherits the project env, so nothing more is
 # needed here.
 
-echo "[1/3] vite build (light — safe under the sandbox memory cap)"
+echo "[1/4] vite build (light — safe under the sandbox memory cap)"
 # The workspace starts as sources only (deps live with the image's pre-built
 # placeholder copy); no-op once node_modules is current.
 bun install
 bun run build
 
-echo "[2/3] assemble .vercel/output (Build Output API v3)"
+echo "[2/4] generate client entry-assets for vercel-entry.ts (no hardcoded chunk hashes)"
+# Reads the fresh dist/ output (TanStack Start SSR manifest + dist/client/assets)
+# and writes vercel-entry.assets.json, which vercel-entry.ts imports so the
+# static SEO pages reference the CURRENT entry chunk — not a stale hash.
+bun scripts/generate-entry-assets.mjs
+
+echo "[3/4] assemble .vercel/output (Build Output API v3)"
 rm -rf .vercel/output
 mkdir -p .vercel/output/functions/render.func
 cp -R dist/client .vercel/output/static
 rm -f .vercel/output/static/index.html   # SSR owns "/", not a static shell
 
-echo "[3/3] bundle SSR handler + deps into the render function"
+echo "[4/4] bundle SSR handler + deps into the render function"
 bun build vercel-entry.ts --target node \
   --external '#tanstack-router-entry' --external '#tanstack-start-entry' \
   --external 'tanstack-start-manifest:v' \

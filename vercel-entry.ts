@@ -12,6 +12,19 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import handler from "./dist/server/server.js";
 
+// ── Client asset references for the static SEO pages ─────────────────────────
+// The entry chunk / CSS / preload filenames come from vercel-entry.assets.json,
+// generated at BUILD time by scripts/generate-entry-assets.mjs (invoked from
+// build-vercel.sh) from the fresh Vite/TanStack build output — so the static
+// /learn + article pages always reference the CURRENT client entry chunk, never
+// a stale hardcoded hash. On Vercel the whole bundle is built in one pass, so
+// the generated JSON is inlined here by the bundler and never read at runtime.
+import entryAssets from "./vercel-entry.assets.json";
+
+const APP_CSS = entryAssets.appCss;
+const ENTRY_URL = `/assets/${entryAssets.entryChunk}`;
+const PRELOAD_URLS = entryAssets.preloads.map((p) => `/assets/${p}`);
+
 // ── Startup env diagnostics (safe boolean-only, no values) ─────────────────────
 // Helps diagnose "env var set in dashboard but not in deployed function" issues.
 // Vercel Redeploy reuses old env snapshots; only fresh deployments pick up new vars.
@@ -114,15 +127,15 @@ const TERMS_HTML = `<!DOCTYPE html>
 
 // ── Static SEO Pages ──────────────────────────────────────────────────────────
 
-const SEO_HEAD = `<link rel="stylesheet" href="/assets/app-BvI_ZJ4P.css">
+const SEO_HEAD = `<link rel="stylesheet" href="/assets/${APP_CSS}">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="modulepreload" href="/assets/index-V6s2zK7C.js">`;
+${PRELOAD_URLS.map((u) => `<link rel="modulepreload" href="${u}">`).join("\n")}`;
 
 const SEO_NAV = `<nav class="sticky top-0 z-50 bg-slate-900 border-b border-slate-700"><div class="mx-auto flex max-w-7xl items-center gap-1 px-6 py-2"><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/">📄 Contracts</a><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/savings">💰 Savings</a><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/learn">📚 Learn</a></div></nav>`;
 
 const SEO_FOOTER = `<footer class="border-t border-slate-200 bg-slate-50 mt-16"><div class="mx-auto max-w-7xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4"><p class="text-sm text-slate-500">© 2026 Contrax. All rights reserved.</p><div class="flex items-center gap-6"><a href="/privacy" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Privacy Policy</a><a href="/terms" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Terms of Service</a><a href="/security" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Security</a><a href="/learn" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Learn</a><a href="mailto:minetreen@gmail.com" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Contact</a></div></div></footer>`;
 
-const SEO_SCRIPTS = `<script class="$tsr" id="$tsr-stream-barrier">(self.$R=self.$R||{})["tsr"]=[];self.$_TSR={h(){this.hydrated=!0,this.c()},e(){this.streamEnded=!0,this.c()},c(){this.hydrated&&this.streamEnded&&(delete self.$_TSR,delete self.$R.tsr)},p(e){this.initialized?e():this.buffer.push(e)},buffer:[]};$_TSR.router=($R=>$R[0]={manifest:$R[1]={routes:$R[2]={__root__:$R[3]={preloads:$R[4]=["/assets/index-V6s2zK7C.js"],scripts:$R[5]=[$R[6]={attrs:$R[7]={type:"module",async:!0,src:"/assets/index-V6s2zK7C.js"}}]}}},matches:$R[8]=[$R[9]={i:"__root__",u:1785481081647,s:"success",ssr:!0,g:!0}],lastMatchId:"__root__"})($R["tsr"]);$_TSR.e();document.currentScript.remove()</script><script type="module" async src="/assets/index-V6s2zK7C.js"></script><script>(function(){try{var p=location.pathname+location.search;var r=document.referrer||"";fetch("/api/analytics",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:p,referrer:r})})}catch(e){}})();</script>`;
+const SEO_SCRIPTS = `<script class="$tsr" id="$tsr-stream-barrier">(self.$R=self.$R||{})["tsr"]=[];self.$_TSR={h(){this.hydrated=!0,this.c()},e(){this.streamEnded=!0,this.c()},c(){this.hydrated&&this.streamEnded&&(delete self.$_TSR,delete self.$R.tsr)},p(e){this.initialized?e():this.buffer.push(e)},buffer:[]};$_TSR.router=($R=>$R[0]={manifest:$R[1]={routes:$R[2]={__root__:$R[3]={preloads:$R[4]=${JSON.stringify(PRELOAD_URLS)},scripts:$R[5]=[$R[6]={attrs:$R[7]={type:"module",async:!0,src:${JSON.stringify(ENTRY_URL)}}}]}}},matches:$R[8]=[$R[9]={i:"__root__",u:1785481081647,s:"success",ssr:!0,g:!0}],lastMatchId:"__root__"})($R["tsr"]);$_TSR.e();document.currentScript.remove()</script><script type="module" async src="${ENTRY_URL}"></script><script>(function(){try{var p=location.pathname+location.search;var r=document.referrer||"";fetch("/api/analytics",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({path:p,referrer:r})})}catch(e){}})();</script>`;
 
 const LEARN_HTML = `<!DOCTYPE html>
 <html lang="en">

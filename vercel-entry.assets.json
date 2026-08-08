@@ -1,0 +1,9 @@
+{
+  "entryChunk": "index-7mHRBBYM.js",
+  "appCss": "app-B4bp8pj7.css",
+  "preloads": [
+    "index-7mHRBBYM.js",
+    "vendor-dLFFNdXe.js",
+    "router-B7DceLpq.js"
+  ]
+}

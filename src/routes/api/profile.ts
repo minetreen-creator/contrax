@@ -41,7 +41,7 @@ interface ProfilePayload {
   typicalContractValue?: string;
 }
 
-async function saveProfileHandler(request: Request): Promise<Response> {
+async function saveProfileHandler({ request }: { request: Request }): Promise<Response> {
   try {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });

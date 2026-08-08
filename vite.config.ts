@@ -1,6 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
+import { fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
 import tsConfigPaths from "vite-tsconfig-paths";
 
@@ -8,12 +9,12 @@ export default defineConfig({
   resolve: {
     alias: {
       // `server-only` (the react-server marker package) throws at import time on
-      // its default export. Node (Vercel's SSR runtime) has no `react-server`
-      // condition, so a bare `import "server-only"` in a server chunk would
-      // crash every DB-backed route. Alias it to the package's empty module —
-      // the same file React tooling resolves via the `react-server` condition —
-      // so the marker is a no-op on both client and server.
-      "server-only": "server-only/empty.js",
+      // its default export, and Node (Vercel's SSR runtime) has no `react-server`
+      // condition — so a bare external `import "server-only"` in a server chunk
+      // would crash every DB-backed route at runtime. Alias it to a local empty
+      // module: bundled inline as a no-op on the server, and side-effect-free
+      // (hence prunable) on the client. See src/server-only.ts.
+      "server-only": fileURLToPath(new URL("./src/server-only.ts", import.meta.url)),
     },
   },
   server: {

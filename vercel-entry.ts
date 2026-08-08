@@ -724,6 +724,8 @@ export default async function vercelHandler(
       return;
     }
 
+    // Make the request cookie available to route loaders during SSR
+    (globalThis as any).__contrax_request_cookie__ = (req.headers.cookie as string) || "";
     const webRes = await fetchHandler.fetch(toWebRequest(req));
     res.statusCode = webRes.status;
     webRes.headers.forEach((value, key) => res.setHeader(key, value));
@@ -736,6 +738,7 @@ export default async function vercelHandler(
       }
     }
     res.end();
+    delete (globalThis as any).__contrax_request_cookie__;
   } catch (error) {
     // Log the detail server-side (captured by the host's function logs); never
     // return a stack trace to the public visitor of the site.

@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect } from "react";
-import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
 import { checkTrial, type TrialStatus } from "~/lib/trial";
 import { SPECIALTY_OPTIONS, daysUntilExpiry, type License } from "~/lib/healthcare";
@@ -88,157 +86,6 @@ interface SettingsFormData {
   typicalContractValue: string;
 }
 
-// ── Server Functions ─────────────────────────────────────────────────────────
-
-const fetchProfile = createServerFn({ method: "GET" }).handler(async (): Promise<BusinessProfileFull | null> => {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-
-  // Lazy migration guards for the healthcare staffing columns.
-  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
-  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
-  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
-  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certification_dates JSONB DEFAULT '{}'::jsonb`; } catch {}
-
-  const rows = await sql()`
-    SELECT id, business_name, industry, locations, service_categories, naics_codes,
-           uei, cage_code, duns, sam_expiration, certifications, certification_dates,
-           years_in_business, employee_count, annual_revenue,
-           past_performance_summary, capability_statement,
-           specialties, licenses, typical_contract_value
-    FROM business_profiles
-    WHERE user_id = ${user.id}
-    LIMIT 1
-  `;
-
-  if (rows.length === 0) return null;
-
-  const p = rows[0] as any;
-  return {
-    id: p.id,
-    business_name: p.business_name ?? "",
-    industry: p.industry ?? "",
-    locations: Array.isArray(p.locations) ? p.locations : [],
-    service_categories: Array.isArray(p.service_categories) ? p.service_categories : [],
-    naics_codes: Array.isArray(p.naics_codes) ? p.naics_codes : [],
-    uei: p.uei ?? null,
-    cage_code: p.cage_code ?? null,
-    duns: p.duns ?? null,
-    sam_expiration: p.sam_expiration ? String(p.sam_expiration).slice(0, 10) : null,
-    certifications: Array.isArray(p.certifications) ? p.certifications : [],
-    certification_dates: p.certification_dates && typeof p.certification_dates === "object" && !Array.isArray(p.certification_dates) ? p.certification_dates : {},
-    years_in_business: p.years_in_business ?? null,
-    employee_count: p.employee_count ?? null,
-    annual_revenue: p.annual_revenue ?? null,
-    past_performance_summary: p.past_performance_summary ?? null,
-    capability_statement: p.capability_statement ?? null,
-    specialties: Array.isArray(p.specialties) ? p.specialties : [],
-    licenses: Array.isArray(p.licenses) ? p.licenses : [],
-    typical_contract_value: p.typical_contract_value ?? null,
-  };
-});
-
-const saveProfile = createServerFn({ method: "POST" })
-  .validator((data: unknown) => {
-    if (typeof data !== "object" || data === null) {
-      throw new Error("Invalid request");
-    }
-    const d = data as SettingsFormData;
-    if (!d.businessName || d.businessName.trim().length === 0) {
-      throw new Error("Business name is required.");
-    }
-    return {
-      businessName: d.businessName.trim(),
-      uei: d.uei?.trim() || null,
-      cageCode: d.cageCode?.trim() || null,
-      duns: d.duns?.trim() || null,
-      samExpiration: d.samExpiration?.trim() || null,
-      certifications: d.certifications || [],
-      certificationDates: d.certificationDates && typeof d.certificationDates === "object" ? Object.fromEntries(Object.entries(d.certificationDates).filter(([key, value]) => d.certifications.includes(key) && typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value as string))) : {},
-      yearsInBusiness: d.yearsInBusiness ? parseInt(d.yearsInBusiness, 10) || null : null,
-      employeeCount: d.employeeCount ? parseInt(d.employeeCount, 10) || null : null,
-      annualRevenue: d.annualRevenue?.trim() || null,
-      pastPerformance: d.pastPerformance?.trim() || null,
-      capabilityStatement: d.capabilityStatement?.trim() || null,
-      industry: d.industry?.trim() || "",
-      locations: d.locations || [],
-      naicsCodes: d.naicsCodes?.trim() || null,
-      specialties: Array.isArray(d.specialties) ? d.specialties.filter((s: string) => typeof s === "string" && s.trim().length > 0).map((s: string) => s.trim()) : [],
-      licenses: Array.isArray(d.licenses) ? d.licenses.filter((l: License) => l && typeof l.type === "string" && l.type.trim().length > 0).map((l: License) => ({ type: l.type.trim(), state: (l.state || "").trim() || null, expires: (l.expires || "").trim() || null })) : [],
-      typicalContractValue: d.typicalContractValue?.trim() || null,
-    };
-  })
-  .handler(async ({ data }) => {
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Not authenticated");
-
-    // Lazy migration guards for the healthcare staffing columns.
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certification_dates JSONB DEFAULT '{}'::jsonb`; } catch {}
-
-    // Parse comma-separated NAICS codes into array
-    const naicsArray = data.naicsCodes
-      ? data.naicsCodes.split(",").map((c: string) => c.trim()).filter((c: string) => c.length > 0)
-      : [];
-
-    const existing = await sql()`
-      SELECT id FROM business_profiles WHERE user_id = ${user.id}
-    `;
-
-    if (existing.length > 0) {
-      await sql()`
-        UPDATE business_profiles
-        SET business_name = ${data.businessName},
-            industry = ${data.industry},
-            locations = ${JSON.stringify(data.locations)}::jsonb,
-            naics_codes = ${JSON.stringify(naicsArray)}::jsonb,
-            uei = ${data.uei},
-            cage_code = ${data.cageCode},
-            duns = ${data.duns},
-            sam_expiration = ${data.samExpiration ? data.samExpiration : null}::date,
-            certifications = ${JSON.stringify(data.certifications)}::jsonb,
-            certification_dates = ${JSON.stringify(data.certificationDates)}::jsonb,
-            years_in_business = ${data.yearsInBusiness},
-            employee_count = ${data.employeeCount},
-            annual_revenue = ${data.annualRevenue},
-            past_performance_summary = ${data.pastPerformance},
-            capability_statement = ${data.capabilityStatement},
-            specialties = ${JSON.stringify(data.specialties)}::jsonb,
-            licenses = ${JSON.stringify(data.licenses)}::jsonb,
-            typical_contract_value = ${data.typicalContractValue},
-            updated_at = NOW()
-        WHERE user_id = ${user.id}
-      `;
-    } else {
-      await sql()`
-        INSERT INTO business_profiles (
-          user_id, business_name, industry, locations, naics_codes,
-          uei, cage_code, duns, sam_expiration, certifications, certification_dates,
-          years_in_business, employee_count, annual_revenue,
-          past_performance_summary, capability_statement,
-          specialties, licenses, typical_contract_value
-        )
-        VALUES (
-          ${user.id}, ${data.businessName}, ${data.industry},
-          ${JSON.stringify(data.locations)}::jsonb, ${JSON.stringify(naicsArray)}::jsonb,
-          ${data.uei}, ${data.cageCode}, ${data.duns},
-          ${data.samExpiration ? data.samExpiration : null}::date,
-          ${JSON.stringify(data.certifications)}::jsonb,
-          ${JSON.stringify(data.certificationDates)}::jsonb,
-          ${data.yearsInBusiness}, ${data.employeeCount}, ${data.annualRevenue},
-          ${data.pastPerformance}, ${data.capabilityStatement},
-          ${JSON.stringify(data.specialties)}::jsonb,
-          ${JSON.stringify(data.licenses)}::jsonb,
-          ${data.typicalContractValue}
-        )
-      `;
-    }
-
-    return { success: true };
-  });
-
 // ── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/settings")({
@@ -309,7 +156,8 @@ function SettingsPage() {
     let cancelled = false;
     async function load() {
       try {
-        const profile = await fetchProfile();
+        const res = await fetch("/api/profile", { method: "GET" });
+        const profile = res.ok ? await res.json() : null;
         if (!cancelled && profile) {
           setForm({
             businessName: profile.business_name,
@@ -411,7 +259,12 @@ function SettingsPage() {
     setSaving(true);
 
     try {
-      await saveProfile({ data: form });
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      }).then((r) => r.json());
+      if (!res.success) throw new Error(res.error || "Failed to save. Please try again.");
       setToast("Settings saved successfully");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save. Please try again.");

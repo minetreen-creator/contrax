@@ -1,15 +1,12 @@
 /**
- * AI Chat Support — the server function behind the ChatWidget.
+ * AI Chat Support — shared prompt/constants for the /api/chat endpoint.
  * The OpenAI API key stays server-side; the client only sends plain messages
  * and receives a text reply. No conversation is persisted (session only).
  */
-import { createServerFn } from "@tanstack/react-start";
-import { callAI } from "~/lib/ai";
+export const MAX_MESSAGES = 20;
+export const MAX_MESSAGE_CHARS = 2000;
 
-const MAX_MESSAGES = 20;
-const MAX_MESSAGE_CHARS = 2000;
-
-const SYSTEM_PROMPT = `You are the Contrax AI support assistant, embedded in the Contrax app (contrax.company).
+export const SYSTEM_PROMPT = `You are the Contrax AI support assistant, embedded in the Contrax app (contrax.company).
 
 Contrax is a Contract Intelligence Platform purpose-built for minority-, veteran-, and women-owned small businesses pursuing US government set-aside contracts. It monitors procurement sites, matches opportunities against the user's set-aside certifications (8(a), SDVOSB, WOSB, HUBZone), summarizes bid documents, drafts proposals, and tracks certification deadlines.
 
@@ -31,27 +28,3 @@ export interface ChatHistoryMessage {
   role: "user" | "assistant";
   content: string;
 }
-
-export const askContrax = createServerFn({ method: "POST" })
-  .validator((input: unknown): ChatHistoryMessage[] => {
-    if (!Array.isArray(input)) throw new Error("Invalid chat request");
-    const messages: ChatHistoryMessage[] = [];
-    for (const raw of input.slice(-MAX_MESSAGES)) {
-      const m = (raw ?? {}) as Record<string, unknown>;
-      const content = String(m.content ?? "").trim().slice(0, MAX_MESSAGE_CHARS);
-      if (!content) continue;
-      const role: ChatHistoryMessage["role"] =
-        m.role === "assistant" ? "assistant" : "user";
-      messages.push({ role, content });
-    }
-    if (messages.length === 0) throw new Error("No messages to send");
-    return messages;
-  })
-  .handler(async ({ data }) => {
-    const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...data,
-    ];
-    const reply = await callAI(messages, { max_tokens: 700, temperature: 0.5 });
-    return { reply };
-  });

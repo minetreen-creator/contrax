@@ -3,8 +3,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { TrialGate } from "~/components/TrialGate";
-import { callAI } from "~/lib/ai";
-import { fetchCopilotContext } from "~/lib/copilot";
 import { normalizeCert } from "~/lib/profile-context";
 import { getUserPatterns } from "~/lib/learning";
 import { sql } from "~/db";
@@ -23,11 +21,7 @@ interface CopilotStats {
   knowledgeDocs: number;
 }
 
-const SYSTEM_PROMPT = `You are Contrax Copilot, a senior government contracting strategist with deep expertise in federal procurement, set-aside programs (8(a), SDVOSB, WOSB, HUBZone), and small business growth. You have full access to this business's profile, certifications, bid history, win/loss patterns, and knowledge base.
 
-Your job: give clear, actionable, specific strategic advice. Cite the business's actual data — mention their NAICS codes, recent bids, win rates, and patterns by name. Be direct about competitive weaknesses. When you spot an opportunity (e.g. "Three of your active bids are 8(a) set-asides expiring in Q3 — prioritize the $250K DHS contract"), say so.
-
-Never make up data. If you don't have enough information, say so and ask. Keep responses concise but substantive — 2-4 paragraphs unless the user asks for detail.`;
 
 const SUGGESTED_PROMPTS = [
   "Which bids should I prioritize?",
@@ -35,66 +29,6 @@ const SUGGESTED_PROMPTS = [
   "Analyze my win/loss patterns",
   "What set-asides am I missing?",
 ];
-
-// ── Server Functions ────────────────────────────────────────────────────────
-
-/** Saves a chat message, creating the table on first use. */
-async function saveMessage(userEmail: string, role: string, content: string) {
-  await sql()`CREATE TABLE IF NOT EXISTS copilot_messages (
-    id SERIAL PRIMARY KEY,
-    user_email TEXT NOT NULL,
-    role TEXT NOT NULL,
-    content TEXT NOT NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-  )`;
-  await sql()`INSERT INTO copilot_messages (user_email, role, content) VALUES (${userEmail}, ${role}, ${content})`;
-}
-
-const sendMessage = createServerFn({ method: "POST" })
-  .validator((data: unknown) => {
-    const d = data as { message?: unknown };
-    if (!d || typeof d.message !== "string" || d.message.trim().length === 0) {
-      throw new Error("Message is required");
-    }
-    return { message: d.message.trim() };
-  })
-  .handler(async ({ data }): Promise<{ reply: string }> => {
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Not authenticated");
-
-    // Save the user's message first so the conversation is never lost.
-    await saveMessage(user.email, "user", data.message);
-
-    // Assemble context: system prompt + business context + last 20 messages + new message.
-    const context = await fetchCopilotContext(user.email);
-    const historyRows = await sql()`
-      SELECT role, content FROM copilot_messages
-      WHERE user_email = ${user.email}
-      ORDER BY id DESC LIMIT 20`;
-    const history = (historyRows as { role: string; content: string }[])
-      .slice()
-      .reverse()
-      .map((m) => ({ role: m.role, content: m.content }));
-
-    const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "system", content: `BUSINESS DATA CONTEXT (real data from this business's Contrax account — cite it by name):\n${context}` },
-      ...history,
-      { role: "user", content: data.message },
-    ];
-
-    let reply: string;
-    try {
-      reply = await callAI(messages, { max_tokens: 900, temperature: 0.4 });
-    } catch (err) {
-      throw new Error(
-        `AI request failed: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-
-    await saveMessage(user.email, "assistant", reply);
-    return { reply };
-  });
 
 const loadHistory = createServerFn({ method: "GET" }).handler(
   async (): Promise<ChatMessage[]> => {
@@ -303,7 +237,12 @@ function AuthenticatedCopilot() {
     setMessages((prev) => [...prev, { role: "user", content: msg }]);
     setSending(true);
     try {
-      const res = await sendMessage({ data: { message: msg } });
+      const res = await fetch("/api/copilot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: msg }),
+      }).then((r) => r.json());
+      if (!res.reply) throw new Error(res.error || "Failed to get a reply. Please try again.");
       setMessages((prev) => [...prev, { role: "assistant", content: res.reply }]);
     } catch (err) {
       // Roll back the optimistic user bubble so UI stays in sync with the DB.

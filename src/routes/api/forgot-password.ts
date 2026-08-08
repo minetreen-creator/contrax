@@ -26,15 +26,17 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: "Please enter a valid email address." }, { status: 400 });
     }
 
-    await sql()`${sql.unsafe(CREATE_RESET_TOKENS_TABLE)}`;
+    const db = sql();
+    // db.unsafe() is a fragment factory — inlines DDL safely when interpolated
+    await db`${db.unsafe(CREATE_RESET_TOKENS_TABLE)}`;
 
-    const user = await sql()`SELECT id FROM users WHERE email = ${email}`;
+    const user = await db`SELECT id FROM users WHERE email = ${email}`;
 
     let token: string | undefined;
     if (user.length > 0) {
       token = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
-      await sql()`
+      await db`
         INSERT INTO password_reset_tokens (email, token, expires_at)
         VALUES (${email}, ${token}, ${expiresAt.toISOString()})
       `;

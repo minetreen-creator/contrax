@@ -10,7 +10,7 @@ const MAX_PAGES = 3;
 const DELAY_MS = 500;
 const HEADERS = {
   Accept: "application/json",
-  "User-Agent": "Contrax procurement intelligence (https://contrax.company)",
+  "User-Agent": "Contrax procurement intelligence (https://www.contrax.company)",
 };
 
 type SocrataRecord = Record<string, unknown>;

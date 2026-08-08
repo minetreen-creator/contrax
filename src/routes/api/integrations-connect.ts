@@ -14,7 +14,7 @@ async function handler({ request }: { request: Request }): Promise<Response> {
     const planTier = (userRows.length ? (userRows[0] as any).plan_tier : null) as string | null;
     if (planTier !== "agency") return Response.json({ error: "Agency plan required for integrations" }, { status: 403 });
     if (!PROVIDERS.includes(provider)) return Response.json({ error: "Unknown provider" }, { status: 400 });
-    const baseUrl = process.env.NODE_ENV === "production" ? (process.env.PUBLIC_URL || "https://contrax.company") : "http://localhost:3000";
+    const baseUrl = process.env.NODE_ENV === "production" ? (process.env.PUBLIC_URL || "https://www.contrax.company") : "http://localhost:3000";
     const redirectUri = `${baseUrl}/api/integrations/callback?provider=${provider}`;
     const state = Buffer.from(JSON.stringify({ userId: u.id, provider })).toString("base64");
     const oauthUrls: Record<string, string> = {

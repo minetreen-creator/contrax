@@ -13,14 +13,14 @@ export const Route = createFileRoute("/terms/")({
       { name: "robots", content: "index, follow" },
       // Open Graph
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://contrax.company/terms" },
+      { property: "og:url", content: "https://www.contrax.company/terms" },
       { property: "og:title", content: "Terms of Service | Contrax" },
       {
         property: "og:description",
         content:
           "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
       },
-      { property: "og:image", content: "https://contrax.company/logo-square.png" },
+      { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
@@ -34,10 +34,10 @@ export const Route = createFileRoute("/terms/")({
         content:
           "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
       },
-      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
+      { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
-    links: [{ rel: "canonical", href: "https://contrax.company/terms" }],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/terms" }],
   }),
 });
 

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const PROD_URL = "https://contrax.company";
+const PROD_URL = "https://www.contrax.company";
 const TITLE = "Security at Contrax";
 const DESC =
   "How Contrax protects your data: infrastructure on Vercel and Neon PostgreSQL, HTTPS/TLS encryption in transit, encryption at rest, restricted production access, data handling and retention, incident response, and our subprocessors.";

@@ -255,14 +255,14 @@ export const Route = createFileRoute("/score")({
       { name: "robots", content: "index, follow" },
       // Open Graph
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://contrax.company/score" },
+      { property: "og:url", content: "https://www.contrax.company/score" },
       { property: "og:title", content: "Can I Win This Bid? — Contrax" },
       {
         property: "og:description",
         content:
           "Paste any government solicitation and get an honest AI-powered win probability analysis — fit score, certification gaps, competition, effort, and a GO/CAUTIOUS/NO-GO recommendation.",
       },
-      { property: "og:image", content: "https://contrax.company/logo-square.png" },
+      { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Can I win this bid? Free AI win probability scoring tool" },
       { property: "og:image:width", content: "1200" },
@@ -276,10 +276,10 @@ export const Route = createFileRoute("/score")({
         content:
           "Paste any government solicitation and get an honest AI-powered win probability analysis — fit score, certification gaps, competition, effort, and a GO/CAUTIOUS/NO-GO recommendation.",
       },
-      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
+      { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Can I win this bid? Free AI win probability scoring tool" },
     ],
-    links: [{ rel: "canonical", href: "https://contrax.company/score" }],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/score" }],
   }),
   component: ScorePage,
 });
@@ -337,13 +337,13 @@ function ScorePage() {
             "@context": "https://schema.org",
             "@type": "WebApplication",
             name: "Can I Win This Bid? — Contrax Bid Score",
-            url: "https://contrax.company/score",
+            url: "https://www.contrax.company/score",
             description:
               "Free AI-powered government bid scoring tool. Paste any solicitation and get a win probability analysis with a GO, CAUTIOUS, or NO-GO recommendation.",
             applicationCategory: "BusinessApplication",
             operatingSystem: "Any",
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-            publisher: { "@type": "Organization", name: "Contrax", url: "https://contrax.company" },
+            publisher: { "@type": "Organization", name: "Contrax", url: "https://www.contrax.company" },
           }),
         }}
       />

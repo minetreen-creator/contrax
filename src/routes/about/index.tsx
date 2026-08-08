@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-const PROD_URL = "https://contrax.company";
+const PROD_URL = "https://www.contrax.company";
 const TITLE = "About Contrax";
 const DESC =
   "Contrax helps small businesses compete for government contracts — opportunity discovery, bid summarization, win-probability scoring, proposal drafting, and team workspace in one platform.";

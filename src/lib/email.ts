@@ -179,7 +179,7 @@ function welcomeEmailHtml(email: string): string {
               <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:24px 0;">
                 <tr>
                   <td align="center">
-                    <a href="https://contrax.company/login"
+                    <a href="https://www.contrax.company/login"
                        style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-align:center;">
                       Log in to Contrax
                     </a>
@@ -196,7 +196,7 @@ function welcomeEmailHtml(email: string): string {
 
               <p style="margin:0 0 8px;color:#374151;font-size:15px;font-weight:600;">What's next?</p>
               <ol style="margin:0;padding:0 0 0 20px;color:#4b5563;font-size:14px;line-height:1.7;">
-                <li>Log in at <a href="https://contrax.company/login" style="color:#2563eb;">contrax.company/login</a></li>
+                <li>Log in at <a href="https://www.contrax.company/login" style="color:#2563eb;">www.contrax.company/login</a></li>
                 <li>Complete your onboarding — tell us about your services and locations</li>
                 <li>Browse live government contracts matched to your profile</li>
                 <li>Use AI to summarize bids and draft proposals in seconds</li>
@@ -374,7 +374,7 @@ return `<!DOCTYPE html>
       <!-- CTA -->
       <tr>
         <td style="padding:8px 32px 24px;text-align:center;">
-          <a href="https://contrax.company/dashboard"
+          <a href="https://www.contrax.company/dashboard"
              style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-align:center;">
             View All Bids in Contrax
           </a>

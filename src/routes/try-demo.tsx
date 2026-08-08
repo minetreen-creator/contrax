@@ -9,11 +9,11 @@ export const Route = createFileRoute("/try-demo")({
       { name: "description", content: "Explore Contrax with a pre-loaded demo account. See real government bids, AI win-probability scores, proposal drafts, and your full contracting dashboard — no signup required." },
       { name: "robots", content: "noindex, nofollow" },
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://contrax.company/try-demo" },
+      { property: "og:url", content: "https://www.contrax.company/try-demo" },
       { property: "og:title", content: "Try Contrax — Interactive Demo with Sample Data" },
       { property: "og:description", content: "Explore Contrax with a pre-loaded demo account. See real government bids, AI scores, and proposal drafts — no signup required." },
     ],
-    links: [{ rel: "canonical", href: "https://contrax.company/try-demo" }],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/try-demo" }],
   }),
 });
 function DemoPage() {

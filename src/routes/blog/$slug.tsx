@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { getBlogPost, formatBlogDate, type BlogPost } from "~/lib/blog";
 
-const PROD_URL = "https://contrax.company";
+const PROD_URL = "https://www.contrax.company";
 
 export const Route = createFileRoute("/blog/$slug")({
   loader: ({ params }) => {

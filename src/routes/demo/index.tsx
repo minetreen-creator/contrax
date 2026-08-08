@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-const PROD_URL = "https://contrax.company";
+const PROD_URL = "https://www.contrax.company";
 const TITLE = "See Contrax in Action — Request a Live Demo";
 const DESC =
   "Watch how Contrax helps certified small businesses find, understand, and win government contracts. Request a live demo or start your 21-day free trial.";

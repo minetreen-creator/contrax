@@ -119,14 +119,14 @@ export const Route = createFileRoute("/")({
       { name: "robots", content: "index, follow" },
       // Open Graph
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://contrax.company" },
+      { property: "og:url", content: "https://www.contrax.company" },
       { property: "og:title", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       {
         property: "og:description",
         content:
           "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
-      { property: "og:image", content: "https://contrax.company/logo-square.png" },
+      { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
       { property: "og:image:width", content: "1200" },
@@ -140,10 +140,10 @@ export const Route = createFileRoute("/")({
         content:
           "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
       },
-      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
+      { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
     ],
-    links: [{ rel: "canonical", href: "https://contrax.company" }],
+    links: [{ rel: "canonical", href: "https://www.contrax.company" }],
   }),
 });
 
@@ -158,8 +158,8 @@ function Home() {
     name: "Contrax",
     description:
       "Contrax is the contract intelligence platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
-    url: "https://contrax.company",
-    logo: "https://contrax.company/logo-square.png",
+    url: "https://www.contrax.company",
+    logo: "https://www.contrax.company/logo-square.png",
     email: "hello@contrax.company",
   };
 

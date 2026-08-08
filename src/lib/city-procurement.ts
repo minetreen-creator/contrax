@@ -28,7 +28,7 @@ const MAX_PAGES = 2; // up to 200 rows per city per sync
 const DELAY_MS = 300;
 const HEADERS = {
   Accept: "application/json",
-  "User-Agent": "Contrax procurement intelligence (https://contrax.company)",
+  "User-Agent": "Contrax procurement intelligence (https://www.contrax.company)",
 };
 
 export interface CitySourceConfig {

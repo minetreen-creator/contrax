@@ -10,7 +10,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { ChatWidget } from "~/components/ChatWidget";
 import appCss from "~/styles/app.css?url";
 
-const PROD_URL = "https://contrax.company";
+const PROD_URL = "https://www.contrax.company";
 const SITE_TITLE = "Contrax — Contract Intelligence Platform for Set-Aside Businesses";
 const SITE_DESCRIPTION =
   "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals so small businesses find and win more contracts.";

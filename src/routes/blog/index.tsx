@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BLOG_POSTS, formatBlogDate } from "~/lib/blog";
 
-const PROD_URL = "https://contrax.company";
+const PROD_URL = "https://www.contrax.company";
 const TITLE = "Contrax Blog — Government Contracting Insights";
 const DESC =
   "Practical guides and insights on government contracting for 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses — finding set-aside contracts, certification, and proposal writing.";

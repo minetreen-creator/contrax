@@ -22,14 +22,14 @@ export const Route = createFileRoute("/login")({
       { name: "robots", content: "noindex, nofollow" },
       // Open Graph
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://contrax.company/login" },
+      { property: "og:url", content: "https://www.contrax.company/login" },
       { property: "og:title", content: "Sign In to Contrax" },
       {
         property: "og:description",
         content:
           "Sign in to Contrax to find government contract opportunities, score bids, and draft stronger proposals with AI.",
       },
-      { property: "og:image", content: "https://contrax.company/logo-square.png" },
+      { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
       { property: "og:image:width", content: "1200" },
@@ -43,10 +43,10 @@ export const Route = createFileRoute("/login")({
         content:
           "Sign in to Contrax to find government contract opportunities, score bids, and draft stronger proposals with AI.",
       },
-      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
+      { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — AI-powered government contract bidding platform" },
     ],
-    links: [{ rel: "canonical", href: "https://contrax.company/login" }],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/login" }],
   }),
 });
 

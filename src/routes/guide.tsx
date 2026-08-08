@@ -13,14 +13,14 @@ export const Route = createFileRoute("/guide")({
 
       // Open Graph
       { property: "og:type", content: "website" },
-      { property: "og:url", content: "https://contrax.company/guide" },
+      { property: "og:url", content: "https://www.contrax.company/guide" },
       { property: "og:title", content: "The Small Business Government Contracting Playbook" },
       {
         property: "og:description",
         content:
           "A step-by-step guide for small businesses to win government contracts. From SAM.gov registration and UEI numbers to RFPs, proposals, and common mistakes to avoid.",
       },
-      { property: "og:image", content: "https://contrax.company/logo-square.png" },
+      { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:alt", content: "Contrax — The Small Business Government Contracting Playbook" },
       { property: "og:image:width", content: "1200" },
@@ -35,10 +35,10 @@ export const Route = createFileRoute("/guide")({
         content:
           "A step-by-step guide for small businesses to win government contracts. From SAM.gov registration and UEI numbers to RFPs, proposals, and common mistakes to avoid.",
       },
-      { name: "twitter:image", content: "https://contrax.company/logo-square.png" },
+      { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — The Small Business Government Contracting Playbook" },
     ],
-    links: [{ rel: "canonical", href: "https://contrax.company/guide" }],
+    links: [{ rel: "canonical", href: "https://www.contrax.company/guide" }],
   }),
   component: GuidePage,
 });

@@ -136,7 +136,7 @@ async function getPriceIdForPlanTier(planTier: PlanTier): Promise<string> {
 
 // ── Checkout Session Creation ──────────────────────────────────────────────────
 
-const BASE_URL = process.env.PROD_URL || "https://contrax.company";
+const BASE_URL = process.env.PROD_URL || "https://www.contrax.company";
 
 export type CheckoutMode = "payment" | "subscription";
 

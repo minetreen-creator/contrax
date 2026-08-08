@@ -42,6 +42,7 @@ interface ProfilePayload {
 }
 
 async function saveProfileHandler(request: Request): Promise<Response> {
+  try {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
   const body = (await request.json().catch(() => null)) as ProfilePayload | null;
@@ -174,9 +175,14 @@ async function saveProfileHandler(request: Request): Promise<Response> {
     `;
   }
   return Response.json({ success: true });
+  } catch (err: any) {
+    console.error("[api/profile POST]", err?.message || err);
+    return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 async function getProfileHandler(request: Request): Promise<Response> {
+  try {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
   // Lazy migration guards for the healthcare staffing columns.
@@ -221,9 +227,13 @@ async function getProfileHandler(request: Request): Promise<Response> {
     licenses: Array.isArray(p.licenses) ? p.licenses : [],
     typical_contract_value: p.typical_contract_value ?? null,
   });
-}
+  } catch (err: any) {
+  console.error("[api/profile GET]", err?.message || err);
+  return Response.json({ error: "Internal server error" }, { status: 500 });
+  }
+  }
 
-export const Route = createFileRoute("/api/profile")({
+  export const Route = createFileRoute("/api/profile")({
   server: {
     handlers: {
       POST: saveProfileHandler,

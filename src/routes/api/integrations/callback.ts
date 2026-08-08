@@ -97,7 +97,14 @@ async function handleOAuthCallback(request: Request): Promise<Response> {
 }
 
 export const Route = createFileRoute("/api/integrations/callback")({
-  loader: async ({ request }: { request: Request }) => {
-    return handleOAuthCallback(request);
+  // Use the server-handlers pattern (not `loader`) so this OAuth handler —
+  // which talks to the database and uses Node's Buffer — stays server-only.
+  // A `loader` is retained in the client bundle, which dragged
+  // `~/db` / @neondatabase/serverless (and Buffer shims) into the client
+  // entry chunk. See the sibling route `src/routes/api/integrations.ts`.
+  server: {
+    handlers: {
+      GET: ({ request }) => handleOAuthCallback(request),
+    },
   },
 });

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, MessageCircle, Send, X } from "lucide-react";
-import { askContrax, type ChatHistoryMessage } from "~/lib/chat";
+import type { ChatHistoryMessage } from "~/lib/chat";
 
 const WELCOME: ChatHistoryMessage = {
   role: "assistant",
@@ -41,10 +41,15 @@ export function ChatWidget() {
     setInput("");
     setLoading(true);
     try {
-      const { reply } = await askContrax({ data: history });
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(history),
+      }).then((r) => r.json());
+      if (!res.reply) throw new Error(res.error || "Chat request failed");
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: reply },
+        { role: "assistant", content: res.reply },
       ]);
     } catch {
       setMessages((prev) => [...prev, ERROR_MESSAGE]);

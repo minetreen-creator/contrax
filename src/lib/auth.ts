@@ -7,7 +7,7 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
-import { getCookie, deleteCookie } from "@tanstack/react-start/server";
+import { getCookie } from "@tanstack/react-start/server";
 import { sql } from "~/db";
 import { isAdminEmail } from "~/lib/admin";
 
@@ -64,15 +64,8 @@ export const getCurrentUser = createServerFn({ method: "GET" }).handler(
 );
 
 /**
- * Destroys the current session and clears the cookie.
+ * Logout is now handled by the /api/logout API route (POST) — createServerFn
+ * client RPCs silently fail on production Vercel. The route deletes the session
+ * row and expires the httpOnly cookie server-side.
  */
-export const logout = createServerFn({ method: "POST" }).handler(async () => {
-  const token = getCookie(SESSION_COOKIE);
-  if (token) {
-    await sql()`DELETE FROM sessions WHERE token = ${token}`;
-  }
-  deleteCookie(SESSION_COOKIE);
-  return { success: true };
-});
-
 export { SESSION_COOKIE };

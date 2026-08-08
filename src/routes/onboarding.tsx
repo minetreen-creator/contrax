@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback } from "react";
-import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -45,79 +43,6 @@ export const CERTIFICATIONS = [
   { value: "minority_owned", label: "Minority-Owned" },
   { value: "disadvantaged", label: "Disadvantaged" },
 ] as const;
-
-// ── Server Function ───────────────────────────────────────────────────────────
-
-const saveProfile = createServerFn({ method: "POST" })
-  .validator((data: unknown) => {
-    if (typeof data !== "object" || data === null) {
-      throw new Error("Invalid request");
-    }
-    const d = data as {
-      businessName: string;
-      industry: string;
-      locations: string[];
-      services: string[];
-      naicsCodes: string[];
-      certifications: string[];
-    };
-    if (!d.businessName || d.businessName.trim().length === 0) {
-      throw new Error("Business name is required.");
-    }
-    if (!d.industry) {
-      throw new Error("Please select an industry.");
-    }
-    if (!d.locations || d.locations.length === 0) {
-      throw new Error("Please select at least one location.");
-    }
-    if (!d.services || d.services.length === 0) {
-      throw new Error("Please select at least one service.");
-    }
-    return {
-      businessName: d.businessName.trim(),
-      industry: d.industry,
-      locations: d.locations,
-      services: d.services,
-      naicsCodes: d.naicsCodes || [],
-      certifications: d.certifications || [],
-    };
-  })
-  .handler(async ({ data }) => {
-    const user = await getCurrentUser();
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-
-    // Ensure new profile columns exist (backward compat)
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS naics_codes JSONB DEFAULT '[]'::jsonb`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`; } catch {}
-
-    // Upsert business profile
-    const existing = await sql()`
-      SELECT id FROM business_profiles WHERE user_id = ${user.id}
-    `;
-
-    if (existing.length > 0) {
-      await sql()`
-        UPDATE business_profiles
-        SET business_name = ${data.businessName},
-            industry = ${data.industry},
-            locations = ${JSON.stringify(data.locations)}::jsonb,
-            service_categories = ${JSON.stringify(data.services)}::jsonb,
-            naics_codes = ${JSON.stringify(data.naicsCodes)}::jsonb,
-            certifications = ${JSON.stringify(data.certifications)}::jsonb,
-            updated_at = NOW()
-        WHERE user_id = ${user.id}
-      `;
-    } else {
-      await sql()`
-        INSERT INTO business_profiles (user_id, business_name, industry, locations, service_categories, naics_codes, certifications)
-        VALUES (${user.id}, ${data.businessName}, ${data.industry}, ${JSON.stringify(data.locations)}::jsonb, ${JSON.stringify(data.services)}::jsonb, ${JSON.stringify(data.naicsCodes)}::jsonb, ${JSON.stringify(data.certifications)}::jsonb)
-      `;
-    }
-
-    return { success: true };
-  });
 
 // ── Route ────────────────────────────────────────────────────────────────────
 
@@ -871,16 +796,19 @@ function OnboardingPage() {
     setError("");
     setSaving(true);
     try {
-      await saveProfile({
-        data: {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           businessName: state.businessName,
           industry: state.industry,
           locations: state.locations,
           services: state.services,
           naicsCodes: state.naicsCodes,
           certifications: state.certifications,
-        },
-      });
+        }),
+      }).then((r) => r.json());
+      if (!res.success) throw new Error(res.error || "Failed to save profile. Please try again.");
       navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save profile. Please try again.");

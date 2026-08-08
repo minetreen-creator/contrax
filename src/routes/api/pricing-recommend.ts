@@ -203,11 +203,14 @@ Guidelines:
           pricing_strategy = EXCLUDED.pricing_strategy,
           created_at = NOW()`;
 
-      return result;
-    return Response.json(result);
+      return Response.json(result);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Pricing analysis failed";
+      return Response.json({ error: `Pricing analysis failed: ${msg}` }, { status: 500 });
+    }
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Pricing analysis failed";
     return Response.json({ error: `Pricing analysis failed: ${msg}` }, { status: 500 });
   }
 }
-export const Route = createFileRoute("/api/pricing/recommend")({ server: { handlers: { POST: handler } } });
+export const Route = createFileRoute("/api/pricing-recommend")({ server: { handlers: { POST: handler } } });

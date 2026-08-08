@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { getCookie } from "@tanstack/react-start/server";
 import { sql } from "~/db";
-import { getCurrentUser } from "~/lib/auth";
 
 const USER_DEPENDENT_TABLES = [
   "google_accounts",
@@ -20,9 +20,28 @@ const USER_DEPENDENT_TABLES = [
 
 async function handler({ request }: { request: Request }) {
   try {
-    const admin = await getCurrentUser();
-    if (!admin) return Response.json({ error: "Not authenticated" }, { status: 401 });
-    if (!admin.is_admin) return Response.json({ error: "Admin access required" }, { status: 403 });
+    // API route handlers do not have createServerFn's RPC context, so read the
+    // session cookie directly from this request before checking admin access.
+    const token = getCookie(request, "contrax_session");
+    if (!token) return Response.json({ error: "Not authenticated" }, { status: 401 });
+
+    const db = sql();
+    const sessionRows = await db`
+      SELECT user_id FROM sessions
+      WHERE token = ${token} AND expires_at > NOW()
+      LIMIT 1
+    `;
+    if (sessionRows.length === 0) {
+      return Response.json({ error: "Not authenticated" }, { status: 401 });
+    }
+
+    const userIdFromSession = (sessionRows[0] as { user_id: number }).user_id;
+    const adminRows = await db`
+      SELECT id, email, is_admin FROM users WHERE id = ${userIdFromSession} LIMIT 1
+    `;
+    if (adminRows.length === 0 || !(adminRows[0] as { is_admin?: boolean }).is_admin) {
+      return Response.json({ error: "Admin access required" }, { status: 403 });
+    }
 
     const body = (await request.json()) as { userId?: unknown };
     const userId = Number(body.userId);
@@ -30,7 +49,6 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: "Invalid user id" }, { status: 400 });
     }
 
-    const db = sql();
     const found = await db`SELECT id, email FROM users WHERE id = ${userId} LIMIT 1`;
     if (found.length === 0) return Response.json({ error: "User not found" }, { status: 404 });
     const email = String((found[0] as { email?: unknown }).email ?? "").toLowerCase();

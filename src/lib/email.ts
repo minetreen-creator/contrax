@@ -67,6 +67,39 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
   }
 }
 
+// ── Password Reset Email ───────────────────────────────────────────────────────
+
+/**
+ * Send a password reset link to a user who requested one via /forgot-password.
+ *
+ * Fire-and-forget — errors are logged but never thrown so they don't break the
+ * request handler (which must always return success to avoid user enumeration).
+ */
+export async function sendPasswordResetEmail(to: string, token: string): Promise<void> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send password reset email — RESEND_API_KEY not set");
+      return;
+    }
+
+    await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      to: [to],
+      subject: "Reset your Contrax password",
+      html: passwordResetEmailHtml(token),
+    });
+
+    console.log(`Password reset email sent to ${to}`);
+  } catch (err) {
+    console.error(
+      `Failed to send password reset email to ${to}:`,
+      (err as Error).message,
+    );
+    // Never throw — this is non-blocking
+  }
+}
+
 // ── Bid Digest Email ───────────────────────────────────────────────────────────
 
 /**
@@ -168,6 +201,79 @@ function welcomeEmailHtml(email: string): string {
                 <li>Browse live government contracts matched to your profile</li>
                 <li>Use AI to summarize bids and draft proposals in seconds</li>
               </ol>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
+                Contrax — AI-powered government contract discovery
+              </p>
+              <p style="margin:0;color:#9ca3af;font-size:12px;">
+                &copy; ${new Date().getFullYear()} Contrax. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// ── Password Reset HTML Template ───────────────────────────────────────────────
+
+function passwordResetEmailHtml(token: string): string {
+  const resetUrl = `https://www.contrax.company/reset-password?token=${encodeURIComponent(token)}`;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reset Your Contrax Password</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4f4f5;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:32px 32px 24px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">Contrax</h1>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 12px;color:#111827;font-size:20px;font-weight:600;">Reset your password</h2>
+              <p style="margin:0 0 16px;color:#4b5563;font-size:15px;line-height:1.6;">
+                We received a request to reset the password for your Contrax account.
+                Click the button below to choose a new password. This link expires in 1 hour.
+              </p>
+
+              <!-- CTA -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:24px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${resetUrl}"
+                       style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-align:center;">
+                      Reset Password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.5;">
+                If the button doesn't work, copy and paste this link into your browser:
+              </p>
+              <p style="margin:0 0 16px;color:#2563eb;font-size:13px;line-height:1.5;word-break:break-all;">
+                ${resetUrl}
+              </p>
+              <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.5;">
+                If you didn't request a password reset, you can safely ignore this email.
+              </p>
             </td>
           </tr>
           <!-- Footer -->

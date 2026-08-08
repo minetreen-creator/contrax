@@ -12,6 +12,13 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 
 import handler from "./dist/server/server.js";
 
+// ── Startup env diagnostics (safe boolean-only, no values) ─────────────────────
+// Helps diagnose "env var set in dashboard but not in deployed function" issues.
+// Vercel Redeploy reuses old env snapshots; only fresh deployments pick up new vars.
+console.log("[contrax] STRIPE_SECRET_KEY present:", !!process.env.STRIPE_SECRET_KEY);
+console.log("[contrax] STRIPE_WEBHOOK_SECRET present:", !!process.env.STRIPE_WEBHOOK_SECRET);
+console.log("[contrax] DATABASE_URL present:", !!process.env.DATABASE_URL);
+
 // ── Static Legal Pages ─────────────────────────────────────────────────────────
 
 const PRIVACY_HTML = `<!DOCTYPE html>

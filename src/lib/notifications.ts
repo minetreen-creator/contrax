@@ -83,32 +83,6 @@ export const getNotifications = createServerFn({ method: "GET" }).handler(
   },
 );
 
-// ── Mark read ────────────────────────────────────────────────────────────────
-
-export const markRead = createServerFn({ method: "POST" })
-  .validator((data: unknown) => {
-    const d = data as any;
-    if (!d || typeof d.id !== "number") throw new Error("Invalid notification id");
-    return d as { id: number };
-  })
-  .handler(async ({ data }) => {
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Not authenticated");
-
-    await sql()`UPDATE notifications SET read = true WHERE id = ${data.id} AND user_id = ${user.id}`;
-    return { success: true };
-  });
-
-// ── Mark all read ────────────────────────────────────────────────────────────
-
-export const markAllRead = createServerFn({ method: "POST" }).handler(async () => {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not authenticated");
-
-  await sql()`UPDATE notifications SET read = true WHERE user_id = ${user.id} AND read = false`;
-  return { success: true };
-});
-
 // ── Deadline alert generation (regular function — callable from other SFNs) ──
 
 /**

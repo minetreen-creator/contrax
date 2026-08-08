@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { TrialGate } from "~/components/TrialGate";
@@ -29,73 +28,6 @@ const SUGGESTED_PROMPTS = [
   "Analyze my win/loss patterns",
   "What set-asides am I missing?",
 ];
-
-const loadHistory = createServerFn({ method: "GET" }).handler(
-  async (): Promise<ChatMessage[]> => {
-    const user = await getCurrentUser();
-    if (!user) return [];
-    try {
-      const rows = await sql()`
-        SELECT role, content FROM copilot_messages
-        WHERE user_email = ${user.email}
-        ORDER BY id DESC LIMIT 50`;
-      return (rows as { role: string; content: string }[])
-        .slice()
-        .reverse()
-        .map((m) => ({
-          role: m.role === "assistant" ? "assistant" : "user",
-          content: m.content,
-        }));
-    } catch {
-      return [];
-    }
-  },
-);
-
-const getCopilotStats = createServerFn({ method: "GET" }).handler(
-  async (): Promise<CopilotStats> => {
-    const user = await getCurrentUser();
-    const empty: CopilotStats = { certifications: [], activeBids: 0, winRate: 0, knowledgeDocs: 0 };
-    if (!user) return empty;
-    const stats: CopilotStats = { ...empty };
-
-    try {
-      const rows = await sql()`SELECT certifications FROM business_profiles WHERE user_id = ${user.id} LIMIT 1`;
-      if (rows.length > 0) {
-        const certs = (rows[0] as { certifications: unknown }).certifications;
-        stats.certifications = (Array.isArray(certs) ? certs : []).map((c) =>
-          normalizeCert(String(c)),
-        );
-      }
-    } catch { /* no profile yet */ }
-
-    try {
-      await sql()`CREATE TABLE IF NOT EXISTS bid_scores (id SERIAL PRIMARY KEY, user_id TEXT NOT NULL, bid_id INTEGER NOT NULL REFERENCES bids(id), win_probability INTEGER NOT NULL, competition_level TEXT NOT NULL, agency_sentiment TEXT NOT NULL, size_fit TEXT NOT NULL DEFAULT '', experience_match TEXT NOT NULL, similar_awards_note TEXT NOT NULL DEFAULT '', ai_explanation TEXT NOT NULL, generated_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, bid_id))`;
-      await sql()`CREATE TABLE IF NOT EXISTS bid_recommendations (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, win_probability INTEGER, effort_level TEXT DEFAULT 'medium', competition_level TEXT DEFAULT 'medium', strategic_fit TEXT DEFAULT 'moderate', recommendation TEXT DEFAULT 'CAUTIOUS', summary TEXT DEFAULT '', factors JSONB DEFAULT '[]'::jsonb, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
-      const rows = await sql()`
-        SELECT COUNT(DISTINCT b.id)::int AS count
-        FROM bids b
-        LEFT JOIN bid_scores bs ON bs.bid_id = b.id AND bs.user_id = ${user.id}
-        LEFT JOIN bid_recommendations br ON br.bid_id = b.id::text AND br.user_email = ${user.email}
-        WHERE bs.bid_id IS NOT NULL OR br.bid_id IS NOT NULL`;
-      stats.activeBids = Number((rows[0] as { count: number }).count || 0);
-    } catch { /* tables not available yet */ }
-
-    try {
-      const patterns = await getUserPatterns(user.email);
-      stats.winRate = patterns.winRate;
-    } catch { /* no learning data */ }
-
-    try {
-      const rows = await sql()`
-        SELECT COUNT(*)::int AS count FROM knowledge_documents
-        WHERE is_public = true OR user_id = ${user.id}`;
-      stats.knowledgeDocs = Number((rows[0] as { count: number }).count || 0);
-    } catch { /* knowledge table not available yet */ }
-
-    return stats;
-  },
-);
 
 // ── Route ───────────────────────────────────────────────────────────────────
 
@@ -215,13 +147,13 @@ function AuthenticatedCopilot() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    loadHistory()
+    fetch("/api/copilot/history").then((r) => r.json())
       .then((res) => {
         setMessages(res);
         setHistoryLoaded(true);
       })
       .catch(() => setHistoryLoaded(true));
-    getCopilotStats().then(setStats).catch(() => {});
+    fetch("/api/copilot/stats").then((r) => r.json()).then(setStats).catch(() => {});
   }, []);
 
   useEffect(() => {

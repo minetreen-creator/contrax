@@ -156,7 +156,7 @@ function SettingsPage() {
     let cancelled = false;
     async function load() {
       try {
-        const res = await fetch("/api/profile", { method: "GET" });
+        const res = await fetch("/api/profile-data", { method: "GET" });
         const profile = res.ok ? await res.json() : null;
         if (!cancelled && profile) {
           setForm({

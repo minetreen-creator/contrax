@@ -62,11 +62,12 @@ async function handler({ request }: { request: Request }) {
     }
 
     // Delete dependent rows, then the user — some tables have FK refs without cascade.
-    // Neon's unsafe() takes a single raw SQL string (no $1 params); call with empty
-    // template for execution. userId is validated as integer above — safe to inline.
+    // db.unsafe(raw) wraps a raw SQL fragment so it can be inlined inside a tagged
+    // template (identifiers can't be bound parameters). USER_DEPENDENT_TABLES is a
+    // hardcoded whitelist, so inlining `table` is safe; userId stays a bound param.
     for (const table of USER_DEPENDENT_TABLES) {
       try {
-        await db.unsafe(`DELETE FROM ${table} WHERE user_id = ${userId}`)``;
+        await db`DELETE FROM ${db.unsafe(table)} WHERE user_id = ${userId}`;
       } catch {
         // table might not exist or lack user_id — skip silently
       }

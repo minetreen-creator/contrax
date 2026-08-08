@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getCookie } from "@tanstack/react-start/server";
 import { sql } from "~/db";
 
 const USER_DEPENDENT_TABLES = [
@@ -20,9 +19,15 @@ const USER_DEPENDENT_TABLES = [
 
 async function handler({ request }: { request: Request }) {
   try {
-    // API route handlers do not have createServerFn's RPC context, so read the
-    // session cookie directly from this request before checking admin access.
-    const token = getCookie(request, "contrax_session");
+    // API route handlers lack createServerFn's RPC context, so parse the
+    // session cookie directly from the request headers.
+    const cookieHeader = request.headers.get("cookie") || "";
+    const cookies: Record<string, string> = {};
+    for (const pair of cookieHeader.split("; ")) {
+      const eq = pair.indexOf("=");
+      if (eq > 0) cookies[pair.slice(0, eq)] = pair.slice(eq + 1);
+    }
+    const token = cookies["contrax_session"];
     if (!token) return Response.json({ error: "Not authenticated" }, { status: 401 });
 
     const db = sql();

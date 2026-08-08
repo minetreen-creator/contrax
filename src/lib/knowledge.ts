@@ -60,7 +60,7 @@ const PAGE_SIZE = 20;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 /** Idempotent table + index bootstrap. Safe to call on every request. */
-async function ensureTable() {
+export async function ensureTable() {
   await sql()`CREATE TABLE IF NOT EXISTS knowledge_documents (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES users(id),
@@ -99,7 +99,7 @@ async function embedDocument(content: string): Promise<number[]> {
   return average;
 }
 
-async function saveEmbedding(id: number, content: string): Promise<void> {
+export async function saveEmbedding(id: number, content: string): Promise<void> {
   const embedding = await embedDocument(content);
   await sql()`UPDATE knowledge_documents SET embedding = ${pgvectorString(embedding)}::vector WHERE id = ${id}`;
 }
@@ -160,7 +160,7 @@ function likePatterns(keywords: string[]): string[] {
   return keywords.map((k) => `%${k}%`);
 }
 
-function mapDoc(r: Record<string, unknown>): KnowledgeDocument {
+export function mapDoc(r: Record<string, unknown>): KnowledgeDocument {
   return {
     id: Number(r.id),
     user_id: Number(r.user_id),
@@ -193,37 +193,6 @@ function toListItem(r: Record<string, unknown>, userId: number, keywords: string
 }
 
 // ── Server Functions ──────────────────────────────────────────────────────────
-/** Upload a new document (logged-in users only). Content truncated to 50K chars. */
-export const uploadDocument = createServerFn({ method: "POST" })
-  .validator((data: unknown) => {
-    const d = (data ?? {}) as Record<string, unknown>;
-    const title = String(d.title ?? "").trim().slice(0, 200);
-    if (!title) throw new Error("Title is required");
-    const docType = String(d.doc_type ?? "");
-    if (!(KNOWLEDGE_DOC_TYPES as readonly string[]).includes(docType)) throw new Error("Invalid document type");
-    const content = String(d.content ?? "").trim().slice(0, 50000);
-    if (!content) throw new Error("Document content is required");
-    const description = String(d.description ?? "").trim().slice(0, 1000) || null;
-    const tags = Array.isArray(d.tags)
-      ? (d.tags as unknown[]).map((t) => String(t).trim().toLowerCase()).filter(Boolean).slice(0, 20)
-      : [];
-    const isPublic = Boolean(d.is_public);
-    return { title, docType: docType as KnowledgeDocType, content, description, tags, isPublic };
-  })
-  .handler(async ({ data }): Promise<KnowledgeDocument> => {
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Not authenticated");
-    await ensureTable();
-    const rows = await sql()`
-      INSERT INTO knowledge_documents (user_id, title, doc_type, content, description, is_public, tags, updated_at)
-      VALUES (${user.id}, ${data.title}, ${data.docType}, ${data.content}, ${data.description}, ${data.isPublic}, ${data.tags}, NOW())
-      RETURNING id, user_id, title, doc_type, content, description, is_public, tags, created_at, updated_at`;
-    const doc = mapDoc(rows[0] as Record<string, unknown>);
-    // Embedding generation should not delay a successful document save.
-    void saveEmbedding(doc.id, doc.content).catch(() => {});
-    return doc;
-  });
-
 /**
  * Browse the library: public docs + the user's own, filtered by type and/or
  * search query, paginated (20 per page). Cards get a preview snippet, not the
@@ -324,16 +293,6 @@ export const getDocument = createServerFn({ method: "GET" })
     return mapDoc(rows[0] as Record<string, unknown>);
   });
 
-/** Owner-only deletion. */
-export const deleteDocument = createServerFn({ method: "POST" })
-  .validator((data: unknown) => ({ id: Number((data as { id?: unknown })?.id) }))
-  .handler(async ({ data }): Promise<{ success: boolean }> => {
-    const user = await getCurrentUser();
-    if (!user) throw new Error("Not authenticated");
-    const rows = await sql()`DELETE FROM knowledge_documents WHERE id = ${data.id} AND user_id = ${user.id} RETURNING id`;
-    if (rows.length === 0) throw new Error("Document not found or you don't have permission to delete it");
-    return { success: true };
-  });
 
 /** Idempotently create the public resources used by the /learn SEO hub. */
 export const seedLearnContent = createServerFn({ method: "GET" }).handler(async () => {

@@ -377,15 +377,15 @@ function Hero({ businessName }: { businessName: string }) {
             Transparent pricing from $49/mo — 21-day free trial
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            Built for the businesses{" "}
+            We scan 1,200+ government RFPs daily and{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-              America&apos;s procurement system was designed to help.
+              match them to your set-aside certifications.
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            Not another database of RFPs. {businessName} is your contract intelligence platform for 8(a), SDVOSB, WOSB, and
-            HUBZone-certified businesses — matching you to set-aside opportunities, summarizing what
-            matters, and drafting proposals so you can compete and win more contracts.
+            Every morning, {businessName} monitors SAM.gov and five city procurement sites for opportunities your
+            8(a), SDVOSB, WOSB, or HUBZone certification qualifies for — with 5-year incumbent pricing
+            data so you know what to bid before you write a word.
           </p>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a

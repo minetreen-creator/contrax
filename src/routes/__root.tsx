@@ -11,9 +11,9 @@ import { ChatWidget } from "~/components/ChatWidget";
 import appCss from "~/styles/app.css?url";
 
 const PROD_URL = "https://www.contrax.company";
-const SITE_TITLE = "Contrax — Contract Intelligence Platform for Set-Aside Businesses";
+const SITE_TITLE = "Contrax — Government RFPs Matched to Your Set-Aside Certifications";
 const SITE_DESCRIPTION =
-  "Contrax monitors government procurement sites, summarizes bid documents, and drafts proposals so small businesses find and win more contracts.";
+  "Every morning, Contrax monitors SAM.gov and five city procurement sites for opportunities your 8(a), SDVOSB, WOSB, or HUBZone certification qualifies for — with 5-year incumbent pricing data so you know what to bid before you write a word.";
 
 export const Route = createRootRoute({
   head: () => ({

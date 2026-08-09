@@ -70,7 +70,26 @@ export const findPartners = createServerFn({ method: "GET" }).validator((data: u
   }).sort((a, b) => b.match_score - a.match_score || b.rating - a.rating);
 });
 
-export const Route = createFileRoute("/partners")({ loader: async ({ location }) => { const user = await getCurrentUser(); if (!user) throw redirect({ to: "/login" }); return findPartners({ data: { bid_id: Number(new URLSearchParams(location.search).get("bid_id")) || undefined } }); }, component: PartnersPage, head: () => ({ meta: [{ title: "Partner Finder | Contrax" }, { name: "description", content: "Find complementary prime contractors and subcontractors for government bids." }] }) });
+const PROD_URL = "https://www.contrax.company";
+const TITLE = "Partners — Contrax";
+const DESC = "Find complementary prime contractors and subcontractors matched to your capabilities, NAICS codes, and government contracting opportunities.";
+
+export const Route = createFileRoute("/partners")({
+  loader: async ({ location }) => { const user = await getCurrentUser(); if (!user) throw redirect({ to: "/login" }); return findPartners({ data: { bid_id: Number(new URLSearchParams(location.search).get("bid_id")) || undefined } }); },
+  component: PartnersPage,
+  head: () => ({
+    meta: [
+      { title: TITLE },
+      { name: "description", content: DESC },
+      { name: "robots", content: "index, follow" },
+      { property: "og:type", content: "website" },
+      { property: "og:url", content: `${PROD_URL}/partners` },
+      { property: "og:title", content: TITLE },
+      { property: "og:description", content: DESC },
+      { property: "og:image", content: `${PROD_URL}/logo-square.png` },
+    ],
+  }),
+});
 
 function Stars({ rating }: { rating: number }) { return <span className="inline-flex text-amber-400" aria-label={`${rating} out of 5 stars`}>{[1,2,3,4,5].map((n) => <svg key={n} className={`h-4 w-4 ${n <= rating ? "fill-current" : "fill-slate-200 text-slate-200"}`} viewBox="0 0 20 20"><path d="M10 1.5l2.63 5.33 5.88.85-4.25 4.14 1 5.85L10 14.9l-5.26 2.77 1-5.85L1.5 7.68l5.87-.85L10 1.5z" /></svg>)}</span>; }
 function PartnersPage() {

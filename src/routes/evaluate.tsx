@@ -100,6 +100,7 @@ export const Route = createFileRoute("/evaluate")({
         content:
           "Run an AI Red Team review of your government proposal before submission. Get Section M criterion scores, missing elements, FAR/DFARS compliance risks, weak arguments, and prioritized fixes.",
       },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
 });

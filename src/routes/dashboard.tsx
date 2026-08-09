@@ -1202,6 +1202,10 @@ function DashboardPage() {
             <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
             <h3 className="mt-4 text-lg font-semibold text-slate-700">No matching bids yet</h3>
             <p className="mt-1 text-sm text-slate-500">Try expanding your locations or service categories in your profile.</p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <a href="/onboarding" className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">Edit profile</a>
+              <a href="/awards" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Browse opportunities</a>
+            </div>
           </div>
         ) : (
           <div className="space-y-4">

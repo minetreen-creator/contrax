@@ -308,8 +308,30 @@ function AwardsPage() {
         {filtered.length === 0 && (
           <div className="text-center py-16 rounded-2xl border border-slate-200 bg-white">
             <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" /></svg>
-            <h3 className="mt-4 text-lg font-semibold text-slate-700">No awards match your filters</h3>
-            <p className="mt-1 text-sm text-slate-500">Try adjusting your search or clearing filters.</p>
+            {awards.length === 0 ? (
+              <>
+                <h3 className="mt-4 text-lg font-semibold text-slate-700">No awards synced yet</h3>
+                <p className="mt-1 text-sm text-slate-500">Check back after the next daily update.</p>
+                <a
+                  href="/dashboard"
+                  className="mt-6 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+                >
+                  Go to dashboard
+                </a>
+              </>
+            ) : (
+              <>
+                <h3 className="mt-4 text-lg font-semibold text-slate-700">No awards match your filters</h3>
+                <p className="mt-1 text-sm text-slate-500">Try adjusting your search or clearing filters.</p>
+                <button
+                  type="button"
+                  onClick={() => { setSearch(""); setAgencyFilter(""); setStateFilter(""); setCategoryFilter(""); }}
+                  className="mt-6 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+                >
+                  Clear all filters
+                </button>
+              </>
+            )}
           </div>
         )}
 

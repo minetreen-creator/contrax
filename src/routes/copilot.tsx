@@ -211,7 +211,7 @@ function AuthenticatedCopilot() {
                   <p className="mt-1 text-sm text-slate-500">
                     {stats && stats.certifications.length > 0
                       ? stats.certifications.join(", ")
-                      : "None added yet — set them in onboarding."}
+                      : <>None added yet — <a href="/onboarding" className="font-semibold text-amber-700 hover:underline">set them in onboarding</a>.</>}
                   </p>
                 </div>
                 <div>

@@ -76,8 +76,17 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
   });
 });
 
+const getUserCount = async () => {
+  try {
+    const rows = await sql()`SELECT COUNT(*)::int AS count FROM users`;
+    return Number((rows[0] as any)?.count || 0);
+  } catch {
+    // users table may not exist yet — fall back to generic social-proof copy
+    return 0;
+  }
+};
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, user, bids, healthcareBids] = await Promise.all([
+  const [businessName, user, bids, healthcareBids, userCount] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -91,6 +100,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getCurrentUser(),
     getRecentBids(),
     getHealthcareBids(),
+    getUserCount(),
   ]);
   let alertCount = 0;
   if (user) {
@@ -100,7 +110,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -150,7 +160,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -171,7 +181,7 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar user={user} alertCount={alertCount} />
-      <Hero businessName={businessName} />
+      <Hero businessName={businessName} userCount={userCount} />
       <ProductShowcase />
       <BidTicker bids={bids} />
       <HealthcareOpportunities bids={healthcareBids} />
@@ -356,7 +366,7 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
-function Hero({ businessName }: { businessName: string }) {
+function Hero({ businessName, userCount }: { businessName: string; userCount: number }) {
   const navigate = useNavigate();
   const [scoreText, setScoreText] = useState("");
   const handleScoreSubmit = (e: FormEvent) => {
@@ -441,6 +451,14 @@ function Hero({ businessName }: { businessName: string }) {
               </svg>
             </a>
           </div>
+          <p className="mt-6 flex items-center justify-center gap-1.5 text-sm text-blue-200/70">
+            <svg className="h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {userCount >= 5
+              ? `Join ${userCount.toLocaleString()} small ${userCount === 1 ? "business" : "businesses"} already using Contrax`
+              : "Join a growing community of small businesses using Contrax"}
+          </p>
         </div>
       </div>
       {/* Bottom fade */}

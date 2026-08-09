@@ -127,6 +127,7 @@ async function syncSource(
             source_url: bid.source_url,
             location: bid.location,
             due_date: bid.due_date ?? null,
+            set_aside: bid.set_aside ?? null,
           });
         }
       } catch (e) {
@@ -205,7 +206,7 @@ export async function runSync(): Promise<SyncResult> {
   // Notify matching profiles without allowing notification failures to break sync.
   if (totalNew > 0) {
     try {
-      const profiles = await sql`SELECT user_id, industry, locations, service_categories FROM business_profiles WHERE user_id IS NOT NULL` as any[];
+      const profiles = await sql`SELECT user_id, industry, locations, service_categories, certifications FROM business_profiles WHERE user_id IS NOT NULL` as any[];
       let notified = 0;
       for (const bid of allNewBids) {
         const text = `${bid.title} ${bid.agency} ${bid.location || ""}`.toLowerCase();
@@ -213,7 +214,18 @@ export async function runSync(): Promise<SyncResult> {
           const locations = Array.isArray(profile.locations) ? profile.locations : [];
           const services = Array.isArray(profile.service_categories) ? profile.service_categories : [];
           const industry = String(profile.industry || "").toLowerCase();
-          const matches = !industry || text.includes(industry) || services.some((s: unknown) => text.includes(String(s).toLowerCase())) || locations.some((l: unknown) => text.includes(String(l).toLowerCase()));
+          const certifications = typeof profile.certifications === "string"
+            ? (() => {
+                try { return JSON.parse(profile.certifications); } catch { return []; }
+              })()
+            : profile.certifications;
+          const profileCertifications = Array.isArray(certifications)
+            ? certifications.filter((cert: unknown): cert is string => typeof cert === "string" && cert.trim().length > 0)
+            : [];
+          const setAside = String(bid.set_aside || "").toLowerCase();
+          const matches = setAside && profileCertifications.length > 0
+            ? profileCertifications.some((cert) => setAside.includes(cert.toLowerCase()) || cert.toLowerCase().includes(setAside))
+            : !industry || text.includes(industry) || services.some((s: unknown) => text.includes(String(s).toLowerCase())) || locations.some((l: unknown) => text.includes(String(l).toLowerCase()));
           if (matches) {
             await createNotification({ userId: Number(profile.user_id), type: "new_bid_match", title: "New bid matches your profile", message: `"${bid.title}" from ${bid.agency} matches your business profile.`, bidId: bid.bid_id });
             notified++;

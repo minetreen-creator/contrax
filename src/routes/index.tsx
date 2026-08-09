@@ -124,7 +124,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
+          "Find and win government contracts reserved for businesses like yours. Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to live SAM.gov and city procurement opportunities — with 5-year incumbent pricing data so you know what to bid before you write a word.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
@@ -134,7 +134,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
+          "Find and win government contracts reserved for businesses like yours. Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to live SAM.gov and city procurement opportunities — with 5-year incumbent pricing data so you know what to bid before you write a word.",
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
@@ -148,7 +148,7 @@ export const Route = createFileRoute("/")({
       {
         name: "twitter:description",
         content:
-          "Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified businesses find set-aside opportunities, understand bid documents, and win more government contracts.",
+          "Find and win government contracts reserved for businesses like yours. Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to live SAM.gov and city procurement opportunities — with 5-year incumbent pricing data so you know what to bid before you write a word.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },

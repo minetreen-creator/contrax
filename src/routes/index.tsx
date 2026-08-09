@@ -384,9 +384,14 @@ function Hero({ businessName }: { businessName: string }) {
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
             Every morning, {businessName} monitors SAM.gov and five city procurement sites for opportunities your
-            8(a), SDVOSB, WOSB, or HUBZone certification qualifies for — with 5-year incumbent pricing
-            data so you know what to bid before you write a word.
+            8(a), SDVOSB, WOSB, or HUBZone certification qualifies for.
           </p>
+          <div className="mt-6 mx-auto max-w-xl rounded-xl border border-amber-400/15 bg-amber-400/5 px-6 py-4 backdrop-blur-sm">
+            <p className="text-base font-semibold text-amber-200">
+              <span className="text-amber-400">Know what to bid before you write a word.</span>{" "}
+              We pull 5 years of incumbent pricing so you're never guessing.
+            </p>
+          </div>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
               href="/signup"

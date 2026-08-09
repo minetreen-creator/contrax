@@ -44,6 +44,9 @@ interface ScoreInput {
   solicitation: string;
   businessInfo: string;
 }
+type ScoreSearch = {
+  text?: string;
+};
 
 // ── Server function: honest AI win-probability analysis ─────────────────────
 const scoreSolicitation = createServerFn({ method: "POST" })
@@ -244,6 +247,9 @@ function ScoreGauge({ score }: { score: number }) {
 
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/score")({
+  validateSearch: (search: Record<string, unknown>): ScoreSearch => ({
+    text: typeof search.text === "string" && search.text.trim().length > 0 ? search.text : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Can I Win This Bid? — Contrax" },
@@ -285,7 +291,8 @@ export const Route = createFileRoute("/score")({
 });
 
 function ScorePage() {
-  const [solicitation, setSolicitation] = useState("");
+  const { text } = Route.useSearch();
+  const [solicitation, setSolicitation] = useState(text || "");
   const [businessInfo, setBusinessInfo] = useState("");
   const [result, setResult] = useState<ScoreResult | null>(null);
   const [loading, setLoading] = useState(false);

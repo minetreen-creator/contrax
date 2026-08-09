@@ -463,7 +463,7 @@ function SetAsideOpportunitiesPage() {
         </div>
         <p className="mt-3 max-w-3xl text-slate-600">
           {count > 0
-            ? `${count} active ${d.setAside} set-aside contract opportunity${count === 1 ? "" : "ies"} in NAICS ${d.naics} (${d.industryName}).`
+            ? `${count} active ${d.setAside} set-aside contract ${count === 1 ? "opportunity" : "opportunities"} in NAICS ${d.naics} (${d.industryName}).`
             : `No ${d.setAside} set-aside opportunities are currently open in NAICS ${d.naics} (${d.industryName}). Check related codes below or return to the full list.`}{" "}
           Contrax monitors SAM.gov and city procurement portals daily so certified small businesses see every eligible solicitation.
         </p>
@@ -492,7 +492,7 @@ function SetAsideOpportunitiesPage() {
         <div className="mt-8 flex items-center justify-between rounded-xl border border-slate-200 bg-white px-5 py-4">
           <div>
             <p className="text-sm font-semibold text-slate-900">
-              {count} active {d.setAside} opportunity{count === 1 ? "" : "ies"}
+              {count} active {d.setAside} {count === 1 ? "opportunity" : "opportunities"}
             </p>
             <p className="text-sm text-slate-500">NAICS {d.naics} · {d.industryName}</p>
           </div>

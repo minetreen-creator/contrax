@@ -497,7 +497,7 @@ function CompliancePage() {
             )}
 
             {/* Form */}
-            <form onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+            <form id="check-form" onSubmit={submit} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
               <h2 className="text-lg font-bold text-slate-900">Check your proposal</h2>
               <div className="mt-4 grid gap-4">
                 <div>
@@ -636,7 +636,13 @@ function CompliancePage() {
                 <h3 className="font-semibold text-slate-900 mb-1">History</h3>
                 <p className="text-xs text-slate-500 mb-4">Past compliance checks</p>
                 {allHistory.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">No compliance checks yet.</p>
+                  <div className="text-center py-6">
+                    <p className="text-sm text-slate-400">No compliance checks yet.</p>
+                    <div className="mt-3 flex flex-col items-center gap-2">
+                      <a href="#check-form" className="text-sm font-semibold text-amber-700 hover:underline">Run your first check</a>
+                      <a href="/awards" className="text-sm font-semibold text-amber-700 hover:underline">Find a bid to check</a>
+                    </div>
+                  </div>
                 ) : (
                   <div className="space-y-2 max-h-[500px] overflow-y-auto">
                     {allHistory.map((item) => {

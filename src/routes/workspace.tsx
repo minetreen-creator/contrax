@@ -201,7 +201,7 @@ function WorkspacePage() {
         <h2 className="text-xl font-bold text-slate-900">Activity</h2>
         <p className="mb-4 text-sm text-slate-500">AI-tracked progress across your bids and proposals.</p>
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          {!data?.activity.length ? <p className="py-8 text-center text-sm text-slate-500">No activity yet. Score, save, or draft a proposal to see progress here.</p> :
+          {!data?.activity.length ? <p className="py-8 text-center text-sm text-slate-500">No activity yet. <a href="/score" className="font-semibold text-amber-700 hover:underline">Score a bid</a>, <a href="/awards" className="font-semibold text-amber-700 hover:underline">save a bid</a>, or <a href="/copilot" className="font-semibold text-amber-700 hover:underline">draft a proposal</a> to see progress here.</p> :
           <div className="space-y-5">
             {data.activity.map(a => <div key={a.id} className="flex gap-4">
               <div className="mt-1 h-3 w-3 shrink-0 rounded-full bg-blue-500 ring-4 ring-blue-50"/>

@@ -321,13 +321,13 @@ function EmptyState() {
         Track bids from your dashboard to monitor deadlines, amendments, and stay on top of opportunities.
       </p>
       <a
-        href="/dashboard"
+        href="/awards"
         className="mt-6 inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-slate-800 active:scale-[0.98] transition-all"
       >
         <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
         </svg>
-        Go to Dashboard
+        Browse opportunities
       </a>
     </div>
   );
@@ -619,7 +619,7 @@ function TrackingPage() {
                   <span className="ml-2 text-sm font-normal text-slate-400">({activeBids.length} active{bids.length > activeBids.length ? `, ${bids.length - activeBids.length} closed` : ""})</span>
                 </h2>
                 {activeBids.length === 0 && (
-                  <p className="text-sm text-slate-500 py-4">All tracked bids have closed. Check back for new opportunities.</p>
+                  <p className="text-sm text-slate-500 py-4">All tracked bids have closed. <a href="/awards" className="font-semibold text-amber-700 hover:underline">Browse new opportunities</a>.</p>
                 )}
                 <div className="space-y-3">
                   {activeBids.map((bid) => {

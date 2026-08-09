@@ -13,7 +13,7 @@ import appCss from "~/styles/app.css?url";
 const PROD_URL = "https://www.contrax.company";
 const SITE_TITLE = "Contrax — Government RFPs Matched to Your Set-Aside Certifications";
 const SITE_DESCRIPTION =
-  "Every morning, Contrax monitors SAM.gov and five city procurement sites for opportunities your 8(a), SDVOSB, WOSB, or HUBZone certification qualifies for — with 5-year incumbent pricing data so you know what to bid before you write a word.";
+  "Find and win government contracts reserved for businesses like yours. Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to live SAM.gov and city procurement opportunities — with 5-year incumbent pricing data so you know what to bid before you write a word.";
 
 export const Route = createRootRoute({
   head: () => ({

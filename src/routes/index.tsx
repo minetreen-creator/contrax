@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Menu, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { sql } from "~/db";
@@ -357,6 +357,13 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
 function Hero({ businessName }: { businessName: string }) {
+  const navigate = useNavigate();
+  const [scoreText, setScoreText] = useState("");
+  const handleScoreSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const text = scoreText.trim();
+    navigate({ to: "/score", search: text ? { text } : {} });
+  };
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
       {/* Subtle background pattern */}
@@ -377,9 +384,9 @@ function Hero({ businessName }: { businessName: string }) {
             Transparent pricing from $49/mo — 21-day free trial
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
-            We scan 1,200+ government RFPs daily and{" "}
+            Find and win government contracts{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-              match them to your set-aside certifications.
+              reserved for businesses like yours.
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
@@ -391,6 +398,28 @@ function Hero({ businessName }: { businessName: string }) {
               <span className="text-amber-400">Know what to bid before you write a word.</span>{" "}
               We pull 5 years of incumbent pricing so you're never guessing.
             </p>
+          </div>
+          <div className="mt-8 mx-auto max-w-xl">
+            <p className="mb-3 text-sm font-medium text-blue-200">Try it now — no signup required</p>
+            <form
+              onSubmit={handleScoreSubmit}
+              rel="nofollow"
+              className="flex flex-col gap-2 sm:flex-row"
+            >
+              <input
+                type="text"
+                value={scoreText}
+                onChange={(e) => setScoreText(e.target.value)}
+                placeholder="Paste a solicitation title or description..."
+                className="flex-1 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-blue-300/60 backdrop-blur-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+              />
+              <button
+                type="submit"
+                className="shrink-0 rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/25 sm:w-auto w-full"
+              >
+                Score it free →
+              </button>
+            </form>
           </div>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a

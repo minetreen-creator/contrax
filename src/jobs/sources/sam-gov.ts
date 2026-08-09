@@ -177,20 +177,37 @@ function extractSetAsideFromItem(item: any, description: string): string | null 
 }
 
 /**
- * Fetches the authoritative set-aside designation from the SAM.gov opportunity
- * detail endpoint (data2.solicitation.setAside). Best-effort: any failure
- * returns null so a detail fetch can never break the sync.
+ * Fetches the authoritative set-aside designation AND primary NAICS code from
+ * the SAM.gov opportunity detail endpoint:
+ *   - set-aside: data2.solicitation.setAside
+ *   - NAICS:     data2.naics = [{ code: ["236220"], type: "primary" }]
+ * Best-effort: any failure returns nulls so a detail fetch can never break
+ * the sync. The search summary never includes either field, so this detail
+ * call is the only source for both.
  */
-async function fetchSetAsideDetail(noticeId: string): Promise<string | null> {
+async function fetchOpportunityDetail(noticeId: string): Promise<{ setAside: string | null; naicsCode: string | null }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {
     const resp = await fetch(`${DETAIL_API}${noticeId}`, { headers: HEADERS, signal: controller.signal });
-    if (!resp.ok) return null;
+    if (!resp.ok) return { setAside: null, naicsCode: null };
     const data = await resp.json();
-    return normalizeSetAside(data?.data2?.solicitation?.setAside);
+    const setAside = normalizeSetAside(data?.data2?.solicitation?.setAside);
+    // data2.naics is an array of { code: string[], type: "primary" } objects.
+    let naicsCode: string | null = null;
+    const naicsArr = Array.isArray(data?.data2?.naics) ? data.data2.naics : [];
+    const primary = naicsArr.find((n: any) => n?.type === "primary") ?? naicsArr[0];
+    const firstCode = Array.isArray(primary?.code) ? primary.code[0] : primary?.code;
+    if (firstCode && /^\d{2,6}$/.test(String(firstCode).trim())) {
+      naicsCode = String(firstCode).trim();
+    } else {
+      // Fall back to the solicitation-level field if the naics array is absent.
+      const sol = data?.data2?.solicitation?.naicsCode ?? data?.data2?.solicitation?.naicsCodes?.[0];
+      if (sol && /^\d{2,6}$/.test(String(sol).trim())) naicsCode = String(sol).trim();
+    }
+    return { setAside, naicsCode };
   } catch {
-    return null;
+    return { setAside: null, naicsCode: null };
   } finally {
     clearTimeout(timer);
   }
@@ -254,10 +271,14 @@ export async function fetchBids(options: { states?: string[] } = {}): Promise<Ra
             ? `https://sam.gov/opp/${noticeId}/view`
             : "https://sam.gov/search/";
 
-          // Set-aside designation: structured field first, then opportunity detail.
+          // Set-aside + NAICS: the search summary never includes either field,
+          // so pull the opportunity detail when either is missing.
           let setAside = extractSetAsideFromItem(item, description);
-          if (!setAside && noticeId) {
-            setAside = await fetchSetAsideDetail(noticeId);
+          let naicsCode = extractNaicsCode(item);
+          if (noticeId && (!setAside || !naicsCode)) {
+            const detail = await fetchOpportunityDetail(noticeId);
+            if (!setAside) setAside = detail.setAside;
+            if (!naicsCode) naicsCode = detail.naicsCode;
             await new Promise((r) => setTimeout(r, 120));
           }
 
@@ -272,7 +293,7 @@ export async function fetchBids(options: { states?: string[] } = {}): Promise<Ra
             estimated_value: estimatedValue,
             source_url: sourceUrl,
             set_aside: setAside,
-            naics_code: extractNaicsCode(item),
+            naics_code: naicsCode,
             source_label: sourceLabel,
           });
         } catch (e) {

@@ -40,13 +40,13 @@ async function handler({ request }: { request: Request }) {
     if (email) {
       rows = await db`
         SELECT id, email, plan_tier, subscription_status, trial_started_at,
-               is_admin, created_at, updated_at
+               is_admin, created_at
         FROM users WHERE LOWER(email) = LOWER(${email}) LIMIT 1
       `;
     } else if (userId && Number.isInteger(userId)) {
       rows = await db`
         SELECT id, email, plan_tier, subscription_status, trial_started_at,
-               is_admin, created_at, updated_at
+               is_admin, created_at
         FROM users WHERE id = ${userId} LIMIT 1
       `;
     }

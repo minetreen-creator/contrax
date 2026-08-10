@@ -16,6 +16,13 @@ type Bid = {
   category?: string | null;
   description?: string | null;
 };
+type TodayBid = {
+  title: string;
+  agency: string;
+  set_aside: string | null;
+  location: string | null;
+  due_date: string | null;
+};
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
@@ -27,6 +34,24 @@ const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
     LIMIT 50
   `;
   return rows as Bid[];
+});
+const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
+  // Public teaser: titles only — no source URLs or descriptions for
+  // unauthenticated visitors. Full detail lives behind the signup wall.
+  const rows = await sql()`
+    SELECT title, agency, set_aside, location, due_date
+    FROM bids
+    WHERE created_at >= CURRENT_DATE
+    ORDER BY created_at DESC NULLS LAST
+    LIMIT 10
+  `;
+  const countRows = await sql()`
+    SELECT COUNT(*)::int AS count FROM bids WHERE created_at >= CURRENT_DATE
+  `;
+  return {
+    bids: rows as TodayBid[],
+    count: Number((countRows[0] as any)?.count || 0),
+  };
 });
 
 const HEALTHCARE_KEYWORDS = [
@@ -101,7 +126,7 @@ const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }
   }
 };
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, user, bids, healthcareBids, userCount, bidStats] = await Promise.all([
+  const [businessName, user, bids, healthcareBids, todayBids, userCount, bidStats] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -115,6 +140,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getCurrentUser(),
     getRecentBids(),
     getHealthcareBids(),
+    getTodayBids(),
     getUserCount(),
     getBidStats(),
   ]);
@@ -126,7 +152,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -176,7 +202,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -198,6 +224,7 @@ function Home() {
       />
       <Navbar user={user} alertCount={alertCount} />
       <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} />
+      <TodaySolicitations todayBids={todayBids} />
       <ProductShowcase />
       <BidTicker bids={bids} />
       <HealthcareOpportunities bids={healthcareBids} />
@@ -622,6 +649,132 @@ function ProductShowcase() {
   );
 }
 
+// ── Today's Solicitations ─────────────────────────────────────────────────────
+// Normalizes raw SAM.gov set-aside labels to the app's brand names for badges.
+function setAsideLabel(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const lower = raw.trim().toLowerCase();
+  const map: Record<string, string> = {
+    sba: "8(a)",
+    "8a": "8(a)",
+    "8(a)": "8(a)",
+    sdvosbc: "SDVOSB",
+    sdvosb: "SDVOSB",
+    vosbc: "VOSB",
+    vosb: "VOSB",
+    wosb: "WOSB",
+    edwosb: "EDWOSB",
+    "wosb/edwosb": "WOSB/EDWOSB",
+    hzc: "HUBZone",
+    hubzone: "HUBZone",
+  };
+  if (map[lower]) return map[lower];
+  if (lower.includes("8(a)") || (lower.includes("8a") && lower.includes("sba"))) return "8(a)";
+  if (lower.includes("service-disabled") || lower.includes("sdvosb")) return "SDVOSB";
+  if (lower.includes("economically disadvantaged")) return "EDWOSB";
+  if (lower.includes("women-owned") || lower.includes("women owned") || lower.includes("wosb")) return "WOSB";
+  if (lower.includes("veteran-owned") || lower.includes("veteran owned") || lower.includes("vosb")) return "VOSB";
+  if (lower.includes("hubzone") || lower.includes("hub zone")) return "HUBZone";
+  return null; // unknown designation — hide the badge on the public teaser
+}
+function TodaySolicitations({ todayBids }: { todayBids: { bids: TodayBid[]; count: number } }) {
+  const { bids, count } = todayBids;
+  const fmtDue = (d: string | null) => {
+    if (!d) return null;
+    const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return null;
+    const sameYear = date.getFullYear() === new Date().getFullYear();
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      ...(sameYear ? {} : { year: "numeric" }),
+    });
+  };
+  return (
+    <section className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
+          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Today&apos;s newest solicitations</h2>
+          {count > 0 ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              {count} new contract{count !== 1 ? "s" : ""} posted today
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-500">
+              No new solicitations yet today
+            </span>
+          )}
+          <p className="text-lg leading-relaxed text-gray-600">
+            Fresh set-aside opportunities from SAM.gov and city procurement — pulled in as they post. Browse titles free; full details are one signup away.
+          </p>
+        </div>
+        {bids.length > 0 ? (
+          <>
+            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {bids.map((bid, i) => {
+                const due = fmtDue(bid.due_date);
+                const setAside = setAsideLabel(bid.set_aside);
+                return (
+                  <div key={i} className="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-amber-300 hover:shadow-md">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+                        {bid.agency && bid.agency.length > 40 ? bid.agency.slice(0, 40) + "..." : bid.agency || "Federal agency"}
+                      </span>
+                      {setAside && (
+                        <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
+                          {setAside}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-3 line-clamp-2 text-sm font-semibold text-slate-800" title={bid.title}>{bid.title}</p>
+                    <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                      {bid.location && <span className="truncate">📍 {bid.location}</span>}
+                      {bid.location && due && <span className="text-gray-300">·</span>}
+                      {due && <span className="shrink-0 font-medium text-amber-700">Due {due}</span>}
+                    </div>
+                    <div className="mt-auto pt-4">
+                      <a
+                        href={`/signup?today_bid=${encodeURIComponent(bid.title)}`}
+                        className="inline-flex items-center text-sm font-semibold text-amber-600 transition-colors hover:text-amber-800"
+                      >
+                        Sign up to see details →
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-12 text-center">
+              <a
+                href="/signup"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl"
+              >
+                Get the full RFP details, AI analysis, and daily alerts →
+              </a>
+            </div>
+          </>
+        ) : (
+          <div className="mt-10 rounded-xl border border-dashed border-gray-300 bg-white/60 px-6 py-12 text-center">
+            <p className="text-base font-medium text-slate-700">Check back soon — new solicitations are posted throughout the day</p>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
+              We monitor SAM.gov and city procurement portals continuously and pull new set-aside opportunities as they hit. Sign up and we&apos;ll alert you the moment one matches your certifications.
+            </p>
+            <a
+              href="/signup"
+              className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
+            >
+              Get the full RFP details, AI analysis, and daily alerts →
+            </a>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
 // ── Live Bid Ticker ───────────────────────────────────────────────────────────
 
 function BidTicker({ bids }: { bids: Bid[] }) {

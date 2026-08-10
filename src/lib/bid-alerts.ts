@@ -1,4 +1,5 @@
 import { sql } from "../db";
+import { fireBidMatchWebhooks, type BidMatchEvent } from "./webhooks";
 
 export interface BidAlert {
   id: number; bid_id: number; title: string; agency: string;
@@ -12,14 +13,19 @@ export interface BidAlert {
  * deduplicates). Runs for every newly inserted bid — federal (sam_gov) and
  * city open-data sources alike — because the runner feeds generateBidAlerts()
  * the combined list of new bid ids from all sources.
+ *
+ * When a NEW alert is created, the matching bid is also pushed through the
+ * user's active `bid_match` webhooks (Zapier etc.) — fire-and-log, so webhook
+ * failures never break alert creation.
  */
 export async function generateBidAlerts(bidIds: number[]): Promise<number> {
   if (!bidIds.length) return 0;
   await sql()`CREATE TABLE IF NOT EXISTS bid_alerts (id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id), bid_id INTEGER NOT NULL REFERENCES bids(id), alert_type TEXT DEFAULT 'new_match', is_read BOOLEAN DEFAULT false, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_id, bid_id, alert_type))`;
   const profiles = await sql()`SELECT user_id, naics_codes, service_categories, specialties, certifications FROM business_profiles WHERE user_id IS NOT NULL`;
   let created = 0;
+  const webhookEvents: BidMatchEvent[] = [];
   for (const bidId of bidIds) {
-    const rows = await sql()`SELECT id, title, agency, category, set_aside, description, source FROM bids WHERE id = ${bidId}`;
+    const rows = await sql()`SELECT id, title, agency, category, set_aside, description, source, location, due_date, source_url FROM bids WHERE id = ${bidId}`;
     const bid = rows[0] as any; if (!bid) continue;
     const text = `${bid.title || ""} ${bid.agency || ""} ${bid.category || ""} ${bid.description || ""}`.toLowerCase();
     for (const p of profiles as any[]) {
@@ -30,12 +36,33 @@ export async function generateBidAlerts(bidIds: number[]): Promise<number> {
       const categoryMatch = categories.some((c) => text.includes(c.toLowerCase()));
       const setAsideMatch = Boolean(bid.set_aside) && certs.some((c) => text.includes(c.toLowerCase()) || String(bid.set_aside).toLowerCase().includes(c.toLowerCase()));
       if (!naicsMatch && !categoryMatch && !setAsideMatch) continue;
-      const reasons = [naicsMatch && "NAICS code", categoryMatch && "tracked category", setAsideMatch && "set-aside certification"].filter(Boolean).join(" + ");
+      const matchedOn = [naicsMatch && "naics", categoryMatch && "category", setAsideMatch && "set_aside"].filter(Boolean) as string[];
       const inserted = await sql()`INSERT INTO bid_alerts (user_id,bid_id,alert_type) VALUES (${p.user_id},${bidId},'new_match') ON CONFLICT (user_id,bid_id,alert_type) DO NOTHING RETURNING id`;
-      if (inserted.length) created++;
-      // Keep reason available without changing the requested schema via alert_type metadata is avoided;
-      // the page derives the same reason from the profile and bid.
-      void reasons;
+      if (inserted.length) {
+        created++;
+        // Fire webhooks for NEW matches only (the alert insert is the dedupe gate).
+        webhookEvents.push({
+          userId: Number(p.user_id),
+          bid: {
+            title: bid.title ?? null,
+            agency: bid.agency ?? null,
+            set_aside: bid.set_aside ?? null,
+            location: bid.location ?? null,
+            due_date: bid.due_date ? String(bid.due_date) : null,
+            source_url: bid.source_url ?? null,
+          },
+          matchedOn,
+        });
+      }
+    }
+  }
+  // Deliver webhooks (fire-and-log; never throws, never blocks alert creation).
+  if (webhookEvents.length) {
+    try {
+      const attempted = await fireBidMatchWebhooks(webhookEvents);
+      if (attempted > 0) console.log(`🔗 Fired ${attempted} webhook delivery(ies) for ${webhookEvents.length} new match(es)`);
+    } catch (err) {
+      console.error("🔗 Failed to fire webhooks:", (err as Error).message);
     }
   }
   return created;

@@ -369,6 +369,21 @@ function SettingsPage() {
             </div>
           )}
         </section>
+        {/* Section: Integrations */}
+        <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-1">Integrations</h2>
+              <p className="text-sm text-slate-500">Pipe bid matches into Zapier, Slack, CRM, and email with webhooks.</p>
+            </div>
+            <a href="/settings/integrations" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700">
+              Manage webhooks
+            </a>
+          </div>
+          <p className="mt-3 text-xs text-slate-400">
+            When a new bid matches your profile, Contrax can POST it to any endpoint — including a Zapier webhook trigger — signed with your webhook secret.
+          </p>
+        </section>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Error */}

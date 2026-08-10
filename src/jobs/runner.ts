@@ -24,6 +24,7 @@ import { US_STATES } from "../lib/states";
 import { fetchBids as fetchSamGov } from "./sources/sam-gov";
 import { fetchBids as fetchVaEv } from "./sources/va-ev";
 import { fetchBids as fetchNc } from "./sources/nc";
+import { fetchBids as fetchSc } from "./sources/sc";
 import { fetchBids as fetchMdDc } from "./sources/md-dc";
 import { fetchBids as fetchTx } from "./sources/tx";
 import { fetchBids as fetchFl } from "./sources/fl";
@@ -54,6 +55,7 @@ const SOURCES: SyncSource[] = [
   },
   { name: "va_evirginia", fetchFn: fetchVaEv },
   { name: "nc", fetchFn: fetchNc },
+  { name: "sc", fetchFn: fetchSc },
   { name: "md_dc", fetchFn: fetchMdDc },
   { name: "tx", fetchFn: fetchTx },
   { name: "fl", fetchFn: fetchFl },

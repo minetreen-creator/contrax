@@ -5,10 +5,10 @@ export const Route = createFileRoute("/pricing/")({
   head: () => ({
     meta: [
       { title: "Pricing | Contrax" },
-      { name: "description", content: "Contrax plans for every stage of growth. Starter $49/mo, Professional $149/mo, Agency $399/mo. 21-day free trial on all plans." },
+      { name: "description", content: "Contrax plans for every stage of growth. Starter $19/mo, Professional $79/mo, Agency $199/mo. 21-day free trial on all plans." },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: "Pricing | Contrax" },
-      { property: "og:description", content: "Contrax plans for every stage of growth. Starter $49/mo, Professional $149/mo, Agency $399/mo. 21-day free trial on all plans." },
+      { property: "og:description", content: "Contrax plans for every stage of growth. Starter $19/mo, Professional $79/mo, Agency $199/mo. 21-day free trial on all plans." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
@@ -25,7 +25,7 @@ export const Route = createFileRoute("/pricing/")({
 const plans = [
   {
     name: "Starter",
-    price: "49",
+    price: "19",
     period: "/month",
     description: "For small businesses getting started with government contracting.",
     features: [
@@ -41,7 +41,7 @@ const plans = [
   },
   {
     name: "Professional",
-    price: "149",
+    price: "79",
     period: "/month",
     description: "For growing businesses that want to scale their contracting pipeline.",
     features: [
@@ -58,7 +58,7 @@ const plans = [
   },
   {
     name: "Agency",
-    price: "399",
+    price: "199",
     period: "/month",
     description: "For firms managing multiple clients or large contract portfolios.",
     features: [

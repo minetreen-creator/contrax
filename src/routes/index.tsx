@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useState, type FormEvent } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, Radar, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { sql } from "~/db";
 
@@ -85,8 +85,23 @@ const getUserCount = async () => {
     return 0;
   }
 };
+const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }> => {
+  try {
+    const [bids, agencies] = await Promise.all([
+      sql()`SELECT COUNT(*)::int AS count FROM bids`,
+      sql()`SELECT COUNT(DISTINCT agency)::int AS count FROM bids`,
+    ]);
+    return {
+      totalBids: Number((bids[0] as any)?.count || 0),
+      agencyCount: Number((agencies[0] as any)?.count || 0),
+    };
+  } catch {
+    // bids table may not exist yet — hide the stat row entirely
+    return { totalBids: 0, agencyCount: 0 };
+  }
+};
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, user, bids, healthcareBids, userCount] = await Promise.all([
+  const [businessName, user, bids, healthcareBids, userCount, bidStats] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -101,6 +116,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getRecentBids(),
     getHealthcareBids(),
     getUserCount(),
+    getBidStats(),
   ]);
   let alertCount = 0;
   if (user) {
@@ -110,7 +126,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -160,7 +176,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -181,7 +197,7 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar user={user} alertCount={alertCount} />
-      <Hero businessName={businessName} userCount={userCount} />
+      <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} />
       <ProductShowcase />
       <BidTicker bids={bids} />
       <HealthcareOpportunities bids={healthcareBids} />
@@ -366,7 +382,15 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
 
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
-function Hero({ businessName, userCount }: { businessName: string; userCount: number }) {
+function Hero({
+  businessName,
+  userCount,
+  bidStats,
+}: {
+  businessName: string;
+  userCount: number;
+  bidStats: { totalBids: number; agencyCount: number };
+}) {
   const navigate = useNavigate();
   const [scoreText, setScoreText] = useState("");
   const handleScoreSubmit = (e: FormEvent) => {
@@ -393,6 +417,22 @@ function Hero({ businessName, userCount }: { businessName: string; userCount: nu
             </svg>
             Transparent pricing from $49/mo — 21-day free trial
           </div>
+          {bidStats.totalBids > 0 && bidStats.agencyCount > 0 && (
+            <div className="mb-6 flex items-center justify-center gap-2 text-sm text-blue-200/80">
+              <Radar className="h-4 w-4 shrink-0 text-amber-300" />
+              <span>
+                Tracking{" "}
+                <span className="font-semibold text-amber-300">
+                  {bidStats.totalBids.toLocaleString()}
+                </span>{" "}
+                active solicitations across{" "}
+                <span className="font-semibold text-amber-300">
+                  {bidStats.agencyCount.toLocaleString()}
+                </span>{" "}
+                agencies — synced daily
+              </span>
+            </div>
+          )}
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             Find and win government contracts{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">

@@ -3,32 +3,22 @@
  *
  * Calls POST /api/stripe/create-checkout-session with the plan tier, then
  * redirects the browser to the Stripe Checkout URL returned by the server.
- * Falls back to a legacy Stripe payment link if the API call fails.
  */
 
 type PlanTier = "starter" | "professional" | "agency" | "savings_premium";
 
-/** Legacy payment links — used as fallback when the API is unavailable. */
-const LEGACY_PAYMENT_LINKS: Record<PlanTier, string> = {
-  starter: "https://buy.stripe.com/28E00lgGbdvS88ccyYf7i05",
-  professional: "https://buy.stripe.com/14A28tey30J61JOdD2f7i04",
-  agency: "https://buy.stripe.com/7sY28t9dJ9fC3RW56wf7i03",
-  savings_premium: "https://buy.stripe.com/9B614p3TpdvSfAEdD2f7i06",
-};
-
 /**
  * Redirect the browser to a Stripe Checkout Session for the given plan tier.
  *
- * If the API is unavailable (e.g., no Stripe key configured), falls back to
- * opening a legacy Stripe payment link in a new tab.
+ * If the API call fails (network error or server error), alerts the user and
+ * does NOT redirect. There is no silent fallback — silently routing users to
+ * a different checkout page with potentially wrong pricing is a liability.
  *
  * @param planTier - The plan to purchase
- * @param fallbackHref - Optional fallback URL (uses legacy payment link by default)
  * @returns A promise that resolves when the redirect is initiated
  */
 export async function redirectToCheckout(
   planTier: PlanTier,
-  fallbackHref?: string,
 ): Promise<void> {
   try {
     const response = await fetch("/api/stripe/create-checkout-session", {
@@ -44,11 +34,13 @@ export async function redirectToCheckout(
         return;
       }
     }
-  } catch {
-    // API unreachable — fall through to fallback
-  }
 
-  // Fallback: open legacy payment link
-  const href = fallbackHref ?? LEGACY_PAYMENT_LINKS[planTier];
-  window.open(href, "_blank", "noopener noreferrer");
+    // API responded but not OK — log the error for debugging
+    const body = await response.text().catch(() => "unknown error");
+    console.error("Checkout API error:", response.status, body);
+    alert("Sorry, we couldn't start the checkout. Please try again or contact support.");
+  } catch {
+    // Network error — API unreachable
+    alert("Checkout is temporarily unavailable. Please check your connection and try again.");
+  }
 }

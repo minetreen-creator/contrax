@@ -429,7 +429,7 @@ function Hero({
                 <span className="font-semibold text-amber-300">
                   {bidStats.agencyCount.toLocaleString()}
                 </span>{" "}
-                agencies — synced daily
+                agencies — updated every 4 hours on weekdays
               </span>
             </div>
           )}

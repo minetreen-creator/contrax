@@ -1,5 +1,6 @@
 import { sql } from "../db";
 import { fireBidMatchWebhooks, type BidMatchEvent } from "./webhooks";
+import { fireSlackBidMatchAlerts } from "./slack";
 
 export interface BidAlert {
   id: number; bid_id: number; title: string; agency: string;
@@ -63,6 +64,13 @@ export async function generateBidAlerts(bidIds: number[]): Promise<number> {
       if (attempted > 0) console.log(`🔗 Fired ${attempted} webhook delivery(ies) for ${webhookEvents.length} new match(es)`);
     } catch (err) {
       console.error("🔗 Failed to fire webhooks:", (err as Error).message);
+    }
+    // Deliver Slack messages alongside (fire-and-log; independent toggle).
+    try {
+      const slackAttempted = await fireSlackBidMatchAlerts(webhookEvents);
+      if (slackAttempted > 0) console.log(`💬 Fired ${slackAttempted} Slack message(s) for ${webhookEvents.length} new match(es)`);
+    } catch (err) {
+      console.error("💬 Failed to fire Slack alerts:", (err as Error).message);
     }
   }
   return created;

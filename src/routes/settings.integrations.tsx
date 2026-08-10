@@ -33,6 +33,35 @@ interface Webhook {
   last_delivery: Delivery | null;
 }
 
+interface SlackDelivery {
+  id: number;
+  user_id: number;
+  event: string;
+  status_code: number | null;
+  attempt: number;
+  success: boolean;
+  error: string | null;
+  created_at: string;
+}
+
+interface SlackConfig {
+  user_id: number;
+  webhook_url: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+  last_delivery: SlackDelivery | null;
+}
+
+/** Structural subset shared by webhook + Slack deliveries (for status badges). */
+type DeliveryLike = {
+  success: boolean;
+  status_code: number | null;
+  attempt: number;
+  error: string | null;
+  created_at: string;
+};
+
 function formatDate(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -40,7 +69,21 @@ function formatDate(iso: string | null): string {
     " · " + d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
 }
 
-function DeliveryBadge({ delivery }: { delivery: Delivery | null }) {
+function maskSlackUrl(url: string): string {
+  try {
+    const u = new URL(url);
+    const segments = u.pathname.split("/").filter(Boolean);
+    if (segments[0] === "services" && segments.length >= 3) {
+      const masked = segments.slice(1).map((s) => s.slice(0, 3) + "…").join("/");
+      return `${u.origin}/services/${masked}`;
+    }
+    return u.origin + "/•••";
+  } catch {
+    return url.length > 40 ? url.slice(0, 37) + "…" : url;
+  }
+}
+
+function DeliveryBadge({ delivery }: { delivery: DeliveryLike | null }) {
   if (!delivery) {
     return <span className="text-xs text-slate-400">No deliveries yet</span>;
   }
@@ -96,6 +139,11 @@ function SettingsIntegrationsPage() {
   // Per-webhook busy state for test/delete
   const [busyId, setBusyId] = useState<number | null>(null);
 
+  // Slack connection state
+  const [slackConfig, setSlackConfig] = useState<SlackConfig | null>(null);
+  const [slackUrl, setSlackUrl] = useState("");
+  const [slackBusy, setSlackBusy] = useState(false);
+
   async function load() {
     try {
       const res = await fetch("/api/webhooks", { method: "GET" });
@@ -107,6 +155,14 @@ function SettingsIntegrationsPage() {
       setError(e instanceof Error ? e.message : "Failed to load webhooks");
     } finally {
       setLoading(false);
+    }
+    try {
+      const res = await fetch("/api/slack/config", { method: "GET" });
+      if (!res.ok) throw new Error("Failed to load Slack connection");
+      const data = (await res.json()) as { config: SlackConfig | null };
+      setSlackConfig(data.config);
+    } catch {
+      // Slack config is optional — don't fail the whole page over it.
     }
   }
 
@@ -229,6 +285,98 @@ function SettingsIntegrationsPage() {
     }
   }
 
+  async function handleSlackConnect(e: FormEvent) {
+    e.preventDefault();
+    setSlackBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch("/api/slack/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ webhookUrl: slackUrl }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to connect Slack");
+      setSlackConfig(data.config);
+      setSlackUrl("");
+      setNotice("Slack connected! Use “Send test notification” below to verify the channel.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to connect Slack");
+    } finally {
+      setSlackBusy(false);
+    }
+  }
+
+  async function handleSlackToggle(next: boolean) {
+    setSlackBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch("/api/slack/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to update Slack alerts");
+      setSlackConfig(data.config);
+      setNotice(next ? "Slack alerts enabled — new bid matches will be posted to your channel." : "Slack alerts paused. Generic webhooks are unaffected.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to update Slack alerts");
+    } finally {
+      setSlackBusy(false);
+    }
+  }
+
+  async function handleSlackTest() {
+    setSlackBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch("/api/slack/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to send test message");
+      if (data.delivered) {
+        setNotice(`Test message delivered (HTTP ${data.statusCode}). Check your Slack channel — the sample bid alert should have arrived.`);
+      } else {
+        setError(`Test message failed (HTTP ${data.statusCode ?? "no response"}${data.attempts > 1 ? ` after ${data.attempts} attempts` : ""}): ${data.error ?? "Slack rejected the request."}`);
+      }
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to send test message");
+    } finally {
+      setSlackBusy(false);
+    }
+  }
+
+  async function handleSlackDisconnect() {
+    if (!window.confirm("Disconnect Slack? Bid alerts will stop posting to your channel. You can reconnect any time.")) return;
+    setSlackBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const res = await fetch("/api/slack/disconnect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to disconnect Slack");
+      setSlackConfig(null);
+      setSlackUrl("");
+      setNotice("Slack disconnected.");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to disconnect Slack");
+    } finally {
+      setSlackBusy(false);
+    }
+  }
+
   async function copySecret() {
     if (!justCreated) return;
     try {
@@ -251,9 +399,9 @@ function SettingsIntegrationsPage() {
       <main className="mx-auto max-w-4xl px-4 py-10">
         <div className="mb-8">
           <p className="text-sm font-semibold uppercase tracking-wider text-amber-600">Integrations</p>
-          <h1 className="mt-1 text-3xl font-bold text-slate-900">Webhooks</h1>
+          <h1 className="mt-1 text-3xl font-bold text-slate-900">Integrations</h1>
           <p className="mt-2 text-slate-600">
-            Send new bid matches to Zapier, Slack, your CRM, email, or anything that accepts an HTTP POST.
+            Send new bid matches to Slack, Zapier, your CRM, email, or anything that accepts an HTTP POST.
           </p>
         </div>
 
@@ -269,6 +417,119 @@ function SettingsIntegrationsPage() {
             <button onClick={() => setError("")} className="text-red-400 hover:text-red-800">&times;</button>
           </div>
         )}
+
+        {/* Slack section */}
+        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#4A154B] text-lg font-bold text-white">S</div>
+            <div className="min-w-0 flex-1">
+              <h2 className="text-lg font-semibold text-slate-900">Slack</h2>
+              <p className="text-sm text-slate-500">
+                Get bid match alerts in a Slack channel as rich, formatted messages.
+              </p>
+            </div>
+            {slackConfig && (
+              slackConfig.enabled ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-500" />
+                  Connected
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
+                  Connected · paused
+                </span>
+              )
+            )}
+          </div>
+
+          {/* How to get your webhook URL */}
+          <div className="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4">
+            <p className="text-sm font-semibold text-slate-700">How to get your Slack webhook URL</p>
+            <ol className="mt-3 space-y-2.5 text-sm text-slate-600">
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#4A154B] text-xs font-bold text-white">1</span>
+                <span>In Slack, open <strong>Settings &amp; administration → Manage apps</strong> (or go to <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">slack.com/apps</code>), search for <strong>Incoming Webhooks</strong>, and click <strong>Add to Slack</strong>.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#4A154B] text-xs font-bold text-white">2</span>
+                <span>Pick the channel that should receive bid alerts (or choose the workspace-wide default), then click <strong>Add Incoming Webhooks integration</strong>.</span>
+              </li>
+              <li className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#4A154B] text-xs font-bold text-white">3</span>
+                <span>Copy the <strong>Webhook URL</strong> at the bottom of the page (it starts with the host <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">hooks.slack.com</code>) and paste it below.</span>
+              </li>
+            </ol>
+          </div>
+
+          {slackConfig ? (
+            <div className="mt-5">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Webhook URL</p>
+                    <p className="mt-0.5 truncate text-sm font-medium text-slate-800" title={slackConfig.webhook_url}>
+                      {maskSlackUrl(slackConfig.webhook_url)}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className="text-xs text-slate-500">Alerts</span>
+                    <Toggle checked={slackConfig.enabled} onChange={(v) => handleSlackToggle(v)} disabled={slackBusy} />
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-slate-200 pt-3">
+                  <DeliveryBadge delivery={slackConfig.last_delivery} />
+                  {slackConfig.last_delivery && (
+                    <span className="text-xs text-slate-400">{formatDate(slackConfig.last_delivery.created_at)}</span>
+                  )}
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button
+                  onClick={handleSlackTest}
+                  disabled={slackBusy || !slackConfig.enabled}
+                  className="rounded-lg bg-[#4A154B] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#3a103c] disabled:opacity-60"
+                >
+                  {slackBusy ? "Sending…" : "Send test notification"}
+                </button>
+                <button
+                  onClick={handleSlackDisconnect}
+                  disabled={slackBusy}
+                  className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-60"
+                >
+                  Disconnect
+                </button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSlackConnect} className="mt-5 space-y-4">
+              <div>
+                <label htmlFor="slack-url" className="block text-sm font-medium text-slate-700">
+                  Slack webhook URL <span className="font-normal text-slate-400">— paste your Incoming Webhook URL here</span>
+                </label>
+                <input
+                  id="slack-url"
+                  value={slackUrl}
+                  onChange={(e) => setSlackUrl(e.target.value)}
+                  placeholder="Paste your Slack Incoming Webhook URL here"
+                  required
+                  type="url"
+                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-slate-500 focus:outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={slackBusy}
+                className="rounded-lg bg-[#4A154B] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#3a103c] disabled:opacity-60"
+              >
+                {slackBusy ? "Connecting…" : "Connect Slack"}
+              </button>
+            </form>
+          )}
+          <p className="mt-4 text-xs text-slate-400">
+            Messages are delivered as Slack Block Kit and are compact on mobile. Transient failures are retried once; every attempt is logged with its HTTP status. Slack alerts toggle independently of generic webhooks.
+          </p>
+        </section>
 
         {/* Zapier setup instructions */}
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -468,8 +729,8 @@ export const Route = createFileRoute("/settings/integrations")({
   },
   head: () => ({
     meta: [
-      { title: "Webhook Integrations — Contrax" },
-      { name: "description", content: "Pipe Contrax bid matches into Zapier, Slack, CRM, and email with signed webhooks." },
+      { title: "Integrations — Contrax" },
+      { name: "description", content: "Send Contrax bid matches to Slack channels and pipe them into Zapier, CRM, and email with signed webhooks." },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),

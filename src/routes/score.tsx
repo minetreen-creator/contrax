@@ -47,6 +47,29 @@ interface ScoreInput {
 type ScoreSearch = {
   text?: string;
 };
+// ── SEO FAQ content (rendered below the tool + as FAQPage schema) ───────────
+const scoreFaqs = [
+  {
+    q: "What is a solicitation score?",
+    a: "A solicitation score is a 0–100 fit rating that estimates how winnable a government bid is for your business. Contrax reads the actual solicitation text — scope of work, requirements, certifications, and evaluation criteria — and scores it across 9 dimensions: overall fit, required certifications, past performance, contract size, competitiveness, missing qualifications, estimated effort, and the reasons behind the call. You get the score plus a GO, CAUTIOUS, or NO-GO recommendation in plain English.",
+  },
+  {
+    q: "How accurate is the score?",
+    a: "The analysis is grounded in the solicitation text you paste and, when you add it, your real business information — certifications, past performance, size, and experience. It is deliberately critical: it flags missing certifications, disqualifying requirements, and tough competition instead of inflating your odds. Treat it as an expert second opinion for prioritizing which bids deserve your proposal hours, not a guarantee of award — contract outcomes also depend on your full proposal and the agency's evaluation.",
+  },
+  {
+    q: "Do I need to sign up?",
+    a: "No. The scoring tool is completely free and anonymous — paste a solicitation, get your score, no account, login, or credit card required. You only sign up for Contrax when you want to track bids, get deadline alerts, draft proposals, run compliance checks, and use the rest of the platform.",
+  },
+  {
+    q: "What do GO, CAUTIOUS, and NO-GO mean?",
+    a: "GO means the solicitation looks like a strong fit (a score of 65 or higher with no critical gaps) and is worth a real proposal effort. CAUTIOUS means there are fixable gaps or moderate competition (40–64) — dig deeper before committing hours. NO-GO means critical requirements are unmet or competition is stacked against you (below 40) — your time is better spent on other bids.",
+  },
+  {
+    q: "Can I score state and local government bids too?",
+    a: "Yes. The tool handles federal, state, county, city, and local solicitations — RFPs, RFQs, RFIs, and ITBs — as long as you paste the actual solicitation text. It also understands set-aside designations like 8(a), SDVOSB/VOSB, WOSB/EDWOSB, and HUBZone.",
+  },
+];
 
 // ── Server function: honest AI win-probability analysis ─────────────────────
 const scoreSolicitation = createServerFn({ method: "POST" })
@@ -252,38 +275,38 @@ export const Route = createFileRoute("/score")({
   }),
   head: () => ({
     meta: [
-      { title: "Can I Win This Bid? — Contrax" },
+      { title: "Free Government Contract Scoring Tool — Contrax" },
       {
         name: "description",
         content:
-          "Paste any government solicitation and get an honest AI-powered win probability analysis — fit score, certification gaps, competition, effort, and a GO/CAUTIOUS/NO-GO recommendation. Free, no login required.",
+          "Free government contract bid scoring. Paste any RFP, RFQ, or RFI and get an honest AI win-probability score with a GO, CAUTIOUS, or NO-GO call. No signup required.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company/score" },
-      { property: "og:title", content: "Can I Win This Bid? — Contrax" },
+      { property: "og:title", content: "Free Government Contract Scoring Tool — Contrax" },
       {
         property: "og:description",
         content:
-          "Paste any government solicitation and get an honest AI-powered win probability analysis — fit score, certification gaps, competition, effort, and a GO/CAUTIOUS/NO-GO recommendation.",
+          "Check if you can win that government contract — free. Paste any RFP, RFQ, or RFI and get an honest AI win-probability analysis across 9 dimensions: fit score, certifications, past performance, competition, and a GO/CAUTIOUS/NO-GO recommendation. No signup required.",
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Contrax — Can I win this bid? Free AI win probability scoring tool" },
+      { property: "og:image:alt", content: "Contrax — Free AI government contract scoring tool. Paste a solicitation and get a GO/CAUTIOUS/NO-GO bid score." },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Can I Win This Bid? — Contrax" },
+      { name: "twitter:title", content: "Free Government Contract Scoring Tool — Contrax" },
       {
         name: "twitter:description",
         content:
-          "Paste any government solicitation and get an honest AI-powered win probability analysis — fit score, certification gaps, competition, effort, and a GO/CAUTIOUS/NO-GO recommendation.",
+          "Check if you can win that government contract — free. Paste any RFP, RFQ, or RFI and get an honest AI win-probability score and a GO/CAUTIOUS/NO-GO call. No signup required.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
-      { name: "twitter:image:alt", content: "Contrax — Can I win this bid? Free AI win probability scoring tool" },
+      { name: "twitter:image:alt", content: "Contrax — Free AI government contract scoring tool. Paste a solicitation and get a GO/CAUTIOUS/NO-GO bid score." },
     ],
     links: [{ rel: "canonical", href: "https://www.contrax.company/score" }],
   }),
@@ -343,10 +366,10 @@ function ScorePage() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "WebApplication",
-            name: "Can I Win This Bid? — Contrax Bid Score",
+            name: "Free Government Contract Scoring Tool — Contrax",
             url: "https://www.contrax.company/score",
             description:
-              "Free AI-powered government bid scoring tool. Paste any solicitation and get a win probability analysis with a GO, CAUTIOUS, or NO-GO recommendation.",
+              "Free AI government contract scoring tool. Paste any solicitation (RFP, RFQ, RFI) and get a win-probability score across 9 dimensions with a GO, CAUTIOUS, or NO-GO recommendation. No signup required.",
             applicationCategory: "BusinessApplication",
             operatingSystem: "Any",
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -354,24 +377,56 @@ function ScorePage() {
           }),
         }}
       />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: scoreFaqs.map((f) => ({
+              "@type": "Question",
+              name: f.q,
+              acceptedAnswer: { "@type": "Answer", text: f.a },
+            })),
+          }),
+        }}
+      />
       <main className="mx-auto max-w-4xl px-4 py-10 lg:py-14">
-        {/* ── Header ─────────────────────────────────────────────────── */}
+        {/* ── Header / SEO hero ──────────────────────────────────────── */}
         <div className="text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-[13px] font-medium text-slate-600 shadow-sm">
             <Target className="h-3.5 w-3.5 text-blue-600" />
             Free AI bid analysis — no login needed
           </div>
-          <h1 className="mt-5 text-4xl font-extrabold tracking-tight text-slate-900 lg:text-5xl">
-            Can I Win This?{" "}
+          <h1 className="mx-auto mt-5 max-w-3xl text-4xl font-extrabold tracking-tight text-slate-900 lg:text-5xl">
+            Check If You Can Win That Government Contract —{" "}
             <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Find out in 30 seconds.
+              Free
             </span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-[16px] leading-relaxed text-slate-600">
-            Paste any government solicitation — federal, state, or local — and get an honest,
-            AI-powered assessment of your chances: fit score, certification gaps, competition,
-            effort, and a clear GO / CAUTIOUS / NO-GO call.
+            Paste any federal, state, or local solicitation — RFP, RFQ, RFI, or ITB — and get an
+            honest AI win-probability analysis across 9 dimensions: fit score, required
+            certifications, past performance, contract size, competition, effort, and the gaps
+            standing between you and the award — ending in a clear{" "}
+            <span className="font-semibold text-green-700">GO</span>,{" "}
+            <span className="font-semibold text-amber-700">CAUTIOUS</span>, or{" "}
+            <span className="font-semibold text-red-700">NO-GO</span> call.
           </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13.5px] font-medium text-slate-500">
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              Free
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              No signup
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-4 w-4 text-green-600" />
+              Instant results
+            </span>
+          </div>
         </div>
 
         {/* ── Input card ─────────────────────────────────────────────── */}
@@ -640,6 +695,96 @@ function ScorePage() {
             <FeedbackWidget context="score" solicitationRef="" aiOutputSummary={`Solicitation scored at ${result.overallFit}/100`} />
           </div>
         )}
+
+        {/* ── How it works (always crawlable) ────────────────────────── */}
+        <section className="mt-16 lg:mt-20">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+              How the government bid scoring tool works
+            </h2>
+            <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-relaxed text-slate-600">
+              No forms, no downloads, no sales call. Paste the bid and get a straight answer in
+              under a minute.
+            </p>
+          </div>
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
+                <FileText className="h-5 w-5 text-blue-600" />
+              </div>
+              <h3 className="mt-4 text-[15px] font-bold text-slate-900">1. Paste the solicitation</h3>
+              <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                Copy the scope of work, requirements, certifications, and evaluation criteria from
+                the RFP, RFQ, or RFI — or arrive pre-filled from a search via the{" "}
+                <code className="rounded bg-slate-100 px-1 py-0.5 text-[12.5px] text-slate-700">?text=</code>{" "}
+                link.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
+                <Sparkles className="h-5 w-5 text-blue-600" />
+              </div>
+              <h3 className="mt-4 text-[15px] font-bold text-slate-900">2. AI scores 9 dimensions</h3>
+              <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                An analyst-grade model checks fit score, required certifications, past performance,
+                contract size, competition, effort, and the gaps — grounded in your business info
+                when you add it.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50">
+                <Gauge className="h-5 w-5 text-blue-600" />
+              </div>
+              <h3 className="mt-4 text-[15px] font-bold text-slate-900">3. Get your GO / CAUTIOUS / NO-GO call</h3>
+              <p className="mt-2 text-[14px] leading-relaxed text-slate-600">
+                See exactly why the score is what it is, what you're missing, and whether this bid
+                deserves your proposal hours — before you burn a week writing one.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── FAQ ────────────────────────────────────────────────────── */}
+        <section className="mt-16 lg:mt-20">
+          <h2 className="text-center text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+            Frequently asked questions
+          </h2>
+          <div className="mx-auto mt-8 max-w-3xl space-y-5">
+            {scoreFaqs.map((faq) => (
+              <div key={faq.q} className="rounded-xl border border-gray-200 bg-white p-5">
+                <h3 className="font-semibold text-slate-900">{faq.q}</h3>
+                <div className="mt-2 text-sm leading-relaxed text-gray-600">{faq.a}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Bottom CTA ─────────────────────────────────────────────── */}
+        <section className="mt-16 overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 px-6 py-14 text-center sm:py-16">
+          <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            Score every bid. Then win it.
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-[15px] leading-relaxed text-blue-100/80">
+            The free score is just the first step. Contrax tracks the solicitations you care about,
+            drafts compliant proposals, checks FAR/DFARS requirements, and sends deadline alerts —
+            built for 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses.
+          </p>
+          <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              to="/signup"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
+            >
+              Start your free trial
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/pricing"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-7 py-3.5 text-[15px] font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/20"
+            >
+              See pricing
+            </Link>
+          </div>
+        </section>
       </main>
     </div>
   );

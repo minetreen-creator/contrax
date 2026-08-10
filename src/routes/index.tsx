@@ -440,7 +440,7 @@ function Hero({
             </span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            Every morning, {businessName} monitors SAM.gov, seven state portals, and five city procurement sites for opportunities your
+            Every morning, {businessName} monitors SAM.gov, all 50 state portals, and five city procurement sites for opportunities your
             8(a), SDVOSB, WOSB, or HUBZone certification qualifies for.
           </p>
           <div className="mt-6 mx-auto max-w-xl rounded-xl border border-amber-400/15 bg-amber-400/5 px-6 py-4 backdrop-blur-sm">

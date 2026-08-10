@@ -22,14 +22,9 @@
 import { neon } from "@neondatabase/serverless";
 import { US_STATES } from "../lib/states";
 import { fetchBids as fetchSamGov } from "./sources/sam-gov";
-import { fetchBids as fetchVaEv } from "./sources/va-ev";
-import { fetchBids as fetchNc } from "./sources/nc";
-import { fetchBids as fetchSc } from "./sources/sc";
-import { fetchBids as fetchMdDc } from "./sources/md-dc";
-import { fetchBids as fetchTx } from "./sources/tx";
-import { fetchBids as fetchFl } from "./sources/fl";
 import { fetchBids as fetchCities } from "./sources/cities";
 import { nysSocrataSource } from "./sources/socrata";
+import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
@@ -53,14 +48,16 @@ const SOURCES: SyncSource[] = [
       return national.concat(regional.filter((bid) => !seen.has(bid.external_id)));
     },
   },
-  { name: "va_evirginia", fetchFn: fetchVaEv },
-  { name: "nc", fetchFn: fetchNc },
-  { name: "sc", fetchFn: fetchSc },
-  { name: "md_dc", fetchFn: fetchMdDc },
-  { name: "tx", fetchFn: fetchTx },
-  { name: "fl", fetchFn: fetchFl },
   { name: "cities", fetchFn: fetchCities },
   { name: "nys_socrata", fetchFn: nysSocrataSource },
+  // One keyword source per state (50 states + DC), generated from the shared
+  // factory. Each is isolated — one state failing never blocks the others
+  // (syncSource catches per-source errors). Replaces the individual
+  // nc/sc/tx/fl/md-dc/va-ev sources; VA is now covered by the va entry.
+  ...US_STATES.map((code) => ({
+    name: code.toLowerCase(),
+    fetchFn: createStateKeywordSource(STATE_NAMES[code], code),
+  })),
   // City open-data procurement portals (each isolated — one city failing
   // never blocks the others). NYC replaces the legacy nyc_socrata source.
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),

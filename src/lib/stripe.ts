@@ -66,6 +66,15 @@ const FALLBACK_PRICE_IDS: Record<PlanTier, string | null> = {
   savings_premium: "price_1Tz7wZRgqhxm74mTtb7yMkXs",
 };
 
+/** Expected unit_amount (in cents) for each plan tier. Used to filter out
+ *  stale active prices in the Stripe catalog when looking up by product name. */
+const EXPECTED_UNIT_AMOUNTS: Record<PlanTier, number | null> = {
+  starter: 1900,       // $19.00
+  professional: 7900,  // $79.00
+  agency: 19900,       // $199.00
+  savings_premium: null, // one-time price — amount varies
+};
+
 /**
  * Look up the Stripe Price ID for a given plan tier.
  *
@@ -94,9 +103,18 @@ async function getPriceIdForPlanTier(planTier: PlanTier): Promise<string> {
 
     const targetName = productNameMap[planTier];
 
+    const expectedAmount = EXPECTED_UNIT_AMOUNTS[planTier];
+
     for (const price of prices.data) {
       const product = price.product as Stripe.Product | undefined;
       if (!product) continue;
+
+      // Skip prices whose unit_amount doesn't match what we expect —
+      // this prevents stale active prices (e.g. old $49/$149/$399) from
+      // being returned when the catalog has both old and new prices active.
+      if (expectedAmount !== null && price.unit_amount !== expectedAmount) {
+        continue;
+      }
 
       // Match by metadata.plan_tier first
       if (product.metadata?.plan_tier === planTier) {

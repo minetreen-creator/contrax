@@ -2,10 +2,6 @@
   "buildCommand": "bash build-vercel.sh",
   "crons": [
     {
-      "path": "/api/sync-bids",
-      "schedule": "0 6 * * *"
-    },
-    {
       "path": "/api/sync-far",
       "schedule": "30 6 * * *"
     }

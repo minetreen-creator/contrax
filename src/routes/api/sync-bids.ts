@@ -1,32 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { runSync } from "../../jobs/runner";
 
 /**
  * GET /api/sync-bids
  *
- * Endpoint invoked by the Vercel Cron Job (see vercel.json) daily at 6 AM to
- * sync government bids from all procurement sources into the database.
- * Federal/state sources (SAM.gov, VA eVA, NC, MD/DC, TX, FL, NYS) run first,
- * then city open-data portals (NYC, Chicago, LA, SF, Austin) — each city is an
- * isolated source so one failure never blocks the others.
+ * Admin diagnostic endpoint (previously the Vercel Cron entry point).
  *
- * Auth: protected by a shared token. The caller must present it either as
- * `Authorization: Bearer <token>` (how Vercel Cron sends the cron `secret`)
- * or as `?token=<token>` (convenient for manual testing / the admin button).
- * The expected token is `process.env.SYNC_TOKEN`, falling back to the
- * hardcoded value below — which is also the `secret` configured for the cron
- * in vercel.json, so the cron is authorized out of the box. When rotating,
- * set SYNC_TOKEN in the Vercel project env and update the cron secret in
- * vercel.json to match.
+ * The scheduled bid sync now runs on GitHub Actions (see
+ * .github/workflows/sync-bids.yml) — Vercel Hobby's 10s serverless cap cannot
+ * fit a 6–15 minute sync across 59 sources, so the cron was silently failing
+ * and has been removed from vercel.json. This endpoint authenticates the
+ * caller and returns 202 Accepted with a pointer to the workflow.
+ *
+ * To trigger a sync:
+ *   - GitHub Actions UI → "Sync Bids" → "Run workflow"
+ *   - `gh workflow run sync-bids.yml`
+ *   - locally: `DATABASE_URL=... bun run sync-bids`
+ *
+ * Auth: shared token. The caller must present it either as
+ * `Authorization: Bearer <token>` or as `?token=<token>`. The expected token
+ * is `process.env.SYNC_TOKEN`, falling back to the hardcoded value below
+ * (which was also the old cron secret, so the cron stayed authorized). When
+ * rotating, set SYNC_TOKEN in the Vercel project env.
  *
  * NOTE: do not import node builtins at the top level of this file — TanStack
  * Start API routes are bundled for the server, but keep the module free of
  * server-only imports to stay compatible with the client-bundle protection.
- * The runner chain (src/jobs/*, src/lib/city-procurement.ts) uses only global
- * fetch + neon, so it is safe.
  */
 
 const FALLBACK_SYNC_TOKEN = "cx-sync-4f8a2c1e9b3d7f5a6e0c4b8d2a1f9e3c";
+
+const WORKFLOW_URL =
+  "https://github.com/minetreen-creator/contrax/actions/workflows/sync-bids.yml";
 
 function extractToken(request: Request): string {
   const auth = request.headers.get("authorization") ?? "";
@@ -44,33 +48,23 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await runSync();
-
-    // Per-source breakdown so cron logs and the admin button show where
-    // bids came from (sam_gov vs. each city open-data portal).
-    const sources = Object.entries(result.results).map(([name, r]) => ({
-      source: name,
-      fetched: r.fetched,
-      new: r.new,
-      errors: r.errors,
-    }));
-    for (const s of sources) {
-      console.log(
-        `[sync-bids] ${s.source}: fetched=${s.fetched} new=${s.new} errors=${s.errors.length}`,
-      );
-    }
-
-    return Response.json({
-      success: true,
-      count: result.totalNew,
-      fetched: result.totalFetched,
-      errors: result.totalErrors,
-      duration: result.duration,
-      sources,
-    });
+    // The full sync no longer runs here — Vercel's 10s serverless cap cannot
+    // fit it. Trigger the GitHub Actions workflow instead.
+    return Response.json(
+      {
+        success: true,
+        status: "accepted",
+        message:
+          "Bid sync now runs on GitHub Actions (cron: every 4h on weekdays, Mon–Fri UTC). " +
+          "Trigger it from the Actions UI ('Run workflow'), with `gh workflow run sync-bids.yml`, " +
+          "or run `bun run sync-bids` locally with DATABASE_URL set.",
+        workflow: WORKFLOW_URL,
+      },
+      { status: 202 },
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
-    console.error("[sync-bids] sync failed:", err);
+    console.error("[sync-bids] handler error:", err);
     return Response.json({ error: message }, { status: 500 });
   }
 }

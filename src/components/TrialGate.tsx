@@ -5,7 +5,7 @@
  * a paid plan, and swaps in a full-screen upgrade prompt when the trial has
  * expired (restricted access).
  *
- * <PlanGate> gates content behind Professional ($149/mo) + Agency ($399/mo)
+ * <PlanGate> gates content behind Professional ($79/mo) + Agency ($199/mo)
  * plans — Starter users and trial-only users see an upgrade screen instead.
  *
  * <TrialUpgradeCallout> is the gentler, inline reminder for pages we don't
@@ -43,14 +43,14 @@ export function PlanUpgradeScreen({
         <p className="mt-3 text-slate-600">
           {agencyOnly ? (
             <>
-              {featureName} is available on the <strong>Agency</strong> ($399/mo) plan — the
+              {featureName} is available on the <strong>Agency</strong> ($199/mo) plan — the
               tier for firms running multiple clients and large contract portfolios. Upgrade to
               unlock it, or keep exploring the rest of Contrax on your current plan.
             </>
           ) : (
             <>
-              {featureName} is available on the <strong>Professional</strong> ($149/mo) and{" "}
-              <strong>Agency</strong> ($399/mo) plans. Upgrade to unlock it, or keep exploring the
+              {featureName} is available on the <strong>Professional</strong> ($79/mo) and{" "}
+              <strong>Agency</strong> ($199/mo) plans. Upgrade to unlock it, or keep exploring the
               rest of Contrax on your current plan.
             </>
           )}
@@ -62,7 +62,7 @@ export function PlanUpgradeScreen({
           Upgrade your plan →
         </a>
         <p className="mt-4 text-xs text-slate-400">
-          Starter is $49/mo · Professional is $149/mo · Agency is $399/mo
+          Starter is $19/mo · Professional is $79/mo · Agency is $199/mo
         </p>
       </div>
     </div>
@@ -73,7 +73,7 @@ export function PlanUpgradeScreen({
  * Gates content behind a minimum plan tier.
  * - Default `minTier="professional"` (backwards compatible): Professional +
  *   Agency plans pass.
- * - `minTier="agency"`: only Agency ($399/mo) passes.
+ * - `minTier="agency"`: only Agency ($199/mo) passes.
  * Renders children only when the user's plan_tier is at or above the required
  * tier; otherwise shows the PlanUpgradeScreen.
  *
@@ -126,7 +126,7 @@ export function TrialExpiredScreen() {
           View plans →
         </a>
         <p className="mt-4 text-xs text-slate-400">
-          Plans start at $49/mo — no setup fees, cancel anytime.
+          Plans start at $19/mo — no setup fees, cancel anytime.
         </p>
       </div>
     </div>

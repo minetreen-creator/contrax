@@ -17,7 +17,7 @@ Key facts about Contrax (be accurate — never invent features):
 - Certification deadline tracking: /tracking tracks 8(a), SDVOSB, WOSB, and HUBZone certification deadlines.
 - Compliance tracking: /compliance.
 - Knowledge base: /knowledge, plus free certification guides (8(a), WOSB/EDWOSB, SDVOSB, HUBZone) at /learn.
-- Plans: Starter $49/month, Professional $149/month, Agency $399/month. Every account starts with a 21-day free trial — sign up at /signup.
+- Plans: Starter $19/month, Professional $79/month, Agency $199/month. Every account starts with a 21-day free trial — sign up at /signup.
   - Starter: bid alerts for up to 3 categories, plain-English bid summaries, SAM.gov bid matching (daily sync), up to 2 location preferences, certification deadline tracking.
   - Professional: everything in Starter, plus unlimited bid tracking, AI proposal drafting, competitor tracking, bid deadline alerts, AI chat support.
   - Agency: everything in Professional, plus up to 10 user accounts, API access, custom proposal templates, team collaboration tools, an AI onboarding assistant.

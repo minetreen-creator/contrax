@@ -16,9 +16,9 @@ export const Route = createFileRoute("/upgrade")({
 });
 
 const plans = [
-  { id: "starter", name: "Starter", price: 49 },
-  { id: "professional", name: "Professional", price: 149 },
-  { id: "agency", name: "Agency", price: 399 },
+  { id: "starter", name: "Starter", price: 19 },
+  { id: "professional", name: "Professional", price: 79 },
+  { id: "agency", name: "Agency", price: 199 },
 ];
 
 function Upgrade() {

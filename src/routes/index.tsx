@@ -442,7 +442,7 @@ function Hero({
             <svg className="h-3.5 w-3.5 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
-            Transparent pricing from $49/mo — 21-day free trial
+            Transparent pricing from $19/mo — 21-day free trial
           </div>
           {bidStats.totalBids > 0 && bidStats.agencyCount > 0 && (
             <div className="mb-6 flex items-center justify-center gap-2 text-sm text-blue-200/80">
@@ -1147,7 +1147,7 @@ function ROICalculator() {
   const [avgContractValue, setAvgContractValue] = useState(50000);
 
   const hourlyRate = 75;
-  const contraxCost = 149;
+  const contraxCost = 79;
   const timeSavingsPercent = 0.8;
 
   const monthlyTimeSavings = (hoursPerWeek * 4) * timeSavingsPercent;
@@ -1274,7 +1274,7 @@ function ROICalculator() {
               </div>
               <div className="flex items-center justify-between border-b border-blue-100 py-3">
                 <span className="text-sm text-gray-600">Your cost with Contrax Professional</span>
-                <span className="text-sm font-bold text-green-600">$149/mo</span>
+                <span className="text-sm font-bold text-green-600">$79/mo</span>
               </div>
               <div className="flex items-center justify-between py-3">
                 <span className="text-sm font-semibold text-slate-800">Annual savings</span>
@@ -1300,7 +1300,7 @@ function ROICalculator() {
                   />
                 </div>
                 <div className="flex flex-1 flex-col items-center">
-                  <span className="mb-1 text-xs font-bold text-green-600">$149</span>
+                  <span className="mb-1 text-xs font-bold text-green-600">$79</span>
                   <div
                     className="w-full rounded-t-md bg-green-400"
                     style={{ height: `${contraxBarPct}%` }}
@@ -1349,7 +1349,7 @@ function CompetitorComparison() {
     {
       label: "Monthly cost",
       tooltip: "What it costs per month",
-      contrax: { value: "$49–$399/month", positive: true },
+      contrax: { value: "$19–$199/month", positive: true },
       manual: { value: "Hundreds in lost staff hours", positive: false },
       consultant: { value: "$3,000–$10,000+/month retainer", positive: false },
       tools: { value: "$200–$1,000/month", positive: false },
@@ -1677,7 +1677,7 @@ function Pricing() {
   const plans = [
     {
       name: "Starter",
-      price: "49",
+      price: "19",
       period: "/month",
       description: "For small businesses getting started with government contracting.",
       features: [
@@ -1693,7 +1693,7 @@ function Pricing() {
     },
     {
       name: "Professional",
-      price: "149",
+      price: "79",
       period: "/month",
       description: "For growing businesses that want to scale their contracting pipeline.",
       features: [
@@ -1710,7 +1710,7 @@ function Pricing() {
     },
     {
       name: "Agency",
-      price: "399",
+      price: "199",
       period: "/month",
       description: "For firms managing multiple clients or large contract portfolios.",
       features: [

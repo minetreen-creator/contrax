@@ -1,4 +1,17 @@
-import "server-only";
+// Runtime server-only guard. We deliberately avoid the `server-only` npm
+// marker package here: Vite aliases that import to a no-op (see vite.config.ts),
+// but the GH Actions bid-sync runner executes this module directly under Bun
+// (src/jobs/runner.ts), where the real `server-only` package resolves and
+// throws at import time — killing the job in 17s. `document` exists only in
+// browsers, so this throws exactly when a client bundle would include this
+// module, while remaining a no-op in Bun CLI and Vite SSR.
+if (typeof document !== "undefined") {
+  throw new Error(
+    "src/db.ts must only be imported from server code. " +
+    "This module manages the database connection and should never " +
+    "be bundled into client-side JavaScript.",
+  );
+}
 import { neon } from "@neondatabase/serverless";
 
 /**

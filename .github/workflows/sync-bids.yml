@@ -1,0 +1,48 @@
+name: Sync Bids
+
+# Bid sync moved off Vercel Cron (Hobby 10s function cap kills a 6–15 min
+# sync). It now runs here on GitHub Actions, where the job can run for up to
+# 6 hours and is free on public repos.
+#
+# Required secrets (owner must set in GitHub repo settings → Secrets):
+#   DATABASE_URL   — Neon Postgres connection string (same value as the Vercel
+#                    project env var). REQUIRED; the run fails without it.
+#   RESEND_API_KEY — optional; enables the bid digest email (skipped with a
+#                    warning when absent).
+
+on:
+  schedule:
+    # Every 4 hours on weekdays (Mon–Fri), UTC. Hourly would be ideal but we
+    # stay gentle on SAM.gov's public API.
+    - cron: "0 */4 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: sync-bids
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Run bid sync
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run bid sync
+        run: bun run sync-bids

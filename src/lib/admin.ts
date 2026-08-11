@@ -14,6 +14,7 @@
 export const ADMIN_EMAILS: ReadonlySet<string> = new Set([
   // Founder / owner. Add additional admin emails here as needed.
   "hello@contrax.company",
+  "minetreen@gmail.com",
 ]);
 
 export function isAdminEmail(email: string): boolean {

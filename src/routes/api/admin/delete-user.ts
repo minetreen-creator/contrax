@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
+import { getUserFromRequest } from "~/lib/api-auth";
 
 const USER_DEPENDENT_TABLES = [
   "google_accounts",
@@ -19,34 +20,11 @@ const USER_DEPENDENT_TABLES = [
 
 async function handler({ request }: { request: Request }) {
   try {
-    // API route handlers lack createServerFn's RPC context, so parse the
-    // session cookie directly from the request headers.
-    const cookieHeader = request.headers.get("cookie") || "";
-    const cookies: Record<string, string> = {};
-    for (const pair of cookieHeader.split("; ")) {
-      const eq = pair.indexOf("=");
-      if (eq > 0) cookies[pair.slice(0, eq)] = pair.slice(eq + 1);
-    }
-    const token = cookies["contrax_session"];
-    if (!token) return Response.json({ error: "Not authenticated" }, { status: 401 });
+    const user = await getUserFromRequest(request);
+    if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
+    if (!user.is_admin) return Response.json({ error: "Admin access required" }, { status: 403 });
 
     const db = sql();
-    const sessionRows = await db`
-      SELECT user_id FROM sessions
-      WHERE token = ${token} AND expires_at > NOW()
-      LIMIT 1
-    `;
-    if (sessionRows.length === 0) {
-      return Response.json({ error: "Not authenticated" }, { status: 401 });
-    }
-
-    const userIdFromSession = (sessionRows[0] as { user_id: number }).user_id;
-    const adminRows = await db`
-      SELECT id, email, is_admin FROM users WHERE id = ${userIdFromSession} LIMIT 1
-    `;
-    if (adminRows.length === 0 || !(adminRows[0] as { is_admin?: boolean }).is_admin) {
-      return Response.json({ error: "Admin access required" }, { status: 403 });
-    }
 
     const body = (await request.json()) as { userId?: unknown };
     const userId = Number(body.userId);

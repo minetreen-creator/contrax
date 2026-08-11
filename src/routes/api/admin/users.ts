@@ -31,9 +31,18 @@ async function handler({ request }: { request: Request }) {
     const url = new URL(request.url);
     const email = url.searchParams.get("email");
     const userId = url.searchParams.get("id") ? Number(url.searchParams.get("id")) : null;
+    const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 200);
 
+    // List mode: no email or id → return recent users
     if (!email && !userId) {
-      return Response.json({ error: "Provide ?email= or ?id= query parameter" }, { status: 400 });
+      const rows = await db`
+        SELECT id, email, plan_tier, subscription_status, trial_started_at,
+               is_admin, created_at
+        FROM users
+        ORDER BY created_at DESC
+        LIMIT ${limit}
+      `;
+      return Response.json({ users: rows, count: rows.length });
     }
 
     let rows;

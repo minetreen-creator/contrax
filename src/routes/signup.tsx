@@ -8,11 +8,46 @@ type SignupSearch = { plan?: string; ticker_bid?: string; ticker_agency?: string
 
 const validPlans = ["starter", "professional", "agency"] as const;
 
+type Plan = (typeof validPlans)[number];
+
+// Plan facts mirror src/routes/pricing/index.tsx (prices $19/$79/$199 — live in Stripe).
+const PLAN_OPTIONS: {
+  slug: Plan;
+  name: string;
+  price: number;
+  bullets: string[];
+  featured?: boolean;
+}[] = [
+  {
+    slug: "starter",
+    name: "Starter",
+    price: 19,
+    bullets: [
+      "SAM.gov bid matching (daily sync)",
+      "AI-powered bid summaries",
+      "Win probability scoring",
+    ],
+  },
+  {
+    slug: "professional",
+    name: "Professional",
+    price: 79,
+    bullets: ["Unlimited bid tracking", "AI proposal drafting", "AI chat support"],
+    featured: true,
+  },
+  {
+    slug: "agency",
+    name: "Agency",
+    price: 199,
+    bullets: ["Team roles & permissions", "Integration connectors", "Team collaboration tools"],
+  },
+];
+
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/signup")({
   validateSearch: (search: Record<string, unknown>): SignupSearch => ({
-    plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "starter",
+    plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "professional",
     ticker_bid: typeof search.ticker_bid === "string" ? search.ticker_bid : undefined,
     ticker_agency: typeof search.ticker_agency === "string" ? search.ticker_agency : undefined,
   }),
@@ -70,6 +105,7 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<Plan>(plan);
 
   // If already logged in, redirect to dashboard (in an effect so hooks
   // always run in the same order on every render).
@@ -77,9 +113,15 @@ function SignupPage() {
     if (currentUser) navigate({ to: "/dashboard" });
   }, [currentUser, navigate]);
 
+  // Keep the selector in sync if the ?plan= search param changes (e.g. a
+  // pricing page CTA navigates here while the component is mounted).
+  useEffect(() => {
+    setSelectedPlan(plan);
+  }, [plan]);
+
   if (currentUser) return null;
 
-  const planLabel = plan === "professional" ? "Professional" : plan === "agency" ? "Agency" : "Starter";
+  const planInfo = PLAN_OPTIONS.find((p) => p.slug === selectedPlan) ?? PLAN_OPTIONS[1];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -95,7 +137,7 @@ function SignupPage() {
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, confirmPassword, plan }),
+        body: JSON.stringify({ email, password, confirmPassword, plan: selectedPlan }),
       });
       const json = await res.json() as { error?: string; success?: boolean };
       if (!res.ok || json.error) {
@@ -111,7 +153,7 @@ function SignupPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="text-center mb-8">
           <a href="/" className="inline-flex items-center gap-2">
@@ -144,8 +186,58 @@ function SignupPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Create your Contrax account</h1>
           <p className="mt-2 text-sm text-gray-500">
-            {planLabel} plan — 21-day free trial. No credit card required.
+            {planInfo.name} plan — ${planInfo.price}/mo — 21-day free trial. No credit card required.
           </p>
+
+          {/* Plan selector */}
+          <div className="mt-6">
+            <p className="text-sm font-medium text-gray-700">Choose your plan</p>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {PLAN_OPTIONS.map((p) => {
+                const selected = selectedPlan === p.slug;
+                return (
+                  <button
+                    key={p.slug}
+                    type="button"
+                    onClick={() => setSelectedPlan(p.slug)}
+                    aria-pressed={selected}
+                    className={`relative rounded-xl border-2 p-3 text-left transition-all ${
+                      selected
+                        ? "border-blue-600 bg-blue-50/60 shadow-sm"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {p.featured && (
+                      <span className="absolute -top-2 right-2 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+                        Recommended
+                      </span>
+                    )}
+                    <span className="block text-sm font-bold text-slate-900">{p.name}</span>
+                    <span className="mt-0.5 block text-lg font-extrabold text-slate-900">
+                      ${p.price}
+                      <span className="text-xs font-medium text-gray-500">/mo</span>
+                    </span>
+                    <ul className="mt-2 space-y-1.5">
+                      {p.bullets.map((bullet) => (
+                        <li key={bullet} className="flex items-start gap-1.5 text-xs text-gray-600">
+                          <svg
+                            className={`mt-0.5 h-3.5 w-3.5 flex-shrink-0 ${selected ? "text-blue-600" : "text-green-500"}`}
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           {/* Continue with Google */}
             <a

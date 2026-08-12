@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Menu, Radar, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { sql } from "~/db";
@@ -1805,6 +1805,24 @@ function Pricing() {
 
 // ── CTA ────────────────────────────────────────────────────────────────────────
 
+// Soro blog embed: the embed script is an IIFE that renders into #soro-blog.
+// Loading it with defer in <head> races React hydration — if the IIFE runs before
+// hydration, React wipes its output. So inject the script client-side only, after
+// hydration: this component's useEffect never runs during SSR (empty deps), and on
+// the client it appends the script to document.head after React has taken over the
+// DOM, guaranteeing the widget is never wiped. On re-mount (navigation away/back)
+// the effect re-runs and re-injects, so the widget self-heals.
+const SORO_EMBED_SRC =
+  "https://app.trysoro.com/api/embed/b2c9be2b-b791-4ef2-94d0-8ffbbfebe411";
+
+function SoroEmbed() {
+  useEffect(() => {
+    const script = document.createElement("script");
+    script.src = SORO_EMBED_SRC;
+    document.head.appendChild(script);
+  }, []);
+  return <div id="soro-blog"></div>;
+}
 function WaitlistSection() {
   return (
     <>
@@ -1838,7 +1856,7 @@ function WaitlistSection() {
       {/* Soro blog embed */}
       <section className="bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-6">
-          <div id="soro-blog"></div>
+          <SoroEmbed />
         </div>
       </section>
     </>

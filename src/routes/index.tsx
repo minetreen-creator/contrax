@@ -61,6 +61,18 @@ const HEALTHCARE_KEYWORDS = [
   "telemedicine", "emr", "ehr", "hipaa",
 ];
 
+/**
+ * Construction/vehicle/utilities terms checked against the TITLE only. Many of
+ * these words (road, street, gas, vehicle, van, bus, gate, fence, waste,
+ * trash, recycling, sanitation, fuel, elevator…) routinely appear inside the
+ * *descriptions* of genuine healthcare bids (street addresses, lab supplies,
+ * medical transport, etc.), so a description-level check would wrongly drop
+ * them — e.g. "…Babcock Road Medical Center…" in a real cardiology notice.
+ * The original code checked only the title; that conservative behavior is
+ * preserved here, plus "facility"/"facilities", which are safe only in titles
+ * (healthcare descriptions are full of "…at the health care facility…"
+ * boilerplate).
+ */
 const HEALTHCARE_EXCLUSIONS = [
   "truck", "trailer", "vehicle", "van", "bus", "bulldozer", "excavator", "crane",
   "forklift", "paving", "roofing", "concrete", "dumpster", "fence", "gate",
@@ -69,7 +81,56 @@ const HEALTHCARE_EXCLUSIONS = [
   "asphalt", "pavement", "sidewalk", "curb", "gutter", "road", "highway", "bridge",
   "culvert", "demolition", "waste", "trash", "recycling", "sanitation",
   "street", "wastewater", "rehabilitation", "renewal",
+  "facility", "facilities",
 ];
+
+/**
+ * Unambiguous construction/facilities terms, checked against BOTH the title
+ * and the description. These words never describe a healthcare *service*:
+ * "roof"/"roof top"/"rtu" (rooftop unit) identify roofing/HVAC work,
+ * "construction"/"renovation" identify facilities work, "stormwater"
+ * identifies civil infrastructure.
+ *
+ * Deliberately NOT included: "repair", "replacement", "maintenance" — they are
+ * over-broad and would wrongly exclude genuine healthcare bids, e.g. "medical
+ * equipment repair" or the Defense Health Agency "…Asset Tracking System
+ * Installation and Maintenance Services" notice (a real, wanted entry in this
+ * section). See the category escape hatch below for how an explicit healthcare
+ * category always wins.
+ */
+const HEALTHCARE_TEXT_EXCLUSIONS = [
+  "roof", "roof top", "rtu", "construction", "renovation", "stormwater",
+];
+
+/**
+ * Pure classification predicate — kept outside the server fn so it can be
+ * unit-tested without a database. A bid is shown when it has a healthcare
+ * signal (category match, or any healthcare keyword in title/description) and
+ * no construction/facilities exclusion term. An explicit healthcare category
+ * match always wins over exclusion terms.
+ */
+export function isHealthcareBid(bid: {
+  title: string;
+  description: string;
+  category: string;
+}): boolean {
+  const title = (bid.title ?? "").toLowerCase();
+  const category = (bid.category ?? "").toLowerCase();
+  const description = (bid.description ?? "").toLowerCase();
+  const categoryMatchesHealthcare = HEALTHCARE_KEYWORDS.some((keyword) =>
+    category.includes(keyword),
+  );
+  const text = `${title} ${description}`;
+  const healthcareMatchCount = HEALTHCARE_KEYWORDS.filter((keyword) =>
+    text.includes(keyword),
+  ).length;
+  const hasStrongHealthcareSignal = categoryMatchesHealthcare || healthcareMatchCount >= 1;
+  const hasExcludedTerm =
+    HEALTHCARE_EXCLUSIONS.some((term) => title.includes(term)) ||
+    HEALTHCARE_TEXT_EXCLUSIONS.some((term) => text.includes(term));
+
+  return hasStrongHealthcareSignal && (!hasExcludedTerm || categoryMatchesHealthcare);
+}
 
 const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => {
   const patterns = HEALTHCARE_KEYWORDS.map((keyword) => `%${keyword}%`);
@@ -83,22 +144,13 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
     LIMIT 10
   `;
 
-  return (rows as Bid[]).filter((bid) => {
-    const title = bid.title?.toLowerCase() ?? "";
-    const category = bid.category?.toLowerCase() ?? "";
-    const description = bid.description?.toLowerCase() ?? "";
-    const categoryMatchesHealthcare = HEALTHCARE_KEYWORDS.some((keyword) =>
-      category.includes(keyword),
-    );
-    const text = `${title} ${description}`;
-    const healthcareMatchCount = HEALTHCARE_KEYWORDS.filter((keyword) =>
-      text.includes(keyword),
-    ).length;
-    const hasStrongHealthcareSignal = categoryMatchesHealthcare || healthcareMatchCount >= 1;
-    const hasExcludedTerm = HEALTHCARE_EXCLUSIONS.some((term) => title.includes(term));
-
-    return hasStrongHealthcareSignal && (!hasExcludedTerm || categoryMatchesHealthcare);
-  });
+  return (rows as Bid[]).filter((bid) =>
+    isHealthcareBid({
+      title: bid.title ?? "",
+      description: bid.description ?? "",
+      category: bid.category ?? "",
+    }),
+  );
 });
 
 const getUserCount = async () => {

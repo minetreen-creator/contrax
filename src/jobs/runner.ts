@@ -145,7 +145,7 @@ export interface SyncResult {
  * Inserts a chunk of bids with a single multi-row INSERT.
  *
  * `(xmax = 0)` in RETURNING distinguishes genuinely new rows (xmax is 0 for a
- * freshly inserted tuple) from pre-existing rows that only got a naics_code
+ * freshly inserted tuple) from pre-existing rows that only got a mutable-field
  * refresh via ON CONFLICT DO UPDATE (xmax = the updating txn). Only genuinely
  * new rows are counted as "new" and returned for alerts/digests — so repeat
  * syncs no longer re-trigger notifications for already-seen bids.
@@ -183,7 +183,13 @@ async function insertBidsBatch(
   const result = (await sql.query(
     `INSERT INTO bids (${BID_COLUMNS.join(", ")})
      VALUES ${valueRows.join(", ")}
-     ON CONFLICT (source, external_id) DO UPDATE SET naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code)
+     ON CONFLICT (source, external_id) DO UPDATE SET
+       title = EXCLUDED.title,
+       location = EXCLUDED.location,
+       category = EXCLUDED.category,
+       due_date = EXCLUDED.due_date,
+       estimated_value = EXCLUDED.estimated_value,
+       naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code)
      RETURNING id, external_id, (xmax = 0) AS inserted`,
     params,
   )) as any[];
@@ -231,7 +237,13 @@ async function insertBid(
       ${bid.external_id},
       ${bid.naics_code ?? null}
     )
-    ON CONFLICT (source, external_id) DO UPDATE SET naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code)
+    ON CONFLICT (source, external_id) DO UPDATE SET
+      title = EXCLUDED.title,
+      location = EXCLUDED.location,
+      category = EXCLUDED.category,
+      due_date = EXCLUDED.due_date,
+      estimated_value = EXCLUDED.estimated_value,
+      naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code)
     RETURNING id, (xmax = 0) AS inserted
   `) as any[];
   if (result.length === 0 || !result[0].inserted) return null;

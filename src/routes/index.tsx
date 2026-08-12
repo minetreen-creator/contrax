@@ -1807,39 +1807,41 @@ function Pricing() {
 
 function WaitlistSection() {
   return (
-    <section className="bg-slate-900 py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Ready to find your next government contract?
-          </h2>
-          <p className="mt-4 text-lg text-blue-100/70">
-            Start finding and winning more contracts today with a plan built for your business.
-          </p>
-          <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <a
-              href="/signup"
-              className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
-            >
-              Get Started
-              <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </a>
-            <a href="/signup" className="text-sm font-medium text-blue-300 hover:text-white transition-colors">
-              No credit card required →
-            </a>
+    <>
+      <section className="bg-slate-900 py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Ready to find your next government contract?
+            </h2>
+            <p className="mt-4 text-lg text-blue-100/70">
+              Start finding and winning more contracts today with a plan built for your business.
+            </p>
+            <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+              <a
+                href="/signup"
+                className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
+              >
+                Get Started
+                <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </a>
+              <a href="/signup" className="text-sm font-medium text-blue-300 hover:text-white transition-colors">
+                No credit card required →
+              </a>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    {/* Soro blog embed */}
-    <section className="bg-white py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-6">
-        <div id="soro-blog"></div>
-      </div>
-    </section>
+      {/* Soro blog embed */}
+      <section className="bg-white py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-6">
+          <div id="soro-blog"></div>
+        </div>
+      </section>
+    </>
   );
 }
 

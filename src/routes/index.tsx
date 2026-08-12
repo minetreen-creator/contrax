@@ -41,12 +41,12 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
   const rows = await sql()`
     SELECT title, agency, set_aside, location, due_date
     FROM bids
-    WHERE created_at >= CURRENT_DATE
+    WHERE created_at >= NOW() - INTERVAL '24 hours'
     ORDER BY created_at DESC NULLS LAST
     LIMIT 10
   `;
   const countRows = await sql()`
-    SELECT COUNT(*)::int AS count FROM bids WHERE created_at >= CURRENT_DATE
+    SELECT COUNT(*)::int AS count FROM bids WHERE created_at >= NOW() - INTERVAL '24 hours'
   `;
   return {
     bids: rows as TodayBid[],
@@ -694,18 +694,18 @@ function TodaySolicitations({ todayBids }: { todayBids: { bids: TodayBid[]; coun
     <section className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
-          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Today&apos;s newest solicitations</h2>
+          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Newest solicitations</h2>
           {count > 0 ? (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
-              {count} new contract{count !== 1 ? "s" : ""} posted today
+              {count} new contract{count !== 1 ? "s" : ""} posted in the last 24 hours
             </span>
           ) : (
             <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-500">
-              No new solicitations yet today
+              No new solicitations in the last 24 hours
             </span>
           )}
           <p className="text-lg leading-relaxed text-gray-600">

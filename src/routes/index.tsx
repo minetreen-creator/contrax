@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { useEffect, useState, type FormEvent } from "react";
 import { Menu, Radar, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
+import { trackEvent } from "~/lib/track";
 import { sql } from "~/db";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -385,6 +386,7 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
               </a>
               <a
                 href="/signup"
+                onClick={() => trackEvent("hero_cta_click", "nav")}
                 className="inline-flex items-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
               >
                 Get Started
@@ -475,7 +477,10 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
                 </a>
                 <a
                   href="/signup"
-                  onClick={closeMenu}
+                  onClick={() => {
+                    closeMenu();
+                    trackEvent("hero_cta_click", "nav");
+                  }}
                   className="block w-full rounded-lg bg-amber-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
                 >
                   Get Started
@@ -505,6 +510,8 @@ function Hero({
   const handleScoreSubmit = (e: FormEvent) => {
     e.preventDefault();
     const text = scoreText.trim();
+    trackEvent("hero_cta_click", "hero_score");
+    trackEvent("score_submit");
     navigate({ to: "/score", search: text ? { text } : {} });
   };
   return (
@@ -583,6 +590,7 @@ function Hero({
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
               href="/signup"
+              onClick={() => trackEvent("hero_cta_click", "hero_primary")}
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
             >
               Start Free Trial
@@ -1924,7 +1932,7 @@ function Pricing() {
                   </li>
                 ))}
               </ul>
-              <a href={`/signup?plan=${plan.slug}`} className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${plan.featured ? "bg-amber-500 text-white" : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"}`}>{plan.cta}</a>
+              <a href={`/signup?plan=${plan.slug}`} onClick={() => trackEvent("hero_cta_click", "pricing")} className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${plan.featured ? "bg-amber-500 text-white" : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"}`}>{plan.cta}</a>
             </div>
           ))}
         </div>
@@ -1934,7 +1942,7 @@ function Pricing() {
           Plans are billed monthly. Cancel anytime.
         </p>
         <p className="mt-3 text-center">
-          <a href="/signup" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
+          <a href="/signup" onClick={() => trackEvent("hero_cta_click", "pricing")} className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
             Or start your free trial →
           </a>
         </p>
@@ -1978,6 +1986,7 @@ function WaitlistSection() {
             <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <a
                 href="/signup"
+                onClick={() => trackEvent("hero_cta_click", "cta_final")}
                 className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
               >
                 Get Started

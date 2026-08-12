@@ -68,6 +68,9 @@ export const STATE_NAMES: Record<string, string> = {
 };
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
+/** Per-opportunity detail endpoint — the only place SAM exposes
+ * place-of-performance (the v1 search summary never includes location). */
+const DETAIL_API = "https://sam.gov/api/prod/opps/v2/opportunities/";
 const PAGE_SIZE = 25;
 const MAX_PAGES = 1;
 const DELAY_MS = 500;
@@ -94,21 +97,68 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-function extractLocation(
+/** Place-of-performance shape from the SAM.gov v2 detail endpoint
+ * (data2.placeOfPerformance): { zip, city: {code, name}, state: {code, name},
+ * country, streetAddress }. */
+type PlaceOfPerformance = {
+  city?: { name?: string };
+  state?: { code?: string; name?: string };
+} | null;
+
+/**
+ * Fetches the authoritative place-of-performance for an opportunity. The v1
+ * search summary never includes location fields, so a bid whose org name and
+ * truncated description carry no location signal would otherwise be labeled
+ * with the query state (wrong for out-of-state listings). Best-effort: any
+ * failure returns null so a detail fetch can never break the sync.
+ */
+async function fetchPlaceOfPerformance(
+  noticeId: string,
+): Promise<PlaceOfPerformance> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000);
+  try {
+    const resp = await fetch(`${DETAIL_API}${noticeId}`, {
+      headers: HEADERS,
+      signal: controller.signal,
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    return data?.data2?.placeOfPerformance ?? null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export function extractLocation(
   orgHierarchy: any[],
   description: string,
-  stateName: string
+  placeOfPerformance?: PlaceOfPerformance,
 ): string {
+  // 1. Authoritative SAM.gov place of performance (v2 detail endpoint), e.g.
+  //    { city: { name: "West Palm Beach" }, state: { code: "FL" } }.
+  const city = placeOfPerformance?.city?.name;
+  const stateCode = placeOfPerformance?.state?.code;
+  const stateName = placeOfPerformance?.state?.name;
+  if (city && stateCode) return `${city}, ${stateCode}`;
+  if (stateCode) return stateCode;
+  if (stateName) return stateName;
+  // 2. 2-letter state code in the deepest org name's parentheses.
   const deepest = orgHierarchy?.[orgHierarchy.length - 1];
   if (deepest?.name) {
     const stateMatch = deepest.name.match(/\(([A-Z]{2})\)/);
     if (stateMatch) return stateMatch[1];
   }
+  // 3. "City, ST" pattern in the description.
   const locMatch = description.match(
     new RegExp(`\\b([A-Z][a-z]+,\\s*(?:${STATE_ABBREVS}))\\b`)
   );
   if (locMatch) return locMatch[1];
-  return stateName;
+  // 4. Never label with the query state — an out-of-state listing would get a
+  //    wrong pin. "Unknown" is honest; the detail fetch above usually refines it.
+  return "Unknown";
 }
 
 function mapCategory(title: string, description: string): string {
@@ -127,7 +177,7 @@ function mapCategory(title: string, description: string): string {
  * Creates a SAM.gov keyword source for a single state.
  *
  * @param stateName Full state name, e.g. "North Carolina" (used as the SAM.gov
- *   q= query term and as the location/agency fallback).
+ *   q= query term and as the agency fallback label).
  * @param stateAbbr 2-letter code, e.g. "NC" (used for the external_id prefix
  *   and log labels).
  * @returns A fetch function returning RawBid[] — same contract as the legacy
@@ -169,17 +219,29 @@ export function createStateKeywordSource(
             const deepestOrg = orgs[orgs.length - 1];
             const agency = deepestOrg?.name || orgs[0]?.name || fallbackAgency;
 
-            const location = extractLocation(orgs, description, stateName);
+            const noticeId = item.parentNoticeId || item._id || "";
+
+            // The v1 search summary never includes location, so pull the
+            // authoritative place-of-performance from the detail endpoint.
+            const placeOfPerformance = noticeId
+              ? await fetchPlaceOfPerformance(noticeId)
+              : null;
+            const location = extractLocation(
+              orgs,
+              description,
+              placeOfPerformance,
+            );
+            await new Promise((r) => setTimeout(r, 120));
+
             const category = mapCategory(item.title || "", description);
 
             const dueDate = item.responseDate || item.responseDateActual || null;
 
             let estimatedValue = "Not specified";
             if (item.award?.amount) {
-              estimatedValue = `$${Number(item.award.amount).toLocaleString()}`;
+              estimatedValue = `${Number(item.award.amount).toLocaleString()}`;
             }
 
-            const noticeId = item.parentNoticeId || item._id || "";
             const sourceUrl = noticeId
               ? `https://sam.gov/opp/${noticeId}/view`
               : "https://sam.gov/search/";

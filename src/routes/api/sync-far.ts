@@ -14,9 +14,10 @@ import { syncFarDfars } from "../../lib/far-dfars";
  *   parts=52,252           (optional — restrict to specific parts for a fast,
  *                           targeted refresh; default: every FAR + DFARS part)
  *
- * Auth: shared token, same contract as /api/sync-bids — `Authorization:
- * Bearer <token>` (how Vercel Cron sends the cron `secret`) or `?token=<token>`
- * (convenient for manual testing / the admin button).
+ * Auth: shared token — `Authorization: Bearer <token>` or `?token=<token>`
+ * (convenient for manual testing / the admin button). Accepts any of
+ * `SYNC_TOKEN`, `CRON_SECRET` (Vercel's auto-injected cron secret, kept for
+ * compatibility with any future Vercel cron), or the bundled fallback token.
  *
  * NOTE: like sync-bids.ts, keep this module free of node builtins — it only
  * uses global fetch + neon (via src/lib/far-dfars.ts), so it stays compatible
@@ -24,6 +25,14 @@ import { syncFarDfars } from "../../lib/far-dfars";
  */
 
 const FALLBACK_SYNC_TOKEN = "cx-sync-4f8a2c1e9b3d7f5a6e0c4b8d2a1f9e3c";
+
+function allowedTokens(): string[] {
+  return [
+    process.env.SYNC_TOKEN,
+    process.env.CRON_SECRET,
+    FALLBACK_SYNC_TOKEN,
+  ].filter((t): t is string => typeof t === "string" && t.length > 0);
+}
 
 function extractToken(request: Request): string {
   const auth = request.headers.get("authorization") ?? "";
@@ -35,9 +44,9 @@ function extractToken(request: Request): string {
 
 async function handler({ request }: { request: Request }) {
   try {
-    const expected = process.env.SYNC_TOKEN || FALLBACK_SYNC_TOKEN;
+    const expected = allowedTokens();
     const provided = extractToken(request);
-    if (!provided || provided !== expected) {
+    if (!provided || !expected.includes(provided)) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 

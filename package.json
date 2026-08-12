@@ -11,6 +11,7 @@
     "go-live": "bash ./go-live.sh",
     "db:setup": "bun run db/setup.ts",
     "sync-bids": "bun run src/jobs/runner.ts",
+    "sync-far": "bun run src/jobs/far-sync.ts",
     "check:routes": "bun run scripts/check-routes.mjs",
     "format": "prettier --write ."
   },

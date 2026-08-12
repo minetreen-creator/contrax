@@ -299,7 +299,7 @@ function AdminPage() {
               <p className="mt-3 rounded-lg bg-teal-50 px-3 py-2 text-xs text-teal-800">
                 ✓ Synced {farSyncResult.fetchedParts} part{farSyncResult.fetchedParts === 1 ? "" : "s"} — {farSyncResult.clausesIndexed} clauses indexed in {farSyncResult.duration}s
                 {farSyncResult.failedParts.length > 0 && ` (${farSyncResult.failedParts.length} part(s) failed)`}.
-                The daily cron and <code className="font-mono">/api/sync-far</code> refresh the full corpus.
+                Full FAR &amp; DFARS corpus synced daily via GitHub Actions; "Sync core parts" refreshes FAR 52 / DFARS 252 on demand.
               </p>
             )}
             {farStats && farStats.total === 0 && !syncingFar && (

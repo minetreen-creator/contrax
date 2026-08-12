@@ -633,10 +633,10 @@ function FarClauseStats({
     >
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-between lg:gap-12">
-          <h2 className="max-w-md text-center text-2xl font-bold tracking-tight text-slate-900 lg:text-left">
-            Every answer cited against{" "}
+          <h2 className="max-w-lg text-center text-2xl font-bold tracking-tight text-slate-900 lg:text-left">
+            Most contractors pay for Westlaw to search regulatory text.{" "}
             <span className="bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent">
-              real regulation text
+              Contrax has it built in.
             </span>
           </h2>
           <div className="flex items-center gap-8 sm:gap-12">

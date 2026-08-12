@@ -1833,6 +1833,13 @@ function WaitlistSection() {
         </div>
       </div>
     </section>
+
+    {/* Soro blog embed */}
+    <section className="bg-white py-16 sm:py-20">
+      <div className="mx-auto max-w-7xl px-6">
+        <div id="soro-blog"></div>
+      </div>
+    </section>
   );
 }
 

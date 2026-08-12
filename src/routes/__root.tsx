@@ -116,6 +116,7 @@ function RootDocument({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script src="https://app.trysoro.com/api/embed/b2c9be2b-b791-4ef2-94d0-8ffbbfebe411" defer></script>
       </head>
       <body className="antialiased">
         {children}

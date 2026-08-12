@@ -1,0 +1,39 @@
+name: Check Routes
+
+# Pre-merge JSX syntax gate for route files. Catches invalid JSX/TSX in
+# src/routes/** (e.g. a component's return() with two root-level elements and
+# no fragment — the failure that broke the Vercel production build via the
+# @tanstack/router-generator step, twice: PRs #104 and #105 era). Runs on every
+# pull request and on every push to main as a safety net, so a broken route
+# file shows up as a failed status check and can never reach `vite build`.
+#
+# No env vars required — pure syntax checking (see scripts/check-routes.mjs).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: check-routes-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Route JSX syntax check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Check route files parse
+        run: bun run check:routes

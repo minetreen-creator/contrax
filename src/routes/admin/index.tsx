@@ -17,8 +17,6 @@ interface AdminMetrics {
   }[];
   totalWaitlist: number;
   recentWaitlist: { email: string; source: string; created_at: string }[];
-  totalDiagnoses: number;
-  totalBills: number;
   totalPageViews: number;
   pageViewsToday: number;
   pageViewsThisWeek: number;
@@ -473,23 +471,6 @@ function AdminPage() {
                   </table>
                 </div>
               )}
-            </div>
-          </div>
-        </section>
-
-        {/* Savings Activity Section */}
-        <section>
-          <h2 className="text-lg font-semibold text-slate-800 mb-4">Savings Activity</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Total Diagnoses</p>
-              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.totalDiagnoses}</p>
-              <p className="mt-1 text-xs text-slate-400">Automated bill checkups run</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Tracked Bills</p>
-              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.totalBills}</p>
-              <p className="mt-1 text-xs text-slate-400">Bills saved for monitoring</p>
             </div>
           </div>
         </section>

@@ -223,6 +223,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getTodayBids(),
     getUserCount(),
     getBidStats(),
+    getFarClauseCounts(),
   ]);
   let alertCount = 0;
   if (user) {

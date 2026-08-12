@@ -162,6 +162,34 @@ const getUserCount = async () => {
     return 0;
   }
 };
+const getFarClauseCounts = async (): Promise<{
+  total: number;
+  far: number;
+  dfars: number;
+} | null> => {
+  try {
+    const rows = await sql()`
+      SELECT source, COUNT(*)::int AS count
+      FROM far_clauses
+      GROUP BY source
+    `;
+    let total = 0;
+    let far = 0;
+    let dfars = 0;
+    for (const row of rows as { source?: string | null; count?: number }[]) {
+      const count = Number(row?.count || 0);
+      total += count;
+      if (row?.source === "far") far = count;
+      else if (row?.source === "dfars") dfars = count;
+    }
+    return { total, far, dfars };
+  } catch (err) {
+    // far_clauses may not exist yet (pre-first-sync DB) — hide the strip
+    // rather than break the page or show unverifiable numbers.
+    console.error("[homepage] failed to load FAR/DFARS clause counts:", err);
+    return null;
+  }
+};
 const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }> => {
   try {
     const [bids, agencies] = await Promise.all([
@@ -178,7 +206,7 @@ const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }
   }
 };
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, user, bids, healthcareBids, todayBids, userCount, bidStats] = await Promise.all([
+  const [businessName, user, bids, healthcareBids, todayBids, userCount, bidStats, farClauseCounts] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -204,7 +232,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -254,7 +282,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -276,6 +304,7 @@ function Home() {
       />
       <Navbar user={user} alertCount={alertCount} />
       <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} />
+      <FarClauseStats stats={farClauseCounts} />
       <TodaySolicitations todayBids={todayBids} />
       <ProductShowcase />
       <BidTicker bids={bids} />
@@ -582,6 +611,64 @@ function Hero({
       </div>
       {/* Bottom fade */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent" />
+    </section>
+  );
+}
+
+// ── FAR/DFARS Trust Strip ────────────────────────────────────────────────────
+// Compact stats strip advertising the live FAR/DFARS clause corpus. Counts come
+// from the DB at SSR time (getFarClauseCounts above) — never hardcoded. If the
+// query fails or the table is empty the strip renders nothing rather than
+// breaking the page or showing unverifiable numbers.
+function FarClauseStats({
+  stats,
+}: {
+  stats: { total: number; far: number; dfars: number } | null;
+}) {
+  if (!stats || stats.total <= 0) return null;
+  return (
+    <section
+      className="border-b border-gray-100 bg-white py-12 sm:py-16"
+      aria-label="FAR and DFARS clause database"
+    >
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-between lg:gap-12">
+          <h2 className="max-w-lg text-center text-2xl font-bold tracking-tight text-slate-900 lg:text-left">
+            Most contractors pay for Westlaw to search regulatory text.{" "}
+            <span className="bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent">
+              Contrax has it built in.
+            </span>
+          </h2>
+          <div className="flex items-center gap-8 sm:gap-12">
+            <div className="text-center">
+              <p className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+                {stats.total.toLocaleString()}
+              </p>
+              <p className="mt-2 text-sm font-medium text-gray-500">
+                FAR &amp; DFARS clauses indexed
+              </p>
+            </div>
+            <div className="h-14 w-px bg-gray-200" aria-hidden="true" />
+            <div className="text-center">
+              <p className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                {stats.far.toLocaleString()}
+              </p>
+              <p className="mt-2 text-sm font-medium text-gray-500">FAR clauses</p>
+            </div>
+            <div className="h-14 w-px bg-gray-200" aria-hidden="true" />
+            <div className="text-center">
+              <p className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+                {stats.dfars.toLocaleString()}
+              </p>
+              <p className="mt-2 text-sm font-medium text-gray-500">DFARS clauses</p>
+            </div>
+          </div>
+        </div>
+        <p className="mt-8 text-center text-sm text-gray-500">
+          Exact citations, refreshed daily — complete FAR (parts 1–53) and DFARS
+          (201–253, 270) clause text.
+        </p>
+      </div>
     </section>
   );
 }

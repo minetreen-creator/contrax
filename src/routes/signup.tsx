@@ -1,10 +1,18 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
+import { trackEvent } from "~/lib/track";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
 
-type SignupSearch = { plan?: string; ticker_bid?: string; ticker_agency?: string };
+type ScoreRec = "GO" | "CAUTIOUS" | "NO-GO";
+
+type SignupSearch = {
+  plan?: string;
+  ticker_bid?: string;
+  ticker_agency?: string;
+  score_rec?: ScoreRec;
+};
 
 const validPlans = ["starter", "professional", "agency"] as const;
 
@@ -50,6 +58,10 @@ export const Route = createFileRoute("/signup")({
     plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "professional",
     ticker_bid: typeof search.ticker_bid === "string" ? search.ticker_bid : undefined,
     ticker_agency: typeof search.ticker_agency === "string" ? search.ticker_agency : undefined,
+    score_rec:
+      search.score_rec === "GO" || search.score_rec === "CAUTIOUS" || search.score_rec === "NO-GO"
+        ? (search.score_rec as ScoreRec)
+        : undefined,
   }),
   loader: async () => ({
     currentUser: await getCurrentUser(),
@@ -99,13 +111,22 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { currentUser } = Route.useLoaderData();
   const navigate = useNavigate();
-  const { plan, ticker_bid, ticker_agency } = Route.useSearch();
+  const { plan, ticker_bid, ticker_agency, score_rec } = Route.useSearch();
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>(plan);
+
+  // Funnel: fire once when the page loads with the score_rec param (Feature B).
+  const scoredViewFiredRef = useRef(false);
+  useEffect(() => {
+    if (score_rec && !scoredViewFiredRef.current) {
+      scoredViewFiredRef.current = true;
+      trackEvent("signup_view_with_score", score_rec);
+    }
+  }, [score_rec]);
 
   // If already logged in, redirect to dashboard (in an effect so hooks
   // always run in the same order on every render).
@@ -126,6 +147,9 @@ function SignupPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    // Fire exactly once per submit — the button is disabled while loading, so
+    // double-clicks can't double-fire.
+    trackEvent("signup_submit");
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -143,6 +167,7 @@ function SignupPage() {
       if (!res.ok || json.error) {
         throw new Error(json.error || "Signup failed. Please try again.");
       }
+      trackEvent("signup_success");
       navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
@@ -178,6 +203,16 @@ function SignupPage() {
             </p>
             <p className="mt-3 text-xs text-amber-600">
               Start your free trial below to unlock the full opportunity.
+            </p>
+          </div>
+        )}
+
+        {/* Score contextual banner — arriving from the /score tool (Feature B) */}
+        {score_rec && (
+          <div className="mb-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="text-sm leading-relaxed text-blue-800">
+              <span className="font-semibold">You scored a solicitation {score_rec}</span> —
+              finish signing up to track it and get deadline alerts.
             </p>
           </div>
         )}

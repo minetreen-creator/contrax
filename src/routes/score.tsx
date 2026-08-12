@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { sql } from "~/db";
+import { trackEvent } from "~/lib/track";
 import { buildProfileContext } from "~/lib/profile-context";
 import { getRelevantContext } from "~/lib/knowledge";
 import type { BusinessProfile } from "~/components/CompanyProfile";
@@ -331,11 +332,13 @@ function ScorePage() {
       setValidationError("Paste a solicitation first — the tool needs the actual text to analyze.");
       return;
     }
+    trackEvent("score_submit");
     setValidationError("");
     setLoading(true);
     try {
       const res = await scoreSolicitation({ data: { solicitation: trimmed, businessInfo: businessInfo.trim() } });
       setResult(res);
+      trackEvent("score_result", res.recommendation);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       setResult(null);
@@ -561,6 +564,31 @@ function ScorePage() {
                   </div>
                 </div>
               </div>
+            </div>
+
+            {/* Score → signup conversion CTA */}
+            <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-center shadow-sm lg:p-8">
+              <h3 className="text-xl font-bold text-slate-900">
+                {result.recommendation === "GO"
+                  ? "This one's worth pursuing — don't lose it."
+                  : result.recommendation === "CAUTIOUS"
+                    ? "Worth digging deeper — don't lose this bid."
+                    : "Tough call — but the next bid is out there."}
+              </h3>
+              <div className="mt-5">
+                <a
+                  href={`/signup?plan=professional&score_rec=${result.recommendation}`}
+                  onClick={() => trackEvent("score_cta_click", result.recommendation)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 active:scale-[0.99]"
+                >
+                  Start free trial
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+              </div>
+              <p className="mt-3 text-[13.5px] leading-relaxed text-slate-600">
+                Save this bid, get deadline alerts, and see the full compliance breakdown — 21-day
+                free trial, no credit card required.
+              </p>
             </div>
 
             {/* Detail sections */}

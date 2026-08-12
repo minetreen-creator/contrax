@@ -22,6 +22,13 @@ interface AdminMetrics {
   pageViewsThisWeek: number;
   topPages: { path: string; count: number }[];
   uniqueVisitorsToday: number;
+  funnel: {
+    total: number;
+    today: number;
+    last7: number;
+    byName: { name: string; count: number }[];
+    recent: { event_name: string; label: string | null; path: string | null; created_at: string }[];
+  };
 }
 
 async function fetchAdminMetrics(): Promise<AdminMetrics> {
@@ -506,6 +513,82 @@ function AdminPage() {
                       <span className="shrink-0 text-sm font-bold text-slate-900">{p.count}</span>
                     </div>
                   ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Funnel Events Section */}
+        <section>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">🎯 Funnel events</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Total Events</p>
+              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.funnel.total.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-400">All time</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Events Today</p>
+              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.funnel.today.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-400">Since UTC midnight</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Events Last 7 Days</p>
+              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.funnel.last7.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-400">Rolling 7-day window</p>
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {/* byName counts (last 7 days) */}
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100">
+                <h3 className="font-bold text-slate-900">Event counts — last 7 days</h3>
+              </div>
+              {metrics.funnel.byName.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-slate-400">No events yet</p>
+              ) : (
+                <div className="px-5 py-3 space-y-2">
+                  {metrics.funnel.byName.map((e) => (
+                    <div key={e.name} className="flex items-center justify-between gap-3">
+                      <span className="truncate text-sm font-medium text-slate-700 font-mono">{e.name}</span>
+                      <span className="shrink-0 text-sm font-bold text-slate-900">{e.count}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recent events */}
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="px-5 py-3 border-b border-slate-100">
+                <h3 className="font-bold text-slate-900">Recent events</h3>
+              </div>
+              {metrics.funnel.recent.length === 0 ? (
+                <p className="px-5 py-4 text-sm text-slate-400">No events yet</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
+                        <th className="px-5 py-2.5 font-medium">Event</th>
+                        <th className="px-5 py-2.5 font-medium">Label</th>
+                        <th className="px-5 py-2.5 font-medium">When</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {metrics.funnel.recent.map((ev, i) => (
+                        <tr key={i} className="border-t border-slate-50">
+                          <td className="px-5 py-2.5 font-mono text-slate-700 whitespace-nowrap">{ev.event_name}</td>
+                          <td className="px-5 py-2.5 text-slate-500">{ev.label || "—"}</td>
+                          <td className="px-5 py-2.5 text-slate-400 whitespace-nowrap">
+                            {new Date(ev.created_at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>

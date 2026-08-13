@@ -9,13 +9,18 @@ import { sql } from "~/db";
  * admin dashboard can show where the funnel drops off. Anonymous and
  * authenticated alike — deliberately no auth, so the whole funnel is visible.
  * Called fire-and-forget from the client `trackEvent()` helper
- * (src/lib/track.ts); the endpoint must NEVER throw a 5xx or block rendering.
+ * (src/lib/track.ts); the endpoint must NEVER crash a request or block
+ * rendering — the client ignores the response either way.
  *
  * Body:  { event: string, label?: string, path?: string }
  * Headers used: user-agent, x-forwarded-for / cf-connecting-ip / x-real-ip
  *
- * Every failure is swallowed and reported as `{ ok: true }` so tracking can
- * never break a page.
+ * Success: 200 `{ ok: true }` (bots: `{ ok: true, bot: true }`, no usable
+ * event name: `{ ok: true, skipped: true }`). DB write failure after the
+ * DDL-guard retry: 500 `{ ok: false }` — the client's fire-and-forget
+ * trackEvent() ignores it, but a QA script or curl can now SEE the failure
+ * (2026-08-13 incident: the table was missing in production and every event
+ * returned a silent 200 while zero rows were written).
  *
  * The table is created lazily with an idempotent DDL guard (same pattern as
  * page-view.ts and the dashboard's ALTER TABLE guards) — no migration step
@@ -81,6 +86,12 @@ function isBot(userAgent: string | null): boolean {
 }
 
 async function handler({ request }: { request: Request }) {
+  // Tracked event metadata — declared outside the try so the failure logs
+  // below can include the event name/label even when parsing or the DB write
+  // itself throws.
+  let event = "";
+  let label: string | null = null;
+  let path: string | null = null;
   try {
     // Skip known bots/crawlers — don't pollute funnel event counts.
     const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
@@ -89,9 +100,6 @@ async function handler({ request }: { request: Request }) {
     }
 
     // Parse the body defensively — a malformed payload must not 500.
-    let event = "";
-    let label: string | null = null;
-    let path: string | null = null;
     try {
       const body = (await request.json()) as {
         event?: unknown;
@@ -129,15 +137,25 @@ async function handler({ request }: { request: Request }) {
     } catch {
       // First-ever creation can race with a concurrent request; recreate and
       // retry once before giving up.
-      await ensureFunnelEventsTable();
-      await insert();
+      try {
+        await ensureFunnelEventsTable();
+        await insert();
+      } catch (dbErr) {
+        // DDL guard + INSERT failed after the retry — this row was NOT
+        // recorded. Surface a 500 so the loss is detectable (curl / QA /
+        // admin log), instead of the silent 200 that hid the 2026-08-13
+        // missing-table incident. The client's fire-and-forget trackEvent()
+        // ignores the response, so this can't break tracking.
+        console.error("[event] DB write failed after retry:", dbErr, { event, label });
+        return Response.json({ ok: false }, { status: 500 });
+      }
     }
 
     return Response.json({ ok: true });
   } catch (err) {
-    console.error("[event] tracking failed:", err);
-    // Swallow everything — analytics must never break the user experience.
-    return Response.json({ ok: true, skipped: true });
+    // Unexpected failure — must never crash the request, but must be visible.
+    console.error("[event] tracking failed:", err, { event, label });
+    return Response.json({ ok: false }, { status: 500 });
   }
 }
 

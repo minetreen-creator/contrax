@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import { sql } from "~/db";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
 
@@ -51,6 +53,20 @@ const PLAN_OPTIONS: {
   },
 ];
 
+// Live tracked-solicitation count for the social-proof line — mirrors the
+// homepage counter (src/routes/index.tsx getBidStats). Returns 0 if the DB is
+// unreachable so the page always renders; the component falls back to static
+// truthful copy ("9,000+ tracked solicitations") when no live count is
+// available.
+const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const rows = await sql()`SELECT COUNT(*)::int AS count FROM bids`;
+    return Number((rows[0] as any)?.count || 0);
+  } catch {
+    return 0;
+  }
+});
+
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/signup")({
@@ -65,6 +81,7 @@ export const Route = createFileRoute("/signup")({
   }),
   loader: async () => ({
     currentUser: await getCurrentUser(),
+    trackedBids: await getTrackedBidCount(),
   }),
   component: SignupPage,
   head: () => ({
@@ -109,7 +126,7 @@ export const Route = createFileRoute("/signup")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function SignupPage() {
-  const { currentUser } = Route.useLoaderData();
+  const { currentUser, trackedBids } = Route.useLoaderData();
   const navigate = useNavigate();
   const { plan, ticker_bid, ticker_agency, score_rec } = Route.useSearch();
 
@@ -220,9 +237,44 @@ function SignupPage() {
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Create your Contrax account</h1>
+
+          {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
+          {trackedBids > 0 && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              Tracking {trackedBids.toLocaleString()} solicitations — updated every 4 hours
+            </p>
+          )}
+
+          {/* Selected plan — price clearly tied to the trial */}
           <p className="mt-2 text-sm text-gray-500">
-            {planInfo.name} plan — ${planInfo.price}/mo — 21-day free trial. No credit card required.
+            {planInfo.name} — ${planInfo.price}/mo after your 21-day free trial
           </p>
+
+          {/* What you get in the next 5 minutes */}
+          <ul className="mt-4 space-y-2 rounded-lg border border-gray-100 bg-slate-50 px-4 py-3">
+            <li className="flex items-start gap-2 text-sm text-slate-700">
+              <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Matched set-aside bids from 9,000+ tracked solicitations
+            </li>
+            <li className="flex items-start gap-2 text-sm text-slate-700">
+              <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              AI bid summaries and win scores for every match
+            </li>
+            <li className="flex items-start gap-2 text-sm text-slate-700">
+              <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Deadline alerts so you never miss a response
+            </li>
+          </ul>
 
           {/* Plan selector */}
           <div className="mt-6">
@@ -414,6 +466,15 @@ function SignupPage() {
                 "Create account"
               )}
             </button>
+
+            {/* Trial trust row — one visible line near the CTA */}
+            <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
+              <span>21-day free trial</span>
+              <span aria-hidden="true" className="text-gray-300">·</span>
+              <span>No credit card required</span>
+              <span aria-hidden="true" className="text-gray-300">·</span>
+              <span>Cancel anytime</span>
+            </p>
           </form>
         </div>
 

@@ -610,6 +610,23 @@ function ScorePage() {
                 Save this bid, get deadline alerts, and see the full compliance breakdown — 21-day
                 free trial, no credit card required.
               </p>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[13px] text-slate-500">
+                <a
+                  href="/awards"
+                  onClick={() => trackEvent("score_cta_click", "awards")}
+                  className="underline-offset-2 transition-colors hover:text-slate-700 hover:underline"
+                >
+                  Find me a GO instead →
+                </a>
+                <span aria-hidden="true" className="text-slate-400">·</span>
+                <a
+                  href="/score"
+                  onClick={() => trackEvent("score_cta_click", "score_another")}
+                  className="underline-offset-2 transition-colors hover:text-slate-700 hover:underline"
+                >
+                  Score another bid →
+                </a>
+              </div>
             </div>
 
             {/* Detail sections */}

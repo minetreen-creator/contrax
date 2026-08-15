@@ -60,7 +60,7 @@ const scoreFaqs = [
   },
   {
     q: "Do I need to sign up?",
-    a: "No. The scoring tool is completely free and anonymous — paste a solicitation, get your score, no account, login, or credit card required. You only sign up for Contrax when you want to track bids, get deadline alerts, draft proposals, run compliance checks, and use the rest of the platform.",
+    a: "Your first 3 scores are free with no account — paste a solicitation and get your score, no login or credit card required. Creating a free account unlocks unlimited scoring plus bid tracking, deadline alerts, proposal drafting, compliance checks, and the rest of the platform.",
   },
   {
     q: "What do GO, CAUTIOUS, and NO-GO mean?",
@@ -71,6 +71,75 @@ const scoreFaqs = [
     a: "Yes. The tool handles federal, state, county, city, and local solicitations — RFPs, RFQs, RFIs, and ITBs — as long as you paste the actual solicitation text. It also understands set-aside designations like 8(a), SDVOSB/VOSB, WOSB/EDWOSB, and HUBZone.",
   },
 ];
+
+// ── Free-score credit limit (anonymous only) ────────────────────────────────
+// Anonymous visitors get 3 free analyses per IP; the 4th attempt is blocked
+// BEFORE any OpenAI spend with a signup CTA. Logged-in users (any tier) are
+// never limited — the account is the unlock. Only SUCCESSFUL analyses consume
+// a credit (OpenAI failures / request errors do not decrement).
+const FREE_SCORE_LIMIT = 3;
+const FREE_LIMIT_REACHED_MESSAGE = "FREE_LIMIT_REACHED";
+
+interface ScoreCredits {
+  used: number;
+  limit: number;
+  limited: boolean;
+  unlimited: boolean;
+}
+
+/**
+ * Client IP for the anonymous free-score limit. Mirrors the cookie stash
+ * pattern (src/lib/auth.ts): vercel-entry.ts stashes the real client IP
+ * (x-forwarded-for first value / cf-connecting-ip / x-real-ip, sliced to 64
+ * chars — the same derivation as /api/event) on globalThis before the SSR
+ * handler runs, so createServerFn handlers can read it without importing any
+ * node builtins (keeps the client-bundle protection happy). Outside the Vercel
+ * launcher (local serve / smoke tests) the global is absent → null → the limit
+ * is skipped (fail-open), never a crash.
+ */
+function getStashedClientIp(): string | null {
+  if (typeof window === "undefined") {
+    const ip = (globalThis as any).__contrax_request_ip__ as string | undefined;
+    return ip && ip.length > 0 ? ip : null;
+  }
+  return null;
+}
+
+/** Idempotent DDL guard — same lazy pattern as event.ts / page-view.ts. */
+async function ensureScoreCreditsTable(): Promise<void> {
+  await sql()`CREATE TABLE IF NOT EXISTS score_credits (
+    ip TEXT PRIMARY KEY,
+    count INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+}
+
+/** Current credit count for an IP (0 when never used). Never throws. */
+async function getUsedCredits(ip: string): Promise<number> {
+  try {
+    await ensureScoreCreditsTable();
+    const rows = await sql()`SELECT count FROM score_credits WHERE ip = ${ip}`;
+    return rows.length > 0 ? Number(rows[0].count) || 0 : 0;
+  } catch (err) {
+    // DB failure must never block scoring — fail open (treat as 0 used).
+    console.error("[score] credits lookup failed:", err);
+    return 0;
+  }
+}
+
+/**
+ * Consume one credit. Only called AFTER a successful OpenAI analysis — a
+ * failed credit write must never fail a successful score.
+ */
+async function incrementCredits(ip: string): Promise<void> {
+  try {
+    await ensureScoreCreditsTable();
+    await sql()`INSERT INTO score_credits (ip, count) VALUES (${ip}, 1)
+      ON CONFLICT (ip) DO UPDATE SET count = score_credits.count + 1, updated_at = NOW()`;
+  } catch (err) {
+    console.error("[score] credit increment failed:", err);
+  }
+}
 
 // ── Server function: honest AI win-probability analysis ─────────────────────
 const scoreSolicitation = createServerFn({ method: "POST" })
@@ -87,11 +156,31 @@ const scoreSolicitation = createServerFn({ method: "POST" })
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) throw new Error("OpenAI API key not configured");
 
+    // Authenticated users (any tier) score without limit — the account is the
+    // unlock. Fetch once up front; used for both the credit gate and the
+    // business-profile context below.
+    let user: Awaited<ReturnType<typeof getCurrentUser>> = null;
+    try {
+      user = await getCurrentUser();
+    } catch { /* session/DB hiccup — treat as anonymous */ }
+
+    // Anonymous free-score gate: block BEFORE any OpenAI spend once this IP has
+    // used its 3 free analyses. Only successful analyses consume a credit.
+    const clientIp = getStashedClientIp();
+    if (!user && clientIp) {
+      const used = await getUsedCredits(clientIp);
+      if (used >= FREE_SCORE_LIMIT) {
+        // Distinguishable sentinel — the client matches this exact message and
+        // renders the "create an account to keep scoring" panel instead of a
+        // generic error.
+        throw new Error(FREE_LIMIT_REACHED_MESSAGE);
+      }
+    }
+
     // Fetch business profile if user is logged in
     let profileContext = "";
-    try {
-      const user = await getCurrentUser();
-      if (user) {
+    if (user) {
+      try {
         const profiles = await sql()`
           SELECT id, business_name, industry, locations, service_categories, naics_codes,
                  uei, cage_code, sam_expiration, duns, certifications,
@@ -102,8 +191,8 @@ const scoreSolicitation = createServerFn({ method: "POST" })
         if (profiles.length > 0) {
           profileContext = buildProfileContext(profiles[0] as unknown as BusinessProfile);
         }
-      }
-    } catch { /* anonymous user or DB not ready — use textarea only */ }
+      } catch { /* anonymous user or DB not ready — use textarea only */ }
+    }
 
     const businessBlock = profileContext
       ? `===== BUSINESS PROFILE (from user's Contrax account) =====\n${profileContext}\n\n===== ADDITIONAL BUSINESS NOTES (for this bid) =====\n${data.businessInfo || "(None provided)"}`
@@ -194,6 +283,10 @@ ${knowledgeCtx}` : ""}`;
         reasons: Array.isArray(parsed.reasons) ? parsed.reasons.map(String).slice(0, 5) : [],
         recommendation: pickEnum(parsed.recommendation, ["GO", "CAUTIOUS", "NO-GO"] as const, "CAUTIOUS"),
       };
+
+      // Only a SUCCESSFUL analysis consumes a credit (anonymous only).
+      if (!user && clientIp) await incrementCredits(clientIp);
+
       return result;
     } catch (err) {
       throw new Error(
@@ -201,6 +294,34 @@ ${knowledgeCtx}` : ""}`;
       );
     }
   });
+
+// ── Server function: current free-score credit balance ──────────────────────
+// Lets the client show an honest "You've used X of 3 free scores" counter and
+// render the exhausted panel without waiting for a blocked attempt.
+const getScoreCredits = createServerFn({ method: "GET" }).handler(
+  async (): Promise<ScoreCredits> => {
+    let user: Awaited<ReturnType<typeof getCurrentUser>> = null;
+    try {
+      user = await getCurrentUser();
+    } catch { /* treat as anonymous */ }
+    if (user) {
+      // Logged-in users (any tier) are never limited — the account is the unlock.
+      return { used: 0, limit: Infinity, limited: false, unlimited: true };
+    }
+    const ip = getStashedClientIp();
+    if (!ip) {
+      // No IP available (non-Vercel runtime) — show no limit, hide the counter.
+      return { used: 0, limit: FREE_SCORE_LIMIT, limited: false, unlimited: false };
+    }
+    const used = await getUsedCredits(ip);
+    return {
+      used,
+      limit: FREE_SCORE_LIMIT,
+      limited: used >= FREE_SCORE_LIMIT,
+      unlimited: false,
+    };
+  }
+);
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function scoreColor(score: number): string {
@@ -280,7 +401,7 @@ export const Route = createFileRoute("/score")({
       {
         name: "description",
         content:
-          "Free government contract bid scoring. Paste any RFP, RFQ, or RFI and get an honest AI win-probability score with a GO, CAUTIOUS, or NO-GO call. No signup required.",
+          "Free government contract bid scoring. Paste any RFP, RFQ, or RFI and get an honest AI win-probability score with a GO, CAUTIOUS, or NO-GO call. 3 free scores — no signup to try.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
@@ -290,7 +411,7 @@ export const Route = createFileRoute("/score")({
       {
         property: "og:description",
         content:
-          "Check if you can win that government contract — free. Paste any RFP, RFQ, or RFI and get an honest AI win-probability analysis across 9 dimensions: fit score, certifications, past performance, competition, and a GO/CAUTIOUS/NO-GO recommendation. No signup required.",
+          "Check if you can win that government contract — free. Paste any RFP, RFQ, or RFI and get an honest AI win-probability analysis across 9 dimensions: fit score, certifications, past performance, competition, and a GO/CAUTIOUS/NO-GO recommendation. 3 free scores — no signup to try.",
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
@@ -304,7 +425,7 @@ export const Route = createFileRoute("/score")({
       {
         name: "twitter:description",
         content:
-          "Check if you can win that government contract — free. Paste any RFP, RFQ, or RFI and get an honest AI win-probability score and a GO/CAUTIOUS/NO-GO call. No signup required.",
+          "Check if you can win that government contract — free. Paste any RFP, RFQ, or RFI and get an honest AI win-probability score and a GO/CAUTIOUS/NO-GO call. 3 free scores — no signup to try.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Free AI government contract scoring tool. Paste a solicitation and get a GO/CAUTIOUS/NO-GO bid score." },
@@ -322,12 +443,33 @@ function ScorePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState("");
+  const [credits, setCredits] = useState<ScoreCredits | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
+
+  // Fetch the anonymous free-score balance: shows the honest counter and, for a
+  // returning visitor whose IP already exhausted the limit, renders the signup
+  // panel immediately instead of waiting for a blocked attempt. Logged-in users
+  // get an unlimited flag and the counter stays hidden. Never blocks the tool.
+  const refreshCredits = async () => {
+    try {
+      const c = await getScoreCredits();
+      setCredits(c);
+      setLimitReached(c.limited);
+    } catch {
+      /* hide counter on failure — the server stays authoritative */
+    }
+  };
+
+  useEffect(() => {
+    void refreshCredits();
+  }, []);
 
   const trimmed = solicitation.trim();
   const tooShort = trimmed.length > 0 && trimmed.length < 300;
 
   const handleScore = async () => {
     setError("");
+    setLimitReached(false);
     if (!trimmed) {
       setValidationError("Paste a solicitation first — the tool needs the actual text to analyze.");
       return;
@@ -338,15 +480,26 @@ function ScorePage() {
     try {
       const res = await scoreSolicitation({ data: { solicitation: trimmed, businessInfo: businessInfo.trim() } });
       setResult(res);
+      setLimitReached(false);
+      void refreshCredits();
       trackEvent("score_result", res.recommendation);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
       setResult(null);
-      setError(
-        e instanceof Error
-          ? e.message
-          : "Something went wrong while scoring. Please try again in a moment."
-      );
+      const message = e instanceof Error ? e.message : "";
+      if (message === FREE_LIMIT_REACHED_MESSAGE) {
+        // Server-enforced cap hit (also covers the ?text= auto-run edge case).
+        // Render the signup panel instead of a generic error.
+        setLimitReached(true);
+        setError("");
+        void refreshCredits();
+      } else {
+        setLimitReached(false);
+        setError(
+          message ||
+            "Something went wrong while scoring. Please try again in a moment."
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -385,7 +538,7 @@ function ScorePage() {
             name: "Free Government Contract Scoring Tool — Contrax",
             url: "https://www.contrax.company/score",
             description:
-              "Free AI government contract scoring tool. Paste any solicitation (RFP, RFQ, RFI) and get a win-probability score across 9 dimensions with a GO, CAUTIOUS, or NO-GO recommendation. No signup required.",
+              "Free AI government contract scoring tool. Paste any solicitation (RFP, RFQ, RFI) and get a win-probability score across 9 dimensions with a GO, CAUTIOUS, or NO-GO recommendation. 3 free scores — no signup to try.",
             applicationCategory: "BusinessApplication",
             operatingSystem: "Any",
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
@@ -445,7 +598,25 @@ function ScorePage() {
           </div>
         </div>
 
-        {/* ── Input card ─────────────────────────────────────────────── */}
+        {/* ── Input card / free-limit panel ──────────────────────────── */}
+        {limitReached ? (
+          <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center shadow-sm lg:p-10">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              You&rsquo;ve used your 3 free scores
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600">
+              Create a free account for unlimited scoring — no credit card required for the
+              21-day trial.
+            </p>
+            <a
+              href="/signup?plan=professional"
+              onClick={() => trackEvent("score_cta_click", "free_limit")}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
+            >
+              Create your account →
+            </a>
+          </div>
+        ) : (
         <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
           <p className="mb-4 text-xs text-slate-400">
             Bid data is sent to OpenAI for processing. Data is not used for model training. <a href="/privacy#6-ai-data-handling" className="underline underline-offset-2 hover:text-slate-600">Learn more →</a>
@@ -523,6 +694,12 @@ function ScorePage() {
             )}
           </button>
 
+          {credits && !credits.unlimited && !limitReached && (
+            <p className="mt-3 text-[13px] font-medium text-slate-500">
+              You&rsquo;ve used {credits.used} of {credits.limit} free scores
+            </p>
+          )}
+
           {error && (
             <div className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-[13.5px] text-red-700">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
@@ -530,6 +707,7 @@ function ScorePage() {
             </div>
           )}
         </div>
+        )}
 
         {/* ── Loading state ──────────────────────────────────────────── */}
         {loading && (

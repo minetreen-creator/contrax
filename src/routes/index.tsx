@@ -56,22 +56,24 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 // ── Live Award Feed (USAspending.gov) ────────────────────────────────────────
-// REAL recent federal contract awards from the public USAspending.gov API
-// (POST /api/v2/search/spending_by_award/). Deliberately NOT the
+// REAL recent SET-ASIDE federal contract awards from the public USAspending.gov
+// API (POST /api/v2/search/spending_by_award/). Deliberately NOT the
 // `awarded_contracts` table — that table holds only demo rows with fake
 // sam.gov URLs and would be dishonest presented as "live".
 //
 // Verified API contract (2026-08-15):
 //  - fields MUST include the names below; "Date Signed" 422s and "Award Date"
-//    returns null, so "Start Date" (the period-of-performance start date the
-//    API returns for contracts) is the per-row date. The 90-day
-//    `date_type: "action_date"` filter guarantees every returned row had a
-//    contract action in the last 90 days even when its POP start is older.
-//  - set_aside_type_codes is NOT applied: single-letter codes (A/B/C/D/Q/S/
-//    J/L/R/U) return 0 rows, and the doc-style codes ("8A","SDVOSBC","WOSB",
-//    "HZC","SB") return rows whose "Set Aside Type" value is null, so the
-//    filter would either empty the feed or mislabel it. Instead we show the
-//    API's per-row "Set Aside Type" value verbatim as a badge when present.
+//    returns null. `action_date` is NOT a valid sort key (422) — the only
+//    working recency sort is `sort: "Last Modified Date", order: "desc"`, so
+//    that field is also the per-row date we display. The API returns it as
+//    "YYYY-MM-DD HH:MM:SS", which we normalize to ISO before formatting.
+//  - The 90-day `date_type: "action_date"` filter guarantees every returned
+//    row had a contract action in the last 90 days.
+//  - set_aside_type_codes narrows the feed to SBA set-aside programs
+//    ("8A","SDVOSBC","WOSB_ED_WOSB","HUBZONE","SBA","VOSB") — the whole point
+//    of the feed. Note the per-row "Set Aside Type" value still comes back
+//    null in search rows, so the purple badge rarely renders; the filter, not
+//    the badge, is what makes the feed set-aside-specific.
 //  - Results are cached in `live_awards_cache` (12h TTL) so SSR never waits
 //    on the API. On API failure we serve stale cached rows; with no cache at
 //    all we return [] and the section hides itself — never a 500.
@@ -79,7 +81,7 @@ export interface LiveAward {
   award_id: string;
   recipient: string;
   amount: number;
-  start_date: string | null;
+  last_modified: string | null; // USAspending "Last Modified Date" (YYYY-MM-DD HH:MM:SS)
   agency: string | null;
   set_aside: string | null;
 }
@@ -105,7 +107,7 @@ const getLiveAwards = createServerFn({ method: "GET" }).handler(async (): Promis
   awards: LiveAward[];
   updatedAt: string | null;
 }> => {
-  const CACHE_KEY = "recent-90d";
+  const CACHE_KEY = "setaside-90d-v1";
   const readCache = async () => {
     const rows = await sql()`
       SELECT data, computed_at FROM live_awards_cache
@@ -148,21 +150,40 @@ const getLiveAwards = createServerFn({ method: "GET" }).handler(async (): Promis
       filters: {
         time_period: [{ start_date: start, end_date: end, date_type: "action_date" }],
         award_type_codes: ["A", "B", "C", "D"], // contracts only — required with time_period
+        // SBA set-aside programs only — the whole point of the feed
+        set_aside_type_codes: ["8A", "SDVOSBC", "WOSB_ED_WOSB", "HUBZONE", "SBA", "VOSB"],
       },
-      fields: ["Award ID", "Recipient Name", "Award Amount", "Start Date", "Awarding Agency", "Set Aside Type", "Description"],
-      limit: 10,
+      fields: ["Award ID", "Recipient Name", "Award Amount", "Start Date", "Awarding Agency", "Set Aside Type", "Description", "Last Modified Date"],
+      limit: 25, // over-fetch so recipient dedupe below still yields 6 distinct rows
       page: 1,
+      order: "desc", // action_date is NOT a valid sort key (422) — Last Modified Date is
+      sort: "Last Modified Date",
       subawards: false,
     });
     const results = (data?.results || []).filter(
       (r) => r && r["Recipient Name"] && r["Award Amount"] != null,
     );
     if (results.length) {
-      const awards: LiveAward[] = results.slice(0, 6).map((r) => ({
+      // Rows arrive sorted newest-first by Last Modified Date; keep at most one
+      // row per recipient (first occurrence) so the feed shows 6 distinct
+      // companies instead of e.g. HDR-OBG 3×.
+      const seen = new Set<string>();
+      const unique = results.filter((r) => {
+        const name = String(r["Recipient Name"]).trim().toLowerCase();
+        if (seen.has(name)) return false;
+        seen.add(name);
+        return true;
+      });
+      const awards: LiveAward[] = unique.slice(0, 6).map((r) => ({
         award_id: String(r["Award ID"] || r.internal_id || ""),
         recipient: String(r["Recipient Name"]),
         amount: Number(r["Award Amount"]) || 0,
-        start_date: r["Start Date"] ? String(r["Start Date"]) : null,
+        // "Last Modified Date" arrives as "YYYY-MM-DD HH:MM:SS" — replace the
+        // space with "T" so new Date() parses it as local time (a bare date
+        // string would parse as UTC and can shift the shown day in US zones).
+        last_modified: r["Last Modified Date"]
+          ? String(r["Last Modified Date"]).replace(" ", "T")
+          : null,
         agency: r["Awarding Agency"] ? String(r["Awarding Agency"]) : null,
         set_aside: r["Set Aside Type"] ? String(r["Set Aside Type"]) : null,
       }));
@@ -821,9 +842,11 @@ function FarClauseStats({
 }
 
 // ── Live Award Feed ────────────────────────────────────────────────────────────
-// Renders REAL recent federal contract awards from USAspending.gov (cached by
-// getLiveAwards above, 12h TTL). Self-hides when there are no rows — the same
-// graceful pattern as FarClauseStats — so an API/cache failure never breaks SSR.
+// Renders REAL recent SET-ASIDE federal contract awards (SBA set-aside
+// programs only — 8(a), SDVOSB, WOSB, HUBZone, VOSB) from USAspending.gov
+// (cached by getLiveAwards above, 12h TTL). Self-hides when there are no rows —
+// the same graceful pattern as FarClauseStats — so an API/cache failure never
+// breaks SSR.
 const money = (n: number) =>
   n >= 1e9 ? `$${(n / 1e9).toFixed(1)}B`
   : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M`
@@ -858,7 +881,7 @@ function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: strin
   if (!awards.length) return null; // graceful self-hide (FAR-strip pattern)
   const updated = feed.updatedAt ? fmtFeedUpdated(feed.updatedAt) : null;
   return (
-    <section className="border-b border-gray-100 bg-white py-12 sm:py-16" aria-label="Live federal contract awards">
+    <section className="border-b border-gray-100 bg-white py-12 sm:py-16" aria-label="Live set-aside federal contract awards">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-2">
@@ -869,14 +892,14 @@ function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: strin
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Live Award Feed</h2>
           </div>
           <p className="text-sm text-gray-500">
-            Recent federal contract awards · Source: USAspending.gov
+            Recent set-aside awards · 8(a) · SDVOSB · WOSB · HUBZone · Source: USAspending.gov
             {updated ? ` · Updated ${updated}` : ""}
           </p>
         </div>
 
         <div className="mx-auto mt-10 max-w-4xl divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
           {awards.map((award, i) => {
-            const date = fmtAwardDate(award.start_date);
+            const date = fmtAwardDate(award.last_modified);
             return (
               <div
                 key={award.award_id || `${award.recipient}-${award.amount}-${i}`}

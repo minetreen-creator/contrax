@@ -919,9 +919,9 @@ const showcaseItems = [
     src: "/screenshots/score-tool.png",
     alt: "Can I Win This? — Contrax solicitation scoring tool",
     badge: "Free · no login",
-    title: "Can I Win This?",
+    title: "Understand what the RFP really requires",
     description:
-      "Paste any solicitation and get an instant win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO. Free, no login required.",
+      "Paste any solicitation and get an instant win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO — so you invest your hours where you actually have a shot. Free, no login required.",
     href: "/score",
     cta: "Score a solicitation",
   },
@@ -929,9 +929,9 @@ const showcaseItems = [
     src: "/screenshots/copilot.png",
     alt: "Contract Intelligence Copilot — Contrax strategist",
     badge: "Strategist",
-    title: "Contract Intelligence Copilot",
+    title: "Draft compliant responses faster",
     description:
-      "Your strategist knows your certifications, active bids, and win/loss history. Ask it anything about your pipeline — it answers with your context in mind.",
+      "The Copilot drafts proposal sections around the RFP's evaluation criteria and flags missing clauses before you submit — grounded in your certifications, active bids, and win/loss history.",
     href: "/copilot",
     cta: "Meet the copilot",
   },
@@ -939,9 +939,9 @@ const showcaseItems = [
     src: "/screenshots/hero.png",
     alt: "Contrax full platform overview",
     badge: "Full platform",
-    title: "The Complete Platform",
+    title: "Find set-asides you actually qualify for",
     description:
-      "Set-aside-first bid matching, proposal drafting, compliance checks, pricing intelligence, and team workspaces — built for certified small businesses.",
+      "Set-aside-first matching filters SAM.gov and city opportunities by your 8(a), SDVOSB, WOSB, or HUBZone certification — and tracks your certification deadlines so eligibility never silently lapses.",
     href: "/signup",
     cta: "Get started",
   },
@@ -951,16 +951,17 @@ function ProductShowcase() {
   return (
     <section id="product-showcase" className="bg-white py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
+        <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-600">
-            Product Tour
+            Built for set-aside small businesses
           </h2>
           <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            See Contrax in Action
+            Win set-aside contracts the big firms miss
           </h3>
-          <p className="mt-4 text-lg text-gray-600">
-            From a free win-probability check to a strategist that knows your bid history —
-            here&apos;s what you can do in your first five minutes.
+          <p className="mt-4 text-lg leading-relaxed text-gray-600">
+            Contrax finds the set-asides you qualify for, decodes what each RFP really requires,
+            and drafts compliant responses — so your 8(a), SDVOSB, WOSB, or HUBZone certification
+            becomes a winning edge, not a checkbox.
           </p>
         </div>
 
@@ -1006,22 +1007,35 @@ function ProductShowcase() {
           ))}
         </div>
 
-        {/* See it in Word CTA */}
-        <div className="mt-12 flex flex-col items-center justify-between gap-6 rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-8 text-center shadow-sm sm:flex-row sm:p-10 sm:text-left">
-          <div>
-            <p className="text-xl font-bold text-slate-900">See Contrax inside Microsoft Word</p>
-            <p className="mt-2 text-sm leading-relaxed text-gray-600">
-              Watch the Word plugin redline a live RFP response — clause suggestions, compliance
-              checks, and risk flags appear right in the document as you work.
+        {/* CTA — free trial + free score */}
+        <div className="mt-14 flex flex-col items-center justify-between gap-8 rounded-2xl bg-slate-900 p-8 text-center shadow-lg sm:flex-row sm:p-10 sm:text-left">
+          <div className="max-w-xl">
+            <p className="text-2xl font-bold text-white">Your certification is your edge. Put it to work.</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300">
+              Start free — set-aside-matched opportunities, RFP summaries, AI proposal drafting, and
+              certification deadline tracking, all in one place. 21-day free trial.
             </p>
           </div>
-          <a
-            href="/signup"
-            className="inline-flex flex-shrink-0 items-center gap-2.5 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
-          >
-            Start Free Trial
-          </a>
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <a
+              href="/signup?plan=professional"
+              onClick={() => trackEvent("hero_cta_click", "product_showcase")}
+              className="inline-flex items-center rounded-xl bg-amber-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
+            >
+              Start free trial →
+            </a>
+            <a
+              href="/score"
+              className="inline-flex items-center rounded-xl border border-slate-600 px-7 py-3.5 text-sm font-semibold text-slate-100 transition-all hover:border-slate-400 hover:text-white"
+            >
+              Score a solicitation free
+            </a>
+          </div>
         </div>
+        {/* Bridge to the Live Award Feed */}
+        <p className="mt-10 text-center text-sm text-gray-500">
+          Real federal awards are posted every day — your next opportunity is waiting right below.
+        </p>
       </div>
     </section>
   );

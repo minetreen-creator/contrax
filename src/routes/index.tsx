@@ -55,6 +55,137 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
   };
 });
 
+// ── Live Award Feed (USAspending.gov) ────────────────────────────────────────
+// REAL recent federal contract awards from the public USAspending.gov API
+// (POST /api/v2/search/spending_by_award/). Deliberately NOT the
+// `awarded_contracts` table — that table holds only demo rows with fake
+// sam.gov URLs and would be dishonest presented as "live".
+//
+// Verified API contract (2026-08-15):
+//  - fields MUST include the names below; "Date Signed" 422s and "Award Date"
+//    returns null, so "Start Date" (the period-of-performance start date the
+//    API returns for contracts) is the per-row date. The 90-day
+//    `date_type: "action_date"` filter guarantees every returned row had a
+//    contract action in the last 90 days even when its POP start is older.
+//  - set_aside_type_codes is NOT applied: single-letter codes (A/B/C/D/Q/S/
+//    J/L/R/U) return 0 rows, and the doc-style codes ("8A","SDVOSBC","WOSB",
+//    "HZC","SB") return rows whose "Set Aside Type" value is null, so the
+//    filter would either empty the feed or mislabel it. Instead we show the
+//    API's per-row "Set Aside Type" value verbatim as a badge when present.
+//  - Results are cached in `live_awards_cache` (12h TTL) so SSR never waits
+//    on the API. On API failure we serve stale cached rows; with no cache at
+//    all we return [] and the section hides itself — never a 500.
+export interface LiveAward {
+  award_id: string;
+  recipient: string;
+  amount: number;
+  start_date: string | null;
+  agency: string | null;
+  set_aside: string | null;
+}
+
+const USA_SPENDING_SEARCH = "https://api.usaspending.gov/api/v2/search/spending_by_award/";
+let lastUsaRequest = 0;
+async function usaSpendingSearch(body: unknown): Promise<{ results?: any[] } | null> {
+  // USAspending rate-limits (~1 req/sec) — same throttle approach as src/lib/fpds.ts
+  const wait = Math.max(0, 1100 - (Date.now() - lastUsaRequest));
+  if (wait) await new Promise((r) => setTimeout(r, wait));
+  lastUsaRequest = Date.now();
+  const response = await fetch(USA_SPENDING_SEARCH, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(12000),
+  });
+  if (!response.ok) return null;
+  return response.json();
+}
+
+const getLiveAwards = createServerFn({ method: "GET" }).handler(async (): Promise<{
+  awards: LiveAward[];
+  updatedAt: string | null;
+}> => {
+  const CACHE_KEY = "recent-90d";
+  const readCache = async () => {
+    const rows = await sql()`
+      SELECT data, computed_at FROM live_awards_cache
+      WHERE cache_key=${CACHE_KEY}
+      ORDER BY computed_at DESC NULLS LAST
+      LIMIT 1
+    `;
+    if (!rows.length) return null;
+    const c: any = rows[0];
+    return {
+      awards: Array.isArray(c.data) ? (c.data as LiveAward[]) : [],
+      updatedAt: c.computed_at ? new Date(c.computed_at).toISOString() : null,
+    };
+  };
+
+  try {
+    await sql()`CREATE TABLE IF NOT EXISTS live_awards_cache (id SERIAL PRIMARY KEY, cache_key TEXT NOT NULL UNIQUE, data JSONB NOT NULL DEFAULT '[]'::jsonb, computed_at TIMESTAMPTZ DEFAULT NOW())`;
+    // Fresh cache (12h TTL) → serve it; SSR stays fast, no API call per page load.
+    const fresh = await sql()`
+      SELECT data, computed_at FROM live_awards_cache
+      WHERE cache_key=${CACHE_KEY} AND computed_at > NOW() - INTERVAL '12 hours'
+      LIMIT 1
+    `;
+    if (fresh.length) {
+      const c: any = fresh[0];
+      return {
+        awards: Array.isArray(c.data) ? (c.data as LiveAward[]) : [],
+        updatedAt: c.computed_at ? new Date(c.computed_at).toISOString() : null,
+      };
+    }
+  } catch (err) {
+    // cache table/query unavailable — fall through to a live fetch
+    console.error("[homepage] live_awards_cache read failed:", err);
+  }
+
+  try {
+    const end = new Date().toISOString().slice(0, 10);
+    const start = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+    const data = await usaSpendingSearch({
+      filters: {
+        time_period: [{ start_date: start, end_date: end, date_type: "action_date" }],
+        award_type_codes: ["A", "B", "C", "D"], // contracts only — required with time_period
+      },
+      fields: ["Award ID", "Recipient Name", "Award Amount", "Start Date", "Awarding Agency", "Set Aside Type", "Description"],
+      limit: 10,
+      page: 1,
+      subawards: false,
+    });
+    const results = (data?.results || []).filter(
+      (r) => r && r["Recipient Name"] && r["Award Amount"] != null,
+    );
+    if (results.length) {
+      const awards: LiveAward[] = results.slice(0, 6).map((r) => ({
+        award_id: String(r["Award ID"] || r.internal_id || ""),
+        recipient: String(r["Recipient Name"]),
+        amount: Number(r["Award Amount"]) || 0,
+        start_date: r["Start Date"] ? String(r["Start Date"]) : null,
+        agency: r["Awarding Agency"] ? String(r["Awarding Agency"]) : null,
+        set_aside: r["Set Aside Type"] ? String(r["Set Aside Type"]) : null,
+      }));
+      try {
+        await sql()`INSERT INTO live_awards_cache (cache_key, data) VALUES (${CACHE_KEY}, ${JSON.stringify(awards)}::jsonb) ON CONFLICT (cache_key) DO UPDATE SET data=EXCLUDED.data, computed_at=NOW()`;
+      } catch (err) {
+        // cache write failure — still serve the live rows for this request
+        console.error("[homepage] live_awards_cache write failed:", err);
+      }
+      return { awards, updatedAt: new Date().toISOString() };
+    }
+  } catch (err) {
+    // API unreachable — never break SSR: fall back to stale cache, else []
+    console.error("[homepage] USAspending live-awards fetch failed:", err);
+  }
+
+  try {
+    const stale = await readCache();
+    if (stale) return stale;
+  } catch { /* no cache — hide the section */ }
+  return { awards: [], updatedAt: null };
+});
+
 const HEALTHCARE_KEYWORDS = [
   "health", "medical", "nurse", "nursing", "physician", "clinician", "clinical",
   "hospital", "tricare", "medicare", "medicaid", "pharma", "pharmacy", "dental",
@@ -207,7 +338,7 @@ const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }
   }
 };
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, user, bids, healthcareBids, todayBids, userCount, bidStats, farClauseCounts] = await Promise.all([
+  const [businessName, user, bids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -222,6 +353,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getRecentBids(),
     getHealthcareBids(),
     getTodayBids(),
+    getLiveAwards(),
     getUserCount(),
     getBidStats(),
     getFarClauseCounts(),
@@ -234,7 +366,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -284,7 +416,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -306,9 +438,10 @@ function Home() {
       />
       <Navbar user={user} alertCount={alertCount} />
       <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} />
+      <ProductShowcase />
+      <LiveAwardFeed feed={liveAwards} />
       <FarClauseStats stats={farClauseCounts} />
       <TodaySolicitations todayBids={todayBids} />
-      <ProductShowcase />
       <BidTicker bids={bids} />
       <HealthcareOpportunities bids={healthcareBids} />
       <HowItWorks />
@@ -677,6 +810,103 @@ function FarClauseStats({
           Exact citations, refreshed daily — complete FAR (parts 1–53) and DFARS
           (201–253, 270) clause text.
         </p>
+      </div>
+    </section>
+  );
+}
+
+// ── Live Award Feed ────────────────────────────────────────────────────────────
+// Renders REAL recent federal contract awards from USAspending.gov (cached by
+// getLiveAwards above, 12h TTL). Self-hides when there are no rows — the same
+// graceful pattern as FarClauseStats — so an API/cache failure never breaks SSR.
+const money = (n: number) =>
+  n >= 1e9 ? `$${(n / 1e9).toFixed(1)}B`
+  : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M`
+  : n >= 1e3 ? `$${(n / 1e3).toFixed(0)}K`
+  : `$${Math.round(n).toLocaleString()}`;
+
+function fmtAwardDate(d: string | null): string | null {
+  if (!d) return null;
+  const date = new Date(d);
+  if (Number.isNaN(date.getTime())) return null;
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+}
+
+function fmtFeedUpdated(iso: string): string | null {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: string | null } }) {
+  const awards = feed?.awards || [];
+  if (!awards.length) return null; // graceful self-hide (FAR-strip pattern)
+  const updated = feed.updatedAt ? fmtFeedUpdated(feed.updatedAt) : null;
+  return (
+    <section className="border-b border-gray-100 bg-white py-12 sm:py-16" aria-label="Live federal contract awards">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            </span>
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Live Award Feed</h2>
+          </div>
+          <p className="text-sm text-gray-500">
+            Recent federal contract awards · Source: USAspending.gov
+            {updated ? ` · Updated ${updated}` : ""}
+          </p>
+        </div>
+
+        <div className="mx-auto mt-10 max-w-4xl divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          {awards.map((award, i) => {
+            const date = fmtAwardDate(award.start_date);
+            return (
+              <div
+                key={award.award_id || `${award.recipient}-${award.amount}-${i}`}
+                className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-slate-900" title={award.recipient}>
+                    {award.recipient}
+                  </p>
+                  <p className="mt-0.5 truncate text-xs text-gray-500">
+                    {award.agency || "Federal agency"}
+                    {date ? ` · ${date}` : ""}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-1">
+                  <span className="text-sm font-bold text-emerald-600">{money(award.amount)}</span>
+                  {award.set_aside ? (
+                    <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
+                      {award.set_aside}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-10 text-center">
+          <a
+            href="/awards"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl"
+          >
+            Browse live opportunities →
+          </a>
+        </div>
       </div>
     </section>
   );

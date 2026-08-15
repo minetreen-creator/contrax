@@ -920,10 +920,10 @@ const showcaseItems = [
   {
     src: "/screenshots/score-tool.png",
     alt: "Can I Win This? — Contrax solicitation scoring tool",
-    badge: "Free · no login",
+    badge: "3 free scores",
     title: "Understand what the RFP really requires",
     description:
-      "Paste any solicitation and get an instant win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO — so you invest your hours where you actually have a shot. Free, no login required.",
+      "Paste any solicitation and get an instant win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO — so you invest your hours where you actually have a shot. 3 free scores, no login to try.",
     href: "/score",
     cta: "Score a solicitation",
   },

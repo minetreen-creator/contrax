@@ -8,7 +8,7 @@
 //
 // Bundled (with its deps + the SSR handler's dynamic ./assets chunks) into
 // .vercel/output/functions/render.func/index.mjs by build-vercel.sh.
-import type { IncomingMessage, ServerResponse } from "node:http";
+import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from "node:http";
 
 import handler from "./dist/server/server.js";
 
@@ -442,6 +442,23 @@ const fetchHandler = handler as {
   fetch: (request: Request) => Response | Promise<Response>;
 };
 
+/**
+ * Client IP for the anonymous /score free-score limit — same derivation as
+ * /api/event's getClientIp: x-forwarded-for first value, then
+ * cf-connecting-ip / x-real-ip, sliced to 64 chars. Returned as a string and
+ * stashed on globalThis so createServerFn handlers can read it without node
+ * builtins (keeps the client-bundle protection happy).
+ */
+function getClientIp(headers: IncomingHttpHeaders): string {
+  const forwarded = headers["x-forwarded-for"];
+  if (typeof forwarded === "string" && forwarded) {
+    const first = forwarded.split(",")[0]?.trim();
+    if (first) return first.slice(0, 64);
+  }
+  const ip = headers["cf-connecting-ip"] ?? headers["x-real-ip"];
+  return typeof ip === "string" && ip ? ip.slice(0, 64) : "";
+}
+
 const toWebRequest = (req: IncomingMessage): Request => {
   const host = req.headers.host ?? "localhost";
   const proto =
@@ -735,8 +752,11 @@ export default async function vercelHandler(
       return;
     }
 
-    // Make the request cookie available to route loaders during SSR
+    // Make the request cookie + client IP available to route loaders and server
+    // functions during SSR (same stash pattern; the IP backs the anonymous
+    // /score free-score limit, derived exactly like /api/event's getClientIp).
     (globalThis as any).__contrax_request_cookie__ = (req.headers.cookie as string) || "";
+    (globalThis as any).__contrax_request_ip__ = getClientIp(req.headers);
     const webRes = await fetchHandler.fetch(toWebRequest(req));
     res.statusCode = webRes.status;
     webRes.headers.forEach((value, key) => res.setHeader(key, value));
@@ -750,6 +770,7 @@ export default async function vercelHandler(
     }
     res.end();
     delete (globalThis as any).__contrax_request_cookie__;
+    delete (globalThis as any).__contrax_request_ip__;
   } catch (error) {
     // Log the detail server-side (captured by the host's function logs); never
     // return a stack trace to the public visitor of the site.

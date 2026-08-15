@@ -892,7 +892,7 @@ function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: strin
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Live Award Feed</h2>
           </div>
           <p className="text-sm text-gray-500">
-            Recent set-aside federal contract awards · Source: USAspending.gov
+            Recent set-aside awards · 8(a) · SDVOSB · WOSB · HUBZone · Source: USAspending.gov
             {updated ? ` · Updated ${updated}` : ""}
           </p>
         </div>

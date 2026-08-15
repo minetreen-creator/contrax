@@ -721,6 +721,9 @@ function Hero({
                 Score it free →
               </button>
             </form>
+            <p className="mt-3 text-center text-xs font-medium text-blue-200/80 sm:text-sm">
+              <span className="font-semibold text-amber-300">3 free scores</span> — no login to try
+            </p>
           </div>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a

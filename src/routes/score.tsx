@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { sql } from "~/db";
 import { trackEvent } from "~/lib/track";
@@ -351,6 +351,19 @@ function ScorePage() {
       setLoading(false);
     }
   };
+
+  // One-shot auto-run: when arriving with a `?text=` search param (homepage hero flow),
+  // start the analysis immediately so the visitor gets a score in a single action.
+  // The ref guard fires exactly once (React StrictMode double-mounts effects in dev) and
+  // blocks any later re-run from manual button clicks or text edits.
+  const autoRunRef = useRef(false);
+
+  useEffect(() => {
+    if (autoRunRef.current) return;
+    if (!text) return;
+    autoRunRef.current = true;
+    void handleScore();
+  }, [text]);
 
   const reset = () => {
     setResult(null);

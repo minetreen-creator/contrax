@@ -653,7 +653,7 @@ function Hero({
     <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 bg-[url('data:image/png;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-      <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-28 sm:pb-32 sm:pt-36 lg:pb-40 lg:pt-44">
+      <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-20 sm:pb-32 sm:pt-24 lg:pb-40 lg:pt-20">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-1.5 text-sm font-medium text-blue-200">
             <span className="relative flex h-2 w-2">
@@ -690,17 +690,17 @@ function Hero({
               reserved for businesses like yours.
             </span>
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
+          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
             Every morning, {businessName} monitors SAM.gov, all 50 state portals, and five city procurement sites for opportunities your
             8(a), SDVOSB, WOSB, or HUBZone certification qualifies for.
           </p>
-          <div className="mt-6 mx-auto max-w-xl rounded-xl border border-amber-400/15 bg-amber-400/5 px-6 py-4 backdrop-blur-sm">
+          <div className="mt-4 mx-auto max-w-xl rounded-xl border border-amber-400/15 bg-amber-400/5 px-6 py-4 backdrop-blur-sm">
             <p className="text-base font-semibold text-amber-200">
               <span className="text-amber-400">Know what to bid before you write a word.</span>{" "}
               We pull 5 years of incumbent pricing so you're never guessing.
             </p>
           </div>
-          <div className="mt-8 mx-auto max-w-xl">
+          <div className="mt-6 mx-auto max-w-xl">
             <p className="mb-3 text-sm font-medium text-blue-200">Try it now — no signup required</p>
             <form
               onSubmit={handleScoreSubmit}

@@ -2273,7 +2273,7 @@ function Footer() {
         <p className="text-sm text-gray-400">
           &copy; {new Date().getFullYear()} Contrax. All rights reserved.
         </p>
-        <div className="flex items-center gap-5">
+        <div className="flex flex-wrap items-center gap-5">
           <a href="/compare" className="text-sm text-gray-400 transition-colors hover:text-white">
             Compare
           </a>

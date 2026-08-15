@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "About Contrax";
 const DESC =
-  "Contrax helps small businesses compete for government contracts — opportunity discovery, bid summarization, win-probability scoring, proposal drafting, and team workspace in one platform.";
+  "Contrax is a contract intelligence platform founded by Nathaniel Minetree to help 8(a), SDVOSB, WOSB, and HUBZone small businesses find and win government contracts.";
 
 export const Route = createFileRoute("/about/")({
   component: AboutPage,
@@ -39,14 +39,20 @@ const jsonLd = {
   "@type": "Organization",
   name: "Contrax",
   description:
-    "We help small businesses win government contracts. Contrax is a contract intelligence platform — not another database of RFPs — that finds the right opportunities, summarizes bid documents, and drafts proposals so small firms compete and win.",
+    "Founded by Nathaniel Minetree, Contrax is a contract intelligence platform that helps 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses find and win government contracts — real-time discovery across 50 states and federal portals, with an AI-driven workspace for incumbent research and grounded proposal drafting.",
   url: PROD_URL,
   logo: `${PROD_URL}/logo-square.png`,
+  founder: {
+    "@type": "Person",
+    name: "Nathaniel Minetree",
+  },
   email: "hello@contrax.company",
   sameAs: [],
   knowsAbout: [
     "Government contracting",
     "Federal procurement",
+    "Set-aside contracts",
+    "Small business certifications (8(a), SDVOSB, WOSB, HUBZone)",
     "Bid management",
     "Proposal writing",
   ],
@@ -81,28 +87,147 @@ function AboutPage() {
         <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent" />
       </section>
 
-      {/* Mission */}
-      <section className="bg-white py-20 sm:py-24">
+      {/* The Mission */}
+      <section className="bg-white py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-3xl text-center">
+            <svg
+              className="mx-auto h-10 w-10 text-amber-500"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path d="M4.583 17.321C3.553 16.227 3 15 3 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179zm10 0C13.553 16.227 13 15 13 13.011c0-3.5 2.457-6.637 6.03-8.188l.893 1.378c-3.335 1.804-3.987 4.145-4.247 5.621.537-.278 1.24-.375 1.929-.311 1.804.167 3.226 1.648 3.226 3.489a3.5 3.5 0 01-3.5 3.5c-1.073 0-2.099-.49-2.748-1.179z" />
+            </svg>
+            <h2 className="mt-6 text-sm font-semibold uppercase tracking-widest text-blue-600">
+              The Mission
+            </h2>
+            <p className="mt-6 text-xl leading-relaxed text-slate-700 sm:text-2xl sm:leading-relaxed">
+              For too long, the government contracting landscape has been divided
+              into two worlds. On one side are the massive primes with dedicated
+              departments, $10,000-a-month consultants, and unlimited resources.
+              On the other are the 8(a), SDVOSB, WOSB, and HUBZone
+              businesses—the innovators, the builders, and the service providers
+              who are the backbone of our country, but are often buried under a
+              "paperwork wall."
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* The Founder's Vision */}
+      <section className="bg-gray-50 py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+              The Founder's Vision
+            </h2>
+            <div className="mt-8 rounded-2xl border border-gray-200/60 bg-white p-8 shadow-sm sm:p-12">
+              <p className="text-lg leading-relaxed text-slate-700 sm:text-xl sm:leading-relaxed">
+                Founded by Nathaniel Minetree, Contrax was born out of a single
+                observation: Small businesses don't lose government work because
+                they can't do the job; they lose because the process of finding
+                and bidding on the work is designed for giants.
+              </p>
+              <p className="mt-6 text-lg leading-relaxed text-slate-700 sm:text-xl sm:leading-relaxed">
+                Nathaniel saw talented contractors—from HVAC specialists to IT
+                innovators—spend dozens of hours "shredding" PDFs and drafting
+                compliance matrices by hand, only to be disqualified on a
+                technicality or miss a deadline. He realized that if you could
+                automate the administrative "tax" of contracting, you could give
+                these businesses their most valuable resource back: Time.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The Contrax Solution */}
+      <section className="bg-white py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-3xl">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+              The Contrax Solution
+            </h2>
+            <p className="mt-6 text-lg leading-relaxed text-gray-600 sm:text-xl sm:leading-relaxed">
+              Nathaniel's vision for Contrax was to build a "Contract
+              Intelligence Copilot" that acts as a 24/7 business development
+              department. By combining real-time discovery across 50 states and
+              federal portals with an AI-driven workspace that handles everything
+              from incumbent research to grounded proposal drafting, Contrax
+              provides the "unfair advantage" that small primes have been
+              missing.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Why We Do It */}
+      <section className="bg-gray-50 py-20 sm:py-28">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-              Our Mission
+              Why We Do It
+            </h2>
+            <p className="mt-6 text-xl leading-relaxed text-slate-700 sm:text-2xl sm:leading-relaxed">
+              We believe that when a veteran-owned business wins a VA contract,
+              or a minority-owned firm builds a city's new infrastructure,
+              everyone wins. Contrax is here to ensure that the best businesses
+              win the work, not just the ones with the biggest proposal budgets.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Our Core Pillars */}
+      <section className="bg-white py-20 sm:py-28">
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
+              Our Core Pillars
             </h2>
             <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Helping small businesses compete for government contracts with contract intelligence
+              What we stand for
             </h3>
-            <p className="mt-6 text-lg leading-relaxed text-gray-600">
-              Every year, governments award hundreds of billions of dollars in
-              contracts — but small businesses often struggle to even get in the
-              game. Procurement portals are dense, bid documents are long, and
-              proposals demand resources most small teams simply don't have.
-            </p>
-            <p className="mt-4 text-lg leading-relaxed text-gray-600">
-              Contrax was built to remove those barriers. Instead of another
-              database of RFPs, we built a contract intelligence platform that finds the right
-              opportunities, explains what matters, scores your odds, and drafts
-              the proposal — so you can compete on capability, not on headcount.
-            </p>
+          </div>
+          <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="group relative rounded-2xl border border-gray-200/60 bg-white p-8 shadow-sm transition-all hover:shadow-md">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-500 group-hover:text-white">
+                <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="6" />
+                  <circle cx="12" cy="12" r="2" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900">Precision</h3>
+              <p className="mt-3 leading-relaxed text-gray-600">
+                AI-driven compliance that catches the gaps before the government
+                does.
+              </p>
+            </div>
+            <div className="group relative rounded-2xl border border-gray-200/60 bg-white p-8 shadow-sm transition-all hover:shadow-md">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-500 group-hover:text-white">
+                <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v17.25m0 0c-1.472 0-2.882.265-4.185.75M12 20.25c1.472 0 2.882.265 4.185.75M18.75 4.97A48.416 48.416 0 0012 4.5c-2.291 0-4.545.16-6.75.47m13.5 0c1.01.143 2.01.317 3 .52m-3-.52l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.988 5.988 0 01-2.031.352 5.988 5.988 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L18.75 4.971zm-16.5.52c.99-.203 1.99-.377 3-.52m0 0l2.62 10.726c.122.499-.106 1.028-.589 1.202a5.989 5.989 0 01-2.031.352 5.989 5.989 0 01-2.031-.352c-.483-.174-.711-.703-.59-1.202L5.25 4.971z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900">Accessibility</h3>
+              <p className="mt-3 leading-relaxed text-gray-600">
+                Professional-grade tools for a fraction of the cost of a
+                consultant.
+              </p>
+            </div>
+            <div className="group relative rounded-2xl border border-gray-200/60 bg-white p-8 shadow-sm transition-all hover:shadow-md">
+              <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 text-amber-600 transition-colors group-hover:bg-amber-500 group-hover:text-white">
+                <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900">Action</h3>
+              <p className="mt-3 leading-relaxed text-gray-600">
+                Moving from a lead to a compliant draft in minutes, not weeks.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -200,64 +325,6 @@ function AboutPage() {
                 tracks recurring weaknesses, and feeds those lessons back into
                 your win-probability scoring and bid recommendations.
               </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Who it's for */}
-      <section className="bg-white py-20 sm:py-28">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
-            <div>
-              <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-                Who It's For
-              </h2>
-              <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-                Small and mid-size businesses ready to enter the government market
-              </h3>
-              <p className="mt-6 text-lg leading-relaxed text-gray-600">
-                Contrax is built for companies that are new to government
-                contracting or growing their public-sector pipeline — from
-                first-time bidders learning the ropes to established small firms
-                looking to bid smarter and scale their pursuit team.
-              </p>
-              <p className="mt-4 text-lg leading-relaxed text-gray-600">
-                No prior contracting experience required. Set up a profile in
-                minutes, and Contrax handles the heavy lifting: understanding the
-                jargon, finding relevant opportunities, and turning requirements
-                into submittable proposals.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-2">
-                {["First-time bidders", "Small businesses", "8(a) & certified firms", "Growing pursuit teams", "Staffing & services companies"].map((tag) => (
-                  <span key={tag} className="rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-2xl border border-gray-200/60 bg-gray-50 p-8 sm:p-10">
-              <h4 className="text-lg font-semibold text-slate-900">
-                From discovery to submission
-              </h4>
-              <ul className="mt-6 space-y-4">
-                {[
-                  ["Discover", "Relevant opportunities delivered daily, matched to your industry, location, and services."],
-                  ["Understand", "Plain-English summaries and compliance checklists instead of 100-page PDFs."],
-                  ["Decide", "Honest win-probability scores and GO / NO-GO / CAUTIOUS recommendations."],
-                  ["Win", "Drafted proposals, competitive pricing guidance, and team collaboration."],
-                ].map(([step, desc]) => (
-                  <li key={step} className="flex gap-4">
-                    <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-600 text-sm font-bold text-white">
-                      {step[0]}
-                    </span>
-                    <div>
-                      <p className="font-semibold text-slate-900">{step}</p>
-                      <p className="mt-1 text-sm leading-relaxed text-gray-600">{desc}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
             </div>
           </div>
         </div>

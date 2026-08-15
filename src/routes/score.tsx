@@ -588,14 +588,22 @@ function ScorePage() {
                     ? "Worth digging deeper — don't lose this bid."
                     : "Tough call — but the next bid is out there."}
               </h3>
-              <div className="mt-5">
+              <div className="mt-5 flex flex-col items-center gap-3">
+                <a
+                  href="/signup?plan=professional"
+                  onClick={() => trackEvent("score_cta_click", result.recommendation)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
+                >
+                  <FileText className="h-4 w-4" />
+                  Draft my Technical Approach for this bid
+                </a>
                 <a
                   href={`/signup?plan=professional&score_rec=${result.recommendation}`}
                   onClick={() => trackEvent("score_cta_click", result.recommendation)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 active:scale-[0.99]"
+                  className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2 text-[13px] font-semibold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 active:scale-[0.99]"
                 >
                   Start free trial
-                  <ArrowRight className="h-4 w-4" />
+                  <ArrowRight className="h-3.5 w-3.5" />
                 </a>
               </div>
               <p className="mt-3 text-[13.5px] leading-relaxed text-slate-600">

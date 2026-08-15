@@ -643,8 +643,10 @@ function Hero({
   const handleScoreSubmit = (e: FormEvent) => {
     e.preventDefault();
     const text = scoreText.trim();
+    // `score_submit` is fired by /score's handleScore when the analysis actually starts
+    // (both for this ?text= auto-run and manual "Score it" clicks) — firing it here too
+    // would double-count every hero submission.
     trackEvent("hero_cta_click", "hero_score");
-    trackEvent("score_submit");
     navigate({ to: "/score", search: text ? { text } : {} });
   };
   return (

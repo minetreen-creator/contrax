@@ -761,7 +761,7 @@ function ScorePage() {
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-center shadow-sm lg:p-8">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-700">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
-                FAR-Grounded Drafting
+                Drafting Intelligence
               </span>
               <p className="mt-2 text-[13px] leading-relaxed text-slate-600">
                 Every claim hyperlinks to its FAR clause — review mode shows you why.

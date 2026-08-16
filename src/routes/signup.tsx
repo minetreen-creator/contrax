@@ -86,7 +86,7 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
   head: () => ({
     meta: [
-      { title: "Create a Contrax Account" },
+      { title: "Start Your 21-Day Professional Trial | Contrax" },
       {
         name: "description",
         content:
@@ -96,7 +96,7 @@ export const Route = createFileRoute("/signup")({
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company/signup" },
-      { property: "og:title", content: "Create a Contrax Account" },
+      { property: "og:title", content: "Start Your 21-Day Professional Trial | Contrax" },
       {
         property: "og:description",
         content:
@@ -110,7 +110,7 @@ export const Route = createFileRoute("/signup")({
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Create a Contrax Account" },
+      { name: "twitter:title", content: "Start Your 21-Day Professional Trial | Contrax" },
       {
         name: "twitter:description",
         content:
@@ -133,7 +133,6 @@ function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>(plan);
 
   // Funnel: fire once when the page loads with the score_rec param (Feature B).
@@ -172,13 +171,12 @@ function SignupPage() {
     const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string || "").trim().toLowerCase();
     const password = formData.get("password") as string || "";
-    const confirmPassword = formData.get("confirmPassword") as string || "";
 
     try {
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, confirmPassword, plan: selectedPlan }),
+        body: JSON.stringify({ email, password, confirmPassword: password, plan: selectedPlan }),
       });
       const json = await res.json() as { error?: string; success?: boolean };
       if (!res.ok || json.error) {
@@ -236,7 +234,10 @@ function SignupPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">Create your Contrax account</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Start your 21-day Professional Trial.</h1>
+          <p className="mt-1.5 text-sm text-gray-500">
+            No credit card needed. Get your AI-drafted Technical Approach instantly.
+          </p>
 
           {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
           {trackedBids > 0 && (
@@ -275,56 +276,6 @@ function SignupPage() {
               Deadline alerts so you never miss a response
             </li>
           </ul>
-
-          {/* Plan selector */}
-          <div className="mt-6">
-            <p className="text-sm font-medium text-gray-700">Choose your plan</p>
-            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {PLAN_OPTIONS.map((p) => {
-                const selected = selectedPlan === p.slug;
-                return (
-                  <button
-                    key={p.slug}
-                    type="button"
-                    onClick={() => setSelectedPlan(p.slug)}
-                    aria-pressed={selected}
-                    className={`relative rounded-xl border-2 p-3 text-left transition-all ${
-                      selected
-                        ? "border-blue-600 bg-blue-50/60 shadow-sm"
-                        : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
-                    }`}
-                  >
-                    {p.featured && (
-                      <span className="absolute -top-2 right-2 rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                        Recommended
-                      </span>
-                    )}
-                    <span className="block text-sm font-bold text-slate-900">{p.name}</span>
-                    <span className="mt-0.5 block text-lg font-extrabold text-slate-900">
-                      ${p.price}
-                      <span className="text-xs font-medium text-gray-500">/mo</span>
-                    </span>
-                    <ul className="mt-2 space-y-1.5">
-                      {p.bullets.map((bullet) => (
-                        <li key={bullet} className="flex items-start gap-1.5 text-xs text-gray-600">
-                          <svg
-                            className={`mt-0.5 h-3.5 w-3.5 flex-shrink-0 ${selected ? "text-blue-600" : "text-green-500"}`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                          </svg>
-                          {bullet}
-                        </li>
-                      ))}
-                    </ul>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
 
           {/* Continue with Google */}
             <a
@@ -404,43 +355,6 @@ function SignupPage() {
               </div>
             </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm password
-              </label>
-              <div className="relative mt-1.5">
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirm ? "text" : "password"}
-                  required
-                  autoComplete="new-password"
-                  minLength={8}
-                  className="block w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                  placeholder="Re-enter your password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirm((v) => !v)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600"
-                  tabIndex={-1}
-                  aria-label={showConfirm ? "Hide password" : "Show password"}
-                >
-                  {showConfirm ? (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
-                    </svg>
-                  ) : (
-                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
-
             {/* Error */}
             {error && (
               <div className="rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
@@ -463,7 +377,7 @@ function SignupPage() {
                   Creating account...
                 </span>
               ) : (
-                "Create account"
+                "Create Account & View Draft →"
               )}
             </button>
 

@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { sql } from "~/db";
+import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
+import { safeNext } from "~/lib/saved-matches";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
 
@@ -14,6 +16,8 @@ type SignupSearch = {
   ticker_bid?: string;
   ticker_agency?: string;
   score_rec?: ScoreRec;
+  save_bid?: string;
+  next?: string;
 };
 
 const validPlans = ["starter", "professional", "agency"] as const;
@@ -78,6 +82,14 @@ export const Route = createFileRoute("/signup")({
       search.score_rec === "GO" || search.score_rec === "CAUTIOUS" || search.score_rec === "NO-GO"
         ? (search.score_rec as ScoreRec)
         : undefined,
+    // Save-to-pipeline deep link (`/signup?plan=professional&save_bid=123&next=/awards`).
+    // save_bid is validated as a plain integer string; `next` is re-validated by
+    // safeNext() at redirect time (open-redirect guard).
+    save_bid:
+      typeof search.save_bid === "string" && /^\d{1,10}$/.test(search.save_bid)
+        ? search.save_bid
+        : undefined,
+    next: typeof search.next === "string" ? search.next.slice(0, 500) : undefined,
   }),
   loader: async () => ({
     currentUser: await getCurrentUser(),
@@ -128,7 +140,7 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { currentUser, trackedBids } = Route.useLoaderData();
   const navigate = useNavigate();
-  const { plan, ticker_bid, ticker_agency, score_rec } = Route.useSearch();
+  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next } = Route.useSearch();
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -145,16 +157,55 @@ function SignupPage() {
   }, [score_rec]);
 
   // If already logged in, redirect to dashboard (in an effect so hooks
-  // always run in the same order on every render).
+  // always run in the same order on every render). When arriving with a
+  // save_bid intent (e.g. the user logged in in another tab after clicking
+  // Save), complete the save before redirecting — never block the redirect on
+  // the save, and never let an open redirect escape (safeNext guard).
   useEffect(() => {
-    if (currentUser) navigate({ to: "/dashboard" });
-  }, [currentUser, navigate]);
+    if (currentUser) {
+      if (save_bid) {
+        fetch("/api/bids-save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ bidId: Number(save_bid) }),
+        })
+          .then((res) => {
+            if (res.ok) trackEvent("save_success", save_bid, next);
+          })
+          .catch(() => {})
+          .finally(() => {
+            window.location.assign(safeNext(next) ?? "/dashboard");
+          });
+      } else {
+        navigate({ to: "/dashboard" });
+      }
+    }
+  }, [currentUser, navigate, save_bid, next]);
 
   // Keep the selector in sync if the ?plan= search param changes (e.g. a
   // pricing page CTA navigates here while the component is mounted).
   useEffect(() => {
     setSelectedPlan(plan);
   }, [plan]);
+
+  // Google OAuth URL. When arriving from the Save-to-Pipeline signup wall, the
+  // intent (save_bid / next / plan) is carried through OAuth `state` so Google's
+  // callback can complete the save after the account is created.
+  const googleAuthUrl = useMemo(() => {
+    if (!save_bid && !next) return GOOGLE_AUTH_URL;
+    const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    url.searchParams.set("client_id", "620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com");
+    url.searchParams.set("redirect_uri", GOOGLE_REDIRECT_URI);
+    url.searchParams.set("response_type", "code");
+    url.searchParams.set("scope", "openid email profile");
+    url.searchParams.set("access_type", "offline");
+    url.searchParams.set("prompt", "consent");
+    url.searchParams.set(
+      "state",
+      JSON.stringify({ save_bid: save_bid ?? null, next: safeNext(next), plan: selectedPlan }),
+    );
+    return url.toString();
+  }, [save_bid, next, selectedPlan]);
 
   if (currentUser) return null;
 
@@ -183,6 +234,25 @@ function SignupPage() {
         throw new Error(json.error || "Signup failed. Please try again.");
       }
       trackEvent("signup_success");
+      if (save_bid) {
+        // Save-to-pipeline intent: persist the bid to the new user's pipeline,
+        // then land them where they were. The save must NEVER fail the signup —
+        // the redirect happens whether or not the save succeeds.
+        let savedOk = false;
+        try {
+          const saveRes = await fetch("/api/bids-save", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bidId: Number(save_bid) }),
+          });
+          savedOk = saveRes.ok;
+        } catch {
+          savedOk = false;
+        }
+        if (savedOk) trackEvent("save_success", save_bid, next);
+        window.location.assign(safeNext(next) ?? "/dashboard");
+        return;
+      }
       navigate({ to: "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
@@ -228,6 +298,19 @@ function SignupPage() {
             <p className="text-sm leading-relaxed text-blue-800">
               <span className="font-semibold">You scored a solicitation {score_rec}</span> —
               finish signing up to track it and get deadline alerts.
+            </p>
+          </div>
+        )}
+
+        {/* Save-to-Pipeline banner — arriving from a "⭐ Save to My Pipeline" click */}
+        {save_bid && (
+          <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 p-5">
+            <p className="text-sm font-semibold text-amber-800">
+              ⭐ Save this opportunity to your Pipeline
+            </p>
+            <p className="mt-1 text-sm text-amber-700">
+              Create your free account and this bid is saved to your pipeline
+              automatically — no extra steps.
             </p>
           </div>
         )}
@@ -279,7 +362,7 @@ function SignupPage() {
 
           {/* Continue with Google */}
             <a
-              href={GOOGLE_AUTH_URL}
+              href={googleAuthUrl}
               className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98]"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">

@@ -4,6 +4,7 @@ import { setCookie } from "@tanstack/react-start/server";
 import { sql } from "~/db";
 import { SESSION_COOKIE } from "~/lib/auth";
 import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
+import { safeNext, saveMatch } from "~/lib/saved-matches";
 
 /**
  * OAuth callback for "Continue with Google" signup/login.
@@ -134,12 +135,19 @@ async function verifyGoogleIdToken(idToken: string, clientId: string): Promise<G
 
 const handleGoogleAuth = createServerFn({ method: "POST" })
   .validator((data: unknown) => {
-    if (typeof data !== "string" || data.length === 0) {
+    const d = data as { code?: unknown; plan?: unknown };
+    if (typeof d.code !== "string" || d.code.length === 0) {
       throw new Error("Missing authorization code");
     }
-    return data;
+    // Optional plan from the save-to-pipeline OAuth state (only used when a
+    // brand-new user is created; existing users keep their current tier).
+    const plan =
+      typeof d.plan === "string" && ["starter", "professional", "agency"].includes(d.plan)
+        ? d.plan
+        : undefined;
+    return { code: d.code, plan };
   })
-  .handler(async ({ data: code }) => {
+  .handler(async ({ data: { code, plan } }) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
@@ -203,12 +211,12 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
     if (userId === null) {
       const inserted = await sql()`
         INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-        VALUES (${email}, NULL, 'starter', NOW())
+        VALUES (${email}, NULL, ${plan ?? "starter"}, NOW())
         RETURNING id
       `.catch(async () => {
         const retry = await sql()`
           INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, 'starter', NOW())
+          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, ${plan ?? "starter"}, NOW())
           RETURNING id
         `;
         return retry;
@@ -245,6 +253,26 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Idempotent DDL guard for the funnel-events table (mirrors event.ts) — used
+ * only when a save-to-pipeline intent is completed here, so the `save_success`
+ * row can be recorded without a client round-trip.
+ */
+async function ensureFunnelEventsTable(): Promise<void> {
+  await sql()`CREATE TABLE IF NOT EXISTS funnel_events (
+    id SERIAL PRIMARY KEY,
+    event_name TEXT NOT NULL,
+    label TEXT,
+    path TEXT,
+    user_agent TEXT,
+    ip TEXT,
+    referrer TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+  )`;
+  await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_created_at ON funnel_events (created_at)`;
+  await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_event_name ON funnel_events (event_name)`;
+}
+
 export const Route = createFileRoute("/auth/google/callback")({
   loader: async ({ location }) => {
     const search = new URLSearchParams(location.search);
@@ -259,14 +287,53 @@ export const Route = createFileRoute("/auth/google/callback")({
       throw redirect({ href: "/login?error=google_missing_code" });
     }
 
+    // Save-to-pipeline intent rides through OAuth `state` (returned verbatim
+    // by Google): { save_bid?: string, next?: string, plan?: string }.
+    let saveBid: number | null = null;
+    let next: string | null = null;
+    let plan: string | undefined;
+    const stateRaw = search.get("state");
+    if (stateRaw) {
+      try {
+        const state = JSON.parse(stateRaw) as {
+          save_bid?: unknown;
+          next?: unknown;
+          plan?: unknown;
+        };
+        const sb = Number(state.save_bid);
+        if (Number.isInteger(sb) && sb > 0) saveBid = sb;
+        if (typeof state.next === "string") next = state.next;
+        if (typeof state.plan === "string") plan = state.plan;
+      } catch {
+        // Malformed state — ignore the intent; the login still succeeds.
+      }
+    }
+
+    let userId: number | null = null;
     try {
-      await handleGoogleAuth({ data: code });
+      const result = await handleGoogleAuth({ data: { code, plan } });
+      userId = result.userId;
     } catch (err) {
       console.error("[google-auth] callback failed:", err);
       throw redirect({ href: "/login?error=google_auth_failed" });
     }
 
-    throw redirect({ href: "/dashboard" });
+    // Complete the save-to-pipeline intent server-side. Never blocks the
+    // redirect, and never fails the login — the save is best-effort.
+    if (saveBid !== null && userId !== null) {
+      try {
+        await saveMatch(userId, saveBid);
+        await ensureFunnelEventsTable();
+        await sql()`
+          INSERT INTO funnel_events (event_name, label, path, user_agent)
+          VALUES ('save_success', ${String(saveBid)}, ${safeNext(next)}, 'google-oauth-callback')
+        `;
+      } catch (err) {
+        console.error("[google-auth] save-to-pipeline failed:", err);
+      }
+    }
+
+    throw redirect({ href: safeNext(next) ?? "/dashboard" });
   },
   component: () => null, // Never rendered — the loader always redirects.
   head: () => ({

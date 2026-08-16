@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback } from "react";
-import { getCurrentUser } from "~/lib/auth";
+import { getCurrentUser, type AuthUser } from "~/lib/auth";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -49,7 +49,7 @@ export const CERTIFICATIONS = [
 export const Route = createFileRoute("/onboarding")({
   head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   loader: () => getCurrentUser(),
-  component: OnboardingPage,
+  component: OnboardingRoute,
 });
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -699,16 +699,23 @@ function StepReview({
 
 // ── Main Page Component ──────────────────────────────────────────────────────
 
-function OnboardingPage() {
+/**
+ * Route wrapper: auth guard lives here so OnboardingPage's hooks always run in
+ * the same order (a loader-result flip used to change the hook count between
+ * renders of the same fiber → React #300/#301).
+ */
+function OnboardingRoute() {
   const currentUser = Route.useLoaderData();
   const navigate = useNavigate();
-
   // Redirect if not logged in
   if (!currentUser) {
     navigate({ to: "/login" });
     return null;
   }
-
+  return <OnboardingPage currentUser={currentUser} />;
+}
+function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
+  const navigate = useNavigate();
   const [state, setState] = useState<WizardState>({
     step: 1,
     businessName: "",

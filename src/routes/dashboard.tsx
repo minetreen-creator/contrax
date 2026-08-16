@@ -407,7 +407,7 @@ export const Route = createFileRoute("/dashboard")({
     return { user };
   },
   pendingComponent: LoadingSkeleton,
-  component: DashboardPage,
+  component: DashboardRoute,
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -746,20 +746,40 @@ function CertificationStatusCard({ profile }: { profile: BusinessProfile }) {
     </section>
   );
 }
-function DashboardPage() {
-  // Dashboard data loads client-side from /api/dashboard-data (createServerFn
-  // client RPCs silently fail on production, so the loader only resolves auth).
+/**
+ * Route wrapper: keeps the auth guard OUT of DashboardPage so its hooks always
+ * run in the same order. The old guard sat before ~50 hooks — when the loader
+ * result flipped between renders of the same fiber (SSR user=null → client
+ * user present, or loader revalidation), React saw a different hook count and
+ * threw #300/#301. The wrapper mounts the page only when the user is present,
+ * and its own hooks (useLoaderData + useNavigate) are unconditional.
+ */
+function DashboardRoute() {
   const { user: currentUser } = Route.useLoaderData();
   const navigate = useNavigate();
-  const location = useLocation();
-
   if (!currentUser) {
     navigate({ to: "/login" });
     return null;
   }
-
+  return <DashboardTrialGate user={currentUser} />;
+}
+/**
+ * Trial gate: same hazard — the old `if (trial?.expired) return <TrialExpired />`
+ * sat mid-hooks, so a null→expired flip changed the hook count mid-fiber. The
+ * gate owns the trial state and only mounts DashboardPage while the user is in
+ * the trial window (or on a paid plan).
+ */
+function DashboardTrialGate({ user }: { user: AuthUser }) {
   const [trial, setTrial] = useState<TrialStatus | null>(null);
   useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
+  if (trial?.expired) return <TrialExpired />;
+  return <DashboardPage user={user} trial={trial} />;
+}
+function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | null }) {
+  // Dashboard data loads client-side from /api/dashboard-data (createServerFn
+  // client RPCs silently fail on production, so the loader only resolves auth).
+  const navigate = useNavigate();
+  const location = useLocation();
   const [digest, setDigest] = useState<DigestResult | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
   const [data, setData] = useState<DashboardData | null>(null);
@@ -837,8 +857,6 @@ function DashboardPage() {
     (data.recommendations ?? []).forEach((r) => { rMap[Number(r.bid_id)] = r; });
     setRecommendations(rMap);
   }, [data]);
-
-  if (trial?.expired) return <TrialExpired />;
 
   // Load cached pricing recommendations (lightweight; bid-card data comes from the
   // route loader, so this effect no longer re-fetches the full dashboard).
@@ -1069,7 +1087,7 @@ function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {currentUser.email === "demo@contrax.company" && <div className="border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900">🔍 You're exploring a demo account with sample data. When you're ready, <a href="/signup" className="font-bold underline">create your free account</a> to track real bids.</div>}
+      {user.email === "demo@contrax.company" && <div className="border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900">🔍 You're exploring a demo account with sample data. When you're ready, <a href="/signup" className="font-bold underline">create your free account</a> to track real bids.</div>}
       {location.search.notice === "admin-only" && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-900">
           Admin access is restricted to authorized users only.
@@ -1096,8 +1114,8 @@ function DashboardPage() {
             <a href="/losses" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Losses</a>
             <a href="/learnings" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">🧠 Learnings</a>
             <a href="/compliance" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Compliance</a>
-              {currentUser.is_admin && <a href="/admin" className="text-sm font-semibold text-amber-600 hover:text-amber-500 bg-amber-50 px-2.5 py-1 rounded-md transition-colors">⚙ Admin</a>}
-            <span className="text-sm text-slate-500 hidden sm:inline">{currentUser.email}</span>
+              {user.is_admin && <a href="/admin" className="text-sm font-semibold text-amber-600 hover:text-amber-500 bg-amber-50 px-2.5 py-1 rounded-md transition-colors">⚙ Admin</a>}
+            <span className="text-sm text-slate-500 hidden sm:inline">{user.email}</span>
             <button
               type="button"
               onClick={async () => { setLoggingOut(true); try { await fetch("/api/logout", { method: "POST" }); navigate({ to: "/" }); } catch { setLoggingOut(false); } }}

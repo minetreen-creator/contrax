@@ -277,11 +277,17 @@ export const Route = createFileRoute("/tracking")({
   component: TrackingPageGated,
 });
 
-/** Trial gate: expired-trial users see an upgrade prompt instead of the page. */
+/** Auth + trial gate: redirects logged-out users; upgrade prompt for expired trials. */
 function TrackingPageGated() {
+  const currentUser = Route.useLoaderData() as AuthUser | null;
+  const navigate = useNavigate();
+  if (!currentUser) {
+    navigate({ to: "/login" });
+    return null;
+  }
   return (
     <TrialGate>
-      <TrackingPage />
+      <TrackingPage currentUser={currentUser} />
     </TrialGate>
   );
 }
@@ -453,15 +459,7 @@ function CertificationsPanel({
   );
 }
 // ── Component ────────────────────────────────────────────────────────────────
-function TrackingPage() {
-  const currentUser = Route.useLoaderData() as AuthUser | null;
-  const navigate = useNavigate();
-
-  if (!currentUser) {
-    navigate({ to: "/login" });
-    return null;
-  }
-
+function TrackingPage({ currentUser }: { currentUser: AuthUser }) {
   const [bids, setBids] = useState<TrackedBid[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

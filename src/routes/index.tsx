@@ -223,8 +223,8 @@ const getLiveAwards = createServerFn({ method: "GET" }).handler(async (): Promis
 const CERT_CODE_LABELS: Record<string, string> = {
   "8A": "8(a)",
   SDVOSBC: "SDVOSB",
-  WOSB_ED_WOSB: "WOSB",
-  HUBZONE: "HUBZone",
+  WOSB: "WOSB",
+  HZC: "HUBZone",
   SBA: "Small Business",
 };
 
@@ -1023,8 +1023,8 @@ const CERT_CHIPS = [
   { id: "all", label: "All set-asides", code: null as string | null },
   { id: "8a", label: "8(a)", code: "8A" },
   { id: "sdvosb", label: "SDVOSB", code: "SDVOSBC" },
-  { id: "wosb", label: "WOSB", code: "WOSB_ED_WOSB" },
-  { id: "hubzone", label: "HUBZone", code: "HUBZONE" },
+  { id: "wosb", label: "WOSB", code: "WOSB" },
+  { id: "hubzone", label: "HUBZone", code: "HZC" },
   { id: "sb", label: "Small Business", code: "SBA" },
 ];
 

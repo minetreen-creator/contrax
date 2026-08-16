@@ -41,33 +41,53 @@ export function IncumbentCard({
       <span className="text-[10px] text-slate-600">FY{x.fiscal_year}</span>
     </div>
   ));
+  // Logged-out gate CTA — shared by both locked paths (data present + no historical data)
+  // so the signup overlay is ALWAYS shown when the panel is locked, never only with a chart.
+  const gateOverlay = locked ? (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-indigo-50/70 p-3">
+      <div className="w-full max-w-sm rounded-xl border border-indigo-100 bg-white p-3 text-center shadow-md">
+        <p className="text-sm font-semibold leading-snug text-slate-800">{GATE_CTA_COPY}</p>
+        <a
+          href="/signup?plan=professional&next=/awards"
+          onClick={() => trackEvent("incumbent_gate_signup", bidId != null ? String(bidId) : undefined, "/awards")}
+          className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+        >
+          Sign up free
+        </a>
+      </div>
+    </div>
+  ) : null;
 
   return <section className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4" aria-label="Incumbent Intelligence">
     <div className="flex items-center justify-between gap-2"><h3 className="text-sm font-bold text-indigo-900">🏛️ Incumbent Intelligence</h3>{winner && winner !== "Open opportunity" && winner.toLowerCase() !== intel.incumbent_name.toLowerCase() && <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-800">Re-compete</span>}</div>
     <div className="mt-3 grid gap-3 sm:grid-cols-3"><div><p className="text-xs uppercase tracking-wide text-slate-500">Incumbent</p><p className="font-semibold text-slate-900">{intel.incumbent_name}</p>{intel.incumbent_uei && <p className="text-xs text-slate-500">UEI: {intel.incumbent_uei}</p>}</div><div><p className="text-xs uppercase tracking-wide text-slate-500">Total obligated</p>{locked ? <p aria-hidden="true" className="pointer-events-none select-none font-semibold text-slate-900 blur-[4px]">{money(intel.total_obligated)}</p> : <p className="font-semibold text-slate-900">{money(intel.total_obligated)}</p>}</div><div><p className="text-xs uppercase tracking-wide text-slate-500">Period of performance</p><p className="text-sm text-slate-700">{intel.pop_start_date || "—"} → {intel.pop_end_date || "—"}</p></div></div>
-    {intel.historical_pricing.length > 0 && (
+    {/* Chart section renders when there is historical data to show, OR whenever the panel is
+        locked — the gate must ALWAYS present the signup CTA, even when the incumbent has no
+        5-year pricing (blurred placeholder keeps the same h-40 visual height). Logged-in users
+        with no data keep the current behavior: no section at all. */}
+    {(intel.historical_pricing.length > 0 || locked) && (
       <div className="mt-4">
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-indigo-700">5-year historical pricing</p>
         <div className="relative overflow-hidden rounded-lg border border-indigo-100">
           {locked ? (
             <>
-              {/* Blurred chart — not readable, not selectable, not interactive */}
+              {/* Blurred chart (or placeholder) — not readable, not selectable, not interactive */}
               <div aria-hidden="true" className="pointer-events-none select-none blur-[5px]">
-                <div className="flex h-40 items-end gap-2 border-b border-indigo-100 px-1">{bars}</div>
+                {intel.historical_pricing.length > 0 ? (
+                  <div className="flex h-40 items-end gap-2 border-b border-indigo-100 px-1">{bars}</div>
+                ) : (
+                  <div className="flex h-40 items-end gap-2 border-b border-indigo-100 px-1">
+                    {/* Muted placeholder bars — same visual height as the real chart */}
+                    {[56, 88, 40, 104, 72].map((h, i) => (
+                      <div key={i} className="flex h-full flex-1 flex-col items-center justify-end">
+                        <div className="w-full max-w-12 rounded-t bg-indigo-400 opacity-60" style={{ height: `${h}px` }} />
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               {/* Signup CTA overlay — reachable and tappable at 390px viewport */}
-              <div className="absolute inset-0 z-10 flex items-center justify-center bg-indigo-50/70 p-3">
-                <div className="w-full max-w-sm rounded-xl border border-indigo-100 bg-white p-3 text-center shadow-md">
-                  <p className="text-sm font-semibold leading-snug text-slate-800">{GATE_CTA_COPY}</p>
-                  <a
-                    href="/signup?plan=professional&next=/awards"
-                    onClick={() => trackEvent("incumbent_gate_signup", bidId != null ? String(bidId) : undefined, "/awards")}
-                    className="mt-2 inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
-                  >
-                    Sign up free
-                  </a>
-                </div>
-              </div>
+              {gateOverlay}
             </>
           ) : (
             <div className="flex h-24 items-end gap-2 border-b border-indigo-100 px-1">{bars}</div>

@@ -3,6 +3,7 @@ import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { getRelevantContext } from "~/lib/knowledge";
 import { buildProfileContext } from "~/lib/profile-context";
+import { extractCitations, retrieveRelevantClauses } from "~/lib/far-grounding";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
 async function handler({ request }: { request: Request }) {
@@ -15,11 +16,18 @@ async function handler({ request }: { request: Request }) {
     const user = await getUserFromRequest(request);
     if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
 
+    // Lazy migration for FAR-grounded drafting citations (same pattern as the
+    // business_profiles ALTERs below).
+    try { await sql()`ALTER TABLE proposal_drafts ADD COLUMN IF NOT EXISTS citations JSONB DEFAULT '[]'::jsonb`; } catch {}
+
     // Check cache
     const existing = await sql()`SELECT draft_text, generated_at FROM proposal_drafts WHERE bid_id = ${bidId} AND user_id = ${user.id}`;
     if (existing.length > 0) {
       const row = existing[0] as any;
-      return Response.json({ bid_id: bidId, draft_text: row.draft_text, generated_at: String(row.generated_at) });
+      // Cached drafts also become grounded: recompute citations from the stored
+      // text (the DB-fallback lookup validates every number against far_clauses).
+      const citations = await extractCitations(row.draft_text, []);
+      return Response.json({ bid_id: bidId, draft_text: row.draft_text, citations, generated_at: String(row.generated_at) });
     }
 
     // Fetch bid and business profile
@@ -44,6 +52,22 @@ async function handler({ request }: { request: Request }) {
     const profile = profileRows[0] as BusinessProfile;
     const knowledgeCtx = await getRelevantContext(`${bid.title} ${bid.description || ""} proposal template capability statement compliance checklist`);
 
+    // FAR-Grounded Drafting: retrieve REAL clauses from far_clauses and make
+    // them the ONLY citation source the model may draw from.
+    const retrievedClauses = await retrieveRelevantClauses(bid);
+    const clauseLibraryBlock =
+      retrievedClauses.length === 0
+        ? ""
+        : `
+
+FAR CLAUSE LIBRARY (real clauses from the FAR — cite ONLY from this list, by exact clause number, inline in the form [FAR 52.xxx-x]; if none apply, write the section without citations):
+${retrievedClauses
+  .map(
+    (c) =>
+      `[FAR ${c.clause_number}] ${c.title}\n${c.full_text.slice(0, 1500)}${c.full_text.length > 1500 ? "\n(truncated)" : ""}`,
+  )
+  .join("\n\n")}`;
+
     const prompt = `You are a government proposal writer. Draft a professional proposal response for this contract opportunity based on the business profile provided.
 
 Include:
@@ -66,7 +90,7 @@ Estimated Value: ${bid.estimated_value || "Not specified"}
 
 Business profile:
 ${buildProfileContext(profile)}
-${knowledgeCtx}`;
+${knowledgeCtx}${clauseLibraryBlock}`;
 
     let draftText: string;
     try {
@@ -97,17 +121,20 @@ ${knowledgeCtx}`;
       throw new Error(`Proposal generation failed: ${msg}`);
     }
 
+    // Extract + DB-validate citations from the generated draft text.
+    const citations = await extractCitations(draftText, retrievedClauses);
+
     // Store in DB
-    await sql()`INSERT INTO proposal_drafts (bid_id, user_id, draft_text)
-      VALUES (${bidId}, ${user.id}, ${draftText})
+    await sql()`INSERT INTO proposal_drafts (bid_id, user_id, draft_text, citations)
+      VALUES (${bidId}, ${user.id}, ${draftText}, ${JSON.stringify(citations)}::jsonb)
       ON CONFLICT (bid_id, user_id) DO UPDATE
-      SET draft_text = ${draftText}, generated_at = NOW()`;
+      SET draft_text = ${draftText}, citations = ${JSON.stringify(citations)}::jsonb, generated_at = NOW()`;
     try {
     await sql()`CREATE TABLE IF NOT EXISTS team_activity (id SERIAL PRIMARY KEY, member_email TEXT NOT NULL, action TEXT NOT NULL, bid_id INTEGER REFERENCES bids(id), details TEXT, created_at TIMESTAMPTZ DEFAULT NOW())`;
     await sql()`INSERT INTO team_activity (member_email, action, bid_id, details) VALUES (${user.email}, 'drafted_proposal', ${bidId}, NULL)`;
   } catch { /* workspace telemetry is intentionally non-blocking */ }
 
-    return Response.json({ bid_id: bidId, draft_text: draftText, generated_at: new Date().toISOString() });
+    return Response.json({ bid_id: bidId, draft_text: draftText, citations, generated_at: new Date().toISOString() });
   } catch (err) {
     console.error("[api/bids-draft] error:", err);
     return Response.json(

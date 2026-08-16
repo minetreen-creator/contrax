@@ -98,7 +98,7 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
   head: () => ({
     meta: [
-      { title: "Start Your 21-Day Professional Trial | Contrax" },
+      { title: "Get Your Technical Approach in 60 Seconds — Free 21-Day Trial | Contrax" },
       {
         name: "description",
         content:
@@ -108,7 +108,7 @@ export const Route = createFileRoute("/signup")({
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company/signup" },
-      { property: "og:title", content: "Start Your 21-Day Professional Trial | Contrax" },
+      { property: "og:title", content: "Get Your Technical Approach in 60 Seconds — Free 21-Day Trial | Contrax" },
       {
         property: "og:description",
         content:
@@ -122,7 +122,7 @@ export const Route = createFileRoute("/signup")({
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Start Your 21-Day Professional Trial | Contrax" },
+      { name: "twitter:title", content: "Get Your Technical Approach in 60 Seconds — Free 21-Day Trial | Contrax" },
       {
         name: "twitter:description",
         content:
@@ -317,9 +317,9 @@ function SignupPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">Start your 21-day Professional Trial.</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Get your Technical Approach in 60 seconds.</h1>
           <p className="mt-1.5 text-sm text-gray-500">
-            No credit card needed. Get your AI-drafted Technical Approach instantly.
+            No credit card required. Trial ends in 21 days.
           </p>
 
           {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
@@ -466,9 +466,9 @@ function SignupPage() {
 
             {/* Trial trust row — one visible line near the CTA */}
             <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
-              <span>21-day free trial</span>
-              <span aria-hidden="true" className="text-gray-300">·</span>
               <span>No credit card required</span>
+              <span aria-hidden="true" className="text-gray-300">·</span>
+              <span>Trial ends in 21 days</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
               <span>Cancel anytime</span>
             </p>

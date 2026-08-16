@@ -5,6 +5,9 @@ import { sql } from "~/db";
 import { US_STATES } from "~/lib/states";
 import { IncumbentCard } from "~/components/IncumbentCard";
 import { getFPDSIntel, type FPDSIntel } from "~/lib/fpds";
+import { SaveToPipeline } from "~/components/SaveToPipeline";
+import { getCurrentUser } from "~/lib/auth";
+import { getSavedBidIds } from "~/lib/saved-matches";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Award {
@@ -149,7 +152,18 @@ export const Route = createFileRoute("/awards")({
   validateSearch: (search: Record<string, unknown>) => ({
     search: typeof search.search === "string" ? search.search : undefined,
   }),
-  loader: ({ context }) => getAwardsData({ data: { search: context.search } }),
+  loader: async ({ context }) => {
+    // Resolve the current user + their saved bid ids so SSR renders the correct
+    // logged-in/logged-out button state (and the saved state) in the HTML.
+    const currentUser = await getCurrentUser();
+    const [data, savedBidIds] = await Promise.all([
+      getAwardsData({ data: { search: context.search } }),
+      currentUser
+        ? getSavedBidIds({ data: { userId: currentUser.id } })
+        : Promise.resolve([] as number[]),
+    ]);
+    return { ...data, currentUser, savedBidIds };
+  },
   component: AwardsPage,
   head: () => ({
     meta: [
@@ -199,7 +213,7 @@ function fmtDate(d: string | null | undefined) {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 function AwardsPage() {
-  const { awards, similarBids } = Route.useLoaderData();
+  const { awards, similarBids, currentUser, savedBidIds } = Route.useLoaderData();
   const routeSearch = Route.useSearch();
   const [search, setSearch] = useState("");
   const inputSearch = search || routeSearch.search || "";
@@ -394,8 +408,9 @@ function AwardsPage() {
                   </div>
                 )}
 
-                <div className="border-t border-slate-100 px-4 sm:px-5 py-3">
+                <div className="border-t border-slate-100 px-4 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-3">
                   <button type="button" onClick={(e) => { e.stopPropagation(); loadIntel(award); }} className="text-sm font-semibold text-indigo-700 hover:text-indigo-900">🔍 {loadingIntel === award.id ? "Loading incumbent intelligence…" : intel[award.id] ? "Hide Incumbent Intelligence" : "View Incumbent Intelligence"}</button>
+                  <SaveToPipeline bidId={award.id} user={currentUser} initiallySaved={savedBidIds.includes(award.id)} compact returnPath="/awards" />
                 </div>
 
                 {/* Expanded Detail Panel */}

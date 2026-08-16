@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
+import { SaveToPipeline } from "~/components/SaveToPipeline";
+import { getCurrentUser } from "~/lib/auth";
+import { getSavedBidIds } from "~/lib/saved-matches";
 
 // ── Set-aside normalization ────────────────────────────────────────────────────
 // URL slug -> canonical DB label. The `bids.set_aside` column stores the label
@@ -342,8 +345,18 @@ const getSetAsideOpportunities = createServerFn({ method: "GET" }).handler(
 
 // ── Route ──────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/opportunities/$setaside/$naics")({
-  loader: ({ params }) =>
-    getSetAsideOpportunities({ data: { setAside: params.setaside, naics: params.naics } }),
+  loader: async ({ params }) => {
+    // Resolve the current user + their saved bid ids so SSR renders the correct
+    // logged-in/logged-out button state (and the saved state) in the HTML.
+    const currentUser = await getCurrentUser();
+    const [d, savedBidIds] = await Promise.all([
+      getSetAsideOpportunities({ data: { setAside: params.setaside, naics: params.naics } }),
+      currentUser
+        ? getSavedBidIds({ data: { userId: currentUser.id } })
+        : Promise.resolve([] as number[]),
+    ]);
+    return { ...d, currentUser, savedBidIds };
+  },
   head: ({ loaderData }) => {
     const d = loaderData;
     const title = d.notFound
@@ -542,9 +555,17 @@ function SetAsideOpportunitiesPage() {
                     </h2>
                     <p className="mt-1 text-sm text-slate-500">{op.agency}</p>
                   </div>
-                  <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
-                    {op.estimated_value}
-                  </span>
+                  <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                    <span className="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                      {op.estimated_value}
+                    </span>
+                    <SaveToPipeline
+                      bidId={op.id}
+                      user={d.currentUser}
+                      initiallySaved={d.savedBidIds.includes(op.id)}
+                      returnPath={`/opportunities/${d.setAsideSlug}/${d.naics}`}
+                    />
+                  </div>
                 </div>
                 {op.description && (
                   <p className="mt-3 line-clamp-3 text-sm text-slate-600">{op.description}</p>

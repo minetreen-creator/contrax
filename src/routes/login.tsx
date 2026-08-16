@@ -10,7 +10,7 @@ export const Route = createFileRoute("/login")({
   loader: async () => ({
     currentUser: await getCurrentUser(),
   }),
-  component: LoginPage,
+  component: LoginRoute,
   head: () => ({
     meta: [
       { title: "Sign In to Contrax" },
@@ -50,9 +50,18 @@ export const Route = createFileRoute("/login")({
   }),
 });
 
-// ── Page Component ────────────────────────────────────────────────────────────
+// ── Route Wrapper ─────────────────────────────────────────────────────────────
 
-function LoginPage() {
+/**
+ * Route wrapper: auth guard lives here so LoginPage's hooks always run in the
+ * same order. The old guard sat BEFORE LoginPage's 4 useState hooks — when the
+ * login submit set the session cookie and the loader revalidated, the same
+ * mounted fiber re-rendered with currentUser present and the hook count
+ * flipped 4 → 0 → React #300 ("Rendered fewer hooks"). The wrapper's own hooks
+ * (useLoaderData + useNavigate) are unconditional, and it only mounts
+ * LoginPage when the guard passes, so the hook count is constant either way.
+ */
+function LoginRoute() {
   const { currentUser } = Route.useLoaderData();
   const navigate = useNavigate();
 
@@ -61,6 +70,14 @@ function LoginPage() {
     navigate({ to: "/dashboard" });
     return null;
   }
+
+  return <LoginPage />;
+}
+
+// ── Page Component ────────────────────────────────────────────────────────────
+
+function LoginPage() {
+  const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

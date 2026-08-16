@@ -836,6 +836,15 @@ function FarClauseStats({
           Exact citations, refreshed daily — complete FAR (parts 1–53) and DFARS
           (201–253, 270) clause text.
         </p>
+        <div className="mt-5 text-center">
+          <a
+            href="/clauses"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
+          >
+            Browse the FAR Clause Library — {stats.total.toLocaleString()} real clauses, free
+            <span aria-hidden="true">&rarr;</span>
+          </a>
+        </div>
       </div>
     </section>
   );
@@ -2304,6 +2313,9 @@ function Footer() {
         <div className="flex flex-wrap items-center gap-5">
           <a href="/compare" className="text-sm text-gray-400 transition-colors hover:text-white">
             Compare
+          </a>
+          <a href="/clauses" className="text-sm text-gray-400 transition-colors hover:text-white">
+            FAR Clause Library
           </a>
           <a href="/blog" className="text-sm text-gray-400 transition-colors hover:text-white">
             Blog

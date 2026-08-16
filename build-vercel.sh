@@ -30,25 +30,32 @@ umask 002
 # `bunx vercel deploy --prebuilt` inherits the project env, so nothing more is
 # needed here.
 
-echo "[1/4] vite build (light — safe under the sandbox memory cap)"
+echo "[1/5] vite build (light — safe under the sandbox memory cap)"
 # The workspace starts as sources only (deps live with the image's pre-built
 # placeholder copy); no-op once node_modules is current.
 bun install
+
+echo "[2/5] generate sitemap.xml from far_clauses (clause library SEO; FAILS OPEN — keeps last-known sitemap if the DB is unreachable)"
+# Must run BEFORE `bun run build` so Vite copies the fresh public/sitemap.xml
+# into dist/client. The script exits 0 even when the DB is unreachable (see its
+# header comment); the `|| echo` guard is belt-and-braces under `set -euo
+# pipefail` so a broken script can never break the deploy.
+bun scripts/generate-sitemap.mjs || echo "[generate-sitemap] failed — keeping existing public/sitemap.xml"
 bun run build
 
-echo "[2/4] generate client entry-assets for vercel-entry.ts (no hardcoded chunk hashes)"
+echo "[3/5] generate client entry-assets for vercel-entry.ts (no hardcoded chunk hashes)"
 # Reads the fresh dist/ output (TanStack Start SSR manifest + dist/client/assets)
 # and writes vercel-entry.assets.json, which vercel-entry.ts imports so the
 # static SEO pages reference the CURRENT entry chunk — not a stale hash.
 bun scripts/generate-entry-assets.mjs
 
-echo "[3/4] assemble .vercel/output (Build Output API v3)"
+echo "[4/5] assemble .vercel/output (Build Output API v3)"
 rm -rf .vercel/output
 mkdir -p .vercel/output/functions/render.func
 cp -R dist/client .vercel/output/static
 rm -f .vercel/output/static/index.html   # SSR owns "/", not a static shell
 
-echo "[4/4] bundle SSR handler + deps into the render function"
+echo "[5/5] bundle SSR handler + deps into the render function"
 bun build vercel-entry.ts --target node \
   --external '#tanstack-router-entry' --external '#tanstack-start-entry' \
   --external 'tanstack-start-manifest:v' \

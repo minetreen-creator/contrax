@@ -121,6 +121,7 @@ function BlogIndexPage() {
           <div className="flex items-center gap-5">
             <a href="/" className="text-sm text-gray-400 transition-colors hover:text-white">Home</a>
             <a href="/blog" className="text-sm text-gray-400 transition-colors hover:text-white">Blog</a>
+            <a href="/clauses" className="text-sm text-gray-400 transition-colors hover:text-white">FAR Clause Library</a>
             <a href="/privacy" className="text-sm text-gray-400 transition-colors hover:text-white">Privacy Policy</a>
             <a href="/terms" className="text-sm text-gray-400 transition-colors hover:text-white">Terms of Service</a>
             <a href="mailto:hello@contrax.company" className="text-sm text-gray-400 transition-colors hover:text-white">

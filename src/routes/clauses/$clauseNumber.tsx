@@ -55,12 +55,16 @@ export const Route = createFileRoute("/clauses/$clauseNumber")({
   head: ({ loaderData }) => {
     const d = loaderData;
     const clauseNumber = d.clause?.clause_number ?? d.requested;
+    // head() runs before the component, so derive the source label here —
+    // default to "FAR" when the clause is missing (not-found pages keep
+    // generic copy and the "Clause Not Found" title).
+    const sourceLabel = d.clause?.source === "dfars" ? "DFARS" : "FAR";
     const title = d.notFound
       ? "Clause Not Found | Contrax"
-      : `FAR ${clauseNumber} — ${d.clause!.title} | Contrax`;
+      : `${sourceLabel} ${clauseNumber} — ${d.clause!.title} | Contrax`;
     const description = d.notFound
       ? "The requested FAR or DFARS clause could not be found."
-      : `${d.clause!.title} — full text of FAR clause ${clauseNumber}, sourced from acquisition.gov.`;
+      : `${d.clause!.title} — full text of ${sourceLabel} clause ${clauseNumber}, sourced from acquisition.gov.`;
     const url = `${PROD_URL}/clauses/${d.requested}`;
     return {
       meta: [
@@ -136,7 +140,7 @@ function ClausePage() {
         <a href="/" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
           &larr; Back
         </a>
-        <h1 className="mt-4 text-2xl font-bold text-slate-900 sm:text-3xl">FAR {clause.clause_number}</h1>
+        <h1 className="mt-4 text-2xl font-bold text-slate-900 sm:text-3xl">{sourceLabel} {clause.clause_number}</h1>
         <p className="mt-2 text-lg font-medium text-slate-700">{clause.title}</p>
         <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{clause.full_text}</p>

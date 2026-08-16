@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useCallback, useEffect } from "react";
-import { getCurrentUser } from "~/lib/auth";
+import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { checkTrial, type TrialStatus } from "~/lib/trial";
 import { SPECIALTY_OPTIONS, daysUntilExpiry, type License } from "~/lib/healthcare";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus } from "~/lib/certifications";
@@ -91,7 +91,7 @@ interface SettingsFormData {
 export const Route = createFileRoute("/settings")({
   head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
   loader: () => getCurrentUser(),
-  component: SettingsPage,
+  component: SettingsRoute,
 });
 
 // ── Toast ────────────────────────────────────────────────────────────────────
@@ -113,16 +113,22 @@ function SuccessToast({ message, onClose }: { message: string; onClose: () => vo
 
 // ── Page Component ───────────────────────────────────────────────────────────
 
-function SettingsPage() {
+/**
+ * Route wrapper: auth guard lives here so SettingsPage's hooks always run in
+ * the same order (a loader-result flip used to change the hook count between
+ * renders of the same fiber → React #300/#301).
+ */
+function SettingsRoute() {
   const currentUser = Route.useLoaderData();
   const navigate = useNavigate();
-
   // Redirect if not logged in
   if (!currentUser) {
     navigate({ to: "/login" });
     return null;
   }
-
+  return <SettingsPage currentUser={currentUser} />;
+}
+function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");

@@ -38,6 +38,13 @@ export interface BidForGrounding {
 }
 
 const MAX_RETRIEVED_CLAUSES = 12;
+/**
+ * Tokens matching more than this fraction of the clause library are
+ * boilerplate (e.g. "agency", "provide", "services" — and substring noise
+ * like "ess") and would drown out discriminative tokens; drop them so the
+ * returned clauses are actually about the bid.
+ */
+const MAX_TOKEN_DOC_FREQUENCY = 0.2;
 
 /** Standard English stopwords (shorter than 3 chars are dropped anyway). */
 const STOPWORDS = new Set([
@@ -71,8 +78,16 @@ function extractTokens(...fields: Array<string | null | undefined>): string[] {
 
 /**
  * Retrieve up to 12 real FAR/DFARS clauses relevant to a bid.
- * Fail-open: any error or empty match returns [] — an ungrounded draft is
- * honest; fabricating clause numbers is not.
+ * Tokens are stopword-filtered and pruned by document frequency (boilerplate
+ * tokens matching >20% of the library are dropped), then OR-matched at the
+ * WORD level (Postgres full-text: `to_tsvector @@ to_tsquery`) against clause
+ * title + full_text — the same search path as `searchFARClauses`, backed by
+ * the `idx_far_clauses_search` GIN index. Word-level matching avoids the
+ * substring noise of ILIKE (e.g. the token "ess" matching "process"),
+ * including when a token never occurs as a standalone word. Title matches
+ * rank first, ordered by how many tokens hit the title (more overlap = more
+ * relevant). Fail-open: any error or empty match returns [] — an ungrounded
+ * draft is honest; fabricating clause numbers is not.
  */
 export async function retrieveRelevantClauses(bid: BidForGrounding): Promise<GroundedClause[]> {
   try {
@@ -81,12 +96,30 @@ export async function retrieveRelevantClauses(bid: BidForGrounding): Promise<Gro
     const tokens = extractTokens(bid.title, bid.description, bid.category, bid.agency, keywords);
     if (tokens.length === 0) return [];
     await ensureFarClausesSeeded();
-    const patterns = tokens.map((t) => `%${t}%`);
+    // Prune boilerplate tokens by document frequency (one round-trip).
+    const dfRows = await sql()`
+      SELECT t.pat,
+        (SELECT COUNT(*) FROM far_clauses fc
+         WHERE to_tsvector('english', fc.title || ' ' || fc.full_text)
+               @@ plainto_tsquery('english', t.pat)) AS c,
+        (SELECT COUNT(*) FROM far_clauses) AS total
+      FROM unnest(${tokens}::text[]) AS t(pat)
+    `;
+    const kept = (dfRows as Array<Record<string, unknown>>)
+      .filter((r) => Number(r.c) / Number(r.total) <= MAX_TOKEN_DOC_FREQUENCY)
+      .map((r) => String(r.pat));
+    if (kept.length === 0) return [];
+    const query = kept.join(" | ");
     const rows = await sql()`
       SELECT clause_number, title, full_text
       FROM far_clauses
-      WHERE title ILIKE ANY(${patterns}) OR full_text ILIKE ANY(${patterns})
-      ORDER BY (title ILIKE ANY(${patterns})) DESC, clause_number ASC
+      WHERE to_tsvector('english', title || ' ' || full_text) @@ to_tsquery('english', ${query})
+      ORDER BY
+        (3 * (SELECT COUNT(*) FROM unnest(${kept}::text[]) AS p(pat)
+              WHERE to_tsvector('english', title) @@ plainto_tsquery('english', p.pat))
+         + (SELECT COUNT(*) FROM unnest(${kept}::text[]) AS p(pat)
+            WHERE to_tsvector('english', full_text) @@ plainto_tsquery('english', p.pat))) DESC,
+        clause_number ASC
       LIMIT ${MAX_RETRIEVED_CLAUSES}
     `;
     return (rows as Array<Record<string, unknown>>).map((r) => ({

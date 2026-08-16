@@ -91,10 +91,13 @@ async function handler({ request }: { request: Request }) {
   if (!user.is_admin) return Response.json({ error: "Admin access required" }, { status: 403 });
 
   try {
-    const [userCount, planRows, recentUsers, waitlistCount, recentWaitlist, diagCount, billCount, traffic, funnel] = await Promise.all([
+    const [userCount, planRows, recentUsers, signupCount, signupRows, waitlistCount, recentWaitlist, diagCount, billCount, traffic, funnel] = await Promise.all([
       sql()`SELECT COUNT(*) as count FROM users`,
       sql()`SELECT plan_tier, COUNT(*) as count FROM users GROUP BY plan_tier ORDER BY count DESC`,
       sql()`SELECT id, email, plan_tier, trial_started_at, subscription_status, created_at FROM users ORDER BY created_at DESC`,
+      // Real signups = users excluding the owner (is_admin) and the demo account.
+      sql()`SELECT COUNT(*) as count FROM users WHERE is_admin = false AND plan_tier <> 'demo'`,
+      sql()`SELECT id, email, created_at FROM users WHERE is_admin = false AND plan_tier <> 'demo' ORDER BY created_at DESC`,
       sql()`SELECT COUNT(*) as count FROM waitlist`,
       sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC LIMIT 10`,
       sql()`SELECT COUNT(*) as count FROM savings_diagnoses`,
@@ -115,6 +118,12 @@ async function handler({ request }: { request: Request }) {
         plan_tier: r.plan_tier,
         trial_started_at: r.trial_started_at ? String(r.trial_started_at) : null,
         subscription_status: r.subscription_status,
+        created_at: String(r.created_at),
+      })),
+      totalSignups: Number(signupCount[0].count),
+      recentSignups: (signupRows as any[]).map((r) => ({
+        id: Number(r.id),
+        email: r.email,
         created_at: String(r.created_at),
       })),
       totalWaitlist: Number(waitlistCount[0].count),

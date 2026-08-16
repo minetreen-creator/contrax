@@ -8,6 +8,7 @@ import { getFPDSIntel, type FPDSIntel } from "~/lib/fpds";
 import { SaveToPipeline } from "~/components/SaveToPipeline";
 import { getCurrentUser } from "~/lib/auth";
 import { getSavedBidIds } from "~/lib/saved-matches";
+import { trackEvent } from "~/lib/track";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Award {
@@ -226,6 +227,8 @@ function AwardsPage() {
   const [loadingIntel, setLoadingIntel] = useState<number | null>(null);
   async function loadIntel(award: Award) {
     if (loadingIntel === award.id) return;
+    // Logged-out users see the gated (blurred) Intel panel — record the wall view.
+    if (!currentUser) trackEvent("incumbent_gate_view", String(award.id), "/awards");
     if (intel[award.id] !== undefined) { setExpandedId(award.id); return; }
     setLoadingIntel(award.id); setExpandedId(award.id);
     const result = await getIncumbentIntel({ data: { naicsCode: award.naics_code, agency: award.agency, title: award.title } });
@@ -417,7 +420,7 @@ function AwardsPage() {
                 {isExpanded && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 space-y-5">
                     {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No matching award history found for this agency and opportunity title.</p>}
-                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} />}
+                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} />}
                     {/* Key Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">

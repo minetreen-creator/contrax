@@ -2128,7 +2128,7 @@ function Pricing() {
       features: [
         "Everything in Starter",
         "Unlimited bid tracking",
-        "FAR-Grounded Drafting — citations to real FAR clauses",
+        "Drafting Intelligence — AI-verified citations to protect your win against audits",
         "Win probability scoring",
         "Compliance tracking",
         "AI chat support",

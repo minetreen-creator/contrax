@@ -47,7 +47,7 @@ const plans = [
     features: [
       "Everything in Starter",
       "Unlimited bid tracking",
-      "AI proposal drafting",
+      "FAR-Grounded Drafting — citations to real FAR clauses",
       "Win probability scoring",
       "Compliance tracking",
       "AI chat support",

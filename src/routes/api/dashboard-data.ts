@@ -16,8 +16,14 @@ interface BidSummary {
   bid_id: number; summary_text: string; key_requirements: string[];
   generated_at: string;
 }
+interface ClauseCitation {
+  clause_number: string;
+  title: string;
+  full_text: string;
+}
 interface ProposalDraft {
   bid_id: number; draft_text: string; generated_at: string;
+  citations: ClauseCitation[];
 }
 interface BidRecommendation {
   bid_id: string; bid_title: string; win_probability: number | null;
@@ -152,11 +158,12 @@ async function handler({ request }: { request: Request }) {
   const recommendationRows = await sql()`SELECT bid_id, bid_title, win_probability, effort_level, competition_level, strategic_fit, recommendation, summary, factors, created_at FROM bid_recommendations WHERE user_email = ${user.email}`;
   const recommendations: BidRecommendation[] = (recommendationRows as any[]).map((r) => ({ ...r, bid_id: String(r.bid_id), win_probability: r.win_probability == null ? null : Number(r.win_probability), factors: Array.isArray(r.factors) ? r.factors : [], created_at: String(r.created_at) }));
 
-  const draftRows = await sql()`SELECT bid_id, draft_text, generated_at FROM proposal_drafts WHERE user_id = ${user.id}`;
+  const draftRows = await sql()`SELECT bid_id, draft_text, generated_at, citations FROM proposal_drafts WHERE user_id = ${user.id}`;
   const drafts: ProposalDraft[] = (draftRows as any[]).map((d) => ({
     bid_id: d.bid_id,
     draft_text: d.draft_text,
     generated_at: String(d.generated_at),
+    citations: Array.isArray(d.citations) ? (d.citations as ClauseCitation[]) : [],
   }));
 
   const syncRows = await sql()`SELECT created_at FROM sync_logs ORDER BY created_at DESC LIMIT 1`;

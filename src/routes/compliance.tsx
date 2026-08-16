@@ -682,6 +682,7 @@ function CompliancePage() {
         <div className="mx-auto max-w-7xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-500">© 2026 Contrax. All rights reserved.</p>
           <div className="flex items-center gap-6">
+            <a href="/clauses" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">FAR Clause Library</a>
             <a href="/privacy" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Privacy Policy</a>
             <a href="/terms" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Terms of Service</a>
             <a href="mailto:hello@contrax.company" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Contact</a>

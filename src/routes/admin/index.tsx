@@ -15,6 +15,8 @@ interface AdminMetrics {
     subscription_status: string | null;
     created_at: string;
   }[];
+  totalSignups: number;
+  recentSignups: { id: number; email: string; created_at: string }[];
   totalWaitlist: number;
   recentWaitlist: { email: string; source: string; created_at: string }[];
   totalPageViews: number;
@@ -450,11 +452,11 @@ function AdminPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Total Signups</p>
-              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.totalWaitlist}</p>
+              <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.totalSignups}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Recent Signups</p>
-              {metrics.recentWaitlist.length === 0 ? (
+              {metrics.recentSignups.length === 0 ? (
                 <p className="mt-2 text-sm text-slate-400">No signups yet</p>
               ) : (
                 <div className="mt-2 -mx-1 max-h-48 overflow-y-auto">
@@ -466,11 +468,11 @@ function AdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {metrics.recentWaitlist.map((w, i) => (
-                        <tr key={i} className="border-t border-slate-50">
-                          <td className="px-1 py-1.5 text-slate-700 truncate max-w-[180px]">{w.email}</td>
+                      {metrics.recentSignups.map((s) => (
+                        <tr key={s.id} className="border-t border-slate-50">
+                          <td className="px-1 py-1.5 text-slate-700 truncate max-w-[180px]">{s.email}</td>
                           <td className="px-1 py-1.5 text-slate-400 whitespace-nowrap">
-                            {new Date(w.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                            {new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                           </td>
                         </tr>
                       ))}

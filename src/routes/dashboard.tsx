@@ -300,6 +300,9 @@ const downloadPdf = createServerFn({ method: "POST" }).validator((data: unknown)
   return { bidId };
 }).handler(async ({ data }): Promise<{ base64: string; filename: string }> => {
   const user = await getCurrentUser(); if (!user) throw new Error("Not authenticated");
+  // Lazy migration for FAR-grounded drafting citations (same pattern as the
+  // business_profiles ALTERs in src/routes/api/bids-draft.ts).
+  try { await sql()`ALTER TABLE proposal_drafts ADD COLUMN IF NOT EXISTS citations JSONB DEFAULT '[]'::jsonb`; } catch {}
   const rows = await sql()`SELECT p.draft_text, p.citations, b.title, b.agency FROM proposal_drafts p JOIN bids b ON b.id = p.bid_id WHERE p.bid_id = ${data.bidId} AND p.user_id = ${user.id} LIMIT 1`;
   if (!rows.length) throw new Error("Proposal draft not found");
   const row = rows[0] as any, title = String(row.title || "Proposal Draft"), agency = String(row.agency || "");

@@ -158,6 +158,10 @@ async function handler({ request }: { request: Request }) {
   const recommendationRows = await sql()`SELECT bid_id, bid_title, win_probability, effort_level, competition_level, strategic_fit, recommendation, summary, factors, created_at FROM bid_recommendations WHERE user_email = ${user.email}`;
   const recommendations: BidRecommendation[] = (recommendationRows as any[]).map((r) => ({ ...r, bid_id: String(r.bid_id), win_probability: r.win_probability == null ? null : Number(r.win_probability), factors: Array.isArray(r.factors) ? r.factors : [], created_at: String(r.created_at) }));
 
+  // Lazy migration for FAR-grounded drafting citations (same pattern as the
+  // business_profiles ALTERs below).
+  try { await sql()`ALTER TABLE proposal_drafts ADD COLUMN IF NOT EXISTS citations JSONB DEFAULT '[]'::jsonb`; } catch {}
+
   const draftRows = await sql()`SELECT bid_id, draft_text, generated_at, citations FROM proposal_drafts WHERE user_id = ${user.id}`;
   const drafts: ProposalDraft[] = (draftRows as any[]).map((d) => ({
     bid_id: d.bid_id,

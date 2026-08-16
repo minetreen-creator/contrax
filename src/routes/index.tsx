@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Menu, Radar, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
@@ -84,6 +84,12 @@ export interface LiveAward {
   last_modified: string | null; // USAspending "Last Modified Date" (YYYY-MM-DD HH:MM:SS)
   agency: string | null;
   set_aside: string | null;
+  // Per-certification feed only: the set-aside code this row was FETCHED under
+  // and its display label. USAspending's per-row "Set Aside Type" comes back
+  // null in search rows (verified 2026-08-15), so the filter used is the only
+  // truthful evidence of an award's type — the tag is never fabricated.
+  cert?: string;
+  certLabel?: string;
 }
 
 const USA_SPENDING_SEARCH = "https://api.usaspending.gov/api/v2/search/spending_by_award/";
@@ -204,6 +210,120 @@ const getLiveAwards = createServerFn({ method: "GET" }).handler(async (): Promis
     const stale = await readCache();
     if (stale) return stale;
   } catch { /* no cache — hide the section */ }
+  return { awards: [], updatedAt: null };
+});
+
+// ── Live Award Feed — per-certification view ─────────────────────────────────
+// Backs the "I am a:" selector above the feed. USAspending's search rows do
+// NOT return a per-row "Set Aside Type" value (verified 2026-08-15 — it comes
+// back null), so the ONLY truthful evidence of an award's type is the filter
+// it was fetched under. We therefore fetch per cert (one code per call) and
+// tag every row with that code — never a fabricated label. Same 12h cache /
+// fresh-first / stale-on-error / never-500 pattern as getLiveAwards above.
+const CERT_CODE_LABELS: Record<string, string> = {
+  "8A": "8(a)",
+  SDVOSBC: "SDVOSB",
+  WOSB_ED_WOSB: "WOSB",
+  HUBZONE: "HUBZone",
+  SBA: "Small Business",
+};
+
+const getLiveAwardsByCert = createServerFn({ method: "GET" }).handler(async ({
+  data: certCode,
+}: {
+  data: string;
+}): Promise<{ awards: LiveAward[]; updatedAt: string | null }> => {
+  // Guard the cache table against junk keys from anything but the 5 chips.
+  if (!CERT_CODE_LABELS[certCode]) return { awards: [], updatedAt: null };
+  const CACHE_KEY = `setaside-cert-${certCode}-v1`;
+  const readCache = async () => {
+    const rows = await sql()`
+      SELECT data, computed_at FROM live_awards_cache
+      WHERE cache_key=${CACHE_KEY}
+      ORDER BY computed_at DESC NULLS LAST
+      LIMIT 1
+    `;
+    if (!rows.length) return null;
+    const c: any = rows[0];
+    return {
+      awards: Array.isArray(c.data) ? (c.data as LiveAward[]) : [],
+      updatedAt: c.computed_at ? new Date(c.computed_at).toISOString() : null,
+    };
+  };
+
+  try {
+    await sql()`CREATE TABLE IF NOT EXISTS live_awards_cache (id SERIAL PRIMARY KEY, cache_key TEXT NOT NULL UNIQUE, data JSONB NOT NULL DEFAULT '[]'::jsonb, computed_at TIMESTAMPTZ DEFAULT NOW())`;
+    const fresh = await sql()`
+      SELECT data, computed_at FROM live_awards_cache
+      WHERE cache_key=${CACHE_KEY} AND computed_at > NOW() - INTERVAL '12 hours'
+      LIMIT 1
+    `;
+    if (fresh.length) {
+      const c: any = fresh[0];
+      return {
+        awards: Array.isArray(c.data) ? (c.data as LiveAward[]) : [],
+        updatedAt: c.computed_at ? new Date(c.computed_at).toISOString() : null,
+      };
+    }
+  } catch (err) {
+    console.error("[homepage] live_awards_cache read failed:", err);
+  }
+
+  try {
+    const end = new Date().toISOString().slice(0, 10);
+    const start = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
+    const data = await usaSpendingSearch({
+      filters: {
+        time_period: [{ start_date: start, end_date: end, date_type: "action_date" }],
+        award_type_codes: ["A", "B", "C", "D"], // contracts only — required with time_period
+        set_aside_type_codes: [certCode], // single code — the row tag below is truthful
+      },
+      fields: ["Award ID", "Recipient Name", "Award Amount", "Start Date", "Awarding Agency", "Set Aside Type", "Description", "Last Modified Date"],
+      limit: 25, // over-fetch so recipient dedupe still yields 5 distinct rows
+      page: 1,
+      order: "desc",
+      sort: "Last Modified Date",
+      subawards: false,
+    });
+    const results = (data?.results || []).filter(
+      (r) => r && r["Recipient Name"] && r["Award Amount"] != null,
+    );
+    if (results.length) {
+      // One row per recipient, newest-first, keep 5 — same shape as the All view.
+      const seen = new Set<string>();
+      const unique = results.filter((r) => {
+        const name = String(r["Recipient Name"]).trim().toLowerCase();
+        if (seen.has(name)) return false;
+        seen.add(name);
+        return true;
+      });
+      const awards: LiveAward[] = unique.slice(0, 5).map((r) => ({
+        award_id: String(r["Award ID"] || r.internal_id || ""),
+        recipient: String(r["Recipient Name"]),
+        amount: Number(r["Award Amount"]) || 0,
+        last_modified: r["Last Modified Date"]
+          ? String(r["Last Modified Date"]).replace(" ", "T")
+          : null,
+        agency: r["Awarding Agency"] ? String(r["Awarding Agency"]) : null,
+        set_aside: r["Set Aside Type"] ? String(r["Set Aside Type"]) : null,
+        cert: certCode,
+        certLabel: CERT_CODE_LABELS[certCode] || certCode,
+      }));
+      try {
+        await sql()`INSERT INTO live_awards_cache (cache_key, data) VALUES (${CACHE_KEY}, ${JSON.stringify(awards)}::jsonb) ON CONFLICT (cache_key) DO UPDATE SET data=EXCLUDED.data, computed_at=NOW()`;
+      } catch (err) {
+        console.error("[homepage] live_awards_cache write failed:", err);
+      }
+      return { awards, updatedAt: new Date().toISOString() };
+    }
+  } catch (err) {
+    console.error("[homepage] USAspending per-cert live-awards fetch failed:", err);
+  }
+
+  try {
+    const stale = await readCache();
+    if (stale) return stale;
+  } catch { /* no cache — honest empty state */ }
   return { awards: [], updatedAt: null };
 });
 
@@ -885,10 +1005,70 @@ function fmtFeedUpdated(iso: string): string | null {
   });
 }
 
+// ── Live Award Feed ────────────────────────────────────────────────────────────
+// Renders REAL recent SET-ASIDE federal contract awards (SBA set-aside
+// programs only — 8(a), SDVOSB, WOSB, HUBZone, VOSB) from USAspending.gov
+// (cached by getLiveAwards above, 12h TTL). Self-hides when there are no rows —
+// the same graceful pattern as FarClauseStats — so an API/cache failure never
+// breaks SSR.
+//
+// "I am a:" certification selector: chips [All set-asides] [8(a)] [SDVOSB]
+// [WOSB] [HUBZone] [Small Business]. "All set-asides" is the default and uses
+// the SSR feed untouched (no regression on the default homepage path). Picking
+// a cert calls getLiveAwardsByCert client-side, which fetches that ONE set-
+// aside code from USAspending and tags every row with the code it was fetched
+// under (the only truthful type evidence — per-row "Set Aside Type" is null).
+// A cert with zero rows shows an honest empty state, never a fabricated count.
+const CERT_CHIPS = [
+  { id: "all", label: "All set-asides", code: null as string | null },
+  { id: "8a", label: "8(a)", code: "8A" },
+  { id: "sdvosb", label: "SDVOSB", code: "SDVOSBC" },
+  { id: "wosb", label: "WOSB", code: "WOSB_ED_WOSB" },
+  { id: "hubzone", label: "HUBZone", code: "HUBZONE" },
+  { id: "sb", label: "Small Business", code: "SBA" },
+];
+
 function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: string | null } }) {
-  const awards = feed?.awards || [];
-  if (!awards.length) return null; // graceful self-hide (FAR-strip pattern)
-  const updated = feed.updatedAt ? fmtFeedUpdated(feed.updatedAt) : null;
+  const [activeId, setActiveId] = useState("all");
+  const [certFeed, setCertFeed] = useState<{ awards: LiveAward[]; updatedAt: string | null } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const reqRef = useRef(0); // stale-response guard for rapid chip switches
+  const allAwards = feed?.awards || [];
+  if (!allAwards.length) return null; // graceful self-hide (FAR-strip pattern); hooks already run above
+
+  const activeChip = CERT_CHIPS.find((c) => c.id === activeId) || CERT_CHIPS[0];
+  const showAll = activeId === "all";
+  const awards = showAll ? allAwards : certFeed?.awards || [];
+  const updatedIso = showAll ? feed.updatedAt : certFeed?.updatedAt ?? null;
+  const updated = updatedIso ? fmtFeedUpdated(updatedIso) : null;
+
+  const selectChip = async (chip: (typeof CERT_CHIPS)[number]) => {
+    if (chip.id === activeId) return; // already active — no event, no refetch
+    trackEvent("feed_filter_click", chip.id); // fire-and-forget, never blocks UI
+    const req = ++reqRef.current;
+    setActiveId(chip.id);
+    if (chip.id === "all") {
+      setCertFeed(null);
+      setLoading(false);
+      return;
+    }
+    setCertFeed(null); // never show a previous cert's rows under a new headline
+    setLoading(true);
+    try {
+      const result = await getLiveAwardsByCert({ data: chip.code as string });
+      if (req === reqRef.current) setCertFeed(result);
+    } catch {
+      // API failure — honest empty state, never a 500 in the UI
+      if (req === reqRef.current) setCertFeed({ awards: [], updatedAt: null });
+    } finally {
+      if (req === reqRef.current) setLoading(false);
+    }
+  };
+
+  const subheadline = showAll
+    ? `Recent set-aside awards · 8(a) · SDVOSB · WOSB · HUBZone · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`
+    : `Recent ${activeChip.label} set-aside awards · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`;
+
   return (
     <section className="border-b border-gray-100 bg-white py-12 sm:py-16" aria-label="Live set-aside federal contract awards">
       <div className="mx-auto max-w-7xl px-6">
@@ -900,40 +1080,84 @@ function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: strin
             </span>
             <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Live Award Feed</h2>
           </div>
-          <p className="text-sm text-gray-500">
-            Recent set-aside awards · 8(a) · SDVOSB · WOSB · HUBZone · Source: USAspending.gov
-            {updated ? ` · Updated ${updated}` : ""}
-          </p>
+          <p className="text-sm text-gray-500">{subheadline}</p>
         </div>
 
-        <div className="mx-auto mt-10 max-w-4xl divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          {awards.map((award, i) => {
-            const date = fmtAwardDate(award.last_modified);
+        {/* "I am a:" certification selector — wraps on mobile, no horizontal overflow */}
+        <div className="mx-auto mt-8 flex max-w-4xl flex-wrap items-center justify-center gap-x-2 gap-y-2">
+          <span className="mr-1 whitespace-nowrap text-sm font-semibold text-gray-500">I am a:</span>
+          {CERT_CHIPS.map((chip) => {
+            const isActive = chip.id === activeId;
             return (
-              <div
-                key={award.award_id || `${award.recipient}-${award.amount}-${i}`}
-                className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => selectChip(chip)}
+                aria-pressed={isActive}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                  isActive
+                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
+                    : "border-gray-300 bg-white text-gray-700 hover:border-slate-400 hover:text-slate-900"
+                }`}
               >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-slate-900" title={award.recipient}>
-                    {award.recipient}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-gray-500">
-                    {award.agency || "Federal agency"}
-                    {date ? ` · ${date}` : ""}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-1">
-                  <span className="text-sm font-bold text-emerald-600">{money(award.amount)}</span>
-                  {award.set_aside ? (
-                    <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
-                      {award.set_aside}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
+                {chip.label}
+              </button>
             );
           })}
+        </div>
+
+        <div className="mx-auto mt-6 max-w-4xl divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+          {loading ? (
+            <div className="px-5 py-6 text-center">
+              <p className="text-sm font-medium text-gray-500">
+                Loading recent {activeChip.label} set-aside awards…
+              </p>
+            </div>
+          ) : awards.length ? (
+            awards.map((award, i) => {
+              const date = fmtAwardDate(award.last_modified);
+              return (
+                <div
+                  key={award.award_id || `${award.recipient}-${award.amount}-${i}`}
+                  className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-slate-900" title={award.recipient}>
+                      {award.recipient}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-gray-500">
+                      {award.agency || "Federal agency"}
+                      {date ? ` · ${date}` : ""}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-1">
+                    <span className="text-sm font-bold text-emerald-600">{money(award.amount)}</span>
+                    {award.certLabel || award.set_aside ? (
+                      <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
+                        {award.certLabel || award.set_aside}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="px-5 py-10 text-center">
+              <p className="text-sm font-semibold text-slate-900">
+                No recent {activeChip.label} set-aside awards in the feed right now
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                Source: USAspending.gov — check back soon, or view the full set-aside feed.
+              </p>
+              <button
+                type="button"
+                onClick={() => selectChip(CERT_CHIPS[0])}
+                className="mt-4 inline-flex items-center justify-center rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-800 transition-colors hover:border-slate-400 hover:text-slate-900"
+              >
+                Show all set-asides
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="mt-10 text-center">

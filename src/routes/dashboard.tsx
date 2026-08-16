@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { redirectToCheckout } from "~/lib/checkout";
@@ -36,8 +36,14 @@ interface HealthcareSummary {
   summary_text: string;
   generated_at: string;
 }
+interface ClauseCitation {
+  clause_number: string;
+  title: string;
+  full_text: string;
+}
 interface ProposalDraft {
   bid_id: number; draft_text: string; generated_at: string;
+  citations: ClauseCitation[];
 }
 interface BidRecommendation {
   bid_id: string; bid_title: string; win_probability: number | null;
@@ -294,7 +300,7 @@ const downloadPdf = createServerFn({ method: "POST" }).validator((data: unknown)
   return { bidId };
 }).handler(async ({ data }): Promise<{ base64: string; filename: string }> => {
   const user = await getCurrentUser(); if (!user) throw new Error("Not authenticated");
-  const rows = await sql()`SELECT p.draft_text, b.title, b.agency FROM proposal_drafts p JOIN bids b ON b.id = p.bid_id WHERE p.bid_id = ${data.bidId} AND p.user_id = ${user.id} LIMIT 1`;
+  const rows = await sql()`SELECT p.draft_text, p.citations, b.title, b.agency FROM proposal_drafts p JOIN bids b ON b.id = p.bid_id WHERE p.bid_id = ${data.bidId} AND p.user_id = ${user.id} LIMIT 1`;
   if (!rows.length) throw new Error("Proposal draft not found");
   const row = rows[0] as any, title = String(row.title || "Proposal Draft"), agency = String(row.agency || "");
   const date = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
@@ -418,6 +424,54 @@ function recommendationStyle(rec: BidRecommendation | undefined) {
   return { label: "CAUTIOUS", detail: "Proceed carefully — mixed signals", bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200", dot: "🟡" };
 }
 function levelStyle(level: string) { return level === "low" || level === "strong" ? "bg-green-100 text-green-700" : level === "high" || level === "extreme" || level === "weak" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"; }
+
+
+// ── FAR-Grounded Drafting renderer ─────────────────────────────────────────
+// Renders the draft text with every VALID citation hyperlinked. The citations
+// array (from the API/DB — every entry validated against far_clauses) is the
+// ONLY source of truth: the token regex is built exclusively from those
+// clause numbers, so text the engine never validated is never hyperlinked.
+function renderDraftText(text: string, citations: ClauseCitation[] | undefined, reviewMode: boolean): ReactNode {
+  const list = Array.isArray(citations) ? citations : [];
+  if (!list.length) return text;
+  // Escape clause numbers for regex use; longest first so a number that is a
+  // prefix of another (e.g. 52.212-4 vs 52.212-40) matches the longer token.
+  const escaped = list
+    .map((c) => c.clause_number.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .sort((a, b) => b.length - a.length);
+  const re = new RegExp(
+    escaped.map((n) => `(?:\\[FAR\\s+)?${n}(?:\\])?`).join("|"),
+    "g",
+  );
+  const byNumber = new Map(list.map((c) => [c.clause_number, c]));
+  const parts: ReactNode[] = [];
+  let last = 0;
+  let key = 0;
+  for (const m of text.matchAll(re)) {
+    const token = m[0];
+    const unwrapped = token.replace(/^\[FAR\s+/, "").replace(/\]$/, "");
+    const citation = byNumber.get(unwrapped);
+    if (citation) {
+      if (m.index > last) parts.push(text.slice(last, m.index));
+      parts.push(
+        <a
+          key={`cit-${key++}`}
+          href={`/clauses/${citation.clause_number}`}
+          className={
+            reviewMode
+              ? "rounded-sm bg-amber-200 px-0.5 font-medium text-blue-700 underline decoration-solid underline-offset-2 hover:bg-amber-300"
+              : "font-medium text-blue-600 underline decoration-dotted underline-offset-2 hover:text-blue-700 hover:decoration-solid"
+          }
+        >
+          {token}
+        </a>,
+      );
+      last = m.index + token.length;
+    }
+  }
+  if (last < text.length) parts.push(text.slice(last));
+  return parts.length ? parts : text;
+}
 function setAsideLabel(raw: string | null | undefined): string | null {
   if (!raw) return null;
   const v = String(raw).trim();
@@ -739,6 +793,7 @@ function DashboardPage() {
   const [healthcareSummaries, setHealthcareSummaries] = useState<Record<number, HealthcareSummary>>({});
   const [healthcareView, setHealthcareView] = useState<Record<number, boolean>>({});
   const [generatingHealthcare, setGeneratingHealthcare] = useState<Set<number>>(new Set());
+  const [reviewMode, setReviewMode] = useState<Record<number, boolean>>({});
   const [drafts, setDrafts] = useState<Record<number, ProposalDraft>>(() => {
     const map: Record<number, ProposalDraft> = {};
     (data?.drafts ?? []).forEach((d) => { map[d.bid_id] = d; });
@@ -1665,21 +1720,75 @@ function DashboardPage() {
                             {draft ? (
                               <div className="space-y-4">
                                 <div className="rounded-xl border border-green-200 bg-gradient-to-br from-green-50 to-white p-5 max-h-96 overflow-y-auto">
-                                  <div className="flex items-center justify-between mb-3">
+                                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                                     <p className="text-xs font-semibold uppercase tracking-wide text-green-600 flex items-center gap-1.5">
                                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" /></svg>
-                                      Proposal Draft
+                                      FAR-Grounded Drafting
                                     </p>
-                                    <button
-                                      type="button"
-                                      onClick={() => doGenerateProposal(bid.id)}
-                                      disabled={isGenProposal}
-                                      className="text-xs font-medium text-slate-400 hover:text-green-600 disabled:opacity-50"
-                                    >
-                                      {isGenProposal ? "Regenerating..." : "Regenerate"}
-                                    </button>
+                                    <div className="flex items-center gap-2">
+                                      <div className="inline-flex items-center rounded-lg border border-green-200 bg-white p-0.5 text-xs font-medium">
+                                        <button
+                                          type="button"
+                                          onClick={() => setReviewMode((p) => ({ ...p, [bid.id]: false }))}
+                                          className={`rounded-md px-2.5 py-1 transition-colors ${!reviewMode[bid.id] ? "bg-green-600 text-white" : "text-slate-500 hover:text-slate-700"}`}
+                                        >
+                                          Draft
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => setReviewMode((p) => ({ ...p, [bid.id]: true }))}
+                                          className={`rounded-md px-2.5 py-1 transition-colors ${reviewMode[bid.id] ? "bg-amber-400 text-white" : "text-slate-500 hover:text-slate-700"}`}
+                                        >
+                                          Review
+                                        </button>
+                                      </div>
+                                      <button
+                                        type="button"
+                                        onClick={() => doGenerateProposal(bid.id)}
+                                        disabled={isGenProposal}
+                                        className="text-xs font-medium text-slate-400 hover:text-green-600 disabled:opacity-50"
+                                      >
+                                        {isGenProposal ? "Regenerating..." : "Regenerate"}
+                                      </button>
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{draft.draft_text}</div>
+                                  <div className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{renderDraftText(draft.draft_text, draft.citations, !!reviewMode[bid.id])}</div>
+                                  {(!draft.citations || draft.citations.length === 0) && (
+                                    <p className="mt-3 text-xs italic text-slate-400">
+                                      No FAR citations in this draft — the proposal sections below were written from the business profile.
+                                    </p>
+                                  )}
+                                  {reviewMode[bid.id] && draft.citations && draft.citations.length > 0 && (
+                                    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50/60 p-4">
+                                      <p className="text-xs font-semibold uppercase tracking-wide text-amber-700 flex items-center gap-1.5">
+                                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                                        Why the AI wrote this
+                                      </p>
+                                      <p className="mt-1 text-xs text-slate-500">
+                                        Every clause below is a real FAR/DFARS clause, validated against the FAR clause library. Click a highlighted citation in the draft or "View clause" to read the full text.
+                                      </p>
+                                      <div className="mt-3 space-y-3">
+                                        {draft.citations.map((c) => (
+                                          <div key={c.clause_number} className="rounded-lg border border-amber-200 bg-white p-3">
+                                            <div className="flex items-start justify-between gap-3">
+                                              <p className="text-sm font-semibold text-slate-800">
+                                                FAR {c.clause_number} — {c.title}
+                                              </p>
+                                              <a
+                                                href={`/clauses/${c.clause_number}`}
+                                                className="shrink-0 text-xs font-medium text-blue-600 underline decoration-dotted underline-offset-2 hover:text-blue-700 hover:decoration-solid"
+                                              >
+                                                View clause →
+                                              </a>
+                                            </div>
+                                            <div className="mt-2 max-h-40 overflow-y-auto rounded-md bg-slate-50 p-3 text-xs leading-relaxed text-slate-600 whitespace-pre-line">
+                                              {c.full_text}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                   <FeedbackWidget context="proposal" solicitationRef={String(bid.id)} aiOutputSummary={draft.draft_text.slice(0, 500)} />
                                 </div>
                                 <div className="flex items-center gap-3">

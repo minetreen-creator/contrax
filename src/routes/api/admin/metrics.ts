@@ -2,6 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 
+/**
+ * IPs excluded from dashboard metrics. 34.214.71.218 is the QA team's cloud
+ * browser egress; 73.40.36.204 is the team lead's own test machine — their
+ * test traffic pollutes the funnel/page-view stats, so it is hidden from the
+ * dashboard (but still recorded, so QA can verify events fire correctly).
+ * Add any future test IP here (owner-directed ban, 2026-08-17).
+ */
+const EXCLUDED_IPS = sql.unsafe("('34.214.71.218','73.40.36.204')");
+
 interface TrafficMetrics {
   totalPageViews: number;
   pageViewsToday: number;
@@ -28,11 +37,11 @@ async function loadTrafficMetrics(): Promise<TrafficMetrics> {
     // Purge any admin page views that were recorded before the exclusion filter was added.
     try { await sql()`DELETE FROM page_views WHERE path LIKE '/admin%'`; } catch { /* ok if table doesn't exist yet */ }
     const [total, today, week, top, unique] = await Promise.all([
-      sql()`SELECT COUNT(*) as count FROM page_views`,
-      sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= CURRENT_DATE`,
-      sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= NOW() - INTERVAL '7 days'`,
-      sql()`SELECT path, COUNT(*) as count FROM page_views GROUP BY path ORDER BY count DESC LIMIT 5`,
-      sql()`SELECT COUNT(DISTINCT ip) as count FROM page_views WHERE created_at >= CURRENT_DATE`,
+      sql()`SELECT COUNT(*) as count FROM page_views WHERE ip NOT IN ${EXCLUDED_IPS}`,
+      sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= CURRENT_DATE AND ip NOT IN ${EXCLUDED_IPS}`,
+      sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= NOW() - INTERVAL '7 days' AND ip NOT IN ${EXCLUDED_IPS}`,
+      sql()`SELECT path, COUNT(*) as count FROM page_views WHERE ip NOT IN ${EXCLUDED_IPS} GROUP BY path ORDER BY count DESC LIMIT 5`,
+      sql()`SELECT COUNT(DISTINCT ip) as count FROM page_views WHERE created_at >= CURRENT_DATE AND ip NOT IN ${EXCLUDED_IPS}`,
     ]);
     return {
       totalPageViews: Number(total[0].count),
@@ -61,11 +70,11 @@ async function loadTrafficMetrics(): Promise<TrafficMetrics> {
 async function loadFunnelMetrics(): Promise<FunnelMetrics> {
   try {
     const [total, today, week, byName, recent] = await Promise.all([
-      sql()`SELECT COUNT(*) as count FROM funnel_events`,
-      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= CURRENT_DATE`,
-      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= NOW() - INTERVAL '7 days'`,
-      sql()`SELECT event_name, COUNT(*) as count FROM funnel_events WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY event_name ORDER BY count DESC`,
-      sql()`SELECT event_name, label, path, created_at FROM funnel_events ORDER BY created_at DESC LIMIT 20`,
+      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE ip NOT IN ${EXCLUDED_IPS}`,
+      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= CURRENT_DATE AND ip NOT IN ${EXCLUDED_IPS}`,
+      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= NOW() - INTERVAL '7 days' AND ip NOT IN ${EXCLUDED_IPS}`,
+      sql()`SELECT event_name, COUNT(*) as count FROM funnel_events WHERE created_at >= NOW() - INTERVAL '7 days' AND ip NOT IN ${EXCLUDED_IPS} GROUP BY event_name ORDER BY count DESC`,
+      sql()`SELECT event_name, label, path, created_at FROM funnel_events WHERE ip NOT IN ${EXCLUDED_IPS} ORDER BY created_at DESC LIMIT 20`,
     ]);
     return {
       total: Number(total[0].count),

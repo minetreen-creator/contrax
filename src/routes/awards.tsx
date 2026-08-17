@@ -250,9 +250,16 @@ function AwardsPage() {
   }, []);
   async function loadIntel(award: Award) {
     if (loadingIntel === award.id) return;
-    // Logged-out users: the first expanded card is granted free (full data, no
-    // wall); every later card shows the tease wall — record the wall view then.
-    if (!currentUser) {
+    if (intel[award.id] !== undefined) { setExpandedId(award.id); return; }
+    setLoadingIntel(award.id); setExpandedId(award.id);
+    const result = await getIncumbentIntel({ data: { naicsCode: award.naics_code, agency: award.agency, title: award.title } });
+    setIntel((prev) => ({ ...prev, [award.id]: result })); setLoadingIntel(null);
+    // Logged-out users: the first expanded card WITH REAL DATA is granted free
+    // (full data, no wall). Data-less cards (no FPDS history) never consume the
+    // grant and fire no events. Every later data card shows the tease wall —
+    // record the wall view then. Grant check+write are in the same synchronous
+    // block after the await, so in-flight fetches cannot double-grant.
+    if (!currentUser && result !== null) {
       if (!freeIntelGranted()) {
         grantFreeIntel();
         setFreeRevealAwardId(award.id);
@@ -261,10 +268,6 @@ function AwardsPage() {
         trackEvent("incumbent_gate_view", String(award.id), "/awards");
       }
     }
-    if (intel[award.id] !== undefined) { setExpandedId(award.id); return; }
-    setLoadingIntel(award.id); setExpandedId(award.id);
-    const result = await getIncumbentIntel({ data: { naicsCode: award.naics_code, agency: award.agency, title: award.title } });
-    setIntel((prev) => ({ ...prev, [award.id]: result })); setLoadingIntel(null);
   }
 
   const agencies = [...new Set(awards.map((a) => a.agency))].sort();

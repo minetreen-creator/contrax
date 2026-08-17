@@ -90,6 +90,8 @@ function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-slate-900">8. Your Rights</h2>
             <p className="mt-3">You may request access, correction, or deletion of your data at privacy@contrax.company. We will respond within 30 days.</p>
+            <p className="mt-3">California residents may exercise rights under the CCPA by contacting privacy@contrax.company. We do not sell personal information.</p>
+            <p className="mt-3">For individuals in the EU/EEA, our lawful bases for processing are the performance of our contract with you, your consent where required, and legitimate interests. You may exercise GDPR rights (access, correction, erasure, portability, objection) by contacting us.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">9. Changes</h2>

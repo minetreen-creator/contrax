@@ -64,15 +64,15 @@ const PRIVACY_HTML = `<!DOCTYPE html>
 <div class="nav"><div class="nav-inner"><a href="/">📄 Contracts</a><a href="/savings">💰 Savings</a></div></div>
 <div class="container">
 <h1>Privacy Policy</h1>
-<p class="date">Last updated: July 31, 2026</p>
-<section><h2>1. Information We Collect</h2><p>When you use Contrax, we collect information you provide directly: your name, email address, business details, and preferences when you create an account. We also collect information about your use of our services, including bid preferences, saved searches, and proposal activity.</p><p>For our Savings product, we collect bill images, receipt data, and pricing information you upload for analysis.</p></section>
-<section><h2>2. How We Use Your Information</h2><p>We use your information to: provide our services, match your business with government contracts, generate AI-powered summaries and proposals, analyze bills for savings, send notifications, and provide support.</p></section>
+<p class="date">Last updated: August 17, 2026</p>
+<section><h2>1. Information We Collect</h2><p>When you use Contrax, we collect information you provide directly: your name, email address, business details, and preferences when you create an account. We also collect information about your use of our services, including bid preferences, saved searches, and proposal activity.</p></section>
+<section><h2>2. How We Use Your Information</h2><p>We use your information to: provide our services, match your business with government contracts, generate AI-powered summaries and proposals, score win probability, track certification deadlines, send notifications, and provide support.</p></section>
 <section><h2>3. Data Storage and Security</h2><p>Your data is stored on secure servers (Neon PostgreSQL, Vercel). We use industry-standard encryption. No method of electronic storage is 100% secure.</p></section>
 <section><h2>4. Third-Party Services</h2><p>We use Stripe (payments), OpenAI (AI processing), Resend (email), and Vercel (hosting). See their privacy policies for details.</p></section>
 <section><h2>5. Cookies</h2><p>We use essential cookies for login sessions. No advertising or tracking cookies.</p></section>
-<section><h2>6. Your Rights</h2><p>You may request access, correction, or deletion of your data. Contact <a href="mailto:privacy@contrax.app">privacy@contrax.app</a>. We will respond within 30 days.</p></section>
+<section><h2>6. Your Rights</h2><p>You may request access, correction, or deletion of your data. Contact <a href="mailto:privacy@contrax.company">privacy@contrax.company</a>. We will respond within 30 days.</p></section>
 <section><h2>7. Changes</h2><p>We may update this policy. Material changes will be notified via email or through the service.</p></section>
-<section><h2>8. Contact</h2><p>Questions? Contact <a href="mailto:privacy@contrax.app">privacy@contrax.app</a>.</p></section>
+<section><h2>8. Contact</h2><p>Questions? Contact <a href="mailto:privacy@contrax.company">privacy@contrax.company</a>.</p></section>
 </div>
 <footer><div class="f-inner"><span>© 2026 Contrax. All rights reserved.</span><div style="display:flex;gap:1.5rem"><a href="/privacy" style="color:#64748b">Privacy Policy</a><a href="/terms" style="color:#64748b">Terms of Service</a><a href="/security" style="color:#64748b">Security</a><a href="mailto:minetreen@gmail.com" style="color:#64748b">Contact</a></div></div></footer>
 </body>
@@ -108,9 +108,9 @@ const TERMS_HTML = `<!DOCTYPE html>
 <div class="nav"><div class="nav-inner"><a href="/">📄 Contracts</a><a href="/savings">💰 Savings</a></div></div>
 <div class="container">
 <h1>Terms of Service</h1>
-<p class="date">Last updated: July 31, 2026</p>
+<p class="date">Last updated: August 17, 2026</p>
 <section><h2>1. Acceptance of Terms</h2><p>By accessing or using Contrax ("the Service"), you agree to these Terms of Service. If you do not agree, do not use the Service. We may update these terms at any time; continued use after changes constitutes acceptance.</p></section>
-<section><h2>2. Description of Service</h2><p>Contrax is an AI-powered platform that helps small businesses discover, understand, and respond to government contract opportunities, and provides consumer savings analysis through bill and receipt review.</p></section>
+<section><h2>2. Description of Service</h2><p>Contrax is an AI-powered platform that helps small businesses discover, understand, and respond to government contract opportunities.</p></section>
 <section><h2>3. Accounts and Billing</h2><p>You must create an account to access paid features. All fees are billed in advance on a monthly basis via Stripe. You may cancel at any time; cancellation takes effect at the end of the current billing period. No refunds for partial months.</p></section>
 <section><h2>4. Acceptable Use</h2><p>You agree not to use the Service for any unlawful purpose, submit false information, circumvent security features, resell or scrape the Service, submit fraudulent bids, or upload malicious code.</p></section>
 <section><h2>5. AI-Generated Content</h2><p>AI-generated content (summaries, proposals, recommendations) is provided as a starting point. Review and verify all AI output before use. We make no guarantees about accuracy or suitability. You are responsible for final content you submit using our tools.</p></section>

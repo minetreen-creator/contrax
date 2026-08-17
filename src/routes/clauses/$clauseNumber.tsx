@@ -183,6 +183,38 @@ export const Route = createFileRoute("/clauses/$clauseNumber")({
 function ClauseOrPartPage() {
   const d = Route.useLoaderData();
   if (d.kind === "part") {
+    if (d.notFound || d.failed) {
+      return (
+        <div className="min-h-screen bg-slate-50">
+          <header className="border-b border-slate-200 bg-white">
+            <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
+              <a href="/" className="inline-flex items-center gap-2">
+                <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+              </a>
+              <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">
+                Dashboard
+              </a>
+            </div>
+          </header>
+          <main className="mx-auto max-w-3xl px-4 py-16 text-center">
+            <p className="text-sm font-semibold uppercase tracking-wide text-slate-400">404</p>
+            <h1 className="mt-2 text-3xl font-bold text-slate-900">Part not found</h1>
+            <p className="mx-auto mt-3 max-w-md text-slate-600">
+              We couldn&apos;t find a FAR or DFARS part matching{" "}
+              <span className="font-medium text-slate-800">/clauses/{d.part}</span>.
+              Part numbers are single integers like <span className="font-medium">52</span> or{" "}
+              <span className="font-medium">252</span>.
+            </p>
+            <a
+              href="/clauses"
+              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
+            >
+              &larr; Browse the clause library
+            </a>
+          </main>
+        </div>
+      );
+    }
     return <ClausePartPage data={d} />;
   }
   return <ClausePageInner d={d} />;

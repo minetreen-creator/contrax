@@ -98,7 +98,10 @@ async function main() {
     // Part landing pages (/clauses/52, /clauses/252, …) — DB-driven distinct
     // part list, never hardcoded. Shares the same try/catch so a DB failure
     // keeps the fail-open contract (last-known sitemap preserved).
-    const partRows = await db`SELECT DISTINCT part FROM far_clauses WHERE part IS NOT NULL ORDER BY part::int`;
+    // GROUP BY (not DISTINCT): Postgres rejects ORDER BY part::int under DISTINCT
+    // (ORDER BY expressions must appear in the select list). GROUP BY permits
+    // ordering by an expression of the grouped column.
+    const partRows = await db`SELECT part FROM far_clauses WHERE part IS NOT NULL GROUP BY part ORDER BY part::int`;
     partNumbers = partRows.map((r) => String(r.part)).filter(Boolean);
   } catch (err) {
     console.warn(

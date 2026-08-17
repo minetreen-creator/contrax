@@ -6,7 +6,6 @@
  */
 
 import { isAdminEmail } from "~/lib/admin";
-import { sql } from "~/db";
 
 const SESSION_COOKIE = "contrax_session";
 
@@ -38,19 +37,17 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
       }
       if (token) {
         try {
-          const rows = await sql()`
-            SELECT u.id, u.email, u.created_at, COALESCE(u.is_admin, FALSE) AS is_admin
-            FROM sessions s
-            JOIN users u ON s.user_id = u.id
-            WHERE s.token = ${token} AND s.expires_at > NOW()
-            LIMIT 1
-          `;
-          if (rows.length > 0) {
-            const u = rows[0] as any;
+          // Lazy import keeps the DB stack (pg-protocol/ws/buffer polyfills,
+          // ~110 KB) out of the client entry bundle. This branch only runs
+          // during SSR (`typeof window === "undefined"`), so browsers never
+          // fetch the emitted async chunk. See src/lib/session-verify.ts.
+          const { lookupSessionUser } = await import("~/lib/session-verify");
+          const u = await lookupSessionUser(token);
+          if (u) {
             return {
               id: u.id,
               email: u.email,
-              created_at: String(u.created_at),
+              created_at: u.created_at,
               is_admin: u.is_admin === true || isAdminEmail(u.email),
             };
           }

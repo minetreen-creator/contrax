@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Menu, Radar, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
-import { sql } from "~/db";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Bid = {
@@ -28,6 +27,7 @@ type TodayBid = {
 // ── Server Functions ──────────────────────────────────────────────────────────
 
 const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
+  const { sql } = await import("~/db");
   const rows = await sql()`
     SELECT title, agency, estimated_value, due_date, location
     FROM bids
@@ -37,6 +37,7 @@ const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
   return rows as Bid[];
 });
 const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
+  const { sql } = await import("~/db");
   // Public teaser: titles only — no source URLs or descriptions for
   // unauthenticated visitors. Full detail lives behind the signup wall.
   const rows = await sql()`
@@ -113,6 +114,7 @@ const getLiveAwards = createServerFn({ method: "GET" }).handler(async (): Promis
   awards: LiveAward[];
   updatedAt: string | null;
 }> => {
+  const { sql } = await import("~/db");
   const CACHE_KEY = "setaside-90d-v1";
   const readCache = async () => {
     const rows = await sql()`
@@ -233,6 +235,7 @@ const getLiveAwardsByCert = createServerFn({ method: "GET" }).handler(async ({
 }: {
   data: string;
 }): Promise<{ awards: LiveAward[]; updatedAt: string | null }> => {
+  const { sql } = await import("~/db");
   // Guard the cache table against junk keys from anything but the 5 chips.
   if (!CERT_CODE_LABELS[certCode]) return { awards: [], updatedAt: null };
   const CACHE_KEY = `setaside-cert-${certCode}-v1`;
@@ -406,6 +409,7 @@ export function isHealthcareBid(bid: {
 }
 
 const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => {
+  const { sql } = await import("~/db");
   const patterns = HEALTHCARE_KEYWORDS.map((keyword) => `%${keyword}%`);
   const rows = await sql()`
     SELECT title, agency, estimated_value, due_date, location, category, description
@@ -428,6 +432,7 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
 
 const getUserCount = async () => {
   try {
+    const { sql } = await import("~/db");
     const rows = await sql()`SELECT COUNT(*)::int AS count FROM users`;
     return Number((rows[0] as any)?.count || 0);
   } catch {
@@ -441,6 +446,7 @@ const getFarClauseCounts = async (): Promise<{
   dfars: number;
 } | null> => {
   try {
+    const { sql } = await import("~/db");
     const rows = await sql()`
       SELECT source, COUNT(*)::int AS count
       FROM far_clauses
@@ -465,6 +471,7 @@ const getFarClauseCounts = async (): Promise<{
 };
 const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }> => {
   try {
+    const { sql } = await import("~/db");
     const [bids, agencies] = await Promise.all([
       sql()`SELECT COUNT(*)::int AS count FROM bids`,
       sql()`SELECT COUNT(DISTINCT agency)::int AS count FROM bids`,
@@ -479,6 +486,7 @@ const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }
   }
 };
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
+  const { sql } = await import("~/db");
   const [businessName, user, bids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts] = await Promise.all([
     (async () => {
       try {

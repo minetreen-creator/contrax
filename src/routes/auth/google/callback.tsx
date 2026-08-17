@@ -1,7 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { setCookie } from "@tanstack/react-start/server";
-import { sql } from "~/db";
 import { SESSION_COOKIE } from "~/lib/auth";
 import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
 import { safeNext, saveMatch } from "~/lib/saved-matches";
@@ -148,6 +147,7 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
     return { code: d.code, plan };
   })
   .handler(async ({ data: { code, plan } }) => {
+    const { sql } = await import("~/db");
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
     if (!clientId || !clientSecret) {
@@ -259,6 +259,7 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
  * row can be recorded without a client round-trip.
  */
 async function ensureFunnelEventsTable(): Promise<void> {
+  const { sql } = await import("~/db");
   await sql()`CREATE TABLE IF NOT EXISTS funnel_events (
     id SERIAL PRIMARY KEY,
     event_name TEXT NOT NULL,
@@ -322,6 +323,7 @@ export const Route = createFileRoute("/auth/google/callback")({
     // redirect, and never fails the login — the save is best-effort.
     if (saveBid !== null && userId !== null) {
       try {
+        const { sql } = await import("~/db");
         await saveMatch(userId, saveBid);
         await ensureFunnelEventsTable();
         await sql()`

@@ -225,10 +225,33 @@ function AwardsPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [intel, setIntel] = useState<Record<number, FPDSIntel | null | undefined>>({});
   const [loadingIntel, setLoadingIntel] = useState<number | null>(null);
+  // Session-scoped "first one's free" grant: the FIRST intel card a logged-out
+  // visitor expands in a tab-session shows full data (no wall). sessionStorage
+  // persists across client-side nav and refresh within the tab; a new tab grants
+  // again. Guarded for browser-only access (loadIntel is a client event handler).
+  const [freeRevealAwardId, setFreeRevealAwardId] = useState<number | null>(null);
+  const FREE_INTEL_GRANT_KEY = "contrax_free_intel_granted";
+  function freeIntelGranted(): boolean {
+    if (typeof window === "undefined") return false;
+    try { return window.sessionStorage.getItem(FREE_INTEL_GRANT_KEY) === "1"; } catch { return false; }
+  }
+  function grantFreeIntel(): void {
+    if (typeof window === "undefined") return;
+    try { window.sessionStorage.setItem(FREE_INTEL_GRANT_KEY, "1"); } catch { /* ignore */ }
+  }
   async function loadIntel(award: Award) {
     if (loadingIntel === award.id) return;
-    // Logged-out users see the gated (blurred) Intel panel — record the wall view.
-    if (!currentUser) trackEvent("incumbent_gate_view", String(award.id), "/awards");
+    // Logged-out users: the first expanded card is granted free (full data, no
+    // wall); every later card shows the tease wall — record the wall view then.
+    if (!currentUser) {
+      if (!freeIntelGranted()) {
+        grantFreeIntel();
+        setFreeRevealAwardId(award.id);
+        trackEvent("incumbent_first_free_view", String(award.id), "/awards");
+      } else if (freeRevealAwardId !== award.id) {
+        trackEvent("incumbent_gate_view", String(award.id), "/awards");
+      }
+    }
     if (intel[award.id] !== undefined) { setExpandedId(award.id); return; }
     setLoadingIntel(award.id); setExpandedId(award.id);
     const result = await getIncumbentIntel({ data: { naicsCode: award.naics_code, agency: award.agency, title: award.title } });
@@ -278,7 +301,7 @@ function AwardsPage() {
                 onClick={() => trackEvent("awards_signup_click", "header", "/awards")}
                 className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-900 whitespace-nowrap transition-colors hover:bg-amber-300"
               >
-                Sign Up
+                See Who Won This
               </a>
             )}
           </div>
@@ -296,7 +319,7 @@ function AwardsPage() {
               onClick={() => trackEvent("awards_signup_click", "hero", "/awards")}
               className="mt-5 inline-flex items-center rounded-xl bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-300 hover:shadow-xl active:scale-[0.98]"
             >
-              Sign Up — Free 21-day trial
+              Get Incumbent Intel
             </a>
           )}
         </div>
@@ -440,7 +463,7 @@ function AwardsPage() {
                 {isExpanded && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 space-y-5">
                     {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No matching award history found for this agency and opportunity title.</p>}
-                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} />}
+                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} freeReveal={!currentUser && freeRevealAwardId === award.id} />}
                     {/* Key Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">

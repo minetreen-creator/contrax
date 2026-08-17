@@ -17,6 +17,7 @@
  * `currentUser` (same pattern as SaveToPipeline) — no client-side auth fetch,
  * no flash of unblurred data for logged-out visitors.
  */
+import { useState, type FormEvent } from "react";
 import type { FPDSIntel } from "~/lib/fpds";
 import type { AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
@@ -30,18 +31,105 @@ function maskIncumbentName(name: string): string {
   return firstWord[0] + "*".repeat(Math.max(0, firstWord.length - 1)) + name.trim().slice(firstWord.length);
 }
 
+const MILESTONE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * MilestoneOfferPanel — the one-time lead-gen exchange that REPLACES the signup
+ * teaser on a teased card once a logged-out visitor has expanded
+ * MILESTONE_THRESHOLD teased cards on /awards (see loadIntel there). Captures an
+ * email in exchange for the card's full data — no account, no trial. On success
+ * calls `onSuccess` so the parent reveals the card; v1 is capture-only (no email
+ * is ever sent). Handles its own validation/submitting/error state so the parent
+ * card stays stateless when the offer is not active.
+ */
+function MilestoneOfferPanel({ onSuccess }: { onSuccess?: () => void }) {
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    const value = email.trim().toLowerCase();
+    if (!MILESTONE_EMAIL_PATTERN.test(value)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/lead-capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: value, source: "milestone_grant" }),
+      });
+      if (!res.ok) {
+        let message = "Something went wrong. Please try again.";
+        try {
+          const body = (await res.json()) as { error?: unknown };
+          if (typeof body.error === "string" && body.error) message = body.error;
+        } catch { /* keep the default message */ }
+        setError(message);
+        setSubmitting(false);
+        return;
+      }
+      setSubmitting(false);
+      onSuccess?.();
+    } catch {
+      setError("Something went wrong. Please try again.");
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 bg-white p-4 text-center sm:p-5">
+      <div className="w-full">
+        <p className="text-sm font-semibold text-slate-800">One more card free</p>
+        <p className="mt-1 text-xs text-slate-500">Just tell us where to send it — no account, no trial.</p>
+      </div>
+      <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-2" noValidate>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          aria-label="Email address"
+          autoComplete="email"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+        />
+        <button
+          type="submit"
+          disabled={submitting}
+          className="inline-flex w-full items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {submitting ? "Unlocking…" : "Unlock this card free"}
+        </button>
+        {error && <p className="text-xs font-medium text-red-600">{error}</p>}
+      </form>
+      <p className="text-[11px] text-slate-400">No credit card · No trial · One free card</p>
+    </div>
+  );
+}
+
 export function IncumbentCard({
   intel,
   winner,
   user,
   bidId,
   freeReveal,
+  milestoneOffer,
+  onMilestoneGranted,
 }: {
   intel: FPDSIntel;
   winner?: string;
   user?: AuthUser | null;
   bidId?: number;
   freeReveal?: boolean;
+  // Milestone grant (one per device): when true and the panel is gated, the
+  // signup teaser is replaced by the email-capture offer; onMilestoneGranted is
+  // called after a successful capture so the parent can reveal the card. Both
+  // are optional — when absent the card renders exactly as before.
+  milestoneOffer?: boolean;
+  onMilestoneGranted?: () => void;
 }) {
   // gated = logged-out AND not granted the session-scoped free reveal.
   // Logged-out cards that got the free reveal render exactly like logged-in.
@@ -57,19 +145,26 @@ export function IncumbentCard({
     </div>
   ));
   // Gated tease CTA — always present when the panel is gated, never only with
-  // a chart (keeps the invariant that a gated card always presents the signup CTA).
+  // a chart (keeps the invariant that a gated card always presents the unlock
+  // CTA). When the one-per-device milestone offer is active, the offer panel
+  // REPLACES the signup teaser (the normal teaser + its incumbent_gate_signup
+  // event are otherwise untouched).
   const gateTeaser = gated ? (
-    <div className="flex h-40 flex-col items-center justify-center gap-2 bg-white p-4 text-center">
-      <p className="text-sm font-semibold text-slate-800">Full 5-year pricing history</p>
-      <a
-        href="/signup?plan=professional&next=/awards"
-        onClick={() => trackEvent("incumbent_gate_signup", bidId != null ? String(bidId) : undefined, "/awards")}
-        className="inline-flex w-full max-w-sm items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
-      >
-        Unlock full name &amp; pricing history
-      </a>
-      <p className="text-xs text-slate-400">Free 21-day trial · No credit card required</p>
-    </div>
+    milestoneOffer ? (
+      <MilestoneOfferPanel onSuccess={onMilestoneGranted} />
+    ) : (
+      <div className="flex h-40 flex-col items-center justify-center gap-2 bg-white p-4 text-center">
+        <p className="text-sm font-semibold text-slate-800">Full 5-year pricing history</p>
+        <a
+          href="/signup?plan=professional&next=/awards"
+          onClick={() => trackEvent("incumbent_gate_signup", bidId != null ? String(bidId) : undefined, "/awards")}
+          className="inline-flex w-full max-w-sm items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+        >
+          Unlock full name &amp; pricing history
+        </a>
+        <p className="text-xs text-slate-400">Free 21-day trial · No credit card required</p>
+      </div>
+    )
   ) : null;
 
   return <section className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4" aria-label="Incumbent Intelligence">

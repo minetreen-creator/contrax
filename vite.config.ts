@@ -37,8 +37,23 @@ export default defineConfig({
         // them as side-effect-free lets Rollup prune the whole `~/db` chain
         // from client bundles. SSR builds externalize node_modules, so the
         // server keeps its normal runtime import and DB access is unaffected.
+        //
+        // IMPORTANT: the function form of `moduleSideEffects` REPLACES
+        // Rollup's default resolution (including package.json's
+        // `sideEffects: false`), so it must ALSO explicitly cover the app's
+        // own modules in the chain (`src/db.ts`, `src/lib/session-verify.ts`).
+        // Previously only `@neondatabase/serverless` was covered, which left
+        // `src/db.ts` marked side-effectful — the static `import { sql }`
+        // retained in client route bundles pinned the whole pg-protocol/ws/
+        // buffer stack (~114 KB) inside the client entry chunk.
         moduleSideEffects(id) {
-          if (id.includes("@neondatabase/serverless")) return false;
+          if (
+            id.includes("@neondatabase/serverless") ||
+            id.endsWith("/src/db.ts") ||
+            id.endsWith("/src/lib/session-verify.ts")
+          ) {
+            return false;
+          }
           return true;
         },
       },

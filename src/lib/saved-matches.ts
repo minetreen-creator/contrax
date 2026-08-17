@@ -14,10 +14,10 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
-import { sql } from "~/db";
 
 /** Upsert a saved match. Idempotent — safe to call repeatedly. */
 export async function saveMatch(userId: number, bidId: number): Promise<void> {
+  const { sql } = await import("~/db");
   await sql()`
     INSERT INTO saved_matches (user_id, bid_id, status)
     VALUES (${userId}, ${bidId}, 'saved')
@@ -27,6 +27,7 @@ export async function saveMatch(userId: number, bidId: number): Promise<void> {
 
 /** Remove a saved match (un-save). No-op when the row does not exist. */
 export async function removeMatch(userId: number, bidId: number): Promise<void> {
+  const { sql } = await import("~/db");
   await sql()`
     DELETE FROM saved_matches WHERE user_id = ${userId} AND bid_id = ${bidId}
   `;
@@ -53,6 +54,7 @@ export function safeNext(next: unknown): string | null {
 export const getSavedBidIds = createServerFn({ method: "GET" }).handler(
   async ({ data }: { data: { userId: number } }): Promise<number[]> => {
     try {
+      const { sql } = await import("~/db");
       const rows = await sql()`
         SELECT bid_id FROM saved_matches
         WHERE user_id = ${data.userId} AND status = 'saved'

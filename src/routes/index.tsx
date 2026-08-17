@@ -432,6 +432,7 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
 
 const getUserCount = async () => {
   try {
+    const { sql } = await import("~/db");
     const rows = await sql()`SELECT COUNT(*)::int AS count FROM users`;
     return Number((rows[0] as any)?.count || 0);
   } catch {
@@ -445,6 +446,7 @@ const getFarClauseCounts = async (): Promise<{
   dfars: number;
 } | null> => {
   try {
+    const { sql } = await import("~/db");
     const rows = await sql()`
       SELECT source, COUNT(*)::int AS count
       FROM far_clauses
@@ -469,6 +471,7 @@ const getFarClauseCounts = async (): Promise<{
 };
 const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }> => {
   try {
+    const { sql } = await import("~/db");
     const [bids, agencies] = await Promise.all([
       sql()`SELECT COUNT(*)::int AS count FROM bids`,
       sql()`SELECT COUNT(DISTINCT agency)::int AS count FROM bids`,

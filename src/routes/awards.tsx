@@ -270,7 +270,18 @@ function AwardsPage() {
           <a href="/" className="inline-flex items-center gap-2">
             <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
           </a>
-          <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">Dashboard</a>
+          <div className="flex items-center gap-3">
+            <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">Dashboard</a>
+            {!currentUser && (
+              <a
+                href="/signup?plan=professional&next=/awards"
+                onClick={() => trackEvent("awards_signup_click", "header", "/awards")}
+                className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold text-slate-900 whitespace-nowrap transition-colors hover:bg-amber-300"
+              >
+                Sign Up
+              </a>
+            )}
+          </div>
         </div>
       </header>
 
@@ -279,6 +290,15 @@ function AwardsPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-slate-900">Past Awards</h1>
           <p className="mt-2 text-lg text-slate-500">Learn from awarded contracts to sharpen your bids</p>
+          {!currentUser && (
+            <a
+              href="/signup?plan=professional&next=/awards"
+              onClick={() => trackEvent("awards_signup_click", "hero", "/awards")}
+              className="mt-5 inline-flex items-center rounded-xl bg-amber-400 px-6 py-3 text-sm font-semibold text-slate-900 shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-300 hover:shadow-xl active:scale-[0.98]"
+            >
+              Sign Up — Free 21-day trial
+            </a>
+          )}
         </div>
 
         {/* Filters */}

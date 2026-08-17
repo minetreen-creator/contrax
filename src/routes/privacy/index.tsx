@@ -46,7 +46,7 @@ function PrivacyPage() {
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-slate-500">Last updated: July 31, 2026</p>
+        <p className="mt-2 text-sm text-slate-500">Last updated: August 17, 2026</p>
         <div className="mt-10 space-y-8 text-slate-700 leading-relaxed">
           <section>
             <h2 className="text-xl font-semibold text-slate-900">1. Information We Collect</h2>

@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 const columns = ["Contrax", "GovWin / Deltek", "BidNet / Bonfire", "GovSpend", "Manual Bidding (SAM.gov)", "Consultant / Gov't Contract Specialist"];
 const rows = [
   ["Pricing", "$19–199/mo with free trial", "$5K–20K+/yr (enterprise)", "$300–800/mo", "Varies by plan", "$0 (but cost of time)", "$3–10K+/mo retainer"],
+  ["Incumbent Pricing Intel", "Yes (5-yr history)", "Partial (enterprise only)", "No", "No", "No", "No"],
   ["Free trial", "21-day free trial", "No or limited", "No or limited", "No or limited", "N/A", "No"],
   ["Bid coverage", "Federal + City (SAM.gov + NYC, synced daily)", "Federal only (strong)", "State/Local focused", "Federal spend data", "Limited to what you search", "Depends on their expertise"],
   ["Proposal drafting", "Yes (tailored to each RFP)", "No built-in drafting", "No", "No", "N/A", "Depends on consultant"],

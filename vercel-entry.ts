@@ -61,7 +61,7 @@ const PRIVACY_HTML = `<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div class="nav"><div class="nav-inner"><a href="/">📄 Contracts</a><a href="/savings">💰 Savings</a></div></div>
+<div class="nav"><div class="nav-inner"><a href="/">📄 Contracts</a></div></div>
 <div class="container">
 <h1>Privacy Policy</h1>
 <p class="date">Last updated: August 17, 2026</p>
@@ -105,7 +105,7 @@ const TERMS_HTML = `<!DOCTYPE html>
 </style>
 </head>
 <body>
-<div class="nav"><div class="nav-inner"><a href="/">📄 Contracts</a><a href="/savings">💰 Savings</a></div></div>
+<div class="nav"><div class="nav-inner"><a href="/">📄 Contracts</a></div></div>
 <div class="container">
 <h1>Terms of Service</h1>
 <p class="date">Last updated: August 17, 2026</p>
@@ -119,7 +119,7 @@ const TERMS_HTML = `<!DOCTYPE html>
 <section><h2>8. Limitation of Liability</h2><p>To the fullest extent permitted by law, Contrax shall not be liable for any indirect, incidental, or consequential damages. Our total liability is limited to amounts you paid us in the 12 months preceding the claim. The Service is provided "as is."</p></section>
 <section><h2>9. Termination</h2><p>We may suspend or terminate access for violation of these terms. Data is retained for 30 days after termination for export upon request.</p></section>
 <section><h2>10. Governing Law</h2><p>These terms are governed by United States law. Disputes shall be resolved through binding arbitration.</p></section>
-<section><h2>11. Contact</h2><p>For questions, contact <a href="mailto:legal@contrax.app">legal@contrax.app</a>.</p></section>
+<section><h2>11. Contact</h2><p>For questions, contact <a href="mailto:legal@contrax.company">legal@contrax.company</a>.</p></section>
 </div>
 <footer><div class="f-inner"><span>© 2026 Contrax. All rights reserved.</span><div style="display:flex;gap:1.5rem"><a href="/privacy" style="color:#64748b">Privacy Policy</a><a href="/terms" style="color:#64748b">Terms of Service</a><a href="/security" style="color:#64748b">Security</a><a href="mailto:minetreen@gmail.com" style="color:#64748b">Contact</a></div></div></footer>
 </body>
@@ -131,7 +131,7 @@ const SEO_HEAD = `<link rel="stylesheet" href="/assets/${APP_CSS}">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 ${PRELOAD_URLS.map((u) => `<link rel="modulepreload" href="${u}">`).join("\n")}`;
 
-const SEO_NAV = `<nav class="sticky top-0 z-50 bg-slate-900 border-b border-slate-700"><div class="mx-auto flex max-w-7xl items-center gap-1 px-6 py-2"><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/">📄 Contracts</a><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/savings">💰 Savings</a><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/learn">📚 Learn</a></div></nav>`;
+const SEO_NAV = `<nav class="sticky top-0 z-50 bg-slate-900 border-b border-slate-700"><div class="mx-auto flex max-w-7xl items-center gap-1 px-6 py-2"><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/">📄 Contracts</a><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/learn">📚 Learn</a></div></nav>`;
 
 const SEO_FOOTER = `<footer class="border-t border-slate-200 bg-slate-50 mt-16"><div class="mx-auto max-w-7xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4"><p class="text-sm text-slate-500">© 2026 Contrax. All rights reserved.</p><div class="flex items-center gap-6"><a href="/privacy" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Privacy Policy</a><a href="/terms" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Terms of Service</a><a href="/security" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Security</a><a href="/learn" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Learn</a><a href="mailto:minetreen@gmail.com" class="text-sm text-slate-500 hover:text-slate-700 transition-colors">Contact</a></div></div></footer>`;
 

@@ -868,7 +868,7 @@ function Hero({
           </div>
           <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
             <a
-              href="/awards"
+              href="/awards#feed"
               onClick={() => trackEvent("hero_cta_click", "hero_primary")}
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
             >
@@ -1162,7 +1162,7 @@ function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: strin
 
         <div className="mt-10 text-center">
           <a
-            href="/awards"
+            href="/awards#feed"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl"
           >
             Browse live opportunities →

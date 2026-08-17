@@ -10,6 +10,12 @@ import { getCurrentUser } from "~/lib/auth";
 import { getSavedBidIds } from "~/lib/saved-matches";
 import { trackEvent } from "~/lib/track";
 
+// Milestone Grant — logged-out visitors accumulate a cross-tab counter of
+// teased incumbent-intel card views (localStorage); when the counter reaches
+// this threshold the CURRENT card offers a one-per-device email-for-data
+// exchange instead of the signup CTA. See loadIntel below.
+const MILESTONE_THRESHOLD = 10;
+
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Award {
   id: number; title: string; agency: string; solicitation_number: string | null;
@@ -239,6 +245,40 @@ function AwardsPage() {
     if (typeof window === "undefined") return;
     try { window.sessionStorage.setItem(FREE_INTEL_GRANT_KEY, "1"); } catch { /* ignore */ }
   }
+  // Milestone Grant (one per device): a cross-tab counter of teased-card views
+  // (localStorage — deliberate: the first-free grant is per-tab sessionStorage,
+  // so a per-tab milestone counter would be meaningless). At the threshold, the
+  // current card shows the email-capture offer; the grant is marked used in the
+  // SAME synchronous block so concurrent tabs can never double-grant.
+  const [milestoneOfferAwardId, setMilestoneOfferAwardId] = useState<number | null>(null);
+  const [milestoneRevealAwardId, setMilestoneRevealAwardId] = useState<number | null>(null);
+  const MILESTONE_COUNT_KEY = "contrax_milestone_count";
+  const MILESTONE_GRANTED_KEY = "contrax_milestone_granted";
+  function readMilestoneCount(): number {
+    if (typeof window === "undefined") return 0;
+    try {
+      const raw = window.localStorage.getItem(MILESTONE_COUNT_KEY);
+      const n = raw ? parseInt(raw, 10) : 0;
+      return Number.isFinite(n) && n > 0 ? n : 0;
+    } catch { return 0; }
+  }
+  function writeMilestoneCount(n: number): void {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(MILESTONE_COUNT_KEY, String(n)); } catch { /* ignore */ }
+  }
+  function milestoneGranted(): boolean {
+    if (typeof window === "undefined") return false;
+    try { return window.localStorage.getItem(MILESTONE_GRANTED_KEY) === "1"; } catch { return false; }
+  }
+  function grantMilestone(): void {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(MILESTONE_GRANTED_KEY, "1"); } catch { /* ignore */ }
+  }
+  function handleMilestoneGranted(awardId: number): void {
+    setMilestoneRevealAwardId(awardId);
+    trackEvent("milestone_grant_submit", String(awardId), "/awards");
+    trackEvent("milestone_card_reveal", String(awardId), "/awards");
+  }
   // Deep-link scroll: homepage hero "Get Incumbent Intel" → /awards#feed should
   // land visitors on the award feed, not the page top. The browser handles the
   // initial load natively (the list is SSR-rendered); this also covers SPA
@@ -266,6 +306,21 @@ function AwardsPage() {
         trackEvent("incumbent_first_free_view", String(award.id), "/awards");
       } else if (freeRevealAwardId !== award.id) {
         trackEvent("incumbent_gate_view", String(award.id), "/awards");
+        // Milestone Grant: count every teased-card view in a cross-tab counter
+        // (localStorage). At the threshold (and if the one-per-device grant is
+        // unused), mark the grant used + offer the email exchange on THIS card —
+        // check+write+event in the same synchronous block, so in-flight fetches
+        // across tabs cannot double-grant. A refresh reverts this card to the
+        // normal teaser (state resets) but the grant stays used forever.
+        if (!milestoneGranted()) {
+          const next = readMilestoneCount() + 1;
+          writeMilestoneCount(next);
+          if (next >= MILESTONE_THRESHOLD) {
+            grantMilestone();
+            setMilestoneOfferAwardId(award.id);
+            trackEvent("milestone_grant_view", String(award.id), "/awards");
+          }
+        }
       }
     }
   }
@@ -477,7 +532,10 @@ function AwardsPage() {
                 {isExpanded && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 space-y-5">
                     {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No matching award history found for this agency and opportunity title.</p>}
-                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} freeReveal={!currentUser && freeRevealAwardId === award.id} />}
+                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id}
+                      freeReveal={!currentUser && (freeRevealAwardId === award.id || milestoneRevealAwardId === award.id)}
+                      milestoneOffer={!currentUser && milestoneOfferAwardId === award.id}
+                      onMilestoneGranted={() => handleMilestoneGranted(award.id)} />}
                     {/* Key Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">

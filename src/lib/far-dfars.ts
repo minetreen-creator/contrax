@@ -161,6 +161,7 @@ export async function ensureFarClausesTable(): Promise<void> {
     await sql()`CREATE INDEX IF NOT EXISTS idx_far_clauses_search ON far_clauses USING gin(to_tsvector('english', title || ' ' || full_text))`;
   } catch { /* GIN index is an optimization — full-text search still works without it */ }
   try { await sql()`CREATE INDEX IF NOT EXISTS idx_far_clauses_source ON far_clauses (source)`; } catch {}
+  try { await sql()`CREATE INDEX IF NOT EXISTS idx_far_clauses_part ON far_clauses (part)`; } catch {}
 }
 
 function mapClause(r: Record<string, unknown>): FARClause {

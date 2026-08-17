@@ -140,7 +140,7 @@ function ClausesIndexPage() {
                 {d.parts.map((p: ClausePartGroup) => (
                   <a
                     key={p.part}
-                    href={`#part-${p.part}`}
+                    href={`/clauses/${p.part}`}
                     className="text-sm font-medium text-blue-600 hover:text-blue-700 hover:underline"
                   >
                     {p.part}
@@ -152,7 +152,9 @@ function ClausesIndexPage() {
               {d.parts.map((p: ClausePartGroup) => (
                 <section key={p.part} id={`part-${p.part}`} className="scroll-mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
                   <h2 className="flex flex-wrap items-baseline gap-x-2 text-lg font-bold text-slate-900">
-                    Part {p.part}
+                    <a href={`/clauses/${p.part}`} className="text-blue-600 hover:text-blue-700 hover:underline">
+                      Part {p.part}
+                    </a>
                     <span className="text-sm font-medium text-slate-500">
                       {p.label} &middot; {p.count.toLocaleString()} {p.count === 1 ? "clause" : "clauses"}
                     </span>

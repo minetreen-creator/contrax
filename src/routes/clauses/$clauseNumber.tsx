@@ -2,70 +2,161 @@ import { createFileRoute } from "@tanstack/react-router";
 import { trackEvent } from "~/lib/track";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
+import { ClauseCtaCard } from "~/components/ClauseCtaCard";
+import { ClausePartPage } from "~/components/ClausePartPage";
+import { buildClauseMetaDescription } from "~/lib/clause-meta";
+import {
+  getPartPageData,
+  partLabel,
+  partName,
+  relatedParts,
+  type PartPageData,
+  type RelatedPart,
+} from "~/lib/far-parts";
 
 const PROD_URL = "https://www.contrax.company";
 // FAR/DFARS clause numbers: 1–3 digit part, 3–4 digit section, optional -NNNN
 // suffix (e.g. 52.212-4, 2.101, 252.204-7012). Verified against all 4,630
 // distinct clause_number values in the production far_clauses table.
 const CLAUSE_NUMBER_RE = /^\d{1,3}\.\d{3,4}(?:-\d{1,4})?$/;
+// Part-page discriminant: a pure 1–3 digit integer is a part number
+// (e.g. /clauses/52, /clauses/252). Clause numbers always contain a dot, so
+// there is no ambiguity between the two routes.
+const PART_RE = /^\d{1,3}$/;
 
 interface ClauseData {
   clause_number: string;
   title: string;
   full_text: string;
   source: string;
+  part: string | null;
 }
-
 interface ClausePageData {
+  kind: "clause";
   notFound: boolean;
   clause: ClauseData | null;
   requested: string;
+  prev: string | null;
+  next: string | null;
+  related: RelatedPart[];
 }
+type RouteData = ClausePageData | PartPageData;
 
 // Server function (never client code): validates the format, then looks up the
 // clause by exact clause_number. A malformed number OR a well-formed number
 // that isn't in far_clauses both resolve to notFound:true → the clean
-// "Clause not found" page below.
+// "Clause not found" page below. Also loads prev/next clause within the part
+// and related parts for the footer nav (one extra indexed query set).
 const getClauseByNumber = createServerFn({ method: "GET" }).handler(
   async ({ data }: { data: string }): Promise<ClausePageData> => {
     const requested = data.trim();
     if (!CLAUSE_NUMBER_RE.test(requested)) {
-      return { notFound: true, clause: null, requested };
+      return { kind: "clause", notFound: true, clause: null, requested, prev: null, next: null, related: [] };
     }
     const db = sql();
-    const rows = await db`SELECT clause_number, title, full_text, source FROM far_clauses WHERE clause_number = ${requested} LIMIT 1`;
+    const rows = await db`SELECT clause_number, title, full_text, source, part FROM far_clauses WHERE clause_number = ${requested} LIMIT 1`;
     if (!rows.length) {
-      return { notFound: true, clause: null, requested };
+      return { kind: "clause", notFound: true, clause: null, requested, prev: null, next: null, related: [] };
     }
     const r = rows[0] as any;
-    return {
-      notFound: false,
-      requested,
-      clause: {
-        clause_number: String(r.clause_number),
-        title: String(r.title),
-        full_text: String(r.full_text),
-        source: String(r.source || "far"),
-      },
+    const clause: ClauseData = {
+      clause_number: String(r.clause_number),
+      title: String(r.title),
+      full_text: String(r.full_text),
+      source: String(r.source || "far"),
+      part: r.part != null ? String(r.part) : null,
     };
+    // Prev/next within the same part + related parts (DB-gated).
+    let prev: string | null = null;
+    let next: string | null = null;
+    let related: RelatedPart[] = [];
+    try {
+      const [partRows, partDistinct] = await Promise.all([
+        clause.part
+          ? db`SELECT clause_number FROM far_clauses WHERE part = ${clause.part} ORDER BY clause_number`
+          : Promise.resolve([] as { clause_number: string }[]),
+        db`SELECT DISTINCT part FROM far_clauses WHERE part IS NOT NULL`,
+      ]);
+      const numbers = (partRows as { clause_number: string }[]).map((x) => String(x.clause_number));
+      const idx = numbers.indexOf(clause.clause_number);
+      if (idx > 0) prev = numbers[idx - 1];
+      if (idx >= 0 && idx < numbers.length - 1) next = numbers[idx + 1];
+      if (clause.part) {
+        const existingParts = new Set((partDistinct as { part: string | null }[]).map((x) => String(x.part)));
+        related = relatedParts(clause.part, existingParts);
+      }
+    } catch (err) {
+      // Prev/next and related are enhancement nav — never break the clause page.
+      console.error("[clauses] prev/next lookup failed:", err);
+    }
+    return { kind: "clause", notFound: false, clause, requested, prev, next, related };
   },
 );
 
 export const Route = createFileRoute("/clauses/$clauseNumber")({
-  loader: ({ params }) => getClauseByNumber({ data: params.clauseNumber }),
+  loader: ({ params }) =>
+    PART_RE.test(params.clauseNumber)
+      ? getPartPageData({ data: params.clauseNumber })
+      : getClauseByNumber({ data: params.clauseNumber }),
   head: ({ loaderData }) => {
-    const d = loaderData;
+    // head() runs pre-hydration where loaderData can be undefined — fall back
+    // to a generic library head so the shell always renders (index pattern).
+    const d = loaderData as RouteData | undefined;
+    if (!d) {
+      const fallbackTitle = "FAR & DFARS Clause Library | Contrax";
+      return {
+        meta: [
+          { title: fallbackTitle },
+          { name: "description", content: "Browse real FAR and DFARS clauses — exact regulatory text sourced from acquisition.gov, free." },
+          { name: "robots", content: "index, follow" },
+        ],
+        links: [{ rel: "canonical", href: `${PROD_URL}/clauses` }],
+      };
+    }
+    if (d.kind === "part") {
+      const label = d.label;
+      const name = d.name && d.name !== "Reserved" ? d.name : null;
+      const heading = `${label} Part ${d.part}`;
+      const title = name ? `${heading} — ${name} | Contrax` : `${heading} | Contrax`;
+      const description = d.notFound
+        ? "The requested FAR or DFARS part could not be found."
+        : d.failed
+          ? `Browse ${label} Part ${d.part} — exact regulatory text sourced from acquisition.gov, free.`
+          : `${heading}${name ? ` — ${name}` : ""} — ${d.count.toLocaleString()} clauses with the exact regulatory text from acquisition.gov, free.`;
+      const url = `${PROD_URL}/clauses/${d.part}`;
+      return {
+        meta: [
+          { title },
+          { name: "description", content: description },
+          { name: "robots", content: d.notFound ? "noindex, nofollow" : "index, follow" },
+          { property: "og:type", content: "website" },
+          { property: "og:url", content: url },
+          { property: "og:title", content: title },
+          { property: "og:description", content: description },
+          { property: "og:site_name", content: "Contrax" },
+          { name: "twitter:card", content: "summary" },
+          { name: "twitter:title", content: title },
+          { name: "twitter:description", content: description },
+        ],
+        links: [{ rel: "canonical", href: url }],
+      };
+    }
+    // Clause branch — plain-English meta description generated at SSR time
+    // from the loaded clause (rule-based, see src/lib/clause-meta.ts).
     const clauseNumber = d.clause?.clause_number ?? d.requested;
-    // head() runs before the component, so derive the source label here —
-    // default to "FAR" when the clause is missing (not-found pages keep
-    // generic copy and the "Clause Not Found" title).
     const sourceLabel = d.clause?.source === "dfars" ? "DFARS" : "FAR";
     const title = d.notFound
       ? "Clause Not Found | Contrax"
       : `${sourceLabel} ${clauseNumber} — ${d.clause!.title} | Contrax`;
     const description = d.notFound
       ? "The requested FAR or DFARS clause could not be found."
-      : `${d.clause!.title} — full text of ${sourceLabel} clause ${clauseNumber}, sourced from acquisition.gov.`;
+      : buildClauseMetaDescription({
+          clause_number: d.clause!.clause_number,
+          title: d.clause!.title,
+          part: d.clause!.part,
+          source: d.clause!.source,
+          full_text: d.clause!.full_text,
+        });
     const url = `${PROD_URL}/clauses/${d.requested}`;
     return {
       meta: [
@@ -86,11 +177,18 @@ export const Route = createFileRoute("/clauses/$clauseNumber")({
       links: [{ rel: "canonical", href: url }],
     };
   },
-  component: ClausePage,
+  component: ClauseOrPartPage,
 });
 
-function ClausePage() {
+function ClauseOrPartPage() {
   const d = Route.useLoaderData();
+  if (d.kind === "part") {
+    return <ClausePartPage data={d} />;
+  }
+  return <ClausePageInner d={d} />;
+}
+
+function ClausePageInner({ d }: { d: ClausePageData }) {
   if (d.notFound || !d.clause) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -125,6 +223,7 @@ function ClausePage() {
   }
   const clause = d.clause;
   const sourceLabel = clause.source === "dfars" ? "DFARS" : "FAR";
+  const part = clause.part;
   return (
     <div className="min-h-screen bg-slate-50">
       <header className="border-b border-slate-200 bg-white">
@@ -138,39 +237,74 @@ function ClausePage() {
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-10">
-        <a href="/" className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700">
-          &larr; Back
-        </a>
+        <nav aria-label="Breadcrumb" className="text-sm text-slate-500">
+          <a href="/" className="hover:text-slate-700">Home</a>
+          <span className="mx-1.5">/</span>
+          <a href="/clauses" className="hover:text-slate-700">Clause Library</a>
+          {part ? (
+            <>
+              <span className="mx-1.5">/</span>
+              <a href={`/clauses/${part}`} className="hover:text-slate-700">
+                Part {part}
+              </a>
+            </>
+          ) : null}
+          <span className="mx-1.5">/</span>
+          <span className="font-medium text-slate-800">{clause.clause_number}</span>
+        </nav>
         <h1 className="mt-4 text-2xl font-bold text-slate-900 sm:text-3xl">{sourceLabel} {clause.clause_number}</h1>
         <p className="mt-2 text-lg font-medium text-slate-700">{clause.title}</p>
         <div className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">{clause.full_text}</p>
         </div>
         <p className="mt-4 text-xs text-slate-400">Source: acquisition.gov — {sourceLabel}</p>
-        {/* Conversion CTA — gives search visitors a next step into the product */}
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm sm:p-8">
-          <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Have a solicitation to win?</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
-            Paste it into the free Contrax bid scorer — get an AI win-probability
-            score with the FAR clauses that matter, in seconds. No signup required.
-          </p>
-          <div className="mt-5 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-            <a
-              href="/score"
-              onClick={() => trackEvent("clause_cta_click", "score")}
-              className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-7 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 active:scale-[0.98]"
-            >
-              Score any bid — free
-            </a>
-            <a
-              href="/clauses"
-              onClick={() => trackEvent("clause_cta_click", "library")}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-700"
-            >
-              Browse the full FAR &amp; DFARS library
-            </a>
+        {(d.prev || d.next) && (
+          <div className="mt-6 flex items-center justify-between gap-3 text-sm">
+            {d.prev ? (
+              <a href={`/clauses/${d.prev}`} className="font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                &larr; {d.prev}
+              </a>
+            ) : (
+              <span />
+            )}
+            {d.next ? (
+              <a href={`/clauses/${d.next}`} className="font-medium text-blue-600 hover:text-blue-700 hover:underline">
+                {d.next} &rarr;
+              </a>
+            ) : (
+              <span />
+            )}
           </div>
-        </div>
+        )}
+        {d.related.length > 0 && (
+          <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">More parts</p>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1.5 text-sm">
+              {d.related.map((r) => {
+                const name = partName(r.part);
+                const text =
+                  r.type === "prev"
+                    ? `Previous part: ${partLabel(r.part)} ${r.part}`
+                    : r.type === "next"
+                      ? `Next part: ${partLabel(r.part)} ${r.part}`
+                      : `${partLabel(r.part)} counterpart: ${r.part}`;
+                return (
+                  <a
+                    key={`${r.type}-${r.part}`}
+                    href={`/clauses/${r.part}`}
+                    className="font-medium text-blue-600 hover:text-blue-700 hover:underline"
+                  >
+                    {text}
+                    {name && name !== "Reserved" ? (
+                      <span className="text-slate-500"> — {name}</span>
+                    ) : null}
+                  </a>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        <ClauseCtaCard />
       </main>
     </div>
   );

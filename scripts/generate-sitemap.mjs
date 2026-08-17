@@ -90,10 +90,19 @@ async function main() {
   }
 
   let clauseNumbers;
+  let partNumbers = [];
   try {
     const db = neon(process.env.DATABASE_URL);
     const rows = await db`SELECT clause_number FROM far_clauses ORDER BY clause_number`;
     clauseNumbers = rows.map((r) => r.clause_number).filter(Boolean);
+    // Part landing pages (/clauses/52, /clauses/252, …) — DB-driven distinct
+    // part list, never hardcoded. Shares the same try/catch so a DB failure
+    // keeps the fail-open contract (last-known sitemap preserved).
+    // GROUP BY (not DISTINCT): Postgres rejects ORDER BY part::int under DISTINCT
+    // (ORDER BY expressions must appear in the select list). GROUP BY permits
+    // ordering by an expression of the grouped column.
+    const partRows = await db`SELECT part FROM far_clauses WHERE part IS NOT NULL GROUP BY part ORDER BY part::int`;
+    partNumbers = partRows.map((r) => String(r.part)).filter(Boolean);
   } catch (err) {
     console.warn(
       `[generate-sitemap] far_clauses query failed (${err?.message ?? err}) — keeping existing sitemap.xml`,
@@ -102,6 +111,10 @@ async function main() {
     return; // fail open: keep last-known sitemap, never break the deploy
   }
 
+  const partBlocks = partNumbers.map(
+    (p) =>
+      `  <url>\n    <loc>${PROD_URL}/clauses/${escapeXml(p)}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`,
+  );
   const clauseBlocks = clauseNumbers.map(
     (n) =>
       `  <url>\n    <loc>${PROD_URL}/clauses/${escapeXml(n)}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.5</priority>\n  </url>`,
@@ -113,13 +126,14 @@ async function main() {
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...staticBlocks.map((b) => `  ${b}`),
     indexBlock,
+    ...partBlocks,
     ...clauseBlocks,
     "</urlset>",
     "",
   ].join("\n");
   writeFileSync(SITEMAP_PATH, xml);
   console.log(
-    `[generate-sitemap] wrote ${SITEMAP_PATH}: ${staticBlocks.length} static + 1 index + ${clauseBlocks.length} clause URLs = ${staticBlocks.length + 1 + clauseBlocks.length} total`,
+    `[generate-sitemap] wrote ${SITEMAP_PATH}: ${staticBlocks.length} static + 1 index + ${partBlocks.length} part + ${clauseBlocks.length} clause URLs = ${staticBlocks.length + 1 + partBlocks.length + clauseBlocks.length} total`,
   );
 }
 

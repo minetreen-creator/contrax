@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { US_STATES } from "~/lib/states";
 import { IncumbentCard } from "~/components/IncumbentCard";
@@ -239,6 +239,15 @@ function AwardsPage() {
     if (typeof window === "undefined") return;
     try { window.sessionStorage.setItem(FREE_INTEL_GRANT_KEY, "1"); } catch { /* ignore */ }
   }
+  // Deep-link scroll: homepage hero "Get Incumbent Intel" → /awards#feed should
+  // land visitors on the award feed, not the page top. The browser handles the
+  // initial load natively (the list is SSR-rendered); this also covers SPA
+  // navigations where the hash target must be scrolled to explicitly.
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#feed") {
+      document.getElementById("feed")?.scrollIntoView({ behavior: "instant", block: "start" });
+    }
+  }, []);
   async function loadIntel(award: Award) {
     if (loadingIntel === award.id) return;
     // Logged-out users: the first expanded card is granted free (full data, no
@@ -395,8 +404,10 @@ function AwardsPage() {
           </div>
         )}
 
-        {/* Awards List */}
-        <div className="space-y-4">
+        {/* Awards List — id="feed" is the deep-link target for the homepage
+            hero CTA ("Get Incumbent Intel" → /awards#feed) so visitors land
+            directly on the award cards, not the page top. */}
+        <div id="feed" className="space-y-4">
           {filtered.slice(0, 20).map((award) => {
             const isExpanded = expandedId === award.id;
             const bids = similarBids[award.id] || [];

@@ -83,6 +83,7 @@ interface DashboardData {
   topCompetitor: { name: string; awards: number } | null;
   activeAwardees: number;
   unreadAlerts: number;
+  pendingDraft: { id: number; status: string; has_draft_text: boolean } | null;
 }
 
 // ── Server Functions ─────────────────────────────────────────────────────────
@@ -1184,6 +1185,30 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
           </div>
         )}
 
+        {/* Part B — pending Technical Approach draft (score → signup promise):
+            honest ready/processing state instead of a dead end. */}
+        {data?.pendingDraft && (
+          <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h2 className="text-sm font-bold text-blue-900">Your Technical Approach draft</h2>
+                <p className="mt-0.5 text-[13px] text-blue-700">
+                  {data.pendingDraft.has_draft_text
+                    ? "Your draft for the solicitation you scored is ready."
+                    : data.pendingDraft.status === "awaiting_profile"
+                      ? "We're preparing your draft from the solicitation you pasted — it takes a few seconds."
+                      : "We couldn't finish your draft the first time — retry from the draft page."}
+                </p>
+              </div>
+              <a
+                href="/draft/pending"
+                className="inline-flex shrink-0 items-center rounded-lg bg-blue-600 px-4 py-2 text-[13px] font-semibold text-white transition hover:bg-blue-700"
+              >
+                {data.pendingDraft.has_draft_text ? "View draft →" : data.pendingDraft.status === "awaiting_profile" ? "Check status →" : "Retry →"}
+              </a>
+            </div>
+          </div>
+        )}
         {/* Certification status — deadlines for held set-aside certifications */}
         {profile && <CertificationStatusCard profile={profile} />}
         {/* How Contrax understands your business — collapsible profile summary */}

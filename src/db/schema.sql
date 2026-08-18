@@ -189,6 +189,18 @@ CREATE TABLE IF NOT EXISTS proposal_drafts (
     generated_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(bid_id, user_id)
 );
+CREATE TABLE IF NOT EXISTS pending_drafts (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id),
+    solicitation_text TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'awaiting_profile',
+    draft_text TEXT,
+    citations JSONB DEFAULT '[]'::jsonb,
+    error TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    fulfilled_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_pending_drafts_user_status ON pending_drafts (user_id, status);
 
 CREATE TABLE IF NOT EXISTS analytics_events (
     id SERIAL PRIMARY KEY,

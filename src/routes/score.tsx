@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { sql } from "~/db";
 import { trackEvent } from "~/lib/track";
+import { storePendingDraft } from "~/lib/pending-draft";
 import { buildProfileContext } from "~/lib/profile-context";
 import { getRelevantContext } from "~/lib/knowledge";
 import type { BusinessProfile } from "~/components/CompanyProfile";
@@ -775,8 +776,15 @@ function ScorePage() {
               </h3>
               <div className="mt-5 flex flex-col items-center gap-3">
                 <a
-                  href="/signup?plan=professional"
-                  onClick={() => trackEvent("score_cta_click", result.recommendation)}
+                  href={`/signup?plan=professional&score_rec=${result.recommendation}`}
+                  onClick={() => {
+                    // Part B: carry the pasted solicitation to /signup via
+                    // sessionStorage (URL params must not carry the full text).
+                    // The draft intent lives on THIS CTA; the "Start free
+                    // trial" link below stays the generic trial path.
+                    storePendingDraft(solicitation);
+                    trackEvent("score_cta_click", result.recommendation);
+                  }}
                   className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
                 >
                   <FileText className="h-4 w-4" />

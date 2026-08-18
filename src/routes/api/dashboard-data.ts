@@ -161,6 +161,28 @@ async function handler({ request }: { request: Request }) {
   // Lazy migration for FAR-grounded drafting citations (same pattern as the
   // business_profiles ALTERs below).
   try { await sql()`ALTER TABLE proposal_drafts ADD COLUMN IF NOT EXISTS citations JSONB DEFAULT '[]'::jsonb`; } catch {}
+  // Part B — pending draft (the score → signup draft promise): latest row for
+  // this user, so the dashboard can show an honest ready/processing state
+  // instead of a dead end when a draft is awaiting or fulfilled.
+  let pendingDraft: { id: number; status: string; has_draft_text: boolean } | null = null;
+  try {
+    await sql()`CREATE TABLE IF NOT EXISTS pending_drafts (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id),
+      solicitation_text TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'awaiting_profile',
+      draft_text TEXT,
+      citations JSONB DEFAULT '[]'::jsonb,
+      error TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(),
+      fulfilled_at TIMESTAMPTZ
+    )`;
+    const pendingRows = await sql()`SELECT id, status, (draft_text IS NOT NULL) AS has_draft_text FROM pending_drafts WHERE user_id = ${user.id} ORDER BY id DESC LIMIT 1`;
+    if (pendingRows.length > 0) {
+      const p = pendingRows[0] as any;
+      pendingDraft = { id: Number(p.id), status: String(p.status), has_draft_text: p.has_draft_text === true };
+    }
+  } catch { /* non-blocking */ }
 
   const draftRows = await sql()`SELECT bid_id, draft_text, generated_at, citations FROM proposal_drafts WHERE user_id = ${user.id}`;
   const drafts: ProposalDraft[] = (draftRows as any[]).map((d) => ({
@@ -198,7 +220,7 @@ async function handler({ request }: { request: Request }) {
   try { createDeadlineAlertsForUser(user.id, user.email).catch(() => {}); } catch { /* non-blocking */ }
 
   let unreadAlerts = 0; try { const ar = await sql()`SELECT COUNT(*)::int AS count FROM bid_alerts WHERE user_id = ${user.id} AND is_read=false`; unreadAlerts = Number((ar[0] as any)?.count || 0); } catch {}
-  return Response.json({ profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts });
+  return Response.json({ profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts, pendingDraft });
   } catch (err) {
     console.error("[api/dashboard-data] error:", err);
     return Response.json(

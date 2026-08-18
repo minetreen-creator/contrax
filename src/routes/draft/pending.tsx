@@ -244,6 +244,11 @@ function DraftPendingPage() {
                   ? "We couldn't generate your draft the first time. Your solicitation is saved —"
                   : "We're preparing your draft from the solicitation you pasted. It takes a few seconds."}
               </p>
+              {error && (
+                <p className="mt-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-[13px] text-red-700">
+                  {error}
+                </p>
+              )}
               {data.error && (
                 <p className="mt-3 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-[13px] text-red-700">
                   {data.error}

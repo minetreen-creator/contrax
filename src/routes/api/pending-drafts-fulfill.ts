@@ -123,6 +123,6 @@ async function handler({ request }: { request: Request }) {
   }
 }
 
-export const Route = createFileRoute("/api/pending-drafts/fulfill")({
+export const Route = createFileRoute("/api/pending-drafts-fulfill")({
   server: { handlers: { POST: handler } },
 });

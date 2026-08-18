@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { generateProposalDraft } from "~/lib/proposal-draft";
+import { extractCitations } from "~/lib/far-grounding";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
 async function handler({ request }: { request: Request }) {

@@ -160,6 +160,19 @@ export async function ensureFarClausesTable(): Promise<void> {
   try {
     await sql()`CREATE INDEX IF NOT EXISTS idx_far_clauses_search ON far_clauses USING gin(to_tsvector('english', title || ' ' || full_text))`;
   } catch { /* GIN index is an optimization — full-text search still works without it */ }
+  // Stored weighted tsvector for clause retrieval: title lexemes carry weight A
+  // (3× in ts_rank) so title matches outrank full-text matches, mirroring the
+  // historical 3*title + 1*full_text ranking. Precomputing it once per row is
+  // what makes retrieveRelevantClauses' ORDER BY fast (no per-query tsvector
+  // construction over ~4.3k matching clauses). Matching semantics are identical
+  // to the expression form (tsvector @@ tsquery ignores weights unless the
+  // tsquery restricts them), so the WHERE candidate set is unchanged.
+  try {
+    await sql()`ALTER TABLE far_clauses ADD COLUMN IF NOT EXISTS search_tsv tsvector GENERATED ALWAYS AS (setweight(to_tsvector('english', title), 'A') || setweight(to_tsvector('english', full_text), 'B')) STORED`;
+  } catch { /* stored tsvector is an optimization — if it cannot be created, clause retrieval fails open (returns no library) */ }
+  try {
+    await sql()`CREATE INDEX IF NOT EXISTS idx_far_clauses_search_tsv ON far_clauses USING gin(search_tsv)`;
+  } catch { /* retrieval still works (seq scan of stored tsvectors) without the index */ }
   try { await sql()`CREATE INDEX IF NOT EXISTS idx_far_clauses_source ON far_clauses (source)`; } catch {}
   try { await sql()`CREATE INDEX IF NOT EXISTS idx_far_clauses_part ON far_clauses (part)`; } catch {}
 }

@@ -82,12 +82,14 @@ function extractTokens(...fields: Array<string | null | undefined>): string[] {
  * tokens matching >20% of the library are dropped), then OR-matched at the
  * WORD level (Postgres full-text: `to_tsvector @@ to_tsquery`) against clause
  * title + full_text — the same search path as `searchFARClauses`, backed by
- * the `idx_far_clauses_search` GIN index. Word-level matching avoids the
- * substring noise of ILIKE (e.g. the token "ess" matching "process"),
- * including when a token never occurs as a standalone word. Title matches
- * rank first, ordered by how many tokens hit the title (more overlap = more
- * relevant). Fail-open: any error or empty match returns [] — an ungrounded
- * draft is honest; fabricating clause numbers is not.
+ * the `idx_far_clauses_search_tsv` GIN index over the stored `search_tsv`
+ * tsvector. Word-level matching avoids the substring noise of ILIKE (e.g. the
+ * token "ess" matching "process"), including when a token never occurs as a
+ * standalone word. Title matches rank first — `search_tsv` stores title
+ * lexemes at weight A and full-text lexemes at weight B, so `ts_rank` with
+ * weights {0.1,0.1,0.333,1} weighs title hits 3× full-text hits. Fail-open:
+ * any error or empty match returns [] — an ungrounded draft is honest;
+ * fabricating clause numbers is not.
  */
 export async function retrieveRelevantClauses(bid: BidForGrounding): Promise<GroundedClause[]> {
   try {
@@ -110,15 +112,25 @@ export async function retrieveRelevantClauses(bid: BidForGrounding): Promise<Gro
       .map((r) => String(r.pat));
     if (kept.length === 0) return [];
     const query = kept.join(" | ");
+    // Rank candidates with ts_rank over the STORED weighted tsvector
+    // (search_tsv — see ensureFarClausesTable). This replaces the old ORDER BY,
+    // whose two correlated subqueries unnest()-ed every kept token and rebuilt
+    // to_tsvector(title)/to_tsvector(full_text) per token per matching row —
+    // with 92-94% of the 4,630-clause library matching a realistic bid, that
+    // was ~1M+ tsvector constructions per retrieval (measured >20s–minutes).
+    // search_tsv carries title lexemes at weight A and full-text lexemes at
+    // weight B, and the weights array {D,C,B,A} = {0.1,0.1,0.333,1} gives title
+    // matches 3× the weight of full-text matches, mirroring the historical
+    // 3*title + 1*full_text ranking intent. Deterministic: equal ranks tie on
+    // clause_number ASC. The WHERE candidate set is unchanged (search_tsv is
+    // the same expression, stored; @@ ignores weights unless the tsquery
+    // restricts them) — the document-frequency prune above still bounds it.
     const rows = await sql()`
       SELECT clause_number, title, full_text
       FROM far_clauses
-      WHERE to_tsvector('english', title || ' ' || full_text) @@ to_tsquery('english', ${query})
+      WHERE search_tsv @@ to_tsquery('english', ${query})
       ORDER BY
-        (3 * (SELECT COUNT(*) FROM unnest(${kept}::text[]) AS p(pat)
-              WHERE to_tsvector('english', title) @@ plainto_tsquery('english', p.pat))
-         + (SELECT COUNT(*) FROM unnest(${kept}::text[]) AS p(pat)
-            WHERE to_tsvector('english', full_text) @@ plainto_tsquery('english', p.pat))) DESC,
+        ts_rank('{0.1,0.1,0.333,1}'::float4[], search_tsv, to_tsquery('english', ${query})) DESC,
         clause_number ASC
       LIMIT ${MAX_RETRIEVED_CLAUSES}
     `;

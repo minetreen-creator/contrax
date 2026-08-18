@@ -119,7 +119,7 @@ ${knowledgeCtx}${clauseLibraryBlock}`;
           { role: "system", content: systemPrompt },
           { role: "user", content: prompt },
         ],
-        max_tokens: 2200,
+        max_tokens: 1500,
         temperature: 0.4,
       }),
     });

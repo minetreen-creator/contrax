@@ -75,7 +75,10 @@ const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () =>
 
 export const Route = createFileRoute("/signup")({
   validateSearch: (search: Record<string, unknown>): SignupSearch => ({
-    plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "professional",
+    // Cold arrivals (no ?plan= — homepage/awards CTAs) default to Starter so the
+    // $19/mo promise they were shown holds. Intent links (?plan=professional from
+    // the score result, pricing page, Drafting CTAs) still preselect via the URL.
+    plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "starter",
     ticker_bid: typeof search.ticker_bid === "string" ? search.ticker_bid : undefined,
     ticker_agency: typeof search.ticker_agency === "string" ? search.ticker_agency : undefined,
     score_rec:
@@ -98,7 +101,7 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
   head: () => ({
     meta: [
-      { title: "Get Your Technical Approach in 60 Seconds — Free 21-Day Trial | Contrax" },
+      { title: "Start Your Government-Contracting Workflow — Free 21-Day Trial | Contrax" },
       {
         name: "description",
         content:
@@ -108,7 +111,7 @@ export const Route = createFileRoute("/signup")({
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company/signup" },
-      { property: "og:title", content: "Get Your Technical Approach in 60 Seconds — Free 21-Day Trial | Contrax" },
+      { property: "og:title", content: "Start Your Government-Contracting Workflow — Free 21-Day Trial | Contrax" },
       {
         property: "og:description",
         content:
@@ -122,7 +125,7 @@ export const Route = createFileRoute("/signup")({
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Get Your Technical Approach in 60 Seconds — Free 21-Day Trial | Contrax" },
+      { name: "twitter:title", content: "Start Your Government-Contracting Workflow — Free 21-Day Trial | Contrax" },
       {
         name: "twitter:description",
         content:
@@ -253,7 +256,9 @@ function SignupPage() {
         window.location.assign(safeNext(next) ?? "/dashboard");
         return;
       }
-      navigate({ to: "/dashboard" });
+      // New user, no save_bid intent → land on /onboarding, where value
+      // actually starts (profile setup → bid matches), not on an empty dashboard.
+      navigate({ to: "/onboarding" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
     } finally {
@@ -317,7 +322,12 @@ function SignupPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-slate-900">Get your Technical Approach in 60 seconds.</h1>
+          {/* H1: softened to match what actually happens post-signup (account →
+              onboarding → bid matches). The original owner-ratified score-flow
+              copy ("Get your Technical Approach in 60 seconds.") was removed
+              because the draft engine (part B) is not live yet — restore it as
+              the score_rec variant when part B ships. */}
+          <h1 className="text-2xl font-bold text-slate-900">Your government-contracting workflow starts here.</h1>
           <p className="mt-1.5 text-sm text-gray-500">
             No credit card required. Trial ends in 21 days.
           </p>
@@ -333,12 +343,74 @@ function SignupPage() {
             </p>
           )}
 
-          {/* Selected plan — price clearly tied to the trial */}
-          <p className="mt-2 text-sm text-gray-500">
-            {planInfo.name} — ${planInfo.price}/mo after your 21-day free trial
-          </p>
+          {/* Plan selector — selectable cards. Cold arrivals default to Starter
+              ($19/mo, the homepage promise); ?plan=professional intent links
+              preselect Professional via the URL. selectedPlan feeds both the
+              signup POST body and the Google OAuth state. */}
+          <div className="mt-4">
+            <p className="text-sm font-semibold text-slate-900">Select your plan</p>
+            <p className="mt-0.5 text-xs text-gray-500">
+              Every plan starts with a 21-day free trial — no credit card required.
+            </p>
+            <div className="mt-2.5 space-y-2" role="radiogroup" aria-label="Plan">
+              {PLAN_OPTIONS.map((opt) => {
+                const isSelected = selectedPlan === opt.slug;
+                return (
+                  <button
+                    key={opt.slug}
+                    type="button"
+                    role="radio"
+                    aria-checked={isSelected}
+                    onClick={() => setSelectedPlan(opt.slug)}
+                    className={`w-full rounded-xl border p-4 text-left transition-all ${
+                      isSelected
+                        ? "border-blue-500 bg-blue-50/50 shadow-sm ring-1 ring-blue-500/30"
+                        : opt.featured
+                          ? "border-amber-300 bg-white hover:border-amber-400 hover:bg-amber-50/40"
+                          : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="flex-1 text-sm font-bold text-slate-900">{opt.name}</span>
+                      <span className="text-sm font-semibold text-slate-700">
+                        ${opt.price}
+                        <span className="text-xs font-normal text-gray-500">/mo</span>
+                      </span>
+                      <span
+                        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
+                          isSelected ? "border-blue-500 bg-blue-500" : "border-gray-300 bg-white"
+                        }`}
+                      >
+                        {isSelected && (
+                          <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </span>
+                    </div>
+                    <ul className="mt-2 space-y-1">
+                      {opt.bullets.map((b) => (
+                        <li key={b} className="flex items-start gap-1.5 text-xs text-gray-600">
+                          <svg className="mt-0.5 h-3.5 w-3.5 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                          {b}
+                        </li>
+                      ))}
+                    </ul>
+                  </button>
+                );
+              })}
+            </div>
+            {/* Selected plan — price clearly tied to the trial */}
+            <p className="mt-2.5 text-sm text-gray-500">
+              {planInfo.name} — ${planInfo.price}/mo after your 21-day free trial
+            </p>
+          </div>
 
-          {/* What you get in the next 5 minutes */}
+          {/* What you get after setup — each item is delivered once the
+              onboarding profile is saved (matched bids, AI summaries/scores,
+              deadline alerts). Heading deliberately avoids a time promise. */}
           <ul className="mt-4 space-y-2 rounded-lg border border-gray-100 bg-slate-50 px-4 py-3">
             <li className="flex items-start gap-2 text-sm text-slate-700">
               <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -460,7 +532,8 @@ function SignupPage() {
                   Creating account...
                 </span>
               ) : (
-                "Create Account & View Draft →"
+                // Honest CTA: no draft promise until the draft flow (part B) lands.
+                "Create my free account →"
               )}
             </button>
 

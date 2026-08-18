@@ -208,7 +208,9 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
     //    password_hash stays NULL for Google-only users. If the database has a
     //    NOT NULL constraint on password_hash, fall back to an unusable
     //    placeholder that can never pass PBKDF2 verification.
+    let isNewUser = false;
     if (userId === null) {
+      isNewUser = true;
       const inserted = await sql()`
         INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
         VALUES (${email}, NULL, ${plan ?? "starter"}, NOW())
@@ -248,7 +250,7 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
       maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
     });
 
-    return { success: true, userId };
+    return { success: true, userId, isNewUser };
   });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -311,9 +313,11 @@ export const Route = createFileRoute("/auth/google/callback")({
     }
 
     let userId: number | null = null;
+    let isNewUser = false;
     try {
       const result = await handleGoogleAuth({ data: { code, plan } });
       userId = result.userId;
+      isNewUser = result.isNewUser;
     } catch (err) {
       console.error("[google-auth] callback failed:", err);
       throw redirect({ href: "/login?error=google_auth_failed" });
@@ -335,7 +339,16 @@ export const Route = createFileRoute("/auth/google/callback")({
       }
     }
 
-    throw redirect({ href: safeNext(next) ?? "/dashboard" });
+    // New users (no save-to-pipeline intent) land on /onboarding — that is
+    // where value actually starts (profile setup → matched bids). Returning
+    // users and save-to-pipeline intents keep their existing destinations.
+    const dest =
+      saveBid !== null
+        ? safeNext(next) ?? "/dashboard"
+        : isNewUser
+          ? "/onboarding"
+          : safeNext(next) ?? "/dashboard";
+    throw redirect({ href: dest });
   },
   component: () => null, // Never rendered — the loader always redirects.
   head: () => ({

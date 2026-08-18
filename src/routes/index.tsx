@@ -929,7 +929,7 @@ function FarClauseStats({
               Contrax has it built in.
             </span>
           </h2>
-          <div className="flex items-center gap-8 sm:gap-12">
+          <div className="flex items-center gap-4 sm:gap-12">
             <div className="text-center">
               <p className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
                 {stats.total.toLocaleString()}

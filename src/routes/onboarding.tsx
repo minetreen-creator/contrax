@@ -588,6 +588,7 @@ function StepReview({
   certifications,
   saving,
   generatingDraft,
+  draftSlowNote,
   onBack,
   onFinish,
 }: {
@@ -599,6 +600,7 @@ function StepReview({
   certifications: string[];
   saving: boolean;
   generatingDraft: boolean;
+  draftSlowNote: boolean;
   onBack: () => void;
   onFinish: () => void;
 }) {
@@ -690,7 +692,11 @@ function StepReview({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              {generatingDraft ? "Generating your Technical Approach draft…" : "Saving..."}
+              {generatingDraft
+                ? draftSlowNote
+                  ? "Still working — drafting takes about 30 seconds…"
+                  : "Generating your Technical Approach draft…"
+                : "Saving..."}
             </span>
           ) : (
             "Finish Setup"
@@ -734,6 +740,12 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
   const [naicsInput, setNaicsInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [generatingDraft, setGeneratingDraft] = useState(false);
+  // Draft-latency progress note: the fulfill call takes ~26s, so after ~10s we
+  // swap the button copy to reassure the user it is still working. The timer is
+  // cleared on completion and on unmount — it must never fire after success
+  // (no late swap, no state update after unmount).
+  const [draftSlowNote, setDraftSlowNote] = useState(false);
+  const draftSlowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState("");
 
   // Part B — pending-draft persist. The email/password path persists in
@@ -748,6 +760,17 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
     if (pendingDraftFiredRef.current) return;
     pendingDraftFiredRef.current = true;
     persistPendingDraft();
+  }, []);
+
+  // Clean up the draft-latency timer on unmount so it can never fire a state
+  // update after the component is gone.
+  useEffect(() => {
+    return () => {
+      if (draftSlowTimerRef.current !== null) {
+        clearTimeout(draftSlowTimerRef.current);
+        draftSlowTimerRef.current = null;
+      }
+    };
   }, []);
 
   const update = useCallback((patch: Partial<WizardState>) => {
@@ -844,6 +867,13 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
       // says what is happening.
       let draftReady = false;
       setGeneratingDraft(true);
+      setDraftSlowNote(false);
+      // Swap the button copy after ~10s if the draft is still generating. The
+      // timer is cleared when generation completes (below) and on unmount, so
+      // it only fires while the fulfill call is genuinely still in flight.
+      draftSlowTimerRef.current = setTimeout(() => {
+        setDraftSlowNote(true);
+      }, 10000);
       try {
         const draftRes = await fetch("/api/pending-drafts/fulfill", {
           method: "POST",
@@ -858,6 +888,12 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
         }
       } catch {
         /* fail-open — the row stays awaiting_profile for a later retry */
+      }
+      // Generation is done (success or fail-open) — cancel the pending progress
+      // swap so the "still working" note can never appear after the fact.
+      if (draftSlowTimerRef.current !== null) {
+        clearTimeout(draftSlowTimerRef.current);
+        draftSlowTimerRef.current = null;
       }
       setGeneratingDraft(false);
       navigate({ to: draftReady ? "/draft/pending" : "/dashboard" });
@@ -968,6 +1004,7 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
               certifications={state.certifications}
               saving={saving}
               generatingDraft={generatingDraft}
+              draftSlowNote={draftSlowNote}
               onBack={() => setState((prev) => ({ ...prev, step: 5 }))}
               onFinish={handleFinish}
             />

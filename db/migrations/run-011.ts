@@ -1,7 +1,7 @@
 // Run migration 011: create pending_drafts table
 // (Also documented in db/migrations/011_pending_drafts.sql; runtime idempotent
 // creation lives as lazy CREATEs in src/routes/api/pending-drafts.ts and
-// src/routes/api/pending-drafts-fulfill.ts.)
+// src/routes/api/pending-drafts/fulfill.ts.)
 import { neon } from "@neondatabase/serverless";
 const db = neon(process.env.DATABASE_URL!);
 async function run() {

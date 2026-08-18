@@ -7,7 +7,7 @@
 -- draft_text + citations on the row (status -> 'fulfilled').
 --
 -- The table is also ensured at runtime by lazy CREATEs in
--- src/routes/api/pending-drafts.ts and src/routes/api/pending-drafts-fulfill.ts
+-- src/routes/api/pending-drafts.ts and src/routes/api/pending-drafts/fulfill.ts
 -- (same pattern as the business_profiles ALTERs / slack tables), so this
 -- migration is documentation + an idempotent runner for fresh setups.
 CREATE TABLE IF NOT EXISTS pending_drafts (

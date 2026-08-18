@@ -551,4 +551,10 @@ CREATE TABLE IF NOT EXISTS far_clauses (
     last_updated TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_far_clauses_search ON far_clauses USING gin(to_tsvector('english', title || ' ' || full_text));
+-- Stored weighted tsvector backing retrieveRelevantClauses' fast ts_rank
+-- ordering (title weight A = 3x, full-text weight B). Matches identically to
+-- the expression form; it is only a precompute. Runtime path (lazy migration):
+-- ensureFarClausesTable() in src/lib/far-dfars.ts.
+ALTER TABLE far_clauses ADD COLUMN IF NOT EXISTS search_tsv tsvector GENERATED ALWAYS AS (setweight(to_tsvector('english', title), 'A') || setweight(to_tsvector('english', full_text), 'B')) STORED;
+CREATE INDEX IF NOT EXISTS idx_far_clauses_search_tsv ON far_clauses USING gin(search_tsv);
 CREATE INDEX IF NOT EXISTS idx_far_clauses_source ON far_clauses (source);

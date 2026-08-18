@@ -331,6 +331,12 @@ export async function getRelevantContext(query: string, limit = 5): Promise<stri
     let rows: Record<string, unknown>[] = [];
     // Prefer semantic retrieval when pgvector and the embeddings API are available.
     try {
+      // Skip the embeddings API call entirely when no visible document has an
+      // embedding yet: the vector branch would return 0 rows and fall through
+      // to keyword search anyway, so the OpenAI call would be pure waste
+      // (~0.5–2s per retrieval on fresh installs with 0 embedded docs).
+      const hasEmbeddings = await sql()`SELECT 1 FROM knowledge_documents kd WHERE ${visibility} AND kd.embedding IS NOT NULL LIMIT 1`;
+      if (hasEmbeddings.length === 0) throw new Error("no embedded documents");
       const embedding = await getEmbedding(query);
       const vector = pgvectorString(embedding);
       rows = (await sql()`

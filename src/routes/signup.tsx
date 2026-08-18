@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import { persistPendingDraft } from "~/lib/pending-draft";
 import { sql } from "~/db";
 import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
 import { safeNext } from "~/lib/saved-matches";
@@ -237,6 +238,12 @@ function SignupPage() {
         throw new Error(json.error || "Signup failed. Please try again.");
       }
       trackEvent("signup_success");
+      // Part B — the draft promise: persist the scored solicitation
+      // server-side keyed to this new user BEFORE any redirect. Fail-open by
+      // design — a persist failure must never block signup, the save-to-
+      // pipeline intent, or the redirect to /onboarding. On failure the
+      // sessionStorage carry survives, so the first /onboarding mount retries.
+      await persistPendingDraft();
       if (save_bid) {
         // Save-to-pipeline intent: persist the bid to the new user's pipeline,
         // then land them where they were. The save must NEVER fail the signup —
@@ -322,12 +329,16 @@ function SignupPage() {
 
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-          {/* H1: softened to match what actually happens post-signup (account →
-              onboarding → bid matches). The original owner-ratified score-flow
-              copy ("Get your Technical Approach in 60 seconds.") was removed
-              because the draft engine (part B) is not live yet — restore it as
-              the score_rec variant when part B ships. */}
-          <h1 className="text-2xl font-bold text-slate-900">Your government-contracting workflow starts here.</h1>
+          {/* H1: the owner-ratified score-flow copy ("Get your Technical
+              Approach in 60 seconds.") is restored as the score_rec variant —
+              part B now delivers that promise (solicitation persisted at
+              signup → draft fires on onboarding completion). Cold arrivals
+              keep the honest workflow headline. */}
+          <h1 className="text-2xl font-bold text-slate-900">
+            {score_rec
+              ? "Get your Technical Approach in 60 seconds."
+              : "Your government-contracting workflow starts here."}
+          </h1>
           <p className="mt-1.5 text-sm text-gray-500">
             No credit card required. Trial ends in 21 days.
           </p>

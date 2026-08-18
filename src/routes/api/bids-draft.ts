@@ -1,9 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
-import { getRelevantContext } from "~/lib/knowledge";
-import { buildProfileContext } from "~/lib/profile-context";
-import { extractCitations, retrieveRelevantClauses } from "~/lib/far-grounding";
+import { generateProposalDraft } from "~/lib/proposal-draft";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
 async function handler({ request }: { request: Request }) {
@@ -50,99 +48,12 @@ async function handler({ request }: { request: Request }) {
     const profileRows = await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value FROM business_profiles WHERE user_id = ${user.id}`;
     if (profileRows.length === 0) throw new Error("Business profile not found — complete onboarding first");
     const profile = profileRows[0] as BusinessProfile;
-    const knowledgeCtx = await getRelevantContext(`${bid.title} ${bid.description || ""} proposal template capability statement compliance checklist`);
 
-    // FAR-Grounded Drafting: retrieve REAL clauses from far_clauses and make
-    // them the ONLY citation source the model may draw from.
-    const retrievedClauses = await retrieveRelevantClauses(bid);
-    const clauseLibraryBlock =
-      retrievedClauses.length === 0
-        ? ""
-        : `
-
-FAR CLAUSE LIBRARY — MANDATORY CITATION SOURCE (real FAR/DFARS clauses retrieved because they apply to THIS solicitation):
-The clauses below were retrieved for this solicitation, so they govern parts of this work. You MUST cite them in the draft:
-- Cite the applicable clauses inline, in the exact form [FAR 52.212-4] or [DFARS 252.204-7012], immediately after the sentence or claim they support.
-- Cite clauses in EVERY section (cover letter, executive summary, relevant experience, proposed approach, pricing) wherever a sentence makes a compliance, terms, or requirements claim that a listed clause governs.
-- Do not leave this list unused: if a clause on the list applies to what you wrote, cite it. A clause may be cited multiple times in different sections.
-- Cite ONLY the exact clause numbers from this list. NEVER invent a clause number or use one from memory — any number not on this list is forbidden.
-- Example of a grounded sentence: "All commercial items will be acquired under the terms and conditions of the solicitation [FAR 52.212-4], and offerors must comply with the instructions at [FAR 52.212-1]."
-- If no clause on the list applies to a specific sentence, write it without a citation — but most compliance and terms claims ARE governed by a listed clause, so expect several citations per section.
-
-${retrievedClauses
-  .map(
-    (c) =>
-      `[${c.clause_number.startsWith("252.") ? "DFARS" : "FAR"} ${c.clause_number}] ${c.title}\n${c.full_text.slice(0, 1500)}${c.full_text.length > 1500 ? "\n(truncated)" : ""}`,
-  )
-  .join("\n\n")}`;
-
-    const systemPrompt = `You are a government proposal writer for a small business pursuing federal contracts.
-
-MANDATORY CITATION RULE: Your draft MUST contain inline FAR/DFARS clause citations that support its claims.
-- Cite ONLY the clause numbers listed in the "FAR CLAUSE LIBRARY" section of the user prompt. Never invent, guess, or recall a clause number that is not on that list.
-- Format every citation inline as [FAR 52.212-4] or [DFARS 252.204-7012], placed immediately after the sentence or claim it supports.
-- A draft that makes compliance, terms, or requirements claims without citing the governing clauses is INCOMPLETE. Do not leave the clause list unused.`;
-
-    const prompt = `You are a government proposal writer. Draft a professional proposal response for this contract opportunity based on the business profile provided.
-
-Include:
-1. Cover letter introducing the business
-2. Executive summary of understanding the requirements
-3. Relevant experience and qualifications
-4. Proposed approach and methodology
-5. Pricing summary (if applicable)
-
-Format as a formal business proposal with sections and professional tone.
-
-CITATION REQUIREMENT: As you write each section, insert the applicable FAR/DFARS clause citations from the FAR CLAUSE LIBRARY (below) inline — in the form [FAR 52.xxx-x] or [DFARS 252.xxx-x] — immediately after the sentence or claim each clause supports. The library was retrieved because it applies to this solicitation, so do not leave it unused.
-
-Bid:
-Title: ${bid.title}
-Agency: ${bid.agency}
-Description: ${bid.description || "Not provided"}
-Location: ${bid.location || "Not specified"}
-Category: ${bid.category || "Not specified"}
-Due Date: ${String(bid.due_date)}
-Estimated Value: ${bid.estimated_value || "Not specified"}
-
-Business profile:
-${buildProfileContext(profile)}
-${knowledgeCtx}${clauseLibraryBlock}`;
-
-    let draftText: string;
-    try {
-      const apiKey = process.env.OPENAI_API_KEY;
-      if (!apiKey) throw new Error("OpenAI API key not configured");
-
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: prompt },
-          ],
-          max_tokens: 2200,
-          temperature: 0.4,
-        }),
-      });
-
-      if (!response.ok) {
-        const errBody = await response.text();
-        throw new Error(`OpenAI API error (${response.status}): ${errBody.substring(0, 200)}`);
-      }
-
-      const json = await response.json() as any;
-      draftText = json.choices?.[0]?.message?.content;
-      if (!draftText) throw new Error("No content in OpenAI response");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "AI proposal generation failed";
-      throw new Error(`Proposal generation failed: ${msg}`);
-    }
-
-    // Extract + DB-validate citations from the generated draft text.
-    const citations = await extractCitations(draftText, retrievedClauses);
+    // FAR-Grounded Drafting — shared with /api/pending-drafts/fulfill so real
+    // bids and pasted solicitations run the EXACT same generation path
+    // (retrieveRelevantClauses → clause library block → prompts → OpenAI →
+    // extractCitations). See src/lib/proposal-draft.ts.
+    const { draftText, citations } = await generateProposalDraft(bid, profile);
 
     // Store in DB
     await sql()`INSERT INTO proposal_drafts (bid_id, user_id, draft_text, citations)

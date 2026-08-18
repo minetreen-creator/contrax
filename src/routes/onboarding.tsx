@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
+import { trackEvent } from "~/lib/track";
+import { persistPendingDraft } from "~/lib/pending-draft";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -585,6 +587,7 @@ function StepReview({
   naicsCodes,
   certifications,
   saving,
+  generatingDraft,
   onBack,
   onFinish,
 }: {
@@ -595,6 +598,7 @@ function StepReview({
   naicsCodes: string[];
   certifications: string[];
   saving: boolean;
+  generatingDraft: boolean;
   onBack: () => void;
   onFinish: () => void;
 }) {
@@ -686,7 +690,7 @@ function StepReview({
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Saving...
+              {generatingDraft ? "Generating your Technical Approach draft…" : "Saving..."}
             </span>
           ) : (
             "Finish Setup"
@@ -729,7 +733,22 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
 
   const [naicsInput, setNaicsInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [generatingDraft, setGeneratingDraft] = useState(false);
   const [error, setError] = useState("");
+
+  // Part B — pending-draft persist. The email/password path persists in
+  // signup.tsx BEFORE navigating here; this mount is the safety net for the
+  // Google OAuth path (sessionStorage survives the full-page round-trip —
+  // same tab — and this mount is the first authenticated client context) and
+  // for any email-path persist that failed (fail-open leaves the carry in
+  // place). Idempotent: cleared on success, and the API dedupes identical
+  // awaiting rows.
+  const pendingDraftFiredRef = useRef(false);
+  useEffect(() => {
+    if (pendingDraftFiredRef.current) return;
+    pendingDraftFiredRef.current = true;
+    persistPendingDraft();
+  }, []);
 
   const update = useCallback((patch: Partial<WizardState>) => {
     setState((prev) => ({ ...prev, ...patch }));
@@ -816,10 +835,36 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
         }),
       }).then((r) => r.json());
       if (!res.success) throw new Error(res.error || "Failed to save profile. Please try again.");
-      navigate({ to: "/dashboard" });
+      // Part B — fire the pending Technical Approach draft now that the
+      // business profile exists. Fail-open: a draft failure must NEVER break
+      // onboarding — the user lands on /dashboard and sees an honest
+      // ready/processing state (with a retry on /draft/pending) instead.
+      // We await it so the user lands directly on their draft when it works
+      // (the "60 seconds" promise is exactly this), and the button label
+      // says what is happening.
+      let draftReady = false;
+      setGeneratingDraft(true);
+      try {
+        const draftRes = await fetch("/api/pending-drafts/fulfill", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        if (draftRes.ok) {
+          const draftJson = (await draftRes.json().catch(() => null)) as { draft_text?: string } | null;
+          if (draftJson?.draft_text) {
+            trackEvent("pending_draft_fulfilled");
+            draftReady = true;
+          }
+        }
+      } catch {
+        /* fail-open — the row stays awaiting_profile for a later retry */
+      }
+      setGeneratingDraft(false);
+      navigate({ to: draftReady ? "/draft/pending" : "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save profile. Please try again.");
       setSaving(false);
+      setGeneratingDraft(false);
     }
   };
 
@@ -922,6 +967,7 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
               naicsCodes={state.naicsCodes}
               certifications={state.certifications}
               saving={saving}
+              generatingDraft={generatingDraft}
               onBack={() => setState((prev) => ({ ...prev, step: 5 }))}
               onFinish={handleFinish}
             />

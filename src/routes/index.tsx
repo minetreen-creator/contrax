@@ -1574,6 +1574,32 @@ function setAsideLabel(raw: string | null | undefined): string | null {
   if (lower.includes("hubzone") || lower.includes("hub zone")) return "HUBZone";
   return null; // unknown designation — hide the badge on the public teaser
 }
+// Deterministic, stable pseudo-random sample of `n` items from `pool`. Seeded
+// by a constant string so the SAME pool always yields the SAME result on the
+// server (SSR) and, after hydration, on the client — no hydration mismatch.
+// Different seeds produce different samples, which is what lets the "All open"
+// and "New (24h)" tabs on the Open Opportunities feed show differing real
+// card sets (each still drawn from its own honest post-filter, post-dedup
+// pool). FNV-1a hash → 32-bit LCG.
+function seededSample<T>(pool: T[], n: number, seedStr: string): T[] {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < seedStr.length; i++) {
+    h ^= seedStr.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  let s = h >>> 0;
+  const rand = () => {
+    s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+  const arr = pool.slice();
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.slice(0, n);
+}
+
 function OpenOpportunities({ bids, todayBids, openCount }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number }) {
   // MERGED single solicitations feed (owner-directed): folds the old "Newest
   // Solicitations" (TodaySolicitations) and "Live Opportunities"
@@ -1647,7 +1673,17 @@ function OpenOpportunities({ bids, todayBids, openCount }: { bids: Bid[]; todayB
     return Number.isFinite(t) && now - t <= 24 * 60 * 60 * 1000 + 5 * 60 * 1000;
   };
   const filtered = onlyNew ? merged.filter((b) => inLast24h(b.created_at)) : merged;
-  const display = filtered.slice(0, 12);
+  // Deterministically re-sample each mode from its own post-filter, post-dedup
+  // pool so "All open" and "New (24h)" show genuinely differing card sets.
+  // "All open" keeps the established newest-first ordering; "New (24h)" picks a
+  // distinct seeded set that is guaranteed (by the filter) to come only from the
+  // last-24h subset. The seeded pick is a pure function of the pool, so SSR and
+  // client hydration render identical cards. The honest counts ("of Y") and the
+  // count badge are untouched — they already reflect the active mode's
+  // post-filter, post-dedup population (openCount / todayBids.count).
+  const display = onlyNew
+    ? seededSample(filtered, 12, "home-open-opps-new-24h")
+    : filtered.slice(0, 12);
   // Honest gate: {VISIBLE} of {TOTAL} — both post-filter, post-dedup, live.
   const gateTotal = onlyNew ? todayBids.count : openCount;
 

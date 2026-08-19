@@ -44,6 +44,19 @@ const SEED_AWARDS = [
 
 // ── Server Functions ───────────────────────────────────────────────────────────
 
+// Convert a Postgres date/timestamptz (returned by the neon driver as a JS
+// Date) or an ISO/date string to a plain "YYYY-MM-DD". NEVER rely on
+// String(dateValue).slice(0, 10): String() on a Date yields a non-ISO weekday
+// form ("Tue Aug 19 2026 ..."), and feeding that fragment into new Date()
+// parses to a fixed year 2001 (a V8 quirk). That is how the fixed "Aug 19,
+// 2001" got onto every award card regardless of the real date.
+function toISODate(value: unknown): string {
+  if (!value) return "";
+  const d = value instanceof Date ? value : new Date(String(value));
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString().slice(0, 10);
+}
+
 const HEALTHCARE_KEYWORDS = [
   "health", "medical", "nurse", "nursing", "physician", "clinician", "clinical",
   "hospital", "tricare", "medicare", "medicaid", "pharma", "pharmacy", "dental",
@@ -127,7 +140,7 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }:
     // award card shape while making that distinction explicit to users.
     winning_company: "Open opportunity",
     award_amount: r.estimated_value || "Not specified",
-    award_date: r.created_at || r.due_date ? String(r.created_at || r.due_date).slice(0, 10) : "",
+    award_date: r.created_at || r.due_date ? (toISODate(r.created_at || r.due_date) || "") : "",
     incumbent: null,
     category: r.category || null,
     location: r.location || null,
@@ -147,7 +160,7 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }:
       : await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
     similarBids[award.id] = (bidRows as any[]).map((b) => ({
       id: Number(b.id), title: b.title, agency: b.agency,
-      due_date: b.due_date ? String(b.due_date).slice(0, 10) : "Not specified",
+      due_date: b.due_date ? (toISODate(b.due_date) || "Not specified") : "Not specified",
       estimated_value: b.estimated_value || "Not specified", category: b.category || "",
     }));
   }

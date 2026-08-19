@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Menu, Radar, X } from "lucide-react";
+import { DollarSign, Menu, Radar, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 
@@ -485,9 +485,51 @@ const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }
     return { totalBids: 0, agencyCount: 0 };
   }
 };
+// Distinct dollar total of the federal awards we track (Live Award Feed +
+// per-certification views). Award amounts carry REAL values from USAspending
+// (unlike solicitation `estimated_value`, which is "Not specified" on 99.9% of
+// bid rows). The same award repeats across cache keys, so we dedupe by
+// award_id (taking the max amount per id) and NEVER sum raw rows — that
+// double-counts to ~$214.8M vs the honest ~$214.2M. Fail-open: if the cache
+// table or any award data is unavailable, return 0 so the caller hides ONLY
+// this stat rather than breaking the page.
+const getAwardDollarTotal = async (): Promise<number> => {
+  try {
+    const { sql } = await import("~/db");
+    const rows = await sql()`SELECT data FROM live_awards_cache`;
+    const maxByAward = new Map<string, number>();
+    let any = false;
+    for (const r of rows as { data?: unknown }[]) {
+      const arr = Array.isArray(r?.data) ? (r.data as { award_id?: string; amount?: number }[]) : [];
+      for (const a of arr) {
+        const id = String(a?.award_id ?? "");
+        const amt = Number(a?.amount);
+        if (!id || !Number.isFinite(amt) || amt <= 0) continue;
+        any = true;
+        maxByAward.set(id, Math.max(maxByAward.get(id) ?? 0, amt));
+      }
+    }
+    if (!any) return 0;
+    let total = 0;
+    for (const v of maxByAward.values()) total += v;
+    return total;
+  } catch {
+    // cache table/query unavailable — hide the stat row entirely
+    return 0;
+  }
+};
+// Compact dollar formatting for the awards stat: "$214M" for hundreds of
+// millions, one decimal for single/tens of millions ("$12.4M"), "$850K" under
+// a million. Matches the honest distinct-award total (never fabricated.
+const formatAwardDollars = (n: number): string => {
+  if (n >= 100_000_000) return "$" + Math.round(n / 1_000_000) + "M";
+  if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000) return "$" + Math.round(n / 1_000) + "K";
+  return "$" + Math.round(n).toLocaleString();
+};
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   const { sql } = await import("~/db");
-  const [businessName, user, bids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts] = await Promise.all([
+  const [businessName, user, bids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -506,6 +548,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getUserCount(),
     getBidStats(),
     getFarClauseCounts(),
+    getAwardDollarTotal(),
   ]);
   let alertCount = 0;
   if (user) {
@@ -515,7 +558,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -565,7 +608,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -586,7 +629,7 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar user={user} alertCount={alertCount} />
-      <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} />
+      <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} awardDollarTotal={awardDollarTotal} />
       <HowItWorks />
       <LiveAwardFeed feed={liveAwards} />
       <FarClauseStats stats={farClauseCounts} />
@@ -782,10 +825,12 @@ function Hero({
   businessName,
   userCount,
   bidStats,
+  awardDollarTotal,
 }: {
   businessName: string;
   userCount: number;
   bidStats: { totalBids: number; agencyCount: number };
+  awardDollarTotal: number;
 }) {
   const navigate = useNavigate();
   const [scoreText, setScoreText] = useState("");
@@ -834,6 +879,17 @@ function Hero({
                   {bidStats.agencyCount.toLocaleString()}
                 </span>{" "}
                 agencies — updated every 4 hours on weekdays
+              </span>
+            </div>
+          )}
+          {awardDollarTotal > 0 && (
+            <div className="mt-3 flex items-center justify-center gap-2 text-sm text-blue-200/80">
+              <DollarSign className="h-4 w-4 shrink-0 text-amber-300" />
+              <span>
+                <span className="font-semibold text-amber-300">
+                  {formatAwardDollars(awardDollarTotal)}
+                </span>{" "}
+                in recent federal awards tracked — awarded contract dollars from USAspending
               </span>
             </div>
           )}

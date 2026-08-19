@@ -26,13 +26,24 @@ type TodayBid = {
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
+// Live Opportunities data — deduped at the SQL layer so a genuine duplicate
+// row (same solicitation ingested by multiple state-keyword sync sources, e.g.
+// `va` and `va_evirginia`) can NEVER surface as an adjacent twin card in the
+// grid. DISTINCT ON (title, agency) keeps the most recently ingested row per
+// solicitation, then orders the whole distinct set newest-first. The ingest
+// guard in src/jobs/runner.ts prevents new duplicates from being written.
 const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
   const { sql } = await import("~/db");
   const rows = await sql()`
     SELECT title, agency, estimated_value, due_date, location
-    FROM bids
-    ORDER BY created_at DESC NULLS LAST
-    LIMIT 50
+    FROM (
+      SELECT DISTINCT ON (title, agency)
+             title, agency, estimated_value, due_date, location, created_at
+      FROM bids
+      ORDER BY title, agency, created_at DESC NULLS LAST
+    ) t
+    ORDER BY t.created_at DESC NULLS LAST
+    LIMIT 60
   `;
   return rows as Bid[];
 });
@@ -42,13 +53,24 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
   // unauthenticated visitors. Full detail lives behind the signup wall.
   const rows = await sql()`
     SELECT title, agency, set_aside, location, due_date
-    FROM bids
-    WHERE created_at >= NOW() - INTERVAL '24 hours'
-    ORDER BY created_at DESC NULLS LAST
+    FROM (
+      SELECT DISTINCT ON (title, agency)
+             title, agency, set_aside, location, due_date, created_at
+      FROM bids
+      WHERE created_at >= NOW() - INTERVAL '24 hours'
+      ORDER BY title, agency, created_at DESC NULLS LAST
+    ) t
+    ORDER BY t.created_at DESC NULLS LAST
     LIMIT 10
   `;
+  // Distinct count so genuine dup rows (multi-source sync) can't inflate the
+  // "posted in the last 24 hours" figure.
   const countRows = await sql()`
-    SELECT COUNT(*)::int AS count FROM bids WHERE created_at >= NOW() - INTERVAL '24 hours'
+    SELECT COUNT(*)::int AS count FROM (
+      SELECT DISTINCT title, agency
+      FROM bids
+      WHERE created_at >= NOW() - INTERVAL '24 hours'
+    ) d
   `;
   return {
     bids: rows as TodayBid[],
@@ -413,12 +435,17 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
   const patterns = HEALTHCARE_KEYWORDS.map((keyword) => `%${keyword}%`);
   const rows = await sql()`
     SELECT title, agency, estimated_value, due_date, location, category, description
-    FROM bids
-    WHERE LOWER(category) ILIKE ANY(${patterns}::text[])
-       OR LOWER(title) ILIKE ANY(${patterns}::text[])
-       OR LOWER(description) ILIKE ANY(${patterns}::text[])
-    ORDER BY created_at DESC NULLS LAST
-    LIMIT 10
+    FROM (
+      SELECT DISTINCT ON (title, agency)
+             title, agency, estimated_value, due_date, location, category, description, created_at
+      FROM bids
+      WHERE LOWER(category) ILIKE ANY(${patterns}::text[])
+         OR LOWER(title) ILIKE ANY(${patterns}::text[])
+         OR LOWER(description) ILIKE ANY(${patterns}::text[])
+      ORDER BY title, agency, created_at DESC NULLS LAST
+    ) t
+    ORDER BY t.created_at DESC NULLS LAST
+    LIMIT 12
   `;
 
   return (rows as Bid[]).filter((bid) =>
@@ -469,20 +496,27 @@ const getFarClauseCounts = async (): Promise<{
     return null;
   }
 };
-const getBidStats = async (): Promise<{ totalBids: number; agencyCount: number }> => {
+// Honest "Tracking N active solicitations across M agencies" hero stat.
+// N = number of DISTINCT active (due_date > now()) solicitations deduped on
+// the natural key (title, agency) — NOT the raw COUNT(*) which is inflated by
+// the ~11k duplicate rows ingested when multiple state-keyword sync sources
+// return the same national solicitation (20,809 raw rows vs 9,646 distinct,
+// and only 5,057 distinct ACTIVE as of 2026-08-18). Never report an inflated
+// or fabricated figure.
+const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number }> => {
   try {
     const { sql } = await import("~/db");
     const [bids, agencies] = await Promise.all([
-      sql()`SELECT COUNT(*)::int AS count FROM bids`,
-      sql()`SELECT COUNT(DISTINCT agency)::int AS count FROM bids`,
+      sql()`SELECT COUNT(*)::int AS count FROM (SELECT DISTINCT title, agency FROM bids WHERE due_date > NOW()) d`,
+      sql()`SELECT COUNT(DISTINCT agency)::int AS count FROM bids WHERE due_date > NOW()`,
     ]);
     return {
-      totalBids: Number((bids[0] as any)?.count || 0),
+      activeCount: Number((bids[0] as any)?.count || 0),
       agencyCount: Number((agencies[0] as any)?.count || 0),
     };
   } catch {
     // bids table may not exist yet — hide the stat row entirely
-    return { totalBids: 0, agencyCount: 0 };
+    return { activeCount: 0, agencyCount: 0 };
   }
 };
 // Distinct dollar total of the federal awards we track (Live Award Feed +
@@ -538,7 +572,18 @@ const getPerCertCounts = async (): Promise<Record<string, number>> => {
   // full-and-open and would overstate the niche.
   try {
     const { sql } = await import("~/db");
-    const rows = await sql()`SELECT set_aside, COUNT(*)::int AS n FROM bids WHERE due_date > NOW() GROUP BY set_aside`;
+    // Dedupe on the natural key (title, agency) so multi-source duplicate rows
+    // can't inflate the per-cert personalization counts (PR #171 stays intact,
+    // but reports honest distinct active set-asides).
+    const rows = await sql()`
+      SELECT set_aside, COUNT(*)::int AS n FROM (
+        SELECT DISTINCT ON (title, agency) set_aside
+        FROM bids
+        WHERE due_date > NOW() AND set_aside IS NOT NULL
+        ORDER BY title, agency
+      ) d
+      GROUP BY set_aside
+    `;
     const counts: Record<string, number> = { "8a": 0, sdvosb: 0, wosb: 0, hubzone: 0, sb: 0 };
     let totalSetAside = 0;
     for (const r of rows as { set_aside: string | null; n: number }[]) {
@@ -686,7 +731,7 @@ function Home() {
       <ProductShowcase />
       <Pricing />
       <TodaySolicitations todayBids={todayBids} />
-      <BidTicker bids={bids} />
+      <LiveOpportunities bids={bids} />
       <HealthcareOpportunities bids={healthcareBids} />
       <Example />
       <WhoItsFor />
@@ -882,7 +927,7 @@ function Hero({
 }: {
   businessName: string;
   userCount: number;
-  bidStats: { totalBids: number; agencyCount: number };
+  bidStats: { activeCount: number; agencyCount: number };
   awardDollarTotal: number;
   perCertCounts: Record<string, number>;
   cert: string;
@@ -973,13 +1018,13 @@ function Hero({
             Every morning, {businessName} monitors SAM.gov, all 50 state portals, and five city procurement sites for opportunities your
             8(a), SDVOSB, WOSB, or HUBZone certification qualifies for. Plans start at $19/mo — 21-day free trial.
           </p>
-          {bidStats.totalBids > 0 && bidStats.agencyCount > 0 && (
+          {bidStats.activeCount > 0 && bidStats.agencyCount > 0 && (
             <div className="mt-6 flex items-center justify-center gap-2 text-sm text-blue-200/80">
               <Radar className="h-4 w-4 shrink-0 text-amber-300" />
               <span>
                 Tracking{" "}
                 <span className="font-semibold text-amber-300">
-                  {bidStats.totalBids.toLocaleString()}
+                  {bidStats.activeCount.toLocaleString()}
                 </span>{" "}
                 active solicitations across{" "}
                 <span className="font-semibold text-amber-300">
@@ -1608,27 +1653,36 @@ function TodaySolicitations({ todayBids }: { todayBids: { bids: TodayBid[]; coun
     </section>
   );
 }
-// ── Live Bid Ticker ───────────────────────────────────────────────────────────
+// ── Live Opportunities ────────────────────────────────────────────────────
+// Each unique solicitation is rendered exactly ONCE. The old marquee doubled
+// every card ([...unique, ...unique]) for a seamless translateX(-50%) loop, so
+// a first-time visitor saw each contract twice and believed the data was
+// duplicated — the integrity doubt this fix removes. Now a clean responsive
+// grid where each (deduped) solicitation appears at most once, with the
+// signup deep-link behavior preserved.
 
-function BidTicker({ bids }: { bids: Bid[] }) {
+function LiveOpportunities({ bids }: { bids: Bid[] }) {
   // Do not expose an internal sync-status message when there are no bids yet.
   // The ticker is only useful when it has real opportunities to display.
   if (bids.length === 0) return null;
 
-  // Dedupe by title + agency, then double for seamless scroll
+  // Defense-in-depth natural-key dedupe on top of the SQL DISTINCT ON, so no
+  // string-variance or multi-source twin can slip through and render twice.
   const seen = new Set<string>();
   const unique = bids.filter((b) => {
-    const key = `${b.title}|${b.agency}`;
+    const key = `${String(b.title).trim().toLowerCase()}|${String(b.agency || "").trim().toLowerCase()}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
-  const tickerBids = unique.length > 0 ? [...unique, ...unique] : [];
+  const display = unique.slice(0, 12);
+
+  if (display.length === 0) return null;
 
   return (
-    <section className="overflow-hidden bg-white py-14">
+    <section className="bg-white py-14">
       <div className="mx-auto max-w-7xl px-6">
-        <div className="mb-8 flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <span className="relative flex h-2.5 w-2.5">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
@@ -1636,59 +1690,43 @@ function BidTicker({ bids }: { bids: Bid[] }) {
           <h2 className="text-2xl font-bold text-slate-900">Live Opportunities</h2>
         </div>
         <p className="mb-6 text-gray-500">Real government contracts being tracked right now</p>
-      </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes ticker-scroll {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-        .ticker-track {
-          display: flex;
-          gap: 1rem;
-          width: max-content;
-          animation: ticker-scroll 30s linear infinite;
-        }
-        .ticker-track:hover {
-          animation-play-state: paused;
-        }
-      `}} />
-
-      <div className="ticker-track px-6">
-        {tickerBids.map((bid, i) => (
-          <a
-            key={i}
-            href={`/signup?ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}`}
-            className="group w-72 flex-shrink-0 rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:border-amber-300 hover:shadow-md no-underline"
-          >
-            <span className="mb-2 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 group-hover:bg-amber-100 group-hover:text-amber-700">
-              {bid.agency}
-            </span>
-            <p
-              className="line-clamp-1 text-sm font-medium text-slate-800 group-hover:text-amber-700"
-              title={bid.title}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {display.map((bid, i) => (
+            <a
+              key={i}
+              href={`/signup?ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}`}
+              className="group flex flex-col rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:border-amber-300 hover:shadow-md no-underline"
             >
-              {bid.title.length > 80 ? bid.title.slice(0, 80) + "..." : bid.title}
-            </p>
-            <div className="mt-2 flex items-center justify-between">
-              {bid.estimated_value ? (
-                <span className="text-xs font-semibold text-green-600">
-                  {bid.estimated_value}
-                </span>
-              ) : (
-                <span className="text-xs text-gray-400">Value TBD</span>
-              )}
-              {bid.location ? (
-                <span className="ml-2 truncate text-xs text-gray-400">
-                  {bid.location}
-                </span>
-              ) : null}
-            </div>
-            <p className="mt-2 text-xs font-medium text-amber-600 opacity-0 transition-opacity group-hover:opacity-100">
-              View details & draft proposal →
-            </p>
-          </a>
-        ))}
+              <span className="mb-2 inline-block truncate rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 group-hover:bg-amber-100 group-hover:text-amber-700">
+                {bid.agency}
+              </span>
+              <p
+                className="line-clamp-2 text-sm font-medium text-slate-800 group-hover:text-amber-700"
+                title={bid.title}
+              >
+                {bid.title.length > 120 ? bid.title.slice(0, 120) + "..." : bid.title}
+              </p>
+              <div className="mt-2 flex items-center justify-between">
+                {bid.estimated_value ? (
+                  <span className="text-xs font-semibold text-green-600">
+                    {bid.estimated_value}
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-400">Value TBD</span>
+                )}
+                {bid.location ? (
+                  <span className="ml-2 truncate text-xs text-gray-400">
+                    {bid.location}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-2 text-xs font-medium text-amber-600 opacity-0 transition-opacity group-hover:opacity-100">
+                View details & draft proposal →
+              </p>
+            </a>
+          ))}
+        </div>
       </div>
     </section>
   );

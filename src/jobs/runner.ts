@@ -182,7 +182,19 @@ async function insertBidsBatch(
 
   const result = (await sql.query(
     `INSERT INTO bids (${BID_COLUMNS.join(", ")})
-     VALUES ${valueRows.join(", ")}
+     SELECT * FROM (VALUES ${valueRows.join(", ")})
+       AS v(title, agency, description, location, category, set_aside,
+            due_date, estimated_value, source_url, source, external_id, naics_code)
+     -- Cross-source dedup guard: skip a row whose natural key (title, agency)
+     -- already exists in bids. Multiple sync sources return the SAME national
+     -- solicitation (e.g. state-keyword sources va and va_evirginia), so
+     -- without this the table grows duplicate rows every sync. Existing rows
+     -- are untouched (provenance); only NEW duplicates are prevented.
+     WHERE NOT EXISTS (
+       SELECT 1 FROM bids b
+       WHERE lower(btrim(b.title)) = lower(btrim(v.title))
+         AND lower(btrim(b.agency)) = lower(btrim(v.agency))
+     )
      ON CONFLICT (source, external_id) DO UPDATE SET
        title = EXCLUDED.title,
        location = EXCLUDED.location,
@@ -223,7 +235,7 @@ async function insertBid(
 ): Promise<NewBidSummary | null> {
   const result = (await sql`
     INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code)
-    VALUES (
+    SELECT
       ${bid.title},
       ${bid.agency},
       ${bid.description},
@@ -236,6 +248,11 @@ async function insertBid(
       ${bid.source_label ?? source.name},
       ${bid.external_id},
       ${bid.naics_code ?? null}
+    -- Cross-source dedup guard (same natural-key check as the batch path).
+    WHERE NOT EXISTS (
+      SELECT 1 FROM bids b
+      WHERE lower(btrim(b.title)) = lower(btrim(${bid.title}))
+        AND lower(btrim(b.agency)) = lower(btrim(${bid.agency}))
     )
     ON CONFLICT (source, external_id) DO UPDATE SET
       title = EXCLUDED.title,
@@ -334,6 +351,14 @@ export async function runSync(): Promise<SyncResult> {
 
   // Idempotent migration — once up front instead of once per source.
   await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`;
+
+  // Functional (non-unique) index backing the cross-source dedup guard in
+  // insertBidsBatch / insertBid, whose WHERE NOT EXISTS filters on
+  // lower(btrim(title)), lower(btrim(agency)). Non-unique on purpose: we do
+  // NOT mass-delete the ~11k existing duplicate rows (provenance preserved),
+  // but this index stops NEW inserts from duplicating an existing
+  // solicitation and keeps the existence check fast.
+  await sql`CREATE INDEX IF NOT EXISTS idx_bids_natural_key ON bids (lower(btrim(title)), lower(btrim(agency)))`;
 
   const startTime = Date.now();
   const results: Record<string, SyncSourceResult> = {};

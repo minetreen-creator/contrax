@@ -13,6 +13,7 @@ type Bid = {
   estimated_value: string | null;
   due_date: string | null;
   location: string | null;
+  created_at?: string | null;
   category?: string | null;
   description?: string | null;
 };
@@ -22,6 +23,7 @@ type TodayBid = {
   set_aside: string | null;
   location: string | null;
   due_date: string | null;
+  created_at?: string | null;
 };
 
 // ── Server Functions ──────────────────────────────────────────────────────────
@@ -35,7 +37,7 @@ type TodayBid = {
 const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
   const { sql } = await import("~/db");
   const rows = await sql()`
-    SELECT title, agency, estimated_value, due_date, location
+    SELECT title, agency, estimated_value, due_date, location, created_at
     FROM (
       SELECT DISTINCT ON (title, agency)
              title, agency, estimated_value, due_date, location, created_at
@@ -52,7 +54,7 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
   // Public teaser: titles only — no source URLs or descriptions for
   // unauthenticated visitors. Full detail lives behind the signup wall.
   const rows = await sql()`
-    SELECT title, agency, set_aside, location, due_date
+    SELECT title, agency, set_aside, location, due_date, created_at
     FROM (
       SELECT DISTINCT ON (title, agency)
              title, agency, set_aside, location, due_date, created_at
@@ -730,8 +732,7 @@ function Home() {
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
-      <TodaySolicitations todayBids={todayBids} />
-      <LiveOpportunities bids={bids} />
+      <OpenOpportunities bids={bids} todayBids={todayBids} />
       <HealthcareOpportunities bids={healthcareBids} />
       <Example />
       <WhoItsFor />
@@ -1291,11 +1292,11 @@ function LiveAwardFeed({
   const updated = updatedIso ? fmtFeedUpdated(updatedIso) : null;
 
   const subheadline = showAll
-    ? `Recent set-aside awards · 8(a) · SDVOSB · WOSB · HUBZone · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`
-    : `Recent ${activeChip.label} set-aside awards · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`;
+    ? `Recent set-aside awards already won · 8(a) · SDVOSB · WOSB · HUBZone · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`
+    : `Recent ${activeChip.label} set-aside awards already won · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`;
 
   return (
-    <section id="live-award-feed" className="border-b border-gray-100 bg-white py-12 sm:py-16" aria-label="Live set-aside federal contract awards">
+    <section id="live-award-feed" className="border-b border-gray-100 bg-white py-12 sm:py-16" aria-label="Recent set-aside federal contract awards">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-2">
@@ -1303,10 +1304,13 @@ function LiveAwardFeed({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
             </span>
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Live Award Feed</h2>
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Recent Awards</h2>
           </div>
           <p className="text-sm text-gray-500">{subheadline}</p>
         </div>
+        <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-gray-500">
+          Real set-aside contracts that have already been awarded — what the incumbents won, so you know what to bid next. Different from the open solicitations below, which you can compete for right now.
+        </p>
 
         {/* "I am a:" certification selector — wraps on mobile, no horizontal overflow */}
         <div className="mx-auto mt-8 flex max-w-4xl flex-wrap items-center justify-center gap-x-2 gap-y-2">
@@ -1390,7 +1394,7 @@ function LiveAwardFeed({
             href="/awards#feed"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl"
           >
-            Browse live opportunities →
+            Explore recent awards & incumbent intel →
           </a>
         </div>
       </div>
@@ -1555,8 +1559,20 @@ function setAsideLabel(raw: string | null | undefined): string | null {
   if (lower.includes("hubzone") || lower.includes("hub zone")) return "HUBZone";
   return null; // unknown designation — hide the badge on the public teaser
 }
-function TodaySolicitations({ todayBids }: { todayBids: { bids: TodayBid[]; count: number } }) {
-  const { bids, count } = todayBids;
+function OpenOpportunities({ bids, todayBids }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number } }) {
+  // MERGED single solicitations feed (owner-directed): folds the old "Newest
+  // Solicitations" (TodaySolicitations) and "Live Opportunities"
+  // (LiveOpportunities) into ONE section so a first-time visitor sees exactly
+  // one solicitations list ("Open Opportunities") alongside exactly one awards
+  // list ("Recent Awards"). Dedupes across BOTH source queries by the natural
+  // key title|agency — a last-24h bid also appears in the broader set, so it
+  // must never render twice (PR #172 dedup integrity preserved). The broader
+  // getRecentBids set is the primary source (carries estimated_value); today's
+  // set adds the set_aside badge and the honest "New (24h)" count. Each unique
+  // solicitation renders at most once, newest-first, with the
+  // /signup?ticker_bid=&ticker_agency= deep-link preserved.
+  const [onlyNew, setOnlyNew] = useState(false);
+  const newCount = todayBids.count;
   const fmtDue = (d: string | null) => {
     if (!d) return null;
     const date = new Date(d);
@@ -1568,36 +1584,98 @@ function TodaySolicitations({ todayBids }: { todayBids: { bids: TodayBid[]; coun
       ...(sameYear ? {} : { year: "numeric" }),
     });
   };
+
+  // Merge both source queries by natural key, newest-first, each once.
+  const byKey = new Map<string, {
+    title: string; agency: string; estimated_value: string | null;
+    due_date: string | null; location: string | null; set_aside: string | null;
+    created_at: string | null;
+  }>();
+  const keyOf = (title: string, agency: string) =>
+    `${String(title).trim().toLowerCase()}|${String(agency || "").trim().toLowerCase()}`;
+  for (const b of bids) {
+    const k = keyOf(b.title, b.agency);
+    if (!byKey.has(k)) {
+      byKey.set(k, {
+        title: b.title, agency: b.agency,
+        estimated_value: b.estimated_value, due_date: b.due_date, location: b.location,
+        set_aside: null, created_at: b.created_at ?? null,
+      });
+    }
+  }
+  for (const t of todayBids.bids) {
+    const k = keyOf(t.title, t.agency);
+    const existing = byKey.get(k);
+    if (existing) {
+      if (!existing.set_aside) existing.set_aside = t.set_aside;
+      if (!existing.created_at) existing.created_at = t.created_at ?? null;
+    } else {
+      byKey.set(k, {
+        title: t.title, agency: t.agency,
+        estimated_value: null, due_date: t.due_date, location: t.location,
+        set_aside: t.set_aside, created_at: t.created_at ?? null,
+      });
+    }
+  }
+  const merged = [...byKey.values()].sort((a, b) => {
+    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+    return tb - ta;
+  });
+
+  const now = Date.now();
+  const inLast24h = (d: string | null) => {
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    return Number.isFinite(t) && now - t <= 24 * 60 * 60 * 1000 + 5 * 60 * 1000;
+  };
+  const filtered = onlyNew ? merged.filter((b) => inLast24h(b.created_at)) : merged;
+  const display = filtered.slice(0, 12);
+
   return (
-    <section className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20">
+    <section id="open-opportunities" className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20" aria-label="Open contract solicitations you can bid on now">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
-          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Newest solicitations</h2>
-          {count > 0 ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              {count} new contract{count !== 1 ? "s" : ""} posted in the last 24 hours
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-500">
-              No new solicitations in the last 24 hours
-            </span>
-          )}
+          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Open Opportunities</h2>
           <p className="text-lg leading-relaxed text-gray-600">
-            Fresh set-aside opportunities from SAM.gov and city procurement — pulled in as they post. Browse titles free; full details are one signup away.
+            What you can bid on right now — fresh set-aside and open solicitations from SAM.gov and city procurement, pulled in as they post. Browse titles free; full details are one signup away.
           </p>
+          {newCount > 0 ? (
+            <div className="mt-1 inline-flex items-center rounded-full bg-gray-100 p-1" role="group" aria-label="Filter solicitations by age">
+              <button
+                type="button"
+                onClick={() => setOnlyNew(false)}
+                aria-pressed={!onlyNew}
+                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                  !onlyNew ? "bg-white text-slate-900 shadow-sm" : "text-gray-500 hover:text-slate-800"
+                }`}
+              >
+                All open
+              </button>
+              <button
+                type="button"
+                onClick={() => setOnlyNew(true)}
+                aria-pressed={onlyNew}
+                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
+                  onlyNew ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-slate-800"
+                }`}
+              >
+                New (24h)
+                <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs ${
+                  onlyNew ? "bg-emerald-100 text-emerald-700" : "bg-emerald-50 text-emerald-600"
+                }`}>{newCount}</span>
+              </button>
+            </div>
+          ) : null}
         </div>
-        {bids.length > 0 ? (
+        {display.length > 0 ? (
           <>
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {bids.map((bid, i) => {
+              {display.map((bid) => {
                 const due = fmtDue(bid.due_date);
                 const setAside = setAsideLabel(bid.set_aside);
                 return (
-                  <div key={i} className="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-amber-300 hover:shadow-md">
+                  <div key={keyOf(bid.title, bid.agency)} className="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-amber-300 hover:shadow-md">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
                         {bid.agency && bid.agency.length > 40 ? bid.agency.slice(0, 40) + "..." : bid.agency || "Federal agency"}
@@ -1616,7 +1694,7 @@ function TodaySolicitations({ todayBids }: { todayBids: { bids: TodayBid[]; coun
                     </div>
                     <div className="mt-auto pt-4">
                       <a
-                        href={`/signup?today_bid=${encodeURIComponent(bid.title)}`}
+                        href={`/signup?ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}`}
                         className="inline-flex items-center text-sm font-semibold text-amber-600 transition-colors hover:text-amber-800"
                       >
                         Sign up to see details →
@@ -1639,7 +1717,7 @@ function TodaySolicitations({ todayBids }: { todayBids: { bids: TodayBid[]; coun
           <div className="mt-10 rounded-xl border border-dashed border-gray-300 bg-white/60 px-6 py-12 text-center">
             <p className="text-base font-medium text-slate-700">Check back soon — new solicitations are posted throughout the day</p>
             <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
-              We monitor SAM.gov and city procurement portals continuously and pull new set-aside opportunities as they hit. Sign up and we&apos;ll alert you the moment one matches your certifications.
+              We monitor SAM.gov and city procurement portals continuously and pull new opportunities as they hit. Sign up and we&apos;ll alert you the moment one matches your certifications.
             </p>
             <a
               href="/signup"
@@ -1649,84 +1727,6 @@ function TodaySolicitations({ todayBids }: { todayBids: { bids: TodayBid[]; coun
             </a>
           </div>
         )}
-      </div>
-    </section>
-  );
-}
-// ── Live Opportunities ────────────────────────────────────────────────────
-// Each unique solicitation is rendered exactly ONCE. The old marquee doubled
-// every card ([...unique, ...unique]) for a seamless translateX(-50%) loop, so
-// a first-time visitor saw each contract twice and believed the data was
-// duplicated — the integrity doubt this fix removes. Now a clean responsive
-// grid where each (deduped) solicitation appears at most once, with the
-// signup deep-link behavior preserved.
-
-function LiveOpportunities({ bids }: { bids: Bid[] }) {
-  // Do not expose an internal sync-status message when there are no bids yet.
-  // The ticker is only useful when it has real opportunities to display.
-  if (bids.length === 0) return null;
-
-  // Defense-in-depth natural-key dedupe on top of the SQL DISTINCT ON, so no
-  // string-variance or multi-source twin can slip through and render twice.
-  const seen = new Set<string>();
-  const unique = bids.filter((b) => {
-    const key = `${String(b.title).trim().toLowerCase()}|${String(b.agency || "").trim().toLowerCase()}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-  const display = unique.slice(0, 12);
-
-  if (display.length === 0) return null;
-
-  return (
-    <section className="bg-white py-14">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="flex items-center gap-2">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-green-500" />
-          </span>
-          <h2 className="text-2xl font-bold text-slate-900">Live Opportunities</h2>
-        </div>
-        <p className="mb-6 text-gray-500">Real government contracts being tracked right now</p>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {display.map((bid, i) => (
-            <a
-              key={i}
-              href={`/signup?ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}`}
-              className="group flex flex-col rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-all hover:border-amber-300 hover:shadow-md no-underline"
-            >
-              <span className="mb-2 inline-block truncate rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500 group-hover:bg-amber-100 group-hover:text-amber-700">
-                {bid.agency}
-              </span>
-              <p
-                className="line-clamp-2 text-sm font-medium text-slate-800 group-hover:text-amber-700"
-                title={bid.title}
-              >
-                {bid.title.length > 120 ? bid.title.slice(0, 120) + "..." : bid.title}
-              </p>
-              <div className="mt-2 flex items-center justify-between">
-                {bid.estimated_value ? (
-                  <span className="text-xs font-semibold text-green-600">
-                    {bid.estimated_value}
-                  </span>
-                ) : (
-                  <span className="text-xs text-gray-400">Value TBD</span>
-                )}
-                {bid.location ? (
-                  <span className="ml-2 truncate text-xs text-gray-400">
-                    {bid.location}
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-2 text-xs font-medium text-amber-600 opacity-0 transition-opacity group-hover:opacity-100">
-                View details & draft proposal →
-              </p>
-            </a>
-          ))}
-        </div>
       </div>
     </section>
   );

@@ -527,9 +527,49 @@ const formatAwardDollars = (n: number): string => {
   if (n >= 1_000) return "$" + Math.round(n / 1_000) + "K";
   return "$" + Math.round(n).toLocaleString();
 };
+const getPerCertCounts = async (): Promise<Record<string, number>> => {
+  // REAL active set-aside counts for the Personalization Hook, computed at SSR
+  // time from the bids table (never fabricated). Keyed by the same cert ids the
+  // "I am a:" selector uses. "Small Business" = ALL active set-asides
+  // (set_aside IS NOT NULL) — honest by definition, because a federal
+  // "set-aside" is reserved exclusively for small business, so every set-aside
+  // row IS a small-business competition. Unrestricted (NULL set_aside)
+  // solicitations are deliberately NOT counted as "small business" — they are
+  // full-and-open and would overstate the niche.
+  try {
+    const { sql } = await import("~/db");
+    const rows = await sql()`SELECT set_aside, COUNT(*)::int AS n FROM bids WHERE due_date > NOW() GROUP BY set_aside`;
+    const counts: Record<string, number> = { "8a": 0, sdvosb: 0, wosb: 0, hubzone: 0, sb: 0 };
+    let totalSetAside = 0;
+    for (const r of rows as { set_aside: string | null; n: number }[]) {
+      if (!r.set_aside) continue; // unrestricted / full-and-open — not a set-aside
+      totalSetAside += r.n;
+      if (r.set_aside === "8(a)") counts["8a"] = r.n;
+      else if (r.set_aside === "SDVOSB") counts.sdvosb = r.n;
+      else if (r.set_aside === "WOSB") counts.wosb = r.n;
+      else if (r.set_aside === "HUBZone") counts.hubzone = r.n;
+    }
+    counts.sb = totalSetAside; // all set-asides = all small-business competitions
+    return counts;
+  } catch {
+    // bids table unavailable — return zeroed counts so the personalization
+    // card hides rather than showing a fabricated number or breaking SSR.
+    return { "8a": 0, sdvosb: 0, wosb: 0, hubzone: 0, sb: 0 };
+  }
+};
+// The top-of-page "I am a:" personalization options (drives the stat line, the
+// award feed filter, and the CTA). ids match CERT_CHIPS ids so the feed chip
+// row and this selector share ONE selection state (single source of truth).
+const CERT_PERSONALIZATION = [
+  { id: "8a", label: "8(a) Business", statLabel: "active 8(a) set-asides right now", cta: "Find your 8(a) contracts →" },
+  { id: "sdvosb", label: "SDVOSB", statLabel: "active SDVOSB set-asides right now", cta: "Find your SDVOSB contracts →" },
+  { id: "wosb", label: "WOSB", statLabel: "active WOSB set-asides right now", cta: "Find your WOSB contracts →" },
+  { id: "hubzone", label: "HUBZone", statLabel: "active HUBZone set-asides right now", cta: "Find your HUBZone contracts →" },
+  { id: "sb", label: "Small Business", statLabel: "active small-business set-asides right now", cta: "Find your contracts →" },
+];
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   const { sql } = await import("~/db");
-  const [businessName, user, bids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal] = await Promise.all([
+  const [businessName, user, bids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -549,6 +589,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getBidStats(),
     getFarClauseCounts(),
     getAwardDollarTotal(),
+    getPerCertCounts(),
   ]);
   let alertCount = 0;
   if (user) {
@@ -558,7 +599,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -608,7 +649,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -621,6 +662,15 @@ function Home() {
     email: "hello@contrax.company",
   };
 
+  // Single selection source of truth for the "I am a:" Personalization Hook.
+  // Shared by the top-of-page selector (stat + CTA) and the Live Award Feed
+  // chip row (feed filter) — one state, two mirrored controls.
+  const [certId, setCertId] = useState("all");
+  const selectCert = (id: string) => {
+    if (id === certId) return; // already active — no event, no refetch
+    trackEvent("feed_filter_click", id); // fire-and-forget, never blocks UI
+    setCertId(id);
+  };
 
   return (
     <div className="min-h-screen bg-white">
@@ -629,9 +679,9 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar user={user} alertCount={alertCount} />
-      <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} awardDollarTotal={awardDollarTotal} />
+      <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} awardDollarTotal={awardDollarTotal} perCertCounts={perCertCounts} cert={certId} onSelectCert={selectCert} />
       <HowItWorks />
-      <LiveAwardFeed feed={liveAwards} />
+      <LiveAwardFeed feed={liveAwards} activeId={certId} onSelectId={selectCert} />
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
@@ -826,14 +876,22 @@ function Hero({
   userCount,
   bidStats,
   awardDollarTotal,
+  perCertCounts,
+  cert,
+  onSelectCert,
 }: {
   businessName: string;
   userCount: number;
   bidStats: { totalBids: number; agencyCount: number };
   awardDollarTotal: number;
+  perCertCounts: Record<string, number>;
+  cert: string;
+  onSelectCert: (id: string) => void;
 }) {
   const navigate = useNavigate();
   const [scoreText, setScoreText] = useState("");
+  const activePersonal = CERT_PERSONALIZATION.find((o) => o.id === cert) || null;
+  const activeCount = activePersonal ? Number(perCertCounts?.[activePersonal.id] ?? 0) : 0;
   const handleScoreSubmit = (e: FormEvent) => {
     e.preventDefault();
     const text = scoreText.trim();
@@ -856,6 +914,55 @@ function Hero({
             </span>
             Contract Intelligence Platform
           </div>
+
+          {/* Personalization Hook — "I am a:" drives the stat, feed filter, and CTA */}
+          <div className="mb-8 flex flex-col items-center gap-4">
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => onSelectCert("all")}
+                aria-pressed={cert === "all"}
+                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                  cert === "all"
+                    ? "border-amber-400 bg-amber-400/20 text-amber-200"
+                    : "border-white/15 bg-white/5 text-blue-100/80 hover:border-white/30 hover:text-white"
+                }`}
+              >
+                All set-asides
+              </button>
+              {CERT_PERSONALIZATION.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  onClick={() => onSelectCert(o.id)}
+                  aria-pressed={cert === o.id}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                    cert === o.id
+                      ? "border-amber-400 bg-amber-400/20 text-amber-200"
+                      : "border-white/15 bg-white/5 text-blue-100/80 hover:border-white/30 hover:text-white"
+                  }`}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+            {activePersonal && activeCount > 0 && (
+              <div className="flex max-w-2xl flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                <p className="text-sm font-medium text-amber-200">
+                  <span className="font-bold text-amber-300">{activeCount.toLocaleString()}</span>{" "}
+                  {activePersonal.statLabel}
+                </p>
+                <a
+                  href="#live-award-feed"
+                  onClick={() => trackEvent("personalize_cta_click", activePersonal.id)}
+                  className="inline-flex items-center rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400"
+                >
+                  {activePersonal.cta}
+                </a>
+              </div>
+            )}
+          </div>
+
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             Find contracts you can{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
@@ -1086,11 +1193,49 @@ const CERT_CHIPS = [
   { id: "sb", label: "Small Business", code: "SBA" },
 ];
 
-function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: string | null } }) {
-  const [activeId, setActiveId] = useState("all");
+function LiveAwardFeed({
+  feed,
+  activeId,
+  onSelectId,
+}: {
+  feed: { awards: LiveAward[]; updatedAt: string | null };
+  activeId: string;
+  onSelectId: (id: string) => void;
+}) {
   const [certFeed, setCertFeed] = useState<{ awards: LiveAward[]; updatedAt: string | null } | null>(null);
   const [loading, setLoading] = useState(false);
   const reqRef = useRef(0); // stale-response guard for rapid chip switches
+  // Fetch the per-cert feed whenever the selection changes. The selection
+  // (activeId) lives in Home — shared by the top-of-page Personalization Hook
+  // and this chip row — so both mirrored controls stay in lockstep (one source
+  // of truth). All hooks run unconditionally (before the self-hide return below).
+  useEffect(() => {
+    if (activeId === "all") {
+      setCertFeed(null);
+      setLoading(false);
+      return;
+    }
+    const chip = CERT_CHIPS.find((c) => c.id === activeId);
+    setCertFeed(null); // never show a previous cert's rows under a new headline
+    if (!chip?.code) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    const req = ++reqRef.current;
+    getLiveAwardsByCert({ data: chip.code as string })
+      .then((result) => {
+        if (req === reqRef.current) setCertFeed(result);
+      })
+      .catch(() => {
+        // API failure — honest empty state, never a 500 in the UI
+        if (req === reqRef.current) setCertFeed({ awards: [], updatedAt: null });
+      })
+      .finally(() => {
+        if (req === reqRef.current) setLoading(false);
+      });
+  }, [activeId]);
+
   const allAwards = feed?.awards || [];
   if (!allAwards.length) return null; // graceful self-hide (FAR-strip pattern); hooks already run above
 
@@ -1100,35 +1245,12 @@ function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: strin
   const updatedIso = showAll ? feed.updatedAt : certFeed?.updatedAt ?? null;
   const updated = updatedIso ? fmtFeedUpdated(updatedIso) : null;
 
-  const selectChip = async (chip: (typeof CERT_CHIPS)[number]) => {
-    if (chip.id === activeId) return; // already active — no event, no refetch
-    trackEvent("feed_filter_click", chip.id); // fire-and-forget, never blocks UI
-    const req = ++reqRef.current;
-    setActiveId(chip.id);
-    if (chip.id === "all") {
-      setCertFeed(null);
-      setLoading(false);
-      return;
-    }
-    setCertFeed(null); // never show a previous cert's rows under a new headline
-    setLoading(true);
-    try {
-      const result = await getLiveAwardsByCert({ data: chip.code as string });
-      if (req === reqRef.current) setCertFeed(result);
-    } catch {
-      // API failure — honest empty state, never a 500 in the UI
-      if (req === reqRef.current) setCertFeed({ awards: [], updatedAt: null });
-    } finally {
-      if (req === reqRef.current) setLoading(false);
-    }
-  };
-
   const subheadline = showAll
     ? `Recent set-aside awards · 8(a) · SDVOSB · WOSB · HUBZone · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`
     : `Recent ${activeChip.label} set-aside awards · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`;
 
   return (
-    <section className="border-b border-gray-100 bg-white py-12 sm:py-16" aria-label="Live set-aside federal contract awards">
+    <section id="live-award-feed" className="border-b border-gray-100 bg-white py-12 sm:py-16" aria-label="Live set-aside federal contract awards">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
           <div className="flex items-center gap-2">
@@ -1150,7 +1272,7 @@ function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: strin
               <button
                 key={chip.id}
                 type="button"
-                onClick={() => selectChip(chip)}
+                onClick={() => onSelectId(chip.id)}
                 aria-pressed={isActive}
                 className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
                   isActive
@@ -1209,7 +1331,7 @@ function LiveAwardFeed({ feed }: { feed: { awards: LiveAward[]; updatedAt: strin
               </p>
               <button
                 type="button"
-                onClick={() => selectChip(CERT_CHIPS[0])}
+                onClick={() => onSelectId("all")}
                 className="mt-4 inline-flex items-center justify-center rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-800 transition-colors hover:border-slate-400 hover:text-slate-900"
               >
                 Show all set-asides

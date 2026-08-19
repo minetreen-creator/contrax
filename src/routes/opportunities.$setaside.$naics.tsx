@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
+import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { SaveToPipeline } from "~/components/SaveToPipeline";
 import { getCurrentUser } from "~/lib/auth";
 import { getSavedBidIds } from "~/lib/saved-matches";
@@ -300,6 +301,7 @@ const getSetAsideOpportunities = createServerFn({ method: "GET" }).handler(
              estimated_value, source_url, set_aside, naics_code
       FROM bids
       WHERE set_aside = ${setAside} AND naics_code = ${naics}
+        AND ${db.unsafe(LOW_CONTENT_SQL)}
       ORDER BY due_date ASC NULLS LAST, created_at DESC NULLS LAST
       LIMIT 100
     `;

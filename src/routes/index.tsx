@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { DollarSign, Menu, Radar, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import { isLowContent, LOW_CONTENT_SQL } from "~/lib/low-content";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Bid = {
@@ -37,17 +38,27 @@ type TodayBid = {
 const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
   const { sql } = await import("~/db");
   const rows = await sql()`
-    SELECT title, agency, estimated_value, due_date, location, created_at
+    SELECT title, agency, estimated_value, due_date, location, set_aside, created_at
     FROM (
       SELECT DISTINCT ON (title, agency)
-             title, agency, estimated_value, due_date, location, created_at
+             title, agency, estimated_value, due_date, location, set_aside, created_at
       FROM bids
+      WHERE ${sql().unsafe(LOW_CONTENT_SQL)}
       ORDER BY title, agency, created_at DESC NULLS LAST
     ) t
     ORDER BY t.created_at DESC NULLS LAST
     LIMIT 60
   `;
-  return rows as Bid[];
+  // Honest post-filter, post-dedup total of open solicitations backing this
+  // feed — never pre-filter, never hardcoded.
+  const countRows = await sql()`
+    SELECT COUNT(*)::int AS count FROM (
+      SELECT DISTINCT title, agency
+      FROM bids
+      WHERE ${sql().unsafe(LOW_CONTENT_SQL)}
+    ) d
+  `;
+  return { bids: rows as Bid[], count: Number((countRows[0] as any)?.count || 0) };
 });
 const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
   const { sql } = await import("~/db");
@@ -60,6 +71,7 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
              title, agency, set_aside, location, due_date, created_at
       FROM bids
       WHERE created_at >= NOW() - INTERVAL '24 hours'
+        AND ${sql().unsafe(LOW_CONTENT_SQL)}
       ORDER BY title, agency, created_at DESC NULLS LAST
     ) t
     ORDER BY t.created_at DESC NULLS LAST
@@ -72,6 +84,7 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
       SELECT DISTINCT title, agency
       FROM bids
       WHERE created_at >= NOW() - INTERVAL '24 hours'
+        AND ${sql().unsafe(LOW_CONTENT_SQL)}
     ) d
   `;
   return {
@@ -441,9 +454,10 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
       SELECT DISTINCT ON (title, agency)
              title, agency, estimated_value, due_date, location, category, description, created_at
       FROM bids
-      WHERE LOWER(category) ILIKE ANY(${patterns}::text[])
+      WHERE (LOWER(category) ILIKE ANY(${patterns}::text[])
          OR LOWER(title) ILIKE ANY(${patterns}::text[])
-         OR LOWER(description) ILIKE ANY(${patterns}::text[])
+         OR LOWER(description) ILIKE ANY(${patterns}::text[]))
+        AND ${sql().unsafe(LOW_CONTENT_SQL)}
       ORDER BY title, agency, created_at DESC NULLS LAST
     ) t
     ORDER BY t.created_at DESC NULLS LAST
@@ -616,7 +630,7 @@ const CERT_PERSONALIZATION = [
 ];
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   const { sql } = await import("~/db");
-  const [businessName, user, bids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts] = await Promise.all([
+  const [businessName, user, recentBids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -638,6 +652,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getAwardDollarTotal(),
     getPerCertCounts(),
   ]);
+  const { bids, count: openCount } = recentBids;
   let alertCount = 0;
   if (user) {
     try {
@@ -646,7 +661,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, openCount };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -696,7 +711,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, openCount } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -732,7 +747,7 @@ function Home() {
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
-      <OpenOpportunities bids={bids} todayBids={todayBids} />
+      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} />
       <HealthcareOpportunities bids={healthcareBids} />
       <Example />
       <WhoItsFor />
@@ -1559,7 +1574,7 @@ function setAsideLabel(raw: string | null | undefined): string | null {
   if (lower.includes("hubzone") || lower.includes("hub zone")) return "HUBZone";
   return null; // unknown designation — hide the badge on the public teaser
 }
-function OpenOpportunities({ bids, todayBids }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number } }) {
+function OpenOpportunities({ bids, todayBids, openCount }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number }) {
   // MERGED single solicitations feed (owner-directed): folds the old "Newest
   // Solicitations" (TodaySolicitations) and "Live Opportunities"
   // (LiveOpportunities) into ONE section so a first-time visitor sees exactly
@@ -1617,11 +1632,13 @@ function OpenOpportunities({ bids, todayBids }: { bids: Bid[]; todayBids: { bids
       });
     }
   }
-  const merged = [...byKey.values()].sort((a, b) => {
-    const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
-    const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-    return tb - ta;
-  });
+  const merged = [...byKey.values()]
+    .filter((b) => !isLowContent(b.title, b.location, b.set_aside))
+    .sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return tb - ta;
+    });
 
   const now = Date.now();
   const inLast24h = (d: string | null) => {
@@ -1631,6 +1648,8 @@ function OpenOpportunities({ bids, todayBids }: { bids: Bid[]; todayBids: { bids
   };
   const filtered = onlyNew ? merged.filter((b) => inLast24h(b.created_at)) : merged;
   const display = filtered.slice(0, 12);
+  // Honest gate: {VISIBLE} of {TOTAL} — both post-filter, post-dedup, live.
+  const gateTotal = onlyNew ? todayBids.count : openCount;
 
   return (
     <section id="open-opportunities" className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20" aria-label="Open contract solicitations you can bid on now">
@@ -1667,6 +1686,16 @@ function OpenOpportunities({ bids, todayBids }: { bids: Bid[]; todayBids: { bids
               </button>
             </div>
           ) : null}
+          <p className="text-sm font-medium text-slate-700">
+            Showing {display.length} of {gateTotal}{" "}
+            {onlyNew ? "new in the last 24 hours" : "open solicitations right now"} —{" "}
+            <a
+              href="/signup"
+              className="font-semibold text-amber-600 underline-offset-2 hover:underline"
+            >
+              sign up to see all of them
+            </a>
+          </p>
         </div>
         {display.length > 0 ? (
           <>

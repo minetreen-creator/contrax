@@ -9,6 +9,7 @@ import { SaveToPipeline } from "~/components/SaveToPipeline";
 import { getCurrentUser } from "~/lib/auth";
 import { getSavedBidIds } from "~/lib/saved-matches";
 import { trackEvent } from "~/lib/track";
+import { LOW_CONTENT_SQL } from "~/lib/low-content";
 
 // Milestone Grant — logged-out visitors accumulate a cross-tab counter of
 // teased incumbent-intel card views (localStorage); when the counter reaches
@@ -95,6 +96,7 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }:
           title ILIKE '%ehr%' OR description ILIKE '%ehr%' OR
           title ILIKE '%hipaa%' OR description ILIKE '%hipaa%'
         )
+        AND ${sql().unsafe(LOW_CONTENT_SQL)}
         ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
         LIMIT 100
       `
@@ -104,6 +106,7 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }:
                  estimated_value, source_url, created_at, naics_code
           FROM bids
           WHERE (title ILIKE ${"%" + search + "%"} OR description ILIKE ${"%" + search + "%"})
+            AND ${sql().unsafe(LOW_CONTENT_SQL)}
           ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
           LIMIT 100
         `
@@ -111,6 +114,7 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }:
           SELECT id, title, agency, description, location, category, due_date,
                  estimated_value, source_url, created_at, naics_code
           FROM bids
+          WHERE ${sql().unsafe(LOW_CONTENT_SQL)}
           ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
           LIMIT 100
         `;
@@ -139,8 +143,8 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }:
     if (!cat) { similarBids[award.id] = []; continue; }
     const parts = loc ? loc.split(",")[0].trim() : "";
     const bidRows = parts
-      ? await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT 5`
-      : await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
+      ? await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT 5`
+      : await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
     similarBids[award.id] = (bidRows as any[]).map((b) => ({
       id: Number(b.id), title: b.title, agency: b.agency,
       due_date: b.due_date ? String(b.due_date).slice(0, 10) : "Not specified",

@@ -14,7 +14,7 @@ import { trackEvent } from "~/lib/track";
 // teased incumbent-intel card views (localStorage); when the counter reaches
 // this threshold the CURRENT card offers a one-per-device email-for-data
 // exchange instead of the signup CTA. See loadIntel below.
-const MILESTONE_THRESHOLD = 5;
+const MILESTONE_THRESHOLD = 3;
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Award {

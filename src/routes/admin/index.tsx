@@ -42,6 +42,42 @@ async function fetchAdminMetrics(): Promise<AdminMetrics> {
   return res.json();
 }
 
+// ── Closing Soon → Signup funnel (self-hosted analytics) ────────────────────
+interface ClosingSoonFunnel {
+  rangeDays: number;
+  from: string;
+  to: string;
+  sessionWindowHours: number;
+  buttonRowIndistinguishable: boolean;
+  rawInRange: {
+    closingSoonClicks: number;
+    viewEvents: number;
+    submitEvents: number;
+    successEvents: number;
+  };
+  attributed: {
+    clickVisitors: number;
+    clickEvents: number;
+    viewed: number;
+    submitted: number;
+    succeeded: number;
+    clickToView: number | null;
+    clickToSubmit: number | null;
+    clickToSuccess: number | null;
+    viewToSubmit: number | null;
+    submitToSuccess: number | null;
+  };
+}
+
+async function fetchClosingSoonFunnel(days: number): Promise<ClosingSoonFunnel> {
+  const res = await fetch(`/api/admin/closing-soon-funnel?days=${days}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to load funnel" }));
+    throw new Error(err.error || "Failed to load funnel");
+  }
+  return res.json();
+}
+
 /** Count of Loss Radar prospects at or above the high-value threshold. */
 async function fetchLossRadarSummary(): Promise<{ highValueProspects: number }> {
   const res = await fetch("/api/admin/loss-radar-summary");
@@ -111,6 +147,10 @@ function AdminPage() {
   const [syncingFar, setSyncingFar] = useState(false);
   const [farSyncResult, setFarSyncResult] = useState<FarDfarsSyncResult | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [funnelDays, setFunnelDays] = useState(30);
+  const [funnel, setFunnel] = useState<ClosingSoonFunnel | null>(null);
+  const [funnelError, setFunnelError] = useState("");
+  const [funnelLoading, setFunnelLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([fetchAdminMetrics(), fetchLossRadarSummary(), fetchFarStats()])
@@ -122,6 +162,17 @@ function AdminPage() {
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load metrics"))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    setFunnelLoading(true);
+    setFunnelError("");
+    fetchClosingSoonFunnel(funnelDays)
+      .then((d) => { if (!cancelled) setFunnel(d); })
+      .catch((err) => { if (!cancelled) setFunnelError(err instanceof Error ? err.message : "Failed to load funnel"); })
+      .finally(() => { if (!cancelled) setFunnelLoading(false); });
+    return () => { cancelled = true; };
+  }, [funnelDays]);
 
   const handleFarSync = async () => {
     setSyncingFar(true);
@@ -595,6 +646,159 @@ function AdminPage() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* Closing Soon → Signup funnel */}
+        <section>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="text-lg font-semibold text-slate-800">⏰ Closing Soon → Signup funnel</h2>
+            <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
+              {[7, 30, 90, 365].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setFunnelDays(d)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    funnelDays === d ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {d === 365 ? "All" : `${d}d`}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {funnelError ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+              Could not load funnel data: {funnelError}
+            </div>
+          ) : funnelLoading || !funnel ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">
+              Loading funnel…
+            </div>
+          ) : funnel.attributed.clickVisitors === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <p className="text-sm font-medium text-slate-700">No Closing Soon → signup data in this range.</p>
+              <p className="mt-1 text-xs text-slate-400">
+                No <span className="font-mono">signup_cta_click (home_closing_soon)</span> events were recorded in the
+                last {funnel.rangeDays} days. Once real (or QA) visitors click the Closing Soon CTA, this funnel will populate here.
+                This is an honest empty state — not a measurement error.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Attributed funnel table */}
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-amber-100 bg-amber-50/60">
+                  <h3 className="font-bold text-slate-900">Attributed funnel (approximate)</h3>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Visitors (distinct IP + user-agent) who clicked a Closing Soon CTA, then reached each later step within {funnel.sessionWindowHours}h of the click.
+                  </p>
+                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
+                      <th className="px-5 py-3 font-medium">Step</th>
+                      <th className="px-5 py-3 font-medium text-right">Visitors</th>
+                      <th className="px-5 py-3 font-medium text-right">% of clickers</th>
+                      <th className="px-5 py-3 font-medium text-right">Drop-off</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      { name: "Clicked Closing Soon CTA / row link", n: funnel.attributed.clickVisitors, mom: null },
+                      { name: "Viewed /signup", n: funnel.attributed.viewed, mom: funnel.attributed.clickVisitors },
+                      { name: "Submitted signup", n: funnel.attributed.submitted, mom: funnel.attributed.viewed },
+                      { name: "Signup success", n: funnel.attributed.succeeded, mom: funnel.attributed.submitted },
+                    ].map((row, i) => {
+                      const pctOfClickers = funnel.attributed.clickVisitors
+                        ? Math.round((row.n / funnel.attributed.clickVisitors) * 1000) / 10
+                        : null;
+                      const dropOff = row.mom && row.mom > 0 ? Math.round(((row.mom - row.n) / row.mom) * 1000) / 10 : null;
+                      return (
+                        <tr key={i} className="border-t border-slate-50">
+                          <td className="px-5 py-3 font-medium text-slate-700">{row.name}</td>
+                          <td className="px-5 py-3 text-right text-lg font-bold text-slate-900">{row.n}</td>
+                          <td className="px-5 py-3 text-right text-slate-600">
+                            {pctOfClickers === null ? "—" : `${pctOfClickers}%`}
+                          </td>
+                          <td className="px-5 py-3 text-right text-slate-400">
+                            {dropOff === null ? "—" : `−${dropOff}%`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Click → signup</p>
+                  <p className="mt-2 text-3xl font-bold text-slate-900">
+                    {funnel.attributed.clickToSuccess === null ? "—" : `${funnel.attributed.clickToSuccess}%`}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {funnel.attributed.succeeded} of {funnel.attributed.clickVisitors} clickers completed signup
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Click → submit</p>
+                  <p className="mt-2 text-3xl font-bold text-slate-900">
+                    {funnel.attributed.clickToSubmit === null ? "—" : `${funnel.attributed.clickToSubmit}%`}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">Submitted the signup form</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Raw clicks in range</p>
+                  <p className="mt-2 text-3xl font-bold text-slate-900">{funnel.rawInRange.closingSoonClicks}</p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    {funnel.attributed.clickEvents} click events / {funnel.attributed.clickVisitors} distinct visitor{funnel.attributed.clickVisitors === 1 ? "" : "s"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Honesty / caveats */}
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-800">How to read this (please read)</h3>
+                <ul className="mt-2 space-y-1.5 text-xs text-slate-600 list-disc pl-5">
+                  <li>
+                    <strong>Approximate attribution:</strong> funnel_events has no session ID, so a "visitor" is the IP + user-agent
+                    pair, and a later step is attributed to a Closing Soon click when that same visitor also produced the step within{" "}
+                    {funnel.sessionWindowHours}h of the click. Two people behind the same IP/UA (or IP rotation) can be merged — treat
+                    these as directional, not exact per-session numbers.
+                  </li>
+                  {funnel.rawInRange.viewEvents === 0 && (
+                    <li>
+                      <strong>View step reads 0</strong> because the cold /signup path only started firing a plain{" "}
+                      <span className="font-mono">signup_view</span> event after the latest instrumentation change; before that only the
+                      score path fired a view event. It will populate as new cold visits occur — it does not mean nobody viewed /signup.
+                    </li>
+                  )}
+                  {funnel.buttonRowIndistinguishable && (
+                    <li>
+                      <strong>Button vs per-row links can't be split:</strong> both the Closing Soon CTA button and the per-row title
+                      deep-links fire the identical <span className="font-mono">signup_cta_click (home_closing_soon)</span> event, so
+                      these figures are the aggregate of both. Separating them needs a new <span className="font-mono">label</span>{" "}
+                      dimension (e.g. <span className="font-mono">home_closing_soon_button</span> vs{" "}
+                      <span className="font-mono">home_closing_soon_row</span>) — a future change, not possible from existing data.
+                    </li>
+                  )}
+                  <li>
+                    <strong>Site-wide raw counts (not Closing Soon–attributed):</strong> in this range — signup views{" "}
+                    {funnel.rawInRange.viewEvents}, signup submits {funnel.rawInRange.submitEvents}, signup successes{" "}
+                    {funnel.rawInRange.successEvents} across all sources. These are NOT part of the Closing Soon funnel above.
+                  </li>
+                  <li>
+                    <strong>Current data may include QA/test rows:</strong> automated QA clicks and test-account signups (e.g. IP{" "}
+                    <span className="font-mono">34.214.71.218</span>, test emails qanext*) land in the same{" "}
+                    <span className="font-mono">funnel_events</span> table with no test filter, so small numbers right now may be QA's
+                    own activity rather than real humans. No filter is applied — this is the raw, honest state.
+                  </li>
+                </ul>
+              </div>
+            </>
+          )}
         </section>
       </main>
     </div>

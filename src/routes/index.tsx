@@ -776,12 +776,12 @@ function Home() {
       />
       <Navbar user={user} alertCount={alertCount} />
       <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} awardDollarTotal={awardDollarTotal} perCertCounts={perCertCounts} cert={certId} onSelectCert={selectCert} />
+      <ClosingSoon bids={closingSoon} />
       <HowItWorks />
       <LiveAwardFeed feed={liveAwards} activeId={certId} onSelectId={selectCert} />
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
-      <ClosingSoon bids={closingSoon} />
       <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} />
       <HealthcareOpportunities bids={healthcareBids} />
       <Example />
@@ -1726,6 +1726,7 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
                         <a
                           href={`/signup?ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}`}
                           title={bid.title}
+                          onClick={() => trackEvent("signup_cta_click", "home_closing_soon", "/#closing-soon")}
                           className="line-clamp-2 text-sm font-semibold text-slate-800 transition-colors hover:text-amber-700"
                         >
                           {bid.title}
@@ -1766,6 +1767,15 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
             </p>
           </div>
         )}
+        <div className="mt-8 flex justify-center">
+          <a
+            href="/signup?plan=starter&next=/#closing-soon"
+            onClick={() => trackEvent("signup_cta_click", "home_closing_soon", "/#closing-soon")}
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-7 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98]"
+          >
+            Start free — track closing deadlines →
+          </a>
+        </div>
       </div>
     </section>
   );

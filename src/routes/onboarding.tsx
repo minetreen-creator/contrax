@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { persistPendingDraft } from "~/lib/pending-draft";
+import { readRememberedNext, clearRememberedNext } from "~/lib/remember-next";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -896,6 +897,21 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
         draftSlowTimerRef.current = null;
       }
       setGeneratingDraft(false);
+      // Onboarding is complete — honor a remembered `next` return path (latched
+      // at signup for email/password CTAs like /awards or /#closing-soon) so the
+      // user lands where they meant to go, not the default dashboard. `next` has
+      // already been `safeNext()`-validated on read (same-site relative only), so
+      // there is no open redirect here. The draft promise is orthogonal (score
+      // draft CTAs don't set `next`), so when no `next` is remembered the existing
+      // draft/dashboard routing is preserved unchanged.
+      const rememberedNext = readRememberedNext();
+      if (rememberedNext) {
+        // Clear before leaving so a stale return path can't re-trigger later.
+        clearRememberedNext();
+        // window.location (not navigate) so hash-anchored paths like /#closing-soon work.
+        window.location.assign(rememberedNext);
+        return;
+      }
       navigate({ to: draftReady ? "/draft/pending" : "/dashboard" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save profile. Please try again.");

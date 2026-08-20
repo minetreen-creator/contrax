@@ -152,13 +152,17 @@ function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>(plan);
 
-  // Funnel: fire once when the page loads with the score_rec param (Feature B).
+  // Funnel: fire exactly ONE signup-page-view event per visit, once. The cold
+  // path (e.g. the homepage Closing Soon → /signup) fires a plain `signup_view`;
+  // the score-recommendation path keeps its distinct `signup_view_with_score`
+  // so the funnel's "viewed signup" step is measurable for BOTH. Mutual
+  // exclusion keeps a single visit from double-counting a view.
   const scoredViewFiredRef = useRef(false);
   useEffect(() => {
-    if (score_rec && !scoredViewFiredRef.current) {
-      scoredViewFiredRef.current = true;
-      trackEvent("signup_view_with_score", score_rec);
-    }
+    if (scoredViewFiredRef.current) return;
+    scoredViewFiredRef.current = true;
+    if (score_rec) trackEvent("signup_view_with_score", score_rec);
+    else trackEvent("signup_view");
   }, [score_rec]);
 
   // If already logged in, redirect to dashboard (in an effect so hooks

@@ -1769,7 +1769,13 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
         )}
         <div className="mt-8 flex justify-center">
           <a
-            href="/signup?plan=starter&next=/#closing-soon"
+            // The `/` and `#` in the return path are URL-encoded (%2F%23) so the
+            // browser treats `/#closing-soon` as PART of the `next` query value,
+            // not as the fragment of the /signup URL. validateSearch decodes it
+            // back to `/#closing-soon`, safeNext() accepts it (same-site relative,
+            // not `//`), and the onboarding redirect (window.location.assign)
+            // preserves the fragment so the user lands scrolled to #closing-soon.
+            href="/signup?plan=starter&next=%2F%23closing-soon"
             onClick={() => trackEvent("signup_cta_click", "home_closing_soon", "/#closing-soon")}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-7 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98]"
           >

@@ -6,6 +6,7 @@ import { DollarSign, Menu, Radar, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { isLowContent, LOW_CONTENT_SQL } from "~/lib/low-content";
+import { toISODate } from "./awards";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Bid = {
@@ -91,6 +92,38 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
     bids: rows as TodayBid[],
     count: Number((countRows[0] as any)?.count || 0),
   };
+});
+
+// ── Closing Soon ─────────────────────────────────────────────────────────────
+// Solicitations whose due_date lands in (NOW, NOW + 7 days], deduped on the
+// natural key (title, agency) EXACTLY like getRecentBids/getTodayBids (PR #172)
+// and with the shared low-content filter applied (PR #174) — never weakened.
+// Sorted soonest-first so the most urgent deadline is always on top. Bounded to
+// 8 rows. Every value is REAL from the bids table — nothing fabricated.
+export type ClosingSoonBid = {
+  title: string;
+  agency: string;
+  estimated_value: string | null;
+  due_date: string | null;
+  set_aside: string | null;
+};
+const getClosingSoonBids = createServerFn({ method: "GET" }).handler(async () => {
+  const { sql } = await import("~/db");
+  const rows = await sql()`
+    SELECT title, agency, estimated_value, due_date, set_aside
+    FROM (
+      SELECT DISTINCT ON (title, agency)
+             title, agency, estimated_value, due_date, set_aside, created_at
+      FROM bids
+      WHERE due_date > NOW()
+        AND due_date <= NOW() + INTERVAL '7 days'
+        AND ${sql().unsafe(LOW_CONTENT_SQL)}
+      ORDER BY title, agency, created_at DESC NULLS LAST
+    ) t
+    ORDER BY t.due_date ASC NULLS LAST
+    LIMIT 8
+  `;
+  return rows as ClosingSoonBid[];
 });
 
 // ── Live Award Feed (USAspending.gov) ────────────────────────────────────────
@@ -630,7 +663,7 @@ const CERT_PERSONALIZATION = [
 ];
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   const { sql } = await import("~/db");
-  const [businessName, user, recentBids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts] = await Promise.all([
+  const [businessName, user, recentBids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts, closingSoon] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -651,6 +684,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getFarClauseCounts(),
     getAwardDollarTotal(),
     getPerCertCounts(),
+    getClosingSoonBids(),
   ]);
   const { bids, count: openCount } = recentBids;
   let alertCount = 0;
@@ -661,7 +695,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, openCount };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -711,7 +745,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, openCount } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -747,6 +781,7 @@ function Home() {
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
+      <ClosingSoon bids={closingSoon} />
       <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} />
       <HealthcareOpportunities bids={healthcareBids} />
       <Example />
@@ -1598,6 +1633,142 @@ function seededSample<T>(pool: T[], n: number, seedStr: string): T[] {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr.slice(0, n);
+}
+
+// ── Closing Soon ─────────────────────────────────────────────────────────────
+// "⏰ Closing in the next 7 days:" urgency section rendered directly above Open
+// Opportunities. Lists REAL solicitations whose due_date is in (NOW, NOW+7d],
+// deduped + low-content-filtered by the same shared SQL patterns as the feed.
+// Sorted soonest-first; due dates within 48h are highlighted in amber for
+// urgency. Value is the real estimated_value formatted as currency when numeric,
+// otherwise the honest "Not specified" — never invented or rounded up. Set-Aside
+// uses the same setAsideLabel() badge logic as the rest of the page. When the
+// set is empty it shows an honest note — never pads with fake or overdue rows.
+const fmtClosingDue = (d: string | null) => {
+  // Normalize through the shared toISODate() helper (awards.tsx, PR #175) —
+  // NEVER String(d).slice(0, 10), which parses to the fixed year 2001. Build
+  // the calendar date from the ISO y/m/d so the shown day is the real due day
+  // regardless of server timezone.
+  const iso = toISODate(d);
+  if (!iso) return null;
+  const parts = iso.split("-").map(Number);
+  if (parts.length < 3 || parts.some((n) => !Number.isFinite(n))) return null;
+  const date = new Date(parts[0], parts[1] - 1, parts[2]);
+  if (Number.isNaN(date.getTime())) return null;
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+};
+const formatClosingValue = (v: string | null) => {
+  if (!v) return "Not specified";
+  const amount = Number(v);
+  if (Number.isFinite(amount) && String(v).trim() !== "") {
+    return amount.toLocaleString("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    });
+  }
+  return "Not specified";
+};
+function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
+  const now = Date.now();
+  const within48h = (d: string | null) => {
+    if (!d) return false;
+    const t = new Date(d).getTime();
+    return Number.isFinite(t) && t - now <= 48 * 60 * 60 * 1000;
+  };
+  const headerCols = "grid grid-cols-[2fr_1fr_0.6fr_0.8fr_0.6fr] items-center gap-3 px-5";
+  return (
+    <section
+      id="closing-soon"
+      className="border-b border-amber-200 bg-gradient-to-b from-amber-50/70 to-white py-12 sm:py-16"
+      aria-label="Solicitations closing in the next 7 days"
+    >
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-2 text-center">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+            </span>
+            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
+              ⏰ Closing in the next 7 days:
+            </h2>
+          </div>
+          <p className="text-sm text-gray-600">
+            Real solicitations with deadlines in the next 7 days — sorted soonest first. Don&apos;t miss the window.
+          </p>
+        </div>
+
+        {bids.length > 0 ? (
+          <>
+            <div className="mt-8 overflow-x-auto">
+              <div className="mx-auto min-w-[720px] max-w-5xl overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
+                <div className={`${headerCols} border-b border-amber-100 bg-amber-50/70 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500`}>
+                  <span>Title</span>
+                  <span>Agency</span>
+                  <span>Due</span>
+                  <span>Value</span>
+                  <span>Set-Aside</span>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {bids.map((bid, i) => {
+                    const due = fmtClosingDue(bid.due_date);
+                    const soon = within48h(bid.due_date);
+                    const badge = setAsideLabel(bid.set_aside);
+                    const value = formatClosingValue(bid.estimated_value);
+                    return (
+                      <div key={`${bid.title}|${bid.agency}|${i}`} className={`${headerCols} py-3.5`}>
+                        <a
+                          href={`/signup?ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}`}
+                          title={bid.title}
+                          className="line-clamp-2 text-sm font-semibold text-slate-800 transition-colors hover:text-amber-700"
+                        >
+                          {bid.title}
+                        </a>
+                        <span className="truncate text-xs text-gray-600" title={bid.agency}>
+                          {bid.agency || "Federal agency"}
+                        </span>
+                        <span className={`text-sm font-semibold ${soon ? "text-amber-600" : "text-slate-800"}`}>
+                          {due || "—"}
+                        </span>
+                        <span className="truncate text-xs text-gray-600">{value}</span>
+                        <span>
+                          {badge ? (
+                            <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
+                              {badge}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            <p className="mt-4 text-center text-xs text-gray-500">
+              Source: synced SAM.gov &amp; state solicitations · updated every 4 hours
+            </p>
+          </>
+        ) : (
+          <div className="mx-auto mt-8 max-w-xl rounded-xl border border-dashed border-amber-300 bg-white/60 px-6 py-8 text-center">
+            <p className="text-sm font-medium text-slate-700">
+              No solicitations closing in the next 7 days right now
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              New opportunities are synced continuously — check back soon.
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
 }
 
 function OpenOpportunities({ bids, todayBids, openCount }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number }) {

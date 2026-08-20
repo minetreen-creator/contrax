@@ -50,7 +50,7 @@ const SEED_AWARDS = [
 // form ("Tue Aug 19 2026 ..."), and feeding that fragment into new Date()
 // parses to a fixed year 2001 (a V8 quirk). That is how the fixed "Aug 19,
 // 2001" got onto every award card regardless of the real date.
-function toISODate(value: unknown): string {
+export function toISODate(value: unknown): string {
   if (!value) return "";
   const d = value instanceof Date ? value : new Date(String(value));
   if (Number.isNaN(d.getTime())) return "";

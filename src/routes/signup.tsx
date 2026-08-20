@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { persistPendingDraft } from "~/lib/pending-draft";
+import { storeRememberedNext } from "~/lib/remember-next";
 import { sql } from "~/db";
 import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
 import { safeNext } from "~/lib/saved-matches";
@@ -265,6 +266,13 @@ function SignupPage() {
       }
       // New user, no save_bid intent → land on /onboarding, where value
       // actually starts (profile setup → bid matches), not on an empty dashboard.
+      // If a same-site `next` return path was provided (e.g. /awards or
+      // /#closing-soon), latch it now so onboarding can route the user there
+      // after they complete profile setup — mirroring how Google OAuth carries
+      // `next` through state, and using the same sessionStorage pattern as the
+      // pending-draft promise. Fail-open: a storage failure must never block
+      // the onboarding redirect.
+      storeRememberedNext(next);
       navigate({ to: "/onboarding" });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed. Please try again.");

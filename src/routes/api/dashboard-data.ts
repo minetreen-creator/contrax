@@ -11,6 +11,7 @@ interface Bid {
   id: number; title: string; agency: string; description: string;
   location: string; category: string; set_aside: string | null; due_date: string; estimated_value: string;
   source_url: string | null; role_matches: number;
+  naics_code: string | null; created_at: string;
 }
 interface BidSummary {
   bid_id: number; summary_text: string; key_requirements: string[];
@@ -107,13 +108,15 @@ async function handler({ request }: { request: Request }) {
 
   // Lazy migration: ensure set_aside column exists on bids (old DBs predate it).
   try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS set_aside TEXT`; } catch {}
-  const bidRows = await sql()`SELECT id, title, agency, description, location, category, set_aside, due_date, estimated_value, source_url FROM bids ORDER BY due_date ASC`;
+  const bidRows = await sql()`SELECT id, title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, naics_code, created_at FROM bids ORDER BY due_date ASC`;
   const userSpecialties = profile?.specialties || [];
   const bids: Bid[] = (bidRows as any[]).map((b) => ({
     id: b.id, title: b.title, agency: b.agency, description: b.description,
     location: b.location, category: b.category, set_aside: b.set_aside ?? null,
     due_date: String(b.due_date),
     estimated_value: b.estimated_value, source_url: b.source_url,
+    naics_code: b.naics_code ?? null,
+    created_at: b.created_at ? String(b.created_at) : "",
     role_matches: countRoleMatches(b as any, userSpecialties),
   }));
 

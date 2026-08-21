@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect, type ReactNode } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
+import { locationMatchesStates, shouldApplyStateFilter } from "~/lib/open-bids";
 import { redirectToCheckout } from "~/lib/checkout";
 import type { PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
@@ -18,6 +19,7 @@ interface Bid {
   id: number; title: string; agency: string; description: string;
   location: string; category: string; set_aside: string | null; due_date: string; estimated_value: string;
   source_url: string | null; role_matches: number;
+  naics_code: string | null; created_at: string;
 }
 interface BidSummary {
   bid_id: number; summary_text: string; key_requirements: string[];
@@ -554,6 +556,143 @@ function matchBid(bid: Bid, profile: BusinessProfile): boolean {
   );
   return catMatch || locMatch || setAsideMatch;
 }
+
+// ── Opportunity Detail: Eligibility verdict ─────────────────────────────────
+// Profile-aware, per-bid eligibility evaluation surfaced in the auth-gated
+// dashboard (the only surface with the user's business profile). Reuses the
+// shared open-bids geography predicates and the existing set-aside matcher.
+// HONESTY: a dimension is NO_DATA when the required field is absent (e.g. a
+// state/portal bid with naics_code NULL, or a profile with no locations) —
+// never a fabricated verdict.
+type EvalStatus = "MATCH" | "NO_MATCH" | "NO_DATA";
+interface EligibilityDimension {
+  status: EvalStatus;
+  label: string;
+  reason: string;
+}
+type EligibilityVerdict = "Eligible" | "Not eligible" | "Partial";
+interface EligibilityResult {
+  verdict: EligibilityVerdict;
+  summary: string;
+  dimensions: EligibilityDimension[];
+}
+
+// NAICS/trade dimension. Mirrors the shared keywordPred field coverage
+// (title/description/naics) as a pure client-side predicate. A concrete miss
+// is only asserted when there is real evidence (a bid NAICS code present while
+// the profile lists NAICS codes that don't overlap); otherwise NO_DATA.
+function evalTradeDimension(bid: Bid, profile: BusinessProfile | null): EligibilityDimension {
+  const pNaics = (profile?.naics_codes ?? []).map((c) => String(c).trim()).filter(Boolean);
+  const pKeywords = new Set<string>();
+  const addKw = (t: string) => { const k = (t || "").trim().toLowerCase(); if (k) pKeywords.add(k); };
+  addKw(profile?.industry ?? "");
+  (profile?.specialties ?? []).forEach(addKw);
+
+  const bidNaics = (bid.naics_code ?? "").trim();
+  const haystack = `${bid.title}\n${bid.description ?? ""}`.toLowerCase();
+
+  const sameTrade = (a: string, b: string) =>
+    !!a && !!b && (a === b || a.startsWith(b) || b.startsWith(a));
+
+  // Positive signal: bid NAICS matches a profile NAICS code (allow prefix/6-digit).
+  if (bidNaics && pNaics.some((n) => sameTrade(n, bidNaics))) {
+    return { status: "MATCH", label: "NAICS / trade", reason: `Bid NAICS ${bidNaics} matches a NAICS code on your profile.` };
+  }
+  // Positive signal: profile trade keyword (industry / specialty) appears in the
+  // solicitation title or description (same field set as the shared keywordPred).
+  const hit = [...pKeywords].find((k) => haystack.includes(k));
+  if (hit) {
+    return { status: "MATCH", label: "NAICS / trade", reason: `Solicitation text matches your listed trade (${hit}).` };
+  }
+  // Concrete miss: bid has a NAICS code and the profile lists NAICS codes that
+  // don't overlap → the bid targets a trade the user does not list.
+  if (bidNaics && pNaics.length > 0) {
+    return { status: "NO_MATCH", label: "NAICS / trade", reason: `Bid NAICS ${bidNaics} is not among the NAICS codes on your profile.` };
+  }
+  // Insufficient evidence → honest NO_DATA.
+  const reason = bidNaics
+    ? `Bid has NAICS ${bidNaics}, but it is not on your profile and your listed trade/specialties don't appear in the solicitation.`
+    : pNaics.length > 0 || pKeywords.size > 0
+    ? "Solicitation has no NAICS or trade data to compare against your profile."
+    : "Your profile has no NAICS or trade data to compare.";
+  return { status: "NO_DATA", label: "NAICS / trade", reason };
+}
+
+// Geography dimension. Reuses the shared shouldApplyStateFilter /
+// locationMatchesStates predicates. Nationwide (all states) = no restriction;
+// empty profile locations = NO_DATA.
+function evalGeographyDimension(bid: Bid, profile: BusinessProfile | null): EligibilityDimension {
+  const locs = (profile?.locations ?? []).map(String).filter(Boolean);
+  if (locs.length === 0) {
+    return { status: "NO_DATA", label: "Geography", reason: "No locations set in your profile — geography can't be verified." };
+  }
+  if (!shouldApplyStateFilter(locs)) {
+    return { status: "MATCH", label: "Geography", reason: "Nationwide — you target all states, so location is no restriction." };
+  }
+  const viaStates = locationMatchesStates(bid.location, locs);
+  const viaName = locs.some((l) => bid.location?.toLowerCase().includes(String(l).toLowerCase()));
+  if (viaStates || viaName) {
+    return { status: "MATCH", label: "Geography", reason: `Solicitation location (${bid.location}) is in your target states.` };
+  }
+  return { status: "NO_MATCH", label: "Geography", reason: `Solicitation location (${bid.location}) is outside your target states.` };
+}
+
+// Set-aside dimension. Reuses setAsideMatchesCertifications. A solicitation with
+// NO set-aside designation is unrestricted (not a disqualifier) → NO_DATA; a
+// set-aside reserved for a certification the user doesn't hold is a NO_MATCH.
+function evalSetAsideDimension(bid: Bid, profile: BusinessProfile | null): EligibilityDimension {
+  const certs = Array.isArray(profile?.certifications) ? profile.certifications : [];
+  const label = setAsideLabel(bid.set_aside);
+  if (!label) {
+    return { status: "NO_DATA", label: "Set-aside", reason: "No set-aside designation — not restricted to a specific certification." };
+  }
+  if (setAsideMatchesCertifications(bid.set_aside, certs)) {
+    return { status: "MATCH", label: "Set-aside", reason: `Set-aside (${label}) matches one of your certifications.` };
+  }
+  return { status: "NO_MATCH", label: "Set-aside", reason: `Reserved ${label} set-aside — none of your certifications qualify.` };
+}
+
+// Overall verdict: Not eligible on any clear miss; Eligible only when all three
+// dimensions match; otherwise Partial (some match, some unknown/no data).
+function computeEligibility(bid: Bid, profile: BusinessProfile | null): EligibilityResult {
+  const dimensions = [
+    evalSetAsideDimension(bid, profile),
+    evalTradeDimension(bid, profile),
+    evalGeographyDimension(bid, profile),
+  ];
+  const matches = dimensions.filter((d) => d.status === "MATCH").length;
+  const misses = dimensions.filter((d) => d.status === "NO_MATCH").length;
+
+  let verdict: EligibilityVerdict;
+  if (misses > 0) verdict = "Not eligible";
+  else if (matches === 3) verdict = "Eligible";
+  else verdict = "Partial";
+
+  let summary: string;
+  if (verdict === "Eligible") {
+    summary = "This opportunity fits your set-aside, trade, and geography.";
+  } else if (verdict === "Not eligible") {
+    const miss = dimensions.find((d) => d.status === "NO_MATCH");
+    summary = miss ? miss.reason : "A required eligibility dimension does not match your profile.";
+  } else {
+    summary = dimensions
+      .map((d) => `${d.label}: ${d.status === "MATCH" ? "match" : d.status === "NO_MATCH" ? "no match" : "no data"}`)
+      .join("; ");
+  }
+  return { verdict, summary, dimensions };
+}
+
+function eligibilityVerdictStyle(v: EligibilityVerdict) {
+  if (v === "Eligible") return { pill: "bg-green-100 text-green-700", dot: "🟢" };
+  if (v === "Not eligible") return { pill: "bg-red-100 text-red-700", dot: "🔴" };
+  return { pill: "bg-amber-100 text-amber-700", dot: "🟡" };
+}
+function eligibilityDimStyle(status: EvalStatus) {
+  if (status === "MATCH") return { pill: "bg-green-100 text-green-700", txt: "Match" };
+  if (status === "NO_MATCH") return { pill: "bg-red-100 text-red-700", txt: "No match" };
+  return { pill: "bg-slate-100 text-slate-500", txt: "No data" };
+}
+
 
 // ── Upgrade Banner ────────────────────────────────────────────────────────────
 
@@ -1333,6 +1472,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
               const hcOn = hcBid && !!healthcareView[bid.id];
               const hcSummary = healthcareSummaries[bid.id];
               const isGenHealthcare = generatingHealthcare.has(bid.id);
+              const elig = profile ? computeEligibility(bid, profile) : null;
 
               return (
                 <div key={bid.id} className={`rounded-2xl border bg-white shadow-sm transition-all ${isExpanded ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200 hover:border-slate-300"}`}>
@@ -1404,8 +1544,84 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
                       {/* Bid / No-Bid recommendation banner */}
                       <div className={`mx-5 mt-4 rounded-xl border ${recStyle.border} ${recStyle.bg} px-4 py-3`} aria-label="Bid recommendation">
                         <div className="flex flex-wrap items-center gap-2"><span className="text-lg">{recStyle.dot}</span><span className={`rounded-full px-2.5 py-1 text-xs font-bold ${recStyle.bg} ${recStyle.text}`}>{recStyle.label}</span><span className="text-sm font-medium text-slate-700">{recStyle.detail}</span></div>
-                        {recommendation?.summary && <p className="mt-1.5 text-sm text-slate-600">{recommendation.summary}</p>}
+{recommendation?.summary && <p className="mt-1.5 text-sm text-slate-600">{recommendation.summary}</p>}
                       </div>
+                      {/* Opportunity Detail — Eligibility, Key dates, Summary (additive) */}
+                      {elig && (
+                        <div className="mx-5 mt-4 space-y-4">
+                          {/* 1. Eligibility verdict widget */}
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50/40 p-4 sm:p-5" aria-label="Eligibility verdict for this opportunity">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Eligibility</p>
+                              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${eligibilityVerdictStyle(elig.verdict).pill}`}>{eligibilityVerdictStyle(elig.verdict).dot} {elig.verdict}</span>
+                            </div>
+                            <p className="mt-2 text-sm text-slate-600">{elig.summary}</p>
+                            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                              {elig.dimensions.map((d) => {
+                                const ds = eligibilityDimStyle(d.status);
+                                return (
+                                  <div key={d.label} className="rounded-lg border border-slate-200 bg-white p-2.5">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-xs font-semibold text-slate-600">{d.label}</span>
+                                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${ds.pill}`}>{ds.txt}</span>
+                                    </div>
+                                    <p className="mt-1 text-xs leading-snug text-slate-500">{d.reason}</p>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            {/* 2. Key dates */}
+                            <div className="rounded-xl border border-slate-200 bg-white p-4">
+                              <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Key dates</p>
+                              <div className="mt-2 flex items-center justify-between">
+                                <span className="text-sm text-slate-600">Proposal due</span>
+                                <span className="inline-flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-slate-800">{fmtDate(bid.due_date)}</span>
+                                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${cd.bg} ${cd.text}`}>{cd.label}</span>
+                                </span>
+                              </div>
+                              {bid.created_at && (
+                                <div className="mt-1.5 flex items-center justify-between text-xs text-slate-400">
+                                  <span>Listed / synced</span>
+                                  <span>{fmtDate(bid.created_at)}</span>
+                                </div>
+                              )}
+                            </div>
+                            {/* 3. Plain-English summary surfaced structurally */}
+                            <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4">
+                              <div className="flex items-center justify-between gap-2">
+                                <p className="text-[11px] font-semibold uppercase tracking-wider text-blue-500">Quick summary</p>
+                                {summary && (
+                                  <button type="button" onClick={() => setActiveTab((p) => ({ ...p, [bid.id]: "summary" }))} className="text-xs font-medium text-blue-600 hover:underline">Full AI Summary →</button>
+                                )}
+                              </div>
+                              <div className="mt-2">
+                                {summary ? (
+                                  <>
+                                    <p className="text-sm leading-relaxed text-slate-700 whitespace-pre-line">{summary.summary_text}</p>
+                                    {summary.key_requirements.length > 0 && (
+                                      <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {summary.key_requirements.slice(0, 3).map((req, i) => (
+                                          <span key={i} className="rounded-full border border-blue-200 bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600">{req}</span>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </>
+                                ) : isGenSummary ? (
+                                  <p className="text-sm text-slate-500 flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-blue-500 animate-bounce" />Generating summary…</p>
+                                ) : (
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm text-slate-500">A plain-English read of what this contract needs.</p>
+                                    <button type="button" onClick={() => doGenerateSummary(bid.id)} disabled={isGenSummary} className="shrink-0 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 disabled:opacity-50">Generate summary</button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                       {/* Tabs */}
                       <div className="flex border-b border-slate-100 px-5">
                         {[

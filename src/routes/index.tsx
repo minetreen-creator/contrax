@@ -730,23 +730,39 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/")({
+  // q must be a STRING even when the URL value is all-digits. TanStack's default
+  // search parser JSON/coerces `?q=238220` into the NUMBER 238220; the old
+  // `typeof search.q === "string"` guard then dropped it silently (NAICS query
+  // vanished -> feed stayed unfiltered and the URL was rewritten to /?qa=...).
+  // Accept string OR number and coerce to a canonical string so a NAICS/trade
+  // query is honored like any other keyword.
   validateSearch: (search: Record<string, unknown>) => ({
-    q: typeof search.q === "string" ? search.q : undefined,
+    q:
+      typeof search.q === "string" || typeof search.q === "number"
+        ? String(search.q)
+        : undefined,
   }),
-  loader: async ({ location }) => {
-    // Hero keyword search (?q=) MUST flow into the SERVER data so the filtered
-    // feed renders in the served SSR HTML, not just the client (prior incident
-    // #113). Root cause (verified on main @ c514884 + built-handler SSR debug):
-    // the oldest tolerant `context.q / context.search?.q /
-    // context.location?.search?.q` read NEVER resolved, because in this TanStack
-    // SSR build the route loader receives `location` as a TOP-LEVEL arg and its
-    // `context` object is EMPTY (contains neither search nor location). So q
-    // silently became "" and the feed was never filtered. Here we read the
-    // validated search object directly: in this build `location.search` IS the
-    // result of validateSearch (e.g. { q: "HVAC" }) for both SSR and client
-    // navigation, so both serve the identical filtered feed.
+  // CRITICAL for client-side navigation: without loaderDeps the route match is
+  // keyed ONLY on the pathname (matchId = route.id + path + loaderDepsHash, where
+  // loaderDepsHash is "" when no loaderDeps is declared - see router.js
+  // matchRoutes()). So the hero submit (navigate({ search: { q } }), / -> /?q=HVAC)
+  // produced the SAME matchId -> the router reused the existing match's cached
+  // "/" loader data and did NOT re-run the loader -> the feed stayed unfiltered
+  // ("Showing 12 of 8018") even though the URL + hash updated (the 26KB
+  // RSC-then-noop nav QA saw). Declaring loaderDeps folds q into the matchId
+  // hash, so any q change creates a NEW match and the loader re-runs with the
+  // new deps on the client too.
+  loaderDeps: ({ search }) => ({ q: search.q }),
+  loader: async ({ deps, location }) => {
+    // Prefer deps (the validated search, always a string for both SSR first-load
+    // and client transitions; wired from route.match.loaderDeps in load-matches).
+    // Fall back to location.search for robustness and coerce numbers to strings
+    // in case a value arrives as a raw number (e.g. NAICS). The old `context`
+    // read is intentionally NOT used - verified on main that SSR hands the
+    // loader `location` as a top-level arg and an EMPTY context.
+    const depsQ = typeof deps?.q === "string" ? deps.q : "";
     const locSearch = (location?.search ?? {}) as { q?: unknown };
-    const rawQ = typeof locSearch.q === "string" ? locSearch.q : "";
+    const rawQ = depsQ || (locSearch.q == null ? "" : String(locSearch.q));
     return getLandingData({ data: { q: rawQ } });
   },
   component: Home,

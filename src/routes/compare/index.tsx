@@ -57,6 +57,49 @@ function ComparePage() {
     </div></section>
     <section className="bg-slate-50 py-16 sm:py-24"><div className="mx-auto max-w-3xl px-6"><h2 className="text-center text-3xl font-bold text-slate-900 sm:text-4xl">The Bottom Line</h2><div className="mt-8 space-y-5 text-lg leading-relaxed text-gray-600"><p>Contrax is built for small and mid-size businesses that want a practical path into government contracting. It combines opportunity discovery, plain-English bid summaries, win probability scoring, and proposal drafting in one affordable workspace.</p><p>At $19–199 per month, Contrax gives growing teams coverage of federal procurement sources without the enterprise price tag. The 21-day free trial lets you see matched opportunities before committing, while the guided onboarding takes minutes instead of weeks.</p><p>GovWin can be the right choice for a large enterprise with a $50M+ pipeline, a dedicated business development team, and a need for deep federal spend intelligence. BidNet or Bonfire may suit vendors focused specifically on state and local procurement. Manual SAM.gov searching remains useful for a very small need, and a specialist can bring valuable hands-on expertise when budget is less constrained.</p><p>For everyone else—especially teams ready to find more relevant bids and submit stronger proposals without hiring a full department—Contrax offers the best balance of capability, coverage, and cost.</p></div></div></section>
     <section className="bg-slate-900 py-16"><div className="mx-auto max-w-3xl px-6 text-center"><h2 className="text-3xl font-bold text-white sm:text-4xl">Ready to start winning contracts?</h2><p className="mt-4 text-lg text-blue-100/70">21-day free trial. No credit card required.</p><a href="/signup" className="mt-8 inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-amber-400">Start Free Trial <span className="ml-2">→</span></a></div></section>
+    <section className="bg-gray-50 py-16 sm:py-24"><div className="mx-auto max-w-7xl px-6"><div className="mx-auto max-w-2xl text-center"><h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">The alternative</h2><h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Contrax vs. doing it yourself, a specialist, or generic tools</h3><p className="mt-4 text-lg text-gray-600">Beyond the named platforms, the realistic choices are manual bidding, hiring a consultant, or repurposing generic RFP software. Here is how those stack up.</p></div>
+      <div className="mt-14 overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm"><table className="w-full min-w-[820px] border-collapse text-left text-sm"><thead><tr className="border-b border-gray-200 bg-gray-50"><th className="px-6 py-5 text-sm font-semibold text-slate-700"><span className="sr-only">Criteria</span></th>{[{name:"Contrax",key:"contrax",highlight:true},{name:"Manual Bidding",key:"manual",highlight:false},{name:"Consultant",key:"consultant",highlight:false},{name:"Other Tools",key:"tools",highlight:false}].map((col)=>(<th key={col.key} className={`px-5 py-5 text-center ${col.highlight?"bg-blue-50/60":""}`}><span className={`text-sm font-bold ${col.highlight?"text-blue-700":"text-slate-700"}`}>{col.name}</span></th>))}</tr></thead><tbody className="divide-y divide-gray-100">{[{
+        label:"Bid discovery",tooltip:"Who finds opportunities for you?",
+        contrax:{value:"Scans federal and city procurement sites daily",positive:true},
+        manual:{value:"You search SAM.gov, state portals & city sites manually",positive:false},
+        consultant:{value:"Consultant checks known sources during business hours",positive:false},
+        tools:{value:"Requires you to set up searches & filters yourself",positive:false},
+      },{
+        label:"Time to proposal",tooltip:"How fast from finding to submitting?",
+        contrax:{value:"Hours — drafts in minutes",positive:true},
+        manual:{value:"Days to weeks — research + writing from scratch",positive:false},
+        consultant:{value:"Days — depends on their availability & backlog",positive:false},
+        tools:{value:"Days — you still write the content",positive:false},
+      },{
+        label:"Monthly cost",tooltip:"What it costs per month",
+        contrax:{value:"$19–$199/month",positive:true},
+        manual:{value:"Hundreds in lost staff hours",positive:false},
+        consultant:{value:"$3,000–$10,000+/month retainer",positive:false},
+        tools:{value:"$200–$1,000/month",positive:false},
+      },{
+        label:"Proposal quality",tooltip:"Drafted vs. manual vs. template",
+        contrax:{value:"Tailored drafts for each RFP",positive:true},
+        manual:{value:"Depends entirely on your writing skills",positive:false},
+        consultant:{value:"Professional — but expensive",positive:false},
+        tools:{value:"Template-based — generic, not tailored",positive:false},
+      },{
+        label:"Learning curve",tooltip:"How easy to get started",
+        contrax:{value:"Minutes — simple onboarding wizard",positive:true},
+        manual:{value:"Steep — must learn each procurement system",positive:false},
+        consultant:{value:"None — they handle it, but onboarding takes weeks",positive:false},
+        tools:{value:"Moderate to steep — complex configuration required",positive:false},
+      },{
+        label:"Coverage",tooltip:"Federal, state, local?",
+        contrax:{value:"Federal + state + local, all in one place",positive:true},
+        manual:{value:"Limited to the sites you have time to check",positive:false},
+        consultant:{value:"Usually focused on federal or their specialty",positive:false},
+        tools:{value:"Varies — many only cover federal (SAM.gov)",positive:false},
+      },].map((row)=>(
+        <tr key={row.label} className="transition-colors hover:bg-gray-50/50"><td className="px-6 py-4"><div className="text-sm font-semibold text-slate-800">{row.label}</div><p className="mt-0.5 text-xs text-gray-400">{row.tooltip}</p></td>
+        {["contrax","manual","consultant","tools"].map((key)=>{const cell=row[key];const highlight=key==="contrax";return(<td key={key} className={`px-5 py-4 text-center ${highlight?"bg-blue-50/30":""}`}><div className="flex flex-col items-center gap-1.5"><span className={cell.positive?"font-bold text-green-600":"font-bold text-red-400"}>{cell.positive?"✓":"✕"}</span><p className={`text-xs leading-relaxed ${highlight?"font-medium text-slate-800":"text-gray-500"}`}>{cell.value}</p></div></td>);})}
+        </tr>))}</tbody></table></div>
+      <div className="mt-12 text-center"><a href="/pricing" className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 px-8 py-3 text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98]">See plans <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg></a></div>
+    </div></section>
     <section className="py-16 sm:py-24"><div className="mx-auto max-w-3xl px-6"><h2 className="text-center text-3xl font-bold text-slate-900">Frequently asked questions</h2><div className="mt-8 divide-y divide-gray-200 rounded-2xl border border-gray-200 bg-white">{[
       ["Is Contrax better than GovWin?", "For small and mid-size businesses, often yes: Contrax is more affordable, easier to onboard, includes AI scoring and proposal drafting tools, and costs a fraction of GovWin's enterprise pricing. GovWin may be a better fit for large enterprises needing deep federal intelligence."],
       ["Does Contrax replace SAM.gov?", "No. SAM.gov remains the official source for federal opportunities and submissions. Contrax complements it by monitoring SAM.gov, filtering matches, and helping you understand and respond to bids."],

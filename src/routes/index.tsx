@@ -450,113 +450,6 @@ const getLiveAwardsByCert = createServerFn({ method: "GET" }).handler(async ({
   return { awards: [], updatedAt: null };
 });
 
-const HEALTHCARE_KEYWORDS = [
-  "health", "medical", "nurse", "nursing", "physician", "clinician", "clinical",
-  "hospital", "tricare", "medicare", "medicaid", "pharma", "pharmacy", "dental",
-  "behavioral", "mental health", "substance abuse", "telehealth",
-  "telemedicine", "emr", "ehr", "hipaa",
-];
-
-/**
- * Construction/vehicle/utilities terms checked against the TITLE only. Many of
- * these words (road, street, gas, vehicle, van, bus, gate, fence, waste,
- * trash, recycling, sanitation, fuel, elevator…) routinely appear inside the
- * *descriptions* of genuine healthcare bids (street addresses, lab supplies,
- * medical transport, etc.), so a description-level check would wrongly drop
- * them — e.g. "…Babcock Road Medical Center…" in a real cardiology notice.
- * The original code checked only the title; that conservative behavior is
- * preserved here, plus "facility"/"facilities", which are safe only in titles
- * (healthcare descriptions are full of "…at the health care facility…"
- * boilerplate).
- */
-const HEALTHCARE_EXCLUSIONS = [
-  "truck", "trailer", "vehicle", "van", "bus", "bulldozer", "excavator", "crane",
-  "forklift", "paving", "roofing", "concrete", "dumpster", "fence", "gate",
-  "landscaping", "janitorial", "elevator", "hvac", "plumbing", "electrical",
-  "generator", "fuel", "gas", "diesel", "manhole", "sewer", "drainage", "pipeline",
-  "asphalt", "pavement", "sidewalk", "curb", "gutter", "road", "highway", "bridge",
-  "culvert", "demolition", "waste", "trash", "recycling", "sanitation",
-  "street", "wastewater", "rehabilitation", "renewal",
-  "facility", "facilities",
-];
-
-/**
- * Unambiguous construction/facilities terms, checked against BOTH the title
- * and the description. These words never describe a healthcare *service*:
- * "roof"/"roof top"/"rtu" (rooftop unit) identify roofing/HVAC work,
- * "construction"/"renovation" identify facilities work, "stormwater"
- * identifies civil infrastructure.
- *
- * Deliberately NOT included: "repair", "replacement", "maintenance" — they are
- * over-broad and would wrongly exclude genuine healthcare bids, e.g. "medical
- * equipment repair" or the Defense Health Agency "…Asset Tracking System
- * Installation and Maintenance Services" notice (a real, wanted entry in this
- * section). See the category escape hatch below for how an explicit healthcare
- * category always wins.
- */
-const HEALTHCARE_TEXT_EXCLUSIONS = [
-  "roof", "roof top", "rtu", "construction", "renovation", "stormwater",
-];
-
-/**
- * Pure classification predicate — kept outside the server fn so it can be
- * unit-tested without a database. A bid is shown when it has a healthcare
- * signal (category match, or any healthcare keyword in title/description) and
- * no construction/facilities exclusion term. An explicit healthcare category
- * match always wins over exclusion terms.
- */
-export function isHealthcareBid(bid: {
-  title: string;
-  description: string;
-  category: string;
-}): boolean {
-  const title = (bid.title ?? "").toLowerCase();
-  const category = (bid.category ?? "").toLowerCase();
-  const description = (bid.description ?? "").toLowerCase();
-  const categoryMatchesHealthcare = HEALTHCARE_KEYWORDS.some((keyword) =>
-    category.includes(keyword),
-  );
-  const text = `${title} ${description}`;
-  const healthcareMatchCount = HEALTHCARE_KEYWORDS.filter((keyword) =>
-    text.includes(keyword),
-  ).length;
-  const hasStrongHealthcareSignal = categoryMatchesHealthcare || healthcareMatchCount >= 1;
-  const hasExcludedTerm =
-    HEALTHCARE_EXCLUSIONS.some((term) => title.includes(term)) ||
-    HEALTHCARE_TEXT_EXCLUSIONS.some((term) => text.includes(term));
-
-  return hasStrongHealthcareSignal && (!hasExcludedTerm || categoryMatchesHealthcare);
-}
-
-const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => {
-  const { sql } = await import("~/db");
-  const patterns = HEALTHCARE_KEYWORDS.map((keyword) => `%${keyword}%`);
-  const rows = await sql()`
-    SELECT title, agency, estimated_value, due_date, location, category, description
-    FROM (
-      SELECT DISTINCT ON (title, agency)
-             title, agency, estimated_value, due_date, location, category, description, created_at
-      FROM bids
-      WHERE (LOWER(category) ILIKE ANY(${patterns}::text[])
-         OR LOWER(title) ILIKE ANY(${patterns}::text[])
-         OR LOWER(description) ILIKE ANY(${patterns}::text[]))
-        AND due_date > NOW()
-        AND ${sql().unsafe(LOW_CONTENT_SQL)}
-      ORDER BY title, agency, created_at DESC NULLS LAST
-    ) t
-    ORDER BY t.created_at DESC NULLS LAST
-    LIMIT 12
-  `;
-
-  return (rows as Bid[]).filter((bid) =>
-    isHealthcareBid({
-      title: bid.title ?? "",
-      description: bid.description ?? "",
-      category: bid.category ?? "",
-    }),
-  );
-});
-
 const getUserCount = async () => {
   try {
     const { sql } = await import("~/db");
@@ -696,7 +589,7 @@ const getPerCertCounts = async (): Promise<Record<string, number>> => {
 const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }: { data?: { q?: string } }) => {
   const q = data?.q?.trim() ?? "";
   const { sql } = await import("~/db");
-  const [businessName, user, recentBids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts, closingSoon] = await Promise.all([
+  const [businessName, user, recentBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts, closingSoon] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -709,7 +602,6 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }
     })(),
     getCurrentUser(),
     getRecentBids({ data: { q } }),
-    getHealthcareBids(),
     getTodayBids({ data: { q } }),
     getLiveAwards(),
     getUserCount(),
@@ -728,7 +620,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount, q };
+  return { businessName, user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount, q };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -812,7 +704,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, openCount, q } = Route.useLoaderData();
+  const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, openCount, q } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -850,11 +742,11 @@ function Home() {
       <ProductShowcase />
       <Pricing />
       <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} q={q || ""} />
-      <HealthcareOpportunities bids={healthcareBids} />
+      <HealthcareTeaser />
       <Example />
       <WhoItsFor />
       <ROICalculator />
-      <CompetitorComparison />
+      <CompareTeaser />
       <LeadCapture />
       <WaitlistSection />
       <Footer />
@@ -2015,60 +1907,16 @@ function OpenOpportunities({ bids, todayBids, openCount, q }: { bids: Bid[]; tod
   );
 }
 
-// ── Healthcare Opportunities ───────────────────────────────────────────────────
-
-function HealthcareOpportunities({ bids }: { bids: Bid[] }) {
-  const formatValue = (value: string | null) => {
-    if (!value) return null;
-    const amount = Number(value);
-    return Number.isFinite(amount)
-      ? amount.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })
-      : value;
-  };
-
+// ── Healthcare Teaser (compact link → /healthcare-contracting) ────────────────
+function HealthcareTeaser() {
   return (
-    <section className="bg-gradient-to-br from-blue-50 to-white py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-3xl text-center">
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-2xl" aria-hidden="true">🏥</span>
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Healthcare Government Contracting</h2>
-          </div>
-          <p className="mt-4 text-lg leading-relaxed text-gray-600">
-            The federal government is the largest healthcare purchaser in the United States — VA, HHS, DHA, and IHS spend billions annually on staffing, IT, supplies, and facilities contracts. Many are set aside for certified small businesses.
-          </p>
-          <p className="mt-4 text-sm font-semibold text-blue-700">
-            {bids.length} active healthcare opportunities tracked
-          </p>
+    <section className="bg-white py-10">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
+        <div>
+          <p className="text-lg font-semibold text-slate-900">🏥 Healthcare Government Contracting</p>
+          <p className="mt-1 text-sm text-gray-500">VA, HHS, DHA, and IHS set-aside opportunities for certified small businesses.</p>
         </div>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {bids.map((bid, i) => {
-            const value = formatValue(bid.estimated_value);
-            return (
-              <div key={i} className="rounded-xl border border-blue-100 bg-white p-5 shadow-sm transition-all hover:border-blue-300 hover:shadow-md">
-                <span className="mb-3 inline-block rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
-                  {bid.agency.length > 40 ? bid.agency.slice(0, 40) + "..." : bid.agency}
-                </span>
-                <p className="line-clamp-2 text-sm font-semibold text-slate-800" title={bid.title}>{bid.title}</p>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  {value ? <span className="text-sm font-bold text-emerald-600">{value}</span> : <span />}
-                  {bid.due_date && <span className="text-sm font-semibold text-amber-700">Due {new Date(bid.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</span>}
-                </div>
-                {bid.location && <p className="mt-3 text-xs text-gray-500">📍 {bid.location}</p>}
-              </div>
-            );
-          })}
-        </div>
-        {bids.length === 0 && (
-          <p className="py-8 text-center text-sm text-gray-500">
-            We’re scanning federal healthcare opportunities now. Sign up to be among the first to hear when a strong-fit contract is found.
-          </p>
-        )}
-        <div className="mt-10 text-center">
-          <a href="/awards?search=healthcare" className="font-semibold text-blue-700 transition-colors hover:text-blue-900">
-            View all healthcare opportunities →
-          </a>
-        </div>
+        <a href="/healthcare-contracting" className="shrink-0 font-semibold text-blue-700 transition-colors hover:text-blue-900">See healthcare contracting opportunities →</a>
       </div>
     </section>
   );
@@ -2521,263 +2369,16 @@ function ROICalculator() {
   );
 }
 
-// ── Competitor Comparison ─────────────────────────────────────────────────────
-
-function CompetitorComparison() {
-  const criteria = [
-    {
-      label: "Bid discovery",
-      tooltip: "Who finds opportunities for you?",
-      contrax: { value: "Scans federal and city procurement sites daily", positive: true },
-      manual: { value: "You search SAM.gov, state portals & city sites manually", positive: false },
-      consultant: { value: "Consultant checks known sources during business hours", positive: false },
-      tools: { value: "Requires you to set up searches & filters yourself", positive: false },
-    },
-    {
-      label: "Time to proposal",
-      tooltip: "How fast from finding to submitting?",
-      contrax: { value: "Hours — drafts in minutes", positive: true },
-      manual: { value: "Days to weeks — research + writing from scratch", positive: false },
-      consultant: { value: "Days — depends on their availability & backlog", positive: false },
-      tools: { value: "Days — you still write the content", positive: false },
-    },
-    {
-      label: "Monthly cost",
-      tooltip: "What it costs per month",
-      contrax: { value: "$19–$199/month", positive: true },
-      manual: { value: "Hundreds in lost staff hours", positive: false },
-      consultant: { value: "$3,000–$10,000+/month retainer", positive: false },
-      tools: { value: "$200–$1,000/month", positive: false },
-    },
-    {
-      label: "Proposal quality",
-      tooltip: "Drafted vs. manual vs. template",
-      contrax: { value: "Tailored drafts for each RFP", positive: true },
-      manual: { value: "Depends entirely on your writing skills", positive: false },
-      consultant: { value: "Professional — but expensive", positive: false },
-      tools: { value: "Template-based — generic, not tailored", positive: false },
-    },
-    {
-      label: "Learning curve",
-      tooltip: "How easy to get started",
-      contrax: { value: "Minutes — simple onboarding wizard", positive: true },
-      manual: { value: "Steep — must learn each procurement system", positive: false },
-      consultant: { value: "None — they handle it, but onboarding takes weeks", positive: false },
-      tools: { value: "Moderate to steep — complex configuration required", positive: false },
-    },
-    {
-      label: "Coverage",
-      tooltip: "Federal, state, local?",
-      contrax: { value: "Federal + state + local, all in one place", positive: true },
-      manual: { value: "Limited to the sites you have time to check", positive: false },
-      consultant: { value: "Usually focused on federal or their specialty", positive: false },
-      tools: { value: "Varies — many only cover federal (SAM.gov)", positive: false },
-    },
-  ];
-
-  const columns = [
-    {
-      name: "Contrax",
-      subtitle: "Contract Intelligence",
-      key: "contrax" as const,
-      highlight: true,
-      icon: (
-        <img src="/logo-square.png" alt="Contrax" className="h-6 w-6 object-contain" />
-      ),
-    },
-    {
-      name: "Manual Bidding",
-      subtitle: "DIY Approach",
-      key: "manual" as const,
-      highlight: false,
-      icon: (
-        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-        </svg>
-      ),
-    },
-    {
-      name: "Consultant",
-      subtitle: "Hired Help",
-      key: "consultant" as const,
-      highlight: false,
-      icon: (
-        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-        </svg>
-      ),
-    },
-    {
-      name: "Other Tools",
-      subtitle: "Generic RFP Software",
-      key: "tools" as const,
-      highlight: false,
-      icon: (
-        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 7.5l3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0021 18V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v12a2.25 2.25 0 002.25 2.25z" />
-        </svg>
-      ),
-    },
-  ];
-
-  const Check = () => (
-    <svg className="h-5 w-5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-  );
-
-  const Cross = () => (
-    <svg className="h-5 w-5 flex-shrink-0 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-
-  const Neutral = () => (
-    <svg className="h-5 w-5 flex-shrink-0 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 12h14" />
-    </svg>
-  );
-
+// ── Compare Teaser (compact link → /compare) ───────────────────────────────────
+function CompareTeaser() {
   return (
-    <section className="bg-white py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-6">
-        {/* Section heading */}
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            Why Contrax?
-          </h2>
-          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Why small businesses choose Contrax
-          </h3>
-          <p className="mt-4 text-lg text-gray-600">
-            See how Contrax stacks up against the alternatives — and why it&rsquo;s the fastest way from bid discovery to signed contract.
-          </p>
+    <section className="bg-white py-10">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
+        <div>
+          <p className="text-lg font-semibold text-slate-900">Why small businesses choose Contrax</p>
+          <p className="mt-1 text-sm text-gray-500">See how Contrax stacks up against the alternatives.</p>
         </div>
-
-        {/* Desktop table */}
-        <div className="mt-14 hidden overflow-hidden rounded-2xl border border-gray-200 shadow-sm lg:block">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 bg-gray-50">
-                  <th className="px-6 py-5 text-sm font-semibold text-slate-700">
-                    <span className="sr-only">Criteria</span>
-                  </th>
-                  {columns.map((col) => (
-                    <th
-                      key={col.key}
-                      className={`px-5 py-5 text-center ${col.highlight ? "bg-blue-50/60" : ""}`}
-                    >
-                      <div className="flex flex-col items-center gap-1">
-                        <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${col.highlight ? "bg-slate-900" : "bg-gray-100"}`}>
-                          {col.icon}
-                        </div>
-                        <span className={`text-sm font-bold ${col.highlight ? "text-blue-700" : "text-slate-700"}`}>
-                          {col.name}
-                        </span>
-                        <span className="text-xs text-gray-400">{col.subtitle}</span>
-                      </div>
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {criteria.map((row) => (
-                  <tr key={row.label} className="transition-colors hover:bg-gray-50/50">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-800">{row.label}</span>
-                      </div>
-                      <p className="mt-0.5 text-xs text-gray-400">{row.tooltip}</p>
-                    </td>
-                    {columns.map((col) => {
-                      const cell = row[col.key];
-                      return (
-                        <td
-                          key={col.key}
-                          className={`px-5 py-4 text-center ${col.highlight ? "bg-blue-50/30" : ""}`}
-                        >
-                          <div className="flex flex-col items-center gap-1.5">
-                            <div className="flex items-center justify-center gap-2">
-                              {cell.positive ? <Check /> : <Cross />}
-                            </div>
-                            <p className={`text-xs leading-relaxed ${col.highlight ? "font-medium text-slate-800" : "text-gray-500"}`}>
-                              {cell.value}
-                            </p>
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Mobile cards */}
-        <div className="mt-14 space-y-8 lg:hidden">
-          {columns.map((col) => (
-            <div
-              key={col.key}
-              className={`overflow-hidden rounded-2xl border shadow-sm ${
-                col.highlight
-                  ? "border-blue-500 ring-2 ring-blue-500/20 bg-gradient-to-br from-blue-50 to-white"
-                  : "border-gray-200 bg-white"
-              }`}
-            >
-              <div className={`flex items-center gap-3 px-6 py-4 ${col.highlight ? "bg-blue-100/50" : "bg-gray-50"}`}>
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${col.highlight ? "bg-slate-900" : "bg-gray-100"}`}>
-                  {col.icon}
-                </div>
-                <div>
-                  <p className={`text-base font-bold ${col.highlight ? "text-blue-700" : "text-slate-700"}`}>
-                    {col.name}
-                  </p>
-                  <p className="text-xs text-gray-400">{col.subtitle}</p>
-                </div>
-                {col.highlight && (
-                  <span className="ml-auto rounded-full bg-amber-500 px-3 py-1 text-xs font-semibold text-white shadow-sm">
-                    Best choice
-                  </span>
-                )}
-              </div>
-              <div className="divide-y divide-gray-100 px-6 py-2">
-                {criteria.map((row) => {
-                  const cell = row[col.key];
-                  return (
-                    <div key={row.label} className="flex items-start gap-3 py-3">
-                      {cell.positive ? (
-                        <Check />
-                      ) : (
-                        <Neutral />
-                      )}
-                      <div>
-                        <p className="text-sm font-semibold text-slate-800">{row.label}</p>
-                        <p className={`text-xs leading-relaxed ${col.highlight ? "text-slate-600" : "text-gray-500"}`}>
-                          {cell.value}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Bottom CTA */}
-        <div className="mt-12 text-center">
-          <a
-            href="/pricing"
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 px-8 py-3 text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98]"
-          >
-            See plans
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-            </svg>
-          </a>
-        </div>
+        <a href="/compare" className="shrink-0 font-semibold text-blue-700 transition-colors hover:text-blue-900">See how we compare →</a>
       </div>
     </section>
   );

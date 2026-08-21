@@ -89,16 +89,21 @@ export function PlanGate({
   featureName?: string;
   minTier?: PlanTier;
 }) {
-  const [tier, setTier] = useState<string | null | undefined>(undefined);
+  const [trial, setTrial] = useState<TrialStatus | null | undefined>(undefined);
   useEffect(() => {
     checkTrial()
-      .then((t) => setTier(t.planTier))
-      .catch(() => setTier(null));
+      .then(setTrial)
+      .catch(() => setTrial(null));
   }, []);
   // Still loading — show children to avoid flash
-  if (tier === undefined) return <>{children}</>;
+  if (trial === undefined) return <>{children}</>;
+  // A user with an ACTIVE full-access grant passes every tier gate. (expired &&
+  // fullAccess=true can never happen: computeTrialStatus drops fullAccess to
+  // false once access_expires_at passes, so an expired grant cannot unlock
+  // premium features.)
+  if (trial?.fullAccess) return <>{children}</>;
   // At or above required tier — allowed
-  if (tier && (TIER_ORDER[tier] ?? 0) >= TIER_ORDER[minTier]) return <>{children}</>;
+  if (trial?.planTier && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER[minTier]) return <>{children}</>;
   // Below required tier — show upgrade screen
   return <PlanUpgradeScreen featureName={featureName} minTier={minTier} />;
 }

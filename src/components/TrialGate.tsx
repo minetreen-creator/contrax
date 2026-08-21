@@ -102,8 +102,16 @@ export function PlanGate({
   // false once access_expires_at passes, so an expired grant cannot unlock
   // premium features.)
   if (trial?.fullAccess) return <>{children}</>;
-  // At or above required tier — allowed
-  if (trial?.planTier && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER[minTier]) return <>{children}</>;
+  // At or above required tier AND not expired — allowed. The `!expired` guard
+  // ensures a time-boxed per-user grant (access_expires_at) stops granting its
+  // plan_tier premium features once the date passes: a grant user keeps
+  // plan_tier set (e.g. 'professional'), so without this guard a Professional
+  // grant would unlock premium features forever after expiry. Normal paying
+  // users (subscription_status='active') have expired:false, so they are
+  // unaffected; 21-day trial users grant premium only during the trial.
+  // fullAccess is checked above and is unaffected (computeTrialStatus already
+  // drops an expired full-access grant to fullAccess:false).
+  if (trial?.planTier && !trial?.expired && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER[minTier]) return <>{children}</>;
   // Below required tier — show upgrade screen
   return <PlanUpgradeScreen featureName={featureName} minTier={minTier} />;
 }

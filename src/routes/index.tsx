@@ -44,13 +44,19 @@ function keywordPred(q: string, sql: any) {
   // `sql` here is the ~/db FACTORY: call sql() to get the neon tag (the app
   // pattern everywhere else is sql()`query` / sql().unsafe(...)).
   if (!phrase) return sql()``;
+  // NOTE: each LIKE value is a plain `${...}` interpolation — neon turns it
+  // into a positional parameter ($N). Do NOT write `$${...}`: the extra literal
+  // `$` makes the emitted SQL `LIKE $$N`, which Postgres parses as a dollar
+  // quote and throws `syntax error at or near "2"`. This bug was latent while
+  // q never reached these queries (see the loader fix); now that q flows to
+  // getRecentBids/getTodayBids it MUST be right or every search 500s.
   return sql()`AND (
-    LOWER(COALESCE(title,'')) LIKE $${"%"+phrase+"%"} OR
-    LOWER(COALESCE(description,'')) LIKE $${"%"+phrase+"%"} OR
-    LOWER(COALESCE(location,'')) LIKE $${"%"+phrase+"%"} OR
-    LOWER(COALESCE(set_aside,'')) LIKE $${"%"+phrase+"%"} OR
-    LOWER(COALESCE(agency,'')) LIKE $${"%"+phrase+"%"} OR
-    LOWER(COALESCE(naics_code,'')) LIKE $${"%"+phrase+"%"}
+    LOWER(COALESCE(title,'')) LIKE ${"%"+phrase+"%"} OR
+    LOWER(COALESCE(description,'')) LIKE ${"%"+phrase+"%"} OR
+    LOWER(COALESCE(location,'')) LIKE ${"%"+phrase+"%"} OR
+    LOWER(COALESCE(set_aside,'')) LIKE ${"%"+phrase+"%"} OR
+    LOWER(COALESCE(agency,'')) LIKE ${"%"+phrase+"%"} OR
+    LOWER(COALESCE(naics_code,'')) LIKE ${"%"+phrase+"%"}
   )`;
 }
 
@@ -727,16 +733,20 @@ export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => ({
     q: typeof search.q === "string" ? search.q : undefined,
   }),
-  loader: async ({ context }) => {
-    // Hero keyword search (?q=) must flow into the SERVER data so the filtered
-    // feed renders in SSR HTML, not just the client (prior incident #113).
-    // TanStack exposes validated search under context.<key>; tolerate the raw
-    // parsed-shape too so SSR and client navigation both thread q through.
-    const ctx = context as { q?: unknown; search?: { q?: unknown }; location?: { search?: { q?: unknown } } };
-    const rawQ =
-      typeof ctx.q === "string" ? ctx.q :
-      typeof ctx.search?.q === "string" ? ctx.search.q :
-      typeof ctx.location?.search?.q === "string" ? ctx.location.search.q : "";
+  loader: async ({ location }) => {
+    // Hero keyword search (?q=) MUST flow into the SERVER data so the filtered
+    // feed renders in the served SSR HTML, not just the client (prior incident
+    // #113). Root cause (verified on main @ c514884 + built-handler SSR debug):
+    // the oldest tolerant `context.q / context.search?.q /
+    // context.location?.search?.q` read NEVER resolved, because in this TanStack
+    // SSR build the route loader receives `location` as a TOP-LEVEL arg and its
+    // `context` object is EMPTY (contains neither search nor location). So q
+    // silently became "" and the feed was never filtered. Here we read the
+    // validated search object directly: in this build `location.search` IS the
+    // result of validateSearch (e.g. { q: "HVAC" }) for both SSR and client
+    // navigation, so both serve the identical filtered feed.
+    const locSearch = (location?.search ?? {}) as { q?: unknown };
+    const rawQ = typeof locSearch.q === "string" ? locSearch.q : "";
     return getLandingData({ data: { q: rawQ } });
   },
   component: Home,
@@ -812,7 +822,7 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar user={user} alertCount={alertCount} />
-      <Hero userCount={userCount} bidStats={bidStats} cert={certId} onSelectCert={selectCert} />
+      <Hero userCount={userCount} bidStats={bidStats} cert={certId} q={q || ""} onSelectCert={selectCert} />
       <ClosingSoon bids={closingSoon} />
       <HowItWorks />
       <LiveAwardFeed feed={liveAwards} activeId={certId} onSelectId={selectCert} />
@@ -1008,15 +1018,24 @@ function Hero({
   userCount,
   bidStats,
   cert,
+  q,
   onSelectCert,
 }: {
   userCount: number;
   bidStats: { activeCount: number; agencyCount: number };
   cert: string;
+  q: string;
   onSelectCert: (id: string) => void;
 }) {
   const navigate = useNavigate();
-  const [tradeQ, setTradeQ] = useState("");
+  // Keep the search box in sync with the URL's ?q= param: initialize it from q
+  // on first paint (a fresh /?q=HVAC load shows "HVAC" in the box) and re-sync
+  // whenever the route's q changes (hero submit navigation, or the clear-search
+  // link dropping q). Typing mutates local tradeQ only, so it never fights this.
+  const [tradeQ, setTradeQ] = useState(q || "");
+  useEffect(() => {
+    setTradeQ(q || "");
+  }, [q]);
   // Instant "Trade / Keyword" search (owner-directed): typing a trade, NAICS, or
   // state once and pressing Enter lands on the keyword-filtered Open
   // Opportunities feed (/?q=...#open-opportunities), filtered server-side so the

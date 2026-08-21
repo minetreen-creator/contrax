@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { DollarSign, Menu, Radar, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { isLowContent, LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -642,15 +642,6 @@ const getAwardDollarTotal = async (): Promise<number> => {
     return 0;
   }
 };
-// Compact dollar formatting for the awards stat: "$214M" for hundreds of
-// millions, one decimal for single/tens of millions ("$12.4M"), "$850K" under
-// a million. Matches the honest distinct-award total (never fabricated.
-const formatAwardDollars = (n: number): string => {
-  if (n >= 100_000_000) return "$" + Math.round(n / 1_000_000) + "M";
-  if (n >= 1_000_000) return "$" + (n / 1_000_000).toFixed(1) + "M";
-  if (n >= 1_000) return "$" + Math.round(n / 1_000) + "K";
-  return "$" + Math.round(n).toLocaleString();
-};
 const getPerCertCounts = async (): Promise<Record<string, number>> => {
   // REAL active set-aside counts for the Personalization Hook, computed at SSR
   // time from the bids table (never fabricated). Keyed by the same cert ids the
@@ -692,16 +683,6 @@ const getPerCertCounts = async (): Promise<Record<string, number>> => {
     return { "8a": 0, sdvosb: 0, wosb: 0, hubzone: 0, sb: 0 };
   }
 };
-// The top-of-page "I am a:" personalization options (drives the stat line, the
-// award feed filter, and the CTA). ids match CERT_CHIPS ids so the feed chip
-// row and this selector share ONE selection state (single source of truth).
-const CERT_PERSONALIZATION = [
-  { id: "8a", label: "8(a) Business", statLabel: "active 8(a) set-asides right now", cta: "Find your 8(a) contracts →" },
-  { id: "sdvosb", label: "SDVOSB", statLabel: "active SDVOSB set-asides right now", cta: "Find your SDVOSB contracts →" },
-  { id: "wosb", label: "WOSB", statLabel: "active WOSB set-asides right now", cta: "Find your WOSB contracts →" },
-  { id: "hubzone", label: "HUBZone", statLabel: "active HUBZone set-asides right now", cta: "Find your HUBZone contracts →" },
-  { id: "sb", label: "Small Business", statLabel: "active small-business set-asides right now", cta: "Find your contracts →" },
-];
 const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }: { data?: { q?: string } }) => {
   const q = data?.q?.trim() ?? "";
   const { sql } = await import("~/db");
@@ -801,7 +782,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount, q } = Route.useLoaderData();
+  const { user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, openCount, q } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -831,7 +812,7 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar user={user} alertCount={alertCount} />
-      <Hero businessName={businessName} userCount={userCount} bidStats={bidStats} awardDollarTotal={awardDollarTotal} perCertCounts={perCertCounts} cert={certId} onSelectCert={selectCert} />
+      <Hero userCount={userCount} bidStats={bidStats} cert={certId} onSelectCert={selectCert} />
       <ClosingSoon bids={closingSoon} />
       <HowItWorks />
       <LiveAwardFeed feed={liveAwards} activeId={certId} onSelectId={selectCert} />
@@ -1024,27 +1005,18 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
 function Hero({
-  businessName,
   userCount,
   bidStats,
-  awardDollarTotal,
-  perCertCounts,
   cert,
   onSelectCert,
 }: {
-  businessName: string;
   userCount: number;
   bidStats: { activeCount: number; agencyCount: number };
-  awardDollarTotal: number;
-  perCertCounts: Record<string, number>;
   cert: string;
   onSelectCert: (id: string) => void;
 }) {
   const navigate = useNavigate();
-  const [scoreText, setScoreText] = useState("");
   const [tradeQ, setTradeQ] = useState("");
-  const activePersonal = CERT_PERSONALIZATION.find((o) => o.id === cert) || null;
-  const activeCount = activePersonal ? Number(perCertCounts?.[activePersonal.id] ?? 0) : 0;
   // Instant "Trade / Keyword" search (owner-directed): typing a trade, NAICS, or
   // state once and pressing Enter lands on the keyword-filtered Open
   // Opportunities feed (/?q=...#open-opportunities), filtered server-side so the
@@ -1057,15 +1029,7 @@ function Hero({
     trackEvent("hero_search", q); // fire-and-forget, never blocks UI
     navigate({ to: "/", search: { q }, hash: "open-opportunities" });
   };
-  const handleScoreSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    const text = scoreText.trim();
-    // `score_submit` is fired by /score's handleScore when the analysis actually starts
-    // (both for this ?text= auto-run and manual "Score it" clicks) — firing it here too
-    // would double-count every hero submission.
-    trackEvent("hero_cta_click", "hero_score");
-    navigate({ to: "/score", search: text ? { text } : {} });
-  };
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
       {/* Subtle background pattern */}
@@ -1080,53 +1044,6 @@ function Hero({
             Contract Intelligence Platform
           </div>
 
-          {/* Personalization Hook — "I am a:" drives the stat, feed filter, and CTA */}
-          <div className="mb-8 flex flex-col items-center gap-4">
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={() => onSelectCert("all")}
-                aria-pressed={cert === "all"}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
-                  cert === "all"
-                    ? "border-amber-400 bg-amber-400/20 text-amber-200"
-                    : "border-white/15 bg-white/5 text-blue-100/80 hover:border-white/30 hover:text-white"
-                }`}
-              >
-                All set-asides
-              </button>
-              {CERT_PERSONALIZATION.map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => onSelectCert(o.id)}
-                  aria-pressed={cert === o.id}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
-                    cert === o.id
-                      ? "border-amber-400 bg-amber-400/20 text-amber-200"
-                      : "border-white/15 bg-white/5 text-blue-100/80 hover:border-white/30 hover:text-white"
-                  }`}
-                >
-                  {o.label}
-                </button>
-              ))}
-            </div>
-            {activePersonal && activeCount > 0 && (
-              <div className="flex max-w-2xl flex-col items-center gap-3 sm:flex-row sm:justify-center">
-                <p className="text-sm font-medium text-amber-200">
-                  <span className="font-bold text-amber-300">{activeCount.toLocaleString()}</span>{" "}
-                  {activePersonal.statLabel}
-                </p>
-                <a
-                  href="#live-award-feed"
-                  onClick={() => trackEvent("personalize_cta_click", activePersonal.id)}
-                  className="inline-flex items-center rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400"
-                >
-                  {activePersonal.cta}
-                </a>
-              </div>
-            )}
-          </div>
 
           <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
             Find contracts you can{" "}
@@ -1135,9 +1052,33 @@ function Hero({
             </span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            Every morning, {businessName} monitors SAM.gov, all 50 state portals, and five city procurement sites for opportunities your
-            8(a), SDVOSB, WOSB, or HUBZone certification qualifies for. Plans start at $19/mo — 21-day free trial.
+            Real-time set-aside bids + 5-year incumbent pricing.
           </p>
+
+          {/* "I am a:" certification selector — reuses the shared cert state so
+              picking a cert filters the Live Award Feed below (same chips/logic as
+              the feed's own row). Fires the existing feed_filter_click event. */}
+          <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+            <span className="text-sm font-semibold text-blue-200/80">I am a:</span>
+            {CERT_CHIPS.filter((c) => c.id !== "all").map((chip) => {
+              const isActive = cert === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  onClick={() => onSelectCert(chip.id)}
+                  aria-pressed={isActive}
+                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
+                    isActive
+                      ? "border-amber-400 bg-amber-400/20 text-amber-200"
+                      : "border-white/15 bg-white/5 text-blue-100/80 hover:border-white/30 hover:text-white"
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
 
           {/* Instant Trade / Keyword search — the hero's first call to action.
               Full-width on mobile, input + button row on desktop. */}
@@ -1165,7 +1106,7 @@ function Hero({
                 type="submit"
                 className="shrink-0 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
               >
-                Search {bidStats.activeCount > 0 ? bidStats.activeCount.toLocaleString() : ""} Bids →
+                Explore {bidStats.activeCount > 0 ? bidStats.activeCount.toLocaleString() : ""} Bids →
               </button>
             </form>
             <p className="mt-2.5 text-center text-xs font-medium text-blue-200/70">
@@ -1173,85 +1114,6 @@ function Hero({
             </p>
           </div>
 
-          {bidStats.activeCount > 0 && bidStats.agencyCount > 0 && (
-            <div className="mt-6 flex items-center justify-center gap-2 text-sm text-blue-200/80">
-              <Radar className="h-4 w-4 shrink-0 text-amber-300" />
-              <span>
-                Tracking{" "}
-                <span className="font-semibold text-amber-300">
-                  {bidStats.activeCount.toLocaleString()}
-                </span>{" "}
-                active solicitations across{" "}
-                <span className="font-semibold text-amber-300">
-                  {bidStats.agencyCount.toLocaleString()}
-                </span>{" "}
-                agencies — updated every 4 hours on weekdays
-              </span>
-            </div>
-          )}
-          {awardDollarTotal > 0 && (
-            <div className="mt-3 flex items-center justify-center gap-2 text-sm text-blue-200/80">
-              <DollarSign className="h-4 w-4 shrink-0 text-amber-300" />
-              <span>
-                <span className="font-semibold text-amber-300">
-                  {formatAwardDollars(awardDollarTotal)}
-                </span>{" "}
-                in recent federal awards tracked — awarded contract dollars from USAspending
-              </span>
-            </div>
-          )}
-          <div className="mt-4 mx-auto max-w-xl rounded-xl border border-amber-400/15 bg-amber-400/5 px-6 py-4 backdrop-blur-sm">
-            <p className="text-base font-semibold text-amber-200">
-              <span className="text-amber-400">Know what to bid before you write a word.</span>{" "}
-              We pull 5 years of incumbent pricing so you're never guessing.
-            </p>
-          </div>
-          <div className="mt-6 mx-auto max-w-xl">
-            <p className="mb-3 text-sm font-medium text-blue-200">Try it now — no signup required</p>
-            <form
-              onSubmit={handleScoreSubmit}
-              rel="nofollow"
-              className="flex flex-col gap-2 sm:flex-row"
-            >
-              <input
-                type="text"
-                value={scoreText}
-                onChange={(e) => setScoreText(e.target.value)}
-                placeholder="Paste a solicitation title or description..."
-                className="flex-1 rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-blue-300/60 backdrop-blur-sm focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
-              />
-              <button
-                type="submit"
-                className="shrink-0 rounded-xl bg-white/15 px-5 py-3 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/25 sm:w-auto w-full"
-              >
-                Score it free →
-              </button>
-            </form>
-            <p className="mt-3 text-center text-xs font-medium text-blue-200/80 sm:text-sm">
-              <span className="font-semibold text-amber-300">3 free scores</span> — no login to try
-            </p>
-          </div>
-          <div className="mt-10 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-            <a
-              href="/awards#feed"
-              onClick={() => trackEvent("hero_cta_click", "hero_primary")}
-              className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl hover:shadow-amber-500/30 active:scale-[0.98]"
-            >
-              Get Incumbent Intel
-              <svg className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </a>
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center rounded-xl px-6 py-4 text-base font-medium text-blue-100 transition-colors hover:text-white"
-            >
-              See how it works
-              <svg className="ml-1.5 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </a>
-          </div>
           <p className="mt-6 flex items-center justify-center gap-1.5 text-sm text-blue-200/70">
             <svg className="h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

@@ -746,7 +746,18 @@ export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => ({
     q: typeof search.q === "string" ? search.q : undefined,
   }),
-  loader: async ({ context }) => getLandingData({ data: { q: context.q } }),
+  loader: async ({ context }) => {
+    // Hero keyword search (?q=) must flow into the SERVER data so the filtered
+    // feed renders in SSR HTML, not just the client (prior incident #113).
+    // TanStack exposes validated search under context.<key>; tolerate the raw
+    // parsed-shape too so SSR and client navigation both thread q through.
+    const ctx = context as { q?: unknown; search?: { q?: unknown }; location?: { search?: { q?: unknown } } };
+    const rawQ =
+      typeof ctx.q === "string" ? ctx.q :
+      typeof ctx.search?.q === "string" ? ctx.search.q :
+      typeof ctx.location?.search?.q === "string" ? ctx.location.search.q : "";
+    return getLandingData({ data: { q: rawQ } });
+  },
   component: Home,
   head: () => ({
     meta: [

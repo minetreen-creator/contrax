@@ -140,6 +140,16 @@ async function setup() {
     await db`ALTER TABLE users ADD COLUMN trial_started_at TIMESTAMPTZ`;
     console.log("Added trial_started_at");
   }
+
+  // 013: per-user time-boxed access grant. access_expires_at is a soft-expiring
+  // access window for specific grant accounts (e.g. partner free trials NOT
+  // backed by Stripe); full_access unlocks every premium tier while the grant
+  // is still active. NULL/false for everyone else -> no behavior change.
+  console.log("\n--- Migration 013: access expiry grant columns ---");
+  await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS access_expires_at TIMESTAMPTZ`;
+  await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS full_access BOOLEAN NOT NULL DEFAULT FALSE`;
+  console.log("Added access_expires_at / full_access to users");
+
 console.log("\n✅ All migrations complete");
 }
 

@@ -37,6 +37,7 @@ import { CITY_SOURCES } from "../lib/city-procurement";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
 import { createNotification } from "../lib/notifications";
 import { generateBidAlerts } from "../lib/bid-alerts";
+import { inferNaics } from "../lib/naics-infer";
 
 interface SyncSource {
   name: string;
@@ -115,6 +116,7 @@ const BID_COLUMNS = [
   "source",
   "external_id",
   "naics_code",
+  "naics_code_source",
 ] as const;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -161,6 +163,11 @@ async function insertBidsBatch(
   const params: unknown[] = [];
   const valueRows: string[] = [];
   for (const bid of chunk) {
+    // NAICS heuristic: fill ONLY when the source provided no authoritative
+    // code. Render the provenance label alongside whichever code is stored
+    // (authoritative from the source, or inferred from title/description).
+    const code = bid.naics_code ?? inferNaics(bid.title, bid.description);
+    const codeSource = bid.naics_code ? "authoritative" : code ? "inferred" : null;
     const row = [
       bid.title,
       bid.agency,
@@ -173,7 +180,8 @@ async function insertBidsBatch(
       bid.source_url,
       bid.source_label ?? source.name,
       bid.external_id,
-      bid.naics_code ?? null,
+      code,
+      codeSource,
     ];
     const placeholders = row.map((_, j) => `$${params.length + j + 1}`).join(", ");
     valueRows.push(`(${placeholders})`);
@@ -184,7 +192,8 @@ async function insertBidsBatch(
     `INSERT INTO bids (${BID_COLUMNS.join(", ")})
      SELECT * FROM (VALUES ${valueRows.join(", ")})
        AS v(title, agency, description, location, category, set_aside,
-            due_date, estimated_value, source_url, source, external_id, naics_code)
+            due_date, estimated_value, source_url, source, external_id,
+            naics_code, naics_code_source)
      -- Cross-source dedup guard: skip a row whose natural key (title, agency)
      -- already exists in bids. Multiple sync sources return the SAME national
      -- solicitation (e.g. state-keyword sources va and va_evirginia), so
@@ -201,7 +210,16 @@ async function insertBidsBatch(
        category = EXCLUDED.category,
        due_date = EXCLUDED.due_date,
        estimated_value = EXCLUDED.estimated_value,
-       naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code)
+       naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code),
+       -- Track whichever code is actually retained: when the incoming code
+       -- wins (incl. an inferred fill of a NULL), label it; when an existing
+       -- code is kept, preserve its existing provenance label. This can never
+       -- overwrite an authoritative provenance with 'inferred' because an
+       -- authoritative source always supplies a non-NULL EXCLUDED code.
+       naics_code_source = CASE
+         WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
+         ELSE bids.naics_code_source
+       END
      RETURNING id, external_id, (xmax = 0) AS inserted`,
     params,
   )) as any[];
@@ -233,8 +251,12 @@ async function insertBid(
   source: SyncSource,
   bid: RawBid,
 ): Promise<NewBidSummary | null> {
+  // Same NAICS heuristic as the batch path: fill ONLY when the source gave no
+  // authoritative code, and label provenance alongside whatever code is stored.
+  const code = bid.naics_code ?? inferNaics(bid.title, bid.description);
+  const codeSource = bid.naics_code ? "authoritative" : code ? "inferred" : null;
   const result = (await sql`
-    INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code)
+    INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code, naics_code_source)
     SELECT
       ${bid.title},
       ${bid.agency},
@@ -247,7 +269,8 @@ async function insertBid(
       ${bid.source_url},
       ${bid.source_label ?? source.name},
       ${bid.external_id},
-      ${bid.naics_code ?? null}
+      ${code},
+      ${codeSource}
     -- Cross-source dedup guard (same natural-key check as the batch path).
     WHERE NOT EXISTS (
       SELECT 1 FROM bids b
@@ -260,7 +283,11 @@ async function insertBid(
       category = EXCLUDED.category,
       due_date = EXCLUDED.due_date,
       estimated_value = EXCLUDED.estimated_value,
-      naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code)
+      naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code),
+      naics_code_source = CASE
+        WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
+        ELSE bids.naics_code_source
+      END
     RETURNING id, (xmax = 0) AS inserted
   `) as any[];
   if (result.length === 0 || !result[0].inserted) return null;
@@ -351,6 +378,10 @@ export async function runSync(): Promise<SyncResult> {
 
   // Idempotent migration — once up front instead of once per source.
   await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`;
+  // Provenance label for naics_code: 'authoritative' (source-supplied, e.g.
+  // SAM.gov) vs 'inferred' (heuristic tag from title/description). Used by the
+  // honest-enforcement path so any surfaced NAICS can be labeled as inferred.
+  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code_source TEXT`;
 
   // Functional (non-unique) index backing the cross-source dedup guard in
   // insertBidsBatch / insertBid, whose WHERE NOT EXISTS filters on

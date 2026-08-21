@@ -34,8 +34,11 @@ async function findUserId(userEmail: string): Promise<number | null> {
 async function loadProfile(userId: number | null): Promise<BusinessProfile | null> {
   if (!userId) return null;
   try {
+    // Column list is a hardcoded constant → inline as a raw SQL fragment. Passing
+    // it as a bound parameter makes Neon treat the whole list as one text value,
+    // collapsing the SELECT to a single literal column (empty profile for all users).
     const rows = await sql()`
-      SELECT ${PROFILE_COLUMNS}
+      SELECT ${sql().unsafe(PROFILE_COLUMNS)}
       FROM business_profiles WHERE user_id = ${userId} LIMIT 1`;
     if (rows.length === 0) return null;
     const p = rows[0] as Record<string, unknown>;

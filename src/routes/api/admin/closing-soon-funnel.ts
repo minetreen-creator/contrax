@@ -111,16 +111,24 @@ async function attributedStepCount(
   // One JOIN per required step. Each requires a distinct downstream event in
   // that step's event set, after the click, within the session window. A
   // visitor only qualifies when they satisfy EVERY join.
+  // stepSql and SESSION_WINDOW_HOURS are INTERNAL SERVER CONSTANTS (not user
+  // input), so they are interpolated as plain text directly into the join
+  // string — NO sql().unsafe() here. unsafe() is a raw-fragment factory: it only
+  // renders to SQL when interpolated inside an executing tagged template. When
+  // coerced into a plain string via `${...}` it becomes the literal text
+  // `[object Object]` and produces invalid SQL (`event_name IN [object Object]`,
+  // `make_interval(hours => [object Object])`) → 500. The single outer
+  // `sql().unsafe(joins)` (below) is correct because it inlines the whole
+  // assembled string into the real executing template.
   const joins = requiredStepSqls
     .map((stepSql, i) => {
       const alias = `d${i}`;
-      const win = `${sql().unsafe(String(SESSION_WINDOW_HOURS))}`;
       return [
         `JOIN funnel_events ${alias}`,
         `  ON ${alias}.ip = c.ip AND ${alias}.user_agent = c.user_agent`,
-        `  AND ${alias}.event_name IN ${sql().unsafe(stepSql)}`,
+        `  AND ${alias}.event_name IN ${stepSql}`,
         `  AND ${alias}.created_at > c.created_at`,
-        `  AND ${alias}.created_at <= c.created_at + make_interval(hours => ${win})`,
+        `  AND ${alias}.created_at <= c.created_at + make_interval(hours => ${String(SESSION_WINDOW_HOURS)})`,
       ].join("\n");
     })
     .join("\n");

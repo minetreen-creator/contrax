@@ -1,8 +1,8 @@
 {
-  "entryChunk": "index-D3eQQKQM.js",
-  "appCss": "app-DZVLm8Sz.css",
+  "entryChunk": "index-BmNtEcJS.js",
+  "appCss": "app-Dglnpjty.css",
   "preloads": [
-    "index-D3eQQKQM.js",
+    "index-BmNtEcJS.js",
     "vendor-dLFFNdXe.js",
     "router-B7DceLpq.js"
   ]

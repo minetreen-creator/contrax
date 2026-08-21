@@ -5,7 +5,7 @@ import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { persistPendingDraft } from "~/lib/pending-draft";
 import { readRememberedNext, clearRememberedNext } from "~/lib/remember-next";
-import { keywordPred, setAsidePred } from "~/lib/open-bids";
+import { locationMatchesStates, keywordPred, setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -53,13 +53,6 @@ export const CONTRACT_RANGES: Record<
   "1m+": { label: "$1M+", min: 1000000, max: null },
 };
 const RANGE_VALUE_OPTIONS = ["any", "under25k", "25k-100k", "100k-1m", "1m+"] as const;
-
-// State-code extraction — mirrors the awards page's STATE_LOCATION_REGEX so the
-// geography filter treats "City, ST" locations the same everywhere.
-const STATE_LOCATION_REGEX = new RegExp(
-  `(?:^|,\\s*)(${US_STATES.join("|")})(?:$|\\s|,)`,
-  "i",
-);
 
 /**
  * Parse a bid's estimated_value free-text into a numeric upper bound (dollars).
@@ -139,11 +132,11 @@ const countMatchOpportunities = createServerFn({ method: "GET" }).handler(
     let count = 0;
     let unknownValue = 0;
     for (const r of rows) {
-      // Geography filter — same STATE_LOCATION_REGEX rule as /awards.
-      if (states.length) {
-        const m = (r.location || "").match(STATE_LOCATION_REGEX);
-        if (!m || !states.includes(m[1].toUpperCase())) continue;
-      }
+      // Geography filter — single source of truth from ~/lib/open-bids.
+      // "Select all states" / no states → no-op (nationwide): EVERY location
+      // matches, so national/unspecified-location bids are NOT under-counted.
+      // Specific states → targeted 2-letter state filter, unchanged.
+      if (!locationMatchesStates(r.location, states)) continue;
       // Contract-range filter. Unspecified value → cannot be ruled out → counts
       // as matching (documented, honest; disclosed in the UI note).
       const v = parseEstimatedValue(r.estimated_value);

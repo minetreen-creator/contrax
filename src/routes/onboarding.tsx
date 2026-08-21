@@ -1,33 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { createServerFn } from "@tanstack/react-start";
+import { useEffect, useRef, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { persistPendingDraft } from "~/lib/pending-draft";
 import { readRememberedNext, clearRememberedNext } from "~/lib/remember-next";
+import { keywordPred, setAsidePred } from "~/lib/open-bids";
+import { LOW_CONTENT_SQL } from "~/lib/low-content";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-
-const INDUSTRIES = [
-  { value: "Construction", label: "Construction", examples: "general contracting, electrical, roofing, concrete" },
-  { value: "IT Services", label: "IT Services", examples: "software development, cybersecurity, cloud, help desk" },
-  { value: "Landscaping", label: "Landscaping", examples: "lawn care, tree service, snow removal, grounds maintenance" },
-  { value: "Janitorial", label: "Janitorial", examples: "office cleaning, floor care, disinfection, waste management" },
-  { value: "Security", label: "Security", examples: "physical security, surveillance, patrol, alarm monitoring" },
-  { value: "HVAC", label: "HVAC", examples: "installation, repair, duct cleaning, refrigeration" },
-  { value: "Plumbing & Electrical", label: "Plumbing & Electrical", examples: "pipe fitting, wiring, inspections, repairs" },
-  { value: "Marketing Agency", label: "Marketing Agency", examples: "digital ads, branding, web design, PR" },
-  { value: "Manufacturing", label: "Manufacturing", examples: "fabrication, assembly, machining, production" },
-  { value: "Other", label: "Other", examples: "describe your business in your own words" },
-] as const;
-
-const SERVICES_BY_INDUSTRY: Record<string, string[]> = {
-  Construction: ["General Contracting", "Electrical", "Plumbing", "Roofing", "Concrete", "Painting", "Demolition", "Site Preparation"],
-  Landscaping: ["Lawn Maintenance", "Tree Service", "Snow Removal", "Grounds Maintenance", "Irrigation", "Hardscaping", "Pest Control"],
-  "IT Services": ["Software Development", "Network Infrastructure", "Cybersecurity", "Cloud Services", "Help Desk", "Data Analytics"],
-  HVAC: ["Installation", "Repair & Maintenance", "Duct Cleaning", "Refrigeration", "Energy Audits"],
-  Security: ["Physical Security", "Surveillance Systems", "Access Control", "Patrol Services", "Alarm Monitoring"],
-  Janitorial: ["Office Cleaning", "Floor Care", "Window Cleaning", "Waste Management", "Disinfection", "Pressure Washing"],
-};
 
 export const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA",
@@ -47,6 +28,139 @@ export const CERTIFICATIONS = [
   { value: "disadvantaged", label: "Disadvantaged" },
 ] as const;
 
+// "Small Business / No specific set-aside" is deliberately NOT over-filtered:
+// every federal set-aside row IS a small-business competition, so choosing this
+// just means "don't narrow by set_aside". Same handling for minority-owned and
+// disadvantaged, which the bids data has no set-aside tag for.
+const CERT_OPTIONS: { value: string; label: string }[] = [
+  { value: "small_business", label: "Small Business / No specific set-aside" },
+  ...CERTIFICATIONS,
+];
+
+// Typical contract range buckets. `min`/`max` are used to filter a bid's
+// estimated_value (see parseEstimatedValue + countMatchOpportunities).
+// Bids with an unspecified value ("Not specified") are counted as matching the
+// selected range because their value is genuinely unknown — not claimed, not
+// inflated, just not ruled out. See NULL-value decision in the PR description.
+export const CONTRACT_RANGES: Record<
+  string,
+  { label: string; min: number | null; max: number | null }
+> = {
+  any: { label: "Any size", min: null, max: null },
+  under25k: { label: "Under $25k", min: null, max: 25000 },
+  "25k-100k": { label: "$25k – $100k", min: 25000, max: 100000 },
+  "100k-1m": { label: "$100k – $1M", min: 100000, max: 1000000 },
+  "1m+": { label: "$1M+", min: 1000000, max: null },
+};
+const RANGE_VALUE_OPTIONS = ["any", "under25k", "25k-100k", "100k-1m", "1m+"] as const;
+
+// State-code extraction — mirrors the awards page's STATE_LOCATION_REGEX so the
+// geography filter treats "City, ST" locations the same everywhere.
+const STATE_LOCATION_REGEX = new RegExp(
+  `(?:^|,\\s*)(${US_STATES.join("|")})(?:$|\\s|,)`,
+  "i",
+);
+
+/**
+ * Parse a bid's estimated_value free-text into a numeric upper bound (dollars).
+ * Handles "$600,000 – $850,000 per year" → 850000, "$1.2M – $1.8M" → 1800000,
+ * "Not specified"/null/unknown → null. Returns the largest number found so a
+ * range bid "up to $X" counts whenever the user's range reaches $X.
+ */
+export function parseEstimatedValue(v: string | null | undefined): number | null {
+  if (!v) return null;
+  const s = String(v).toLowerCase().trim();
+  if (!s || /not specified|unknown|n\/a|tbd|none|to be determined/.test(s)) return null;
+  const re = /[$]?\s*([\d,.]+)\s*([kmb])?(?:$|\s|–|-|to|\/)/gi;
+  let best = -1;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s)) !== null) {
+    const numStr = m[1] ?? "";
+    const mult = (m[2] ?? "").toLowerCase();
+    if (!numStr) continue;
+    const num = parseFloat(numStr.replace(/,/g, ""));
+    if (Number.isNaN(num)) continue;
+    let val = num;
+    if (mult === "k") val = num * 1e3;
+    else if (mult === "m") val = num * 1e6;
+    else if (mult === "b") val = num * 1e9;
+    if (val > best) best = val;
+  }
+  return best >= 0 ? best : null;
+}
+
+// ── Server Function: live match count (single source of truth) ────────────────
+//
+// This is the ONLY query path backing "We found N opportunities matching your
+// business". It reuses the SAME open-opportunity population the rest of the
+// site counts (post-#185): DISTINCT ON (title, agency) with `due_date > NOW()`
+// + the shared LOW_CONTENT_SQL, plus the SAME keyword predicate (keywordPred)
+// and the shared set-aside predicate (setAsidePred) — no parallel bespoke
+// query. State + contract-range are the two genuinely new filters (no
+// site-wide equivalent exists), applied in JS on the already-deduped rows using
+// the same state regex the /awards page uses. The count is therefore truthful
+// and server-side, never gameable.
+const countMatchOpportunities = createServerFn({ method: "GET" }).handler(
+  async ({
+    data,
+  }: {
+    data?: {
+      certification?: string;
+      query?: string;
+      states?: string[];
+      range?: string;
+    };
+  }) => {
+    const { sql } = await import("~/db");
+    const certification = (data?.certification ?? "").trim();
+    const query = (data?.query ?? "").trim();
+    const states = (data?.states ?? []).filter((s) => US_STATES.includes(s));
+    const rangeKey = (data?.range ?? "any") in CONTRACT_RANGES ? data!.range! : "any";
+    const range = CONTRACT_RANGES[rangeKey];
+
+    // keywordPred matches naics_code, so make sure the column exists first
+    // (same lazy migration as the homepage). 
+    if (query) {
+      try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
+    }
+
+    const certPred = setAsidePred(certification, sql);
+    const kwPred = keywordPred(query, sql);
+
+    const rows = (await sql()`
+      SELECT DISTINCT ON (title, agency)
+             title, agency, location, estimated_value, set_aside
+      FROM bids
+      WHERE ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW()
+        ${certPred} ${kwPred}
+      ORDER BY title, agency
+    `) as { title: string; agency: string; location: string | null; estimated_value: string | null; set_aside: string | null }[];
+
+    let count = 0;
+    let unknownValue = 0;
+    for (const r of rows) {
+      // Geography filter — same STATE_LOCATION_REGEX rule as /awards.
+      if (states.length) {
+        const m = (r.location || "").match(STATE_LOCATION_REGEX);
+        if (!m || !states.includes(m[1].toUpperCase())) continue;
+      }
+      // Contract-range filter. Unspecified value → cannot be ruled out → counts
+      // as matching (documented, honest; disclosed in the UI note).
+      const v = parseEstimatedValue(r.estimated_value);
+      if (v === null) {
+        unknownValue++;
+        count++;
+        continue;
+      }
+      if (range.min != null && v < range.min) continue;
+      if (range.max != null && v > range.max) continue;
+      count++;
+    }
+
+    return { count, unknownValue };
+  },
+);
+
 // ── Route ────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/onboarding")({
@@ -55,707 +169,32 @@ export const Route = createFileRoute("/onboarding")({
   component: OnboardingRoute,
 });
 
-// ── Types ────────────────────────────────────────────────────────────────────
-
-interface WizardState {
-  step: number;
-  businessName: string;
-  industry: string;
-  locations: string[];
-  services: string[];
-  customServiceInput: string;
-  naicsCodes: string[];
-  certifications: string[];
-}
-
-// ── Step Indicator ───────────────────────────────────────────────────────────
-
-function StepIndicator({ currentStep }: { currentStep: number }) {
-  const steps = [
-    { num: 1, label: "Industry" },
-    { num: 2, label: "Locations" },
-    { num: 3, label: "Services" },
-    { num: 4, label: "NAICS" },
-    { num: 5, label: "Certifications" },
-    { num: 6, label: "Confirm" },
-  ];
-
-  return (
-    <div className="flex items-center justify-center gap-0 mb-10">
-      {steps.map((s, i) => (
-        <div key={s.num} className="flex items-center">
-          {/* Step circle */}
-          <div className="flex flex-col items-center">
-            <div
-              className={`flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold transition-all ${
-                s.num < currentStep
-                  ? "bg-blue-600 text-white"
-                  : s.num === currentStep
-                    ? "bg-blue-600 text-white ring-4 ring-blue-200"
-                    : "bg-slate-200 text-slate-500"
-              }`}
-            >
-              {s.num < currentStep ? (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-              ) : (
-                s.num
-              )}
-            </div>
-            <span className={`mt-2 text-xs font-medium ${s.num <= currentStep ? "text-slate-700" : "text-slate-400"}`}>
-              {s.label}
-            </span>
-          </div>
-          {/* Connector line */}
-          {i < steps.length - 1 && (
-            <div className={`mx-2 h-0.5 w-10 sm:w-16 mt-[-1.25rem] ${s.num < currentStep ? "bg-blue-600" : "bg-slate-200"}`} />
-          )}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Step 1: Industry ─────────────────────────────────────────────────────────
-
-function StepIndustry({
-  businessName,
-  industry,
-  onChangeBusinessName,
-  onSelectIndustry,
-  onNext,
-}: {
-  businessName: string;
-  industry: string;
-  onChangeBusinessName: (v: string) => void;
-  onSelectIndustry: (v: string) => void;
-  onNext: () => void;
-}) {
-  const selected = INDUSTRIES.find((i) => i.value === industry);
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">What&rsquo;s your business?</h2>
-        <p className="mt-1 text-sm text-slate-500">Tell us about your company so we can find the right contracts.</p>
-      </div>
-
-      {/* Business Name */}
-      <div>
-        <label htmlFor="bizName" className="block text-sm font-medium text-slate-700">
-          Business name
-        </label>
-        <input
-          id="bizName"
-          type="text"
-          value={businessName}
-          onChange={(e) => onChangeBusinessName(e.target.value)}
-          placeholder="e.g., Acme Contracting LLC"
-          className="mt-1.5 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-        />
-      </div>
-
-      {/* Industry Selector */}
-      <div>
-        <label htmlFor="industry" className="block text-sm font-medium text-slate-700">
-          Industry
-        </label>
-        <select
-          id="industry"
-          value={industry}
-          onChange={(e) => onSelectIndustry(e.target.value)}
-          className="mt-1.5 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 appearance-none bg-white"
-        >
-          <option value="" disabled>
-            Select your industry...
-          </option>
-          {INDUSTRIES.map((ind) => (
-            <option key={ind.value} value={ind.value}>
-              {ind.label}
-            </option>
-          ))}
-        </select>
-        {selected && (
-          <p className="mt-2 text-sm text-slate-500">
-            <span className="font-medium text-slate-600">{selected.label}</span> &mdash; {selected.examples}
-          </p>
-        )}
-      </div>
-
-      {/* Next Button */}
-      <div className="flex justify-end pt-4">
-        <button
-          onClick={onNext}
-          disabled={!businessName.trim() || !industry}
-          className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.98]"
-        >
-          Continue
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Step 2: Locations ────────────────────────────────────────────────────────
-
-function StepLocations({
-  locations,
-  onToggle,
-  onBack,
-  onNext,
-}: {
-  locations: string[];
-  onToggle: (state: string) => void;
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  const toggleAll = () => {
-    if (locations.length === US_STATES.length) {
-      // Deselect all
-      US_STATES.forEach((s) => {
-        if (locations.includes(s)) onToggle(s);
-      });
-    } else {
-      // Select all
-      US_STATES.forEach((s) => {
-        if (!locations.includes(s)) onToggle(s);
-      });
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">Where do you work?</h2>
-        <p className="mt-1 text-sm text-slate-500">Select the states where your business operates.</p>
-      </div>
-
-      {/* Select All */}
-      <label className="inline-flex items-center gap-2 cursor-pointer select-none">
-        <input
-          type="checkbox"
-          checked={locations.length === US_STATES.length}
-          onChange={toggleAll}
-          className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-        />
-        <span className="text-sm font-medium text-slate-700">
-          {locations.length === US_STATES.length ? "Deselect all" : "Select all states"}
-        </span>
-      </label>
-
-      {/* State Grid */}
-      <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-        {US_STATES.map((state) => {
-          const checked = locations.includes(state);
-          return (
-            <button
-              key={state}
-              type="button"
-              onClick={() => onToggle(state)}
-              className={`rounded-lg border px-3 py-2.5 text-xs font-semibold transition-all ${
-                checked
-                  ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-              }`}
-            >
-              {state}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Selected count */}
-      <p className="text-sm text-slate-500">
-        {locations.length} state{locations.length !== 1 ? "s" : ""} selected
-      </p>
-
-      {/* Navigation */}
-      <div className="flex justify-between pt-4">
-        <button
-          onClick={onBack}
-          className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98]"
-        >
-          Back
-        </button>
-        <button
-          onClick={onNext}
-          disabled={locations.length === 0}
-          className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.98]"
-        >
-          Continue
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Step 3: Services ─────────────────────────────────────────────────────────
-
-function StepServices({
-  industry,
-  services,
-  customServiceInput,
-  onToggleService,
-  onAddCustom,
-  onCustomInputChange,
-  onBack,
-  onNext,
-}: {
-  industry: string;
-  services: string[];
-  customServiceInput: string;
-  onToggleService: (svc: string) => void;
-  onAddCustom: () => void;
-  onCustomInputChange: (v: string) => void;
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  const presetServices = SERVICES_BY_INDUSTRY[industry] || [];
-
-  const handleAddCustom = () => {
-    onAddCustom();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddCustom();
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">What services do you provide?</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          Select the services your business offers. These help us match you with the right bids.
-        </p>
-      </div>
-
-      {/* Preset services */}
-      {presetServices.length > 0 ? (
-        <div className="space-y-2">
-          <p className="text-sm font-medium text-slate-600">Common services for {industry}</p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {presetServices.map((svc) => {
-              const checked = services.includes(svc);
-              return (
-                <button
-                  key={svc}
-                  type="button"
-                  onClick={() => onToggleService(svc)}
-                  className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all ${
-                    checked
-                      ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
-                      : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"
-                  }`}
-                >
-                  <div
-                    className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 transition-colors ${
-                      checked ? "border-blue-500 bg-blue-500" : "border-slate-300"
-                    }`}
-                  >
-                    {checked && (
-                      <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                    )}
-                  </div>
-                  {svc}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-          Add your services below — there are no presets for this industry.
-        </div>
-      )}
-
-      {/* Custom service input */}
-      <div className="border-t border-slate-200 pt-4">
-        <p className="text-sm font-medium text-slate-600 mb-2">Add custom services</p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={customServiceInput}
-            onChange={(e) => onCustomInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g., Specialty waterproofing..."
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-          />
-          <button
-            type="button"
-            onClick={handleAddCustom}
-            disabled={!customServiceInput.trim()}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.98]"
-          >
-            Add
-          </button>
-        </div>
-      </div>
-
-      {/* Current selected services summary */}
-      {services.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {services.map((svc) => (
-            <span
-              key={svc}
-              className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700"
-            >
-              {svc}
-              <button
-                type="button"
-                onClick={() => onToggleService(svc)}
-                className="ml-0.5 text-slate-400 hover:text-slate-600"
-              >
-                &times;
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Navigation */}
-      <div className="flex justify-between pt-4">
-        <button
-          onClick={onBack}
-          className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98]"
-        >
-          Back
-        </button>
-        <button
-          onClick={onNext}
-          disabled={services.length === 0}
-          className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.98]"
-        >
-          Continue
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Step 4: NAICS Codes ──────────────────────────────────────────────────────
-
-function StepNAICS({
-  naicsCodes,
-  naicsInput,
-  onNaicsInputChange,
-  onAddNaicsCode,
-  onRemoveNaicsCode,
-  onBack,
-  onNext,
-}: {
-  naicsCodes: string[];
-  naicsInput: string;
-  onNaicsInputChange: (v: string) => void;
-  onAddNaicsCode: () => void;
-  onRemoveNaicsCode: (code: string) => void;
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      onAddNaicsCode();
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">What are your NAICS codes?</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          NAICS codes classify your business for government contracting. Enter your primary NAICS codes (e.g. 236220, 238160).
-        </p>
-      </div>
-
-      {/* Input */}
-      <div className="border-t border-slate-200 pt-4">
-        <p className="text-sm font-medium text-slate-600 mb-2">Add NAICS codes</p>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={naicsInput}
-            onChange={(e) => onNaicsInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="e.g. 236220"
-            className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono"
-          />
-          <button
-            type="button"
-            onClick={onAddNaicsCode}
-            disabled={!naicsInput.trim() || !/^\d{6}$/.test(naicsInput.trim())}
-            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.98]"
-          >
-            Add
-          </button>
-        </div>
-        <p className="mt-1.5 text-xs text-slate-400">Enter a 6-digit NAICS code and press Add or Enter.</p>
-      </div>
-
-      {/* Current NAICS codes */}
-      {naicsCodes.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {naicsCodes.map((code) => (
-            <span
-              key={code}
-              className="inline-flex items-center gap-1 rounded-full bg-blue-50 border border-blue-200 px-3 py-1 text-xs font-mono font-medium text-blue-700"
-            >
-              {code}
-              <button
-                type="button"
-                onClick={() => onRemoveNaicsCode(code)}
-                className="ml-0.5 text-blue-400 hover:text-blue-600"
-              >
-                &times;
-              </button>
-            </span>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center">
-          <p className="text-sm text-slate-500">No NAICS codes added yet. You can skip this step if you&rsquo;re not sure.</p>
-        </div>
-      )}
-
-      {/* Navigation */}
-      <div className="flex justify-between pt-4">
-        <button
-          onClick={onBack}
-          className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98]"
-        >
-          Back
-        </button>
-        <button
-          onClick={onNext}
-          className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md active:scale-[0.98]"
-        >
-          Continue
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Step 5: Certifications ───────────────────────────────────────────────────
-
-function StepCertifications({ certifications, onToggle, onBack, onNext }: {
-  certifications: string[];
-  onToggle: (certification: string) => void;
-  onBack: () => void;
-  onNext: () => void;
-}) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">Which certifications do you hold?</h2>
-        <p className="mt-1 text-sm text-slate-500">Select your business certifications so we can prioritize contracts you qualify for.</p>
-      </div>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {CERTIFICATIONS.map((cert) => {
-          const checked = certifications.includes(cert.value);
-          return (
-            <button key={cert.value} type="button" onClick={() => onToggle(cert.value)}
-              className={`flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-all ${checked ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm" : "border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50"}`}>
-              <span className={`flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 ${checked ? "border-blue-500 bg-blue-500" : "border-slate-300"}`}>
-                {checked && <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-              </span>
-              {cert.label}
-            </button>
-          );
-        })}
-      </div>
-      <p className="text-sm text-slate-500">{certifications.length} certification{certifications.length !== 1 ? "s" : ""} selected</p>
-      <div className="flex justify-between pt-4">
-        <button onClick={onBack} className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 active:scale-[0.98]">Back</button>
-        <button onClick={onNext} className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md active:scale-[0.98]">Continue</button>
-      </div>
-    </div>
-  );
-}
-
-// ── Step 6: Review ───────────────────────────────────────────────────────────
-
-function StepReview({
-  businessName,
-  industry,
-  locations,
-  services,
-  naicsCodes,
-  certifications,
-  saving,
-  generatingDraft,
-  draftSlowNote,
-  onBack,
-  onFinish,
-}: {
-  businessName: string;
-  industry: string;
-  locations: string[];
-  services: string[];
-  naicsCodes: string[];
-  certifications: string[];
-  saving: boolean;
-  generatingDraft: boolean;
-  draftSlowNote: boolean;
-  onBack: () => void;
-  onFinish: () => void;
-}) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-xl font-bold text-slate-900">Review your profile</h2>
-        <p className="mt-1 text-sm text-slate-500">Confirm your details before we start finding bids for you.</p>
-      </div>
-
-      {/* Summary card */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 space-y-4">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Business Name</p>
-          <p className="mt-1 text-lg font-semibold text-slate-900">{businessName}</p>
-        </div>
-
-        <div className="border-t border-slate-200 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Industry</p>
-          <span className="mt-1 inline-flex items-center rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
-            {industry}
-          </span>
-        </div>
-
-        <div className="border-t border-slate-200 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Locations</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {locations.map((loc) => (
-              <span key={loc} className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                {loc}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t border-slate-200 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Services</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {services.map((svc) => (
-              <span key={svc} className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                {svc}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="border-t border-slate-200 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">NAICS Codes</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {naicsCodes.length > 0 ? naicsCodes.map((code) => (
-              <span key={code} className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs font-mono font-semibold text-slate-700">
-                {code}
-              </span>
-            )) : (
-              <span className="text-sm text-slate-400">None provided</span>
-            )}
-          </div>
-        </div>
-
-        <div className="border-t border-slate-200 pt-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">Certifications</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {certifications.length > 0 ? certifications.map((value) => (
-              <span key={value} className="rounded-md bg-white border border-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
-                {CERTIFICATIONS.find((cert) => cert.value === value)?.label || value}
-              </span>
-            )) : <span className="text-sm text-slate-400">None provided</span>}
-          </div>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex justify-between pt-4">
-        <button
-          onClick={onBack}
-          disabled={saving}
-          className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50 disabled:opacity-40 active:scale-[0.98]"
-        >
-          Back
-        </button>
-        <button
-          onClick={onFinish}
-          disabled={saving}
-          className="rounded-xl bg-amber-500 px-8 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-amber-600 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]"
-        >
-          {saving ? (
-            <span className="inline-flex items-center gap-2">
-              <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              {generatingDraft
-                ? draftSlowNote
-                  ? "Still working — drafting takes about 30 seconds…"
-                  : "Generating your Technical Approach draft…"
-                : "Saving..."}
-            </span>
-          ) : (
-            "Finish Setup"
-          )}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-// ── Main Page Component ──────────────────────────────────────────────────────
-
-/**
- * Route wrapper: auth guard lives here so OnboardingPage's hooks always run in
- * the same order (a loader-result flip used to change the hook count between
- * renders of the same fiber → React #300/#301).
- */
+// ── Route wrapper (auth guard lives here so hooks always run in same order) ──
 function OnboardingRoute() {
   const currentUser = Route.useLoaderData();
   const navigate = useNavigate();
-  // Redirect if not logged in
   if (!currentUser) {
     navigate({ to: "/login" });
     return null;
   }
   return <OnboardingPage currentUser={currentUser} />;
 }
-function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
-  const navigate = useNavigate();
-  const [state, setState] = useState<WizardState>({
-    step: 1,
-    businessName: "",
-    industry: "",
-    locations: [],
-    services: [],
-    customServiceInput: "",
-    naicsCodes: [],
-    certifications: [],
-  });
 
-  const [naicsInput, setNaicsInput] = useState("");
+function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
+  const [certification, setCertification] = useState("small_business");
+  const [query, setQuery] = useState("");
+  const [states, setStates] = useState<string[]>([]);
+  const [contractRange, setContractRange] = useState("any");
+
+  const [counting, setCounting] = useState(false);
+  const [count, setCount] = useState<number | null>(null);
+  const [unknownValue, setUnknownValue] = useState(0);
+  const [countError, setCountError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [generatingDraft, setGeneratingDraft] = useState(false);
-  // Draft-latency progress note: the fulfill call takes ~26s, so after ~10s we
-  // swap the button copy to reassure the user it is still working. The timer is
-  // cleared on completion and on unmount — it must never fire after success
-  // (no late swap, no state update after unmount).
-  const [draftSlowNote, setDraftSlowNote] = useState(false);
-  const draftSlowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [error, setError] = useState("");
 
-  // Part B — pending-draft persist. The email/password path persists in
-  // signup.tsx BEFORE navigating here; this mount is the safety net for the
-  // Google OAuth path (sessionStorage survives the full-page round-trip —
-  // same tab — and this mount is the first authenticated client context) and
-  // for any email-path persist that failed (fail-open leaves the carry in
-  // place). Idempotent: cleared on success, and the API dedupes identical
-  // awaiting rows.
+  // Safety net for the Google OAuth path pending-draft carry (same behavior as
+  // the previous wizard). Idempotent and fail-open.
   const pendingDraftFiredRef = useRef(false);
   useEffect(() => {
     if (pendingDraftFiredRef.current) return;
@@ -763,162 +202,110 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
     persistPendingDraft();
   }, []);
 
-  // Clean up the draft-latency timer on unmount so it can never fire a state
-  // update after the component is gone.
-  useEffect(() => {
-    return () => {
-      if (draftSlowTimerRef.current !== null) {
-        clearTimeout(draftSlowTimerRef.current);
-        draftSlowTimerRef.current = null;
-      }
-    };
-  }, []);
+  const toggleState = (s: string) =>
+    setStates((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
+    );
+  const selectAllStates = () =>
+    setStates((prev) => (prev.length === US_STATES.length ? [] : [...US_STATES]));
 
-  const update = useCallback((patch: Partial<WizardState>) => {
-    setState((prev) => ({ ...prev, ...patch }));
-  }, []);
+  const canCompute = certification.trim().length > 0 && states.length > 0;
 
-  const handleSelectIndustry = (industry: string) => {
-    // When industry changes, reset services to empty (different presets)
-    setState((prev) => ({ ...prev, industry, services: [], customServiceInput: "" }));
-  };
-
-  const handleToggleLocation = (loc: string) => {
-    setState((prev) => ({
-      ...prev,
-      locations: prev.locations.includes(loc)
-        ? prev.locations.filter((l) => l !== loc)
-        : [...prev.locations, loc],
-    }));
-  };
-
-  const handleToggleService = (svc: string) => {
-    setState((prev) => ({
-      ...prev,
-      services: prev.services.includes(svc)
-        ? prev.services.filter((s) => s !== svc)
-        : [...prev.services, svc],
-    }));
-  };
-
-  const handleAddCustomService = () => {
-    const svc = state.customServiceInput.trim();
-    if (!svc) return;
-    if (state.services.includes(svc)) {
-      setState((prev) => ({ ...prev, customServiceInput: "" }));
-      return;
+  const runCount = async (overrides?: { cert?: string; states?: string[]; range?: string; query?: string }) => {
+    if (counting) return;
+    setCounting(true);
+    setCountError("");
+    setCount(null);
+    try {
+      const res = (await countMatchOpportunities({
+        data: {
+          certification: overrides?.cert ?? certification,
+          query: overrides?.query !== undefined ? overrides.query : query,
+          states: overrides?.states ?? states,
+          range: overrides?.range ?? contractRange,
+        },
+      })) as { count: number; unknownValue: number };
+      setCount(res.count);
+      setUnknownValue(res.unknownValue);
+      trackEvent("onboarding_match_count", String(res.count), "/onboarding");
+    } catch (err) {
+      setCountError("We couldn't count your matches right now. Please try again.");
+    } finally {
+      setCounting(false);
     }
-    setState((prev) => ({
-      ...prev,
-      services: [...prev.services, svc],
-      customServiceInput: "",
-    }));
   };
 
-  const handleToggleCertification = (certification: string) => {
-    setState((prev) => ({ ...prev, certifications: prev.certifications.includes(certification)
-      ? prev.certifications.filter((c) => c !== certification)
-      : [...prev.certifications, certification] }));
+  const looseFilters = () => {
+    // Broaden: drop the trade/keyword, include all states, any contract size.
+    // Keeps the certification (that's the business's identity), which is honest.
+    setQuery("");
+    setContractRange("any");
+    setStates([...US_STATES]);
+    setCount(null);
+    // recompute immediately with the broadened filters
+    runCount({ query: "", states: [...US_STATES], range: "any" });
   };
 
-  const handleAddNaicsCode = () => {
-    const code = naicsInput.trim();
-    if (!code || !/^\d{6}$/.test(code)) return;
-    if (state.naicsCodes.includes(code)) {
-      setNaicsInput("");
-      return;
-    }
-    setState((prev) => ({
-      ...prev,
-      naicsCodes: [...prev.naicsCodes, code],
-    }));
-    setNaicsInput("");
-  };
-
-  const handleRemoveNaicsCode = (code: string) => {
-    setState((prev) => ({
-      ...prev,
-      naicsCodes: prev.naicsCodes.filter((c) => c !== code),
-    }));
-  };
-
-  const handleFinish = async () => {
-    setError("");
+  const saveProfileAndGo = async () => {
     setSaving(true);
+    setError("");
+    const derivedName = (currentUser.email?.split("@")[0] || "My Business")
+      .replace(/[._-]+/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .trim() || "My Business";
+    const isNumericNaics = /^\d{6}$/.test(query.trim());
     try {
       const res = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          businessName: state.businessName,
-          industry: state.industry,
-          locations: state.locations,
-          services: state.services,
-          naicsCodes: state.naicsCodes,
-          certifications: state.certifications,
+          businessName: derivedName,
+          industry: isNumericNaics ? "" : query.trim(),
+          locations: states,
+          // settings shape — no `services` key, so the profile endpoint does NOT
+          // require industry/services that the new flow no longer collects.
+          naicsCodes: isNumericNaics ? [query.trim()] : [],
+          certifications:
+            certification && certification !== "small_business" ? [certification] : [],
+          specialties: isNumericNaics ? [] : query.trim() ? [query.trim()] : [],
+          typicalContractValue: CONTRACT_RANGES[contractRange]?.label || "",
         }),
       }).then((r) => r.json());
-      if (!res.success) throw new Error(res.error || "Failed to save profile. Please try again.");
-      // Part B — fire the pending Technical Approach draft now that the
-      // business profile exists. Fail-open: a draft failure must NEVER break
-      // onboarding — the user lands on /dashboard and sees an honest
-      // ready/processing state (with a retry on /draft/pending) instead.
-      // We await it so the user lands directly on their draft when it works
-      // (the "60 seconds" promise is exactly this), and the button label
-      // says what is happening.
-      let draftReady = false;
-      setGeneratingDraft(true);
-      setDraftSlowNote(false);
-      // Swap the button copy after ~10s if the draft is still generating. The
-      // timer is cleared when generation completes (below) and on unmount, so
-      // it only fires while the fulfill call is genuinely still in flight.
-      draftSlowTimerRef.current = setTimeout(() => {
-        setDraftSlowNote(true);
-      }, 10000);
-      try {
-        const draftRes = await fetch("/api/pending-drafts/fulfill", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-        if (draftRes.ok) {
-          const draftJson = (await draftRes.json().catch(() => null)) as { draft_text?: string } | null;
-          if (draftJson?.draft_text) {
-            trackEvent("pending_draft_fulfilled");
-            draftReady = true;
-          }
-        }
-      } catch {
-        /* fail-open — the row stays awaiting_profile for a later retry */
-      }
-      // Generation is done (success or fail-open) — cancel the pending progress
-      // swap so the "still working" note can never appear after the fact.
-      if (draftSlowTimerRef.current !== null) {
-        clearTimeout(draftSlowTimerRef.current);
-        draftSlowTimerRef.current = null;
-      }
-      setGeneratingDraft(false);
-      // Onboarding is complete — honor a remembered `next` return path (latched
-      // at signup for email/password CTAs like /awards or /#closing-soon) so the
-      // user lands where they meant to go, not the default dashboard. `next` has
-      // already been `safeNext()`-validated on read (same-site relative only), so
-      // there is no open redirect here. The draft promise is orthogonal (score
-      // draft CTAs don't set `next`), so when no `next` is remembered the existing
-      // draft/dashboard routing is preserved unchanged.
-      const rememberedNext = readRememberedNext();
-      if (rememberedNext) {
-        // Clear before leaving so a stale return path can't re-trigger later.
-        clearRememberedNext();
-        // window.location (not navigate) so hash-anchored paths like /#closing-soon work.
-        window.location.assign(rememberedNext);
-        return;
-      }
-      navigate({ to: draftReady ? "/draft/pending" : "/dashboard" });
+      if (!res.success) throw new Error(res.error || "Failed to save profile.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save profile. Please try again.");
-      setSaving(false);
-      setGeneratingDraft(false);
+      // Fail-open — never block the activation moment on a profile write.
+      console.error("[onboarding] profile save failed:", err);
+    }
+    // Fire the Technical Approach draft (for Professional-tier score→signup
+    // users) with keepalive so it survives navigation; fail-open if it errors.
+    try {
+      fetch("/api/pending-drafts/fulfill", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+      }).catch(() => {});
+    } catch { /* fail-open */ }
+    setSaving(false);
+
+    // Path into the matched open feed — the homepage's Instant Search open
+    // opportunities section, filtered by the SAME keyword predicate. q flows
+    // through the validated search + loaderDeps path (#184), so this is a real
+    // filtered SSR render of live OPEN solicitations.
+    const rememberedNext = readRememberedNext();
+    if (rememberedNext) {
+      clearRememberedNext();
+      window.location.assign(rememberedNext);
+      return;
+    }
+    if (query.trim()) {
+      window.location.assign(`/?q=${encodeURIComponent(query.trim())}#open-opportunities`);
+    } else {
+      window.location.assign("/#open-opportunities");
     }
   };
+
+  const certLabel = CERT_OPTIONS.find((c) => c.value === certification)?.label || certification;
+  const rangeLabel = CONTRACT_RANGES[contractRange]?.label || contractRange;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -932,98 +319,201 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
         </div>
       </header>
 
-      {/* Main content */}
       <main className="mx-auto max-w-2xl px-4 py-10">
-        {/* Step indicator */}
-        <StepIndicator currentStep={state.step} />
-
-        {/* Content card */}
         <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-          {/* Error */}
-          {error && (
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-900">Tell us about your business</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Answer 4 quick questions and we&rsquo;ll show you how many real, open
+              opportunities match your business.
+            </p>
+          </div>
+
+          {(error || countError) && (
             <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
-              {error}
+              {error || countError}
             </div>
           )}
 
-          {state.step === 1 && (
-            <StepIndustry
-              businessName={state.businessName}
-              industry={state.industry}
-              onChangeBusinessName={(v) => update({ businessName: v })}
-              onSelectIndustry={handleSelectIndustry}
-              onNext={() => {
-                if (!state.businessName.trim() || !state.industry) return;
-                setState((prev) => ({ ...prev, step: 2 }));
-              }}
+          {/* 1. Certification */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-slate-700">1. Your certification</label>
+            <div className="mt-2">
+              <select
+                value={certification}
+                onChange={(e) => { setCertification(e.target.value); setCount(null); }}
+                className="w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white"
+              >
+                {CERT_OPTIONS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* 2. NAICS / trade */}
+          <div className="mb-6">
+            <label htmlFor="trade" className="block text-sm font-semibold text-slate-700">
+              2. NAICS code or trade
+            </label>
+            <input
+              id="trade"
+              type="text"
+              value={query}
+              onChange={(e) => { setQuery(e.target.value); setCount(null); }}
+              placeholder="e.g. 238220, HVAC, Janitorial, roofing…"
+              className="mt-1.5 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
             />
+            <p className="mt-1.5 text-xs text-slate-400">
+              A 6-digit NAICS code or a trade phrase — same search the homepage uses. Optional: leave blank for any trade.
+            </p>
+          </div>
+
+          {/* 3. Geography */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-slate-700">3. Where do you work?</label>
+            <button
+              type="button"
+              onClick={selectAllStates}
+              className="mt-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800"
+            >
+              {states.length === US_STATES.length ? "Deselect all" : "Select all states"}
+            </button>
+            <div className="mt-1.5 grid grid-cols-4 sm:grid-cols-6 gap-2">
+              {US_STATES.map((s) => {
+                const on = states.includes(s);
+                return (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => { toggleState(s); setCount(null); }}
+                    className={`rounded-lg border px-2 py-2 text-xs font-semibold transition-all ${
+                      on
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-slate-400">
+              {states.length} state{states.length !== 1 ? "s" : ""} selected
+            </p>
+          </div>
+
+          {/* 4. Contract range */}
+          <div className="mb-6">
+            <label className="block text-sm font-semibold text-slate-700">4. Typical contract range</label>
+            <div className="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {RANGE_VALUE_OPTIONS.map((key) => {
+                const on = contractRange === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => { setContractRange(key); setCount(null); }}
+                    className={`rounded-lg border px-2 py-2.5 text-xs font-semibold transition-all ${
+                      on
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {CONTRACT_RANGES[key].label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Find matches */}
+          <button
+            onClick={() => runCount()}
+            disabled={!canCompute || counting || saving}
+            className="w-full rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-slate-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40 active:scale-[0.98]"
+          >
+            {counting ? (
+              <span className="inline-flex items-center gap-2">
+                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Counting live opportunities…
+              </span>
+            ) : (
+              "Find matching opportunities"
+            )}
+          </button>
+          {!canCompute && (
+            <p className="mt-2 text-xs text-slate-400">
+              Pick a certification and at least one state to see your live match count.
+            </p>
           )}
 
-          {state.step === 2 && (
-            <StepLocations
-              locations={state.locations}
-              onToggle={handleToggleLocation}
-              onBack={() => setState((prev) => ({ ...prev, step: 1 }))}
-              onNext={() => {
-                if (state.locations.length === 0) return;
-                setState((prev) => ({ ...prev, step: 3 }));
-              }}
-            />
-          )}
-
-          {state.step === 3 && (
-            <StepServices
-              industry={state.industry}
-              services={state.services}
-              customServiceInput={state.customServiceInput}
-              onToggleService={handleToggleService}
-              onAddCustom={handleAddCustomService}
-              onCustomInputChange={(v) => update({ customServiceInput: v })}
-              onBack={() => setState((prev) => ({ ...prev, step: 2 }))}
-              onNext={() => {
-                if (state.services.length === 0) return;
-                setState((prev) => ({ ...prev, step: 4 }));
-              }}
-            />
-          )}
-
-          {state.step === 4 && (
-            <StepNAICS
-              naicsCodes={state.naicsCodes}
-              naicsInput={naicsInput}
-              onNaicsInputChange={setNaicsInput}
-              onAddNaicsCode={handleAddNaicsCode}
-              onRemoveNaicsCode={handleRemoveNaicsCode}
-              onBack={() => setState((prev) => ({ ...prev, step: 3 }))}
-              onNext={() => {
-                setState((prev) => ({ ...prev, step: 5 }));
-              }}
-            />
-          )}
-
-          {state.step === 5 && (
-            <StepCertifications
-              certifications={state.certifications}
-              onToggle={handleToggleCertification}
-              onBack={() => setState((prev) => ({ ...prev, step: 4 }))}
-              onNext={() => setState((prev) => ({ ...prev, step: 6 }))}
-            />
-          )}
-
-          {state.step === 6 && (
-            <StepReview
-              businessName={state.businessName}
-              industry={state.industry}
-              locations={state.locations}
-              services={state.services}
-              naicsCodes={state.naicsCodes}
-              certifications={state.certifications}
-              saving={saving}
-              generatingDraft={generatingDraft}
-              draftSlowNote={draftSlowNote}
-              onBack={() => setState((prev) => ({ ...prev, step: 5 }))}
-              onFinish={handleFinish}
-            />
+          {/* Result */}
+          {count !== null && (
+            <div className="mt-6 rounded-xl border p-6 text-center">
+              {count > 0 ? (
+                <>
+                  <p className="text-sm font-medium text-slate-500">We found</p>
+                  <p className="mt-1 text-5xl font-black text-slate-900">{count.toLocaleString()}</p>
+                  <p className="mt-1 text-sm font-medium text-slate-700">
+                    open opportunit{count === 1 ? "y" : "ies"} matching your business
+                  </p>
+                  <p className="mt-2 text-xs text-slate-400">
+                    {certLabel} &middot; {states.length} state{states.length !== 1 ? "s" : ""} &middot; {rangeLabel}
+                  </p>
+                  {unknownValue > 0 && (
+                    <p className="mt-1 text-xs text-slate-400">
+                      {unknownValue} of these don&rsquo;t list a contract value and are included.
+                    </p>
+                  )}
+                  <div className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
+                    <button
+                      onClick={saveProfileAndGo}
+                      disabled={saving}
+                      className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-emerald-700 disabled:opacity-40 active:scale-[0.98]"
+                    >
+                      {saving ? "Setting up…" : "See your matches →"}
+                    </button>
+                    <button
+                      onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
+                    >
+                      Adjust filters
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-3xl font-black text-slate-900">0</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-700">
+                    matching open opportunities right now
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    No open solicitations match {certLabel.toLowerCase()}, {states.length} state
+                    {states.length !== 1 ? "s" : ""}, and an estimated value in &ldquo;{rangeLabel}&rdquo; right now.
+                    This is a live, honest count — new set-aside bids are synced several times a day.
+                  </p>
+                  <div className="mt-5 flex flex-col sm:flex-row gap-3 justify-center">
+                    <button
+                      onClick={looseFilters}
+                      disabled={counting}
+                      className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-sm transition-all hover:bg-blue-700 disabled:opacity-40"
+                    >
+                      {counting ? "Counting…" : "Loosen my filters"}
+                    </button>
+                    <button
+                      onClick={() => { window.scrollTo({ top: 0, behavior: "smooth" }); }}
+                      className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition-all hover:bg-slate-50"
+                    >
+                      Adjust filters
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </main>

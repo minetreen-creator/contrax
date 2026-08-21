@@ -25,6 +25,18 @@ import { getUserFromRequest } from "~/lib/api-auth";
  *   submit   = signup_submit
  *   success  = signup_success
  *
+ * STRICT / NESTED ATTRIBUTION: the attributed funnel is strictly nested — each
+ * later stage (view < submit < success) requires the visitor to have produced
+ * ALL prior stages, not just "this step's event". Concretely:
+ *   viewed    = click-cohort visitor who ALSO produced a view event
+ *   submitted = click-cohort visitor who produced a view event AND a
+ *               signup_submit (i.e. must have gone through the view step)
+ *   succeeded = click-cohort visitor who produced a view, a submit, AND a
+ *               signup_success
+ * so that viewed >= submitted >= succeeded always holds and no later stage can
+ * outnumber an earlier one (no event can "skip" the signup-view step). Each
+ * required event must occur AFTER the click and within SESSION_WINDOW_HOURS.
+ *
  * CAVEAT (view step): the cold /signup path only started firing a plain
  * `signup_view` event when PR #180 landed; before that only
  * `signup_view_with_score` (the score-rec path) produced a view event. So the
@@ -67,8 +79,10 @@ interface FunnelResult {
     successEvents: number;
   };
   // Attributed funnel anchored on the Closing Soon click cohort (distinct
-  // (ip,user_agent) visitors), each downstream step = cohort members who also
-  // produced that step's event within the session window after their click.
+  // (ip,user_agent) visitors). STRICTLY NESTED: each later stage requires all
+  // prior stages too — viewed requires a view event; submitted requires a view
+  // AND a submit; succeeded requires a view, a submit, AND a success. Always
+  // viewed >= submitted >= succeeded.
   attributed: {
     clickVisitors: number;
     clickEvents: number;
@@ -85,21 +99,37 @@ interface FunnelResult {
 }
 
 // Count distinct (ip, user_agent) visitors anchored on the Closing Soon click
-// cohort that ALSO produced the given downstream step (event-set SQL fragment)
-// after their click, within the session window.
+// cohort that ALSO produced EVERY required downstream event set (each an
+// event-set SQL fragment) after their click, within the session window. By
+// requiring all prior event sets, the resulting counts are STRICTLY NESTED:
+// a visitor counted at a later stage necessarily qualifies for all earlier
+// stages too, so viewed >= submitted >= succeeded always holds.
 async function attributedStepCount(
   fromSql: string,
-  stepEventSql: string,
+  requiredStepSqls: string[],
 ): Promise<number> {
+  // One JOIN per required step. Each requires a distinct downstream event in
+  // that step's event set, after the click, within the session window. A
+  // visitor only qualifies when they satisfy EVERY join.
+  const joins = requiredStepSqls
+    .map((stepSql, i) => {
+      const alias = `d${i}`;
+      const win = `${sql().unsafe(String(SESSION_WINDOW_HOURS))}`;
+      return [
+        `JOIN funnel_events ${alias}`,
+        `  ON ${alias}.ip = c.ip AND ${alias}.user_agent = c.user_agent`,
+        `  AND ${alias}.event_name IN ${sql().unsafe(stepSql)}`,
+        `  AND ${alias}.created_at > c.created_at`,
+        `  AND ${alias}.created_at <= c.created_at + make_interval(hours => ${win})`,
+      ].join("\n");
+    })
+    .join("\n");
+
   const rows = await sql()`
     SELECT COUNT(*) AS c FROM (
       SELECT DISTINCT COALESCE(c.ip, ''), COALESCE(c.user_agent, '')
       FROM funnel_events c
-      JOIN funnel_events d
-        ON d.ip = c.ip AND d.user_agent = c.user_agent
-        AND d.event_name IN ${sql().unsafe(stepEventSql)}
-        AND d.created_at > c.created_at
-        AND d.created_at <= c.created_at + make_interval(hours => ${sql().unsafe(String(SESSION_WINDOW_HOURS))})
+      ${sql().unsafe(joins)}
       WHERE c.event_name = 'signup_cta_click'
         AND c.label = 'home_closing_soon'
         AND c.created_at >= ${fromSql}
@@ -179,11 +209,21 @@ async function handler({ request }: { request: Request }) {
         AND created_at >= ${fromSql}
     `;
 
-    // 3) Attributed downstream steps.
+    // 3) Attributed downstream steps. STRICTLY NESTED — each stage requires ALL
+    // prior stages: viewed needs a view event; submitted needs a view AND a
+    // submit; succeeded needs a view, a submit, AND a success. This guarantees
+    // viewed >= submitted >= succeeded (no stage can skip the signup-view step).
     const clickVisitors = Number((cohort[0] as any)?.click_visitors ?? 0);
-    const viewed = await attributedStepCount(fromSql, VIEW_EVENT_SQL);
-    const submitted = await attributedStepCount(fromSql, "('signup_submit')");
-    const succeeded = await attributedStepCount(fromSql, "('signup_success')");
+    const viewed = await attributedStepCount(fromSql, [VIEW_EVENT_SQL]);
+    const submitted = await attributedStepCount(fromSql, [
+      VIEW_EVENT_SQL,
+      "('signup_submit')",
+    ]);
+    const succeeded = await attributedStepCount(fromSql, [
+      VIEW_EVENT_SQL,
+      "('signup_submit')",
+      "('signup_success')",
+    ]);
 
     const result: FunnelResult = {
       rangeDays,

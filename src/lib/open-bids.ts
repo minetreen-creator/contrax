@@ -11,6 +11,58 @@
  * (homepage instant search).
  */
 
+import { US_STATES } from "~/lib/states";
+
+/**
+ * The state-abbreviation location regex used to TARGET a bid's geography
+ * ("City, ST"). Mirrors the /awards page's STATE_LOCATION_REGEX. Kept here
+ * (not re-declared per route) so every surface that applies a geography
+ * filter uses the identical rule.
+ */
+export const STATE_LOCATION_REGEX = new RegExp(
+  `(?:^|,\\s*)(${US_STATES.join("|")})(?:$|\\s|,)`,
+  "i",
+);
+
+/**
+ * Decides whether to apply the strict 2-letter state (geography) filter at
+ * all. SINGLE SOURCE OF TRUTH for the geography decision shared by the
+ * onboarding match count AND any results feed.
+ *
+ * Returns FALSE → geography is a NO-OP (nationwide = every bid regardless of
+ * location) when:
+ *   - NO states are selected (`states.length === 0`), or
+ *   - "Select all states" (the selection covers every state).
+ * In both cases the location regex is NOT applied, so national /
+ * unspecified-location bids (e.g. a bid whose location is just "United
+ * States") are NOT dropped — fixing the under-counting of nationwide
+ * opportunities.
+ *
+ * Returns TRUE only for a NON-EMPTY, PROPER subset of states (one or more
+ * SPECIFIC states, but not every state) → apply the targeted 2-letter state
+ * regex exactly as today.
+ */
+export function shouldApplyStateFilter(states: readonly string[]): boolean {
+  if (!states || states.length === 0) return false;
+  if (states.length === US_STATES.length) return false;
+  return true;
+}
+
+/**
+ * Whether a bid's location is included by the selected geography. Honors the
+ * shared decision (shouldApplyStateFilter): when geography is a no-op
+ * (nationwide) EVERY location matches; otherwise the bid must contain one of
+ * the selected 2-letter state codes. Pure, client-safe.
+ */
+export function locationMatchesStates(
+  location: string | null | undefined,
+  states: readonly string[],
+): boolean {
+  if (!shouldApplyStateFilter(states)) return true;
+  const m = (location || "").match(STATE_LOCATION_REGEX);
+  return !!m && states.includes(m[1].toUpperCase());
+}
+
 /**
  * Full-corpus keyword predicate. Treats the query as a single case-insensitive
  * substring and matches rows where it appears across ANY of the meaningful

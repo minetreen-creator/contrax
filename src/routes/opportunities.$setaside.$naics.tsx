@@ -301,6 +301,7 @@ const getSetAsideOpportunities = createServerFn({ method: "GET" }).handler(
              estimated_value, source_url, set_aside, naics_code
       FROM bids
       WHERE set_aside = ${setAside} AND naics_code = ${naics}
+        AND due_date > NOW()
         AND ${db.unsafe(LOW_CONTENT_SQL)}
       ORDER BY due_date ASC NULLS LAST, created_at DESC NULLS LAST
       LIMIT 100
@@ -329,6 +330,7 @@ const getSetAsideOpportunities = createServerFn({ method: "GET" }).handler(
     const asideRows = await db`
       SELECT DISTINCT set_aside FROM bids
       WHERE naics_code = ${naics} AND set_aside IS NOT NULL
+        AND due_date > NOW()
     `;
     const present = new Set((asideRows as any[]).map((r) => String(r.set_aside)));
     const activeTabs = SET_ASIDE_TABS.filter((t) => present.has(t.label));

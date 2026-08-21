@@ -82,20 +82,21 @@ const getRecentBids = createServerFn({ method: "GET" }).handler(
         SELECT DISTINCT ON (title, agency)
                title, agency, estimated_value, due_date, location, set_aside, created_at
         FROM bids
-        WHERE ${sql().unsafe(LOW_CONTENT_SQL)} ${pred}
+        WHERE ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() ${pred}
         ORDER BY title, agency, created_at DESC NULLS LAST
       ) t
       ORDER BY t.created_at DESC NULLS LAST
       LIMIT ${q ? 200 : 60}
     `;
-    // Honest post-filter, post-dedup total backing this feed — full-corpus
-    // keyword count when q is present, otherwise the open total. Never
-    // pre-filter, never hardcoded.
+    // Honest post-filter, post-dedup total backing this feed — the OPEN set
+    // ONLY (due_date > NOW()), keyword-filtered when q is present so the
+    // "X of Y" matches exactly the open cards shown. Never pre-filter, never
+    // hardcoded.
     const countRows = await sql()`
       SELECT COUNT(*)::int AS count FROM (
         SELECT DISTINCT title, agency
         FROM bids
-        WHERE ${sql().unsafe(LOW_CONTENT_SQL)} ${pred}
+        WHERE ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() ${pred}
       ) d
     `;
     return { bids: rows as Bid[], count: Number((countRows[0] as any)?.count || 0) };
@@ -118,6 +119,7 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(
                title, agency, set_aside, location, due_date, created_at
         FROM bids
         WHERE created_at >= NOW() - INTERVAL '24 hours'
+          AND due_date > NOW()
           AND ${sql().unsafe(LOW_CONTENT_SQL)} ${pred}
         ORDER BY title, agency, created_at DESC NULLS LAST
       ) t
@@ -131,6 +133,7 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(
         SELECT DISTINCT title, agency
         FROM bids
         WHERE created_at >= NOW() - INTERVAL '24 hours'
+          AND due_date > NOW()
           AND ${sql().unsafe(LOW_CONTENT_SQL)} ${pred}
       ) d
     `;
@@ -537,6 +540,7 @@ const getHealthcareBids = createServerFn({ method: "GET" }).handler(async () => 
       WHERE (LOWER(category) ILIKE ANY(${patterns}::text[])
          OR LOWER(title) ILIKE ANY(${patterns}::text[])
          OR LOWER(description) ILIKE ANY(${patterns}::text[]))
+        AND due_date > NOW()
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
       ORDER BY title, agency, created_at DESC NULLS LAST
     ) t

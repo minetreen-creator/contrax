@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { isLowContent, LOW_CONTENT_SQL } from "~/lib/low-content";
+import { keywordPred } from "~/lib/open-bids";
 import { toISODate } from "./awards";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -29,36 +30,6 @@ type TodayBid = {
 };
 
 // ── Server Functions ──────────────────────────────────────────────────────────
-
-// Full-corpus keyword predicate for the hero Instant Search (owner-directed).
-// Treats the query as a single case-insensitive substring and matches rows where
-// it appears across ANY of the meaningful fields — title, description, location,
-// set_aside, agency, naics_code. The whole query is ONE bound parameter so the
-// match is injection-safe and there is no value-splicing to get wrong. A single
-// phrase keeps the owner's core cases precise ("HVAC", "Janitorial", "Texas");
-// multi-word queries ("janitorial services") only match rows carrying that exact
-// phrase, which is honest and predictable. Returns an EMPTY sql fragment when
-// the query is blank so callers can interpolate `$${pred}` unconditionally.
-function keywordPred(q: string, sql: any) {
-  const phrase = q.trim().toLowerCase();
-  // `sql` here is the ~/db FACTORY: call sql() to get the neon tag (the app
-  // pattern everywhere else is sql()`query` / sql().unsafe(...)).
-  if (!phrase) return sql()``;
-  // NOTE: each LIKE value is a plain `${...}` interpolation — neon turns it
-  // into a positional parameter ($N). Do NOT write `$${...}`: the extra literal
-  // `$` makes the emitted SQL `LIKE $$N`, which Postgres parses as a dollar
-  // quote and throws `syntax error at or near "2"`. This bug was latent while
-  // q never reached these queries (see the loader fix); now that q flows to
-  // getRecentBids/getTodayBids it MUST be right or every search 500s.
-  return sql()`AND (
-    LOWER(COALESCE(title,'')) LIKE ${"%"+phrase+"%"} OR
-    LOWER(COALESCE(description,'')) LIKE ${"%"+phrase+"%"} OR
-    LOWER(COALESCE(location,'')) LIKE ${"%"+phrase+"%"} OR
-    LOWER(COALESCE(set_aside,'')) LIKE ${"%"+phrase+"%"} OR
-    LOWER(COALESCE(agency,'')) LIKE ${"%"+phrase+"%"} OR
-    LOWER(COALESCE(naics_code,'')) LIKE ${"%"+phrase+"%"}
-  )`;
-}
 
 // Live Opportunities data — deduped at the SQL layer so a genuine duplicate
 // row (same solicitation ingested by multiple state-keyword sync sources, e.g.

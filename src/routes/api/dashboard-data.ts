@@ -64,10 +64,16 @@ async function handler({ request }: { request: Request }) {
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
 
   const PROFILE_COLUMNS = `id, business_name, industry, locations, service_categories, naics_codes, logo_url, is_agency, uei, cage_code, sam_expiration, duns, certifications, certification_dates, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value`;
+  // Interpolate the (hardcoded) column list as a RAW SQL fragment. Passing the
+  // comma-separated string directly as a bound parameter would make Neon treat
+  // the whole list as a single text value, so the SELECT returns one literal
+  // column and every profile field comes back undefined (→ an empty profile in
+  // the eligibility widget for ALL users, incl. freshly onboarded ones).
+  const profileCols = sql().unsafe(PROFILE_COLUMNS);
   const profileRows = activeProfileId
-    ? await sql()`SELECT ${PROFILE_COLUMNS} FROM business_profiles WHERE id = ${activeProfileId} AND user_id = ${user.id}`
+    ? await sql()`SELECT ${profileCols} FROM business_profiles WHERE id = ${activeProfileId} AND user_id = ${user.id}`
     : await sql()`
-      SELECT ${PROFILE_COLUMNS}
+      SELECT ${profileCols}
       FROM business_profiles WHERE user_id = ${user.id}`;
   let profile: BusinessProfile | null = null;
   if (profileRows.length > 0) {

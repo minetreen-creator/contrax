@@ -30,69 +30,110 @@ type TodayBid = {
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
+// Full-corpus keyword predicate for the hero Instant Search (owner-directed).
+// Treats the query as a single case-insensitive substring and matches rows where
+// it appears across ANY of the meaningful fields — title, description, location,
+// set_aside, agency, naics_code. The whole query is ONE bound parameter so the
+// match is injection-safe and there is no value-splicing to get wrong. A single
+// phrase keeps the owner's core cases precise ("HVAC", "Janitorial", "Texas");
+// multi-word queries ("janitorial services") only match rows carrying that exact
+// phrase, which is honest and predictable. Returns an EMPTY sql fragment when
+// the query is blank so callers can interpolate `$${pred}` unconditionally.
+function keywordPred(q: string, sql: any) {
+  const phrase = q.trim().toLowerCase();
+  // `sql` here is the ~/db FACTORY: call sql() to get the neon tag (the app
+  // pattern everywhere else is sql()`query` / sql().unsafe(...)).
+  if (!phrase) return sql()``;
+  return sql()`AND (
+    LOWER(COALESCE(title,'')) LIKE $${"%"+phrase+"%"} OR
+    LOWER(COALESCE(description,'')) LIKE $${"%"+phrase+"%"} OR
+    LOWER(COALESCE(location,'')) LIKE $${"%"+phrase+"%"} OR
+    LOWER(COALESCE(set_aside,'')) LIKE $${"%"+phrase+"%"} OR
+    LOWER(COALESCE(agency,'')) LIKE $${"%"+phrase+"%"} OR
+    LOWER(COALESCE(naics_code,'')) LIKE $${"%"+phrase+"%"}
+  )`;
+}
+
 // Live Opportunities data — deduped at the SQL layer so a genuine duplicate
 // row (same solicitation ingested by multiple state-keyword sync sources, e.g.
 // `va` and `va_evirginia`) can NEVER surface as an adjacent twin card in the
 // grid. DISTINCT ON (title, agency) keeps the most recently ingested row per
 // solicitation, then orders the whole distinct set newest-first. The ingest
 // guard in src/jobs/runner.ts prevents new duplicates from being written.
-const getRecentBids = createServerFn({ method: "GET" }).handler(async () => {
-  const { sql } = await import("~/db");
-  const rows = await sql()`
-    SELECT title, agency, estimated_value, due_date, location, set_aside, created_at
-    FROM (
-      SELECT DISTINCT ON (title, agency)
-             title, agency, estimated_value, due_date, location, set_aside, created_at
-      FROM bids
-      WHERE ${sql().unsafe(LOW_CONTENT_SQL)}
-      ORDER BY title, agency, created_at DESC NULLS LAST
-    ) t
-    ORDER BY t.created_at DESC NULLS LAST
-    LIMIT 60
-  `;
-  // Honest post-filter, post-dedup total of open solicitations backing this
-  // feed — never pre-filter, never hardcoded.
-  const countRows = await sql()`
-    SELECT COUNT(*)::int AS count FROM (
-      SELECT DISTINCT title, agency
-      FROM bids
-      WHERE ${sql().unsafe(LOW_CONTENT_SQL)}
-    ) d
-  `;
-  return { bids: rows as Bid[], count: Number((countRows[0] as any)?.count || 0) };
-});
-const getTodayBids = createServerFn({ method: "GET" }).handler(async () => {
-  const { sql } = await import("~/db");
-  // Public teaser: titles only — no source URLs or descriptions for
-  // unauthenticated visitors. Full detail lives behind the signup wall.
-  const rows = await sql()`
-    SELECT title, agency, set_aside, location, due_date, created_at
-    FROM (
-      SELECT DISTINCT ON (title, agency)
-             title, agency, set_aside, location, due_date, created_at
-      FROM bids
-      WHERE created_at >= NOW() - INTERVAL '24 hours'
-        AND ${sql().unsafe(LOW_CONTENT_SQL)}
-      ORDER BY title, agency, created_at DESC NULLS LAST
-    ) t
-    ORDER BY t.created_at DESC NULLS LAST
-    LIMIT 10
-  `;
-  // Distinct count so genuine dup rows (multi-source sync) can't inflate the
-  // "posted in the last 24 hours" figure.
-  const countRows = await sql()`
-    SELECT COUNT(*)::int AS count FROM (
-      SELECT DISTINCT title, agency
-      FROM bids
-      WHERE created_at >= NOW() - INTERVAL '24 hours'
-        AND ${sql().unsafe(LOW_CONTENT_SQL)}
-    ) d
-  `;
-  return {
-    bids: rows as TodayBid[],
-    count: Number((countRows[0] as any)?.count || 0),
-  };
-});
+const getRecentBids = createServerFn({ method: "GET" }).handler(
+  async ({ data }: { data?: { q?: string } }) => {
+    const q = data?.q?.trim() ?? "";
+    const { sql } = await import("~/db");
+    // Ensure naics_code exists so keywordPred can match it (falls back to
+    // whole-corpus title/description/location/set_aside/agency match if not).
+    if (q) {
+      try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
+    }
+    const pred = keywordPred(q, sql);
+    const rows = await sql()`
+      SELECT title, agency, estimated_value, due_date, location, set_aside, created_at
+      FROM (
+        SELECT DISTINCT ON (title, agency)
+               title, agency, estimated_value, due_date, location, set_aside, created_at
+        FROM bids
+        WHERE ${sql().unsafe(LOW_CONTENT_SQL)} ${pred}
+        ORDER BY title, agency, created_at DESC NULLS LAST
+      ) t
+      ORDER BY t.created_at DESC NULLS LAST
+      LIMIT ${q ? 200 : 60}
+    `;
+    // Honest post-filter, post-dedup total backing this feed — full-corpus
+    // keyword count when q is present, otherwise the open total. Never
+    // pre-filter, never hardcoded.
+    const countRows = await sql()`
+      SELECT COUNT(*)::int AS count FROM (
+        SELECT DISTINCT title, agency
+        FROM bids
+        WHERE ${sql().unsafe(LOW_CONTENT_SQL)} ${pred}
+      ) d
+    `;
+    return { bids: rows as Bid[], count: Number((countRows[0] as any)?.count || 0) };
+  }
+);
+const getTodayBids = createServerFn({ method: "GET" }).handler(
+  async ({ data }: { data?: { q?: string } }) => {
+    const q = data?.q?.trim() ?? "";
+    const { sql } = await import("~/db");
+    if (q) {
+      try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
+    }
+    const pred = keywordPred(q, sql);
+    // Public teaser: titles only — no source URLs or descriptions for
+    // unauthenticated visitors. Full detail lives behind the signup wall.
+    const rows = await sql()`
+      SELECT title, agency, set_aside, location, due_date, created_at
+      FROM (
+        SELECT DISTINCT ON (title, agency)
+               title, agency, set_aside, location, due_date, created_at
+        FROM bids
+        WHERE created_at >= NOW() - INTERVAL '24 hours'
+          AND ${sql().unsafe(LOW_CONTENT_SQL)} ${pred}
+        ORDER BY title, agency, created_at DESC NULLS LAST
+      ) t
+      ORDER BY t.created_at DESC NULLS LAST
+      LIMIT ${q ? 100 : 10}
+    `;
+    // Distinct count so genuine dup rows (multi-source sync) can't inflate the
+    // "posted in the last 24 hours" figure.
+    const countRows = await sql()`
+      SELECT COUNT(*)::int AS count FROM (
+        SELECT DISTINCT title, agency
+        FROM bids
+        WHERE created_at >= NOW() - INTERVAL '24 hours'
+          AND ${sql().unsafe(LOW_CONTENT_SQL)} ${pred}
+      ) d
+    `;
+    return {
+      bids: rows as TodayBid[],
+      count: Number((countRows[0] as any)?.count || 0),
+    };
+  }
+);
 
 // ── Closing Soon ─────────────────────────────────────────────────────────────
 // Solicitations whose due_date lands in (NOW, NOW + 7 days], deduped on the
@@ -661,7 +702,8 @@ const CERT_PERSONALIZATION = [
   { id: "hubzone", label: "HUBZone", statLabel: "active HUBZone set-asides right now", cta: "Find your HUBZone contracts →" },
   { id: "sb", label: "Small Business", statLabel: "active small-business set-asides right now", cta: "Find your contracts →" },
 ];
-const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
+const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }: { data?: { q?: string } }) => {
+  const q = data?.q?.trim() ?? "";
   const { sql } = await import("~/db");
   const [businessName, user, recentBids, healthcareBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts, closingSoon] = await Promise.all([
     (async () => {
@@ -675,9 +717,9 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       }
     })(),
     getCurrentUser(),
-    getRecentBids(),
+    getRecentBids({ data: { q } }),
     getHealthcareBids(),
-    getTodayBids(),
+    getTodayBids({ data: { q } }),
     getLiveAwards(),
     getUserCount(),
     getBidStats(),
@@ -695,13 +737,16 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount };
+  return { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount, q };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/")({
-  loader: () => getLandingData(),
+  validateSearch: (search: Record<string, unknown>) => ({
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
+  loader: async ({ context }) => getLandingData({ data: { q: context.q } }),
   component: Home,
   head: () => ({
     meta: [
@@ -745,7 +790,7 @@ export const Route = createFileRoute("/")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
-  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount } = Route.useLoaderData();
+  const { businessName, user, bids, healthcareBids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount, q } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -782,7 +827,7 @@ function Home() {
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
-      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} />
+      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} q={q || ""} />
       <HealthcareOpportunities bids={healthcareBids} />
       <Example />
       <WhoItsFor />
@@ -986,8 +1031,21 @@ function Hero({
 }) {
   const navigate = useNavigate();
   const [scoreText, setScoreText] = useState("");
+  const [tradeQ, setTradeQ] = useState("");
   const activePersonal = CERT_PERSONALIZATION.find((o) => o.id === cert) || null;
   const activeCount = activePersonal ? Number(perCertCounts?.[activePersonal.id] ?? 0) : 0;
+  // Instant "Trade / Keyword" search (owner-directed): typing a trade, NAICS, or
+  // state once and pressing Enter lands on the keyword-filtered Open
+  // Opportunities feed (/?q=...#open-opportunities), filtered server-side so the
+  // SSR HTML carries the matches. The CTA always shows the REAL active
+  // solicitation count (bidStats.activeCount) — never a fabricated figure.
+  const handleTradeSearch = (e: FormEvent) => {
+    e.preventDefault();
+    const q = tradeQ.trim();
+    if (!q) return;
+    trackEvent("hero_search", q); // fire-and-forget, never blocks UI
+    navigate({ to: "/", search: { q }, hash: "open-opportunities" });
+  };
   const handleScoreSubmit = (e: FormEvent) => {
     e.preventDefault();
     const text = scoreText.trim();
@@ -1069,6 +1127,41 @@ function Hero({
             Every morning, {businessName} monitors SAM.gov, all 50 state portals, and five city procurement sites for opportunities your
             8(a), SDVOSB, WOSB, or HUBZone certification qualifies for. Plans start at $19/mo — 21-day free trial.
           </p>
+
+          {/* Instant Trade / Keyword search — the hero's first call to action.
+              Full-width on mobile, input + button row on desktop. */}
+          <div className="mt-8">
+            <form
+              onSubmit={handleTradeSearch}
+              role="search"
+              aria-label="Search open solicitations by trade, NAICS, or state"
+              className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-amber-400/25 bg-white/[0.06] p-4 shadow-xl shadow-black/20 backdrop-blur-md sm:flex-row sm:items-center sm:p-3"
+            >
+              <div className="flex flex-1 items-center gap-3 rounded-xl bg-white/95 px-4">
+                <svg className="h-5 w-5 shrink-0 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  value={tradeQ}
+                  onChange={(e) => setTradeQ(e.target.value)}
+                  placeholder={'Enter your trade, NAICS, or state (e.g. "HVAC", "Janitorial", "Texas")'}
+                  aria-label="Enter your trade, NAICS, or state"
+                  className="w-full bg-transparent py-3.5 text-sm font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none"
+                />
+              </div>
+              <button
+                type="submit"
+                className="shrink-0 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
+              >
+                Search {bidStats.activeCount > 0 ? bidStats.activeCount.toLocaleString() : ""} Bids →
+              </button>
+            </form>
+            <p className="mt-2.5 text-center text-xs font-medium text-blue-200/70">
+              Instantly see open solicitations matching your exact trade — real-time, no signup needed
+            </p>
+          </div>
+
           {bidStats.activeCount > 0 && bidStats.agencyCount > 0 && (
             <div className="mt-6 flex items-center justify-center gap-2 text-sm text-blue-200/80">
               <Radar className="h-4 w-4 shrink-0 text-amber-300" />
@@ -1787,7 +1880,7 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
   );
 }
 
-function OpenOpportunities({ bids, todayBids, openCount }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number }) {
+function OpenOpportunities({ bids, todayBids, openCount, q }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number; q: string }) {
   // MERGED single solicitations feed (owner-directed): folds the old "Newest
   // Solicitations" (TodaySolicitations) and "Live Opportunities"
   // (LiveOpportunities) into ONE section so a first-time visitor sees exactly
@@ -1870,8 +1963,10 @@ function OpenOpportunities({ bids, todayBids, openCount }: { bids: Bid[]; todayB
   // post-filter, post-dedup population (openCount / todayBids.count).
   const display = onlyNew
     ? seededSample(filtered, 12, "home-open-opps-new-24h")
-    : filtered.slice(0, 12);
+    : filtered.slice(0, q ? 48 : 12);
   // Honest gate: {VISIBLE} of {TOTAL} — both post-filter, post-dedup, live.
+  // When a hero keyword search is active, gateTotal is the full-corpus filtered
+  // count (openCount is computed server-side from the keyword query).
   const gateTotal = onlyNew ? todayBids.count : openCount;
 
   return (
@@ -1909,16 +2004,25 @@ function OpenOpportunities({ bids, todayBids, openCount }: { bids: Bid[]; todayB
               </button>
             </div>
           ) : null}
-          <p className="text-sm font-medium text-slate-700">
-            Showing {display.length} of {gateTotal}{" "}
-            {onlyNew ? "new in the last 24 hours" : "open solicitations right now"} —{" "}
-            <a
-              href="/signup"
-              className="font-semibold text-amber-600 underline-offset-2 hover:underline"
-            >
-              sign up to see all of them
-            </a>
-          </p>
+          {q ? (
+            <p className="text-sm font-medium text-slate-700">
+              Showing {display.length} of {gateTotal} matching &ldquo;{q}&rdquo; solicitations —{" "}
+              <a href="/#open-opportunities" className="font-semibold text-amber-600 underline-offset-2 hover:underline">
+                clear search
+              </a>
+            </p>
+          ) : (
+            <p className="text-sm font-medium text-slate-700">
+              Showing {display.length} of {gateTotal}{" "}
+              {onlyNew ? "new in the last 24 hours" : "open solicitations right now"} —{" "}
+              <a
+                href="/signup"
+                className="font-semibold text-amber-600 underline-offset-2 hover:underline"
+              >
+                sign up to see all of them
+              </a>
+            </p>
+          )}
         </div>
         {display.length > 0 ? (
           <>
@@ -1967,16 +2071,31 @@ function OpenOpportunities({ bids, todayBids, openCount }: { bids: Bid[]; todayB
           </>
         ) : (
           <div className="mt-10 rounded-xl border border-dashed border-gray-300 bg-white/60 px-6 py-12 text-center">
-            <p className="text-base font-medium text-slate-700">Check back soon — new solicitations are posted throughout the day</p>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
-              We monitor SAM.gov and city procurement portals continuously and pull new opportunities as they hit. Sign up and we&apos;ll alert you the moment one matches your certifications.
+            <p className="text-base font-medium text-slate-700">
+              {q
+                ? `No open solicitations match "${q}" right now`
+                : "Check back soon — new solicitations are posted throughout the day"}
             </p>
-            <a
-              href="/signup"
-              className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
-            >
-              Get the full RFP details, AI analysis, and daily alerts →
-            </a>
+            <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
+              {q
+                ? "Try a different trade, NAICS code, or state — or clear the search to browse every open solicitation."
+                : "We monitor SAM.gov and city procurement portals continuously and pull new opportunities as they hit. Sign up and we'll alert you the moment one matches your certifications."}
+            </p>
+            {q ? (
+              <a
+                href="/#open-opportunities"
+                className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
+              >
+                Clear search & show all open solicitations
+              </a>
+            ) : (
+              <a
+                href="/signup"
+                className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
+              >
+                Get the full RFP details, AI analysis, and daily alerts →
+              </a>
+            )}
           </div>
         )}
       </div>

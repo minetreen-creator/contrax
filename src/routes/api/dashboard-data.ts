@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { countRoleMatches } from "~/lib/healthcare";
+import { ARCHIVED_STATUSES, LIVE_SQL, DEAD_SQL } from "~/lib/bid-status";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
@@ -114,7 +115,17 @@ async function handler({ request }: { request: Request }) {
 
   // Lazy migration: ensure set_aside column exists on bids (old DBs predate it).
   try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS set_aside TEXT`; } catch {}
-  const bidRows = await sql()`SELECT id, title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, naics_code, created_at FROM bids ORDER BY due_date ASC`;
+  // DEFAULT MATCHED FEED = LIVE ONLY (server-side). "Live" = due date is today
+  // or in the future (`LIVE_SQL`, date-granularity to match the platform's
+  // urgent/closing-soon semantics), and NOT dismissed/closed by this user
+  // (`ARCHIVED_STATUSES`). Dead/closed bids are excluded here so the default
+  // mobile page loads fewer rows; they live behind the Archived tab
+  // (`/api/dashboard-archive`).
+  const bidRows = await sql()`SELECT id, title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, naics_code, created_at
+    FROM bids
+    WHERE ${sql().unsafe(LIVE_SQL)}
+      AND id NOT IN (SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES}))
+    ORDER BY due_date ASC`;
   const userSpecialties = profile?.specialties || [];
   const bids: Bid[] = (bidRows as any[]).map((b) => ({
     id: b.id, title: b.title, agency: b.agency, description: b.description,
@@ -205,6 +216,16 @@ async function handler({ request }: { request: Request }) {
   const lastSynced = syncRows.length > 0 ? String(syncRows[0].created_at) : null;
   const countRows = await sql()`SELECT COUNT(*) as count FROM bids`;
   const totalBids = countRows.length > 0 ? Number(countRows[0].count) : 0;
+  // Archived = closed/no-go (due strictly before today) OR dismissed/closed by
+  // this user. Count is a badge for the Archived tab — the tab itself loads the
+  // full dead list from /api/dashboard-archive.
+  let archivedCount = 0;
+  try {
+    const archRows = await sql()`SELECT COUNT(*)::int AS count FROM bids
+      WHERE ${sql().unsafe(DEAD_SQL)}
+         OR id IN (SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES}))`;
+    archivedCount = Number((archRows[0] as any)?.count || 0);
+  } catch {}
   let lossesCount = 0;
   try { const lossRows = await sql()`SELECT COUNT(*) as count FROM bid_losses WHERE user_email = ${user.email}`; lossesCount = Number(lossRows[0]?.count || 0); } catch {}
 
@@ -229,7 +250,7 @@ async function handler({ request }: { request: Request }) {
   try { createDeadlineAlertsForUser(user.id, user.email).catch(() => {}); } catch { /* non-blocking */ }
 
   let unreadAlerts = 0; try { const ar = await sql()`SELECT COUNT(*)::int AS count FROM bid_alerts WHERE user_id = ${user.id} AND is_read=false`; unreadAlerts = Number((ar[0] as any)?.count || 0); } catch {}
-  return Response.json({ profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts, pendingDraft });
+  return Response.json({ profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, archivedCount, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts, pendingDraft });
   } catch (err) {
     console.error("[api/dashboard-data] error:", err);
     return Response.json(

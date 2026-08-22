@@ -1114,7 +1114,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
     delete next.bid_id;
     navigate({ to: "/dashboard", search: next as any, replace: true });
     requestAnimationFrame(() => {
-      const el = document.getElementById("bid-matches");
+      const el = document.getElementById("match-feed");
       el?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
   }, [navigate, location.search]);
@@ -1857,7 +1857,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
             onOpenArchive={() => { setFeedTab("archived"); loadArchive(); }}
           />
         ) : (
-          <div id="bid-matches" className="space-y-4">
+          <div id="match-feed" className="space-y-4">
             {sorted.map((bid) => {
               const days = daysUntil(bid.due_date);
               const cd = countdown(days);

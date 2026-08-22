@@ -5,10 +5,14 @@
 // layout, and lets the user change the view filters (set-aside-only, sort)
 // inline without restarting the flow. Geo / set-aside / NAICS chips hand off to
 // an editor provided by the parent (e.g. the profile editor) so changing them
-// never dumps the user back at the start.
+// never dumps the user back at the start. Each profile-level chip can ALSO show
+// an inline "X" remove button (onRemoveGeo / onRemoveSetAside / onRemoveNaics)
+// that removes THAT filter immediately (persisting to the profile + re-query),
+// so the user can narrow/broaden without leaving the review.
 
 import type { ReviewFilterState, SortKey } from "~/lib/review-context";
 import { SORTS } from "~/lib/review-context";
+import type { ReactNode } from "react";
 
 export interface StickyFilterBarProps {
   states: string[];
@@ -24,6 +28,60 @@ export interface StickyFilterBarProps {
   onChangeGeo?: () => void;
   onChangeSetAside?: () => void;
   onChangeNaics?: () => void;
+  /** Handlers for INLINE removal of a filter (persist + re-query). Omitted = no X shown. */
+  onRemoveGeo?: () => void;
+  onRemoveSetAside?: () => void;
+  onRemoveNaics?: () => void;
+}
+
+function XButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={(e) => { e.stopPropagation(); onClick(); }}
+      aria-label={label}
+      title={label}
+      className="shrink-0 rounded-full p-0.5 text-current opacity-60 transition-opacity hover:opacity-100"
+    >
+      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
+  );
+}
+
+function Chip({
+  onClick,
+  remove,
+  removeLabel,
+  className,
+  title,
+  children,
+}: {
+  onClick?: () => void;
+  remove?: () => void;
+  removeLabel?: string;
+  className: string;
+  title?: string;
+  children: ReactNode;
+}) {
+  return (
+    <span
+      role="listitem"
+      className={`inline-flex shrink-0 items-center gap-0.5 rounded-full border py-0.5 pl-2.5 pr-1.5 ${className}`}
+    >
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={!onClick}
+        className="inline-flex items-center gap-1 text-xs font-semibold disabled:cursor-default disabled:opacity-90"
+        title={title}
+      >
+        {children}
+      </button>
+      {remove && <XButton onClick={remove} label={removeLabel ?? "Remove filter"} />}
+    </span>
+  );
 }
 
 export function StickyFilterBar(props: StickyFilterBarProps) {
@@ -38,6 +96,9 @@ export function StickyFilterBar(props: StickyFilterBarProps) {
     onChangeGeo,
     onChangeSetAside,
     onChangeNaics,
+    onRemoveGeo,
+    onRemoveSetAside,
+    onRemoveNaics,
   } = props;
 
   const geoText = states.length > 0 ? states.join(", ") : "All states";
@@ -63,16 +124,15 @@ export function StickyFilterBar(props: StickyFilterBarProps) {
           className="flex min-w-0 flex-1 items-center gap-1.5 overflow-x-auto py-0.5 scrollbar-none"
         >
           {/* Geo */}
-          <button
-            type="button"
-            role="listitem"
+          <Chip
             onClick={onChangeGeo}
-            disabled={!onChangeGeo}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
+            remove={onRemoveGeo}
+            removeLabel="Remove state filter"
+            className={
               onChangeGeo
                 ? "border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
                 : "border-slate-200 bg-slate-50 text-slate-600"
-            }`}
+            }
             title={onChangeGeo ? "Change states" : "States"}
           >
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -81,37 +141,35 @@ export function StickyFilterBar(props: StickyFilterBarProps) {
             </svg>
             <span className="max-w-[7rem] truncate">{geoText}</span>
             {onChangeGeo && <span aria-hidden="true">⌄</span>}
-          </button>
+          </Chip>
 
           {/* Set-aside / cert */}
-          <button
-            type="button"
-            role="listitem"
+          <Chip
             onClick={onChangeSetAside}
-            disabled={!onChangeSetAside}
-            className={`inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
+            remove={onRemoveSetAside}
+            removeLabel="Remove set-aside filter"
+            className={
               onChangeSetAside
                 ? "border-purple-200 bg-purple-50 text-purple-700 hover:bg-purple-100"
                 : "border-slate-200 bg-slate-50 text-slate-600"
-            }`}
+            }
             title={onChangeSetAside ? "Change set-aside / certification" : "Set-aside"}
           >
             <span aria-hidden="true">🏷</span>
             <span className="max-w-[9rem] truncate">{setAsideLabel}</span>
             {onChangeSetAside && <span aria-hidden="true">⌄</span>}
-          </button>
+          </Chip>
 
           {/* NAICS */}
-          <button
-            type="button"
-            role="listitem"
+          <Chip
             onClick={onChangeNaics}
-            disabled={!onChangeNaics}
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition-colors ${
+            remove={onRemoveNaics}
+            removeLabel="Remove NAICS filter"
+            className={
               onChangeNaics
                 ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
                 : "border-slate-200 bg-slate-50 text-slate-600"
-            }`}
+            }
             title={onChangeNaics ? "Change NAICS codes (trade)" : "NAICS"}
           >
             <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -119,7 +177,7 @@ export function StickyFilterBar(props: StickyFilterBarProps) {
             </svg>
             <span>{naicsText}</span>
             {onChangeNaics && <span aria-hidden="true">⌄</span>}
-          </button>
+          </Chip>
 
           {/* Set-Aside Only — inline toggle */}
           <button

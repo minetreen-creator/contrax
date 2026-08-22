@@ -122,6 +122,7 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(
 // Sorted soonest-first so the most urgent deadline is always on top. Bounded to
 // 8 rows. Every value is REAL from the bids table — nothing fabricated.
 export type ClosingSoonBid = {
+  id: number;
   title: string;
   agency: string;
   estimated_value: string | null;
@@ -131,10 +132,10 @@ export type ClosingSoonBid = {
 const getClosingSoonBids = createServerFn({ method: "GET" }).handler(async () => {
   const { sql } = await import("~/db");
   const rows = await sql()`
-    SELECT title, agency, estimated_value, due_date, set_aside
+    SELECT id, title, agency, estimated_value, due_date, set_aside
     FROM (
       SELECT DISTINCT ON (title, agency)
-             title, agency, estimated_value, due_date, set_aside, created_at
+             id, title, agency, estimated_value, due_date, set_aside, created_at
       FROM bids
       WHERE due_date > NOW()
         AND due_date <= NOW() + INTERVAL '7 days'
@@ -1592,7 +1593,7 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
                     return (
                       <div key={`${bid.title}|${bid.agency}|${i}`} className={`${headerCols} py-3.5`}>
                         <a
-                          href={`/signup?ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}`}
+                          href={`/signup?bid=${bid.id}&ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}&closes=${encodeURIComponent(bid.due_date ?? "")}&next=%2F%23closing-soon`}
                           title={bid.title}
                           onClick={() => trackEvent("signup_cta_click", "home_closing_soon", "/#closing-soon")}
                           className="line-clamp-2 text-sm font-semibold text-slate-800 transition-colors hover:text-amber-700"

@@ -20,6 +20,12 @@ type SignupSearch = {
   score_rec?: ScoreRec;
   save_bid?: string;
   next?: string;
+  // Closing Soon → signup context: the specific bid's DB id and its closing
+  // deadline (ISO). When both are present (with ticker_bid) the signup page
+  // shows an urgency panel that frames signup around unlocking THIS bid before
+  // it closes, instead of a generic account pitch.
+  bid?: string;
+  closes?: string;
 };
 
 const validPlans = ["starter", "professional", "agency"] as const;
@@ -59,6 +65,26 @@ const PLAN_OPTIONS: {
   },
 ];
 
+// Countdown helper for the Closing Soon → signup urgency panel. Returns a
+// human short-form "Xd Yh / Xh Ym / Xm" remaining until the given ISO deadline,
+// or null when the value is absent/invalid/expired. Pure besides passing `now` (the
+// caller supplies Date.now()) so it renders identically in SSR and on the
+// client's first paint, then ticks client-side.
+const closingCountdown = (iso: string | undefined, now: number): string | null => {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  const ms = Math.max(0, t - now);
+  if (ms <= 0) return null; // already closed — caller falls back to "today"
+  const mins = Math.floor(ms / 60000);
+  const days = Math.floor(mins / 1440);
+  const hours = Math.floor((mins % 1440) / 60);
+  const remMins = mins % 60;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${remMins}m`;
+  return `${Math.max(1, remMins)}m`;
+};
+
 // Live tracked-solicitation count for the social-proof line — mirrors the
 // homepage counter (src/routes/index.tsx getBidStats). Returns 0 if the DB is
 // unreachable so the page always renders; the component falls back to static
@@ -95,6 +121,8 @@ export const Route = createFileRoute("/signup")({
         ? search.save_bid
         : undefined,
     next: typeof search.next === "string" ? search.next.slice(0, 500) : undefined,
+    bid: typeof search.bid === "string" && /^\d{1,10}$/.test(search.bid) ? search.bid : undefined,
+    closes: typeof search.closes === "string" ? search.closes.slice(0, 120) : undefined,
   }),
   loader: async () => ({
     currentUser: await getCurrentUser(),
@@ -145,12 +173,24 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { currentUser, trackedBids } = Route.useLoaderData();
   const navigate = useNavigate();
-  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next } = Route.useSearch();
+  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes } = Route.useSearch();
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>(plan);
+
+  // Live countdown for the Closing Soon → signup urgency panel. Initial value is
+  // computed at render (Date.now() at first paint — matches SSR), then re-ticked
+  // once a minute so the "closes in Xd Yh" copy stays accurate while the visitor
+  // reads the form. Harmless when no `closes` context is present.
+  const [closingNow, setClosingNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!closes) return;
+    const t = setInterval(() => setClosingNow(Date.now()), 60_000);
+    return () => clearInterval(t);
+  }, [closes]);
+  const closingLabel = closingCountdown(closes, closingNow);
 
   // Funnel: fire exactly ONE signup-page-view event per visit, once. The cold
   // path (e.g. the homepage Closing Soon → /signup) fires a plain `signup_view`;
@@ -300,19 +340,41 @@ function SignupPage() {
           </a>
         </div>
 
-        {/* Ticker contextual banner */}
+        {/* Ticker contextual banner — Closing Soon → signup context. When the
+            bid's deadline (`closes`) is carried through, this becomes an
+            urgency panel showing the live "closes in Xd Yh" countdown and
+            framing signup around unlocking THIS bid before it closes. With no
+            deadline context (plain ticker arrivals, and all non-ticker cold
+            arrivals) it renders exactly as before. */}
         {ticker_bid && (
-          <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 p-5">
-            <p className="text-sm font-semibold text-amber-800">
-              Want to see the full details and generate a proposal draft for this contract?
-            </p>
-            <p className="mt-1 text-sm text-amber-700 line-clamp-2">
-              <span className="font-medium">{ticker_agency ? `${ticker_agency} — ` : ""}</span>
-              {ticker_bid}
-            </p>
-            <p className="mt-3 text-xs text-amber-600">
-              Start your free trial below to unlock the full opportunity.
-            </p>
+          <div className="mb-6 overflow-hidden rounded-2xl border-2 border-amber-400 bg-amber-50 shadow-sm">
+            {closingLabel && (
+              <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-100/80 px-5 py-2.5">
+                <span className="relative flex h-2 w-2 shrink-0">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                </span>
+                <span className="text-xs font-bold uppercase tracking-wide text-amber-800">
+                  Closes in {closingLabel}
+                </span>
+              </div>
+            )}
+            <div className="px-5 py-4">
+              <p className="text-sm font-bold text-slate-900">
+                {closingLabel
+                  ? "Unlock this bid before it closes"
+                  : "Want to see the full details and generate a proposal draft for this contract?"}
+              </p>
+              <p className="mt-1 text-sm text-amber-700 line-clamp-2">
+                <span className="font-medium">{ticker_agency ? `${ticker_agency} — ` : ""}</span>
+                {ticker_bid}
+              </p>
+              <p className="mt-3 text-xs text-amber-600">
+                {closingLabel
+                  ? "Start free below for full details, the AI summary, and a draft before the deadline."
+                  : "Start your free trial below to unlock the full opportunity."}
+              </p>
+            </div>
           </div>
         )}
 

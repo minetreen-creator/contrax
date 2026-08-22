@@ -39,7 +39,7 @@ function XButton({ onClick, label }: { onClick: () => void; label: string }) {
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
-      className="relative -m-2 p-2.5 text-neutral-400 hover:text-neutral-700"
+      className="relative -m-2 p-3.5 text-neutral-400 hover:text-neutral-700"
       aria-label={label}
       title={label}
     >

@@ -4,8 +4,11 @@ import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { checkTrial, type TrialStatus } from "~/lib/trial";
 import { SPECIALTY_OPTIONS, daysUntilExpiry, type License } from "~/lib/healthcare";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus } from "~/lib/certifications";
+import { NaicsTypeahead, naicsTitle } from "~/components/NaicsTypeahead";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
+
+const NAICS_MAX = 10; // hard cap on saved (active + inactive) codes
 
 const INDUSTRIES = [
   { value: "Construction", label: "Construction" },
@@ -63,6 +66,7 @@ interface BusinessProfileFull {
   specialties: string[];
   licenses: License[];
   typical_contract_value: string | null;
+  naics_inactive_codes?: string[];
 }
 
 interface SettingsFormData {
@@ -80,7 +84,8 @@ interface SettingsFormData {
   capabilityStatement: string;
   industry: string;
   locations: string[];
-  naicsCodes: string;
+  naicsCodes: string[];
+  naicsInactiveCodes: string[];
   specialties: string[];
   licenses: License[];
   typicalContractValue: string;
@@ -151,7 +156,8 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
     capabilityStatement: "",
     industry: "",
     locations: [],
-    naicsCodes: "",
+    naicsCodes: [],
+    naicsInactiveCodes: [],
     specialties: [],
     licenses: [],
     typicalContractValue: "",
@@ -181,7 +187,8 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
             typicalContractValue: profile.typical_contract_value ?? "",
             industry: profile.industry,
             locations: profile.locations,
-            naicsCodes: profile.naics_codes.join(", "),
+            naicsCodes: profile.naics_codes,
+            naicsInactiveCodes: profile.naics_inactive_codes ?? [],
             specialties: profile.specialties,
             licenses: Array.isArray(profile.licenses) ? profile.licenses : [],
           });
@@ -215,6 +222,62 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
       certificationDates: { ...prev.certificationDates, [cert]: date },
     }));
   }, []);
+
+  // ── NAICS multi-code editing (shared typeahead + per-code on/off toggles) ──
+  // `naicsCodes` = ACTIVE codes (used for matching/recommendations everywhere).
+  // `naicsInactiveCodes` = saved-but-toggled-off codes (kept, not matched).
+  // bank = active + inactive, hard-capped at NAICS_MAX (10).
+  const naicsActive = Array.isArray(form.naicsCodes) ? form.naicsCodes : [];
+  const naicsInactive = Array.isArray(form.naicsInactiveCodes) ? form.naicsInactiveCodes : [];
+  const dedupe = (arr: string[]) => arr.filter((c, i, a) => a.indexOf(c) === i);
+  const naicsBank = dedupe([...naicsActive, ...naicsInactive]);
+  const bankFull = naicsBank.length >= NAICS_MAX;
+
+  // The typeahead adds/removes ACTIVE codes. A code removed here is toggled OFF
+  // (moved to inactive, still saved), not deleted. Additions past the 10-code
+  // bank cap are rejected.
+  const handleNaicsChange = (codes: string[]) => {
+    setForm((prev) => {
+      const prevActive = Array.isArray(prev.naicsCodes) ? prev.naicsCodes : [];
+      const prevInactive = Array.isArray(prev.naicsInactiveCodes) ? prev.naicsInactiveCodes : [];
+      const added = codes.filter((c) => !prevActive.includes(c));
+      const removed = prevActive.filter((c) => !codes.includes(c));
+      const bank = dedupe([...prevActive, ...prevInactive, ...added]);
+      if (bank.length > NAICS_MAX && added.length > 0) return prev; // cap
+      // re-activated codes drop from inactive; removed-from-active move to inactive
+      const newInactive = dedupe([
+        ...prevInactive.filter((c) => !added.includes(c)),
+        ...removed,
+      ]);
+      return { ...prev, naicsCodes: codes, naicsInactiveCodes: newInactive };
+    });
+  };
+  const toggleNaics = (code: string) => {
+    setForm((prev) => {
+      const active = Array.isArray(prev.naicsCodes) ? prev.naicsCodes : [];
+      const inactive = Array.isArray(prev.naicsInactiveCodes) ? prev.naicsInactiveCodes : [];
+      if (active.includes(code)) {
+        return {
+          ...prev,
+          naicsCodes: active.filter((c) => c !== code),
+          naicsInactiveCodes: inactive.includes(code) ? inactive : [...inactive, code],
+        };
+      }
+      return {
+        ...prev,
+        naicsCodes: [...active, code],
+        naicsInactiveCodes: inactive.filter((c) => c !== code),
+      };
+    });
+  };
+  const removeNaics = (code: string) => {
+    setForm((prev) => ({
+      ...prev,
+      naicsCodes: (prev.naicsCodes || []).filter((c) => c !== code),
+      naicsInactiveCodes: (prev.naicsInactiveCodes || []).filter((c) => c !== code),
+    }));
+  };
+
 
   const toggleLocation = useCallback((state: string) => {
     setForm((prev) => ({
@@ -855,23 +918,64 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
 
           {/* Section: NAICS Codes */}
           <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">NAICS Codes</h2>
-            <div>
-              <label htmlFor="naicsCodes" className="block text-sm font-medium text-slate-700">
-                NAICS Codes
-              </label>
-              <p className="mt-1 text-xs text-slate-400">
-                Comma-separated list of your NAICS codes (e.g., 236220, 238160, 541512)
-              </p>
-              <input
-                id="naicsCodes"
-                type="text"
-                value={form.naicsCodes}
-                onChange={(e) => updateField("naicsCodes", e.target.value)}
-                className="mt-2 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono"
-                placeholder="e.g., 236220, 238160, 541512"
-              />
-            </div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-1">NAICS Codes</h2>
+            <p className="mb-4 text-xs text-slate-400">
+              Search by your trade (no need to know the code) and hold up to {NAICS_MAX} service lines.
+              Turn any on or off — matching and recommendations use the codes that are on.
+            </p>
+            <NaicsTypeahead
+              inputId="naicsCodes"
+              value={naicsActive}
+              onChange={handleNaicsChange}
+              max={NAICS_MAX}
+              placeholder="Search your trade — e.g. HVAC, roofing, management consulting"
+              helpText={
+                bankFull
+                  ? "You've hit the 10-code limit. Toggle one off or remove one to add another."
+                  : `Saved ${naicsBank.length}/${NAICS_MAX} total · ${naicsActive.length} active.`
+              }
+            />
+            {naicsBank.length > 0 && (
+              <ul className="mt-4 space-y-2">
+                {naicsBank.map((code) => {
+                  const on = naicsActive.includes(code);
+                  return (
+                    <li
+                      key={code}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+                    >
+                      <div className="flex min-w-0 items-center gap-3">
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={on}
+                          onClick={() => toggleNaics(code)}
+                          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${on ? "bg-blue-600" : "bg-slate-300"}`}
+                        >
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${on ? "translate-x-6" : "translate-x-1"}`} />
+                        </button>
+                        <div className="min-w-0">
+                          <p className={`truncate text-sm font-medium ${on ? "text-slate-900" : "text-slate-400"}`}>
+                            {naicsTitle(code)}
+                          </p>
+                          <p className={`font-mono text-xs ${on ? "text-slate-500" : "text-slate-400"}`}>
+                            {code} · {on ? "active" : "off"}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeNaics(code)}
+                        aria-label={`Remove ${code} entirely`}
+                        className="shrink-0 text-xs font-semibold text-red-500 hover:text-red-700"
+                      >
+                        Remove
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
           </section>
 
           {/* Save Button */}

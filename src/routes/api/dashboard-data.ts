@@ -4,6 +4,8 @@ import { sql } from "~/db";
 import { countRoleMatches } from "~/lib/healthcare";
 import { ARCHIVED_STATUSES, LIVE_SQL, DEAD_SQL } from "~/lib/bid-status";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
+import { locationMatchesStates, naicsPred, setAsidePredMulti } from "~/lib/open-bids";
+import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
 // Interfaces mirror src/routes/dashboard.tsx (kept local so this route is
@@ -113,29 +115,52 @@ async function handler({ request }: { request: Request }) {
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS naics_match TEXT DEFAULT ''`; } catch {}
   try { await sql()`ALTER TABLE bid_scores ADD COLUMN IF NOT EXISTS role_fit TEXT DEFAULT ''`; } catch {}
 
-  // Lazy migration: ensure set_aside column exists on bids (old DBs predate it).
+  // ── LIVE matched feed — routed through the authoritative SQL matcher ─────
+  // DEFAULT MATCHED FEED = LIVE ONLY, profile-relevant. Previously this route
+  // returned EVERY live bid and let the client's degenerate `matchBid` (which
+  // auto-matched every bid for a NAICS-onboarded profile whose `industry` is an
+  // empty string) inflate the count to the full national live table. Now the
+  // SAME SQL predicates the onboarding "We found N" count uses (set-aside LIKE,
+  // `naics_code = ANY(codes)`, `locationMatchesStates` on the returned rows,
+  // LOW_CONTENT_SQL, DISTINCT ON(title, agency)) plus the live/archived split
+  // (#199) run SERVER-SIDE, so the feed + count reflect true relevance.
+  // Lazy migration guards (idempotent): set_aside / naics_code must exist for
+  // the predicates below to reference them on older databases.
   try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS set_aside TEXT`; } catch {}
-  // DEFAULT MATCHED FEED = LIVE ONLY (server-side). "Live" = due date is today
-  // or in the future (`LIVE_SQL`, date-granularity to match the platform's
-  // urgent/closing-soon semantics), and NOT dismissed/closed by this user
-  // (`ARCHIVED_STATUSES`). Dead/closed bids are excluded here so the default
-  // mobile page loads fewer rows; they live behind the Archived tab
-  // (`/api/dashboard-archive`).
-  const bidRows = await sql()`SELECT id, title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, naics_code, created_at
-    FROM bids
-    WHERE ${sql().unsafe(LIVE_SQL)}
-      AND id NOT IN (SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES}))
-    ORDER BY due_date ASC`;
+  try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
+  const locations = (profile?.locations ?? []).map((s) => String(s));
+  const setAsideFrag = setAsidePredMulti(profile?.certifications ?? [], sql);
+  const naicsFrag = naicsPred(profile?.naics_codes ?? [], sql);
+
+  const bidRows = await sql()`
+    SELECT * FROM (
+      SELECT DISTINCT ON (title, agency)
+        id, title, agency, description, location, category, set_aside, due_date,
+        estimated_value, source_url, naics_code, created_at
+      FROM bids
+      WHERE ${sql().unsafe(LIVE_SQL)}
+        AND ${sql().unsafe(LOW_CONTENT_SQL)}
+        AND id NOT IN (
+          SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES})
+        )
+        ${setAsideFrag} ${naicsFrag}
+      ORDER BY title, agency
+    ) matched
+    ORDER BY due_date ASC NULLS LAST`;
   const userSpecialties = profile?.specialties || [];
-  const bids: Bid[] = (bidRows as any[]).map((b) => ({
-    id: b.id, title: b.title, agency: b.agency, description: b.description,
-    location: b.location, category: b.category, set_aside: b.set_aside ?? null,
-    due_date: String(b.due_date),
-    estimated_value: b.estimated_value, source_url: b.source_url,
-    naics_code: b.naics_code ?? null,
-    created_at: b.created_at ? String(b.created_at) : "",
-    role_matches: countRoleMatches(b as any, userSpecialties),
-  }));
+  // Geography filter applied POST-dedup (same `locationMatchesStates` the
+  // onboarding count uses — nationwide = no-op, specific states = targeted).
+  const bids: Bid[] = (bidRows as any[])
+    .filter((b) => locationMatchesStates(b.location, locations))
+    .map((b) => ({
+      id: b.id, title: b.title, agency: b.agency, description: b.description,
+      location: b.location, category: b.category, set_aside: b.set_aside ?? null,
+      due_date: String(b.due_date),
+      estimated_value: b.estimated_value, source_url: b.source_url,
+      naics_code: b.naics_code ?? null,
+      created_at: b.created_at ? String(b.created_at) : "",
+      role_matches: countRoleMatches(b as any, userSpecialties),
+    }));
 
   const matchRows = await sql()`SELECT bid_id, status FROM saved_matches WHERE user_id = ${user.id}`;
   const savedMatches: SavedMatch[] = (matchRows as any[]).map((m) => ({
@@ -217,14 +242,20 @@ async function handler({ request }: { request: Request }) {
   const countRows = await sql()`SELECT COUNT(*) as count FROM bids`;
   const totalBids = countRows.length > 0 ? Number(countRows[0].count) : 0;
   // Archived = closed/no-go (due strictly before today) OR dismissed/closed by
-  // this user. Count is a badge for the Archived tab — the tab itself loads the
-  // full dead list from /api/dashboard-archive.
+  // this user, further filtered to the SAME profile relevance as the live feed
+  // (set-aside + NAICS SQL predicates + location), so the Archived-tab badge
+  // matches the relevant dead list served by /api/dashboard-archive.
   let archivedCount = 0;
   try {
-    const archRows = await sql()`SELECT COUNT(*)::int AS count FROM bids
-      WHERE ${sql().unsafe(DEAD_SQL)}
-         OR id IN (SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES}))`;
-    archivedCount = Number((archRows[0] as any)?.count || 0);
+    const archRows = await sql()`
+      SELECT DISTINCT ON (title, agency) title, agency, location
+      FROM bids
+      WHERE (${sql().unsafe(DEAD_SQL)}
+         OR id IN (SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES})))
+        AND ${sql().unsafe(LOW_CONTENT_SQL)}
+        ${setAsideFrag} ${naicsFrag}
+      ORDER BY title, agency`;
+    archivedCount = (archRows as any[]).filter((r) => locationMatchesStates(r.location, locations)).length;
   } catch {}
   let lossesCount = 0;
   try { const lossRows = await sql()`SELECT COUNT(*) as count FROM bid_losses WHERE user_email = ${user.email}`; lossesCount = Number(lossRows[0]?.count || 0); } catch {}
@@ -250,7 +281,7 @@ async function handler({ request }: { request: Request }) {
   try { createDeadlineAlertsForUser(user.id, user.email).catch(() => {}); } catch { /* non-blocking */ }
 
   let unreadAlerts = 0; try { const ar = await sql()`SELECT COUNT(*)::int AS count FROM bid_alerts WHERE user_id = ${user.id} AND is_read=false`; unreadAlerts = Number((ar[0] as any)?.count || 0); } catch {}
-  return Response.json({ profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, archivedCount, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts, pendingDraft });
+  return Response.json({ profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, matchCount: bids.length, archivedCount, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts, pendingDraft });
   } catch (err) {
     console.error("[api/dashboard-data] error:", err);
     return Response.json(

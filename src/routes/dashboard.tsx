@@ -96,6 +96,7 @@ interface DashboardData {
   pricing: PricingRecommendation[];
   lastSynced: string | null;
   totalBids: number;
+  matchCount?: number;
   archivedCount?: number;
   lossesCount: number;
   urgentTrackedCount: number;
@@ -564,19 +565,14 @@ function setAsideMatchesCertifications(bidSetAside: string | null | undefined, c
   }
 }
 
-function matchBid(bid: Bid, profile: BusinessProfile): boolean {
-  const cat = (bid.category || "").toLowerCase();
-  const ind = (profile.industry || "").toLowerCase();
-  const catMatch = cat === ind || ind.includes(cat) || cat.includes(ind);
-  const locMatch = (profile.locations || []).some((l) => bid.location?.toLowerCase().includes((l || "").toLowerCase()));
-  // Set-aside-first: a bid reserved for a certification the user holds is a
-  // match even when category/location don't line up.
-  const setAsideMatch = setAsideMatchesCertifications(
-    bid.set_aside,
-    Array.isArray(profile.certifications) ? profile.certifications : [],
-  );
-  return catMatch || locMatch || setAsideMatch;
-}
+// NOTE: The old client-side `matchBid` (which OR-combined category/location/
+// set-aside and — for a NAICS-onboarded profile whose `industry` is an empty
+// string — auto-matched EVERY bid via `cat.includes("")` === true) has been
+// REMOVED. Dashboard live-feed relevance now comes from the authoritative SQL
+// matcher server-side in /api/dashboard-data (setAsidePredMulti + naicsPred +
+// locationMatchesStates + LOW_CONTENT_SQL + DISTINCT ON), the same predicates
+// the onboarding "We found N" count uses. `setAsideMatchesCertifications`
+// remains for display/boost purposes.
 
 // ── Opportunity Detail: Eligibility verdict ─────────────────────────────────
 // Profile-aware, per-bid eligibility evaluation surfaced in the auth-gated
@@ -790,6 +786,73 @@ function LoadingSkeleton() {
   );
 }
 
+// ── Zero-Matches Empty State (deliverable 3) ──────────────────────────────
+// Shown on the live feed when the exact profile (NAICS + State + cert) yields no
+// active solicitations. Offers two constructive actions instead of a bare "0":
+//   1. "Broaden search (Include Nationwide)" — drops the geo constraint and
+//      re-queries (only shown when the profile targets specific states).
+//   2. "Add adjacent NAICS codes" — routes to the NAICS profile editor.
+// When already nationwide and still 0, shows an honest secondary message.
+function ZeroMatchesEmpty({
+  nationwide,
+  archivedCount,
+  filterUpdating,
+  onBroaden,
+  onOpenArchive,
+}: {
+  nationwide: boolean;
+  archivedCount: number;
+  filterUpdating: boolean;
+  onBroaden: () => void;
+  onOpenArchive: () => void;
+}) {
+  return (
+    <div className="text-center py-12 rounded-2xl border border-slate-200 bg-white">
+      <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+      {nationwide ? (
+        <>
+          <h3 className="mt-4 text-lg font-semibold text-slate-700">No active solicitations right now</h3>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+            We didn&rsquo;t find any active solicitations matching your current NAICS + certification profile, even nationwide.
+            Try widening your coverage to catch more opportunities.
+          </p>
+        </>
+      ) : (
+        <>
+          <h3 className="mt-4 text-lg font-semibold text-slate-700">No matching bids in your states</h3>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">
+            No active solicitations matching this exact NAICS + State combination right now.
+          </p>
+        </>
+      )}
+      {archivedCount > 0 && (
+        <p className="mt-2 text-sm text-slate-500">
+          <button type="button" onClick={onOpenArchive} className="font-semibold text-blue-600 underline hover:text-blue-700">
+            View {archivedCount} archived closed / no-go bid{archivedCount !== 1 ? "s" : ""}
+          </button>
+        </p>
+      )}
+      <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+        {!nationwide && (
+          <button
+            type="button"
+            onClick={onBroaden}
+            disabled={filterUpdating}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 disabled:opacity-50"
+          >
+            {filterUpdating ? "Searching…" : "Broaden search (Include Nationwide)"}
+          </button>
+        )}
+        <a href="/settings" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+          Add adjacent NAICS codes
+        </a>
+        <a href="/onboarding" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Edit profile</a>
+        <a href="/awards" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Browse opportunities</a>
+      </div>
+    </div>
+  );
+}
+
 // ── Deadline Alert Banner ────────────────────────────────────────────────────
 function DeadlineAlertBanner({ count }: { count: number }) {
   if (count === 0) return null;
@@ -944,16 +1007,14 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
   const [digest, setDigest] = useState<DigestResult | null>(null);
   const [digestLoading, setDigestLoading] = useState(false);
   const [data, setData] = useState<DashboardData | null>(null);
-  const [dataLoading, setDataLoading] = useState(true);
-  useEffect(() => {
-    let cancelled = false;
-    fetch("/api/dashboard-data")
+  const [dataLoading] = useState(true);
+  const loadDashboardData = useCallback((): Promise<void> => {
+    return fetch("/api/dashboard-data")
       .then((r) => { if (!r.ok) throw new Error("Failed to load dashboard data"); return r.json(); })
-      .then((d: DashboardData) => { if (!cancelled) setData(d); })
-      .catch(() => {})
-      .finally(() => { if (!cancelled) setDataLoading(false); });
-    return () => { cancelled = true; };
+      .then((d: DashboardData) => setData(d))
+      .catch(() => {});
   }, []);
+  useEffect(() => { loadDashboardData(); }, [loadDashboardData]);
 
   // Seed saved/dismissed sets from dashboard data (re-hydrated when the fetch resolves).
   const [savedBids, setSavedBids] = useState<Set<number>>(() => new Set((data?.savedMatches ?? []).filter((m) => m.status === "saved").map((m) => m.bid_id)));
@@ -1147,12 +1208,12 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
   const urgentTrackedCount = data?.urgentTrackedCount ?? 0;
 
   const profileCerts = Array.isArray(profile?.certifications) ? profile.certifications : [];
+  // Live relevance is enforced server-side by /api/dashboard-data (the same SQL
+  // matcher the onboarding count uses). The client keeps only the view-level
+  // Set-Aside Only toggle + a defensive dismissed check.
   const filtered = profile
     ? bids.filter(
-        (b) =>
-          matchBid(b, profile) &&
-          !dismissedBids.has(b.id) &&
-          (!setAsideOnly || setAsideLabel(b.set_aside) !== null),
+        (b) => !dismissedBids.has(b.id) && (!setAsideOnly || setAsideLabel(b.set_aside) !== null),
       )
     : [];
   const sorted = [...filtered].sort((a, b) => {
@@ -1204,7 +1265,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
   // profile relevance as the live feed, most-recently-closed first.
   const archivedFiltered = archivedBids && profile
     ? archivedBids
-        .filter((b) => matchBid(b, profile) && (!setAsideOnly || setAsideLabel(b.set_aside) !== null))
+        .filter((b) => !setAsideOnly || setAsideLabel(b.set_aside) !== null)
         .sort(
           (a, b) =>
             (b.due_date ? new Date(b.due_date).getTime() : 0) -
@@ -1387,6 +1448,39 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
       setPricingLoading((p) => { const n = new Set(p); n.delete(bidId); return n; });
     }
   }, [profile]);
+
+  // ── Inline filter-chip removal (X-to-remove) ──────────────────────────────
+  // Profile-level filters (geo states, NAICS, set-aside/cert) live in the user's
+  // profile row. Removing one INLINE patches just that column via
+  // /api/profile-filters (a targeted partial update — the full /api/profile save
+  // would wipe sibling fields), then re-fetches /api/dashboard-data so the
+  // persisted state AND the live result + count BOTH change. The removed filter
+  // stays gone (persisted).
+  const [filterUpdating, setFilterUpdating] = useState(false);
+  const removeFilterChip = useCallback(async (kind: "geo" | "naics" | "setAside") => {
+    if (!profile || filterUpdating) return;
+    setFilterUpdating(true);
+    try {
+      const body: Record<string, string[]> =
+        kind === "geo" ? { locations: [] }
+        : kind === "naics" ? { naicsCodes: [] }
+        : { certifications: [] };
+      const res = await fetch("/api/profile-filters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error("Failed to update filters");
+      await loadDashboardData();
+    } catch {} finally { setFilterUpdating(false); }
+  }, [profile, filterUpdating, loadDashboardData]);
+
+  // Zero-matches "Broaden search (Include Nationwide)": drop the geo constraint
+  // (clear locations) and re-query — the same persistence path as chip removal.
+  const broadenNationwide = useCallback(() => {
+    if (!profile || filterUpdating) return;
+    removeFilterChip("geo");
+  }, [profile, filterUpdating, removeFilterChip]);
 
   useEffect(() => {
     if (!data?.profile) return;
@@ -1678,6 +1772,9 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
             onChangeGeo={() => navigate({ to: "/settings" })}
             onChangeSetAside={() => applyFilterPatch({ setAsideOnly: !setAsideOnly })}
             onChangeNaics={() => navigate({ to: "/settings" })}
+            onRemoveGeo={(profile.locations ?? []).length > 0 ? () => removeFilterChip("geo") : undefined}
+            onRemoveNaics={(profile.naics_codes ?? []).length > 0 ? () => removeFilterChip("naics") : undefined}
+            onRemoveSetAside={profileCerts.length > 0 ? () => removeFilterChip("setAside") : undefined}
           />
         )}
 
@@ -1742,22 +1839,13 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
             </div>
           )
         ) : sorted.length === 0 ? (
-          <div className="text-center py-12 rounded-2xl border border-slate-200 bg-white">
-            <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
-            <h3 className="mt-4 text-lg font-semibold text-slate-700">No matching bids yet</h3>
-            <p className="mt-1 text-sm text-slate-500">Try expanding your locations or service categories in your profile.</p>
-            {archivedCount > 0 && (
-              <p className="mt-2 text-sm text-slate-500">
-                <button type="button" onClick={() => { setFeedTab("archived"); loadArchive(); }} className="font-semibold text-blue-600 underline hover:text-blue-700">
-                  View {archivedCount} archived closed / no-go bid{archivedCount !== 1 ? "s" : ""}
-                </button>
-              </p>
-            )}
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              <a href="/onboarding" className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">Edit profile</a>
-              <a href="/awards" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Browse opportunities</a>
-            </div>
-          </div>
+          <ZeroMatchesEmpty
+            nationwide={profile.locations.length === 0}
+            archivedCount={archivedCount}
+            filterUpdating={filterUpdating}
+            onBroaden={broadenNationwide}
+            onOpenArchive={() => { setFeedTab("archived"); loadArchive(); }}
+          />
         ) : (
           <div id="bid-matches" className="space-y-4">
             {sorted.map((bid) => {

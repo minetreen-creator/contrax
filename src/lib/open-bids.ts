@@ -116,3 +116,51 @@ export function setAsidePred(cert: string, sql: any) {
     .join(" OR ");
   return sql()`AND (${sql().unsafe(orClauses)})`;
 }
+
+/**
+ * Set-aside predicate for MULTIPLE certifications (e.g. a business profile's
+ * `certifications` array, which may hold several at once — an 8(a) firm can
+ * also be SDVOSB/WOSB/HUBZone). OR-combines the literal set_aside patterns each
+ * cert maps to, using the SAME hardcoded constants as `setAsidePred`. Values are
+ * hardcoded constants (never user input), so embedding them in the SQL string is
+ * injection-safe. Returns an EMPTY fragment when no cert yields a set-aside
+ * pattern (small-business-only / no meaningful set-aside certs), so the filter
+ * does NOT over-restrict — matching single-cert semantics.
+ */
+export function setAsidePredMulti(certs: string[], sql: any) {
+  const ASCII_CODE_TO_SET_ASIDE: Record<string, string[]> = {
+    "8a": ["8(a)", "8AN"],
+    sdvosb: ["SDVOSB"],
+    wosb: ["WOSB", "EDWOSB"],
+    hubzone: ["HUBZone"],
+    vosb: ["VOSB"],
+  };
+  const orClauses: string[] = [];
+  for (const cert of certs ?? []) {
+    const pats = ASCII_CODE_TO_SET_ASIDE[cert];
+    if (!pats || pats.length === 0) continue;
+    for (const p of pats) {
+      orClauses.push(`LOWER(COALESCE(set_aside,'')) LIKE '%${p.toLowerCase()}%'`);
+    }
+  }
+  if (orClauses.length === 0) return sql()``;
+  return sql()`AND (${sql().unsafe(orClauses.join(" OR "))})`;
+}
+
+/**
+ * NAICS-code predicate — the exact `naics_code = ANY(codes)` OR-match the
+ * onboarding "We found N" count uses. A NULL / absent bid NAICS never matches
+ * (NULL = unknown, NOT a match — the honest authoritative semantics), but ANY of
+ * the profile's active codes can match. Returns an EMPTY fragment when no valid
+ * 6-digit codes are supplied (no trade restriction).
+ *
+ * `codes` values are bound as parameters via the neon tagged template, so this
+ * is injection-safe.
+ */
+export function naicsPred(codes: string[], sql: any) {
+  const valid = (codes ?? [])
+    .map((c) => String(c).trim())
+    .filter((c) => /^\d{6}$/.test(c));
+  if (valid.length === 0) return sql()``;
+  return sql()`AND naics_code = ANY(${valid})`;
+}

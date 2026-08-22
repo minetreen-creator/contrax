@@ -39,11 +39,11 @@ function XButton({ onClick, label }: { onClick: () => void; label: string }) {
     <button
       type="button"
       onClick={(e) => { e.stopPropagation(); onClick(); }}
+      className="relative -m-2 p-2.5 text-neutral-400 hover:text-neutral-700"
       aria-label={label}
       title={label}
-      className="shrink-0 rounded-full p-0.5 text-current opacity-60 transition-opacity hover:opacity-100"
     >
-      <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
       </svg>
     </button>

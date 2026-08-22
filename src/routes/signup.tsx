@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { SignupContextPanel } from "~/components/SignupContextPanel";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { persistPendingDraft } from "~/lib/pending-draft";
@@ -26,6 +27,16 @@ type SignupSearch = {
   // it closes, instead of a generic account pitch.
   bid?: string;
   closes?: string;
+  // Generalized context source — the SAME framing mechanism serves both:
+  // `closing_soon` (bid + deadline, urgency-driven) and `incumbent`
+  // (bid/opportunity title, value-driven — no deadline). The component that
+  // renders these is SignupContextPanel. `opportunity_id` is the incumbent
+  // gate's bid/opportunity DB id; `title`/`agency` carry its context so the
+  // incumbent banner can name the bid.
+  source?: "closing_soon" | "incumbent";
+  opportunity_id?: string;
+  title?: string;
+  agency?: string;
 };
 
 const validPlans = ["starter", "professional", "agency"] as const;
@@ -123,6 +134,16 @@ export const Route = createFileRoute("/signup")({
     next: typeof search.next === "string" ? search.next.slice(0, 500) : undefined,
     bid: typeof search.bid === "string" && /^\d{1,10}$/.test(search.bid) ? search.bid : undefined,
     closes: typeof search.closes === "string" ? search.closes.slice(0, 120) : undefined,
+    source:
+      search.source === "closing_soon" || search.source === "incumbent"
+        ? search.source
+        : undefined,
+    opportunity_id:
+      typeof search.opportunity_id === "string" && /^\d{1,10}$/.test(search.opportunity_id)
+        ? search.opportunity_id
+        : undefined,
+    title: typeof search.title === "string" ? search.title.slice(0, 300) : undefined,
+    agency: typeof search.agency === "string" ? search.agency.slice(0, 200) : undefined,
   }),
   loader: async () => ({
     currentUser: await getCurrentUser(),
@@ -173,7 +194,8 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { currentUser, trackedBids } = Route.useLoaderData();
   const navigate = useNavigate();
-  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes } = Route.useSearch();
+  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency } =
+    Route.useSearch();
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -340,43 +362,19 @@ function SignupPage() {
           </a>
         </div>
 
-        {/* Ticker contextual banner — Closing Soon → signup context. When the
-            bid's deadline (`closes`) is carried through, this becomes an
-            urgency panel showing the live "closes in Xd Yh" countdown and
-            framing signup around unlocking THIS bid before it closes. With no
-            deadline context (plain ticker arrivals, and all non-ticker cold
-            arrivals) it renders exactly as before. */}
-        {ticker_bid && (
-          <div className="mb-6 overflow-hidden rounded-2xl border-2 border-amber-400 bg-amber-50 shadow-sm">
-            {closingLabel && (
-              <div className="flex items-center gap-2 border-b border-amber-200 bg-amber-100/80 px-5 py-2.5">
-                <span className="relative flex h-2 w-2 shrink-0">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
-                </span>
-                <span className="text-xs font-bold uppercase tracking-wide text-amber-800">
-                  Closes in {closingLabel}
-                </span>
-              </div>
-            )}
-            <div className="px-5 py-4">
-              <p className="text-sm font-bold text-slate-900">
-                {closingLabel
-                  ? "Unlock this bid before it closes"
-                  : "Want to see the full details and generate a proposal draft for this contract?"}
-              </p>
-              <p className="mt-1 text-sm text-amber-700 line-clamp-2">
-                <span className="font-medium">{ticker_agency ? `${ticker_agency} — ` : ""}</span>
-                {ticker_bid}
-              </p>
-              <p className="mt-3 text-xs text-amber-600">
-                {closingLabel
-                  ? "Start free below for full details, the AI summary, and a draft before the deadline."
-                  : "Start your free trial below to unlock the full opportunity."}
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Ticker / contextual banner — generalized framing mechanism
+            (SignupContextPanel). The closing_soon source (bid + deadline from
+            a Closing Soon CTA, or a plain ticker deep-link) preserves PR #196
+            exactly: urgency panel with live countdown when a deadline is
+            carried, plain ticker panel otherwise. The incumbent source (from
+            an Incumbent Intelligence gate CTA) renders the value-driven
+            "unlock incumbent contract history & past pricing" banner — no
+            countdown. */}
+        {source === "incumbent" ? (
+          <SignupContextPanel source="incumbent" title={title || ticker_bid} agency={agency || ticker_agency} />
+        ) : ticker_bid ? (
+          <SignupContextPanel source="closing_soon" title={ticker_bid} agency={ticker_agency} closingLabel={closingLabel} />
+        ) : null}
 
         {/* Score contextual banner — arriving from the /score tool (Feature B) */}
         {score_rec && (

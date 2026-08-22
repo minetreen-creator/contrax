@@ -65,6 +65,12 @@ interface BidScore {
   ai_explanation: string; generated_at: string;
 }
 interface SavedMatch { bid_id: number; status: string; }
+interface ArchiveBid {
+  id: number; title: string; agency: string; description: string;
+  location: string; category: string; set_aside: string | null; due_date: string; estimated_value: string;
+  source_url: string | null; role_matches: number;
+  naics_code: string | null; created_at: string; status: string | null;
+}
 interface DigestEntry {
   bid_id: number; title: string; agency: string; estimated_value: string;
   win_probability: number; reason: string;
@@ -80,6 +86,7 @@ interface DashboardData {
   pricing: PricingRecommendation[];
   lastSynced: string | null;
   totalBids: number;
+  archivedCount?: number;
   lossesCount: number;
   urgentTrackedCount: number;
   topCompetitor: { name: string; awards: number } | null;
@@ -942,6 +949,13 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
   const [activeTab, setActiveTab] = useState<Record<number, string>>({});
   const [sortBy, setSortBy] = useState<"due_date" | "newest" | "value">("due_date");
   const [setAsideOnly, setSetAsideOnly] = useState(false);
+  // Live/Open vs Archived(default live) matched-feed tabs. `archivedBids` is
+  // null until the user opens the Archived tab (lazy server query), so the
+  // default live page never pays the payload/query cost of the dead list.
+  const [feedTab, setFeedTab] = useState<"live" | "archived">("live");
+  const [archivedBids, setArchivedBids] = useState<ArchiveBid[] | null>(null);
+  const [archivedLoading, setArchivedLoading] = useState(false);
+  const [archivedCount, setArchivedCount] = useState<number>(() => data?.archivedCount ?? 0);
   const [loggingOut, setLoggingOut] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [trackingLoading, setTrackingLoading] = useState<Set<number>>(new Set());
@@ -984,6 +998,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
     if (!data) return;
     setSavedBids(new Set((data.savedMatches ?? []).filter((m) => m.status === "saved").map((m) => m.bid_id)));
     setDismissedBids(new Set((data.savedMatches ?? []).filter((m) => m.status === "dismissed").map((m) => m.bid_id)));
+    if (typeof data.archivedCount === "number") setArchivedCount(data.archivedCount);
     const sMap: Record<number, BidSummary> = {};
     (data.summaries ?? []).forEach((s) => { sMap[s.bid_id] = s; });
     setSummaries(sMap);
@@ -1057,6 +1072,24 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
     return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
   });
 
+  // Archived feed: dead bids (past-due OR dismissed/closed) filtered to the same
+  // profile relevance as the live feed, most-recently-closed first.
+  const archivedFiltered = archivedBids && profile
+    ? archivedBids
+        .filter((b) => matchBid(b, profile) && (!setAsideOnly || setAsideLabel(b.set_aside) !== null))
+        .sort(
+          (a, b) =>
+            (b.due_date ? new Date(b.due_date).getTime() : 0) -
+            (a.due_date ? new Date(a.due_date).getTime() : 0),
+        )
+    : [];
+  // Why an item is archived (real signals only): a non-saved saved_matches
+  // status means the user dismissed / marked it no-go; otherwise it's past due.
+  const archiveTag = (b: ArchiveBid) =>
+    b.status && b.status !== "saved"
+      ? { label: b.status === "dismissed" ? "Dismissed" : "No-go", cls: "bg-slate-200 text-slate-600" }
+      : { label: "Closed — past due", cls: "bg-slate-100 text-slate-500" };
+
   const doSave = useCallback(async (bidId: number) => {
     setActionLoading(bidId);
     try {
@@ -1073,6 +1106,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
       await dismissBid({ data: { bidId } });
       setDismissedBids((p) => new Set(p).add(bidId));
       setSavedBids((p) => { const n = new Set(p); n.delete(bidId); return n; });
+      setArchivedCount((c) => c + 1); // dismissed → moves into Archive
       if (expandedBid === bidId) setExpandedBid(null);
     } catch {} finally { setActionLoading(null); }
   }, [expandedBid]);
@@ -1096,6 +1130,34 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
     } catch {} finally {
       setTrackingLoading((p) => { const n = new Set(p); n.delete(bidId); return n; });
     }
+  }, []);
+
+  // Load the Archived (closed/no-go) list lazily the first time the user opens
+  // the Archived tab. Server-side query lives in /api/dashboard-archive.
+  const loadArchive = useCallback(async () => {
+    if (archivedLoading || archivedBids) return;
+    setArchivedLoading(true);
+    try {
+      const res = await fetch("/api/dashboard-archive");
+      if (!res.ok) throw new Error("Failed to load archived bids");
+      const d = await res.json();
+      setArchivedBids(d.bids ?? []);
+      setArchivedCount((d.bids ?? []).length);
+    } catch {} finally { setArchivedLoading(false); }
+  }, [archivedLoading, archivedBids]);
+
+  // Move an archived bid back to Open (bids-save sets status='saved', which is
+  // not an archived status, so it returns to the live feed on next load).
+  const doRestore = useCallback(async (bidId: number) => {
+    setActionLoading(bidId);
+    try {
+      const res = await fetch("/api/bids-save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bidId }) });
+      if (!res.ok) throw new Error("Failed to move bid back to open");
+      setArchivedBids((p) => (p ? p.filter((b) => b.id !== bidId) : p));
+      setArchivedCount((c) => Math.max(0, c - 1));
+      setDismissedBids((p) => { const n = new Set(p); n.delete(bidId); return n; });
+      setSavedBids((p) => new Set(p).add(bidId));
+    } catch {} finally { setActionLoading(null); }
   }, []);
 
   const doGenerateSummary = useCallback(async (bidId: number) => {
@@ -1395,12 +1457,46 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
         {trial?.active && <TrialBanner daysLeft={trial.daysLeft} planTier={trial.planTier} endsAt={trial.endsAt} />}
 
         {/* Bid Matches */}
+        {profile && (
+          <div className="mb-4 flex flex-wrap items-center gap-2" role="tablist" aria-label="Match feeds">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={feedTab === "live"}
+              onClick={() => setFeedTab("live")}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                feedTab === "live"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              Open / Closing Soon
+              <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${feedTab === "live" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>{sorted.length}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={feedTab === "archived"}
+              onClick={() => { setFeedTab("archived"); loadArchive(); }}
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+                feedTab === "archived"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "border border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+              }`}
+              title="Closed, no-go, or dismissed opportunities"
+            >
+              Archived
+              <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${feedTab === "archived" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>{archivedCount}</span>
+            </button>
+          </div>
+        )}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Your Bid Matches</h2>
+            <h2 className="text-xl font-bold text-slate-900">{feedTab === "archived" ? "Archived Opportunities" : "Your Bid Matches"}</h2>
             <p className="mt-1 text-sm text-slate-500">
-              {profile ? `${sorted.length} bid${sorted.length !== 1 ? "s" : ""} matching your profile` : "Set up your profile to see matching bids"}
-              {data?.totalBids ? ` (${data.totalBids} total in database)` : ""}
+              {feedTab === "archived"
+                ? profile ? `${archivedFiltered.length} closed / no-go bid${archivedFiltered.length !== 1 ? "s" : ""} matching your profile` : "Set up your profile to see matching bids"
+                : profile ? `${sorted.length} live bid${sorted.length !== 1 ? "s" : ""} matching your profile` : "Set up your profile to see matching bids"}
             </p>
             {data?.lastSynced && (
               <p className="mt-0.5 text-xs text-slate-400">
@@ -1408,7 +1504,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
               </p>
             )}
           </div>
-          {profile && sorted.length > 0 && (
+          {profile && feedTab === "live" && sorted.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -1438,11 +1534,61 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
         {/* Bid Cards */}
         {!profile ? (
           <div className="text-center py-12"><p className="text-slate-400">No profile yet — complete your onboarding to see bid matches.</p></div>
+        ) : feedTab === "archived" ? (
+          archivedLoading && !archivedBids ? (
+            <div className="rounded-2xl border border-slate-200 bg-white px-5 py-6 text-sm text-slate-500 shadow-sm">Loading archived opportunities...</div>
+          ) : archivedFiltered.length === 0 ? (
+            <div className="text-center py-12 rounded-2xl border border-slate-200 bg-white">
+              <h3 className="text-lg font-semibold text-slate-700">No archived opportunities</h3>
+              <p className="mt-1 text-sm text-slate-500">Closed, no-go, and dismissed bids will appear here.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {archivedFiltered.map((bid) => {
+                const tag = archiveTag(bid);
+                return (
+                  <div key={bid.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-label={`Archived bid: ${bid.title}`}>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="font-semibold text-slate-800 truncate">{bid.title}</h3>
+                          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${tag.cls}`}>{tag.label}</span>
+                          {setAsideLabel(bid.set_aside) && <span className="shrink-0 rounded-full bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">{setAsideLabel(bid.set_aside)}</span>}
+                        </div>
+                        <p className="mt-0.5 text-sm text-slate-500">{bid.agency}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+                          {bid.due_date ? <span className="font-medium text-slate-700">Due {fmtDate(bid.due_date)}</span> : <span className="text-slate-400">No due date</span>}
+                          {bid.estimated_value && <span className="font-medium text-slate-700">{bid.estimated_value}</span>}
+                          {bid.category && <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{bid.category}</span>}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => doRestore(bid.id)}
+                        disabled={actionLoading === bid.id}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 disabled:opacity-50"
+                        title="Move back to Open"
+                      >
+                        {actionLoading === bid.id ? "Moving…" : "Move to Open"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
         ) : sorted.length === 0 ? (
           <div className="text-center py-12 rounded-2xl border border-slate-200 bg-white">
             <svg className="mx-auto h-12 w-12 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
             <h3 className="mt-4 text-lg font-semibold text-slate-700">No matching bids yet</h3>
             <p className="mt-1 text-sm text-slate-500">Try expanding your locations or service categories in your profile.</p>
+            {archivedCount > 0 && (
+              <p className="mt-2 text-sm text-slate-500">
+                <button type="button" onClick={() => { setFeedTab("archived"); loadArchive(); }} className="font-semibold text-blue-600 underline hover:text-blue-700">
+                  View {archivedCount} archived closed / no-go bid{archivedCount !== 1 ? "s" : ""}
+                </button>
+              </p>
+            )}
             <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
               <a href="/onboarding" className="inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600">Edit profile</a>
               <a href="/awards" className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Browse opportunities</a>

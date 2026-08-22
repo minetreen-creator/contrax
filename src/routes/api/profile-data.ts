@@ -11,8 +11,9 @@ async function getProfileHandler({ request }: { request: Request }): Promise<Res
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certification_dates JSONB DEFAULT '{}'::jsonb`; } catch {}
+  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS naics_inactive_codes JSONB DEFAULT '[]'::jsonb`; } catch {}
   const rows = await sql()`
-    SELECT id, business_name, industry, locations, service_categories, naics_codes,
+    SELECT id, business_name, industry, locations, service_categories, naics_codes, naics_inactive_codes,
            uei, cage_code, duns, sam_expiration, certifications, certification_dates,
            years_in_business, employee_count, annual_revenue,
            past_performance_summary, capability_statement,
@@ -30,6 +31,7 @@ async function getProfileHandler({ request }: { request: Request }): Promise<Res
     locations: Array.isArray(p.locations) ? p.locations : [],
     service_categories: Array.isArray(p.service_categories) ? p.service_categories : [],
     naics_codes: Array.isArray(p.naics_codes) ? p.naics_codes : [],
+    naics_inactive_codes: Array.isArray(p.naics_inactive_codes) ? p.naics_inactive_codes : [],
     uei: p.uei ?? null,
     cage_code: p.cage_code ?? null,
     duns: p.duns ?? null,

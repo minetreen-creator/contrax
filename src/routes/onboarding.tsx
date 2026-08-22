@@ -7,6 +7,7 @@ import { persistPendingDraft } from "~/lib/pending-draft";
 import { readRememberedNext, clearRememberedNext } from "~/lib/remember-next";
 import { locationMatchesStates, keywordPred, setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { NaicsTypeahead } from "~/components/NaicsTypeahead";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -102,6 +103,7 @@ const countMatchOpportunities = createServerFn({ method: "GET" }).handler(
       query?: string;
       states?: string[];
       range?: string;
+      naicsCodes?: string[];
     };
   }) => {
     const { sql } = await import("~/db");
@@ -112,13 +114,33 @@ const countMatchOpportunities = createServerFn({ method: "GET" }).handler(
     const range = CONTRACT_RANGES[rangeKey];
 
     // keywordPred matches naics_code, so make sure the column exists first
-    // (same lazy migration as the homepage). 
-    if (query) {
+    // (same lazy migration as the homepage).
+    //
+    // Multi-code support: when the user holds NAICS codes (from the shared
+    // typeahead), we OR-match ANY of them against naics_code in one predicate.
+    // A raw keyword phrase remains a supported fallback (blank path / typed
+    // phrase) for full backward compatibility.
+    const codes = (data?.naicsCodes ?? [])
+      .map((c) => String(c).trim())
+      .filter((c) => /^\d{6}$/.test(c));
+    const q = query.trim().toLowerCase();
+    if (query || codes.length) {
       try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
     }
 
     const certPred = setAsidePred(certification, sql);
-    const kwPred = keywordPred(query, sql);
+    let kwPred;
+    if (codes.length > 0) {
+      const codeAny = sql()`naics_code = ANY(${codes})`;
+      if (q && !/^\d{6}$/.test(q)) {
+        // Selected codes OR a complementary keyword-phrase match.
+        kwPred = sql()`AND (${codeAny} ${sql().unsafe("OR")} LOWER(COALESCE(naics_code,'')) LIKE ${"%" + q + "%"})`;
+      } else {
+        kwPred = sql()`AND ${codeAny}`;
+      }
+    } else {
+      kwPred = keywordPred(query, sql);
+    }
 
     const rows = (await sql()`
       SELECT DISTINCT ON (title, agency)
@@ -176,6 +198,7 @@ function OnboardingRoute() {
 function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
   const [certification, setCertification] = useState("small_business");
   const [query, setQuery] = useState("");
+  const [naicsCodes, setNaicsCodes] = useState<string[]>([]);
   const [states, setStates] = useState<string[]>([]);
   const [contractRange, setContractRange] = useState("any");
 
@@ -204,7 +227,7 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
 
   const canCompute = certification.trim().length > 0 && states.length > 0;
 
-  const runCount = async (overrides?: { cert?: string; states?: string[]; range?: string; query?: string }) => {
+  const runCount = async (overrides?: { cert?: string; states?: string[]; range?: string; query?: string; naicsCodes?: string[] }) => {
     if (counting) return;
     setCounting(true);
     setCountError("");
@@ -214,6 +237,7 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
         data: {
           certification: overrides?.cert ?? certification,
           query: overrides?.query !== undefined ? overrides.query : query,
+          naicsCodes: overrides?.naicsCodes !== undefined ? overrides.naicsCodes : naicsCodes,
           states: overrides?.states ?? states,
           range: overrides?.range ?? contractRange,
         },
@@ -232,11 +256,12 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
     // Broaden: drop the trade/keyword, include all states, any contract size.
     // Keeps the certification (that's the business's identity), which is honest.
     setQuery("");
+    setNaicsCodes([]);
     setContractRange("any");
     setStates([...US_STATES]);
     setCount(null);
     // recompute immediately with the broadened filters
-    runCount({ query: "", states: [...US_STATES], range: "any" });
+    runCount({ query: "", naicsCodes: [], states: [...US_STATES], range: "any" });
   };
 
   const saveProfileAndGo = async () => {
@@ -247,20 +272,24 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
       .replace(/\b\w/g, (c) => c.toUpperCase())
       .trim() || "My Business";
     const isNumericNaics = /^\d{6}$/.test(query.trim());
+    // The authority is the set of codes picked in the typeahead. Fall back to a
+    // bare typed 6-digit code (pre-typeahead behavior) so a user who types a
+    // code without tapping a suggestion still saves it.
+    const finalCodes = naicsCodes.length > 0 ? naicsCodes : isNumericNaics ? [query.trim()] : [];
     try {
       const res = await fetch("/api/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           businessName: derivedName,
-          industry: isNumericNaics ? "" : query.trim(),
+          industry: finalCodes.length > 0 ? "" : query.trim(),
           locations: states,
           // settings shape — no `services` key, so the profile endpoint does NOT
           // require industry/services that the new flow no longer collects.
-          naicsCodes: isNumericNaics ? [query.trim()] : [],
+          naicsCodes: finalCodes,
           certifications:
             certification && certification !== "small_business" ? [certification] : [],
-          specialties: isNumericNaics ? [] : query.trim() ? [query.trim()] : [],
+          specialties: finalCodes.length > 0 ? [] : query.trim() ? [query.trim()] : [],
           typicalContractValue: CONTRACT_RANGES[contractRange]?.label || "",
         }),
       }).then((r) => r.json());
@@ -290,8 +319,9 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
       window.location.assign(rememberedNext);
       return;
     }
-    if (query.trim()) {
-      window.location.assign(`/?q=${encodeURIComponent(query.trim())}#open-opportunities`);
+    if (query.trim() || naicsCodes.length > 0) {
+      const q = query.trim() || naicsCodes.join(" ");
+      window.location.assign(`/?q=${encodeURIComponent(q)}#open-opportunities`);
     } else {
       window.location.assign("/#open-opportunities");
     }
@@ -346,20 +376,17 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
 
           {/* 2. NAICS / trade */}
           <div className="mb-6">
-            <label htmlFor="trade" className="block text-sm font-semibold text-slate-700">
-              2. NAICS code or trade
+            <label className="block text-sm font-semibold text-slate-700">
+              2. What do you do? (NAICS code / trade)
             </label>
-            <input
-              id="trade"
-              type="text"
-              value={query}
-              onChange={(e) => { setQuery(e.target.value); setCount(null); }}
-              placeholder="e.g. 238220, HVAC, Janitorial, roofing…"
-              className="mt-1.5 block w-full rounded-lg border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            <NaicsTypeahead
+              inputId="trade"
+              value={naicsCodes}
+              onChange={(codes) => { setNaicsCodes(codes); setCount(null); }}
+              onTermChange={(t) => { setQuery(t); setCount(null); }}
+              placeholder="Search your trade — e.g. HVAC, roofing, management consulting"
+              helpText="Pick one or more trades (you can hold several service lines and turn them on/off in Settings later). Optional: leave blank for any trade."
             />
-            <p className="mt-1.5 text-xs text-slate-400">
-              A 6-digit NAICS code or a trade phrase — same search the homepage uses. Optional: leave blank for any trade.
-            </p>
           </div>
 
           {/* 3. Geography */}

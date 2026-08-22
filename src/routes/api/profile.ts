@@ -25,6 +25,8 @@ interface ProfilePayload {
   locations?: string[];
   services?: string[];
   naicsCodes?: string[] | string;
+  /** Saved-but-toggled-off NAICS codes (kept in the profile, excluded from matching). */
+  naicsInactiveCodes?: string[];
   certifications?: string[];
   uei?: string;
   cageCode?: string;
@@ -77,6 +79,9 @@ async function saveProfileHandler({ request }: { request: Request }): Promise<Re
   } else if (typeof d.naicsCodes === "string" && d.naicsCodes.trim().length > 0) {
     naicsArray = d.naicsCodes.split(",").map((c) => c.trim()).filter((c) => c.length > 0);
   }
+  const naicsInactive = Array.isArray(d.naicsInactiveCodes)
+    ? d.naicsInactiveCodes.filter((c): c is string => typeof c === "string" && c.trim().length > 0)
+    : [];
   const certifications = Array.isArray(d.certifications) ? d.certifications : [];
   const certificationDates =
     d.certificationDates && typeof d.certificationDates === "object" && !Array.isArray(d.certificationDates)
@@ -100,6 +105,7 @@ async function saveProfileHandler({ request }: { request: Request }): Promise<Re
 
   // ── Lazy column migrations (backward compat, all idempotent) ─────────────
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS naics_codes JSONB DEFAULT '[]'::jsonb`; } catch {}
+  try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS naics_inactive_codes JSONB DEFAULT '[]'::jsonb`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS licenses JSONB DEFAULT '[]'::jsonb`; } catch {}
@@ -127,6 +133,7 @@ async function saveProfileHandler({ request }: { request: Request }): Promise<Re
             industry = ${industry},
             locations = ${JSON.stringify(locations)}::jsonb,
             naics_codes = ${JSON.stringify(naicsArray)}::jsonb,
+            naics_inactive_codes = ${JSON.stringify(naicsInactive)}::jsonb,
             uei = ${d.uei ? d.uei.trim() : null},
             cage_code = ${d.cageCode ? d.cageCode.trim() : null},
             duns = ${d.duns ? d.duns.trim() : null},
@@ -153,7 +160,7 @@ async function saveProfileHandler({ request }: { request: Request }): Promise<Re
   } else {
     await sql()`
       INSERT INTO business_profiles (
-        user_id, business_name, industry, locations, naics_codes,
+        user_id, business_name, industry, locations, naics_codes, naics_inactive_codes,
         uei, cage_code, duns, sam_expiration, certifications, certification_dates,
         years_in_business, employee_count, annual_revenue,
         past_performance_summary, capability_statement,
@@ -161,7 +168,7 @@ async function saveProfileHandler({ request }: { request: Request }): Promise<Re
       )
       VALUES (
         ${user.id}, ${businessName}, ${industry},
-        ${JSON.stringify(locations)}::jsonb, ${JSON.stringify(naicsArray)}::jsonb,
+        ${JSON.stringify(locations)}::jsonb, ${JSON.stringify(naicsArray)}::jsonb, ${JSON.stringify(naicsInactive)}::jsonb,
         ${d.uei ? d.uei.trim() : null}, ${d.cageCode ? d.cageCode.trim() : null}, ${d.duns ? d.duns.trim() : null},
         ${d.samExpiration ? d.samExpiration.trim() : null}::date,
         ${JSON.stringify(certifications)}::jsonb,

@@ -18,6 +18,7 @@ import {
   parseReviewParams,
   readReviewFilters,
   storeReviewFilters,
+  writeReviewFilters,
   type ReviewFilterState,
   type SortKey,
 } from "~/lib/review-context";
@@ -1472,6 +1473,15 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
       });
       if (!res.ok) throw new Error("Failed to update filters");
       await loadDashboardData();
+      // Keep the review-context localStorage store in sync with the DB profile:
+      // the removed filter is gone server-side, so clear the mirror fields too
+      // (clears states/naics/setAside on the matching kind; other fields incl.
+      // URL-param semantics sort/setasideonly/feed/bid_id are untouched).
+      writeReviewFilters(
+        kind === "geo" ? { states: [] }
+        : kind === "naics" ? { naics: [] }
+        : { setAside: "" },
+      );
     } catch {} finally { setFilterUpdating(false); }
   }, [profile, filterUpdating, loadDashboardData]);
 

@@ -551,7 +551,7 @@ function AwardsPage() {
                 {isExpanded && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 space-y-5">
                     {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No matching award history found for this agency and opportunity title.</p>}
-                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id}
+                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} title={award.title} agency={award.agency}
                       freeReveal={!currentUser && (freeRevealAwardId === award.id || milestoneRevealAwardId === award.id)}
                       milestoneOffer={!currentUser && milestoneOfferAwardId === award.id}
                       onMilestoneGranted={() => handleMilestoneGranted(award.id)} />}

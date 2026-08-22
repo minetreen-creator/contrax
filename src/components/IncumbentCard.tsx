@@ -6,8 +6,10 @@
  * incumbent name is masked (first character of the first word + asterisks,
  * length-preserving, derived from the real name), while the real "Total
  * obligated" figure, UEI, and period of performance stay visible. The chart
- * area is replaced by a teaser panel with an unlock CTA
- * (`/signup?plan=professional&next=/awards`).
+ * area is replaced by a teaser panel with an unlock CTA that routes to
+ * `/signup?source=incumbent&opportunity_id=<bidId>&title=..&agency=..&plan=professional&next=/awards`
+ * so the signup page can frame itself around unlocking THIS incumbent's
+ * contract history & past pricing.
  *
  * `freeReveal` (session-scoped "first one's free" grant from /awards) renders
  * a logged-out panel exactly like the logged-in one — full data, no wall.
@@ -115,6 +117,8 @@ export function IncumbentCard({
   winner,
   user,
   bidId,
+  title,
+  agency,
   freeReveal,
   milestoneOffer,
   onMilestoneGranted,
@@ -123,6 +127,11 @@ export function IncumbentCard({
   winner?: string;
   user?: AuthUser | null;
   bidId?: number;
+  // The bid/opportunity title + agency that this incumbent panel belongs to —
+  // carried through to /signup so the incumbent banner can name the bid
+  // (`?source=incumbent&opportunity_id=<bidId>&title=..&agency=..`).
+  title?: string;
+  agency?: string;
   freeReveal?: boolean;
   // Milestone grant (one per device): when true and the panel is gated, the
   // signup teaser is replaced by the email-capture offer; onMilestoneGranted is
@@ -156,7 +165,7 @@ export function IncumbentCard({
       <div className="flex h-40 flex-col items-center justify-center gap-2 bg-white p-4 text-center">
         <p className="text-sm font-semibold text-slate-800">Full 5-year pricing history</p>
         <a
-          href="/signup?plan=professional&next=/awards"
+          href={`/signup?source=incumbent&opportunity_id=${bidId != null ? bidId : ""}&title=${encodeURIComponent(title || "")}&agency=${encodeURIComponent(agency || "")}&plan=professional&next=/awards`}
           onClick={() => trackEvent("incumbent_gate_signup", bidId != null ? String(bidId) : undefined, "/awards")}
           className="inline-flex w-full max-w-sm items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
         >

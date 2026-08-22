@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState, useCallback, useEffect, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { locationMatchesStates, shouldApplyStateFilter } from "~/lib/open-bids";
@@ -13,6 +13,16 @@ import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfil
 import { GettingStarted } from "~/components/GettingStarted";
 import { checkTrial, type TrialStatus } from "~/lib/trial";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
+import {
+  mergeFilterState,
+  parseReviewParams,
+  readReviewFilters,
+  storeReviewFilters,
+  type ReviewFilterState,
+  type SortKey,
+} from "~/lib/review-context";
+import { StickyFilterBar } from "~/components/StickyFilterBar";
+import { ReviewPager } from "~/components/ReviewPager";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Bid {
@@ -437,6 +447,10 @@ function recommendationStyle(rec: BidRecommendation | undefined) {
   return { label: "CAUTIOUS", detail: "Proceed carefully — mixed signals", bg: "bg-amber-100", text: "text-amber-700", border: "border-amber-200", dot: "🟡" };
 }
 function levelStyle(level: string) { return level === "low" || level === "strong" ? "bg-green-100 text-green-700" : level === "high" || level === "extreme" || level === "weak" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"; }
+const CERT_NAME: Record<string, string> = {
+  "8a": "8(a)", hubzone: "HUBZone", wosb: "WOSB", sdvosb: "SDVOSB", vosb: "VOSB",
+  minority_owned: "Minority", disadvantaged: "Disadvantaged", small_business: "Small Business",
+};
 
 
 // ── FAR-Grounded Drafting renderer ─────────────────────────────────────────
@@ -947,18 +961,101 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
   const [trackedBidIds, setTrackedBidIds] = useState<Set<string>>(new Set());
   const [expandedBid, setExpandedBid] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Record<number, string>>({});
-  const [sortBy, setSortBy] = useState<"due_date" | "newest" | "value">("due_date");
-  const [setAsideOnly, setSetAsideOnly] = useState(false);
+  const [sortBy, setSortBy] = useState<SortKey>(() =>
+    mergeFilterState(parseReviewParams(location.search), readReviewFilters()).sort,
+  );
+  const [setAsideOnly, setSetAsideOnly] = useState<boolean>(() =>
+    mergeFilterState(parseReviewParams(location.search), readReviewFilters()).setAsideOnly,
+  );
   // Live/Open vs Archived(default live) matched-feed tabs. `archivedBids` is
   // null until the user opens the Archived tab (lazy server query), so the
   // default live page never pays the payload/query cost of the dead list.
-  const [feedTab, setFeedTab] = useState<"live" | "archived">("live");
+  const [feedTab, setFeedTab] = useState<"live" | "archived">(() =>
+    mergeFilterState(parseReviewParams(location.search), readReviewFilters()).feedTab,
+  );
   const [archivedBids, setArchivedBids] = useState<ArchiveBid[] | null>(null);
   const [archivedLoading, setArchivedLoading] = useState(false);
   const [archivedCount, setArchivedCount] = useState<number>(() => data?.archivedCount ?? 0);
   const [loggingOut, setLoggingOut] = useState(false);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [trackingLoading, setTrackingLoading] = useState<Set<number>>(new Set());
+
+  // ── Review-context persistence (shared filter mechanism) ────────────────
+  // URL params are the source of truth for the ACTIVE view; localStorage
+  // ("contrax.reviewFilters") keeps the context across reloads/sessions so it
+  // STAYS PUT until the user deliberately changes it. Business-profile filters
+  // (geo states, NAICS, set-aside/cert) live in the user's profile row and
+  // naturally survive every session — the sticky bar mirrors those.
+
+  // Patch the active view filters (sort / set-aside-only / feed tab): update
+  // React state, the URL params, and localStorage all in one place.
+  const applyFilterPatch = useCallback(
+    (p: Partial<ReviewFilterState>) => {
+      if (p.sort !== undefined && p.sort !== sortBy) setSortBy(p.sort);
+      if (p.setAsideOnly !== undefined && p.setAsideOnly !== setAsideOnly) setSetAsideOnly(p.setAsideOnly);
+      if (p.feedTab !== undefined && p.feedTab !== feedTab) setFeedTab(p.feedTab);
+      const patch: Record<string, string> = {};
+      if (p.sort !== undefined) patch.sort = p.sort === "due_date" ? "" : p.sort;
+      if (p.setAsideOnly !== undefined) patch.setasideonly = p.setAsideOnly ? "1" : "";
+      if (p.feedTab !== undefined) patch.feed = p.feedTab;
+      navigate({
+        to: "/dashboard",
+        search: { ...((location.search as Record<string, unknown>) ?? {}), ...patch } as any,
+        replace: true,
+      });
+      // Reflect the newest context into localStorage (URL overrides local).
+      const merged = mergeFilterState(parseReviewParams(location.search), readReviewFilters());
+      if (p.sort !== undefined) merged.sort = p.sort;
+      if (p.setAsideOnly !== undefined) merged.setAsideOnly = p.setAsideOnly;
+      if (p.feedTab !== undefined) merged.feedTab = p.feedTab;
+      storeReviewFilters(merged);
+    },
+    [navigate, sortBy, setAsideOnly, feedTab, location.search],
+  );
+
+  // Deep-link handling: a ?bid_id= param focuses that bid in the current result
+  // set (no re-query) and scrolls it into view once dashboard data is ready.
+  const handledDeepLinkRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!data) return;
+    const raw = location.search.bid_id;
+    const bidIdStr =
+      Array.isArray(raw) ? String(raw[0] ?? "") : raw == null ? "" : String(raw);
+    if (!bidIdStr) { handledDeepLinkRef.current = null; return; }
+    const bidId = Number(bidIdStr);
+    if (!Number.isFinite(bidId) || bidId <= 0) return;
+    setExpandedBid(bidId);
+    if (handledDeepLinkRef.current === bidIdStr) return;
+    handledDeepLinkRef.current = bidIdStr;
+    requestAnimationFrame(() => {
+      document.getElementById(`bid-${bidId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [data, location.search.bid_id]);
+
+  // Focus a single match within the current result set and persist it to the
+  // URL so it survives navigation and is shareable.
+  const focusBid = useCallback((bidId: number) => {
+    setExpandedBid(bidId);
+    navigate({
+      to: "/dashboard",
+      search: { ...((location.search as Record<string, unknown>) ?? {}), bid_id: String(bidId) } as any,
+      replace: true,
+    });
+  }, [navigate, location.search]);
+
+  // Return to the full results list (clears the single-match focus deep-link).
+  const backToResults = useCallback(() => {
+    setExpandedBid(null);
+    const raw = location.search.bid_id;
+    if (raw === undefined || raw === null) return;
+    const next = { ...((location.search as Record<string, unknown>) ?? {}) };
+    delete next.bid_id;
+    navigate({ to: "/dashboard", search: next as any, replace: true });
+    requestAnimationFrame(() => {
+      const el = document.getElementById("bid-matches");
+      el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [navigate, location.search]);
 
   // AI state — pre-populated from loader data so SSR-rendered cards already show
   // their summaries/scores/recommendations without a client-side re-fetch.
@@ -1071,6 +1168,37 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
     if (sortBy === "value") return (b.estimated_value?.length || 0) - (a.estimated_value?.length || 0);
     return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
   });
+
+  // ── Review-continuity cursor ────────────────────────────────────────────
+  // Position of the currently-focused match within the CURRENT result set
+  // (`sorted`), so Previous / Next iterate the adjacent match in the same
+  // filtered context without re-running any query.
+  const reviewPos = expandedBid != null ? sorted.findIndex((b) => b.id === expandedBid) : -1;
+
+  const goToBidAt = useCallback((index: number) => {
+    const bid = sorted[index];
+    if (!bid) return;
+    setExpandedBid(bid.id);
+    if (!scores[bid.id]) doScore(bid.id);
+    navigate({
+      to: "/dashboard",
+      search: { ...((location.search as Record<string, unknown>) ?? {}), bid_id: String(bid.id) } as any,
+      replace: true,
+    });
+    requestAnimationFrame(() => {
+      document.getElementById(`bid-${bid.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [sorted, scores, navigate, location.search]);
+
+  const goNext = useCallback(() => {
+    if (reviewPos < 0) return;
+    goToBidAt(reviewPos + 1);
+  }, [reviewPos, goToBidAt]);
+
+  const goPrev = useCallback(() => {
+    if (reviewPos <= 0) return;
+    goToBidAt(reviewPos - 1);
+  }, [reviewPos, goToBidAt]);
 
   // Archived feed: dead bids (past-due OR dismissed/closed) filtered to the same
   // profile relevance as the live feed, most-recently-closed first.
@@ -1440,7 +1568,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
               <div className="space-y-3">
                 {digest.entries.map((entry) => {
                   const color = entry.win_probability >= 80 ? "text-green-600 bg-green-50 border-green-200" : entry.win_probability >= 50 ? "text-amber-600 bg-amber-50 border-amber-200" : "text-red-600 bg-red-50 border-red-200";
-                  return <button key={entry.bid_id} type="button" onClick={() => { setExpandedBid(entry.bid_id); if (!scores[entry.bid_id]) doScore(entry.bid_id); }} className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-300 hover:shadow-md">
+                  return <button key={entry.bid_id} type="button" onClick={() => { focusBid(entry.bid_id); if (!scores[entry.bid_id]) doScore(entry.bid_id); }} className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-blue-300 hover:shadow-md">
                     <div className="flex items-center gap-4">
                       <div className={`flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl border ${color}`}><span className="text-2xl font-bold leading-none">{entry.win_probability}%</span><span className="mt-1 text-[10px] font-semibold uppercase tracking-wide">win chance</span></div>
                       <div className="min-w-0 flex-1"><h3 className="truncate font-semibold text-slate-900">{entry.title}</h3><p className="mt-0.5 truncate text-sm text-slate-500">{entry.agency}</p><div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500"><span className="font-medium text-slate-700">{entry.estimated_value}</span><span className="truncate">{entry.reason}</span></div></div>
@@ -1508,7 +1636,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => setSetAsideOnly((v) => !v)}
+                onClick={() => applyFilterPatch({ setAsideOnly: !setAsideOnly })}
                 className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                   setAsideOnly
                     ? "bg-purple-600 text-white shadow-sm"
@@ -1522,7 +1650,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
                 Set-Aside Only
               </button>
               <label htmlFor="sort" className="text-sm font-medium text-slate-600">Sort by:</label>
-              <select id="sort" value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
+              <select id="sort" value={sortBy} onChange={(e) => applyFilterPatch({ sort: e.target.value as any })} className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 bg-white">
                 <option value="due_date">Due date (closest)</option>
                 <option value="newest">Newest</option>
                 <option value="value">Highest value</option>
@@ -1530,6 +1658,42 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
             </div>
           )}
         </div>
+
+        {/* Sticky, mobile-first filter bar — shared review-context mechanism */}
+        {profile && (
+          <StickyFilterBar
+            states={profile.locations ?? []}
+            setAsideLabel={
+              profileCerts.length > 0
+                ? profileCerts.map((c) => CERT_NAME[c] ?? c).join(", ")
+                : setAsideOnly
+                  ? "Set-asides only"
+                  : "All set-asides"
+            }
+            naics={profile.naics_codes ?? []}
+            sort={sortBy}
+            setAsideOnly={setAsideOnly}
+            total={feedTab === "live" ? sorted.length : undefined}
+            onPatch={applyFilterPatch}
+            onChangeGeo={() => navigate({ to: "/settings" })}
+            onChangeSetAside={() => applyFilterPatch({ setAsideOnly: !setAsideOnly })}
+            onChangeNaics={() => navigate({ to: "/settings" })}
+          />
+        )}
+
+        {/* Review-continuity pager — shown while a single match is focused */}
+        {profile && feedTab === "live" && reviewPos >= 0 && (
+          <div className="mt-3">
+            <ReviewPager
+              position={reviewPos}
+              total={sorted.length}
+              onBack={backToResults}
+              onPrev={goPrev}
+              onNext={goNext}
+              setLabel="Open / Closing Soon"
+            />
+          </div>
+        )}
 
         {/* Bid Cards */}
         {!profile ? (
@@ -1595,7 +1759,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div id="bid-matches" className="space-y-4">
             {sorted.map((bid) => {
               const days = daysUntil(bid.due_date);
               const cd = countdown(days);
@@ -1621,8 +1785,8 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
               const elig = profile ? computeEligibility(bid, profile) : null;
 
               return (
-                <div key={bid.id} className={`rounded-2xl border bg-white shadow-sm transition-all ${isExpanded ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200 hover:border-slate-300"}`}>
-                  <button type="button" onClick={() => setExpandedBid(isExpanded ? null : bid.id)} className="w-full text-left p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+                <div key={bid.id} id={`bid-${bid.id}`} className={`rounded-2xl border bg-white shadow-sm transition-all ${isExpanded ? "border-blue-300 ring-2 ring-blue-100" : "border-slate-200 hover:border-slate-300"}`}>
+                  <button type="button" onClick={() => (isExpanded ? backToResults() : focusBid(bid.id))} className="w-full text-left p-5 flex flex-col sm:flex-row sm:items-center gap-4">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start gap-3">
                         <div className="flex-1 min-w-0">

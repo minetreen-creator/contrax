@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
@@ -8,6 +8,12 @@ import { readRememberedNext, clearRememberedNext } from "~/lib/remember-next";
 import { locationMatchesStates, keywordPred, setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { NaicsTypeahead } from "~/components/NaicsTypeahead";
+import {
+  mergeFilterState,
+  parseReviewParams,
+  readReviewFilters,
+  writeReviewFilters,
+} from "~/lib/review-context";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -196,11 +202,22 @@ function OnboardingRoute() {
 }
 
 function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
-  const [certification, setCertification] = useState("small_business");
+  const location = useLocation();
+  // Seed the filter context from URL params (override) + the persisted store
+  // (localStorage "contrax.reviewFilters"), so a reload / navigation keeps the
+  // last deliberately-chosen filters instead of resetting ("stays put").
+  const initCtx = mergeFilterState(parseReviewParams(location.search), readReviewFilters());
+  const [certification, setCertification] = useState<string>(initCtx.setAside || "small_business");
   const [query, setQuery] = useState("");
-  const [naicsCodes, setNaicsCodes] = useState<string[]>([]);
-  const [states, setStates] = useState<string[]>([]);
+  const [naicsCodes, setNaicsCodes] = useState<string[]>(initCtx.naics);
+  const [states, setStates] = useState<string[]>(initCtx.states);
   const [contractRange, setContractRange] = useState("any");
+
+  // Persist the chosen filters to the shared store whenever they change, so a
+  // fresh session / reload keeps them (shared mechanism with the dashboard).
+  useEffect(() => {
+    writeReviewFilters({ states, setAside: certification, naics: naicsCodes });
+  }, [states, certification, naicsCodes]);
 
   const [counting, setCounting] = useState(false);
   const [count, setCount] = useState<number | null>(null);
@@ -319,12 +336,11 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
       window.location.assign(rememberedNext);
       return;
     }
-    if (query.trim() || naicsCodes.length > 0) {
-      const q = query.trim() || naicsCodes.join(" ");
-      window.location.assign(`/?q=${encodeURIComponent(q)}#open-opportunities`);
-    } else {
-      window.location.assign("/#open-opportunities");
-    }
+    // Unified review surface: onboarding's "We found N" leads into the
+    // dashboard matched-bid review, which shares the SAME filter-context
+    // persistence + sticky filter bar + Next/Previous review continuity. The
+    // just-saved profile (locations / NAICS / certifications) drives the feed.
+    window.location.assign("/dashboard");
   };
 
   const certLabel = CERT_OPTIONS.find((c) => c.value === certification)?.label || certification;
@@ -481,9 +497,18 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
                   <p className="mt-1 text-sm font-medium text-slate-700">
                     open opportunit{count === 1 ? "y" : "ies"} matching your business
                   </p>
-                  <p className="mt-2 text-xs text-slate-400">
-                    {certLabel} &middot; {states.length} state{states.length !== 1 ? "s" : ""} &middot; {rangeLabel}
-                  </p>
+                  <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+                    <span className="rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">{certLabel}</span>
+                    <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-600">
+                      {states.length} state{states.length !== 1 ? "s" : ""}
+                    </span>
+                    {naicsCodes.length > 0 && (
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                        {naicsCodes.length} NAICS: {naicsCodes.join(", ")}
+                      </span>
+                    )}
+                    <span className="rounded-full px-2.5 py-1 text-xs font-medium text-slate-500">{rangeLabel}</span>
+                  </div>
                   {unknownValue > 0 && (
                     <p className="mt-1 text-xs text-slate-400">
                       {unknownValue} of these don&rsquo;t list a contract value and are included.

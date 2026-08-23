@@ -48,10 +48,44 @@ interface BidScore {
 }
 interface SavedMatch { bid_id: number; status: string; }
 
+// ── External-user search telemetry ──────────────────────────────────────────
+// This dashboard-load is the authenticated user's live-matches feed, so each
+// load represents them genuinely examining/searching the feed (initial visit,
+// filter apply, or "broaden search" refresh). We record ONE row per user per
+// 2-minute window (debounced via the NOT IN subquery) so a session that
+// renders the feed repeatedly doesn't spam the table. Fire-and-forget: any
+// failure is swallowed so telemetry can NEVER break the dashboard. Going
+// forward only — there is no historical search data, so counts start at 0.
+let userSearchesEnsured = false;
+async function recordUserSearch(userId: number): Promise<void> {
+  try {
+    if (!userSearchesEnsured) {
+      await sql()`CREATE TABLE IF NOT EXISTS user_searches (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      )`;
+      await sql()`CREATE INDEX IF NOT EXISTS idx_user_searches_user_id ON user_searches (user_id)`;
+      await sql()`CREATE INDEX IF NOT EXISTS idx_user_searches_created_at ON user_searches (created_at)`;
+      userSearchesEnsured = true;
+    }
+    await sql()`INSERT INTO user_searches (user_id, created_at)
+      SELECT ${userId}, NOW()
+      WHERE ${userId} NOT IN (
+        SELECT user_id FROM user_searches
+        WHERE user_id = ${userId} AND created_at > NOW() - INTERVAL '2 minutes'
+      )`;
+  } catch {
+    // Best-effort — never break the dashboard.
+  }
+}
+
 async function handler({ request }: { request: Request }) {
   try {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
+  // Non-blocking search telemetry (swallows all errors internally).
+  await recordUserSearch(Number(user.id));
 
   // Check for active_profile_id (agency entity switching)
   let activeProfileId: number | null = null;

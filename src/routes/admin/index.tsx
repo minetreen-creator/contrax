@@ -121,6 +121,28 @@ async function exportWaitlistCsv(): Promise<string> {
   }
   return res.text();
 }
+// ── External User Activity (counts + timestamps only, no private content) ──
+interface ExternalUserActivity {
+  user_id: number;
+  email: string;
+  plan_tier: string | null;
+  last_login: string | null;
+  search_count: number;
+  last_search: string | null;
+  score_count: number;
+  last_score: string | null;
+  save_count: number;
+  last_save: string | null;
+  created_at: string | null;
+}
+async function fetchUserActivity(): Promise<ExternalUserActivity[]> {
+  const res = await fetch("/api/admin/user-activity");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to load user activity" }));
+    throw new Error(err.error || "Failed to load user activity");
+  }
+  return res.json();
+}
 
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/admin/")({
@@ -151,15 +173,22 @@ function AdminPage() {
   const [funnel, setFunnel] = useState<ClosingSoonFunnel | null>(null);
   const [funnelError, setFunnelError] = useState("");
   const [funnelLoading, setFunnelLoading] = useState(true);
+  const [activity, setActivity] = useState<ExternalUserActivity[] | null>(null);
+  const [activityError, setActivityError] = useState("");
 
   useEffect(() => {
-    Promise.all([fetchAdminMetrics(), fetchLossRadarSummary(), fetchFarStats()])
-      .then(([m, s, f]) => {
+    Promise.all([fetchAdminMetrics(), fetchLossRadarSummary(), fetchFarStats(), fetchUserActivity()])
+      .then(([m, s, f, a]) => {
         setMetrics(m);
         setLossRadarCount(s.highValueProspects);
         setFarStats(f);
+        setActivity(a);
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load metrics"))
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : "Failed to load metrics";
+        setError(msg);
+        setActivityError(msg);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -533,6 +562,83 @@ function AdminPage() {
               )}
             </div>
           </div>
+        </section>
+
+        {/* External User Activity Section */}
+        <section>
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-lg font-semibold text-slate-800">👥 External User Activity</h2>
+          </div>
+          <p className="mb-4 text-sm text-slate-500">
+            Counts and timestamps only — no private content (no bid titles, proposal/draft text,
+            saved-match notes, or business-profile data). Search tracking began when this shipped,
+            so 0 searches is expected initially for pre-existing users.
+          </p>
+          {activityError ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {activityError}
+            </div>
+          ) : loading || activity === null ? (
+            <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-400">
+              Loading external user activity…
+            </div>
+          ) : activity.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-400">
+              No external users yet.
+            </div>
+          ) : (
+            <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
+                      <th className="px-5 py-3 font-medium">Email</th>
+                      <th className="px-5 py-3 font-medium">Plan</th>
+                      <th className="px-5 py-3 font-medium">Last Login</th>
+                      <th className="px-5 py-3 font-medium">Searches</th>
+                      <th className="px-5 py-3 font-medium">Scores</th>
+                      <th className="px-5 py-3 font-medium">Saves</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activity.map((a) => (
+                      <tr key={a.user_id} className="border-t border-slate-50">
+                        <td className="px-5 py-3">
+                          <a href={`mailto:${a.email}`} className="text-blue-600 hover:text-blue-700 hover:underline">{a.email}</a>
+                        </td>
+                        <td className="px-5 py-3">
+                          <span className="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium capitalize text-slate-700">
+                            {a.plan_tier || "No plan"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap text-slate-500">
+                          {a.last_login ? new Date(a.last_login).toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }) : <span className="text-slate-400">never</span>}
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap">
+                          <span className="font-semibold text-slate-900">{a.search_count}</span>
+                          <span className="ml-2 text-xs text-slate-400">
+                            {a.last_search ? `(${new Date(a.last_search).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })})` : "(never)"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap">
+                          <span className="font-semibold text-slate-900">{a.score_count}</span>
+                          <span className="ml-2 text-xs text-slate-400">
+                            {a.last_score ? `(${new Date(a.last_score).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })})` : "(never)"}
+                          </span>
+                        </td>
+                        <td className="px-5 py-3 whitespace-nowrap">
+                          <span className="font-semibold text-slate-900">{a.save_count}</span>
+                          <span className="ml-2 text-xs text-slate-400">
+                            {a.last_save ? `(${new Date(a.last_save).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })})` : "(never)"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Traffic Section */}

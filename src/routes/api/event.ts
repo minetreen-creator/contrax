@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
+import { resolveAttribution, type Attribution } from "~/lib/attribution";
 
 /**
  * POST /api/event
@@ -54,10 +55,21 @@ async function ensureFunnelEventsTable(): Promise<void> {
     user_agent TEXT,
     ip TEXT,
     referrer TEXT,
+    source TEXT,
+    medium TEXT,
+    campaign TEXT,
+    click_id TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
+  // Lazy ALTER guards (idempotent) so pre-existing production tables gain the
+  // attribution columns on first hit after deploy — no migration step required.
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS source TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS medium TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS campaign TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS click_id TEXT`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_created_at ON funnel_events (created_at)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_event_name ON funnel_events (event_name)`;
+  await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_source ON funnel_events (source)`;
 }
 
 /**
@@ -127,9 +139,20 @@ async function handler({ request }: { request: Request }) {
     const referrer = (request.headers.get("referer") ?? "").slice(0, 2048) || null;
     const ip = getClientIp(request);
 
+    // First-touch acquisition attribution, resolved in precedence order:
+    // cookie (contrax_attr) → request query params → referer. The client's
+    // AttributionCookie (src/routes/__root.tsx) sets contrax_attr before funnel
+    // events fire, so the cookie is the canonical carrier here; query params and
+    // the referer header cover the cookie-blocker fallback.
+    const attr: Attribution = resolveAttribution({
+      cookie: request.headers.get("cookie"),
+      search: new URL(request.url).search,
+      referer: request.headers.get("referer"),
+    });
+
     const insert = () =>
-      sql()`INSERT INTO funnel_events (event_name, label, path, user_agent, ip, referrer)
-        VALUES (${event}, ${label}, ${path}, ${userAgent}, ${ip}, ${referrer})`;
+      sql()`INSERT INTO funnel_events (event_name, label, path, user_agent, ip, referrer, source, medium, campaign, click_id)
+        VALUES (${event}, ${label}, ${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id})`;
 
     try {
       await ensureFunnelEventsTable();

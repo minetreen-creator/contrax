@@ -146,6 +146,31 @@ async function fetchUserActivity(): Promise<ExternalUserActivity[]> {
   return res.json();
 }
 
+// ── Acquisition by Source (first-touch attribution, PR #214) ────────────────
+interface AcquisitionRow {
+  source: string;
+  medium: string;
+  visits: number;
+  visitsRaw: number;
+  signupViews: number;
+  signupConversions: number;
+}
+interface AcquisitionResult {
+  rangeDays: number;
+  from: string;
+  to: string;
+  rows: AcquisitionRow[];
+  totals: { visits: number; visitsRaw: number; signupViews: number; signupConversions: number };
+}
+async function fetchAcquisition(days: number): Promise<AcquisitionResult> {
+  const res = await fetch(`/api/admin/acquisition?days=${days}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to load acquisition" }));
+    throw new Error(err.error || "Failed to load acquisition");
+  }
+  return res.json();
+}
+
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/admin/")({
   // Gate the page: anonymous visitors go to /login, authenticated non-admins
@@ -177,6 +202,10 @@ function AdminPage() {
   const [funnelLoading, setFunnelLoading] = useState(true);
   const [activity, setActivity] = useState<ExternalUserActivity[] | null>(null);
   const [activityError, setActivityError] = useState("");
+  const [acqDays, setAcqDays] = useState(30);
+  const [acquisition, setAcquisition] = useState<AcquisitionResult | null>(null);
+  const [acqError, setAcqError] = useState("");
+  const [acqLoading, setAcqLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([fetchAdminMetrics(), fetchLossRadarSummary(), fetchFarStats(), fetchUserActivity()])
@@ -204,6 +233,18 @@ function AdminPage() {
       .finally(() => { if (!cancelled) setFunnelLoading(false); });
     return () => { cancelled = true; };
   }, [funnelDays]);
+
+  // First-touch acquisition by source (re-fetch when the window changes).
+  useEffect(() => {
+    let cancelled = false;
+    setAcqLoading(true);
+    setAcqError("");
+    fetchAcquisition(acqDays)
+      .then((d) => { if (!cancelled) setAcquisition(d); })
+      .catch((err) => { if (!cancelled) setAcqError(err instanceof Error ? err.message : "Failed to load acquisition"); })
+      .finally(() => { if (!cancelled) setAcqLoading(false); });
+    return () => { cancelled = true; };
+  }, [acqDays]);
 
   const handleFarSync = async () => {
     setSyncingFar(true);
@@ -678,6 +719,80 @@ function AdminPage() {
                 </div>
               )}
             </div>
+          </div>
+        </section>
+
+        {/* Acquisition by Source (first-touch attribution, PR #214) */}
+        <section>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h2 className="text-lg font-semibold text-slate-800">📈 Acquisition by Source</h2>
+            <div className="flex items-center gap-1 rounded-lg border border-slate-200 p-0.5 text-xs font-medium">
+              {[7, 30, 90].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setAcqDays(d)}
+                  className={`px-3 py-1 rounded-md ${acqDays === d ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            {acqError ? (
+              <p className="text-sm text-red-600">Could not load acquisition data: {acqError}</p>
+            ) : acqLoading || !acquisition ? (
+              <p className="text-sm text-slate-400">Loading acquisition…</p>
+            ) : acquisition.rows.length === 0 ? (
+              <p className="text-sm text-slate-400">
+                No attributed traffic in the last {acquisition.rangeDays} days. First-touch attribution
+                (utms / fbclid / gclid / referrer) is stamped from the <code className="text-slate-600">contrax_attr</code>{" "}
+                cookie — rows accumulate as real visitors arrive.
+              </p>
+            ) : (
+              <div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-xs uppercase tracking-wide text-slate-400">
+                        <th className="py-2 pr-4 font-medium">Source</th>
+                        <th className="py-2 pr-4 font-medium">Medium</th>
+                        <th className="py-2 pr-4 font-medium text-right">Visits</th>
+                        <th className="py-2 pr-4 font-medium text-right">Signup Views</th>
+                        <th className="py-2 pr-4 font-medium text-right">Signup Conversions</th>
+                        <th className="py-2 font-medium text-right">Visits (raw)</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {acquisition.rows.map((r) => (
+                        <tr key={`${r.source}|${r.medium}`} className="border-t border-slate-100">
+                          <td className="py-2 pr-4 font-semibold text-slate-800 capitalize">{r.source}</td>
+                          <td className="py-2 pr-4 text-slate-500">{r.medium}</td>
+                          <td className="py-2 pr-4 text-right font-bold text-slate-900">{r.visits.toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-right text-slate-700">{r.signupViews.toLocaleString()}</td>
+                          <td className="py-2 pr-4 text-right text-slate-700">{r.signupConversions.toLocaleString()}</td>
+                          <td className="py-2 text-right text-slate-400">{r.visitsRaw.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr className="border-t border-slate-200">
+                        <td className="py-2 pr-4 font-bold text-slate-900" colSpan={2}>Total</td>
+                        <td className="py-2 pr-4 text-right font-bold text-slate-900">{acquisition.totals.visits.toLocaleString()}</td>
+                        <td className="py-2 pr-4 text-right font-bold text-slate-700">{acquisition.totals.signupViews.toLocaleString()}</td>
+                        <td className="py-2 pr-4 text-right font-bold text-slate-700">{acquisition.totals.signupConversions.toLocaleString()}</td>
+                        <td className="py-2 text-right font-bold text-slate-400">{acquisition.totals.visitsRaw.toLocaleString()}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+                <p className="mt-3 text-[10px] text-slate-400">
+                  filtered: visits / signup-views / signup-conversions exclude search engines, social scrapers
+                  (e.g. Meta's facebookexternalhit link-unfurlers), and our test IPs. "Visits (raw)" is the
+                  unfiltered count, kept alongside for honesty.
+                </p>
+              </div>
+            )}
           </div>
         </section>
 

@@ -8,6 +8,11 @@ import {
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { ChatWidget } from "~/components/ChatWidget";
+import {
+  ATTR_COOKIE_NAME,
+  attributionCookieSetHeader,
+  resolveAttribution,
+} from "~/lib/attribution";
 import appCss from "~/styles/app.css?url";
 
 const PROD_URL = "https://www.contrax.company";
@@ -110,6 +115,39 @@ function PageViewTracker() {
   return null;
 }
 
+// ── First-Touch Acquisition Attribution ─────────────────────────────────────
+// Sets the `contrax_attr` cookie ONCE on the visitor's first arrival (only when
+// it is not already present, so the first-touch source is preserved for 30 days
+// even as they navigate /signup, /pricing, /api/*). The cookie carries the
+// source/medium/campaign/click_id resolved from the URL query (utm_* / fbclid /
+// gclid) or the referring site. SameSite=Lax + Path=/ means it survives the
+// Facebook/LinkedIn cross-site click into the app and is sent on every
+// first-party request. Placed BEFORE PageViewTracker so the cookie is set before
+// the first /api/page-view POST fires, letting the server stamp the same hit.
+function AttributionCookie() {
+  useEffect(() => {
+    try {
+      if (typeof window === "undefined") return;
+      // Already set — never clobber the first-touch attribution.
+      if (
+        document.cookie
+          .split(";")
+          .some((part) => part.trim().startsWith(ATTR_COOKIE_NAME + "="))
+      ) {
+        return;
+      }
+      const attr = resolveAttribution({
+        cookie: document.cookie,
+        search: window.location.search,
+        referer: document.referrer || null,
+      });
+      document.cookie = attributionCookieSetHeader(attr);
+    } catch {
+      // attribution must never break rendering
+    }
+  }, []);
+  return null;
+}
 // ── Root Document ──────────────────────────────────────────────────────────────
 function RootDocument({ children }: { children: ReactNode }) {
   return (
@@ -129,6 +167,7 @@ function RootComponent() {
   return (
     <RootDocument>
       <Outlet />
+      <AttributionCookie />
       <PageViewTracker />
       <ChatWidget />
     </RootDocument>

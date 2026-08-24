@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { sendPasswordResetEmail } from "~/lib/email";
+import { isBlockedIp } from "~/lib/request-ip";
 
 // Migration-style DDL — idempotent, runs on every request so the table
 // self-heals on any environment that hasn't applied it yet.
@@ -18,6 +19,11 @@ const CREATE_RESET_TOKENS_TABLE = `
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 async function handler({ request }: { request: Request }) {
+  // Throttle a known hostile IP from requesting a password reset. Exact-match
+  // only; generic 403 that does not reveal why. Runs before any token issuing.
+  if (isBlockedIp(request)) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
   try {
     const body = (await request.json()) as { email?: string };
     const email = (body.email || "").trim().toLowerCase();

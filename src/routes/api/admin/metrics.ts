@@ -95,7 +95,7 @@ async function loadTrafficMetrics(): Promise<TrafficMetrics> {
       sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= NOW() - INTERVAL '7 days'`,
       sql()`SELECT path, COUNT(*) as count FROM page_views GROUP BY path ORDER BY count DESC LIMIT 5`,
       sql()`SELECT COUNT(DISTINCT ip) as count FROM page_views WHERE created_at >= CURRENT_DATE`,
-      sql()`SELECT COUNT(DISTINCT ip) as count FROM page_views WHERE created_at >= CURRENT_DATE AND NOT ${sql().unsafe(BOT_EXCLUSION_SQL)}`,
+      sql()`SELECT COUNT(DISTINCT ip) as count FROM page_views WHERE created_at >= CURRENT_DATE AND NOT COALESCE(${sql().unsafe(BOT_EXCLUSION_SQL)}, false)`,
     ]);
     return {
       totalPageViews: Number(total[0].count),

@@ -24,6 +24,7 @@ interface AdminMetrics {
   pageViewsThisWeek: number;
   topPages: { path: string; count: number }[];
   uniqueVisitorsToday: number;
+  uniqueHumanVisitorsToday: number;
   funnel: {
     total: number;
     today: number;
@@ -654,7 +655,8 @@ function AdminPage() {
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Views Today</p>
               <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.pageViewsToday.toLocaleString()}</p>
-              <p className="mt-1 text-xs text-slate-400">Unique visitors: {metrics.uniqueVisitorsToday.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-slate-400">Unique visitors: {metrics.uniqueHumanVisitorsToday.toLocaleString()} ({metrics.uniqueVisitorsToday.toLocaleString()} raw)</p>
+              <p className="mt-0.5 text-[10px] text-slate-400">filtered: excludes search engines, social scrapers, and our test IPs</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
               <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Views This Week</p>

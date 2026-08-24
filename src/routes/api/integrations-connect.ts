@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
+import { hasAgencyAccess, loadUserTrialStatus } from "~/lib/trial";
 
 const PROVIDERS = ["google_calendar", "outlook_calendar", "slack", "teams", "google_drive", "onedrive"];
 async function handler({ request }: { request: Request }): Promise<Response> {
@@ -10,9 +10,8 @@ async function handler({ request }: { request: Request }): Promise<Response> {
     const data = (await request.json().catch(() => null)) as { provider?: unknown } | null;
     if (!data || typeof data.provider !== "string") return Response.json({ error: "Unknown provider" }, { status: 400 });
     const provider = data.provider;
-    const userRows = await sql()`SELECT plan_tier FROM users WHERE id=${u.id} LIMIT 1`;
-    const planTier = (userRows.length ? (userRows[0] as any).plan_tier : null) as string | null;
-    if (planTier !== "agency") return Response.json({ error: "Agency plan required for integrations" }, { status: 403 });
+    const trial = await loadUserTrialStatus(u.id);
+    if (!hasAgencyAccess(trial, u)) return Response.json({ error: "Agency plan required for integrations" }, { status: 403 });
     if (!PROVIDERS.includes(provider)) return Response.json({ error: "Unknown provider" }, { status: 400 });
     const baseUrl = process.env.NODE_ENV === "production" ? (process.env.PUBLIC_URL || "https://www.contrax.company") : "http://localhost:3000";
     const redirectUri = `${baseUrl}/api/integrations/callback?provider=${provider}`;

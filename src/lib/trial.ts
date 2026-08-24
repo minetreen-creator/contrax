@@ -91,6 +91,36 @@ export function hasUnlimitedSaves(
   // time-boxed grant stops granting unlimited saves once it passes.
   return !!trial.planTier && !trial.expired && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER.starter;
 }
+/**
+ * Agency-access predicate — the gate for the Agency plan's Proposal Evaluator
+ * "Red Team" and the server-side integration endpoints. A user "has agency
+ * access" iff they are an admin/internal account, OR they hold an active
+ * full-access grant, OR they are on the internal demo tier, OR their plan tier
+ * is at or above Agency (the top of the ladder) AND not expired — the same
+ * qualification the other premium predicates use, with TIER_ORDER.agency (3)
+ * at the boundary. Because agency is the highest tier, the tier comparison is
+ * equivalent to `=== "agency"`. The `!expired` guard ensures a time-boxed
+ * per-user grant (access_expires_at) stops granting agency features once the
+ * date passes — computeTrialStatus sets expired=true, so no separate time
+ * check is needed beyond what hasProfessionalAccess does. Passing `user`
+ * (when known) lets admins bypass even when their DB tier wouldn't qualify.
+ */
+export function hasAgencyAccess(
+  trial: Pick<TrialStatus, "fullAccess" | "planTier" | "expired"> | null | undefined,
+  user?: { is_admin?: boolean } | null,
+): boolean {
+  // Internal/admin accounts always bypass tier gates.
+  if (user?.is_admin) return true;
+  if (!trial) return false;
+  // An active full-access grant unlocks every tier gate (same as above; an
+  // expired grant cannot unlock because computeTrialStatus drops fullAccess).
+  if (trial.fullAccess) return true;
+  // The internal demo account showcases all features, so it bypasses the gate.
+  if (trial.planTier === "demo" && !trial.expired) return true;
+  // At or above Agency AND not expired. The `!expired` guard ensures a
+  // time-boxed grant stops granting agency features once it passes.
+  return !!trial.planTier && !trial.expired && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER.agency;
+}
 export interface TrialStatus {
   /** True while the user is inside the 21-day trial window. */
   active: boolean;

@@ -10,6 +10,7 @@ import { getCurrentUser } from "~/lib/auth";
 import { getSavedBidIds } from "~/lib/saved-matches";
 import { trackEvent } from "~/lib/track";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { checkTrial, hasProfessionalAccess, type TrialStatus } from "~/lib/trial";
 
 // Milestone Grant — logged-out visitors accumulate a cross-tab counter of
 // teased incumbent-intel card views (localStorage); when the counter reaches
@@ -250,6 +251,11 @@ function AwardsPage() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [intel, setIntel] = useState<Record<number, FPDSIntel | null | undefined>>({});
   const [loadingIntel, setLoadingIntel] = useState<number | null>(null);
+  // Logged-in user's trial status — drives whether a logged-in non-Professional
+  // user sees the Incumbent Intelligence paywall (a logged-in free/Starter user
+  // is gated exactly like a logged-out visitor now). Admins/demo/pro users pass.
+  const [trial, setTrial] = useState<TrialStatus | null>(null);
+  useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
   // Session-scoped "first one's free" grant: the FIRST intel card a logged-out
   // visitor expands in a tab-session shows full data (no wall). sessionStorage
   // persists across client-side nav and refresh within the tab; a new tab grants
@@ -544,7 +550,7 @@ function AwardsPage() {
 
                 <div className="border-t border-slate-100 px-4 sm:px-5 py-3 flex flex-wrap items-center justify-between gap-3">
                   <button type="button" onClick={(e) => { e.stopPropagation(); loadIntel(award); }} className="text-sm font-semibold text-indigo-700 hover:text-indigo-900">🔍 {loadingIntel === award.id ? "Loading incumbent intelligence…" : intel[award.id] ? "Hide Incumbent Intelligence" : "View Incumbent Intelligence"}</button>
-                  <SaveToPipeline bidId={award.id} user={currentUser} initiallySaved={savedBidIds.includes(award.id)} compact returnPath="/awards" />
+                  <SaveToPipeline bidId={award.id} user={currentUser} initiallySaved={savedBidIds.includes(award.id)} savedCount={savedBidIds.length} compact returnPath="/awards" />
                 </div>
 
                 {/* Expanded Detail Panel */}
@@ -554,6 +560,7 @@ function AwardsPage() {
                     {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} title={award.title} agency={award.agency}
                       freeReveal={!currentUser && (freeRevealAwardId === award.id || milestoneRevealAwardId === award.id)}
                       milestoneOffer={!currentUser && milestoneOfferAwardId === award.id}
+                      proAccess={hasProfessionalAccess(trial, currentUser)}
                       onMilestoneGranted={() => handleMilestoneGranted(award.id)} />}
                     {/* Key Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -389,6 +389,7 @@ function SetAsideOpportunitiesPage() {
                       bidId={op.id}
                       user={d.currentUser}
                       initiallySaved={d.savedBidIds.includes(op.id)}
+                      savedCount={d.savedBidIds.length}
                       returnPath={`/opportunities/${d.setAsideSlug}/${d.naics}`}
                     />
                   </div>

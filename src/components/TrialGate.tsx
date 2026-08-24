@@ -12,10 +12,7 @@
  * want to fully gate (e.g. the workspace).
  */
 import { useEffect, useState, type ReactNode } from "react";
-import { checkTrial, type TrialStatus } from "~/lib/trial";
-
-/** Tier ladder — higher is more capable. */
-const TIER_ORDER: Record<string, number> = { starter: 1, professional: 2, agency: 3 };
+import { checkTrial, TIER_ORDER, type TrialStatus } from "~/lib/trial";
 
 export type PlanTier = "starter" | "professional" | "agency";
 

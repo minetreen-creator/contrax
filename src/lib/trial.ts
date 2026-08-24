@@ -11,10 +11,49 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
-
 export const TRIAL_DAYS = 21;
 const DAY_MS = 24 * 60 * 60 * 1000;
-
+/** Tier ladder — higher is more capable. Shared by PlanGate and premium gates. */
+export const TIER_ORDER: Record<string, number> = { starter: 1, professional: 2, agency: 3 };
+/**
+ * Number of bids a non-Professional user may actively track ("save") in their
+ * pipeline. Unlimited bid tracking is a Professional ($79/mo) feature; a
+ * non-Professional user reaching this cap is asked to upgrade.
+ */
+export const FREE_SAVE_LIMIT = 3;
+/**
+ * Shared premium-access predicate used by BOTH premium paywalls (the
+ * Incumbent Intelligence reveal and the saved-bid limit). A user "has
+ * professional access" iff they are an admin/internal account, OR they are on
+ * the internal demo tier, OR they hold an active full-access grant, OR their
+ * plan tier is professional/agency AND not expired — the same qualification
+ * PlanGate's professional gate uses. Passing `user` (when known) lets admins
+ * and the demo account bypass the paywalls even when their DB tier columns
+ * wouldn't otherwise qualify (e.g. the owner runs as plan_tier='starter' with
+ * is_admin=true).
+ */
+export function hasProfessionalAccess(
+  trial: Pick<TrialStatus, "fullAccess" | "planTier" | "expired"> | null | undefined,
+  user?: { is_admin?: boolean } | null,
+): boolean {
+  // Internal/admin accounts always bypass premium gates.
+  if (user?.is_admin) return true;
+  if (!trial) return false;
+  // A user with an ACTIVE full-access grant passes every tier gate. (expired &&
+  // fullAccess=true can never happen: computeTrialStatus drops fullAccess to
+  // false once access_expires_at passes, so an expired grant cannot unlock
+  // premium features.)
+  if (trial.fullAccess) return true;
+  // The internal demo account (plan_tier='demo') showcases all features, so it
+  // bypasses the premium paywalls.
+  if (trial.planTier === "demo" && !trial.expired) return true;
+  // At or above Professional AND not expired. The `!expired` guard ensures a
+  // time-boxed per-user grant (access_expires_at) stops granting premium
+  // features once the date passes: a grant user keeps plan_tier set (e.g.
+  // 'professional'), so without this guard a Professional grant would unlock
+  // premium features forever after expiry.
+  return !!trial.planTier && !trial.expired && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER.professional;
+}
 export interface TrialStatus {
   /** True while the user is inside the 21-day trial window. */
   active: boolean;
@@ -34,7 +73,6 @@ export interface TrialStatus {
    */
   fullAccess: boolean;
 }
-
 /**
  * Pure helper — computes trial state from the raw DB columns. Kept separate so
  * it can be unit-tested and reused by server functions and loaders.
@@ -102,7 +140,16 @@ export function computeTrialStatus(
     fullAccess: false,
   };
 }
-
+/**
+ * Server helper — loads a single user's trial columns by id and computes their
+ * TrialStatus. Used by server API routes (e.g. /api/bids-save) whose auth user
+ * object does not include plan_tier/full_access columns.
+ */
+export async function loadUserTrialStatus(userId: number): Promise<TrialStatus> {
+  const rows = await sql()`SELECT plan_tier, trial_started_at, subscription_status, access_expires_at, full_access FROM users WHERE id = ${userId}`;
+  const r = rows[0] as { plan_tier?: string | null; trial_started_at?: string | Date | null; subscription_status?: string | null; access_expires_at?: string | Date | null; full_access?: boolean } | undefined;
+  return computeTrialStatus(r?.trial_started_at, r?.plan_tier, r?.subscription_status, r?.access_expires_at, r?.full_access);
+}
 /**
  * Returns the current user's trial status, or an empty status when logged out.
  * Recognizes trials by `trial_started_at` — NOT by plan_tier — so every new
@@ -112,7 +159,5 @@ export function computeTrialStatus(
 export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Promise<TrialStatus> => {
   const user = await getCurrentUser();
   if (!user) return { active: false, daysLeft: 0, expired: false, endsAt: null, planTier: null, fullAccess: false };
-  const rows = await sql()`SELECT plan_tier, trial_started_at, subscription_status, access_expires_at, full_access FROM users WHERE id = ${user.id}`;
-  const r = rows[0] as { plan_tier?: string | null; trial_started_at?: string | Date | null; subscription_status?: string | null; access_expires_at?: string | Date | null; full_access?: boolean } | undefined;
-  return computeTrialStatus(r?.trial_started_at, r?.plan_tier, r?.subscription_status, r?.access_expires_at, r?.full_access);
+  return loadUserTrialStatus(user.id);
 });

@@ -11,7 +11,12 @@ import { isHealthcareBid, type License } from "~/lib/healthcare";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
 import { GettingStarted } from "~/components/GettingStarted";
-import { checkTrial, type TrialStatus } from "~/lib/trial";
+import {
+  PremiumUpgradeModal,
+  INCUMBENT_PAYWALL_TITLE,
+  SAVE_LIMIT_PAYWALL_MESSAGE,
+} from "~/components/PremiumUpgradeModal";
+import { checkTrial, hasProfessionalAccess, FREE_SAVE_LIMIT, type TrialStatus } from "~/lib/trial";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
 import {
   mergeFilterState,
@@ -1023,6 +1028,8 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
   const [trackedBidIds, setTrackedBidIds] = useState<Set<string>>(new Set());
   const [expandedBid, setExpandedBid] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<Record<number, string>>({});
+  // Free saved-bid limit paywall (non-Professional users over the cap).
+  const [showSavePaywall, setShowSavePaywall] = useState(false);
   const [sortBy, setSortBy] = useState<SortKey>(() =>
     mergeFilterState(parseReviewParams(location.search), readReviewFilters()).sort,
   );
@@ -1281,14 +1288,23 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
       : { label: "Closed — past due", cls: "bg-slate-100 text-slate-500" };
 
   const doSave = useCallback(async (bidId: number) => {
+    // Free saved-bid limit: a non-Professional user over the cap saving a NEW
+    // bid gets the upgrade paywall instead. Re-saving an already-saved bid is
+    // fine. Admins/demo/Pro users bypass.
+    if (!hasProfessionalAccess(trial, user) && savedBids.size >= FREE_SAVE_LIMIT && !savedBids.has(bidId)) {
+      setShowSavePaywall(true);
+      setActionLoading(null);
+      return;
+    }
     setActionLoading(bidId);
     try {
       const res = await fetch("/api/bids-save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bidId }) });
+      if (res.status === 403) { const b = await res.json().catch(() => null); if (b?.error === "save_limit") { setShowSavePaywall(true); return; } throw new Error(b?.error || "Failed to save bid"); }
       if (!res.ok) { const b = await res.json().catch(() => null); throw new Error(b?.error || "Failed to save bid"); }
       setSavedBids((p) => new Set(p).add(bidId));
       setDismissedBids((p) => { const n = new Set(p); n.delete(bidId); return n; });
     } catch {} finally { setActionLoading(null); }
-  }, []);
+  }, [savedBids, trial, user]);
 
   const doDismiss = useCallback(async (bidId: number) => {
     setActionLoading(bidId);
@@ -1339,16 +1355,23 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
   // Move an archived bid back to Open (bids-save sets status='saved', which is
   // not an archived status, so it returns to the live feed on next load).
   const doRestore = useCallback(async (bidId: number) => {
+    // Same cap as doSave: restoring an archived bid to Open is a save.
+    if (!hasProfessionalAccess(trial, user) && savedBids.size >= FREE_SAVE_LIMIT && !savedBids.has(bidId)) {
+      setShowSavePaywall(true);
+      setActionLoading(null);
+      return;
+    }
     setActionLoading(bidId);
     try {
       const res = await fetch("/api/bids-save", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bidId }) });
+      if (res.status === 403) { const b = await res.json().catch(() => null); if (b?.error === "save_limit") { setShowSavePaywall(true); return; } throw new Error("Failed to move bid back to open"); }
       if (!res.ok) throw new Error("Failed to move bid back to open");
       setArchivedBids((p) => (p ? p.filter((b) => b.id !== bidId) : p));
       setArchivedCount((c) => Math.max(0, c - 1));
       setDismissedBids((p) => { const n = new Set(p); n.delete(bidId); return n; });
       setSavedBids((p) => new Set(p).add(bidId));
     } catch {} finally { setActionLoading(null); }
-  }, []);
+  }, [savedBids, trial, user]);
 
   const doGenerateSummary = useCallback(async (bidId: number) => {
     setGeneratingSummary((p) => new Set(p).add(bidId));
@@ -1521,6 +1544,12 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
 
   return (
     <div className="min-h-screen bg-slate-50">
+      <PremiumUpgradeModal
+        open={showSavePaywall}
+        onClose={() => setShowSavePaywall(false)}
+        title={INCUMBENT_PAYWALL_TITLE}
+        message={SAVE_LIMIT_PAYWALL_MESSAGE}
+      />
       {user.email === "demo@contrax.company" && <div className="border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900">🔍 You're exploring a demo account with sample data. When you're ready, <a href="/signup" className="font-bold underline">create your free account</a> to track real bids.</div>}
       {location.search.notice === "admin-only" && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-900">

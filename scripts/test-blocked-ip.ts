@@ -37,6 +37,18 @@ check(
   "x-real-ip 5.175.149.80 -> blocked",
   isBlockedIp(mkReq({ "x-real-ip": "5.175.149.80" })) === true,
 );
+check(
+  "x-forwarded-for 158.62.139.139 -> blocked",
+  isBlockedIp(mkReq({ "x-forwarded-for": "158.62.139.139" })) === true,
+);
+check(
+  "cf-connecting-ip 158.62.139.139 -> blocked",
+  isBlockedIp(mkReq({ "cf-connecting-ip": "158.62.139.139" })) === true,
+);
+check(
+  "x-real-ip 158.62.139.139 -> blocked",
+  isBlockedIp(mkReq({ "x-real-ip": "158.62.139.139" })) === true,
+);
 
 // ── Should NOT be blocked (real / our own test IPs) ──────────────────────────
 check(

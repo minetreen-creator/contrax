@@ -133,6 +133,21 @@ async function verifyGoogleIdToken(idToken: string, clientId: string): Promise<G
 
 // ── Server function: all OAuth + DB + session work (server-only) ─────────────
 
+
+/** True when the current request's client IP is on the exact-match blocklist.
+ * This is a server fn (not inlined in the loader) because the loader itself is
+ * client-reachable code and the import-protection plugin denies BOTH static and
+ * dynamic imports of @tanstack/react-start/server at that scope. Inside a
+ * createServerFn handler `getRequest()` runs in a proper server scope (in-process
+ * during SSR, or via the RPC bridge on client navigation), so the threat IP is
+ * still denied before any code exchange / account / session creation. */
+const authCallbackIpBlocked = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    return isBlockedIp(getRequest());
+  } catch {
+    return false; // Fail open: never lock out real users over IP resolution.
+  }
+});
 const handleGoogleAuth = createServerFn({ method: "POST" })
   .validator((data: unknown) => {
     const d = data as { code?: unknown; plan?: unknown };
@@ -288,14 +303,20 @@ export const Route = createFileRoute("/auth/google/callback")({
     // any code exchange or account/session creation. Exact-match only. A loader
     // cannot return a JSON body, so short-circuit with a generic redirect that
     // does not reveal why (same pattern as the other callback error branches).
-    let req: Request | null = null;
+    let blocked = false;
     try {
-      req = getRequest();
+      // getRequest() must run inside a server fn handler — this route file is
+      // reachable from the client bundle, and the import-protection plugin
+      // denies both static and dynamic imports of @tanstack/react-start/server
+      // in loader (client-loaded) code. Calling it from a createServerFn is the
+      // build-safe server scope; the await resolves in-process during SSR or
+      // over the RPC bridge on client navigation, either way with the request's
+      // proxy headers present.
+      blocked = await authCallbackIpBlocked();
     } catch {
-      req = null; // Not in a server request scope (shouldn't happen on a full
-      // OAuth redirect) — fail open rather than crash the callback.
+      blocked = false; // Fail open: never crash the callback over IP resolution.
     }
-    if (req && isBlockedIp(req)) {
+    if (blocked) {
       throw redirect({ href: "/login?error=account_unavailable" });
     }
     const search = new URLSearchParams(location.search);

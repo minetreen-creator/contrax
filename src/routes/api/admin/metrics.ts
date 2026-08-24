@@ -67,6 +67,8 @@ const BOT_EXCLUSION_SQL = `
     OR LOWER(COALESCE(user_agent,'')) LIKE '%crawler%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%spider%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%headlesschrome%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%puppeteer%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%playwright%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%python%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%curl%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%wget%'

@@ -18,9 +18,14 @@ async function handler({ request }: { request: Request }) {
     const email = (body.email || "").trim().toLowerCase();
     const password = body.password || "";
     const confirmPassword = body.confirmPassword || "";
-    const plan = body.plan && ["starter", "professional", "agency"].includes(body.plan)
+    // No-bifurcation rule: the standard /signup flow provisions every NON-PAYING
+    // signup on the free Basic Package. A cold signup (no explicit paid plan)
+    // defaults to plan_tier='basic'; only a user who explicitly opted into a
+    // paid plan on the pricing page / signup selector (starter/professional/
+    // agency) gets that plan_tier. The single form, single DB flow stays intact.
+    const plan = body.plan && ["basic", "starter", "professional", "agency"].includes(body.plan)
       ? body.plan
-      : "starter";
+      : "basic";
 
     // Validation
     const errors: string[] = [];
@@ -43,11 +48,15 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: "An account with this email already exists." }, { status: 409 });
     }
 
-    // Create user
+    // Create user. Paid plans enter a 21-day trial (trial_started_at = now) and
+    // expire into a subscribe prompt; the free Basic package never enters a
+    // trial (trial_started_at = NULL), so it stays free forever and is never
+    // locked by TrialGate.
     const passwordHash = await hashPassword(password);
+    const trialStartedAt = plan === "basic" ? null : new Date().toISOString();
     const inserted = await sql()`
       INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-      VALUES (${email}, ${passwordHash}, ${plan}, NOW())
+      VALUES (${email}, ${passwordHash}, ${plan}, ${trialStartedAt})
       RETURNING id, email, created_at
     `;
     const user = inserted[0] as { id: number; email: string; created_at: Date };

@@ -1,13 +1,17 @@
 /**
  * PremiumUpgradeModal — a small, dismissible modal shown when a logged-in
- * NON-Professional user hits a premium paywall (Incumbent Intelligence reveal,
- * or the 3-free-bid save limit). It presents the paywall copy and a primary
- * CTA that boots the user straight into Stripe Checkout for the Professional
- * plan via the shared `redirectToCheckout("professional")` helper.
+ * user hits a premium paywall:
+ *   - Incumbent Intelligence reveal (Professional+): non-Professional users see
+ *     the teaser and this modal routes to Stripe Checkout for Professional.
+ *   - Free saved-bid limit (Starter+): Basic (free) users who hit the 3-bid cap
+ *     see this modal with its CTA routed to Stripe Checkout for Starter
+ *     (unlimited saved bids is a Starter feature per the owner's matrix).
  *
- * Styled to match the app's Tailwind design (same language as TrialGate's
- * PlanUpgradeScreen). Dismissible via the ✕ button, the backdrop, or the
- * "Maybe later" link — never traps the user.
+ * The checkout plan / copy are parameterized so each paywall points at the
+ * correct tier: Incumbent stays Professional-only; the save-limit points at
+ * Starter. Styled to match the app's Tailwind design (same language as
+ * TrialGate's PlanUpgradeScreen). Dismissible via the ✕ button, the backdrop,
+ * or the "Maybe later" link — never traps the user.
  */
 import { useEffect } from "react";
 import { redirectToCheckout } from "~/lib/checkout";
@@ -17,20 +21,34 @@ export const INCUMBENT_PAYWALL_TITLE = "Upgrade to Professional";
 /** Body for the Incumbent Intelligence upgrade prompt. */
 export const INCUMBENT_PAYWALL_BODY =
   "Upgrade to Professional to unlock past contract awardees and pricing history.";
-/** Message shown when a non-Professional user hits the free saved-bid limit. */
+/** Message shown when a Basic (free) user hits the free saved-bid limit. */
 export const SAVE_LIMIT_PAYWALL_MESSAGE =
   "You've reached your free limit. Upgrade to track unlimited opportunities.";
+/** Heading for the saved-bid-limit upgrade prompt — unlimited saves is a Starter feature. */
+export const SAVE_LIMIT_PAYWALL_TITLE = "Upgrade to Starter";
+/** CTA label / price note for the saved-bid-limit prompt (Starter, $19/mo). */
+export const SAVE_LIMIT_PAYWALL_CTA = "Upgrade to Starter →";
+export const SAVE_LIMIT_PAYWALL_PRICE = "$19/mo · 21-day free trial · Cancel anytime";
+
+/** Stripe plan tier that the "Upgrade" CTA boots into (default: Professional). */
+type CheckoutPlan = "starter" | "professional" | "agency";
 
 export function PremiumUpgradeModal({
   open,
   onClose,
   title = INCUMBENT_PAYWALL_TITLE,
   message = SAVE_LIMIT_PAYWALL_MESSAGE,
+  checkoutPlan = "professional",
+  ctaLabel = "Upgrade to Professional →",
+  priceNote = "$79/mo · 21-day free trial · Cancel anytime",
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
   message?: string;
+  checkoutPlan?: CheckoutPlan;
+  ctaLabel?: string;
+  priceNote?: string;
 }) {
   // Close on Escape for accessibility. No early returns before hooks.
   useEffect(() => {
@@ -75,12 +93,12 @@ export function PremiumUpgradeModal({
         <p className="mt-3 text-center text-sm text-slate-600">{message}</p>
         <button
           type="button"
-          onClick={() => redirectToCheckout("professional")}
+          onClick={() => redirectToCheckout(checkoutPlan)}
           className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700"
         >
-          Upgrade to Professional →
+          {ctaLabel}
         </button>
-        <p className="mt-3 text-center text-xs text-slate-400">$79/mo · 21-day free trial · Cancel anytime</p>
+        <p className="mt-3 text-center text-xs text-slate-400">{priceNote}</p>
         <button
           type="button"
           onClick={onClose}

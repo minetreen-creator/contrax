@@ -13,10 +13,12 @@ import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfil
 import { GettingStarted } from "~/components/GettingStarted";
 import {
   PremiumUpgradeModal,
-  INCUMBENT_PAYWALL_TITLE,
+  SAVE_LIMIT_PAYWALL_TITLE,
   SAVE_LIMIT_PAYWALL_MESSAGE,
+  SAVE_LIMIT_PAYWALL_CTA,
+  SAVE_LIMIT_PAYWALL_PRICE,
 } from "~/components/PremiumUpgradeModal";
-import { checkTrial, hasProfessionalAccess, FREE_SAVE_LIMIT, type TrialStatus } from "~/lib/trial";
+import { checkTrial, hasUnlimitedSaves, FREE_SAVE_LIMIT, type TrialStatus } from "~/lib/trial";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
 import {
   mergeFilterState,
@@ -1291,7 +1293,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
     // Free saved-bid limit: a non-Professional user over the cap saving a NEW
     // bid gets the upgrade paywall instead. Re-saving an already-saved bid is
     // fine. Admins/demo/Pro users bypass.
-    if (!hasProfessionalAccess(trial, user) && savedBids.size >= FREE_SAVE_LIMIT && !savedBids.has(bidId)) {
+    if (!hasUnlimitedSaves(trial, user) && savedBids.size >= FREE_SAVE_LIMIT && !savedBids.has(bidId)) {
       setShowSavePaywall(true);
       setActionLoading(null);
       return;
@@ -1356,7 +1358,7 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
   // not an archived status, so it returns to the live feed on next load).
   const doRestore = useCallback(async (bidId: number) => {
     // Same cap as doSave: restoring an archived bid to Open is a save.
-    if (!hasProfessionalAccess(trial, user) && savedBids.size >= FREE_SAVE_LIMIT && !savedBids.has(bidId)) {
+    if (!hasUnlimitedSaves(trial, user) && savedBids.size >= FREE_SAVE_LIMIT && !savedBids.has(bidId)) {
       setShowSavePaywall(true);
       setActionLoading(null);
       return;
@@ -1547,8 +1549,11 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
       <PremiumUpgradeModal
         open={showSavePaywall}
         onClose={() => setShowSavePaywall(false)}
-        title={INCUMBENT_PAYWALL_TITLE}
+        title={SAVE_LIMIT_PAYWALL_TITLE}
         message={SAVE_LIMIT_PAYWALL_MESSAGE}
+        checkoutPlan="starter"
+        ctaLabel={SAVE_LIMIT_PAYWALL_CTA}
+        priceNote={SAVE_LIMIT_PAYWALL_PRICE}
       />
       {user.email === "demo@contrax.company" && <div className="border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900">🔍 You're exploring a demo account with sample data. When you're ready, <a href="/signup" className="font-bold underline">create your free account</a> to track real bids.</div>}
       {location.search.notice === "admin-only" && (

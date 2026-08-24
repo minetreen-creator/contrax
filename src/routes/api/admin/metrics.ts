@@ -8,6 +8,7 @@ interface TrafficMetrics {
   pageViewsThisWeek: number;
   topPages: { path: string; count: number }[];
   uniqueVisitorsToday: number;
+  uniqueHumanVisitorsToday: number;
 }
 
 interface FunnelMetrics {
@@ -19,6 +20,67 @@ interface FunnelMetrics {
 }
 
 /**
+ * Bot/crawler exclusion predicate against the `page_views` columns
+ * (ip / user_agent / referrer). Used to compute `uniqueHumanVisitorsToday` so the
+ * admin dashboard stops counting search-engine crawlers, social link-preview
+ * scrapers, and our own test IPs as real visitors.
+ *
+ * Inlined via sql().unsafe() into a `WHERE ... AND NOT ( ... )` clause. Tuned to
+ * be conservative: it only excludes known crawler IP prefixes, bot user-agents,
+ * and explicit test IPs. Null-IP rows are NOT excluded unless their user_agent is
+ * bot-like (some real views legitimately lack an IP).
+ */
+const BOT_EXCLUSION_SQL = `
+  (
+    -- Our own test / scraper IPs (exclude always).
+    ip IN ('34.214.71.218','73.40.36.204')
+    -- Search-engine crawler IP prefixes: Googlebot + common Bing ranges.
+    OR ip LIKE '66.249.%'
+    OR ip LIKE '40.77.%' OR ip LIKE '157.55.%' OR ip LIKE '207.46.%'
+    -- Social link-preview / crawler IP prefixes (Facebook/Meta, etc.).
+    OR ip LIKE '66.220.%' OR ip LIKE '31.13.%' OR ip LIKE '173.252.%'
+    OR ip LIKE '104.189.%' OR ip LIKE '69.171.%' OR ip LIKE '157.240.%'
+    -- Meta/AWS link-preview fetchers — BUT only when the referrer is a Facebook
+    -- host, so we don't over-exclude real humans on AWS residential IPs.
+    OR (
+      ( ip LIKE '52.%' OR ip LIKE '54.%' OR ip LIKE '35.%' OR ip LIKE '44.%' OR ip LIKE '34.%' )
+      AND LOWER(COALESCE(referrer,'')) LIKE '%facebook%'
+    )
+    -- Search-engine bot user-agents.
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%googlebot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%bingbot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%slurp%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%duckduckbot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%baiduspider%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%yandexbot%'
+    -- Social link-preview / crawler user-agents.
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%facebookexternalhit%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%facebot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%twitterbot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%linkedinbot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%slackbot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%discordbot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%redditbot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%pinterestbot%'
+    -- Generic bot / headless-browser / CLI scrapers (case-insensitive).
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%bot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%crawler%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%spider%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%headlesschrome%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%puppeteer%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%playwright%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%python%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%curl%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%wget%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%go-http-client%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%semrushbot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%ahrefsbot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%mj12bot%'
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%dotbot%'
+  )
+`;
+
+/**
  * Page-view stats from the self-hosted `page_views` table. Wrapped in a guard
  * so the admin dashboard degrades to zeros on the very first deploy, before
  * the table exists (it is created lazily by the first /api/page-view call).
@@ -27,12 +89,13 @@ async function loadTrafficMetrics(): Promise<TrafficMetrics> {
   try {
     // Purge any admin page views that were recorded before the exclusion filter was added.
     try { await sql()`DELETE FROM page_views WHERE path LIKE '/admin%'`; } catch { /* ok if table doesn't exist yet */ }
-    const [total, today, week, top, unique] = await Promise.all([
+    const [total, today, week, top, unique, uniqueHuman] = await Promise.all([
       sql()`SELECT COUNT(*) as count FROM page_views`,
       sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= CURRENT_DATE`,
       sql()`SELECT COUNT(*) as count FROM page_views WHERE created_at >= NOW() - INTERVAL '7 days'`,
       sql()`SELECT path, COUNT(*) as count FROM page_views GROUP BY path ORDER BY count DESC LIMIT 5`,
       sql()`SELECT COUNT(DISTINCT ip) as count FROM page_views WHERE created_at >= CURRENT_DATE`,
+      sql()`SELECT COUNT(DISTINCT ip) as count FROM page_views WHERE created_at >= CURRENT_DATE AND NOT COALESCE(${sql().unsafe(BOT_EXCLUSION_SQL)}, false)`,
     ]);
     return {
       totalPageViews: Number(total[0].count),
@@ -40,6 +103,7 @@ async function loadTrafficMetrics(): Promise<TrafficMetrics> {
       pageViewsThisWeek: Number(week[0].count),
       topPages: (top as any[]).map((r) => ({ path: r.path, count: Number(r.count) })),
       uniqueVisitorsToday: Number(unique[0].count),
+      uniqueHumanVisitorsToday: Number(uniqueHuman[0].count),
     };
   } catch {
     // page_views may not exist yet — don't fail the whole dashboard.
@@ -49,6 +113,7 @@ async function loadTrafficMetrics(): Promise<TrafficMetrics> {
       pageViewsThisWeek: 0,
       topPages: [],
       uniqueVisitorsToday: 0,
+      uniqueHumanVisitorsToday: 0,
     };
   }
 }

@@ -48,9 +48,10 @@ interface ClosingSoonFunnel {
   from: string;
   to: string;
   sessionWindowHours: number;
-  buttonRowIndistinguishable: boolean;
   rawInRange: {
     closingSoonClicks: number;
+    buttonClicks: number;
+    rowClicks: number;
     viewEvents: number;
     submitEvents: number;
     successEvents: number;
@@ -861,6 +862,9 @@ function AdminPage() {
                   <p className="mt-1 text-xs text-slate-400">
                     {funnel.attributed.clickEvents} click events / {funnel.attributed.clickVisitors} distinct visitor{funnel.attributed.clickVisitors === 1 ? "" : "s"}
                   </p>
+                  <p className="mt-1 text-xs text-slate-400">
+                    CTA button {funnel.rawInRange.buttonClicks} · per-row link {funnel.rawInRange.rowClicks} (going-forward)
+                  </p>
                 </div>
               </div>
 
@@ -881,15 +885,16 @@ function AdminPage() {
                       score path fired a view event. It will populate as new cold visits occur — it does not mean nobody viewed /signup.
                     </li>
                   )}
-                  {funnel.buttonRowIndistinguishable && (
-                    <li>
-                      <strong>Button vs per-row links can't be split:</strong> both the Closing Soon CTA button and the per-row title
-                      deep-links fire the identical <span className="font-mono">signup_cta_click (home_closing_soon)</span> event, so
-                      these figures are the aggregate of both. Separating them needs a new <span className="font-mono">label</span>{" "}
-                      dimension (e.g. <span className="font-mono">home_closing_soon_button</span> vs{" "}
-                      <span className="font-mono">home_closing_soon_row</span>) — a future change, not possible from existing data.
-                    </li>
-                  )}
+                  <li>
+                    <strong>Button vs per-row is now tracked separately (going-forward only):</strong> the Closing Soon CTA button and the
+                    per-row title deep-links now fire distinct{" "}
+                    <span className="font-mono">signup_cta_click</span> labels —{" "}
+                    <span className="font-mono">home_closing_soon_button</span> vs{" "}
+                    <span className="font-mono">home_closing_soon_row</span>. The raw "CTA button / per-row link" breakdown above only
+                    fills in as new clicks land after this change ships; old rows under the legacy{" "}
+                    <span className="font-mono">home_closing_soon</span> label cannot be split retroactively — they count only toward
+                    the overall total, not either bucket. Treat the breakdown as directional while it accumulates.
+                  </li>
                   <li>
                     <strong>Site-wide raw counts (not Closing Soon–attributed):</strong> in this range — signup views{" "}
                     {funnel.rawInRange.viewEvents}, signup submits {funnel.rawInRange.submitEvents}, signup successes{" "}

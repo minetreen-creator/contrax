@@ -20,7 +20,7 @@ import { getUserFromRequest } from "~/lib/api-auth";
  * an exact per-session count. The UI must label them as such.
  *
  * The funnel steps captured:
- *   click    = signup_cta_click, label=home_closing_soon
+ *   click    = signup_cta_click, label=home_closing_soon | _button | _row
  *   view     = signup_view | signup_view_with_score  (see caveat below)
  *   submit   = signup_submit
  *   success  = signup_success
@@ -44,13 +44,14 @@ import { getUserFromRequest } from "~/lib/api-auth";
  * view events accumulate. This is an honest instrumentation gap, not missing
  * signups.
  *
- * CAVEAT (button vs per-row): both the Closing Soon CTA button AND the per-row
- * title deep-links fire the IDENTICAL event (signup_cta_click,
- * label=home_closing_soon, path=/#closing-soon). They therefore cannot be
- * distinguished — this endpoint surfaces the aggregate only. Separating the
- * two would require adding a `label` dimension (e.g. an explicit
- * label=home_closing_soon_row vs =home_closing_soon_button), which is a
- * future instrumentation change, not possible retroactively.
+ * CAVEAT (button vs per-row, going-forward): the Closing Soon CTA button and
+ * the per-row title deep-links are now tracked with DISTINCT labels
+ * (home_closing_soon_button / home_closing_soon_row). This cohort and the raw
+ * closingSoonClicks aggregate fold in all three labels (including historical
+ * home_closing_soon), so the funnel keeps counting new clicks regardless of
+ * entry point. The button/row split is GOING-FORWARD ONLY: rows that predate
+ * the split (label=home_closing_soon) cannot be bent into either bucket
+ * retroactively — they count only toward the overall aggregate.
  *
  * No data for the range → returns zeroed/empty structure (guarded so a missing
  * table on the very first deploy doesn't 500). The UI renders a "no data in
@@ -70,10 +71,15 @@ interface FunnelResult {
   from: string;
   to: string;
   sessionWindowHours: number;
-  buttonRowIndistinguishable: boolean;
   // Raw event counts in range — global, NOT attributed to any click path.
   rawInRange: {
     closingSoonClicks: number;
+    // Going-forward breakouts of the Closing Soon CTA (button) vs per-row title
+    // deep-link entry points. Historical rows (label=home_closing_soon) predate
+    // the split and cannot be bent into either bucket — they only count toward
+    // closingSoonClicks.
+    buttonClicks: number;
+    rowClicks: number;
     viewEvents: number;
     submitEvents: number;
     successEvents: number;
@@ -139,7 +145,7 @@ async function attributedStepCount(
       FROM funnel_events c
       ${sql().unsafe(joins)}
       WHERE c.event_name = 'signup_cta_click'
-        AND c.label = 'home_closing_soon'
+        AND c.label IN ('home_closing_soon','home_closing_soon_button','home_closing_soon_row')
         AND c.created_at >= ${fromSql}
     ) x
   `;
@@ -152,8 +158,14 @@ function emptyResult(rangeDays: number, now: Date, from: Date): FunnelResult {
     from: from.toISOString(),
     to: now.toISOString(),
     sessionWindowHours: SESSION_WINDOW_HOURS,
-    buttonRowIndistinguishable: true,
-    rawInRange: { closingSoonClicks: 0, viewEvents: 0, submitEvents: 0, successEvents: 0 },
+    rawInRange: {
+      closingSoonClicks: 0,
+      buttonClicks: 0,
+      rowClicks: 0,
+      viewEvents: 0,
+      submitEvents: 0,
+      successEvents: 0,
+    },
     attributed: {
       clickVisitors: 0,
       clickEvents: 0,
@@ -198,7 +210,9 @@ async function handler({ request }: { request: Request }) {
     // 1) Raw event counts in range (global, not attributed).
     const raw = await sql()`
       SELECT
-        COUNT(*) FILTER (WHERE event_name = 'signup_cta_click' AND label = 'home_closing_soon') AS closing_click,
+        COUNT(*) FILTER (WHERE event_name = 'signup_cta_click' AND label IN ('home_closing_soon','home_closing_soon_button','home_closing_soon_row')) AS closing_click,
+        COUNT(*) FILTER (WHERE event_name = 'signup_cta_click' AND label = 'home_closing_soon_button') AS button_click,
+        COUNT(*) FILTER (WHERE event_name = 'signup_cta_click' AND label = 'home_closing_soon_row') AS row_click,
         COUNT(*) FILTER (WHERE event_name IN ${sql().unsafe(VIEW_EVENT_SQL)}) AS view_events,
         COUNT(*) FILTER (WHERE event_name = 'signup_submit') AS submit_events,
         COUNT(*) FILTER (WHERE event_name = 'signup_success') AS success_events
@@ -213,7 +227,7 @@ async function handler({ request }: { request: Request }) {
         COUNT(DISTINCT (COALESCE(ip, ''), COALESCE(user_agent, ''))) AS click_visitors
       FROM funnel_events
       WHERE event_name = 'signup_cta_click'
-        AND label = 'home_closing_soon'
+        AND label IN ('home_closing_soon','home_closing_soon_button','home_closing_soon_row')
         AND created_at >= ${fromSql}
     `;
 
@@ -238,9 +252,10 @@ async function handler({ request }: { request: Request }) {
       from: fromSql,
       to: now.toISOString(),
       sessionWindowHours: SESSION_WINDOW_HOURS,
-      buttonRowIndistinguishable: true,
       rawInRange: {
         closingSoonClicks: Number((raw[0] as any)?.closing_click ?? 0),
+        buttonClicks: Number((raw[0] as any)?.button_click ?? 0),
+        rowClicks: Number((raw[0] as any)?.row_click ?? 0),
         viewEvents: Number((raw[0] as any)?.view_events ?? 0),
         submitEvents: Number((raw[0] as any)?.submit_events ?? 0),
         successEvents: Number((raw[0] as any)?.success_events ?? 0),

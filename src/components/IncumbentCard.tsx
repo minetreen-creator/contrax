@@ -1,9 +1,9 @@
 /**
  * IncumbentCard — "🏛️ Incumbent Intelligence" panel.
  *
- * Logged-in users (any tier, incl. Starter trial) see the full FPDS/USAspending
- * incumbent data exactly as before. Logged-out users see a TEASED panel: the
- * incumbent name is masked (first character of the first word + asterisks,
+ * Logged-in Professional/Agency users (and admins/demo) see the full
+ * FPDS/USAspending incumbent data. Logged-out users AND logged-in
+ * non-Professional users see a TEASED panel: the incumbent name is masked (first character of the first word + asterisks,
  * length-preserving, derived from the real name), while the real "Total
  * obligated" figure, UEI, and period of performance stay visible. The chart
  * area is replaced by a teaser panel with an unlock CTA that routes to
@@ -14,6 +14,12 @@
  * `freeReveal` (session-scoped "first one's free" grant from /awards) renders
  * a logged-out panel exactly like the logged-in one — full data, no wall.
  *
+ * `proAccess` tells the card whether the LOGGED-IN user holds professional
+ * access (resolved by the /awards route via hasProfessionalAccess). Logged-out
+ * first-free/milestone/signup flows are untouched; logged-in non-Professional
+ * users instead see a "Reveal Incumbent & Past Pricing" CTA that opens an
+ * upgrade modal (direct Stripe Checkout for Professional).
+ *
  * The logged-in/logged-out branch is driven entirely by the `user` prop so SSR
  * renders the correct state from the route loader's server-resolved
  * `currentUser` (same pattern as SaveToPipeline) — no client-side auth fetch,
@@ -23,6 +29,11 @@ import { useState, type FormEvent } from "react";
 import type { FPDSIntel } from "~/lib/fpds";
 import type { AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import {
+  PremiumUpgradeModal,
+  INCUMBENT_PAYWALL_BODY,
+  INCUMBENT_PAYWALL_TITLE,
+} from "~/components/PremiumUpgradeModal";
 
 // Mask the first word of a real incumbent name, preserving its length:
 // "General Dynamics" → "G****** Dynamics". Derived from real data only —
@@ -122,6 +133,7 @@ export function IncumbentCard({
   freeReveal,
   milestoneOffer,
   onMilestoneGranted,
+  proAccess,
 }: {
   intel: FPDSIntel;
   winner?: string;
@@ -139,10 +151,20 @@ export function IncumbentCard({
   // are optional — when absent the card renders exactly as before.
   milestoneOffer?: boolean;
   onMilestoneGranted?: () => void;
+  // Whether the logged-in user holds professional access. Ignored for
+  // logged-out visitors (their gating is governed by freeReveal/milestone).
+  proAccess?: boolean;
 }) {
-  // gated = logged-out AND not granted the session-scoped free reveal.
-  // Logged-out cards that got the free reveal render exactly like logged-in.
-  const gated = !user && !freeReveal;
+  // New behavior: a LOGGED-IN non-Professional user is gated exactly like a
+  // logged-out visitor (masked incumbent name + teased pricing). Admins/demo/
+  // professional-tier users (`proAccess`) are unaffected. The logged-out
+  // first-free/milestone/signup lead-gen flows are untouched.
+  const loggedOutGated = !user && !freeReveal;
+  const loggedInNonPro = !!user && !proAccess;
+  const gated = loggedOutGated || loggedInNonPro;
+  // Paywall modal state for logged-in non-Professional users (this card's own
+  // upgrade CTA). Unused for everyone else.
+  const [showPaywall, setShowPaywall] = useState(false);
   const max = Math.max(...intel.historical_pricing.map((x) => x.total_obligated), 1);
   const money = (n: number) => n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : `$${Math.round(n / 1000)}K`;
 
@@ -159,7 +181,19 @@ export function IncumbentCard({
   // REPLACES the signup teaser (the normal teaser + its incumbent_gate_signup
   // event are otherwise untouched).
   const gateTeaser = gated ? (
-    milestoneOffer ? (
+    loggedInNonPro ? (
+      <div className="flex h-40 flex-col items-center justify-center gap-2 bg-white p-4 text-center">
+        <p className="text-sm font-semibold text-slate-800">Full 5-year pricing history</p>
+        <button
+          type="button"
+          onClick={() => setShowPaywall(true)}
+          className="inline-flex w-full max-w-sm items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
+        >
+          Reveal Incumbent &amp; Past Pricing
+        </button>
+        <p className="text-xs text-slate-400">Professional plan feature</p>
+      </div>
+    ) : milestoneOffer ? (
       <MilestoneOfferPanel onSuccess={onMilestoneGranted} />
     ) : (
       <div className="flex h-40 flex-col items-center justify-center gap-2 bg-white p-4 text-center">
@@ -196,5 +230,13 @@ export function IncumbentCard({
       </div>
     )}
     <p className="mt-3 text-[11px] text-slate-400">Powered by FPDS / USASpending.gov</p>
+    {showPaywall && (
+      <PremiumUpgradeModal
+        open
+        title={INCUMBENT_PAYWALL_TITLE}
+        message={INCUMBENT_PAYWALL_BODY}
+        onClose={() => setShowPaywall(false)}
+      />
+    )}
   </section>;
 }

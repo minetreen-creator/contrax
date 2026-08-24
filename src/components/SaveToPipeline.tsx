@@ -7,21 +7,23 @@
  * Hooks are unconditional — no early returns before hooks (rules-of-hooks
  * lesson from PRs #139/#140).
  *
- * Free saved-bid limit: a logged-in non-Professional user whose actively-saved
+ * Free saved-bid limit: a logged-in Basic (free) user whose actively-saved
  * count is already at FREE_SAVE_LIMIT who tries to save a NEW bid (not already
- * saved) is shown an upgrade paywall instead of saving. Admins/demo/Pro users
- * bypass. The server /api/bids-save is authoritative — if it ever returns a
- * 403 `save_limit`, the same paywall is surfaced here.
+ * saved) is shown an upgrade paywall (Starter) instead of saving. Admins/demo/
+ * Starter+ users bypass. The server /api/bids-save is authoritative — if it
+ * ever returns a 403 `save_limit`, the same paywall is surfaced here.
  */
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { trackEvent } from "~/lib/track";
 import type { AuthUser } from "~/lib/auth";
-import { checkTrial, hasProfessionalAccess, FREE_SAVE_LIMIT, type TrialStatus } from "~/lib/trial";
+import { checkTrial, hasUnlimitedSaves, FREE_SAVE_LIMIT, type TrialStatus } from "~/lib/trial";
 import {
   PremiumUpgradeModal,
-  INCUMBENT_PAYWALL_TITLE,
+  SAVE_LIMIT_PAYWALL_TITLE,
   SAVE_LIMIT_PAYWALL_MESSAGE,
+  SAVE_LIMIT_PAYWALL_CTA,
+  SAVE_LIMIT_PAYWALL_PRICE,
 } from "~/components/PremiumUpgradeModal";
 interface SaveToPipelineProps {
   /** The bid/award id to save. */
@@ -58,20 +60,23 @@ export function SaveToPipeline({
   async function handleClick() {
     if (busy || saved) return;
     if (!user) {
-      // Signup wall: the save action IS the signup trigger.
+      // Signup wall: the save action IS the signup trigger. Route to the
+      // standard /signup with standard (free Basic) defaults and the save
+      // intent — a brand-new account is provisioned on the free Basic package
+      // (no card), so the first 3 saves are free.
       trackEvent("save_click", "logged_out", next);
       trackEvent("save_signup_wall", String(bidId), next);
       navigate({
         to: "/signup",
-        search: { plan: "professional", save_bid: String(bidId), next },
+        search: { save_bid: String(bidId), next },
       });
       return;
     }
-    // Free saved-bid limit: a logged-in non-Professional user over the cap who
+    // Free saved-bid limit: a logged-in Basic (free) user over the cap who
     // tries to save a NEW bid (this one not already saved) gets the paywall
     // instead of saving. Re-saving an already-saved bid is always fine.
-    const hasPro = hasProfessionalAccess(trial, user);
-    if (!hasPro && savedCount !== undefined && savedCount >= FREE_SAVE_LIMIT && !saved) {
+    const unlimited = hasUnlimitedSaves(trial, user);
+    if (!unlimited && savedCount !== undefined && savedCount >= FREE_SAVE_LIMIT && !saved) {
       trackEvent("save_limit_wall", String(bidId), next);
       setShowPaywall(true);
       return;
@@ -139,8 +144,11 @@ export function SaveToPipeline({
       <PremiumUpgradeModal
         open={showPaywall}
         onClose={() => setShowPaywall(false)}
-        title={INCUMBENT_PAYWALL_TITLE}
+        title={SAVE_LIMIT_PAYWALL_TITLE}
         message={SAVE_LIMIT_PAYWALL_MESSAGE}
+        checkoutPlan="starter"
+        ctaLabel={SAVE_LIMIT_PAYWALL_CTA}
+        priceNote={SAVE_LIMIT_PAYWALL_PRICE}
       />
     </>
   );

@@ -5,10 +5,10 @@ export const Route = createFileRoute("/pricing/")({
   head: () => ({
     meta: [
       { title: "Pricing | Contrax" },
-      { name: "description", content: "Contrax plans for every stage of growth. Starter $19/mo, Professional $79/mo, Agency $199/mo. 21-day free trial on all plans." },
+      { name: "description", content: "Contrax plans for every stage of growth. Basic free forever, Starter $19/mo, Professional $79/mo. 21-day free trial on paid plans." },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: "Pricing | Contrax" },
-      { property: "og:description", content: "Contrax plans for every stage of growth. Starter $19/mo, Professional $79/mo, Agency $199/mo. 21-day free trial on all plans." },
+      { property: "og:description", content: "Contrax plans for every stage of growth. Basic free forever, Starter $19/mo, Professional $79/mo. 21-day free trial on paid plans." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
@@ -24,16 +24,29 @@ export const Route = createFileRoute("/pricing/")({
 
 const plans = [
   {
+    name: "Basic",
+    price: "0",
+    period: "/month",
+    description: "Free forever. For small businesses scouting their first set-aside opportunities.",
+    features: [
+      "Basic Solicitations Search",
+      "Up to 3 Saved Bids",
+      "Standard Set-Aside Filters",
+    ],
+    cta: "Start Free",
+    slug: "basic",
+    featured: false,
+    free: true,
+  },
+  {
     name: "Starter",
     price: "19",
     period: "/month",
-    description: "For small businesses getting started with government contracting.",
+    description: "For businesses ready to build and track a real government-contracting pipeline.",
     features: [
-      "SAM.gov bid matching (daily sync)",
-      "AI-powered bid summaries",
-      "Win probability scoring",
-      "Certification guides & checklists",
-      "Contract database access",
+      "Unlimited Saved Bids",
+      "Daily NAICS Email Alerts",
+      "CSV Pipeline Export",
     ],
     cta: "Get Started",
     slug: "starter",
@@ -43,37 +56,36 @@ const plans = [
     name: "Professional",
     price: "79",
     period: "/month",
-    description: "For growing businesses that want to scale their contracting pipeline.",
+    description: "For growing businesses that win more bids with full intelligence and draft tools.",
     features: [
-      "Everything in Starter",
-      "Unlimited bid tracking",
-      "Drafting Intelligence — AI-verified citations to protect your win against audits",
-      "Win probability scoring",
-      "Compliance tracking",
-      "AI chat support",
+      "Full Incumbent Intelligence & Past Pricing",
+      "AI Match Scoring",
+      "Draft Tools",
     ],
     cta: "Get Started",
     slug: "professional",
     featured: true,
   },
-  {
-    name: "Agency",
-    price: "199",
-    period: "/month",
-    description: "For firms managing multiple clients or large contract portfolios.",
-    features: [
-      "Everything in Professional",
-      "Team roles & permissions",
-      "Integration connectors",
-      "Win/loss bid tracking",
-      "Team collaboration tools",
-      "Market trend analysis",
-    ],
-    cta: "Get Started",
-    slug: "agency",
-    featured: false,
-  },
 ];
+
+// Agency ($199/mo) is NOT part of the primary 3-tier matrix — kept separately
+// (Proposal Evaluator Red Team + team roles). Listed below the main grid.
+const agencyPlan = {
+  name: "Agency",
+  price: "199",
+  period: "/month",
+  description: "For firms managing multiple clients or large contract portfolios.",
+  features: [
+    "Everything in Professional",
+    "Proposal Evaluator Red Team",
+    "Team roles & permissions",
+    "Integration connectors",
+    "Win/loss bid tracking",
+    "Team collaboration tools",
+  ],
+  cta: "Get Started",
+  slug: "agency",
+};
 
 function PricingPage() {
   return (
@@ -106,7 +118,7 @@ function PricingPage() {
               Plans for every stage of growth
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Start small and scale up as your contracting pipeline grows. No long-term contracts required. Every plan includes a 21-day free trial.
+              Start free on Basic, then scale up as your contracting pipeline grows. No long-term contracts required. Paid plans include a 21-day free trial.
             </p>
           </div>
 
@@ -151,7 +163,7 @@ function PricingPage() {
                   ))}
                 </ul>
                 <a
-                  href={`/signup?plan=${plan.slug}`}
+                  href={plan.free ? "/signup" : `/signup?plan=${plan.slug}`}
                   className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
                     plan.featured
                       ? "bg-amber-500 text-white"
@@ -162,6 +174,45 @@ function PricingPage() {
                 </a>
               </div>
             ))}
+          </div>
+
+          {/* Agency — kept separate from the primary 3-tier matrix */}
+          <div className="mt-10">
+            <div className="relative flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xl font-bold text-slate-900">{agencyPlan.name}</h3>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-500">
+                    Separate
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-gray-500">{agencyPlan.description}</p>
+                <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-1.5 text-sm text-gray-600">
+                  {agencyPlan.features.map((feature) => (
+                    <li key={feature} className="flex items-center gap-1.5">
+                      <svg className="h-4 w-4 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="mt-6 sm:mt-0 sm:text-right">
+                <p className="text-3xl font-extrabold text-slate-900">
+                  ${agencyPlan.price}<span className="text-base font-normal text-gray-500">{agencyPlan.period}</span>
+                </p>
+                <a
+                  href={`/signup?plan=${agencyPlan.slug}`}
+                  className="mt-3 inline-block w-full rounded-xl border-2 border-slate-900 px-6 py-3 text-center text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98] sm:w-auto"
+                >
+                  {agencyPlan.cta}
+                </a>
+              </div>
+            </div>
+            <p className="mt-3 text-center text-xs text-gray-500">
+              Agency includes the Proposal Evaluator "Red Team" and team roles — available separately from the core tiers.
+            </p>
           </div>
 
           {/* Footer notes */}
@@ -181,7 +232,8 @@ function PricingPage() {
           <div className="mt-10 space-y-6">
             {[
               { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
-              { q: "Is there a free trial?", a: "Every plan includes a 21-day free trial. No credit card required to start." },
+              { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes basic solicitations search, standard set-aside filters, and up to 3 saved bids. Upgrade to Starter ($19/mo) for unlimited saved bids, daily NAICS email alerts, and CSV export." },
+              { q: "Is there a free trial?", a: "Paid plans include a 21-day free trial, no credit card required. Basic is free forever — no trial, no card, nothing to cancel." },
               { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
               { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
               { q: "Do you offer discounts for non-profits?", a: "We don't have a formal non-profit discount yet, but reach out to hello@contrax.company and we'll work with you." },

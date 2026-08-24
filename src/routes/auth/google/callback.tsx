@@ -15,7 +15,7 @@ import { safeNext, saveMatch } from "~/lib/saved-matches";
  *   2. Verify the ID token (RS256 signature via Google's JWKS, aud === client ID)
  *   3. Extract email / name / google_id (sub) from the ID token
  *   4. Find the user by google_id (google_accounts) or by email (users)
- *   5. Create the user (plan_tier 'starter', trial started now) if new
+ *   5. Create the user (plan_tier 'basic' by default, trial started now) if new
  *   6. Link/create the google_accounts row
  *   7. Create a session (same pattern as signup) and set the session cookie
  *   8. 302 → /dashboard
@@ -140,8 +140,10 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
     }
     // Optional plan from the save-to-pipeline OAuth state (only used when a
     // brand-new user is created; existing users keep their current tier).
+    // New users default to the free Basic package (no-bifurcation rule) unless
+    // an explicit paid plan was carried through OAuth state.
     const plan =
-      typeof d.plan === "string" && ["starter", "professional", "agency"].includes(d.plan)
+      typeof d.plan === "string" && ["basic", "starter", "professional", "agency"].includes(d.plan)
         ? d.plan
         : undefined;
     return { code: d.code, plan };
@@ -211,14 +213,17 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
     let isNewUser = false;
     if (userId === null) {
       isNewUser = true;
+      // Basic (free) never enters the expiring trial (no lockout); paid plans
+      // get a 21-day trial from now.
+      const trialStartedAt = (plan ?? "basic") === "basic" ? null : new Date().toISOString();
       const inserted = await sql()`
         INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-        VALUES (${email}, NULL, ${plan ?? "starter"}, NOW())
+        VALUES (${email}, NULL, ${plan ?? "basic"}, ${trialStartedAt})
         RETURNING id
       `.catch(async () => {
         const retry = await sql()`
           INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, ${plan ?? "starter"}, NOW())
+          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, ${plan ?? "basic"}, ${trialStartedAt})
           RETURNING id
         `;
         return retry;

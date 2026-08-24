@@ -3,6 +3,8 @@
  *
  * Trial lifecycle: a user signs up with `trial_started_at = NOW()` and a
  * `plan_tier` matching the plan they selected (starter/professional/agency).
+ * The free Basic package (plan_tier='basic') is exempt — its trial_started_at
+ * is NULL, so it never expires and stays free forever.
  * They are "in trial" for TRIAL_DAYS (21) days from that timestamp — the
  * plan_tier value does NOT determine trial state. Paying via Stripe clears
  * `trial_started_at` and sets `subscription_status = 'active'`, ending the
@@ -13,12 +15,17 @@ import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
 export const TRIAL_DAYS = 21;
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** Tier ladder — higher is more capable. Shared by PlanGate and premium gates. */
-export const TIER_ORDER: Record<string, number> = { starter: 1, professional: 2, agency: 3 };
+/** Tier ladder — higher is more capable. Shared by PlanGate and premium gates.
+ * `basic` (0) is the free tier (below Starter); `starter`, `professional` and
+ * `agency` are the paid tiers. `savings_premium` is an unrelated one-time price
+ * and is not on the ladder (resolves to 0). */
+export const TIER_ORDER: Record<string, number> = { basic: 0, starter: 1, professional: 2, agency: 3 };
 /**
- * Number of bids a non-Professional user may actively track ("save") in their
- * pipeline. Unlimited bid tracking is a Professional ($79/mo) feature; a
- * non-Professional user reaching this cap is asked to upgrade.
+ * Number of bids a free BASIC user may actively track ("save") in their
+ * pipeline. Unlimited bid tracking is a Starter+ feature per the owner's
+ * pricing matrix; a Basic (free) user reaching this cap is asked to upgrade to
+ * Starter. Starter/Professional/Agency, admins, demo and active-grant users
+ * bypass the cap.
  */
 export const FREE_SAVE_LIMIT = 3;
 /**
@@ -53,6 +60,36 @@ export function hasProfessionalAccess(
   // 'professional'), so without this guard a Professional grant would unlock
   // premium features forever after expiry.
   return !!trial.planTier && !trial.expired && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER.professional;
+}
+/**
+ * Unlimited-saved-bids predicate — the save-limit gate moved from the
+ * Professional boundary to the Starter+ boundary (owner's pricing matrix,
+ * reconciled in the free Basic Package build). A user "has unlimited saves"
+ * iff they are an admin/internal account, OR they hold an active full-access
+ * grant, OR they are on the internal demo tier, OR their plan tier is at or
+ * above Starter (basic/excluded) AND not expired.
+ *
+ * Because the limit now maps to Starter+ (not Professional+), a Basic (free,
+ * plan_tier='basic') user is capped at FREE_SAVE_LIMIT, while Starter AND
+ * Professional (and Agency) users get unlimited saves. Incumbent Intelligence
+ * / AI Match Scoring / Draft Tools remain gated on hasProfessionalAccess
+ * (Professional+) — this predicate does NOT grant those.
+ */
+export function hasUnlimitedSaves(
+  trial: Pick<TrialStatus, "fullAccess" | "planTier" | "expired"> | null | undefined,
+  user?: { is_admin?: boolean } | null,
+): boolean {
+  // Internal/admin accounts always bypass tier gates.
+  if (user?.is_admin) return true;
+  if (!trial) return false;
+  // An active full-access grant unlocks every tier gate (same as above; an
+  // expired grant cannot unlock because computeTrialStatus drops fullAccess).
+  if (trial.fullAccess) return true;
+  // The internal demo account showcases all features, so it bypasses the cap.
+  if (trial.planTier === "demo" && !trial.expired) return true;
+  // At or above Starter AND not expired. The `!expired` guard ensures a
+  // time-boxed grant stops granting unlimited saves once it passes.
+  return !!trial.planTier && !trial.expired && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER.starter;
 }
 export interface TrialStatus {
   /** True while the user is inside the 21-day trial window. */
@@ -152,9 +189,9 @@ export async function loadUserTrialStatus(userId: number): Promise<TrialStatus> 
 }
 /**
  * Returns the current user's trial status, or an empty status when logged out.
- * Recognizes trials by `trial_started_at` — NOT by plan_tier — so every new
- * signup (which sets plan_tier to starter/professional/agency) sees the
- * 21-day trial countdown instead of being treated as fully paid.
+ * Recognizes trials by `trial_started_at` — NOT by plan_tier — so paid-plan
+ * signups (starter/professional/agency) see the 21-day trial countdown, while
+ * free Basic users (trial_started_at NULL) are never in trial and never expire.
  */
 export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Promise<TrialStatus> => {
   const user = await getCurrentUser();

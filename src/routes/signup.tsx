@@ -39,40 +39,54 @@ type SignupSearch = {
   agency?: string;
 };
 
-const validPlans = ["starter", "professional", "agency"] as const;
+const validPlans = ["basic", "starter", "professional", "agency"] as const;
 
 type Plan = (typeof validPlans)[number];
 
-// Plan facts mirror src/routes/pricing/index.tsx (prices $19/$79/$199 — live in Stripe).
+// Plan facts mirror src/routes/pricing/index.tsx. Basic ($0) is the free
+// default tier (plan_tier='basic'); Starter/Professional/Agency are the paid
+// upgrades. Prices $19/$79/$199 mirror the live Stripe map.
 const PLAN_OPTIONS: {
   slug: Plan;
   name: string;
   price: number;
   bullets: string[];
   featured?: boolean;
+  free?: boolean;
 }[] = [
+  {
+    slug: "basic",
+    name: "Basic",
+    price: 0,
+    free: true,
+    bullets: [
+      "Basic Solicitations Search",
+      "Up to 3 saved bids",
+      "Standard set-aside filters",
+    ],
+  },
   {
     slug: "starter",
     name: "Starter",
     price: 19,
     bullets: [
-      "SAM.gov bid matching (daily sync)",
-      "AI-powered bid summaries",
-      "Win probability scoring",
+      "Unlimited saved bids",
+      "Daily NAICS email alerts",
+      "CSV pipeline export",
     ],
   },
   {
     slug: "professional",
     name: "Professional",
     price: 79,
-    bullets: ["Unlimited bid tracking", "AI proposal drafting", "AI chat support"],
+    bullets: ["Full incumbent intelligence & past pricing", "AI match scoring", "Draft tools"],
     featured: true,
   },
   {
     slug: "agency",
     name: "Agency",
     price: 199,
-    bullets: ["Team roles & permissions", "Integration connectors", "Team collaboration tools"],
+    bullets: ["Proposal Evaluator Red Team", "Team roles & permissions", "Integration connectors"],
   },
 ];
 
@@ -114,10 +128,12 @@ const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () =>
 
 export const Route = createFileRoute("/signup")({
   validateSearch: (search: Record<string, unknown>): SignupSearch => ({
-    // Cold arrivals (no ?plan= — homepage/awards CTAs) default to Starter so the
-    // $19/mo promise they were shown holds. Intent links (?plan=professional from
-    // the score result, pricing page, Drafting CTAs) still preselect via the URL.
-    plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "starter",
+    // Cold arrivals (no ?plan= — homepage/awards CTAs) default to the free
+    // Basic package so non-paying signups are auto-provisioned on the free
+    // tier (no-bifurcation rule). Intent links (?plan=starter|professional
+    // from the pricing page, or ?plan=professional from an Incumbent gate)
+    // still preselect a paid plan via the URL.
+    plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "basic",
     ticker_bid: typeof search.ticker_bid === "string" ? search.ticker_bid : undefined,
     ticker_agency: typeof search.ticker_agency === "string" ? search.ticker_agency : undefined,
     score_rec:
@@ -280,7 +296,7 @@ function SignupPage() {
 
   if (currentUser) return null;
 
-  const planInfo = PLAN_OPTIONS.find((p) => p.slug === selectedPlan) ?? PLAN_OPTIONS[1];
+  const planInfo = PLAN_OPTIONS.find((p) => p.slug === selectedPlan) ?? PLAN_OPTIONS[0];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -412,7 +428,7 @@ function SignupPage() {
               : "Your government-contracting workflow starts here."}
           </h1>
           <p className="mt-1.5 text-sm text-gray-500">
-            No credit card required. Trial ends in 21 days.
+            Start free on Basic — no credit card required. Paid plans include a 21-day free trial.
           </p>
 
           {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
@@ -433,7 +449,7 @@ function SignupPage() {
           <div className="mt-4">
             <p className="text-sm font-semibold text-slate-900">Select your plan</p>
             <p className="mt-0.5 text-xs text-gray-500">
-              Every plan starts with a 21-day free trial — no credit card required.
+              Start free on Basic — no credit card required. Paid plans include a 21-day free trial.
             </p>
             <div className="mt-2.5 space-y-2" role="radiogroup" aria-label="Plan">
               {PLAN_OPTIONS.map((opt) => {
@@ -485,9 +501,11 @@ function SignupPage() {
                 );
               })}
             </div>
-            {/* Selected plan — price clearly tied to the trial */}
+            {/* Selected plan — price clearly tied to the trial (Basic is free forever) */}
             <p className="mt-2.5 text-sm text-gray-500">
-              {planInfo.name} — ${planInfo.price}/mo after your 21-day free trial
+              {selectedPlan === "basic"
+                ? "Basic — $0/mo, free forever"
+                : `${planInfo.name} — ${planInfo.price}/mo after your 21-day free trial`}
             </p>
           </div>
 

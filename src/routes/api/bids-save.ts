@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
-import { hasProfessionalAccess, loadUserTrialStatus, FREE_SAVE_LIMIT } from "~/lib/trial";
-// The exact message surfaced to a non-Professional user who's hit the free
+import { hasUnlimitedSaves, loadUserTrialStatus, FREE_SAVE_LIMIT } from "~/lib/trial";
+// The exact message surfaced to a Basic (free) user who's hit the free
 // saved-bid limit. Kept in sync with the client-side paywall (SaveToPipeline /
 // dashboard) — see src/components/PremiumUpgradeModal.tsx.
 const SAVE_LIMIT_MESSAGE =
@@ -16,12 +16,12 @@ async function handler({ request }: { request: Request }) {
     }
     const user = await getUserFromRequest(request);
     if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
-    // Free saved-bid limit: a non-Professional user may actively track at most
-    // FREE_SAVE_LIMIT bids. Admins / demo / Professional+ users bypass. The
-    // incoming bid_id is excluded so re-saving an already-saved bid (or moving
-    // a dismissed bid back to open) never counts against the cap.
+    // Free saved-bid limit: a Basic (free) user may actively track at most
+    // FREE_SAVE_LIMIT bids. Admins / demo / active-grant / Starter+ users
+    // bypass. The incoming bid_id is excluded so re-saving an already-saved bid
+    // (or moving a dismissed bid back to open) never counts against the cap.
     const trial = await loadUserTrialStatus(user.id);
-    if (!hasProfessionalAccess(trial, user)) {
+    if (!hasUnlimitedSaves(trial, user)) {
       const rows = await sql()`SELECT COUNT(*)::int AS c FROM saved_matches WHERE user_id = ${user.id} AND status = 'saved' AND bid_id <> ${bidId}`;
       if ((rows[0]?.c ?? 0) >= FREE_SAVE_LIMIT) {
         return Response.json({ error: "save_limit", message: SAVE_LIMIT_MESSAGE }, { status: 403 });

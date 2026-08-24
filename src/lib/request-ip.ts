@@ -13,7 +13,10 @@
  * This module is pure (no node builtins, no DB, no env), so it is safe both on
  * the server and when imported from client-bundled route files.
  */
-export const BLOCKED_IPS: string[] = ["5.175.149.80", "158.62.139.139"];
+export const BLOCKED_IPS: string[] = [
+  "5.175.149.80",
+  "158.62.139.139",
+];
 
 /**
  * Resolves the client IP from a Request using the same proxy header order as

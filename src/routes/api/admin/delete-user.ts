@@ -2,21 +2,49 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 
+// Tables with a user_id FK referencing users(id) WITHOUT ON DELETE CASCADE.
+// These must be purged before the final `DELETE FROM users`, otherwise the FK
+// constraint throws and the user cannot be removed. Kept alphabetically.
 const USER_DEPENDENT_TABLES = [
-  "google_accounts",
-  "business_profiles",
+  "ai_feedback",
   "api_keys",
   "bid_alerts",
-  "saved_matches",
-  "sessions",
-  "proposal_drafts",
-  "ai_feedback",
-  "savings_diagnoses",
-  "savings_bills",
+  "business_profiles",
+  "google_accounts",
   "integrations",
-  "notifications",
   "knowledge_documents",
+  "notifications",
+  "pending_drafts",
+  "proposal_drafts",
+  "saved_matches",
+  "savings_bills",
+  "savings_diagnoses",
+  "sessions",
+  "slack_config",
+  "slack_deliveries",
+  "user_searches",
+  "webhooks",
 ];
+
+// Surface the real failure (e.g. an FK violation / constraint name) so an admin
+// sees a meaningful message instead of a bare "Failed to delete user". Strips
+// credential-bearing URIs and caps length to avoid leaking secrets.
+function describeError(err: unknown): string {
+  const e = err as { code?: unknown; constraint?: unknown; message?: unknown };
+  const code = typeof e.code === "string" ? e.code : null;
+  const constraint = typeof e.constraint === "string" ? e.constraint : null;
+  let detail = "";
+  if (code === "23503") {
+    detail = `Foreign-key violation (constraint ${constraint ? `"${constraint}"` : "unknown"}); a dependent table may be missing from the whitelist`;
+  } else if (code && constraint) {
+    detail = `DB error (${code}, constraint "${constraint}")`;
+  } else if (code) {
+    detail = `DB error (${code})`;
+  }
+  const raw = e.message ? String(e.message) : String(err ?? "unknown error");
+  const sanitized = raw.replace(/[a-z0-9+._-]+:\/\/[^\s]+/gi, "[redacted]");
+  return (detail ? `${detail} — ` : "") + sanitized.slice(0, 400);
+}
 
 async function handler({ request }: { request: Request }) {
   try {
@@ -55,7 +83,7 @@ async function handler({ request }: { request: Request }) {
     return Response.json({ success: true });
   } catch (err) {
     console.error("[api/admin/delete-user] error:", err);
-    return Response.json({ error: "Failed to delete user" }, { status: 500 });
+    return Response.json({ error: describeError(err) }, { status: 500 });
   }
 }
 

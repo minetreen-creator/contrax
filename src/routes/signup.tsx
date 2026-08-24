@@ -478,12 +478,15 @@ function SignupPage() {
                 Email
               </label>
               {/* ZERO-CARD REASSURANCE — large, unmissable badge right by the
-                  email field. Truthful: the Basic/free tier never requires a
-                  card. Shown always (Basic is the default free tier); the
-                  subtitle and per-plan price line keep paid plans' trial
-                  framing accurate so no paid plan is ever claimed to be free. */}
+                  email field. Plan-conditional: for the Basic/free tier we say
+                  "100% Free Forever"; for a paid plan (starter/professional/
+                  agency) we use honest 21-day trial framing instead so a paid
+                  plan is never claimed to be free. Styling/placement identical
+                  for both branches. */}
               <div className="mt-1.5 rounded-lg border border-emerald-300 bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white shadow-sm">
-                🔒 100% Free Forever • Zero Credit Card Required
+                {selectedPlan === "basic"
+                  ? "🔒 100% Free Forever • Zero Credit Card Required"
+                  : "🔒 Start your 21-day free trial • No card required"}
               </div>
               <input
                 id="email"

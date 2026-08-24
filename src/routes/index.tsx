@@ -1595,7 +1595,7 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
                         <a
                           href={`/signup?bid=${bid.id}&ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}&closes=${encodeURIComponent(bid.due_date ?? "")}&next=%2F%23closing-soon`}
                           title={bid.title}
-                          onClick={() => trackEvent("signup_cta_click", "home_closing_soon", "/#closing-soon")}
+                          onClick={() => trackEvent("signup_cta_click", "home_closing_soon_row", "/#closing-soon")}
                           className="line-clamp-2 text-sm font-semibold text-slate-800 transition-colors hover:text-amber-700"
                         >
                           {bid.title}
@@ -1645,7 +1645,7 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
             // not `//`), and the onboarding redirect (window.location.assign)
             // preserves the fragment so the user lands scrolled to #closing-soon.
             href="/signup?plan=starter&next=%2F%23closing-soon"
-            onClick={() => trackEvent("signup_cta_click", "home_closing_soon", "/#closing-soon")}
+            onClick={() => trackEvent("signup_cta_click", "home_closing_soon_button", "/#closing-soon")}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-7 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98]"
           >
             Start free — track closing deadlines →

@@ -172,6 +172,15 @@ function PricingPage() {
                 >
                   {plan.cta}
                 </a>
+                {/* Honest scope on free forever — Basic is free and never expires,
+                    but it is LIMITED (up to 3 saved bids), with the premium
+                    features paywalled behind Professional. Small footnote on the
+                    Basic card only. */}
+                {plan.free && (
+                  <p className="mt-3 text-center text-xs text-gray-500">
+                    Basic is free forever, limited to up to 3 saved bids. Incumbent Intelligence, AI Match Scoring &amp; Draft Tools are on Professional.
+                  </p>
+                )}
               </div>
             ))}
           </div>

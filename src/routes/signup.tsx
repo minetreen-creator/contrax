@@ -301,14 +301,32 @@ function SignupPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    // Fire exactly once per submit — the button is disabled while loading, so
-    // double-clicks can't double-fire.
-    trackEvent("signup_submit");
-    setLoading(true);
 
     const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string || "").trim().toLowerCase();
     const password = formData.get("password") as string || "";
+
+    // Client-side validation short-circuit — mirror the server's /api/signup
+    // checks (email format + password length) so a form that fails ITS OWN
+    // validation never dispatches a network call. Keeps the exact same
+    // user-facing message the server would return and avoids the loading
+    // spinner. The server remains the authoritative second guard.
+    const clientErrors: string[] = [];
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      clientErrors.push("Please enter a valid email address.");
+    }
+    if (!password || password.length < 8) {
+      clientErrors.push("Password must be at least 8 characters.");
+    }
+    if (clientErrors.length > 0) {
+      setError(clientErrors.join(" "));
+      return;
+    }
+
+    // Fire exactly once per submit — the button is disabled while loading, so
+    // double-clicks can't double-fire.
+    trackEvent("signup_submit");
+    setLoading(true);
 
     try {
       const res = await fetch("/api/signup", {
@@ -488,6 +506,16 @@ function SignupPage() {
                   ? "🔒 100% Free Forever • Zero Credit Card Required"
                   : "🔒 Start your 21-day free trial • No card required"}
               </div>
+              {/* Honest scope on the free forever claim — Basic is free and never
+                  expires, but it is LIMITED: capped at 3 saved bids, with Incumbent
+                  Intelligence / AI Match Scoring / Draft Tools paywalled behind
+                  Professional. Kept small (text-xs) and only on the Basic branch so
+                  the badge is never read as "everything is free". */}
+              {selectedPlan === "basic" && (
+                <p className="mt-1.5 text-xs text-gray-500">
+                  Free forever — up to 3 saved bids. Incumbent Intelligence &amp; Draft Tools are on Professional.
+                </p>
+              )}
               <input
                 id="email"
                 name="email"
@@ -639,7 +667,7 @@ function SignupPage() {
             <p className="mt-2.5 text-sm text-gray-500">
               {selectedPlan === "basic"
                 ? "Basic — $0/mo, free forever"
-                : `${planInfo.name} — ${planInfo.price}/mo after your 21-day free trial`}
+                : `${planInfo.name} — $${planInfo.price}/mo after your 21-day free trial`}
             </p>
           </div>
 

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
+import { resolveAttribution, type Attribution } from "~/lib/attribution";
 
 /**
  * POST /api/page-view
@@ -45,9 +46,20 @@ async function ensurePageViewsTable(): Promise<void> {
     user_agent TEXT,
     ip TEXT,
     referrer TEXT,
+    source TEXT,
+    medium TEXT,
+    campaign TEXT,
+    click_id TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
+  // Lazy ALTER guards (idempotent) so pre-existing production tables gain the
+  // attribution columns on first hit after deploy — no migration step required.
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS source TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS medium TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS campaign TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS click_id TEXT`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views (created_at)`;
+  await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_source ON page_views (source)`;
 }
 
 /**
@@ -98,9 +110,22 @@ async function handler({ request }: { request: Request }) {
 
     const ip = getClientIp(request);
 
+    // First-touch acquisition attribution, resolved in precedence order:
+    // cookie (contrax_attr) → request query params → referer. The client sets the
+    // cookie first (see src/routes/__root.tsx AttributionCookie), so this is the
+    // canonical carrier; query/referer are the cookie-blocker fallback. We use the
+    // BODY referrer (document.referrer) as the referer signal, falling back to the
+    // Referer header — the POST's own Referer header is the current page, not the
+    // external origin.
+    const attr: Attribution = resolveAttribution({
+      cookie: request.headers.get("cookie"),
+      search: new URL(request.url).search,
+      referer: referrer ?? request.headers.get("referer"),
+    });
+
     const insert = () =>
-      sql()`INSERT INTO page_views (path, user_agent, ip, referrer)
-        VALUES (${path}, ${userAgent}, ${ip}, ${referrer})`;
+      sql()`INSERT INTO page_views (path, user_agent, ip, referrer, source, medium, campaign, click_id)
+        VALUES (${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id})`;
 
     try {
       await ensurePageViewsTable();

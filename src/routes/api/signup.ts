@@ -3,10 +3,16 @@ import { setCookie } from "@tanstack/react-start/server";
 import { sql } from "~/db";
 import { SESSION_COOKIE } from "~/lib/auth";
 import { hashPassword } from "~/lib/password";
+import { isBlockedIp } from "~/lib/request-ip";
 
 const SESSION_TTL_DAYS = 30;
 
 async function handler({ request }: { request: Request }) {
+  // Throttle a known hostile IP from account creation. Exact-match only; generic
+  // 403 that does not reveal why. Runs before parsing the body / any DB write.
+  if (isBlockedIp(request)) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
   try {
     const body = (await request.json()) as {
       email?: string;

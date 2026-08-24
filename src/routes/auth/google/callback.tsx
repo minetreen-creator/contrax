@@ -1,9 +1,10 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { setCookie } from "@tanstack/react-start/server";
+import { setCookie, getRequest } from "@tanstack/react-start/server";
 import { SESSION_COOKIE } from "~/lib/auth";
 import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
 import { safeNext, saveMatch } from "~/lib/saved-matches";
+import { isBlockedIp } from "~/lib/request-ip";
 
 /**
  * OAuth callback for "Continue with Google" signup/login.
@@ -283,6 +284,20 @@ async function ensureFunnelEventsTable(): Promise<void> {
 
 export const Route = createFileRoute("/auth/google/callback")({
   loader: async ({ location }) => {
+    // Throttle a known hostile IP out of the OAuth signup/login callback before
+    // any code exchange or account/session creation. Exact-match only. A loader
+    // cannot return a JSON body, so short-circuit with a generic redirect that
+    // does not reveal why (same pattern as the other callback error branches).
+    let req: Request | null = null;
+    try {
+      req = getRequest();
+    } catch {
+      req = null; // Not in a server request scope (shouldn't happen on a full
+      // OAuth redirect) — fail open rather than crash the callback.
+    }
+    if (req && isBlockedIp(req)) {
+      throw redirect({ href: "/login?error=account_unavailable" });
+    }
     const search = new URLSearchParams(location.search);
 
     // User declined consent on Google's screen.

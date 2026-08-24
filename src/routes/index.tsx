@@ -2444,16 +2444,28 @@ function LeadCapture() {
 function Pricing() {
   const plans = [
     {
+      name: "Basic",
+      price: "0",
+      period: "/month",
+      description: "Free forever. For small businesses scouting their first set-aside opportunities.",
+      features: [
+        "Basic Solicitations Search",
+        "Up to 3 Saved Bids",
+        "Standard Set-Aside Filters",
+      ],
+      cta: "Start Free",
+      slug: "basic",
+      featured: false,
+    },
+    {
       name: "Starter",
       price: "19",
       period: "/month",
-      description: "For small businesses getting started with government contracting.",
+      description: "For businesses ready to build and track a real government-contracting pipeline.",
       features: [
-        "SAM.gov bid matching (daily sync)",
-        "AI-powered bid summaries",
-        "Win probability scoring",
-        "Certification guides & checklists",
-        "Contract database access",
+        "Unlimited Saved Bids",
+        "Daily NAICS Email Alerts",
+        "CSV Pipeline Export",
       ],
       cta: "Get Started",
       slug: "starter",
@@ -2463,38 +2475,36 @@ function Pricing() {
       name: "Professional",
       price: "79",
       period: "/month",
-      description: "For growing businesses that want to scale their contracting pipeline.",
+      description: "For growing businesses that win more bids with full intelligence and draft tools.",
       features: [
-        "Everything in Starter",
-        "Unlimited bid tracking",
-        "Drafting Intelligence — AI-verified citations to protect your win against audits",
-        "Win probability scoring",
-        "Compliance tracking",
-        "AI chat support",
+        "Full Incumbent Intelligence & Past Pricing",
+        "AI Match Scoring",
+        "Draft Tools",
       ],
       cta: "Get Started",
       slug: "professional",
       featured: true,
     },
-    {
-      name: "Agency",
-      price: "199",
-      period: "/month",
-      description: "For firms managing multiple clients or large contract portfolios.",
-      features: [
-        "Everything in Professional",
-        "Team roles & permissions",
-        "Integration connectors",
-        "Win/loss bid tracking",
-        "Red Team proposal auditing",
-        "Team collaboration tools",
-        "Market trend analysis",
-      ],
-      cta: "Get Started",
-      slug: "agency",
-      featured: false,
-    },
   ];
+
+  // Agency ($199/mo) is NOT part of the primary 3-tier matrix — kept separately
+  // (Proposal Evaluator Red Team + team roles). Listed below the main grid.
+  const agencyPlan = {
+    name: "Agency",
+    price: "199",
+    period: "/month",
+    description: "For firms managing multiple clients or large contract portfolios.",
+    features: [
+      "Everything in Professional",
+      "Proposal Evaluator Red Team",
+      "Team roles & permissions",
+      "Integration connectors",
+      "Win/loss bid tracking",
+      "Team collaboration tools",
+    ],
+    cta: "Get Started",
+    slug: "agency",
+  };
 
   return (
     <section id="pricing" className="py-20 sm:py-28">
@@ -2510,7 +2520,7 @@ function Pricing() {
             Start small and scale up as your contracting pipeline grows. No long-term contracts
             required.
           </p>
-          <p className="mt-3 text-sm font-medium text-slate-500">All plans include a 21-day free trial. No hidden fees. Cancel anytime.</p>
+          <p className="mt-3 text-sm font-medium text-slate-500">Start free on Basic — no card required. Paid plans include a 21-day free trial. Cancel anytime.</p>
         </div>
 
         <div className="mt-14 grid gap-8 lg:grid-cols-3">
@@ -2555,6 +2565,46 @@ function Pricing() {
               <a href={`/signup?plan=${plan.slug}`} onClick={() => trackEvent("hero_cta_click", "pricing")} className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${plan.featured ? "bg-amber-500 text-white" : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"}`}>{plan.cta}</a>
             </div>
           ))}
+        </div>
+
+        {/* Agency — kept separate from the primary 3-tier matrix */}
+        <div className="mt-10">
+          <div className="relative flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+            <div className="flex-1">
+              <div className="flex items-center gap-3">
+                <h3 className="text-xl font-bold text-slate-900">{agencyPlan.name}</h3>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-500">
+                  Separate
+                </span>
+              </div>
+              <p className="mt-1 text-sm text-gray-500">{agencyPlan.description}</p>
+              <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-1.5 text-sm text-gray-600">
+                {agencyPlan.features.map((feature) => (
+                  <li key={feature} className="flex items-center gap-1.5">
+                    <svg className="h-4 w-4 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    {feature}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="mt-6 sm:mt-0 sm:text-right">
+              <p className="text-3xl font-extrabold text-slate-900">
+                ${agencyPlan.price}<span className="text-base font-normal text-gray-500">{agencyPlan.period}</span>
+              </p>
+              <a
+                href={`/signup?plan=${agencyPlan.slug}`}
+                onClick={() => trackEvent("hero_cta_click", "pricing")}
+                className="mt-3 inline-block w-full rounded-xl border-2 border-slate-900 px-6 py-3 text-center text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98] sm:w-auto"
+              >
+                {agencyPlan.cta}
+              </a>
+            </div>
+          </div>
+          <p className="mt-3 text-center text-xs text-gray-500">
+            Agency includes the Proposal Evaluator "Red Team" and team roles — available separately from the core tiers.
+          </p>
         </div>
 
         {/* Billing note */}

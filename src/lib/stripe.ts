@@ -100,80 +100,141 @@ const VAD_EXPECTED_UNIT_AMOUNTS: Partial<Record<PlanTier, number>> = {
 /**
  * FALLBACK VAD Stripe Price IDs for each VAD-paid tier.
  *
- * NOTE: These are placeholders — the REAL VAD price IDs are not yet created in
- * Stripe. `getVadPriceIdForPlanTier` prefers the live API lookup (products/prices
- * tagged `vad: "true"` + `plan_tier` matching), and only falls back to this map
- * if the API lookup fails or returns no match. Once the VAD prices are created
- * in Stripe (and tagged with metadata), the API lookup will resolve them
- * automatically. If you prefer to hardcode them instead, replace the `""`
- * placeholders below with the real price IDs (e.g. from
- * `bun -e '...s.prices.list({limit:100})...'` filtering for `vad:"true"` prices).
+ * These are the LIVE VAD Stripe price IDs (Veterans Against Diabetes partner
+ * pricing, selected by the `VAD26` server-side verification code):
+ *   - Starter      $14.00/mo  → price_1U8AsfGdL43e7acFAolkeOnS
+ *   - Professional $59.00/mo  → price_1U8AYqGdL43e7acFJ4IWddcj
+ *   - Agency       $149.00/mo → price_1U8AZqGdL43e7acFHY4MEhzA
+ *
+ * `getVadPriceIdForPlanTier` first tries the live API lookup (active prices
+ * tagged `vad:"true"` + matching `plan_tier` on price/product metadata) and
+ * only falls back to this map if the API lookup fails or returns no VAD match.
+ * Because these are the exact, verified live VAD prices, the fallback is
+ * deterministic and always resolves VAD checkout to the correct price — the
+ * API lookup is purely an optimization.
+ *
+ * Update these ONLY if the VAD prices are replaced in Stripe. To list the
+ * current VAD prices:
+ *   bun -e 'import Stripe from "stripe"; const s = new Stripe(process.env.STRIPE_SECRET_KEY!);
+ *   s.prices.list({active:true,limit:100,expand:["data.product"]}).then(p =>
+ *     p.data.forEach(pr => { const prod = pr.product as any;
+ *       if (pr.metadata?.vad === "true" || prod?.metadata?.vad === "true")
+ *         console.log(pr.id, prod?.metadata?.plan_tier ?? pr.metadata?.plan_tier, pr.unit_amount) }))'
  */
-const FALLBACK_VAD_PRICE_IDS: Partial<Record<PlanTier, string>> = {
-  starter: "",        // TODO: replace with real VAD Starter ($14/mo) Stripe price ID
-  professional: "",   // TODO: replace with real VAD Professional ($59/mo) Stripe price ID
-  agency: "",         // TODO: replace with real VAD Agency ($149/mo) Stripe price ID
+const FALLBACK_VAD_PRICE_IDS: Record<PlanTier, string | null> = {
+  starter: "price_1U8AsfGdL43e7acFAolkeOnS", // VAD Starter $14/mo (VAD26)
+  professional: "price_1U8AYqGdL43e7acFJ4IWddcj", // VAD Professional $59/mo (VAD26)
+  agency: "price_1U8AZqGdL43e7acFHY4MEhzA", // VAD Agency $149/mo (VAD26)
+  savings_premium: null, // not part of the VAD offering
 };
 
 /**
  * Look up the dedicated VAD Stripe Price ID for a given plan tier.
  *
- * Queries the Stripe API for active prices whose product/price metadata marks
- * them as VAD prices (`vad: "true"`) AND whose product `metadata.plan_tier`
- * matches the requested tier. Prefers the exact expected VAD unit_amount if
- * several VAD prices exist for a tier. Falls back to FALLBACK_VAD_PRICE_IDS.
+ * Strategy (robust to Stripe data inconsistencies that caused the live Starter
+ * VAD mismatch):
+ *   1. Query Stripe for ACTIVE prices, paginating ALL pages — the old code only
+ *      fetched the first `limit: 100` active prices and a truncated first page
+ *      could let a VAD price (e.g. Starter) fall outside the scan window.
+ *   2. A price is a VAD candidate when EITHER the price metadata OR the product
+ *      metadata carries `vad == "true"` (either location is accepted).
+ *   3. The tier must match on EITHER the price metadata OR the product metadata
+ *      `plan_tier` (the old code checked `plan_tier` only on the product, which
+ *      missed tiers tagged on the price metadata instead).
+ *   4. Prefer the exact expected VAD unit_amount (VAD_EXPECTED_UNIT_AMOUNTS);
+ *      otherwise use the first VAD candidate for the tier. A differing
+ *      unit_amount never breaks resolution.
+ *   5. If no VAD price is found via the API, fall back to the deterministic
+ *      FALLBACK_VAD_PRICE_IDS map (the live VAD price IDs).
  *
- * Throws if no VAD price can be resolved for the tier.
+ * Logs which resolution path was used so the outcome is observable in prod.
+ * Throws only if neither the API lookup nor the fallback resolves a VAD price.
  */
 async function getVadPriceIdForPlanTier(planTier: PlanTier): Promise<string> {
   const stripe = getStripe();
   const expectedAmount = VAD_EXPECTED_UNIT_AMOUNTS[planTier];
 
   try {
-    const prices = await stripe.prices.list({
-      active: true,
-      expand: ["data.product"],
-      limit: 100,
-    });
+    // Gather VAD candidates across ALL active prices (paginate fully so a
+    // truncated first page can't hide a VAD price).
+    const matching: { price: Stripe.Price; unitAmount: number | null }[] = [];
+    let startingAfter: string | undefined;
+    let pages = 0;
+    const MAX_PAGES = 10; // 10 * 100 = 1000 active prices; safety cap
 
-    const matching: Stripe.Price[] = [];
-    for (const price of prices.data) {
-      const product = price.product as Stripe.Product | undefined;
-      if (!product) continue;
-      // Match only prices/products explicitly tagged as VAD.
-      const isVad = price.metadata?.vad === "true" || product.metadata?.vad === "true";
-      if (!isVad) continue;
-      // The tier must match on the product's plan_tier metadata.
-      if (product.metadata?.plan_tier !== planTier) continue;
-      matching.push(price);
-    }
+    do {
+      const prices = await stripe.prices.list({
+        active: true,
+        expand: ["data.product"],
+        limit: 100,
+        ...(startingAfter ? { starting_after: startingAfter } : {}),
+      });
+
+      for (const price of prices.data) {
+        const product =
+          typeof price.product === "string"
+            ? null
+            : (price.product as Stripe.Product | null);
+        // VAD tag on EITHER the price or its product.
+        const isVad =
+          price.metadata?.vad === "true" || product?.metadata?.vad === "true";
+        if (!isVad) continue;
+        // Tier on EITHER the price or its product metadata.
+        const tierMatch =
+          price.metadata?.plan_tier === planTier ||
+          product?.metadata?.plan_tier === planTier;
+        if (!tierMatch) continue;
+        matching.push({ price, unitAmount: price.unit_amount ?? null });
+      }
+
+      startingAfter = prices.has_more
+        ? prices.data[prices.data.length - 1]?.id
+        : undefined;
+      pages += 1;
+      if (pages >= MAX_PAGES) break;
+    } while (startingAfter);
 
     if (matching.length > 0) {
-      // Prefer the exact expected VAD amount if present; otherwise the first.
-      const exact = matching.find(
-        (p) => expectedAmount != null && p.unit_amount === expectedAmount,
+      // Prefer the exact expected VAD amount; otherwise the first candidate.
+      const exact =
+        expectedAmount != null
+          ? matching.find((m) => m.unitAmount === expectedAmount)
+          : undefined;
+      const chosen = (exact ?? matching[0]).price;
+      console.log(
+        `[VAD-price] plan_tier="${planTier}" resolved via LIVE API lookup: ` +
+          `${chosen.id} (unit_amount=${chosen.unit_amount}, ` +
+          `${matching.length} VAD candidate(s) for tier)`,
       );
-      return (exact ?? matching[0]).id;
+      return chosen.id;
     }
 
     console.warn(
-      `No VAD Stripe price found for plan_tier="${planTier}" via API lookup — ` +
-        `ensure a price exists with price/product metadata vad="true" and ` +
-        `product metadata.plan_tier="${planTier}"`,
+      `[VAD-price] plan_tier="${planTier}": no matching active VAD price found ` +
+        `via API (${matching.length} candidates) — falling back to ` +
+        `FALLBACK_VAD_PRICE_IDS. If a match was expected, verify the price/product ` +
+        `metadata (vad="true" + plan_tier="${planTier}" on price and/or product) ` +
+        `and that the price is active.`,
     );
   } catch (err) {
     console.warn(
-      `VAD Stripe price lookup failed (will try fallback): ${(err as Error).message}`,
+      `[VAD-price] plan_tier="${planTier}" API lookup failed ` +
+        `(will use fallback): ${(err as Error).message}`,
     );
   }
 
   const fallback = FALLBACK_VAD_PRICE_IDS[planTier];
-  if (fallback) return fallback;
+  if (fallback) {
+    console.log(
+      `[VAD-price] plan_tier="${planTier}" resolved via FALLBACK: ${fallback}`,
+    );
+    return fallback;
+  }
 
   throw new Error(
     `No VAD Stripe price ID configured for plan_tier="${planTier}". ` +
-      `Create the VAD price in Stripe (metadata vad="true" + product ` +
-      `plan_tier="${planTier}") or fill FALLBACK_VAD_PRICE_IDS in src/lib/stripe.ts.`,
+      `Refill FALLBACK_VAD_PRICE_IDS in src/lib/stripe.ts or tag a VAD price ` +
+      `in Stripe (metadata vad="true" + plan_tier="${planTier}").`,
   );
 }
 

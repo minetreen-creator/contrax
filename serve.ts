@@ -64,6 +64,7 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
     const body = (await req.json().catch(() => ({}))) as {
       planTier?: string;
       mode?: "payment" | "subscription";
+      promoCode?: string;
     };
 
     const validTiers = ["starter", "professional", "agency", "savings_premium"];
@@ -93,9 +94,12 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
     );
     // Attribute the checkout to the logged-in user (if any) via session cookie
     const userId = await resolveUserIdFromCookie(req.headers.get("cookie"));
+    const normalized = (body.promoCode ?? "").trim().toLowerCase();
+    const promoCode = normalized === "vad26" ? "VAD26" : undefined;
     const result = await createCheckoutSession(body.planTier as any, {
       userId,
       mode: body.mode ?? "subscription",
+      ...(promoCode ? { promoCode } : {}),
     });
 
     if (!result.success) {

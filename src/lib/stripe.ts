@@ -75,6 +75,108 @@ const EXPECTED_UNIT_AMOUNTS: Record<PlanTier, number | null> = {
   savings_premium: null, // one-time price — amount varies
 };
 
+// ── Veterans Against Diabetes (VAD) partner pricing ────────────────────────────
+//
+// VAD partner members get EXCLUSIVE pricing for the first 12 months via the
+// `VAD26` server-side verification code (entered on the /vad partner page):
+//   - Starter:      $14/mo  (normally $19)
+//   - Professional: $59/mo  (normally $79)
+//   - Agency:       $149/mo (normally $199)
+//
+// This is NOT a Stripe promo/discount code — `VAD26` is OUR OWN code. When the
+// code is presented, the checkout simply uses dedicated exact VAD Stripe prices
+// for the tier ($14/$59/$149 recurring). The webhook still grants the customer
+// the NORMAL tier (starter/professional/agency) via `plan_tier` metadata; only
+// the price differs, so a VAD member gets the exact same product/features.
+
+/** Expected VAD unit_amount (in cents) for the three VAD-paid tiers — used to
+ *  prefer the exact VAD price if multiple active VAD prices exist for a tier. */
+const VAD_EXPECTED_UNIT_AMOUNTS: Partial<Record<PlanTier, number>> = {
+  starter: 1400,        // $14.00
+  professional: 5900,   // $59.00
+  agency: 14900,        // $149.00
+};
+
+/**
+ * FALLBACK VAD Stripe Price IDs for each VAD-paid tier.
+ *
+ * NOTE: These are placeholders — the REAL VAD price IDs are not yet created in
+ * Stripe. `getVadPriceIdForPlanTier` prefers the live API lookup (products/prices
+ * tagged `vad: "true"` + `plan_tier` matching), and only falls back to this map
+ * if the API lookup fails or returns no match. Once the VAD prices are created
+ * in Stripe (and tagged with metadata), the API lookup will resolve them
+ * automatically. If you prefer to hardcode them instead, replace the `""`
+ * placeholders below with the real price IDs (e.g. from
+ * `bun -e '...s.prices.list({limit:100})...'` filtering for `vad:"true"` prices).
+ */
+const FALLBACK_VAD_PRICE_IDS: Partial<Record<PlanTier, string>> = {
+  starter: "",        // TODO: replace with real VAD Starter ($14/mo) Stripe price ID
+  professional: "",   // TODO: replace with real VAD Professional ($59/mo) Stripe price ID
+  agency: "",         // TODO: replace with real VAD Agency ($149/mo) Stripe price ID
+};
+
+/**
+ * Look up the dedicated VAD Stripe Price ID for a given plan tier.
+ *
+ * Queries the Stripe API for active prices whose product/price metadata marks
+ * them as VAD prices (`vad: "true"`) AND whose product `metadata.plan_tier`
+ * matches the requested tier. Prefers the exact expected VAD unit_amount if
+ * several VAD prices exist for a tier. Falls back to FALLBACK_VAD_PRICE_IDS.
+ *
+ * Throws if no VAD price can be resolved for the tier.
+ */
+async function getVadPriceIdForPlanTier(planTier: PlanTier): Promise<string> {
+  const stripe = getStripe();
+  const expectedAmount = VAD_EXPECTED_UNIT_AMOUNTS[planTier];
+
+  try {
+    const prices = await stripe.prices.list({
+      active: true,
+      expand: ["data.product"],
+      limit: 100,
+    });
+
+    const matching: Stripe.Price[] = [];
+    for (const price of prices.data) {
+      const product = price.product as Stripe.Product | undefined;
+      if (!product) continue;
+      // Match only prices/products explicitly tagged as VAD.
+      const isVad = price.metadata?.vad === "true" || product.metadata?.vad === "true";
+      if (!isVad) continue;
+      // The tier must match on the product's plan_tier metadata.
+      if (product.metadata?.plan_tier !== planTier) continue;
+      matching.push(price);
+    }
+
+    if (matching.length > 0) {
+      // Prefer the exact expected VAD amount if present; otherwise the first.
+      const exact = matching.find(
+        (p) => expectedAmount != null && p.unit_amount === expectedAmount,
+      );
+      return (exact ?? matching[0]).id;
+    }
+
+    console.warn(
+      `No VAD Stripe price found for plan_tier="${planTier}" via API lookup — ` +
+        `ensure a price exists with price/product metadata vad="true" and ` +
+        `product metadata.plan_tier="${planTier}"`,
+    );
+  } catch (err) {
+    console.warn(
+      `VAD Stripe price lookup failed (will try fallback): ${(err as Error).message}`,
+    );
+  }
+
+  const fallback = FALLBACK_VAD_PRICE_IDS[planTier];
+  if (fallback) return fallback;
+
+  throw new Error(
+    `No VAD Stripe price ID configured for plan_tier="${planTier}". ` +
+      `Create the VAD price in Stripe (metadata vad="true" + product ` +
+      `plan_tier="${planTier}") or fill FALLBACK_VAD_PRICE_IDS in src/lib/stripe.ts.`,
+  );
+}
+
 /**
  * Look up the Stripe Price ID for a given plan tier.
  *
@@ -168,6 +270,15 @@ export interface CreateCheckoutSessionOptions {
    * monthly, and a recurring price rejected in "payment" mode.
    */
   mode?: CheckoutMode;
+  /**
+   * Optional server-side verification code. The only supported value is
+   * "VAD26" (Veterans Against Diabetes partner code). When present, the
+   * checkout uses the dedicated exact VAD Stripe price for the tier instead of
+   * the standard one, and `promo_code: "VAD26"` is recorded on the session
+   * metadata for attribution. This is NOT a Stripe promo/discount code — it is
+   * our own server-side verification that selects pre-existing VAD prices.
+   */
+  promoCode?: string;
 }
 
 /**
@@ -183,12 +294,18 @@ export async function createCheckoutSession(
   opts: CreateCheckoutSessionOptions = {},
 ): Promise<CreateCheckoutSessionResult> {
   try {
-    const priceId = await getPriceIdForPlanTier(planTier);
+    const isVad = opts.promoCode === "VAD26";
+    const priceId = isVad
+      ? await getVadPriceIdForPlanTier(planTier)
+      : await getPriceIdForPlanTier(planTier);
     const mode: CheckoutMode = opts.mode ?? "subscription";
 
     const metadata: Record<string, string> = { plan_tier: planTier };
     if (opts.userId != null) {
       metadata.user_id = String(opts.userId);
+    }
+    if (isVad) {
+      metadata.promo_code = "VAD26";
     }
 
     const session = await getStripe().checkout.sessions.create({

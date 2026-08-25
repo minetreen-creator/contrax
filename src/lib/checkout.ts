@@ -15,16 +15,25 @@ type PlanTier = "starter" | "professional" | "agency" | "savings_premium";
  * a different checkout page with potentially wrong pricing is a liability.
  *
  * @param planTier - The plan to purchase
+ * @param options - Optional checkout options (e.g. { promoCode: "VAD26" } for
+ *   the Veterans Against Diabetes partner code). Backward compatible — omitting
+ *   the second argument sends the standard checkout.
  * @returns A promise that resolves when the redirect is initiated
  */
 export async function redirectToCheckout(
   planTier: PlanTier,
+  options?: { promoCode?: string },
 ): Promise<void> {
   try {
+    const payload: Record<string, unknown> = { planTier };
+    if (options?.promoCode) {
+      payload.promoCode = options.promoCode;
+    }
+
     const response = await fetch("/api/stripe/create-checkout-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ planTier }),
+      body: JSON.stringify(payload),
     });
 
     if (response.ok) {

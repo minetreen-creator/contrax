@@ -36,6 +36,7 @@ async function handler({ request }: { request: Request }) {
     const body = (await request.json().catch(() => ({}))) as {
       planTier?: string;
       mode?: "payment" | "subscription";
+      promoCode?: string;
     };
 
     if (!body.planTier || !(VALID_TIERS as string[]).includes(body.planTier)) {
@@ -54,9 +55,15 @@ async function handler({ request }: { request: Request }) {
     }
 
     const userId = await resolveUserIdFromCookie(request.headers.get("cookie"));
+    // Optional server-side verification code ("VAD26"). Normalized to lowercase,
+    // then passed through as "VAD26" when it matches — the checkout then uses
+    // the dedicated exact VAD Stripe price for the tier.
+    const normalized = (body.promoCode ?? "").trim().toLowerCase();
+    const promoCode = normalized === "vad26" ? "VAD26" : undefined;
     const result = await createCheckoutSession(body.planTier as PlanTier, {
       userId,
       mode: body.mode ?? "subscription",
+      ...(promoCode ? { promoCode } : {}),
     });
 
     if (!result.success) {

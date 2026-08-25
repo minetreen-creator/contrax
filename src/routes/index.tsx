@@ -673,9 +673,106 @@ export const Route = createFileRoute("/")({
   }),
 });
 
+// ── Official Partnership Announcement (Veterans Against Diabetes) ──────────────
+// Static, self-contained announcement band rendered at the very top of the
+// homepage (above the Navbar). Pure presentational copy — no buttons, no
+// checkout wiring, no pricing/gating changes. Rendered as part of the Home
+// component tree so it is included in the server-rendered HTML on first load.
+function PartnershipBanner() {
+  return (
+    <section className="relative overflow-hidden border-b border-amber-500/20 bg-slate-900">
+      {/* subtle amber glow so it reads as an announcement without clashing */}
+      <div
+        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent"
+        aria-hidden="true"
+      />
+      <div className="relative mx-auto max-w-7xl px-6 py-10 sm:py-12">
+        <div className="mx-auto max-w-4xl">
+          <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            <span className="bg-gradient-to-r from-amber-300 to-amber-400 bg-clip-text text-transparent">
+              Official Partnership Announcement
+            </span>
+          </h2>
+          <p className="mt-3 leading-relaxed text-slate-300">
+            Contrax is proud to announce our new partnership with{" "}
+            <a
+              href="https://www.facebook.com/profile.php?id=61585106463292"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-amber-300 underline decoration-amber-400/40 underline-offset-2 transition-colors hover:text-amber-200"
+            >
+              Veterans Against Diabetes
+            </a>
+            , a veteran-led nonprofit committed to strengthening veterans and their
+            communities through education, resources, and practical assistance.
+          </p>
+          <p className="mt-4 leading-relaxed text-slate-300">
+            As part of this partnership, eligible Veterans Against Diabetes members
+            will receive approximately 25% off any paid Contrax plan for their first
+            12 months:
+          </p>
+          <ul className="mt-4 space-y-2">
+            <li className="flex items-start gap-2 text-slate-200">
+              <span aria-hidden="true">🔹</span>
+              <span>
+                Starter: <span className="font-semibold text-amber-300">$14/month</span>
+              </span>
+            </li>
+            <li className="flex items-start gap-2 text-slate-200">
+              <span aria-hidden="true">🔹</span>
+              <span>
+                Professional: <span className="font-semibold text-amber-300">$59/month</span>
+              </span>
+            </li>
+            <li className="flex items-start gap-2 text-slate-200">
+              <span aria-hidden="true">🔹</span>
+              <span>
+                Agency: <span className="font-semibold text-amber-300">$149/month</span>
+              </span>
+            </li>
+          </ul>
+          <p className="mt-4 leading-relaxed text-slate-300">
+            Contrax helps small businesses find government opportunities, evaluate
+            their chances of winning, research incumbent contractors, understand
+            solicitation requirements, and prepare stronger, compliant proposals.
+          </p>
+          <p className="mt-4 leading-relaxed text-slate-300">
+            Veterans have already sacrificed in service to our country. Veteran
+            entrepreneurs should have the tools and intelligence needed to compete
+            successfully for government contracts.
+          </p>
+          <p className="mt-4 leading-relaxed text-slate-300">
+            We&rsquo;re honored to support the mission of Veterans Against Diabetes and
+            look forward to creating meaningful opportunities together.
+          </p>
+          <div className="mt-6 text-sm font-medium">
+            <span className="text-slate-400">Learn more:</span>{" "}
+            <a
+              href="https://www.contrax.company/"
+              className="font-semibold text-amber-300 underline decoration-amber-400/40 underline-offset-2 transition-colors hover:text-amber-200"
+            >
+              🌐 Contrax
+            </a>
+            <span className="mx-2 text-slate-500">·</span>
+            <a
+              href="https://www.facebook.com/profile.php?id=61585106463292"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-amber-300 underline decoration-amber-400/40 underline-offset-2 transition-colors hover:text-amber-200"
+            >
+              Veterans Against Diabetes
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function Home() {
+
   const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, openCount, q } = Route.useLoaderData();
 
   const jsonLd = {
@@ -705,6 +802,7 @@ function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      <PartnershipBanner />
       <Navbar user={user} alertCount={alertCount} />
       <Hero userCount={userCount} bidStats={bidStats} cert={certId} q={q || ""} onSelectCert={selectCert} />
       <ClosingSoon bids={closingSoon} />
@@ -2290,24 +2388,6 @@ function Pricing() {
 
 // ── CTA ────────────────────────────────────────────────────────────────────────
 
-// Soro blog embed: the embed script is an IIFE that renders into #soro-blog.
-// Loading it with defer in <head> races React hydration — if the IIFE runs before
-// hydration, React wipes its output. So inject the script client-side only, after
-// hydration: this component's useEffect never runs during SSR (empty deps), and on
-// the client it appends the script to document.head after React has taken over the
-// DOM, guaranteeing the widget is never wiped. On re-mount (navigation away/back)
-// the effect re-runs and re-injects, so the widget self-heals.
-const SORO_EMBED_SRC =
-  "https://app.trysoro.com/api/embed/b2c9be2b-b791-4ef2-94d0-8ffbbfebe411";
-
-function SoroEmbed() {
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = SORO_EMBED_SRC;
-    document.head.appendChild(script);
-  }, []);
-  return <div id="soro-blog"></div>;
-}
 function WaitlistSection() {
   return (
     <>
@@ -2339,12 +2419,6 @@ function WaitlistSection() {
         </div>
       </section>
 
-      {/* Soro blog embed */}
-      <section className="bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <SoroEmbed />
-        </div>
-      </section>
     </>
   );
 }

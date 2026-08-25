@@ -3,7 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
-import { hasAgencyAccess, loadUserTrialStatus } from "~/lib/trial";
+import { checkTrial, hasAgencyAccess, loadUserTrialStatus, type TrialStatus } from "~/lib/trial";
 import { TrialGate } from "~/components/TrialGate";
 
 type Role = "estimator" | "proposal_writer" | "accountant" | "project_manager";
@@ -95,6 +95,12 @@ function WorkspacePageGated() {
 }
 
 function WorkspacePage() {
+  const user = Route.useLoaderData();
+  // Grant-aware trial status: gates the Agency controls / integrations UI below,
+  // consistent with the server-side agencyUser() gate (hasAgencyAccess) — so a
+  // user with an active full-access grant sees the Agency UI like plan_tier===
+  // 'agency', instead of keying off raw plan_tier.
+  const [trial, setTrial] = useState<TrialStatus | null>(null);
   const [data,setData]=useState<{members:Member[];activity:Activity[]}|null>(null);
   const [integrationsData, setIntegrationsData] = useState<IntegrationsData | null>(null);
   const [error,setError]=useState("");
@@ -115,7 +121,7 @@ function WorkspacePage() {
   const loadIntegrations = () => fetch("/api/integrations").then(async r=>{const body=await r.json();if(!r.ok)throw new Error(body.error||"Integrations load failed");return body}).then(r=>setIntegrationsData(r)).catch(() => {});
 
   const loadAgency = () => getAgencyData().then(r => { setAgency(r); const current = r.entities.find(e => e.id === r.activeProfileId) || r.entities[0]; if (current) setBrandName(current.business_name); }).catch(() => {});
-  useEffect(()=>{load(); loadIntegrations(); loadAgency();},[]);
+  useEffect(()=>{load(); loadIntegrations(); loadAgency(); checkTrial().then(setTrial).catch(()=>setTrial(null));},[]);
 
   async function generateKey() { try { const r = await createApiKey({data:{name:"CRM integration"}}); setNewKey(r.key); await loadAgency(); } catch(e) { setError(e instanceof Error ? e.message : "Could not create key"); } }
   async function saveBrand() { try { await saveBranding({data:{businessName:brandName,logoUrl,logoData}}); await loadAgency(); } catch(e) { setError(e instanceof Error ? e.message : "Could not save branding"); } }
@@ -153,7 +159,7 @@ function WorkspacePage() {
     }
   }
 
-  const showIntegrations = integrationsData?.planTier === "agency";
+  const showIntegrations = hasAgencyAccess(trial, user);
 
   return <main className="min-h-screen bg-slate-50">
     <header className="border-b border-slate-200 bg-white">

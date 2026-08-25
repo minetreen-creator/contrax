@@ -231,6 +231,12 @@ function PricingPage() {
               Or start your free trial &rarr;
             </a>
           </p>
+          <p className="mt-3 text-center text-sm text-gray-500">
+            Veterans Against Diabetes partner?{" "}
+            <a href="/vad" className="font-medium text-amber-600 hover:text-amber-500 transition-colors">
+              View exclusive VAD pricing
+            </a>
+          </p>
         </div>
       </section>
 

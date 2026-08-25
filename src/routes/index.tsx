@@ -2587,7 +2587,7 @@ function Pricing() {
               <div className="flex items-center gap-3">
                 <h3 className="text-xl font-bold text-slate-900">{agencyPlan.name}</h3>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-500">
-                  Separate
+                  Add-on
                 </span>
               </div>
               <p className="mt-1 text-sm text-gray-500">{agencyPlan.description}</p>

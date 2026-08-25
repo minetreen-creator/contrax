@@ -719,7 +719,6 @@ function Home() {
       <WhoItsFor />
       <ROICalculator />
       <CompareTeaser />
-      <LeadCapture />
       <WaitlistSection />
       <Footer />
     </div>
@@ -1070,35 +1069,10 @@ function FarClauseStats({
               Contrax has it built in.
             </span>
           </h2>
-          <div className="flex items-center gap-4 sm:gap-12">
-            <div className="text-center">
-              <p className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-                {stats.total.toLocaleString()}
-              </p>
-              <p className="mt-2 text-sm font-medium text-gray-500">
-                FAR &amp; DFARS clauses indexed
-              </p>
-            </div>
-            <div className="h-14 w-px bg-gray-200" aria-hidden="true" />
-            <div className="text-center">
-              <p className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {stats.far.toLocaleString()}
-              </p>
-              <p className="mt-2 text-sm font-medium text-gray-500">FAR clauses</p>
-            </div>
-            <div className="h-14 w-px bg-gray-200" aria-hidden="true" />
-            <div className="text-center">
-              <p className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-                {stats.dfars.toLocaleString()}
-              </p>
-              <p className="mt-2 text-sm font-medium text-gray-500">DFARS clauses</p>
-            </div>
-          </div>
+          <p className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl lg:text-right">
+            Search {stats.total.toLocaleString()} verified FAR and DFARS clauses — free.
+          </p>
         </div>
-        <p className="mt-8 text-center text-sm text-gray-500">
-          Exact citations, refreshed daily — complete FAR (parts 1–53) and DFARS
-          (201–253, 270) clause text.
-        </p>
         <div className="mt-5 text-center">
           <a
             href="/clauses"
@@ -2010,21 +1984,11 @@ function WhoItsFor() {
 // ── ROI Calculator ────────────────────────────────────────────────────────────
 
 function ROICalculator() {
-  const [hoursPerWeek, setHoursPerWeek] = useState(10);
-  const [bidsPerYear, setBidsPerYear] = useState(12);
-  const [avgContractValue, setAvgContractValue] = useState(50000);
+  const [hoursPerWeek, setHoursPerWeek] = useState(6);
+  const [hourlyCost, setHourlyCost] = useState(65);
 
-  const hourlyRate = 75;
-  const contraxCost = 79;
-  const timeSavingsPercent = 0.8;
-
-  const monthlyTimeSavings = (hoursPerWeek * 4) * timeSavingsPercent;
-  const monthlyManualCost = hoursPerWeek * 4 * hourlyRate;
-  const annualSavings = (monthlyManualCost - contraxCost) * 12;
-
-  const barMax = Math.max(monthlyManualCost, contraxCost);
-  const manualBarPct = Math.min(100, (monthlyManualCost / barMax) * 100);
-  const contraxBarPct = Math.min(100, (contraxCost / barMax) * 100);
+  const annualCost = hoursPerWeek * hourlyCost * 52;
+  const estimatedSavings = annualCost * 0.8;
 
   return (
     <section className="bg-gray-50 py-20 sm:py-28">
@@ -2044,18 +2008,18 @@ function ROICalculator() {
         <div className="mt-14 grid gap-8 lg:grid-cols-2">
           {/* Left: Inputs */}
           <div className="space-y-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-            {/* Slider 1: Hours per week */}
+            {/* Slider 1: Hours spent searching weekly */}
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <label className="text-sm font-medium text-slate-700">
-                  Hours per week spent searching for bids
+                  Hours spent searching weekly
                 </label>
                 <span className="text-sm font-bold text-blue-600">{hoursPerWeek}h</span>
               </div>
               <input
                 type="range"
                 min="1"
-                max="40"
+                max="20"
                 step="1"
                 value={hoursPerWeek}
                 onChange={(e) => setHoursPerWeek(Number(e.target.value))}
@@ -2063,62 +2027,32 @@ function ROICalculator() {
               />
               <div className="mt-1 flex justify-between text-xs text-gray-400">
                 <span>1h</span>
-                <span>40h</span>
+                <span>20h</span>
               </div>
             </div>
 
-            {/* Slider 2: Bids per year */}
+            {/* Slider 2: Internal hourly cost */}
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <label className="text-sm font-medium text-slate-700">
-                  Bids submitted per year
+                  Internal hourly cost
                 </label>
-                <span className="text-sm font-bold text-blue-600">{bidsPerYear}</span>
+                <span className="text-sm font-bold text-blue-600">${hourlyCost}/hr</span>
               </div>
               <input
                 type="range"
-                min="1"
-                max="100"
-                step="1"
-                value={bidsPerYear}
-                onChange={(e) => setBidsPerYear(Number(e.target.value))}
+                min="25"
+                max="150"
+                step="5"
+                value={hourlyCost}
+                onChange={(e) => setHourlyCost(Number(e.target.value))}
                 className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-blue-600"
               />
               <div className="mt-1 flex justify-between text-xs text-gray-400">
-                <span>1</span>
-                <span>100</span>
+                <span>$25</span>
+                <span>$150</span>
               </div>
             </div>
-
-            {/* Slider 3: Average contract value */}
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-700">
-                  Average contract value
-                </label>
-                <span className="text-sm font-bold text-blue-600">
-                  ${avgContractValue.toLocaleString()}
-                </span>
-              </div>
-              <input
-                type="range"
-                min="5000"
-                max="5000000"
-                step="5000"
-                value={avgContractValue}
-                onChange={(e) => setAvgContractValue(Number(e.target.value))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-blue-600"
-              />
-              <div className="mt-1 flex justify-between text-xs text-gray-400">
-                <span>$5K</span>
-                <span>$5M</span>
-              </div>
-            </div>
-
-            <p className="text-xs text-gray-400">
-              Based on an internal hourly rate of <strong>$75/hr</strong>. Contrax saves
-              an estimated <strong>80%</strong> of bid-searching time.
-            </p>
           </div>
 
           {/* Right: Results */}
@@ -2129,63 +2063,26 @@ function ROICalculator() {
 
             <div className="space-y-4">
               <div className="flex items-center justify-between border-b border-blue-100 py-3">
-                <span className="text-sm text-gray-600">Monthly time savings</span>
-                <span className="text-sm font-bold text-slate-800">
-                  {monthlyTimeSavings.toFixed(1)} hours/month
+                <span className="text-sm text-gray-600">Annual cost of manual searching</span>
+                <span className="text-lg font-bold text-red-500">
+                  ${annualCost.toLocaleString()}
                 </span>
-              </div>
-              <div className="flex items-center justify-between border-b border-blue-100 py-3">
-                <span className="text-sm text-gray-600">Monthly cost of manual searching</span>
-                <span className="text-sm font-bold text-red-500">
-                  ${monthlyManualCost.toLocaleString()}/mo
-                </span>
-              </div>
-              <div className="flex items-center justify-between border-b border-blue-100 py-3">
-                <span className="text-sm text-gray-600">Your cost with Contrax Professional</span>
-                <span className="text-sm font-bold text-green-600">$79/mo</span>
               </div>
               <div className="flex items-center justify-between py-3">
-                <span className="text-sm font-semibold text-slate-800">Annual savings</span>
-                <span className="text-lg font-bold text-green-600">
-                  ${annualSavings.toLocaleString()}
+                <span className="text-sm text-gray-600">
+                  Estimated savings with Contrax (80% reduction)
                 </span>
-              </div>
-            </div>
-
-            {/* Visual comparison bars */}
-            <div className="mt-6 rounded-xl bg-white p-4 shadow-sm">
-              <p className="mb-3 text-center text-xs text-gray-500">
-                Monthly cost comparison
-              </p>
-              <div className="flex items-end gap-4" style={{ height: "80px" }}>
-                <div className="flex flex-1 flex-col items-center">
-                  <span className="mb-1 text-xs font-bold text-red-500">
-                    ${monthlyManualCost.toLocaleString()}
-                  </span>
-                  <div
-                    className="w-full rounded-t-md bg-red-200"
-                    style={{ height: `${manualBarPct}%` }}
-                  />
-                </div>
-                <div className="flex flex-1 flex-col items-center">
-                  <span className="mb-1 text-xs font-bold text-green-600">$79</span>
-                  <div
-                    className="w-full rounded-t-md bg-green-400"
-                    style={{ height: `${contraxBarPct}%` }}
-                  />
-                </div>
-              </div>
-              <div className="mt-2 flex justify-between text-xs text-gray-500">
-                <span>Manual searching</span>
-                <span>With Contrax</span>
+                <span className="text-lg font-bold text-green-600">
+                  ${estimatedSavings.toLocaleString()}
+                </span>
               </div>
             </div>
 
             <a
-              href="/signup"
+              href="/signup?source=roi_calc"
               className="mt-6 block w-full rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-white shadow-md shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
             >
-              Get Started
+              Start Free on Basic &rarr;
             </a>
           </div>
         </div>
@@ -2204,89 +2101,6 @@ function CompareTeaser() {
           <p className="mt-1 text-sm text-gray-500">See how Contrax stacks up against the alternatives.</p>
         </div>
         <a href="/compare" className="shrink-0 font-semibold text-blue-700 transition-colors hover:text-blue-900">See how we compare →</a>
-      </div>
-    </section>
-  );
-}
-
-// ── Lead Capture ──────────────────────────────────────────────────────────────
-function LeadCapture() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMsg, setErrorMsg] = useState("");
-
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const value = email.trim();
-    if (!value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      setErrorMsg("Please enter a valid email address.");
-      setStatus("error");
-      return;
-    }
-    setStatus("loading");
-    setErrorMsg("");
-    try {
-      const response = await fetch("/api/lead-capture", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: value }),
-      });
-      const result = (await response.json()) as { success?: boolean; error?: string };
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Something went wrong. Please try again.");
-      }
-      setStatus("success");
-    } catch (error) {
-      setErrorMsg(error instanceof Error ? error.message : "Something went wrong. Please try again.");
-      setStatus("error");
-    }
-  };
-
-  if (status === "success") {
-    return (
-      <section className="bg-slate-900 py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-2xl text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-900/50">
-              <svg className="h-8 w-8 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="mt-6 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-              Thanks! We&apos;ll be in touch.
-            </h2>
-            <p className="mt-3 text-lg text-blue-100/70">
-              Your interest is on file. You can read the free guide now.
-            </p>
-            <div className="mt-8">
-              <a href="/guide" className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]">
-                Read the guide →
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="bg-slate-900 py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">Free Guide: Win Your First Government Contract</h2>
-          <p className="mt-4 text-lg text-blue-100/70">Get the step-by-step checklist for small businesses — from SAM.gov registration to your first award.</p>
-          <form onSubmit={handleSubmit} className="mt-8 sm:mx-auto sm:max-w-md">
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <label htmlFor="lead-email" className="sr-only">Email address</label>
-              <input id="lead-email" type="email" required placeholder="you@company.com" value={email} onChange={(event) => { setEmail(event.target.value); if (status === "error") setStatus("idle"); }} className="flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-base text-white placeholder:text-slate-400 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/30" />
-              <button type="submit" disabled={status === "loading"} className="inline-flex items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60">
-                {status === "loading" ? "Saving..." : "Get the Guide"}
-              </button>
-            </div>
-            {status === "error" && errorMsg && <p className="mt-3 text-sm text-red-300">{errorMsg}</p>}
-            <p className="mt-3 text-xs text-slate-400">We&apos;ll save your email and may follow up about Contrax. No fake delivery promises.</p>
-          </form>
-        </div>
       </div>
     </section>
   );

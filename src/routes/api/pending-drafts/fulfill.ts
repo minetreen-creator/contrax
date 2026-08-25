@@ -24,9 +24,12 @@ async function handler({ request }: { request: Request }) {
     if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
 
     // Lazy migrations — same pattern as bids-draft.ts (business_profiles
-    // enrichment columns) and pending-drafts.ts (table creation).
-    try {
-      await sql()`CREATE TABLE IF NOT EXISTS pending_drafts (
+    // enrichment columns) and pending-drafts.ts (table creation). Each is
+    // independent DDL and fail-soft; run concurrently to keep the no-op ALTERs
+    // off the serial critical path (a warm DB would otherwise queue one
+    // round-trip per statement before the model call).
+    await Promise.all([
+      sql()`CREATE TABLE IF NOT EXISTS pending_drafts (
         id SERIAL PRIMARY KEY,
         user_id INTEGER NOT NULL REFERENCES users(id),
         solicitation_text TEXT NOT NULL,
@@ -36,20 +39,20 @@ async function handler({ request }: { request: Request }) {
         error TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         fulfilled_at TIMESTAMPTZ
-      )`;
-      await sql()`CREATE INDEX IF NOT EXISTS idx_pending_drafts_user_status ON pending_drafts (user_id, status)`;
-    } catch { /* best-effort */ }
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cage_code TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS sam_expiration DATE`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS duns TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS years_in_business INTEGER`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
+      )`.catch(() => {}),
+      sql()`CREATE INDEX IF NOT EXISTS idx_pending_drafts_user_status ON pending_drafts (user_id, status)`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cage_code TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS sam_expiration DATE`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS duns TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS years_in_business INTEGER`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`.catch(() => {}),
+    ]);
 
     // Take the oldest awaiting_profile draft (first is fine per the design).
     const pendingRows = await sql()`

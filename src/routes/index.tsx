@@ -745,6 +745,19 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
           <img src="/logo.png" alt="Contrax" className="h-9 w-auto" />
         </a>
 
+        <a
+          href="https://www.facebook.com/profile.php?id=61593835047770"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="ml-4 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
+          aria-label="Contrax on Facebook"
+        >
+          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.01 3.66 9.18 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.52 1.5-3.91 3.78-3.91 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.78l-.45 2.9h-2.33V22c4.78-.76 8.44-4.93 8.44-9.94z"/>
+          </svg>
+          Facebook
+        </a>
+
         {/* Desktop nav — unchanged, hidden below lg */}
         <div className="hidden items-center gap-3 lg:flex">
           {user ? (

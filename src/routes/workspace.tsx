@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { hasAgencyAccess, loadUserTrialStatus } from "~/lib/trial";
 import { TrialGate } from "~/components/TrialGate";
 
 type Role = "estimator" | "proposal_writer" | "accountant" | "project_manager";
@@ -35,8 +36,12 @@ type Entity = { id: number; business_name: string; industry: string };
 async function agencyUser() {
   const u = await getCurrentUser();
   if (!u) throw new Error("Not authenticated");
-  const rows = await sql()`SELECT plan_tier FROM users WHERE id=${u.id}`;
-  if (!rows.length || (rows[0] as any).plan_tier !== "agency") throw new Error("Agency plan required");
+  // Agency access is granted either by plan_tier === 'agency' OR an active
+  // full-access grant (per-user access_expires_at/full_access), consistent with
+  // how the other plan-tier predicates (hasProfessionalAccess, etc.) and the
+  // /api/integrations-connect endpoint honor grants.
+  const trial = await loadUserTrialStatus(u.id);
+  if (!hasAgencyAccess(trial, u)) throw new Error("Agency plan required");
   return u;
 }
 const getAgencyData = createServerFn({ method: "GET" }).handler(async () => {

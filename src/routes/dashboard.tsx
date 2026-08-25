@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect, useRef, type ReactNode } from "react"
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { locationMatchesStates, shouldApplyStateFilter } from "~/lib/open-bids";
-import { redirectToCheckout } from "~/lib/checkout";
 import type { PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
 import { isHealthcareBid, type License } from "~/lib/healthcare";
@@ -718,63 +717,6 @@ function eligibilityDimStyle(status: EvalStatus) {
   return { pill: "bg-slate-100 text-slate-500", txt: "No data" };
 }
 
-
-// ── Upgrade Banner ────────────────────────────────────────────────────────────
-
-function UpgradeBanner() {
-  const [dismissed, setDismissed] = useState(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("contrax_upgrade_banner_dismissed") === "true";
-    }
-    return false;
-  });
-
-  const handleDismiss = () => {
-    setDismissed(true);
-    localStorage.setItem("contrax_upgrade_banner_dismissed", "true");
-  };
-
-  if (dismissed) return null;
-
-  return (
-    <div className="mb-6 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 sm:p-5 shadow-sm">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-100">
-            <svg className="h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-            </svg>
-          </div>
-          <div>
-            <p className="text-sm font-medium text-blue-900">
-              You&rsquo;re on the free plan.{" "}
-              <button
-                type="button"
-                onClick={() => redirectToCheckout("professional")}
-                className="font-semibold text-blue-700 underline hover:text-blue-500 transition-colors"
-              >
-                Upgrade to Professional &rarr;
-              </button>
-            </p>
-            <p className="mt-0.5 text-xs text-blue-600/70">
-              Unlock AI proposal drafting, unlimited bids, and priority support.
-            </p>
-          </div>
-        </div>
-        <button
-          type="button"
-          onClick={handleDismiss}
-          className="shrink-0 rounded-lg p-1.5 text-blue-400 hover:bg-blue-100 hover:text-blue-600 transition-colors"
-          aria-label="Dismiss upgrade banner"
-        >
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ── Loading Skeleton ─────────────────────────────────────────────────────────
 function LoadingSkeleton() {
@@ -1719,7 +1661,6 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
           </section>
         )}
 
-        {/* Upgrade Banner */}
         {trial?.active && <TrialBanner daysLeft={trial.daysLeft} planTier={trial.planTier} endsAt={trial.endsAt} />}
 
         {/* Bid Matches */}

@@ -713,7 +713,7 @@ function Home() {
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
-      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} q={q || ""} />
+      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} q={q || ""} user={user} />
       <HealthcareTeaser />
       <Example />
       <WhoItsFor />
@@ -1669,7 +1669,7 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
   );
 }
 
-function OpenOpportunities({ bids, todayBids, openCount, q }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number; q: string }) {
+function OpenOpportunities({ bids, todayBids, openCount, q, user }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number; q: string; user: { id: number; email: string } | null }) {
   // Short, non-interactive preview (owner-directed): the full interactive feed
   // was redundant with the "⚠ Closing in the next 7 days" section above, so this
   // section now shows just the 3 newest open solicitations plus one Browse button.
@@ -1700,9 +1700,11 @@ function OpenOpportunities({ bids, todayBids, openCount, q }: { bids: Bid[]; tod
     `${String(title).trim().toLowerCase()}|${String(agency || "").trim().toLowerCase()}`;
   const totalLabel = openCount.toLocaleString("en-US");
   // The only dedicated browse route is /opportunities/$setaside/$naics, which
-  // requires both path params — a bare /opportunities serves no browse page. So
-  // the CTA targets the existing /signup flow as the safe working destination.
-  const browseTarget = "/signup";
+  // requires both path params — a bare /opportunities serves no browse page.
+  // Login-aware CTA (owner-directed): logged-out visitors go through the signup
+  // flow with attribution + next-step back to /dashboard; logged-in users go
+  // straight to /dashboard.
+  const browseTarget = user ? "/dashboard" : "/signup?source=browse_all&next=/dashboard";
 
   return (
     <section id="open-opportunities" className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20" aria-label="Open contract solicitations you can bid on now">

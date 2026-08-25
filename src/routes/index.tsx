@@ -2727,6 +2727,14 @@ function Footer() {
           >
             hello@contrax.company
           </a>
+          <a
+            href="https://www.facebook.com/profile.php?id=61593835047770"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-400 transition-colors hover:text-white"
+          >
+            Facebook
+          </a>
         </div>
       </div>
     </footer>

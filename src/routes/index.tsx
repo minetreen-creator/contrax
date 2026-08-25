@@ -713,7 +713,7 @@ function Home() {
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
-      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} q={q || ""} />
+      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} q={q || ""} user={user} />
       <HealthcareTeaser />
       <Example />
       <WhoItsFor />
@@ -1669,20 +1669,12 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
   );
 }
 
-function OpenOpportunities({ bids, todayBids, openCount, q }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number; q: string }) {
-  // MERGED single solicitations feed (owner-directed): folds the old "Newest
-  // Solicitations" (TodaySolicitations) and "Live Opportunities"
-  // (LiveOpportunities) into ONE section so a first-time visitor sees exactly
-  // one solicitations list ("Open Opportunities") alongside exactly one awards
-  // list ("Recent Awards"). Dedupes across BOTH source queries by the natural
-  // key title|agency — a last-24h bid also appears in the broader set, so it
-  // must never render twice (PR #172 dedup integrity preserved). The broader
-  // getRecentBids set is the primary source (carries estimated_value); today's
-  // set adds the set_aside badge and the honest "New (24h)" count. Each unique
-  // solicitation renders at most once, newest-first, with the
-  // /signup?ticker_bid=&ticker_agency= deep-link preserved.
-  const [onlyNew, setOnlyNew] = useState(false);
-  const newCount = todayBids.count;
+function OpenOpportunities({ bids, todayBids, openCount, q, user }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number; q: string; user: { id: number; email: string } | null }) {
+  // Short, non-interactive preview (owner-directed): the full interactive feed
+  // was redundant with the "⚠ Closing in the next 7 days" section above, so this
+  // section now shows just the 3 newest open solicitations plus one Browse button.
+  // Data plumbing (loader -> recentBids/openCount/todayBids) is left untouched;
+  // todayBids is still accepted by the call site but no longer needed here.
   const fmtDue = (d: string | null) => {
     if (!d) return null;
     const date = new Date(d);
@@ -1695,68 +1687,24 @@ function OpenOpportunities({ bids, todayBids, openCount, q }: { bids: Bid[]; tod
     });
   };
 
-  // Merge both source queries by natural key, newest-first, each once.
-  const byKey = new Map<string, {
-    title: string; agency: string; estimated_value: string | null;
-    due_date: string | null; location: string | null; set_aside: string | null;
-    created_at: string | null;
-  }>();
-  const keyOf = (title: string, agency: string) =>
-    `${String(title).trim().toLowerCase()}|${String(agency || "").trim().toLowerCase()}`;
-  for (const b of bids) {
-    const k = keyOf(b.title, b.agency);
-    if (!byKey.has(k)) {
-      byKey.set(k, {
-        title: b.title, agency: b.agency,
-        estimated_value: b.estimated_value, due_date: b.due_date, location: b.location,
-        set_aside: null, created_at: b.created_at ?? null,
-      });
-    }
-  }
-  for (const t of todayBids.bids) {
-    const k = keyOf(t.title, t.agency);
-    const existing = byKey.get(k);
-    if (existing) {
-      if (!existing.set_aside) existing.set_aside = t.set_aside;
-      if (!existing.created_at) existing.created_at = t.created_at ?? null;
-    } else {
-      byKey.set(k, {
-        title: t.title, agency: t.agency,
-        estimated_value: null, due_date: t.due_date, location: t.location,
-        set_aside: t.set_aside, created_at: t.created_at ?? null,
-      });
-    }
-  }
-  const merged = [...byKey.values()]
+  // The 3 newest real open solicitations, newest-first (low-content junk filtered).
+  const preview = [...bids]
     .filter((b) => !isLowContent(b.title, b.location, b.set_aside))
     .sort((a, b) => {
       const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
       const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
       return tb - ta;
-    });
-
-  const now = Date.now();
-  const inLast24h = (d: string | null) => {
-    if (!d) return false;
-    const t = new Date(d).getTime();
-    return Number.isFinite(t) && now - t <= 24 * 60 * 60 * 1000 + 5 * 60 * 1000;
-  };
-  const filtered = onlyNew ? merged.filter((b) => inLast24h(b.created_at)) : merged;
-  // Deterministically re-sample each mode from its own post-filter, post-dedup
-  // pool so "All open" and "New (24h)" show genuinely differing card sets.
-  // "All open" keeps the established newest-first ordering; "New (24h)" picks a
-  // distinct seeded set that is guaranteed (by the filter) to come only from the
-  // last-24h subset. The seeded pick is a pure function of the pool, so SSR and
-  // client hydration render identical cards. The honest counts ("of Y") and the
-  // count badge are untouched — they already reflect the active mode's
-  // post-filter, post-dedup population (openCount / todayBids.count).
-  const display = onlyNew
-    ? seededSample(filtered, 12, "home-open-opps-new-24h")
-    : filtered.slice(0, q ? 48 : 12);
-  // Honest gate: {VISIBLE} of {TOTAL} — both post-filter, post-dedup, live.
-  // When a hero keyword search is active, gateTotal is the full-corpus filtered
-  // count (openCount is computed server-side from the keyword query).
-  const gateTotal = onlyNew ? todayBids.count : openCount;
+    })
+    .slice(0, 3);
+  const keyOf = (title: string, agency: string) =>
+    `${String(title).trim().toLowerCase()}|${String(agency || "").trim().toLowerCase()}`;
+  const totalLabel = openCount.toLocaleString("en-US");
+  // The only dedicated browse route is /opportunities/$setaside/$naics, which
+  // requires both path params — a bare /opportunities serves no browse page.
+  // Login-aware CTA (owner-directed): logged-out visitors go through the signup
+  // flow with attribution + next-step back to /dashboard; logged-in users go
+  // straight to /dashboard.
+  const browseTarget = user ? "/dashboard" : "/signup?source=browse_all&next=/dashboard";
 
   return (
     <section id="open-opportunities" className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20" aria-label="Open contract solicitations you can bid on now">
@@ -1766,126 +1714,39 @@ function OpenOpportunities({ bids, todayBids, openCount, q }: { bids: Bid[]; tod
           <p className="text-lg leading-relaxed text-gray-600">
             What you can bid on right now — fresh set-aside and open solicitations from SAM.gov and city procurement, pulled in as they post. Browse titles free; full details are one signup away.
           </p>
-          {newCount > 0 ? (
-            <div className="mt-1 inline-flex items-center rounded-full bg-gray-100 p-1" role="group" aria-label="Filter solicitations by age">
-              <button
-                type="button"
-                onClick={() => setOnlyNew(false)}
-                aria-pressed={!onlyNew}
-                className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-                  !onlyNew ? "bg-white text-slate-900 shadow-sm" : "text-gray-500 hover:text-slate-800"
-                }`}
-              >
-                All open
-              </button>
-              <button
-                type="button"
-                onClick={() => setOnlyNew(true)}
-                aria-pressed={onlyNew}
-                className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors ${
-                  onlyNew ? "bg-white text-emerald-700 shadow-sm" : "text-gray-500 hover:text-slate-800"
-                }`}
-              >
-                New (24h)
-                <span className={`inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs ${
-                  onlyNew ? "bg-emerald-100 text-emerald-700" : "bg-emerald-50 text-emerald-600"
-                }`}>{newCount}</span>
-              </button>
-            </div>
-          ) : null}
-          {q ? (
-            <p className="text-sm font-medium text-slate-700">
-              Showing {display.length} of {gateTotal} matching &ldquo;{q}&rdquo; solicitations —{" "}
-              <a href="/#open-opportunities" className="font-semibold text-amber-600 underline-offset-2 hover:underline">
-                clear search
-              </a>
-            </p>
-          ) : (
-            <p className="text-sm font-medium text-slate-700">
-              Showing {display.length} of {gateTotal}{" "}
-              {onlyNew ? "new in the last 24 hours" : "open solicitations right now"} —{" "}
-              <a
-                href="/signup"
-                className="font-semibold text-amber-600 underline-offset-2 hover:underline"
-              >
-                sign up to see all of them
-              </a>
-            </p>
-          )}
         </div>
-        {display.length > 0 ? (
+        {q ? (
+          <p className="mt-6 text-center text-sm font-medium text-slate-700">
+            Showing results for &ldquo;{q}&rdquo; —{" "}
+            <a href="/#open-opportunities" className="font-semibold text-amber-600 underline-offset-2 hover:underline">
+              clear search to browse every open solicitation
+            </a>
+          </p>
+        ) : (
           <>
-            <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {display.map((bid) => {
+            <div className="mx-auto mt-10 max-w-3xl divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              {preview.map((bid) => {
                 const due = fmtDue(bid.due_date);
-                const setAside = setAsideLabel(bid.set_aside);
                 return (
-                  <div key={keyOf(bid.title, bid.agency)} className="flex flex-col rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition-all hover:border-amber-300 hover:shadow-md">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-block rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
-                        {bid.agency && bid.agency.length > 40 ? bid.agency.slice(0, 40) + "..." : bid.agency || "Federal agency"}
-                      </span>
-                      {setAside && (
-                        <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
-                          {setAside}
-                        </span>
-                      )}
+                  <div key={keyOf(bid.title, bid.agency)} className="flex items-center justify-between gap-4 px-6 py-4">
+                    <div className="min-w-0">
+                      <p className="line-clamp-1 text-sm font-semibold text-slate-800">{bid.title}</p>
+                      <p className="mt-0.5 truncate text-xs text-gray-500">{bid.agency || "Federal agency"}</p>
                     </div>
-                    <p className="mt-3 line-clamp-2 text-sm font-semibold text-slate-800" title={bid.title}>{bid.title}</p>
-                    <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
-                      {bid.location && <span className="truncate">📍 {bid.location}</span>}
-                      {bid.location && due && <span className="text-gray-300">·</span>}
-                      {due && <span className="shrink-0 font-medium text-amber-700">Due {due}</span>}
-                    </div>
-                    <div className="mt-auto pt-4">
-                      <a
-                        href={`/signup?ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}`}
-                        className="inline-flex items-center text-sm font-semibold text-amber-600 transition-colors hover:text-amber-800"
-                      >
-                        Sign up to see details →
-                      </a>
-                    </div>
+                    {due && <span className="shrink-0 text-xs font-medium text-amber-700">Due {due}</span>}
                   </div>
                 );
               })}
             </div>
-            <div className="mt-12 text-center">
+            <div className="mt-10 text-center">
               <a
-                href="/signup"
+                href={browseTarget}
                 className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl"
               >
-                Get the full RFP details, AI analysis, and daily alerts →
+                Browse all {totalLabel} open opportunities →
               </a>
             </div>
           </>
-        ) : (
-          <div className="mt-10 rounded-xl border border-dashed border-gray-300 bg-white/60 px-6 py-12 text-center">
-            <p className="text-base font-medium text-slate-700">
-              {q
-                ? `No open solicitations match "${q}" right now`
-                : "Check back soon — new solicitations are posted throughout the day"}
-            </p>
-            <p className="mx-auto mt-2 max-w-xl text-sm text-gray-500">
-              {q
-                ? "Try a different trade, NAICS code, or state — or clear the search to browse every open solicitation."
-                : "We monitor SAM.gov and city procurement portals continuously and pull new opportunities as they hit. Sign up and we'll alert you the moment one matches your certifications."}
-            </p>
-            {q ? (
-              <a
-                href="/#open-opportunities"
-                className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
-              >
-                Clear search & show all open solicitations
-              </a>
-            ) : (
-              <a
-                href="/signup"
-                className="mt-6 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800"
-              >
-                Get the full RFP details, AI analysis, and daily alerts →
-              </a>
-            )}
-          </div>
         )}
       </div>
     </section>
@@ -2104,19 +1965,6 @@ function Example() {
 // ── Who It's For ──────────────────────────────────────────────────────────────
 
 function WhoItsFor() {
-  const categories = [
-    { name: "Construction", icon: "🏗️" },
-    { name: "IT Services", icon: "💻" },
-    { name: "Landscaping", icon: "🌿" },
-    { name: "Janitorial", icon: "🧹" },
-    { name: "Security", icon: "🛡️" },
-    { name: "HVAC", icon: "❄️" },
-    { name: "Plumbing & Electrical", icon: "🔧" },
-    { name: "Marketing Agencies", icon: "📊" },
-    { name: "Manufacturing", icon: "🏭" },
-    { name: "Healthcare", icon: "🏥" },
-  ];
-
   return (
     <section className="bg-gray-50 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
@@ -2133,17 +1981,9 @@ function WhoItsFor() {
           </p>
         </div>
 
-        <div className="mt-14 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {categories.map((cat) => (
-            <div
-              key={cat.name}
-              className="flex flex-col items-center gap-3 rounded-xl border border-gray-200/60 bg-white p-6 text-center shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
-            >
-              <span className="text-2xl">{cat.icon}</span>
-              <span className="text-sm font-semibold text-slate-800">{cat.name}</span>
-            </div>
-          ))}
-        </div>
+        <p className="mx-auto mt-12 max-w-2xl text-center text-lg text-gray-600">
+          Built for certified small businesses across construction, technology, facilities, professional services, healthcare, and manufacturing.
+        </p>
 
         {/* Set-aside focus */}
         <div className="mt-10 grid gap-6 md:grid-cols-2">

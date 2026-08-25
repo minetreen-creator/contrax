@@ -25,15 +25,15 @@ export async function redirectToCheckout(
   options?: { promoCode?: string },
 ): Promise<void> {
   try {
-    const body: Record<string, unknown> = { planTier };
+    const payload: Record<string, unknown> = { planTier };
     if (options?.promoCode) {
-      body.promoCode = options.promoCode;
+      payload.promoCode = options.promoCode;
     }
 
     const response = await fetch("/api/stripe/create-checkout-session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
 
     if (response.ok) {

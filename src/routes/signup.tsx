@@ -8,6 +8,7 @@ import { persistPendingDraft } from "~/lib/pending-draft";
 import { storeRememberedNext } from "~/lib/remember-next";
 import { sql } from "~/db";
 import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
+import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 import { safeNext } from "~/lib/saved-matches";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
@@ -164,6 +165,9 @@ export const Route = createFileRoute("/signup")({
   loader: async () => ({
     currentUser: await getCurrentUser(),
     trackedBids: await getTrackedBidCount(),
+    // True when LINKEDIN_CLIENT_ID is configured. While absent, the LinkedIn
+    // button renders disabled ("coming soon") and never builds a broken URL.
+    linkedInAuthUrl: await getLinkedInAuthUrl(),
   }),
   component: SignupPage,
   head: () => ({
@@ -208,7 +212,7 @@ export const Route = createFileRoute("/signup")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function SignupPage() {
-  const { currentUser, trackedBids } = Route.useLoaderData();
+  const { currentUser, trackedBids, linkedInAuthUrl } = Route.useLoaderData();
   const navigate = useNavigate();
   const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency } =
     Route.useSearch();
@@ -292,6 +296,20 @@ function SignupPage() {
       JSON.stringify({ save_bid: save_bid ?? null, next: safeNext(next), plan: selectedPlan }),
     );
     return url.toString();
+  }, [save_bid, next, selectedPlan]);
+
+  // LinkedIn OAuth start URL (relative — hits /api/linkedin/start, which sets a
+  // CSRF nonce cookie and 302-redirects to LinkedIn). Carries the same
+  // save-to-pipeline / plan intent as Google through LinkedIn's `state`. Only
+  // meaningful when linkedInAuthUrl is non-null (LINKEDIN_CLIENT_ID configured).
+  const linkedInStartUrl = useMemo(() => {
+    const p = new URLSearchParams();
+    if (save_bid) p.set("save_bid", save_bid);
+    const safeN = safeNext(next);
+    if (safeN) p.set("next", safeN);
+    p.set("plan", selectedPlan);
+    const q = p.toString();
+    return `/api/linkedin/start${q ? `?${q}` : ""}`;
   }, [save_bid, next, selectedPlan]);
 
   if (currentUser) return null;
@@ -461,11 +479,7 @@ function SignupPage() {
           )}
 
           {/* ONE-TAP PRIMARY — Continue with Google. The big, primary CTA at
-              the TOP of the form. Only Google OAuth is implemented in this app
-              (no LinkedIn backend), so Google is the only working one-tap path.
-              (A future PR could add a "Continue with LinkedIn" button here —
-              between this Google button and the "or" divider — once a LinkedIn
-              OAuth backend exists.) */}
+              the TOP of the form. Google OAuth is fully implemented. */}
           <a
             href={googleAuthUrl}
             className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-900 bg-white px-6 py-4 text-base font-bold text-slate-900 shadow-md transition-all hover:bg-slate-50 hover:shadow-lg active:scale-[0.98]"
@@ -478,6 +492,36 @@ function SignupPage() {
             </svg>
             Continue with Google
           </a>
+
+          {/* Continue with LinkedIn — OAuth implemented, GATED until the owner
+              supplies LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET. While the key
+              is absent the button stays visible but disabled ("coming soon") and
+              never produces a broken OAuth URL. The moment the env vars are set
+              server-side the flow becomes active with no further code change. */}
+          {linkedInAuthUrl ? (
+            <a
+              href={linkedInStartUrl}
+              className="mt-3 flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-6 py-4 text-base font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98]"
+            >
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="#0A66C2" aria-hidden="true">
+                <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45z" />
+              </svg>
+              Continue with LinkedIn
+            </a>
+          ) : (
+            <button
+              type="button"
+              disabled
+              title="LinkedIn sign-in is coming soon"
+              className="mt-3 flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-6 py-4 text-base font-semibold text-gray-400"
+            >
+              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="#0A66C2" aria-hidden="true">
+                <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45z" />
+              </svg>
+              Continue with LinkedIn
+              <span className="text-xs font-medium text-gray-400">— coming soon</span>
+            </button>
+          )}
 
           {/* Divider */}
           <div className="relative mt-5">

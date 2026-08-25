@@ -98,12 +98,17 @@ export async function retrieveRelevantClauses(bid: BidForGrounding): Promise<Gro
     const tokens = extractTokens(bid.title, bid.description, bid.category, bid.agency, keywords);
     if (tokens.length === 0) return [];
     await ensureFarClausesSeeded();
-    // Prune boilerplate tokens by document frequency (one round-trip).
+    // Prune boilerplate tokens by document frequency (one round-trip). Uses the
+    // STORED, GIN-indexed `search_tsv` tsvector (same expression as the old
+    // per-row `to_tsvector('english', fc.title || ' ' || fc.full_text)` rebuild —
+    // @@ ignores weights, so the match counts are byte-identical) — turning each
+    // per-token COUNT from a seq-scan + tsvector rebuild over all 4,630 rows into
+    // an index lookup. The df-prune ratio (and therefore the kept-token set, and
+    // thus the returned clause library) is unchanged.
     const dfRows = await sql()`
       SELECT t.pat,
         (SELECT COUNT(*) FROM far_clauses fc
-         WHERE to_tsvector('english', fc.title || ' ' || fc.full_text)
-               @@ plainto_tsquery('english', t.pat)) AS c,
+         WHERE fc.search_tsv @@ plainto_tsquery('english', t.pat)) AS c,
         (SELECT COUNT(*) FROM far_clauses) AS total
       FROM unnest(${tokens}::text[]) AS t(pat)
     `;
@@ -173,7 +178,8 @@ export async function extractCitations(
   const library = new Map<string, GroundedClause>();
   for (const c of clauseLibrary) library.set(String(c.clause_number).toUpperCase(), c);
   const seen = new Set<string>();
-  const citations: GroundedClause[] = [];
+  const citations: Array<GroundedClause | null> = [];
+  const pendingDb: Array<{ idx: number; raw: string }> = [];
   for (const re of [PREFIXED_CLAUSE_RE, BARE_CLAUSE_RE]) {
     for (const match of text.matchAll(re)) {
       const raw = String(match[1] ?? match[0]).trim();
@@ -185,16 +191,25 @@ export async function extractCitations(
         citations.push(libHit);
         continue;
       }
-      // Not in the retrieved library — DB-validate before accepting.
-      const row = await getClauseByNumber(raw);
-      if (row) {
-        citations.push({
-          clause_number: row.clause_number,
-          title: row.title,
-          full_text: row.full_text,
-        });
-      }
+      // Not in the retrieved library — DB-validate before accepting. Batched
+      // and run concurrently (independent single-row lookups) to avoid a
+      // sequential chain of DB round-trips; order is restored via idx.
+      pendingDb.push({ idx: citations.length, raw });
+      citations.push(null);
     }
   }
-  return citations;
+  if (pendingDb.length > 0) {
+    const resolved = await Promise.all(
+      pendingDb.map(async ({ raw }) => {
+        const row = await getClauseByNumber(raw);
+        return row
+          ? { clause_number: row.clause_number, title: row.title, full_text: row.full_text }
+          : null;
+      }),
+    );
+    for (let i = 0; i < pendingDb.length; i++) {
+      if (resolved[i]) citations[pendingDb[i].idx] = resolved[i];
+    }
+  }
+  return citations.filter((c): c is GroundedClause => c !== null);
 }

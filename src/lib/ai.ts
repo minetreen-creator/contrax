@@ -44,8 +44,28 @@ export async function callAI(messages: AIMessage[], opts: AIOptions = {}): Promi
   return content;
 }
 
+// In-process memoization for embeddings: the OpenAI embedding of a given text
+// is deterministic, and the draft path embeds the same solicitation-derived
+// query on repeat fulfillments. Caching avoids a redundant ~0.5–2s network
+// round-trip on warm instances. Bounded LRU so a server process never grows
+// unboundedly. Safe: identical input always returns the identical vector.
+const EMBEDDING_CACHE = new Map<string, number[]>();
+const EMBEDDING_CACHE_MAX = 100;
+function cachedEmbedding(text: string): number[] | undefined {
+  return EMBEDDING_CACHE.get(text);
+}
+function storeEmbedding(text: string, vec: number[]): void {
+  if (EMBEDDING_CACHE.size >= EMBEDDING_CACHE_MAX) {
+    const oldest = EMBEDDING_CACHE.keys().next().value;
+    if (oldest !== undefined) EMBEDDING_CACHE.delete(oldest);
+  }
+  EMBEDDING_CACHE.set(text, vec);
+}
+
 /** Generate a 1536-dimensional semantic embedding for text. */
 export async function getEmbedding(text: string): Promise<number[]> {
+  const cached = cachedEmbedding(text);
+  if (cached) return cached;
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
   let response: Response;
@@ -64,7 +84,9 @@ export async function getEmbedding(text: string): Promise<number[]> {
   if (!Array.isArray(embedding) || embedding.length !== 1536 || !embedding.every((n) => typeof n === "number")) {
     throw new Error("OpenAI returned an invalid embedding");
   }
-  return embedding as number[];
+  const vec = embedding as number[];
+  storeEmbedding(text, vec);
+  return vec;
 }
 
 /** Split long documents into overlapping chunks suitable for embedding input. */

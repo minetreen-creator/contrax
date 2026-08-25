@@ -35,17 +35,21 @@ async function handler({ request }: { request: Request }) {
     const bid = bidRows[0] as any;
 
     // Lazy migration for business profile enrichment columns on existing databases.
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cage_code TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS sam_expiration DATE`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS duns TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS years_in_business INTEGER`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`; } catch {}
+    // Independent DDL, each fail-soft: run concurrently to keep it off the serial
+    // critical path (a warm DB's no-op ALTERs otherwise queue one round-trip each).
+    await Promise.all([
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS cage_code TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS sam_expiration DATE`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS duns TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS years_in_business INTEGER`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS employee_count INTEGER`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS annual_revenue TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS past_performance_summary TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS capability_statement TEXT`.catch(() => {}),
+      sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS typical_contract_value TEXT`.catch(() => {}),
+    ]);
     const profileRows = await sql()`SELECT id, business_name, industry, locations, service_categories, naics_codes, uei, cage_code, sam_expiration, duns, certifications, years_in_business, employee_count, annual_revenue, past_performance_summary, capability_statement, specialties, licenses, typical_contract_value FROM business_profiles WHERE user_id = ${user.id}`;
     if (profileRows.length === 0) throw new Error("Business profile not found — complete onboarding first");
     const profile = profileRows[0] as BusinessProfile;

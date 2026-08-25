@@ -44,13 +44,19 @@ export async function generateProposalDraft(
   bid: DraftBidInput,
   profile: BusinessProfile,
 ): Promise<ProposalDraftResult> {
-  const knowledgeCtx = await getRelevantContext(
-    `${bid.title} ${bid.description || ""} proposal template capability statement compliance checklist`,
-  );
-
-  // FAR-Grounded Drafting: retrieve REAL clauses from far_clauses and make
-  // them the ONLY citation source the model may draw from.
-  const retrievedClauses = await retrieveRelevantClauses(bid);
+  // The knowledge-base RAG context and the FAR/DFARS clause retrieval are
+  // fully independent (distinct DB reads, no shared state) and both fail open
+  // ("" / []), so run them concurrently instead of sequentially. This overlaps
+  // the embedding + pgvector query with the clause retrieval, removing the
+  // slower of the two from the critical path before the (irreducible) model call.
+  const [knowledgeCtx, retrievedClauses] = await Promise.all([
+    getRelevantContext(
+      `${bid.title} ${bid.description || ""} proposal template capability statement compliance checklist`,
+    ),
+    // FAR-Grounded Drafting: retrieve REAL clauses from far_clauses and make
+    // them the ONLY citation source the model may draw from.
+    retrieveRelevantClauses(bid),
+  ]);
   const clauseLibraryBlock =
     retrievedClauses.length === 0
       ? ""

@@ -59,6 +59,21 @@ export default defineConfig({
       },
       output: {
         manualChunks(id) {
+          // Isolate the blog content (`src/lib/blog.ts` + its `?raw` markdown)
+          // into its own lazy chunk so it never ships on the landing/entry
+          // path. The blog data is imported only by /blog* routes, but Rollup
+          // was hoisting it into the shared entry chunk (~51 KB of raw
+          // markdown + frontmatter), which loads on every page including the
+          // top-of-funnel landing page. Grouping it here gives Rollup a
+          // distinct chunk fetched on demand when a blog route loads. SSR is
+          // unaffected (SSR bundles app modules separately), so /blog pages
+          // still pre-render server-side.
+          if (
+            id.includes("/src/lib/blog.ts") ||
+            id.includes("/content/blog/")
+          ) {
+            return "blog";
+          }
           if (!id.includes("node_modules")) return;
 
           // Keep the framework dependencies in stable, cacheable chunks while

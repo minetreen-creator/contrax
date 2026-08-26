@@ -424,7 +424,6 @@ function RadarLanding() {
   const handleRevealNext = () => {
     const next = revealed + 1;
     trackEvent("radar_next_match", scan.status === "done" ? scan.certLabel : "");
-    if (next === 1) trackEvent("radar_nudge_shown", scan.status === "done" ? scan.certLabel : "");
     if (scan.status === "done") {
       const existing = getRadarSeen();
       if (existing) saveRadarSeen({ ...existing, seenCount: Math.min(next, existing.matches.length) });
@@ -444,6 +443,9 @@ function RadarLanding() {
         .then((res) => {
           if (flashTimer) window.clearTimeout(flashTimer);
           trackEvent("radar_scan_complete", cert || "");
+          // The soft nudge is visible the moment the FIRST match is revealed
+          // (revealed stays 0 on completion), so attribute its impression here.
+          if (res.matches.length > 0) trackEvent("radar_nudge_shown", res.certLabel);
           // Persist this anonymous radar session (criteria + the REAL
           // server-computed matches) so a later signup/login can pick it up
           // in-app — no email involved (owner-directed: no email capture).
@@ -675,7 +677,7 @@ function RadarLanding() {
             {/* Soft, NON-BLOCKING nudge — appears after the FIRST match is revealed.
                 Dismissible; never a hard gate. The full SignupGate still only
                 appears after the 3rd free match. */}
-            {scan.matches.length > 0 && revealed >= 1 && !nudgeDismissed && (
+            {scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (
               <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
                 <p className="text-sm leading-relaxed text-slate-200">
                   <span className="font-semibold text-amber-400">Keep these matches.</span>{" "}

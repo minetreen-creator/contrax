@@ -1,0 +1,76 @@
+name: Non-zero incumbent watch (daily diagnostic)
+
+# Moved OUT of the 4-hour bid sync (was step 5 of sync-bids.yml, PR #237) per
+# owner direction (2026-08-26): the watch is a demo-hunting diagnostic, not part
+# of keeping the bid database current, and running it every 4h churns Neon compute
+# for little freshness value. Running ~1/day off-peak here cuts that extra Neon
+# CU spend from ~120 CU-hours/month toward <100 (~17% shave) WITHOUT touching the
+# 4h bid sync, which keeps its exact schedule/behavior in sync-bids.yml.
+#
+# The watch (scripts/watch-nonzero-incumbents.ts, PR #236) scans currently-open
+# set-aside bids with the REAL getFPDSIntel incumbent lookup — the same code path
+# /radar free matches use — and records any bid whose prior award is strictly
+# non-zero (a live "PREVIOUS WINNER & AWARD PRICE" demo candidate). It is
+# cache-aware (no fpds_lookups manipulation), bounded-batch (default 150,
+# most-recently-synced first), sequential with a 250ms politeness delay, and
+# dedupes via the watch file. Candidate records survive the ephemeral runner via
+# the artifact upload below (WATCH_FILE is written inside the workspace).
+#
+# Required secrets (same values as sync-bids.yml — no new secrets):
+#   DATABASE_URL — Neon Postgres connection string. REQUIRED; the run fails
+#                  without it.
+
+on:
+  schedule:
+    # Daily, 03:00 UTC (off-peak). Still auto-runs (owner's "don't miss a demo"
+    # requirement) at ~1/6 the 4h frequency; workflow_dispatch below allows a
+    # manual run anytime.
+    - cron: "0 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write # required for actions/upload-artifact@v4
+  contents: read
+
+jobs:
+  watch:
+    name: Scan open bids for non-zero incumbents
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run non-zero incumbent watch
+        # WATCH_FILE is written inside the workspace so it can be uploaded as an
+        # artifact (the script's default path is a sandbox-only location). The
+        # script already reads the optional WATCH_FILE env (default = the
+        # sandbox path), so local sandbox runs stay byte-identical; no logic
+        # change. Being its own workflow, a diagnostic failure here is isolated
+        # from the bid sync and shows as a red run (the upload step still
+        # persists any partial output — the script appends incrementally).
+        run: bun run scripts/watch-nonzero-incumbents.ts
+        env:
+          WATCH_FILE: ${{ github.workspace }}/nonzero-incumbent-watch.md
+
+      - name: Upload watch output
+        # Persist candidate records across runs — the cheap fix for the
+        # ephemeral runner file. Upload even if the watch step failed partway,
+        # since it appends candidates incrementally.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonzero-incumbent-watch
+          path: nonzero-incumbent-watch.md
+          if-no-files-found: warn
+          retention-days: 7

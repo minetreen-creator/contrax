@@ -230,6 +230,19 @@ export async function upsertClauses(clauses: FARClause[]): Promise<number> {
         full_text = EXCLUDED.full_text,
         source = EXCLUDED.source,
         last_updated = NOW()
+      -- Compute saver: skip the rewrite when the clause content is unchanged.
+      -- FAR/DFARS regulator text is stable day-to-day, yet the daily sync was
+      -- rewriting all ~4,600 rows — each rewrite is large (full_text) and
+      -- forces recomputation of the GENERATED search_tsv column plus its GIN
+      -- index maintenance (72k cumulative updates observed, ~4k/day, nearly all
+      -- no-op). Only touch last_updated when content actually changed, so the
+      -- admin "Last updated" stat now means "corpus content as of" (accurate:
+      -- the text did not change) instead of "last sync tick".
+      WHERE (far_clauses.title, far_clauses.part, far_clauses.subpart,
+             far_clauses.section, far_clauses.full_text, far_clauses.source)
+            IS DISTINCT FROM
+            (EXCLUDED.title, EXCLUDED.part, EXCLUDED.subpart,
+             EXCLUDED.section, EXCLUDED.full_text, EXCLUDED.source)
     `;
   }
   return clauses.length;

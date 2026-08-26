@@ -50,15 +50,3 @@ jobs:
 
       - name: Run bid sync
         run: bun run sync-bids
-
-      - name: Run non-zero incumbent watch (post-sync)
-        # Diagnostic (scripts/watch-nonzero-incumbents.ts, PR #236): scans open
-        # set-aside bids and records any whose real prior award (getFPDSIntel)
-        # is non-zero — a live /radar free-match "PREVIOUS WINNER & AWARD PRICE"
-        # demo candidate. Runs here, after the sync in the same job, so it sees
-        # the just-synced bids and reuses this job's DATABASE_URL seam (no new
-        # secrets). It is bounded/sequential and dedupes across runs, so it is
-        # safe and lightweight. Marked non-fatal so a diagnostic hiccup never
-        # fails the actual bid sync itself.
-        run: bun run scripts/watch-nonzero-incumbents.ts
-        continue-on-error: true

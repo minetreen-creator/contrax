@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Menu, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
-import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { isLowContent, LOW_CONTENT_SQL } from "~/lib/low-content";
 import { keywordPred } from "~/lib/open-bids";
 import { toISODate } from "./awards";
 
@@ -773,7 +773,7 @@ function PartnershipBanner() {
 
 function Home() {
 
-  const { user, alertCount, userCount, bidStats, farClauseCounts, liveAwards, closingSoon, q } = Route.useLoaderData();
+  const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, openCount, q } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -811,6 +811,7 @@ function Home() {
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
+      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} q={q || ""} user={user} />
       <HealthcareTeaser />
       <Example />
       <WhoItsFor />
@@ -1747,6 +1748,90 @@ function HealthcareTeaser() {
           <p className="mt-1 text-sm text-gray-500">VA, HHS, DHA, and IHS set-aside opportunities for certified small businesses.</p>
         </div>
         <a href="/healthcare-contracting" className="shrink-0 font-semibold text-blue-700 transition-colors hover:text-blue-900">See healthcare contracting opportunities →</a>
+      </div>
+    </section>
+  );
+}
+
+function OpenOpportunities({ bids, todayBids, openCount, q, user }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number; q: string; user: { id: number; email: string } | null }) {
+  // Short, non-interactive preview (owner-directed): the full interactive feed
+  // was redundant with the "⚠ Closing in the next 7 days" section above, so this
+  // section now shows just the 3 newest open solicitations plus one Browse button.
+  // Data plumbing (loader -> recentBids/openCount/todayBids) is left untouched;
+  // todayBids is still accepted by the call site but no longer needed here.
+  const fmtDue = (d: string | null) => {
+    if (!d) return null;
+    const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return null;
+    const sameYear = date.getFullYear() === new Date().getFullYear();
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      ...(sameYear ? {} : { year: "numeric" }),
+    });
+  };
+
+  // The 3 newest real open solicitations, newest-first (low-content junk filtered).
+  const preview = [...bids]
+    .filter((b) => !isLowContent(b.title, b.location, b.set_aside))
+    .sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return tb - ta;
+    })
+    .slice(0, 3);
+  const keyOf = (title: string, agency: string) =>
+    `${String(title).trim().toLowerCase()}|${String(agency || "").trim().toLowerCase()}`;
+  const totalLabel = openCount.toLocaleString("en-US");
+  // The only dedicated browse route is /opportunities/$setaside/$naics, which
+  // requires both path params — a bare /opportunities serves no browse page.
+  // Login-aware CTA (owner-directed): logged-out visitors go through the signup
+  // flow with attribution + next-step back to /dashboard; logged-in users go
+  // straight to /dashboard.
+  const browseTarget = user ? "/dashboard" : "/signup?source=browse_all&next=/dashboard";
+
+  return (
+    <section id="open-opportunities" className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20" aria-label="Open contract solicitations you can bid on now">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
+          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Open Opportunities</h2>
+          <p className="text-lg leading-relaxed text-gray-600">
+            What you can bid on right now — fresh set-aside and open solicitations from SAM.gov and city procurement, pulled in as they post. Browse titles free; full details are one signup away.
+          </p>
+        </div>
+        {q ? (
+          <p className="mt-6 text-center text-sm font-medium text-slate-700">
+            Showing results for &ldquo;{q}&rdquo; —{" "}
+            <a href="/#open-opportunities" className="font-semibold text-amber-600 underline-offset-2 hover:underline">
+              clear search to browse every open solicitation
+            </a>
+          </p>
+        ) : (
+          <>
+            <div className="mx-auto mt-10 max-w-3xl divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+              {preview.map((bid) => {
+                const due = fmtDue(bid.due_date);
+                return (
+                  <div key={keyOf(bid.title, bid.agency)} className="flex items-center justify-between gap-4 px-6 py-4">
+                    <div className="min-w-0">
+                      <p className="line-clamp-1 text-sm font-semibold text-slate-800">{bid.title}</p>
+                      <p className="mt-0.5 truncate text-xs text-gray-500">{bid.agency || "Federal agency"}</p>
+                    </div>
+                    {due && <span className="shrink-0 text-xs font-medium text-amber-700">Due {due}</span>}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-10 text-center">
+              <a
+                href={browseTarget}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl"
+              >
+                Browse all {totalLabel} open opportunities →
+              </a>
+            </div>
+          </>
+        )}
       </div>
     </section>
   );

@@ -14,6 +14,7 @@ import {
   readReviewFilters,
   writeReviewFilters,
 } from "~/lib/review-context";
+import { getRadarPrefill, clearRadarPrefill } from "~/lib/radar-session";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -212,6 +213,31 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
   const [naicsCodes, setNaicsCodes] = useState<string[]>(initCtx.naics);
   const [states, setStates] = useState<string[]>(initCtx.states);
   const [contractRange, setContractRange] = useState("any");
+
+  // Radar → signup → onboarding prefill (owner-directed, NO email capture). When
+  // the visitor came through a Contract Radar scan, /signup stashed their radar
+  // criteria in sessionStorage. Apply them here once (prefill the profile
+  // fields) so the signup→onboarding flow feels like a ~10s continuation, then
+  // clear the stash so it never re-applies on a later revisit/refresh.
+  const radarPrefillFiredRef = useRef(false);
+  useEffect(() => {
+    if (radarPrefillFiredRef.current) return;
+    radarPrefillFiredRef.current = true;
+    const ra = getRadarPrefill();
+    if (!ra) return;
+    // Certification: radar certs map 1:1 onto onboarding CERT_OPTIONS values
+    // ("sb" → the broad small-business option).
+    const certMap: Record<string, string> = { sdvosb: "sdvosb", "8a": "8a", wosb: "wosb", hubzone: "hubzone", sb: "small_business" };
+    const cert = certMap[ra.cert];
+    if (cert) setCertification(cert);
+    // State: radar picks one state → single-state filter.
+    if (ra.state && US_STATES.includes(ra.state)) setStates([ra.state]);
+    // Trade: a 6-digit NAICS becomes a NAICS code; any other trade becomes the
+    // keyword term (drives the same keywordPred the dashboard uses).
+    if (/^\d{6}$/.test(ra.trade)) setNaicsCodes([ra.trade]);
+    else if (ra.trade) setQuery(ra.trade);
+    clearRadarPrefill();
+  }, []);
 
   // Persist the chosen filters to the shared store whenever they change, so a
   // fresh session / reload keeps them (shared mechanism with the dashboard).

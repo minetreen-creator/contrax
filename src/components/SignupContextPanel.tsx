@@ -16,16 +16,49 @@
  * (closing_soon: title + agency + deadline label; incumbent: title + agency).
  */
 type SignupContextPanelProps = {
-  source: "closing_soon" | "incumbent";
+  source: "closing_soon" | "incumbent" | "radar";
   /** The bid/opportunity title (the "«Bid Title»" carried through from the CTA). */
   title?: string;
   /** Agency / organization context, when available. */
   agency?: string;
   /** Live "closes in Xd Yh" countdown label — closing_soon only, optional. */
   closingLabel?: string | null;
+  /** Radar continuation context — `radar` source only. Carries the anonymous
+   * radar scan's criteria so the signup panel can show the visitor is resuming
+   * their scan (their answers will prefill their profile at onboarding). */
+  radar?: {
+    trade: string;
+    state: string;
+    certLabel: string;
+    sizeLabel: string;
+  } | null;
 };
 
-export function SignupContextPanel({ source, title, agency, closingLabel }: SignupContextPanelProps) {
+export function SignupContextPanel({ source, title, agency, closingLabel, radar }: SignupContextPanelProps) {
+  // Radar variant — the visitor is continuing from a Contract Radar scan. Their
+  // answers travel into signup/profiling (no email involved) so this feels like
+  // a ~10s resume, not a restart. Value-driven, no deadline / urgency.
+  if (source === "radar" && radar) {
+    const labelTop = [radar.trade || null, radar.state ? `in ${radar.state}` : "nationwide"]
+      .filter(Boolean)
+      .join(" ");
+    return (
+      <div className="mb-6 overflow-hidden rounded-2xl border-2 border-amber-400 bg-amber-50 shadow-sm">
+        <div className="px-5 py-4">
+          <p className="text-sm font-bold text-slate-900">
+            Resuming your Contract Radar scan
+          </p>
+          <p className="mt-1 text-sm text-amber-700">
+            {labelTop || "Your radar search"} · {radar.certLabel} · {radar.sizeLabel}
+          </p>
+          <p className="mt-3 text-xs text-amber-600">
+            Your answers will prefill your profile — just finish your free account below.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Incumbent variant — value-driven (unlock contract history + past pricing),
   // owner-ratified headline. No deadline / countdown for this source.
   if (source === "incumbent") {

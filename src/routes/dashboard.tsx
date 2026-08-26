@@ -8,6 +8,7 @@ import type { PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
 import { isHealthcareBid, type License } from "~/lib/healthcare";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
+import { RadarLoginNotify } from "~/components/RadarLoginNotify";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
 import { GettingStarted } from "~/components/GettingStarted";
 import {
@@ -1540,6 +1541,10 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8">
+        {/* Radar login notification — "your radar matches are waiting" (in-app,
+            NOT email). Shown on login and after until dismissed/saved. */}
+        <RadarLoginNotify />
+
         {/* Deadline Alert Banner */}
         <DeadlineAlertBanner count={urgentTrackedCount} />
 

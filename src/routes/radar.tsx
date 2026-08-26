@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -8,6 +8,12 @@ import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
 import { SHOW_FREE_INCUMBENT } from "~/lib/radar-config";
 import type { FPDSIntel } from "~/lib/fpds";
+import {
+  getRadarAnswers,
+  getRadarSeen,
+  saveRadarSeen,
+  saveRadarAnswers,
+} from "~/lib/radar-session";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -375,6 +381,11 @@ function RadarLanding() {
   const [scan, setScan] = useState<ScanState>({ status: "idle" });
   const [revealed, setRevealed] = useState(0);
   const [flashTimer, setFlashTimer] = useState<number | null>(null);
+  // Soft, dismissible "keep these matches" nudge shown after the FIRST match is
+  // revealed (non-blocking — never a hard gate; the real gate still only
+  // appears after the 3rd free match).
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const prefilledRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -382,7 +393,44 @@ function RadarLanding() {
     };
   }, [flashTimer]);
 
+  // Persist the visitor's radar criteria as they answer (no email involved).
+  // Saved only once they're complete (cert + size chosen). /signup and /radar
+  // both read this to make resuming a ~10s continuation instead of a restart.
+  useEffect(() => {
+    if (cert && sizePref) saveRadarAnswers({ trade: trade.trim(), state, cert, sizePref });
+  }, [trade, state, cert, sizePref]);
+
+  // Prefill the radar form from a previous anonymous session (e.g. returning
+  // from /dashboard's "see them again"), so a revisit restores the answers.
+  useEffect(() => {
+    if (prefilledRef.current || cert || sizePref) return;
+    const ra = getRadarAnswers();
+    if (ra) {
+      prefilledRef.current = true;
+      setTrade(ra.trade);
+      setState(ra.state);
+      if ((RADAR_CERTS as readonly string[]).includes(ra.cert)) setCert(ra.cert as RadarCert);
+      if ((SIZE_OPTS as readonly { id: string }[]).some((s) => s.id === ra.sizePref)) {
+        setSizePref(ra.sizePref as SizeId);
+      }
+    }
+  }, [cert, sizePref]);
+
   const editing = trade.trim() !== "" && state !== "" && cert !== null && sizePref !== null;
+
+  // Reveal the next match + keep the persisted radar-session "seen" state in
+  // sync, and fire the funnel event for the soft nudge the moment the FIRST
+  // match is behind the visitor.
+  const handleRevealNext = () => {
+    const next = revealed + 1;
+    trackEvent("radar_next_match", scan.status === "done" ? scan.certLabel : "");
+    if (next === 1) trackEvent("radar_nudge_shown", scan.status === "done" ? scan.certLabel : "");
+    if (scan.status === "done") {
+      const existing = getRadarSeen();
+      if (existing) saveRadarSeen({ ...existing, seenCount: Math.min(next, existing.matches.length) });
+    }
+    setRevealed(next);
+  };
 
   const startScan = () => {
     if (!editing) return;
@@ -396,6 +444,23 @@ function RadarLanding() {
         .then((res) => {
           if (flashTimer) window.clearTimeout(flashTimer);
           trackEvent("radar_scan_complete", cert || "");
+          // Persist this anonymous radar session (criteria + the REAL
+          // server-computed matches) so a later signup/login can pick it up
+          // in-app — no email involved (owner-directed: no email capture).
+          saveRadarSeen({
+            answers: { trade: trade.trim(), state, cert: cert!, sizePref: sizePref! },
+            certLabel: res.certLabel,
+            total: res.matches.length,
+            seenCount: 0,
+            matches: res.matches.map((m) => ({
+              id: m.id,
+              title: m.title,
+              agency: m.agency,
+              score: m.score,
+              score_label: m.score_label,
+              source_url: m.source_url,
+            })),
+          });
           setScan({ status: "done", matches: res.matches, certLabel: res.certLabel });
           setStep(3);
         })
@@ -579,7 +644,7 @@ function RadarLanding() {
           <section className="flex flex-1 flex-col py-6">
             <button
               type="button"
-              onClick={() => { setStep(1); setScan({ status: "idle" }); setRevealed(0); }}
+              onClick={() => { setStep(1); setScan({ status: "idle" }); setRevealed(0); setNudgeDismissed(false); }}
               className="self-start text-sm text-slate-400 hover:text-slate-200"
             >
               ← Adjust my answers
@@ -595,6 +660,46 @@ function RadarLanding() {
                 {scan.matches.length} found
               </span>
             </div>
+            {/* Match-progress — honest free-preview counter (3 free, then the gate). */}
+            {scan.matches.length > 0 && (
+              <p className="mt-3 text-xs font-medium text-slate-500">
+                Free preview: you&apos;ve seen{" "}
+                <span className="font-semibold text-amber-400">
+                  {Math.min(revealed + 1, Math.min(3, scan.matches.length))}
+                </span>{" "}
+                of {Math.min(3, scan.matches.length)} free{" "}
+                {Math.min(3, scan.matches.length) === 1 ? "match" : "matches"} revealed
+              </p>
+            )}
+
+            {/* Soft, NON-BLOCKING nudge — appears after the FIRST match is revealed.
+                Dismissible; never a hard gate. The full SignupGate still only
+                appears after the 3rd free match. */}
+            {scan.matches.length > 0 && revealed >= 1 && !nudgeDismissed && (
+              <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
+                <p className="text-sm leading-relaxed text-slate-200">
+                  <span className="font-semibold text-amber-400">Keep these matches.</span>{" "}
+                  Create a free account to save them and get deadline alerts.
+                </p>
+                <div className="flex shrink-0 items-center gap-2">
+                  <a
+                    href="/signup?plan=basic&source=radar"
+                    onClick={() => trackEvent("radar_nudge_cta", scan.certLabel)}
+                    className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 transition-colors hover:bg-amber-400"
+                  >
+                    Create free account
+                  </a>
+                  <button
+                    type="button"
+                    aria-label="Dismiss"
+                    onClick={() => { setNudgeDismissed(true); trackEvent("radar_nudge_dismiss", scan.certLabel); }}
+                    className="px-1 text-slate-400 transition-colors hover:text-slate-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
 
             {scan.matches.length === 0 && (
               <div className="mt-8 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-10 text-center text-sm text-slate-300">
@@ -615,10 +720,7 @@ function RadarLanding() {
                 {revealed < Math.min(2, scan.matches.length - 1) ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      trackEvent("radar_next_match", scan.certLabel);
-                      setRevealed((r) => r + 1);
-                    }}
+                    onClick={handleRevealNext}
                     className="mt-5 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
                   >
                     Reveal my next match →
@@ -839,15 +941,24 @@ function IncumbentBlock({ match }: { match: RadarMatch }) {
 
 function SignupGate({ certLabel, totalFound }: { certLabel: string; totalFound: number }) {
   const [showExtra, setShowExtra] = useState(false);
+  // Funnel: fire exactly once when the gate is shown.
+  useEffect(() => {
+    trackEvent("radar_signup_gate_shown", certLabel);
+  }, [certLabel]);
+  const freeCap = Math.min(3, totalFound);
+  const allWereFree = totalFound <= 3;
   return (
     <div className="mt-5 rounded-2xl border border-amber-500/40 bg-slate-900 p-5 text-center ring-1 ring-slate-800">
       <p className="text-sm font-semibold uppercase tracking-wide text-amber-400">Your first 3 matches are free</p>
       <h3 className="mt-1.5 text-lg font-bold text-white">
-        See all {totalFound} matches, save them, and get deadline alerts.
+        {allWereFree
+          ? `You've seen all ${totalFound} ${totalFound === 1 ? "match" : "matches"} — save them free.`
+          : `You've seen ${freeCap} of ${totalFound} matches — save them all free.`}
       </h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-300">
-        Create a free account to save results, receive alerts when your matches
-        change, and analyze the complete solicitation.
+        {allWereFree
+          ? "Create a free account to save these results, get alerts when they change, and analyze the complete solicitation."
+          : "The remaining matches need a free account. Create one to see all of them, save results, and get deadline alerts."}
       </p>
       <button
         type="button"

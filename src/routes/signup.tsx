@@ -10,6 +10,12 @@ import { sql } from "~/db";
 import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 import { safeNext } from "~/lib/saved-matches";
+import {
+  getRadarAnswers,
+  saveRadarPrefill,
+  RADAR_CERT_LABELS,
+  RADAR_SIZE_LABELS,
+} from "~/lib/radar-session";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
 
@@ -33,8 +39,9 @@ type SignupSearch = {
   // (bid/opportunity title, value-driven — no deadline). The component that
   // renders these is SignupContextPanel. `opportunity_id` is the incumbent
   // gate's bid/opportunity DB id; `title`/`agency` carry its context so the
-  // incumbent banner can name the bid.
-  source?: "closing_soon" | "incumbent";
+  // incumbent banner can name the bid. `radar` continues a Contract Radar scan
+  // (criteria read from localStorage — no email capture).
+  source?: "closing_soon" | "incumbent" | "radar";
   opportunity_id?: string;
   title?: string;
   agency?: string;
@@ -152,7 +159,7 @@ export const Route = createFileRoute("/signup")({
     bid: typeof search.bid === "string" && /^\d{1,10}$/.test(search.bid) ? search.bid : undefined,
     closes: typeof search.closes === "string" ? search.closes.slice(0, 120) : undefined,
     source:
-      search.source === "closing_soon" || search.source === "incumbent"
+      search.source === "closing_soon" || search.source === "incumbent" || search.source === "radar"
         ? search.source
         : undefined,
     opportunity_id:
@@ -233,6 +240,29 @@ function SignupPage() {
     return () => clearInterval(t);
   }, [closes]);
   const closingLabel = closingCountdown(closes, closingNow);
+
+  // Radar continuation (owner-directed, NO email capture): when the visitor
+  // arrives from a Contract Radar scan (?source=radar), read their anonymous
+  // scan criteria from localStorage and (a) show a "resume your scan" panel and
+  // (b) forward the criteria to /onboarding (session-scoped) so the profile
+  // fields arrive pre-filled — signup feels like a ~10s continuation.
+  const [radarAnswers, setRadarAnswers] = useState<{
+    trade: string; state: string; certLabel: string; sizeLabel: string;
+  } | null>(null);
+  useEffect(() => {
+    if (source !== "radar") return;
+    const ra = getRadarAnswers();
+    if (!ra) return;
+    setRadarAnswers({
+      trade: ra.trade,
+      state: ra.state,
+      certLabel: RADAR_CERT_LABELS[ra.cert] || ra.cert,
+      sizeLabel: RADAR_SIZE_LABELS[ra.sizePref] || ra.sizePref,
+    });
+    // Forward to onboarding prefill (session-only; no email, no server write).
+    saveRadarPrefill(ra);
+    trackEvent("radar_prefill_shown", RADAR_CERT_LABELS[ra.cert] || ra.cert);
+  }, [source]);
 
   // Funnel: fire exactly ONE signup-page-view event per visit, once. The cold
   // path (e.g. the homepage Closing Soon → /signup) fires a plain `signup_view`;
@@ -422,7 +452,9 @@ function SignupPage() {
             an Incumbent Intelligence gate CTA) renders the value-driven
             "unlock incumbent contract history & past pricing" banner — no
             countdown. */}
-        {source === "incumbent" ? (
+        {source === "radar" ? (
+          <SignupContextPanel source="radar" radar={radarAnswers} />
+        ) : source === "incumbent" ? (
           <SignupContextPanel source="incumbent" title={title || ticker_bid} agency={agency || ticker_agency} />
         ) : ticker_bid ? (
           <SignupContextPanel source="closing_soon" title={ticker_bid} agency={ticker_agency} closingLabel={closingLabel} />

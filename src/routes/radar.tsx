@@ -806,6 +806,14 @@ function IncumbentBlock({ match }: { match: RadarMatch }) {
       </div>
     );
   }
+  if (SHOW_FREE_INCUMBENT) {
+    // No incumbent data available for this bid — graceful placeholder, never fabricated.
+    return (
+      <p className="text-sm text-slate-400">
+        Previous winner &amp; award price not available for this notice.
+      </p>
+    );
+  }
   // DEFAULT (SHOW_FREE_INCUMBENT = false): teaser that preserves the
   // Professional+ paywall. No data is fetched; this line makes no factual claim
   // about this specific bid — it frames the feature behind a free account.

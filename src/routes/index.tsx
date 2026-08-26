@@ -1030,23 +1030,23 @@ function Hero({
     setTradeQ(q || "");
   }, [q]);
   // Instant "Trade / Keyword" search (owner-directed): typing a trade, NAICS, or
-  // state once and pressing Enter lands on the keyword-filtered Open
-  // Opportunities feed (/?q=...#open-opportunities), filtered server-side so the
-  // SSR HTML carries the matches. The CTA always shows the REAL active
-  // solicitation count (bidStats.activeCount) — never a fabricated figure.
+  // state once and pressing Enter lands on the real open-solicitations feed at
+  // /awards#feed, filtering by the keyword server-side so the SSR HTML carries
+  // the matches. (The dedicated open-opportunities target does not exist on the
+  // homepage — /awards is the real feed page.) The CTA always shows the REAL
+  // active solicitation count (bidStats.activeCount) — never a fabricated figure.
   const handleTradeSearch = (e: FormEvent) => {
     e.preventDefault();
     const q = tradeQ.trim();
     if (!q) {
       // Empty search box: never silently no-op. The "Explore N Bids" CTA must
-      // ALWAYS respond -- with no keyword, open the unfiltered Open Opportunities
-      // feed (no q => the loader returns all active solicitations server-side,
-      // keeping the SSR HTML populated).
-      navigate({ to: "/", search: {}, hash: "open-opportunities" });
+      // ALWAYS respond -- with no keyword, deep-link to the unfiltered open
+      // solicitations feed on /awards#feed (the real feed page, no search filter).
+      navigate({ to: "/awards", hash: "feed" });
       return;
     }
     trackEvent("hero_search", q); // fire-and-forget, never blocks UI
-    navigate({ to: "/", search: { q }, hash: "open-opportunities" });
+    navigate({ to: "/awards", search: { search: q }, hash: "feed" });
   };
 
   return (

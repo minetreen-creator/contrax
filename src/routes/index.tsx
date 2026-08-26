@@ -1037,7 +1037,14 @@ function Hero({
   const handleTradeSearch = (e: FormEvent) => {
     e.preventDefault();
     const q = tradeQ.trim();
-    if (!q) return;
+    if (!q) {
+      // Empty search box: never silently no-op. The "Explore N Bids" CTA must
+      // ALWAYS respond -- with no keyword, open the unfiltered Open Opportunities
+      // feed (no q => the loader returns all active solicitations server-side,
+      // keeping the SSR HTML populated).
+      navigate({ to: "/", search: {}, hash: "open-opportunities" });
+      return;
+    }
     trackEvent("hero_search", q); // fire-and-forget, never blocks UI
     navigate({ to: "/", search: { q }, hash: "open-opportunities" });
   };

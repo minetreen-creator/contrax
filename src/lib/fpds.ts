@@ -52,7 +52,21 @@ export async function searchFPDSIncumbent(naicsCode: string, agency: string, key
     // NAICS is ideal, but older synced bids may not have it. Agency + title still
     // gives USASpending a useful match instead of failing before the request.
     const data = await search(filters(naicsCode, agency, keywords));
-    const row = data?.results?.[0]; if (!row) return null;
+    const rows: any[] = data?.results || []; if (!rows.length) return null;
+    // Prefer a real, non-zero award amount over the default top-ranked row:
+    // USAspending search can rank a $0 record first (e.g. a 0-obligation
+    // modification line), which would render an honest-but-weak "$0" even when
+    // that same winner holds real awards with actual amounts in the result set.
+    // Walk the rows and use the first one with a finite non-zero obligated/award
+    // amount (real data — never invented). If every row is $0/empty, fall back to
+    // the top row so the caller still gets an honest zero / "not available"
+    // placeholder rather than a fabricated figure. The winner name stays the
+    // actual recipient of whichever real award we surface.
+    let row: any = rows[0];
+    for (const r of rows) {
+      const amt = Number(r["Award Amount"] ?? r.total_obligation ?? 0);
+      if (Number.isFinite(amt) && amt > 0) { row = r; break; }
+    }
     // Search rows key the requested fields by display name ("Recipient Name"…);
     // the optional /awards/{id}/ detail call returns nested keys
     // (recipient.recipient_name, period_of_performance.start_date) with

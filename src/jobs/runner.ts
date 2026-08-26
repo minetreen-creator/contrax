@@ -183,7 +183,16 @@ async function insertBidsBatch(
       code,
       codeSource,
     ];
-    const placeholders = row.map((_, j) => `$${params.length + j + 1}`).join(", ");
+    // Index 6 is due_date (TIMESTAMPTZ). The untyped VALUES list otherwise
+    // yields a text column, and PostgreSQL refuses an implicit text→timestamptz
+    // cast in INSERT…SELECT (it would only coerce untyped literals). Casting it
+    // here mirrors the single-bid path's explicit `::timestamptz` so EXCLUDED
+    // and the conflict guard compare timestamptz-to-timestamptz reliably.
+    const placeholders = row
+      .map((_, j) =>
+        "$" + (params.length + j + 1) + (j === 6 ? "::timestamptz" : ""),
+      )
+      .join(", ");
     valueRows.push(`(${placeholders})`);
     params.push(...row);
   }
@@ -220,6 +229,25 @@ async function insertBidsBatch(
          WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
          ELSE bids.naics_code_source
        END
+     -- Compute saver: skip the rewrite when nothing the UPDATE would write
+     -- actually changes. PostgreSQL rewrites the tuple (WAL + index churn)
+     -- for EVERY DO UPDATE conflict even when every assigned value equals the
+     -- current row, and the bulk of each 4h sync is re-upserting the same
+     -- ~2,300 already-seen bids byte-identically. Guarding on the EFFECTIVE
+     -- new values (the same expressions the SET writes) keeps real changes
+     -- fresh while eliminating the no-op rewrites. Skipped conflicts return
+     -- no row from RETURNING, so they are never miscounted as new inserts.
+     -- (EXCLUDED.due_date arrives as text from the untyped VALUES list, so cast
+     --  it to timestamptz to make the IS DISTINCT FROM comparison type-match.)
+     WHERE (bids.title, bids.location, bids.category, bids.due_date,
+            bids.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
+            CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
+                 ELSE bids.naics_code_source END)
+           IS DISTINCT FROM
+           (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date::timestamptz,
+            EXCLUDED.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
+            CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
+                 ELSE bids.naics_code_source END)
      RETURNING id, external_id, (xmax = 0) AS inserted`,
     params,
   )) as any[];
@@ -288,6 +316,18 @@ async function insertBid(
         WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
         ELSE bids.naics_code_source
       END
+    -- Same compute saver as the batch path: skip no-op rewrites of unchanged
+    -- bids. Dry: a skipped conflict returns no row (result.length === 0), so
+    -- it is not treated as new.
+    WHERE (bids.title, bids.location, bids.category, bids.due_date,
+           bids.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
+           CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
+                ELSE bids.naics_code_source END)
+          IS DISTINCT FROM
+          (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date,
+           EXCLUDED.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
+           CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
+                ELSE bids.naics_code_source END)
     RETURNING id, (xmax = 0) AS inserted
   `) as any[];
   if (result.length === 0 || !result[0].inserted) return null;

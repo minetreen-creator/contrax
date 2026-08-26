@@ -1127,6 +1127,20 @@ function Hero({
             </p>
           </div>
 
+          {/* Contract Radar — the strongest demo CTA on the homepage. */}
+          <div className="mt-7">
+            <a
+              href="/radar"
+              onClick={() => trackEvent("hero_cta_click", "radar_activate")}
+              className="mx-auto block w-full max-w-3xl rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-6 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
+            >
+              📡 Activate My Contract Radar →
+            </a>
+            <p className="mt-2 text-center text-xs font-medium text-blue-200/60">
+              Get a real match score on live set-aside solicitations — your first 3 matches free, no signup needed
+            </p>
+          </div>
+
           <p className="mt-6 flex items-center justify-center gap-1.5 text-sm text-blue-200/70">
             <svg className="h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

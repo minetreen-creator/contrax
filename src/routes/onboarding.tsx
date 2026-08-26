@@ -7,7 +7,7 @@ import { persistPendingDraft } from "~/lib/pending-draft";
 import { readRememberedNext, clearRememberedNext } from "~/lib/remember-next";
 import { locationMatchesStates, keywordPred, setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { NaicsTypeahead } from "~/components/NaicsTypeahead";
+import { NaicsTypeahead, searchNaics } from "~/components/NaicsTypeahead";
 import {
   mergeFilterState,
   parseReviewParams,
@@ -232,10 +232,18 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
     if (cert) setCertification(cert);
     // State: radar picks one state → single-state filter.
     if (ra.state && US_STATES.includes(ra.state)) setStates([ra.state]);
-    // Trade: a 6-digit NAICS becomes a NAICS code; any other trade becomes the
-    // keyword term (drives the same keywordPred the dashboard uses).
-    if (/^\d{6}$/.test(ra.trade)) setNaicsCodes([ra.trade]);
-    else if (ra.trade) setQuery(ra.trade);
+    // Trade: a 6-digit NAICS becomes a NAICS code; a text trade is resolved to
+    // its best-matching NAICS code so it actually PRE-FILLS the NAICS field as
+    // a visible chip (searchNaics is the same resolver the typeahead uses). If
+    // nothing matches (obscure text), fall back to the keyword term — which
+    // still drives the same keywordPred the dashboard uses.
+    if (/^\d{6}$/.test(ra.trade)) {
+      setNaicsCodes([ra.trade]);
+    } else if (ra.trade) {
+      const hits = searchNaics(ra.trade, 1);
+      if (hits.length > 0) setNaicsCodes([hits[0].code]);
+      else setQuery(ra.trade);
+    }
     clearRadarPrefill();
   }, []);
 

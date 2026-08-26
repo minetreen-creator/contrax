@@ -458,6 +458,7 @@ function RadarLanding() {
               agency: m.agency,
               score: m.score,
               score_label: m.score_label,
+              source_url: m.source_url,
             })),
           });
           setScan({ status: "done", matches: res.matches, certLabel: res.certLabel });

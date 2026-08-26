@@ -56,6 +56,9 @@ export interface RadarSeenMatch {
   agency: string | null;
   score: number;
   score_label: string;
+  /** Link to the full original solicitation (SAM.gov) so the in-app banner
+   *  can deep-link "View Full Solicitation Details" for the top match. */
+  source_url: string | null;
 }
 
 export interface RadarSeen {

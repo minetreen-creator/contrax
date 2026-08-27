@@ -7,6 +7,14 @@ import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { isLowContent, LOW_CONTENT_SQL } from "~/lib/low-content";
 import { keywordPred } from "~/lib/open-bids";
+import {
+  buildContractMap,
+  formatCompactMoney,
+  STATE_NAMES,
+  type ContractMapAggregate,
+  type StateAggregate,
+} from "~/lib/contract-map";
+import { US_MAP_VIEWBOX, US_STATE_PATHS } from "~/lib/us-states-map";
 import { toISODate } from "./awards";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -147,6 +155,25 @@ const getClosingSoonBids = createServerFn({ method: "GET" }).handler(async () =>
   `;
   return rows as ClosingSoonBid[];
 });
+
+// ── U.S. Contract Map — homepage aggregate ────────────────────────────────────
+// Reuses the exact same server aggregation as /map (buildContractMap over the
+// open-bid population with the shared low-content filter), so the homepage map
+// and its live counter are backed by the SAME real numbers as the full page --
+// never a separate or fabricated figure. State attribution + stated-value
+// honesty rules are enforced inside buildContractMap (see lib/contract-map.ts).
+const getContractMapAggregate = createServerFn({ method: "GET" }).handler(
+  async (): Promise<ContractMapAggregate> => {
+    const { sql } = await import("~/db");
+    const rows = await sql()`
+      SELECT location, set_aside, estimated_value, agency, category, due_date
+      FROM bids
+      WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
+        AND ${sql().unsafe(LOW_CONTENT_SQL)}
+    `;
+    return buildContractMap(rows as any);
+  },
+);
 
 // ── Live Award Feed (USAspending.gov) ────────────────────────────────────────
 // REAL recent SET-ASIDE federal contract awards from the public USAspending.gov
@@ -561,7 +588,7 @@ const getPerCertCounts = async (): Promise<Record<string, number>> => {
 const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }: { data?: { q?: string } }) => {
   const q = data?.q?.trim() ?? "";
   const { sql } = await import("~/db");
-  const [businessName, user, recentBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts, closingSoon] = await Promise.all([
+  const [businessName, user, recentBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts, closingSoon, contractMap] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -582,6 +609,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }
     getAwardDollarTotal(),
     getPerCertCounts(),
     getClosingSoonBids(),
+    getContractMapAggregate(),
   ]);
   const { bids, count: openCount } = recentBids;
   let alertCount = 0;
@@ -592,7 +620,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, openCount, q };
+  return { businessName, user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, contractMap, openCount, q };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -702,7 +730,7 @@ function PartnershipBanner() {
 
 function Home() {
 
-  const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, openCount, q } = Route.useLoaderData();
+  const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, contractMap, openCount, q } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -734,6 +762,7 @@ function Home() {
       <PartnershipBanner />
       <Navbar user={user} alertCount={alertCount} />
       <Hero userCount={userCount} bidStats={bidStats} cert={certId} q={q || ""} onSelectCert={selectCert} />
+      <OpportunityMap aggregate={contractMap} />
       <ClosingSoon bids={closingSoon} />
       <HowItWorks />
       <LiveAwardFeed feed={liveAwards} activeId={certId} onSelectId={selectCert} />
@@ -1096,6 +1125,179 @@ function Hero({
       </div>
       {/* Bottom fade */}
       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white to-transparent" />
+    </section>
+  );
+}
+
+// ── U.S. Contract Map — homepage embed ───────────────────────────────────────
+// A COMPACT version of the full /map page (owner spec: "Homepage: simplified
+// map, one color scale, hover totals, click-to-search, live counter"). Reuses
+// the exact same US SVG geometry (us-states-map.ts), the same per-state
+// aggregate (buildContractMap — the identical server aggregation /map uses), and
+// the SAME one color scale (MAP_BUCKETS/mapFillFor) as /map. Every number is
+// REAL and SSR-rendered; the hover totals tooltip + gold selection are pure
+// progressive enhancement layered on top. Clicking a state is a plain anchor to
+// /map?state=<CODE> — the full page already handles the drill-down, so no JS is
+// required for click-to-search.
+const MAP_BUCKETS: { min: number; fill: string; label: string; glow?: boolean }[] = [
+  { min: 0, fill: "#2b3a52", label: "No recorded open bids" },
+  { min: 1, fill: "#5b8def", label: "1–25 open bids" },
+  { min: 26, fill: "#3b74e8", label: "26–100" },
+  { min: 101, fill: "#2557c9", label: "101–300" },
+  { min: 301, fill: "#22c58b", label: ">300 — most active", glow: true },
+];
+function mapFillFor(count: number): { fill: string; glow: boolean } {
+  let out = MAP_BUCKETS[0];
+  for (const b of MAP_BUCKETS) if (count >= b.min) out = b;
+  return { fill: out.fill, glow: !!out.glow };
+}
+
+function mapCompactValueLabel(agg: StateAggregate): string {
+  if (agg.withValue <= 0) return "stated value not disclosed";
+  return `${formatCompactMoney(agg.statedValue)} in stated value`;
+}
+
+function OpportunityMap({ aggregate }: { aggregate: ContractMapAggregate }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [hovered, setHovered] = useState<{ code: string; x: number; y: number } | null>(null);
+  const { totals } = aggregate;
+  const hasData = totals.totalOpen > 0;
+
+  const handleMove = (e: { clientX: number; clientY: number }, code: string) => {
+    const el = containerRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    setHovered({ code, x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  // Reset the hover tooltip when the pointer leaves the map container.
+  useEffect(() => {
+    const onLeave = () => setHovered(null);
+    const el = containerRef.current;
+    el?.addEventListener("mouseleave", onLeave);
+    return () => el?.removeEventListener("mouseleave", onLeave);
+  }, []);
+
+  const hoverAgg = hovered ? aggregate.states[hovered.code] : null;
+
+  return (
+    <section className="bg-white py-12 sm:py-16" aria-label="U.S. Contract Map">
+      <div className="mx-auto max-w-7xl px-6">
+        <div className="overflow-hidden rounded-3xl border border-slate-700/60 bg-gradient-to-b from-slate-900 to-slate-950 px-5 py-8 text-slate-100 shadow-2xl shadow-slate-900/20 sm:px-8 sm:py-10">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-xs font-semibold uppercase tracking-widest text-sky-400">Contrax Opportunity Map</p>
+            <h2 className="mt-2 text-2xl font-extrabold text-white sm:text-3xl">
+              {hasData
+                ? `${totals.totalOpen.toLocaleString()} open opportunities across ${totals.totalStates.toLocaleString()} states`
+                : "See where government money is moving."}
+            </h2>
+            <p className="mt-3 text-sm text-slate-400">
+              Hover a state for its totals — click one to see exactly what&apos;s being bought there. Live from the
+              open solicitations synchronized from SAM.gov.
+            </p>
+          </div>
+
+          <div
+            ref={containerRef}
+            className="relative mt-6 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/40 p-3 sm:p-4"
+          >
+            <svg
+              viewBox={`0 0 ${US_MAP_VIEWBOX.width} ${US_MAP_VIEWBOX.height}`}
+              className="w-full"
+              role="img"
+              aria-label="Map of US states showing open contract opportunities"
+            >
+              <defs>
+                <filter id="homeMapGlow" x="-30%" y="-30%" width="160%" height="160%">
+                  <feDropShadow dx="0" dy="0" stdDeviation="5" floodColor="#38bdf8" floodOpacity="0.85" />
+                </filter>
+              </defs>
+              {Object.keys(US_STATE_PATHS).map((code) => {
+                const agg = aggregate.states[code];
+                const tooltip = agg
+                  ? `${STATE_NAMES[code] ?? code}: ${agg.count} open bids · ${agg.setAsideCount} set-asides · ${mapCompactValueLabel(agg)}`
+                  : `${STATE_NAMES[code] ?? code}: no recorded open bids`;
+                const { fill, glow } = mapFillFor(agg?.count ?? 0);
+                return (
+                  <a
+                    key={code}
+                    href={`/map?state=${code}`}
+                    onMouseMove={(e) => handleMove(e.nativeEvent as any, code)}
+                    onMouseEnter={(e) => handleMove(e.nativeEvent as any, code)}
+                    className="outline-none"
+                    aria-label={tooltip}
+                  >
+                    <path
+                      d={US_STATE_PATHS[code]}
+                      fill={fill}
+                      stroke="#0b1220"
+                      strokeWidth="1"
+                      className="cursor-pointer transition-all duration-150 hover:brightness-125"
+                      style={glow ? { filter: "url(#homeMapGlow)" } : undefined}
+                    />
+                  </a>
+                );
+              })}
+            </svg>
+
+            {/* hover totals tooltip (progressive enhancement — map renders fine without) */}
+            {hovered && hoverAgg ? (
+              <div
+                className="pointer-events-none absolute z-20 max-w-xs rounded-lg border border-slate-600 bg-slate-900/95 px-3 py-2 text-xs shadow-xl"
+                style={{
+                  left: Math.min(hovered.x + 14, (containerRef.current?.clientWidth ?? 700) - 260),
+                  top: hovered.y + 14,
+                }}
+              >
+                <div className="font-semibold text-white">
+                  {STATE_NAMES[hovered.code] ?? hovered.code}:{" "}
+                  {`${hoverAgg.count} open bids · ${hoverAgg.setAsideCount} set-asides · ${mapCompactValueLabel(hoverAgg)}`}
+                </div>
+                <div className="mt-1 text-slate-400">
+                  {hoverAgg.closingSoon} closing this week · stated value across {hoverAgg.withValue} of{" "}
+                  {hoverAgg.count} bids
+                </div>
+              </div>
+            ) : hovered ? (
+              <div
+                className="pointer-events-none absolute z-20 max-w-xs rounded-lg border border-slate-600 bg-slate-900/95 px-3 py-2 text-xs shadow-xl"
+                style={{
+                  left: Math.min(hovered.x + 14, (containerRef.current?.clientWidth ?? 700) - 260),
+                  top: hovered.y + 14,
+                }}
+              >
+                <div className="font-semibold text-white">
+                  {STATE_NAMES[hovered.code] ?? hovered.code}: no recorded open bids
+                </div>
+              </div>
+            ) : null}
+
+            {/* One color scale only, matching /map */}
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-400">
+              <span className="font-medium text-slate-300">Fewer</span>
+              {MAP_BUCKETS.map((b) => (
+                <span key={b.label} className="inline-flex items-center gap-1.5">
+                  <span className="inline-block h-3 w-3 rounded" style={{ backgroundColor: b.fill }} />
+                  {b.label}
+                </span>
+              ))}
+              <span className="text-slate-500">Brighter = more open opportunities</span>
+            </div>
+          </div>
+
+          <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+            <p className="text-center text-xs text-slate-500">
+              Stated value is shown only across the opportunities that disclose one — never invented or padded.
+            </p>
+            <a
+              href="/map"
+              className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400"
+            >
+              Explore the full map &rarr;
+            </a>
+          </div>
+        </div>
+      </div>
     </section>
   );
 }

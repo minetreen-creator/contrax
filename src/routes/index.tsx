@@ -680,90 +680,19 @@ export const Route = createFileRoute("/")({
 // component tree so it is included in the server-rendered HTML on first load.
 function PartnershipBanner() {
   return (
-    <section className="relative overflow-hidden border-b border-amber-500/20 bg-slate-900">
-      {/* subtle amber glow so it reads as an announcement without clashing */}
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-transparent"
-        aria-hidden="true"
-      />
-      <div className="relative mx-auto max-w-7xl px-6 py-10 sm:py-12">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
-            <span className="bg-gradient-to-r from-amber-300 to-amber-400 bg-clip-text text-transparent">
-              Official Partnership Announcement
-            </span>
-          </h2>
-          <p className="mt-3 leading-relaxed text-slate-300">
-            Contrax is proud to announce our new partnership with{" "}
-            <a
-              href="https://www.facebook.com/profile.php?id=61585106463292"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-medium text-amber-300 underline decoration-amber-400/40 underline-offset-2 transition-colors hover:text-amber-200"
-            >
-              Veterans Against Diabetes
-            </a>
-            , a veteran-led nonprofit committed to strengthening veterans and their
-            communities through education, resources, and practical assistance.
-          </p>
-          <p className="mt-4 leading-relaxed text-slate-300">
-            As part of this partnership, eligible Veterans Against Diabetes members
-            will receive approximately 25% off any paid Contrax plan for their first
-            12 months:
-          </p>
-          <ul className="mt-4 space-y-2">
-            <li className="flex items-start gap-2 text-slate-200">
-              <span aria-hidden="true">🔹</span>
-              <span>
-                Starter: <span className="font-semibold text-amber-300">$14/month</span>
-              </span>
-            </li>
-            <li className="flex items-start gap-2 text-slate-200">
-              <span aria-hidden="true">🔹</span>
-              <span>
-                Professional: <span className="font-semibold text-amber-300">$59/month</span>
-              </span>
-            </li>
-            <li className="flex items-start gap-2 text-slate-200">
-              <span aria-hidden="true">🔹</span>
-              <span>
-                Agency: <span className="font-semibold text-amber-300">$149/month</span>
-              </span>
-            </li>
-          </ul>
-          <p className="mt-4 leading-relaxed text-slate-300">
-            Contrax helps small businesses find government opportunities, evaluate
-            their chances of winning, research incumbent contractors, understand
-            solicitation requirements, and prepare stronger, compliant proposals.
-          </p>
-          <p className="mt-4 leading-relaxed text-slate-300">
-            Veterans have already sacrificed in service to our country. Veteran
-            entrepreneurs should have the tools and intelligence needed to compete
-            successfully for government contracts.
-          </p>
-          <p className="mt-4 leading-relaxed text-slate-300">
-            We&rsquo;re honored to support the mission of Veterans Against Diabetes and
-            look forward to creating meaningful opportunities together.
-          </p>
-          <div className="mt-6 text-sm font-medium">
-            <span className="text-slate-400">Learn more:</span>{" "}
-            <a
-              href="https://www.contrax.company/"
-              className="font-semibold text-amber-300 underline decoration-amber-400/40 underline-offset-2 transition-colors hover:text-amber-200"
-            >
-              🌐 Contrax
-            </a>
-            <span className="mx-2 text-slate-500">·</span>
-            <a
-              href="https://www.facebook.com/profile.php?id=61585106463292"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-amber-300 underline decoration-amber-400/40 underline-offset-2 transition-colors hover:text-amber-200"
-            >
-              Veterans Against Diabetes
-            </a>
-          </div>
-        </div>
+    <section className="border-b border-amber-500/20 bg-slate-900">
+      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2.5 text-center sm:px-6">
+        <p className="text-xs font-medium leading-snug text-slate-200 sm:text-sm">
+          <span className="font-bold text-amber-300">Official Partnership:</span>{" "}
+          Veterans Against Diabetes members get ~25% off paid plans for their first
+          12 months —{" "}
+          <a
+            href="/vad"
+            className="font-semibold text-amber-300 underline decoration-amber-400/40 underline-offset-2 transition-colors hover:text-amber-200"
+          >
+            Learn more →
+          </a>
+        </p>
       </div>
     </section>
   );
@@ -1054,7 +983,7 @@ function Hero({
     <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900">
       {/* Subtle background pattern */}
       <div className="absolute inset-0 bg-[url('data:image/png;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-      <div className="relative mx-auto max-w-7xl px-6 pb-24 pt-20 sm:pb-32 sm:pt-24 lg:pb-40 lg:pt-20">
+      <div className="relative mx-auto max-w-7xl px-6 pb-16 pt-12 sm:pb-24 sm:pt-16 lg:pb-28 lg:pt-14">
         <div className="mx-auto max-w-3xl text-center">
           <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-1.5 text-sm font-medium text-blue-200">
             <span className="relative flex h-2 w-2">
@@ -1065,20 +994,20 @@ function Hero({
           </div>
 
 
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-5xl">
             Find contracts you can{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
               actually win.
             </span>
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
+          <p className="mx-auto mt-3 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
             Real-time set-aside bids + 5-year incumbent pricing.
           </p>
 
           {/* "I am a:" certification selector — reuses the shared cert state so
               picking a cert filters the Live Award Feed below (same chips/logic as
               the feed's own row). Fires the existing feed_filter_click event. */}
-          <div className="mt-7 flex flex-wrap items-center justify-center gap-2">
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
             <span className="text-sm font-semibold text-blue-200/80">I am a:</span>
             {CERT_CHIPS.filter((c) => c.id !== "all").map((chip) => {
               const isActive = cert === chip.id;
@@ -1102,7 +1031,7 @@ function Hero({
 
           {/* Instant Trade / Keyword search — the hero's first call to action.
               Full-width on mobile, input + button row on desktop. */}
-          <div className="mt-8">
+          <div className="mt-6">
             <form
               onSubmit={handleTradeSearch}
               role="search"
@@ -1135,7 +1064,7 @@ function Hero({
           </div>
 
           {/* Contract Radar — the strongest demo CTA on the homepage. */}
-          <div className="mt-7">
+          <div className="mt-5">
             <a
               href="/radar"
               onClick={() => trackEvent("hero_cta_click", "radar_activate")}
@@ -1148,7 +1077,7 @@ function Hero({
             </p>
           </div>
 
-          <p className="mt-6 flex items-center justify-center gap-1.5 text-sm text-blue-200/70">
+          <p className="mt-5 flex items-center justify-center gap-1.5 text-sm text-blue-200/70">
             <svg className="h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>

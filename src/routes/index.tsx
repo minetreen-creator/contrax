@@ -1188,7 +1188,7 @@ function OpportunityMap({ aggregate }: { aggregate: ContractMapAggregate }) {
             <p className="text-xs font-semibold uppercase tracking-widest text-sky-400">Contrax Opportunity Map</p>
             <h2 className="mt-2 text-2xl font-extrabold text-white sm:text-3xl">
               {hasData
-                ? `${totals.totalOpen.toLocaleString()} open opportunities across ${totals.totalStates.toLocaleString()} states`
+                ? `${totals.totalOpen.toLocaleString()} open opportunities across 50 states + D.C.`
                 : "See where government money is moving."}
             </h2>
             <p className="mt-3 text-sm text-slate-400">

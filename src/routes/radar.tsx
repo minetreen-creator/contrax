@@ -264,7 +264,11 @@ const runRadarScan = createServerFn({ method: "POST" })
         next_action: buildNextAction(bid),
         incumbent: null,
       };
-      if (SHOW_FREE_INCUMBENT && i < 3) {
+      // Fetch incumbent intel for every candidate so we can order the free
+      // preview toward incumbent-rich matches. Only the first THREE are ever
+      // displayed free (the rest sit behind the gate), so this never leaks a
+      // paid feature — it just tells us which real matches to put first.
+      if (SHOW_FREE_INCUMBENT) {
         try {
           const { getFPDSIntel } = await import("~/lib/fpds");
           match.incumbent = await getFPDSIntel(bid.naics_code || "", bid.agency || "", bid.title);
@@ -274,6 +278,24 @@ const runRadarScan = createServerFn({ method: "POST" })
       }
       matches.push(match);
     }
+
+    // FREE-FIRST-3 BIAS (P1): the free preview is sold on "first 3 matches with
+    // full incumbent intel", so prefer the incumbent-rich, adequate-runway bids
+    // first so the marquee differentiator is actually demonstrated. This is a
+    // PURE re-ordering of the same real matches — match % stays deterministic
+    // and real, and any bid with no incumbent data still shows its honest
+    // "not available" placeholder (never fabricated). Within a priority group we
+    // keep the higher score first.
+    (() => {
+      const MIN_RUNWAY_DAYS = 3; // a real bid needs more than a ~1-day closing window
+      const hasRealIncumbent = (m: RadarMatch) =>
+        !!m.incumbent && !!m.incumbent.incumbent_name && (m.incumbent.total_obligated ?? 0) > 0;
+      const hasRunway = (m: RadarMatch) => m.days_remaining == null || m.days_remaining >= MIN_RUNWAY_DAYS;
+      const priority = (m: RadarMatch) =>
+        hasRealIncumbent(m) && hasRunway(m) ? 0 : hasRealIncumbent(m) ? 1 : hasRunway(m) ? 2 : 3;
+      matches.sort((a, b) => priority(a) - priority(b) || b.score - a.score);
+    })();
+
     return { matches, certLabel: CERT_LABEL[certId] };
   });
 
@@ -980,7 +1002,7 @@ function SignupGate({ certLabel, totalFound }: { certLabel: string; totalFound: 
       <h3 className="mt-1.5 text-lg font-bold text-white">
         {allWereFree
           ? `You've seen all ${totalFound} ${totalFound === 1 ? "match" : "matches"} — save them free.`
-          : `You've seen ${freeCap} of ${totalFound} matches — save them all free.`}
+          : `You've seen ${freeCap} of ${freeCap} free matches — ${totalFound} total. Create a free account to see all ${totalFound}.`}
       </h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-300">
         {allWereFree

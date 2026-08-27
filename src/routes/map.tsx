@@ -105,9 +105,13 @@ export const Route = createFileRoute("/map")({
           : raw.slice(0, 2).toUpperCase(),
     };
   },
-  loader: async ({ context }) => {
+  loader: async ({ location }) => {
     const aggregate = await getContractMap();
-    const searchState = context.search?.state;
+    // Read `state` from the real URL (location.search), not context.search —
+    // context carries route context (auth etc.), not search params.
+    const raw = (location.search ? new URLSearchParams(location.search).get("state") : "") || "";
+    const searchState =
+      raw.toLowerCase() === "unspecified" ? UNSPECIFIED : raw.slice(0, 2).toUpperCase();
     let initialBids: { state: string; name: string; bids: DrillBid[] } | null = null;
     if (searchState === UNSPECIFIED) {
       initialBids = await getStateBids({ data: { state: UNSPECIFIED } });
@@ -354,6 +358,23 @@ function MapPage() {
     const rect = el.getBoundingClientRect();
     setHovered({ code, x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
+
+  // Client-side drill-down hydration. The loader seeds `selected`/`bids` from the
+  // URL `state` param via initialBids when it runs (full page load / SSR). But on
+  // client-only navigations and any case where the server didn't populate
+  // initialBids, the panel would otherwise stay absent after hydration. So on
+  // mount, if no state is selected yet and the URL carries a valid `state`, kick
+  // off the same selectState → /api/contract-map/bids fetch. When the loader
+  // already seeded a selection this is a no-op (no double fetch).
+  const routeSearch = Route.useSearch();
+  useEffect(() => {
+    const s = routeSearch.state;
+    if (s && selected === null) {
+      selectState(s);
+    }
+    // Run exactly once on mount (intentional; mirrors the SSR seeds).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reset hovered when leaving the map container
   useEffect(() => {

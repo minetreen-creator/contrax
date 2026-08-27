@@ -179,7 +179,7 @@ export const Route = createFileRoute("/signup")({
   component: SignupPage,
   head: () => ({
     meta: [
-      { title: "Start Your Government-Contracting Workflow — Free 21-Day Trial | Contrax" },
+      { title: "Create your Contrax account | Contrax" },
       {
         name: "description",
         content:
@@ -189,7 +189,7 @@ export const Route = createFileRoute("/signup")({
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company/signup" },
-      { property: "og:title", content: "Start Your Government-Contracting Workflow — Free 21-Day Trial | Contrax" },
+      { property: "og:title", content: "Create your Contrax account | Contrax" },
       {
         property: "og:description",
         content:
@@ -203,7 +203,7 @@ export const Route = createFileRoute("/signup")({
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Start Your Government-Contracting Workflow — Free 21-Day Trial | Contrax" },
+      { name: "twitter:title", content: "Create your Contrax account | Contrax" },
       {
         name: "twitter:description",
         content:
@@ -228,6 +228,15 @@ function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>(plan);
+  // Browser-tab title matches the selected plan (P2): Basic is genuinely free
+  // forever (no card), paid tiers carry the 21-day trial. Kept in sync client-
+  // side so the tab reads truthfully however the visitor arrived.
+  useEffect(() => {
+    document.title =
+      selectedPlan === "basic"
+        ? "Contrax — Free, No Card Required"
+        : "Contrax — Start Your Free 21-Day Trial";
+  }, [selectedPlan]);
 
   // Live countdown for the Closing Soon → signup urgency panel. Initial value is
   // computed at render (Date.now() at first paint — matches SSR), then re-ticked
@@ -692,6 +701,10 @@ function SignupPage() {
             <div className="mt-2.5 space-y-2" role="radiogroup" aria-label="Plan">
               {PLAN_OPTIONS.map((opt) => {
                 const isSelected = selectedPlan === opt.slug;
+                // De-emphasize the paid tiers on the free flow (?plan=basic) so the
+                // "Basic is free forever" path reads unmistakably free — the paid
+                // cards stay selectable, just visually quieter with a PAID tag.
+                const freeFlowPaidCard = plan === "basic" && opt.slug !== "basic";
                 return (
                   <button
                     key={opt.slug}
@@ -702,13 +715,27 @@ function SignupPage() {
                     className={`w-full rounded-xl border p-4 text-left transition-all ${
                       isSelected
                         ? "border-blue-500 bg-blue-50/50 shadow-sm ring-1 ring-blue-500/30"
-                        : opt.featured
-                          ? "border-amber-300 bg-white hover:border-amber-400 hover:bg-amber-50/40"
-                          : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
+                        : freeFlowPaidCard
+                          ? "border-gray-200 bg-gray-50/60 text-gray-500 opacity-80 hover:border-gray-300 hover:opacity-100"
+                          : opt.featured
+                            ? "border-amber-300 bg-white hover:border-amber-400 hover:bg-amber-50/40"
+                            : "border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50"
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="flex-1 text-sm font-bold text-slate-900">{opt.name}</span>
+                      <span className="flex flex-1 items-center gap-2 text-sm font-bold text-slate-900">
+                        {opt.name}
+                        {opt.slug === "basic" && (
+                          <span className="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                            Free forever
+                          </span>
+                        )}
+                        {freeFlowPaidCard && (
+                          <span className="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+                            Paid · 21-day trial
+                          </span>
+                        )}
+                      </span>
                       <span className="text-sm font-semibold text-slate-700">
                         ${opt.price}
                         <span className="text-xs font-normal text-gray-500">/mo</span>

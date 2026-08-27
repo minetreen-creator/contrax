@@ -238,10 +238,13 @@ export function buildContractMap(rows: readonly OpenBidRow[]): ContractMapAggreg
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 6);
+    // Keep EVERY set-aside key (not just the top 8) so the /map page can
+    // re-shade states instantly for any selected set-aside using only the
+    // already-loaded payload. The set of distinct tags is small, so this stays
+    // a tiny JSON payload.
     agg.setAsideBreakdown = Array.from(setAsides.get(code) ?? [])
       .map(([key, count]) => ({ key, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 8);
+      .sort((a, b) => b.count - a.count);
   }
 
   const states: Record<string, StateAggregate> = {};

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -41,6 +41,10 @@ interface DrillBid {
   source_url: string | null;
 }
 
+/** Pseudo-state that lists open bids not attributable to a single state. */
+const UNSPECIFIED = "UNSPECIFIED";
+const UNSPECIFIED_NAME = "Nationwide / Location not specified";
+
 const getContractMap = createServerFn({ method: "GET" }).handler(
   async (): Promise<ContractMapAggregate> => {
     const rows = await sql()`
@@ -55,9 +59,10 @@ const getContractMap = createServerFn({ method: "GET" }).handler(
 
 const getStateBids = createServerFn({ method: "GET" }).handler(
   async ({ data }: { data: { state: string } }): Promise<{ state: string; name: string; bids: DrillBid[] }> => {
-    const state = (data.state || "").toUpperCase();
-    if (!/^[A-Z]{2}$/.test(state) || !US_STATES.includes(state as any)) {
-      return { state, name: "", bids: [] };
+    const raw = (data.state || "").toUpperCase();
+    const isUnspecified = raw === UNSPECIFIED;
+    if (!isUnspecified && (!/^[A-Z]{2}$/.test(raw) || !US_STATES.includes(raw as any))) {
+      return { state: raw, name: "", bids: [] };
     }
     const rows = await sql()`
       SELECT id, title, agency, location, set_aside, estimated_value, due_date, source_url
@@ -67,7 +72,11 @@ const getStateBids = createServerFn({ method: "GET" }).handler(
       ORDER BY due_date ASC NULLS LAST
     `;
     const bids = (rows as any[])
-      .filter((r) => deriveStateCode(r.location) === state)
+      .filter((r) =>
+        // Unspecified = open bids we can't honestly tie to one state (matches
+        // totals.unspecified in the aggregate). We never fabricate a state.
+        isUnspecified ? deriveStateCode(r.location) === null : deriveStateCode(r.location) === raw,
+      )
       .map((r) => ({
         id: Number(r.id),
         title: r.title,
@@ -78,19 +87,31 @@ const getStateBids = createServerFn({ method: "GET" }).handler(
         due_date: r.due_date ? new Date(r.due_date).toISOString() : null,
         source_url: r.source_url,
       }));
-    return { state, name: STATE_NAMES[state] ?? "", bids };
+    return {
+      state: isUnspecified ? UNSPECIFIED : raw,
+      name: isUnspecified ? UNSPECIFIED_NAME : STATE_NAMES[raw] ?? "",
+      bids,
+    };
   },
 );
 
 export const Route = createFileRoute("/map")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    state: typeof search.state === "string" ? search.state.slice(0, 2).toUpperCase() : undefined,
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const raw = typeof search.state === "string" ? search.state : "";
+    return {
+      state:
+        raw.toLowerCase() === "unspecified"
+          ? UNSPECIFIED
+          : raw.slice(0, 2).toUpperCase(),
+    };
+  },
   loader: async ({ context }) => {
     const aggregate = await getContractMap();
     const searchState = context.search?.state;
     let initialBids: { state: string; name: string; bids: DrillBid[] } | null = null;
-    if (searchState && /^[A-Z]{2}$/.test(searchState) && US_STATES.includes(searchState as any)) {
+    if (searchState === UNSPECIFIED) {
+      initialBids = await getStateBids({ data: { state: UNSPECIFIED } });
+    } else if (searchState && /^[A-Z]{2}$/.test(searchState) && US_STATES.includes(searchState as any)) {
       initialBids = await getStateBids({ data: { state: searchState } });
     }
     return { aggregate, initialBids };
@@ -263,13 +284,56 @@ function MapPage() {
   const [bids, setBids] = useState<DrillBid[]>(initialBids?.bids ?? []);
   const [loadingBids, setLoadingBids] = useState(false);
   const [hovered, setHovered] = useState<{ code: string; x: number; y: number } | null>(null);
+  // Instant client-side set-aside re-shading: "all" or a concrete tag key.
+  const [setAsideFilter, setSetAsideFilter] = useState<string>("all");
+
+  // Distinct set-aside tags present in the already-loaded payload (honest —
+  // only real tags that exist in the data are shown as filter options).
+  const setAsideOptions = useMemo(() => {
+    const seen = new Set<string>();
+    for (const code of Object.keys(aggregate.states)) {
+      for (const s of aggregate.states[code].setAsideBreakdown) seen.add(s.key);
+    }
+    return Array.from(seen).sort((a, b) => a.localeCompare(b));
+  }, [aggregate]);
+
+  // Per-state open count UNDER the active set-aside, computed purely from the
+  // loaded per-state setAsideBreakdown — zero new network requests.
+  const stateCountUnderFilter = (code: string): number => {
+    if (setAsideFilter === "all") return aggregate.states[code]?.count ?? 0;
+    const agg = aggregate.states[code];
+    if (!agg) return 0;
+    let total = 0;
+    for (const s of agg.setAsideBreakdown) if (s.key === setAsideFilter) total += s.count;
+    return total;
+  };
+
+  // Totals header reflects the active filter (client-side, no refetch).
+  const filterActive = setAsideFilter !== "all";
+  const totals = useMemo(() => {
+    if (!filterActive) {
+      return {
+        open: aggregate.totals.totalOpen,
+        states: aggregate.totals.totalStates,
+        setAside: aggregate.totals.setAsideCount ?? 0,
+      };
+    }
+    let open = 0;
+    let states = 0;
+    for (const code of Object.keys(aggregate.states)) {
+      const c = stateCountUnderFilter(code);
+      open += c;
+      if (c > 0) states++;
+    }
+    return { open, states, setAside: open };
+  }, [filterActive, aggregate, setAsideFilter]);
 
   const selectState = async (code: string) => {
     setSelected(code);
     setLoadingBids(true);
     setBids([]);
     try {
-      const res = await fetch(`/api/contract-map/bids?state=${code}`);
+      const res = await fetch(`/api/contract-map/bids?state=${encodeURIComponent(code)}`);
       const data = await res.json();
       setBids(Array.isArray(data?.bids) ? data.bids : []);
     } catch {
@@ -300,6 +364,7 @@ function MapPage() {
   }, []);
 
   const hoverAgg = hovered ? aggregate.states[hovered.code] : null;
+  const hoverCount = hovered ? stateCountUnderFilter(hovered.code) : 0;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -318,12 +383,14 @@ function MapPage() {
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-center">
             <div className="text-2xl font-extrabold text-white">
-              {aggregate.totals.totalOpen.toLocaleString()}
+              {totals.open.toLocaleString()}
             </div>
-            <div className="mt-1 text-xs text-slate-400">open opportunities</div>
+            <div className="mt-1 text-xs text-slate-400">
+              {filterActive ? `${setAsideFilter} open opportunities` : "open opportunities"}
+            </div>
           </div>
           <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-center">
-            <div className="text-2xl font-extrabold text-white">{aggregate.totals.totalStates}</div>
+            <div className="text-2xl font-extrabold text-white">{totals.states}</div>
             <div className="mt-1 text-xs text-slate-400">states + DC</div>
           </div>
           <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-center">
@@ -335,10 +402,21 @@ function MapPage() {
             </div>
           </div>
           <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-center">
-            <div className="text-2xl font-extrabold text-amber-400">{aggregate.totals.setAsideCount ?? "—"}</div>
+            <div className="text-2xl font-extrabold text-amber-400">{totals.setAside.toLocaleString()}</div>
             <div className="mt-1 text-xs text-slate-400">set-aside opportunities</div>
           </div>
         </div>
+        {filterActive ? (
+          <p className="mt-2 text-center text-xs text-slate-500">
+            Showing only state-attributed bids tagged {setAsideFilter}. Stated value spans all open bids.
+            <button
+              onClick={() => setSetAsideFilter("all")}
+              className="ml-2 font-medium text-sky-400 hover:text-sky-300"
+            >
+              Reset to all set-asides
+            </button>
+          </p>
+        ) : null}
         <p className="mt-2 text-center text-xs text-slate-500">
           Based on {aggregate.totals.totalOpen.toLocaleString()} open opportunities sync'd from SAM.gov · updated{" "}
           {new Date(aggregate.totals.generatedAt).toLocaleString("en-US", {
@@ -352,6 +430,64 @@ function MapPage() {
             ? `· ${aggregate.totals.unspecified.toLocaleString()} more in locations not tied to one state`
             : ""}
         </p>
+
+        {/* Set-aside filter — instant client-side re-shading, no refetch */}
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">Set-aside</span>
+          <button
+            onClick={() => setSetAsideFilter("all")}
+            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              setAsideFilter === "all"
+                ? "border-amber-400 bg-amber-400/15 text-amber-300"
+                : "border-slate-600 bg-slate-900 text-slate-300 hover:bg-slate-800"
+            }`}
+          >
+            All
+          </button>
+          {setAsideOptions.map((key) => (
+            <button
+              key={key}
+              onClick={() => setSetAsideFilter(key)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                setAsideFilter === key
+                  ? "border-amber-400 bg-amber-400/15 text-amber-300"
+                  : "border-slate-600 bg-slate-900 text-slate-300 hover:bg-slate-800"
+              }`}
+            >
+              {key}
+            </button>
+          ))}
+        </div>
+
+        {/* Mobile state-dropdown fallback — dense East Coast states are hard to tap
+            at 390px, so small screens get a native select listing every state with
+            its open-bid count (hidden on md+ where the full map remains the way). */}
+        <div className="mt-4 md:hidden">
+          <label htmlFor="map-state-select" className="mb-1 block text-xs font-semibold uppercase tracking-widest text-slate-400">
+            Select State
+          </label>
+          <select
+            id="map-state-select"
+            value={selected ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v) selectState(v);
+            }}
+            className="w-full rounded-lg border border-slate-600 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-sky-400"
+          >
+            <option value="">Choose a state…</option>
+            {Object.keys(STATE_NAMES)
+              .sort((a, b) => STATE_NAMES[a].localeCompare(STATE_NAMES[b]))
+              .map((code) => (
+                <option key={code} value={code}>
+                  {STATE_NAMES[code]} ({stateCountUnderFilter(code)})
+                </option>
+              ))}
+            <option value={UNSPECIFIED}>
+              🏛️ {UNSPECIFIED_NAME} ({aggregate.totals.unspecified})
+            </option>
+          </select>
+        </div>
 
         {/* Map */}
         <div
@@ -371,11 +507,13 @@ function MapPage() {
             </defs>
             {Object.keys(US_STATE_PATHS).map((code) => {
               const agg = aggregate.states[code];
-              const count = agg?.count ?? 0;
+              const count = stateCountUnderFilter(code);
               const isSelected = selected === code;
               const { fill, glow } = isSelected ? { fill: SELECTED_FILL, glow: true } : fillFor(count);
               const tooltip = agg
-                ? `${STATE_NAMES[code] ?? code}: ${count} open bids · ${agg.setAsideCount} set-asides · ${compactValueLabel(agg)}`
+                ? filterActive
+                  ? `${STATE_NAMES[code] ?? code}: ${count} open ${setAsideFilter} bids · ${compactValueLabel(agg)}`
+                  : `${STATE_NAMES[code] ?? code}: ${count} open bids · ${agg.setAsideCount} set-asides · ${compactValueLabel(agg)}`
                 : `${STATE_NAMES[code] ?? code}: no recorded open bids`;
               return (
                 <a
@@ -413,12 +551,15 @@ function MapPage() {
               }}
             >
               <div className="font-semibold text-white">
-                {STATE_NAMES[hovered.code] ?? hovered.code}: {hoverAgg.count} open bids · {hoverAgg.setAsideCount}{" "}
-                set-asides · {compactValueLabel(hoverAgg)}
+                {STATE_NAMES[hovered.code] ?? hovered.code}:{" "}
+                {filterActive
+                  ? `${hoverCount} open ${setAsideFilter} bids · ${compactValueLabel(hoverAgg)}`
+                  : `${hoverAgg.count} open bids · ${hoverAgg.setAsideCount} set-asides · ${compactValueLabel(hoverAgg)}`}
               </div>
               <div className="mt-1 text-slate-400">
-                {hoverAgg.closingSoon} closing this week · stated value across {hoverAgg.withValue} of {hoverAgg.count}{" "}
-                bids
+                {filterActive
+                  ? `stated value across ${hoverAgg.withValue} of ${hoverAgg.count} bids`
+                  : `${hoverAgg.closingSoon} closing this week · stated value across ${hoverAgg.withValue} of ${hoverAgg.count} bids`}
               </div>
             </div>
           ) : hovered ? (
@@ -452,14 +593,57 @@ function MapPage() {
           </div>
         </div>
 
+        {/* Nationwide & Location-not-specified pill (owner addition) */}
+        {aggregate.totals.unspecified > 0 ? (
+          <a
+            href={`/map?state=unspecified`}
+            onClick={(e) => {
+              e.preventDefault();
+              selectState(UNSPECIFIED);
+            }}
+            className="group mt-6 flex items-center justify-between gap-3 rounded-full border border-slate-600/80 bg-gradient-to-r from-slate-900 to-slate-800 py-3 pl-4 pr-2 text-sm transition-colors hover:border-sky-500"
+          >
+            <span className="inline-flex min-w-0 items-center gap-2 text-slate-200">
+              <span aria-hidden className="text-base">🏛️</span>
+              <span className="truncate">
+                <span className="font-bold text-white">+{aggregate.totals.unspecified.toLocaleString()}</span>{" "}
+                Nationwide &amp; Unspecified Solicitations
+              </span>
+            </span>
+            <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-sky-400/15 px-3 py-1 text-xs font-semibold text-sky-300 transition-colors group-hover:bg-sky-400/25">
+              View All <span aria-hidden>&rarr;</span>
+            </span>
+          </a>
+        ) : null}
+
         {/* Drill-down */}
         {selected ? (
           <>
-            <StatePanel state={selected} aggs={aggregate.states} onBack={clearSelection} />
+            {selected !== UNSPECIFIED ? (
+              <StatePanel state={selected} aggs={aggregate.states} onBack={clearSelection} />
+            ) : (
+              <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-900 p-5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">🏛️ {UNSPECIFIED_NAME}</h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      Open solicitations whose place of performance isn't tied to a single state — remote/nationwide
+                      work, or a location we can't honestly attribute.
+                    </p>
+                  </div>
+                  <button
+                    onClick={clearSelection}
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-700"
+                  >
+                    &larr; Back to all states
+                  </button>
+                </div>
+              </div>
+            )}
             <div className="mt-6">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-bold text-white">
-                  {STATE_NAMES[selected] ?? selected} — open bids
+                  {selected === UNSPECIFIED ? UNSPECIFIED_NAME : STATE_NAMES[selected] ?? selected} — open bids
                 </h2>
                 <span className="text-sm text-slate-400">
                   {loadingBids ? "Loading…" : `${bids.length} open`}
@@ -468,7 +652,7 @@ function MapPage() {
               <div className="mt-3 grid gap-3">
                 {loadingBids ? (
                   <div className="rounded-2xl border border-slate-700 bg-slate-800/60 p-6 text-center text-sm text-slate-400">
-                    Loading open bids for {STATE_NAMES[selected] ?? selected}…
+                    Loading open bids for {selected === UNSPECIFIED ? UNSPECIFIED_NAME : STATE_NAMES[selected] ?? selected}…
                   </div>
                 ) : bids.length === 0 ? (
                   <div className="rounded-2xl border border-slate-700 bg-slate-800/60 p-6 text-center text-sm text-slate-400">

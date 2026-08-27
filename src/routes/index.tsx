@@ -1734,6 +1734,12 @@ function OpenOpportunities({ bids, todayBids, openCount, q, user }: { bids: Bid[
           <p className="text-lg leading-relaxed text-gray-600">
             What you can bid on right now — fresh set-aside and open solicitations from SAM.gov and city procurement, pulled in as they post. Browse titles free; full details are one signup away.
           </p>
+          <a
+            href="/map"
+            className="mt-1 inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-700 transition-all hover:bg-amber-100 hover:shadow-sm"
+          >
+            🗺️ Explore the U.S. Contract Map &rarr;
+          </a>
         </div>
         {q ? (
           <p className="mt-6 text-center text-sm font-medium text-slate-700">

@@ -386,6 +386,28 @@ function RadarLanding() {
   // appears after the 3rd free match).
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const prefilledRef = useRef(false);
+  // URL-driven prefill (owner-directed): the homepage hero "Explore Bids →"
+  // navigates here with `/radar?trade=...&cert=...`. When a trade is present,
+  // prefill the form and immediately scan so the visitor lands straight on their
+  // matching cards instead of an empty wizard. Runs before the localStorage
+  // prefill below (it sets cert + sizePref, so that one skips and the URL wins).
+  const searchParams = Route.useSearch() as { trade?: unknown; cert?: unknown };
+  const urlTrade = String(searchParams?.trade ?? "").trim();
+  const urlCertRaw = String(searchParams?.cert ?? "");
+  const didUrlPrefill = useRef(false);
+  useEffect(() => {
+    if (didUrlPrefill.current || !urlTrade) return;
+    didUrlPrefill.current = true;
+    const c = (RADAR_CERTS as readonly string[]).includes(urlCertRaw)
+      ? (urlCertRaw as RadarCert)
+      : "sb";
+    setTrade(urlTrade);
+    setState("");
+    setCert(c);
+    setSizePref("any");
+    runScan({ trade: urlTrade, state: "", cert: c, sizePref: "any" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -431,18 +453,17 @@ function RadarLanding() {
     setRevealed(next);
   };
 
-  const startScan = () => {
-    if (!editing) return;
-    trackEvent("radar_scan_start", cert || "");
+  const runScan = (input: { trade: string; state: string; cert: RadarCert; sizePref: SizeId }) => {
+    trackEvent("radar_scan_start", input.cert);
     setScan({ status: "loading" });
     setRevealed(0);
     // Small real processing pause so the "scanning" reveal reads as active work,
     // while the actual match computation happens server-side over live data.
     const t = window.setTimeout(() => {
-      runRadarScan({ data: { trade: trade.trim(), state, cert: cert!, sizePref: sizePref! } })
+      runRadarScan({ data: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref } })
         .then((res) => {
           if (flashTimer) window.clearTimeout(flashTimer);
-          trackEvent("radar_scan_complete", cert || "");
+          trackEvent("radar_scan_complete", input.cert);
           // The soft nudge is visible the moment the FIRST match is revealed
           // (revealed stays 0 on completion), so attribute its impression here.
           if (res.matches.length > 0) trackEvent("radar_nudge_shown", res.certLabel);
@@ -450,7 +471,7 @@ function RadarLanding() {
           // server-computed matches) so a later signup/login can pick it up
           // in-app — no email involved (owner-directed: no email capture).
           saveRadarSeen({
-            answers: { trade: trade.trim(), state, cert: cert!, sizePref: sizePref! },
+            answers: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref },
             certLabel: res.certLabel,
             total: res.matches.length,
             seenCount: 0,
@@ -476,6 +497,10 @@ function RadarLanding() {
     setStep(2);
   };
 
+  const startScan = () => {
+    if (!editing) return;
+    runScan({ trade: trade.trim(), state, cert: cert!, sizePref: sizePref! });
+  };
   const track = (trade.trim() || "any");
   const stateLabel = state ? ` / ${state}` : "";
 

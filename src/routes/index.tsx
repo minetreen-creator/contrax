@@ -964,19 +964,23 @@ function Hero({
   // Opportunities feed (/?q=...#open-opportunities), filtered server-side so the
   // SSR HTML carries the matches. The CTA always shows the REAL active
   // solicitation count (bidStats.activeCount) — never a fabricated figure.
+  // "Explore Bids →" routes to Contract Radar, pre-filtered to the typed trade
+  // and the selected certification, so the visitor lands straight on their
+  // matching Radar cards (owner-directed). The radar route accepts `trade` and
+  // `cert` search params; both are omitted when empty/"all" (radar then defaults
+  // cert to sb). Homepage cert ids map 1:1 to radar's valid set except "all" --
+  // only a real cert id is emitted.
   const handleTradeSearch = (e: FormEvent) => {
     e.preventDefault();
-    const q = tradeQ.trim();
-    if (!q) {
-      // Empty search box: never silently no-op. The "Explore N Bids" CTA must
-      // ALWAYS respond -- with no keyword, open the unfiltered Open Opportunities
-      // feed (no q => the loader returns all active solicitations server-side,
-      // keeping the SSR HTML populated).
-      navigate({ to: "/", search: {}, hash: "open-opportunities" });
-      return;
+    const trade = tradeQ.trim();
+    if (trade) trackEvent("hero_search", trade); // fire-and-forget, never blocks UI
+    const RADAR_CERTS = ["8a", "sdvosb", "wosb", "hubzone", "sb"] as const;
+    const search: Record<string, string> = {};
+    if (trade) search.trade = trade;
+    if (cert !== "all" && (RADAR_CERTS as readonly string[]).includes(cert)) {
+      search.cert = cert;
     }
-    trackEvent("hero_search", q); // fire-and-forget, never blocks UI
-    navigate({ to: "/", search: { q }, hash: "open-opportunities" });
+    navigate({ to: "/radar", search });
   };
 
   return (
@@ -1034,7 +1038,7 @@ function Hero({
           <div className="mt-6">
             <form
               onSubmit={handleTradeSearch}
-              action="/#open-opportunities"
+              action="/radar"
               method="get"
               role="search"
               aria-label="Search open solicitations by trade, NAICS, or state"
@@ -1046,7 +1050,7 @@ function Hero({
                 </svg>
                 <input
                   type="text"
-                  name="q"
+                  name="trade"
                   value={tradeQ}
                   onChange={(e) => setTradeQ(e.target.value)}
                   placeholder={'Enter your trade, NAICS, or state (e.g. "HVAC", "Janitorial", "Texas")'}
@@ -1062,7 +1066,7 @@ function Hero({
               </button>
             </form>
             <p className="mt-2.5 text-center text-xs font-medium text-blue-200/70">
-              Instantly see open solicitations matching your exact trade — real-time, no signup needed
+              Get matched to live set-aside bids in Contract Radar — your first 3 matches free, no signup needed
             </p>
           </div>
 

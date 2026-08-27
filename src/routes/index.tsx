@@ -1034,6 +1034,8 @@ function Hero({
           <div className="mt-6">
             <form
               onSubmit={handleTradeSearch}
+              action="/#open-opportunities"
+              method="get"
               role="search"
               aria-label="Search open solicitations by trade, NAICS, or state"
               className="mx-auto flex max-w-3xl flex-col gap-3 rounded-2xl border border-amber-400/25 bg-white/[0.06] p-4 shadow-xl shadow-black/20 backdrop-blur-md sm:flex-row sm:items-center sm:p-3"
@@ -1044,6 +1046,7 @@ function Hero({
                 </svg>
                 <input
                   type="text"
+                  name="q"
                   value={tradeQ}
                   onChange={(e) => setTradeQ(e.target.value)}
                   placeholder={'Enter your trade, NAICS, or state (e.g. "HVAC", "Janitorial", "Texas")'}

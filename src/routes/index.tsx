@@ -730,7 +730,7 @@ function PartnershipBanner() {
 
 function Home() {
 
-  const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, contractMap, openCount, q } = Route.useLoaderData();
+  const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, contractMap, q } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -761,7 +761,7 @@ function Home() {
       />
       <PartnershipBanner />
       <Navbar user={user} alertCount={alertCount} />
-      <Hero userCount={userCount} bidStats={bidStats} cert={certId} q={q || ""} onSelectCert={selectCert} />
+      <Hero userCount={userCount} bidStats={bidStats} openOppCount={contractMap.totals.totalOpen} cert={certId} q={q || ""} onSelectCert={selectCert} />
       <OpportunityMap aggregate={contractMap} />
       <ClosingSoon bids={closingSoon} />
       <HowItWorks />
@@ -769,7 +769,7 @@ function Home() {
       <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
-      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={openCount} q={q || ""} user={user} />
+      <OpenOpportunities bids={bids} todayBids={todayBids} openCount={contractMap.totals.totalOpen} q={q || ""} user={user} />
       <HealthcareTeaser />
       <Example />
       <WhoItsFor />
@@ -969,12 +969,14 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
 function Hero({
   userCount,
   bidStats,
+  openOppCount,
   cert,
   q,
   onSelectCert,
 }: {
   userCount: number;
   bidStats: { activeCount: number; agencyCount: number };
+  openOppCount: number;
   cert: string;
   q: string;
   onSelectCert: (id: string) => void;
@@ -1091,7 +1093,7 @@ function Hero({
                 type="submit"
                 className="shrink-0 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
               >
-                Explore {bidStats.activeCount > 0 ? bidStats.activeCount.toLocaleString() : ""} Bids →
+                Explore {openOppCount > 0 ? openOppCount.toLocaleString() : ""} open opportunities →
               </button>
             </form>
             <p className="mt-2.5 text-center text-xs font-medium text-blue-200/70">

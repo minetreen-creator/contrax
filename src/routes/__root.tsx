@@ -13,6 +13,7 @@ import {
   attributionCookieSetHeader,
   resolveAttribution,
 } from "~/lib/attribution";
+import { trackingIds, getOrCreateVisitorId } from "~/lib/visitor";
 import appCss from "~/styles/app.css?url";
 
 const PROD_URL = "https://www.contrax.company";
@@ -81,7 +82,16 @@ const PAGE_VIEW_DEDUPE_MS = 5 * 60 * 1000;
 function recordPageView(path: string) {
   if (typeof window === "undefined") return;
   if (path.startsWith("/admin")) return; // don't track admin views
-  const payload = { path, referrer: document.referrer || undefined };
+  // Persistent per-visitor + per-session identity (first-party, self-hosted).
+  // getOrCreateVisitorId() sets the `contrax_vid` cookie on first call so it is
+  // in place before the first page view; the id also rides in the body.
+  const ids = trackingIds();
+  const payload = {
+    path,
+    referrer: document.referrer || undefined,
+    visitor_id: ids.visitor_id,
+    visit_id: ids.visit_id,
+  };
   try {
     fetch("/api/page-view", {
       method: "POST",
@@ -128,6 +138,9 @@ function AttributionCookie() {
   useEffect(() => {
     try {
       if (typeof window === "undefined") return;
+      // Ensure the persistent per-visitor id cookie exists on first arrival so
+      // it is already in place before the first page-view/event POST fires.
+      getOrCreateVisitorId();
       // Already set — never clobber the first-touch attribution.
       if (
         document.cookie

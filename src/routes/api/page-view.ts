@@ -10,7 +10,7 @@ import { resolveAttribution, type Attribution } from "~/lib/attribution";
  * funnel is visible). Called fire-and-forget from the root layout on every
  * route change; the client dedupes same-path hits to once per 5 minutes.
  *
- * Body:  { path: string, referrer?: string }
+ * Body:  { path: string, referrer?: string, visitor_id?: string, visit_id?: string }
  * Headers used: user-agent, x-forwarded-for / cf-connecting-ip / x-real-ip
  *
  * This endpoint must NEVER throw a 5xx or block rendering. Every failure is
@@ -50,6 +50,8 @@ async function ensurePageViewsTable(): Promise<void> {
     medium TEXT,
     campaign TEXT,
     click_id TEXT,
+    visitor_id TEXT,
+    visit_id TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
   // Lazy ALTER guards (idempotent) so pre-existing production tables gain the
@@ -58,6 +60,10 @@ async function ensurePageViewsTable(): Promise<void> {
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS medium TEXT`;
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS campaign TEXT`;
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS click_id TEXT`;
+  // Persistent per-visitor / per-session ids (PR: visit_id tracking). Lazy so
+  // pre-existing tables gain them on first hit after deploy — no migration step.
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS visitor_id TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS visit_id TEXT`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views (created_at)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_source ON page_views (source)`;
 }
@@ -96,13 +102,28 @@ async function handler({ request }: { request: Request }) {
     // Parse the body defensively — a malformed payload must not 500.
     let path = "/";
     let referrer: string | null = null;
+    let visitorId: string | null = null;
+    let visitId: string | null = null;
     try {
-      const body = (await request.json()) as { path?: unknown; referrer?: unknown };
+      const body = (await request.json()) as {
+        path?: unknown;
+        referrer?: unknown;
+        visitor_id?: unknown;
+        visit_id?: unknown;
+      };
       if (typeof body.path === "string" && body.path.length > 0) {
         path = body.path.slice(0, 2048);
       }
       if (typeof body.referrer === "string" && body.referrer.length > 0) {
         referrer = body.referrer.slice(0, 2048);
+      }
+      // Persistent visitor + session ids are OPTIONAL: a missing/malformed
+      // value must never fail the insert. Sanitize to 64 chars.
+      if (typeof body.visitor_id === "string" && body.visitor_id.trim().length > 0) {
+        visitorId = body.visitor_id.trim().slice(0, 64);
+      }
+      if (typeof body.visit_id === "string" && body.visit_id.trim().length > 0) {
+        visitId = body.visit_id.trim().slice(0, 64);
       }
     } catch {
       // No/invalid JSON — record the hit with the default path.
@@ -124,8 +145,8 @@ async function handler({ request }: { request: Request }) {
     });
 
     const insert = () =>
-      sql()`INSERT INTO page_views (path, user_agent, ip, referrer, source, medium, campaign, click_id)
-        VALUES (${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id})`;
+      sql()`INSERT INTO page_views (path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id)
+        VALUES (${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId})`;
 
     try {
       await ensurePageViewsTable();

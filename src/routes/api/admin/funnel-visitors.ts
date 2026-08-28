@@ -3,7 +3,7 @@ import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 /**
- * GET /api/admin/funnel-visitors?days=30
+ * GET /api/admin/funnel-visitors?days=30[&source=facebook]
  *
  * Admin-only "Funnel per visitor" slice. Uses the persistent per-visitor
  * `visitor_id` (contrax_vid cookie) stamped onto every funnel_event row so we
@@ -16,9 +16,23 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
  *   sampleJourneys — a handful of full per-visitor event sequences (for QA /
  *               sanity-checking that the ids are actually stitching a journey).
  *
- * BOT FILTERING: every count applies the shared BOT_EXCLUSION_SQL predicate
- * (see src/lib/bot-exclusion.ts) so crawlers / headless QA / known test IPs are
- * excluded from the human numbers.
+ * OPTIONAL `source` param: when present (e.g. `?days=30&source=facebook`) the
+ * step counts, cumulative funnel, sampleJourneys AND the new `conversionGoal`
+ * object are all eager-filtered to funnel_events whose `source` column equals
+ * the given value (added to each WHERE, not post-filtered). `conversionGoal`
+ * (`goal: 'radar_scan_to_signup'`) makes the radar→signup paid-channel goal
+ * legible: distinct visitors who reached radar_scan_complete, who then reached
+ * signup_view after their radar_scan_complete, who reached signup_success, and
+ * the two stepwise conversion rates. When `source` is absent the endpoint is
+ * byte-for-byte unchanged from the un-filtered default (and no `conversionGoal`
+ * key is returned at all) so existing callers are unaffected.
+ *
+ * BOT FILTERING: every human count applies the shared BOT_EXCLUSION_SQL
+ * predicate (see src/lib/bot-exclusion.ts) so crawlers / headless QA / known
+ * test IPs are excluded from the human numbers. In the self-join conversionGoal
+ * query each level only has one table alias in scope, so the same unqualified
+ * predicate resolves to that level's row (outer → signup_view 's', inner →
+ * radar_scan_complete 'r').
  *
  * Honest limitation: rows recorded before this feature shipped, and rows from
  * cookie/sessionStorage-blocked visitors, have NULL visitor_id and are simply
@@ -36,6 +50,16 @@ type Stage = (typeof STAGES)[number];
 
 const HUMAN_FILTER = `AND NOT COALESCE((${BOT_EXCLUSION_SQL}), false)`;
 
+interface ConversionGoal {
+  goal: "radar_scan_to_signup";
+  source: string;
+  radarComplete: number;
+  signupViewAfterRadar: number;
+  signupSuccess: number;
+  radarToSignupViewRate: number;
+  radarToSignupSuccessRate: number;
+}
+
 interface FunnelVisitorsResult {
   rangeDays: number;
   from: string;
@@ -43,12 +67,36 @@ interface FunnelVisitorsResult {
   steps: Record<Stage, number>;
   funnel: { stage: Stage; visitors: number }[];
   sampleJourneys: { visitor_id: string; events: string[] }[];
+  conversionGoal?: ConversionGoal;
 }
 
-function emptyResult(rangeDays: number, now: Date, from: Date): FunnelVisitorsResult {
+/** Percentage rounded to 1 decimal place; 0.0 when the denominator is 0. */
+function pct(numerator: number, denominator: number): number {
+  if (denominator === 0) return 0;
+  return Math.round((numerator / denominator) * 1000) / 10;
+}
+
+function emptyConversionGoal(source: string): ConversionGoal {
+  return {
+    goal: "radar_scan_to_signup",
+    source,
+    radarComplete: 0,
+    signupViewAfterRadar: 0,
+    signupSuccess: 0,
+    radarToSignupViewRate: 0,
+    radarToSignupSuccessRate: 0,
+  };
+}
+
+function emptyResult(
+  rangeDays: number,
+  now: Date,
+  from: Date,
+  source: string | null,
+): FunnelVisitorsResult {
   const steps = {} as Record<Stage, number>;
   for (const s of STAGES) steps[s] = 0;
-  return {
+  const result: FunnelVisitorsResult = {
     rangeDays,
     from: from.toISOString(),
     to: now.toISOString(),
@@ -56,6 +104,8 @@ function emptyResult(rangeDays: number, now: Date, from: Date): FunnelVisitorsRe
     funnel: STAGES.map((stage) => ({ stage, visitors: 0 })),
     sampleJourneys: [],
   };
+  if (source !== null) result.conversionGoal = emptyConversionGoal(source);
+  return result;
 }
 
 async function handler({ request }: { request: Request }) {
@@ -67,7 +117,14 @@ async function handler({ request }: { request: Request }) {
   const rangeDays = Number.isFinite(daysParam) ? Math.min(365, Math.max(1, daysParam)) : 30;
   const now = new Date();
   const from = new Date(now.getTime() - rangeDays * 24 * 60 * 60 * 1000);
-  const empty = emptyResult(rangeDays, now, from);
+  // Optional `source` filter — trimmed, capped at 64 chars, only activates when
+  // non-empty. When absent, behavior is byte-for-byte unchanged from today.
+  const sourceParam = (url.searchParams.get("source") || "").trim();
+  const source = sourceParam.length > 0 ? sourceParam.slice(0, 64) : null;
+  // Empty-fragment when source is null; `AND source = $n` when active. Added to
+  // the WHERE of every query so filtering is eager, not post-hoc.
+  const sourceFilter = source === null ? sql`` : sql`AND source = ${source}`;
+  const empty = emptyResult(rangeDays, now, from, source);
   try {
     // Distinct human visitors who reached each stage in the window.
     const stepRows = await Promise.all(
@@ -77,6 +134,7 @@ async function handler({ request }: { request: Request }) {
              WHERE event_name = ${stage}
                AND visitor_id IS NOT NULL AND visitor_id <> ''
                AND created_at >= ${from.toISOString()}
+               ${sourceFilter}
                ${sql().unsafe(HUMAN_FILTER)}`,
       ),
     );
@@ -95,6 +153,7 @@ async function handler({ request }: { request: Request }) {
              )
                AND visitor_id IS NOT NULL AND visitor_id <> ''
                AND created_at >= ${from.toISOString()}
+               ${sourceFilter}
                ${sql().unsafe(HUMAN_FILTER)}`;
       }),
     );
@@ -111,6 +170,7 @@ async function handler({ request }: { request: Request }) {
       FROM funnel_events
       WHERE visitor_id IS NOT NULL AND visitor_id <> ''
         AND created_at >= ${from.toISOString()}
+        ${sourceFilter}
       GROUP BY visitor_id
       HAVING bool_or(event_name = 'signup_success')
       ORDER BY MAX(created_at) DESC
@@ -119,14 +179,75 @@ async function handler({ request }: { request: Request }) {
       visitor_id: r.visitor_id,
       events: (r.events as string[]) ?? [],
     }));
-    return Response.json({
+
+    // Radar → signup conversion goal for the source-filtered window.
+    let conversionGoal: ConversionGoal | undefined;
+    if (source !== null) {
+      // (a) Distinct human visitors who reached radar_scan_complete.
+      const radarRows: any[] = await sql`
+        SELECT COUNT(DISTINCT visitor_id)::int AS count
+        FROM funnel_events
+        WHERE event_name = 'radar_scan_complete'
+          AND visitor_id IS NOT NULL AND visitor_id <> ''
+          AND created_at >= ${from.toISOString()}
+          ${sourceFilter}
+          ${sql().unsafe(HUMAN_FILTER)}`;
+      // (b) Distinct human visitors who reached signup_view AFTER they had
+      // reached radar_scan_complete (same visitor_id, signup_view created_at >=
+      // that visitor's radar_scan_complete created_at). Both sides of the
+      // self-join are source- and bot-filtered (the unqualified BOT_EXCLUSION_SQL
+      // resolves to the single in-scope alias at each level).
+      const viewAfterRows: any[] = await sql`
+        SELECT COUNT(DISTINCT s.visitor_id)::int AS count
+        FROM funnel_events s
+        WHERE s.event_name = 'signup_view'
+          AND s.visitor_id IS NOT NULL AND s.visitor_id <> ''
+          AND s.created_at >= ${from.toISOString()}
+          AND s.source = ${source}
+          ${sql().unsafe(HUMAN_FILTER)}
+          AND EXISTS (
+            SELECT 1 FROM funnel_events r
+            WHERE r.visitor_id = s.visitor_id
+              AND r.event_name = 'radar_scan_complete'
+              AND r.visitor_id IS NOT NULL AND r.visitor_id <> ''
+              AND r.created_at >= ${from.toISOString()}
+              AND r.created_at <= s.created_at
+              AND r.source = ${source}
+              ${sql().unsafe(HUMAN_FILTER)}
+          )`;
+      // (c) Distinct human visitors who reached signup_success.
+      const successRows: any[] = await sql`
+        SELECT COUNT(DISTINCT visitor_id)::int AS count
+        FROM funnel_events
+        WHERE event_name = 'signup_success'
+          AND visitor_id IS NOT NULL AND visitor_id <> ''
+          AND created_at >= ${from.toISOString()}
+          ${sourceFilter}
+          ${sql().unsafe(HUMAN_FILTER)}`;
+      const radarComplete = Number(radarRows[0]?.count ?? 0);
+      const signupViewAfterRadar = Number(viewAfterRows[0]?.count ?? 0);
+      const signupSuccess = Number(successRows[0]?.count ?? 0);
+      conversionGoal = {
+        goal: "radar_scan_to_signup",
+        source,
+        radarComplete,
+        signupViewAfterRadar,
+        signupSuccess,
+        radarToSignupViewRate: pct(signupViewAfterRadar, radarComplete),
+        radarToSignupSuccessRate: pct(signupSuccess, radarComplete),
+      };
+    }
+
+    const result: FunnelVisitorsResult = {
       rangeDays,
       from: from.toISOString(),
       to: now.toISOString(),
       steps,
       funnel: outFunnel,
       sampleJourneys,
-    });
+    };
+    if (conversionGoal) result.conversionGoal = conversionGoal;
+    return Response.json(result);
   } catch (err) {
     console.error("[api/admin/funnel-visitors] error:", err);
     return Response.json(empty);

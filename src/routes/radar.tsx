@@ -180,7 +180,7 @@ export type RadarMatch = {
   incumbent: FPDSIntel | null;
 };
 
-const runRadarScan = createServerFn({ method: "POST" })
+export const runRadarScan = createServerFn({ method: "POST" })
   .validator((d: unknown) => {
     const v = (d as any) ?? {};
     const cert = String(v.cert ?? "sb");
@@ -516,6 +516,7 @@ function RadarLanding() {
               agency: m.agency,
               score: m.score,
               score_label: m.score_label,
+              due_date: m.due_date,
               source_url: m.source_url,
             })),
           });

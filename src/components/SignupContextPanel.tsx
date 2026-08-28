@@ -85,6 +85,11 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-slate-900">{m.title}</p>
                         <p className="mt-0.5 text-xs text-slate-500">{m.agency || "Federal"}</p>
+                        {m.due_date ? (
+                          <p className="mt-0.5 text-xs font-semibold text-amber-700">
+                            Due {new Date(m.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                          </p>
+                        ) : null}
                       </div>
                       <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">
                         {m.score_label || `${m.score}%`}

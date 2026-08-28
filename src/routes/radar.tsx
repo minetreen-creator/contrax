@@ -296,6 +296,19 @@ const runRadarScan = createServerFn({ method: "POST" })
       matches.sort((a, b) => priority(a) - priority(b) || b.score - a.score);
     })();
 
+    // GATING (owner rule): Incumbent intel is Professional+, EXCEPT the first
+    // three FREE radar matches. We fetched it for every candidate so we could
+    // order the free preview toward incumbent-rich bids, but we must NOT ship
+    // the paywalled previous-winner/award-price data for the gated (3rd+) matches
+    // to the client — the full `matches` array is stored in client state + saved
+    // to localStorage, so a visitor could read match #5's award price otherwise.
+    // Strip incumbent for everything beyond the free 3 (the gate unlocks it on a
+    // paid tier via its own path). The reordering above already put the best free
+    // matches first.
+    for (let i = 3; i < matches.length; i++) {
+      matches[i].incumbent = null;
+    }
+
     return { matches, certLabel: CERT_LABEL[certId] };
   });
 

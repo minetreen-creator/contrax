@@ -990,6 +990,12 @@ function Hero({
   useEffect(() => {
     setTradeQ(q || "");
   }, [q]);
+  // hero_search telemetry is submit-only: the input's onChange (below) only
+  // mutates local state and never fires tracking, so typing can't emit a flood
+  // of events. The dedupe ref additionally swallows a double-submit / rapid-
+  // Enter repeat of the SAME query within 1.5s, so one real search records
+  // exactly one event (a genuinely new search still fires).
+  const lastSearchFired = useRef<{ key: string; at: number } | null>(null);
   // Instant "Trade / Keyword" search (owner-directed): typing a trade, NAICS, or
   // state once and pressing Enter lands on the keyword-filtered Open
   // Opportunities feed (/?q=...#open-opportunities), filtered server-side so the
@@ -1004,7 +1010,17 @@ function Hero({
   const handleTradeSearch = (e: FormEvent) => {
     e.preventDefault();
     const trade = tradeQ.trim();
-    if (trade) trackEvent("hero_search", trade); // fire-and-forget, never blocks UI
+    if (trade) {
+      // Fire only on an actual submit (never per keystroke). Dedupes an
+      // identical query re-submitted within 1.5s so a single search action
+      // records exactly one event. Fire-and-forget, never blocks UI.
+      const now = Date.now();
+      const last = lastSearchFired.current;
+      if (!last || last.key !== trade || now - last.at > 1500) {
+        lastSearchFired.current = { key: trade, at: now };
+        trackEvent("hero_search", trade);
+      }
+    }
     const RADAR_CERTS = ["8a", "sdvosb", "wosb", "hubzone", "sb"] as const;
     const search: Record<string, string> = {};
     if (trade) search.trade = trade;
@@ -1814,7 +1830,7 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
                     return (
                       <div key={`${bid.title}|${bid.agency}|${i}`} className={`${headerCols} py-3.5`}>
                         <a
-                          href={`/signup?bid=${bid.id}&ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}&closes=${encodeURIComponent(bid.due_date ?? "")}&next=%2F%23closing-soon`}
+                          href={`/signup?bid=${bid.id}&ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}&closes=${encodeURIComponent(bid.due_date ?? "")}&value=${encodeURIComponent(bid.estimated_value ?? "")}&next=%2F%23closing-soon`}
                           title={bid.title}
                           onClick={() => trackEvent("signup_cta_click", "home_closing_soon_row", "/#closing-soon")}
                           className="line-clamp-2 text-sm font-semibold text-slate-800 transition-colors hover:text-amber-700"

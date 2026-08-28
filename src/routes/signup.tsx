@@ -53,6 +53,12 @@ type SignupSearch = {
   opportunity_id?: string;
   title?: string;
   agency?: string;
+  // Estimated contract value (USD string, e.g. "725682.23") carried from a
+  // contextual entry point (homepage Closing Soon block) so the contextual
+  // header can show "$X [title]". Shown ONLY when a REAL value is genuinely
+  // present — never fabricated; formatEstimate() returns null unless the value
+  // parses to a finite positive number.
+  value?: string;
   // Radar source — URL search params carry the scan criteria so a directly
   // shared/served signup link (e.g. an ad) can show its filter context and
   // matches even with no local radar session. `trade` (or 6-digit NAICS),
@@ -139,6 +145,21 @@ const closingCountdown = (iso: string | undefined, now: number): string | null =
   return `${Math.max(1, remMins)}m`;
 };
 
+// Format a REAL estimated contract value (the URL `value` param) as USD for the
+// contextual signup header. Returns null unless a finite, positive number is
+// actually present — a dollar figure is NEVER fabricated, so a missing/zero/
+// malformed value simply yields no "$X" (honest fallback to plain "track").
+const formatEstimate = (v: string | undefined): string | null => {
+  if (!v || !String(v).trim()) return null;
+  const amount = Number(v);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return amount.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+};
+
 // Live tracked-solicitation count for the social-proof line — mirrors the
 // homepage counter (src/routes/index.tsx getBidStats). Returns 0 if the DB is
 // unreachable so the page always renders; the component falls back to static
@@ -189,6 +210,7 @@ export const Route = createFileRoute("/signup")({
         : undefined,
     title: typeof search.title === "string" ? search.title.slice(0, 300) : undefined,
     agency: typeof search.agency === "string" ? search.agency.slice(0, 200) : undefined,
+    value: typeof search.value === "string" ? search.value.slice(0, 40) : undefined,
     trade: typeof search.trade === "string" ? search.trade.slice(0, 120) : undefined,
     cert: typeof search.cert === "string" ? search.cert.slice(0, 24) : undefined,
     state: typeof search.state === "string" ? search.state.slice(0, 4) : undefined,
@@ -246,7 +268,7 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { currentUser, trackedBids, linkedInAuthUrl } = Route.useLoaderData();
   const navigate = useNavigate();
-  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency, trade, cert, state, size } =
+  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency, trade, cert, state, size, value } =
     Route.useSearch();
 
   const [error, setError] = useState("");
@@ -521,6 +543,27 @@ function SignupPage() {
 
   const planInfo = PLAN_OPTIONS.find((p) => p.slug === selectedPlan) ?? PLAN_OPTIONS[0];
 
+  // ── Contextual signup header (Task B): when the visitor arrives from a
+  // contextual entry point — a specific RFP/award (closing_soon ticker title, or
+  // the incumbent gate carrying `title`), or a Contract Radar scan (?source=radar
+  // / trade / cert / state) — name that context in the H1 instead of the generic
+  // workflow headline. Deterministic + pure (derived only from URL search
+  // params), so it renders identically in SSR and on the client's first paint.
+  // The contract value, when genuinely carried in the URL (`value`), is formatted
+  // from the REAL number only — never fabricated (formatEstimate returns null
+  // unless a finite positive value is present).
+  const bidTitle = (title || ticker_bid || "").trim();
+  const hasBidContext = !!bidTitle;
+  const radarContext = source === "radar" || !!(trade || cert || state);
+  const estimate = formatEstimate(value);
+  const contextualHeader = hasBidContext
+    ? estimate
+      ? `Sign up to track this ${estimate} ${bidTitle}`
+      : `Sign up to track ${bidTitle}`
+    : radarContext
+      ? "Sign up to see your radar matches"
+      : "";
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
@@ -712,7 +755,7 @@ function SignupPage() {
           <h1 className="text-2xl font-bold text-slate-900">
             {score_rec
               ? "Get your Technical Approach in 60 seconds."
-              : "Your government-contracting workflow starts here."}
+              : contextualHeader || "Your government-contracting workflow starts here."}
           </h1>
           <p className="mt-1.5 text-sm text-gray-500">
             Start free on Basic — no credit card required. Paid plans include a 21-day free trial.

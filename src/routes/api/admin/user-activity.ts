@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
+import { qaExternalUserSQL, qaUserExclusionSQL } from "~/lib/qa-exclusion";
 
 /**
  * GET /api/admin/user-activity
@@ -20,8 +21,9 @@ import { sql } from "~/db";
  *   - score_count / last_score  : `bid_scores` (user_id is TEXT — cast to int)
  *   - save_count / last_save    : `saved_matches`
  *
- * External users = users where is_admin = false AND plan_tier <> 'demo'
- * (mirrors the metrics.ts "real signups" filter). Ordered by most recent
+ * External users = users where is_admin = false AND plan_tier <> 'demo' AND
+ * email domain is NOT @test.contrax (QA/test accounts — owner rule 2026-08-28).
+ * Mirrors the metrics.ts "real signups" filter. Ordered by most recent
  * activity (last login / last search / last score / last save / created_at).
  *
  * Returns 401/403 on auth/admin failure, 500 on any query failure (clean JSON
@@ -47,11 +49,11 @@ async function handler({ request }: { request: Request }) {
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
   if (!user.is_admin) return Response.json({ error: "Admin access required" }, { status: 403 });
   try {
-    // External users only — never admins, never the demo account.
+    // External users only — never admins, never the demo account, never QA/test.
     const userRows = await sql()`
       SELECT id, email, plan_tier, created_at
       FROM users
-      WHERE is_admin = false AND plan_tier <> 'demo'
+      WHERE ${sql().unsafe(qaExternalUserSQL())}
       ORDER BY created_at DESC`;
     const users = (userRows as any[]).map((r) => ({
       user_id: Number(r.id),
@@ -76,6 +78,7 @@ async function handler({ request }: { request: Request }) {
         FROM sessions s
         JOIN users u ON u.id = s.user_id
         WHERE u.is_admin = false AND u.plan_tier <> 'demo'
+          AND ${sql().unsafe(qaUserExclusionSQL("u."))}
         GROUP BY s.user_id`,
       sql()`
         SELECT s.user_id AS user_id, COUNT(*)::int AS count, MAX(s.generated_at) AS last_score
@@ -83,12 +86,14 @@ async function handler({ request }: { request: Request }) {
         JOIN users u ON u.id = s.user_id::int
         WHERE s.user_id ~ '^[0-9]+$'
           AND u.is_admin = false AND u.plan_tier <> 'demo'
+          AND ${sql().unsafe(qaUserExclusionSQL("u."))}
         GROUP BY s.user_id`,
       sql()`
         SELECT s.user_id AS user_id, COUNT(*)::int AS count, MAX(s.created_at) AS last_save
         FROM saved_matches s
         JOIN users u ON u.id = s.user_id
         WHERE u.is_admin = false AND u.plan_tier <> 'demo'
+          AND ${sql().unsafe(qaUserExclusionSQL("u."))}
         GROUP BY s.user_id`,
     ]);
     let searchRows: any[] = [];
@@ -98,6 +103,7 @@ async function handler({ request }: { request: Request }) {
         FROM user_searches s
         JOIN users u ON u.id = s.user_id
         WHERE u.is_admin = false AND u.plan_tier <> 'demo'
+          AND ${sql().unsafe(qaUserExclusionSQL("u."))}
         GROUP BY s.user_id`) as any[];
     } catch {
       // user_searches table may not exist yet — zero searches.

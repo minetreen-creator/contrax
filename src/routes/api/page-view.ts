@@ -52,6 +52,8 @@ async function ensurePageViewsTable(): Promise<void> {
     click_id TEXT,
     visitor_id TEXT,
     visit_id TEXT,
+    user_id TEXT,
+    user_email TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
   // Lazy ALTER guards (idempotent) so pre-existing production tables gain the
@@ -64,6 +66,9 @@ async function ensurePageViewsTable(): Promise<void> {
   // pre-existing tables gain them on first hit after deploy — no migration step.
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS visitor_id TEXT`;
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS visit_id TEXT`;
+  // Per-user identity (lazy, additive) — optional + nullable, never required.
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS user_id TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS user_email TEXT`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views (created_at)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_source ON page_views (source)`;
 }
@@ -104,12 +109,16 @@ async function handler({ request }: { request: Request }) {
     let referrer: string | null = null;
     let visitorId: string | null = null;
     let visitId: string | null = null;
+    let userId: string | null = null;
+    let userEmail: string | null = null;
     try {
       const body = (await request.json()) as {
         path?: unknown;
         referrer?: unknown;
         visitor_id?: unknown;
         visit_id?: unknown;
+        user_id?: unknown;
+        user_email?: unknown;
       };
       if (typeof body.path === "string" && body.path.length > 0) {
         path = body.path.slice(0, 2048);
@@ -124,6 +133,14 @@ async function handler({ request }: { request: Request }) {
       }
       if (typeof body.visit_id === "string" && body.visit_id.trim().length > 0) {
         visitId = body.visit_id.trim().slice(0, 64);
+      }
+      // Logged-in identity is OPTIONAL: anonymous visitors send nothing. Sanitize
+      // id to 64 chars, email to 254 chars.
+      if (typeof body.user_id === "string" && body.user_id.trim().length > 0) {
+        userId = body.user_id.trim().slice(0, 64);
+      }
+      if (typeof body.user_email === "string" && body.user_email.trim().length > 0) {
+        userEmail = body.user_email.trim().slice(0, 254);
       }
     } catch {
       // No/invalid JSON — record the hit with the default path.
@@ -145,8 +162,8 @@ async function handler({ request }: { request: Request }) {
     });
 
     const insert = () =>
-      sql()`INSERT INTO page_views (path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id)
-        VALUES (${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId})`;
+      sql()`INSERT INTO page_views (path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email)
+        VALUES (${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail})`;
 
     try {
       await ensurePageViewsTable();

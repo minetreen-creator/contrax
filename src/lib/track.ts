@@ -1,4 +1,5 @@
 import { trackingIds } from "~/lib/visitor";
+import { getTrackingUser } from "~/lib/identity";
 /**
  * Fire-and-forget funnel event tracking (client-side only).
  *
@@ -26,6 +27,14 @@ export function trackEvent(event: string, label?: string, path?: string) {
   const ids = trackingIds();
   payload.visitor_id = ids.visitor_id;
   payload.visit_id = ids.visit_id;
+  // When the viewer is a logged-in user, carry their identity so the post-login
+  // lifecycle stays tied to the account. Anonymous visitors simply omit these
+  // fields (never leaked).
+  const user = getTrackingUser();
+  if (user) {
+    payload.user_id = user.id;
+    payload.user_email = user.email;
+  }
   if (label) payload.label = label;
   if (path) payload.path = path;
   try {

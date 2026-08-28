@@ -1,5 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
+import { checkEmailLimit, checkIpLimit, rateLimitedResponse } from "~/lib/rate-limit";
+// Waitlist / lead-capture spam guard. Per-IP + per-email caps run before
+// any insert. Fail-open; generic 429.
+const LEAD_IP_LIMIT = 20;   // captures per IP per hour
+const LEAD_IP_WINDOW = 60 * 60;
+const LEAD_EMAIL_LIMIT = 10; // captures per email per hour
+const LEAD_EMAIL_WINDOW = 60 * 60;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const ALLOWED_SOURCES = ["landing_guide", "milestone_grant"] as const;
@@ -12,6 +19,10 @@ async function handler({ request }: { request: Request }) {
     if (!EMAIL_PATTERN.test(email)) {
       return Response.json({ error: "Please enter a valid email address." }, { status: 400 });
     }
+    const ipLimit = await checkIpLimit(request, "lead_ip", LEAD_IP_LIMIT, LEAD_IP_WINDOW);
+    if (!ipLimit.allowed) return rateLimitedResponse(ipLimit);
+    const acctLimit = await checkEmailLimit(email, "lead_email", LEAD_EMAIL_LIMIT, LEAD_EMAIL_WINDOW);
+    if (!acctLimit.allowed) return rateLimitedResponse(acctLimit);
     const source: LeadSource = ALLOWED_SOURCES.includes(body.source as LeadSource)
       ? (body.source as LeadSource)
       : "landing_guide";

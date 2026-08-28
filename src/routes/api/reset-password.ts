@@ -2,6 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { hashPassword } from "~/lib/password";
 import { isBlockedIp } from "~/lib/request-ip";
+import { checkIpLimit, rateLimitedResponse } from "~/lib/rate-limit";
+// Per-IP cap on password-reset submissions (token + admin-secret paths).
+// Fail-open; runs before any token claim / password write.
+const RESET_IP_LIMIT = 20;
+const RESET_IP_WINDOW = 15 * 60;
 
 const RESET_SECRET = "contrax-reset-2026";
 
@@ -12,6 +17,8 @@ async function handler({ request }: { request: Request }) {
   if (isBlockedIp(request)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
+  const resetLimit = await checkIpLimit(request, "reset_ip", RESET_IP_LIMIT, RESET_IP_WINDOW);
+  if (!resetLimit.allowed) return rateLimitedResponse(resetLimit);
   try {
     const body = (await request.json()) as {
       email?: string;

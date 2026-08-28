@@ -2,6 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { sendPasswordResetEmail } from "~/lib/email";
 import { isBlockedIp } from "~/lib/request-ip";
+import {
+  checkEmailLimit,
+  checkIpLimit,
+  rateLimitedResponse,
+} from "~/lib/rate-limit";
+
+// Prevent password-reset email flooding / token-issuing spam. Fail-open;
+// caps run before any token is issued. The 429 message stays generic so we
+// never reveal whether the email is registered.
+const FORGOT_IP_LIMIT = 10; // requests per IP per 15 min
+const FORGOT_IP_WINDOW = 15 * 60;
+const FORGOT_EMAIL_LIMIT = 5; // requests per email per 15 min
+const FORGOT_EMAIL_WINDOW = 15 * 60;
 
 // Migration-style DDL — idempotent, runs on every request so the table
 // self-heals on any environment that hasn't applied it yet.
@@ -32,6 +45,11 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: "Please enter a valid email address." }, { status: 400 });
     }
 
+    // Rate limit before issuing a token (fail-open; sees the validated email).
+    const ipLimit = await checkIpLimit(request, "forgot_ip", FORGOT_IP_LIMIT, FORGOT_IP_WINDOW);
+    if (!ipLimit.allowed) return rateLimitedResponse(ipLimit);
+    const acctLimit = await checkEmailLimit(email, "forgot_email", FORGOT_EMAIL_LIMIT, FORGOT_EMAIL_WINDOW);
+    if (!acctLimit.allowed) return rateLimitedResponse(acctLimit);
     const db = sql();
     // db.unsafe() is a fragment factory — inlines DDL safely when interpolated
     await db`${db.unsafe(CREATE_RESET_TOKENS_TABLE)}`;

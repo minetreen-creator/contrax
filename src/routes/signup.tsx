@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SignupContextPanel } from "~/components/SignupContextPanel";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import { getOrCreateVisitorId } from "~/lib/visitor";
+import { setTrackingUser } from "~/lib/identity";
 import { persistPendingDraft } from "~/lib/pending-draft";
 import { storeRememberedNext } from "~/lib/remember-next";
 import { sql } from "~/db";
@@ -389,12 +391,27 @@ function SignupPage() {
       const res = await fetch("/api/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, confirmPassword: password, plan: selectedPlan }),
+        body: JSON.stringify({
+          email,
+          password,
+          confirmPassword: password,
+          plan: selectedPlan,
+          // Persistent per-visitor id — lets the server backfill this visitor's
+          // anonymous funnel rows to the new account. Optional; never required.
+          visitor_id: getOrCreateVisitorId(),
+        }),
       });
-      const json = await res.json() as { error?: string; success?: boolean };
+      const json = await res.json() as {
+        error?: string;
+        success?: boolean;
+        user?: { id?: number | string; email?: string };
+      };
       if (!res.ok || json.error) {
         throw new Error(json.error || "Signup failed. Please try again.");
       }
+      // Stamp the new user into the tracking layer so the signup_success event
+      // (and every subsequent tracking call) carries their id+email.
+      setTrackingUser(json.user ?? null);
       trackEvent("signup_success");
       // Part B — the draft promise: persist the scored solicitation
       // server-side keyed to this new user BEFORE any redirect. Fail-open by

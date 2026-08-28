@@ -61,6 +61,8 @@ async function ensureFunnelEventsTable(): Promise<void> {
     click_id TEXT,
     visitor_id TEXT,
     visit_id TEXT,
+    user_id TEXT,
+    user_email TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
   // Lazy ALTER guards (idempotent) so pre-existing production tables gain the
@@ -73,10 +75,18 @@ async function ensureFunnelEventsTable(): Promise<void> {
   // pre-existing tables gain them on first hit after deploy — no migration step.
   await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS visitor_id TEXT`;
   await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS visit_id TEXT`;
+  // Per-user identity (lazy, additive) — ties the post-login lifecycle (and the
+  // backfilled anonymous journey) of a funnel to a real account. Optional +
+  // nullable so inserts never fail without them.
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_id TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_email TEXT`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_created_at ON funnel_events (created_at)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_event_name ON funnel_events (event_name)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_source ON funnel_events (source)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_visitor_id ON funnel_events (visitor_id)`;
+  // Identity backfill depends on fast visitor_id lookups (UPDATE ... WHERE
+  // visitor_id = $n) at 50k+ rows — keep this index in the lazy migration.
+  await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_vid ON funnel_events (visitor_id)`;
 }
 
 /**
@@ -113,6 +123,8 @@ async function handler({ request }: { request: Request }) {
   let path: string | null = null;
   let visitorId: string | null = null;
   let visitId: string | null = null;
+  let userId: string | null = null;
+  let userEmail: string | null = null;
   try {
     // Skip known bots/crawlers — don't pollute funnel event counts.
     const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
@@ -128,6 +140,8 @@ async function handler({ request }: { request: Request }) {
         path?: unknown;
         visitor_id?: unknown;
         visit_id?: unknown;
+        user_id?: unknown;
+        user_email?: unknown;
       };
       if (typeof body.event === "string" && body.event.trim().length > 0) {
         event = body.event.trim().slice(0, 64);
@@ -145,6 +159,15 @@ async function handler({ request }: { request: Request }) {
       }
       if (typeof body.visit_id === "string" && body.visit_id.trim().length > 0) {
         visitId = body.visit_id.trim().slice(0, 64);
+      }
+      // Logged-in identity is OPTIONAL: anonymous visitors send nothing, and a
+      // missing/malformed value must never fail the insert. Sanitize id to 64
+      // chars and email to 254 chars.
+      if (typeof body.user_id === "string" && body.user_id.trim().length > 0) {
+        userId = body.user_id.trim().slice(0, 64);
+      }
+      if (typeof body.user_email === "string" && body.user_email.trim().length > 0) {
+        userEmail = body.user_email.trim().slice(0, 254);
       }
     } catch {
       // No/invalid JSON — nothing to record.
@@ -170,8 +193,8 @@ async function handler({ request }: { request: Request }) {
     });
 
     const insert = () =>
-      sql()`INSERT INTO funnel_events (event_name, label, path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id)
-        VALUES (${event}, ${label}, ${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId})`;
+      sql()`INSERT INTO funnel_events (event_name, label, path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email)
+        VALUES (${event}, ${label}, ${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail})`;
 
     try {
       await ensureFunnelEventsTable();

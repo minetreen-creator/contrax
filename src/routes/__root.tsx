@@ -14,6 +14,7 @@ import {
   resolveAttribution,
 } from "~/lib/attribution";
 import { trackingIds, getOrCreateVisitorId } from "~/lib/visitor";
+import { getTrackingUser, resolveTrackingUser } from "~/lib/identity";
 import appCss from "~/styles/app.css?url";
 
 const PROD_URL = "https://www.contrax.company";
@@ -86,12 +87,19 @@ function recordPageView(path: string) {
   // getOrCreateVisitorId() sets the `contrax_vid` cookie on first call so it is
   // in place before the first page view; the id also rides in the body.
   const ids = trackingIds();
-  const payload = {
+  const payload: Record<string, string | undefined> = {
     path,
     referrer: document.referrer || undefined,
     visitor_id: ids.visitor_id,
     visit_id: ids.visit_id,
   };
+  // When the viewer is a logged-in user, carry their identity so the post-login
+  // lifecycle stays tied to the account. Anonymous visitors simply omit these.
+  const user = getTrackingUser();
+  if (user) {
+    payload.user_id = user.id;
+    payload.user_email = user.email;
+  }
   try {
     fetch("/api/page-view", {
       method: "POST",
@@ -111,6 +119,7 @@ function PageViewTracker() {
   // Module-scoped so the dedupe window survives across route navigations
   // (the root component stays mounted for the whole session).
   const lastSentRef = useRef<Map<string, number>>(new Map());
+  const firstRef = useRef(true);
 
   useEffect(() => {
     const path = location.pathname;
@@ -119,6 +128,16 @@ function PageViewTracker() {
     const lastSent = lastSentRef.current.get(path) ?? 0;
     if (now - lastSent < PAGE_VIEW_DEDUPE_MS) return;
     lastSentRef.current.set(path, now);
+    if (firstRef.current) {
+      firstRef.current = false;
+      // Resolve the logged-in identity BEFORE the first page view so a
+      // returning/active user's very first view is already stamped with their
+      // user_id/user_email. Cache is then warm for every subsequent view/event.
+      // resolveTrackingUser() never throws, so anonymous visitors send
+      // immediately with no user fields.
+      resolveTrackingUser().finally(() => recordPageView(path));
+      return;
+    }
     recordPageView(path);
   }, [location.pathname]);
 

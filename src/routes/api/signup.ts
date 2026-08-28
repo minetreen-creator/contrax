@@ -19,11 +19,15 @@ async function handler({ request }: { request: Request }) {
       password?: string;
       confirmPassword?: string;
       plan?: string;
+      visitor_id?: string;
     };
 
     const email = (body.email || "").trim().toLowerCase();
     const password = body.password || "";
     const confirmPassword = body.confirmPassword || "";
+    // Persistent per-visitor id (contrax_vid) rides in the body so the identity
+    // backfill can tie this visitor's ENTIRE anonymous funnel to the new account.
+    const visitorId = (body.visitor_id || "").trim().slice(0, 64) || null;
     // No-bifurcation rule: the standard /signup flow provisions every NON-PAYING
     // signup on the free Basic Package. A cold signup (no explicit paid plan)
     // defaults to plan_tier='basic'; only a user who explicitly opted into a
@@ -82,6 +86,27 @@ async function handler({ request }: { request: Request }) {
       path: "/",
       maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
     });
+
+    // ── Identity backfill (fail-open) ───────────────────────────────────────
+    // Once the user is known, tie their ENTIRE pre-signup anonymous funnel journey
+    // (radar_scan → signup_view → signup_success) to this account, scoped to the
+    // exact triggering visitor. Uses the fast idx_funnel_events_vid index on
+    // visitor_id. Never blocks signup/redirect — any failure is logged and the
+    // user proceeds normally (their post-login tracking still carries identity).
+    if (visitorId) {
+      try {
+        await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_id TEXT`;
+        await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_email TEXT`;
+        await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_vid ON funnel_events (visitor_id)`;
+        await sql()`UPDATE funnel_events
+          SET user_id = ${String(user.id)}, user_email = ${user.email}
+          WHERE visitor_id = ${visitorId}
+            AND (user_id IS NULL OR user_id = '')`;
+      } catch (backfillErr) {
+        // Identity backfill is best-effort — a failure must never fail signup.
+        console.error("[api/signup] identity backfill failed (non-fatal):", backfillErr);
+      }
+    }
 
     return Response.json({
       success: true,

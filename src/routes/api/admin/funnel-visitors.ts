@@ -66,7 +66,12 @@ interface FunnelVisitorsResult {
   to: string;
   steps: Record<Stage, number>;
   funnel: { stage: Stage; visitors: number }[];
-  sampleJourneys: { visitor_id: string; events: string[] }[];
+  sampleJourneys: {
+    visitor_id: string;
+    events: string[];
+    user_id?: string;
+    user_email?: string;
+  }[];
   conversionGoal?: ConversionGoal;
 }
 
@@ -166,7 +171,10 @@ async function handler({ request }: { request: Request }) {
     // samples are illustrative, so we don't bot-filter these (they're examples,
     // not headline counts).
     const journeyRows: any[] = await sql`
-      SELECT visitor_id, array_agg(event_name ORDER BY created_at) AS events
+      SELECT visitor_id,
+             array_agg(event_name ORDER BY created_at) AS events,
+             MAX(user_id) FILTER (WHERE user_id IS NOT NULL AND user_id <> '') AS user_id,
+             MAX(user_email) FILTER (WHERE user_email IS NOT NULL AND user_email <> '') AS user_email
       FROM funnel_events
       WHERE visitor_id IS NOT NULL AND visitor_id <> ''
         AND created_at >= ${from.toISOString()}
@@ -178,6 +186,9 @@ async function handler({ request }: { request: Request }) {
     const sampleJourneys = (journeyRows as any[]).map((r) => ({
       visitor_id: r.visitor_id,
       events: (r.events as string[]) ?? [],
+      // Linked account identity from the identity backfill (where available).
+      user_id: r.user_id ?? undefined,
+      user_email: r.user_email ?? undefined,
     }));
 
     // Radar → signup conversion goal for the source-filtered window.

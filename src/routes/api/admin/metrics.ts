@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
+import { qaExternalUserSQL, qaFunnelExclusionSQL, qaUserExclusionSQL } from "~/lib/qa-exclusion";
 
 interface TrafficMetrics {
   totalPageViews: number;
@@ -66,11 +67,11 @@ async function loadTrafficMetrics(): Promise<TrafficMetrics> {
 async function loadFunnelMetrics(): Promise<FunnelMetrics> {
   try {
     const [total, today, week, byName, recent] = await Promise.all([
-      sql()`SELECT COUNT(*) as count FROM funnel_events`,
-      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= CURRENT_DATE`,
-      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= NOW() - INTERVAL '7 days'`,
-      sql()`SELECT event_name, COUNT(*) as count FROM funnel_events WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY event_name ORDER BY count DESC`,
-      sql()`SELECT event_name, label, path, created_at FROM funnel_events ORDER BY created_at DESC LIMIT 20`,
+      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE ${sql().unsafe(qaFunnelExclusionSQL())}`,
+      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= CURRENT_DATE AND ${sql().unsafe(qaFunnelExclusionSQL())}`,
+      sql()`SELECT COUNT(*) as count FROM funnel_events WHERE created_at >= NOW() - INTERVAL '7 days' AND ${sql().unsafe(qaFunnelExclusionSQL())}`,
+      sql()`SELECT event_name, COUNT(*) as count FROM funnel_events WHERE created_at >= NOW() - INTERVAL '7 days' AND ${sql().unsafe(qaFunnelExclusionSQL())} GROUP BY event_name ORDER BY count DESC`,
+      sql()`SELECT event_name, label, path, created_at FROM funnel_events WHERE ${sql().unsafe(qaFunnelExclusionSQL())} ORDER BY created_at DESC LIMIT 20`,
     ]);
     return {
       total: Number(total[0].count),
@@ -97,12 +98,13 @@ async function handler({ request }: { request: Request }) {
 
   try {
     const [userCount, planRows, recentUsers, signupCount, signupRows, waitlistCount, recentWaitlist, diagCount, billCount, traffic, funnel] = await Promise.all([
-      sql()`SELECT COUNT(*) as count FROM users`,
-      sql()`SELECT plan_tier, COUNT(*) as count FROM users GROUP BY plan_tier ORDER BY count DESC`,
-      sql()`SELECT id, email, plan_tier, trial_started_at, subscription_status, created_at FROM users ORDER BY created_at DESC`,
-      // Real signups = users excluding the owner (is_admin) and the demo account.
-      sql()`SELECT COUNT(*) as count FROM users WHERE is_admin = false AND plan_tier <> 'demo'`,
-      sql()`SELECT id, email, created_at FROM users WHERE is_admin = false AND plan_tier <> 'demo' ORDER BY created_at DESC`,
+      sql()`SELECT COUNT(*) as count FROM users WHERE ${sql().unsafe(qaUserExclusionSQL())}`,
+      sql()`SELECT plan_tier, COUNT(*) as count FROM users WHERE ${sql().unsafe(qaUserExclusionSQL())} GROUP BY plan_tier ORDER BY count DESC`,
+      sql()`SELECT id, email, plan_tier, trial_started_at, subscription_status, created_at FROM users WHERE ${sql().unsafe(qaUserExclusionSQL())} ORDER BY created_at DESC`,
+      // Real external signups = users excluding the owner (is_admin), the demo
+      // account, and QA/test accounts (@test.contrax).
+      sql()`SELECT COUNT(*) as count FROM users WHERE ${sql().unsafe(qaExternalUserSQL())}`,
+      sql()`SELECT id, email, created_at FROM users WHERE ${sql().unsafe(qaExternalUserSQL())} ORDER BY created_at DESC`,
       sql()`SELECT COUNT(*) as count FROM waitlist`,
       sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC LIMIT 10`,
       sql()`SELECT COUNT(*) as count FROM savings_diagnoses`,

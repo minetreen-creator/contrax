@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SignupContextPanel } from "~/components/SignupContextPanel";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
-import { getOrCreateVisitorId } from "~/lib/visitor";
-import { setTrackingUser } from "~/lib/identity";
+import { getOrCreateVisitorId, getOrCreateVisitId } from "~/lib/visitor";
+import { setTrackingUser, getTrackingUser } from "~/lib/identity";
 import { persistPendingDraft } from "~/lib/pending-draft";
 import { storeRememberedNext } from "~/lib/remember-next";
 import { sql } from "~/db";
@@ -14,9 +14,11 @@ import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 import { safeNext } from "~/lib/saved-matches";
 import {
   getRadarAnswers,
+  getRadarSeen,
   saveRadarPrefill,
   RADAR_CERT_LABELS,
   RADAR_SIZE_LABELS,
+  type RadarSeenMatch,
 } from "~/lib/radar-session";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
@@ -260,19 +262,29 @@ function SignupPage() {
   const [radarAnswers, setRadarAnswers] = useState<{
     trade: string; state: string; certLabel: string; sizeLabel: string;
   } | null>(null);
+  // The visitor's SEEN radar matches (getRadarSeen — server-computed top-3,
+  // never fabricated). Displayed on the signup page and preserved for them.
+  const [radarMatches, setRadarMatches] = useState<RadarSeenMatch[] | null>(null);
   useEffect(() => {
     if (source !== "radar") return;
     const ra = getRadarAnswers();
-    if (!ra) return;
-    setRadarAnswers({
-      trade: ra.trade,
-      state: ra.state,
-      certLabel: RADAR_CERT_LABELS[ra.cert] || ra.cert,
-      sizeLabel: RADAR_SIZE_LABELS[ra.sizePref] || ra.sizePref,
-    });
-    // Forward to onboarding prefill (session-only; no email, no server write).
-    saveRadarPrefill(ra);
-    trackEvent("radar_prefill_shown", RADAR_CERT_LABELS[ra.cert] || ra.cert);
+    if (ra) {
+      setRadarAnswers({
+        trade: ra.trade,
+        state: ra.state,
+        certLabel: RADAR_CERT_LABELS[ra.cert] || ra.cert,
+        sizeLabel: RADAR_SIZE_LABELS[ra.sizePref] || ra.sizePref,
+      });
+      // Forward to onboarding prefill (session-only; no email, no server write).
+      saveRadarPrefill(ra);
+      trackEvent("radar_prefill_shown", RADAR_CERT_LABELS[ra.cert] || ra.cert);
+    }
+    // Preserve + display the actual scanned matches (reliable source — do NOT
+    // re-run a scan or fabricate). Absent/empty seen = no match list shown.
+    const seen = getRadarSeen();
+    if (seen && seen.total > 0 && seen.matches.length > 0) {
+      setRadarMatches(seen.matches);
+    }
   }, [source]);
 
   // Funnel: fire exactly ONE signup-page-view event per visit, once. The cold
@@ -287,6 +299,57 @@ function SignupPage() {
     if (score_rec) trackEvent("signup_view_with_score", score_rec);
     else trackEvent("signup_view");
   }, [score_rec]);
+
+  // ── signup_start: fire EXACTLY ONCE when the visitor begins the form (first
+  // focus into any field — focusin bubbles on the <form>, listening there). The
+  // most meaningful "start" is the first interaction with the signup form. Other
+  // CTAs (Google/LinkedIn buttons, plan cards) sit OUTSIDE the <form>, so this
+  // stays a true form-start signal and never re-fires (ref guard).
+  const signupStartedRef = useRef(false);
+  const handleSignupStart = () => {
+    if (signupStartedRef.current) return;
+    signupStartedRef.current = true;
+    trackEvent("signup_start", source === "radar" ? "radar" : selectedPlan);
+  };
+
+  // ── Abandonment: fire-and-forget, at most once per visit, ONLY if the
+  // visitor leaves WITHOUT completing a signup. Never fires after signup_success
+  // (guarded by signupSucceededRef, set on success) and never after an already
+  // tracked abandon (abandonedFiredRef). Uses navigator.sendBeacon so the
+  // request survives the unload; never breaks navigation or SSR.
+  const signupSucceededRef = useRef(false);
+  const abandonedFiredRef = useRef(false);
+  useEffect(() => {
+    const fireAbandoned = () => {
+      if (typeof navigator === "undefined") return;
+      if (signupSucceededRef.current || abandonedFiredRef.current) return;
+      abandonedFiredRef.current = true;
+      const payload: Record<string, string> = {
+        event: "signup_abandoned",
+        visitor_id: getOrCreateVisitorId(),
+        visit_id: getOrCreateVisitId(),
+      };
+      const user = getTrackingUser();
+      if (user) {
+        payload.user_id = user.id;
+        payload.user_email = user.email;
+      }
+      try {
+        navigator.sendBeacon(
+          "/api/event",
+          new Blob([JSON.stringify(payload)], { type: "application/json" }),
+        );
+      } catch {
+        /* never let abandonment tracking break anything */
+      }
+    };
+    window.addEventListener("pagehide", fireAbandoned);
+    window.addEventListener("beforeunload", fireAbandoned);
+    return () => {
+      window.removeEventListener("pagehide", fireAbandoned);
+      window.removeEventListener("beforeunload", fireAbandoned);
+    };
+  }, []);
 
   // If already logged in, redirect to dashboard (in an effect so hooks
   // always run in the same order on every render). When arriving with a
@@ -371,14 +434,22 @@ function SignupPage() {
     // user-facing message the server would return and avoids the loading
     // spinner. The server remains the authoritative second guard.
     const clientErrors: string[] = [];
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    const invalidEmail = !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    const invalidPassword = !password || password.length < 8;
+    if (invalidEmail) {
       clientErrors.push("Please enter a valid email address.");
     }
-    if (!password || password.length < 8) {
+    if (invalidPassword) {
       clientErrors.push("Password must be at least 8 characters.");
     }
     if (clientErrors.length > 0) {
       setError(clientErrors.join(" "));
+      // Track the validation failure so failed submissions are visible in the
+      // funnel. Label = which check(s) failed: email / password / multiple.
+      trackEvent(
+        "signup_field_error",
+        invalidEmail && invalidPassword ? "multiple" : invalidEmail ? "email" : "password",
+      );
       return;
     }
 
@@ -412,6 +483,9 @@ function SignupPage() {
       // Stamp the new user into the tracking layer so the signup_success event
       // (and every subsequent tracking call) carries their id+email.
       setTrackingUser(json.user ?? null);
+      // Completed a signup — guarantee the abandonment beacon can never fire
+      // for this visit (guarded in the pagehide/beforeunload listener).
+      signupSucceededRef.current = true;
       trackEvent("signup_success");
       // Part B — the draft promise: persist the scored solicitation
       // server-side keyed to this new user BEFORE any redirect. Fail-open by
@@ -438,18 +512,29 @@ function SignupPage() {
         window.location.assign(safeNext(next) ?? "/dashboard");
         return;
       }
-      // New user, no save_bid intent → land on /onboarding, where value
-      // actually starts (profile setup → bid matches), not on an empty dashboard.
+      // New user, no save_bid intent. A radar-sourced signup lands DIRECTLY on
+      // their saved matches: /dashboard surfaces the radar_seen matches via the
+      // "your radar matches are ready to save" banner (RadarLoginNotify) — the
+      // natural return-to-matches surface, not a blank onboarding. Any other
+      // source goes to /onboarding, where profile setup → bid matches starts.
       // If a same-site `next` return path was provided (e.g. /awards or
       // /#closing-soon), latch it now so onboarding can route the user there
       // after they complete profile setup — mirroring how Google OAuth carries
       // `next` through state, and using the same sessionStorage pattern as the
       // pending-draft promise. Fail-open: a storage failure must never block
-      // the onboarding redirect.
+      // the redirect.
       storeRememberedNext(next);
-      navigate({ to: "/onboarding" });
+      if (source === "radar") {
+        navigate({ to: "/dashboard" });
+      } else {
+        navigate({ to: "/onboarding" });
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Signup failed. Please try again.");
+      const msg = err instanceof Error ? err.message : "Signup failed. Please try again.";
+      setError(msg);
+      // Track the server-side signup failure so failed submissions are visible
+      // in the funnel (distinct event from client-side field errors).
+      trackEvent("signup_error", msg);
     } finally {
       setLoading(false);
     }
@@ -479,7 +564,7 @@ function SignupPage() {
             "unlock incumbent contract history & past pricing" banner — no
             countdown. */}
         {source === "radar" ? (
-          <SignupContextPanel source="radar" radar={radarAnswers} />
+          <SignupContextPanel source="radar" radar={radarAnswers} matches={radarMatches ?? undefined} />
         ) : source === "incumbent" ? (
           <SignupContextPanel source="incumbent" title={title || ticker_bid} agency={agency || ticker_agency} />
         ) : ticker_bid ? (
@@ -591,7 +676,7 @@ function SignupPage() {
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-5 space-y-5" noValidate>
+          <form onSubmit={handleSubmit} onFocus={handleSignupStart} className="mt-5 space-y-5" noValidate>
             {/* Email */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -697,11 +782,16 @@ function SignupPage() {
               )}
             </button>
 
-            {/* Trial trust row — one visible line near the CTA */}
+            {/* Trial trust row — one visible line near the CTA. Communicates
+                all three free/basic assurances: no card, free forever, and fast
+                (takes under 30 seconds). Paid plans keep honest 21-day-trial
+                framing instead of the "free forever" claim. */}
             <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
               <span>No credit card required</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
               {selectedPlan === "basic" ? <span>Free forever</span> : <span>Trial ends in 21 days</span>}
+              <span aria-hidden="true" className="text-gray-300">·</span>
+              <span>Takes under 30 seconds</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
               <span>Cancel anytime</span>
             </p>

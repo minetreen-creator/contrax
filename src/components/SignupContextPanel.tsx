@@ -14,7 +14,16 @@
  *
  * The page decides which source to show and passes the relevant context fields
  * (closing_soon: title + agency + deadline label; incumbent: title + agency).
+ *
+ * `radar` source additionally accepts the visitor's SEEN matches (from
+ * getRadarSeen() — same server-computed top-3 the /dashboard banner shows), so
+ * a radar-sourced signup can display the actual open bids the visitor scanned
+ * as compact read-only cards (title, agency, score/score_label, original
+ * notice link). Never fabricated — the page passes whatever getRadarSeen()
+ * returned (up to 3 free matches); an absent/empty list simply omits the block.
  */
+import type { RadarSeenMatch } from "~/lib/radar-session";
+
 type SignupContextPanelProps = {
   source: "closing_soon" | "incumbent" | "radar";
   /** The bid/opportunity title (the "«Bid Title»" carried through from the CTA). */
@@ -32,14 +41,20 @@ type SignupContextPanelProps = {
     certLabel: string;
     sizeLabel: string;
   } | null;
+  /** The visitor's SEEN radar matches (from getRadarSeen(), up to 3 free).
+   * Rendered as compact read-only cards under the radar criteria — never
+   * fabricated. Omit/empty = no match list shown. */
+  matches?: RadarSeenMatch[];
 };
 
-export function SignupContextPanel({ source, title, agency, closingLabel, radar }: SignupContextPanelProps) {
+export function SignupContextPanel({ source, title, agency, closingLabel, radar, matches }: SignupContextPanelProps) {
   // Radar variant — the visitor is continuing from a Contract Radar scan. Their
   // answers travel into signup/profiling (no email involved) so this feels like
-  // a ~10s resume, not a restart. Value-driven, no deadline / urgency.
-  if (source === "radar" && radar) {
-    const labelTop = [radar.trade || null, radar.state ? `in ${radar.state}` : "nationwide"]
+  // a ~10s resume, not a restart. Value-driven, no deadline / urgency. The
+  // panel shows while either the criteria or seen matches are present so a
+  // radar-sourced visitor never lands on an irrelevant closing_soon framing.
+  if (source === "radar" && (radar || (matches && matches.length > 0))) {
+    const labelTop = [radar?.trade || null, radar?.state ? `in ${radar.state}` : "nationwide"]
       .filter(Boolean)
       .join(" ");
     return (
@@ -49,11 +64,47 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar 
             Resuming your Contract Radar scan
           </p>
           <p className="mt-1 text-sm text-amber-700">
-            {labelTop || "Your radar search"} · {radar.certLabel} · {radar.sizeLabel}
+            {labelTop || "Your radar search"}
+            {radar?.certLabel ? ` · ${radar.certLabel}` : ""}
+            {radar?.sizeLabel ? ` · ${radar.sizeLabel}` : ""}
           </p>
           <p className="mt-3 text-xs text-amber-600">
             Your answers will prefill your profile — just finish your free account below.
           </p>
+          {/* Seen matches — the actual scanned bids (read-only). Absent/empty
+              seen list = no block, criteria still shown. */}
+          {matches && matches.length > 0 && (
+            <div className="mt-4 border-t border-amber-200 pt-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-amber-700">
+                Your scanned matches
+              </p>
+              <ul className="mt-2 space-y-2">
+                {matches.map((m) => (
+                  <li key={m.id} className="rounded-lg border border-amber-200 bg-white px-3 py-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-900">{m.title}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{m.agency || "Federal"}</p>
+                      </div>
+                      <span className="inline-flex shrink-0 items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                        {m.score_label || `${m.score}%`}
+                      </span>
+                    </div>
+                    {m.source_url ? (
+                      <a
+                        href={m.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1.5 inline-block text-xs font-semibold text-amber-700 underline hover:text-amber-900"
+                      >
+                        View original notice ↗
+                      </a>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     );

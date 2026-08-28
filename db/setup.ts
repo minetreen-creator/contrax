@@ -149,6 +149,14 @@ async function setup() {
   await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS access_expires_at TIMESTAMPTZ`;
   await db`ALTER TABLE users ADD COLUMN IF NOT EXISTS full_access BOOLEAN NOT NULL DEFAULT FALSE`;
   console.log("Added access_expires_at / full_access to users");
+  // 014: admin-query + rate-limiter indexes. Forward-looking as users /
+  // funnel_events / rate_limits / waitlist scale. Idempotent via IF NOT EXISTS.
+  // Documented in db/migrations/014_admin_query_indexes.sql.
+  console.log("\n--- Migration 014: admin-query + rate-limiter indexes ---");
+  await db`CREATE INDEX IF NOT EXISTS idx_rate_limits_window_start ON rate_limits (window_start)`;
+  await db`CREATE INDEX IF NOT EXISTS idx_users_created_at ON users (created_at)`;
+  await db`CREATE INDEX IF NOT EXISTS idx_waitlist_created_at ON waitlist (created_at)`;
+  console.log("Added idx_rate_limits_window_start / idx_users_created_at / idx_waitlist_created_at");
 
 console.log("\n✅ All migrations complete");
 }

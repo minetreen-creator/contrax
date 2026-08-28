@@ -56,6 +56,10 @@ export interface RadarSeenMatch {
   agency: string | null;
   score: number;
   score_label: string;
+  /** The bid's real closing/deadline date (ISO, from the `bids.due_date`
+   *  column). Null when the bid has no due date — callers MUST omit any
+   *  "Due …" line in that case (never fabricated or derived). */
+  due_date: string | null;
   /** Link to the full original solicitation (SAM.gov) so the in-app banner
    *  can deep-link "View Full Solicitation Details" for the top match. */
   source_url: string | null;

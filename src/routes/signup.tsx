@@ -16,8 +16,12 @@ import {
   getRadarAnswers,
   getRadarSeen,
   saveRadarPrefill,
+  saveRadarSeen,
   RADAR_CERT_LABELS,
   RADAR_SIZE_LABELS,
+  type RadarAnswers,
+  type RadarCertId,
+  type RadarSizeId,
   type RadarSeenMatch,
 } from "~/lib/radar-session";
 
@@ -49,11 +53,24 @@ type SignupSearch = {
   opportunity_id?: string;
   title?: string;
   agency?: string;
+  // Radar source — URL search params carry the scan criteria so a directly
+  // shared/served signup link (e.g. an ad) can show its filter context and
+  // matches even with no local radar session. `trade` (or 6-digit NAICS),
+  // `cert` (sdvosb|8a|wosb|hubzone|sb), `state` (2-letter), and optional `size`
+  // (under250k|under1m|under10m|any). Read FIRST; the local radar session is
+  // the fallback when these are absent.
+  trade?: string;
+  cert?: string;
+  state?: string;
+  size?: string;
 };
 
 const validPlans = ["basic", "starter", "professional", "agency"] as const;
 
 type Plan = (typeof validPlans)[number];
+// Radar cert ids — mirrors RADAR_CERTS in src/routes/radar.tsx. Used to gate
+// the onboarding prefill on a known cert value (fail-open otherwise).
+const RADAR_CERTS = ["sdvosb", "8a", "wosb", "hubzone", "sb"] as const;
 
 // Plan facts mirror src/routes/pricing/index.tsx. Basic ($0) is the free
 // default tier (plan_tier='basic'); Starter/Professional/Agency are the paid
@@ -172,6 +189,10 @@ export const Route = createFileRoute("/signup")({
         : undefined,
     title: typeof search.title === "string" ? search.title.slice(0, 300) : undefined,
     agency: typeof search.agency === "string" ? search.agency.slice(0, 200) : undefined,
+    trade: typeof search.trade === "string" ? search.trade.slice(0, 120) : undefined,
+    cert: typeof search.cert === "string" ? search.cert.slice(0, 24) : undefined,
+    state: typeof search.state === "string" ? search.state.slice(0, 4) : undefined,
+    size: typeof search.size === "string" ? search.size.slice(0, 24) : undefined,
   }),
   loader: async () => ({
     currentUser: await getCurrentUser(),
@@ -225,7 +246,7 @@ export const Route = createFileRoute("/signup")({
 function SignupPage() {
   const { currentUser, trackedBids, linkedInAuthUrl } = Route.useLoaderData();
   const navigate = useNavigate();
-  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency } =
+  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency, trade, cert, state, size } =
     Route.useSearch();
 
   const [error, setError] = useState("");
@@ -262,30 +283,110 @@ function SignupPage() {
   const [radarAnswers, setRadarAnswers] = useState<{
     trade: string; state: string; certLabel: string; sizeLabel: string;
   } | null>(null);
-  // The visitor's SEEN radar matches (getRadarSeen — server-computed top-3,
-  // never fabricated). Displayed on the signup page and preserved for them.
+  // The visitor's SEEN radar matches (server-computed top-3, never fabricated).
+  // Displayed on the signup page and preserved for them.
   const [radarMatches, setRadarMatches] = useState<RadarSeenMatch[] | null>(null);
   useEffect(() => {
     if (source !== "radar") return;
-    const ra = getRadarAnswers();
-    if (ra) {
+    // SOURCE PRECEDENCE (owner rule): criteria come from the URL search params
+    // FIRST (?source=radar&trade=…&cert=…&state=…&size=…), so a directly
+    // shared/served signup link (e.g. an FB ad) shows its filter context and
+    // matches even when the visitor has no local radar session. Only when no
+    // relevant param is present do we fall back to the local radar session
+    // (getRadarAnswers / getRadarSeen). Fail-open: unknown/malformed values
+    // degrade to the current behavior, never crash.
+    const urlTrade = (trade || "").trim();
+    const urlCert = (cert || "").trim();
+    const urlState = (state || "").trim().toUpperCase();
+    const urlSize = (size || "").trim();
+    const hasUrlCriteria = !!(urlTrade || urlCert || urlState || urlSize);
+    const local = getRadarAnswers();
+    const criteria = {
+      trade: (hasUrlCriteria ? urlTrade : "") || local?.trade || "",
+      state: (hasUrlCriteria ? urlState : "") || local?.state || "",
+      cert: (hasUrlCriteria ? urlCert : "") || local?.cert || "",
+      size: (hasUrlCriteria ? urlSize : "") || local?.sizePref || "",
+    };
+    const certLabel =
+      (RADAR_CERT_LABELS as Record<string, string>)[criteria.cert] || criteria.cert || "";
+    const sizeLabel = RADAR_SIZE_LABELS[criteria.size] || "";
+    const showCriteria = !!(criteria.trade || criteria.state || criteria.cert);
+    if (showCriteria) {
       setRadarAnswers({
-        trade: ra.trade,
-        state: ra.state,
-        certLabel: RADAR_CERT_LABELS[ra.cert] || ra.cert,
-        sizeLabel: RADAR_SIZE_LABELS[ra.sizePref] || ra.sizePref,
+        trade: criteria.trade,
+        state: criteria.state,
+        certLabel,
+        sizeLabel,
       });
-      // Forward to onboarding prefill (session-only; no email, no server write).
-      saveRadarPrefill(ra);
-      trackEvent("radar_prefill_shown", RADAR_CERT_LABELS[ra.cert] || ra.cert);
+      // Forward the criteria to onboarding prefill (session-only; no email, no
+      // server write) so the profile fields arrive pre-filled after signup.
+      const prefill: RadarAnswers = {
+        trade: criteria.trade,
+        state: criteria.state,
+        cert: criteria.cert as RadarCertId,
+        sizePref: criteria.size as RadarSizeId,
+      };
+      if ((RADAR_CERTS as readonly string[]).includes(criteria.cert)) saveRadarPrefill(prefill);
+      trackEvent("radar_prefill_shown", certLabel);
     }
-    // Preserve + display the actual scanned matches (reliable source — do NOT
-    // re-run a scan or fabricate). Absent/empty seen = no match list shown.
+    // Matches: reuse the local SEEN session when it reflects the resolved
+    // criteria (radar → signup continuation, no extra work). Otherwise — a
+    // URL-served link with no matching local session — run a REAL server scan
+    // so the visitor still sees their matching bids (never fabricated). When no
+    // local session and no URL criteria exist, nothing is shown (current
+    // behavior).
     const seen = getRadarSeen();
-    if (seen && seen.total > 0 && seen.matches.length > 0) {
+    const seenMatchesCriteria =
+      !!seen?.answers &&
+      seen.answers.cert === criteria.cert &&
+      seen.answers.trade.trim().toLowerCase() === criteria.trade.trim().toLowerCase();
+    if (seen && seen.matches.length > 0 && (!hasUrlCriteria || seenMatchesCriteria)) {
       setRadarMatches(seen.matches);
+      return;
     }
-  }, [source]);
+    if (hasUrlCriteria && showCriteria) {
+      import("~/routes/radar")
+        .then(({ runRadarScan }) =>
+          runRadarScan({
+            data: {
+              trade: criteria.trade,
+              state: criteria.state,
+              cert: criteria.cert || "sb",
+              sizePref: criteria.size || "any",
+            },
+          }),
+        )
+        .then((res) => {
+          const matches: RadarSeenMatch[] = res.matches.slice(0, 3).map((m) => ({
+            id: m.id,
+            title: m.title,
+            agency: m.agency,
+            score: m.score,
+            score_label: m.score_label,
+            due_date: m.due_date,
+            source_url: m.source_url,
+          }));
+          if (matches.length > 0) {
+            setRadarMatches(matches);
+            saveRadarSeen({
+              answers: {
+                trade: criteria.trade,
+                state: criteria.state,
+                cert: (criteria.cert || "sb") as RadarCertId,
+                sizePref: (criteria.size || "any") as RadarSizeId,
+              },
+              certLabel,
+              total: res.matches.length,
+              seenCount: Math.min(3, matches.length),
+              matches,
+            });
+          }
+        })
+        .catch(() => {
+          /* fail-open: never let a scan error break the signup page */
+        });
+    }
+  }, [source, trade, cert, state, size]);
 
   // Funnel: fire exactly ONE signup-page-view event per visit, once. The cold
   // path (e.g. the homepage Closing Soon → /signup) fires a plain `signup_view`;
@@ -325,7 +426,7 @@ function SignupPage() {
       if (signupSucceededRef.current || abandonedFiredRef.current) return;
       abandonedFiredRef.current = true;
       const payload: Record<string, string> = {
-        event: "signup_abandoned",
+        event: "signup_abandon",
         visitor_id: getOrCreateVisitorId(),
         visit_id: getOrCreateVisitId(),
       };
@@ -445,10 +546,17 @@ function SignupPage() {
     if (clientErrors.length > 0) {
       setError(clientErrors.join(" "));
       // Track the validation failure so failed submissions are visible in the
-      // funnel. Label = which check(s) failed: email / password / multiple.
+      // funnel. Structured payload { field, error } (owner spec): `field` is
+      // email | password | multiple; `error` is the short human message.
+      // The field also rides as a plain label for easy filtering; the full
+      // {field,error} object is serialized via the same path "extra payload"
+      // channel trackEvent already uses.
+      const fieldErr =
+        invalidEmail && invalidPassword ? "multiple" : invalidEmail ? "email" : "password";
       trackEvent(
         "signup_field_error",
-        invalidEmail && invalidPassword ? "multiple" : invalidEmail ? "email" : "password",
+        fieldErr,
+        JSON.stringify({ field: fieldErr, error: clientErrors.join(" ") }),
       );
       return;
     }

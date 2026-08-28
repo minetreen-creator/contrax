@@ -4,8 +4,19 @@ import { sql } from "~/db";
 import { SESSION_COOKIE } from "~/lib/auth";
 import { hashPassword } from "~/lib/password";
 import { isBlockedIp } from "~/lib/request-ip";
+import {
+  checkEmailLimit,
+  checkIpLimit,
+  rateLimitedResponse,
+} from "~/lib/rate-limit";
 
 const SESSION_TTL_DAYS = 30;
+// Account-creation floods are blocked per-IP and per-email BEFORE any insert.
+// Fail-open; both caps run on every POST so a registration bot burns quota fast.
+const SIGNUP_IP_LIMIT = 10; // creations per IP per hour
+const SIGNUP_IP_WINDOW = 60 * 60;
+const SIGNUP_EMAIL_LIMIT = 5; // creations per email per hour
+const SIGNUP_EMAIL_WINDOW = 60 * 60;
 
 async function handler({ request }: { request: Request }) {
   // Throttle a known hostile IP from account creation. Exact-match only; generic
@@ -36,6 +47,12 @@ async function handler({ request }: { request: Request }) {
     const plan = body.plan && ["basic", "starter", "professional", "agency"].includes(body.plan)
       ? body.plan
       : "basic";
+
+    // ── Rate limiting (before any insert). IP + account caps; fail-open.
+    const ipLimit = await checkIpLimit(request, "signup_ip", SIGNUP_IP_LIMIT, SIGNUP_IP_WINDOW);
+    if (!ipLimit.allowed) return rateLimitedResponse(ipLimit);
+    const acctLimit = await checkEmailLimit(email, "signup_email", SIGNUP_EMAIL_LIMIT, SIGNUP_EMAIL_WINDOW);
+    if (!acctLimit.allowed) return rateLimitedResponse(acctLimit);
 
     // Validation
     const errors: string[] = [];

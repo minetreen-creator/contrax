@@ -842,6 +842,12 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
                 Pricing
               </a>
               <a
+                href="/example-brief"
+                className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900"
+              >
+                Example Brief
+              </a>
+              <a
                 href="/demo"
                 className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900"
               >
@@ -929,6 +935,13 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
                   className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
                 >
                   Pricing
+                </a>
+                <a
+                  href="/example-brief"
+                  onClick={closeMenu}
+                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
+                >
+                  Example Brief
                 </a>
                 <a
                   href="/demo"

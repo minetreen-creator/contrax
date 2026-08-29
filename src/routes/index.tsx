@@ -1036,23 +1036,26 @@ function Hero({
       <div className="absolute inset-0 bg-[url('data:image/png;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wMyI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
       <div className="relative mx-auto max-w-7xl px-6 pb-16 pt-12 sm:pb-24 sm:pt-16 lg:pb-28 lg:pt-14">
         <div className="mx-auto max-w-3xl text-center">
-          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-1.5 text-sm font-medium text-blue-200">
+          <div className="mb-6 inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-1.5 text-center text-sm font-medium text-blue-200">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
             </span>
-            Contract Intelligence Platform
+            ⚡ NEW: AI-POWERED RFP INTELLIGENCE &amp; REQUIREMENT EXTRACTOR
           </div>
 
 
-          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-5xl">
-            Find contracts you can{" "}
+          <h1 className="max-w-4xl text-3xl font-bold tracking-tight text-white sm:text-5xl lg:text-5xl">
+            Stop reading 100-page government RFPs. Know if you{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-              actually win.
+              qualify in 15 seconds.
             </span>
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            Real-time set-aside bids + 5-year incumbent pricing.
+          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
+            Contrax tracks municipal, state, and federal bids across every
+            trade—and uses AI to instantly extract mandatory licenses, bonding
+            requirements, critical site-walk deadlines, and disqualifiers. No
+            more digging through bloated PDFs.
           </p>
 
           {/* "I am a:" certification selector — reuses the shared cert state so
@@ -1109,11 +1112,11 @@ function Hero({
                 type="submit"
                 className="shrink-0 rounded-xl bg-amber-500 px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
               >
-                Explore {openOppCount > 0 ? openOppCount.toLocaleString() : ""} open opportunities →
+                🔍 Search Active Bids &amp; AI Briefs — Free
               </button>
             </form>
             <p className="mt-2.5 text-center text-xs font-medium text-blue-200/70">
-              Get matched to live set-aside bids in Contract Radar — your first 3 matches free, no signup needed
+              Free instant access · No credit card required · Includes 1 free AI Brief every month
             </p>
           </div>
 
@@ -1587,34 +1590,28 @@ function LiveAwardFeed({
 
 const showcaseItems = [
   {
-    src: "/screenshots/score-tool.png",
-    alt: "Can I Win This? — Contrax solicitation scoring tool",
-    badge: "3 free scores",
-    title: "Understand what the RFP really requires",
+    emoji: "⚡",
+    title: "Instant AI Executive Brief",
     description:
-      "Paste any solicitation and get an instant win-probability analysis across 9 dimensions — GO, CAUTIOUS, or NO-GO — so you invest your hours where you actually have a shot. 3 free scores, no login to try.",
-    href: "/score",
-    cta: "Score a solicitation",
+      "Skip the 80-page legal jargon. Get a plain-English 3-sentence summary of the actual scope of work in seconds.",
+    href: "/radar",
+    cta: "Search active bids",
   },
   {
-    src: "/screenshots/copilot.png",
-    alt: "Contract Intelligence Copilot — Contrax strategist",
-    badge: "Strategist",
-    title: "Draft compliant responses faster",
+    emoji: "✅",
+    title: "Mandatory Qualifications Check",
     description:
-      "The Copilot drafts proposal sections around the RFP's evaluation criteria and flags missing clauses before you submit — grounded in your certifications, active bids, and win/loss history.",
-    href: "/copilot",
-    cta: "Meet the copilot",
+      "Instantly see required trade licenses (TACLA, Electrical, GC), minimum insurance, bonding limits, and past performance clauses.",
+    href: "/radar",
+    cta: "See what's required",
   },
   {
-    src: "/screenshots/hero.png",
-    alt: "Contrax full platform overview",
-    badge: "Full platform",
-    title: "Find set-asides you actually qualify for",
+    emoji: "⏰",
+    title: "Critical Milestone Radar",
     description:
-      "Set-aside-first matching filters SAM.gov and city opportunities by your 8(a), SDVOSB, WOSB, or HUBZone certification — and tracks your certification deadlines so eligibility never silently lapses.",
-    href: "/signup",
-    cta: "Get started",
+      "Never miss a mandatory pre-bid site walk or Q&A cutoff with real-time countdown alerts and verified dates.",
+    href: "/signup?plan=basic",
+    cta: "Start free",
   },
 ];
 
@@ -1643,18 +1640,8 @@ function ProductShowcase() {
               href={item.href}
               className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-amber-300 hover:shadow-xl hover:shadow-slate-900/10"
             >
-              <div className="relative overflow-hidden border-b border-gray-100">
-                <img
-                  src={item.src}
-                  alt={item.alt}
-                  loading="lazy"
-                  decoding="async"
-                  className="aspect-[1280/577] w-full object-cover object-top transition-transform duration-300 group-hover:scale-[1.03]"
-                />
-                <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-slate-900/80 px-2.5 py-1 text-xs font-medium text-amber-300 backdrop-blur-sm">
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
-                  {item.badge}
-                </span>
+              <div className="flex items-center justify-center border-b border-gray-100 bg-gradient-to-br from-amber-50 to-white py-8 text-5xl">
+                <span aria-hidden="true">{item.emoji}</span>
               </div>
               <div className="flex flex-1 flex-col p-6">
                 <h4 className="text-lg font-bold text-slate-900">{item.title}</h4>
@@ -2005,12 +1992,12 @@ function HowItWorks() {
   const steps = [
     {
       number: "01",
-      title: "Find",
-      tagline: "Contracts you qualify for",
+      title: "Search Your Trade",
+      tagline: "Find closing RFPs in your industry",
       description:
-        "Set-aside-first matching across SAM.gov and state portals — filtered by your 8(a), SDVOSB, WOSB, or HUBZone certification, so you only see bids you qualify for.",
-      href: "/awards#feed",
-      cta: "Browse live opportunities",
+        "Enter your industry (HVAC, IT, Fleet, A&E, Roofing) to see active municipal and commercial RFPs closing soon.",
+      href: "/radar",
+      cta: "Search the market",
       icon: (
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -2019,40 +2006,26 @@ function HowItWorks() {
     },
     {
       number: "02",
-      title: "Analyze",
-      tagline: "Know your odds before you bid",
+      title: 'Click "Get AI Executive Brief"',
+      tagline: "AI extracts requirements with citations",
       description:
-        "Win-probability scoring across 9 dimensions — GO, CAUTIOUS, or NO-GO — plus 5 years of incumbent pricing, so you invest hours where you actually have a shot.",
-      href: "/score",
-      cta: "Score a solicitation free",
+        "Our model analyzes the full solicitation text and extracts mandatory contractor requirements with direct citations from the notice.",
+      href: "/radar",
+      cta: "See an example brief",
       icon: (
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
         </svg>
       ),
     },
     {
       number: "03",
-      title: "Write",
-      tagline: "Draft a compliant Technical Approach",
+      title: "Bid With Confidence",
+      tagline: "Know your odds in seconds",
       description:
-        "Drafting Intelligence writes proposal sections around the RFP's evaluation criteria — every FAR/DFARS citation verified against the real clause library, nothing invented.",
-      href: "/signup?plan=professional",
-      cta: "Try Drafting Intelligence",
-      icon: (
-        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-        </svg>
-      ),
-    },
-    {
-      number: "04",
-      title: "Win",
-      tagline: "Bid with evidence, track compliance",
-      description:
-        "Auditable citations protect your win against review, and certification deadline tracking keeps your eligibility from silently lapsing.",
-      href: "/signup",
-      cta: "Start free — 21-day trial",
+        "Know within 15 seconds whether the job matches your capacity, licensing, and bonding before spending hours on a proposal.",
+      href: "/signup?plan=basic",
+      cta: "Start free",
       icon: (
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
@@ -2069,15 +2042,15 @@ function HowItWorks() {
             How it works
           </h2>
           <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Find. Analyze. Write. Win.
+            Search. Brief. Bid.
           </h3>
           <p className="mt-4 text-lg text-gray-600">
-            One workflow from opportunity to award — matching, odds, compliant drafting, and
-            compliance tracking, in one place.
+            Find the RFPs in your industry, understand every requirement in seconds, and
+            bid with confidence — all on Contrax.
           </p>
         </div>
 
-        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {steps.map((step) => (
             <div
               key={step.number}

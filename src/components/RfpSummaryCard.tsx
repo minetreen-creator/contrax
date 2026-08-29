@@ -206,12 +206,51 @@ function WorkflowConnectors({
     </div>
   );
 }
+/**
+ * Route an anonymous brief trigger cleanly to the contextual /signup page
+ * (owner QA check 1) instead of a dead inline "Please sign in" gate.
+ *
+ * A visitor who has not signed in cannot hit the paid analyze endpoint (it
+ * 401s), so when the generate call comes back 401 we send them straight to
+ * /signup carrying the bid context — `title`, the sanitized `value`, `plan=basic`
+ * (the free tier that includes 1 AI Brief/mo), and `next=/bid/<id>` so that
+ * after signup they land back on this page and can tap "Generate Instant Brief"
+ * as an authenticated (Basic) user.
+ *
+ * The contextual signup header reads `?title` + `?value` (see signup.tsx
+ * formatEstimate / "Sign up to track <title>"), so we use those exact param
+ * names — NOT an arbitrary `val`. Only a REAL, positive numeric value is
+ * emitted (never fabricated); otherwise the param is omitted and the header
+ * falls back to plain "track <title>".
+ */
+function aiBriefSignupValue(raw?: string | null): string | null {
+  if (!raw) return null;
+  const digits = String(raw).replace(/[^0-9.]/g, "");
+  if (!digits) return null;
+  const amount = Number(digits);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  return String(amount);
+}
+/** Build the contextual /signup URL for an anonymous brief trigger. */
+function aiBriefSignupHref(bidId: number, title?: string | null, value?: string | null): string {
+  const p = new URLSearchParams();
+  if (title && title.trim()) p.set("title", title.trim().slice(0, 300));
+  const cleanValue = aiBriefSignupValue(value);
+  if (cleanValue) p.set("value", cleanValue.slice(0, 40));
+  p.set("plan", "basic");
+  p.set("next", `/bid/${bidId}`);
+  return `/signup?${p.toString()}`;
+}
 export function RfpSummaryCard({
   bidId,
   description,
+  title,
+  value,
 }: {
   bidId: number;
   description?: string | null;
+  title?: string | null;
+  value?: string | null;
 }) {
   const [state, setState] = useState<CardState>({ status: "idle" });
   const generate = async (regenerate = false) => {
@@ -224,11 +263,16 @@ export function RfpSummaryCard({
         body: regenerate ? JSON.stringify({ regenerate: true }) : undefined,
       });
       if (!res.ok) {
-        let msg = "We couldn't analyze this solicitation right now.";
         if (res.status === 401) {
-          msg =
-            "Please sign in to generate an AI Executive Brief for this solicitation.";
-        } else if (res.status === 429) {
+          // Anonymous visitor — send them to the contextual signup so the
+          // "Sign up to track <bid title>" header renders and they can return
+          // via `next` to generate the brief after signing up (free Basic
+          // includes 1 AI Brief/mo). Never trigger the paid LLM call (401).
+          window.location.assign(aiBriefSignupHref(bidId, title, value));
+          return;
+        }
+        let msg = "We couldn't analyze this solicitation right now.";
+        if (res.status === 429) {
           msg =
             "You've generated several briefs recently. Please try again in a moment.";
         } else if (res.status === 404) {

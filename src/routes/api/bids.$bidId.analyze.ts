@@ -15,9 +15,13 @@
  *      defense (delimiter + system instruction, nothing appended after the block).
  *   4. Every mandate / milestone / red flag carries a grounding `source`.
  *   5. Never invents missing dates — `date` is null → rendered "Not specified".
- *   6. Atomic per-user DAILY generation cap (rate_limits table) on top of the
- *      existing IP/email sub-limits, plus an explicit plan-entitlement gate
- *      (owner 2026-08-28: UNGATED — all signed-up users entitled).
+ *   6. Tiered MONTHLY allowance (owner-ratified 2026-08-29, supersedes the
+ *      earlier free-tier/ungated call): per-tier monthly brief caps (Basic 1 /
+ *      Starter 3 / Pro 50 / Agency 200) enforced atomically via a
+ *      per-user-per-month ledger, on top of the existing IP/email/daily
+ *      sub-limits. Cached views and failed (fallback) generations do NOT
+ *      consume. Over-limit Basic/Starter users get the raw description + a
+ *      locked preview; no generation happens.
  *   7. Lightweight telemetry (model, tokens, latency, cache status, validation
  *      failure) — never logs emails, PII, or bid full text.
  *   8. Regeneration only when stale (source changed / admin invalidated); fresh
@@ -34,6 +38,13 @@ import {
   checkRateLimit,
   rateLimitedResponse,
 } from "~/lib/rate-limit";
+import {
+  getAllowanceStatus,
+  consumeAllowance,
+  serializeAllowance,
+  AI_BRIEF_LOCKED_PREVIEW,
+  type AllowanceStatus,
+} from "~/lib/ai-brief-allowance";
 
 /** Cache identity fields — part of the cache key (see point 1). */
 const AI_MODEL = "gpt-4o-mini";
@@ -80,14 +91,26 @@ const DAILY_GENERATION_LIMIT = 20;
 const DAILY_GENERATION_WINDOW = 24 * 60 * 60; // 24h
 
 /**
- * Plan-entitlement gate for the AI RFP Executive Brief.
- *
- * Owner decision 2026-08-28: UNGATED / Free-tier — EVERY authenticated,
- * signed-up user is entitled. This is a real, explicit gate so a future plan
- * tier can restrict it, but today it passes all signed-up users.
+ * Over-limit response for a lower-tier (Basic/Starter) user who has exhausted
+ * their monthly allowance (owner 2026-08-29). They still get the RAW
+ * description, plus a locked preview with the exact owner-specified copy. The
+ * full structured summary (requirements / milestones / red flags / trade) is
+ * gated behind Professional+ / within-allowance. Nothing is fabricated and no
+ * partial requirements leak.
  */
-function isAiBriefEntitled(_user: { id: number }): boolean {
-  return _user != null; // all signed-up users
+function lockedResponse(
+  bid: Pick<BidRow, "description">,
+  allowance: AllowanceStatus,
+): Response {
+  return Response.json(
+    {
+      locked: true,
+      allowance: serializeAllowance(allowance),
+      raw_description: String(bid.description ?? ""),
+      preview: AI_BRIEF_LOCKED_PREVIEW,
+    },
+    { status: 200 },
+  );
 }
 
 // Idempotent self-heal: ensure the ai_summary + updated_at columns exist even if
@@ -232,6 +255,9 @@ async function handler({
     // Build the untrusted source input once — reused for hashing and the LLM.
     const input = buildInput(bid);
     const currentHash = await sourceHash(input);
+    // Tiered monthly allowance (owner 2026-08-29), computed here so both cached
+    // and generated responses carry an honest allowance indicator.
+    const allowance = await getAllowanceStatus(user.id, user);
 
     // Regeneration intent (point 8): the client may POST { regenerate: true }
     // only when it believes the cached summary is stale or invalidated.
@@ -258,6 +284,7 @@ async function handler({
         generated_from_updated_at: bid.ai_summary_generated_from_updated_at,
         source_updated_at: bid.updated_at,
         stale: isStale,
+        allowance: serializeAllowance(allowance),
       });
 
     // Serve an existing summary unless regeneration is explicitly requested.
@@ -268,9 +295,12 @@ async function handler({
     if (hasSummary && wantsRegenerate && !isStale) return serveCached();
 
     // ----- Paid generation path -----
-    // 6. Entitlement gate (today: all signed-up users).
-    if (!isAiBriefEntitled(user)) {
-      return Response.json({ error: "AI Executive Brief is not available for your plan" }, { status: 403 });
+    // 6. Tiered monthly allowance (owner 2026-08-29). A lower-tier (Basic/
+    // Starter) user who has exhausted their monthly allowance gets the raw
+    // description + locked preview and NO generation happens (and nothing is
+    // decremented — we don't consume on an over-limit rejection).
+    if (!allowance.covered && allowance.overLimit) {
+      return lockedResponse(bid, allowance);
     }
     // Existing IP/email sub-limits (15-min windows).
     const ipLimit = await checkIpLimit(request, "analyze_ip", ANALYZE_IP_LIMIT, ANALYZE_IP_WINDOW);
@@ -340,6 +370,20 @@ async function handler({
       data = buildFallback(bid);
       fallback = true;
     }
+    // Consume ONE ledger unit only for a successful, non-cached, non-fallback
+    // generation (owner: cached views and failed generations are free). The
+    // atomic guarded increment can never overshoot the monthly cap.
+    let used = allowance.used;
+    if (!fallback) {
+      const consumed = await consumeAllowance(user.id, allowance.tier, allowance.limit);
+      if (consumed != null) used = consumed;
+    }
+    const respAllowance: AllowanceStatus = {
+      ...allowance,
+      used,
+      remaining: Math.max(0, allowance.limit - used),
+      overLimit: !allowance.covered && used >= allowance.limit,
+    };
 
     // 7. Telemetry — structural fields only, no email/PII/bid text.
     console.log("[ai-brief]", JSON.stringify({
@@ -354,7 +398,12 @@ async function handler({
       fallback,
     }));
 
-    return Response.json({ data, cached: false, fallback });
+    return Response.json({
+      data,
+      cached: false,
+      fallback,
+      allowance: serializeAllowance(respAllowance),
+    });
   } catch (err) {
     console.error("[api/bids/$id/analyze] error:", err);
     return Response.json({ error: "Analysis unavailable" }, { status: 500 });

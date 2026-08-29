@@ -16,21 +16,29 @@
  *     gratuitously regenerated, and "Generate Instant Brief" only appears when
  *     there is NO summary yet.
  *   - Renders missing dates as "Not specified" (never a fabricated date).
+ *
+ * TIERED MONTHLY ALLOWANCE (owner 2026-08-29, supersedes the free-tier call):
+ *   - Basic 1 / Starter 3 / Pro 50 / Agency 200 briefs per month.
+ *   - Over-limit Basic/Starter users see the RAW description + a locked preview
+ *     (exact owner copy) + the core Professional promise; the full structured
+ *     summary stays gated. Never advertises "unlimited" — instead an honest
+ *     "You've used N of M this month".
+ *   - Professional / Agency (covered) users get workflow connectors to existing
+ *     Contrax features: bid score, incumbent pricing, compliance checklist,
+ *     proposal draft, export-to-PDF, and the (already-existing) regenerate-on-
+ *     staleness affordance.
  */
 import { useState, type ReactNode } from "react";
 import { trackEvent } from "~/lib/track";
-
 export interface RfpMilestone {
   event: string;
   date: string | null;
   source: string;
 }
-
 export interface RfpItem {
   text: string;
   source: string;
 }
-
 export interface RfpSummary {
   summary: string;
   mandatory_requirements: RfpItem[];
@@ -38,7 +46,14 @@ export interface RfpSummary {
   trade_category: string;
   red_flags: RfpItem[];
 }
-
+/** Allowance shape echoed from the analyze endpoint (no PII). */
+export interface RfpAllowance {
+  tier: string;
+  limit: number;
+  used: number;
+  remaining: number;
+  covered: boolean;
+}
 export interface RfpBriefResponse {
   data?: RfpSummary;
   fallback?: boolean;
@@ -46,8 +61,11 @@ export interface RfpBriefResponse {
   stale?: boolean;
   generated_from_updated_at?: string | null;
   source_updated_at?: string | null;
+  locked?: boolean;
+  raw_description?: string | null;
+  preview?: string;
+  allowance?: RfpAllowance;
 }
-
 type CardState =
   | { status: "idle" } // no summary yet → "Generate Instant Brief"
   | { status: "loading"; regenerate: boolean }
@@ -60,8 +78,21 @@ type CardState =
       stale: boolean;
       /** true when the source row's updated_at advanced past generation time. */
       sourceChanged: boolean;
+      allowance: RfpAllowance;
+    }
+  | {
+      status: "locked";
+      rawDescription: string;
+      allowance: RfpAllowance;
     }
   | { status: "error"; message: string };
+
+/** Exact owner-specified locked-preview copy (2026-08-29) — do not change. */
+const LOCKED_PREVIEW_COPY =
+  "Understand this RFP in minutes, not hours. Upgrade to Professional to reveal its mandatory requirements, critical deadlines and potential red flags.";
+/** The core Professional promise shown near the upgrade / locked surface. */
+const BRIEF_PROMISE_COPY =
+  "Find the right contract, understand every requirement, evaluate your odds and begin your response—all inside Contrax.";
 
 /** Days from today until a date; negative = past. Returns null when unparseable. */
 function daysUntil(dateStr: string | null): number | null {
@@ -75,7 +106,6 @@ function daysUntil(dateStr: string | null): number | null {
   if (Number.isNaN(d.getTime())) return null;
   return Math.ceil((d.getTime() - Date.now()) / 86_400_000);
 }
-
 /** Urgency tone for a milestone based on how close its date is. */
 function milestoneTone(dateStr: string | null): "red" | "amber" | "neutral" {
   const days = daysUntil(dateStr);
@@ -85,7 +115,6 @@ function milestoneTone(dateStr: string | null): "red" | "amber" | "neutral" {
   if (days <= 30) return "amber"; // near
   return "neutral";
 }
-
 const TONE_CLASS: Record<
   "red" | "amber" | "neutral",
   { dot: string; chip: string }
@@ -103,10 +132,88 @@ const TONE_CLASS: Record<
     chip: "border-slate-600 bg-slate-800 text-slate-300",
   },
 };
-
-export function RfpSummaryCard({ bidId }: { bidId: number }) {
+/** Honest per-plan allowance indicator. NEVER advertises "unlimited". */
+function AllowanceIndicator({
+  allowance,
+  className = "",
+}: {
+  allowance: RfpAllowance;
+  className?: string;
+}) {
+  if (!allowance || allowance.limit == null) return null;
+  return (
+    <p className={`text-xs text-slate-400 ${className}`}>
+      You've used {allowance.used} of {allowance.limit} AI brief
+      {allowance.limit === 1 ? "" : "s"} this month
+      {allowance.covered ? " · full Professional evidence included" : ""}.
+    </p>
+  );
+}
+/** Professional / Agency workflow connectors — wire to EXISTING Contrax pages. */
+function WorkflowConnectors({
+  description,
+  allowance,
+}: {
+  description?: string | null;
+  allowance: RfpAllowance;
+}) {
+  if (!allowance?.covered) return null;
+  // Deep-link the nine-dimension bid scorer with this solicitation's text when
+  // it's reasonably short; otherwise send them to the tool itself.
+  const hasDesc = !!(description && description.trim().length > 0);
+  const scoreHref =
+    hasDesc && description!.length < 2000
+      ? `/score?text=${encodeURIComponent(description!.slice(0, 1500))}`
+      : "/score";
+  return (
+    <div className="rounded-xl border border-slate-700 bg-slate-800/50 p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-blue-300">
+        Professional workflow
+      </p>
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        <a
+          href={scoreHref}
+          className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-blue-500 hover:text-blue-300"
+        >
+          Score this bid →
+        </a>
+        <a
+          href="/awards"
+          className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-blue-500 hover:text-blue-300"
+        >
+          Compare incumbent pricing →
+        </a>
+        <a
+          href="/compliance"
+          className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-blue-500 hover:text-blue-300"
+        >
+          Compliance checklist →
+        </a>
+        <a
+          href="/draft/pending"
+          className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-blue-500 hover:text-blue-300"
+        >
+          Start a proposal →
+        </a>
+        <button
+          type="button"
+          onClick={() => window.print()}
+          className="rounded-lg border border-slate-600 bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:border-blue-500 hover:text-blue-300"
+        >
+          Export brief (PDF) →
+        </button>
+      </div>
+    </div>
+  );
+}
+export function RfpSummaryCard({
+  bidId,
+  description,
+}: {
+  bidId: number;
+  description?: string | null;
+}) {
   const [state, setState] = useState<CardState>({ status: "idle" });
-
   const generate = async (regenerate = false) => {
     trackEvent(regenerate ? "rfp_brief_regenerate" : "rfp_brief_generate", String(bidId));
     setState({ status: "loading", regenerate });
@@ -131,6 +238,23 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
         return;
       }
       const json = (await res.json()) as RfpBriefResponse;
+      // Over-limit lower-tier user: show the raw description + locked preview.
+      if (json.locked) {
+        trackEvent("rfp_brief_locked", String(bidId));
+        setState({
+          status: "locked",
+          rawDescription: json.raw_description ?? "",
+          allowance:
+            json.allowance ?? {
+              tier: "basic",
+              limit: 1,
+              used: 1,
+              remaining: 0,
+              covered: false,
+            },
+        });
+        return;
+      }
       if (!json.data) {
         setState({
           status: "error",
@@ -151,6 +275,14 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
         cached: !!json.cached,
         stale: !!json.stale,
         sourceChanged,
+        allowance:
+          json.allowance ?? {
+            tier: "basic",
+            limit: 1,
+            used: 1,
+            remaining: 0,
+            covered: false,
+          },
       });
     } catch {
       setState({
@@ -159,7 +291,6 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
       });
     }
   };
-
   return (
     <section className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
       <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-gradient-to-r from-amber-500/15 to-transparent px-5 py-4">
@@ -174,7 +305,6 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
           </span>
         )}
       </div>
-
       <div className="px-5 py-4">
         {state.status === "idle" && (
           <div className="text-center">
@@ -190,9 +320,12 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
             >
               Generate Instant Brief →
             </button>
+            <p className="mt-3 text-xs text-slate-500">
+              Included with your plan — Basic 1 brief/mo · Starter 3/mo ·
+              Professional 50/mo · Agency 200/mo.
+            </p>
           </div>
         )}
-
         {state.status === "loading" && (
           <div className="space-y-4">
             <div className="h-12 animate-pulse rounded-lg bg-slate-800" />
@@ -204,7 +337,6 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
             </p>
           </div>
         )}
-
         {state.status === "error" && (
           <div role="alert" className="text-center">
             <p className="text-sm leading-relaxed text-slate-300">
@@ -219,13 +351,52 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
             </button>
           </div>
         )}
-
-        {state.status === "ready" && <BriefBody state={state} onRegenerate={() => generate(true)} />}
+        {state.status === "locked" && <LockedBody state={state} />}
+        {state.status === "ready" && (
+          <div className="space-y-4">
+            <AllowanceIndicator allowance={state.allowance} />
+            <BriefBody state={state} onRegenerate={() => generate(true)} />
+            <WorkflowConnectors description={description} allowance={state.allowance} />
+          </div>
+        )}
       </div>
     </section>
   );
 }
-
+/** Locked preview for an over-limit Basic/Starter user (owner copy + raw desc). */
+function LockedBody({ state }: { state: Extract<CardState, { status: "locked" }> }) {
+  const { rawDescription, allowance } = state;
+  return (
+    <div className="space-y-4">
+      {rawDescription.trim() && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Original solicitation
+          </p>
+          <p className="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-300">
+            {rawDescription}
+          </p>
+        </div>
+      )}
+      <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-6 text-center">
+        {/* Exact owner copy — do not change. */}
+        <p className="text-base font-semibold leading-relaxed text-amber-300">
+          {LOCKED_PREVIEW_COPY}
+        </p>
+        <p className="mt-3 text-xs leading-relaxed text-slate-400">{BRIEF_PROMISE_COPY}</p>
+        <div className="mt-3">
+          <AllowanceIndicator allowance={allowance} className="justify-center" />
+        </div>
+        <a
+          href="/upgrade"
+          className="mt-4 inline-flex rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition hover:bg-amber-400"
+        >
+          Upgrade to Professional →
+        </a>
+      </div>
+    </div>
+  );
+}
 function BriefBody({
   state,
   onRegenerate,
@@ -241,7 +412,6 @@ function BriefBody({
   // (updated_at drifting on non-hashed fields) drives the warning banner only,
   // never a regeneration toggle.
   const canRegenerate = !fallback && stale;
-
   if (fallback) {
     return (
       <div className="rounded-xl border border-dashed border-slate-600 bg-slate-800/40 px-4 py-3">
@@ -254,7 +424,6 @@ function BriefBody({
       </div>
     );
   }
-
   return (
     <div className="space-y-5">
       {/* Point 2: warn when the source data changed after generation. */}
@@ -267,12 +436,10 @@ function BriefBody({
           may be out of date.
         </div>
       )}
-
       {/* Plain-English summary */}
       {data.summary && (
         <p className="text-sm leading-relaxed text-slate-200">{data.summary}</p>
       )}
-
       {/* Mandatory requirements */}
       <Part title="Mandatory requirements">
         {data.mandatory_requirements.length > 0 ? (
@@ -299,7 +466,6 @@ function BriefBody({
           </p>
         )}
       </Part>
-
       {/* Key milestones / deadlines — urgency highlighted */}
       <Part title="Key dates & milestones">
         {data.key_milestones.length > 0 ? (
@@ -336,7 +502,6 @@ function BriefBody({
           </p>
         )}
       </Part>
-
       {/* Primary trade */}
       {data.trade_category && (
         <Part title="Primary trade">
@@ -345,7 +510,6 @@ function BriefBody({
           </span>
         </Part>
       )}
-
       {/* Red flags / disqualifiers */}
       {data.red_flags.length > 0 && (
         <Part title="Red flags to check">
@@ -368,7 +532,6 @@ function BriefBody({
           </ul>
         </Part>
       )}
-
       {data.key_milestones.length === 0 &&
         data.red_flags.length === 0 &&
         !data.trade_category &&
@@ -378,7 +541,6 @@ function BriefBody({
             review the original notice to confirm all requirements.
           </p>
         )}
-
       {canRegenerate && (
         <button
           type="button"
@@ -391,7 +553,6 @@ function BriefBody({
     </div>
   );
 }
-
 function Part({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>

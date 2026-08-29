@@ -109,11 +109,17 @@ export async function effectiveTier(
   if (planTier === "demo") return { tier: "professional", covered: true };
   // An ACTIVE full-access grant passes every gate; treat as Professional.
   if (trial?.fullAccess) return { tier: "professional", covered: true };
-  // Expired trial / expired grant no longer grants premium → use DB tier only.
+  // Expired trial / expired grant no longer grants premium. For an EXPIRED
+  // non-paying user this DOWNGRADES them to Basic (1 brief/month) even though
+  // their stored plan_tier may still read 'professional' (set lazily at trial
+  // start). A paying user has subscription_status='active' so computeTrialStatus
+  // reports expired=false and is unaffected; an ACTIVE grant has fullAccess=true
+  // and returned above.
   const expired = !!trial?.expired;
+  if (expired) return { tier: "basic", covered: false };
   const known = planTier in AI_BRIEF_ALLOWANCE;
   const tier = known ? planTier : "basic";
-  const covered = !expired && AI_BRIEF_COVERED.has(tier);
+  const covered = AI_BRIEF_COVERED.has(tier);
   return { tier, covered };
 }
 

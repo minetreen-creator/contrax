@@ -177,7 +177,7 @@ export function TrialUpgradeCallout() {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
       <span>
-        Your 21-day trial ·{" "}
+        Your 21-day Professional trial ·{" "}
         <strong>
           {trial.daysLeft} day{trial.daysLeft === 1 ? "" : "s"} left
         </strong>

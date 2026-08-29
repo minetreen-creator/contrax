@@ -172,15 +172,15 @@ const handleLinkedInAuth = createServerFn({ method: "POST" })
     let isNewUser = false;
     if (userId === null) {
       isNewUser = true;
-      const trialStartedAt = (plan ?? "basic") === "basic" ? null : new Date().toISOString();
+      const trialStartedAt = null; // lazy trial start: no trial at signup
       const inserted = await sql()`
         INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-        VALUES (${email}, NULL, ${plan ?? "basic"}, ${trialStartedAt})
+        VALUES (${email}, NULL, 'basic', ${trialStartedAt})
         RETURNING id
       `.catch(async () => {
         const retry = await sql()`
           INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, ${plan ?? "basic"}, ${trialStartedAt})
+          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, 'basic', ${trialStartedAt})
           RETURNING id
         `;
         return retry;

@@ -45,6 +45,7 @@ import {
   AI_BRIEF_LOCKED_PREVIEW,
   type AllowanceStatus,
 } from "~/lib/ai-brief-allowance";
+import { checkTrialCap, consumeTrial, TRIAL_CAPS } from "~/lib/trial-usage";
 
 /** Cache identity fields — part of the cache key (see point 1). */
 const AI_MODEL = "gpt-4o-mini";
@@ -114,6 +115,29 @@ function lockedResponse(
 }
 
 
+/**
+ * Over-limit response for an ACTIVE Professional-trial user who has exhausted
+ * their per-trial Executive Brief cap (5). They still get the RAW description
+ * plus a locked preview, and are prompted to upgrade to keep generating
+ * (Professional+). Nothing is fabricated and no partial requirements leak.
+ */
+function trialBriefLockedResponse(
+  bid: Pick<BidRow, "description">,
+  used: number,
+  limit: number,
+): Response {
+  return Response.json(
+    {
+      locked: true,
+      trial_locked: true,
+      trial_remaining: Math.max(0, limit - used),
+      raw_description: String(bid.description ?? ""),
+      preview:
+        "You've used all 5 of your trial's AI Executive Briefs. Upgrade to Professional to keep generating briefs with mandatory requirements, milestones and red flags.",
+    },
+    { status: 200 },
+  );
+}
 interface BidRow {
   id: number;
   title: string;
@@ -289,6 +313,17 @@ async function handler({
     if (!allowance.covered && allowance.overLimit) {
       return lockedResponse(bid, allowance);
     }
+    // TRIAL CAP (owner): during an ACTIVE Professional trial the per-trial
+    // Executive Brief cap (5) binds — separate from the MONTHLY allowance (the
+    // monthly Professional allowance of 50/mo still applies but 5 < 50 so the
+    // trial cap is the binding constraint while the trial runs). Cached /
+    // re-viewed briefs are served before this point and never consume either
+    // ledger. An over-cap trial user gets the raw description + locked preview
+    // and a clear upgrade prompt.
+    const trialBrief = await checkTrialCap(user.id, "briefs");
+    if (trialBrief.trialActive && !trialBrief.allowed) {
+      return trialBriefLockedResponse(bid, trialBrief.used, trialBrief.limit);
+    }
     // Existing IP/email sub-limits (15-min windows).
     const ipLimit = await checkIpLimit(request, "analyze_ip", ANALYZE_IP_LIMIT, ANALYZE_IP_WINDOW);
     if (!ipLimit.allowed) return rateLimitedResponse(ipLimit);
@@ -364,6 +399,9 @@ async function handler({
     if (!fallback) {
       const consumed = await consumeAllowance(user.id, allowance.tier, allowance.limit);
       if (consumed != null) used = consumed;
+      // Consume ONE unit against the per-trial ledger on a successful non-cached,
+      // non-fallback generation (cached views / failed generations are free).
+      await consumeTrial(user.id, "briefs");
     }
     const respAllowance: AllowanceStatus = {
       ...allowance,

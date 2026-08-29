@@ -3,6 +3,7 @@ import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { generateProposalDraft } from "~/lib/proposal-draft";
 import { extractCitations } from "~/lib/far-grounding";
+import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
 async function handler({ request }: { request: Request }) {
@@ -58,6 +59,19 @@ async function handler({ request }: { request: Request }) {
     // bids and pasted solicitations run the EXACT same generation path
     // (retrieveRelevantClauses → clause library block → prompts → OpenAI →
     // extractCitations). See src/lib/proposal-draft.ts.
+    // PER-TRIAL DRAFT CAP (owner): an ACTIVE Professional-trial user gets 1
+    // proposal draft for the whole trial (cached drafts returned above never
+    // consume). If they've used it, reject with a clear upgrade prompt.
+    const trialDraft = await checkTrialCap(user.id, "drafts");
+    if (trialDraft.trialActive && !trialDraft.allowed) {
+      return Response.json(
+        {
+          error:
+            "You've used your 1 trial proposal draft. Upgrade to Professional to keep drafting proposals.",
+        },
+        { status: 403 },
+      );
+    }
     const { draftText, citations } = await generateProposalDraft(bid, profile);
 
     // Store in DB
@@ -65,6 +79,8 @@ async function handler({ request }: { request: Request }) {
       VALUES (${bidId}, ${user.id}, ${draftText}, ${JSON.stringify(citations)}::jsonb)
       ON CONFLICT (bid_id, user_id) DO UPDATE
       SET draft_text = ${draftText}, citations = ${JSON.stringify(citations)}::jsonb, generated_at = NOW()`;
+    // Consume ONE unit against the per-trial ledger on a successful generation.
+    await consumeTrial(user.id, "drafts");
     try {
     await sql()`CREATE TABLE IF NOT EXISTS team_activity (id SERIAL PRIMARY KEY, member_email TEXT NOT NULL, action TEXT NOT NULL, bid_id INTEGER REFERENCES bids(id), details TEXT, created_at TIMESTAMPTZ DEFAULT NOW())`;
     await sql()`INSERT INTO team_activity (member_email, action, bid_id, details) VALUES (${user.email}, 'drafted_proposal', ${bidId}, NULL)`;

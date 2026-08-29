@@ -5,10 +5,10 @@ export const Route = createFileRoute("/pricing/")({
   head: () => ({
     meta: [
       { title: "Pricing | Contrax" },
-      { name: "description", content: "Contrax plans for every stage of growth. Basic free forever, Starter $19/mo, Professional $79/mo. 21-day free trial on paid plans." },
+      { name: "description", content: "Contrax plans for every stage of growth. Basic free forever, Starter $19/mo, Professional $79/mo. Every plan includes a 21-day Professional trial." },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: "Pricing | Contrax" },
-      { property: "og:description", content: "Contrax plans for every stage of growth. Basic free forever, Starter $19/mo, Professional $79/mo. 21-day free trial on paid plans." },
+      { property: "og:description", content: "Contrax plans for every stage of growth. Basic free forever, Starter $19/mo, Professional $79/mo. Every plan includes a 21-day Professional trial." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
@@ -122,7 +122,7 @@ function PricingPage() {
               Plans for every stage of growth
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Start free on Basic, then scale up as your contracting pipeline grows. No long-term contracts required. Paid plans include a 21-day free trial.
+              Start free on Basic, then scale up as your contracting pipeline grows. No long-term contracts required. Every plan includes a 21-day Professional trial — no credit card, starting on your first premium action.
             </p>
           </div>
 
@@ -232,7 +232,7 @@ function PricingPage() {
           <p className="mt-8 text-center text-sm text-gray-500">Plans are billed monthly. Cancel anytime.</p>
           <p className="mt-3 text-center">
             <a href="/signup" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
-              Or start your free trial &rarr;
+              Or start your 21-day Professional trial &rarr;
             </a>
           </p>
           <p className="mt-3 text-center text-sm text-gray-500">
@@ -252,7 +252,7 @@ function PricingPage() {
             {[
               { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
               { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes basic solicitations search, standard set-aside filters, and up to 3 saved bids. Upgrade to Starter ($19/mo) for unlimited saved bids, daily NAICS email alerts, and CSV export." },
-              { q: "Is there a free trial?", a: "Paid plans include a 21-day free trial, no credit card required. Basic is free forever — no trial, no card, nothing to cancel." },
+              { q: "Is there a free trial?", a: "Every plan includes a 21-day Professional trial with no credit card — it starts on your first premium action and auto-downgrades to free Basic afterward (your saved bids and progress stay). Basic itself is free forever — no trial, no card, nothing to cancel." },
               { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
               { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
               { q: "Do you offer discounts for non-profits?", a: "We don't have a formal non-profit discount yet, but reach out to hello@contrax.company and we'll work with you." },

@@ -80,10 +80,14 @@ async function handler({ request }: { request: Request }) {
     // trial (trial_started_at = NULL), so it stays free forever and is never
     // locked by TrialGate.
     const passwordHash = await hashPassword(password);
-    const trialStartedAt = plan === "basic" ? null : new Date().toISOString();
+    // LAZY TRIAL START (owner): every signup provisions on free Basic — no plan
+    // tier is granted and trial_started_at stays NULL, so no user is "in trial"
+    // at signup and the 21-day PROFESSIONAL trial clock is NOT running. The
+    // trial begins (and trial_started_at is set) on the user's FIRST premium
+    // action via ensureTrialStarted (src/lib/trial.ts). No credit card.
     const inserted = await sql()`
       INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-      VALUES (${email}, ${passwordHash}, ${plan}, ${trialStartedAt})
+      VALUES (${email}, ${passwordHash}, 'basic', NULL)
       RETURNING id, email, created_at
     `;
     const user = inserted[0] as { id: number; email: string; created_at: Date };

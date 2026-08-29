@@ -7,6 +7,7 @@ import { trackEvent } from "~/lib/track";
 import { storePendingDraft } from "~/lib/pending-draft";
 import { buildProfileContext } from "~/lib/profile-context";
 import { getRelevantContext } from "~/lib/knowledge";
+import { checkTrialCap, consumeTrial, TRIAL_CAPS } from "~/lib/trial-usage";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import {
@@ -80,6 +81,12 @@ const scoreFaqs = [
 // a credit (OpenAI failures / request errors do not decrement).
 const FREE_SCORE_LIMIT = 3;
 const FREE_LIMIT_REACHED_MESSAGE = "FREE_LIMIT_REACHED";
+// Per-trial score cap sentinel (owner): an ACTIVE 21-day Professional-trial
+// user gets 3 complete scores for the whole trial (see src/lib/trial-usage.ts).
+// The client matches this exact message to render an upgrade prompt instead of
+// a generic error. Auth'd trial users must NOT consume the anonymous credit
+// path — the trial ledger is used instead.
+const TRIAL_SCORE_LIMIT_REACHED_MESSAGE = "TRIAL_SCORE_LIMIT_REACHED";
 
 interface ScoreCredits {
   used: number;
@@ -175,6 +182,15 @@ const scoreSolicitation = createServerFn({ method: "POST" })
         // renders the "create an account to keep scoring" panel instead of a
         // generic error.
         throw new Error(FREE_LIMIT_REACHED_MESSAGE);
+      }
+    }
+    // PER-TRIAL SCORE CAP (owner): an authenticated user inside an ACTIVE
+    // Professional trial gets 3 complete scores for the whole trial (never the
+    // anonymous credit path). If they've used all 3, throw the upgrade sentinel.
+    if (user && !user.is_admin) {
+      const trialScore = await checkTrialCap(user.id, "scores");
+      if (trialScore.trialActive && !trialScore.allowed) {
+        throw new Error(TRIAL_SCORE_LIMIT_REACHED_MESSAGE);
       }
     }
 
@@ -287,6 +303,9 @@ ${knowledgeCtx}` : ""}`;
 
       // Only a SUCCESSFUL analysis consumes a credit (anonymous only).
       if (!user && clientIp) await incrementCredits(clientIp);
+      // Trial users consume a per-trial score unit on SUCCESS (never the
+      // anonymous credit path, and failed analyses never consume).
+      if (user && !user.is_admin) await consumeTrial(user.id, "scores");
 
       return result;
     } catch (err) {
@@ -446,6 +465,7 @@ function ScorePage() {
   const [validationError, setValidationError] = useState("");
   const [credits, setCredits] = useState<ScoreCredits | null>(null);
   const [limitReached, setLimitReached] = useState(false);
+  const [trialScoreReached, setTrialScoreReached] = useState(false);
 
   // Fetch the anonymous free-score balance: shows the honest counter and, for a
   // returning visitor whose IP already exhausted the limit, renders the signup
@@ -494,6 +514,11 @@ function ScorePage() {
         setLimitReached(true);
         setError("");
         void refreshCredits();
+      } else if (message === TRIAL_SCORE_LIMIT_REACHED_MESSAGE) {
+        // Per-trial score cap (3) hit for an ACTIVE Professional-trial user —
+        // render an upgrade-to-Professional prompt instead of a generic error.
+        setTrialScoreReached(true);
+        setError("");
       } else {
         setLimitReached(false);
         setError(
@@ -600,14 +625,31 @@ function ScorePage() {
         </div>
 
         {/* ── Input card / free-limit panel ──────────────────────────── */}
-        {limitReached ? (
+        {trialScoreReached ? (
+          <div className="mt-10 rounded-2xl border border-blue-200 bg-blue-50 p-6 text-center shadow-sm lg:p-10">
+            <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              You&rsquo;ve used your 3 trial scores
+            </h2>
+            <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600">
+              Your 21-day Professional trial includes 3 complete bid scores. Upgrade to
+              Professional for unlimited scoring and the full suite of premium tools.
+            </p>
+            <a
+              href="/upgrade"
+              onClick={() => trackEvent("score_cta_click", "trial_limit")}
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 hover:shadow-xl active:scale-[0.98]"
+            >
+              Upgrade to Professional →
+            </a>
+          </div>
+        ) : limitReached ? (
           <div className="mt-10 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center shadow-sm lg:p-10">
             <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
               You&rsquo;ve used your 3 free scores
             </h2>
             <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600">
               Create a free account for unlimited scoring — no credit card required for the
-              21-day trial.
+              21-day Professional trial.
             </p>
             <a
               href="/signup?plan=professional"

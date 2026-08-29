@@ -46,6 +46,7 @@ import {
   type AllowanceStatus,
 } from "~/lib/ai-brief-allowance";
 import { checkTrialCap, consumeTrial, TRIAL_CAPS } from "~/lib/trial-usage";
+import { ensureTrialStarted } from "~/lib/trial";
 
 /** Cache identity fields — part of the cache key (see point 1). */
 const AI_MODEL = "gpt-4o-mini";
@@ -268,7 +269,7 @@ async function handler({
     const currentHash = await sourceHash(input);
     // Tiered monthly allowance (owner 2026-08-29), computed here so both cached
     // and generated responses carry an honest allowance indicator.
-    const allowance = await getAllowanceStatus(user.id, user);
+    let allowance = await getAllowanceStatus(user.id, user);
 
     // Regeneration intent (point 8): the client may POST { regenerate: true }
     // only when it believes the cached summary is stale or invalidated.
@@ -306,6 +307,17 @@ async function handler({
     if (hasSummary && wantsRegenerate && !isStale) return serveCached();
 
     // ----- Paid generation path -----
+    // LAZY TRIAL START BEFORE MONTHLY LEDGER (QA fix): the 21-day Professional
+    // trial must be started BEFORE the monthly ai_brief_allowance ledger is read
+    // and debited, so the FIRST premium brief is tiered under the active trial
+    // (Professional, 50/mo) rather than the pre-start Basic (1/mo) ledger.
+    // ensureTrialStarted is a cheap, idempotent, fail-open no-op for users whose
+    // trial is already started or who are paid (no trial applies). Cached views
+    // return above, so this only runs on the paid generation path. We re-read the
+    // allowance afterwards so the over-limit gate below, the ledger debit, and the
+    // response all reflect the now-active trial tier.
+    await ensureTrialStarted(user.id);
+    allowance = await getAllowanceStatus(user.id, user);
     // 6. Tiered monthly allowance (owner 2026-08-29). A lower-tier (Basic/
     // Starter) user who has exhausted their monthly allowance gets the raw
     // description + locked preview and NO generation happens (and nothing is

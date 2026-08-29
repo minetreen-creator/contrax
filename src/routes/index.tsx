@@ -2348,6 +2348,7 @@ function Pricing() {
       features: [
         "Basic Solicitations Search",
         "Up to 3 Saved Bids",
+        "1 AI Executive Brief monthly",
         "Standard Set-Aside Filters",
       ],
       cta: "Start Free",
@@ -2361,6 +2362,7 @@ function Pricing() {
       description: "For businesses ready to build and track a real government-contracting pipeline.",
       features: [
         "Unlimited Saved Bids",
+        "3 AI Executive Briefs monthly",
         "Daily NAICS Email Alerts",
         "CSV Pipeline Export",
       ],
@@ -2394,6 +2396,7 @@ function Pricing() {
     description: "For firms managing multiple clients or large contract portfolios.",
     features: [
       "Everything in Professional",
+      "200 AI Executive Briefs monthly",
       "Proposal Evaluator Red Team",
       "Team roles & permissions",
       "Integration connectors",

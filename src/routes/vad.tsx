@@ -51,6 +51,7 @@ const vadPlans: {
     description: "For businesses ready to build and track a real government-contracting pipeline.",
     features: [
       "Unlimited Saved Bids",
+      "3 AI Executive Briefs monthly",
       "Daily NAICS Email Alerts",
       "CSV Pipeline Export",
     ],
@@ -82,6 +83,7 @@ const vadPlans: {
     description: "For firms managing multiple clients or large contract portfolios.",
     features: [
       "Everything in Professional",
+      "200 AI Executive Briefs monthly",
       "Proposal Evaluator Red Team",
       "Team roles & permissions",
       "Integration connectors",

@@ -63,8 +63,9 @@ const vadPlans: {
     price: "59",
     was: "79",
     period: "/mo",
-    description: "For growing businesses that win more bids with full intelligence and draft tools.",
+    description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and draft tools.",
     features: [
+      "50 AI Executive Briefs a month — requirements, milestones & red flags",
       "Full Incumbent Intelligence & Past Pricing",
       "AI Match Scoring",
       "Draft Tools",

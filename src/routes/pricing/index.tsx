@@ -56,8 +56,9 @@ const plans = [
     name: "Professional",
     price: "79",
     period: "/month",
-    description: "For growing businesses that win more bids with full intelligence and draft tools.",
+    description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and draft tools.",
     features: [
+      "50 AI Executive Briefs a month — requirements, milestones & red flags",
       "Full Incumbent Intelligence & Past Pricing",
       "AI Match Scoring",
       "Draft Tools",
@@ -178,7 +179,7 @@ function PricingPage() {
                     Basic card only. */}
                 {plan.free && (
                   <p className="mt-3 text-center text-xs text-gray-500">
-                    Basic is free forever, limited to up to 3 saved bids. Incumbent Intelligence, AI Match Scoring &amp; Draft Tools are on Professional.
+                    Basic is free forever, limited to up to 3 saved bids plus 1 free AI Executive Brief monthly. Full brief allowances, Incumbent Intelligence, AI Match Scoring &amp; Draft Tools are on Professional.
                   </p>
                 )}
               </div>

@@ -18,6 +18,28 @@ const SIGNUP_IP_WINDOW = 60 * 60;
 const SIGNUP_EMAIL_LIMIT = 5; // creations per email per hour
 const SIGNUP_EMAIL_WINDOW = 60 * 60;
 
+/**
+ * Ties a visitor's entire pre-signup anonymous funnel journey to the newly
+ * created account, scoped to the exact triggering visitor_id.
+ *
+ * FAIL-OPEN: this is genuinely best-effort. It runs AFTER the user + session
+ * are created and must be called inside a try/catch (see the signup handler) so
+ * a failure here can never flip a successful signup into an HTTP 500. The
+ * schema-guard statements (ALTER TABLE … ADD COLUMN IF NOT EXISTS, CREATE
+ * INDEX IF NOT EXISTS) are idempotent — they are cheap no-ops once the columns
+ * / index exist, and only do work on a fresh or legacy DB. The UPDATE is the
+ * actual per-signup work that ties anonymous funnel rows to the account.
+ */
+async function backfillFunnelIdentity(userId: number, userEmail: string, visitorId: string) {
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_id TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_email TEXT`;
+  await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_vid ON funnel_events (visitor_id)`;
+  await sql()`UPDATE funnel_events
+    SET user_id = ${String(userId)}, user_email = ${userEmail}
+    WHERE visitor_id = ${visitorId}
+      AND (user_id IS NULL OR user_id = '')`;
+}
+
 async function handler({ request }: { request: Request }) {
   // Throttle a known hostile IP from account creation. Exact-match only; generic
   // 403 that does not reveal why. Runs before parsing the body / any DB write.
@@ -44,9 +66,9 @@ async function handler({ request }: { request: Request }) {
     // defaults to plan_tier='basic'; only a user who explicitly opted into a
     // paid plan on the pricing page / signup selector (starter/professional/
     // agency) gets that plan_tier. The single form, single DB flow stays intact.
-    const plan = body.plan && ["basic", "starter", "professional", "agency"].includes(body.plan)
-      ? body.plan
-      : "basic";
+    // The submitted `plan` is intentionally not applied here: every signup lands
+    // on free Basic (plan_tier='basic', trial_started_at=NULL) and the 21-day
+    // Professional trial starts lazily on the user's first premium use.
 
     // ── Rate limiting (before any insert). IP + account caps; fail-open.
     const ipLimit = await checkIpLimit(request, "signup_ip", SIGNUP_IP_LIMIT, SIGNUP_IP_WINDOW);
@@ -108,21 +130,24 @@ async function handler({ request }: { request: Request }) {
       maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
     });
 
-    // ── Identity backfill (fail-open) ───────────────────────────────────────
+    // ── Identity backfill (fail-open, MUST NOT affect the response) ─────────
     // Once the user is known, tie their ENTIRE pre-signup anonymous funnel journey
     // (radar_scan → signup_view → signup_success) to this account, scoped to the
     // exact triggering visitor. Uses the fast idx_funnel_events_vid index on
     // visitor_id. Never blocks signup/redirect — any failure is logged and the
     // user proceeds normally (their post-login tracking still carries identity).
+    //
+    // ROOT CAUSE of a past bug: this backfill (schema-guard DDL + a funnel
+    // UPDATE) runs AFTER the account and session are already created. An
+    // un-wrapped throw here flipped an otherwise-successful signup into a
+    // spurious HTTP 500 (client saw "Something went wrong." even though the
+    // account+session were created and authenticated). It is intentionally
+    // FAIL-OPEN: the whole step sits inside its own try/catch so no failure in
+    // it can propagate. Keep it isolated — a successful signup must always
+    // return the success response below, regardless of what the backfill does.
     if (visitorId) {
       try {
-        await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_id TEXT`;
-        await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_email TEXT`;
-        await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_vid ON funnel_events (visitor_id)`;
-        await sql()`UPDATE funnel_events
-          SET user_id = ${String(user.id)}, user_email = ${user.email}
-          WHERE visitor_id = ${visitorId}
-            AND (user_id IS NULL OR user_id = '')`;
+        await backfillFunnelIdentity(user.id, user.email, visitorId);
       } catch (backfillErr) {
         // Identity backfill is best-effort — a failure must never fail signup.
         console.error("[api/signup] identity backfill failed (non-fatal):", backfillErr);

@@ -668,7 +668,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Find contracts you can actually win. Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to live SAM.gov and city procurement opportunities — with 5-year incumbent pricing data so you know what to bid before you write a word.",
+          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you know if you qualify in 15 seconds.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
@@ -678,7 +678,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Find contracts you can actually win. Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to live SAM.gov and city procurement opportunities — with 5-year incumbent pricing data so you know what to bid before you write a word.",
+          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you know if you qualify in 15 seconds.",
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
@@ -692,7 +692,7 @@ export const Route = createFileRoute("/")({
       {
         name: "twitter:description",
         content:
-          "Find contracts you can actually win. Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to live SAM.gov and city procurement opportunities — with 5-year incumbent pricing data so you know what to bid before you write a word.",
+          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you know if you qualify in 15 seconds.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },

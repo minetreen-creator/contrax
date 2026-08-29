@@ -1132,18 +1132,26 @@ function Hero({
             </p>
           </div>
 
-          {/* Contract Radar — the strongest demo CTA on the homepage. */}
+          {/* Free Professional trial — the strongest demo CTA on the homepage.
+              Contract Radar stays as a secondary/ghost link below it. */}
           <div className="mt-5">
+            <a
+              href="/signup?plan=professional"
+              onClick={() => trackEvent("hero_cta_click", "start_trial")}
+              className="mx-auto block w-full max-w-3xl rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-6 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
+            >
+              🚀 Start your 21-day FREE Professional trial →
+            </a>
+            <p className="mt-2 text-center text-xs font-medium text-blue-200/60">
+              No credit card required · Full Professional features on your first use · Auto-downgrades to free Basic after 21 days
+            </p>
             <a
               href="/radar"
               onClick={() => trackEvent("hero_cta_click", "radar_activate")}
-              className="mx-auto block w-full max-w-3xl rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-6 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
+              className="mt-2.5 block text-center text-sm font-medium text-blue-200/80 underline-offset-4 transition-colors hover:text-white hover:underline"
             >
-              📡 Activate My Contract Radar →
+              📡 Or explore live set-aside bids free with Contract Radar
             </a>
-            <p className="mt-2 text-center text-xs font-medium text-blue-200/60">
-              Get a real match score on live set-aside solicitations — your first 3 matches free, no signup needed
-            </p>
           </div>
 
           <p className="mt-5 flex items-center justify-center gap-1.5 text-sm text-blue-200/70">

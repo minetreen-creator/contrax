@@ -148,7 +148,12 @@ function BidDetailPage() {
             </article>
 
             <div className="mt-5">
-              <RfpSummaryCard bidId={bid.id} description={bid.description} />
+              <RfpSummaryCard
+                bidId={bid.id}
+                description={bid.description}
+                title={bid.title}
+                value={bid.estimated_value}
+              />
             </div>
           </>
         )}

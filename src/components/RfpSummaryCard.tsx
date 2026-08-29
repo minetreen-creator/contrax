@@ -234,10 +234,13 @@ function BriefBody({
   onRegenerate: () => void;
 }) {
   const { data, fallback, stale, sourceChanged } = state;
-  // Point 8: offer Regenerate ONLY when the summary is stale (source data
-  // changed / content hash no longer matches) or when an admin invalidated the
-  // cache. A fresh summary is never gratuitously regenerable.
-  const canRegenerate = !fallback && (stale || sourceChanged);
+  // Point 8: offer Regenerate ONLY when the summary is stale — i.e. the
+  // source-content hash / schema / model no longer matches the cache (an
+  // amendment). A fresh summary is never gratuitously regenerable, and the
+  // server refuses regeneration on a fresh cache regardless. `sourceChanged`
+  // (updated_at drifting on non-hashed fields) drives the warning banner only,
+  // never a regeneration toggle.
+  const canRegenerate = !fallback && stale;
 
   if (fallback) {
     return (

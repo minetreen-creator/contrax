@@ -113,18 +113,6 @@ function lockedResponse(
   );
 }
 
-// Idempotent self-heal: ensure the ai_summary + updated_at columns exist even if
-// the migration hasn't been applied on a given environment yet (mirrors the
-// lazy ALTER pattern documented in db/migrations/run-015.ts).
-const ENSURE_COLUMNS = `
-  ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary JSONB;
-  ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary_at TIMESTAMPTZ;
-  ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary_source_hash TEXT;
-  ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary_schema_version INT;
-  ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary_model TEXT;
-  ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary_generated_from_updated_at TIMESTAMPTZ;
-  ALTER TABLE bids ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
-`;
 
 interface BidRow {
   id: number;
@@ -239,7 +227,6 @@ async function handler({
       return Response.json({ error: "Invalid bid id" }, { status: 400 });
     }
     const db = sql();
-    await db`${db.unsafe(ENSURE_COLUMNS)}`;
     const rows = (await db`
       SELECT id, title, agency, description, category, set_aside, due_date,
              estimated_value, updated_at, ai_summary, ai_summary_at,

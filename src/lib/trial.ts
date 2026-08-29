@@ -280,7 +280,7 @@ export async function ensureTrialStarted(userId: number): Promise<string | null>
     if (r.trial_started_at) return new Date(r.trial_started_at).toISOString();
     const updated = (await sql()`
       UPDATE users
-      SET trial_started_at = NOW(), plan_tier = 'professional', updated_at = NOW()
+      SET trial_started_at = NOW(), plan_tier = 'professional'
       WHERE id = ${userId} AND trial_started_at IS NULL
         AND COALESCE(subscription_status, '') <> 'active'
       RETURNING trial_started_at

@@ -668,7 +668,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you know if you qualify in 15 seconds.",
+          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you understand the critical requirements in seconds.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
@@ -678,7 +678,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you know if you qualify in 15 seconds.",
+          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you understand the critical requirements in seconds.",
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
@@ -692,7 +692,7 @@ export const Route = createFileRoute("/")({
       {
         name: "twitter:description",
         content:
-          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you know if you qualify in 15 seconds.",
+          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you understand the critical requirements in seconds.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
@@ -1045,9 +1045,9 @@ function Hero({
 
 
           <h1 className="max-w-4xl text-3xl font-bold tracking-tight text-white sm:text-5xl lg:text-5xl">
-            Stop reading 100-page government RFPs. Know if you{" "}
+            Stop reading 100-page government RFPs.{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-              qualify in 15 seconds.
+              Understand the critical requirements in seconds.
             </span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
@@ -2008,8 +2008,8 @@ function HowItWorks() {
       title: 'Click "Get AI Executive Brief"',
       tagline: "AI extracts requirements with citations",
       description:
-        "Our model analyzes the full solicitation text and extracts mandatory contractor requirements with direct citations from the notice.",
-      href: "/radar",
+        "Our model extracts the mandatory requirements, milestones, and red flags from the solicitation description, citing the relevant text.",
+      href: "/example-brief",
       cta: "See an example brief",
       icon: (
         <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -2022,7 +2022,7 @@ function HowItWorks() {
       title: "Bid With Confidence",
       tagline: "Know your odds in seconds",
       description:
-        "Know within 15 seconds whether the job matches your capacity, licensing, and bonding before spending hours on a proposal.",
+        "Understand in seconds whether the job matches your capacity, licensing, and bonding before spending hours on a proposal.",
       href: "/signup?plan=basic",
       cta: "Start free",
       icon: (

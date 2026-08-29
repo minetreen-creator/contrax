@@ -480,6 +480,32 @@ function BriefBody({
           may be out of date.
         </div>
       )}
+      <RfpBriefSections data={data} />
+      {canRegenerate && (
+        <button
+          type="button"
+          onClick={onRegenerate}
+          className="mt-2 rounded-xl border border-amber-500/50 px-5 py-2.5 text-sm font-semibold text-amber-400 transition-colors hover:bg-amber-500/10"
+        >
+          Regenerate brief
+        </button>
+      )}
+    </div>
+  );
+}
+/**
+ * RfpBriefSections — the READ-ONLY structured body of an AI Executive Brief.
+ *
+ * Extracted from the interactive card so a public, unauthenticated example page
+ * (/example-brief) can render a real pre-generated brief (from the cached
+ * `ai_summary` JSONB) using the exact same visual treatment — summary, mandatory
+ * requirements, key dates & milestones, primary trade, and red flags, each with
+ * its grounding source excerpt. No "Generate", no allowance, no workflow
+ * connectors — this is pure presentation of an already-generated brief.
+ */
+export function RfpBriefSections({ data }: { data: RfpSummary }) {
+  return (
+    <div className="space-y-5">
       {/* Plain-English summary */}
       {data.summary && (
         <p className="text-sm leading-relaxed text-slate-200">{data.summary}</p>
@@ -585,15 +611,6 @@ function BriefBody({
             review the original notice to confirm all requirements.
           </p>
         )}
-      {canRegenerate && (
-        <button
-          type="button"
-          onClick={onRegenerate}
-          className="mt-2 rounded-xl border border-amber-500/50 px-5 py-2.5 text-sm font-semibold text-amber-400 transition-colors hover:bg-amber-500/10"
-        >
-          Regenerate brief
-        </button>
-      )}
     </div>
   );
 }

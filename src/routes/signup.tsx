@@ -97,6 +97,7 @@ const PLAN_OPTIONS: {
     bullets: [
       "Basic Solicitations Search",
       "Up to 3 saved bids",
+      "1 AI Executive Brief monthly",
       "Standard set-aside filters",
     ],
   },
@@ -106,6 +107,7 @@ const PLAN_OPTIONS: {
     price: 19,
     bullets: [
       "Unlimited saved bids",
+      "3 AI Executive Briefs monthly",
       "Daily NAICS email alerts",
       "CSV pipeline export",
     ],
@@ -114,7 +116,7 @@ const PLAN_OPTIONS: {
     slug: "professional",
     name: "Professional",
     price: 79,
-    bullets: ["Full incumbent intelligence & past pricing", "AI match scoring", "Draft tools"],
+    bullets: ["50 AI Executive Briefs monthly", "Full incumbent intelligence & past pricing", "AI match scoring", "Draft tools"],
     featured: true,
   },
   {

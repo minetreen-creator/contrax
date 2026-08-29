@@ -773,7 +773,6 @@ function Home() {
       <HealthcareTeaser />
       <Example />
       <WhoItsFor />
-      <ROICalculator />
       <CompareTeaser />
       <WaitlistSection />
       <Footer />
@@ -2204,116 +2203,6 @@ function WhoItsFor() {
             </svg>
             <h3 className="text-lg font-bold text-slate-900">Built around the set-aside journey</h3>
             <p className="mt-2 text-gray-600">Designed to help minority-, veteran-, and women-owned businesses identify and pursue the set-aside contracts their certifications make possible.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ── ROI Calculator ────────────────────────────────────────────────────────────
-
-function ROICalculator() {
-  const [hoursPerWeek, setHoursPerWeek] = useState(6);
-  const [hourlyCost, setHourlyCost] = useState(65);
-
-  const annualCost = hoursPerWeek * hourlyCost * 52;
-  const estimatedSavings = annualCost * 0.8;
-
-  return (
-    <section className="bg-gray-50 py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <span className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            ROI Calculator
-          </span>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            What&rsquo;s bid searching costing you?
-          </h2>
-          <p className="mt-4 text-lg text-gray-600">
-            See how much time and money Contrax saves your business
-          </p>
-        </div>
-
-        <div className="mt-14 grid gap-8 lg:grid-cols-2">
-          {/* Left: Inputs */}
-          <div className="space-y-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
-            {/* Slider 1: Hours spent searching weekly */}
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-700">
-                  Hours spent searching weekly
-                </label>
-                <span className="text-sm font-bold text-blue-600">{hoursPerWeek}h</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="20"
-                step="1"
-                value={hoursPerWeek}
-                onChange={(e) => setHoursPerWeek(Number(e.target.value))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-blue-600"
-              />
-              <div className="mt-1 flex justify-between text-xs text-gray-400">
-                <span>1h</span>
-                <span>20h</span>
-              </div>
-            </div>
-
-            {/* Slider 2: Internal hourly cost */}
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-700">
-                  Internal hourly cost
-                </label>
-                <span className="text-sm font-bold text-blue-600">${hourlyCost}/hr</span>
-              </div>
-              <input
-                type="range"
-                min="25"
-                max="150"
-                step="5"
-                value={hourlyCost}
-                onChange={(e) => setHourlyCost(Number(e.target.value))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-blue-600"
-              />
-              <div className="mt-1 flex justify-between text-xs text-gray-400">
-                <span>$25</span>
-                <span>$150</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Results */}
-          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 shadow-sm sm:p-8">
-            <h3 className="mb-6 text-lg font-bold text-slate-900">
-              Your Savings Breakdown
-            </h3>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-blue-100 py-3">
-                <span className="text-sm text-gray-600">Annual cost of manual searching</span>
-                <span className="text-lg font-bold text-red-500">
-                  ${annualCost.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between py-3">
-                <span className="text-sm text-gray-600">
-                  Estimated savings with Contrax (80% reduction)
-                </span>
-                <span className="text-lg font-bold text-green-600">
-                  ${estimatedSavings.toLocaleString()}
-                </span>
-              </div>
-            </div>
-
-            <a
-              href="/signup?source=roi_calc"
-              className="mt-6 block w-full rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-white shadow-md shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
-            >
-              Start Free on Basic &rarr;
-            </a>
           </div>
         </div>
       </div>

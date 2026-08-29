@@ -165,6 +165,11 @@ BEGIN
     END IF;
 END $$;
 
+-- Migration: cached AI RFP Executive Summary (JSONB) + generation timestamp.
+-- Used by /api/bids/:id/analyze to avoid re-charging the LLM on repeat views.
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary JSONB;
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary_at TIMESTAMPTZ;
+
 -- Migration: bids.source default aligns with the canonical SAM.gov source
 -- (city procurement feeds are stored under their own source values, e.g.
 -- nyc_open_data). The ALTER is a no-op when the default is already set.

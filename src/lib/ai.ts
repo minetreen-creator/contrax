@@ -19,7 +19,29 @@ export interface AIOptions {
   jsonMode?: boolean;
 }
 
-export async function callAI(messages: AIMessage[], opts: AIOptions = {}): Promise<string> {
+/**
+ * Token usage surfaced by `callAIWithUsage`. Nullable because some responses
+ * (or error paths) may not include a `usage` block — consumers must handle null.
+ */
+export interface AIUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+/** Result of `callAIWithUsage` — content plus optional token usage. */
+export interface AIResult {
+  content: string;
+  usage: AIUsage | null;
+}
+
+/**
+ * Core callAI implementation returning both the content and the response's
+ * token usage. `callAI` wraps this and returns just the string, so existing
+ * callers keep their behavior; callers that need telemetry (token usage,
+ * latency) use `callAIWithUsage` directly.
+ */
+export async function callAIWithUsage(messages: AIMessage[], opts: AIOptions = {}): Promise<AIResult> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY is not set");
   const body: Record<string, unknown> = {
@@ -38,10 +60,27 @@ export async function callAI(messages: AIMessage[], opts: AIOptions = {}): Promi
     throw new Error(`OpenAI request failed: ${err instanceof Error ? err.message : String(err)}`);
   }
   if (!response.ok) throw new Error(`OpenAI API error (${response.status}): ${(await response.text().catch(() => "")).substring(0, 300)}`);
-  const json = (await response.json()) as { choices?: { message?: { content?: unknown } }[] };
+  const json = (await response.json()) as {
+    choices?: { message?: { content?: unknown } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  };
   const content = json.choices?.[0]?.message?.content;
   if (typeof content !== "string" || !content.trim()) throw new Error("OpenAI returned an empty response");
-  return content;
+  const u = json.usage;
+  const usage: AIUsage | null =
+    u && typeof u.prompt_tokens === "number" && typeof u.completion_tokens === "number"
+      ? {
+          promptTokens: u.prompt_tokens,
+          completionTokens: u.completion_tokens,
+          totalTokens: typeof u.total_tokens === "number" ? u.total_tokens : u.prompt_tokens + u.completion_tokens,
+        }
+      : null;
+  return { content, usage };
+}
+
+export async function callAI(messages: AIMessage[], opts: AIOptions = {}): Promise<string> {
+  const result = await callAIWithUsage(messages, opts);
+  return result.content;
 }
 
 // In-process memoization for embeddings: the OpenAI embedding of a given text

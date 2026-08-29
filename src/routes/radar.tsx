@@ -864,6 +864,16 @@ function RadarCard({
           )}
         </p>
 
+        {/* AI RFP Executive Summary — deep-link to the per-bid detail page that
+            hosts RfpSummaryCard (logged-in users generate the brief there). */}
+        <a
+          href={`/bid/${match.id}`}
+          onClick={() => trackEvent("radar_brief_cta", String(match.id))}
+          className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/20"
+        >
+          ✦ Get the AI Executive Brief <span aria-hidden="true">→</span>
+        </a>
+
         {/* Why the business qualifies */}
         {match.qualifications.length > 0 && (
           <Section title="Why you qualify">

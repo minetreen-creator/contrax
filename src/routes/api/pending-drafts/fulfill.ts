@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { generateProposalDraft } from "~/lib/proposal-draft";
+import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
 /**
@@ -93,6 +94,19 @@ async function handler({ request }: { request: Request }) {
       estimated_value: null,
     };
 
+    // PER-TRIAL DRAFT CAP (owner): an ACTIVE Professional-trial user gets 1
+    // proposal draft for the whole trial. If they've used it, reject with a
+    // clear upgrade prompt (the row stays awaiting_profile for paid retry).
+    const trialDraft = await checkTrialCap(user.id, "drafts");
+    if (trialDraft.trialActive && !trialDraft.allowed) {
+      return Response.json(
+        {
+          error:
+            "You've used your 1 trial proposal draft. Upgrade to Professional to keep drafting proposals.",
+        },
+        { status: 403 },
+      );
+    }
     const { draftText, citations } = await generateProposalDraft(syntheticBid, profile);
 
     await sql()`
@@ -102,6 +116,8 @@ async function handler({ request }: { request: Request }) {
           error = NULL, fulfilled_at = NOW()
       WHERE id = ${pending.id}
     `;
+    // Consume ONE unit against the per-trial ledger on a successful generation.
+    await consumeTrial(user.id, "drafts");
 
     return Response.json({
       id: pending.id,

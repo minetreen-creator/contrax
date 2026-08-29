@@ -228,3 +228,67 @@ export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Pr
   if (!user) return { active: false, daysLeft: 0, expired: false, endsAt: null, planTier: null, fullAccess: false };
   return loadUserTrialStatus(user.id);
 });
+
+/**
+ * LAZY TRIAL START (owner requirement).
+ *
+ * The 21-day trial is an explicit PROFESSIONAL trial. The clock does NOT begin
+ * at account signup — it begins on the user's FIRST use of a premium feature.
+ * Until they touch a premium feature they are effectively free Basic and the
+ * clock is not running.
+ *
+ * This helper sets `trial_started_at = COALESCE(trial_started_at, NOW())` and
+ * flips `plan_tier = 'professional'` on first premium use (for a non-paying
+ * user who hasn't started yet), then returns the (now-)active trial start time.
+ *
+ * Why `plan_tier = 'professional'`: during the active trial the user must pass
+ * the Professional-tier gates (hasProfessionalAccess / PlanGate) while the
+ * Red-Team Agency features must NOT unlock (professional < agency on the
+ * ladder). Setting plan_tier='professional' achieves exactly that — the gates
+ * already require `!expired`, so when the 21 days pass the same plan_tier
+ * stops granting premium (downgrade to Basic) with NO deletion of saved work.
+ *
+ * Reentrancy / semantics:
+ *  - Already set (or already paid) → no-op; returns the existing start.
+ *  - Paid user (subscription_status = 'active') → never starts a trial.
+ *  - A user who already consumed their trial and expired is NOT restarted
+ *    (COALESCE keeps the old timestamp → still expired).
+ *
+ * Call this at the START of each premium action (generate executive brief,
+ * score, proposal draft, incumbent reveal). Fail-open: a DB blip never blocks
+ * the premium action.
+ *
+ * @returns ISO timestamp of the trial start, or null when no trial applies.
+ */
+export async function ensureTrialStarted(userId: number): Promise<string | null> {
+  try {
+    const rows = (await sql()`
+      SELECT plan_tier, subscription_status, trial_started_at
+      FROM users WHERE id = ${userId}
+    `) as Array<{
+      plan_tier?: string | null;
+      subscription_status?: string | null;
+      trial_started_at?: string | Date | null;
+    }>;
+    const r = rows[0];
+    if (!r) return null;
+    // A paying (active-subscription) user has no trial to start.
+    if (r.subscription_status === "active") return null;
+    // Demo / admin internal accounts should not lazily start trials.
+    if (r.plan_tier === "demo") return null;
+    // If the trial already started, reuse it (expired stays expired).
+    if (r.trial_started_at) return new Date(r.trial_started_at).toISOString();
+    const updated = (await sql()`
+      UPDATE users
+      SET trial_started_at = NOW(), plan_tier = 'professional', updated_at = NOW()
+      WHERE id = ${userId} AND trial_started_at IS NULL
+        AND COALESCE(subscription_status, '') <> 'active'
+      RETURNING trial_started_at
+    `) as Array<{ trial_started_at: Date }>;
+    return updated.length ? new Date(updated[0].trial_started_at).toISOString() : null;
+  } catch (e) {
+    // Fail-open: never block a premium action because the trial-start write failed.
+    console.error("[trial] ensureTrialStarted failed (fail-open):", e);
+    return null;
+  }
+}

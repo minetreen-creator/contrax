@@ -11,6 +11,7 @@ import { getSavedBidIds } from "~/lib/saved-matches";
 import { trackEvent } from "~/lib/track";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { checkTrial, hasProfessionalAccess, type TrialStatus } from "~/lib/trial";
+import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
 
 // Milestone Grant — logged-out visitors accumulate a cross-tab counter of
 // teased incumbent-intel card views (localStorage); when the counter reaches
@@ -174,6 +175,23 @@ const getIncumbentIntel = createServerFn({ method: "GET" }).handler(async ({ dat
   return getFPDSIntel(data.naicsCode, data.agency, data.title);
 });
 
+// PER-TRIAL INCUMBENT CAP (owner): during an ACTIVE Professional trial the user
+// may reveal incumbent intelligence on up to 3 opportunities (see
+// src/lib/trial-usage.ts). These server fns let the client check the remaining
+// looks and consume one on each successful reveal. Paid Professional/Agency
+// users and admins are unaffected (no trial cap applies outside the trial).
+const getTrialIncumbentStatus = createServerFn({ method: "GET" }).handler(async (): Promise<{ active: boolean; remaining: number }> => {
+  const user = await getCurrentUser();
+  if (!user) return { active: false, remaining: 3 };
+  const cap = await checkTrialCap(user.id, "incumbent");
+  return { active: cap.trialActive, remaining: cap.remaining };
+});
+const consumeTrialIncumbent = createServerFn({ method: "POST" }).handler(async (): Promise<void> => {
+  const user = await getCurrentUser();
+  if (!user) return;
+  await consumeTrial(user.id, "incumbent");
+});
+
 // ── Route ──────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/awards")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -256,6 +274,15 @@ function AwardsPage() {
   // is gated exactly like a logged-out visitor now). Admins/demo/pro users pass.
   const [trial, setTrial] = useState<TrialStatus | null>(null);
   useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
+  // Per-trial incumbent looks remaining (only meaningful while trial.active).
+  // null = still loading / not a trial user. When the trial cap (3) is
+  // exhausted, further reveals are blocked with an upgrade prompt.
+  const [trialIncumbentLeft, setTrialIncumbentLeft] = useState<number | null>(null);
+  const [trialIncumbentBlockedId, setTrialIncumbentBlockedId] = useState<number | null>(null);
+  useEffect(() => {
+    if (!trial?.active) { setTrialIncumbentLeft(null); return; }
+    getTrialIncumbentStatus().then((s) => setTrialIncumbentLeft(s.remaining)).catch(() => {});
+  }, [trial]);
   // Session-scoped "first one's free" grant: the FIRST intel card a logged-out
   // visitor expands in a tab-session shows full data (no wall). sessionStorage
   // persists across client-side nav and refresh within the tab; a new tab grants
@@ -316,9 +343,27 @@ function AwardsPage() {
   async function loadIntel(award: Award) {
     if (loadingIntel === award.id) return;
     if (intel[award.id] !== undefined) { setExpandedId(award.id); return; }
+    // PER-TRIAL INCUMBENT CAP: a logged-in user inside an ACTIVE Professional
+    // trial may reveal incumbent intel on up to 3 opportunities. Once
+    // exhausted, further reveals are blocked with an upgrade prompt (the card
+    // is NOT shown as full data — nothing is fabricated).
+    if (trial?.active && trialIncumbentLeft === 0) {
+      setTrialIncumbentBlockedId(award.id);
+      setExpandedId(award.id);
+      trackEvent("incumbent_trial_cap_view", String(award.id), "/awards");
+      return;
+    }
     setLoadingIntel(award.id); setExpandedId(award.id);
     const result = await getIncumbentIntel({ data: { naicsCode: award.naics_code, agency: award.agency, title: award.title } });
     setIntel((prev) => ({ ...prev, [award.id]: result })); setLoadingIntel(null);
+    // Consume one trial incumbent look only on a successful reveal by a trial
+    // user. Data-less cards (no FPDS history) never consume (mirrors the
+    // check+write-in-same-block pattern below so in-flight fetches can't
+    // double-consume; consume is idempotent server-side per instance).
+    if (trial?.active && currentUser && result !== null && trialIncumbentLeft != null && trialIncumbentLeft > 0) {
+      await consumeTrialIncumbent();
+      setTrialIncumbentLeft((prev) => (prev != null ? prev - 1 : prev));
+    }
     // Logged-out users: the first expanded card WITH REAL DATA is granted free
     // (full data, no wall). Data-less cards (no FPDS history) never consume the
     // grant and fire no events. Every later data card shows the tease wall —
@@ -557,7 +602,20 @@ function AwardsPage() {
                 {isExpanded && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 space-y-5">
                     {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No matching award history found for this agency and opportunity title.</p>}
-                    {intel[award.id] && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} title={award.title} agency={award.agency}
+                    {trialIncumbentBlockedId === award.id && (
+                      <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 text-center">
+                        <p className="text-sm font-semibold text-slate-800">You&rsquo;ve used your 3 trial incumbent looks</p>
+                        <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">
+                          Your 21-day Professional trial includes incumbent intelligence on 3 opportunities.
+                          Upgrade to Professional for unlimited incumbent intel &amp; past pricing.
+                        </p>
+                        <a href="/upgrade" onClick={() => trackEvent("incumbent_trial_cap_upgrade", String(award.id), "/awards")}
+                          className="mt-3 inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
+                          Upgrade to Professional →
+                        </a>
+                      </div>
+                    )}
+                    {intel[award.id] && trialIncumbentBlockedId !== award.id && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} title={award.title} agency={award.agency}
                       freeReveal={!currentUser && (freeRevealAwardId === award.id || milestoneRevealAwardId === award.id)}
                       milestoneOffer={!currentUser && milestoneOfferAwardId === award.id}
                       proAccess={hasProfessionalAccess(trial, currentUser)}

@@ -205,7 +205,7 @@ export function IncumbentCard({
         >
           Unlock full name &amp; pricing history
         </a>
-        <p className="text-xs text-slate-400">Free 21-day trial · No credit card required</p>
+        <p className="text-xs text-slate-400">Free 21-day Professional trial · No credit card required</p>
       </div>
     )
   ) : null;

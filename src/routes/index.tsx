@@ -1683,7 +1683,7 @@ function ProductShowcase() {
             <p className="text-2xl font-bold text-white">Your certification is your edge. Put it to work.</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-300">
               Start free — set-aside-matched opportunities, RFP summaries, AI proposal drafting, and
-              certification deadline tracking, all in one place. 21-day free trial.
+              certification deadline tracking, all in one place. 21-day Professional trial — no credit card.
             </p>
           </div>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -2323,7 +2323,7 @@ function Pricing() {
             Start small and scale up as your contracting pipeline grows. No long-term contracts
             required.
           </p>
-          <p className="mt-3 text-sm font-medium text-slate-500">Start free on Basic — no card required. Paid plans include a 21-day free trial. Cancel anytime.</p>
+          <p className="mt-3 text-sm font-medium text-slate-500">Start free on Basic — no card required. Your 21-day Professional trial starts on your first premium action. Cancel anytime.</p>
         </div>
 
         <div className="mt-14 grid gap-8 lg:grid-cols-3">
@@ -2416,7 +2416,7 @@ function Pricing() {
         </p>
         <p className="mt-3 text-center">
           <a href="/signup" onClick={() => trackEvent("hero_cta_click", "pricing")} className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
-            Or start your free trial →
+            Or start your 21-day Professional trial →
           </a>
         </p>
       </div>

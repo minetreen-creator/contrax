@@ -228,7 +228,12 @@ async function insertBidsBatch(
        naics_code_source = CASE
          WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
          ELSE bids.naics_code_source
-       END
+       END,
+       -- Source-freshness: advance ONLY when the compute-saver guard below
+       -- concludes a real change (the WHERE clause gates the whole UPDATE, so
+       -- no-op re-syncs leave updated_at untouched). Feeds the AI Executive
+       -- Brief's generated_from_updated_at source-freshness comparison.
+       updated_at = NOW()
      -- Compute saver: skip the rewrite when nothing the UPDATE would write
      -- actually changes. PostgreSQL rewrites the tuple (WAL + index churn)
      -- for EVERY DO UPDATE conflict even when every assigned value equals the
@@ -315,7 +320,8 @@ async function insertBid(
       naics_code_source = CASE
         WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
         ELSE bids.naics_code_source
-      END
+      END,
+      updated_at = NOW()
     -- Same compute saver as the batch path: skip no-op rewrites of unchanged
     -- bids. Dry: a skipped conflict returns no row (result.length === 0), so
     -- it is not treated as new.
@@ -422,6 +428,10 @@ export async function runSync(): Promise<SyncResult> {
   // SAM.gov) vs 'inferred' (heuristic tag from title/description). Used by the
   // honest-enforcement path so any surfaced NAICS can be labeled as inferred.
   await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code_source TEXT`;
+  // Source-freshness for the AI Executive Brief (idempotent self-heal mirrors
+  // db/migrations/015_ai_summary.sql). Synced by updated_at = NOW() in the
+  // upsert paths above whenever a real change is detected.
+  await sql`ALTER TABLE bids ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()`;
 
   // Functional (non-unique) index backing the cross-source dedup guard in
   // insertBidsBatch / insertBid, whose WHERE NOT EXISTS filters on

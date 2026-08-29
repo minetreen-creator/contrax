@@ -4,43 +4,67 @@
  * Renders an instant executive breakdown of a single bid so a contractor can
  * assess an opportunity without reading the full solicitation:
  *   - "AI Executive Brief" badge + plain-English summary
- *   - Mandatory requirements (checkmarks / warning badges)
+ *   - Mandatory requirements with grounding source quotes
  *   - Key milestones / deadlines highlighted by urgency (red = overdue,
- *     amber = near, neutral otherwise)
+ *     amber = near, neutral otherwise); a null/absent date renders "Not specified"
  *   - Primary trade category
- *   - Red flags (common contractor disqualifiers)
+ *   - Red flags with grounding source quotes
  *
- * When no summary exists yet, shows a clean "Generate Instant Brief" button
- * with a loading skeleton that POSTs to /api/bids/:id/analyze and renders the
- * result. The endpoint (a) requires an authenticated session, (b) rate-limits
- * the paid LLM call, (c) returns a cached record if one already exists, and
- * (d) falls back to the raw bid description on any LLM/Zod failure — so this
- * component is never broken by a failed analysis.
+ * Honors the 2026-08-28 hardening spec:
+ *   - Shows a stale warning + "Regenerate" affordance ONLY when the summary is
+ *     stale (source data / content hash changed) — fresh summaries are never
+ *     gratuitously regenerated, and "Generate Instant Brief" only appears when
+ *     there is NO summary yet.
+ *   - Renders missing dates as "Not specified" (never a fabricated date).
  */
 import { useState, type ReactNode } from "react";
 import { trackEvent } from "~/lib/track";
 
 export interface RfpMilestone {
   event: string;
-  date: string;
+  date: string | null;
+  source: string;
+}
+
+export interface RfpItem {
+  text: string;
+  source: string;
 }
 
 export interface RfpSummary {
   summary: string;
-  mandatory_requirements: string[];
+  mandatory_requirements: RfpItem[];
   key_milestones: RfpMilestone[];
   trade_category: string;
-  red_flags: string[];
+  red_flags: RfpItem[];
+}
+
+export interface RfpBriefResponse {
+  data?: RfpSummary;
+  fallback?: boolean;
+  cached?: boolean;
+  stale?: boolean;
+  generated_from_updated_at?: string | null;
+  source_updated_at?: string | null;
 }
 
 type CardState =
-  | { status: "idle" } // not yet generated → show the "Generate Instant Brief" button
-  | { status: "loading" }
-  | { status: "ready"; data: RfpSummary; fallback: boolean; cached: boolean }
+  | { status: "idle" } // no summary yet → "Generate Instant Brief"
+  | { status: "loading"; regenerate: boolean }
+  | {
+      status: "ready";
+      data: RfpSummary;
+      fallback: boolean;
+      cached: boolean;
+      /** true when the content hash / schema / model no longer matches the cache. */
+      stale: boolean;
+      /** true when the source row's updated_at advanced past generation time. */
+      sourceChanged: boolean;
+    }
   | { status: "error"; message: string };
 
 /** Days from today until a date; negative = past. Returns null when unparseable. */
-function daysUntil(dateStr: string): number | null {
+function daysUntil(dateStr: string | null): number | null {
   if (!dateStr) return null;
   const raw = String(dateStr).trim();
   // Prefer an ISO/YYYY-MM-DD date; otherwise attempt a strptime-style parse.
@@ -53,7 +77,7 @@ function daysUntil(dateStr: string): number | null {
 }
 
 /** Urgency tone for a milestone based on how close its date is. */
-function milestoneTone(dateStr: string): "red" | "amber" | "neutral" {
+function milestoneTone(dateStr: string | null): "red" | "amber" | "neutral" {
   const days = daysUntil(dateStr);
   if (days === null) return "neutral";
   if (days < 0) return "red"; // missed / overdue
@@ -83,13 +107,14 @@ const TONE_CLASS: Record<
 export function RfpSummaryCard({ bidId }: { bidId: number }) {
   const [state, setState] = useState<CardState>({ status: "idle" });
 
-  const generate = async () => {
-    trackEvent("rfp_brief_generate", String(bidId));
-    setState({ status: "loading" });
+  const generate = async (regenerate = false) => {
+    trackEvent(regenerate ? "rfp_brief_regenerate" : "rfp_brief_generate", String(bidId));
+    setState({ status: "loading", regenerate });
     try {
       const res = await fetch(`/api/bids/${bidId}/analyze`, {
         method: "POST",
         headers: { "content-type": "application/json" },
+        body: regenerate ? JSON.stringify({ regenerate: true }) : undefined,
       });
       if (!res.ok) {
         let msg = "We couldn't analyze this solicitation right now.";
@@ -105,11 +130,7 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
         setState({ status: "error", message: msg });
         return;
       }
-      const json = (await res.json()) as {
-        data?: RfpSummary;
-        fallback?: boolean;
-        cached?: boolean;
-      };
+      const json = (await res.json()) as RfpBriefResponse;
       if (!json.data) {
         setState({
           status: "error",
@@ -117,12 +138,19 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
         });
         return;
       }
+      const sourceChanged = !!(
+        json.generated_from_updated_at &&
+        json.source_updated_at &&
+        json.generated_from_updated_at !== json.source_updated_at
+      );
       trackEvent("rfp_brief_result", String(bidId), json.fallback ? "fallback" : "ready");
       setState({
         status: "ready",
         data: json.data,
         fallback: !!json.fallback,
         cached: !!json.cached,
+        stale: !!json.stale,
+        sourceChanged,
       });
     } catch {
       setState({
@@ -138,8 +166,12 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
         <p className="text-xs font-semibold uppercase tracking-wide text-amber-400">
           ✦ AI Executive Brief
         </p>
-        {state.status === "ready" && state.cached && (
-          <span className="text-[11px] text-slate-500">cached</span>
+        {state.status === "ready" && !state.fallback && (
+          <span
+            className={`text-[11px] ${state.stale ? "text-amber-400" : "text-slate-500"}`}
+          >
+            {state.stale ? "stale — source updated" : state.cached ? "cached" : "generated"}
+          </span>
         )}
       </div>
 
@@ -153,7 +185,7 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
             </p>
             <button
               type="button"
-              onClick={generate}
+              onClick={() => generate(false)}
               className="mt-4 w-full rounded-xl bg-amber-500 px-6 py-3.5 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98] sm:w-auto"
             >
               Generate Instant Brief →
@@ -168,7 +200,7 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
             <div className="h-4 w-full animate-pulse rounded bg-slate-800" />
             <div className="h-4 w-2/3 animate-pulse rounded bg-slate-800" />
             <p className="pt-1 text-center text-xs text-slate-500">
-              Reading the solicitation…
+              {state.regenerate ? "Regenerating the brief…" : "Reading the solicitation…"}
             </p>
           </div>
         )}
@@ -180,7 +212,7 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
             </p>
             <button
               type="button"
-              onClick={generate}
+              onClick={() => generate(false)}
               className="mt-4 rounded-xl border border-amber-500/50 px-5 py-2.5 text-sm font-semibold text-amber-400 transition-colors hover:bg-amber-500/10"
             >
               Try again
@@ -188,7 +220,7 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
           </div>
         )}
 
-        {state.status === "ready" && <BriefBody state={state} />}
+        {state.status === "ready" && <BriefBody state={state} onRegenerate={() => generate(true)} />}
       </div>
     </section>
   );
@@ -196,10 +228,16 @@ export function RfpSummaryCard({ bidId }: { bidId: number }) {
 
 function BriefBody({
   state,
+  onRegenerate,
 }: {
   state: Extract<CardState, { status: "ready" }>;
+  onRegenerate: () => void;
 }) {
-  const { data, fallback } = state;
+  const { data, fallback, stale, sourceChanged } = state;
+  // Point 8: offer Regenerate ONLY when the summary is stale (source data
+  // changed / content hash no longer matches) or when an admin invalidated the
+  // cache. A fresh summary is never gratuitously regenerable.
+  const canRegenerate = !fallback && (stale || sourceChanged);
 
   if (fallback) {
     return (
@@ -216,6 +254,17 @@ function BriefBody({
 
   return (
     <div className="space-y-5">
+      {/* Point 2: warn when the source data changed after generation. */}
+      {sourceChanged && (
+        <div
+          role="status"
+          className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-300"
+        >
+          ⚠ Source data has changed since this brief was generated. Some details
+          may be out of date.
+        </div>
+      )}
+
       {/* Plain-English summary */}
       {data.summary && (
         <p className="text-sm leading-relaxed text-slate-200">{data.summary}</p>
@@ -224,13 +273,20 @@ function BriefBody({
       {/* Mandatory requirements */}
       <Part title="Mandatory requirements">
         {data.mandatory_requirements.length > 0 ? (
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {data.mandatory_requirements.map((r, i) => (
-              <li key={i} className="flex gap-2 text-sm text-slate-300">
-                <span className="text-emerald-400" aria-hidden="true">
-                  ✓
-                </span>
-                <span>{r}</span>
+              <li key={i} className="text-sm text-slate-300">
+                <div className="flex gap-2">
+                  <span className="text-emerald-400" aria-hidden="true">
+                    ✓
+                  </span>
+                  <span>{r.text}</span>
+                </div>
+                {r.source && (
+                  <p className="mt-1 pl-6 text-xs italic text-slate-500">
+                    “{r.source}”
+                  </p>
+                )}
               </li>
             ))}
           </ul>
@@ -249,17 +305,24 @@ function BriefBody({
               const tone = milestoneTone(m.date);
               const cls = TONE_CLASS[tone];
               return (
-                <li key={i} className="flex items-center gap-2 text-sm">
-                  <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${cls.dot}`}
-                    aria-hidden="true"
-                  />
-                  <span className="text-slate-200">{m.event}</span>
-                  <span
-                    className={`ml-auto shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium ${cls.chip}`}
-                  >
-                    {m.date || "date TBD"}
-                  </span>
+                <li key={i} className="text-sm">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`h-2 w-2 shrink-0 rounded-full ${cls.dot}`}
+                      aria-hidden="true"
+                    />
+                    <span className="text-slate-200">{m.event}</span>
+                    <span
+                      className={`ml-auto shrink-0 rounded-md border px-2 py-0.5 text-xs font-medium ${cls.chip}`}
+                    >
+                      {m.date || "Not specified"}
+                    </span>
+                  </div>
+                  {m.source && (
+                    <p className="mt-1 pl-4 text-xs italic text-slate-500">
+                      “{m.source}”
+                    </p>
+                  )}
                 </li>
               );
             })}
@@ -283,13 +346,20 @@ function BriefBody({
       {/* Red flags / disqualifiers */}
       {data.red_flags.length > 0 && (
         <Part title="Red flags to check">
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {data.red_flags.map((r, i) => (
-              <li key={i} className="flex gap-2 text-sm text-rose-200">
-                <span className="shrink-0 font-bold text-rose-400" aria-hidden="true">
-                  ⚠
-                </span>
-                <span>{r}</span>
+              <li key={i} className="text-sm text-rose-200">
+                <div className="flex gap-2">
+                  <span className="shrink-0 font-bold text-rose-400" aria-hidden="true">
+                    ⚠
+                  </span>
+                  <span>{r.text}</span>
+                </div>
+                {r.source && (
+                  <p className="mt-1 pl-6 text-xs italic text-rose-300/60">
+                    “{r.source}”
+                  </p>
+                )}
               </li>
             ))}
           </ul>
@@ -305,6 +375,16 @@ function BriefBody({
             review the original notice to confirm all requirements.
           </p>
         )}
+
+      {canRegenerate && (
+        <button
+          type="button"
+          onClick={onRegenerate}
+          className="mt-2 rounded-xl border border-amber-500/50 px-5 py-2.5 text-sm font-semibold text-amber-400 transition-colors hover:bg-amber-500/10"
+        >
+          Regenerate brief
+        </button>
+      )}
     </div>
   );
 }

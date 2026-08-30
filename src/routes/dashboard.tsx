@@ -9,6 +9,7 @@ import { trackBid, untrackBid } from "~/routes/tracking";
 import { isHealthcareBid, type License } from "~/lib/healthcare";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import { RadarLoginNotify } from "~/components/RadarLoginNotify";
+import { SavedRadarMatches } from "~/components/SavedRadarMatches";
 import { TrialChecklist } from "~/components/TrialChecklist";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
 import { GettingStarted } from "~/components/GettingStarted";
@@ -1545,6 +1546,10 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
         {/* Radar login notification — "your radar matches are waiting" (in-app,
             NOT email). Shown on login and after until dismissed/saved. */}
         <RadarLoginNotify />
+        {/* Saved radar matches (account-linked, in-app — NOT email): for a
+            logged-in user whose email matches an unfulfilled radar_saves row,
+            recompute + surface their current matching bids. */}
+        <SavedRadarMatches />
 
         {/* Deadline Alert Banner */}
         <DeadlineAlertBanner count={urgentTrackedCount} />

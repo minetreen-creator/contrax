@@ -14,7 +14,8 @@
     "sync-far": "bun run src/jobs/far-sync.ts",
     "check:routes": "bun run scripts/check-routes.mjs",
     "format": "prettier --write .",
-    "backfill-naics": "bun run src/jobs/backfill-naics.ts"
+    "backfill-naics": "bun run src/jobs/backfill-naics.ts",
+    "send-radar-alerts": "bun run scripts/send-radar-alerts.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

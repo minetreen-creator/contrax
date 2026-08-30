@@ -1,0 +1,41 @@
+name: Radar alert email (daily)
+# Fulfills the "Save your matches" promise (PR #276): emails each opted-in
+# Contract Radar lead about NEW set-aside solicitations matching their saved
+# criteria, once per day. Sends NOTHING while there are 0 real opt-ins, and
+# never emails an address that has unsubscribed.
+#
+# Required secrets (same values as sync-bids.yml — no new secrets):
+#   DATABASE_URL    — Neon Postgres connection string. REQUIRED; the run fails
+#                     without it.
+#   RESEND_API_KEY  — optional; when absent the job logs a warning and exits 0
+#                     WITHOUT sending or marking anything (fail-open).
+on:
+  schedule:
+    # Daily, 09:00 UTC (after the 04:00 AND 08:00 bid-sync feeds land, so the
+    # alert run sees the newest bids). One email per lead per day max — no spam.
+    - cron: "0 9 * * *"
+  workflow_dispatch:
+concurrency:
+  group: radar-alerts
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  alert:
+    name: Send radar alerts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Send radar alerts
+        run: bun run send-radar-alerts

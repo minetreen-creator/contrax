@@ -1960,7 +1960,7 @@ function HowItWorks() {
       title: "Search Your Trade",
       tagline: "Find closing RFPs in your industry",
       description:
-        "Enter your industry (HVAC, IT, Fleet, A&E, Roofing) to see active municipal and commercial RFPs closing soon.",
+        "Enter your industry (HVAC, IT, Fleet, A&E, Roofing) to see active municipal, state, and federal RFPs closing soon.",
       href: "/radar",
       cta: "Search the market",
       icon: (

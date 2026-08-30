@@ -41,6 +41,20 @@ export async function generateBidAlerts(bidIds: number[]): Promise<number> {
       const inserted = await sql()`INSERT INTO bid_alerts (user_id,bid_id,alert_type) VALUES (${p.user_id},${bidId},'new_match') ON CONFLICT (user_id,bid_id,alert_type) DO NOTHING RETURNING id`;
       if (inserted.length) {
         created++;
+        // Record an activation funnel event (Visitor Journeys "Activated" =
+        // first alert creation). Server-side, so it carries user_id (no
+        // visitor_id at sync time); the journeys query still counts it as
+        // activation for the linked user. Fire-and-log, deduped indirectly by
+        // the ON CONFLICT gate above (only NEW alerts reach this block).
+        try {
+          await sql()`
+            INSERT INTO funnel_events (event_name, label, path, user_agent, user_id)
+            VALUES ('alert_created', ${String(bidId)}, 'sync', 'bid-alerts-job', ${String(p.user_id)})
+            ON CONFLICT DO NOTHING
+          `;
+        } catch (alertErr) {
+          console.error("💬 Failed to record alert_created funnel event:", (alertErr as Error).message);
+        }
         // Fire webhooks for NEW matches only (the alert insert is the dedupe gate).
         webhookEvents.push({
           userId: Number(p.user_id),

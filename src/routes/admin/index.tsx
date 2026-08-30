@@ -355,6 +355,30 @@ function AdminPage() {
       <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
         <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
 
+        {/* Visitor Journeys Section */}
+        <section>
+          <a
+            href="/admin/journeys"
+            className="group flex flex-col gap-1 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white p-6 shadow-sm transition-colors hover:border-indigo-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-2xl shadow-sm">
+                🧭
+              </span>
+              <div>
+                <p className="text-lg font-bold text-slate-900">Visitor Journeys</p>
+                <p className="mt-0.5 text-sm text-slate-600">
+                  One row per real person/session with a timestamped timeline, plus a unified
+                  Qualified → Radar → Signup → Activated → Paid funnel.
+                </p>
+              </div>
+            </div>
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-indigo-700 group-hover:text-indigo-800 sm:mt-0">
+              Open journeys <span aria-hidden="true">&rarr;</span>
+            </span>
+          </a>
+        </section>
+
         {/* Loss Radar Section */}
         <section>
           <a

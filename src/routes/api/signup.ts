@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { setCookie } from "@tanstack/react-start/server";
 import { sql } from "~/db";
 import { SESSION_COOKIE } from "~/lib/auth";
+import { backfillVisitorIdentity } from "~/lib/identity-backfill";
 import { hashPassword } from "~/lib/password";
 import { isBlockedIp } from "~/lib/request-ip";
 import {
@@ -19,25 +20,17 @@ const SIGNUP_EMAIL_LIMIT = 5; // creations per email per hour
 const SIGNUP_EMAIL_WINDOW = 60 * 60;
 
 /**
- * Ties a visitor's entire pre-signup anonymous funnel journey to the newly
- * created account, scoped to the exact triggering visitor_id.
+ * Ties a visitor's entire pre-signup anonymous journey (funnel_events AND
+ * page_views) to the newly created account, scoped to the exact triggering
+ * visitor_id. Delegates to the shared helper (src/lib/identity-backfill.ts) so
+ * signup / login / OAuth all backfill on both analytics tables consistently.
  *
  * FAIL-OPEN: this is genuinely best-effort. It runs AFTER the user + session
  * are created and must be called inside a try/catch (see the signup handler) so
- * a failure here can never flip a successful signup into an HTTP 500. The
- * schema-guard statements (ALTER TABLE … ADD COLUMN IF NOT EXISTS, CREATE
- * INDEX IF NOT EXISTS) are idempotent — they are cheap no-ops once the columns
- * / index exist, and only do work on a fresh or legacy DB. The UPDATE is the
- * actual per-signup work that ties anonymous funnel rows to the account.
+ * a failure here can never flip a successful signup into an HTTP 500.
  */
 async function backfillFunnelIdentity(userId: number, userEmail: string, visitorId: string) {
-  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_id TEXT`;
-  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_email TEXT`;
-  await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_vid ON funnel_events (visitor_id)`;
-  await sql()`UPDATE funnel_events
-    SET user_id = ${String(userId)}, user_email = ${userEmail}
-    WHERE visitor_id = ${visitorId}
-      AND (user_id IS NULL OR user_id = '')`;
+  await backfillVisitorIdentity(sql, userId, userEmail, visitorId);
 }
 
 async function handler({ request }: { request: Request }) {

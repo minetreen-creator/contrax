@@ -6,6 +6,8 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { US_STATES } from "~/lib/states";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
+import { trackingIds } from "~/lib/visitor";
+import { getTrackingUser } from "~/lib/identity";
 import { SHOW_FREE_INCUMBENT } from "~/lib/radar-config";
 import type { FPDSIntel } from "~/lib/fpds";
 import {
@@ -799,6 +801,20 @@ function RadarLanding() {
                 <SignupGate certLabel={scan.certLabel} totalFound={scan.matches.length} />
               </div>
             )}
+            {/* "Save your matches" — anonymous email opt-in (option A). Shows only
+                for ANONYMOUS visitors AFTER they've engaged the free matches
+                (revealed >= 1), is optional/dismissible, never a wall, and requires
+                no account. Converts the bounce dead-end into an opted-in contact. */}
+            {!getTrackingUser() && scan.matches.length > 0 && revealed >= 1 && (
+              <SaveMatchesCard
+                certLabel={scan.certLabel}
+                trade={trade}
+                state={state}
+                cert={cert ?? ""}
+                sizePref={sizePref ?? ""}
+                matchedCount={scan.matches.length}
+              />
+            )}
           </section>
         )}
       </div>
@@ -1059,5 +1075,168 @@ function SignupGate({ certLabel, totalFound }: { certLabel: string; totalFound: 
         AI match scoring &amp; draft tools are on Professional.
       </p>
     </div>
+  );
+}
+
+/**
+ * "Save your matches" — anonymous email opt-in (option A, owner-approved).
+ *
+ * Shown ONLY to anonymous visitors (never signed-in) AFTER they've engaged the
+ * free radar matches. Low-friction: just an email (phone optional), no account.
+ * Submitting creates a REAL row in `radar_saves` (unique on email, ON CONFLICT
+ * update) storing the visitor's radar criteria so a future alert job can email
+ * them when NEW matching bids open. Honest copy — no bait-and-switch, no claim
+ * about a delivery schedule we haven't built. Fires the `radar_save` funnel
+ * event on success so we can measure this capture against the FB drop-off.
+ */
+function SaveMatchesCard({
+  certLabel,
+  trade,
+  state,
+  cert,
+  sizePref,
+  matchedCount,
+}: {
+  certLabel: string;
+  trade: string;
+  state: string;
+  cert: string;
+  sizePref: string;
+  matchedCount: number;
+}) {
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
+  const [dismissed, setDismissed] = useState(false);
+  const [error, setError] = useState("");
+
+  if (dismissed) return null;
+
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const submit = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    const normalized = email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(normalized)) {
+      setError("Please enter a valid email address.");
+      setStatus("error");
+      return;
+    }
+    setError("");
+    setStatus("submitting");
+    const ids = trackingIds();
+    try {
+      const res = await fetch("/api/radar-save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: normalized,
+          phone: phone.trim() || undefined,
+          trade: trade || undefined,
+          state: state || undefined,
+          cert: cert || undefined,
+          sizePref: sizePref || undefined,
+          matchedCount,
+          visitor_id: ids.visitor_id || undefined,
+          visit_id: ids.visit_id || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as { success?: boolean } | null;
+      if (!res.ok || !data?.success) {
+        setStatus("error");
+        setError("Something went wrong. Please try again.");
+        return;
+      }
+      trackEvent("radar_save", certLabel);
+      setStatus("done");
+    } catch {
+      setStatus("error");
+      setError("Something went wrong. Please try again.");
+    }
+  };
+
+  if (status === "done") {
+    return (
+      <div className="mt-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 text-center">
+        <p className="text-base font-bold text-emerald-300">You&apos;re in ✓</p>
+        <p className="mt-1 text-sm leading-relaxed text-slate-300">
+          We saved these {matchedCount} match{matchedCount === 1 ? "" : "es"} for you. When new{" "}
+          {certLabel} bids open that fit your criteria, we&apos;ll email you.
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          We&apos;ll only email you about matching contract opportunities. Unsubscribe anytime.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <section
+      aria-label="Save your matches"
+      className="mt-6 rounded-2xl border border-slate-700 bg-slate-900 p-5"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-bold text-white">Save your matches</h3>
+          <p className="mt-1 text-sm leading-relaxed text-slate-300">
+            Get alerted when new {certLabel} bids open. Leave your email — no account needed.
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-label="Dismiss"
+          onClick={() => setDismissed(true)}
+          className="-mt-0.5 px-1 text-slate-500 transition-colors hover:text-slate-200"
+        >
+          ✕
+        </button>
+      </div>
+      <form onSubmit={submit} className="mt-4 space-y-3">
+        <div>
+          <label htmlFor="radar-save-email" className="sr-only">
+            Email address
+          </label>
+          <input
+            id="radar-save-email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
+            className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-400"
+          />
+        </div>
+        <div>
+          <label htmlFor="radar-save-phone" className="sr-only">
+            Phone (optional)
+          </label>
+          <input
+            id="radar-save-phone"
+            type="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Phone (optional)"
+            className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-400"
+          />
+        </div>
+        {status === "error" && error && (
+          <p className="text-sm font-medium text-red-400" role="alert">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={status === "submitting"}
+          className="w-full rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:opacity-60"
+        >
+          {status === "submitting" ? "Saving…" : "Save my matches →"}
+        </button>
+        <p className="text-xs leading-relaxed text-slate-500">
+          We&apos;ll only email you about matching contract opportunities. Unsubscribe anytime.
+        </p>
+      </form>
+    </section>
   );
 }

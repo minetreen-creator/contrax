@@ -216,7 +216,7 @@ export const Route = createFileRoute("/awards")({
       {
         name: "description",
         content:
-          "Browse live federal and city set-aside contract opportunities with incumbent intelligence and 5-year pricing history — built for 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses.",
+          "Browse live federal, state, and local set-aside contract opportunities with incumbent intelligence and 5-year pricing history — built for 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
@@ -226,7 +226,7 @@ export const Route = createFileRoute("/awards")({
       {
         property: "og:description",
         content:
-          "Browse live federal and city set-aside contract opportunities with incumbent intelligence and 5-year pricing history — built for 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses.",
+          "Browse live federal, state, and local set-aside contract opportunities with incumbent intelligence and 5-year pricing history — built for 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses.",
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
@@ -240,7 +240,7 @@ export const Route = createFileRoute("/awards")({
       {
         name: "twitter:description",
         content:
-          "Browse live federal and city set-aside contract opportunities with incumbent intelligence and 5-year pricing history — built for certified small businesses.",
+          "Browse live federal, state, and local set-aside contract opportunities with incumbent intelligence and 5-year pricing history — built for certified small businesses.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Government Contract Awards Database — Contrax" },

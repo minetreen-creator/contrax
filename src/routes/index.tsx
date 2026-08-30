@@ -1,8 +1,16 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  Suspense,
+  lazy,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { Menu, X } from "lucide-react";
+
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -16,6 +24,10 @@ import {
 } from "~/lib/contract-map";
 import { US_MAP_VIEWBOX, US_STATE_PATHS } from "~/lib/us-states-map";
 import { toISODate } from "./awards";
+// Real cached example AI Executive Brief — code-split so it never bloats
+// the homepage main bundle or blocks hero render. Same component + same
+// server fn as the standalone /example-brief page (single source of truth).
+const ExampleBrief = lazy(() => import("~/components/ExampleBrief"));
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Bid = {
@@ -762,6 +774,10 @@ function Home() {
       <PartnershipBanner />
       <Navbar user={user} alertCount={alertCount} />
       <Hero userCount={userCount} bidStats={bidStats} openOppCount={contractMap.totals.totalOpen} cert={certId} q={q || ""} onSelectCert={selectCert} />
+      {/* Real example AI Executive Brief — directly under the hero, before the map (owner). */}
+      <Suspense fallback={null}>
+        <ExampleBrief variant="embed" />
+      </Suspense>
       <OpportunityMap aggregate={contractMap} />
       <ClosingSoon bids={closingSoon} />
       <HowItWorks />

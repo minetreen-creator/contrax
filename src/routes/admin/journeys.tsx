@@ -7,21 +7,32 @@ import { getCurrentUser } from "~/lib/auth";
  *
  * One row per real person/session (grouped by the persistent contrax_vid), each
  * expanding into a timestamped timeline rebuilt from the self-hosted analytics
- * (funnel_events + page_views). Masks PII — anonymous → "Anonymous <last4>",
- * linked users → "local-part@…". QA/admin/bot/test traffic is excluded server-side.
+ * (funnel_events + page_views). Masks PII — unauthenticated visitors → a
+ * geo/behavioral display name ("Dallas, TX · Desktop", "Direct Lead · /pricing")
+ * with a subtle muted "#last4" hash badge; linked users → "local-part@…". Each
+ * row also shows behavioral-intent badge pills (💰 Pricing Evaluator / 📑 Brief
+ * Viewer / 🔥 High Engagement) derived server-side. QA/admin/bot/test traffic is
+ * excluded server-side.
  */
 
 interface TimelineItem { t: string; label: string; kind: "page" | "event"; }
+interface JourneyBadge { key: "pricing" | "brief" | "engagement"; label: string; }
 interface Journey {
   visitor_id: string;
   label: string;
+  visitor_hash: string | null;
   source: string | null;
   landing_page: string | null;
+  city: string | null;
+  region: string | null;
+  device_type: string | null;
+  browser_label: string | null;
   radar: boolean;
   signup: "Not started" | "Viewed" | "Started" | "Abandoned" | "Success";
   activated: boolean;
   paid: boolean;
   last_activity: string | null;
+  badges: JourneyBadge[];
   events: TimelineItem[];
 }
 interface FunnelStage { stage: string; label: string; count: number; dropOffPct: number | null; }
@@ -73,6 +84,25 @@ function YesNo({ value, yes = "Yes", no = "No" }: { value: boolean; yes?: string
   );
 }
 
+const BADGE_STYLES: Record<JourneyBadge["key"], string> = {
+  pricing: "bg-amber-100 text-amber-800",
+  brief: "bg-blue-100 text-blue-700",
+  engagement: "bg-emerald-100 text-emerald-700",
+};
+
+function Badges({ badges }: { badges: JourneyBadge[] }) {
+  if (!badges || badges.length === 0) return null;
+  return (
+    <span className="mt-1.5 flex flex-wrap gap-1">
+      {badges.map((b) => (
+        <span key={b.key} className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${BADGE_STYLES[b.key] ?? "bg-slate-100 text-slate-600"}`}>
+          {b.label}
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function JourneyRow({ j }: { j: Journey }) {
   const [open, setOpen] = useState(false);
   return (
@@ -81,7 +111,23 @@ function JourneyRow({ j }: { j: Journey }) {
         onClick={() => setOpen((o) => !o)}
         className="border-t border-slate-50 cursor-pointer hover:bg-blue-50/40 transition-colors"
       >
-        <td className="px-5 py-3 font-medium text-slate-800">{j.label}</td>
+        <td className="px-5 py-3">
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium text-slate-800">{j.label}</span>
+            {j.visitor_hash && (
+              <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-400" title="Visitor id (last 4)">
+                {j.visitor_hash}
+              </span>
+            )}
+          </div>
+          <Badges badges={j.badges} />
+          {j.device_type && (
+            <p className="mt-1 text-[10px] text-slate-400">
+              {[j.city, j.region].filter(Boolean).join(", ")}
+              {j.browser_label ? ` · ${j.browser_label}` : ` · ${j.device_type}`}
+            </p>
+          )}
+        </td>
         <td className="px-5 py-3 text-slate-600">{j.source ? <span className="capitalize">{j.source}</span> : "—"}</td>
         <td className="px-5 py-3 text-slate-500 max-w-[180px] truncate font-mono">{j.landing_page ?? "—"}</td>
         <td className="px-5 py-3"><YesNo value={j.radar} /></td>
@@ -218,7 +264,7 @@ function JourneysPage() {
         <section>
           <h2 className="text-lg font-semibold text-slate-800 mb-2">People</h2>
           <p className="mb-3 text-xs text-slate-500">
-            Click a row to expand its timeline. Identifiers are masked ("Anonymous" = last 4 of the visitor id; linked users = email local-part).
+            Click a row to expand its timeline. Unauthenticated visitors are labeled by geo/behavior ("Dallas, TX · Desktop" or "Direct Lead · /pricing") with a muted #hash for debugging; linked users = email local-part. Badges flag pricing viewers, brief viewers, and high-engagement journeys.
           </p>
           {loading ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">Loading journeys…</div>

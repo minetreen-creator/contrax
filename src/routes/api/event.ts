@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { resolveAttribution, type Attribution } from "~/lib/attribution";
+import { parseClientContext } from "~/lib/client-context";
 
 /**
  * POST /api/event
@@ -63,6 +64,10 @@ async function ensureFunnelEventsTable(): Promise<void> {
     visit_id TEXT,
     user_id TEXT,
     user_email TEXT,
+    city TEXT,
+    region TEXT,
+    device_type TEXT,
+    browser_label TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
   // Lazy ALTER guards (idempotent) so pre-existing production tables gain the
@@ -80,6 +85,12 @@ async function ensureFunnelEventsTable(): Promise<void> {
   // nullable so inserts never fail without them.
   await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_id TEXT`;
   await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS user_email TEXT`;
+  // Geo + device context (lazy, additive) — nullable so pre-existing rows and
+  // header-less requests remain valid. Never a raw IP or full UA.
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS city TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS region TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS device_type TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS browser_label TEXT`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_created_at ON funnel_events (created_at)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_event_name ON funnel_events (event_name)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_source ON funnel_events (source)`;
@@ -181,6 +192,10 @@ async function handler({ request }: { request: Request }) {
     const referrer = (request.headers.get("referer") ?? "").slice(0, 2048) || null;
     const ip = getClientIp(request);
 
+    // Geo + device context on the beacon (city/region/device/browser only — never
+    // a raw IP or full UA). Fail-open: absent/invalid headers → null fields.
+    const ctx = parseClientContext(request);
+
     // First-touch acquisition attribution, resolved in precedence order:
     // cookie (contrax_attr) → request query params → referer. The client's
     // AttributionCookie (src/routes/__root.tsx) sets contrax_attr before funnel
@@ -193,8 +208,8 @@ async function handler({ request }: { request: Request }) {
     });
 
     const insert = () =>
-      sql()`INSERT INTO funnel_events (event_name, label, path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email)
-        VALUES (${event}, ${label}, ${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail})`;
+      sql()`INSERT INTO funnel_events (event_name, label, path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email, city, region, device_type, browser_label)
+        VALUES (${event}, ${label}, ${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail}, ${ctx.city}, ${ctx.region}, ${ctx.device_type}, ${ctx.browser_label})`;
 
     try {
       await ensureFunnelEventsTable();

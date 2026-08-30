@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { resolveAttribution, type Attribution } from "~/lib/attribution";
+import { parseClientContext } from "~/lib/client-context";
 
 /**
  * POST /api/page-view
@@ -54,6 +55,10 @@ async function ensurePageViewsTable(): Promise<void> {
     visit_id TEXT,
     user_id TEXT,
     user_email TEXT,
+    city TEXT,
+    region TEXT,
+    device_type TEXT,
+    browser_label TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
   // Lazy ALTER guards (idempotent) so pre-existing production tables gain the
@@ -69,6 +74,12 @@ async function ensurePageViewsTable(): Promise<void> {
   // Per-user identity (lazy, additive) — optional + nullable, never required.
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS user_id TEXT`;
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS user_email TEXT`;
+  // Geo + device context (lazy, additive) — nullable so pre-existing rows and
+  // header-less requests remain valid. Never a raw IP or full UA.
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS city TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS region TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS device_type TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS browser_label TEXT`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views (created_at)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_source ON page_views (source)`;
 }
@@ -148,6 +159,10 @@ async function handler({ request }: { request: Request }) {
 
     const ip = getClientIp(request);
 
+    // Geo + device context on the beacon (city/region/device/browser only — never
+    // a raw IP or full UA). Fail-open: absent/invalid headers → null fields.
+    const ctx = parseClientContext(request);
+
     // First-touch acquisition attribution, resolved in precedence order:
     // cookie (contrax_attr) → request query params → referer. The client sets the
     // cookie first (see src/routes/__root.tsx AttributionCookie), so this is the
@@ -162,8 +177,8 @@ async function handler({ request }: { request: Request }) {
     });
 
     const insert = () =>
-      sql()`INSERT INTO page_views (path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email)
-        VALUES (${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail})`;
+      sql()`INSERT INTO page_views (path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email, city, region, device_type, browser_label)
+        VALUES (${path}, ${userAgent}, ${ip}, ${referrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail}, ${ctx.city}, ${ctx.region}, ${ctx.device_type}, ${ctx.browser_label})`;
 
     try {
       await ensurePageViewsTable();

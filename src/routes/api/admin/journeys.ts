@@ -21,9 +21,15 @@ import { qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
  *              PII), first-touch source, landing page, radar/signup/activated/paid
  *              flags, last activity + timestamp, and the ordered event timeline.
  *
- * DATA-HYGIENE: masks PII. Anonymous visitors → "Anonymous <last4>"; linked
- * users → "local-part@…" (local-part + masked domain). No full emails on the
- * board. The timeline is rebuilt ONLY from stored rows — never fabricated.
+ * DATA-HYGIENE: masks PII. UNAUTHENTICATED visitors → geo/behavioral display
+ * name ("Dallas, TX · Desktop", or "Direct Lead · /example-brief" when no geo),
+ * with only a subtle muted "#last4" visitor-hash badge for debugging — the word
+ * "Anonymous" never appears. Linked users → "local-part@…" (local-part + masked
+ * domain). Each row also carries behavioral-intent badges (💰 Pricing Evaluator
+ * / 📑 Brief Viewer / 🔥 High Engagement) derived server-side from the row's own
+ * page/event paths. The timeline is rebuilt ONLY from stored rows — never
+ * fabricated. No full emails, raw IPs, or full user-agent strings leave the
+ * server.
  *
  * EXCLUSIONS (owner rule, 2026-08-28): applies the shared BOT_EXCLUSION_SQL
  * predicate and the @test.contrax QA-email exclusion so QA / admin / test /
@@ -89,16 +95,28 @@ interface TimelineItem {
   label: string;
   kind: "page" | "event";
 }
+
+/** A behavioral-intent badge, derived server-side from the row's own events. */
+interface JourneyBadge {
+  key: "pricing" | "brief" | "engagement";
+  label: string; // e.g. "💰 Pricing Evaluator"
+}
 interface Journey {
   visitor_id: string;
   label: string; // masked, recognizable identifier (NO full PII)
+  visitor_hash: string | null; // subtle "#last4" debugging badge (anonymous rows)
   source: string | null;
   landing_page: string | null;
+  city: string | null;
+  region: string | null;
+  device_type: string | null;
+  browser_label: string | null;
   radar: boolean;
   signup: "Not started" | "Viewed" | "Started" | "Abandoned" | "Success";
   activated: boolean;
   paid: boolean;
   last_activity: string | null; // ISO
+  badges: JourneyBadge[];
   events: TimelineItem[];
 }
 interface FunnelStage {
@@ -123,9 +141,36 @@ const EMPTY: JourneysResult = {
   journeys: [],
 };
 
-/** last-4 of a visitor id for the recognizable "Anonymous <last4>" label. */
-function last4(id: string): string {
-  return id.replace(/[^0-9a-zA-Z]/g, "").slice(-4).toLowerCase() || "????";
+/** last-4 of a visitor id for the subtle "#last4" debugging badge. */
+function visitorHash(id: string): string {
+  const h = id.replace(/[^0-9a-zA-Z]/g, "").slice(-4).toLowerCase() || "????";
+  return `#${h}`;
+}
+
+/**
+ * Geo/behavioral display label for an UNAUTHENTICATED visitor (no linked email).
+ * Precedence: city+region → city → "Direct Lead · <first page>". Never shows a
+ * raw IP, full UA, or the word "Anonymous".
+ */
+function buildAnonymousLabel(ctx: {
+  city: string | null;
+  region: string | null;
+  deviceType: string | null;
+  landingPage: string | null;
+}): string {
+  const { city, region, deviceType, landingPage } = ctx;
+  const device = deviceType ? deviceType : null;
+  if (city && region) {
+    return device ? `${city}, ${region} · ${device}` : `${city}, ${region}`;
+  }
+  if (city) {
+    return device ? `${city} · ${device}` : city;
+  }
+  if (landingPage) {
+    const clean = landingPage.startsWith("/") ? landingPage : `/${landingPage}`;
+    return `Direct Lead · ${clean}`;
+  }
+  return "Direct Lead";
 }
 
 /** Masked, recognizable identity — never a full email. */
@@ -136,7 +181,28 @@ function buildLabel(userEmail: string | null | undefined, visitorId: string): st
     // "ali@…" style — recognizable local-part, masked domain (no full email).
     return `${local}@…`;
   }
-  return `Anonymous ${last4(visitorId)}`;
+  return buildAnonymousLabel({
+    city: null,
+    region: null,
+    deviceType: null,
+    landingPage: null,
+  });
+}
+
+/** Behavioral-intent badges for a row, derived from its own page/event paths. */
+function computeBadges(paths: Set<string>, stepCount: number): JourneyBadge[] {
+  const badges: JourneyBadge[] = [];
+  let hasPricing = false;
+  let hasBrief = false;
+  for (const p of paths) {
+    if (!hasPricing && p.includes("/pricing")) hasPricing = true;
+    if (!hasBrief && p.includes("/example-brief")) hasBrief = true;
+    if (hasPricing && hasBrief) break;
+  }
+  if (hasPricing) badges.push({ key: "pricing", label: "💰 Pricing Evaluator" });
+  if (hasBrief) badges.push({ key: "brief", label: "📑 Brief Viewer" });
+  if (stepCount > 2) badges.push({ key: "engagement", label: "🔥 High Engagement" });
+  return badges;
 }
 
 function pageLabel(path: string): string {
@@ -158,6 +224,23 @@ function signupStatus(events: Set<string>): Journey["signup"] {
 function pct(n: number, d: number): number | null {
   if (d === 0) return null;
   return Math.round((1 - n / d) * 1000) / 10;
+}
+
+/**
+ * Lazy, idempotent ALTER guards for the geo/device context columns — same
+ * self-heal pattern as the beacon endpoints (page-view.ts / event.ts). Ensures
+ * the SELECT below can always reference city/region/device/browser even if no
+ * beacon has fired since deploy (tables exist but the columns are missing).
+ */
+async function ensureContextColumns(): Promise<void> {
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS city TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS region TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS device_type TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS browser_label TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS city TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS region TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS device_type TEXT`;
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS browser_label TEXT`;
 }
 
 async function handler({ request }: { request: Request }) {
@@ -185,10 +268,18 @@ async function handler({ request }: { request: Request }) {
     } catch {
       return Response.json({ ...EMPTY, rangeDays, from: fromIso, to: now.toISOString() });
     }
+    // Ensure the geo/device columns exist before SELECTing them (fail-open if
+    // the tables are there but the columns haven't been added by a beacon yet).
+    try {
+      await ensureContextColumns();
+    } catch {
+      // If the ALTER itself fails, fall through — the SELECT below will also
+      // fail and be caught by the outer handler, returning an empty result.
+    }
 
     // All qualifying rows (human, non-QA) within the window, from both tables.
     const pageRows: any[] = await sql()`
-      SELECT visitor_id, created_at, path, source, user_id, user_email
+      SELECT visitor_id, created_at, path, source, user_id, user_email, city, region, device_type, browser_label
       FROM page_views
       WHERE visitor_id IS NOT NULL AND visitor_id <> ''
         AND created_at >= ${fromIso}
@@ -196,7 +287,7 @@ async function handler({ request }: { request: Request }) {
         ${sql().unsafe(qaFilter)}
       ORDER BY created_at ASC`;
     const eventRows: any[] = await sql()`
-      SELECT visitor_id, created_at, event_name, path, source, user_id, user_email
+      SELECT visitor_id, created_at, event_name, path, source, user_id, user_email, city, region, device_type, browser_label
       FROM funnel_events
       WHERE visitor_id IS NOT NULL AND visitor_id <> ''
         AND created_at >= ${fromIso}
@@ -208,28 +299,56 @@ async function handler({ request }: { request: Request }) {
     const byVisitor = new Map<string, Journey>();
     const linkedUsers = new Map<string, string>(); // visitor_id -> email (backfilled)
     const visitorUserMap = new Map<string, string>(); // visitor_id -> user_id (backfilled)
-    const seenEvents = new Map<string, Set<string>>();
+    const seenEvents = new Map<string, Set<string>>(); // visitor_id -> event names
+    const seenPaths = new Map<string, Set<string>>(); // visitor_id -> all paths (page + event)
     const paidMap = new Map<string, number>(); // user_id(->string) -> 1 if active
 
-    pageRows.forEach((r) => {
-      const vid = r.visitor_id;
+    const journeyFor = (vid: string): Journey => {
       if (!byVisitor.has(vid)) {
         byVisitor.set(vid, {
           visitor_id: vid,
-          label: "Anonymous",
+          label: "",
+          visitor_hash: null,
           source: null,
           landing_page: null,
+          city: null,
+          region: null,
+          device_type: null,
+          browser_label: null,
           radar: false,
           signup: "Not started",
           activated: false,
           paid: false,
           last_activity: null,
+          badges: [],
           events: [],
         });
       }
-      const j = byVisitor.get(vid)!;
+      return byVisitor.get(vid)!;
+    };
+
+    // Earliest-fields-first capture: rows are SELECTed ASC, so the first non-null
+    // value we see is the visitor's first-touch context. Geo/device are nullable
+    // (lazy columns) — keep the earliest populated value.
+    const captureContext = (j: Journey, r: any) => {
+      if (j.city === null && r.city) j.city = String(r.city);
+      if (j.region === null && r.region) j.region = String(r.region);
+      if (j.device_type === null && r.device_type) j.device_type = String(r.device_type);
+      if (j.browser_label === null && r.browser_label) j.browser_label = String(r.browser_label);
+    };
+    const trackPath = (vid: string, path: string | null | undefined) => {
+      if (!path) return;
+      if (!seenPaths.has(vid)) seenPaths.set(vid, new Set());
+      seenPaths.get(vid)!.add(path);
+    };
+
+    pageRows.forEach((r) => {
+      const vid = r.visitor_id;
+      const j = journeyFor(vid);
       if (j.landing_page === null && r.path && r.path !== "/") j.landing_page = r.path;
       if (r.source) j.source = j.source ?? r.source;
+      captureContext(j, r);
+      trackPath(vid, r.path);
       // first row is earliest (sorted ASC) — set landing/source on first page
       if (r.user_email) linkedUsers.set(vid, r.user_email);
       if (r.user_id) linkedUsers.set(vid, linkedUsers.get(vid) ?? "");
@@ -242,22 +361,10 @@ async function handler({ request }: { request: Request }) {
 
     eventRows.forEach((r) => {
       const vid = r.visitor_id;
-      if (!byVisitor.has(vid)) {
-        byVisitor.set(vid, {
-          visitor_id: vid,
-          label: "Anonymous",
-          source: null,
-          landing_page: null,
-          radar: false,
-          signup: "Not started",
-          activated: false,
-          paid: false,
-          last_activity: null,
-          events: [],
-        });
-      }
-      const j = byVisitor.get(vid)!;
+      const j = journeyFor(vid);
       if (r.source) j.source = j.source ?? r.source;
+      captureContext(j, r);
+      trackPath(vid, r.path);
       if (r.user_email) linkedUsers.set(vid, r.user_email);
       if (r.user_id) visitorUserMap.set(vid, String(r.user_id));
       if (!seenEvents.has(vid)) seenEvents.set(vid, new Set());
@@ -290,7 +397,24 @@ async function handler({ request }: { request: Request }) {
       j.radar = events.has(RADAR_COMPLETE);
       j.signup = signupStatus(events);
       j.activated = ACTIVATION_EVENTS.some((e) => events.has(e));
-      j.label = buildLabel(linkedUsers.get(vid), vid);
+      const linkedEmail = linkedUsers.get(vid);
+      const isLinked = !!linkedEmail && linkedEmail.includes("@");
+      if (isLinked) {
+        // Linked users keep the masked email label unchanged (local-part@…).
+        j.label = buildLabel(linkedEmail, vid);
+        j.visitor_hash = null;
+      } else {
+        // UNAUTHENTICATED: geo/behavioral display label + subtle hash badge.
+        j.label = buildAnonymousLabel({
+          city: j.city,
+          region: j.region,
+          deviceType: j.device_type,
+          landingPage: j.landing_page,
+        });
+        j.visitor_hash = visitorHash(vid);
+      }
+      // Behavioral-intent badges derived from the row's own page/event paths.
+      j.badges = computeBadges(seenPaths.get(vid) ?? new Set<string>(), j.events.length);
       // paid only meaningful for linked users (subscription_status='active').
       const uid = visitorUserMap.get(vid);
       j.paid = uid != null && uid.length > 0 && paidMap.get(uid) === 1;

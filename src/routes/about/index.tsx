@@ -256,7 +256,7 @@ function AboutPage() {
               </div>
               <h3 className="text-xl font-semibold text-slate-900">Opportunity Discovery</h3>
               <p className="mt-3 leading-relaxed text-gray-600">
-                We monitor federal and city procurement sources daily,
+                We monitor federal, state, and local procurement sources nationwide,
                 filtering thousands of new postings to surface only the
                 opportunities that match your business.
               </p>

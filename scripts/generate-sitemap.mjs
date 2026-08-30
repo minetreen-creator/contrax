@@ -34,6 +34,54 @@ const TODAY = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
 const escapeXml = (s) =>
   String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+/**
+ * SEO landing pages (scope: /home/team/shared/seo-landing-pages-scope.md).
+ * The set-aside hubs + index + /contracts-by-industry are always-valid pages
+ * (they render honestly even with zero open bids), so they are emitted
+ * statically. The per-state region pages are emitted from a live DB count
+ * below (only states that actually have open bids), mirroring how clause URLs
+ * are generated — never a fabricated/hardcoded combos list.
+ */
+const SEO_LANDING_PATHS = [
+  "/set-aside-contracts",
+  "/8a-contracts",
+  "/sdvosb-contracts",
+  "/wosb-contracts",
+  "/hubzone-contracts",
+  "/small-business-contracts",
+  "/contracts-by-industry",
+];
+/** Full state name -> region URL slug ("New Jersey" -> "new-jersey"). */
+const STATE_SLUGS = {
+  AL: "alabama", AK: "alaska", AZ: "arizona", AR: "arkansas", CA: "california",
+  CO: "colorado", CT: "connecticut", DE: "delaware", FL: "florida", GA: "georgia",
+  HI: "hawaii", ID: "idaho", IL: "illinois", IN: "indiana", IA: "iowa", KS: "kansas",
+  KY: "kentucky", LA: "louisiana", ME: "maine", MD: "maryland", MA: "massachusetts",
+  MI: "michigan", MN: "minnesota", MS: "mississippi", MO: "missouri", MT: "montana",
+  NE: "nebraska", NV: "nevada", NH: "new-hampshire", NJ: "new-jersey", NM: "new-mexico",
+  NY: "new-york", NC: "north-carolina", ND: "north-dakota", OH: "ohio", OK: "oklahoma",
+  OR: "oregon", PA: "pennsylvania", RI: "rhode-island", SC: "south-carolina",
+  SD: "south-dakota", TN: "tennessee", TX: "texas", UT: "utah", VT: "vermont",
+  VA: "virginia", WA: "washington", WV: "west-virginia", WI: "wisconsin",
+  WY: "wyoming", DC: "district-of-columbia",
+};
+/** Resolve a bid's location string to a 2-letter US state code, or null. */
+function deriveStateCode(location) {
+  const loc = String(location ?? "").trim();
+  if (!loc) return null;
+  const tokens = loc.split(/[\s,()/]+/).filter(Boolean);
+  for (let i = tokens.length - 1; i >= 0; i--) {
+    const t = tokens[i].toUpperCase();
+    if (/^[A-Z]{2}$/.test(t) && STATE_SLUGS[t]) return t;
+  }
+  const lower = loc.toLowerCase();
+  for (const [code, slug] of Object.entries(STATE_SLUGS)) {
+    const name = slug.replace(/-/g, " ");
+    const re = new RegExp(`\\b${name.replace(" ", "\\s+")}\\b`);
+    if (re.test(lower)) return code;
+  }
+  return null;
+}
 
 /** Pull the existing <url>...</url> blocks, dropping any clause URLs (they are
  * regenerated fresh from the DB below — keeps re-runs idempotent). */
@@ -47,8 +95,16 @@ function readStaticUrlBlocks() {
     const block = m[0];
     const loc = block.match(/<loc>([^<]+)<\/loc>/)?.[1] ?? "";
     // Both the per-clause URLs and the /clauses index URL are generated —
-    // drop them from the preserved set so re-runs stay idempotent.
-    if (loc.includes("/clauses/") || loc === `${PROD_URL}/clauses`) continue;
+    // drop them from the preserved set so re-runs stay idempotent. Likewise
+    // the SEO landing pages (set-aside hubs, /contracts-by-industry and every
+    // /contracts-in/* region page) are regenerated fresh below, so drop them
+    // too — otherwise a re-run would duplicate each one.
+    if (
+      loc.includes("/clauses/") ||
+      loc === `${PROD_URL}/clauses` ||
+      loc.includes("/contracts-in/") ||
+      SEO_LANDING_PATHS.some((p) => loc === `${PROD_URL}${p}`)
+    ) continue;
     blocks.push(block);
   }
   return blocks;
@@ -91,6 +147,7 @@ async function main() {
 
   let clauseNumbers;
   let partNumbers = [];
+  let regionSlugs = [];
   try {
     const db = neon(process.env.DATABASE_URL);
     const rows = await db`SELECT clause_number FROM far_clauses ORDER BY clause_number`;
@@ -110,6 +167,24 @@ async function main() {
     if (staticBlocks.length === 0) writeFallback("far_clauses query failed and no existing sitemap");
     return; // fail open: keep last-known sitemap, never break the deploy
   }
+  // Region landing pages (/contracts-in/{state}) — live per-state count over
+  // open bids, mirroring the clause generation so only real combos appear.
+  // Isolated try/catch: a region failure must NOT drop the clause URLs, so we
+  // fall back to emitting the static set-aside-hub set only (regionSlugs = []).
+  try {
+    const db = neon(process.env.DATABASE_URL);
+    const regionRows = await db`SELECT location FROM bids WHERE (due_date IS NULL OR due_date::date >= NOW()::date)`;
+    const seen = new Set();
+    for (const r of regionRows) {
+      const code = deriveStateCode(r.location);
+      if (code && !seen.has(code)) seen.add(code);
+    }
+    regionSlugs = Array.from(seen).sort();
+  } catch (err) {
+    console.warn(
+      `[generate-sitemap] region query failed (${err?.message ?? err}) — emitting set-aside hubs only`,
+    );
+  }
 
   const partBlocks = partNumbers.map(
     (p) =>
@@ -121,11 +196,27 @@ async function main() {
   );
   const indexBlock = `  <url>\n    <loc>${PROD_URL}/clauses</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`;
 
+  // SEO landing pages: set-aside hubs + index + /contracts-by-industry, plus
+  // the live region pages. All are always-valid pages; the region set is
+  // DB-driven above so only states with real open bids appear.
+  const landBlocks = SEO_LANDING_PATHS.map(
+    (p) =>
+      `  <url>\n    <loc>${PROD_URL}${escapeXml(p)}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.7</priority>\n  </url>`,
+  );
+  const regionBlocks = regionSlugs
+    .filter((code) => STATE_SLUGS[code])
+    .map(
+      (code) =>
+        `  <url>\n    <loc>${PROD_URL}/contracts-in/${STATE_SLUGS[code]}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>weekly</changefreq>\n    <priority>0.6</priority>\n  </url>`,
+    );
+
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...staticBlocks.map((b) => `  ${b}`),
     indexBlock,
+    ...landBlocks,
+    ...regionBlocks,
     ...partBlocks,
     ...clauseBlocks,
     "</urlset>",
@@ -133,7 +224,7 @@ async function main() {
   ].join("\n");
   writeFileSync(SITEMAP_PATH, xml);
   console.log(
-    `[generate-sitemap] wrote ${SITEMAP_PATH}: ${staticBlocks.length} static + 1 index + ${partBlocks.length} part + ${clauseBlocks.length} clause URLs = ${staticBlocks.length + 1 + partBlocks.length + clauseBlocks.length} total`,
+    `[generate-sitemap] wrote ${SITEMAP_PATH}: ${staticBlocks.length} static + 1 clauses index + ${landBlocks.length} landing + ${regionBlocks.length} region + ${partBlocks.length} part + ${clauseBlocks.length} clause URLs = ${staticBlocks.length + 1 + landBlocks.length + regionBlocks.length + partBlocks.length + clauseBlocks.length} total`,
   );
 }
 

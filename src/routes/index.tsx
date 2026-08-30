@@ -2502,6 +2502,9 @@ function Footer() {
           <a href="/set-aside-contracts" className="text-sm text-gray-400 transition-colors hover:text-white">
             Set-Aside Contracts
           </a>
+          <a href="/contracts-by-industry" className="text-sm text-gray-400 transition-colors hover:text-white">
+            Contracts by Industry
+          </a>
           <a href="/vad" className="text-sm text-gray-400 transition-colors hover:text-white">
             Veterans Against Diabetes Pricing
           </a>

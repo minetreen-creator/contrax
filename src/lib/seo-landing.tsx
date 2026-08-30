@@ -16,6 +16,7 @@ import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import { setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { NAICS_NAMES } from "~/lib/naics-names";
 import {
   buildContractMap,
   STATE_NAMES,
@@ -173,11 +174,19 @@ export const getCertHubData = createServerFn({ method: "GET" })
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Region pages — aggregate over ALL open bids via buildContractMap (the exact
-// /map data path), with set-aside an honest sub-count. Only the P1 top states.
+// /map data path), with set-aside an honest sub-count. Covers all 50 states + DC.
 // ─────────────────────────────────────────────────────────────────────────────
+// P2 (PR #278): every state + DC now has enough real open bids (>=15, verified
+// live 2026-08-30 — the sparsest, DE, still has 17), so we cover all 50 + DC.
 export const REGION_CODES = [
+  // P1 top-20 (highest volume)
   "CA", "DC", "MD", "TX", "VA", "NY", "OH", "NC", "FL", "LA",
   "AZ", "IL", "NM", "GA", "OK", "HI", "KS", "WA", "ID", "MO",
+  // P2 remaining states (all >=15 real open bids in the live DB)
+  "NJ", "NH", "SC", "CO", "PA", "AL", "MT", "ND", "OR", "MI",
+  "RI", "MA", "WI", "AR", "TN", "AK", "IN", "UT", "NE", "WV",
+  "MS", "CT", "MN", "WY", "IA", "ME", "NV", "KY", "VT", "DE",
+  "SD",
 ] as const;
 export const REGION_SET = new Set<string>(REGION_CODES);
 
@@ -255,6 +264,78 @@ export const getSetAsideIndex = createServerFn({ method: "GET" }).handler(
       for (const def of CERT_HUBS) counts[def.slug] = 0;
     }
     return { counts, generatedAt: new Date().toISOString() };
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// /contracts-by-industry hub — live open set-aside bids grouped by NAICS.
+// Only industries with a real count appear; never fabricated. Each industry
+// links to the canonical /opportunities/{setaside}/{naics} pages.
+// ─────────────────────────────────────────────────────────────────────────────
+export interface SeoIndustry {
+  code: string;
+  name: string;
+  count: number;
+  slug: string | null; // keystone set-aside slug for /opportunities/{slug}/{code}, else null
+}
+export interface IndustryHubData {
+  industries: SeoIndustry[];
+  generatedAt: string;
+}
+
+/** Friendly NAICS name (mirrors /opportunities industryName). */
+function industryName(naics: string): string {
+  if (NAICS_NAMES[naics]) return NAICS_NAMES[naics];
+  if (naics.length === 5 && NAICS_NAMES[naics + "1"]) return NAICS_NAMES[naics + "1"];
+  return `NAICS ${naics}`;
+}
+/** Map a literal set_aside value to a keystone opportunity-page slug (or null). */
+const NAICS_LITERAL_TO_SLUG: Record<string, string> = {
+  "8(a)": "8a", "8AN": "8a",
+  "SDVOSB": "sdvosb",
+  "WOSB": "wosb", "EDWOSB": "wosb",
+  "HUBZone": "hubzone",
+};
+
+export const getIndustryHubData = createServerFn({ method: "GET" }).handler(
+  async (): Promise<IndustryHubData> => {
+    const industries: SeoIndustry[] = [];
+    try {
+      const { sql } = await import("~/db");
+      const rows = (await sql()`
+        SELECT naics_code, set_aside, COUNT(*)::int AS n
+        FROM bids
+        WHERE due_date > NOW()
+          AND set_aside IS NOT NULL AND btrim(set_aside) <> ''
+          AND ${sql().unsafe(LOW_CONTENT_SQL)}
+          AND naics_code IS NOT NULL AND btrim(naics_code) <> ''
+        GROUP BY naics_code, set_aside
+      `) as { naics_code: string; set_aside: string; n: number }[];
+      const per = new Map<string, { total: number; byLiteral: Record<string, number> }>();
+      for (const r of rows) {
+        const code = String(r.naics_code ?? "").trim();
+        if (!code) continue;
+        const lit = String(r.set_aside ?? "").trim();
+        let e = per.get(code);
+        if (!e) { e = { total: 0, byLiteral: {} }; per.set(code, e); }
+        e.total += Number(r.n ?? 0);
+        e.byLiteral[lit] = (e.byLiteral[lit] ?? 0) + Number(r.n ?? 0);
+      }
+      for (const [code, e] of per) {
+        const top = Object.entries(e.byLiteral).sort((a, b) => b[1] - a[1])[0];
+        industries.push({
+          code,
+          name: industryName(code),
+          count: e.total,
+          slug: top ? (NAICS_LITERAL_TO_SLUG[top[0]] ?? null) : null,
+        });
+      }
+      industries.sort((a, b) => b.count - a.count);
+    } catch (e) {
+      // Fail-open: never 500 the page on a DB failure — honest empty list.
+      console.error("[seo-landing] industry hub query failed:", e);
+    }
+    return { industries: industries.slice(0, 50), generatedAt: new Date().toISOString() };
   },
 );
 
@@ -379,6 +460,7 @@ export function SeoFooterLinks() {
       <a href="/wosb-contracts" className="transition-colors hover:text-white">WOSB Contracts</a>
       <a href="/hubzone-contracts" className="transition-colors hover:text-white">HUBZone Contracts</a>
       <a href="/small-business-contracts" className="transition-colors hover:text-white">Small Business Contracts</a>
+      <a href="/contracts-by-industry" className="transition-colors hover:text-white">Contracts by Industry</a>
       <a href="/contracts-in/california" className="transition-colors hover:text-white">California</a>
       <a href="/contracts-in/texas" className="transition-colors hover:text-white">Texas</a>
       <a href="/contracts-in/virginia" className="transition-colors hover:text-white">Virginia</a>
@@ -713,6 +795,72 @@ export function AllRegionLinks() {
       <h3 className="text-lg font-bold text-slate-900">Contracts in your state</h3>
       <p className="mt-1 text-sm text-slate-500">Real open bid counts by state.</p>
       <div className="mt-4 flex flex-wrap gap-2">{REGION_CODES.map(link)}</div>
+      <p className="mt-4 text-sm">
+        <a href="/contracts-by-industry" className="font-semibold text-blue-600 hover:text-blue-800">
+          Browse contracts by industry (NAICS) →
+        </a>
+      </p>
     </section>
+  );
+}
+
+/** /contracts-by-industry body — real open set-aside counts per NAICS industry. */
+export function IndustryHubView({ data }: { data: IndustryHubData }) {
+  const { industries } = data;
+  return (
+    <div>
+      <section>
+        <h2 className="text-2xl font-bold text-slate-900">
+          Open set-aside contracts by industry
+        </h2>
+        <p className="mt-2 max-w-3xl text-slate-600">
+          Real open set-aside solicitations grouped by NAICS industry, counted
+          straight from live federal procurement data and updated every 4 hours.
+          Only industries with open bids appear — nothing is fabricated.
+        </p>
+      </section>
+
+      {industries.length === 0 ? (
+        <p className="mt-6 max-w-3xl text-slate-600">
+          We couldn&apos;t load industry counts right now. Browse the set-aside hubs or
+          Contract Radar instead — or start a free trial to get alerted the moment
+          matching bids land.
+        </p>
+      ) : (
+        <>
+          <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {industries.map((ind) => {
+              const href = ind.slug
+                ? `/opportunities/${ind.slug}/${ind.code}`
+                : "/small-business-contracts";
+              return (
+                <li key={ind.code}>
+                  <a
+                    href={href}
+                    className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition-all hover:border-amber-400 hover:shadow-md"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="text-xl font-bold text-slate-900">{ind.name}</span>
+                      <span className="shrink-0 rounded-full bg-emerald-100 px-2.5 py-1 text-sm font-semibold text-emerald-800">
+                        {ind.count.toLocaleString("en-US")} open
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs font-medium text-slate-500">NAICS {ind.code}</p>
+                    <p className="mt-3 text-sm font-medium text-amber-600 group-hover:text-amber-700">
+                      View set-aside solicitations →
+                    </p>
+                  </a>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-6 text-sm text-slate-500">
+            Counts are live queries of open set-aside solicitations grouped by NAICS
+            code, excluding low-content listings — updated every 4 hours. Each industry
+            links to its real set-aside solicitations.
+          </p>
+        </>
+      )}
+    </div>
   );
 }

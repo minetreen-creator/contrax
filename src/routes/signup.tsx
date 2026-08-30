@@ -9,6 +9,7 @@ import { setTrackingUser, getTrackingUser } from "~/lib/identity";
 import { persistPendingDraft } from "~/lib/pending-draft";
 import { storeRememberedNext } from "~/lib/remember-next";
 import { sql } from "~/db";
+import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 import { safeNext } from "~/lib/saved-matches";
@@ -162,17 +163,28 @@ const formatEstimate = (v: string | undefined): string | null => {
   });
 };
 
-// Live tracked-solicitation count for the social-proof line — mirrors the
-// homepage counter (src/routes/index.tsx getBidStats). Returns 0 if the DB is
-// unreachable so the page always renders; the component falls back to static
-// truthful copy ("9,000+ tracked solicitations") when no live count is
-// available.
+// Live solicitation-counts for the social-proof line — reconciled so the
+// "tracked" number (EVERY solicitation ever synced, including closed/past-due
+// ones) is clearly distinguished from the "currently open" subset (the same
+// population as the homepage `totalOpen` counter). Returns { tracked: 0,
+// open: 0 } if the DB is unreachable so the page always renders; the component
+// falls back to static truthful copy when no live count is available.
 const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () => {
   try {
-    const rows = await sql()`SELECT COUNT(*)::int AS count FROM bids`;
-    return Number((rows[0] as any)?.count || 0);
+    const [trackedRows, openRows] = await Promise.all([
+      sql()`SELECT COUNT(*)::int AS count FROM bids`,
+      // Open count reuses the exact homepage /map definition so it matches the
+      // homepage "open opportunities" number bit-for-bit.
+      sql()`SELECT COUNT(*)::int AS count FROM bids
+            WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
+              AND ${sql().unsafe(LOW_CONTENT_SQL)}`,
+    ]);
+    return {
+      tracked: Number((trackedRows[0] as any)?.count || 0),
+      open: Number((openRows[0] as any)?.count || 0),
+    };
   } catch {
-    return 0;
+    return { tracked: 0, open: 0 };
   }
 });
 
@@ -218,13 +230,17 @@ export const Route = createFileRoute("/signup")({
     state: typeof search.state === "string" ? search.state.slice(0, 4) : undefined,
     size: typeof search.size === "string" ? search.size.slice(0, 24) : undefined,
   }),
-  loader: async () => ({
-    currentUser: await getCurrentUser(),
-    trackedBids: await getTrackedBidCount(),
-    // True when LINKEDIN_CLIENT_ID is configured. While absent, the LinkedIn
-    // button renders disabled ("coming soon") and never builds a broken URL.
-    linkedInAuthUrl: await getLinkedInAuthUrl(),
-  }),
+  loader: async () => {
+    const bidCounts = await getTrackedBidCount();
+    return {
+      currentUser: await getCurrentUser(),
+      trackedBids: bidCounts.tracked,
+      openBids: bidCounts.open,
+      // True when LINKEDIN_CLIENT_ID is configured. While absent, the LinkedIn
+      // button renders disabled ("coming soon") and never builds a broken URL.
+      linkedInAuthUrl: await getLinkedInAuthUrl(),
+    };
+  },
   component: SignupPage,
   head: () => ({
     meta: [
@@ -268,7 +284,7 @@ export const Route = createFileRoute("/signup")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function SignupPage() {
-  const { currentUser, trackedBids, linkedInAuthUrl } = Route.useLoaderData();
+  const { currentUser, trackedBids, openBids, linkedInAuthUrl } = Route.useLoaderData();
   const navigate = useNavigate();
   const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency, trade, cert, state, size, value } =
     Route.useSearch();
@@ -770,7 +786,7 @@ function SignupPage() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
-              Tracking {trackedBids.toLocaleString()} solicitations — updated every 4 hours
+              Tracking {trackedBids.toLocaleString()} solicitations{openBids > 0 ? `, including ${openBids.toLocaleString()} currently open` : ""} — updated every 4 hours
             </p>
           )}
 
@@ -1044,7 +1060,7 @@ function SignupPage() {
               <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              Matched set-aside bids from 9,000+ tracked solicitations
+              Matched set-aside bids from {trackedBids > 0 ? `${trackedBids.toLocaleString()} tracked solicitations` : "thousands of tracked solicitations"}
             </li>
             <li className="flex items-start gap-2 text-sm text-slate-700">
               <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

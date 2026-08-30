@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Menu, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
-import { isLowContent, LOW_CONTENT_SQL } from "~/lib/low-content";
+import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { keywordPred } from "~/lib/open-bids";
 import {
   buildContractMap,
@@ -771,8 +771,6 @@ function Home() {
       <Pricing />
       <OpenOpportunities bids={bids} todayBids={todayBids} openCount={contractMap.totals.totalOpen} q={q || ""} user={user} />
       <HealthcareTeaser />
-      <Example />
-      <WhoItsFor />
       <CompareTeaser />
       <WaitlistSection />
       <Footer />
@@ -1917,89 +1915,36 @@ function HealthcareTeaser() {
 }
 
 function OpenOpportunities({ bids, todayBids, openCount, q, user }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number; q: string; user: { id: number; email: string } | null }) {
-  // Short, non-interactive preview (owner-directed): the full interactive feed
-  // was redundant with the "⚠ Closing in the next 7 days" section above, so this
-  // section now shows just the 3 newest open solicitations plus one Browse button.
-  // Data plumbing (loader -> recentBids/openCount/todayBids) is left untouched;
-  // todayBids is still accepted by the call site but no longer needed here.
-  const fmtDue = (d: string | null) => {
-    if (!d) return null;
-    const date = new Date(d);
-    if (Number.isNaN(date.getTime())) return null;
-    const sameYear = date.getFullYear() === new Date().getFullYear();
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      ...(sameYear ? {} : { year: "numeric" }),
-    });
-  };
-
-  // The 3 newest real open solicitations, newest-first (low-content junk filtered).
-  const preview = [...bids]
-    .filter((b) => !isLowContent(b.title, b.location, b.set_aside))
-    .sort((a, b) => {
-      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return tb - ta;
-    })
-    .slice(0, 3);
-  const keyOf = (title: string, agency: string) =>
-    `${String(title).trim().toLowerCase()}|${String(agency || "").trim().toLowerCase()}`;
+  // Compact strip (owner-directed): the full preview + list + heading duplicated
+  // the Opportunity Map, "Closing Soon", and How It Works sections above, so this
+  // section is now a single non-repeating strip that keeps the #open-opportunities
+  // anchor, the REAL open-solicitation count, and the ?q= "clear search" notice.
+  // Data plumbing (loader -> recentBids/openCount/todayBids) and the call site
+  // signature are left untouched; bids/todayBids are accepted but no longer used.
   const totalLabel = openCount.toLocaleString("en-US");
-  // The only dedicated browse route is /opportunities/$setaside/$naics, which
-  // requires both path params — a bare /opportunities serves no browse page.
   // Login-aware CTA (owner-directed): logged-out visitors go through the signup
   // flow with attribution + next-step back to /dashboard; logged-in users go
   // straight to /dashboard.
   const browseTarget = user ? "/dashboard" : "/signup?source=browse_all&next=/dashboard";
 
   return (
-    <section id="open-opportunities" className="bg-gradient-to-b from-slate-50 to-white py-16 sm:py-20" aria-label="Open contract solicitations you can bid on now">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
-          <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Open Opportunities</h2>
-          <p className="text-lg leading-relaxed text-gray-600">
-            What you can bid on right now — fresh set-aside and open solicitations from SAM.gov and city procurement, pulled in as they post. Browse titles free; full details are one signup away.
-          </p>
-          <a
-            href="/map"
-            className="mt-1 inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-5 py-2.5 text-sm font-semibold text-amber-700 transition-all hover:bg-amber-100 hover:shadow-sm"
-          >
-            🗺️ Explore the U.S. Contract Map &rarr;
-          </a>
+    <section id="open-opportunities" className="bg-white py-10" aria-label="Open contract solicitations you can bid on now">
+      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
+        <div>
+          <p className="text-lg font-semibold text-slate-900">Open Opportunities</p>
+          <p className="mt-1 text-sm text-gray-500">Fresh set-aside and open solicitations from SAM.gov and city procurement, pulled in as they post.</p>
         </div>
         {q ? (
-          <p className="mt-6 text-center text-sm font-medium text-slate-700">
-            Showing results for &ldquo;{q}&rdquo; —{" "}
+          <p className="text-sm font-medium text-slate-700">
+            Showing results for &ldquo;{q}&rdquo; &mdash;{" "}
             <a href="/#open-opportunities" className="font-semibold text-amber-600 underline-offset-2 hover:underline">
               clear search to browse every open solicitation
             </a>
           </p>
         ) : (
-          <>
-            <div className="mx-auto mt-10 max-w-3xl divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-              {preview.map((bid) => {
-                const due = fmtDue(bid.due_date);
-                return (
-                  <div key={keyOf(bid.title, bid.agency)} className="flex items-center justify-between gap-4 px-6 py-4">
-                    <div className="min-w-0">
-                      <p className="line-clamp-1 text-sm font-semibold text-slate-800">{bid.title}</p>
-                      <p className="mt-0.5 truncate text-xs text-gray-500">{bid.agency || "Federal agency"}</p>
-                    </div>
-                    {due && <span className="shrink-0 text-xs font-medium text-amber-700">Due {due}</span>}
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-10 text-center">
-              <a
-                href={browseTarget}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl"
-              >
-                Browse all {totalLabel} open opportunities →
-              </a>
-            </div>
-          </>
+          <a href={browseTarget} className="shrink-0 font-semibold text-blue-700 transition-colors hover:text-blue-900">
+            Browse all {totalLabel} open opportunities &rarr;
+          </a>
         )}
       </div>
     </section>
@@ -2102,129 +2047,6 @@ function HowItWorks() {
               </a>
             </div>
           ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ── Example / See It In Action ────────────────────────────────────────────────
-
-function Example() {
-  const outputs = [
-    "Identified 23 FAR clauses applicable",
-    "Drafted Executive Summary (340 words)",
-    "Generated Past Performance matrix",
-    "Built compliance checklist",
-  ];
-
-  return (
-    <section className="bg-gray-50 py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            See It In Action
-          </h2>
-          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            From RFP to proposal draft in minutes
-          </h3>
-          <p className="mt-4 text-lg text-gray-600">
-            Let Contrax handle the heavy lifting while you focus on winning the work.
-          </p>
-        </div>
-
-        <div className="demo-shell mt-14 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
-          <div className="flex items-center justify-between border-b border-slate-200 bg-slate-900 px-5 py-3 sm:px-7">
-            <div className="flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-red-400" />
-              <span className="h-2.5 w-2.5 rounded-full bg-yellow-400" />
-              <span className="h-2.5 w-2.5 rounded-full bg-green-400" />
-              <span className="ml-2 text-xs font-medium text-slate-300">Contract Intelligence Copilot</span>
-            </div>
-            <span className="text-xs text-slate-400">Live workspace</span>
-          </div>
-          <div className="grid gap-6 p-5 sm:p-8 lg:grid-cols-[.9fr_1.1fr] lg:gap-10 lg:p-10">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 sm:p-6">
-              <div className="mb-5 flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">Source document</span>
-                <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">RFP</span>
-              </div>
-              <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-sm font-semibold leading-relaxed text-slate-900">RFP: VA Medical Center IT Modernization</p>
-                <p className="mt-2 text-xs text-slate-500">Solicitation VA-26-IT-0042 &nbsp;•&nbsp; 120 pages</p>
-                <div className="mt-5 space-y-2">
-                  <div className="h-2 w-full rounded bg-slate-100" /><div className="h-2 w-4/5 rounded bg-slate-100" /><div className="h-2 w-11/12 rounded bg-slate-100" />
-                </div>
-              </div>
-              <div className="demo-analyzing mt-5 flex items-center gap-2 text-xs font-medium text-blue-700">
-                <span className="h-2 w-2 animate-pulse rounded-full bg-blue-600" />
-                Analyzing RFP requirements...
-              </div>
-            </div>
-            <div className="flex min-h-[280px] flex-col rounded-xl border border-blue-100 bg-blue-50/40 p-5 sm:p-6">
-              <div className="mb-5 flex items-center gap-2 border-b border-blue-100 pb-4">
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-xs font-bold text-white">C</span>
-                <span className="text-sm font-semibold text-slate-900">Contrax Copilot</span>
-                <span className="ml-auto flex items-center gap-1.5 text-xs text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />Working</span>
-              </div>
-              <div className="flex flex-1 flex-col justify-center gap-3">
-                {outputs.map((output, i) => (
-                  <div key={output} className={`demo-output demo-output-${i + 1} flex items-start gap-2.5 rounded-lg bg-white px-3.5 py-3 text-sm text-slate-700 shadow-sm`}>
-                    <span className="font-bold text-emerald-600">✓</span><span>{output}</span>
-                  </div>
-                ))}
-                <div className="demo-ready mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm font-semibold text-emerald-700">Proposal draft ready in under 3 minutes</div>
-              </div>
-            </div>
-          </div>
-          <div className="border-t border-slate-100 px-5 py-5 text-center sm:px-8">
-            <a href="/signup" className="inline-flex items-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700">Try it free <span className="ml-1.5">→</span></a>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ── Who It's For ──────────────────────────────────────────────────────────────
-
-function WhoItsFor() {
-  return (
-    <section className="bg-gray-50 py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            Who It&rsquo;s For
-          </h2>
-          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Built for certified businesses that win government work
-          </h3>
-          <p className="mt-4 text-lg text-gray-600">
-            Contrax is purpose-built for minority-, veteran-, and women-owned businesses pursuing
-            8(a), SDVOSB, WOSB, and HUBZone set-aside contracts.
-          </p>
-        </div>
-
-        <p className="mx-auto mt-12 max-w-2xl text-center text-lg text-gray-600">
-          Built for certified small businesses across construction, technology, facilities, professional services, healthcare, and manufacturing.
-        </p>
-
-        {/* Set-aside focus */}
-        <div className="mt-10 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 text-center sm:p-8">
-            <svg className="mx-auto mb-4 h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-lg font-bold text-slate-900">Set-Aside Matching</h3>
-            <p className="mt-2 text-gray-600">Automatically match bids to your certifications: 8(a), SDVOSB, WOSB, HUBZone</p>
-          </div>
-          <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50 p-6 text-center sm:p-8">
-            <svg className="mx-auto mb-4 h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499l2.125 5.111 5.518.442-4.204 3.602 1.285 5.385L12 14.654l-4.204 2.885 1.285-5.385-4.204-3.602 5.518-.442L12.52 3.5a.562.562 0 01-1.04 0z" />
-            </svg>
-            <h3 className="text-lg font-bold text-slate-900">Built around the set-aside journey</h3>
-            <p className="mt-2 text-gray-600">Designed to help minority-, veteran-, and women-owned businesses identify and pursue the set-aside contracts their certifications make possible.</p>
-          </div>
         </div>
       </div>
     </section>

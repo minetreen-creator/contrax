@@ -1084,10 +1084,11 @@ function SignupGate({ certLabel, totalFound }: { certLabel: string; totalFound: 
  * Shown ONLY to anonymous visitors (never signed-in) AFTER they've engaged the
  * free radar matches. Low-friction: just an email (phone optional), no account.
  * Submitting creates a REAL row in `radar_saves` (unique on email, ON CONFLICT
- * update) storing the visitor's radar criteria so a future alert job can email
- * them when NEW matching bids open. Honest copy — no bait-and-switch, no claim
- * about a delivery schedule we haven't built. Fires the `radar_save` funnel
- * event on success so we can measure this capture against the FB drop-off.
+ * update) storing the visitor's radar criteria so that when they create an
+ * account with the same email, their saved matches are surfaced IN-APP on the
+ * dashboard (never emailed to them). Honest copy — no bait-and-switch, no
+ * false promise of email delivery. Fires the `radar_save` funnel event on
+ * success so we can measure this capture against the FB drop-off.
  */
 function SaveMatchesCard({
   certLabel,
@@ -1160,11 +1161,8 @@ function SaveMatchesCard({
       <div className="mt-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 text-center">
         <p className="text-base font-bold text-emerald-300">You&apos;re in ✓</p>
         <p className="mt-1 text-sm leading-relaxed text-slate-300">
-          We saved these {matchedCount} match{matchedCount === 1 ? "" : "es"} for you. When new{" "}
-          {certLabel} bids open that fit your criteria, we&apos;ll email you.
-        </p>
-        <p className="mt-2 text-xs text-slate-500">
-          We&apos;ll only email you about matching contract opportunities. Unsubscribe anytime.
+          Saved. When you sign in with this email, we&apos;ll show you the bids matching
+          your saved search on your dashboard.
         </p>
       </div>
     );
@@ -1179,7 +1177,8 @@ function SaveMatchesCard({
         <div>
           <h3 className="text-base font-bold text-white">Save your matches</h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-300">
-            Get alerted when new {certLabel} bids open. Leave your email — no account needed.
+            Leave your email — when you create an account with it, your saved
+            matches will be waiting for you in your dashboard.
           </p>
         </div>
         <button
@@ -1233,9 +1232,6 @@ function SaveMatchesCard({
         >
           {status === "submitting" ? "Saving…" : "Save my matches →"}
         </button>
-        <p className="text-xs leading-relaxed text-slate-500">
-          We&apos;ll only email you about matching contract opportunities. Unsubscribe anytime.
-        </p>
       </form>
     </section>
   );

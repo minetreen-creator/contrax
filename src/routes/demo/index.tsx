@@ -13,7 +13,7 @@ import {
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "See Contrax in Action — Request a Live Demo";
 const DESC =
-  "Watch how Contrax helps certified small businesses find, understand, and win government contracts. Request a live demo or start your 21-day free trial.";
+  "Watch how Contrax helps certified small businesses find, understand, and win government contracts. Request a live demo or start your 14-day free trial.";
 
 export const Route = createFileRoute("/demo/")({
   component: DemoPage,
@@ -102,7 +102,7 @@ const faqs = [
   },
   {
     q: "Is there a free trial?",
-    a: "Yes — every plan includes a 21-day free trial. No credit card required to start, and you can cancel anytime.",
+    a: "Yes — every plan includes a 14-day free trial. No credit card required to start, and you can cancel anytime.",
   },
   {
     q: "What happens after I sign up?",
@@ -232,7 +232,7 @@ function DemoPage() {
                 hello@contrax.company
               </a>
               <p className="mt-4 text-center text-xs text-gray-500">
-                Or start your 21-day free trial and explore on your own.
+                Or start your 14-day free trial and explore on your own.
               </p>
             </div>
           </div>
@@ -305,7 +305,7 @@ function DemoPage() {
       <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 py-20">
         <div className="relative mx-auto max-w-3xl px-6 text-center">
           <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Start your 21-day free trial
+            Start your 14-day free trial
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-blue-100/80">
             No credit card required. Set up your profile in minutes and start
@@ -316,7 +316,7 @@ function DemoPage() {
               href="/signup"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
             >
-              Start your 21-day free trial
+              Start your 14-day free trial
               <ArrowRight className="ml-2 h-5 w-5" />
             </a>
             <a

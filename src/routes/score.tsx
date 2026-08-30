@@ -81,7 +81,7 @@ const scoreFaqs = [
 // a credit (OpenAI failures / request errors do not decrement).
 const FREE_SCORE_LIMIT = 3;
 const FREE_LIMIT_REACHED_MESSAGE = "FREE_LIMIT_REACHED";
-// Per-trial score cap sentinel (owner): an ACTIVE 21-day Professional-trial
+// Per-trial score cap sentinel (owner): an ACTIVE 14-day Professional-trial
 // user gets 3 complete scores for the whole trial (see src/lib/trial-usage.ts).
 // The client matches this exact message to render an upgrade prompt instead of
 // a generic error. Auth'd trial users must NOT consume the anonymous credit
@@ -631,7 +631,7 @@ function ScorePage() {
               You&rsquo;ve used your 3 trial scores
             </h2>
             <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600">
-              Your 21-day Professional trial includes 3 complete bid scores. Upgrade to
+              Your 14-day Professional trial includes 3 complete bid scores. Upgrade to
               Professional for unlimited scoring and the full suite of premium tools.
             </p>
             <a
@@ -649,7 +649,7 @@ function ScorePage() {
             </h2>
             <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600">
               Create a free account for unlimited scoring — no credit card required for the
-              21-day Professional trial.
+              14-day Professional trial.
             </p>
             <a
               href="/signup?plan=professional"
@@ -842,7 +842,7 @@ function ScorePage() {
                 </a>
               </div>
               <p className="mt-3 text-[13.5px] leading-relaxed text-slate-600">
-                Save this bid, get deadline alerts, and see the full compliance breakdown — 21-day
+                Save this bid, get deadline alerts, and see the full compliance breakdown — 14-day
                 free trial, no credit card required.
               </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[13px] text-slate-500">

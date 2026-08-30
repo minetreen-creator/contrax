@@ -230,7 +230,7 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
     if (userId === null) {
       isNewUser = true;
       // LAZY TRIAL START (owner): every OAuth signup provisions on free Basic —
-      // plan_tier='basic', trial_started_at=NULL. The 21-day PROFESSIONAL trial
+      // plan_tier='basic', trial_started_at=NULL. The 14-day PROFESSIONAL trial
       // begins on the user's FIRST premium action (ensureTrialStarted), not here.
       const trialStartedAt = null;
       const inserted = await sql()`

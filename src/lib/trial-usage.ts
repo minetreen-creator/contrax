@@ -1,19 +1,19 @@
 /**
- * TRIAL USAGE LEDGER — per-trial caps for the 21-day PROFESSIONAL trial.
+ * TRIAL USAGE LEDGER — per-trial caps for the 14-day PROFESSIONAL trial.
  * (owner requirements, lazy-start Professional trial)
  *
- * The 21-day trial is an explicit PROFESSIONAL trial that:
+ * The 14-day trial is an explicit PROFESSIONAL trial that:
  *  - starts LAZILY: `trial_started_at` is set on FIRST premium-feature use
  *    (src/lib/trial.ts `ensureTrialStarted`), NOT at account signup;
  *  - requires NO credit card;
  *  - grants Professional-tier access during the trial (NOT Agency — the Red
  *    Team evaluator stays Agency-only);
- *  - auto-DOWNGRADES to Basic (all gates lock) when the 21 days expire WITHOUT
+ *  - auto-DOWNGRADES to Basic (all gates lock) when the 14 days expire WITHOUT
  *    deleting the user's saved bids / pipeline / checklist progress;
  *  - is capped per-trial by this ledger, keyed to the trial INSTANCE
  *    (`trial_started_at`) so usage NEVER resets at a calendar-month boundary.
  *
- * Caps (per single 21-day trial, one shared ledger):
+ * Caps (per single 14-day trial, one shared ledger):
  *    5  AI Executive Briefs
  *    3  complete bid scores
  *    1  proposal draft

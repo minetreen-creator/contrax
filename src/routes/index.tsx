@@ -1140,10 +1140,10 @@ function Hero({
               onClick={() => trackEvent("hero_cta_click", "start_trial")}
               className="mx-auto block w-full max-w-3xl rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-6 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
             >
-              🚀 Start your 21-day FREE Professional trial →
+              🚀 Start your 14-day FREE Professional trial →
             </a>
             <p className="mt-2 text-center text-xs font-medium text-blue-200/60">
-              No credit card required · Full Professional features on your first use · Auto-downgrades to free Basic after 21 days
+              No credit card required · Full Professional features on your first use · Auto-downgrades to free Basic after 14 days
             </p>
             <a
               href="/radar"
@@ -1691,7 +1691,7 @@ function ProductShowcase() {
             <p className="text-2xl font-bold text-white">Your certification is your edge. Put it to work.</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-300">
               Start free — set-aside-matched opportunities, RFP summaries, AI proposal drafting, and
-              certification deadline tracking, all in one place. 21-day Professional trial — no credit card.
+              certification deadline tracking, all in one place. 14-day Professional trial — no credit card.
             </p>
           </div>
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -2331,7 +2331,7 @@ function Pricing() {
             Start small and scale up as your contracting pipeline grows. No long-term contracts
             required.
           </p>
-          <p className="mt-3 text-sm font-medium text-slate-500">Start free on Basic — no card required. Your 21-day Professional trial starts on your first premium action. Cancel anytime.</p>
+          <p className="mt-3 text-sm font-medium text-slate-500">Start free on Basic — no card required. Your 14-day Professional trial starts on your first premium action. Cancel anytime.</p>
         </div>
 
         <div className="mt-14 grid gap-8 lg:grid-cols-3">
@@ -2424,7 +2424,7 @@ function Pricing() {
         </p>
         <p className="mt-3 text-center">
           <a href="/signup" onClick={() => trackEvent("hero_cta_click", "pricing")} className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
-            Or start your 21-day Professional trial →
+            Or start your 14-day Professional trial →
           </a>
         </p>
       </div>

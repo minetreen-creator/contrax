@@ -606,7 +606,7 @@ function AwardsPage() {
                       <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 text-center">
                         <p className="text-sm font-semibold text-slate-800">You&rsquo;ve used your 3 trial incumbent looks</p>
                         <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">
-                          Your 21-day Professional trial includes incumbent intelligence on 3 opportunities.
+                          Your 14-day Professional trial includes incumbent intelligence on 3 opportunities.
                           Upgrade to Professional for unlimited incumbent intel &amp; past pricing.
                         </p>
                         <a href="/upgrade" onClick={() => trackEvent("incumbent_trial_cap_upgrade", String(award.id), "/awards")}

@@ -321,11 +321,11 @@ export function SeoLanding(props: {
               onClick={() => trackEvent("hero_cta_click", "start_trial")}
               className="inline-block rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
             >
-              🚀 Start your 21-day FREE Professional trial →
+              🚀 Start your 14-day FREE Professional trial →
             </a>
             <p className="mt-2 text-xs font-medium text-blue-200/60">
               No credit card required · Full Professional features on your first
-              use · Auto-downgrades to free Basic after 21 days
+              use · Auto-downgrades to free Basic after 14 days
             </p>
             {/* SECONDARY Radar CTA */}
             <a
@@ -644,11 +644,11 @@ export function RegionView({ data }: { data: RegionData }) {
           onClick={() => trackEvent("hero_cta_click", "start_trial")}
           className="mt-4 inline-block rounded-xl bg-amber-500 px-7 py-3.5 text-base font-extrabold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.99]"
         >
-          🚀 Start your 21-day FREE Professional trial →
+          🚀 Start your 14-day FREE Professional trial →
         </a>
         <p className="mt-2 text-xs text-blue-200/60">
           No credit card required · Full Professional features on your first use ·
-          Auto-downgrades to free Basic after 21 days
+          Auto-downgrades to free Basic after 14 days
         </p>
       </div>
     </div>

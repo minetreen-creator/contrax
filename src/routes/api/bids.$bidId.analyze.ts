@@ -307,7 +307,7 @@ async function handler({
     if (hasSummary && wantsRegenerate && !isStale) return serveCached();
 
     // ----- Paid generation path -----
-    // LAZY TRIAL START BEFORE MONTHLY LEDGER (QA fix): the 21-day Professional
+    // LAZY TRIAL START BEFORE MONTHLY LEDGER (QA fix): the 14-day Professional
     // trial must be started BEFORE the monthly ai_brief_allowance ledger is read
     // and debited, so the FIRST premium brief is tiered under the active trial
     // (Professional, 50/mo) rather than the pre-start Basic (1/mo) ledger.

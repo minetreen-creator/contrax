@@ -10,7 +10,7 @@ import { handleStripeWebhook } from "~/lib/stripe";
  * Handles `checkout.session.completed`:
  *   - sets the user's plan_tier to the purchased tier
  *   - sets subscription_status = 'active'
- *   - clears trial_started_at (payment ends the 21-day trial)
+ *   - clears trial_started_at (payment ends the 14-day trial)
  *   - stores the Stripe customer id and subscription id on the user
  *
  * The user is matched by `metadata.user_id` (set at checkout when logged in),

@@ -831,7 +831,7 @@ function TrialBanner({ daysLeft, planTier, endsAt }: { daysLeft: number; planTie
     <div className="mx-auto max-w-5xl px-4 pt-4">
       <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <strong>Your 21-day Professional trial</strong> · {daysLeft} day{daysLeft === 1 ? "" : "s"} left
+          <strong>Your 14-day Professional trial</strong> · {daysLeft} day{daysLeft === 1 ? "" : "s"} left
           {endsAt ? <span className="text-amber-700"> · ends {fmtDate(endsAt)}</span> : null}
         </div>
         <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">Subscribe now →</a>

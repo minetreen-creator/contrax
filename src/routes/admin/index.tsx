@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import type { FARClauseStats, FarDfarsSyncResult } from "~/lib/far-dfars";
+import { TRIAL_DAYS } from "~/lib/trial";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface AdminMetrics {
@@ -490,7 +491,7 @@ function AdminPage() {
                   <tbody>
                     {metrics.recentUsers.map((user) => {
                       const trialActive = user.trial_started_at
-                        ? new Date(user.trial_started_at).getTime() + 21 * 24 * 60 * 60 * 1000 > Date.now()
+                        ? new Date(user.trial_started_at).getTime() + TRIAL_DAYS * 24 * 60 * 60 * 1000 > Date.now()
                         : false;
                       return (
                         <tr key={user.id} className="border-t border-slate-50">

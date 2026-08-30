@@ -129,7 +129,7 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
             <p className="mt-1 text-sm font-medium text-indigo-700 line-clamp-2">{agency}</p>
           )}
           <p className="mt-3 text-xs text-indigo-600">
-            Start your 21-day Professional trial below to see the incumbent&apos;s full contract history and past pricing.
+            Start your 14-day Professional trial below to see the incumbent&apos;s full contract history and past pricing.
           </p>
         </div>
       </div>
@@ -165,7 +165,7 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
         <p className="mt-3 text-xs text-amber-600">
           {closingLabel
             ? "Start free below for full details, the AI summary, and a draft before the deadline."
-            : "Start your 21-day Professional trial below to unlock the full opportunity."}
+            : "Start your 14-day Professional trial below to unlock the full opportunity."}
         </p>
       </div>
     </div>

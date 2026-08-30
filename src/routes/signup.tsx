@@ -278,13 +278,13 @@ function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>(plan);
   // Browser-tab title matches the selected plan (P2): Basic is genuinely free
-  // forever (no card), paid tiers carry the 21-day trial. Kept in sync client-
+  // forever (no card), paid tiers carry the 14-day trial. Kept in sync client-
   // side so the tab reads truthfully however the visitor arrived.
   useEffect(() => {
     document.title =
       selectedPlan === "basic"
         ? "Contrax — Free, No Card Required"
-        : "Contrax — Start Your 21-Day Professional Trial";
+        : "Contrax — Start Your 14-Day Professional Trial";
   }, [selectedPlan]);
 
   // Live countdown for the Closing Soon → signup urgency panel. Initial value is
@@ -760,7 +760,7 @@ function SignupPage() {
               : contextualHeader || "Your government-contracting workflow starts here."}
           </h1>
           <p className="mt-1.5 text-sm text-gray-500">
-            Start free on Basic — no credit card required. Your 21-day Professional trial begins on your first premium use.
+            Start free on Basic — no credit card required. Your 14-day Professional trial begins on your first premium use.
           </p>
 
           {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
@@ -838,13 +838,13 @@ function SignupPage() {
               {/* ZERO-CARD REASSURANCE — large, unmissable badge right by the
                   email field. Plan-conditional: for the Basic/free tier we say
                   "100% Free Forever"; for a paid plan (starter/professional/
-                  agency) we use honest 21-day trial framing instead so a paid
+                  agency) we use honest 14-day trial framing instead so a paid
                   plan is never claimed to be free. Styling/placement identical
                   for both branches. */}
               <div className="mt-1.5 rounded-lg border border-emerald-300 bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white shadow-sm">
                 {selectedPlan === "basic"
                   ? "🔒 100% Free Forever • Zero Credit Card Required"
-                  : "🔒 Start your 21-day Professional trial • No card required"}
+                  : "🔒 Start your 14-day Professional trial • No card required"}
               </div>
               {/* Honest scope on the free forever claim — Basic is free and never
                   expires, but it is LIMITED: capped at 3 saved bids, with Incumbent
@@ -939,7 +939,7 @@ function SignupPage() {
 
             {/* Trial trust row — one visible line near the CTA. Communicates
                 all three free/basic assurances: no card, free forever, and fast
-                (takes under 30 seconds). Paid plans keep honest 21-day-trial
+                (takes under 30 seconds). Paid plans keep honest 14-day-trial
                 framing instead of the "free forever" claim. */}
             <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
               <span>No credit card required</span>
@@ -958,7 +958,7 @@ function SignupPage() {
           <div className="mt-6 border-t border-gray-100 pt-5">
             <p className="text-sm font-semibold text-slate-900">Select your plan</p>
             <p className="mt-0.5 text-xs text-gray-500">
-              Start free on Basic — no credit card required. Your 21-day Professional trial begins on your first premium use.
+              Start free on Basic — no credit card required. Your 14-day Professional trial begins on your first premium use.
             </p>
             <div className="mt-2.5 space-y-2" role="radiogroup" aria-label="Plan">
               {PLAN_OPTIONS.map((opt) => {
@@ -994,7 +994,7 @@ function SignupPage() {
                         )}
                         {freeFlowPaidCard && (
                           <span className="inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-slate-600">
-                            Paid · 21-day Professional trial
+                            Paid · 14-day Professional trial
                           </span>
                         )}
                       </span>
@@ -1032,7 +1032,7 @@ function SignupPage() {
             <p className="mt-2.5 text-sm text-gray-500">
               {selectedPlan === "basic"
                 ? "Basic — $0/mo, free forever"
-                : `${planInfo.name} — $${planInfo.price}/mo after your 21-day Professional trial`}
+                : `${planInfo.name} — $${planInfo.price}/mo after your 14-day Professional trial`}
             </p>
           </div>
 

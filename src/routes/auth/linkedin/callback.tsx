@@ -212,7 +212,33 @@ const handleLinkedInAuth = createServerFn({ method: "POST" })
       maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
     });
 
-    return { success: true, userId, isNewUser };
+    return { success: true, userId, isNewUser, email };
+  });
+
+/**
+ * Ties this request's anonymous visitor journey (contrax_vid cookie) to the
+ * authenticated account. Runs inside a server fn so `getRequest()` is in a
+ * proper server scope. Best-effort / fail-open — never affects the OAuth result.
+ */
+const linkOAuthVisitor = createServerFn({ method: "POST" })
+  .validator((data: unknown) => data as { userId: number; email: string })
+  .handler(async ({ data }) => {
+    try {
+      const { sql } = await import("~/db");
+      const { backfillVisitorIdentity } = await import("~/lib/identity-backfill");
+      const cookie = getRequest().headers.get("cookie") ?? "";
+      const vid =
+        cookie
+          .split(";")
+          .map((c) => c.trim())
+          .find((c) => c.startsWith("contrax_vid="))
+          ?.split("=")[1] ?? "";
+      if (!vid) return { linked: false, reason: "no_visitor" };
+      await backfillVisitorIdentity(sql, data.userId, data.email, vid);
+      return { linked: true };
+    } catch {
+      return { linked: false, reason: "error" };
+    }
   });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -300,13 +326,23 @@ export const Route = createFileRoute("/auth/linkedin/callback")({
 
     let userId: number | null = null;
     let isNewUser = false;
+    let userEmail: string | null = null;
     try {
       const result = await handleLinkedInAuth({ data: { code, plan } });
       userId = result.userId;
       isNewUser = result.isNewUser;
+      userEmail = result.email ?? null;
     } catch (err) {
       console.error("[linkedin-auth] callback failed:", err);
       throw redirect({ href: "/login?error=linkedin_auth_failed" });
+    }
+
+    // Tie this request's anonymous visitor journey (contrax_vid cookie) to the
+    // authenticated account. Fail-open — never affects the redirect below.
+    if (userId !== null && userEmail) {
+      linkOAuthVisitor({ data: { userId, email: userEmail } }).catch(() => {
+        /* best-effort */
+      });
     }
 
     // Complete the save-to-pipeline intent server-side (best-effort). Mirrors

@@ -198,6 +198,24 @@ async function handler({ request }: { request: Request }) {
 
     try {
       await ensureFunnelEventsTable();
+      // Dedupe identical events within ~1s (same event + visitor + path) at
+      // write time so the Visitor Journeys timeline isn't noisy with e.g.
+      // double-firing beacons. Only dedupes when a persistent visitor_id is
+      // present (anonymous without an id can't be grouped meaningfully). This
+      // is a time-windowed collapse, NOT a permanent unique constraint, so a
+      // legitimate repeat action hours later still records.
+      if (visitorId) {
+        const dup = await sql()`
+          SELECT 1 FROM funnel_events
+          WHERE event_name = ${event}
+            AND visitor_id = ${visitorId}
+            AND COALESCE(path, '') = ${path ?? ""}
+            AND created_at >= NOW() - INTERVAL '1 second'
+          LIMIT 1`;
+        if (dup.length > 0) {
+          return Response.json({ ok: true, deduped: true });
+        }
+      }
       await insert();
     } catch {
       // First-ever creation can race with a concurrent request; recreate and

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
+import { getOrCreateVisitorId } from "~/lib/visitor";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
@@ -96,7 +97,7 @@ function LoginPage({ linkedInAuthUrl }: { linkedInAuthUrl: string | null }) {
       const res = await fetch("/api/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, visitor_id: getOrCreateVisitorId() }),
       });
       const json = await res.json() as { error?: string; success?: boolean };
       if (!res.ok || json.error) {

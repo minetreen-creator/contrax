@@ -167,6 +167,22 @@ async function handler({ request }: { request: Request }) {
 
     try {
       await ensurePageViewsTable();
+      // Dedupe identical page views within ~1s (same path + visitor) at write
+      // time so the Visitor Journeys timeline isn't noisy with reload/bounce
+      // double-fires. This is the 1s server-side complement to the existing
+      // 5-min client-side dedupe; it's a time-windowed collapse, not a
+      // permanent constraint, so a genuine later re-view still records.
+      if (visitorId) {
+        const dup = await sql()`
+          SELECT 1 FROM page_views
+          WHERE path = ${path}
+            AND visitor_id = ${visitorId}
+            AND created_at >= NOW() - INTERVAL '1 second'
+          LIMIT 1`;
+        if (dup.length > 0) {
+          return Response.json({ ok: true, deduped: true });
+        }
+      }
       await insert();
     } catch {
       // First-ever creation can race with a concurrent request; recreate and

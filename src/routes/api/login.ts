@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { setCookie } from "@tanstack/react-start/server";
 import { sql } from "~/db";
 import { SESSION_COOKIE } from "~/lib/auth";
+import { backfillVisitorIdentity } from "~/lib/identity-backfill";
 import { verifyPassword } from "~/lib/password";
 import { isBlockedIp } from "~/lib/request-ip";
 import {
@@ -31,10 +32,14 @@ async function handler({ request }: { request: Request }) {
     const body = (await request.json()) as {
       email?: string;
       password?: string;
+      visitor_id?: string;
     };
 
     const email = (body.email || "").trim().toLowerCase();
     const password = body.password || "";
+    // Persistent per-visitor id (contrax_vid) rides in the body so the identity
+    // backfill can tie this visitor's earlier anonymous journey to the account.
+    const visitorId = (body.visitor_id || "").trim().slice(0, 64) || null;
 
     // ── Rate limiting (before credential verification, so brute-force burns
     //    quota immediately). IP + account caps; fail-open on any limiter error.
@@ -90,6 +95,19 @@ async function handler({ request }: { request: Request }) {
       path: "/",
       maxAge: SESSION_TTL_DAYS * 24 * 60 * 60,
     });
+
+    // ── Identity backfill (fail-open, MUST NOT affect the response) ─────────
+    // A returning visitor who just logged in may have earlier anonymous
+    // activity (radar scans, page views) under the same contrax_vid — tie it to
+    // the account so the Visitor Journeys board shows a recognizable user
+    // instead of "Anonymous <id>". Best-effort; never fails the login.
+    if (visitorId) {
+      try {
+        await backfillVisitorIdentity(sql, user.id, user.email, visitorId);
+      } catch (backfillErr) {
+        console.error("[api/login] identity backfill failed (non-fatal):", backfillErr);
+      }
+    }
 
     return Response.json({
       success: true,

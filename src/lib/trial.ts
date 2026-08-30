@@ -5,7 +5,7 @@
  * `plan_tier` matching the plan they selected (starter/professional/agency).
  * The free Basic package (plan_tier='basic') is exempt — its trial_started_at
  * is NULL, so it never expires and stays free forever.
- * They are "in trial" for TRIAL_DAYS (21) days from that timestamp — the
+ * They are "in trial" for TRIAL_DAYS (14) days from that timestamp — the
  * plan_tier value does NOT determine trial state. Paying via Stripe clears
  * `trial_started_at` and sets `subscription_status = 'active'`, ending the
  * trial for good.
@@ -13,7 +13,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
-export const TRIAL_DAYS = 21;
+export const TRIAL_DAYS = 14;
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Tier ladder — higher is more capable. Shared by PlanGate and premium gates.
  * `basic` (0) is the free tier (below Starter); `starter`, `professional` and
@@ -122,7 +122,7 @@ export function hasAgencyAccess(
   return !!trial.planTier && !trial.expired && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER.agency;
 }
 export interface TrialStatus {
-  /** True while the user is inside the 21-day trial window. */
+  /** True while the user is inside the 14-day trial window. */
   active: boolean;
   /** Whole days remaining in the trial (>= 0). */
   daysLeft: number;
@@ -166,7 +166,7 @@ export function computeTrialStatus(
       const daysLeft = Math.max(0, Math.ceil((expires - now) / DAY_MS));
       return {
         // A grant user is not "in trial" — active=false mirrors a paid account
-        // (no misleading 21-day trial banner/callout), access is granted via
+        // (no misleading 14-day trial banner/callout), access is granted via
         // expired=false and fullAccess below.
         active: false,
         daysLeft,
@@ -220,7 +220,7 @@ export async function loadUserTrialStatus(userId: number): Promise<TrialStatus> 
 /**
  * Returns the current user's trial status, or an empty status when logged out.
  * Recognizes trials by `trial_started_at` — NOT by plan_tier — so paid-plan
- * signups (starter/professional/agency) see the 21-day trial countdown, while
+ * signups (starter/professional/agency) see the 14-day trial countdown, while
  * free Basic users (trial_started_at NULL) are never in trial and never expire.
  */
 export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Promise<TrialStatus> => {
@@ -232,7 +232,7 @@ export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Pr
 /**
  * LAZY TRIAL START (owner requirement).
  *
- * The 21-day trial is an explicit PROFESSIONAL trial. The clock does NOT begin
+ * The 14-day trial is an explicit PROFESSIONAL trial. The clock does NOT begin
  * at account signup — it begins on the user's FIRST use of a premium feature.
  * Until they touch a premium feature they are effectively free Basic and the
  * clock is not running.
@@ -245,7 +245,7 @@ export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Pr
  * the Professional-tier gates (hasProfessionalAccess / PlanGate) while the
  * Red-Team Agency features must NOT unlock (professional < agency on the
  * ladder). Setting plan_tier='professional' achieves exactly that — the gates
- * already require `!expired`, so when the 21 days pass the same plan_tier
+ * already require `!expired`, so when the 14 days pass the same plan_tier
  * stops granting premium (downgrade to Basic) with NO deletion of saved work.
  *
  * Reentrancy / semantics:

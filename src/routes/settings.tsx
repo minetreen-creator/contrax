@@ -387,7 +387,7 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-1">Plan &amp; Trial</h2>
-              <p className="text-sm text-slate-500">Your subscription status and 21-day free trial.</p>
+              <p className="text-sm text-slate-500">Your subscription status and 14-day free trial.</p>
             </div>
             <a href="/upgrade" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
               Manage plan
@@ -427,7 +427,7 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
           </div>
           {trial?.active && (
             <div className="mt-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
-              <span>Your 21-day free trial is almost over — keep bid matching, AI scoring, and proposal drafting after it ends.</span>
+              <span>Your 14-day free trial is almost over — keep bid matching, AI scoring, and proposal drafting after it ends.</span>
               <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">Upgrade now →</a>
             </div>
           )}

@@ -1,5 +1,5 @@
 /**
- * TrialChecklist — user-visible 21-day PROFESSIONAL trial checklist.
+ * TrialChecklist — user-visible 14-day PROFESSIONAL trial checklist.
  *
  * Shows the 4 owner-specified trial items with live remaining counts, derived
  * from the per-trial `trial_usage` ledger (src/lib/trial-usage.ts):
@@ -48,7 +48,7 @@ export function TrialChecklist() {
   return (
     <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-900">⚡ Your 21-day Professional trial</h3>
+        <h3 className="text-sm font-bold text-slate-900">⚡ Your 14-day Professional trial</h3>
         <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
           {data.daysLeft} day{data.daysLeft === 1 ? "" : "s"} left
         </span>

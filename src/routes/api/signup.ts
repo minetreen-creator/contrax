@@ -67,7 +67,7 @@ async function handler({ request }: { request: Request }) {
     // paid plan on the pricing page / signup selector (starter/professional/
     // agency) gets that plan_tier. The single form, single DB flow stays intact.
     // The submitted `plan` is intentionally not applied here: every signup lands
-    // on free Basic (plan_tier='basic', trial_started_at=NULL) and the 21-day
+    // on free Basic (plan_tier='basic', trial_started_at=NULL) and the 14-day
     // Professional trial starts lazily on the user's first premium use.
 
     // ── Rate limiting (before any insert). IP + account caps; fail-open.
@@ -97,14 +97,14 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: "An account with this email already exists." }, { status: 409 });
     }
 
-    // Create user. Paid plans enter a 21-day trial (trial_started_at = now) and
+    // Create user. Paid plans enter a 14-day trial (trial_started_at = now) and
     // expire into a subscribe prompt; the free Basic package never enters a
     // trial (trial_started_at = NULL), so it stays free forever and is never
     // locked by TrialGate.
     const passwordHash = await hashPassword(password);
     // LAZY TRIAL START (owner): every signup provisions on free Basic — no plan
     // tier is granted and trial_started_at stays NULL, so no user is "in trial"
-    // at signup and the 21-day PROFESSIONAL trial clock is NOT running. The
+    // at signup and the 14-day PROFESSIONAL trial clock is NOT running. The
     // trial begins (and trial_started_at is set) on the user's FIRST premium
     // action via ensureTrialStarted (src/lib/trial.ts). No credit card.
     const inserted = await sql()`

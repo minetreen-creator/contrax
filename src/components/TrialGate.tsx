@@ -1,7 +1,7 @@
 /**
  * Reusable trial and plan-tier gating for Contrax product pages.
  *
- * <TrialGate> shows its children while the user is in their 21-day trial or on
+ * <TrialGate> shows its children while the user is in their 14-day trial or on
  * a paid plan, and swaps in a full-screen upgrade prompt when the trial has
  * expired (restricted access).
  *
@@ -105,7 +105,7 @@ export function PlanGate({
   // plan_tier set (e.g. 'professional'), so without this guard a Professional
   // grant would unlock premium features forever after expiry. Normal paying
   // users (subscription_status='active') have expired:false, so they are
-  // unaffected; 21-day trial users grant premium only during the trial.
+  // unaffected; 14-day trial users grant premium only during the trial.
   // fullAccess is checked above and is unaffected (computeTrialStatus already
   // drops an expired full-access grant to fullAccess:false).
   if (trial?.planTier && !trial?.expired && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER[minTier]) return <>{children}</>;
@@ -177,7 +177,7 @@ export function TrialUpgradeCallout() {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
       <span>
-        Your 21-day Professional trial ·{" "}
+        Your 14-day Professional trial ·{" "}
         <strong>
           {trial.daysLeft} day{trial.daysLeft === 1 ? "" : "s"} left
         </strong>

@@ -217,7 +217,7 @@ function HealthcarePage() {
       <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-blue-900 py-16">
         <div className="mx-auto max-w-3xl px-6 text-center">
           <h2 className="text-3xl font-bold text-white sm:text-4xl">Ready to win healthcare contracts?</h2>
-          <p className="mt-4 text-lg text-blue-100/70">21-day free trial. No credit card required.</p>
+          <p className="mt-4 text-lg text-blue-100/70">14-day free trial. No credit card required.</p>
           <a href="/signup" className="mt-8 inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 font-semibold text-white shadow-lg shadow-amber-500/25 transition hover:bg-amber-400">Start Free Trial <span className="ml-2">→</span></a>
         </div>
       </section>

@@ -81,6 +81,31 @@ async function fetchClosingSoonFunnel(days: number): Promise<ClosingSoonFunnel> 
   return res.json();
 }
 
+// ── Unified Funnel (Qualified → Radar → Signup → Activated → Paid) ─────────
+interface UnifiedFunnelStage {
+  stage: string;
+  label: string;
+  count: number;
+  stepConversionPct: number | null;
+}
+interface UnifiedFunnelResult {
+  rangeDays: number;
+  from: string;
+  to: string;
+  stages: UnifiedFunnelStage[];
+  bySource: { source: string; count: number }[];
+  byMedium: { medium: string; count: number }[];
+}
+
+async function fetchUnifiedFunnel(days: number): Promise<UnifiedFunnelResult> {
+  const res = await fetch(`/api/admin/unified-funnel?days=${days}`);
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to load funnel" }));
+    throw new Error(err.error || "Failed to load funnel");
+  }
+  return res.json();
+}
+
 /** Count of Loss Radar prospects at or above the high-value threshold. */
 async function fetchLossRadarSummary(): Promise<{ highValueProspects: number }> {
   const res = await fetch("/api/admin/loss-radar-summary");
@@ -201,6 +226,10 @@ function AdminPage() {
   const [funnel, setFunnel] = useState<ClosingSoonFunnel | null>(null);
   const [funnelError, setFunnelError] = useState("");
   const [funnelLoading, setFunnelLoading] = useState(true);
+  const [unifiedDays, setUnifiedDays] = useState(30);
+  const [unified, setUnified] = useState<UnifiedFunnelResult | null>(null);
+  const [unifiedError, setUnifiedError] = useState("");
+  const [unifiedLoading, setUnifiedLoading] = useState(true);
   const [activity, setActivity] = useState<ExternalUserActivity[] | null>(null);
   const [activityError, setActivityError] = useState("");
   const [acqDays, setAcqDays] = useState(30);
@@ -234,6 +263,19 @@ function AdminPage() {
       .finally(() => { if (!cancelled) setFunnelLoading(false); });
     return () => { cancelled = true; };
   }, [funnelDays]);
+
+  // Unified funnel (Qualified → Radar → Signup → Activated → Paid) — re-fetch
+  // when the day-range changes.
+  useEffect(() => {
+    let cancelled = false;
+    setUnifiedLoading(true);
+    setUnifiedError("");
+    fetchUnifiedFunnel(unifiedDays)
+      .then((d) => { if (!cancelled) setUnified(d); })
+      .catch((err) => { if (!cancelled) setUnifiedError(err instanceof Error ? err.message : "Failed to load funnel"); })
+      .finally(() => { if (!cancelled) setUnifiedLoading(false); });
+    return () => { cancelled = true; };
+  }, [unifiedDays]);
 
   // First-touch acquisition by source (re-fetch when the window changes).
   useEffect(() => {
@@ -1074,6 +1116,173 @@ function AdminPage() {
                     <span className="font-mono">34.214.71.218</span>, test emails qanext*) land in the same{" "}
                     <span className="font-mono">funnel_events</span> table with no test filter, so small numbers right now may be QA's
                     own activity rather than real humans. No filter is applied — this is the raw, honest state.
+                  </li>
+                </ul>
+              </div>
+            </>
+          )}
+        </section>
+
+        {/* Unified Funnel (Qualified → Radar → Signup → Activated → Paid) */}
+        <section>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-1">
+            <h2 className="text-lg font-semibold text-slate-800">🧭 Unified Funnel</h2>
+            <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
+              {[7, 14, 30, 90].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setUnifiedDays(d)}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    unifiedDays === d ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="mb-4 text-sm text-slate-500">
+            Where qualified visitors drop, over the selected window. Stages are monotonic —
+            a visitor counted at a later stage was necessarily counted at every earlier
+            stage. "Conversion" is the % that made it from the previous stage to this one.
+          </p>
+
+          {unifiedError ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-700">
+              Could not load unified funnel: {unifiedError}
+            </div>
+          ) : unifiedLoading || !unified ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">
+              Loading unified funnel…
+            </div>
+          ) : unified.stages.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6">
+              <p className="text-sm font-medium text-slate-700">No funnel data in this range.</p>
+              <p className="mt-1 text-xs text-slate-400">
+                No qualifying intent events were recorded in the last {unified.rangeDays} days.
+                Once qualified visitors arrive, this funnel will populate here. This is an honest
+                empty state — not a measurement error.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <div className="px-5 py-3 border-b border-indigo-100 bg-indigo-50/60">
+                  <h3 className="font-bold text-slate-900">Stage flow</h3>
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    Unique visitors per stage · conversion from the previous stage
+                    ({unified.rangeDays}-day window, bot / QA / admin excluded)
+                  </p>
+                </div>
+                <div className="p-5 space-y-3">
+                  {unified.stages.map((s, i) => {
+                    const pctOfQualified = unified.stages[0].count
+                      ? Math.round((s.count / unified.stages[0].count) * 1000) / 10
+                      : null;
+                    const barWidth =
+                      unified.stages[0].count > 0 ? Math.max(2, Math.round((s.count / unified.stages[0].count) * 100)) : 0;
+                    return (
+                      <div key={s.stage}>
+                        <div className="flex items-baseline justify-between gap-3">
+                          <div className="flex items-baseline gap-3 min-w-0">
+                            <span className="text-sm font-semibold text-slate-700">{s.label}</span>
+                            {i > 0 && (
+                              <span className="text-xs text-slate-400 shrink-0">
+                                {s.stepConversionPct === null ? "—" : `${s.stepConversionPct}%`} of prior stage
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-baseline gap-3 shrink-0">
+                            {i > 0 && (
+                              <span className="text-xs text-slate-400">
+                                {s.stepConversionPct === null ? "—" : `${s.stepConversionPct}%`}
+                              </span>
+                            )}
+                            <span className="text-xl font-bold text-slate-900">{s.count}</span>
+                            {pctOfQualified !== null && (
+                              <span className="text-xs text-slate-400 w-14 text-right">
+                                {pctOfQualified}% of qualified
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="mt-1.5 h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${i === unified.stages.length - 1 ? "bg-emerald-500" : "bg-indigo-500"}`}
+                            style={{ width: `${barWidth}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {unified.bySource.length > 0 && (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-slate-800 mb-3">Top sources (qualified)</h3>
+                    {unified.bySource.length === 0 ? (
+                      <p className="text-sm text-slate-400">No sources yet</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {unified.bySource.map((r) => (
+                          <div key={r.source} className="flex items-center justify-between gap-3">
+                            <span className="truncate text-sm font-medium text-slate-700 capitalize">{r.source}</span>
+                            <span className="shrink-0 text-sm font-bold text-slate-900">{r.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h3 className="text-sm font-bold text-slate-800 mb-3">Top mediums (qualified)</h3>
+                    {unified.byMedium.length === 0 ? (
+                      <p className="text-sm text-slate-400">No mediums yet</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {unified.byMedium.map((r) => (
+                          <div key={r.medium} className="flex items-center justify-between gap-3">
+                            <span className="truncate text-sm font-medium text-slate-700 capitalize">{r.medium}</span>
+                            <span className="shrink-0 text-sm font-bold text-slate-900">{r.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Honesty / caveats */}
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <h3 className="text-sm font-bold text-slate-800">How to read this (please read)</h3>
+                <ul className="mt-2 space-y-1.5 text-xs text-slate-600 list-disc pl-5">
+                  <li>
+                    <strong>Qualified visit</strong> = a visitor who produced any qualifying intent signal
+                    (activation event, Radar scan start/complete, signup view/start/submit/abandon/success,
+                    or a hero trial-CTA click). This is the founder funnel's entry stage — it is NOT total
+                    traffic.
+                  </li>
+                  <li>
+                    <strong>Monotonic:</strong> a visitor counted at Radar / Signup / Activated / Paid was
+                    necessarily counted as Qualified too (the Qualified event set is a superset). So
+                    each stage can never exceed the one before it in this board.
+                  </li>
+                  <li>
+                    <strong>Paid</strong> = distinct funnel users whose account has an{" "}
+                    <span className="font-mono">active</span> subscription status, linked via user_id — the
+                    same definition Jarvis and the Visitor Journeys board use.
+                  </li>
+                  <li>
+                    <strong>Conversion</strong> is shown only when the previous stage's count is nonzero;
+                    a 0 last-stage count shows the visitor count 0 and a "—" conversion (never a division by
+                    zero, never a fabricated %).
+                  </li>
+                  <li>
+                    <strong>Exclusions:</strong> every number excludes bot/crawler traffic,{" "}
+                    <span className="font-mono">@test.contrax</span> QA accounts, and internal admin emails —
+                    the same exclusions applied across the admin dashboard and Jarvis.
                   </li>
                 </ul>
               </div>

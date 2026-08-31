@@ -45,7 +45,6 @@ import {
   runProblemAnalysis,
   persistProblemCandidates,
   type ProblemAnalysis,
-  type ResolvedProblem,
 } from "~/lib/jarvis/problems";
 import {
   loadOperatingModel,
@@ -227,7 +226,6 @@ function readersFor(kind: WorkKind): Reader[] {
  * `emptyReaders` so a brief can say "no data for X" instead of guessing.
  */
 async function aggregateReaders(
-  db: NeonQuery,
   kind: WorkKind,
   ctx: ReaderCtx,
 ): Promise<{ metrics: Record<string, string[]>; readers: string[]; emptyReaders: string[] }> {
@@ -440,7 +438,6 @@ export async function runScheduledWork(
   const db = sql();
   const persist = opts.persist !== false;
   const requestedBy = opts.requestedBy ?? "phase5-worker";
-  const started = nowIso(opts.now);
 
   // Open the audit run row (status running).
   const inserted = (await db`
@@ -521,7 +518,7 @@ export async function runScheduledWork(
       days,
       now: nowDate,
     };
-    const { metrics, readers, emptyReaders } = await aggregateReaders(db, kind, ctx);
+    const { metrics, readers, emptyReaders } = await aggregateReaders(kind, ctx);
 
     const analysis = await runProblemAnalysis({ days });
     const model = await loadOperatingModel(db);
@@ -534,7 +531,6 @@ export async function runScheduledWork(
     audit.recommendationsCreated = analysis.problems.filter((p) => !p.insufficientData).length;
 
     // 3) Persist candidate problems + hypotheses (candidate-only) when real.
-    let problems: ResolvedProblem[] = analysis.problems;
     if (persist && !analysis.insufficientData) {
       await persistProblemCandidates(analysis);
       audit.problemsDetected = analysis.problems.filter((p) => !p.insufficientData).length;

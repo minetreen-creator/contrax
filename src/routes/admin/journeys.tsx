@@ -6,13 +6,16 @@ import { getCurrentUser } from "~/lib/auth";
  * Admin "Visitor Journeys" board (owner, 2026-09-01).
  *
  * One row per real person/session (grouped by the persistent contrax_vid), each
- * expanding into a timestamped timeline rebuilt from the self-hosted analytics
- * (funnel_events + page_views). Masks PII — unauthenticated visitors → a
- * geo/behavioral display name ("Dallas, TX · Desktop", "Direct Lead · /pricing")
- * with a subtle muted "#last4" hash badge; linked users → "local-part@…". Each
- * row also shows behavioral-intent badge pills (💰 Pricing Evaluator / 📑 Brief
- * Viewer / 🔥 High Engagement) derived server-side. QA/admin/bot/test traffic is
- * excluded server-side.
+ * expanding into a timestamped timeline. Row summaries are served from the
+ * `visitors` summary cache (fast read-path); the per-visitor TIMELINE stays in
+ * funnel_events + page_views and is fetched LAZILY when a row is expanded
+ * (GET /api/admin/journeys-timeline?visitor_id=<id>) — collapsed rows never
+ * fetch. Masks PII — unauthenticated visitors → a geo/behavioral display name
+ * ("Dallas, TX · Desktop", "Direct Lead · /pricing") with a subtle muted
+ * "#last4" hash badge; linked users → "local-part@…". Each row also shows
+ * behavioral-intent badge pills (💰 Pricing Evaluator / 📑 Brief Viewer / 🔥 High
+ * Engagement) derived server-side. QA/admin/bot/test traffic is excluded
+ * server-side.
  */
 
 interface TimelineItem { t: string; label: string; kind: "page" | "event"; }
@@ -32,8 +35,9 @@ interface Journey {
   activated: boolean;
   paid: boolean;
   last_activity: string | null;
+  steps: number;
   badges: JourneyBadge[];
-  events: TimelineItem[];
+  events: TimelineItem[]; // reliably empty on the board — the timeline is lazy
 }
 interface FunnelStage { stage: string; label: string; count: number; dropOffPct: number | null; }
 interface JourneysResult {
@@ -103,8 +107,36 @@ function Badges({ badges }: { badges: JourneyBadge[] }) {
   );
 }
 
+async function fetchTimeline(visitorId: string): Promise<TimelineItem[]> {
+  const res = await fetch(`/api/admin/journeys-timeline?visitor_id=${encodeURIComponent(visitorId)}`);
+  if (!res.ok) throw new Error("Failed to load timeline");
+  const data = await res.json();
+  return (data?.events ?? []) as TimelineItem[];
+}
+
 function JourneyRow({ j }: { j: Journey }) {
   const [open, setOpen] = useState(false);
+  // Lazy per-expanded-row timeline. Collapsed rows never fetch. Kept in local
+  // state so toggling closed→open again doesn't re-fetch.
+  const [events, setEvents] = useState<TimelineItem[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [timelineError, setTimelineError] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    if (events !== null) return; // already loaded once
+    let cancelled = false;
+    setLoading(true);
+    setTimelineError("");
+    fetchTimeline(j.visitor_id)
+      .then((ev) => { if (!cancelled) setEvents(ev); })
+      .catch(() => { if (!cancelled) setTimelineError("Failed to load timeline"); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, events, j.visitor_id]);
+
+  const stepCount = events !== null ? events.length : j.steps;
+
   return (
     <>
       <tr
@@ -137,7 +169,7 @@ function JourneyRow({ j }: { j: Journey }) {
           {j.last_activity ? timeFmt(j.last_activity) : "—"}
         </td>
         <td className="px-5 py-3 text-slate-400">
-          <span className="text-xs">{open ? "▾" : "▸"} {j.events.length}</span>
+          <span className="text-xs">{open ? "▾" : "▸"} {stepCount}</span>
         </td>
       </tr>
       {open && (
@@ -145,13 +177,17 @@ function JourneyRow({ j }: { j: Journey }) {
           <td colSpan={8} className="px-6 py-4">
             <div className="rounded-xl border border-slate-200 bg-white p-4">
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-400">
-                Timeline · {j.events.length} {j.events.length === 1 ? "step" : "steps"}
+                Timeline · {loading ? "…" : `${stepCount} ${stepCount === 1 ? "step" : "steps"}`}
               </p>
-              {j.events.length === 0 ? (
-                <p className="text-sm text-slate-400">No tracked events in this window.</p>
+              {loading ? (
+                <p className="text-sm text-slate-400">Loading timeline…</p>
+              ) : timelineError ? (
+                <p className="text-sm text-red-600">{timelineError}</p>
+              ) : stepCount === 0 ? (
+                <p className="text-sm text-slate-400">No tracked events.</p>
               ) : (
                 <ul className="space-y-1.5 border-l-2 border-slate-100 pl-4">
-                  {j.events.map((ev, i) => (
+                  {(events ?? []).map((ev, i) => (
                     <li key={i} className="flex items-baseline gap-3 text-sm">
                       <span className="shrink-0 whitespace-nowrap font-mono text-xs text-slate-400">
                         {timeFmt(ev.t)}
@@ -294,8 +330,8 @@ function JourneysPage() {
                 </table>
               </div>
               <p className="px-5 py-3 text-[10px] text-slate-400 border-t border-slate-100">
-                Timeline rebuilt from stored funnel_events + page_views only — nothing fabricated. Some rows predate per-visitor id
-                tracking (recorded without a visitor_id) and aren't shown.
+                Timelines are fetched from stored funnel_events + page_views when you expand a row — nothing fabricated, and
+                collapsed rows stay lightweight. Some rows predate per-visitor id tracking (recorded without a visitor_id) and aren't shown.
               </p>
             </div>
           )}

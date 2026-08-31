@@ -186,8 +186,6 @@ function BrainPage() {
 
   const owner = data?.owner;
   const ownerAway = owner && owner.availability !== "available";
-  const pendingRecs = (data?.actions.pending ?? []).filter((a) =>
-    a.action_type === "prepare_recommendation" || a.action_type === "prepare_owner_review_item");
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">

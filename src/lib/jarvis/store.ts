@@ -138,6 +138,7 @@ export type OwnerAvailability = "available" | "away" | "do_not_disturb";
 export interface OwnerStatus {
   id: number;
   availability: OwnerAvailability;
+  kill_switch: boolean;
   updated_at: string;
 }
 
@@ -479,6 +480,7 @@ export async function getOwnerStatus(db: NeonQuery): Promise<OwnerStatus> {
   return (byId(await db`SELECT * FROM owner_status WHERE id = 1`) ?? {
     id: 1,
     availability: "available",
+    kill_switch: false,
     updated_at: now(),
   }) as OwnerStatus;
 }

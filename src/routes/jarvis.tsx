@@ -492,6 +492,9 @@ function JarvisPage() {
             <span className="hidden sm:inline text-[10px] text-slate-500">
               Read-only · grounded in real data · 30 msg/hr
             </span>
+            <a href="/jarvis/brain" className="text-xs font-medium text-cyan-400 hover:text-cyan-200">
+              🧠 Brain
+            </a>
             <a href="/admin" className="text-xs font-medium text-slate-400 hover:text-slate-200">
               Admin Dashboard &rarr;
             </a>

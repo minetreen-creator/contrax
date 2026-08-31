@@ -138,7 +138,7 @@ async function listRecentActions(db: NeonQuery, limit: number): Promise<ActionSu
 function buildLearnedLines(i: LearnedInsight): string[] {
   const raw: string[] = [];
   for (const e of i.memory) raw.push(`[approved_memory] ${e.text}`);
-  for (const d of i.decisions) raw.push(`[approved_decision] ${d.decision}`);
+  for (const d of i.decisions) raw.push(`[approved_decision] ${d.text}`);
   for (const p of i.openProblems) {
     raw.push(`[problem severity=${p.severity} ack=${p.owner_acknowledged}] ${p.title} — ${p.description ?? ""}`);
   }

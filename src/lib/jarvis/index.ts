@@ -15,6 +15,7 @@
  * Read-only, admin-only, keys stay server-side (callAI reads OPENAI_API_KEY
  * from the server process; nothing here touches the client bundle).
  */
+import { sql } from "~/db";
 import { callAI } from "~/lib/ai";
 import {
   todayReader,
@@ -33,11 +34,26 @@ import { knowledgeReader } from "~/lib/jarvis/knowledge";
 // DB/user text as UNTRUSTED: it is sanitized, rendered inert, and enclosed in a
 // closed "DATA-ONLY" region so it can never steer the system role or execute.
 import { buildSanitizedGrounding } from "~/lib/jarvis/security";
+// ADVISORY ADDITIVE: the interactive chat can now ALSO consult what the
+// autonomous layer has LEARNED (problems/hypotheses/experiments/runs/approved
+// kb) and give the owner a REASONED, synthesized operating insight — grounded in
+// LIVE retrieval + LEARNED state together. Advise-only; any recommendation it
+// surfaces is an L4 owner-approval queue candidate, never an executed action.
+import {
+  buildAdvisoryGrounding,
+  loadInsightGrounds,
+  surfaceAdvisoryRecommendation,
+  advisoryHasData,
+  ADVISORY_SYSTEM_PROMPT,
+} from "~/lib/jarvis/insight";
 
 export interface JarvisResponse {
   answer: string;
   sources: string[];
   grounded: boolean;
+  /** ADVISORY ONLY: set when the chat surfaced an L4 owner-approval queue
+   *  candidate (awaiting owner approval on /jarvis/brain). Never an action. */
+  surfaced?: { actionId: number; status: string } | null;
 }
 
 const WINDOW_DEFAULT = 30;
@@ -66,8 +82,50 @@ const RE = {
   today: /today|\bhappened\b|activity|recap|update/i,
 };
 
+/**
+ * ADVISORY ADDITIVE: advisory phrasings route to the SYNTHESIS path.
+ *
+ * Each entry maps a set of advisory phrasings to the existing LIVE readers that
+ * should feed the synthesis (the same underlying retrieval readers — untouched)
+ * PLUS the learned state (problems/hypotheses/experiments/runs/approved kb).
+ * Order matters: most-specific phrasings first so a question only ever matches
+ * ONE advisory intent. Questions that match no advisory intent fall through to
+ * the original `route()` below, so every non-advisory intent behaves identically.
+ */
+const RE_ADVISORY: Array<{ re: RegExp; readers: Reader[]; label: string }> = [
+  {
+    re: /why\s+aren('|’)?t\s+(people|users|visitors|customers)\s+(signing\s*up|signing\-up|converting|registering)|why\s+(isn('|’)?t|is\s+no\s+one)\s+(anyone\s+)?(signing\s*up|converting)/i,
+    readers: [signupReader, problemReader],
+    label: "signup synthesis",
+  },
+  {
+    re: /give\s+me\s+your\s+read|\byour\s+read\b|synthesi(z|s)|what\s+would\s+you\s+(try|do)|(give\s+me|what\s+is)\s+(your|a)?\s*(the\s+)?(read|take|synthesis)\b/i,
+    readers: [todayReader, signupReader, problemReader, focusReader],
+    label: "advisory synthesis",
+  },
+  {
+    re: /biggest\s+problem|top\s+risk|what('|’)?s\s+wrong|biggest\s+issue|(the\s+)?problem\s*(is|s)?\b/i,
+    readers: [problemReader, focusReader],
+    label: "problem synthesis",
+  },
+  {
+    re: /what\s+should\s+i\s+(focus|do|work|prioriti|start)|prioriti|recommend(ation|ed)?|next\s+step|focus\s+on\s+today/i,
+    readers: [focusReader, problemReader, todayReader],
+    label: "focus synthesis",
+  },
+];
+
+/** ADVISORY ADDITIVE: returns the advisory intent (readers + label) or null. */
+export function routeAdvisory(question: string): { readers: Reader[]; label: string } | null {
+  const q = question.toLowerCase();
+  for (const entry of RE_ADVISORY) {
+    if (entry.re.test(q)) return { readers: entry.readers, label: entry.label };
+  }
+  return null;
+}
+
 /** Deterministic intent router → reader (or null when unrecognized). */
-function route(question: string): Reader | null {
+export function route(question: string): Reader | null {
   const q = question.toLowerCase();
   if (RE.focus.test(q)) return focusReader;
   if (RE.problem.test(q)) return problemReader;
@@ -105,8 +163,79 @@ function buildGroundingPrompt(result: ReaderResult, question: string, days: numb
 }
 
 /**
+ * ADVISORY ADDITIVE: the synthesis path. Runs the matching existing LIVE readers
+ * (untouched) PLUS the learned state (approved kb, problems, hypotheses,
+ * experiments, recent runs/actions — see src/lib/jarvis/insight.ts), composes
+ * them into ONE data-priority grounding prompt, and asks the model for a
+ * REASONED operating insight. Advise-only:
+ *   • No action is taken. When the question explicitly asks to surface/queue a
+ *     recommendation, the chat enqueues an L4 owner-approval CANDIDATE into
+ *     jarvis_actions (never executed; the owner approves on /jarvis/brain).
+ *   • Honesty: when neither live retrieval nor learned state has anything, the
+ *     answer says "I don't have data" instead of calling the model.
+ */
+const SURFACE_IN_REQUEST = /\b(surface|queue|add\s+to\s+(the\s+)?(board|queue|approval|review)|owner\s+approval|put\s+it\s+on|recommend\s+(an\s+)?action|what\s+action|create\s+a\s+(task|follow\-?up))\b/i;
+
+async function adviseJarvis(
+  question: string,
+  days: number,
+  fromIso: string,
+  readers: Reader[],
+  label: string,
+): Promise<JarvisResponse> {
+  const now = new Date();
+  const liveResults: ReaderResult[] = [];
+  const sources: string[] = [];
+  for (const reader of readers) {
+    const res = await reader({ question, fromIso, days, now });
+    if (res.empty || res.lines.length === 0) continue;
+    liveResults.push(res);
+    sources.push(...res.sources);
+  }
+
+  const db = sql();
+  const learned = await loadInsightGrounds(db, days);
+  sources.push(...learned.sources);
+
+  if (!advisoryHasData(liveResults, learned)) {
+    return {
+      answer:
+        `I don't have data on that for the last ${days} day(s) — no live signals and no learned notes to synthesize (${label} returned nothing), so I won't guess. Try a different question or a wider window.`,
+      sources,
+      grounded: false,
+    };
+  }
+
+  const answer = await callAI(
+    buildAdvisoryGrounding(ADVISORY_SYSTEM_PROMPT, liveResults, learned, question, days),
+    { max_tokens: 700, temperature: 0.3 },
+  );
+
+  // OPTIONAL surfacing — only when the owner explicitly asks. Enqueues an L4
+  // queue candidate (pending, awaiting owner approval); never executes.
+  let surfaced: JarvisResponse["surfaced"] = undefined;
+  if (SURFACE_IN_REQUEST.test(question)) {
+    const sr = await surfaceAdvisoryRecommendation(db, {
+      summary: answer.slice(0, 800),
+      basis: sources.join("; "),
+      requestedBy: "jarvis-chat",
+      confidence: 0.7,
+      evidenceN: Math.max(5, liveResults.reduce((n, r) => n + r.lines.length, 0)),
+    });
+    if (sr.surfaced && sr.queued) {
+      surfaced = { actionId: sr.queued.id, status: sr.queued.status };
+    }
+  }
+
+  return { answer, sources, grounded: true, surfaced };
+}
+
+/**
  * Core entry point used by POST /api/jarvis. Returns { answer, sources, grounded }.
- * Perform a single, deterministic retrieval + grounded LLM composition.
+ * 1) ADVISORY phrasings (focus/problem/synthesize/signup-funnel) route to
+ *    `adviseJarvis` — LIVE retrieval + LEARNED state synthesized together.
+ * 2) All other intents behave EXACTLY as before (single deterministic retrieval
+ *    + grounded LLM composition).
  */
 export async function askJarvis(question: string): Promise<JarvisResponse> {
   const clean = question.trim().slice(0, 500);
@@ -116,6 +245,13 @@ export async function askJarvis(question: string): Promise<JarvisResponse> {
   const now = new Date();
   const days = parseWindow(clean, WINDOW_DEFAULT);
   const fromIso = new Date(now.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  // ADVISORY ADDITIVE: advisory phrasings go to the synthesis path (which
+  // consults the learned state the autonomous layer has been tracking).
+  const advisory = routeAdvisory(clean);
+  if (advisory) {
+    return adviseJarvis(clean, days, fromIso, advisory.readers, advisory.label);
+  }
 
   const reader = route(clean);
   if (!reader) {

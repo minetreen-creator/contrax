@@ -100,10 +100,32 @@ function pickVoice(enGbFirst: boolean): SpeechSynthesisVoice | null {
   return (enGbFirst ? enGb : null) ?? clearEn ?? anyEn ?? null;
 }
 
-function speak(text: string): () => void {
+/**
+ * Convert a markdown-styled answer into plain, naturally-spoken text. TTS reads
+ * whatever string it's handed verbatim, so we strip the markdown syntax ("## ",
+ * "**bold**", "*list*", "`code`", "---", links, list markers) that the model
+ * puts around its facts — otherwise Jarvis literally reads out "hash hash",
+ * "asterisk", backticks, etc. List items become sentence breaks (" . ") and
+ * inline emphasis is dropped, not spoken.
+ */
+function markdownToSpeech(text: string): string {
+  return text
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`([^`]*)`/g, " $1 ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, " $1 ") // links -> just their text
+    .replace(/^#{1,6}\s+/gm, "") // headings
+    .replace(/^\s*(?:[-*_=])\s*[-*_=\s]*$/gm, ". ") // horizontal rules
+    .replace(/(\*\*|__)(.*?)\1/g, " $2 ") // bold
+    .replace(/(\*|_)(.*?)\1/g, " $2 ") // italic
+    .replace(/^\s*(?:[-*+•]|\d{1,3}[.)])\s+/gm, ". ") // bullets / numbered lists
+    .replace(/[#*_`~]/g, "") // any leftover markdown symbols
+    .replace(/\s+/g, " ")
+    .trim();
+}
+function speak(markdown: string): () => void {
   if (typeof speechSynthesis === "undefined") return () => {};
   speechSynthesis.cancel();
-  const utterance = new SpeechSynthesisUtterance(text);
+  const utterance = new SpeechSynthesisUtterance(markdownToSpeech(markdown));
   const voice = pickVoice(true); // prefer en-GB, then clear English
   if (voice) utterance.voice = voice;
   utterance.rate = 1.02;

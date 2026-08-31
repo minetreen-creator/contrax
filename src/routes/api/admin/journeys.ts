@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
-import { qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
+import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 
 /**
  * GET /api/admin/journeys?days=30
@@ -31,9 +31,10 @@ import { qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
  * fabricated. No full emails, raw IPs, or full user-agent strings leave the
  * server.
  *
- * EXCLUSIONS (owner rule, 2026-08-28): applies the shared BOT_EXCLUSION_SQL
- * predicate and the @test.contrax QA-email exclusion so QA / admin / test /
- * bot traffic never appears on the board or in the funnel counts.
+ * EXCLUSIONS (owner rules): applies the shared BOT_EXCLUSION_SQL predicate,
+ * the @test.contrax QA-email exclusion (2026-08-28), and the ADMIN_EMAILS
+ * admin-email exclusion (2026-08-31) so QA / admin / test / bot traffic never
+ * appears on the board or in the funnel counts.
  */
 
 const ACTIVATION_EVENTS = [
@@ -258,6 +259,7 @@ async function handler({ request }: { request: Request }) {
   // Shared bot/QA exclusion fragment, inlined into WHERE clauses.
   const humanFilter = `AND NOT COALESCE((${BOT_EXCLUSION_SQL}), false)`;
   const qaFilter = `AND ${qaFunnelExclusionSQL("")}`;
+  const adminFilter = `AND ${adminFunnelExclusionSQL("")}`;
 
   try {
     // N.B. funnel_events/page_views tables are created lazily; guard quietly so
@@ -285,6 +287,7 @@ async function handler({ request }: { request: Request }) {
         AND created_at >= ${fromIso}
         ${sql().unsafe(humanFilter)}
         ${sql().unsafe(qaFilter)}
+        ${sql().unsafe(adminFilter)}
       ORDER BY created_at ASC`;
     const eventRows: any[] = await sql()`
       SELECT visitor_id, created_at, event_name, path, source, user_id, user_email, city, region, device_type, browser_label
@@ -293,6 +296,7 @@ async function handler({ request }: { request: Request }) {
         AND created_at >= ${fromIso}
         ${sql().unsafe(humanFilter)}
         ${sql().unsafe(qaFilter)}
+        ${sql().unsafe(adminFilter)}
       ORDER BY created_at ASC`;
 
     // Group by visitor.

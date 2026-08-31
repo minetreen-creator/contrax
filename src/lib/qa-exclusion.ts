@@ -1,3 +1,5 @@
+import { ADMIN_EMAILS } from "~/lib/admin";
+
 /**
  * QA/test-account exclusion predicates for the admin dashboard.
  *
@@ -24,6 +26,23 @@ export const qaUserExclusionSQL = (alias = "") =>
 /** funnel_events-table predicate: linked user_email is not a QA/test account. */
 export const qaFunnelExclusionSQL = (alias = "") =>
   `LOWER(COALESCE(${alias}user_email, '')) NOT LIKE '${QA_TEST_EMAIL_DOMAIN}'`;
+
+/**
+ * Admin-email predicate for the funnel/analytics event tables: excludes rows
+ * whose linked user_email is an admin staff account. Owner rule (2026-08-31):
+ * admin browsing must not appear on the Visitor Journeys board — admins are
+ * internal, not prospects. Derives from the ADMIN_EMAILS allowlist so it stays
+ * in sync when a new admin is added. Predicate shape matches qaFunnelExclusionSQL
+ * (inlined via sql().unsafe() into a WHERE ... AND ( ... ) clause). Admin-email
+ * exclusion is a SURFACING-only fix — never use it for DELETE/cleanup logic.
+ */
+export const adminFunnelExclusionSQL = (alias = "") => {
+  if (ADMIN_EMAILS.size === 0) return "TRUE";
+  const conds = [...ADMIN_EMAILS].map(
+    (e) => `LOWER(COALESCE(${alias}user_email, '')) <> '${e.toLowerCase()}'`,
+  );
+  return `(${conds.join(" AND ")})`;
+};
 
 /**
  * External-user predicate used by the admin signups/activity surfaces:

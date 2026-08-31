@@ -348,12 +348,39 @@ function AdminPage() {
             <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">
               Dashboard &rarr;
             </a>
+            <a href="/jarvis" className="text-sm font-medium text-slate-500 hover:text-slate-700">
+              🎙️ Jarvis
+            </a>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8 space-y-8">
         <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+
+        {/* Jarvis — Exec Operating Assistant */}
+        <section>
+          <a
+            href="/jarvis"
+            className="group flex flex-col gap-1 rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 to-slate-800 p-6 shadow-sm transition-colors hover:border-slate-600 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-700 text-2xl shadow-sm">
+                🎙️
+              </span>
+              <div>
+                <p className="text-lg font-bold text-slate-100">Contrax Jarvis</p>
+                <p className="mt-0.5 text-sm text-slate-300">
+                  Ask your day in plain words — signups, drop-offs, closing bids, where focus
+                  should go. Read-only, grounded in real Contrax data. Wake-word voice, admin only.
+                </p>
+              </div>
+            </div>
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-slate-100 group-hover:text-white sm:mt-0">
+              Talk to Jarvis <span aria-hidden="true">&rarr;</span>
+            </span>
+          </a>
+        </section>
 
         {/* Visitor Journeys Section */}
         <section>

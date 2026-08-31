@@ -592,6 +592,8 @@ CREATE TABLE IF NOT EXISTS visitors (
     last_action TEXT,
     last_action_at TIMESTAMPTZ,
     converted_user_id TEXT,
-    converted_at TIMESTAMPTZ
+    converted_at TIMESTAMPTZ,
+    saw_pricing BOOLEAN NOT NULL DEFAULT FALSE,
+    saw_brief BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE INDEX IF NOT EXISTS idx_visitors_last_seen_at ON visitors (last_seen_at);

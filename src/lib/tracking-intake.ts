@@ -244,8 +244,12 @@ export async function ensureVisitorsTable(): Promise<void> {
     last_action TEXT,
     last_action_at TIMESTAMPTZ,
     converted_user_id TEXT,
-    converted_at TIMESTAMPTZ
+    converted_at TIMESTAMPTZ,
+    saw_pricing BOOLEAN NOT NULL DEFAULT FALSE,
+    saw_brief BOOLEAN NOT NULL DEFAULT FALSE
   )`;
+  await sql()`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS saw_pricing BOOLEAN NOT NULL DEFAULT FALSE`;
+  await sql()`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS saw_brief BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_visitors_last_seen_at ON visitors (last_seen_at)`;
 }
 
@@ -297,20 +301,30 @@ async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
   // Contribution of THIS event to the summary flags.
   const radarContrib = eventName === RADAR_COMPLETE_EVENT;
   const activatedContrib = eventName ? ACTIVATION_EVENTS.includes(eventName) : false;
+  // Path-derived behavioral-intent badges (kept on the summary cache so the
+  // /admin/journeys fast read-path can render badges without touching the
+  // detail tables). Mirrors the live computeBadges() path checks exactly.
+  const sawPricingContrib = !!path && path.includes("/pricing");
+  const sawBriefContrib = !!path && path.includes("/example-brief");
   let signupContrib: string | null = null;
   if (eventName === "signup_success") signupContrib = "Success";
-  else if (eventName && SIGNUP_STARTED_EVENTS.includes(eventName)) signupContrib = "Abandoned";
+  // signup_abandon (PR #292 semantics: Success > Abandoned > Viewed > Not
+  // started) also maps to Abandoned alongside started-but-no-success.
+  else if (eventName && (SIGNUP_STARTED_EVENTS.includes(eventName) || eventName === "signup_abandon"))
+    signupContrib = "Abandoned";
   else if (eventName && SIGNUP_VIEWED_EVENTS.includes(eventName)) signupContrib = "Viewed";
 
   await sql()`INSERT INTO visitors (
       visitor_id, first_seen_at, last_seen_at, first_path, last_path,
       first_ip, last_ip, city, region, device_type, browser_label, source,
-      radar, signup, activated, steps, sessions, last_visit_id, last_action, last_action_at
+      radar, signup, activated, steps, sessions, last_visit_id, last_action, last_action_at,
+      saw_pricing, saw_brief
     ) VALUES (
       ${visitorId}, NOW(), NOW(), ${path}, ${path},
       ${ip}, ${ip}, ${city}, ${region}, ${deviceType}, ${browserLabel}, ${source},
       ${radarContrib}, ${signupContrib ?? "Not started"}, ${activatedContrib}, 1,
-      ${visitId ? 1 : 0}, ${visitId}, ${lastAction}, NOW()
+      ${visitId ? 1 : 0}, ${visitId}, ${lastAction}, NOW(),
+      ${sawPricingContrib}, ${sawBriefContrib}
     )
     ON CONFLICT (visitor_id) DO UPDATE SET
       last_seen_at = NOW(),
@@ -339,7 +353,9 @@ async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
       END,
       last_visit_id = COALESCE(EXCLUDED.last_visit_id, visitors.last_visit_id),
       last_action = EXCLUDED.last_action,
-      last_action_at = EXCLUDED.last_action_at`;
+      last_action_at = EXCLUDED.last_action_at,
+      saw_pricing = (visitors.saw_pricing OR EXCLUDED.saw_pricing),
+      saw_brief = (visitors.saw_brief OR EXCLUDED.saw_brief)`;
 }
 
 /**

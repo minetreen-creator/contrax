@@ -214,10 +214,11 @@ function pageLabel(path: string): string {
 
 /** Signup status from the raw event-name set, with abandonment semantics. */
 function signupStatus(events: Set<string>): Journey["signup"] {
-  if (events.has("signup_success")) return "Success";
+  if (events.has("signup_success")) return "Success"; // a success must never show Abandoned
+  const abandoned = events.has("signup_abandon"); // explicit abandon beacon (also covers started-but-no-success)
   const started = SIGNUP_EVENTS.started.some((e) => events.has(e));
   const viewed = SIGNUP_EVENTS.viewed.some((e) => events.has(e));
-  if (started) return "Abandoned"; // started but never succeeded
+  if (abandoned || started) return "Abandoned"; // abandoned, or started but never succeeded
   if (viewed) return "Viewed";
   return "Not started";
 }

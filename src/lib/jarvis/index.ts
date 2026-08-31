@@ -27,6 +27,7 @@ import {
   type Reader,
   type ReaderResult,
 } from "~/lib/jarvis/readers";
+import { knowledgeReader } from "~/lib/jarvis/knowledge";
 
 export interface JarvisResponse {
   answer: string;
@@ -51,6 +52,8 @@ function parseWindow(question: string, days: number): number {
 const RE = {
   focus: /\bshould\s+i\s+(focus|do|work|priorit|start)\b|prioriti|recommend|what\s+should|today\s+should|next\s+step/i,
   problem: /biggest\s+problem|problem\b|what('| i)?s?\s+wrong|biggest|top\s+risk|risk\b/i,
+  knowledge:
+    /(?:pricing|plan\b|plans|tier|gated?|included|unlimited|bundl|how much|cost\b|\$\s?\d)|trial|\b14.day\b|mission beyond|funnel stage|stages of the funnel|what counts as|\bactivated\b|\bactivation\b|what('| i)?s?\s+(the\s+)?(price|cost|difference)|what does (professional|starter|agency|basic)\b|target market|data priority/i,
   closingBids: /closing\s+soon|opportunit|hvac|due\s+(soon|date)|closing|bid\b/i,
   signup: /sign\s*up|signing\s+up|signup|conversion|convert|why\s+aren|funnel/i,
   outreach: /outreach|source|attribut|lead\b|marketing|referr|paid\s+traffic|campaign|facebook/i,
@@ -63,6 +66,12 @@ function route(question: string): Reader | null {
   const q = question.toLowerCase();
   if (RE.focus.test(q)) return focusReader;
   if (RE.problem.test(q)) return problemReader;
+  // Phase 2 ADDITIVE: operating-model questions are served from the APPROVED
+  // knowledge base. Placed before the funnel/signup reader, but the regex is
+  // deliberately narrow (dictionary/pricing/trial/gating phrasing) so real
+  // operational queries ("why aren't people signing up", "how's the funnel")
+  // still route to their original readers unchanged.
+  if (RE.knowledge.test(q)) return knowledgeReader;
   if (RE.closingBids.test(q)) return closingBidsReader;
   if (RE.signup.test(q)) return signupReader;
   if (RE.outreach.test(q)) return outreachReader;

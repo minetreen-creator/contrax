@@ -135,7 +135,17 @@ function JourneyRow({ j }: { j: Journey }) {
     return () => { cancelled = true; };
   }, [open, events, j.visitor_id]);
 
-  const stepCount = events !== null ? events.length : j.steps;
+  // The summary cache's LIFETIME step count (j.steps) is the CANONICAL
+  // "Steps N" for a row, shown identically whether collapsed or expanded. It
+  // must never be overridden downward by the lazily-loaded timeline's length:
+  // for QA/test/admin egress-IP rows the timeline endpoint is IP-excluded and
+  // returns [] while the summary still carries the lifetime count — letting the
+  // timeline length drive the count would flip a row from "Steps 6" to "Steps 0"
+  // on expand. j.steps and a non-excluded timeline both measure lifetime, so
+  // they agree for real visitors; using j.steps only corrects the excluded-IP
+  // case. (Math.max(j.steps, events.length) was rejected: it could override
+  // j.steps UPWARD and break the always-agree guarantee.)
+  const stepCount = j.steps;
 
   return (
     <>
@@ -183,7 +193,7 @@ function JourneyRow({ j }: { j: Journey }) {
                 <p className="text-sm text-slate-400">Loading timeline…</p>
               ) : timelineError ? (
                 <p className="text-sm text-red-600">{timelineError}</p>
-              ) : stepCount === 0 ? (
+              ) : events && events.length === 0 ? (
                 <p className="text-sm text-slate-400">No tracked events.</p>
               ) : (
                 <ul className="space-y-1.5 border-l-2 border-slate-100 pl-4">

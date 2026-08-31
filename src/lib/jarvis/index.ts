@@ -15,7 +15,7 @@
  * Read-only, admin-only, keys stay server-side (callAI reads OPENAI_API_KEY
  * from the server process; nothing here touches the client bundle).
  */
-import { callAI, type AIMessage } from "~/lib/ai";
+import { callAI } from "~/lib/ai";
 import {
   todayReader,
   signupReader,
@@ -28,6 +28,11 @@ import {
   type ReaderResult,
 } from "~/lib/jarvis/readers";
 import { knowledgeReader } from "~/lib/jarvis/knowledge";
+// Phase 7 ADDITIVE: the grounding prompt now routes every retrieved reader line
+// and the user's question through buildSanitizedGrounding(), which treats ALL
+// DB/user text as UNTRUSTED: it is sanitized, rendered inert, and enclosed in a
+// closed "DATA-ONLY" region so it can never steer the system role or execute.
+import { buildSanitizedGrounding } from "~/lib/jarvis/security";
 
 export interface JarvisResponse {
   answer: string;
@@ -90,17 +95,13 @@ You answer ONLY from the RETRIEVED DATA provided below. CRITICAL GROUNDING RULES
 - If the data shows a suspicious signal (a traffic or activity spike, a 0% conversion, an obvious data gap), explicitly FLAG it — do not smooth it over.
 - Keep it concise and plain-spoken; a few short paragraphs or bullets is ideal. Where a bid appears, include its agency and due date.`;
 
-function buildGroundingPrompt(result: ReaderResult, question: string, days: number): AIMessage[] {
-  const facts = result.lines.map((l) => `  • ${l}`).join("\n");
-  const userContent = `Retrieved data for the last ${days} day(s) (${result.label}):
-${facts}
-
-Answer this question using ONLY the data above, applying the grounding rules:
-QUESTION: ${question}`;
-  return [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: userContent },
-  ];
+function buildGroundingPrompt(result: ReaderResult, question: string, days: number) {
+  // Phase 7 (ADDITIVE): reader lines are DB/user-derived UNTRUSTED text; the
+  // question is user text. Both are sanitized + enclosed in a closed DATA-ONLY
+  // region (see src/lib/jarvis/security.ts) so retrieved/scraped content can
+  // never escape its region to steer the model or execute as an instruction.
+  // System role is unchanged; behavior is otherwise identical.
+  return buildSanitizedGrounding(SYSTEM_PROMPT, result, question, days);
 }
 
 /**

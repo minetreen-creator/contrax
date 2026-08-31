@@ -71,6 +71,11 @@ import {
   type ReaderResult,
 } from "~/lib/jarvis/readers";
 import { knowledgeReader } from "~/lib/jarvis/knowledge";
+// Phase 7 ADDITIVE: brief/audit lines embed DB-derived reader text + conflict
+// summaries — all UNTRUSTED. Sanitize each line at composition so no control
+// token reaches the owner-facing brief; this is defense-in-depth on top of the
+// source-level sanitization in readers.ts and the grounding choke point.
+import { sanitizeUntrusted } from "~/lib/jarvis/security";
 
 /* ═════════════════════════════════════════════════════════════════════
  * Schedule kinds
@@ -285,7 +290,7 @@ function composeBrief(
     parts.push("No data retrieved — nothing to report (honesty rule: won't guess).");
   } else {
     for (const [, lines] of toolLines) {
-      for (const l of lines) parts.push(`• ${l}`);
+      for (const l of lines) parts.push(`• ${sanitizeUntrusted(l)}`);
     }
   }
   if (emptyReaders.length) {
@@ -293,7 +298,7 @@ function composeBrief(
   }
   if (conflicts.length) {
     parts.push(`CONFLICTS SURFACED (${conflicts.length}):`);
-    for (const c of conflicts) parts.push(`  - ${c.summary}`);
+    for (const c of conflicts) parts.push(`  - ${sanitizeUntrusted(c.summary)}`);
   }
   return parts.join("\n");
 }

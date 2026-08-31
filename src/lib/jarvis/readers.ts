@@ -19,6 +19,11 @@
  */
 
 import { sql } from "~/db";
+// Phase 7 ADDITIVE: bid titles/agencies are SCRAPED .gov / RFP text — the most
+// untrusted content Jarvis touches. Each closing-bid line is sanitized + made
+// inert at the source (security.ts) before it can reach a grounding prompt or a
+// worker brief. No behavior change for trusted lines.
+import { sanitizeUntrusted, inlineUntrusted } from "~/lib/jarvis/security";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
@@ -321,7 +326,9 @@ export const closingBidsReader: Reader = async (ctx) => {
     return { tool: "closingBids", label: "closing opportunities", lines: [], sources: ["bids (no upcoming due dates)"], empty: true };
   }
   const lines = (rows as any[]).map((b) =>
-    `“${b.title}” — ${b.agency ?? "n/a"} · due ${new Date(b.due_date).toISOString().slice(0, 10)} · est ${b.estimated_value ?? "n/a"} · ${b.set_aside ?? "no set-aside"}${b.naics_code ? ` · NAICS ${b.naics_code}` : ""} · ${b.source_url ?? "no link"}`,
+    inlineUntrusted(
+      `“${b.title}” — ${b.agency ?? "n/a"} · due ${new Date(b.due_date).toISOString().slice(0, 10)} · est ${sanitizeUntrusted(b.estimated_value ?? "n/a")} · ${sanitizeUntrusted(b.set_aside ?? "no set-aside")}${b.naics_code ? ` · NAICS ${sanitizeUntrusted(b.naics_code)}` : ""} · ${sanitizeUntrusted(b.source_url ?? "no link")}`,
+    ),
   );
   return {
     tool: "closingBids",

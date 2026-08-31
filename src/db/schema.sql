@@ -563,3 +563,35 @@ CREATE INDEX IF NOT EXISTS idx_far_clauses_search ON far_clauses USING gin(to_ts
 ALTER TABLE far_clauses ADD COLUMN IF NOT EXISTS search_tsv tsvector GENERATED ALWAYS AS (setweight(to_tsvector('english', title), 'A') || setweight(to_tsvector('english', full_text), 'B')) STORED;
 CREATE INDEX IF NOT EXISTS idx_far_clauses_search_tsv ON far_clauses USING gin(search_tsv);
 CREATE INDEX IF NOT EXISTS idx_far_clauses_source ON far_clauses (source);
+
+-- Per-visitor SUMMARY cache for the Visitor Journeys board (Admin Tracker
+-- Enrichment, owner 2026-08-31). Upserted at intake by the single beacon
+-- endpoint /api/track-visitor (src/lib/tracking-intake.ts) for fast admin
+-- display; funnel_events + page_views remain the detailed history. Idempotent;
+-- mirrored by db/migrations/021_visitors.sql. PII hygiene: first_ip/last_ip are
+-- raw-edge diagnostics only and are never surfaced on admin pages.
+CREATE TABLE IF NOT EXISTS visitors (
+    visitor_id TEXT PRIMARY KEY,
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    first_path TEXT,
+    last_path TEXT,
+    first_ip TEXT,
+    last_ip TEXT,
+    city TEXT,
+    region TEXT,
+    device_type TEXT,
+    browser_label TEXT,
+    source TEXT,
+    radar BOOLEAN NOT NULL DEFAULT FALSE,
+    signup TEXT NOT NULL DEFAULT 'Not started',
+    activated BOOLEAN NOT NULL DEFAULT FALSE,
+    steps INTEGER NOT NULL DEFAULT 0,
+    sessions INTEGER NOT NULL DEFAULT 0,
+    last_visit_id TEXT,
+    last_action TEXT,
+    last_action_at TIMESTAMPTZ,
+    converted_user_id TEXT,
+    converted_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_visitors_last_seen_at ON visitors (last_seen_at);

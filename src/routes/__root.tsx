@@ -74,10 +74,13 @@ export const Route = createRootRoute({
 });
 
 // ── Page View Analytics ──────────────────────────────────────────────────────
-// Self-hosted traffic tracking. Fires a fire-and-forget POST to /api/page-view
-// on the initial load and on every route change. Same-path hits are deduped to
-// once per 5 minutes (per browser session). Never blocks rendering and never
-// surfaces errors to the user — the endpoint itself swallows failures too.
+// Self-hosted traffic tracking. Fires a fire-and-forget POST to
+// /api/track-visitor (kind="page") on the initial load and on every route
+// change — the same single intake endpoint trackEvent() uses (kind="event").
+// Same-path hits are deduped to once per 5 minutes (per browser session).
+// Never blocks rendering and never surfaces errors to the user — the endpoint
+// itself swallows failures too. /api/page-view stays as a thin forwarder for
+// legacy beacons.
 const PAGE_VIEW_DEDUPE_MS = 5 * 60 * 1000;
 
 function recordPageView(path: string) {
@@ -89,6 +92,7 @@ function recordPageView(path: string) {
   const ids = trackingIds();
   const payload: Record<string, string | undefined> = {
     path,
+    kind: "page",
     referrer: document.referrer || undefined,
     visitor_id: ids.visitor_id,
     visit_id: ids.visit_id,
@@ -101,7 +105,7 @@ function recordPageView(path: string) {
     payload.user_email = user.email;
   }
   try {
-    fetch("/api/page-view", {
+    fetch("/api/track-visitor", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

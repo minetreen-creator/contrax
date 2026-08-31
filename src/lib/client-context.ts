@@ -42,7 +42,17 @@ const GEO_HEADERS = ["x-vercel-ip-city", "x-vercel-ip-country-region"] as const;
 
 function clean(value: string | null, max = 64): string | null {
   if (!value) return null;
-  const v = value.trim().replace(/\s+/g, " ");
+  // Vercel edge headers ship city/region PERCENT-ENCODED (e.g. "Saint%20Augustine"
+  // for x-vercel-ip-city) — decode before any further processing so geo labels
+  // render as "Saint Augustine, FL" instead of "Saint%20Augustine, FL". Fail-open:
+  // a malformed encoding must never throw (the beacon stays null on a bad value).
+  let v = value;
+  try {
+    v = decodeURIComponent(v);
+  } catch {
+    // keep the raw value — better a label with an odd char than a thrown beacon
+  }
+  v = v.trim().replace(/\s+/g, " ");
   if (!v) return null;
   return v.slice(0, max);
 }

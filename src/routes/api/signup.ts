@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { setCookie } from "@tanstack/react-start/server";
 import { sql } from "~/db";
 import { SESSION_COOKIE } from "~/lib/auth";
-import { backfillVisitorIdentity } from "~/lib/identity-backfill";
+import { backfillVisitorIdentity, linkVisitorConversion } from "~/lib/identity-backfill";
 import { hashPassword } from "~/lib/password";
 import { isBlockedIp } from "~/lib/request-ip";
 import {
@@ -130,6 +130,11 @@ async function handler({ request }: { request: Request }) {
     // visitor_id. Never blocks signup/redirect — any failure is logged and the
     // user proceeds normally (their post-login tracking still carries identity).
     //
+    // Also links the per-visitor SUMMARY row (`visitors` table) to the new
+    // account (converted_user_id + converted_at, signup → 'Success') so the
+    // anonymous→user conversion survives in the summary cache too — creating the
+    // row when it doesn't exist yet, so no conversion is ever lost.
+    //
     // ROOT CAUSE of a past bug: this backfill (schema-guard DDL + a funnel
     // UPDATE) runs AFTER the account and session are already created. An
     // un-wrapped throw here flipped an otherwise-successful signup into a
@@ -141,6 +146,8 @@ async function handler({ request }: { request: Request }) {
     if (visitorId) {
       try {
         await backfillFunnelIdentity(user.id, user.email, visitorId);
+        // NEW (Admin Tracker Enrichment): summary-row conversion, idempotent.
+        await linkVisitorConversion(sql, user.id, visitorId);
       } catch (backfillErr) {
         // Identity backfill is best-effort — a failure must never fail signup.
         console.error("[api/signup] identity backfill failed (non-fatal):", backfillErr);

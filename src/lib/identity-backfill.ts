@@ -64,3 +64,66 @@ export async function backfillVisitorIdentity(
   const page_views = Number((p as unknown as { rowCount?: number }).rowCount ?? 0);
   return { funnel, page_views };
 }
+
+/**
+ * Anonymous→account CONVERSION on the per-visitor SUMMARY row (Admin Tracker
+ * Enrichment, owner 2026-08-31). Called right after backfillVisitorIdentity on
+ * signup success: marks the `visitors` row for this visitor as converted to the
+ * new account (converted_user_id + converted_at) and pins signup='Success' —
+ * the exact status /admin/journeys derives from a signup_success event, so the
+ * summary cache and the live board can't drift.
+ *
+ * IDEMPOTENT: an upsert with COALESCE keeps an already-set conversion (re-signup /
+ * repeated call can't error or clobber). When NO `visitors` row exists for this
+ * visitor yet (e.g. the very first beacon was the page the signup itself happened
+ * on, or the summary write was previously skipped), a minimal row is created so
+ * the conversion is never lost.
+ *
+ * FAIL-OPEN + BEST-EFFORT: same contract as backfillVisitorIdentity — callers
+ * wrap this in try/catch; a throw here must never fail signup.
+ */
+export async function linkVisitorConversion(
+  db: SqlFactory,
+  userId: number | string,
+  visitorId: string,
+): Promise<void> {
+  if (!visitorId) return;
+  const uid = String(userId);
+
+  // Idempotent schema guard — same self-heal pattern as the beacon intake.
+  await db()`CREATE TABLE IF NOT EXISTS visitors (
+    visitor_id TEXT PRIMARY KEY,
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    first_path TEXT,
+    last_path TEXT,
+    first_ip TEXT,
+    last_ip TEXT,
+    city TEXT,
+    region TEXT,
+    device_type TEXT,
+    browser_label TEXT,
+    source TEXT,
+    radar BOOLEAN NOT NULL DEFAULT FALSE,
+    signup TEXT NOT NULL DEFAULT 'Not started',
+    activated BOOLEAN NOT NULL DEFAULT FALSE,
+    steps INTEGER NOT NULL DEFAULT 0,
+    sessions INTEGER NOT NULL DEFAULT 0,
+    last_visit_id TEXT,
+    last_action TEXT,
+    last_action_at TIMESTAMPTZ,
+    converted_user_id TEXT,
+    converted_at TIMESTAMPTZ
+  )`;
+  await db()`CREATE INDEX IF NOT EXISTS idx_visitors_last_seen_at ON visitors (last_seen_at)`;
+
+  await db()`
+    INSERT INTO visitors (visitor_id, first_seen_at, last_seen_at, converted_user_id, converted_at, signup)
+    VALUES (${visitorId}, NOW(), NOW(), ${uid}, NOW(), 'Success')
+    ON CONFLICT (visitor_id) DO UPDATE SET
+      converted_user_id = COALESCE(visitors.converted_user_id, EXCLUDED.converted_user_id),
+      converted_at = COALESCE(visitors.converted_at, EXCLUDED.converted_at),
+      last_seen_at = NOW(),
+      signup = 'Success'
+  `;
+}

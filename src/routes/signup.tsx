@@ -460,9 +460,17 @@ function SignupPage() {
   // request survives the unload; never breaks navigation or SSR.
   const signupSucceededRef = useRef(false);
   const abandonedFiredRef = useRef(false);
+  // redirectingRef guards the logged-in redirect path below: when an
+  // already-signed-in user lands on /signup we redirect (or complete a
+  // save_bid then redirect) without ever firing signup_success, so the
+  // abandonment listener must not treat that unload as an abandon. Set when
+  // the redirect effect begins; the component unmounts right after, so it is
+  // never reset (a stale `true` only silences a dead listener).
+  const redirectingRef = useRef(false);
   useEffect(() => {
     const fireAbandoned = () => {
       if (typeof navigator === "undefined") return;
+      if (redirectingRef.current) return; // logged-in redirect, not an abandon
       if (signupSucceededRef.current || abandonedFiredRef.current) return;
       abandonedFiredRef.current = true;
       const payload: Record<string, string> = {
@@ -499,6 +507,7 @@ function SignupPage() {
   // the save, and never let an open redirect escape (safeNext guard).
   useEffect(() => {
     if (currentUser) {
+      redirectingRef.current = true;
       if (save_bid) {
         fetch("/api/bids-save", {
           method: "POST",

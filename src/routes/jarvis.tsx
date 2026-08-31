@@ -46,7 +46,7 @@ interface JarvisResult {
 const SESSION_KEY = "jarvis-history-v1";
 const WAKE_WORD = "jarvis";
 
-type VoicePhase = "off" | "armed" | "capture";
+type VoicePhase = "off" | "armed" | "capture" | "speaking";
 
 // ── Web Speech API types (browser-only; wrapped defensively) ──────────────
 type SRAlt = { transcript: string; confidence?: number };
@@ -229,6 +229,159 @@ function JarvisPage() {
     setSpeaking(false);
   }, []);
 
+  // ── Wake-word voice ─────────────────────────────────────────────────────
+  // Turn the mic + listening completely off (owner opt-out).
+  const disableVoice = useCallback(() => {
+    shouldRunRef.current = false;
+    pendingQuestionRef.current = "";
+    recognitionRef.current?.abort();
+    recognitionRef.current = null;
+    setPhase("off");
+  }, [setPhase]);
+
+  // Wire the shared handlers onto a recognition instance. Used both on initial
+  // enable and on every re-arm after speech, so the armed/capture/wake-word
+  // handling is identical on both paths.
+  const wireRecognition = useCallback(
+    (rec: SpeechRecognitionLike) => {
+      rec.lang = "en-US";
+      rec.interimResults = true; // needed to catch the wake word as it is spoken
+      rec.maxAlternatives = 1;
+      rec.continuous = true; // stay armed across many utterances
+
+      rec.onresult = (e) => {
+        const last = e.results[e.results.length - 1];
+        if (!last || !last[0]) return;
+        const transcript = last[0].transcript ?? "";
+        const isFinal = !!last.isFinal;
+        const { hasWake, after } = extractAfterWake(transcript);
+        const ph = phaseRef.current;
+
+        if (ph === "armed") {
+          if (hasWake) {
+            // Wake word heard — capture what follows as the question.
+            pendingQuestionRef.current = after;
+            setPhase("capture");
+            if (after.trim() && isFinal) {
+              // Whole "Jarvis + question" landed as one finalized utterance.
+              const q = after.trim();
+              pendingQuestionRef.current = "";
+              setPhase("armed");
+              void sendQuestionRef.current?.(q);
+            }
+            // else remain in "capture" awaiting the next utterance.
+          }
+          // No wake word → interim discarded, keep listening (never sent).
+        } else if (ph === "capture") {
+          // Accumulate the trailing text. If the question is a new utterance that
+          // does not repeat the wake word, treat the whole transcript as content;
+          // otherwise keep only what follows the wake word.
+          const candidate = hasWake ? after : transcript;
+          if (candidate.length >= pendingQuestionRef.current.length) {
+            pendingQuestionRef.current = candidate;
+          }
+          if (isFinal) {
+            const q = pendingQuestionRef.current.trim();
+            pendingQuestionRef.current = "";
+            // Only a non-empty question gets sent AND returns us to idle/armed.
+            // If the wake word fired with no follow-up (e.g. a lone "Jarvis"
+            // finalized, or an empty next utterance), STAY in capture so the
+            // next utterance is picked up as the question — never re-arm and
+            // discard it, and never send the wake word itself.
+            if (q) {
+              setPhase("armed");
+              void sendQuestionRef.current?.(q);
+            } else {
+              setPhase("capture");
+            }
+          } else {
+            setPhase("capture");
+          }
+        }
+      };
+
+      rec.onerror = (e) => {
+        // no-speech / aborted are routine; only hard failures turn the mic off.
+        if (e.error === "not-allowed" || e.error === "service-not-allowed") {
+          setError("Microphone permission denied — type your question instead, or allow the mic and Enable voice again.");
+          disableVoice();
+        } else if (e.error !== "no-speech" && e.error !== "aborted") {
+          disableVoice();
+        }
+      };
+
+      rec.onend = () => {
+        // If voice is still meant to be on AND we're not paused while Jarvis is
+        // reading its answer, restart to stay armed (Web Speech can end a segment
+        // after a pause). While speaking (phase "speaking") we deliberately keep
+        // the mic off so Jarvis can't trigger on its own TTS output — re-arming
+        // happens explicitly in rearmForSpeech once the answer stops playing.
+        if (!shouldRunRef.current || phaseRef.current === "off") {
+          recognitionRef.current = null;
+          setPhase("off");
+          return;
+        }
+        // Only the currently-attached instance may self-restart; a stale instance
+        // that ended during a speech pause must not resurrect itself after we've
+        // already re-armed a fresh one.
+        if (phaseRef.current !== "speaking" && recognitionRef.current === rec) {
+          try {
+            rec.start();
+          } catch {
+            /* recognition may be mid-restart — safe to ignore */
+          }
+        }
+      };
+
+      return rec;
+    },
+    [setPhase, disableVoice],
+  );
+
+  // Conscious opt-in: the owner clicks "Enable voice" before the mic turns on.
+  const enableVoice = useCallback(() => {
+    if (voicePhase !== "off" || thinking) return;
+    stopSpeaking();
+    const rec = getSpeechRecognition();
+    if (!rec) {
+      setError("Speech recognition is not supported in this browser. Type your question instead.");
+      return;
+    }
+
+    wireRecognition(rec);
+    recognitionRef.current = rec;
+    shouldRunRef.current = true;
+    pendingQuestionRef.current = "";
+    try {
+      rec.start();
+      setPhase("armed");
+    } catch {
+      setError("Could not start the microphone. Type your question instead.");
+      disableVoice();
+    }
+  }, [voicePhase, thinking, stopSpeaking, setPhase, disableVoice, wireRecognition]);
+
+  // Re-arm recognition after Jarvis finishes speaking, so the owner can say the
+  // wake word again without re-clicking Enable. No-op if voice was already off
+  // (owner disabled it) — we never re-enable the mic behind their back.
+  const rearmForSpeech = useCallback(() => {
+    if (!shouldRunRef.current) return;
+    const rec = getSpeechRecognition();
+    if (!rec) {
+      setPhase("off");
+      return;
+    }
+    wireRecognition(rec);
+    recognitionRef.current = rec;
+    try {
+      rec.start();
+      setPhase("armed");
+    } catch {
+      setError("Could not restore the microphone after speaking. Type your question instead.");
+      disableVoice();
+    }
+  }, [setPhase, disableVoice, wireRecognition]);
+
   const sendQuestion = useCallback(
     async (raw: string) => {
       const question = raw.trim();
@@ -247,6 +400,16 @@ function JarvisPage() {
           grounded: res.grounded,
           time: Date.now(),
         });
+        // Pause recognition while the answer is read aloud so Jarvis can't hear
+        // (and trigger on) its own TTS output — owner criterion (5) "Recognition
+        // pauses while TTS is speaking". If voice is already off this is a no-op.
+        if (shouldRunRef.current) {
+          setPhase("speaking");
+          recognitionRef.current?.abort();
+          // Detach the paused instance so its (async) onend can't resurrect
+          // itself once we re-arm a fresh one in rearmForSpeech.
+          recognitionRef.current = null;
+        }
         // Speak the answer back (wake-word feedback loop), keeping the cancel
         // handle so 🔇 Stop can cut speech off mid-sentence.
         cancelSpeechRef.current = speak(res.answer.replace(/[•\n]+/g, " ").slice(0, 600));
@@ -256,6 +419,10 @@ function JarvisPage() {
             window.clearInterval(poll);
             cancelSpeechRef.current = null;
             setSpeaking(false);
+            // Speech done → automatically re-arm recognition (owner criterion (6)
+            // "After speaking, recognition automatically re-arms"). No-op if the
+            // owner disabled voice while we were reading.
+            rearmForSpeech();
           }
         }, 300);
       } catch (err) {
@@ -269,120 +436,9 @@ function JarvisPage() {
         setThinking(false);
       }
     },
-    [thinking, push, stopSpeaking],
+    [thinking, push, stopSpeaking, rearmForSpeech],
   );
   sendQuestionRef.current = sendQuestion;
-
-  // ── Wake-word voice ─────────────────────────────────────────────────────
-  const disableVoice = useCallback(() => {
-    shouldRunRef.current = false;
-    pendingQuestionRef.current = "";
-    recognitionRef.current?.abort();
-    recognitionRef.current = null;
-    setPhase("off");
-  }, [setPhase]);
-
-  const enableVoice = useCallback(() => {
-    if (voicePhase !== "off" || thinking) return;
-    stopSpeaking();
-    const rec = getSpeechRecognition();
-    if (!rec) {
-      setError("Speech recognition is not supported in this browser. Type your question instead.");
-      return;
-    }
-
-    rec.lang = "en-US";
-    rec.interimResults = true; // needed to catch the wake word as it is spoken
-    rec.maxAlternatives = 1;
-    rec.continuous = true; // stay armed across many utterances
-
-    rec.onresult = (e) => {
-      const last = e.results[e.results.length - 1];
-      if (!last || !last[0]) return;
-      const transcript = last[0].transcript ?? "";
-      const isFinal = !!last.isFinal;
-      const { hasWake, after } = extractAfterWake(transcript);
-      const ph = phaseRef.current;
-
-      if (ph === "armed") {
-        if (hasWake) {
-          // Wake word heard — capture what follows as the question.
-          pendingQuestionRef.current = after;
-          setPhase("capture");
-          if (after.trim() && isFinal) {
-            // Whole "Jarvis + question" landed as one finalized utterance.
-            const q = after.trim();
-            pendingQuestionRef.current = "";
-            setPhase("armed");
-            void sendQuestionRef.current?.(q);
-          }
-          // else remain in "capture" awaiting the next utterance.
-        }
-        // No wake word → interim discarded, keep listening (never sent).
-      } else if (ph === "capture") {
-        // Accumulate the trailing text. If the question is a new utterance that
-        // does not repeat the wake word, treat the whole transcript as content;
-        // otherwise keep only what follows the wake word.
-        const candidate = hasWake ? after : transcript;
-        if (candidate.length >= pendingQuestionRef.current.length) {
-          pendingQuestionRef.current = candidate;
-        }
-        if (isFinal) {
-          const q = pendingQuestionRef.current.trim();
-          pendingQuestionRef.current = "";
-          // Only a non-empty question gets sent AND returns us to idle/armed.
-          // If the wake word fired with no follow-up (e.g. a lone "Jarvis"
-          // finalized, or an empty next utterance), STAY in capture so the
-          // next utterance is picked up as the question — never re-arm and
-          // discard it, and never send the wake word itself.
-          if (q) {
-            setPhase("armed");
-            void sendQuestionRef.current?.(q);
-          } else {
-            setPhase("capture");
-          }
-        } else {
-          setPhase("capture");
-        }
-      }
-    };
-
-    rec.onerror = (e) => {
-      // no-speech / aborted are routine; only hard failures turn the mic off.
-      if (e.error === "not-allowed" || e.error === "service-not-allowed") {
-        setError("Microphone permission denied — type your question instead, or allow the mic and Enable voice again.");
-        disableVoice();
-      } else if (e.error !== "no-speech" && e.error !== "aborted") {
-        disableVoice();
-      }
-    };
-
-    rec.onend = () => {
-      // If voice is still meant to be on, restart to stay armed (Web Speech can
-      // end a segment after a pause). Only stop if the owner disabled it.
-      if (shouldRunRef.current && phaseRef.current !== "off") {
-        try {
-          rec.start();
-        } catch {
-          /* recognition may be mid-restart — safe to ignore */
-        }
-      } else {
-        recognitionRef.current = null;
-        setPhase("off");
-      }
-    };
-
-    recognitionRef.current = rec;
-    shouldRunRef.current = true;
-    pendingQuestionRef.current = "";
-    try {
-      rec.start();
-      setPhase("armed");
-    } catch {
-      setError("Could not start the microphone. Type your question instead.");
-      disableVoice();
-    }
-  }, [voicePhase, thinking, stopSpeaking, setPhase, disableVoice]);
 
   const clearChat = useCallback(() => {
     stopSpeaking();
@@ -439,14 +495,18 @@ function JarvisPage() {
             className={`mb-4 flex items-center gap-2.5 rounded-xl border px-3 py-2 text-sm ${
               voicePhase === "capture"
                 ? "border-cyan-500/50 bg-cyan-500/15 text-cyan-200"
-                : "border-amber-500/40 bg-amber-500/10 text-amber-200"
+                : voicePhase === "speaking"
+                  ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-200"
+                  : "border-amber-500/40 bg-amber-500/10 text-amber-200"
             }`}
           >
-            <span className={`inline-block h-2.5 w-2.5 rounded-full ${voicePhase === "capture" ? "bg-cyan-400" : "bg-amber-400 animate-pulse"}`} />
+            <span className={`inline-block h-2.5 w-2.5 rounded-full ${voicePhase === "capture" ? "bg-cyan-400" : voicePhase === "speaking" ? "bg-emerald-400" : "bg-amber-400 animate-pulse"}`} />
             <span>
               {voicePhase === "armed"
                 ? <>Listening for <strong className="font-semibold">“Jarvis”</strong>…</>
-                : <>Heard you. <strong className="font-semibold">Ask your question…</strong></>}
+                : voicePhase === "capture"
+                  ? <>Heard you. <strong className="font-semibold">Ask your question…</strong></>
+                  : <strong className="font-semibold">Speaking…</strong>}
             </span>
             <button
               type="button"
@@ -534,7 +594,11 @@ function JarvisPage() {
           ) : (
             <span className="inline-flex items-center gap-2 rounded-full bg-slate-800 px-4 py-2.5 text-sm text-slate-300 border border-slate-700">
               <span className="text-base">🎙️</span>{" "}
-              {voicePhase === "armed" ? "Listening for “Jarvis”…" : "Listening…"}
+              {voicePhase === "armed"
+                ? "Listening for “Jarvis”…"
+                : voicePhase === "capture"
+                  ? "Listening…"
+                  : "Speaking…"}
             </span>
           )}
           <input
@@ -580,7 +644,9 @@ function JarvisPage() {
           <em className="text-slate-400 not-italic"> “Jarvis, …”</em> and ask — no button press needed.
           While listening, the microphone is active in this tab and may pick up ambient speech; only
           audio after the word “Jarvis” is used as your question, everything else is discarded. This is
-          in-tab continuous listening, not always-on background listening. Answers are read aloud in a
+          in-tab continuous listening, not always-on background listening. The mic pauses while
+          Jarvis reads its answer (so it can't trigger on its own voice) and re-arms automatically
+          when it finishes. Answers are read aloud in a
           British-English voice when available and can be stopped with 🔇 Stop.
         </p>
         <p className="mt-1 text-[10px] text-slate-600">

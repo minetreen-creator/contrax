@@ -20,13 +20,19 @@ export const GOOGLE_REDIRECT_URI = "https://www.contrax.company/auth/google/call
 const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth";
 
 /**
- * Returns the Google OAuth consent-screen URL, or null when GOOGLE_CLIENT_ID
- * is not configured. Server function so the URL is built from the runtime
- * env var on the server — client-side navigation still resolves it via RPC.
+ * Returns the Google OAuth consent-screen URL, or null when the OAuth config
+ * is not fully present. Both GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be
+ * set — the URL itself only needs the (non-secret) client id, but the callback
+ * (src/routes/auth/google/callback.tsx) requires BOTH to exchange the code. So
+ * we only advertise "Continue with Google" when the whole handshake can
+ * genuinely complete; otherwise the CTA is rendered disabled/hidden rather than
+ * linking to a flow that would fail server-side. Server function so the verdict
+ * is computed from runtime env vars on the server.
  */
 export const getGoogleAuthUrl = createServerFn({ method: "GET" }).handler(async () => {
   const clientId = process.env.GOOGLE_CLIENT_ID;
-  if (!clientId) return null;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
 
   const params = new URLSearchParams({
     client_id: clientId,

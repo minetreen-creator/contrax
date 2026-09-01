@@ -521,6 +521,36 @@ function OnboardingPage({ currentUser }: { currentUser: AuthUser }) {
             </p>
           )}
 
+          {/* ── Skip onboarding — honest escape (owner-approved
+               ONBOARDING-ESCAPE fix) ──────────────────────────────────────
+               A new user who just committed email + password can always reach
+               the dashboard without completing the wizard. No fake urgency, no
+               false scarcity — just the honest fact that the profile can be
+               built anytime and matches still work nationwide without it (the
+               same nationwide-with-no-set-aside semantics the dashboard feed
+               and R1 trial-start card already use for a profile-less user).
+               This LINK only navigates; it does not create or alter any
+               profile/trial state. */}
+          <div className="mt-6 border-t border-slate-100 pt-6">
+            <a
+              href="/dashboard"
+              className="flex flex-col gap-1 rounded-xl border border-dashed border-slate-300 bg-slate-50/60 px-5 py-4 transition-colors hover:border-blue-300 hover:bg-blue-50/40 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <span>
+                <span className="block text-sm font-semibold text-slate-700">
+                  Skip for now — go to my dashboard
+                </span>
+                <span className="mt-0.5 block text-xs leading-relaxed text-slate-500">
+                  You can build your profile anytime. Your bid matches still work
+                  nationwide without it.
+                </span>
+              </span>
+              <span className="mt-2 shrink-0 text-sm font-semibold text-blue-600 sm:mt-0">
+                Continue →
+              </span>
+            </a>
+          </div>
+
           {/* Result */}
           {count !== null && (
             <div className="mt-6 rounded-xl border p-6 text-center">

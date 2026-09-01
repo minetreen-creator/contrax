@@ -37,9 +37,7 @@ function section(t: string): void { console.log(`\n=== ${t} ===`); }
 const loginSrc = readFileSync("src/routes/login.tsx", "utf8");
 const signupSrc = readFileSync("src/routes/signup.tsx", "utf8");
 const oauthSrc = readFileSync("src/lib/google-oauth.ts", "utf8");
-const errSrc = readFileSync("src/lib/oauth-errors.ts", "utf8");
 const cbSrc = readFileSync("src/routes/auth/google/callback.tsx", "utf8");
-const LEAK = "620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com";
 const PRESSURE = ["action required", "urgent", "act now", "limited time", "hurry", "final notice"];
 
 /* ═══════ B1 — /login renders the OAuth cancel/error honestly, once ═══════ */

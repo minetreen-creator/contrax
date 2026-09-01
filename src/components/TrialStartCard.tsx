@@ -30,38 +30,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { getCurrentUser } from "~/lib/auth";
 import {
+  TRIAL_START_COPY,
   loadTrialStartCardData,
   type TrialStartCardData,
   type TrialStartCandidate,
 } from "~/lib/trial-start-card";
 import { trackEvent } from "~/lib/track";
-import { TRIAL_DAYS } from "~/lib/trial";
-import { TRIAL_CHECKLIST } from "~/lib/trial-usage";
-
-/** Card copy — exported so the R1 dry-run can assert honesty (no card, no
- *  unlimited, truthful 14-day lazy-start framing). */
-export const TRIAL_START_COPY = {
-  heading: "Your 14-day Professional trial is ready",
-  badge: `${TRIAL_DAYS}-day free trial`,
-  noCard: "No credit card required.",
-  body: `Your free ${TRIAL_DAYS}-day Professional trial starts the first time you use a Professional feature — not at signup — so nothing expires until you're ready.`,
-  primary: "Run my first Executive Brief",
-  primaryHint: "Generate your #1 matched bid's brief and your trial begins.",
-  whatYouGet: TRIAL_CHECKLIST.map((c) => `${c.label} (${c.limit})`).join(" · "),
-  endNote:
-    "When your trial ends you keep your saved bids and progress — only the premium tools lock.",
-  noMatchesTitle: "Start your trial with any Professional feature",
-  noMatchesBody:
-    "You don't have any matched bids yet, so there's nothing to brief. Score a solicitation instead — it's a Professional feature and it starts your trial the same way.",
-  noMatchesCta: "Score a solicitation to start →",
-  cachedNote:
-    "That brief was already on file, so no trial time was used — cached briefs are free and don't start the clock.",
-  started: "Your 14-day Professional trial is live",
-  startedBody: (title: string) => `Your first Executive Brief${title ? ` on “${title}”` : ""} is ready. Read it on the bid page, or use the checklist below as you work through your trial.`,
-  startedCta: "Read the brief →",
-  error: "We couldn't analyze this solicitation right now. Please try again in a moment.",
-  rateLimited: "You've generated several briefs recently. Please try again in a moment.",
-} as const;
 
 /** Server context — same predicate the dry-run tests (lib) + auth guard. */
 const loadTrialStartCard = createServerFn({ method: "GET" }).handler(

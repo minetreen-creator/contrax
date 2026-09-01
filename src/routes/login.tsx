@@ -1,10 +1,10 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useLocation, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { getOrCreateVisitorId } from "~/lib/visitor";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
-
-const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
+import { getGoogleAuthUrl } from "~/lib/google-oauth";
+import { getOAuthErrorMessage } from "~/lib/oauth-errors";
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
@@ -13,6 +13,10 @@ export const Route = createFileRoute("/login")({
     currentUser: await getCurrentUser(),
     // LinkedIn is gated until LINKEDIN_CLIENT_ID is configured — see signup.
     linkedInAuthUrl: await getLinkedInAuthUrl(),
+    // Google is gated at runtime: null unless BOTH GOOGLE_CLIENT_ID and
+    // GOOGLE_CLIENT_SECRET are configured. When null the button renders
+    // disabled with an honest reason instead of a live-looking broken link.
+    googleAuthUrl: await getGoogleAuthUrl(),
   }),
   component: LoginRoute,
   head: () => ({
@@ -66,7 +70,7 @@ export const Route = createFileRoute("/login")({
  * LoginPage when the guard passes, so the hook count is constant either way.
  */
 function LoginRoute() {
-  const { currentUser, linkedInAuthUrl } = Route.useLoaderData();
+  const { currentUser, linkedInAuthUrl, googleAuthUrl } = Route.useLoaderData();
   const navigate = useNavigate();
 
   // If already logged in, redirect to dashboard
@@ -75,18 +79,31 @@ function LoginRoute() {
     return null;
   }
 
-  return <LoginPage linkedInAuthUrl={linkedInAuthUrl} />;
+  return <LoginPage linkedInAuthUrl={linkedInAuthUrl} googleAuthUrl={googleAuthUrl} />;
 }
 
 // ── Page Component ────────────────────────────────────────────────────────────
 
-function LoginPage({ linkedInAuthUrl }: { linkedInAuthUrl: string | null }) {
+function LoginPage({ linkedInAuthUrl, googleAuthUrl }: { linkedInAuthUrl: string | null; googleAuthUrl: string | null }) {
   const navigate = useNavigate();
+  const { searchStr } = useLocation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  // B1: a cancelled/errored Google sign-in lands back here as
+  // /login?error=<code> (see the OAuth callback redirects). Render an honest
+  // message once, then strip the param so a refresh doesn't re-surface it — a
+  // silent dead-end with no explanation is gone.
+  useEffect(() => {
+    const code = new URLSearchParams(searchStr).get("error");
+    const msg = getOAuthErrorMessage(code);
+    if (msg) {
+      setError(msg);
+      if (window.history.replaceState) window.history.replaceState(null, "", "/login");
+    }
+  }, [searchStr]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,9 +150,14 @@ function LoginPage({ linkedInAuthUrl }: { linkedInAuthUrl: string | null }) {
             Sign in to your Contrax account.
           </p>
 
-          {/* Continue with Google */}
+          {/* Continue with Google — gated at runtime. Only rendered as a live
+              link when getGoogleAuthUrl() returned a fully-configured URL (both
+              GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET present). Otherwise it
+              renders disabled with an honest reason, never a live-looking link
+              to a broken handshake. */}
+          {googleAuthUrl ? (
             <a
-              href={GOOGLE_AUTH_URL}
+              href={googleAuthUrl}
               className="mt-8 flex w-full items-center justify-center gap-3 rounded-xl border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98]"
             >
               <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
@@ -146,6 +168,27 @@ function LoginPage({ linkedInAuthUrl }: { linkedInAuthUrl: string | null }) {
               </svg>
               Continue with Google
             </a>
+          ) : (
+            <div className="mt-8 space-y-2">
+              <button
+                type="button"
+                disabled
+                title="Google sign-in is not configured right now"
+                className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-6 py-3 text-sm font-semibold text-gray-400"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" />
+                  <path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" />
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
+                </svg>
+                Continue with Google
+              </button>
+              <p className="text-center text-xs text-gray-400">
+                Google sign-in isn't available right now — you can still sign in with email &amp; password below.
+              </p>
+            </div>
+          )}
 
             {/* Continue with LinkedIn — gated until LINKEDIN_CLIENT_ID exists */}
             {linkedInAuthUrl ? (

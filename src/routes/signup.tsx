@@ -10,7 +10,7 @@ import { persistPendingDraft } from "~/lib/pending-draft";
 import { storeRememberedNext } from "~/lib/remember-next";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
+import { getGoogleAuthUrl } from "~/lib/google-oauth";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 import { safeNext } from "~/lib/saved-matches";
 import {
@@ -26,7 +26,6 @@ import {
   type RadarSeenMatch,
 } from "~/lib/radar-session";
 
-const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?client_id=620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com&redirect_uri=https://www.contrax.company/auth/google/callback&response_type=code&scope=openid%20email%20profile&access_type=offline&prompt=consent";
 
 type ScoreRec = "GO" | "CAUTIOUS" | "NO-GO";
 
@@ -239,6 +238,11 @@ export const Route = createFileRoute("/signup")({
       // True when LINKEDIN_CLIENT_ID is configured. While absent, the LinkedIn
       // button renders disabled ("coming soon") and never builds a broken URL.
       linkedInAuthUrl: await getLinkedInAuthUrl(),
+      // Google is gated at runtime: null unless BOTH GOOGLE_CLIENT_ID and
+      // GOOGLE_CLIENT_SECRET are configured. When null the CTA renders disabled
+      // with an honest reason instead of a live-looking link to a handshake
+      // that would fail server-side (the callback needs both env vars).
+      googleAuthUrl: await getGoogleAuthUrl(),
     };
   },
   component: SignupPage,
@@ -284,7 +288,8 @@ export const Route = createFileRoute("/signup")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function SignupPage() {
-  const { currentUser, trackedBids, openBids, linkedInAuthUrl } = Route.useLoaderData();
+  const { currentUser, trackedBids, openBids, linkedInAuthUrl, googleAuthUrl: baseGoogleAuthUrl } =
+    Route.useLoaderData();
   const navigate = useNavigate();
   const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency, trade, cert, state, size, value } =
     Route.useSearch();
@@ -533,24 +538,23 @@ function SignupPage() {
     setSelectedPlan(plan);
   }, [plan]);
 
-  // Google OAuth URL. When arriving from the Save-to-Pipeline signup wall, the
-  // intent (save_bid / next / plan) is carried through OAuth `state` so Google's
-  // callback can complete the save after the account is created.
+  // Google OAuth URL, built from the runtime-verified base the loader's
+  // getGoogleAuthUrl() returned. That base is null unless BOTH GOOGLE_CLIENT_ID
+  // and GOOGLE_CLIENT_SECRET are configured — so this CTA is only ever a live
+  // link when the handshake can genuinely complete. When arriving from the
+  // Save-to-Pipeline signup wall, the intent (save_bid / next / plan) is carried
+  // through OAuth `state` so the callback can complete the save after creation.
   const googleAuthUrl = useMemo(() => {
-    if (!save_bid && !next) return GOOGLE_AUTH_URL;
-    const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
-    url.searchParams.set("client_id", "620121676686-s30sb3gi91of9699fhhkp04t86b0jofi.apps.googleusercontent.com");
-    url.searchParams.set("redirect_uri", GOOGLE_REDIRECT_URI);
-    url.searchParams.set("response_type", "code");
-    url.searchParams.set("scope", "openid email profile");
-    url.searchParams.set("access_type", "offline");
-    url.searchParams.set("prompt", "consent");
-    url.searchParams.set(
-      "state",
-      JSON.stringify({ save_bid: save_bid ?? null, next: safeNext(next), plan: selectedPlan }),
-    );
+    if (!baseGoogleAuthUrl) return null;
+    const url = new URL(baseGoogleAuthUrl);
+    if (save_bid || next) {
+      url.searchParams.set(
+        "state",
+        JSON.stringify({ save_bid: save_bid ?? null, next: safeNext(next), plan: selectedPlan }),
+      );
+    }
     return url.toString();
-  }, [save_bid, next, selectedPlan]);
+  }, [baseGoogleAuthUrl, save_bid, next, selectedPlan]);
 
   // LinkedIn OAuth start URL (relative — hits /api/linkedin/start, which sets a
   // CSRF nonce cookie and 302-redirects to LinkedIn). Carries the same
@@ -799,20 +803,46 @@ function SignupPage() {
             </p>
           )}
 
-          {/* ONE-TAP PRIMARY — Continue with Google. The big, primary CTA at
-              the TOP of the form. Google OAuth is fully implemented. */}
-          <a
-            href={googleAuthUrl}
-            className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-900 bg-white px-6 py-4 text-base font-bold text-slate-900 shadow-md transition-all hover:bg-slate-50 hover:shadow-lg active:scale-[0.98]"
-          >
-            <svg className="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
-              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" />
-              <path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" />
-              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
-            </svg>
-            Continue with Google
-          </a>
+          {/* ONE-TAP PRIMARY — Continue with Google, gated at runtime. The big
+              primary CTA only renders as a live link when the loader's
+              getGoogleAuthUrl() returned a fully-configured URL (both
+              GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET present). Otherwise it
+              renders disabled with an honest reason — never a live-looking link
+              to a handshake that would fail server-side. */}
+          {googleAuthUrl ? (
+            <a
+              href={googleAuthUrl}
+              className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-900 bg-white px-6 py-4 text-base font-bold text-slate-900 shadow-md transition-all hover:bg-slate-50 hover:shadow-lg active:scale-[0.98]"
+            >
+              <svg className="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
+                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" />
+                <path fill="#FBBC05" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" />
+                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
+              </svg>
+              Continue with Google
+            </a>
+          ) : (
+            <div className="mt-6 space-y-2">
+              <button
+                type="button"
+                disabled
+                title="Google sign-in is not configured right now"
+                className="flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl border-2 border-gray-200 bg-gray-50 px-6 py-4 text-base font-bold text-gray-400"
+              >
+                <svg className="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="#9AA0A6" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
+                  <path fill="#9AA0A6" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.86-3c-1.08.72-2.45 1.16-4.07 1.16-3.13 0-5.78-2.11-6.73-4.96H1.29v3.09C3.26 21.3 7.31 24 12 24z" />
+                  <path fill="#9AA0A6" d="M5.27 14.29c-.25-.72-.38-1.49-.38-2.29s.14-1.57.38-2.29V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.98-3.09z" />
+                  <path fill="#9AA0A6" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.98 3.09C6.22 6.86 8.87 4.75 12 4.75z" />
+                </svg>
+                Continue with Google
+              </button>
+              <p className="text-center text-xs text-gray-400">
+                Google sign-up isn't available right now — you can still sign up with email &amp; password below.
+              </p>
+            </div>
+          )}
 
           {/* Continue with LinkedIn — OAuth implemented, GATED until the owner
               supplies LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET. While the key

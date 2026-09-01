@@ -11,6 +11,7 @@ import { FeedbackWidget } from "~/components/FeedbackWidget";
 import { RadarLoginNotify } from "~/components/RadarLoginNotify";
 import { SavedRadarMatches } from "~/components/SavedRadarMatches";
 import { TrialChecklist } from "~/components/TrialChecklist";
+import { TrialStartCard } from "~/components/TrialStartCard";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
 import { GettingStarted } from "~/components/GettingStarted";
 import {
@@ -949,10 +950,16 @@ function DashboardRoute() {
 function DashboardTrialGate({ user }: { user: AuthUser }) {
   const [trial, setTrial] = useState<TrialStatus | null>(null);
   useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
+  // R1: after the TrialStartCard's one-click brief starts the lazy 14-day
+  // trial, re-read the trial status so the TrialBanner + TrialChecklist mount
+  // and the start-card hides (its own server predicate flips to show=false).
+  const refreshTrial = useCallback(() => {
+    checkTrial().then(setTrial).catch(() => {});
+  }, []);
   if (trial?.expired) return <TrialExpired />;
-  return <DashboardPage user={user} trial={trial} />;
+  return <DashboardPage user={user} trial={trial} onTrialStarted={refreshTrial} />;
 }
-function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | null }) {
+function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial: TrialStatus | null; onTrialStarted?: () => void }) {
   // Dashboard data loads client-side from /api/dashboard-data (createServerFn
   // client RPCs silently fail on production, so the loader only resolves auth).
   const navigate = useNavigate();
@@ -1550,6 +1557,12 @@ function DashboardPage({ user, trial }: { user: AuthUser; trial: TrialStatus | n
             logged-in user whose email matches an unfulfilled radar_saves row,
             recompute + surface their current matching bids. */}
         <SavedRadarMatches />
+        {/* R1: first-run trial-start surface — a free-Basic user whose
+            14-day Professional trial has NOT started sees the one-click
+            "run my first Executive Brief" card; it routes them to the
+            existing premium brief path (which lazily starts the trial).
+            Hides itself once the trial is active (server predicate). */}
+        <TrialStartCard onTrialStarted={onTrialStarted} />
 
         {/* Deadline Alert Banner */}
         <DeadlineAlertBanner count={urgentTrackedCount} />

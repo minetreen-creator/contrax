@@ -150,7 +150,7 @@ function buildLearnedLines(i: LearnedInsight): string[] {
     raw.push(`[experiment status=${e.status}] ${e.name}${tail ? ` — ${tail}` : ""}`);
   }
   for (const r of i.recentRuns) {
-    raw.push(`[run ${r.run_type} ${(r.started_at ?? "").slice(0, 10)}]${r.note ? ` ${r.note}` : ""}`);
+    raw.push(`[run ${r.run_type} ${String(r.started_at ?? "").slice(0, 10)}]${r.note ? ` ${r.note}` : ""}`);
   }
   for (const a of i.recentActions) {
     raw.push(`[action ${a.action_type} ${a.status}] ${a.reason ?? ""}`);

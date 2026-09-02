@@ -1256,8 +1256,8 @@ function OpportunityMap({ aggregate }: { aggregate: ContractMapAggregate }) {
                 : "See where government money is moving."}
             </h2>
             <p className="mt-3 text-sm text-slate-400">
-              Hover a state for its totals — click one to see exactly what&apos;s being bought there. Live from the
-              open solicitations synchronized from SAM.gov.
+              Hover a state for its totals — click one to see exactly what&apos;s being bought there. Live from SAM.gov
+              and state & city solicitations — synced every 4 hours.
             </p>
           </div>
 

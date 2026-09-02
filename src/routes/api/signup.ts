@@ -46,11 +46,15 @@ async function handler({ request }: { request: Request }) {
       confirmPassword?: string;
       plan?: string;
       visitor_id?: string;
+      company?: string;
     };
 
     const email = (body.email || "").trim().toLowerCase();
     const password = body.password || "";
     const confirmPassword = body.confirmPassword || "";
+    // Optional company name, trimmed, capped at 120 chars; empty → NULL (kept
+    // nullable on the account. Never required — adds zero signup friction).
+    const company = (body.company || "").trim().slice(0, 120) || null;
     // Persistent per-visitor id (contrax_vid) rides in the body so the identity
     // backfill can tie this visitor's ENTIRE anonymous funnel to the new account.
     const visitorId = (body.visitor_id || "").trim().slice(0, 64) || null;
@@ -101,8 +105,8 @@ async function handler({ request }: { request: Request }) {
     // trial begins (and trial_started_at is set) on the user's FIRST premium
     // action via ensureTrialStarted (src/lib/trial.ts). No credit card.
     const inserted = await sql()`
-      INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-      VALUES (${email}, ${passwordHash}, 'basic', NULL)
+      INSERT INTO users (email, password_hash, plan_tier, trial_started_at, company_name)
+      VALUES (${email}, ${passwordHash}, 'basic', NULL, ${company})
       RETURNING id, email, created_at
     `;
     const user = inserted[0] as { id: number; email: string; created_at: Date };

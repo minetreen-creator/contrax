@@ -452,10 +452,30 @@ function SignupPage() {
   // CTAs (Google/LinkedIn buttons, plan cards) sit OUTSIDE the <form>, so this
   // stays a true form-start signal and never re-fires (ref guard).
   const signupStartedRef = useRef(false);
+  // signupStartedAtRef: wall-clock time (ms) when the visitor BEGAN the form
+  // (first focus). Feeds the signup_exit seconds_on_signup beacon below; null
+  // until the form is actually started, so a visitor who never touches the form
+  // never fires signup_exit.
+  const signupStartedAtRef = useRef<number | null>(null);
   const handleSignupStart = () => {
     if (signupStartedRef.current) return;
     signupStartedRef.current = true;
+    signupStartedAtRef.current = Date.now();
     trackEvent("signup_start", source === "radar" ? "radar" : selectedPlan);
+  };
+
+  // ── signup_field_reached: fire exactly ONCE per field per visit. The funnel
+  // board needs to see how far a visitor actually got in the form (email →
+  // company → password) vs. stalling at the first field. Per-field ref-guard (a
+  // record of fields already reported) so tabbing email → password → back to
+  // email does NOT re-fire email's event. These fire from onFocus directly on
+  // each input; the form-level onFocus (focusin bubbling) fires `signup_start`,
+  // a distinct event, so both coexist without interference.
+  const signupFieldReachedRef = useRef<Record<string, boolean>>({});
+  const handleFieldReached = (field: "email" | "password" | "company") => {
+    if (signupFieldReachedRef.current[field]) return;
+    signupFieldReachedRef.current[field] = true;
+    trackEvent("signup_field_reached", field);
   };
 
   // ── Abandonment: fire-and-forget, at most once per visit, ONLY if the
@@ -465,6 +485,12 @@ function SignupPage() {
   // request survives the unload; never breaks navigation or SSR.
   const signupSucceededRef = useRef(false);
   const abandonedFiredRef = useRef(false);
+  // ── signup_exit: a DISTINCT page-unload event (NOT folded into signup_abandon
+  // — signup_abandon stays byte-for-byte unchanged) carrying how many seconds the
+  // visitor spent on the signup form before leaving. At most once per visit
+  // (exitFiredRef), never after signup_success, never on the logged-in redirect,
+  // and ONLY when the visitor actually started the form (signupStartedAtRef set).
+  const exitFiredRef = useRef(false);
   // redirectingRef guards the logged-in redirect path below: when an
   // already-signed-in user lands on /signup we redirect (or complete a
   // save_bid then redirect) without ever firing signup_success, so the
@@ -473,6 +499,40 @@ function SignupPage() {
   // never reset (a stale `true` only silences a dead listener).
   const redirectingRef = useRef(false);
   useEffect(() => {
+    const fireSignupExit = () => {
+      // Same guards as signup_abandon: no-op on the logged-in redirect, after
+      // signup_success, or once already fired. PLUS: only when the visitor
+      // actually began the form (signupStartedAtRef non-null).
+      if (typeof navigator === "undefined") return;
+      if (redirectingRef.current) return;
+      if (signupSucceededRef.current || exitFiredRef.current) return;
+      if (signupStartedAtRef.current === null) return;
+      exitFiredRef.current = true;
+      const seconds = Math.max(0, Math.round((Date.now() - signupStartedAtRef.current) / 1000));
+      const payload: Record<string, string> = {
+        event: "signup_exit",
+        visitor_id: getOrCreateVisitorId(),
+        visit_id: getOrCreateVisitId(),
+        label: "seconds_on_signup",
+        seconds_on_signup: String(seconds),
+      };
+      const user = getTrackingUser();
+      if (user) {
+        payload.user_id = user.id;
+        payload.user_email = user.email;
+      }
+      try {
+        navigator.sendBeacon(
+          "/api/event",
+          new Blob([JSON.stringify(payload)], { type: "application/json" }),
+        );
+      } catch {
+        /* never let exit tracking break anything */
+      }
+    };
+    window.addEventListener("pagehide", fireSignupExit);
+    window.addEventListener("beforeunload", fireSignupExit);
+    // signup_abandon — byte-for-byte unchanged.
     const fireAbandoned = () => {
       if (typeof navigator === "undefined") return;
       if (redirectingRef.current) return; // logged-in redirect, not an abandon
@@ -500,6 +560,8 @@ function SignupPage() {
     window.addEventListener("pagehide", fireAbandoned);
     window.addEventListener("beforeunload", fireAbandoned);
     return () => {
+      window.removeEventListener("pagehide", fireSignupExit);
+      window.removeEventListener("beforeunload", fireSignupExit);
       window.removeEventListener("pagehide", fireAbandoned);
       window.removeEventListener("beforeunload", fireAbandoned);
     };
@@ -602,6 +664,9 @@ function SignupPage() {
     const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string || "").trim().toLowerCase();
     const password = formData.get("password") as string || "";
+    // Optional company name — trimmed and capped client-side (server cap is the
+    // authoritative guard). Never required, so no validation failure when empty.
+    const company = ((formData.get("company") as string) || "").trim().slice(0, 120);
 
     // Client-side validation short-circuit — mirror the server's /api/signup
     // checks (email format + password length) so a form that fails ITS OWN
@@ -649,6 +714,7 @@ function SignupPage() {
           password,
           confirmPassword: password,
           plan: selectedPlan,
+          company: company || undefined,
           // Persistent per-visitor id — lets the server backfill this visitor's
           // anonymous funnel rows to the new account. Optional; never required.
           visitor_id: getOrCreateVisitorId(),
@@ -919,6 +985,7 @@ function SignupPage() {
                 autoComplete="email"
                 autoCapitalize="none"
                 inputMode="email"
+                onFocus={() => handleFieldReached("email")}
                 className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 placeholder="you@company.com"
               />
@@ -926,6 +993,24 @@ function SignupPage() {
               <p className="mt-1.5 text-xs text-gray-500">
                 No spam. Instant access to live federal solicitations.
               </p>
+            </div>
+
+            {/* Company name (optional) — no friction: never required, never blocks
+              signup when empty. Stored on the account (users.company_name). */}
+            <div>
+              <label htmlFor="company" className="block text-sm font-medium text-gray-700">
+                Company name <span className="font-normal text-gray-400">(optional)</span>
+              </label>
+              <input
+                id="company"
+                name="company"
+                type="text"
+                autoComplete="organization"
+                maxLength={120}
+                onFocus={() => handleFieldReached("company")}
+                className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                placeholder="e.g. Acme Construction LLC"
+              />
             </div>
 
             {/* Password */}
@@ -941,6 +1026,7 @@ function SignupPage() {
                   required
                   autoComplete="new-password"
                   minLength={8}
+                  onFocus={() => handleFieldReached("password")}
                   className="block w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   placeholder="At least 8 characters"
                 />

@@ -4,6 +4,7 @@
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
+    company_name TEXT,
     password_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     stripe_customer_id TEXT,
@@ -54,6 +55,7 @@ CREATE TABLE IF NOT EXISTS business_profiles (
 -- Agency migrations: preserve existing installations while enabling entities.
 ALTER TABLE users ADD COLUMN IF NOT EXISTS active_profile_id INTEGER;
 ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS company_name TEXT;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS logo_url TEXT;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS is_agency BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS uei TEXT;

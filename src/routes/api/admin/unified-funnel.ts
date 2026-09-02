@@ -18,9 +18,8 @@ import {
  * Gives the owner one at-a-glance view of where QUALIFIED visitors drop, which is
  * the lead-gen bottleneck.
  *
- * STAGE DEFINITIONS (match the founder funnel already computed by Jarvis's signup
- * reader — src/lib/jarvis/readers.ts computeFunnelLines — and the Visitor Journeys
- * board's funnel; reused constants from tracking-intake.ts):
+ * STAGE DEFINITIONS (match the Visitor Journeys board's funnel; reused
+ * constants from tracking-intake.ts):
  *   1. qualified — any visitor who produced a qualifying intent signal: any of the
  *      ACTIVATION_EVENTS, radar_scan_complete, signup_view/signup_view_with_score,
  *      signup_start/signup_submit, signup_abandon, signup_success, hero_cta_click,
@@ -29,7 +28,7 @@ import {
  *   3. signup    — visitor who ever fired signup_success.
  *   4. activated — visitor who ever saw one of ACTIVATION_EVENTS.
  *   5. paid      — distinct funnel users linked to an account with
- *      subscription_status = 'active' (mirrors Jarvis + journeys 'paid' semantics).
+ *      subscription_status = 'active' (mirrors the journeys 'paid' semantics).
  *
  * Stages are MONOTONIC by construction: the "qualified" event set is a superset of
  * the radar/signup/activated event sets, so a visitor counted at a later stage is
@@ -38,7 +37,7 @@ import {
  * EVERY number re-applies the SAME exclusions the rest of the admin surface uses:
  * bot/crawler traffic via BOT_EXCLUSION_SQL, @test.contrax QA accounts via
  * qaFunnelExclusionSQL, and internal admin emails via adminFunnelExclusionSQL —
- * inlined into a single humanFilter fragment, identical to Jarvis.
+ * inlined into a single humanFilter fragment.
  *
  * RESPONSE:
  *   rangeDays, from, to
@@ -103,8 +102,8 @@ async function handler({ request }: { request: Request }) {
   const from = new Date(now.getTime() - rangeDays * 24 * 60 * 60 * 1000);
   const fromIso = from.toISOString();
 
-  // Shared human/bot/QA/admin exclusion fragment — identical to Jarvis's
-  // humanFilter. Inlined via sql().unsafe() into a WHERE ... AND ( ... ).
+  // Shared human/bot/QA/admin exclusion fragment. Inlined via sql().unsafe()
+  // into a WHERE ... AND ( ... ).
   const humanFilter = `NOT COALESCE((${BOT_EXCLUSION_SQL}), false)
     AND ${qaFunnelExclusionSQL("")} AND ${adminFunnelExclusionSQL("")}`;
 
@@ -142,7 +141,7 @@ async function handler({ request }: { request: Request }) {
 
     // Paid: distinct funnel users linked to an active-subscription account.
     // funnel_events.user_id is stored as TEXT, so compare against users.id as text
-    // to avoid "integer = text" type errors (same as Jarvis).
+    // to avoid "integer = text" type errors.
     const paidRows = await sql()`
       SELECT COUNT(DISTINCT fe.user_id) AS n
       FROM funnel_events fe JOIN users u ON u.id::text = fe.user_id

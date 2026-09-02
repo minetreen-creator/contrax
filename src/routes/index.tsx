@@ -14,6 +14,7 @@ import { Menu, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { getLiveOpportunities } from "~/lib/live-opportunities";
 import { keywordPred } from "~/lib/open-bids";
 import {
   buildContractMap,
@@ -28,6 +29,10 @@ import { toISODate } from "./awards";
 // the homepage main bundle or blocks hero render. Same component + same
 // server fn as the standalone /example-brief page (single source of truth).
 const ExampleBrief = lazy(() => import("~/components/ExampleBrief"));
+// Live set-aside opportunities strip — server-rendered section (real bids rows
+// via ~/lib/live-opportunities.ts). Imported as a plain function: it renders
+// with the loader data (SSR and hydration), so no lazy/suspense needed.
+import { LiveOpportunities } from "~/components/LiveOpportunities";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Bid = {
@@ -600,7 +605,7 @@ const getPerCertCounts = async (): Promise<Record<string, number>> => {
 const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }: { data?: { q?: string } }) => {
   const q = data?.q?.trim() ?? "";
   const { sql } = await import("~/db");
-  const [businessName, user, recentBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts, closingSoon, contractMap] = await Promise.all([
+  const [businessName, user, recentBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts, closingSoon, contractMap, liveOpportunities] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -622,6 +627,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }
     getPerCertCounts(),
     getClosingSoonBids(),
     getContractMapAggregate(),
+    getLiveOpportunities(),
   ]);
   const { bids, count: openCount } = recentBids;
   let alertCount = 0;
@@ -632,7 +638,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, contractMap, openCount, q };
+  return { businessName, user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, contractMap, openCount, liveOpportunities, q };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -742,7 +748,7 @@ function PartnershipBanner() {
 
 function Home() {
 
-  const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, contractMap, q } = Route.useLoaderData();
+  const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, contractMap, liveOpportunities, q } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -774,6 +780,9 @@ function Home() {
       <PartnershipBanner />
       <Navbar user={user} alertCount={alertCount} />
       <Hero userCount={userCount} bidStats={bidStats} openOppCount={contractMap.totals.totalOpen} cert={certId} q={q || ""} onSelectCert={selectCert} />
+      {/* Live set-aside opportunities — right under the hero; real bids table
+          rows wired to the AI Executive Brief flow. Hides itself when empty. */}
+      <LiveOpportunities bids={liveOpportunities} />
       {/* Real example AI Executive Brief — directly under the hero, before the map (owner). */}
       <Suspense fallback={null}>
         <ExampleBrief variant="embed" />

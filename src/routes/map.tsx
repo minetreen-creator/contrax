@@ -439,7 +439,7 @@ function MapPage() {
           </p>
         ) : null}
         <p className="mt-2 text-center text-xs text-slate-500">
-          Based on {aggregate.totals.totalOpen.toLocaleString()} open opportunities sync'd from SAM.gov · updated{" "}
+          Based on {aggregate.totals.totalOpen.toLocaleString()} open opportunities from SAM.gov and state & city solicitations · updated{" "}
           {new Date(aggregate.totals.generatedAt).toLocaleString("en-US", {
             month: "short",
             day: "numeric",

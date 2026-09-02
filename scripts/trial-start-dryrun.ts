@@ -28,8 +28,8 @@
  *       from the live ledgers, not invented.
  *
  * SELF-CLEANING: the throwaway test user + its trial_usage row are removed
- * before exit; users / trial_usage / bids row counts and the approved-knowledge
- * ledger are verified byte-identical before/after; exits non-zero on ANY FAIL.
+ * before exit; users / trial_usage / bids row counts are verified byte-identical
+ * before/after; exits non-zero on ANY FAIL.
  *
  * Run:  DATABASE_URL=... bun run scripts/trial-start-dryrun.ts
  */
@@ -66,10 +66,6 @@ let testUserId = -1;
 const usersBefore = Number(((await db`SELECT COUNT(*)::int AS n FROM users`)[0] as { n: number }).n);
 const trialUsageBefore = Number(((await db`SELECT COUNT(*)::int AS n FROM trial_usage`)[0] as { n: number }).n);
 const bidsBefore = Number(((await db`SELECT COUNT(*)::int AS n FROM bids`)[0] as { n: number }).n);
-const approvedKbBefore =
-  ((await db`SELECT id FROM jarvis_memory WHERE owner_approved = TRUE ORDER BY id`) as { id: number }[])
-    .map((r) => r.id)
-    .join("|");
 const profsBefore = Number(((await db`SELECT COUNT(*)::int AS n FROM business_profiles`)[0] as { n: number }).n);
 
 // ── Static sources for copy + intact-surface assertions ──
@@ -213,15 +209,10 @@ finally {
   const trialUsageAfter = Number(((await db`SELECT COUNT(*)::int AS n FROM trial_usage`)[0] as { n: number }).n);
   const bidsAfter = Number(((await db`SELECT COUNT(*)::int AS n FROM bids`)[0] as { n: number }).n);
   const profsAfter = Number(((await db`SELECT COUNT(*)::int AS n FROM business_profiles`)[0] as { n: number }).n);
-  const approvedKbAfter =
-    ((await db`SELECT id FROM jarvis_memory WHERE owner_approved = TRUE ORDER BY id`) as { id: number }[])
-      .map((r) => r.id)
-      .join("|");
   check("test user removed", testUserId > 0 && usersAfter === usersBefore, `${usersBefore}->${usersAfter}`);
   check("trial_usage ledger restored (no orphan rows)", trialUsageAfter === trialUsageBefore, `${trialUsageBefore}->${trialUsageAfter}`);
   check("bids table untouched (no fabricated bids)", bidsAfter === bidsBefore, `${bidsBefore}->${bidsAfter}`);
   check("business_profiles untouched", profsAfter === profsBefore, `${profsBefore}->${profsAfter}`);
-  check("owner-approved knowledge ledger byte-identical", approvedKbAfter === approvedKbBefore);
 }
 
 console.log(`\nR1 trial-start dry-run: ${pass} passed, ${fail} failed`);

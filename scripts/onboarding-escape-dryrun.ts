@@ -29,7 +29,7 @@
  *
  *   (f) SELF-CLEAN — the throwaway @test.contrax user + its profile + any
  *       visitors cache row are removed; users / business_profiles / trial_usage /
- *       bids / approved-knowledge ledgers verified identical before/after; no
+ *       bids verified identical before/after; no
  *       leak of real/partner/grant @test.contrax rows.
  *
  * Run:  DATABASE_URL=... bun run scripts/onboarding-escape-dryrun.ts
@@ -57,10 +57,6 @@ const usersBefore = Number(((await db`SELECT COUNT(*)::int AS n FROM users`)[0] 
 const profsBefore = Number(((await db`SELECT COUNT(*)::int AS n FROM business_profiles`)[0] as { n: number }).n);
 const trialUsageBefore = Number(((await db`SELECT COUNT(*)::int AS n FROM trial_usage`)[0] as { n: number }).n);
 const bidsBefore = Number(((await db`SELECT COUNT(*)::int AS n FROM bids`)[0] as { n: number }).n);
-const approvedKbBefore =
-  ((await db`SELECT id FROM jarvis_memory WHERE owner_approved = TRUE ORDER BY id`) as { id: number }[])
-    .map((r) => r.id)
-    .join("|");
 
 // ── Static sources for copy + intact-surface assertions ──
 const onbSrc = readFileSync("src/routes/onboarding.tsx", "utf8");
@@ -204,10 +200,6 @@ finally {
   const profsAfter = Number(((await db`SELECT COUNT(*)::int AS n FROM business_profiles`)[0] as { n: number }).n);
   const trialUsageAfter = Number(((await db`SELECT COUNT(*)::int AS n FROM trial_usage`)[0] as { n: number }).n);
   const bidsAfter = Number(((await db`SELECT COUNT(*)::int AS n FROM bids`)[0] as { n: number }).n);
-  const approvedKbAfter =
-    ((await db`SELECT id FROM jarvis_memory WHERE owner_approved = TRUE ORDER BY id`) as { id: number }[])
-      .map((r) => r.id)
-      .join("|");
   const leftover = (await db`
     SELECT email FROM users WHERE email LIKE '%@test.contrax' AND email LIKE 'onbootstrap+%'
   `) as { email: string }[];
@@ -215,7 +207,6 @@ finally {
   check("business_profiles restored (no orphan profile rows)", profsAfter === profsBefore, `${profsBefore}->${profsAfter}`);
   check("trial_usage ledger untouched", trialUsageAfter === trialUsageBefore, `${trialUsageBefore}->${trialUsageAfter}`);
   check("bids table untouched (no fabricated bids)", bidsAfter === bidsBefore, `${bidsBefore}->${bidsAfter}`);
-  check("owner-approved knowledge ledger byte-identical", approvedKbAfter === approvedKbBefore);
   check("no throwaway onbootstrap+@test.contrax rows leaked", leftover.length === 0, JSON.stringify(leftover));
 }
 

@@ -458,6 +458,20 @@ function SignupPage() {
     trackEvent("signup_start", source === "radar" ? "radar" : selectedPlan);
   };
 
+  // ── signup_field_reached: fire exactly ONCE per field per visit. The funnel
+  // board needs to see how far a visitor actually got in the form (email →
+  // password) vs. stalling at the first field. Per-field ref-guard (a record of
+  // fields already reported) so tabbing email → password → back to email does
+  // NOT re-fire email's event. These fire from onFocus directly on each input;
+  // the form-level onFocus (focusin bubbling) fires `signup_start`, a distinct
+  // event, so both coexist without interference.
+  const signupFieldReachedRef = useRef<Record<string, boolean>>({});
+  const handleFieldReached = (field: "email" | "password") => {
+    if (signupFieldReachedRef.current[field]) return;
+    signupFieldReachedRef.current[field] = true;
+    trackEvent("signup_field_reached", field);
+  };
+
   // ── Abandonment: fire-and-forget, at most once per visit, ONLY if the
   // visitor leaves WITHOUT completing a signup. Never fires after signup_success
   // (guarded by signupSucceededRef, set on success) and never after an already
@@ -919,6 +933,7 @@ function SignupPage() {
                 autoComplete="email"
                 autoCapitalize="none"
                 inputMode="email"
+                onFocus={() => handleFieldReached("email")}
                 className="mt-2 block w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 placeholder="you@company.com"
               />
@@ -941,6 +956,7 @@ function SignupPage() {
                   required
                   autoComplete="new-password"
                   minLength={8}
+                  onFocus={() => handleFieldReached("password")}
                   className="block w-full rounded-lg border border-gray-300 px-4 py-3 pr-12 text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                   placeholder="At least 8 characters"
                 />

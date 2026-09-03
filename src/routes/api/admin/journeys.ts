@@ -243,6 +243,71 @@ function isExcludedEmail(email: string | null | undefined): boolean {
 }
 
 /**
+ * Bot/QA/test READ-side exclusion for a `visitors` SUMMARY row (OWNER
+ * 2026-09-02 — funnel-integrity). The fast read-path previously skipped the
+ * BOT_EXCLUSION_SQL that the timeline+legacy paths apply, so explicitly
+ * excluded test IPs (34.214.71.218 / 73.40.36.204) still rendered as labeled
+ * journeys and inflated "Qualified visit" / "Signup completed". This mirrors
+ * BOT_EXCLUSION_SQL's ip + referrer arms against the columns the `visitors`
+ * table actually has (first_ip / last_ip / last_action), plus self-evident
+ * `qa-*` probe/manual-exit visitor ids. Apply it the same way the timeline
+ * applies its filters — the board must match its own expanded rows.
+ */
+function isBotVisitorRow(v: {
+  first_ip: string | null;
+  last_ip: string | null;
+  last_action: string | null;
+  visitor_id: string | null;
+}): boolean {
+  const ip1 = v.first_ip;
+  const ip2 = v.last_ip;
+  const ref = (v.last_action ?? "").toLowerCase();
+  const any = (fn: (ip: string) => boolean) => {
+    if (ip1 && fn(ip1)) return true;
+    return !!(ip2 && fn(ip2));
+  };
+  if (any((ip) => ip === "34.214.71.218" || ip === "73.40.36.204")) return true;
+  if (any((ip) => ip.startsWith("66.249.") || ip.startsWith("40.77.") || ip.startsWith("157.55.") || ip.startsWith("207.46."))) return true;
+  if (any((ip) => ip.startsWith("66.220.") || ip.startsWith("31.13.") || ip.startsWith("173.252.") || ip.startsWith("104.189.") || ip.startsWith("69.171.") || ip.startsWith("157.240."))) return true;
+  if (
+    any((ip) => ip.startsWith("52.") || ip.startsWith("54.") || ip.startsWith("35.") || ip.startsWith("44.") || ip.startsWith("34.")) &&
+    ref.includes("facebook")
+  ) {
+    return true;
+  }
+  if (v.visitor_id?.startsWith("qa-probe-") || v.visitor_id?.startsWith("qa-manual-exit-")) return true;
+  return false;
+}
+
+/**
+ * `signup='Success'` display guard (OWNER 2026-09-02 — funnel-integrity).
+ *
+ * A Success flag on the SUMMARY row is only displayable when it is backed by a
+ * REAL signal: either (a) the row carries a converted_user_id that still
+ * resolves to a live account (the authenticated signup path — /api/signup →
+ * linkVisitorConversion), or (b) the detail tables actually contain a
+ * signup_success event for this visitor (the intake badge path —
+ * tracking-intake.ts:310). A bare self-reported `signup_success` beacon that
+ * never produced an event row (or was written by test/bot traffic that the
+ * detail filters drop) must NEVER show Success — it degrades to the honest
+ * fallback derived from the same event set the timeline would show (Abandoned /
+ * Viewed / Not started), so the board can't display a Success whose expanded
+ * timeline is empty.
+ *
+ * On the fast path we check (a) via the already-loaded resolved user and (b)
+ * against the filtered event sets we already fetched for the legacy fallback
+ * path, so this adds NO extra queries for the common cases.
+ */
+function isRealSignupSuccess(j: {
+  signup: Journey["signup"];
+  resolvedUserId: string | null;
+  signupSuccessEvent: boolean;
+}): boolean {
+  if (j.signup !== "Success") return false;
+  return !!j.resolvedUserId || j.signupSuccessEvent;
+}
+
+/**
  * Legacy fallback aggregator — the ORIGINAL live derivation from the detail
  * tables (funnel_events + page_views), kept byte-for-byte in behavior. Used ONLY
  * for visitor_ids that have no `visitors` row (rows that predate the summary
@@ -452,6 +517,35 @@ async function handler({ request }: { request: Request }) {
       FROM visitors
       WHERE last_seen_at >= ${fromIso}`;
 
+    // In-window, FILTERED event sets over the detail tables (bot/QA/admin
+    // exclusions applied — same as the timeline legibility rule). Used for the
+    // 'Success' display guard (an un-filtered detail signup_success must not
+    // back a Success the timeline hides) and later to drive the orphan
+    // (no-summary-row) fallback. Cache-first, so this is a no-op when the
+    // summary covers the whole window.
+    const signupEventNames = new Map<string, string[]>(); // visitor_id -> event names
+    const successVids = new Set<string>(); // visitor_id -> has filtered signup_success
+    try {
+      const filteredEvents: any[] = await sql()`
+        SELECT visitor_id, event_name FROM funnel_events
+        WHERE visitor_id IS NOT NULL AND visitor_id <> ''
+          AND created_at >= ${fromIso}
+          AND event_name IN ('signup_success','signup_start','signup_submit','signup_abandon','signup_view','signup_view_with_score')
+          AND NOT COALESCE((${BOT_EXCLUSION_SQL}), false)
+          AND ${sql().unsafe(qaFilter)} AND ${sql().unsafe(adminFilter)}`;
+      for (const fev of filteredEvents) {
+        const vid = String(fev.visitor_id);
+        const name = String(fev.event_name);
+        if (!signupEventNames.has(vid)) signupEventNames.set(vid, []);
+        signupEventNames.get(vid)!.push(name);
+        if (name === "signup_success") successVids.add(vid);
+      }
+    } catch (fevErr) {
+      // Fail-open: without the detail sets the Success guard only trusts a live
+      // converted account; the orphan fallback below will also be skipped.
+      console.error("[api/admin/journeys] filtered-signup-events prefetch failed (continuing):", fevErr);
+    }
+
     // Resolve linked users (for masked email labels + paid status) in one pass.
     const convertedIds = [...new Set(visitorRows.map((v) => v.converted_user_id).filter((x) => x != null && x !== ""))];
     const userMap = new Map<string, { email: string | null; active: boolean }>();
@@ -471,6 +565,14 @@ async function handler({ request }: { request: Request }) {
       const vid = v.visitor_id;
       const converted = v.converted_user_id ? userMap.get(String(v.converted_user_id)) : undefined;
       const linkedEmail = converted?.email ?? null;
+      // READ-side exclusions (OWNER 2026-09-02): the same bot/QA/test guard the
+      // timeline + legacy paths apply must apply here too, so explicitly
+      // excluded IPs / qa-* probes can never render or count toward the funnel.
+      // A converted row resolving to no live account (orphaned summary row whose
+      // user was deleted) falls through to the anonymous label, exactly like a
+      // never-converted row.
+      if (isBotVisitorRow(v)) continue;
+      const resolvedUserId = converted ? String(v.converted_user_id) : null;
       // READ-side exclusion: drop any converted row whose linked email is a
       // @test.contrax / admin account (belt-and-suspenders on top of write-time).
       if (isExcludedEmail(linkedEmail)) continue;
@@ -490,6 +592,16 @@ async function handler({ request }: { request: Request }) {
         });
         hash = visitorHash(vid);
       }
+      let signup = (v.signup ?? "Not started") as Journey["signup"];
+      // 'Success' display guard: never show a Success the timeline can't back
+      // up. (a) a live converted account, or (b) an actual in-window
+      // signup_success event (filtered) — from the legacy fallback sets below
+      // when present; otherwise degrade to the honest status.
+      if (signup === "Success") {
+        if (!isRealSignupSuccess({ signup, resolvedUserId, signupSuccessEvent: successVids.has(vid) })) {
+          signup = signupStatus(new Set(signupEventNames.get(vid) ?? []));
+        }
+      }
       journeys.push({
         visitor_id: vid,
         label,
@@ -501,7 +613,7 @@ async function handler({ request }: { request: Request }) {
         device_type: v.device_type ?? null,
         browser_label: v.browser_label ?? null,
         radar: !!v.radar,
-        signup: (v.signup ?? "Not started") as Journey["signup"],
+        signup,
         activated: !!v.activated,
         paid: !!(converted && converted.active),
         last_activity: v.last_action_at

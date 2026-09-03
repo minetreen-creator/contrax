@@ -28,6 +28,51 @@ export const qaFunnelExclusionSQL = (alias = "") =>
   `LOWER(COALESCE(${alias}user_email, '')) NOT LIKE '${QA_TEST_EMAIL_DOMAIN}'`;
 
 /**
+ * visitors-table exclusion predicate (OWNER 2026-09-02 — funnel-integrity).
+ *
+ * The `visitors` SUMMARY cache shares NO `user_agent` column with the detail
+ * tables (see db/migrations/021_visitors.sql), so the shared BOT_EXCLUSION_SQL
+ * fragment cannot be inlined verbatim against it. This mirrors the SAME arms
+ * BOT_EXCLUSION_SQL applies to ip/referrer (test/QA IPs 34.214.71.218 +
+ * 73.40.36.204 always; crawler + social-preview IP prefixes; AWS/Meta link-
+ * preview IPs only when the referrer is a Facebook host), with the
+ * user_agent-only arms intentionally omitted since the column does not exist.
+ * Additionally drops self-evident QA probe/manual-exit visitor_ids (`qa-*`),
+ * which have no stored IP (sendBeacon path) and would otherwise leak onto the
+ * board.
+ *
+ * Inlined via sql().unsafe() into a `WHERE ... AND ( ... )` clause. Keep this
+ * in sync with src/lib/bot-exclusion.ts when IP/referrer arms change.
+ */
+export const visitorsBotExclusionSQL = () => `
+  (
+    -- Our own test / scraper IPs (exclude always).
+    first_ip IN ('34.214.71.218','73.40.36.204')
+    OR last_ip IN ('34.214.71.218','73.40.36.204')
+    -- Search-engine crawler IP prefixes: Googlebot + common Bing ranges.
+    OR first_ip LIKE '66.249.%' OR last_ip LIKE '66.249.%'
+    OR first_ip LIKE '40.77.%' OR last_ip LIKE '40.77.%'
+    OR first_ip LIKE '157.55.%' OR last_ip LIKE '157.55.%'
+    OR first_ip LIKE '207.46.%' OR last_ip LIKE '207.46.%'
+    -- Social link-preview / crawler IP prefixes (Facebook/Meta, etc.).
+    OR first_ip LIKE '66.220.%' OR last_ip LIKE '66.220.%'
+    OR first_ip LIKE '31.13.%' OR last_ip LIKE '31.13.%'
+    OR first_ip LIKE '173.252.%' OR last_ip LIKE '173.252.%'
+    OR first_ip LIKE '104.189.%' OR last_ip LIKE '104.189.%'
+    OR first_ip LIKE '69.171.%' OR last_ip LIKE '69.171.%'
+    OR first_ip LIKE '157.240.%' OR last_ip LIKE '157.240.%'
+    -- Meta/AWS link-preview fetchers — BUT only when the referrer is a Facebook
+    -- host, so we don't over-exclude real humans on AWS residential IPs.
+    OR (
+      ( first_ip LIKE '52.%' OR first_ip LIKE '54.%' OR first_ip LIKE '35.%' OR first_ip LIKE '44.%' OR first_ip LIKE '34.%' )
+      AND LOWER(COALESCE(last_action,'')) LIKE '%facebook%'
+    )
+    -- Self-evident QA probe / manual-exit visitor ids (no stored IP on beacon).
+    OR visitor_id LIKE 'qa-probe-%' OR visitor_id LIKE 'qa-manual-exit-%'
+  )
+`;
+
+/**
  * Admin-email predicate for the funnel/analytics event tables: excludes rows
  * whose linked user_email is an admin staff account. Owner rule (2026-08-31):
  * admin browsing must not appear on the Visitor Journeys board — admins are

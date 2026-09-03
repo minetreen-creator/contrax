@@ -411,10 +411,39 @@ const NAICS_SUGGESTIONS = Object.entries(NAICS_NAMES).slice(0, 120);
 
 function RadarLanding() {
   const [step, setStep] = useState<Step>(1);
-  const [trade, setTrade] = useState("");
-  const [state, setState] = useState("");
-  const [cert, setCert] = useState<RadarCert | null>(null);
-  const [sizePref, setSizePref] = useState<SizeId | null>(null);
+  // Deep-link initial state (owner-directed): /radar accepts `?trade=&state=&cert=&size=`
+  // so CTAs (homepage hero, Example Brief section) can drop a visitor straight
+  // onto a personalized scan with their trade / certification preselected. Each
+  // param is validated against its known set (cert ids, size ids, two-letter US
+  // states); invalid or absent params fall through to saved answers / defaults.
+  // The form is PRE-FILLED but NOT auto-scanned — the visitor still owns the
+  // "Scan" click (honesty + intent: they confirm the criteria).
+  //
+  // Directive order per field: URL param (an explicit deep link) > saved radar
+  // answers (localStorage) > empty defaults.
+  const searchParams = Route.useSearch() as {
+    trade?: unknown;
+    state?: unknown;
+    cert?: unknown;
+    size?: unknown;
+  };
+  const uTrade = String(searchParams?.trade ?? "").trim();
+  const uState = String(searchParams?.state ?? "").trim().toUpperCase();
+  const uCert = String(searchParams?.cert ?? "").trim();
+  const uSize = String(searchParams?.size ?? "").trim();
+  const urlTrade = uTrade;
+  const urlState = (US_STATES as readonly string[]).includes(uState) ? uState : "";
+  const urlCert = (RADAR_CERTS as readonly string[]).includes(uCert)
+    ? (uCert as RadarCert)
+    : null;
+  const urlSizePref = (SIZE_OPTS as readonly { id: string }[]).some((s) => s.id === uSize)
+    ? (uSize as SizeId)
+    : null;
+  const hasDeepLink = !!(urlTrade || urlState || urlCert || urlSizePref);
+  const [trade, setTrade] = useState(urlTrade);
+  const [state, setState] = useState(urlState);
+  const [cert, setCert] = useState<RadarCert | null>(urlCert);
+  const [sizePref, setSizePref] = useState<SizeId | null>(urlSizePref);
   const [scan, setScan] = useState<ScanState>({ status: "idle" });
   const [revealed, setRevealed] = useState(0);
   const [flashTimer, setFlashTimer] = useState<number | null>(null);
@@ -422,29 +451,20 @@ function RadarLanding() {
   // revealed (non-blocking — never a hard gate; the real gate still only
   // appears after the 3rd free match).
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
-  const prefilledRef = useRef(false);
-  // URL-driven prefill (owner-directed): the homepage hero "Explore Bids →"
-  // navigates here with `/radar?trade=...&cert=...`. When a trade is present,
-  // prefill the form and immediately scan so the visitor lands straight on their
-  // matching cards instead of an empty wizard. Runs before the localStorage
-  // prefill below (it sets cert + sizePref, so that one skips and the URL wins).
-  const searchParams = Route.useSearch() as { trade?: unknown; cert?: unknown };
-  const urlTrade = String(searchParams?.trade ?? "").trim();
-  const urlCertRaw = String(searchParams?.cert ?? "");
-  const didUrlPrefill = useRef(false);
-  useEffect(() => {
-    if (didUrlPrefill.current || !urlTrade) return;
-    didUrlPrefill.current = true;
-    const c = (RADAR_CERTS as readonly string[]).includes(urlCertRaw)
-      ? (urlCertRaw as RadarCert)
-      : "sb";
-    setTrade(urlTrade);
-    setState("");
-    setCert(c);
-    setSizePref("any");
-    runScan({ trade: urlTrade, state: "", cert: c, sizePref: "any" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Guards against re-prefilling and against persisting the mount-time prefill.
+  // Starts TRUE when a deep link carried params (their initial-state prefill is
+  // not a visitor action and must not be written to localStorage), FALSE
+  // otherwise so a returning visitor's saved answers can still restore.
+  const prefilledRef = useRef(hasDeepLink);
+  // True once the visitor actually changes a form value or starts a scan. Used to
+  // distinguish a mount-time deep-link prefill (no localStorage write) from real
+  // visitor activity (persist as they answer).
+  const didInteract = useRef(false);
+  // Deep-link prefill note: the URL params are applied as INITIAL STATE above
+  // (so SSR and first paint carry the prefill), not via an effect — no
+  // localStorage write happens on mount for a deep link. Saved-answer restore
+  // (localStorage) only applies when no deep-link params are present, so the
+  // directive order URL > saved > default is honored per field.
 
   useEffect(() => {
     return () => {
@@ -456,11 +476,15 @@ function RadarLanding() {
   // Saved only once they're complete (cert + size chosen). /signup and /radar
   // both read this to make resuming a ~10s continuation instead of a restart.
   useEffect(() => {
-    if (cert && sizePref) saveRadarAnswers({ trade: trade.trim(), state, cert, sizePref });
+    if (!cert || !sizePref) return;
+    if (prefilledRef.current && !didInteract.current) return; // mount-time prefill snapshot is not a visitor action
+    saveRadarAnswers({ trade: trade.trim(), state, cert, sizePref });
   }, [trade, state, cert, sizePref]);
 
   // Prefill the radar form from a previous anonymous session (e.g. returning
   // from /dashboard's "see them again"), so a revisit restores the answers.
+  // Only applies when no deep-link params handled the prefill (prefilledRef is
+  // already set once the URL-prefill effect runs, with or without params).
   useEffect(() => {
     if (prefilledRef.current || cert || sizePref) return;
     const ra = getRadarAnswers();
@@ -491,6 +515,9 @@ function RadarLanding() {
   };
 
   const runScan = (input: { trade: string; state: string; cert: RadarCert; sizePref: SizeId }) => {
+    // A visitor-initiated scan is real activity — from here on the save effect
+    // may persist the criteria (and runScan itself persists the SEEN matches).
+    didInteract.current = true;
     trackEvent("radar_scan_start", input.cert);
     setScan({ status: "loading" });
     setRevealed(0);
@@ -575,7 +602,10 @@ function RadarLanding() {
                   id="radar-trade"
                   list="radar-naics-list"
                   value={trade}
-                  onChange={(e) => setTrade(e.target.value)}
+                  onChange={(e) => {
+                    didInteract.current = true;
+                    setTrade(e.target.value);
+                  }}
                   placeholder='e.g. "HVAC" or a 6-digit NAICS like 238220'
                   className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-4 text-base text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                 />
@@ -594,7 +624,10 @@ function RadarLanding() {
                 <select
                   id="radar-state"
                   value={state}
-                  onChange={(e) => setState(e.target.value)}
+                  onChange={(e) => {
+                    didInteract.current = true;
+                    setState(e.target.value);
+                  }}
                   className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-4 text-base text-white focus:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                 >
                   <option value="">Any state (nationwide)</option>
@@ -614,6 +647,7 @@ function RadarLanding() {
                       type="button"
                       role="listitem"
                       onClick={() => {
+                        didInteract.current = true;
                         setCert(c);
                         trackEvent("radar_cert_selected", c);
                       }}
@@ -640,6 +674,7 @@ function RadarLanding() {
                       type="button"
                       role="listitem"
                       onClick={() => {
+                        didInteract.current = true;
                         setSizePref(s.id);
                         trackEvent("radar_size_selected", s.id);
                       }}

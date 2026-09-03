@@ -55,6 +55,47 @@ export function ExampleBrief({
       })
     : null;
 
+  // ── Radar deep-link (copy+flow only — no new endpoints) ───────────────────
+  // The "Want one for your trade?" CTA routes into Contract Radar with the
+  // example brief's trade / certification preselected, so the visitor lands on
+  // a near-instant personalized scan instead of a blank wizard. Contract:
+  //   ?trade=<brief trade_category | naics_code | omitted>
+  //   ?cert=<set_aside mapped to 8a/sdvosb/wosb/hubzone | omitted>
+  //   ?size=under1m  (there is no "small" id — under1m is the closest "small
+  //                    contract" cap on the Radar size options)
+  // Directive order on /radar: URL params > saved answers > defaults; the form
+  // pre-fills but the visitor still clicks "Scan" (no auto-scan on the radar
+  // side). No state param: the example bid's location is display-only and the
+  // state is ambiguous, so the visitor picks their own state.
+  const RADAR_CERTS = ["8a", "sdvosb", "wosb", "hubzone"] as const;
+  const deriveRadarCert = (setAside: string | null | undefined): (typeof RADAR_CERTS)[number] | null => {
+    if (!setAside) return null;
+    const s = setAside.toLowerCase();
+    if (s.includes("8(a)") || s.includes("8a")) return "8a";
+    if (s.includes("sdvosb")) return "sdvosb";
+    if (s.includes("wosb") || s.includes("women-owned")) return "wosb";
+    if (s.includes("hubzone")) return "hubzone";
+    return null;
+  };
+  const tradeCategory = brief?.summary?.trade_category ?? "";
+  const naicsCode = brief?.naics_code ?? "";
+  const tradeParam =
+    tradeCategory.trim() && tradeCategory.trim().toLowerCase() !== "unknown"
+      ? tradeCategory.trim()
+      : /^\d{6}$/.test(naicsCode)
+        ? naicsCode
+        : "";
+  const certParam = deriveRadarCert(brief?.set_aside);
+  const radarCtaHref =
+    "/radar?" +
+    [
+      tradeParam ? `${encodeURIComponent("trade")}=${encodeURIComponent(tradeParam)}` : null,
+      certParam ? `${encodeURIComponent("cert")}=${encodeURIComponent(certParam)}` : null,
+      `${encodeURIComponent("size")}=${encodeURIComponent("under1m")}`,
+    ]
+      .filter((p): p is string => p !== null)
+      .join("&");
+
   // ── Shared honest EXAMPLE banner ─────────────────────────────────────────
   const exampleLabel = (
     <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-center">
@@ -162,7 +203,7 @@ export function ExampleBrief({
         {variant === "embed" ? (
           <div className="mt-6 text-center">
             <a
-              href="/radar"
+              href={radarCtaHref}
               onClick={() => trackEvent("example_brief_click", "radar")}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
             >
@@ -177,7 +218,7 @@ export function ExampleBrief({
           <p className="mt-6 rounded-xl bg-slate-900/60 px-4 py-3 text-center text-sm text-slate-300">
             Want briefs like this for your own trade?{" "}
             <a
-              href="/radar"
+              href={radarCtaHref}
               className="font-semibold text-amber-400 hover:text-amber-300"
             >
               Find your matching bids free →

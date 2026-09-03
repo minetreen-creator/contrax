@@ -32,6 +32,9 @@ export interface ExampleBrief {
   location: string | null;
   estimated_value: string | null;
   summary: RfpSummary | null;
+  /** Real NAICS code from the bids row — used as a trade fallback when the
+   *  brief's `trade_category` is missing or "Unknown". */
+  naics_code: string | null;
   generatedAt: string | null;
 }
 
@@ -41,7 +44,7 @@ export const getExampleBrief = createServerFn({ method: "GET" }).handler(
     try {
       const rows = (await sql()`
         SELECT id, title, agency, set_aside, due_date, source_url, location,
-               estimated_value, ai_summary, ai_summary_at
+               estimated_value, naics_code, ai_summary, ai_summary_at
         FROM bids
         WHERE ai_summary IS NOT NULL
         ORDER BY
@@ -88,6 +91,7 @@ export const getExampleBrief = createServerFn({ method: "GET" }).handler(
         location: r.location ? String(r.location) : null,
         estimated_value: r.estimated_value ? String(r.estimated_value) : null,
         summary,
+        naics_code: r.naics_code ? String(r.naics_code) : null,
         generatedAt: r.ai_summary_at ? String(r.ai_summary_at) : null,
       };
     } catch (e) {

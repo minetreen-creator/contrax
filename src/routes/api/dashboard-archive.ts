@@ -21,13 +21,10 @@ async function handler({ request }: { request: Request }) {
     const user = await getUserFromRequest(request);
     if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
 
-    // Lazy migration guards (same pattern as dashboard-data) so old DBs interpret
-    // set_aside / specialties consistently with the live feed.
-    try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS set_aside TEXT`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS specialties JSONB DEFAULT '[]'::jsonb`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS certifications JSONB DEFAULT '[]'::jsonb`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS naics_codes JSONB DEFAULT '[]'::jsonb`; } catch {}
-    try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS locations JSONB DEFAULT '[]'::jsonb`; } catch {}
+    // set_aside (bids) and specialties/certifications/naics_codes/locations
+    // (business_profiles) are migration-created columns present in
+    // src/db/schema.sql — the old per-request `ALTER TABLE ... ADD COLUMN IF
+    // NOT EXISTS` lazy-migration guards are removed (migration-only concern).
     let specialties: string[] = [];
     let certifications: string[] = [];
     let naicsCodes: string[] = [];

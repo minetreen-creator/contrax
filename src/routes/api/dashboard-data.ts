@@ -158,10 +158,9 @@ async function handler({ request }: { request: Request }) {
   // `naics_code = ANY(codes)`, `locationMatchesStates` on the returned rows,
   // LOW_CONTENT_SQL, DISTINCT ON(title, agency)) plus the live/archived split
   // (#199) run SERVER-SIDE, so the feed + count reflect true relevance.
-  // Lazy migration guards (idempotent): set_aside / naics_code must exist for
-  // the predicates below to reference them on older databases.
-  try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS set_aside TEXT`; } catch {}
-  try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
+  // set_aside / naics_code are migration-created columns present in
+  // src/db/schema.sql — the old per-request `ALTER TABLE ... ADD COLUMN IF NOT
+  // EXISTS` lazy-migration guards are removed (migration-only concern now).
   const locations = (profile?.locations ?? []).map((s) => String(s));
   const setAsideFrag = setAsidePredMulti(profile?.certifications ?? [], sql);
   const naicsFrag = naicsPred(profile?.naics_codes ?? [], sql);

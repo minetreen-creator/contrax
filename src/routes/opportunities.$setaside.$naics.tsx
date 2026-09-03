@@ -114,10 +114,11 @@ const getSetAsideOpportunities = createServerFn({ method: "GET" }).handler(
     }
     const slug = slugForLabel(setAside);
     const db = sql();
-    // Column safety: the sync job creates these, but keep the query tolerant of
-    // databases that predate them (same pattern as /awards).
-    try { await db`ALTER TABLE bids ADD COLUMN IF NOT EXISTS set_aside TEXT`; } catch {}
-    try { await db`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
+    // set_aside and naics_code are migration-created columns present in
+    // src/db/schema.sql (set_aside: schema.sql migration block; naics_code:
+    // migrations 007/012) — the old per-render `ALTER TABLE bids ADD COLUMN IF
+    // NOT EXISTS` DDLs (DB writes on every SEO set-aside/NAICS page render) are
+    // removed, same as /awards and the homepage.
     const rows = await db`
       SELECT id, title, agency, description, location, category, due_date,
              estimated_value, source_url, set_aside, naics_code

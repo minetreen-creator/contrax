@@ -66,14 +66,19 @@ const getRecentBids = createServerFn({ method: "GET" }).handler(
   async ({ data }: { data?: { q?: string } }) => {
     const q = data?.q?.trim() ?? "";
     const { sql } = await import("~/db");
-    // Ensure naics_code exists so keywordPred can match it (falls back to
-    // whole-corpus title/description/location/set_aside/agency match if not).
-    if (q) {
-      try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
-    }
+    // naics_code is a migration-created column (migrations 007 + 012, and
+    // src/db/schema.sql) present in prod, so keywordPred can reference it
+    // directly — the old per-render `ALTER TABLE bids ADD COLUMN IF NOT EXISTS
+    // naics_code` DDL (a DB write on every search render) is removed.
     const pred = keywordPred(q, sql);
+    // Single round-trip: the deduped rows AND the honest post-filter, post-dedup
+    // total backing this feed, folded in via COUNT(*) OVER(). The window is
+    // computed over the full deduped set BEFORE the outer LIMIT truncates it, so
+    // the count is identical to the former separate COUNT(*) query. When zero
+    // rows match, rows[0] is undefined -> count 0, exactly like the old query.
     const rows = await sql()`
-      SELECT title, agency, estimated_value, due_date, location, set_aside, created_at
+      SELECT title, agency, estimated_value, due_date, location, set_aside, created_at,
+             COUNT(*) OVER()::int AS count
       FROM (
         SELECT DISTINCT ON (title, agency)
                title, agency, estimated_value, due_date, location, set_aside, created_at
@@ -84,32 +89,23 @@ const getRecentBids = createServerFn({ method: "GET" }).handler(
       ORDER BY t.created_at DESC NULLS LAST
       LIMIT ${q ? 200 : 60}
     `;
-    // Honest post-filter, post-dedup total backing this feed — the OPEN set
-    // ONLY (due_date > NOW()), keyword-filtered when q is present so the
-    // "X of Y" matches exactly the open cards shown. Never pre-filter, never
-    // hardcoded.
-    const countRows = await sql()`
-      SELECT COUNT(*)::int AS count FROM (
-        SELECT DISTINCT title, agency
-        FROM bids
-        WHERE ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() ${pred}
-      ) d
-    `;
-    return { bids: rows as Bid[], count: Number((countRows[0] as any)?.count || 0) };
+    return { bids: rows as Bid[], count: Number((rows[0] as any)?.count || 0) };
   }
 );
 const getTodayBids = createServerFn({ method: "GET" }).handler(
   async ({ data }: { data?: { q?: string } }) => {
     const q = data?.q?.trim() ?? "";
     const { sql } = await import("~/db");
-    if (q) {
-      try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
-    }
+    // Same naics_code guarantee as getRecentBids — no per-render ALTER here.
     const pred = keywordPred(q, sql);
     // Public teaser: titles only — no source URLs or descriptions for
     // unauthenticated visitors. Full detail lives behind the signup wall.
+    // Single round-trip: rows + distinct count via COUNT(*) OVER(), computed
+    // over the full deduped set before the outer LIMIT (identical to the old
+    // separate COUNT query; zero rows -> count 0).
     const rows = await sql()`
-      SELECT title, agency, set_aside, location, due_date, created_at
+      SELECT title, agency, set_aside, location, due_date, created_at,
+             COUNT(*) OVER()::int AS count
       FROM (
         SELECT DISTINCT ON (title, agency)
                title, agency, set_aside, location, due_date, created_at
@@ -122,20 +118,9 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(
       ORDER BY t.created_at DESC NULLS LAST
       LIMIT ${q ? 100 : 10}
     `;
-    // Distinct count so genuine dup rows (multi-source sync) can't inflate the
-    // "posted in the last 24 hours" figure.
-    const countRows = await sql()`
-      SELECT COUNT(*)::int AS count FROM (
-        SELECT DISTINCT title, agency
-        FROM bids
-        WHERE created_at >= NOW() - INTERVAL '24 hours'
-          AND due_date > NOW()
-          AND ${sql().unsafe(LOW_CONTENT_SQL)} ${pred}
-      ) d
-    `;
     return {
       bids: rows as TodayBid[],
-      count: Number((countRows[0] as any)?.count || 0),
+      count: Number((rows[0] as any)?.count || 0),
     };
   }
 );

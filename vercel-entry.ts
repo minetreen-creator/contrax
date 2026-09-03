@@ -491,13 +491,20 @@ const toWebRequest = (req: IncomingMessage): Request => {
 };
 
 // ── Public SSR route caching ─────────────────────────────────────────────────
-// 5-minute edge cache for public marketing/SEO SSR routes (home, map, radar,
-// state pages, contracts-by-industry). Public pages are cookie/user-agnostic
-// (no server-side auth/session reads; radar state is client-side localStorage),
-// so a short shared edge cache is safe — it collapses crawler/burst SSR renders
-// without ever caching authenticated or user-specific routes (those flow through
-// the generic SSR path below, which does NOT set this header).
-const PUBLIC_SSR_CACHE_CONTROL = "public, s-maxage=300";
+// 1-hour shared edge cache for public marketing/SEO SSR routes (home, map,
+// radar, state pages, contracts-by-industry). Public pages are
+// cookie/user-agnostic (no server-side auth/session reads; radar state is
+// client-side localStorage), so a shared edge cache is safe — it collapses
+// crawler/burst SSR renders without ever caching authenticated or
+// user-specific routes (those flow through the generic SSR path below, which
+// does NOT set this header). 1h is safe because every live count/bid on these
+// pages renders from the `bids` table, which is synced from SAM.gov/state
+// sources by a GH Action every 4 HOURS — content can only change every 4h, so
+// a 1h edge TTL revalidates 4× more often than the data refresh, and the page
+// copy already says "synced every 4 hours".
+// Single tuning knob: change the TTL seconds below; the header is built from it.
+const PUBLIC_SSR_CACHE_TTL_SECONDS = 3600;
+const PUBLIC_SSR_CACHE_CONTROL = `public, s-maxage=${PUBLIC_SSR_CACHE_TTL_SECONDS}`;
 
 // ── Raw body reader (for Stripe webhook) ─────────────────────────────────────
 
@@ -775,7 +782,7 @@ export default async function vercelHandler(
       return;
     }
 
-    // 5-minute edge cache on public SSR marketing/SEO routes (home, map, radar,
+    // 1-hour edge cache on public SSR marketing/SEO routes (home, map, radar,
     // state pages, and the industry hub). These pages are cookie/user-agnostic;
     // authenticated / user-specific / API routes fall through to the generic SSR
     // handler below, which does NOT set this header.

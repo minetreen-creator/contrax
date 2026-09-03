@@ -490,6 +490,15 @@ const toWebRequest = (req: IncomingMessage): Request => {
   } as RequestInit);
 };
 
+// ── Public SSR route caching ─────────────────────────────────────────────────
+// 5-minute edge cache for public marketing/SEO SSR routes (home, map, radar,
+// state pages, contracts-by-industry). Public pages are cookie/user-agnostic
+// (no server-side auth/session reads; radar state is client-side localStorage),
+// so a short shared edge cache is safe — it collapses crawler/burst SSR renders
+// without ever caching authenticated or user-specific routes (those flow through
+// the generic SSR path below, which does NOT set this header).
+const PUBLIC_SSR_CACHE_CONTROL = "public, s-maxage=300";
+
 // ── Raw body reader (for Stripe webhook) ─────────────────────────────────────
 
 function readRawBody(req: IncomingMessage): Promise<string> {
@@ -766,11 +775,24 @@ export default async function vercelHandler(
       return;
     }
 
+    // 5-minute edge cache on public SSR marketing/SEO routes (home, map, radar,
+    // state pages, and the industry hub). These pages are cookie/user-agnostic;
+    // authenticated / user-specific / API routes fall through to the generic SSR
+    // handler below, which does NOT set this header.
+    const cacheableSsrf =
+      req.method === "GET" &&
+      (url.pathname === "/" ||
+        /^\/(?:map|radar|contracts-by-industry)\/?$/.test(url.pathname) ||
+        /^\/contracts-in\/[a-z0-9-]+\/?$/.test(url.pathname));
+
     // Make the request cookie + client IP available to route loaders and server
     // functions during SSR (same stash pattern; the IP backs the anonymous
     // /score free-score limit, derived exactly like /api/event's getClientIp).
     (globalThis as any).__contrax_request_cookie__ = (req.headers.cookie as string) || "";
     (globalThis as any).__contrax_request_ip__ = getClientIp(req.headers);
+    if (cacheableSsrf) {
+      res.setHeader("cache-control", PUBLIC_SSR_CACHE_CONTROL);
+    }
     const webRes = await fetchHandler.fetch(toWebRequest(req));
     res.statusCode = webRes.status;
     webRes.headers.forEach((value, key) => res.setHeader(key, value));

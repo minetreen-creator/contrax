@@ -77,7 +77,9 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }:
   // The sync job stores procurement opportunities in `bids`.  Do not use the
   // legacy `awarded_contracts` table here: it is unrelated to synced data and
   // is not present in every production database.
-  try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
+  // naics_code is migration-created (007/012) and present in src/db/schema.sql —
+  // the old per-render `ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code`
+  // DDL (a DB write on every awards render) is removed.
   const search = data.search?.trim() ?? "";
   // Keep the URL-driven filter in the server query so SSR never serializes
   // unrelated opportunities into the initial HTML payload.

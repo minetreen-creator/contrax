@@ -120,8 +120,10 @@ const countMatchOpportunities = createServerFn({ method: "GET" }).handler(
     const rangeKey = (data?.range ?? "any") in CONTRACT_RANGES ? data!.range! : "any";
     const range = CONTRACT_RANGES[rangeKey];
 
-    // keywordPred matches naics_code, so make sure the column exists first
-    // (same lazy migration as the homepage).
+    // naics_code is migration-created (007/012) and present in
+    // src/db/schema.sql, so keywordPred / the NAICS ANY-match can reference it
+    // directly — no per-render `ALTER TABLE bids ADD COLUMN IF NOT EXISTS
+    // naics_code` DDL needed.
     //
     // Multi-code support: when the user holds NAICS codes (from the shared
     // typeahead), we OR-match ANY of them against naics_code in one predicate.
@@ -131,9 +133,6 @@ const countMatchOpportunities = createServerFn({ method: "GET" }).handler(
       .map((c) => String(c).trim())
       .filter((c) => /^\d{6}$/.test(c));
     const q = query.trim().toLowerCase();
-    if (query || codes.length) {
-      try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
-    }
 
     const certPred = setAsidePred(certification, sql);
     let kwPred;

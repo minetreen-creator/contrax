@@ -820,6 +820,33 @@ export function IndustryHubView({ data }: { data: IndustryHubData }) {
         </p>
       </section>
 
+      {/* Featured trade guide — mechanical & facilities landing page.
+          Static card (no numbers of its own; the target page renders the
+          live counts), so it never fabricates or goes stale. */}
+      <section className="mt-8" aria-label="Featured trade guide">
+        <a
+          href="/contracts-hvac-mechanical"
+          className="group flex h-full flex-col rounded-2xl border border-amber-300 bg-amber-50/60 p-5 shadow-sm transition-all hover:border-amber-400 hover:shadow-md"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <span className="text-xl font-bold text-slate-900">
+              HVAC · Mechanical · Plumbing · Controls · BAS · Facility Maintenance
+            </span>
+            <span className="shrink-0 rounded-full border border-amber-300 bg-white px-2.5 py-1 text-xs font-semibold text-amber-700">
+              Trade guide
+            </span>
+          </div>
+          <p className="mt-2 text-sm text-slate-600">
+            The licensed mechanical &amp; facilities trades: what agencies post
+            set-aside for each one, with live open counts across NAICS 238220,
+            236220, 541330, 561720, and 561210.
+          </p>
+          <p className="mt-3 text-sm font-medium text-amber-600 group-hover:text-amber-700">
+            Open the mechanical &amp; facilities trade guide →
+          </p>
+        </a>
+      </section>
+
       {industries.length === 0 ? (
         <p className="mt-6 max-w-3xl text-slate-600">
           We couldn&apos;t load industry counts right now. Browse the set-aside hubs or

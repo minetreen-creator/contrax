@@ -454,7 +454,7 @@ const getLiveAwardsByCert = createServerFn({ method: "GET" }).handler(async ({
 const getUserCount = async () => {
   try {
     const { sql } = await import("~/db");
-    const rows = await sql()`SELECT COUNT(*)::int AS count FROM users`;
+    const rows = await sql()`SELECT COUNT(*)::int AS count FROM users WHERE LOWER(COALESCE(email,'')) NOT LIKE '%@test.contrax'`;
     return Number((rows[0] as any)?.count || 0);
   } catch {
     // users table may not exist yet — fall back to generic social-proof copy

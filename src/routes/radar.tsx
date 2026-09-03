@@ -411,10 +411,39 @@ const NAICS_SUGGESTIONS = Object.entries(NAICS_NAMES).slice(0, 120);
 
 function RadarLanding() {
   const [step, setStep] = useState<Step>(1);
-  const [trade, setTrade] = useState("");
-  const [state, setState] = useState("");
-  const [cert, setCert] = useState<RadarCert | null>(null);
-  const [sizePref, setSizePref] = useState<SizeId | null>(null);
+  // Deep-link initial state (owner-directed): /radar accepts `?trade=&state=&cert=&size=`
+  // so CTAs (homepage hero, Example Brief section) can drop a visitor straight
+  // onto a personalized scan with their trade / certification preselected. Each
+  // param is validated against its known set (cert ids, size ids, two-letter US
+  // states); invalid or absent params fall through to saved answers / defaults.
+  // The form is PRE-FILLED but NOT auto-scanned — the visitor still owns the
+  // "Scan" click (honesty + intent: they confirm the criteria).
+  //
+  // Directive order per field: URL param (an explicit deep link) > saved radar
+  // answers (localStorage) > empty defaults.
+  const searchParams = Route.useSearch() as {
+    trade?: unknown;
+    state?: unknown;
+    cert?: unknown;
+    size?: unknown;
+  };
+  const uTrade = String(searchParams?.trade ?? "").trim();
+  const uState = String(searchParams?.state ?? "").trim().toUpperCase();
+  const uCert = String(searchParams?.cert ?? "").trim();
+  const uSize = String(searchParams?.size ?? "").trim();
+  const urlTrade = uTrade;
+  const urlState = (US_STATES as readonly string[]).includes(uState) ? uState : "";
+  const urlCert = (RADAR_CERTS as readonly string[]).includes(uCert)
+    ? (uCert as RadarCert)
+    : null;
+  const urlSizePref = (SIZE_OPTS as readonly { id: string }[]).some((s) => s.id === uSize)
+    ? (uSize as SizeId)
+    : null;
+  const hasDeepLink = !!(urlTrade || urlState || urlCert || urlSizePref);
+  const [trade, setTrade] = useState(urlTrade);
+  const [state, setState] = useState(urlState);
+  const [cert, setCert] = useState<RadarCert | null>(urlCert);
+  const [sizePref, setSizePref] = useState<SizeId | null>(urlSizePref);
   const [scan, setScan] = useState<ScanState>({ status: "idle" });
   const [revealed, setRevealed] = useState(0);
   const [flashTimer, setFlashTimer] = useState<number | null>(null);
@@ -422,77 +451,20 @@ function RadarLanding() {
   // revealed (non-blocking — never a hard gate; the real gate still only
   // appears after the 3rd free match).
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
-  const prefilledRef = useRef(false);
+  // Guards against re-prefilling and against persisting the mount-time prefill.
+  // Starts TRUE when a deep link carried params (their initial-state prefill is
+  // not a visitor action and must not be written to localStorage), FALSE
+  // otherwise so a returning visitor's saved answers can still restore.
+  const prefilledRef = useRef(hasDeepLink);
   // True once the visitor actually changes a form value or starts a scan. Used to
   // distinguish a mount-time deep-link prefill (no localStorage write) from real
   // visitor activity (persist as they answer).
   const didInteract = useRef(false);
-  // Deep-link prefill (owner-directed): /radar accepts `?trade=&state=&cert=&size=`
-  // so CTAs (homepage hero, Example Brief section) can drop a visitor straight
-  // onto a personalized scan with their trade / certification preselected. The
-  // form is PRE-FILLED but NOT auto-scanned — the visitor still owns the
-  // "Scan" click (honesty + intent: they confirm the criteria).
-  //
-  // Directive order per field: URL param (an explicit deep link) > saved radar
-  // answers (localStorage) > empty defaults. Each param is validated against its
-  // known set (cert ids, size ids, two-letter US states); invalid or absent
-  // params fall through to saved/default values rather than blocking the prefill.
-  // This effect only PREFILLS — it never writes localStorage on its own. The save
-  // effect below fires on changes the visitor actually makes (or on a completed
-  // scan), not on the mount-time prefill snapshot.
-
-  const searchParams = Route.useSearch() as {
-    trade?: unknown;
-    state?: unknown;
-    cert?: unknown;
-    size?: unknown;
-  };
-  // Validate + normalize the deep-link params against their known sets once per
-  // mount (before any effects run). Invalid or absent params stay null here so
-  // the prefill effect can fall through to saved answers / defaults per field.
-  const urlPrefill = useRef<{
-    trade: string;
-    state: string;
-    cert: RadarCert | null;
-    sizePref: SizeId | null;
-  } | null>(null);
-  if (!urlPrefill.current) {
-    const uTrade = String(searchParams?.trade ?? "").trim();
-    const uState = String(searchParams?.state ?? "").trim().toUpperCase();
-    const uCert = String(searchParams?.cert ?? "").trim();
-    const uSize = String(searchParams?.size ?? "").trim();
-    urlPrefill.current = {
-      trade: uTrade,
-      state: (US_STATES as readonly string[]).includes(uState) ? uState : "",
-      cert: (RADAR_CERTS as readonly string[]).includes(uCert)
-        ? (uCert as RadarCert)
-        : null,
-      sizePref: (SIZE_OPTS as readonly { id: string }[]).some((s) => s.id === uSize)
-        ? (uSize as SizeId)
-        : null,
-    };
-  }
-  // Apply the deep-link prefill: URL params win over localStorage per field;
-  // params that are absent/invalid fall through to the visitor's saved answers
-  // (then the defaults). The form is PRE-FILLED but NOT auto-scanned.
-  useEffect(() => {
-    if (prefilledRef.current) return;
-    prefilledRef.current = true; // lock before any state writes (guards the save effect below)
-    const { trade: t, state: s, cert: c, sizePref: sp } = urlPrefill.current!;
-    if (!t && !s && !c && !sp) return; // no deep-link params at all
-    const ra = getRadarAnswers();
-    if (t) setTrade(t);
-    else if (ra?.trade) setTrade(ra.trade);
-    if (s) setState(s);
-    else if (ra?.state) setState(ra.state);
-    if (c) setCert(c);
-    else if (ra && (RADAR_CERTS as readonly string[]).includes(ra.cert)) setCert(ra.cert as RadarCert);
-    if (sp) setSizePref(sp);
-    else if (ra && (SIZE_OPTS as readonly { id: string }[]).some((x) => x.id === ra.sizePref)) {
-      setSizePref(ra.sizePref as SizeId);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Deep-link prefill note: the URL params are applied as INITIAL STATE above
+  // (so SSR and first paint carry the prefill), not via an effect — no
+  // localStorage write happens on mount for a deep link. Saved-answer restore
+  // (localStorage) only applies when no deep-link params are present, so the
+  // directive order URL > saved > default is honored per field.
 
   useEffect(() => {
     return () => {

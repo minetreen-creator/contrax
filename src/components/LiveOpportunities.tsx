@@ -159,8 +159,8 @@ export function LiveOpportunities({ bids }: { bids: LiveOpportunity[] }) {
           })}
         </div>
         <p className="mt-5 text-center text-xs text-gray-500">
-          Source: synced SAM.gov solicitations · updated every 4 hours · your
-          free account includes AI Executive Briefs
+          Source: synced from SAM.gov and state &amp; city solicitations ·
+          updated every 4 hours · your free account includes AI Executive Briefs
         </p>
       </div>
     </section>

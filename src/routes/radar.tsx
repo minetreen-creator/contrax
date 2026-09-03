@@ -379,14 +379,14 @@ export const Route = createFileRoute("/radar")({
       {
         name: "description",
         content:
-          "Answer four quick questions and Contract Radar scans thousands of live set-aside solicitations to surface your strongest matches — with real match scores, estimated values and deadline countdowns.",
+          "Not sure which set-asides your certification qualifies you for? Contract Radar shows your strongest live matches — the first 3 free, with full Incumbent Intelligence (previous winner and award price).",
       },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: "Contract Radar — Find contracts you can actually win | Contrax" },
       {
         property: "og:description",
         content:
-          "Tell us your trade, state, certification and preferred size. Contract Radar scans the live market and reveals your strongest matches one at a time.",
+          "Answer four quick questions. Contract Radar scans live set-aside solicitations and reveals your strongest matches one at a time — the first 3 are free, with full incumbent intel.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
@@ -557,11 +557,12 @@ function RadarLanding() {
           <section className="flex flex-1 flex-col justify-center py-8">
             <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Contract Radar</p>
             <h1 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
-              Tell us about your business. We'll scan the live market for contracts you can actually win.
+              Wondering which set-asides you actually qualify for? Your first 3 matches are free.
             </h1>
             <p className="mt-3 text-sm leading-relaxed text-slate-300">
-              Answer four quick questions and we'll surface your strongest live
-              set-aside matches — one at a time, with a real match score.
+              Answer four quick questions and we'll reveal your strongest live
+              set-aside matches — one at a time, with a real match score and full
+              Incumbent Intelligence (previous winner &amp; award price).
             </p>
 
             <div className="mt-8 flex flex-col gap-6">
@@ -665,8 +666,8 @@ function RadarLanding() {
                 Scan the market for my matches →
               </button>
               <p className="text-center text-xs text-slate-500">
-                Scans thousands of live set-aside solicitations — real results,
-                updated every 4 hours.
+                Scans live set-aside solicitations from SAM.gov and state & city
+                sources — real results, updated every 4 hours.
               </p>
             </div>
           </section>
@@ -733,7 +734,7 @@ function RadarLanding() {
                   {Math.min(revealed + 1, Math.min(3, scan.matches.length))}
                 </span>{" "}
                 of {Math.min(3, scan.matches.length)} free{" "}
-                {Math.min(3, scan.matches.length) === 1 ? "match" : "matches"} revealed
+                {Math.min(3, scan.matches.length) === 1 ? "match" : "matches"} — every one with full incumbent intel
               </p>
             )}
 
@@ -1177,8 +1178,8 @@ function SaveMatchesCard({
         <div>
           <h3 className="text-base font-bold text-white">Save your matches</h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-300">
-            Leave your email — when you create an account with it, your saved
-            matches will be waiting for you in your dashboard.
+            Leave your email — when you create a free account with it, these
+            matches and deadline alerts are waiting in your dashboard.
           </p>
         </div>
         <button

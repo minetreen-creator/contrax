@@ -790,12 +790,15 @@ export default async function vercelHandler(
     // /score free-score limit, derived exactly like /api/event's getClientIp).
     (globalThis as any).__contrax_request_cookie__ = (req.headers.cookie as string) || "";
     (globalThis as any).__contrax_request_ip__ = getClientIp(req.headers);
-    if (cacheableSsrf) {
-      res.setHeader("cache-control", PUBLIC_SSR_CACHE_CONTROL);
-    }
     const webRes = await fetchHandler.fetch(toWebRequest(req));
     res.statusCode = webRes.status;
     webRes.headers.forEach((value, key) => res.setHeader(key, value));
+    // Set our public edge-cache header AFTER copying the SSR framework headers,
+    // so this value wins on the cacheable routes (the framework emits
+    // "public, max-age=0, must-revalidate", which would otherwise overwrite it).
+    if (cacheableSsrf) {
+      res.setHeader("cache-control", PUBLIC_SSR_CACHE_CONTROL);
+    }
     if (webRes.body) {
       const reader = webRes.body.getReader();
       for (;;) {

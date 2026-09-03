@@ -39,6 +39,8 @@ export const BOT_EXCLUSION_SQL = `
     OR LOWER(COALESCE(user_agent,'')) LIKE '%duckduckbot%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%baiduspider%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%yandexbot%'
+    -- GoogleOther — Google's non-SEO crawler (must not count as a real visitor).
+    OR LOWER(COALESCE(user_agent,'')) LIKE '%googleother%'
     -- Social link-preview / crawler user-agents.
     OR LOWER(COALESCE(user_agent,'')) LIKE '%facebookexternalhit%'
     OR LOWER(COALESCE(user_agent,'')) LIKE '%facebot%'

@@ -131,6 +131,9 @@ export function isBot(userAgent: string | null): boolean {
     "twitterbot", "slack", "discord", "whatsapp",
     "ia_archiver", "checks.panopta", "uptime",
     "google-ping", "google-read-aloud",
+    // GoogleOther — Google's non-SEO crawler (per Google guidance, must not be
+    // used for SEO analytics). UA example: "...(compatible; GoogleOther)".
+    "googleother",
   ];
   return botPatterns.some((pattern) => ua.includes(pattern));
 }

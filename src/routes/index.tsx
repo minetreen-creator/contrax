@@ -671,7 +671,7 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you understand the critical requirements in seconds.",
+          "Don't know which set-asides your 8(a), SDVOSB, WOSB, or HUBZone certification qualifies you for? Contrax matches you to live federal, state, and city solicitations and extracts the requirements, deadlines, and red flags — so you never miss a set-aside or waste a proposal.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
@@ -681,7 +681,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you understand the critical requirements in seconds.",
+          "Don't know which set-asides your 8(a), SDVOSB, WOSB, or HUBZone certification qualifies you for? Contrax matches you to live federal, state, and city solicitations and extracts the requirements, deadlines, and red flags — so you never miss a set-aside or waste a proposal.",
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
@@ -695,7 +695,7 @@ export const Route = createFileRoute("/")({
       {
         name: "twitter:description",
         content:
-          "Stop reading 100-page government RFPs. Contrax uses AI to instantly extract mandatory requirements, licenses, bonding, and critical deadlines from municipal, state, and federal set-aside bids — so you understand the critical requirements in seconds.",
+          "Don't know which set-asides your 8(a), SDVOSB, WOSB, or HUBZone certification qualifies you for? Contrax matches you to live federal, state, and city solicitations and extracts the requirements, deadlines, and red flags — so you never miss a set-aside or waste a proposal.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
       { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
@@ -1061,21 +1061,21 @@ function Hero({
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-400" />
             </span>
-            ⚡ NEW: AI-POWERED RFP INTELLIGENCE &amp; REQUIREMENT EXTRACTOR
+            ⚡ FOR 8(a) · SDVOSB · WOSB · HUBZONE CERTIFIED FIRMS
           </div>
 
 
           <h1 className="max-w-4xl text-3xl font-bold tracking-tight text-white sm:text-5xl lg:text-5xl">
-            Stop reading 100-page government RFPs.{" "}
+            Your certification unlocks set-aside contracts.{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-              Understand the critical requirements in seconds.
+              Find the ones you don&apos;t even know exist.
             </span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
-            Contrax tracks municipal, state, and federal bids across every
-            trade—and uses AI to instantly extract mandatory licenses, bonding
-            requirements, critical site-walk deadlines, and disqualifiers. No
-            more digging through bloated PDFs.
+            Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to
+            real federal, state, and city solicitations — then pulls out the
+            requirements, key dates, and red flags. No more guessing which bids
+            you qualify for, or digging through bloated PDFs.
           </p>
 
           {/* "I am a:" certification selector — reuses the shared cert state so
@@ -1136,7 +1136,7 @@ function Hero({
               </button>
             </form>
             <p className="mt-2.5 text-center text-xs font-medium text-blue-200/70">
-              Free instant access · No credit card required · Includes 1 free AI Brief every month
+              {openOppCount.toLocaleString()} open opportunities across {bidStats.agencyCount.toLocaleString()} agencies — synced every 4 hours · No credit card
             </p>
           </div>
 
@@ -1148,7 +1148,7 @@ function Hero({
               onClick={() => trackEvent("hero_cta_click", "start_trial")}
               className="mx-auto block w-full max-w-3xl rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-6 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
             >
-              🚀 Start your 14-day FREE Professional trial →
+              🚀 Get my first Executive Brief — free 14-day Pro trial
             </a>
             <p className="mt-2 text-center text-xs font-medium text-blue-200/60">
               No credit card required · Full Professional features on your first use · Auto-downgrades to free Basic after 14 days
@@ -1158,7 +1158,7 @@ function Hero({
               onClick={() => trackEvent("hero_cta_click", "radar_activate")}
               className="mt-2.5 block text-center text-sm font-medium text-blue-200/80 underline-offset-4 transition-colors hover:text-white hover:underline"
             >
-              📡 Or explore live set-aside bids free with Contract Radar
+              📡 Or try Contract Radar — your first 3 matches are free, with full incumbent intel
             </a>
           </div>
 
@@ -1821,7 +1821,7 @@ function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
             </h2>
           </div>
           <p className="text-sm text-gray-600">
-            Real solicitations with deadlines in the next 7 days — sorted soonest first. Don&apos;t miss the window.
+            Deadlines are real — miss one and the set-aside is gone. These close within 7 days, sorted soonest first.
           </p>
         </div>
 
@@ -1968,9 +1968,9 @@ function HowItWorks() {
     {
       number: "01",
       title: "Search Your Trade",
-      tagline: "Find closing RFPs in your industry",
+      tagline: "Find the set-asides you qualify for",
       description:
-        "Enter your industry (HVAC, IT, Fleet, A&E, Roofing) to see active municipal, state, and federal RFPs closing soon.",
+        "Enter your trade or NAICS to see live set-aside solicitations matched to your 8(a), SDVOSB, WOSB, or HUBZone certification.",
       href: "/radar",
       cta: "Search the market",
       icon: (
@@ -2270,10 +2270,10 @@ function WaitlistSection() {
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Ready to find your next government contract?
+              You got the certification. Now find the contracts it unlocks.
             </h2>
             <p className="mt-4 text-lg text-blue-100/70">
-              Start finding and winning more contracts today with a plan built for your business.
+              See your matches, read your first Executive Brief, and never miss a deadline again — free to start.
             </p>
             <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
               <a

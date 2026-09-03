@@ -166,11 +166,11 @@ export function ExampleBrief({
               onClick={() => trackEvent("example_brief_click", "radar")}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 active:scale-[0.98]"
             >
-              Want briefs like this for your own trade? → Find your matching
-              bids free
+              Want one for your trade? → Find your matching bids free
             </a>
             <p className="mt-2 text-xs text-slate-500">
-              Free to start · No credit card required
+              Free to start · No credit card · First 3 radar matches show full
+              incumbent intel
             </p>
           </div>
         ) : (
@@ -205,15 +205,15 @@ export function ExampleBrief({
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs font-semibold uppercase tracking-widest text-amber-600">
-            ✦ AI Executive Brief — live example
+            ✦ AI Executive Brief — real set-aside RFP, decoded
           </p>
           <h2 className="mt-2 text-2xl font-extrabold text-slate-900 sm:text-3xl">
-            A real RFP, broken down in seconds.
+            This is what your next set-aside RFP looks like after Contrax reads it.
           </h2>
           <p className="mt-3 text-sm text-slate-500">
-            This is a real government solicitation, read by Contrax and turned
-            into the requirements, key dates, and red flags you need — before you
-            ever open the PDF.
+            A real government solicitation — read by Contrax and turned into the
+            requirements, key dates, and red flags you need before you open the
+            PDF. Your trade&apos;s bids come out the same way.
           </p>
         </div>
         <div className="mx-auto mt-8 max-w-2xl">

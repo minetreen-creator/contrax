@@ -671,10 +671,7 @@ function Hero({
 
 
           <h1 className="max-w-4xl text-3xl font-bold tracking-tight text-white sm:text-5xl lg:text-5xl">
-            Tell Contrax what your business does.{" "}
-            <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-              Radar finds government opportunities that match.
-            </span>
+            Find government contracts that actually fit your business.
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">
             Contrax matches your 8(a), SDVOSB, WOSB, or HUBZone certification to

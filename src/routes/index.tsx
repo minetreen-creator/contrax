@@ -229,22 +229,6 @@ function Home() {
       <HowItWorks />
       {/* ── 6. Pricing (kept) ── */}
       <Pricing />
-      {/* ── 7. Final radar CTA — scrolls back up to the radar hero (#radar) ── */}
-      <section className="mx-auto max-w-5xl px-4 py-16 text-center sm:px-6">
-        <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-          Find the government opportunities that fit your business.
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-          Tell Contrax what your company does and let Radar scan the market for relevant opportunities.
-        </p>
-        <a
-          href="#radar"
-          onClick={() => trackEvent("hero_cta_click", "final_radar_cta")}
-          className="mt-7 inline-flex min-h-12 items-center justify-center rounded-lg bg-amber-500 px-6 py-3 font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
-        >
-          📡 Scan the Market for My Matches →
-        </a>
-      </section>
       {/* ── 8. Footer ── */}
       <Footer />
     </div>

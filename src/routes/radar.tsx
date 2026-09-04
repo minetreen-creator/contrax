@@ -15,6 +15,7 @@ import {
   getRadarSeen,
   saveRadarSeen,
   saveRadarAnswers,
+  type RadarCertId,
 } from "~/lib/radar-session";
 
 /**
@@ -59,6 +60,33 @@ const SIZE_OPTS = [
 ] as const;
 
 type SizeId = (typeof SIZE_OPTS)[number]["id"];
+
+/** True when the trade text is a 6-digit NAICS code (same test the scan uses). */
+function isNaicsTrade(trade: string): boolean {
+  return /^\d{6}$/.test(trade.trim());
+}
+
+/**
+ * R2: Contract Radar → signup CTA builder — carries the visitor's radar
+ * criteria into /signup AND latches `/dashboard?brief=1` as the post-signup
+ * return path so the new user lands on the dashboard with the "Run my first
+ * Executive Brief" trial-start card surfaced (see src/lib/brief-mode.ts).
+ *
+ * The criteria ride as URL search params in the SAME `?source=radar&trade=&
+ * cert=&state=&size=` shape /signup already parses (it runs a REAL server scan
+ * for matches when no local radar session exists — never fabricated). The
+ * `next` path is a same-site relative URL, so the existing safeNext() guard on
+ * /signup's redirect accepts it (no open redirect).
+ */
+function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }): string {
+  const p = new URLSearchParams({ plan: "basic", source: "radar", next: "/dashboard?brief=1" });
+  const trade = (answers.trade || "").trim();
+  if (trade) p.set("trade", trade.slice(0, 120));
+  if (answers.state) p.set("state", answers.state.slice(0, 2));
+  if (answers.cert) p.set("cert", answers.cert);
+  if (answers.sizePref) p.set("size", answers.sizePref);
+  return `/signup?${p.toString()}`;
+}
 
 /**
  * Deterministic match scorer — the single source of truth for the radar match %.
@@ -784,7 +812,7 @@ function RadarLanding() {
                 </p>
                 <div className="flex shrink-0 items-center gap-2">
                   <a
-                    href="/signup?plan=basic&source=radar"
+                    href={radarSignupHref({ trade, state, cert, sizePref })}
                     onClick={() => trackEvent("radar_nudge_cta", scan.certLabel)}
                     className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 transition-colors hover:bg-amber-400"
                   >
@@ -817,6 +845,10 @@ function RadarLanding() {
                   match={scan.matches[revealed]}
                   certLabel={scan.certLabel}
                   index={revealed + 1}
+                  trade={trade}
+                  state={state}
+                  cert={cert}
+                  sizePref={sizePref}
                 />
                 {revealed < Math.min(2, scan.matches.length - 1) ? (
                   <button
@@ -827,14 +859,28 @@ function RadarLanding() {
                     Reveal my next match →
                   </button>
                 ) : (
-                  <SignupGate certLabel={scan.certLabel} totalFound={scan.matches.length} />
+                  <SignupGate
+                    certLabel={scan.certLabel}
+                    totalFound={scan.matches.length}
+                    trade={trade}
+                    state={state}
+                    cert={cert}
+                    sizePref={sizePref}
+                  />
                 )}
               </div>
             )}
 
             {scan.matches.length > 0 && revealed >= scan.matches.length && revealed >= 3 && (
               <div className="mt-6">
-                <SignupGate certLabel={scan.certLabel} totalFound={scan.matches.length} />
+                <SignupGate
+                  certLabel={scan.certLabel}
+                  totalFound={scan.matches.length}
+                  trade={trade}
+                  state={state}
+                  cert={cert}
+                  sizePref={sizePref}
+                />
               </div>
             )}
             {/* "Save your matches" — anonymous email opt-in (option A). Shows only
@@ -867,10 +913,18 @@ function RadarCard({
   match,
   certLabel,
   index,
+  trade,
+  state,
+  cert,
+  sizePref,
 }: {
   match: RadarMatch;
   certLabel: string;
   index: number;
+  trade: string;
+  state: string;
+  cert: RadarCertId | null;
+  sizePref: SizeId | null;
 }) {
   const due = match.due_date ? new Date(match.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
   const rawVal = (match.estimated_value || "").trim();
@@ -956,7 +1010,13 @@ function RadarCard({
 
         {/* Previous winner + award price — SINGLE flagged code path */}
         <Section title="Previous winner & award price">
-          <IncumbentBlock match={match} />
+          <IncumbentBlock
+            match={match}
+            trade={trade}
+            state={state}
+            cert={cert}
+            sizePref={sizePref}
+          />
         </Section>
 
         {/* Important requirements */}
@@ -974,7 +1034,7 @@ function RadarCard({
             <p className="text-sm text-slate-300">
               Full requirements are listed in the original solicitation —{" "}
               <a
-                href="/signup?plan=basic&source=radar"
+                href={radarSignupHref({ trade, state, cert, sizePref })}
                 onClick={() => trackEvent("radar_requirements_cta", String(match.id))}
                 className="font-semibold text-amber-400 hover:text-amber-300"
               >
@@ -1016,7 +1076,19 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /** Single render path gated by SHOW_FREE_INCUMBENT (see ~/lib/radar-config.ts). */
-function IncumbentBlock({ match }: { match: RadarMatch }) {
+function IncumbentBlock({
+  match,
+  trade,
+  state,
+  cert,
+  sizePref,
+}: {
+  match: RadarMatch;
+  trade: string;
+  state: string;
+  cert: RadarCertId | null;
+  sizePref: SizeId | null;
+}) {
   if (SHOW_FREE_INCUMBENT && match.incumbent) {
     const i = match.incumbent;
     return (
@@ -1049,7 +1121,7 @@ function IncumbentBlock({ match }: { match: RadarMatch }) {
       <p className="text-sm text-slate-300">
         Previous winner + award price —{" "}
         <a
-          href="/signup?plan=basic&source=radar"
+          href={radarSignupHref({ trade, state, cert, sizePref })}
           onClick={() => trackEvent("radar_incumbent_teaser_cta", String(match.id))}
           className="font-semibold text-amber-400 hover:text-amber-300"
         >
@@ -1064,7 +1136,21 @@ function IncumbentBlock({ match }: { match: RadarMatch }) {
   );
 }
 
-function SignupGate({ certLabel, totalFound }: { certLabel: string; totalFound: number }) {
+function SignupGate({
+  certLabel,
+  totalFound,
+  trade,
+  state,
+  cert,
+  sizePref,
+}: {
+  certLabel: string;
+  totalFound: number;
+  trade: string;
+  state: string;
+  cert: RadarCertId | null;
+  sizePref: SizeId | null;
+}) {
   const [showExtra, setShowExtra] = useState(false);
   // Funnel: fire exactly once when the gate is shown.
   useEffect(() => {
@@ -1072,6 +1158,10 @@ function SignupGate({ certLabel, totalFound }: { certLabel: string; totalFound: 
   }, [certLabel]);
   const freeCap = Math.min(3, totalFound);
   const allWereFree = totalFound <= 3;
+  // R2: the gate CTA carries the visitor's radar criteria + the post-signup
+  // brief return path (`next=/dashboard?brief=1`) so completing signup lands
+  // directly on the "Run my first Executive Brief" moment.
+  const ctaHref = radarSignupHref({ trade, state, cert, sizePref });
   return (
     <div className="mt-5 rounded-2xl border border-amber-500/40 bg-slate-900 p-5 text-center ring-1 ring-slate-800">
       <p className="text-sm font-semibold uppercase tracking-wide text-amber-400">Your first 3 matches are free</p>
@@ -1100,7 +1190,7 @@ function SignupGate({ certLabel, totalFound }: { certLabel: string; totalFound: 
         </ul>
       )}
       <a
-        href="/signup?plan=basic&source=radar"
+        href={ctaHref}
         onClick={() => trackEvent("radar_signup_cta", certLabel)}
         className="mt-5 block w-full rounded-xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
       >

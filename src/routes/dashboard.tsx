@@ -12,6 +12,8 @@ import { RadarLoginNotify } from "~/components/RadarLoginNotify";
 import { SavedRadarMatches } from "~/components/SavedRadarMatches";
 import { TrialChecklist } from "~/components/TrialChecklist";
 import { TrialStartCard } from "~/components/TrialStartCard";
+import { isBriefMode, readRadarTopMatch, BRIEF_MODE_EVENTS } from "~/lib/brief-mode";
+import { trackEvent } from "~/lib/track";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
 import { GettingStarted } from "~/components/GettingStarted";
 import {
@@ -1003,6 +1005,22 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [trackingLoading, setTrackingLoading] = useState<Set<number>>(new Set());
 
+  // ── R2: radar-sourced post-signup brief mode ──────────────────────────
+  // A visitor who completed signup from a Contract Radar CTA landed here with
+  // `next=/dashboard?brief=1`. Surface the trial-start card prominently (above
+  // the radar banners) and attach the anonymous radar SEEN top match as the
+  // preferred first candidate, so the AI Executive Brief is one click away on
+  // the bid the radar promised. Fires the landing event exactly once.
+  const briefMode = isBriefMode(location.search);
+  const briefFiredRef = useRef(false);
+  const briefRadarTop = useMemo(() => readRadarTopMatch(), []);
+  useEffect(() => {
+    if (briefMode && !briefFiredRef.current) {
+      briefFiredRef.current = true;
+      trackEvent(BRIEF_MODE_EVENTS.landing, briefRadarTop ? String(briefRadarTop.id) : "");
+    }
+  }, [briefMode, briefRadarTop]);
+
   // ── Review-context persistence (shared filter mechanism) ────────────────
   // URL params are the source of truth for the ACTIVE view; localStorage
   // ("contrax.reviewFilters") keeps the context across reloads/sessions so it
@@ -1557,12 +1575,20 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
             logged-in user whose email matches an unfulfilled radar_saves row,
             recompute + surface their current matching bids. */}
         <SavedRadarMatches />
-        {/* R1: first-run trial-start surface — a free-Basic user whose
+        {/* R1/R2: first-run trial-start surface — a free-Basic user whose
             14-day Professional trial has NOT started sees the one-click
             "run my first Executive Brief" card; it routes them to the
             existing premium brief path (which lazily starts the trial).
-            Hides itself once the trial is active (server predicate). */}
-        <TrialStartCard onTrialStarted={onTrialStarted} />
+            Hides itself once the trial is active (server predicate).
+            R2: a radar-sourced post-signup landing (/dashboard?brief=1,
+            carried by the radar signup CTAs' next= path) renders the card
+            FIRST — above the radar banners — and prefers the visitor's own
+            radar #1 match from the anonymous scan, so the Executive Brief is
+            one click away on the bid the radar promised. */}
+        {briefMode && (
+          <TrialStartCard onTrialStarted={onTrialStarted} preferredFirstId={briefRadarTop?.id ?? null} />
+        )}
+        {!briefMode && <TrialStartCard onTrialStarted={onTrialStarted} />}
 
         {/* Deadline Alert Banner */}
         <DeadlineAlertBanner count={urgentTrackedCount} />

@@ -409,7 +409,7 @@ export const Route = createFileRoute("/radar")({
       {
         property: "og:description",
         content:
-          "Answer four quick questions. Contract Radar scans live set-aside solicitations and reveals your strongest matches one at a time — the first 3 are free, with full incumbent intel.",
+          "Answer four quick questions. Contract Radar scans live federal, state and local solicitations and reveals your strongest matches one at a time — the first 3 are free, with full incumbent intel.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
@@ -724,8 +724,7 @@ function RadarLanding() {
                 Scan the market for my matches →
               </button>
               <p className="text-center text-xs text-slate-500">
-                Scans live set-aside solicitations from SAM.gov and state & city
-                sources — real results, updated every 4 hours.
+                Scans live federal, state and local solicitations.
               </p>
             </div>
           </section>

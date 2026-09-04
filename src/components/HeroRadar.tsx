@@ -336,8 +336,7 @@ export function HeroRadar({
               </div>
             ) : (
               <p className="text-center text-xs text-slate-500">
-                Scans live set-aside solicitations from SAM.gov and state &amp; city
-                sources — real results, updated every 4 hours.
+                Scans live federal, state and local solicitations.
               </p>
             )}
           </div>

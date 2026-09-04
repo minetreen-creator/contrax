@@ -833,13 +833,20 @@ function OpportunityMap({ aggregate }: { aggregate: ContractMapAggregate }) {
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-xs font-semibold uppercase tracking-widest text-sky-400">Contrax Opportunity Map</p>
             <h2 className="mt-2 text-2xl font-extrabold text-white sm:text-3xl">
-              {hasData
-                ? `${totals.totalOpen.toLocaleString()} open opportunities across 50 states + D.C.`
-                : "See where government money is moving."}
+              Government opportunities across the country.
             </h2>
-            <p className="mt-3 text-sm text-slate-400">
-              Hover a state for its totals — click one to see exactly what&apos;s being bought there. Live from SAM.gov
-              and state & city solicitations — synced every 4 hours.
+            <p className="mt-3 text-sm font-semibold text-slate-200">
+              {hasData
+                ? `${totals.totalOpen.toLocaleString()} open opportunities across 50 states + D.C. · synced every 4 hours`
+                : "See where government money is moving."}
+            </p>
+            <p className="mt-2 text-sm text-slate-400">
+              Explore federal, state, and local government opportunities across the United States. Contrax
+              continuously updates its opportunity database so businesses can see where government work is available.
+            </p>
+            <p className="mt-3 text-xs text-slate-500">
+              Hover a state for its totals — click one for its open solicitations. Live from SAM.gov and state
+              &amp; city solicitations — synced every 4 hours.
             </p>
           </div>
 

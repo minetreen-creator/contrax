@@ -191,7 +191,7 @@ export function HeroRadar({ initialCert }: { initialCert: string }) {
       <div className="mx-auto w-full max-w-xl px-5 py-10 sm:py-12">
         <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Contract Radar</p>
         <h2 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
-          Wondering which set-asides you actually qualify for? Your first 3 matches are free.
+          Find government contracts that actually fit your business.
         </h2>
         <p className="mt-3 text-sm leading-relaxed text-slate-300">
           Answer four quick questions and we&apos;ll reveal your strongest live

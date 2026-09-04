@@ -804,7 +804,7 @@ function Pricing() {
   };
 
   return (
-    <section id="pricing" className="bg-blue-50 py-20 sm:py-28">
+    <section id="pricing" className="pricing-section py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-600">

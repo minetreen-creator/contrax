@@ -141,3 +141,11 @@
 .prose-blog :first-child {
   margin-top: 0;
 }
+/* ── Pricing section gradient ─────────────────────────────────────────────── */
+.pricing-section {
+  background: linear-gradient(
+    180deg,
+    #E0ECFF 0%,
+    #EDF4FF 100%
+  );
+}

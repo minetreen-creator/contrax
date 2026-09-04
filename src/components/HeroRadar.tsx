@@ -24,6 +24,9 @@
  *   initialCert — the homepage "I am a:" selection (shared cert state). When it
  *     is a real radar cert id it preselects the cert question (same mapping the
  *     hero search already uses); "all"/unknown leaves the question unanswered.
+ *   heading — default true renders the built-in eyebrow/h2/subhead. Pass false
+ *     when an embedding page supplies its own heading (homepage radar hero: the
+ *     page-level <h1> lives there; the form renders with NO competing h2).
  */
 import { useEffect, useRef, useState } from "react";
 import {
@@ -69,7 +72,17 @@ function toRadarCert(raw: unknown): RadarCert | null {
   return (RADAR_CERTS as readonly string[]).includes(c) ? (c as RadarCert) : null;
 }
 
-export function HeroRadar({ initialCert }: { initialCert: string }) {
+export function HeroRadar({
+  initialCert,
+  heading = true,
+}: {
+  /** The homepage "I am a:" selection (shared cert state) — preselects the cert question. */
+  initialCert: string;
+  /** When false, the radar renders WITHOUT its own eyebrow/h2/subhead so an
+   *  embedding page (e.g. the homepage radar hero) can supply the one true
+   *  <h1> and its own heading block. Form/scan/matches flow is identical. */
+  heading?: boolean;
+}) {
   const preselected = toRadarCert(initialCert);
   const [trade, setTrade] = useState("");
   const [state, setState] = useState("");
@@ -189,15 +202,21 @@ export function HeroRadar({ initialCert }: { initialCert: string }) {
       className="border-b border-slate-800 bg-slate-950"
     >
       <div className="mx-auto w-full max-w-xl px-5 py-10 sm:py-12">
-        <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Contract Radar</p>
-        <h2 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
-          Which contracts fit my company?
-        </h2>
-        <p className="mt-3 text-sm leading-relaxed text-slate-300">
-          Answer four quick questions and we&apos;ll reveal your strongest live
-          set-aside matches — one at a time, with a real match score and full
-          Incumbent Intelligence (previous winner &amp; award price).
-        </p>
+        {/* heading={false} renders the form/scan only — the embedding page owns
+            the page-level <h1> and its own eyebrow/subhead block. */}
+        {heading && (
+          <>
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Contract Radar</p>
+            <h2 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
+              Which contracts fit my company?
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-slate-300">
+              Answer four quick questions and we&apos;ll reveal your strongest live
+              set-aside matches — one at a time, with a real match score and full
+              Incumbent Intelligence (previous winner &amp; award price).
+            </p>
+          </>
+        )}
 
         {scan.status !== "done" && scan.status !== "error" && (
           <div className="mt-8 flex flex-col gap-6">

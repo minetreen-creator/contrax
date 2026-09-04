@@ -41,8 +41,8 @@ import {
  * (up to 3 saved bids); AI scoring + draft tools are on Professional.
  */
 
-const RADAR_CERTS = ["sdvosb", "8a", "wosb", "hubzone", "sb"] as const;
-type RadarCert = (typeof RADAR_CERTS)[number];
+export const RADAR_CERTS = ["sdvosb", "8a", "wosb", "hubzone", "sb"] as const;
+export type RadarCert = (typeof RADAR_CERTS)[number];
 
 const CERT_LABEL: Record<string, string> = {
   sdvosb: "SDVOSB",
@@ -52,14 +52,14 @@ const CERT_LABEL: Record<string, string> = {
   sb: "Small Business",
 };
 
-const SIZE_OPTS = [
+export const SIZE_OPTS = [
   { id: "under250k", label: "< $250K", hint: "under $250,000" },
   { id: "under1m", label: "< $1M", hint: "under $1 million" },
   { id: "under10m", label: "< $10M", hint: "under $10 million" },
   { id: "any", label: "Any size", hint: "no preference" },
 ] as const;
 
-type SizeId = (typeof SIZE_OPTS)[number]["id"];
+export type SizeId = (typeof SIZE_OPTS)[number]["id"];
 
 /**
  * R2: Contract Radar → signup CTA builder — carries the visitor's radar
@@ -73,7 +73,7 @@ type SizeId = (typeof SIZE_OPTS)[number]["id"];
  * `next` path is a same-site relative URL, so the existing safeNext() guard on
  * /signup's redirect accepts it (no open redirect).
  */
-function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }): string {
+export function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }): string {
   const p = new URLSearchParams({ plan: "basic", source: "radar", next: "/dashboard?brief=1" });
   const trade = (answers.trade || "").trim();
   if (trade) p.set("trade", trade.slice(0, 120));
@@ -904,7 +904,7 @@ function tradeLabel(t: string): string {
   return `"${t}"`;
 }
 
-function RadarCard({
+export function RadarCard({
   match,
   certLabel,
   index,
@@ -977,7 +977,7 @@ function RadarCard({
 
         {/* Why the business qualifies */}
         {match.qualifications.length > 0 && (
-          <Section title="Why you qualify">
+          <RadarSection title="Why you qualify">
             <ul className="space-y-1.5">
               {match.qualifications.map((q, i) => (
                 <li key={i} className="flex gap-2 text-sm text-slate-300">
@@ -986,12 +986,12 @@ function RadarCard({
                 </li>
               ))}
             </ul>
-          </Section>
+          </RadarSection>
         )}
 
         {/* Why Contrax considers it a strong match */}
         {match.reasons.length > 0 && (
-          <Section title="Why this is a strong match">
+          <RadarSection title="Why this is a strong match">
             <ul className="space-y-1.5">
               {match.reasons.map((r, i) => (
                 <li key={i} className="flex gap-2 text-sm text-slate-300">
@@ -1000,11 +1000,11 @@ function RadarCard({
                 </li>
               ))}
             </ul>
-          </Section>
+          </RadarSection>
         )}
 
         {/* Previous winner + award price — SINGLE flagged code path */}
-        <Section title="Previous winner & award price">
+        <RadarSection title="Previous winner & award price">
           <IncumbentBlock
             match={match}
             trade={trade}
@@ -1012,10 +1012,10 @@ function RadarCard({
             cert={cert}
             sizePref={sizePref}
           />
-        </Section>
+        </RadarSection>
 
         {/* Important requirements */}
-        <Section title="Important requirements">
+        <RadarSection title="Important requirements">
           {match.requirements.length > 0 ? (
             <ul className="space-y-1.5">
               {match.requirements.map((r, i) => (
@@ -1038,7 +1038,7 @@ function RadarCard({
               .
             </p>
           )}
-        </Section>
+        </RadarSection>
 
         {/* Recommended next action */}
         <div className="mt-4 rounded-xl bg-slate-800 px-4 py-3">
@@ -1061,7 +1061,7 @@ function RadarCard({
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+export function RadarSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div className="mt-4">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{title}</p>
@@ -1131,7 +1131,7 @@ function IncumbentBlock({
   );
 }
 
-function SignupGate({
+export function SignupGate({
   certLabel,
   totalFound,
   trade,
@@ -1211,7 +1211,7 @@ function SignupGate({
  * false promise of email delivery. Fires the `radar_save` funnel event on
  * success so we can measure this capture against the FB drop-off.
  */
-function SaveMatchesCard({
+export function SaveMatchesCard({
   certLabel,
   trade,
   state,

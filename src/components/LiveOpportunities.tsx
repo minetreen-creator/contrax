@@ -74,9 +74,11 @@ function fmtDue(raw: string | null): string | null {
   });
 }
 
-export function LiveOpportunities({ bids }: { bids: LiveOpportunity[] }) {
-  // Honest empty/insufficient state: render only what exists, hide when empty.
-  if (bids.length === 0) return null;
+export function LiveOpportunities({ bids }: { bids: LiveOpportunity[] | null | undefined }) {
+  // Honest empty/insufficient state: vanish entirely when there are zero open
+  // bids — including a successful-but-empty result (no empty grid, no shell).
+  // Undefined-safe: loader hiccups that resolve to null/undefined also hide.
+  if (!bids || bids.length === 0) return null;
   return (
     <section
       id="live-opportunities"

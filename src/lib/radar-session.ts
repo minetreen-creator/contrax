@@ -78,8 +78,10 @@ export interface RadarSeen {
   matches: RadarSeenMatch[];
 }
 
+export const RADAR_ANSWERS_KEY = "contrax_radar_answers";
+
 const KEYS = {
-  answers: "contrax_radar_answers",
+  answers: RADAR_ANSWERS_KEY,
   prefill: "contrax_radar_prefill",
   seen: "contrax_radar_seen",
 } as const;

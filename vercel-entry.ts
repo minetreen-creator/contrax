@@ -505,6 +505,12 @@ const toWebRequest = (req: IncomingMessage): Request => {
 // Single tuning knob: change the TTL seconds below; the header is built from it.
 const PUBLIC_SSR_CACHE_TTL_SECONDS = 3600;
 const PUBLIC_SSR_CACHE_CONTROL = `public, s-maxage=${PUBLIC_SSR_CACHE_TTL_SECONDS}`;
+// Static blob pages (privacy, terms, /learn + guides) never re-render live
+// counts — content only changes on deploy — so they borrow the same shared
+// edge TTL knob: browser-cache 1h (max-age) + CDN edge-cache 1h (s-maxage).
+// Both halves come from PUBLIC_SSR_CACHE_TTL_SECONDS so there is still one
+// tuning knob for the whole public surface.
+const PUBLIC_STATIC_CACHE_CONTROL = `public, max-age=${PUBLIC_SSR_CACHE_TTL_SECONDS}, s-maxage=${PUBLIC_SSR_CACHE_TTL_SECONDS}`;
 
 // ── Raw body reader (for Stripe webhook) ─────────────────────────────────────
 
@@ -723,7 +729,7 @@ export default async function vercelHandler(
     if (url.pathname === "/privacy" && req.method === "GET") {
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
-      res.setHeader("cache-control", "public, max-age=3600");
+      res.setHeader("cache-control", PUBLIC_STATIC_CACHE_CONTROL);
       res.end(PRIVACY_HTML);
       return;
     }
@@ -732,7 +738,7 @@ export default async function vercelHandler(
     if (url.pathname === "/terms" && req.method === "GET") {
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
-      res.setHeader("cache-control", "public, max-age=3600");
+      res.setHeader("cache-control", PUBLIC_STATIC_CACHE_CONTROL);
       res.end(TERMS_HTML);
       return;
     }
@@ -741,7 +747,7 @@ export default async function vercelHandler(
     if (url.pathname === "/learn" && req.method === "GET") {
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
-      res.setHeader("cache-control", "public, max-age=3600");
+      res.setHeader("cache-control", PUBLIC_STATIC_CACHE_CONTROL);
       res.end(LEARN_HTML);
       return;
     }
@@ -750,7 +756,7 @@ export default async function vercelHandler(
     if (url.pathname === "/learn/government-contracting-guide" && req.method === "GET") {
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
-      res.setHeader("cache-control", "public, max-age=3600");
+      res.setHeader("cache-control", PUBLIC_STATIC_CACHE_CONTROL);
       res.end(GOV_CONTRACTING_GUIDE_HTML);
       return;
     }
@@ -759,7 +765,7 @@ export default async function vercelHandler(
     if (url.pathname === "/learn/ai-proposal-writing" && req.method === "GET") {
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
-      res.setHeader("cache-control", "public, max-age=3600");
+      res.setHeader("cache-control", PUBLIC_STATIC_CACHE_CONTROL);
       res.end(AI_PROPOSAL_WRITING_HTML);
       return;
     }
@@ -768,7 +774,7 @@ export default async function vercelHandler(
     if (url.pathname === "/learn/small-business-government-contracting" && req.method === "GET") {
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
-      res.setHeader("cache-control", "public, max-age=3600");
+      res.setHeader("cache-control", PUBLIC_STATIC_CACHE_CONTROL);
       res.end(SMALL_BIZ_CONTRACTING_HTML);
       return;
     }
@@ -783,13 +789,21 @@ export default async function vercelHandler(
     }
 
     // 1-hour edge cache on public SSR marketing/SEO routes (home, map, radar,
-    // state pages, and the industry hub). These pages are cookie/user-agnostic;
-    // authenticated / user-specific / API routes fall through to the generic SSR
-    // handler below, which does NOT set this header.
+    // state pages, industry hub, cert-hub hubs, and the trades landing page).
+    // These pages are cookie/user-agnostic (no server-side auth/session reads;
+    // radar state is client-side localStorage), so a shared edge cache is safe —
+    // it collapses crawler/burst SSR renders without ever caching authenticated
+    // or user-specific routes (those flow through the generic SSR handler
+    // below, which does NOT set this header).
     const cacheableSsrf =
       req.method === "GET" &&
       (url.pathname === "/" ||
-        /^\/(?:map|radar|contracts-by-industry)\/?$/.test(url.pathname) ||
+        /^\/(?:map|radar|contracts-by-industry|contracts-hvac-mechanical)\/?$/.test(
+          url.pathname,
+        ) ||
+        /^\/(?:8a|hubzone|sdvosb|set-aside|small-business|wosb)-contracts\/?$/.test(
+          url.pathname,
+        ) ||
         /^\/contracts-in\/[a-z0-9-]+\/?$/.test(url.pathname));
 
     // Make the request cookie + client IP available to route loaders and server

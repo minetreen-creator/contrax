@@ -36,6 +36,7 @@ import {
   type TrialStartCandidate,
 } from "~/lib/trial-start-card";
 import { trackEvent } from "~/lib/track";
+import { preferRadarTopMatch } from "~/lib/brief-mode";
 
 /** Server context — same predicate the dry-run tests (lib) + auth guard. */
 const loadTrialStartCard = createServerFn({ method: "GET" }).handler(
@@ -69,7 +70,15 @@ interface AnalyzeResponse {
  * The dashboard card. Renders nothing for anyone who shouldn't see it
  * (paid / admin / demo / grant / active-or-expired trial / logged out).
  */
-export function TrialStartCard({ onTrialStarted }: { onTrialStarted?: () => void }) {
+export function TrialStartCard({
+  onTrialStarted,
+  preferredFirstId,
+}: {
+  onTrialStarted?: () => void;
+  /** R2: when present (radar-sourced post-signup), the matching candidate —
+   *  the visitor's own radar #1 from the anonymous scan — is offered first. */
+  preferredFirstId?: number | null;
+}) {
   const [data, setData] = useState<TrialStartCardData | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [idx, setIdx] = useState(0);
@@ -85,7 +94,14 @@ export function TrialStartCard({ onTrialStarted }: { onTrialStarted?: () => void
     loadTrialStartCard()
       .then((d) => {
         if (active) {
-          setData(d);
+          // R2: when the radar-sourced post-signup landing passed a preferred
+          // first bid, offer it first (only if it is still an open candidate —
+          // never fabricates, falls back to the normal top match otherwise).
+          if (preferredFirstId != null) {
+            setData({ ...d, candidates: preferRadarTopMatch(d.candidates, { id: preferredFirstId }) });
+          } else {
+            setData(d);
+          }
           setIdx(0);
         }
       })
@@ -96,7 +112,7 @@ export function TrialStartCard({ onTrialStarted }: { onTrialStarted?: () => void
     return () => {
       active = false;
     };
-  }, []);
+  }, [preferredFirstId]);
 
   const current: TrialStartCandidate | null =
     data && data.candidates.length > 0 ? data.candidates[Math.min(idx, data.candidates.length - 1)] : null;

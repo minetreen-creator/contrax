@@ -3,7 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "About Contrax";
 const DESC =
-  "Contrax is a contract intelligence platform founded by Nathaniel Minetree to help 8(a), SDVOSB, WOSB, and HUBZone small businesses find and win government contracts.";
+  "Contrax was founded by Nathaniel Minetree to help 8(a), SDVOSB, WOSB, and HUBZone small businesses find government contracts: tell Contrax what your business does and Radar finds the opportunities that match.";
 
 export const Route = createFileRoute("/about/")({
   component: AboutPage,
@@ -19,7 +19,7 @@ export const Route = createFileRoute("/about/")({
       { property: "og:description", content: DESC },
       { property: "og:image", content: `${PROD_URL}/logo-square.png` },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { property: "og:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
@@ -28,7 +28,7 @@ export const Route = createFileRoute("/about/")({
       { name: "twitter:title", content: TITLE },
       { name: "twitter:description", content: DESC },
       { name: "twitter:image", content: `${PROD_URL}/logo-square.png` },
-      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { name: "twitter:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
     ],
     links: [{ rel: "canonical", href: `${PROD_URL}/about` }],
   }),
@@ -39,7 +39,7 @@ const jsonLd = {
   "@type": "Organization",
   name: "Contrax",
   description:
-    "Founded by Nathaniel Minetree, Contrax is a contract intelligence platform that helps 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses find and win government contracts — real-time discovery across 50 states and federal portals, with an AI-driven workspace for incumbent research and grounded proposal drafting.",
+    "Founded by Nathaniel Minetree, Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses find government contracts: tell Contrax what your business does and Radar finds the opportunities that match — real-time discovery across 50 states and federal portals, with an AI-driven workspace for incumbent research and grounded proposal drafting.",
   url: PROD_URL,
   logo: `${PROD_URL}/logo-square.png`,
   founder: {

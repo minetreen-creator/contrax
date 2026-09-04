@@ -38,7 +38,7 @@ export const Route = createFileRoute("/copilot")({
     meta: [{ name: "robots", content: "noindex, nofollow" },
       {
         title:
-          "Contract Intelligence Copilot — AI Government Contracting Strategist | Contrax",
+          "Contrax Copilot — AI Strategist for Government Contracting | Contrax",
       },
       {
         name: "description",
@@ -73,10 +73,10 @@ function PublicCopilot() {
           <div className="relative mx-auto max-w-6xl">
             <div className="max-w-3xl">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-3 py-1.5 text-sm font-medium text-blue-200">
-                <span aria-hidden="true">✦</span> Contract Intelligence Copilot
+                <span aria-hidden="true">✦</span> Contrax Copilot
               </div>
               <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-                Your AI Government Contracting Strategist
+                Your AI strategist for government contracting
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
                 Turn your certifications, active bids, win/loss history, and business knowledge into specific, actionable guidance for your next federal contract.
@@ -99,7 +99,7 @@ function PublicCopilot() {
               <p className="text-sm font-semibold uppercase tracking-wider text-blue-600">A strategist built around your business</p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Go beyond generic AI answers</h2>
               <div className="mt-6 space-y-4 text-base leading-7 text-slate-600">
-                <p>The Contract Intelligence Copilot is an AI government contracting strategist designed for the decisions that determine whether a small business wins federal work. It helps you understand which opportunities deserve your team's limited time, how to position your capabilities, and what to do next. Instead of returning broad procurement advice, it connects every recommendation to the opportunities and outcomes in your Contrax workspace.</p>
+                <p>The Contrax Copilot is an AI contracting strategist built for the decisions that determine whether a small business wins federal work. It helps you understand which opportunities deserve your team's limited time, how to position your capabilities, and what to do next. Instead of returning broad procurement advice, it connects every recommendation to the opportunities and outcomes in your Contrax workspace.</p>
                 <p>Copilot uses your business context: certifications such as 8(a), SDVOSB, WOSB, or HUBZone; NAICS codes and capabilities; active bids and their scores; past awards; win/loss history; learning patterns; pricing data; and documents in your knowledge base. That context lets it identify set-aside fit, surface competitive patterns, and explain tradeoffs in plain language. As your team records results and adds proposal knowledge, its guidance becomes more relevant to how your business actually competes.</p>
                 <p>Ask practical questions such as “Which of my active bids should I prioritize?”, “What's my win rate on 8(a) set-asides?”, or “Draft a capability statement for this NAICS.” Copilot can help compare deadlines and competition, suggest teaming or pricing angles, reveal recurring weaknesses across losses, and turn your own source documents into a focused next step. Unlike ChatGPT, the Copilot already knows your business — you do not have to rebuild your context in every conversation, and it will not pretend to know facts that are not in your account.</p>
               </div>

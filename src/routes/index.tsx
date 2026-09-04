@@ -33,6 +33,8 @@ const ExampleBrief = lazy(() => import("~/components/ExampleBrief"));
 // via ~/lib/live-opportunities.ts). Imported as a plain function: it renders
 // with the loader data (SSR and hydration), so no lazy/suspense needed.
 import { LiveOpportunities } from "~/components/LiveOpportunities";
+import { HeroRadar } from "~/components/HeroRadar";
+import { getRadarAnswers } from "~/lib/radar-session";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type Bid = {
@@ -765,8 +767,14 @@ function Home() {
       <PartnershipBanner />
       <Navbar user={user} alertCount={alertCount} />
       <Hero userCount={userCount} bidStats={bidStats} openOppCount={contractMap.totals.totalOpen} cert={certId} q={q || ""} onSelectCert={selectCert} />
+      {/* Contract Radar match-finder — embedded in the homepage hero region
+          (owner-directed 2026-09-04): the same interactive walk (trade/state/
+          cert/size → real scan, first-3-free, full incumbent intel, gate at
+          match 4, save-your-matches lead capture) as /radar. */}
+      <HeroRadar initialCert={certId} />
       {/* Live set-aside opportunities — right under the hero; real bids table
-          rows wired to the AI Executive Brief flow. Hides itself when empty. */}
+          rows wired to the AI Executive Brief flow. Vanishes entirely when
+          there are zero open bids (undefined-safe empty guard). */}
       <LiveOpportunities bids={liveOpportunities} />
       {/* Real example AI Executive Brief — directly under the hero, before the map (owner). */}
       <Suspense fallback={null}>
@@ -1041,12 +1049,28 @@ function Hero({
         trackEvent("hero_search", trade);
       }
     }
+    // Pass-through parity with /radar deep-link params (trade/state/cert/
+    // size): the hero's persisted radar answers (localStorage, written by any
+    // radar scan incl. the embedded hero finder) supply state + size when the
+    // visitor has chosen them; trade + cert come from the hero controls. Size
+    // is included only when it is a real size id (never a default invented
+    // here) so /radar never receives a fabricated size preference.
     const RADAR_CERTS = ["8a", "sdvosb", "wosb", "hubzone", "sb"] as const;
     const search: Record<string, string> = {};
     if (trade) search.trade = trade;
     if (cert !== "all" && (RADAR_CERTS as readonly string[]).includes(cert)) {
       search.cert = cert;
     }
+    // Whatever trade/state/cert/size inputs the hero exposes, state + size
+    // flow through via the shared radar-answers store (same key + shape the
+    // /radar walk and the embedded hero finder write) — never invented here.
+    try {
+      const saved = getRadarAnswers();
+      const st = (saved?.state || "").trim().toUpperCase();
+      if (/^[A-Z]{2}$/.test(st)) search.state = st;
+      const sz = (saved?.sizePref || "").trim();
+      if (["under250k", "under1m", "under10m", "any"].includes(sz)) search.size = sz;
+    } catch { /* storage unavailable — hero search still works without size */ }
     navigate({ to: "/radar", search });
   };
 

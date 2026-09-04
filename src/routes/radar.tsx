@@ -61,11 +61,6 @@ const SIZE_OPTS = [
 
 type SizeId = (typeof SIZE_OPTS)[number]["id"];
 
-/** True when the trade text is a 6-digit NAICS code (same test the scan uses). */
-function isNaicsTrade(trade: string): boolean {
-  return /^\d{6}$/.test(trade.trim());
-}
-
 /**
  * R2: Contract Radar → signup CTA builder — carries the visitor's radar
  * criteria into /signup AND latches `/dashboard?brief=1` as the post-signup

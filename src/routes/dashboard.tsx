@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useState, useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { locationMatchesStates, shouldApplyStateFilter } from "~/lib/open-bids";

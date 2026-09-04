@@ -24,7 +24,6 @@ import {
   type StateAggregate,
 } from "~/lib/contract-map";
 import { US_MAP_VIEWBOX, US_STATE_PATHS } from "~/lib/us-states-map";
-import { toISODate } from "./awards";
 // Real cached example AI Executive Brief — code-split so it never bloats
 // the homepage main bundle or blocks hero render. Same component + same
 // server fn as the standalone /example-brief page (single source of truth).
@@ -127,39 +126,6 @@ const getTodayBids = createServerFn({ method: "GET" }).handler(
   }
 );
 
-// ── Closing Soon ─────────────────────────────────────────────────────────────
-// Solicitations whose due_date lands in (NOW, NOW + 7 days], deduped on the
-// natural key (title, agency) EXACTLY like getRecentBids/getTodayBids (PR #172)
-// and with the shared low-content filter applied (PR #174) — never weakened.
-// Sorted soonest-first so the most urgent deadline is always on top. Bounded to
-// 8 rows. Every value is REAL from the bids table — nothing fabricated.
-export type ClosingSoonBid = {
-  id: number;
-  title: string;
-  agency: string;
-  estimated_value: string | null;
-  due_date: string | null;
-  set_aside: string | null;
-};
-const getClosingSoonBids = createServerFn({ method: "GET" }).handler(async () => {
-  const { sql } = await import("~/db");
-  const rows = await sql()`
-    SELECT id, title, agency, estimated_value, due_date, set_aside
-    FROM (
-      SELECT DISTINCT ON (title, agency)
-             id, title, agency, estimated_value, due_date, set_aside, created_at
-      FROM bids
-      WHERE due_date > NOW()
-        AND due_date <= NOW() + INTERVAL '7 days'
-        AND ${sql().unsafe(LOW_CONTENT_SQL)}
-      ORDER BY title, agency, created_at DESC NULLS LAST
-    ) t
-    ORDER BY t.due_date ASC NULLS LAST
-    LIMIT 8
-  `;
-  return rows as ClosingSoonBid[];
-});
-
 // ── U.S. Contract Map — homepage aggregate ────────────────────────────────────
 // Reuses the exact same server aggregation as /map (buildContractMap over the
 // open-bid population with the shared low-content filter), so the homepage map
@@ -179,319 +145,7 @@ const getContractMapAggregate = createServerFn({ method: "GET" }).handler(
   },
 );
 
-// ── Live Award Feed (USAspending.gov) ────────────────────────────────────────
-// REAL recent SET-ASIDE federal contract awards from the public USAspending.gov
-// API (POST /api/v2/search/spending_by_award/). Deliberately NOT the
-// `awarded_contracts` table — that table holds only demo rows with fake
-// sam.gov URLs and would be dishonest presented as "live".
-//
-// Verified API contract (2026-08-15):
-//  - fields MUST include the names below; "Date Signed" 422s and "Award Date"
-//    returns null. `action_date` is NOT a valid sort key (422) — the only
-//    working recency sort is `sort: "Last Modified Date", order: "desc"`, so
-//    that field is also the per-row date we display. The API returns it as
-//    "YYYY-MM-DD HH:MM:SS", which we normalize to ISO before formatting.
-//  - The 90-day `date_type: "action_date"` filter guarantees every returned
-//    row had a contract action in the last 90 days.
-//  - set_aside_type_codes narrows the feed to SBA set-aside programs
-//    ("8A","SDVOSBC","WOSB_ED_WOSB","HUBZONE","SBA","VOSB") — the whole point
-//    of the feed. Note the per-row "Set Aside Type" value still comes back
-//    null in search rows, so the purple badge rarely renders; the filter, not
-//    the badge, is what makes the feed set-aside-specific.
-//  - Results are cached in `live_awards_cache` (12h TTL) so SSR never waits
-//    on the API. On API failure we serve stale cached rows; with no cache at
-//    all we return [] and the section hides itself — never a 500.
-export interface LiveAward {
-  award_id: string;
-  recipient: string;
-  amount: number;
-  last_modified: string | null; // USAspending "Last Modified Date" (YYYY-MM-DD HH:MM:SS)
-  agency: string | null;
-  set_aside: string | null;
-  // Per-certification feed only: the set-aside code this row was FETCHED under
-  // and its display label. USAspending's per-row "Set Aside Type" comes back
-  // null in search rows (verified 2026-08-15), so the filter used is the only
-  // truthful evidence of an award's type — the tag is never fabricated.
-  cert?: string;
-  certLabel?: string;
-}
 
-const USA_SPENDING_SEARCH = "https://api.usaspending.gov/api/v2/search/spending_by_award/";
-let lastUsaRequest = 0;
-async function usaSpendingSearch(body: unknown): Promise<{ results?: any[] } | null> {
-  // USAspending rate-limits (~1 req/sec) — same throttle approach as src/lib/fpds.ts
-  const wait = Math.max(0, 1100 - (Date.now() - lastUsaRequest));
-  if (wait) await new Promise((r) => setTimeout(r, wait));
-  lastUsaRequest = Date.now();
-  const response = await fetch(USA_SPENDING_SEARCH, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(12000),
-  });
-  if (!response.ok) return null;
-  return response.json();
-}
-
-const getLiveAwards = createServerFn({ method: "GET" }).handler(async (): Promise<{
-  awards: LiveAward[];
-  updatedAt: string | null;
-}> => {
-  const { sql } = await import("~/db");
-  const CACHE_KEY = "setaside-90d-v1";
-  const readCache = async () => {
-    const rows = await sql()`
-      SELECT data, computed_at FROM live_awards_cache
-      WHERE cache_key=${CACHE_KEY}
-      ORDER BY computed_at DESC NULLS LAST
-      LIMIT 1
-    `;
-    if (!rows.length) return null;
-    const c: any = rows[0];
-    return {
-      awards: Array.isArray(c.data) ? (c.data as LiveAward[]) : [],
-      updatedAt: c.computed_at ? new Date(c.computed_at).toISOString() : null,
-    };
-  };
-
-  try {
-    await sql()`CREATE TABLE IF NOT EXISTS live_awards_cache (id SERIAL PRIMARY KEY, cache_key TEXT NOT NULL UNIQUE, data JSONB NOT NULL DEFAULT '[]'::jsonb, computed_at TIMESTAMPTZ DEFAULT NOW())`;
-    // Fresh cache (12h TTL) → serve it; SSR stays fast, no API call per page load.
-    const fresh = await sql()`
-      SELECT data, computed_at FROM live_awards_cache
-      WHERE cache_key=${CACHE_KEY} AND computed_at > NOW() - INTERVAL '12 hours'
-      LIMIT 1
-    `;
-    if (fresh.length) {
-      const c: any = fresh[0];
-      return {
-        awards: Array.isArray(c.data) ? (c.data as LiveAward[]) : [],
-        updatedAt: c.computed_at ? new Date(c.computed_at).toISOString() : null,
-      };
-    }
-  } catch (err) {
-    // cache table/query unavailable — fall through to a live fetch
-    console.error("[homepage] live_awards_cache read failed:", err);
-  }
-
-  try {
-    const end = new Date().toISOString().slice(0, 10);
-    const start = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
-    const data = await usaSpendingSearch({
-      filters: {
-        time_period: [{ start_date: start, end_date: end, date_type: "action_date" }],
-        award_type_codes: ["A", "B", "C", "D"], // contracts only — required with time_period
-        // SBA set-aside programs only — the whole point of the feed
-        set_aside_type_codes: ["8A", "SDVOSBC", "WOSB_ED_WOSB", "HUBZONE", "SBA", "VOSB"],
-      },
-      fields: ["Award ID", "Recipient Name", "Award Amount", "Start Date", "Awarding Agency", "Set Aside Type", "Description", "Last Modified Date"],
-      limit: 25, // over-fetch so recipient dedupe below still yields 6 distinct rows
-      page: 1,
-      order: "desc", // action_date is NOT a valid sort key (422) — Last Modified Date is
-      sort: "Last Modified Date",
-      subawards: false,
-    });
-    const results = (data?.results || []).filter(
-      (r) => r && r["Recipient Name"] && r["Award Amount"] != null,
-    );
-    if (results.length) {
-      // Rows arrive sorted newest-first by Last Modified Date; keep at most one
-      // row per recipient (first occurrence) so the feed shows 6 distinct
-      // companies instead of e.g. HDR-OBG 3×.
-      const seen = new Set<string>();
-      const unique = results.filter((r) => {
-        const name = String(r["Recipient Name"]).trim().toLowerCase();
-        if (seen.has(name)) return false;
-        seen.add(name);
-        return true;
-      });
-      const awards: LiveAward[] = unique.slice(0, 6).map((r) => ({
-        award_id: String(r["Award ID"] || r.internal_id || ""),
-        recipient: String(r["Recipient Name"]),
-        amount: Number(r["Award Amount"]) || 0,
-        // "Last Modified Date" arrives as "YYYY-MM-DD HH:MM:SS" — replace the
-        // space with "T" so new Date() parses it as local time (a bare date
-        // string would parse as UTC and can shift the shown day in US zones).
-        last_modified: r["Last Modified Date"]
-          ? String(r["Last Modified Date"]).replace(" ", "T")
-          : null,
-        agency: r["Awarding Agency"] ? String(r["Awarding Agency"]) : null,
-        set_aside: r["Set Aside Type"] ? String(r["Set Aside Type"]) : null,
-      }));
-      try {
-        await sql()`INSERT INTO live_awards_cache (cache_key, data) VALUES (${CACHE_KEY}, ${JSON.stringify(awards)}::jsonb) ON CONFLICT (cache_key) DO UPDATE SET data=EXCLUDED.data, computed_at=NOW()`;
-      } catch (err) {
-        // cache write failure — still serve the live rows for this request
-        console.error("[homepage] live_awards_cache write failed:", err);
-      }
-      return { awards, updatedAt: new Date().toISOString() };
-    }
-  } catch (err) {
-    // API unreachable — never break SSR: fall back to stale cache, else []
-    console.error("[homepage] USAspending live-awards fetch failed:", err);
-  }
-
-  try {
-    const stale = await readCache();
-    if (stale) return stale;
-  } catch { /* no cache — hide the section */ }
-  return { awards: [], updatedAt: null };
-});
-
-// ── Live Award Feed — per-certification view ─────────────────────────────────
-// Backs the "I am a:" selector above the feed. USAspending's search rows do
-// NOT return a per-row "Set Aside Type" value (verified 2026-08-15 — it comes
-// back null), so the ONLY truthful evidence of an award's type is the filter
-// it was fetched under. We therefore fetch per cert (one code per call) and
-// tag every row with that code — never a fabricated label. Same 12h cache /
-// fresh-first / stale-on-error / never-500 pattern as getLiveAwards above.
-const CERT_CODE_LABELS: Record<string, string> = {
-  "8A": "8(a)",
-  SDVOSBC: "SDVOSB",
-  WOSB: "WOSB",
-  HZC: "HUBZone",
-  SBA: "Small Business",
-};
-
-const getLiveAwardsByCert = createServerFn({ method: "GET" }).handler(async ({
-  data: certCode,
-}: {
-  data: string;
-}): Promise<{ awards: LiveAward[]; updatedAt: string | null }> => {
-  const { sql } = await import("~/db");
-  // Guard the cache table against junk keys from anything but the 5 chips.
-  if (!CERT_CODE_LABELS[certCode]) return { awards: [], updatedAt: null };
-  const CACHE_KEY = `setaside-cert-${certCode}-v1`;
-  const readCache = async () => {
-    const rows = await sql()`
-      SELECT data, computed_at FROM live_awards_cache
-      WHERE cache_key=${CACHE_KEY}
-      ORDER BY computed_at DESC NULLS LAST
-      LIMIT 1
-    `;
-    if (!rows.length) return null;
-    const c: any = rows[0];
-    return {
-      awards: Array.isArray(c.data) ? (c.data as LiveAward[]) : [],
-      updatedAt: c.computed_at ? new Date(c.computed_at).toISOString() : null,
-    };
-  };
-
-  try {
-    await sql()`CREATE TABLE IF NOT EXISTS live_awards_cache (id SERIAL PRIMARY KEY, cache_key TEXT NOT NULL UNIQUE, data JSONB NOT NULL DEFAULT '[]'::jsonb, computed_at TIMESTAMPTZ DEFAULT NOW())`;
-    const fresh = await sql()`
-      SELECT data, computed_at FROM live_awards_cache
-      WHERE cache_key=${CACHE_KEY} AND computed_at > NOW() - INTERVAL '12 hours'
-      LIMIT 1
-    `;
-    if (fresh.length) {
-      const c: any = fresh[0];
-      return {
-        awards: Array.isArray(c.data) ? (c.data as LiveAward[]) : [],
-        updatedAt: c.computed_at ? new Date(c.computed_at).toISOString() : null,
-      };
-    }
-  } catch (err) {
-    console.error("[homepage] live_awards_cache read failed:", err);
-  }
-
-  try {
-    const end = new Date().toISOString().slice(0, 10);
-    const start = new Date(Date.now() - 90 * 864e5).toISOString().slice(0, 10);
-    const data = await usaSpendingSearch({
-      filters: {
-        time_period: [{ start_date: start, end_date: end, date_type: "action_date" }],
-        award_type_codes: ["A", "B", "C", "D"], // contracts only — required with time_period
-        set_aside_type_codes: [certCode], // single code — the row tag below is truthful
-      },
-      fields: ["Award ID", "Recipient Name", "Award Amount", "Start Date", "Awarding Agency", "Set Aside Type", "Description", "Last Modified Date"],
-      limit: 25, // over-fetch so recipient dedupe still yields 5 distinct rows
-      page: 1,
-      order: "desc",
-      sort: "Last Modified Date",
-      subawards: false,
-    });
-    const results = (data?.results || []).filter(
-      (r) => r && r["Recipient Name"] && r["Award Amount"] != null,
-    );
-    if (results.length) {
-      // One row per recipient, newest-first, keep 5 — same shape as the All view.
-      const seen = new Set<string>();
-      const unique = results.filter((r) => {
-        const name = String(r["Recipient Name"]).trim().toLowerCase();
-        if (seen.has(name)) return false;
-        seen.add(name);
-        return true;
-      });
-      const awards: LiveAward[] = unique.slice(0, 5).map((r) => ({
-        award_id: String(r["Award ID"] || r.internal_id || ""),
-        recipient: String(r["Recipient Name"]),
-        amount: Number(r["Award Amount"]) || 0,
-        last_modified: r["Last Modified Date"]
-          ? String(r["Last Modified Date"]).replace(" ", "T")
-          : null,
-        agency: r["Awarding Agency"] ? String(r["Awarding Agency"]) : null,
-        set_aside: r["Set Aside Type"] ? String(r["Set Aside Type"]) : null,
-        cert: certCode,
-        certLabel: CERT_CODE_LABELS[certCode] || certCode,
-      }));
-      try {
-        await sql()`INSERT INTO live_awards_cache (cache_key, data) VALUES (${CACHE_KEY}, ${JSON.stringify(awards)}::jsonb) ON CONFLICT (cache_key) DO UPDATE SET data=EXCLUDED.data, computed_at=NOW()`;
-      } catch (err) {
-        console.error("[homepage] live_awards_cache write failed:", err);
-      }
-      return { awards, updatedAt: new Date().toISOString() };
-    }
-  } catch (err) {
-    console.error("[homepage] USAspending per-cert live-awards fetch failed:", err);
-  }
-
-  try {
-    const stale = await readCache();
-    if (stale) return stale;
-  } catch { /* no cache — honest empty state */ }
-  return { awards: [], updatedAt: null };
-});
-
-const getUserCount = async () => {
-  try {
-    const { sql } = await import("~/db");
-    const rows = await sql()`SELECT COUNT(*)::int AS count FROM users WHERE LOWER(COALESCE(email,'')) NOT LIKE '%@test.contrax'`;
-    return Number((rows[0] as any)?.count || 0);
-  } catch {
-    // users table may not exist yet — fall back to generic social-proof copy
-    return 0;
-  }
-};
-const getFarClauseCounts = async (): Promise<{
-  total: number;
-  far: number;
-  dfars: number;
-} | null> => {
-  try {
-    const { sql } = await import("~/db");
-    const rows = await sql()`
-      SELECT source, COUNT(*)::int AS count
-      FROM far_clauses
-      GROUP BY source
-    `;
-    let total = 0;
-    let far = 0;
-    let dfars = 0;
-    for (const row of rows as { source?: string | null; count?: number }[]) {
-      const count = Number(row?.count || 0);
-      total += count;
-      if (row?.source === "far") far = count;
-      else if (row?.source === "dfars") dfars = count;
-    }
-    return { total, far, dfars };
-  } catch (err) {
-    // far_clauses may not exist yet (pre-first-sync DB) — hide the strip
-    // rather than break the page or show unverifiable numbers.
-    console.error("[homepage] failed to load FAR/DFARS clause counts:", err);
-    return null;
-  }
-};
 // Honest "Tracking N active solicitations across M agencies" hero stat.
 // N = number of DISTINCT active (due_date > now()) solicitations deduped on
 // the natural key (title, agency) — NOT the raw COUNT(*) which is inflated by
@@ -515,84 +169,11 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
     return { activeCount: 0, agencyCount: 0 };
   }
 };
-// Distinct dollar total of the federal awards we track (Live Award Feed +
-// per-certification views). Award amounts carry REAL values from USAspending
-// (unlike solicitation `estimated_value`, which is "Not specified" on 99.9% of
-// bid rows). The same award repeats across cache keys, so we dedupe by
-// award_id (taking the max amount per id) and NEVER sum raw rows — that
-// double-counts to ~$214.8M vs the honest ~$214.2M. Fail-open: if the cache
-// table or any award data is unavailable, return 0 so the caller hides ONLY
-// this stat rather than breaking the page.
-const getAwardDollarTotal = async (): Promise<number> => {
-  try {
-    const { sql } = await import("~/db");
-    const rows = await sql()`SELECT data FROM live_awards_cache`;
-    const maxByAward = new Map<string, number>();
-    let any = false;
-    for (const r of rows as { data?: unknown }[]) {
-      const arr = Array.isArray(r?.data) ? (r.data as { award_id?: string; amount?: number }[]) : [];
-      for (const a of arr) {
-        const id = String(a?.award_id ?? "");
-        const amt = Number(a?.amount);
-        if (!id || !Number.isFinite(amt) || amt <= 0) continue;
-        any = true;
-        maxByAward.set(id, Math.max(maxByAward.get(id) ?? 0, amt));
-      }
-    }
-    if (!any) return 0;
-    let total = 0;
-    for (const v of maxByAward.values()) total += v;
-    return total;
-  } catch {
-    // cache table/query unavailable — hide the stat row entirely
-    return 0;
-  }
-};
-const getPerCertCounts = async (): Promise<Record<string, number>> => {
-  // REAL active set-aside counts for the Personalization Hook, computed at SSR
-  // time from the bids table (never fabricated). Keyed by the same cert ids the
-  // "I am a:" selector uses. "Small Business" = ALL active set-asides
-  // (set_aside IS NOT NULL) — honest by definition, because a federal
-  // "set-aside" is reserved exclusively for small business, so every set-aside
-  // row IS a small-business competition. Unrestricted (NULL set_aside)
-  // solicitations are deliberately NOT counted as "small business" — they are
-  // full-and-open and would overstate the niche.
-  try {
-    const { sql } = await import("~/db");
-    // Dedupe on the natural key (title, agency) so multi-source duplicate rows
-    // can't inflate the per-cert personalization counts (PR #171 stays intact,
-    // but reports honest distinct active set-asides).
-    const rows = await sql()`
-      SELECT set_aside, COUNT(*)::int AS n FROM (
-        SELECT DISTINCT ON (title, agency) set_aside
-        FROM bids
-        WHERE due_date > NOW() AND set_aside IS NOT NULL
-        ORDER BY title, agency
-      ) d
-      GROUP BY set_aside
-    `;
-    const counts: Record<string, number> = { "8a": 0, sdvosb: 0, wosb: 0, hubzone: 0, sb: 0 };
-    let totalSetAside = 0;
-    for (const r of rows as { set_aside: string | null; n: number }[]) {
-      if (!r.set_aside) continue; // unrestricted / full-and-open — not a set-aside
-      totalSetAside += r.n;
-      if (r.set_aside === "8(a)") counts["8a"] = r.n;
-      else if (r.set_aside === "SDVOSB") counts.sdvosb = r.n;
-      else if (r.set_aside === "WOSB") counts.wosb = r.n;
-      else if (r.set_aside === "HUBZone") counts.hubzone = r.n;
-    }
-    counts.sb = totalSetAside; // all set-asides = all small-business competitions
-    return counts;
-  } catch {
-    // bids table unavailable — return zeroed counts so the personalization
-    // card hides rather than showing a fabricated number or breaking SSR.
-    return { "8a": 0, sdvosb: 0, wosb: 0, hubzone: 0, sb: 0 };
-  }
-};
+
 const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }: { data?: { q?: string } }) => {
   const q = data?.q?.trim() ?? "";
   const { sql } = await import("~/db");
-  const [businessName, user, recentBids, todayBids, liveAwards, userCount, bidStats, farClauseCounts, awardDollarTotal, perCertCounts, closingSoon, contractMap, liveOpportunities] = await Promise.all([
+  const [businessName, user, recentBids, todayBids, bidStats, contractMap, liveOpportunities] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -606,13 +187,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }
     getCurrentUser(),
     getRecentBids({ data: { q } }),
     getTodayBids({ data: { q } }),
-    getLiveAwards(),
-    getUserCount(),
     getBidStats(),
-    getFarClauseCounts(),
-    getAwardDollarTotal(),
-    getPerCertCounts(),
-    getClosingSoonBids(),
     getContractMapAggregate(),
     getLiveOpportunities(),
   ]);
@@ -625,7 +200,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async ({ data }
       alertCount = Number((rows[0] as any)?.count || 0);
     } catch { /* table or query failed — safe to return 0 */ }
   }
-  return { businessName, user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, awardDollarTotal, perCertCounts, closingSoon, contractMap, openCount, liveOpportunities, q };
+  return { businessName, user, bids, alertCount, bidStats, todayBids, contractMap, openCount, liveOpportunities, q };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -735,7 +310,7 @@ function PartnershipBanner() {
 
 function Home() {
 
-  const { user, bids, alertCount, userCount, bidStats, todayBids, farClauseCounts, liveAwards, closingSoon, contractMap, liveOpportunities, q } = Route.useLoaderData();
+  const { user, bids, alertCount, bidStats, todayBids, contractMap, liveOpportunities, q } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -766,30 +341,28 @@ function Home() {
       />
       <PartnershipBanner />
       <Navbar user={user} alertCount={alertCount} />
-      <Hero userCount={userCount} bidStats={bidStats} openOppCount={contractMap.totals.totalOpen} cert={certId} q={q || ""} onSelectCert={selectCert} />
+      <Hero bidStats={bidStats} openOppCount={contractMap.totals.totalOpen} cert={certId} q={q || ""} onSelectCert={selectCert} />
       {/* Contract Radar match-finder — embedded in the homepage hero region
           (owner-directed 2026-09-04): the same interactive walk (trade/state/
           cert/size → real scan, first-3-free, full incumbent intel, gate at
           match 4, save-your-matches lead capture) as /radar. */}
       <HeroRadar initialCert={certId} />
-      {/* Live set-aside opportunities — right under the hero; real bids table
+      {/* U.S. Contract Map — directly under the radar finder (owner direction
+          2026-09-04): same real SAM.gov + state & city solicitations aggregate,
+          repositioned straight after the match-finder. */}
+      <OpportunityMap aggregate={contractMap} />
+      {/* Live set-aside opportunities — right under the map; real bids table
           rows wired to the AI Executive Brief flow. Vanishes entirely when
           there are zero open bids (undefined-safe empty guard). */}
       <LiveOpportunities bids={liveOpportunities} />
-      {/* Real example AI Executive Brief — directly under the hero, before the map (owner). */}
+      {/* Real example AI Executive Brief — real bids, summarized. */}
       <Suspense fallback={null}>
         <ExampleBrief variant="embed" />
       </Suspense>
-      <OpportunityMap aggregate={contractMap} />
-      <ClosingSoon bids={closingSoon} />
       <HowItWorks />
-      <LiveAwardFeed feed={liveAwards} activeId={certId} onSelectId={selectCert} />
-      <FarClauseStats stats={farClauseCounts} />
       <ProductShowcase />
       <Pricing />
       <OpenOpportunities bids={bids} todayBids={todayBids} openCount={contractMap.totals.totalOpen} q={q || ""} user={user} />
-      <HealthcareTeaser />
-      <CompareTeaser />
       <WaitlistSection />
       <Footer />
     </div>
@@ -992,17 +565,25 @@ function Navbar({ user, alertCount }: { user: { id: number; email: string } | nu
   );
 }
 
+// ── Certification chips for the hero "I am a:" selector ─────────────────────
+const CERT_CHIPS = [
+  { id: "all", label: "All set-asides", code: null as string | null },
+  { id: "8a", label: "8(a)", code: "8A" },
+  { id: "sdvosb", label: "SDVOSB", code: "SDVOSBC" },
+  { id: "wosb", label: "WOSB", code: "WOSB" },
+  { id: "hubzone", label: "HUBZone", code: "HZC" },
+  { id: "sb", label: "Small Business", code: "SBA" },
+];
+
 // ── Hero ──────────────────────────────────────────────────────────────────────
 
 function Hero({
-  userCount,
   bidStats,
   openOppCount,
   cert,
   q,
   onSelectCert,
 }: {
-  userCount: number;
   bidStats: { activeCount: number; agencyCount: number };
   openOppCount: number;
   cert: string;
@@ -1186,14 +767,6 @@ function Hero({
             </a>
           </div>
 
-          <p className="mt-5 flex items-center justify-center gap-1.5 text-sm text-blue-200/70">
-            <svg className="h-4 w-4 shrink-0 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            {userCount >= 5
-              ? `Join ${userCount.toLocaleString()} small ${userCount === 1 ? "business" : "businesses"} already using Contrax`
-              : "Join a growing community of small businesses using Contrax"}
-          </p>
         </div>
       </div>
       {/* Bottom fade */}
@@ -1375,268 +948,7 @@ function OpportunityMap({ aggregate }: { aggregate: ContractMapAggregate }) {
   );
 }
 
-// ── FAR/DFARS Trust Strip ────────────────────────────────────────────────────
-// Compact stats strip advertising the live FAR/DFARS clause corpus. Counts come
-// from the DB at SSR time (getFarClauseCounts above) — never hardcoded. If the
-// query fails or the table is empty the strip renders nothing rather than
-// breaking the page or showing unverifiable numbers.
-function FarClauseStats({
-  stats,
-}: {
-  stats: { total: number; far: number; dfars: number } | null;
-}) {
-  if (!stats || stats.total <= 0) return null;
-  return (
-    <section
-      className="border-b border-gray-100 bg-white py-12 sm:py-16"
-      aria-label="FAR and DFARS clause database"
-    >
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="flex flex-col items-center gap-8 lg:flex-row lg:justify-between lg:gap-12">
-          <h2 className="max-w-lg text-center text-2xl font-bold tracking-tight text-slate-900 lg:text-left">
-            The verified FAR &amp; DFARS clause library.{" "}
-            <span className="bg-gradient-to-r from-amber-500 to-amber-600 bg-clip-text text-transparent">
-              Built into every draft.
-            </span>
-          </h2>
-          <p className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl lg:text-right">
-            Search {stats.total.toLocaleString()} verified FAR and DFARS clauses — free.
-          </p>
-        </div>
-        <div className="mt-5 text-center">
-          <a
-            href="/clauses"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
-          >
-            Browse the FAR Clause Library — {stats.total.toLocaleString()} real clauses, free
-            <span aria-hidden="true">&rarr;</span>
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
 
-// ── Live Award Feed ────────────────────────────────────────────────────────────
-// Renders REAL recent SET-ASIDE federal contract awards (SBA set-aside
-// programs only — 8(a), SDVOSB, WOSB, HUBZone, VOSB) from USAspending.gov
-// (cached by getLiveAwards above, 12h TTL). Self-hides when there are no rows —
-// the same graceful pattern as FarClauseStats — so an API/cache failure never
-// breaks SSR.
-const money = (n: number) =>
-  n >= 1e9 ? `$${(n / 1e9).toFixed(1)}B`
-  : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M`
-  : n >= 1e3 ? `$${(n / 1e3).toFixed(0)}K`
-  : `$${Math.round(n).toLocaleString()}`;
-
-function fmtAwardDate(d: string | null): string | null {
-  if (!d) return null;
-  const date = new Date(d);
-  if (Number.isNaN(date.getTime())) return null;
-  const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  });
-}
-
-function fmtFeedUpdated(iso: string): string | null {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
-
-// ── Live Award Feed ────────────────────────────────────────────────────────────
-// Renders REAL recent SET-ASIDE federal contract awards (SBA set-aside
-// programs only — 8(a), SDVOSB, WOSB, HUBZone, VOSB) from USAspending.gov
-// (cached by getLiveAwards above, 12h TTL). Self-hides when there are no rows —
-// the same graceful pattern as FarClauseStats — so an API/cache failure never
-// breaks SSR.
-//
-// "I am a:" certification selector: chips [All set-asides] [8(a)] [SDVOSB]
-// [WOSB] [HUBZone] [Small Business]. "All set-asides" is the default and uses
-// the SSR feed untouched (no regression on the default homepage path). Picking
-// a cert calls getLiveAwardsByCert client-side, which fetches that ONE set-
-// aside code from USAspending and tags every row with the code it was fetched
-// under (the only truthful type evidence — per-row "Set Aside Type" is null).
-// A cert with zero rows shows an honest empty state, never a fabricated count.
-const CERT_CHIPS = [
-  { id: "all", label: "All set-asides", code: null as string | null },
-  { id: "8a", label: "8(a)", code: "8A" },
-  { id: "sdvosb", label: "SDVOSB", code: "SDVOSBC" },
-  { id: "wosb", label: "WOSB", code: "WOSB" },
-  { id: "hubzone", label: "HUBZone", code: "HZC" },
-  { id: "sb", label: "Small Business", code: "SBA" },
-];
-
-function LiveAwardFeed({
-  feed,
-  activeId,
-  onSelectId,
-}: {
-  feed: { awards: LiveAward[]; updatedAt: string | null };
-  activeId: string;
-  onSelectId: (id: string) => void;
-}) {
-  const [certFeed, setCertFeed] = useState<{ awards: LiveAward[]; updatedAt: string | null } | null>(null);
-  const [loading, setLoading] = useState(false);
-  const reqRef = useRef(0); // stale-response guard for rapid chip switches
-  // Fetch the per-cert feed whenever the selection changes. The selection
-  // (activeId) lives in Home — shared by the top-of-page Personalization Hook
-  // and this chip row — so both mirrored controls stay in lockstep (one source
-  // of truth). All hooks run unconditionally (before the self-hide return below).
-  useEffect(() => {
-    if (activeId === "all") {
-      setCertFeed(null);
-      setLoading(false);
-      return;
-    }
-    const chip = CERT_CHIPS.find((c) => c.id === activeId);
-    setCertFeed(null); // never show a previous cert's rows under a new headline
-    if (!chip?.code) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    const req = ++reqRef.current;
-    getLiveAwardsByCert({ data: chip.code as string })
-      .then((result) => {
-        if (req === reqRef.current) setCertFeed(result);
-      })
-      .catch(() => {
-        // API failure — honest empty state, never a 500 in the UI
-        if (req === reqRef.current) setCertFeed({ awards: [], updatedAt: null });
-      })
-      .finally(() => {
-        if (req === reqRef.current) setLoading(false);
-      });
-  }, [activeId]);
-
-  const allAwards = feed?.awards || [];
-  if (!allAwards.length) return null; // graceful self-hide (FAR-strip pattern); hooks already run above
-
-  const activeChip = CERT_CHIPS.find((c) => c.id === activeId) || CERT_CHIPS[0];
-  const showAll = activeId === "all";
-  const awards = showAll ? allAwards : certFeed?.awards || [];
-  const updatedIso = showAll ? feed.updatedAt : certFeed?.updatedAt ?? null;
-  const updated = updatedIso ? fmtFeedUpdated(updatedIso) : null;
-
-  const subheadline = showAll
-    ? `Recent set-aside awards already won · 8(a) · SDVOSB · WOSB · HUBZone · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`
-    : `Recent ${activeChip.label} set-aside awards already won · Source: USAspending.gov${updated ? ` · Updated ${updated}` : ""}`;
-
-  return (
-    <section id="live-award-feed" className="border-b border-gray-100 bg-white py-12 sm:py-16" aria-label="Recent set-aside federal contract awards">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 text-center">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500" />
-            </span>
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">Recent Awards</h2>
-          </div>
-          <p className="text-sm text-gray-500">{subheadline}</p>
-        </div>
-        <p className="mx-auto mt-3 max-w-2xl text-center text-sm leading-relaxed text-gray-500">
-          Real set-aside contracts that have already been awarded — what the incumbents won, so you know what to bid next. Different from the open solicitations below, which you can compete for right now.
-        </p>
-
-        {/* "I am a:" certification selector — wraps on mobile, no horizontal overflow */}
-        <div className="mx-auto mt-8 flex max-w-4xl flex-wrap items-center justify-center gap-x-2 gap-y-2">
-          <span className="mr-1 whitespace-nowrap text-sm font-semibold text-gray-500">I am a:</span>
-          {CERT_CHIPS.map((chip) => {
-            const isActive = chip.id === activeId;
-            return (
-              <button
-                key={chip.id}
-                type="button"
-                onClick={() => onSelectId(chip.id)}
-                aria-pressed={isActive}
-                className={`rounded-full border px-4 py-2 text-sm font-semibold transition-colors ${
-                  isActive
-                    ? "border-slate-900 bg-slate-900 text-white shadow-sm"
-                    : "border-gray-300 bg-white text-gray-700 hover:border-slate-400 hover:text-slate-900"
-                }`}
-              >
-                {chip.label}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="mx-auto mt-6 max-w-4xl divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          {loading ? (
-            <div className="px-5 py-6 text-center">
-              <p className="text-sm font-medium text-gray-500">
-                Loading recent {activeChip.label} set-aside awards…
-              </p>
-            </div>
-          ) : awards.length ? (
-            awards.map((award, i) => {
-              const date = fmtAwardDate(award.last_modified);
-              return (
-                <div
-                  key={award.award_id || `${award.recipient}-${award.amount}-${i}`}
-                  className="flex flex-col gap-2 px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold text-slate-900" title={award.recipient}>
-                      {award.recipient}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-gray-500">
-                      {award.agency || "Federal agency"}
-                      {date ? ` · ${date}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-1">
-                    <span className="text-sm font-bold text-emerald-600">{money(award.amount)}</span>
-                    {award.certLabel || award.set_aside ? (
-                      <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
-                        {award.certLabel || award.set_aside}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <div className="px-5 py-10 text-center">
-              <p className="text-sm font-semibold text-slate-900">
-                No recent {activeChip.label} set-aside awards in the feed right now
-              </p>
-              <p className="mt-1 text-xs text-gray-500">
-                Source: USAspending.gov — check back soon, or view the full set-aside feed.
-              </p>
-              <button
-                type="button"
-                onClick={() => onSelectId("all")}
-                className="mt-4 inline-flex items-center justify-center rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-800 transition-colors hover:border-slate-400 hover:text-slate-900"
-              >
-                Show all set-asides
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-10 text-center">
-          <a
-            href="/awards#feed"
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/20 transition-all hover:bg-slate-800 hover:shadow-xl"
-          >
-            Explore recent awards & incumbent intel →
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 // ── Product Showcase ──────────────────────────────────────────────────────────
 
@@ -1742,211 +1054,17 @@ function ProductShowcase() {
             </a>
           </div>
         </div>
-        {/* Bridge — the live feed now sits above the showcase (demo arc) */}
         <p className="mt-10 text-center text-sm text-gray-500">
-          The live set-aside awards above are real, straight from USAspending.gov — Contrax is how you go from seeing them to winning them.
+          Real set-aside opportunities are live on this page — Contrax is how you go from seeing them to winning them.
         </p>
       </div>
     </section>
   );
 }
 
-// ── Today's Solicitations ─────────────────────────────────────────────────────
-// Normalizes raw SAM.gov set-aside labels to the app's brand names for badges.
-function setAsideLabel(raw: string | null | undefined): string | null {
-  if (!raw) return null;
-  const lower = raw.trim().toLowerCase();
-  const map: Record<string, string> = {
-    sba: "8(a)",
-    "8a": "8(a)",
-    "8(a)": "8(a)",
-    sdvosbc: "SDVOSB",
-    sdvosb: "SDVOSB",
-    vosbc: "VOSB",
-    vosb: "VOSB",
-    wosb: "WOSB",
-    edwosb: "EDWOSB",
-    "wosb/edwosb": "WOSB/EDWOSB",
-    hzc: "HUBZone",
-    hubzone: "HUBZone",
-  };
-  if (map[lower]) return map[lower];
-  if (lower.includes("8(a)") || (lower.includes("8a") && lower.includes("sba"))) return "8(a)";
-  if (lower.includes("service-disabled") || lower.includes("sdvosb")) return "SDVOSB";
-  if (lower.includes("economically disadvantaged")) return "EDWOSB";
-  if (lower.includes("women-owned") || lower.includes("women owned") || lower.includes("wosb")) return "WOSB";
-  if (lower.includes("veteran-owned") || lower.includes("veteran owned") || lower.includes("vosb")) return "VOSB";
-  if (lower.includes("hubzone") || lower.includes("hub zone")) return "HUBZone";
-  return null; // unknown designation — hide the badge on the public teaser
-}
-
-// ── Closing Soon ─────────────────────────────────────────────────────────────
-// "⏰ Closing in the next 7 days:" urgency section rendered directly above Open
-// Opportunities. Lists REAL solicitations whose due_date is in (NOW, NOW+7d],
-// deduped + low-content-filtered by the same shared SQL patterns as the feed.
-// Sorted soonest-first; due dates within 48h are highlighted in amber for
-// urgency. Value is the real estimated_value formatted as currency when numeric,
-// otherwise the honest "Not specified" — never invented or rounded up. Set-Aside
-// uses the same setAsideLabel() badge logic as the rest of the page. When the
-// set is empty it shows an honest note — never pads with fake or overdue rows.
-const fmtClosingDue = (d: string | null) => {
-  // Normalize through the shared toISODate() helper (awards.tsx, PR #175) —
-  // NEVER String(d).slice(0, 10), which parses to the fixed year 2001. Build
-  // the calendar date from the ISO y/m/d so the shown day is the real due day
-  // regardless of server timezone.
-  const iso = toISODate(d);
-  if (!iso) return null;
-  const parts = iso.split("-").map(Number);
-  if (parts.length < 3 || parts.some((n) => !Number.isFinite(n))) return null;
-  const date = new Date(parts[0], parts[1] - 1, parts[2]);
-  if (Number.isNaN(date.getTime())) return null;
-  const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  });
-};
-const formatClosingValue = (v: string | null) => {
-  if (!v) return "Not specified";
-  const amount = Number(v);
-  if (Number.isFinite(amount) && String(v).trim() !== "") {
-    return amount.toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 0,
-    });
-  }
-  return "Not specified";
-};
-function ClosingSoon({ bids }: { bids: ClosingSoonBid[] }) {
-  const now = Date.now();
-  const within48h = (d: string | null) => {
-    if (!d) return false;
-    const t = new Date(d).getTime();
-    return Number.isFinite(t) && t - now <= 48 * 60 * 60 * 1000;
-  };
-  const headerCols = "grid grid-cols-[2fr_1fr_0.6fr_0.8fr_0.6fr] items-center gap-3 px-5";
-  return (
-    <section
-      id="closing-soon"
-      className="border-b border-amber-200 bg-gradient-to-b from-amber-50/70 to-white py-12 sm:py-16"
-      aria-label="Solicitations closing in the next 7 days"
-    >
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-2 text-center">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
-            </span>
-            <h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
-              ⏰ Closing in the next 7 days:
-            </h2>
-          </div>
-          <p className="text-sm text-gray-600">
-            Deadlines are real — miss one and the set-aside is gone. These close within 7 days, sorted soonest first.
-          </p>
-        </div>
-
-        {bids.length > 0 ? (
-          <>
-            <div className="mt-8 overflow-x-auto">
-              <div className="mx-auto min-w-[720px] max-w-5xl overflow-hidden rounded-2xl border border-amber-200 bg-white shadow-sm">
-                <div className={`${headerCols} border-b border-amber-100 bg-amber-50/70 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500`}>
-                  <span>Title</span>
-                  <span>Agency</span>
-                  <span>Due</span>
-                  <span>Value</span>
-                  <span>Set-Aside</span>
-                </div>
-                <div className="divide-y divide-gray-100">
-                  {bids.map((bid, i) => {
-                    const due = fmtClosingDue(bid.due_date);
-                    const soon = within48h(bid.due_date);
-                    const badge = setAsideLabel(bid.set_aside);
-                    const value = formatClosingValue(bid.estimated_value);
-                    return (
-                      <div key={`${bid.title}|${bid.agency}|${i}`} className={`${headerCols} py-3.5`}>
-                        <a
-                          href={`/signup?bid=${bid.id}&ticker_bid=${encodeURIComponent(bid.title)}&ticker_agency=${encodeURIComponent(bid.agency || "")}&closes=${encodeURIComponent(bid.due_date ?? "")}&value=${encodeURIComponent(bid.estimated_value ?? "")}&next=%2F%23closing-soon`}
-                          title={bid.title}
-                          onClick={() => trackEvent("signup_cta_click", "home_closing_soon_row", "/#closing-soon")}
-                          className="line-clamp-2 text-sm font-semibold text-slate-800 transition-colors hover:text-amber-700"
-                        >
-                          {bid.title}
-                        </a>
-                        <span className="truncate text-xs text-gray-600" title={bid.agency}>
-                          {bid.agency || "Federal agency"}
-                        </span>
-                        <span className={`text-sm font-semibold ${soon ? "text-amber-600" : "text-slate-800"}`}>
-                          {due || "—"}
-                        </span>
-                        <span className="truncate text-xs text-gray-600">{value}</span>
-                        <span>
-                          {badge ? (
-                            <span className="inline-flex items-center rounded-full border border-purple-200 bg-purple-50 px-2.5 py-0.5 text-xs font-semibold text-purple-700">
-                              {badge}
-                            </span>
-                          ) : (
-                            <span className="text-xs text-gray-300">—</span>
-                          )}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-            <p className="mt-4 text-center text-xs text-gray-500">
-              Source: synced SAM.gov &amp; state solicitations · updated every 4 hours
-            </p>
-          </>
-        ) : (
-          <div className="mx-auto mt-8 max-w-xl rounded-xl border border-dashed border-amber-300 bg-white/60 px-6 py-8 text-center">
-            <p className="text-sm font-medium text-slate-700">
-              No solicitations closing in the next 7 days right now
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              New opportunities are synced continuously — check back soon.
-            </p>
-          </div>
-        )}
-        <div className="mt-8 flex justify-center">
-          <a
-            // The `/` and `#` in the return path are URL-encoded (%2F%23) so the
-            // browser treats `/#closing-soon` as PART of the `next` query value,
-            // not as the fragment of the /signup URL. validateSearch decodes it
-            // back to `/#closing-soon`, safeNext() accepts it (same-site relative,
-            // not `//`), and the onboarding redirect (window.location.assign)
-            // preserves the fragment so the user lands scrolled to #closing-soon.
-            href="/signup?plan=starter&next=%2F%23closing-soon"
-            onClick={() => trackEvent("signup_cta_click", "home_closing_soon_button", "/#closing-soon")}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-7 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-600 active:scale-[0.98]"
-          >
-            Start free — track closing deadlines →
-          </a>
-        </div>
-      </div>
-    </section>
-  );
-}
+// (LiveOpportunities + the bid feed own their set-aside label normalization.)
 
 
-// ── Healthcare Teaser (compact link → /healthcare-contracting) ────────────────
-function HealthcareTeaser() {
-  return (
-    <section className="bg-white py-10">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
-        <div>
-          <p className="text-lg font-semibold text-slate-900">🏥 Healthcare Government Contracting</p>
-          <p className="mt-1 text-sm text-gray-500">VA, HHS, DHA, and IHS set-aside opportunities for certified small businesses.</p>
-        </div>
-        <a href="/healthcare-contracting" className="shrink-0 font-semibold text-blue-700 transition-colors hover:text-blue-900">See healthcare contracting opportunities →</a>
-      </div>
-    </section>
-  );
-}
 
 function OpenOpportunities({ bids, todayBids, openCount, q, user }: { bids: Bid[]; todayBids: { bids: TodayBid[]; count: number }; openCount: number; q: string; user: { id: number; email: string } | null }) {
   // Compact strip (owner-directed): the full preview + list + heading duplicated
@@ -2087,20 +1205,6 @@ function HowItWorks() {
   );
 }
 
-// ── Compare Teaser (compact link → /compare) ───────────────────────────────────
-function CompareTeaser() {
-  return (
-    <section className="bg-white py-10">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
-        <div>
-          <p className="text-lg font-semibold text-slate-900">Why small businesses choose Contrax</p>
-          <p className="mt-1 text-sm text-gray-500">See how Contrax stacks up against the alternatives.</p>
-        </div>
-        <a href="/compare" className="shrink-0 font-semibold text-blue-700 transition-colors hover:text-blue-900">See how we compare →</a>
-      </div>
-    </section>
-  );
-}
 
 // ── Pricing ───────────────────────────────────────────────────────────────────
 

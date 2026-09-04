@@ -114,7 +114,7 @@ function PricingPage() {
       </header>
 
       {/* Hero */}
-      <section className="py-16 sm:py-20">
+      <section className="bg-blue-50 py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-6">
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="text-sm font-semibold uppercase tracking-widest text-amber-600">Pricing</h1>

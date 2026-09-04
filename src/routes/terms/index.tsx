@@ -22,7 +22,7 @@ export const Route = createFileRoute("/terms/")({
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { property: "og:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/terms/")({
           "Read Contrax's Terms of Service covering accounts, billing, AI-generated content, acceptable use, and your responsibilities.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
-      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { name: "twitter:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
     ],
     links: [{ rel: "canonical", href: "https://www.contrax.company/terms" }],
   }),
@@ -54,7 +54,7 @@ function TermsPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">2. Description of Service</h2>
-            <p className="mt-3">Contrax is a contract intelligence platform that helps small businesses discover, understand, and respond to government contract opportunities with AI-powered tools.</p>
+            <p className="mt-3">Contrax is a service that helps small businesses discover, understand, and respond to government contract opportunities with AI-powered tools. Tell Contrax what your business does and Radar finds the opportunities that match.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">3. Accounts and Billing</h2>

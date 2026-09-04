@@ -40,7 +40,7 @@ export const Route = createRootRoute({
       { property: "og:site_name", content: "Contrax" },
       { property: "og:image", content: `${PROD_URL}/logo-square.png` },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { property: "og:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
 
@@ -49,7 +49,7 @@ export const Route = createRootRoute({
       { name: "twitter:title", content: SITE_TITLE },
       { name: "twitter:description", content: SITE_DESCRIPTION },
       { name: "twitter:image", content: `${PROD_URL}/logo-square.png` },
-      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { name: "twitter:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

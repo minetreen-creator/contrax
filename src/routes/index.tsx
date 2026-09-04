@@ -669,7 +669,7 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { title: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
       {
         name: "description",
         content:
@@ -679,7 +679,7 @@ export const Route = createFileRoute("/")({
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company" },
-      { property: "og:title", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { property: "og:title", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
       {
         property: "og:description",
         content:
@@ -687,20 +687,20 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { property: "og:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { name: "twitter:title", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
       {
         name: "twitter:description",
         content:
           "Don't know which set-asides your 8(a), SDVOSB, WOSB, or HUBZone certification qualifies you for? Contrax matches you to live federal, state, and city solicitations and extracts the requirements, deadlines, and red flags — so you never miss a set-aside or waste a proposal.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
-      { name: "twitter:image:alt", content: "Contrax — Contract Intelligence Platform for Set-Aside Businesses" },
+      { name: "twitter:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
     ],
     links: [{ rel: "canonical", href: "https://www.contrax.company" }],
   }),
@@ -742,7 +742,7 @@ function Home() {
     "@type": "Organization",
     name: "Contrax",
     description:
-      "Contrax is the contract intelligence platform for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses — finding set-aside opportunities, explaining bid documents, and drafting proposals so certified firms can compete and win.",
+      "Tell Contrax what your business does. Radar finds government opportunities that match — live set-asides for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses, with bid documents explained and proposals drafted so certified firms can compete and win.",
     url: "https://www.contrax.company",
     logo: "https://www.contrax.company/logo-square.png",
     email: "hello@contrax.company",
@@ -1090,9 +1090,9 @@ function Hero({
 
 
           <h1 className="max-w-4xl text-3xl font-bold tracking-tight text-white sm:text-5xl lg:text-5xl">
-            Your certification unlocks set-aside contracts.{" "}
+            Tell Contrax what your business does.{" "}
             <span className="bg-gradient-to-r from-amber-300 to-amber-500 bg-clip-text text-transparent">
-              Find the ones you don&apos;t even know exist.
+              Radar finds government opportunities that match.
             </span>
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-blue-100/80 sm:text-xl">

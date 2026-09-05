@@ -49,7 +49,7 @@ type SignupSearch = {
   // gate's bid/opportunity DB id; `title`/`agency` carry its context so the
   // incumbent banner can name the bid. `radar` continues a Contract Radar scan
   // (criteria read from localStorage — no email capture).
-  source?: "closing_soon" | "incumbent" | "radar";
+  source?: "closing_soon" | "incumbent" | "radar" | "autopsy";
   opportunity_id?: string;
   title?: string;
   agency?: string;
@@ -214,7 +214,7 @@ export const Route = createFileRoute("/signup")({
     bid: typeof search.bid === "string" && /^\d{1,10}$/.test(search.bid) ? search.bid : undefined,
     closes: typeof search.closes === "string" ? search.closes.slice(0, 120) : undefined,
     source:
-      search.source === "closing_soon" || search.source === "incumbent" || search.source === "radar"
+      search.source === "closing_soon" || search.source === "incumbent" || search.source === "radar" || search.source === "autopsy"
         ? search.source
         : undefined,
     opportunity_id:
@@ -774,6 +774,11 @@ function SignupPage() {
       storeRememberedNext(next);
       if (source === "radar") {
         navigate({ to: "/dashboard" });
+      } else if (source === "autopsy") {
+        // Free-First-Autopsy funnel (owner 2026-09-05): the new account lands
+        // DIRECTLY on /autopsy where the stored draft delivers their gifted
+        // COMPLETE first autopsy — the acquisition gift. No onboarding detour.
+        navigate({ to: "/autopsy" });
       } else {
         navigate({ to: "/onboarding" });
       }

@@ -96,6 +96,14 @@ export const EVENT_LABELS: Record<string, string> = {
   pending_draft_created: "Draft created",
   pending_draft_fulfilled: "Draft fulfilled",
   onboarding_match_count: "Onboarding matches shown",
+  // Award Autopsy acquisition funnel (owner 2026-09-05) — stage labels.
+  autopsy_landing: "Why-did-you-lose entry opened",
+  autopsy_contract_entered: "Lost solicitation entered",
+  autopsy_award_found: "Real award found",
+  autopsy_generated: "Autopsy preview generated",
+  autopsy_signup_wall: "Autopsy signup wall shown",
+  autopsy_report_viewed: "Complete autopsy viewed",
+  autopsy_radar_cta: "Radar cross-sell clicked",
 };
 
 function getClientIp(request: Request): string | null {

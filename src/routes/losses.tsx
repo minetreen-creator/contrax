@@ -90,8 +90,8 @@ export const autopsyLoss=createServerFn({method:"POST"}).validator((d:unknown)=>
     return {status:"ok",autopsy,allowance:{...allowance,used:allowance.limit??allowance.used,remaining:0,overLimit:true}};
   }
   const updated=await sql()`UPDATE bid_losses SET autopsy=${JSON.stringify(autopsy)}::jsonb WHERE id=${lossId} AND user_email=${user.email} RETURNING autopsy`;
-  const fresh=mapLoss((updated as any[])[0] ?? {...loss, autopsy: JSON.parse(JSON.stringify(autopsy))});
-  return {status:"ok",autopsy:fresh.autopsy,allowance:{...allowance,used:consumed,remaining:allowance.limit===null?null:Math.max(0,allowance.limit-consumed),overLimit:false}};
+  if(!(updated as any[]).length) throw new Error("Failed to save autopsy");
+  return {status:"ok",autopsy,allowance:{...allowance,used:consumed,remaining:allowance.limit===null?null:Math.max(0,allowance.limit-consumed),overLimit:false}};
 });
 
 export const recordWin=createServerFn({method:"POST"}).validator((d:unknown)=>d as {bidTitle:string;agency:string;estimatedValue:string;naicsCode:string;notes:string}).handler(async({data})=>{const user=await getCurrentUser();if(!user)throw new Error("Not authenticated");await recordOutcomeWithValue(user.email,data.bidTitle,data.agency,data.naicsCode||"",data.estimatedValue||"",true,data.notes||"");return{success:true}});

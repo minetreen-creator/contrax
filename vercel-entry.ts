@@ -138,7 +138,7 @@ const TERMS_HTML = `<!DOCTYPE html>
 // ── Static SEO Pages ──────────────────────────────────────────────────────────
 
 const SEO_HEAD = `<link rel="stylesheet" href="/assets/${APP_CSS}">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="icon" type="image/png" href="/logo-square.png">
 ${PRELOAD_URLS.map((u) => `<link rel="modulepreload" href="${u}">`).join("\n")}`;
 
 const SEO_NAV = `<nav class="sticky top-0 z-50 bg-slate-900 border-b border-slate-700"><div class="mx-auto flex max-w-7xl items-center gap-1 px-6 py-2"><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/">📄 Contracts</a><a class="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:text-white hover:bg-slate-800" href="/learn">📚 Learn</a></div></nav>`;

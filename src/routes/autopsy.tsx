@@ -24,7 +24,7 @@ import { trackEvent } from "~/lib/track";
  * standard free-Basic flow (no card = free forever). When the new account
  * returns here, stage 3 (complete report) is delivered as the one-time gift.
  *
- * The ⚡ Contrax Learning memory stays PAID-ONLY (Starter+) — never on this
+ * The ⚡ Contrax Learning memory stays PAID-ONLY (Professional+) — never on this
  * path (no bid_losses row, no memory banner), server-gated exactly as today.
  */
 
@@ -56,8 +56,6 @@ export const getPublicPreview = createServerFn({ method: "POST" })
       agency: draft.agency,
       naicsCode: draft.naicsCode,
       estimatedValue: draft.estimatedValue,
-      paid: false, // preview = demo fields only (winner/amount/difference)
-      deeper: false,
     });
     return {
       found: autopsy.found,

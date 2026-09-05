@@ -3,6 +3,13 @@ import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { RfpSummaryCard } from "~/components/RfpSummaryCard";
+import { getCurrentUser } from "~/lib/auth";
+import {
+  effectiveAutopsyTier,
+  LEARNING_TIERS,
+  findPriorLossForBid,
+  type PriorLossBadge,
+} from "~/lib/award-autopsy";
 
 /**
  * /bid/$id — minimal per-bid detail surface that hosts the AI RFP Executive
@@ -22,6 +29,8 @@ interface BidDetail {
   due_date: string | null;
   estimated_value: string | null;
   source_url: string | null;
+  /** Contrax Learning ⚡ memory (PAID-ONLY, Starter+ — never Basic). */
+  learned: PriorLossBadge | null;
 }
 
 const getBid = createServerFn({ method: "GET" })
@@ -34,13 +43,29 @@ const getBid = createServerFn({ method: "GET" })
     try {
       const rows = (await sql()`
         SELECT id, title, agency, description, location, set_aside,
-               due_date, estimated_value, source_url
+               due_date, estimated_value, source_url, naics_code
         FROM bids
         WHERE id = ${id}
         LIMIT 1
       `) as any[];
       if (!rows.length) return null;
       const r = rows[0];
+      // Contrax Learning ⚡ memory (PAID-ONLY, Starter+): only the SAME user's
+      // autopsied losses ever surface, and only on a paid tier. Anonymous
+      // visitors and Basic users get no banner. Failure → no banner.
+      let learned: PriorLossBadge | null = null;
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          const tier = await effectiveAutopsyTier(user.id, user);
+          if (LEARNING_TIERS.has(tier)) {
+            learned = await findPriorLossForBid(user.email, r.agency ? String(r.agency) : null, r.naics_code ? String(r.naics_code) : null);
+          }
+        }
+      } catch (e) {
+        console.error("[bid/$id] learning banner failed (no banner):", e);
+        learned = null;
+      }
       return {
         id: Number(r.id),
         title: String(r.title ?? ""),
@@ -51,6 +76,7 @@ const getBid = createServerFn({ method: "GET" })
         due_date: r.due_date ? String(r.due_date) : null,
         estimated_value: r.estimated_value ? String(r.estimated_value) : null,
         source_url: r.source_url ? String(r.source_url) : null,
+        learned,
       };
     } catch (e) {
       console.error("[bid/$id] load failed:", e);
@@ -103,6 +129,18 @@ function BidDetailPage() {
 
         {bid && (
           <>
+            {bid.learned && (
+              <div className="mt-6 rounded-2xl border border-amber-500/50 bg-amber-500/10 px-5 py-4">
+                <p className="text-sm font-bold text-amber-300">⚡ Contrax learned from your previous loss</p>
+                <p className="mt-1 text-sm leading-relaxed text-amber-100">
+                  This opportunity resembles the contract you lost in {bid.learned.month}. Your previous bid was{" "}
+                  {bid.learned.priceDiffPct.toFixed(1)}% {bid.learned.direction} the winning price. Suggested action:{" "}
+                  {bid.learned.direction === "above"
+                    ? "Review pricing before pursuing."
+                    : "Price was competitive — review scope and past performance."}
+                </p>
+              </div>
+            )}
             <article className="mt-6 overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
               <div className="border-b border-slate-800 px-5 py-4">
                 <h1 className="text-lg font-extrabold leading-snug text-white">

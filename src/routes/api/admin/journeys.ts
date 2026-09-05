@@ -5,6 +5,7 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
+import { getWatchedMap } from "~/lib/visitor-intel";
 
 /**
  * GET /api/admin/journeys?days=30
@@ -131,6 +132,12 @@ interface Journey {
   steps: number; // step count — the collapsed "Steps" count (timeline is lazy)
   badges: JourneyBadge[];
   events: TimelineItem[]; // RELIABLY EMPTY on the board — timeline fetched lazily
+  // Watch-state enrichment (owner spec 2026-09-05) — set after the watched-map
+  // lookup; false/unset for the vast majority of rows.
+  watched?: boolean;
+  watched_since?: string | null;
+  /** Active AFTER the admin last viewed this visitor (server-authoritative). */
+  returned_since_view?: boolean;
 }
 interface FunnelStage {
   stage: "qualified" | "radar" | "signup" | "activated" | "paid";
@@ -144,6 +151,14 @@ interface JourneysResult {
   to: string;
   funnel: FunnelStage[];
   journeys: Journey[];
+  /** Watched visitors active since the admin last viewed them (PII-masked). */
+  watched_returned: {
+    visitor_id: string;
+    label: string;
+    visitor_hash: string | null;
+    last_activity: string | null;
+    watched_since: string | null;
+  }[];
 }
 
 const EMPTY: JourneysResult = {
@@ -152,6 +167,7 @@ const EMPTY: JourneysResult = {
   to: "",
   funnel: [],
   journeys: [],
+  watched_returned: [],
 };
 
 /** last-4 of a visitor id for the subtle "#last4" debugging badge. */
@@ -672,6 +688,41 @@ async function handler({ request }: { request: Request }) {
     // Newest activity first.
     all.sort((a, b) => (b.last_activity ?? "").localeCompare(a.last_activity ?? ""));
 
+    // ── Watched-visitor enrichment (owner spec 2026-09-05): one indexed query
+    // for the whole board via the shared watched-map helper. A row is
+    // `returned_since_view` when its newest activity happened AFTER the admin
+    // last viewed it — this is the server-authoritative signal the UI banner
+    // lists. Fail-open: without the table the board renders unflagged.
+    let watchedMap = new Map<string, { added_at: string; last_viewed_at: string | null }>();
+    try {
+      watchedMap = await getWatchedMap(all.map((j) => j.visitor_id));
+    } catch (watchedErr) {
+      console.error("[api/admin/journeys] watched-map prefetch failed (continuing):", watchedErr);
+    }
+    for (const j of all) {
+      const w = watchedMap.get(j.visitor_id);
+      if (!w) continue;
+      j.watched = true;
+      j.watched_since = w.added_at;
+      const lastAct = j.last_activity ?? "";
+      j.returned_since_view = !w.last_viewed_at
+        ? true // watched but never opened — any activity counts as returned
+        : !lastAct || new Date(lastAct) > new Date(w.last_viewed_at);
+    }
+
+    // Watched visitors with activity since the admin last viewed them — the
+    // top-of-board alert banner data (server-authoritative; the client never
+    // derives this itself).
+    const watchedReturned = all
+      .filter((j) => j.watched && j.returned_since_view)
+      .map((j) => ({
+        visitor_id: j.visitor_id,
+        label: j.label,
+        visitor_hash: j.visitor_hash,
+        last_activity: j.last_activity,
+        watched_since: j.watched_since,
+      }));
+
     // Unified funnel.
     const total = all.length;
     const radar = all.filter((j) => j.radar).length;
@@ -692,6 +743,7 @@ async function handler({ request }: { request: Request }) {
       to: now.toISOString(),
       funnel,
       journeys: all,
+      watched_returned: watchedReturned,
     });
   } catch (err) {
     console.error("[api/admin/journeys] error:", err);

@@ -35,10 +35,17 @@ interface LicenseProfile {
 }
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
+// NOTE (Neon driver gotcha): `sql.unsafe(...)` is a FRAGMENT FACTORY, not an
+// executor — `await sql.unsafe(...)` silently does NOTHING. Each ALTER must be
+// a real query: the column definition (a hardcoded allowlist entry — never
+// user input) is inlined as a raw fragment via `db.unsafe(c)` inside a tagged
+// template on a real client, so the statement actually executes. try/catch
+// per column keeps it idempotent against historical table shapes.
 async function ensureTable() {
-  await sql()`CREATE TABLE IF NOT EXISTS compliance_checks (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_title TEXT, rfp_text TEXT NOT NULL, proposal_text TEXT NOT NULL, compliance_score INTEGER NOT NULL DEFAULT 0, issues JSONB DEFAULT '[]'::jsonb, pass_count INTEGER DEFAULT 0, fail_count INTEGER DEFAULT 0, warning_count INTEGER DEFAULT 0, summary TEXT DEFAULT '', created_at TIMESTAMPTZ DEFAULT NOW())`;
+  const db = sql();
+  await db`CREATE TABLE IF NOT EXISTS compliance_checks (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_title TEXT, rfp_text TEXT NOT NULL, proposal_text TEXT NOT NULL, compliance_score INTEGER NOT NULL DEFAULT 0, issues JSONB DEFAULT '[]'::jsonb, pass_count INTEGER DEFAULT 0, fail_count INTEGER DEFAULT 0, warning_count INTEGER DEFAULT 0, summary TEXT DEFAULT '', created_at TIMESTAMPTZ DEFAULT NOW())`;
   for (const c of ["bid_title TEXT", "issues JSONB DEFAULT '[]'::jsonb", "pass_count INTEGER DEFAULT 0", "fail_count INTEGER DEFAULT 0", "warning_count INTEGER DEFAULT 0", "summary TEXT DEFAULT ''"]) {
-    try { await sql.unsafe(`ALTER TABLE compliance_checks ADD COLUMN IF NOT EXISTS ${c}`); } catch {}
+    try { await db`ALTER TABLE compliance_checks ADD COLUMN IF NOT EXISTS ${db.unsafe(c)}`; } catch {}
   }
 }
 

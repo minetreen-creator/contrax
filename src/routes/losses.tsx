@@ -9,7 +9,6 @@ import {
   getAutopsyAllowanceStatus,
   buildAutopsy,
   consumeAutopsyAllowance,
-  isDeeperAutopsyTier,
   type AwardAutopsy,
   type AutopsyAllowanceStatus,
 } from "~/lib/award-autopsy";
@@ -86,8 +85,9 @@ export const getWeaknessSummary=createServerFn({method:"GET"}).handler(async()=>
  * Award Autopsy (owner-ratified, Option B): runs AUTOMATICALLY for a loss the
  * user just logged, right after analyzeLoss. Looks up the REAL award on
  * USAspending via getFPDSIntel (cached), and:
- *  - ok:    found an award → persist + return the card (Basic: winner+amount+
- *           difference only; Starter+: full findings + recommendation).
+ *  - ok:    found an award → persist + return the card. Rev 173: the FULL
+ *           analysis (findings + recommendation + historical pricing) every
+ *           tier within its monthly count; the allowance ledger is consumed.
  *  - gated: the user is over their monthly allowance — honest upgrade prompt,
  *           nothing looked up, nothing persisted.
  *  - none:  USAspending returned nothing real — honest fallback message; the
@@ -109,7 +109,6 @@ export const autopsyLoss=createServerFn({method:"POST"}).validator((d:unknown)=>
   const {autopsy}=await buildAutopsy({
     bidTitle:String(loss.bid_title||""), agency:String(loss.agency||""),
     naicsCode:String(loss.naics_code||""), estimatedValue:String(loss.estimated_value||""),
-    paid:allowance.paid, deeper:isDeeperAutopsyTier(tier),
   });
   if(!autopsy.found) return {status:"none",autopsy,allowance}; // honest fallback — no consume
   const consumed=await consumeAutopsyAllowance(user.id, tier);
@@ -162,25 +161,25 @@ function AnalysisCard({result}:{result:Analysis}){return <div className="mt-6 ro
 function fmtMoney(n:number){return "$"+n.toLocaleString("en-US",{maximumFractionDigits:0});}
 
 /**
- * Award Autopsy card (owner vision, 09-05): the REAL award outcome rendered
- * right after "Analyze this loss". Data is live USAspending via getFPDSIntel —
- * never invented; competition is "not disclosed" unless a source provides it.
- * Gating: Basic = winner + amount + difference only (the demo), Starter+ adds
- * the full findings + recommendation, and the honest monthly usage line.
+ * Award Autopsy card (owner vision, 09-05; rev 173): the REAL award outcome
+ * rendered right after "Analyze this loss". Data is live USAspending via
+ * getFPDSIntel — never invented; competition is "not disclosed" unless a source
+ * provides it. Rev 173: the FULL analysis renders at EVERY tier within its
+ * monthly count (Basic 1 · Starter 5 · Pro 25 · Agency 100) — the only gate is
+ * the count, and the honest monthly usage line.
  */
 function AutopsyCard({result,allowance}:{result:AutopsyResult|null;allowance:AutopsyAllowanceStatus}){
   const usageLine = allowance.limit===null
-    ? `Unlimited autopsies on your current plan${allowance.used?` — ${allowance.used} this month`:""}`
-    : `${allowance.used} of ${allowance.limit} autopsy allowance used this month`;
+    ? `${allowance.used} autopsies this month on your current plan`
+    : `${allowance.used} of ${allowance.limit} Award Autopsies used this month`;
   if(result?.status==="gated"){
-    return <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:p-6"><h2 className="text-lg font-bold text-slate-900">⚖ Award Autopsy</h2><p className="mt-3 text-sm text-slate-700">Your free award autopsies are used for this month — upgrade to Starter for 5/month + full loss analysis.</p><a href="/pricing" className="mt-4 inline-block rounded-xl bg-amber-500 px-5 py-2.5 font-semibold text-slate-900 hover:bg-amber-400">See plans →</a><p className="mt-3 text-xs text-slate-500">{usageLine}.</p></div>;
+    return <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm sm:p-6"><h2 className="text-lg font-bold text-slate-900">⚖ Award Autopsy</h2><p className="mt-3 text-sm text-slate-700">You've used this month's Award Autopsies ({usageLine}) — every plan includes a monthly allowance: Basic 1, Starter 5, Professional 25, Agency 100. Upgrade for more autopsies per month.</p><a href="/pricing" className="mt-4 inline-block rounded-xl bg-amber-500 px-5 py-2.5 font-semibold text-slate-900 hover:bg-amber-400">See plans →</a><p className="mt-3 text-xs text-slate-500">{usageLine}.</p></div>;
   }
   const a=result?.autopsy;
   if(!a){ return null; }
   if(!a.found){
     return <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"><h2 className="text-lg font-bold text-slate-900">⚖ Award Autopsy</h2><p className="mt-3 text-sm text-slate-600">{a.fallbackMessage}</p></div>;
   }
-  const full=allowance.paid;
   const diff=a.difference!=null?fmtMoney(Math.abs(a.difference)):null;
   const pct=a.differencePct!=null?`${Math.abs(a.differencePct).toFixed(1)}%`:null;
   const tone=(t:"red"|"orange"|"green")=>t==="red"?"border-red-200 bg-red-50 text-red-800":t==="orange"?"border-orange-200 bg-orange-50 text-orange-800":"border-green-200 bg-green-50 text-green-800";
@@ -198,10 +197,9 @@ function AutopsyCard({result,allowance}:{result:AutopsyResult|null;allowance:Aut
         <div className="rounded-xl bg-slate-50 p-3 sm:col-span-2"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Incumbent</p><p className="mt-1 text-sm font-semibold text-slate-900">{a.winner}{a.incumbentRetained!=null?(a.incumbentRetained?" · Incumbent retained contract: Yes":" · Incumbent retained contract: No"):" · Incumbent retained contract: not disclosed"}</p></div>
         <div className="rounded-xl bg-slate-50 p-3 sm:col-span-2"><p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Competition</p><p className="mt-1 text-sm font-semibold text-slate-900">{a.competition!=null?`${a.competition} offers received`:"Competition: not disclosed"}</p></div>
       </div>
-      {full&&a.findings.length>0&&<div className="mt-5"><h3 className="text-sm font-semibold text-slate-800">What probably hurt you</h3><div className="mt-2 space-y-2">{a.findings.map((f,i)=><div key={i} className={`rounded-xl border p-3 text-sm ${tone(f.tone)}`}>{f.emoji} {f.text}</div>)}</div></div>}
-      {!full&&<div className="mt-5 rounded-xl bg-amber-50 p-4"><b className="text-sm text-amber-900">Want the full autopsy?</b><p className="mt-1 text-sm text-amber-800">Upgrade to Starter for the complete analysis — what probably hurt you, historical pricing, and a price range for similar opportunities.</p><a href="/pricing" className="mt-3 inline-block rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-amber-400">See plans →</a></div>}
-      {full&&a.recommendation&&<div className="mt-5 rounded-xl bg-amber-50 p-4"><b className="text-sm text-amber-900">Contrax recommendation</b><p className="mt-1 text-sm text-amber-800">{a.recommendation}</p></div>}
-      {full&&a.historicalPricing.length>0&&<div className="mt-5"><h3 className="text-sm font-semibold text-slate-800">Historical awards — this agency &amp; NAICS</h3><div className="mt-2 flex flex-wrap gap-2">{a.historicalPricing.map(h=><span key={h.fiscal_year} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">FY{h.fiscal_year}: {fmtMoney(h.total_obligated)} across {h.award_count} award{h.award_count===1?"":"s"}</span>)}</div></div>}
+      {a.findings.length>0&&<div className="mt-5"><h3 className="text-sm font-semibold text-slate-800">What probably hurt you</h3><div className="mt-2 space-y-2">{a.findings.map((f,i)=><div key={i} className={`rounded-xl border p-3 text-sm ${tone(f.tone)}`}>{f.emoji} {f.text}</div>)}</div></div>}
+      {a.recommendation&&<div className="mt-5 rounded-xl bg-amber-50 p-4"><b className="text-sm text-amber-900">Contrax recommendation</b><p className="mt-1 text-sm text-amber-800">{a.recommendation}</p></div>}
+      {a.historicalPricing.length>0&&<div className="mt-5"><h3 className="text-sm font-semibold text-slate-800">Historical awards — this agency &amp; NAICS</h3><div className="mt-2 flex flex-wrap gap-2">{a.historicalPricing.map(h=><span key={h.fiscal_year} className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-700">FY{h.fiscal_year}: {fmtMoney(h.total_obligated)} across {h.award_count} award{h.award_count===1?"":"s"}</span>)}</div></div>}
       <p className="mt-4 text-xs text-slate-400">{usageLine}.</p>
     </div>
   );

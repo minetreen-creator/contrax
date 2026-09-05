@@ -7,14 +7,14 @@
  * outcome so future Radar matches can show the ⚡ "learned from your previous
  * loss" memory banner (Contrax Learning).
  *
- * ── OWNER FREEMIUM GATING (exact) ─────────────────────────────────────────────
- *   Plan          | Award Autopsy        | Contrax Learning (Radar ⚡ memory)
- *   --------------+----------------------+----------------------------------
- *   Basic (free)  | 1/mo — winner + award| NEVER shown (the accumulating
- *                 | amount ONLY (demo)   | reason not to cancel)
- *   Starter $19   | 5/mo — full analysis | ✅ shown on Radar
- *   Professional  | Unlimited — deeper   | ✅
- *   Agency $199    | Everything + portfolio win-loss | ✅
+ * ── OWNER FREEMIUM GATING (rev 173 — exact) ──────────────────────────────────
+ *   Plan          | Award Autopsy (the monthly COUNT is the only limit) | Contrax Learning (Radar ⚡ memory)
+ *   --------------+----------------------------------------------------+----------------------------------
+ *   Basic (free)  | 1/mo — FULL analysis                               | NEVER shown (the accumulating
+ *                 |                                                    | reason not to cancel)
+ *   Starter $19   | 5/mo — FULL analysis                               | NEVER shown
+ *   Professional  | 25/mo — FULL analysis                              | ✅ shown on Radar
+ *   Agency $199   | 100/mo — FULL analysis + portfolio win-loss        | ✅
  *
  * HONESTY: every number traces to a live USAspending lookup (getFPDSIntel).
  * Nothing is invented: competition count is shown only when the source
@@ -35,21 +35,17 @@ import { sql } from "~/db";
 import { loadUserTrialStatus } from "~/lib/trial";
 import { getFPDSIntel, type FPDSIntel } from "~/lib/fpds";
 
-/** Per-tier monthly autopsy allowances (owner-ratified 2026-09-05). */
+/** Per-tier monthly autopsy allowances (owner rev 173 — count-only gating). */
 export const AUTOPSY_ALLOWANCE: Record<string, number> = {
   basic: 1,
   starter: 5,
-  professional: Infinity,
-  agency: Infinity,
+  professional: 25,
+  agency: 100,
 };
 
-/** Tiers that see the Contrax Learning ⚡ memory on Radar — PAID-ONLY. */
-export const LEARNING_TIERS = new Set(["starter", "professional", "agency"]);
-
-/** True for the "deeper agency/incumbent/pricing" tiers (Pro/Agency). */
-export function isDeeperAutopsyTier(tier: string): boolean {
-  return tier === "professional" || tier === "agency";
-}
+/** Tiers that see the Contrax Learning ⚡ memory on Radar — PAID-ONLY,
+ *  Professional+ (rev 173: Starter was dropped). */
+export const LEARNING_TIERS = new Set(["professional", "agency"]);
 
 const CREATE_TABLE = `
   CREATE TABLE IF NOT EXISTS autopsy_allowance (
@@ -88,7 +84,7 @@ export interface AutopsyAllowanceStatus {
   used: number;
   remaining: number | null; // null = unlimited
   overLimit: boolean;
-  /** Starter+ — sees the full analysis AND the Radar ⚡ memory. */
+  /** Professional+ — sees the Radar ⚡ memory (server-gated, PAID-ONLY). */
   paid: boolean;
 }
 
@@ -204,9 +200,9 @@ export interface AwardAutopsy {
   incumbentRetained: boolean | null; // null = unknown / not determinable
   /** Offers received — ONLY when a source provides it; otherwise null (UI renders "not disclosed"). */
   competition: number | null;
-  findings: AutopsyFinding[]; // [] for Basic (redacted) and no-award fallbacks
-  recommendation: string | null; // Starter+ only
-  /** Historical award pricing for this NAICS+agency (Starter+ display). */
+  findings: AutopsyFinding[]; // [] only for no-award fallbacks — FULL at every tier within the monthly count
+  recommendation: string | null; // every tier within the monthly count
+  /** Historical award pricing for this NAICS+agency (full analysis). */
   historicalPricing: { fiscal_year: number; total_obligated: number; award_count: number }[];
   similarAwardCount: number;
 }
@@ -241,20 +237,19 @@ const EMPTY_AUTOPSY: AwardAutopsy = {
 
 /**
  * Build the Award Autopsy for one logged loss. Calls the LIVE, cached
- * USAspending lookup (getFPDSIntel) — never fabricates. `paid` (Starter+)
- * controls the full analysis (findings + recommendation); a Basic user still
- * gets the demo fields (winner + amount + difference) but never the full
- * analysis or anything resembling the Radar memory.
+ * USAspending lookup (getFPDSIntel) — never fabricates. Under rev 173 the FULL
+ * analysis (findings + recommendation + historical pricing) is delivered at
+ * EVERY tier within its monthly COUNT — the `paid` flag now only controls the
+ * CONSUME gate in the caller, never the analysis depth. The ⚡ Radar memory
+ * stays Professional+ (server-gated elsewhere).
  */
 export async function buildAutopsy(input: {
   bidTitle: string;
   agency: string;
   naicsCode: string;
   estimatedValue: string;
-  paid: boolean;
-  deeper: boolean;
 }): Promise<{ autopsy: AwardAutopsy; intel: FPDSIntel | null }> {
-  const { bidTitle, agency, naicsCode, estimatedValue, paid, deeper } = input;
+  const { bidTitle, agency, naicsCode, estimatedValue } = input;
   let intel: FPDSIntel | null = null;
   try {
     intel = await getFPDSIntel(naicsCode || "", agency || "", bidTitle || "");
@@ -283,9 +278,10 @@ export async function buildAutopsy(input: {
       ? ((youBid - winningAmount) / winningAmount) * 100
       : null;
 
-  // "What probably hurt you" — rule-based over REAL data only (Starter+).
+  // "What probably hurt you" — rule-based over REAL data only. Rev 173: FULL
+  // at every tier within the monthly count — no redaction.
   const findings: AutopsyFinding[] = [];
-  if (paid) {
+  {
     if (differencePct != null && differencePct > 0) {
       findings.push({
         emoji: "🔴",
@@ -324,9 +320,9 @@ export async function buildAutopsy(input: {
     }
   }
 
-  // Recommendation — Starter+ only, from REAL historical awards (no invention).
+  // Recommendation — FULL at every tier, from REAL historical awards (no invention).
   let recommendation: string | null = null;
-  if (paid) {
+  {
     const history = intel.historical_pricing || [];
     const amounts = history
       .map((h) => h.total_obligated / Math.max(1, h.award_count))
@@ -366,7 +362,7 @@ export async function buildAutopsy(input: {
   };
 }
 
-// ── Contrax Learning — the Radar ⚡ memory (PAID-ONLY, Starter+) ──────────────
+// ── Contrax Learning — the Radar ⚡ memory (PAID-ONLY, Professional+) ────────
 
 /** Compact prior-loss badge the Radar surfaces on a similar opportunity. */
 export interface PriorLossBadge {

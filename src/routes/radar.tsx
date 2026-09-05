@@ -204,7 +204,7 @@ export type RadarMatch = {
   reasons: string[]; qualifications: string[]; requirements: string[];
   next_action: string;
   incumbent: FPDSIntel | null;
-  /** Contrax Learning ⚡ memory (PAID-ONLY, Starter+ — never Basic). */
+  /** Contrax Learning ⚡ memory (PAID-ONLY, Professional+ — never Basic/Starter). */
   learned: PriorLossBadge | null;
 };
 
@@ -224,7 +224,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const { trade, state, cert, sizePref } = data;
     const certId = cert as RadarCert;
     const isNaics = /^\d{6}$/.test(trade);
-    // Contrax Learning ⚡ memory (PAID-ONLY, Starter+): the logged-in user's
+    // Contrax Learning ⚡ memory (PAID-ONLY, Professional+): the logged-in user's
     // own autopsied losses, loaded ONCE per scan. Anonymous visitors and Basic
     // users get NO memory — Basic never sees it (the accumulating reason not
     // to cancel). Failure → null → no banner, radar unaffected.
@@ -971,7 +971,7 @@ export function RadarCard({
       </div>
 
       <div className="px-5 py-4">
-        {/* Contrax Learning ⚡ memory (Starter+ only — server-gated, PAID-ONLY).
+        {/* Contrax Learning ⚡ memory (Professional+ only — server-gated, PAID-ONLY).
             One line + the real % from the user's own autopsied loss. */}
         {match.learned && (
           <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">

@@ -7,7 +7,7 @@
  *   enter the lost solicitation → real award found (winner + amount +
  *   difference, visible BEFORE signup) → signup wall → free-Basic signup →
  *   COMPLETE first autopsy (full findings + recommendation + historical
- *   comparison — the Starter+ content) → Radar cross-sell → Starter $19.
+ *   comparison) → Radar cross-sell → Starter $19.
  *
  * This module is the single place that owns:
  *   1. the 9 owner-exact funnel stages and their event mapping (reusing the
@@ -16,8 +16,10 @@
  *   2. the first-ever-autopsy-free-complete GIFT: `users.first_autopsy_gifted`
  *      (migration 030, nullable-by-default FALSE + self-healed at runtime like
  *      every other schema guard), consumed atomically once, so a user's SECOND
- *      autopsy onward falls back to the normal owner-exact gating (Basic 1/mo
- *      demo fields, Starter 5/mo full, Pro/Agency unlimited).
+ *      autopsy onward falls back to the normal owner-exact gating (rev 173:
+ *      Basic 1/mo full · Starter 5/mo full · Pro 25/mo full · Agency 100/mo full
+ *      — the monthly COUNT is the only limit; the autopsy is complete at every
+ *      tier).
  *
  * Gifting RULES (owner-exact):
  *   - The gift is served ONCE per account: `first_autopsy_gifted` flips to
@@ -27,8 +29,8 @@
  *     (no `autopsy_allowance` row with autopsies_used > 0) — i.e. the
  *     first-ever autopsy for a genuinely new user. A no-award lookup (honest
  *     "no award data found yet" fallback) does NOT consume the gift.
- *   - The ⚡ Contrax Learning memory stays PAID-ONLY (Starter+): the gift path
- *     never writes a `bid_losses` row and never renders the memory banner —
+ *   - The ⚡ Contrax Learning memory stays PAID-ONLY (Professional+): the gift
+ *     path never writes a `bid_losses` row and never renders the memory banner —
  *     server-gated, same as the shipped /losses surface.
  */
 import { sql } from "~/db";
@@ -167,11 +169,11 @@ export interface GiftedAutopsyResult {
 /**
  * Build + deliver the one free COMPLETE autopsy to a new account. Called from
  * the /autopsy route AFTER signup (logged-in user with a draft). The full
- * Starter+ content (findings + recommendation + historical comparison) is
- * built via the existing award-autopsy lib — never fabricated. The gift is
- * consumed ONLY when a real award is found (a no-award honest fallback does
- * NOT burn the user's gift — they can retry with corrected details). The ⚡
- * Learning memory is never touched here (no bid_losses row, no banner).
+ * analysis (findings + recommendation + historical comparison) is built via the
+ * existing award-autopsy lib — never fabricated. The gift is consumed ONLY when
+ * a real award is found (a no-award honest fallback does NOT burn the user's
+ * gift — they can retry with corrected details). The ⚡ Learning memory is
+ * never touched here (no bid_losses row, no banner).
  */
 export async function getGiftedAutopsy(
   userId: number,
@@ -194,9 +196,8 @@ export async function getGiftedAutopsy(
     agency: draft.agency.trim(),
     naicsCode: draft.naicsCode.trim(),
     estimatedValue: draft.estimatedValue.trim(),
-    // The gift unlocks the FULL Starter+ analysis for the first report.
-    paid: true,
-    deeper: false,
+    // The gift unlocks the FULL analysis for the first report — the autopsy is
+    // complete at every tier (rev 173); the gift makes the FIRST one free.
   });
   if (!autopsy.found) {
     // Honest no-award fallback — do NOT consume the gift; the user can retry.

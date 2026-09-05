@@ -29,7 +29,7 @@ interface BidDetail {
   due_date: string | null;
   estimated_value: string | null;
   source_url: string | null;
-  /** Contrax Learning ⚡ memory (PAID-ONLY, Starter+ — never Basic). */
+  /** Contrax Learning ⚡ memory (PAID-ONLY, Professional+ — never Basic/Starter). */
   learned: PriorLossBadge | null;
 }
 
@@ -50,7 +50,7 @@ const getBid = createServerFn({ method: "GET" })
       `) as any[];
       if (!rows.length) return null;
       const r = rows[0];
-      // Contrax Learning ⚡ memory (PAID-ONLY, Starter+): only the SAME user's
+      // Contrax Learning ⚡ memory (PAID-ONLY, Professional+): only the SAME user's
       // autopsied losses ever surface, and only on a paid tier. Anonymous
       // visitors and Basic users get no banner. Failure → no banner.
       let learned: PriorLossBadge | null = null;

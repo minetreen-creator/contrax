@@ -17,6 +17,7 @@ import {
   saveRadarAnswers,
   type RadarCertId,
 } from "~/lib/radar-session";
+import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -203,6 +204,8 @@ export type RadarMatch = {
   reasons: string[]; qualifications: string[]; requirements: string[];
   next_action: string;
   incumbent: FPDSIntel | null;
+  /** Contrax Learning ⚡ memory (PAID-ONLY, Starter+ — never Basic). */
+  learned: PriorLossBadge | null;
 };
 
 export const runRadarScan = createServerFn({ method: "POST" })
@@ -221,6 +224,23 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const { trade, state, cert, sizePref } = data;
     const certId = cert as RadarCert;
     const isNaics = /^\d{6}$/.test(trade);
+    // Contrax Learning ⚡ memory (PAID-ONLY, Starter+): the logged-in user's
+    // own autopsied losses, loaded ONCE per scan. Anonymous visitors and Basic
+    // users get NO memory — Basic never sees it (the accumulating reason not
+    // to cancel). Failure → null → no banner, radar unaffected.
+    let priorLossIndex: PriorLossRow[] | null = null;
+    try {
+      const { getCurrentUser } = await import("~/lib/auth");
+      const { effectiveAutopsyTier, LEARNING_TIERS, getPriorLossIndex } = await import("~/lib/award-autopsy");
+      const user = await getCurrentUser();
+      if (user) {
+        const tier = await effectiveAutopsyTier(user.id, user);
+        if (LEARNING_TIERS.has(tier)) priorLossIndex = await getPriorLossIndex(user.email);
+      }
+    } catch (e) {
+      console.error("[radar] learning memory load failed (no banner):", e);
+      priorLossIndex = null;
+    }
     // Coerce the validated-but-stringly-typed size preference back to the SizeId
     // union. The validator already guaranteed it is one of the known ids.
     const sizeId = sizePref as SizeId;
@@ -288,6 +308,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         requirements: buildRequirements(bid),
         next_action: buildNextAction(bid),
         incumbent: null,
+        learned: matchPriorLoss(priorLossIndex, bid.agency, bid.naics_code),
       };
       // Fetch incumbent intel for every candidate so we can order the free
       // preview toward incumbent-rich matches. Only the first THREE are ever
@@ -950,6 +971,18 @@ export function RadarCard({
       </div>
 
       <div className="px-5 py-4">
+        {/* Contrax Learning ⚡ memory (Starter+ only — server-gated, PAID-ONLY).
+            One line + the real % from the user's own autopsied loss. */}
+        {match.learned && (
+          <div className="mb-3 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+            <p className="text-sm font-semibold text-amber-300">⚡ Contrax learned from your previous loss</p>
+            <p className="mt-1 text-xs leading-relaxed text-amber-100/90">
+              This opportunity resembles the contract you lost in {match.learned.month}. Your previous bid was{" "}
+              {match.learned.priceDiffPct.toFixed(1)}% {match.learned.direction} the winning price. Suggested action:{" "}
+              {match.learned.direction === "above" ? "Review pricing before pursuing." : "Price was competitive — review scope and past performance."}
+            </p>
+          </div>
+        )}
         <h3 className="text-base font-bold leading-snug text-white">{match.title || "Solicitation"}</h3>
         {match.agency && <p className="mt-0.5 text-sm text-slate-400">{match.agency}</p>}
         <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-300">

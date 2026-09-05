@@ -21,9 +21,39 @@ type Summary = { pattern:string; count:number; titles:string[] };
 /** Server response for the automatic Award Autopsy run on a logged loss. */
 type AutopsyResult = { status:"ok"|"gated"|"none"; autopsy:AwardAutopsy|null; allowance:AutopsyAllowanceStatus };
 
+const BID_LOSSES_COLUMNS = [
+  "estimated_value TEXT",
+  "awarded_to TEXT",
+  "debrief_notes TEXT",
+  "naics_code TEXT",
+  "weaknesses JSONB DEFAULT '[]'::jsonb",
+  "primary_reason TEXT",
+  "severity TEXT",
+  "actionable_fix TEXT",
+  "recurring_count INTEGER DEFAULT 0",
+  "autopsy JSONB",
+] as const;
+
+/**
+ * Self-healing schema for bid_losses. The CREATE TABLE carries the FULL modern
+ * column list so a brand-new environment gets the complete shape in one shot
+ * (ratified as migration 029). For environments created in an ANCIENT shape
+ * (e.g. prod, pre-029), the ALTER loop below adds any still-missing columns.
+ *
+ * NOTE (Neon driver gotcha): `sql.unsafe(...)` is a FRAGMENT FACTORY, not an
+ * executor — `await sql.unsafe(...)` silently does NOTHING. Each ALTER must
+ * therefore be a real query: we inline the column definition (a hardcoded,
+ * non-user allowlist entry — never user input) as a raw fragment via
+ * `db.unsafe(c)` inside a tagged template on a real client, so the statement
+ * actually executes. try/catch per column keeps it idempotent against
+ * whatever historical shapes may exist.
+ */
 async function ensureTable() {
-  await sql()`CREATE TABLE IF NOT EXISTS bid_losses (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, estimated_value TEXT, awarded_to TEXT, debrief_notes TEXT, naics_code TEXT, weaknesses JSONB DEFAULT '[]'::jsonb, primary_reason TEXT, severity TEXT, actionable_fix TEXT, recurring_count INTEGER DEFAULT 0, autopsy JSONB, created_at TIMESTAMPTZ DEFAULT NOW())`;
-  for (const c of ["estimated_value TEXT", "awarded_to TEXT", "debrief_notes TEXT", "naics_code TEXT", "weaknesses JSONB DEFAULT '[]'::jsonb", "primary_reason TEXT", "severity TEXT", "actionable_fix TEXT", "recurring_count INTEGER DEFAULT 0", "autopsy JSONB"]) { try { await sql.unsafe(`ALTER TABLE bid_losses ADD COLUMN IF NOT EXISTS ${c}`); } catch {} }
+  const db = sql();
+  await db`CREATE TABLE IF NOT EXISTS bid_losses (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, estimated_value TEXT, awarded_to TEXT, debrief_notes TEXT, naics_code TEXT, weaknesses JSONB DEFAULT '[]'::jsonb, primary_reason TEXT, severity TEXT, actionable_fix TEXT, recurring_count INTEGER DEFAULT 0, autopsy JSONB, created_at TIMESTAMPTZ DEFAULT NOW())`;
+  for (const c of BID_LOSSES_COLUMNS) {
+    try { await db`ALTER TABLE bid_losses ADD COLUMN IF NOT EXISTS ${db.unsafe(c)}`; } catch {}
+  }
 }
 function mapLoss(r:any): Loss { const rawAutopsy = r.autopsy ?? null; return {...r, id:Number(r.id), weaknesses:Array.isArray(r.weaknesses)?r.weaknesses:[], recurring_count:Number(r.recurring_count||0), created_at:String(r.created_at), autopsy: rawAutopsy ? (typeof rawAutopsy === "string" ? JSON.parse(rawAutopsy) : rawAutopsy) as AwardAutopsy : null}; }
 

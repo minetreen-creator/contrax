@@ -1,0 +1,24 @@
+-- Migration 030 — Free-First-Autopsy acquisition funnel (owner-endorsed 2026-09-05).
+--
+-- ONE minimal, additive, nullable/defaulted piece: the one-time gift marker on
+-- the users table. Everything else in the funnel REUSES existing plumbing:
+--   - funnel_events (via the shared /api/track-visitor intake) for the 9
+--     instrumentation stages — no new analytics table,
+--   - the existing award-autopsy lib (buildAutopsy) for the lookup + report,
+--   - the existing signup flow + `next` param for the wall,
+--   - the existing autopsy_allowance ledger for everything AFTER the gift.
+--
+-- Semantics: users.first_autopsy_gifted BOOLEAN NOT NULL DEFAULT FALSE — flips
+-- to TRUE the first time a user's free COMPLETE first autopsy is actually
+-- generated (atomic UPDATE ... WHERE first_autopsy_gifted = FALSE). A user
+-- with no ledger autopsy usage (autopsies_used > 0) and an ungifted flag still
+-- has their gift available; once consumed (or bypassed by normal usage), the
+-- owner-exact gating applies: Basic 1/mo demo fields · Starter 5/mo full ·
+-- Pro/Agency unlimited.
+--
+-- No backfill: existing users get FALSE (gift available) by default — which is
+-- correct for the acquisition framing (the first-ever autopsy is free for
+-- every new user). The column is also self-healed at runtime by
+-- src/lib/autopsy-funnel.ts ensureFirstAutopsyGiftedColumn(), so prod Neon
+-- gets it without a manual migration run (same pattern as every other guard).
+ALTER TABLE users ADD COLUMN IF NOT EXISTS first_autopsy_gifted BOOLEAN NOT NULL DEFAULT FALSE;

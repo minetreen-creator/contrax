@@ -175,6 +175,10 @@ export interface ScoreSignals {
   savedBid: boolean;
   distinctBidsViewed: number;
   steps: number;
+  /** Award Autopsy acquisition funnel signals (owner 2026-09-05). */
+  autopsyAwardFound: boolean;
+  autopsyReportViewed: boolean;
+  autopsyRadarUsed: boolean;
 }
 
 export function computeLeadScore(s: ScoreSignals): LeadScore {
@@ -193,6 +197,13 @@ export function computeLeadScore(s: ScoreSignals): LeadScore {
   else if (s.briefViewed) add(15, "Viewed Executive Brief content");
   if (s.pricingViewed) add(10, "Viewed pricing");
   if (s.signupStarted && !s.signedUp) add(20, "Started signup (hasn't finished)");
+  // Award Autopsy acquisition signals (owner-weighted 2026-09-05):
+  // award_found +20 · report_viewed +15 · radar_used +20 — applied per-visitor
+  // from the Autopsy funnel's events, consistent with the behavior-weighted
+  // scheme above.
+  if (s.autopsyAwardFound) add(20, "Autopsy: real award found");
+  if (s.autopsyReportViewed) add(15, "Autopsy: complete report viewed");
+  if (s.autopsyRadarUsed) add(20, "Autopsy: Radar cross-sell used");
   if (s.distinctBidsViewed > 0)
     add(Math.min(15, s.distinctBidsViewed * 5), `Viewed ${s.distinctBidsViewed} contract${s.distinctBidsViewed === 1 ? "" : "s"} in depth`);
   if (s.steps >= 6) add(5, "High engagement (6+ steps)");
@@ -587,6 +598,13 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
   const savedBid = eventNames.includes("save_success") || eventNames.includes("radar_login_notify_save");
   const activated = !!v?.activated;
   const signedUpFinal = signedUp || !!userRow;
+  // Award Autopsy acquisition funnel signals (owner 2026-09-05) — derived
+  // from this funnel's events only; the lead-score weighting is applied in
+  // computeLeadScore (award_found +20 · report_viewed +15 · radar_used +20).
+  const autopsyAwardFound = eventNames.includes("autopsy_award_found");
+  const autopsyReportViewed = eventNames.includes("autopsy_report_viewed");
+  const autopsyRadarUsed =
+    eventNames.includes("autopsy_radar_cta") || eventNames.includes("radar_scan_complete");
 
   const lead_score = computeLeadScore({
     returnedMultiDay: returning,
@@ -602,6 +620,9 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
     savedBid: savedBid,
     distinctBidsViewed: bidIds.length,
     steps,
+    autopsyAwardFound,
+    autopsyReportViewed,
+    autopsyRadarUsed,
   });
 
   const radar_profile = radarSave

@@ -157,7 +157,7 @@ export interface ScoreReason {
 
 export interface LeadScore {
   score: number; // 0–100, capped
-  level: "High" | "Medium" | "Low"; // High ≥70, Medium 40–69, Low <40
+  level: "High" | "Medium" | "Low"; // High ≥50, Medium 25–49, Low <25
   reasons: ScoreReason[];
 }
 
@@ -183,16 +183,16 @@ export function computeLeadScore(s: ScoreSignals): LeadScore {
     if (points > 0) reasons.push({ points, reason });
   };
   if (s.signedUp) add(15, "Signed up for an account");
-  if (s.savedBid) add(15, "Saved a bid to pipeline");
-  if (s.incumbentViewed) add(15, "Viewed incumbent intelligence");
+  if (s.savedBid) add(20, "Saved a bid to pipeline");
+  if (s.incumbentViewed) add(20, "Viewed incumbent intelligence");
   if (s.radarCompleted) add(20, "Completed a Radar scan");
   else if (s.radarStarted) add(5, "Started a Radar scan");
-  if (s.returnedMultiDay) add(20, "Returned on a later day");
+  if (s.returnedMultiDay) add(30, "Returned on a later day");
   else if (s.sessions >= 2) add(10, "Multiple sessions");
-  if (s.briefGenerated) add(10, "Generated an AI Executive Brief");
-  else if (s.briefViewed) add(10, "Viewed Executive Brief content");
+  if (s.briefGenerated) add(15, "Generated an AI Executive Brief");
+  else if (s.briefViewed) add(15, "Viewed Executive Brief content");
   if (s.pricingViewed) add(10, "Viewed pricing");
-  if (s.signupStarted && !s.signedUp) add(10, "Started signup (hasn't finished)");
+  if (s.signupStarted && !s.signedUp) add(20, "Started signup (hasn't finished)");
   if (s.distinctBidsViewed > 0)
     add(Math.min(15, s.distinctBidsViewed * 5), `Viewed ${s.distinctBidsViewed} contract${s.distinctBidsViewed === 1 ? "" : "s"} in depth`);
   if (s.steps >= 6) add(5, "High engagement (6+ steps)");
@@ -200,7 +200,7 @@ export function computeLeadScore(s: ScoreSignals): LeadScore {
   const score = Math.min(100, total);
   return {
     score,
-    level: score >= 70 ? "High" : score >= 40 ? "Medium" : "Low",
+    level: score >= 50 ? "High" : score >= 25 ? "Medium" : "Low",
     reasons: reasons.sort((a, b) => b.points - a.points),
   };
 }

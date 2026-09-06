@@ -603,8 +603,23 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
   // computeLeadScore (award_found +20 · report_viewed +15 · radar_used +20).
   const autopsyAwardFound = eventNames.includes("autopsy_award_found");
   const autopsyReportViewed = eventNames.includes("autopsy_report_viewed");
+  // Owner rule (2026-09-06): the Radar cross-sell (+20 in computeLeadScore) only
+  // counts for visitors who actually entered the Autopsy funnel. The funnel's
+  // 6 entry events are autopsy_landing → autopsy_report_viewed; `autopsy_radar_cta`
+  // is the funnel's own handoff click. A plain radar_scan_complete (the reused
+  // Radar handoff event) must NEVER be interpreted as the Autopsy cross-sell on
+  // its own — it only counts when the visitor has at least one funnel-entry event.
+  const hasAutopsyFunnelEntry = [
+    "autopsy_landing",
+    "autopsy_contract_entered",
+    "autopsy_award_found",
+    "autopsy_generated",
+    "autopsy_signup_wall",
+    "autopsy_report_viewed",
+  ].some((e) => eventNames.includes(e));
   const autopsyRadarUsed =
-    eventNames.includes("autopsy_radar_cta") || eventNames.includes("radar_scan_complete");
+    eventNames.includes("autopsy_radar_cta") ||
+    (eventNames.includes("radar_scan_complete") && hasAutopsyFunnelEntry);
 
   const lead_score = computeLeadScore({
     returnedMultiDay: returning,

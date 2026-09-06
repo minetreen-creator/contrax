@@ -19,7 +19,13 @@ import {
  * from the SAME funnel_events plumbing the Visitor Journeys board uses
  * (no parallel system):
  *
- *   1. autopsy_landing        — public entry opened          (event)
+ *   1. autopsy_landing        — entry opened: the /autopsy page (autopsy_landing)
+ *                               OR the homepage Award Autopsy section engaged
+ *                               (autopsy_home_cta). COUNT(DISTINCT visitor_id)
+ *                               across BOTH events — a visitor who did both
+ *                               counts once (a dedicated cross-event query,
+ *                               since per-event distinct counts would
+ *                               double-count them).
  *   2. contract_entered       — lost solicitation entered    (event)
  *   3. award_found            — real award matched           (event)
  *   4. autopsy_generated      — autopsy preview generated    (event)
@@ -63,9 +69,14 @@ const ALL_EVENT_SQL = [
   AUTOPSY_RADAR_COMPLETE_EVENT,
 ].map((e) => `'${e}'`).join(",");
 
+/** Stage-1 entry event set: the /autopsy landing page AND the homepage Award
+ *  Autopsy section engagement (owner 2026-09-06). Stage 1 counts DISTINCT
+ *  visitors across BOTH events in ONE query — a visitor who did both counts
+ *  once (per-event distinct counts would double-count them via the loop). */
+export const AUTOPSY_ENTRY_EVENTS = ["autopsy_landing", "autopsy_home_cta"] as const;
+
 /** Event name → owner-exact stage name (events carry the autopsy_ prefix). */
 const EVENT_TO_STAGE: Record<string, string> = {
-  autopsy_landing: "autopsy_landing",
   autopsy_contract_entered: "contract_entered",
   autopsy_award_found: "award_found",
   autopsy_generated: "autopsy_generated",
@@ -134,6 +145,25 @@ async function handler({ request }: { request: Request }) {
       }
     } catch (err) {
       console.error("[api/admin/autopsy-funnel] stage counts failed (continuing):", err);
+    }
+
+    // Stage 1 — entry opened: DISTINCT visitors across BOTH entry events in ONE
+    // query (the /autopsy landing AND the homepage Award Autopsy section), so a
+    // visitor who fired autopsy_landing then autopsy_home_cta (or vice versa)
+    // counts ONCE. The per-event loop above deliberately excludes both entry
+    // events — adding per-event distinct counts would double-count them.
+    try {
+      const rows: any[] = await sql()`
+        SELECT COUNT(DISTINCT visitor_id) AS n
+        FROM funnel_events
+        WHERE visitor_id IS NOT NULL AND visitor_id <> ''
+          AND created_at >= ${fromIso}
+          AND event_name IN (${sql().unsafe(AUTOPSY_ENTRY_EVENTS.map((e) => `'${e}'`).join(","))})
+          AND ${sql().unsafe(HUMAN_FILTER)}
+          AND ${sql().unsafe(qaFilter)} AND ${sql().unsafe(adminFilter)}`;
+      counts.autopsy_landing = Number(rows?.[0]?.n ?? 0);
+    } catch (err) {
+      console.error("[api/admin/autopsy-funnel] stage 1 (entry) count failed (continuing):", err);
     }
 
     // ── Autopsy-involved visitor set (the funnel attribute key) ──────────────

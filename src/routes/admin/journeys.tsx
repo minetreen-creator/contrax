@@ -31,7 +31,7 @@ import { getCurrentUser } from "~/lib/auth";
  */
 
 interface TimelineItem { t: string; label: string; kind: "page" | "event"; }
-interface JourneyBadge { key: "pricing" | "brief" | "engagement"; label: string; }
+interface JourneyBadge { key: "pricing" | "brief"; label: string; }
 interface Journey {
   visitor_id: string;
   label: string;
@@ -80,7 +80,7 @@ interface JourneysResult {
 
 // ── Visitor Intelligence payload (mirrors src/lib/visitor-intel.ts) ──────────
 interface ScoreReason { points: number; reason: string; }
-interface LeadScore { score: number; level: "High" | "Medium" | "Low"; reasons: ScoreReason[]; }
+interface LeadScore { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: ScoreReason[]; }
 interface InferredInterest { key: string; label: string; evidence: string; }
 interface ContractView {
   bid_id: number; path: string; title: string | null; agency: string | null;
@@ -205,7 +205,6 @@ function YesNo({ value, yes = "Yes", no = "No" }: { value: boolean; yes?: string
 const BADGE_STYLES: Record<JourneyBadge["key"], string> = {
   pricing: "bg-amber-100 text-amber-800",
   brief: "bg-blue-100 text-blue-700",
-  engagement: "bg-emerald-100 text-emerald-700",
 };
 
 function Badges({ badges }: { badges: JourneyBadge[] }) {
@@ -286,9 +285,16 @@ function Sig({ on, label }: { on: boolean; label: string }) {
 }
 
 const LEVEL_STYLES: Record<LeadScore["level"], string> = {
-  High: "bg-rose-100 text-rose-700",
-  Medium: "bg-amber-100 text-amber-800",
+  "Very High": "bg-rose-100 text-rose-700",
+  High: "bg-amber-100 text-amber-800",
+  Medium: "bg-yellow-100 text-yellow-800",
   Low: "bg-slate-100 text-slate-500",
+};
+const LEVEL_LABEL: Record<LeadScore["level"], string> = {
+  "Very High": "🔥 Very High",
+  High: "High",
+  Medium: "Medium",
+  Low: "Low",
 };
 
 /** The expanded Visitor Intelligence panel (intel + timeline, lazily fetched). */
@@ -361,7 +367,7 @@ function IntelPanel({
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Lead score (heuristic)</p>
             <p className="flex items-baseline justify-end gap-1.5">
               <span className="text-2xl font-bold text-slate-900">{lead_score.score}</span>
-              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${LEVEL_STYLES[lead_score.level]}`}>{lead_score.level} intent</span>
+              <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${LEVEL_STYLES[lead_score.level]}`}>{LEVEL_LABEL[lead_score.level]} intent</span>
             </p>
           </div>
           <WatchToggle visitorId={visitorId} watched={watched} onChange={onWatchedChange} />

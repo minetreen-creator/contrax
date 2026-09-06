@@ -157,7 +157,7 @@ export interface ScoreReason {
 
 export interface LeadScore {
   score: number; // 0–100, capped
-  level: "High" | "Medium" | "Low"; // High ≥50, Medium 25–49, Low <25
+  level: "Very High" | "High" | "Medium" | "Low"; // Very High ≥60, High 40–59, Medium 20–39, Low 0–19 (owner 2026-09-06)
   reasons: ScoreReason[];
 }
 
@@ -206,12 +206,11 @@ export function computeLeadScore(s: ScoreSignals): LeadScore {
   if (s.autopsyRadarUsed) add(20, "Autopsy: Radar cross-sell used");
   if (s.distinctBidsViewed > 0)
     add(Math.min(15, s.distinctBidsViewed * 5), `Viewed ${s.distinctBidsViewed} contract${s.distinctBidsViewed === 1 ? "" : "s"} in depth`);
-  if (s.steps >= 6) add(5, "High engagement (6+ steps)");
   const total = reasons.reduce((a, r) => a + r.points, 0);
   const score = Math.min(100, total);
   return {
     score,
-    level: score >= 50 ? "High" : score >= 25 ? "Medium" : "Low",
+    level: score >= 60 ? "Very High" : score >= 40 ? "High" : score >= 20 ? "Medium" : "Low",
     reasons: reasons.sort((a, b) => b.points - a.points),
   };
 }

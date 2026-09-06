@@ -163,7 +163,25 @@ interface FormState {
 const EMPTY_FORM: FormState = { bidTitle: "", agency: "", naicsCode: "", estimatedValue: "" };
 
 function AutopsyPage() {
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  // Prefill from a stored draft on mount (e.g. the homepage Award Autopsy
+  // section carries the visitor's single-field entry here under the SAME
+  // draft key, so they land with their solicitation already entered and
+  // complete agency + the rest on this page). Mount-only lazy initializer —
+  // the submit below still overwrites the draft as before, and the gift path
+  // reads loadDraft() independently, so the funnel contract is honored
+  // exactly. Server-safe: loadDraft() returns null without window.
+  const [form, setForm] = useState<FormState>(() => {
+    const d = loadDraft();
+    if (d && (d.bidTitle || d.agency || d.naicsCode || d.estimatedValue)) {
+      return {
+        bidTitle: d.bidTitle ?? "",
+        agency: d.agency ?? "",
+        naicsCode: d.naicsCode ?? "",
+        estimatedValue: d.estimatedValue ?? "",
+      };
+    }
+    return EMPTY_FORM;
+  });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [preview, setPreview] = useState<AutopsyPreview | null>(null);

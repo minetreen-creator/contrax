@@ -104,6 +104,10 @@ export const EVENT_LABELS: Record<string, string> = {
   autopsy_signup_wall: "Autopsy signup wall shown",
   autopsy_report_viewed: "Complete autopsy viewed",
   autopsy_radar_cta: "Radar cross-sell clicked",
+  // Homepage Award Autopsy section (stage-0 entry + CTA click, 2026-09-05).
+  // Display-only: NOT in AUTOPSY_EVENTS, so the admin autopsy-funnel stage
+  // counts ignore it and the 9 owner-exact stages stay byte-identical.
+  autopsy_home_cta: "Homepage autopsy section engaged",
 };
 
 function getClientIp(request: Request): string | null {

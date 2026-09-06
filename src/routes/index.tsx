@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { Suspense, lazy, useEffect, useRef, useState } from "react";
@@ -15,6 +15,10 @@ import {
   type StateAggregate,
 } from "~/lib/contract-map";
 import { US_MAP_VIEWBOX, US_STATE_PATHS } from "~/lib/us-states-map";
+import {
+  AUTOPSY_DRAFT_STORAGE_KEY,
+  type AutopsyDraft,
+} from "~/lib/autopsy-funnel";
 // Real cached example AI Executive Brief — code-split so it never bloats
 // the homepage main bundle or blocks hero render. Same component + same
 // server fn as the standalone /example-brief page (single source of truth).
@@ -220,6 +224,10 @@ function Home() {
           </p>
         </div>
       </section>
+      {/* ── AWARD AUTOPSY — homepage section #2, immediately below the Radar
+          hero and above the Map (owner spec 2026-09-05). The second front
+          door: for visitors who already bid-and-lost. ── */}
+      <AwardAutopsyHero />
       {/* ── 3. U.S. Contract Map — directly under the radar hero (kept) ── */}
       <OpportunityMap aggregate={contractMap} />
       {/* Real example AI Executive Brief — real bids, summarized. */}
@@ -428,6 +436,100 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
         </div>
       </div>
     </nav>
+  );
+}
+
+// ── Award Autopsy — homepage section #2 (owner spec 2026-09-05) ───────────────
+// The second front door, for visitors who already bid-and-lost. Single-field
+// form writes a minimal draft to the SAME sessionStorage key the /autopsy
+// funnel owns (AUTOPSY_DRAFT_STORAGE_KEY) and navigates there via the app
+// router, so the funnel picks it up: /autopsy prefills its first field from
+// the draft and the visitor completes agency + the rest there. The draft
+// contract is honored exactly (same key, same shape); /autopsy's own funnel,
+// events, and gift logic are untouched.
+//
+// Analytics: ONE new event (autopsy_home_cta, label autopsy_funnel, path /)
+// fired once on section view (stage-0 entry) and again on submit-click. The
+// admin autopsy-funnel view ignores it (not in AUTOPSY_EVENTS) so the 9
+// owner-exact stage counts are unchanged; the visitor timeline renders it via
+// EVENT_LABELS in tracking-intake.ts. No parallel system, no lead-score
+// change, no DB change.
+function AwardAutopsyHero() {
+  const navigate = useNavigate();
+  const [solicitation, setSolicitation] = useState("");
+  const viewFired = useRef(false);
+
+  // Stage-0 entry: the visitor saw the homepage autopsy section.
+  useEffect(() => {
+    if (viewFired.current) return;
+    viewFired.current = true;
+    trackEvent("autopsy_home_cta", "autopsy_funnel", "/");
+  }, []);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const value = solicitation.trim();
+    if (!value) return;
+    try {
+      const draft: AutopsyDraft = {
+        bidTitle: value,
+        agency: "",
+        naicsCode: "",
+        estimatedValue: "",
+      };
+      window.sessionStorage.setItem(AUTOPSY_DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    } catch {
+      /* storage blocked — /autopsy starts empty; the visitor re-enters there */
+    }
+    trackEvent("autopsy_home_cta", "autopsy_funnel", "/");
+    navigate({ to: "/autopsy" });
+  };
+
+  return (
+    <section aria-label="Award Autopsy" className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8 lg:pb-16">
+      <div className="overflow-hidden rounded-3xl border border-emerald-900/10 bg-gradient-to-b from-emerald-50 to-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
+            Contrax Award Autopsy
+          </p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            Lost a government bid? Find out what happened.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
+            Don&apos;t just move on. Contrax compares available award information, winning price,
+            incumbent history and competitive signals to help you understand the outcome.
+          </p>
+        </div>
+        <form onSubmit={submit} className="mx-auto mt-8 max-w-2xl">
+          <label htmlFor="home-autopsy-solicitation" className="block text-sm font-medium text-slate-700">
+            Enter solicitation number:
+          </label>
+          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
+            <input
+              id="home-autopsy-solicitation"
+              value={solicitation}
+              onChange={(e) => setSolicitation(e.target.value)}
+              placeholder='e.g. "Janitorial Services, DHA Facilities, San Antonio"'
+              autoComplete="off"
+              className="w-full flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
+            <button
+              type="submit"
+              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-[0.98]"
+            >
+              Analyze My Lost Bid &rarr;
+            </button>
+          </div>
+          <p className="mt-3 text-center text-sm font-medium text-slate-700">
+            First Award Autopsy FREE · No credit card
+          </p>
+          <p className="mt-2 text-center text-xs text-slate-500">
+            Award data comes from USAspending.gov (public federal contract data). Everything shown
+            is real — competition counts are shown only when a source provides them.
+          </p>
+        </form>
+      </div>
+    </section>
   );
 }
 

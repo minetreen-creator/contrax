@@ -718,7 +718,7 @@ async function handler({ request }: { request: Request }) {
 
     // ── FAST PATH: per-visitor row summaries straight from the `visitors` cache.
     const visitorRows: any[] = await sql()`
-      SELECT visitor_id, first_path, first_seen_at, last_seen_at, city, region, device_type, browser_label, source,
+      SELECT visitor_id, first_ip, last_ip, first_path, first_seen_at, last_seen_at, city, region, device_type, browser_label, source,
              radar, signup, activated, steps, sessions, last_action, last_action_at,
              converted_user_id, saw_pricing, saw_brief
       FROM visitors

@@ -831,6 +831,7 @@ function Pricing() {
         "Basic Solicitations Search",
         "Up to 3 Saved Bids",
         "1 AI Executive Brief monthly",
+        "1 Award Autopsy monthly — full analysis",
         "Standard Set-Aside Filters",
       ],
       cta: "Start Free",
@@ -845,6 +846,7 @@ function Pricing() {
       features: [
         "Unlimited Saved Bids",
         "3 AI Executive Briefs monthly",
+        "5 Award Autopsies monthly",
         "Daily NAICS Email Alerts",
         "CSV Pipeline Export",
       ],
@@ -862,6 +864,7 @@ function Pricing() {
         "Full Incumbent Intelligence & Past Pricing",
         "AI Match Scoring",
         "Draft Tools",
+        "25 Award Autopsies monthly",
       ],
       cta: "Find Opportunities for My Company",
       slug: "professional",
@@ -879,6 +882,7 @@ function Pricing() {
     features: [
       "Everything in Professional",
       "200 AI Executive Briefs monthly",
+      "100 Award Autopsies monthly",
       "Proposal Evaluator Red Team",
       "Team roles & permissions",
       "Integration connectors",

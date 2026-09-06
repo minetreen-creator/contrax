@@ -142,6 +142,134 @@ export async function sendBidDigest(
   }
 }
 
+// ── Radar Match-Alert Confirmation Email ──────────────────────────────────────
+
+/**
+ * Send the ONE confirmation email for a new anonymous Radar match-alert lead
+ * (owner 2026-09-06). Goes ONLY to the address that just submitted it — the
+ * opt-in capture is personal and never cold. Protects deliverability + verifies
+ * a real address before the (separately queued) periodic sender ever touches
+ * this lead. The confirmation link is the only link in the email; the same
+ * token powers the one-click unsubscribe so one email carries both promises
+ * ("unsubscribe anytime").
+ *
+ * Fire-and-forget + fail-open: errors are logged (never the raw address — the
+ * generic confirmation path omits the email from the log line to stay PII-safe)
+ * and never thrown, so the capture endpoint can never be blocked by email-send
+ * failure.
+ */
+export async function sendRadarLeadConfirmationEmail(
+  to: string,
+  token: string,
+): Promise<void> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send radar lead confirmation — RESEND_API_KEY not set");
+      return;
+    }
+    const confirmUrl = `https://www.contrax.company/api/radar/lead-confirm?token=${encodeURIComponent(token)}`;
+    const unsubscribeUrl = `https://www.contrax.company/api/radar/lead-unsubscribe?token=${encodeURIComponent(token)}`;
+
+    await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      to: [to],
+      subject: "Confirm your Contrax match alerts",
+      html: radarLeadConfirmationHtml(confirmUrl, unsubscribeUrl),
+    });
+
+    // PII-safe: log the outcome WITHOUT the address.
+    console.log("Radar lead confirmation email sent (1 lead)");
+  } catch (err) {
+    // PII-safe: never include the target address in the log line.
+    console.error(
+      "Failed to send radar lead confirmation email:",
+      (err as Error).message,
+    );
+    // Never throw — this is non-blocking
+  }
+}
+
+function radarLeadConfirmationHtml(confirmUrl: string, unsubscribeUrl: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm your Contrax match alerts</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4f4f5;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:560px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:32px 32px 24px;text-align:center;">
+              <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">Contrax</h1>
+              <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">Confirm your match alerts</p>
+            </td>
+          </tr>
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px;">
+              <h2 style="margin:0 0 12px;color:#111827;font-size:20px;font-weight:600;">Please confirm your subscription</h2>
+              <p style="margin:0 0 16px;color:#4b5563;font-size:15px;line-height:1.6;">
+                You asked us to email you when new government contract matches open
+                up for your business — no account required. Tap the button below to
+                confirm your address. Until you confirm, we won't send match alerts
+                to this inbox.
+              </p>
+
+              <!-- CTA -->
+              <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:24px 0;">
+                <tr>
+                  <td align="center">
+                    <a href="${confirmUrl}"
+                       style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-align:center;">
+                      Confirm my match alerts
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.5;">
+                If the button doesn't work, copy and paste this link into your browser:
+              </p>
+              <p style="margin:0 0 16px;color:#2563eb;font-size:13px;line-height:1.5;word-break:break-all;">
+                ${confirmUrl}
+              </p>
+
+              <!-- Divider -->
+              <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">
+
+              <p style="margin:0 0 8px;color:#374151;font-size:15px;font-weight:600;">Unsubscribe anytime</p>
+              <p style="margin:0 0 8px;color:#4b5563;font-size:13px;line-height:1.5;">
+                Don't want alerts anymore? One click removes you:
+                <a href="${unsubscribeUrl}" style="color:#2563eb;">unsubscribe from Contrax match alerts</a>.
+              </p>
+              <p style="margin:0;color:#9ca3af;font-size:12px;">If you didn't request this, you can safely ignore this email.</p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+              <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
+                Contrax — AI-powered government contract discovery
+              </p>
+              <p style="margin:0;color:#9ca3af;font-size:12px;">
+                &copy; ${new Date().getFullYear()} Contrax. All rights reserved.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
 // ── HTML Template ──────────────────────────────────────────────────────────────
 
 function welcomeEmailHtml(email: string): string {

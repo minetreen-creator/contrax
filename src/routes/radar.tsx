@@ -912,6 +912,22 @@ function RadarLanding() {
                 matchedCount={scan.matches.length}
               />
             )}
+            {/* "Want new matches when we find them?" — anonymous match-ALERT
+                capture (owner 2026-09-06). ONLY for anonymous visitors, ONLY after
+                a COMPLETED scan (revealed >= 1). Optional, dismissible, never a
+                wall — a voluntary email with explicit consent to be alerted when
+                new matching opportunities open (no account required). Sends only
+                the ONE confirmation email; the periodic match-alert sender is a
+                separately queued follow-up. */}
+            {!getTrackingUser() && scan.matches.length > 0 && revealed >= 1 && (
+              <MatchAlertsCard
+                certLabel={scan.certLabel}
+                trade={trade}
+                state={state}
+                cert={cert ?? ""}
+                sizePref={sizePref ?? ""}
+              />
+            )}
           </section>
         )}
       </div>
@@ -1384,6 +1400,163 @@ export function SaveMatchesCard({
           className="w-full rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:opacity-60"
         >
           {status === "submitting" ? "Saving…" : "Save my matches →"}
+        </button>
+      </form>
+    </section>
+  );
+}
+
+/**
+ * "Want new matches when we find them?" — anonymous Radar match-alert capture
+ * (owner's "feature I particularly want", 2026-09-06).
+ *
+ * Shown ONLY to anonymous visitors (never signed-in — they have accounts, out
+ * of scope) AFTER a COMPLETED Radar scan (revealed >= 1; the owner framing is
+ * post-scan, not mid-scan). A voluntary email — NO account required — opts the
+ * visitor into FUTURE match-alert emails:
+ *
+ *   - explicit consent is given by submitting (the microcopy promises "We'll
+ *     email you matching opportunities — unsubscribe anytime"),
+ *   - on submit the visitor sees "You're on the list — check your inbox to
+ *     confirm." — we do NOT send matches yet, only the ONE confirmation email
+ *     (deliverability + real-address verification),
+ *   - the endpoint is idempotent (no double confirmation, no resurrection of
+ *     an unsubscribed address) and fail-open (email-send failure never blocks
+ *     the capture or the Radar UX),
+ *   - the same token powers the confirmation link AND the honest one-click
+ *     unsubscribe the microcopy promises.
+ *
+ * This is the foundation for the queued abandoned-signup recovery email and
+ * the periodic match-alert sender.
+ */
+export function MatchAlertsCard({
+  certLabel,
+  trade,
+  state,
+  cert,
+  sizePref,
+}: {
+  certLabel: string;
+  trade: string;
+  state: string;
+  cert: string;
+  sizePref: string;
+}) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
+  const [dismissed, setDismissed] = useState(false);
+  const [error, setError] = useState("");
+
+  if (dismissed) return null;
+
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const submit = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    const normalized = email.trim().toLowerCase();
+    if (!EMAIL_PATTERN.test(normalized) || normalized.length > 254) {
+      setError("Please enter a valid email address.");
+      setStatus("error");
+      return;
+    }
+    setError("");
+    setStatus("submitting");
+    const ids = trackingIds();
+    try {
+      const res = await fetch("/api/radar/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: normalized,
+          trade: trade || undefined,
+          state: state || undefined,
+          cert: cert || undefined,
+          sizePref: sizePref || undefined,
+          visitor_id: ids.visitor_id || undefined,
+          visit_id: ids.visit_id || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as { success?: boolean; status?: string } | null;
+      if (!res.ok || !data?.success) {
+        setStatus("error");
+        setError("Something went wrong. Please try again.");
+        return;
+      }
+      // Funnel event — measured against the anonymous-bounce drop-off. The
+      // display label lives in tracking-intake EVENT_LABELS.
+      trackEvent("radar_lead_captured", certLabel);
+      setStatus("done");
+    } catch {
+      setStatus("error");
+      setError("Something went wrong. Please try again.");
+    }
+  };
+
+  if (status === "done") {
+    return (
+      <div className="mt-6 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 text-center">
+        <p className="text-base font-bold text-emerald-300">You&apos;re on the list ✓</p>
+        <p className="mt-1 text-sm leading-relaxed text-slate-300">
+          Check your inbox to confirm. No account required — and you can
+          unsubscribe anytime with one click.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <section
+      aria-label="Get match alerts"
+      className="mt-6 rounded-2xl border border-slate-700 bg-slate-900 p-5"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h3 className="text-base font-bold text-white">Want new matches when we find them?</h3>
+          <p className="mt-1 text-sm leading-relaxed text-slate-300">
+            Leave your email and we&apos;ll send you matching opportunities as
+            they open. No account required.
+          </p>
+        </div>
+        <button
+          type="button"
+          aria-label="Dismiss"
+          onClick={() => setDismissed(true)}
+          className="-mt-0.5 px-1 text-slate-500 transition-colors hover:text-slate-200"
+        >
+          ✕
+        </button>
+      </div>
+      <form onSubmit={submit} className="mt-4 space-y-3">
+        <div>
+          <label htmlFor="radar-lead-email" className="sr-only">
+            Email address
+          </label>
+          <input
+            id="radar-lead-email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
+            className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-400"
+          />
+        </div>
+        <p className="text-xs leading-relaxed text-slate-500">
+          No account required. We&apos;ll email you matching opportunities —
+          unsubscribe anytime.
+        </p>
+        {status === "error" && error && (
+          <p className="text-sm font-medium text-red-400" role="alert">
+            {error}
+          </p>
+        )}
+        <button
+          type="submit"
+          disabled={status === "submitting"}
+          className="w-full rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:opacity-60"
+        >
+          {status === "submitting" ? "Sending…" : "Send My Matches →"}
         </button>
       </form>
     </section>

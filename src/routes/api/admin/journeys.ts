@@ -40,7 +40,7 @@ import { getWatchedMap } from "~/lib/visitor-intel";
  * with only a subtle muted "#last4" visitor-hash badge for debugging — the word
  * "Anonymous" never appears. Linked users → "local-part@…" (local-part + masked
  * domain). Each row also carries behavioral-intent badges (💰 Pricing Evaluator
- * / 📑 Brief Viewer / 🔥 High Engagement) derived from the stored summary flags.
+ * / 📑 Brief Viewer) derived from the stored summary flags.
  * No full emails, raw IPs, or full user-agent strings leave the server.
  *
  * EXCLUSIONS (owner rules): bot traffic, the @test.contrax QA-email exclusion
@@ -111,7 +111,7 @@ interface TimelineItem {
 
 /** A behavioral-intent badge, derived server-side from the row's own events. */
 interface JourneyBadge {
-  key: "pricing" | "brief" | "engagement";
+  key: "pricing" | "brief";
   label: string; // e.g. "💰 Pricing Evaluator"
 }
 interface Journey {
@@ -219,11 +219,10 @@ function buildLabel(userEmail: string | null | undefined, visitorId: string): st
 }
 
 /** Behavioral-intent badges for a row, derived from its stored flags. */
-function computeBadges(sawPricing: boolean, sawBrief: boolean, stepCount: number): JourneyBadge[] {
+function computeBadges(sawPricing: boolean, sawBrief: boolean): JourneyBadge[] {
   const badges: JourneyBadge[] = [];
   if (sawPricing) badges.push({ key: "pricing", label: "💰 Pricing Evaluator" });
   if (sawBrief) badges.push({ key: "brief", label: "📑 Brief Viewer" });
-  if (stepCount > 2) badges.push({ key: "engagement", label: "🔥 High Engagement" });
   return badges;
 }
 
@@ -451,7 +450,7 @@ async function buildFromDetail(pageRows: any[], eventRows: any[]): Promise<Journ
       if (!sawBrief && p.includes("/example-brief")) sawBrief = true;
       if (sawPricing && sawBrief) break;
     }
-    j.badges = computeBadges(sawPricing, sawBrief, j.events.length);
+    j.badges = computeBadges(sawPricing, sawBrief);
     const uid = visitorUserMap.get(vid);
     j.paid = uid != null && uid.length > 0 && paidMap.get(uid) === 1;
     if (!j.source) j.source = null;
@@ -638,7 +637,7 @@ async function handler({ request }: { request: Request }) {
             ? new Date(v.last_seen_at).toISOString()
             : null,
         steps: Number(v.steps) || 0,
-        badges: computeBadges(!!v.saw_pricing, !!v.saw_brief, Number(v.steps) || 0),
+        badges: computeBadges(!!v.saw_pricing, !!v.saw_brief),
         events: [], // timeline is lazy — fetched per-expanded-row via /api/admin/journeys-timeline
       });
     }

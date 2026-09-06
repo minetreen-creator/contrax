@@ -32,6 +32,13 @@ import { getCurrentUser } from "~/lib/auth";
 
 interface TimelineItem { t: string; label: string; kind: "page" | "event"; }
 interface JourneyBadge { key: "pricing" | "brief"; label: string; }
+/** Rule-based operator guidance (owner 2026-09-06) — computed server-side. */
+interface ConversionOpportunity {
+  reasons: { points: number; reason: string }[];
+  best_next: string;
+  obstacle: string;
+  cta: string;
+}
 interface Journey {
   visitor_id: string;
   label: string;
@@ -53,6 +60,10 @@ interface Journey {
   watched?: boolean;
   watched_since?: string | null;
   returned_since_view?: boolean;
+  /** Board-side lead score (same heuristic as the intel panel; owner 2026-09-06). */
+  lead_score?: { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: { points: number; reason: string }[] };
+  /** Present ONLY on High / Very High rows. */
+  conversion_opportunity?: ConversionOpportunity;
 }
 interface FunnelStage { stage: string; label: string; count: number; dropOffPct: number | null; }
 interface AutopsyFunnelStage { stage: string; label: string; count: number; dropOffPct: number | null; }
@@ -217,6 +228,61 @@ function Badges({ badges }: { badges: JourneyBadge[] }) {
         </span>
       ))}
     </span>
+  );
+}
+
+/** 🎯 Conversion Opportunity panel (owner 2026-09-06) — rendered ONLY for High
+ * / Very High intent rows. All four sections are rule-based and read-side: they
+ * explain what the row already knows, suggest the single best next step, name
+ * the obstacle standing between this visitor and conversion, and give the
+ * operator a concrete on-site CTA copy suggestion. Never urgency/pressure
+ * language — the server-side copy forbids it. */
+function OpportunityPanel({ opp, score, level }: { opp: ConversionOpportunity; score: number; level: string }) {
+  return (
+    <section className="rounded-xl border border-rose-200 bg-rose-50/40 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-rose-700">🎯 Conversion Opportunity</p>
+        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${LEVEL_STYLES[level as LeadScore["level"]]}`}>
+          {LEVEL_LABEL[level as LeadScore["level"]]} · {score}
+        </span>
+      </div>
+      <p className="mt-0.5 text-[11px] text-rose-600/80">
+        Rule-based guidance from this visitor's observed actions — what to do next, what's in the way, and a CTA to try.
+      </p>
+
+      <div className="mt-3 space-y-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-800">Why they're hot</p>
+          {opp.reasons.length === 0 ? (
+            <p className="mt-1 text-sm text-slate-500">High intent score with no explicit reason rows — score driven by the level itself.</p>
+          ) : (
+            <ul className="mt-1 space-y-1">
+              {opp.reasons.map((r, i) => (
+                <li key={i} className="flex items-baseline justify-between gap-3 text-sm">
+                  <span className="text-slate-700">✓ {r.reason}</span>
+                  <span className="shrink-0 rounded bg-rose-100 px-1.5 py-0.5 font-mono text-[11px] text-rose-700">+{r.points}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-800">Best next conversion</p>
+          <p className="mt-1 text-sm text-slate-800">{opp.best_next}</p>
+        </div>
+
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-800">Current obstacle</p>
+          <p className="mt-1 text-sm text-slate-700">{opp.obstacle}</p>
+        </div>
+
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-800">Recommended on-site CTA</p>
+          <p className="mt-1 inline-flex rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-sm font-medium text-rose-800">{opp.cta}</p>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -521,6 +587,7 @@ function IntelPanel({
 
 function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visitorId: string, watched: boolean, since: string | null) => void }) {
   const [open, setOpen] = useState(false);
+  const [oppOpen, setOppOpen] = useState(false);
   const [watched, setWatched] = useState(!!j.watched);
   const [watchedSince, setWatchedSince] = useState<string | null>(j.watched_since ?? null);
   // Lazy per-expanded-row fetches — collapsed rows never fetch. Kept in local
@@ -541,6 +608,11 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
       .finally(() => { if (!cancelled) setTimelineLoading(false); });
     return () => { cancelled = true; };
   }, [open, events, j.visitor_id]);
+
+  // 🎯 Conversion Opportunity (owner 2026-09-06): the row payload carries the
+  // server-computed guidance ONLY for High / Very High intent rows — Low /
+  // Medium rows get neither the button nor the panel (unchanged appearance).
+  const opp = j.conversion_opportunity;
 
   const handleWatchedChange = (w: boolean, since: string | null) => {
     setWatched(w);
@@ -583,6 +655,19 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
           <Badges badges={j.badges} />
           <div className="mt-1.5 flex items-center gap-1.5">
             <WatchToggle visitorId={j.visitor_id} watched={watched} onChange={handleWatchedChange} compact />
+            {opp && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOppOpen((o) => !o);
+                }}
+                title="Open the Conversion Opportunity guidance for this visitor"
+                className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-medium text-rose-700 transition-colors hover:bg-rose-100"
+              >
+                🎯 {oppOpen ? "Close" : "Conversion Opportunity"}
+              </button>
+            )}
           </div>
           {j.device_type && (
             <p className="mt-1 text-[10px] text-slate-400">
@@ -606,15 +691,20 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
       {open && (
         <tr className={watched ? "bg-amber-50/40" : "bg-slate-50/60"}>
           <td colSpan={8} className="px-6 py-4">
-            <IntelPanel
-              visitorId={j.visitor_id}
-              watched={watched}
-              watchedSince={watchedSince}
-              onWatchedChange={handleWatchedChange}
-              timeline={events}
-              timelineLoading={timelineLoading}
-              timelineError={timelineError}
-            />
+            <div className="space-y-3">
+              {oppOpen && opp && j.lead_score && (
+                <OpportunityPanel opp={opp} score={j.lead_score.score} level={j.lead_score.level} />
+              )}
+              <IntelPanel
+                visitorId={j.visitor_id}
+                watched={watched}
+                watchedSince={watchedSince}
+                onWatchedChange={handleWatchedChange}
+                timeline={events}
+                timelineLoading={timelineLoading}
+                timelineError={timelineError}
+              />
+            </div>
           </td>
         </tr>
       )}

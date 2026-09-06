@@ -5,7 +5,7 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
-import { getWatchedMap } from "~/lib/visitor-intel";
+import { computeLeadScore, bidIdsFromPaths, getWatchedMap } from "~/lib/visitor-intel";
 
 /**
  * GET /api/admin/journeys?days=30
@@ -114,6 +114,100 @@ interface JourneyBadge {
   key: "pricing" | "brief";
   label: string; // e.g. "💰 Pricing Evaluator"
 }
+
+/**
+ * Operator guidance for a High/Very High-intent row (owner 2026-09-06). PURELY
+ * READ-SIDE: a rule-based interpretation of the row's existing flags — no new
+ * events, no writes, no changes to the lead-score computation itself.
+ */
+interface ConversionOpportunity {
+  /** Why this visitor is hot — the lead-score reasons array (already computed). */
+  reasons: { points: number; reason: string }[];
+  /** The single best next step for THIS visitor (what they're missing). */
+  best_next: string;
+  /** What's standing between them and conversion. */
+  obstacle: string;
+  /** Concrete on-site CTA copy suggestion for the operator. */
+  cta: string;
+}
+
+/**
+ * Rule-based "what to do next" for this visitor. Uses only the row's existing
+ * flags (owner examples kept verbatim where given). Order matters:
+ *
+ *   1. Not signed up AND never started signup  → offer free account (save Radar)
+ *   2. Started signup but never finished       → recover the abandoned signup
+ *   3. Signed up as Basic, never converted     → activate product value
+ *   4. Completed Radar but anonymous           → capture email via match alerts
+ *   fallback                                   → re-engage with a value message
+ *
+ * A row carrying a live linked account (even pre-signup-success detail rows)
+ * counts as signed up — the same "live account" check the Success guard uses.
+ * Every branch also has one flag-driven refinement so the copy reflects what
+ * was actually observed. No urgency/pressure language anywhere.
+ */
+function buildConversionOpportunity(o: {
+  signedUp: boolean;
+  signupStarted: boolean;
+  radarCompleted: boolean;
+  pricingViewed: boolean;
+  savedBid: boolean;
+  incumbentViewed: boolean;
+  briefViewed: boolean;
+  autopsyAwardFound: boolean;
+  autopsyReportViewed: boolean;
+  emailKnown: boolean;
+  reasons: { points: number; reason: string }[];
+}): ConversionOpportunity {
+  let best_next: string;
+  let obstacle: string;
+  let cta: string;
+  if (!o.signedUp && !o.signupStarted) {
+    best_next = "Offer a free account so they can save Radar results.";
+    obstacle = "Hasn't started signup.";
+    cta = "Save these matches and get your next 3 →";
+  } else if (o.signupStarted && !o.signedUp) {
+    best_next = "Recover the abandoned signup — send one useful reminder.";
+    obstacle = "Abandoned signup.";
+    cta = "Continue your free account setup";
+  } else if (o.signedUp && !o.radarCompleted) {
+    best_next = "Activate product value: get them to complete a Radar scan / run an Award Autopsy.";
+    obstacle = "Free account, not yet activated.";
+    cta = "Run your first Executive Brief";
+  } else if (o.radarCompleted && !o.emailKnown) {
+    best_next = "Capture their email for match alerts (no account required).";
+    obstacle = "Anonymous — no email captured.";
+    cta = "Want new matches when we find them?";
+  } else {
+    best_next = "Re-engage with a relevant value message (new matching opportunities).";
+    obstacle = "Needs a genuine commercial event.";
+    cta = "Review your latest matches";
+  }
+  // Flag-driven refinement — the copy reflects what was actually observed.
+  if (o.autopsyAwardFound || o.autopsyReportViewed) {
+    best_next = "Activate product value: get them to run a full Award Autopsy.";
+    obstacle = "Autopsy interest, no account yet.";
+    cta = "Unlock your full free Award Autopsy";
+  } else if (o.savedBid && !o.signedUp) {
+    best_next = "Offer a free account so they can keep their saved matches.";
+    obstacle = "Saved a bid but no account to keep it.";
+    cta = "Save your matches so they don't expire";
+  } else if (o.incumbentViewed && !o.signedUp) {
+    best_next = "Offer a free account to save their matches and keep incumbent intel.";
+    obstacle = "Viewed incumbent intel, no account yet.";
+    cta = "Create a free account to keep your matches";
+  } else if (o.signedUp && (o.savedBid || o.briefViewed)) {
+    best_next = "Suggest a Professional trial — saved bids + briefs both point to drafting.";
+    obstacle = "Free account, seeing value but not yet upgraded.";
+    cta = "Try Professional free for 14 days";
+  } else if (o.pricingViewed && o.signedUp) {
+    best_next = "Suggest a Professional trial — they already compared plans.";
+    obstacle = "Free account, compared pricing, hasn't upgraded.";
+    cta = "Try Professional free for 14 days";
+  }
+  return { reasons: o.reasons, best_next, obstacle, cta };
+}
+
 interface Journey {
   visitor_id: string;
   label: string; // masked, recognizable identifier (NO full PII)
@@ -138,6 +232,20 @@ interface Journey {
   watched_since?: string | null;
   /** Active AFTER the admin last viewed this visitor (server-authoritative). */
   returned_since_view?: boolean;
+  /**
+   * Lead score (score + level + reasons) for this row (owner 2026-09-06). The
+   * SAME computeLeadScore heuristic the per-row Visitor Intelligence panel uses,
+   * assembled board-side from the summary-cache flags + a windowed detail-rows
+   * prefetch (fail-open). Only High / Very High rows carry a
+   * `conversion_opportunity`.
+   */
+  lead_score?: {
+    score: number;
+    level: "Very High" | "High" | "Medium" | "Low";
+    reasons: { points: number; reason: string }[];
+  };
+  /** Rule-based "what to do next" — present ONLY on High / Very High rows. */
+  conversion_opportunity?: ConversionOpportunity;
 }
 interface FunnelStage {
   stage: "qualified" | "radar" | "signup" | "activated" | "paid";
@@ -479,6 +587,90 @@ async function ensureContextColumns(): Promise<void> {
   await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS browser_label TEXT`;
 }
 
+/**
+ * Board-side lead-score assembly (owner 2026-09-06 — Conversion Opportunity).
+ *
+ * The lead-score heuristic (computeLeadScore in ~/lib/visitor-intel) already
+ * powers the per-row Visitor Intelligence panel. Here we assemble the SAME
+ * signals board-wide from the summary-cache flags (fast path) + a windowed
+ * detail-rows prefetch (for the signals /visitors doesn't store: signup
+ * started/abandoned, incumbent viewed, saved bid, briefs, autopsy events,
+ * distinct bids viewed, email known). Returns the score + (for High / Very
+ * High only) the rule-based conversion opportunity. NO changes to the
+ * lead-score computation itself — this only feeds it the same signal values
+ * the panel would, derived once per row instead of lazily per expansion.
+ */
+function buildRowLeadScore(o: {
+  radar: boolean;
+  signupStatus: string; // board signup status (after the Success guard)
+  sawPricing: boolean;
+  sawBrief: boolean;
+  sessions: number;
+  firstSeenIso: string | null;
+  lastSeenIso: string | null;
+  eventNames: string[];
+  paths: string[];
+  signedUp: boolean;
+  emailKnown: boolean;
+}): {
+  score: number;
+  level: "Very High" | "High" | "Medium" | "Low";
+  reasons: { points: number; reason: string }[];
+  opportunity: ConversionOpportunity | null;
+} {
+  const radarCompleted = o.radar || o.eventNames.includes("radar_scan_complete");
+  const sawPath = (needle: string) => o.paths.some((p) => p.includes(needle));
+  const has = (needle: string) => o.eventNames.some((e) => e.includes(needle));
+  const signupStarted = o.eventNames.some((e) => ["signup_start", "signup_submit", "signup_abandon"].includes(e));
+  const signupAbandoned = o.signupStatus === "Abandoned";
+  const incumbentViewed = has("incumbent");
+  const savedBid = o.eventNames.includes("save_success") || o.eventNames.includes("radar_login_notify_save");
+  const briefViewed = o.sawBrief || has("rfp_brief_result") || sawPath("/example-brief");
+  const briefGenerated = o.eventNames.includes("rfp_brief_result");
+  const pricingViewed = o.sawPricing || sawPath("/pricing");
+  const autopsyAwardFound = o.eventNames.includes("autopsy_award_found");
+  const autopsyReportViewed = o.eventNames.includes("autopsy_report_viewed");
+  const autopsyRadarUsed =
+    o.eventNames.includes("autopsy_radar_cta") ||
+    (o.eventNames.includes("radar_scan_complete") &&
+      ["autopsy_landing", "autopsy_contract_entered", "autopsy_award_found", "autopsy_generated", "autopsy_signup_wall", "autopsy_report_viewed"].some((e) => o.eventNames.includes(e)));
+  const scored = computeLeadScore({
+    returnedMultiDay: !!(o.firstSeenIso && o.lastSeenIso && o.firstSeenIso.slice(0, 10) !== o.lastSeenIso.slice(0, 10)),
+    sessions: o.sessions || 0,
+    radarStarted: radarCompleted || has("radar_") || sawPath("/radar"),
+    radarCompleted,
+    incumbentViewed,
+    briefViewed,
+    briefGenerated,
+    pricingViewed,
+    signupStarted: signupStarted && !o.signedUp,
+    signedUp: o.signedUp,
+    savedBid,
+    distinctBidsViewed: bidIdsFromPaths(o.paths).length,
+    steps: 0, // steps is NOT scored (owner 2026-09-06: engagement ≠ intent)
+    autopsyAwardFound,
+    autopsyReportViewed,
+    autopsyRadarUsed,
+  });
+  const highOrVeryHigh = scored.level === "High" || scored.level === "Very High";
+  const opportunity: ConversionOpportunity | null = highOrVeryHigh
+    ? buildConversionOpportunity({
+        signedUp: o.signedUp,
+        signupStarted: signupStarted || signupAbandoned,
+        radarCompleted,
+        pricingViewed,
+        savedBid,
+        incumbentViewed,
+        briefViewed,
+        autopsyAwardFound,
+        autopsyReportViewed,
+        emailKnown: o.emailKnown,
+        reasons: scored.reasons,
+      })
+    : null;
+  return { score: scored.score, level: scored.level, reasons: scored.reasons, opportunity };
+}
+
 async function handler({ request }: { request: Request }) {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
@@ -526,7 +718,7 @@ async function handler({ request }: { request: Request }) {
 
     // ── FAST PATH: per-visitor row summaries straight from the `visitors` cache.
     const visitorRows: any[] = await sql()`
-      SELECT visitor_id, first_path, last_seen_at, city, region, device_type, browser_label, source,
+      SELECT visitor_id, first_path, first_seen_at, last_seen_at, city, region, device_type, browser_label, source,
              radar, signup, activated, steps, sessions, last_action, last_action_at,
              converted_user_id, saw_pricing, saw_brief
       FROM visitors
@@ -559,6 +751,55 @@ async function handler({ request }: { request: Request }) {
       // Fail-open: without the detail sets the Success guard only trusts a live
       // converted account; the orphan fallback below will also be skipped.
       console.error("[api/admin/journeys] filtered-signup-events prefetch failed (continuing):", fevErr);
+    }
+
+    // ── Conversion Opportunity prefetch (owner 2026-09-06): ONE windowed pass
+    // over the detail tables (same bot/QA/admin exclusions as the timeline) to
+    // gather the per-visitor signals the summary cache doesn't store (signup
+    // started/abandoned, incumbent viewed, saved bid, briefs, autopsy funnel
+    // events, bid paths, email present). Cache-first: only the board's current
+    // in-window visitors are fetched, so orphan/legacy rows below can also use
+    // these sets. Fail-open — when the detail tables are missing or the query
+    // errors, rows still render (score from cache flags only, no opportunity
+    // beyond the plain High/Very High level).
+    const detailEvents = new Map<string, { names: Set<string>; paths: string[]; emailKnown: boolean }>();
+    const detailPaths = new Map<string, string[]>();
+    try {
+      const deRows: any[] = await sql()`
+        SELECT visitor_id, event_name, path, user_email FROM funnel_events
+        WHERE visitor_id IS NOT NULL AND visitor_id <> ''
+          AND event_name IS NOT NULL
+          AND created_at >= ${fromIso}
+          AND NOT COALESCE((${BOT_EXCLUSION_SQL}), false)
+          AND ${sql().unsafe(qaFilter)} AND ${sql().unsafe(adminFilter)}
+        UNION ALL
+        SELECT visitor_id, NULL AS event_name, path, user_email FROM page_views
+        WHERE visitor_id IS NOT NULL AND visitor_id <> ''
+          AND path IS NOT NULL
+          AND created_at >= ${fromIso}
+          AND NOT COALESCE((${BOT_EXCLUSION_SQL}), false)
+          AND ${sql().unsafe(qaFilter)} AND ${sql().unsafe(adminFilter)}`;
+      for (const r of deRows) {
+        const vid = String(r.visitor_id);
+        const en = r.event_name ? String(r.event_name) : null;
+        const path = r.path ? String(r.path) : null;
+        const email = r.user_email ? String(r.user_email) : null;
+        if (en) {
+          let d = detailEvents.get(vid);
+          if (!d) {
+            d = { names: new Set(), paths: [], emailKnown: false };
+            detailEvents.set(vid, d);
+          }
+          d.names.add(en);
+          if (path) d.paths.push(path);
+          if (email && email.includes("@")) d.emailKnown = true;
+        } else {
+          if (!detailPaths.has(vid)) detailPaths.set(vid, []);
+          if (path) detailPaths.get(vid)!.push(path);
+        }
+      }
+    } catch (deErr) {
+      console.error("[api/admin/journeys] conversion-opportunity prefetch failed (continuing):", deErr);
     }
 
     // Resolve linked users (for masked email labels + paid status) in one pass.
@@ -617,6 +858,27 @@ async function handler({ request }: { request: Request }) {
           signup = signupStatus(new Set(signupEventNames.get(vid) ?? []));
         }
       }
+      // Conversion Opportunity (owner 2026-09-06): same signals the panel's
+      // computeLeadScore would use, assembled from the summary cache + the
+      // windowed detail prefetch (fail-open — never throws).
+      const detailE = detailEvents.get(vid);
+      const eventNames = detailE ? [...detailE.names] : [];
+      const paths = [...(detailE?.paths ?? []), ...(detailPaths.get(vid) ?? [])];
+      const signedUpFlag = signup === "Success" || !!converted; // live linked account counts (mirrors the panel)
+      const emailKnown = isLinked || !!detailE?.emailKnown;
+      const scored = buildRowLeadScore({
+        radar: !!v.radar,
+        signupStatus: signup,
+        sawPricing: !!v.saw_pricing,
+        sawBrief: !!v.saw_brief,
+        sessions: Number(v.sessions) || 0,
+        firstSeenIso: v.first_seen_at ? new Date(v.first_seen_at).toISOString() : null,
+        lastSeenIso: v.last_seen_at ? new Date(v.last_seen_at).toISOString() : null,
+        eventNames,
+        paths,
+        signedUp: signedUpFlag,
+        emailKnown,
+      });
       journeys.push({
         visitor_id: vid,
         label,
@@ -639,6 +901,8 @@ async function handler({ request }: { request: Request }) {
         steps: Number(v.steps) || 0,
         badges: computeBadges(!!v.saw_pricing, !!v.saw_brief),
         events: [], // timeline is lazy — fetched per-expanded-row via /api/admin/journeys-timeline
+        lead_score: { score: scored.score, level: scored.level, reasons: scored.reasons },
+        ...(scored.opportunity ? { conversion_opportunity: scored.opportunity } : {}),
       });
     }
 
@@ -676,8 +940,35 @@ async function handler({ request }: { request: Request }) {
           ORDER BY created_at ASC`;
         const built = await buildFromDetail(oPage, oEvent);
         // Board rows carry no inline timeline (it's lazy) — keep the derived
-        // steps/last_activity but drop the events array.
-        orphanJourneys = built.map((j) => ({ ...j, events: [] }));
+        // steps/last_activity but drop the events array. Attach the board-side
+        // lead score + conversion opportunity (owner 2026-09-06) from the same
+        // windowed detail sets the fast path uses.
+        orphanJourneys = built.map((j) => {
+          const detailE = detailEvents.get(j.visitor_id);
+          const eventNames = detailE ? [...detailE.names] : [];
+          const paths = [...(detailE?.paths ?? []), ...(detailPaths.get(j.visitor_id) ?? [])];
+          const signedUpFlag = j.signup === "Success";
+          const emailKnown = !j.visitor_hash || !!detailE?.emailKnown; // has a real label (linked) or an email on a detail row
+          const scored = buildRowLeadScore({
+            radar: j.radar,
+            signupStatus: j.signup,
+            sawPricing: j.badges.some((b) => b.key === "pricing"),
+            sawBrief: j.badges.some((b) => b.key === "brief"),
+            sessions: 0,
+            firstSeenIso: null,
+            lastSeenIso: j.last_activity,
+            eventNames,
+            paths,
+            signedUp: signedUpFlag,
+            emailKnown,
+          });
+          return {
+            ...j,
+            events: [],
+            lead_score: { score: scored.score, level: scored.level, reasons: scored.reasons },
+            ...(scored.opportunity ? { conversion_opportunity: scored.opportunity } : {}),
+          };
+        });
       }
     } catch (orphanErr) {
       console.error("[api/admin/journeys] legacy fallback failed (continuing with cache):", orphanErr);

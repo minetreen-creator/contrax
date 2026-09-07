@@ -222,6 +222,13 @@ interface Journey {
   signup: "Not started" | "Viewed" | "Started" | "Abandoned" | "Success";
   activated: boolean;
   paid: boolean;
+  /**
+   * Highest radar-leads stage reached for this visitor (owner 2026-09-07 refined
+   * Overview — the "where-in-funnel" marker: captured → confirmed → alerted →
+   * clicked). READ-SIDE enrichment of radar_leads; stage ONLY — the raw email
+   * and unsubscribe token never leave the server. Absent for rows with no lead.
+   */
+  radar_lead_stage?: "captured" | "confirmed" | "alerted" | "clicked" | null;
   last_activity: string | null; // ISO
   steps: number; // step count — the collapsed "Steps" count (timeline is lazy)
   badges: JourneyBadge[];
@@ -259,6 +266,8 @@ interface JourneysResult {
   to: string;
   funnel: FunnelStage[];
   journeys: Journey[];
+  /** Radar-leads stage per visitor_id (read-side enrichment; absent → no lead). */
+  radarLeadStages?: Record<string, "captured" | "confirmed" | "alerted" | "clicked">;
   /** Watched visitors active since the admin last viewed them (PII-masked). */
   watched_returned: {
     visitor_id: string;
@@ -671,6 +680,42 @@ function buildRowLeadScore(o: {
   return { score: scored.score, level: scored.level, reasons: scored.reasons, opportunity };
 }
 
+/**
+ * READ-SIDE radar-leads enrichment (owner 2026-09-07 refined Overview — the
+ * "where-in-funnel" marker). Loads only the highest stage reached per visitor
+ * from radar_leads, joined to the visitors summary cache for the visitor_id.
+ * Stage ONLY: email + unsubscribe_token are never selected. Bots/QA/admin
+ * never appear (radar-leads funnel-stage events are written only for real
+ * human capturers; the lead's own visitor_id join keeps this to real rows).
+ * Fail-open → empty map → rows simply render without a lead-stage marker.
+ */
+async function loadRadarLeadStages(): Promise<Map<string, "captured" | "confirmed" | "alerted" | "clicked">> {
+  const m = new Map<string, "captured" | "confirmed" | "alerted" | "clicked">();
+  try {
+    const rows: any[] = await sql()`
+      SELECT rl.visitor_id,
+             CASE
+               WHEN rl.click_count > 0 THEN 'clicked'
+               WHEN rl.last_alerted_at IS NOT NULL THEN 'alerted'
+               WHEN rl.confirmed_at IS NOT NULL THEN 'confirmed'
+               ELSE 'captured'
+             END AS stage
+      FROM radar_leads rl
+      WHERE rl.visitor_id IS NOT NULL AND rl.visitor_id <> ''
+        AND rl.unsubscribed_at IS NULL`;
+    for (const r of rows) {
+      const vid = String(r.visitor_id);
+      const stage = String(r.stage);
+      if (stage === "captured" || stage === "confirmed" || stage === "alerted" || stage === "clicked") {
+        m.set(vid, stage);
+      }
+    }
+  } catch (err) {
+    console.error("[api/admin/journeys] radar-lead stage load failed (continuing):", err);
+  }
+  return m;
+}
+
 async function handler({ request }: { request: Request }) {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
@@ -1027,12 +1072,20 @@ async function handler({ request }: { request: Request }) {
       { stage: "paid", label: "Paid", count: paid, dropOffPct: pct(paid, activated) },
     ];
 
+    // ── Radar-leads stages (owner 2026-09-07): one pass over radar_leads for the
+    // ANONYMOUS-lead channel "where-in-funnel" marker; page the Map so the JSON
+    // serializes (a raw Map would come out as {}). Fail-open → {} → null per row.
+    const radarLeadStagesMap = await loadRadarLeadStages();
+    const radarLeadStages: Record<string, "captured" | "confirmed" | "alerted" | "clicked"> = {};
+    for (const [vid, stage] of radarLeadStagesMap) radarLeadStages[vid] = stage;
+
     return Response.json({
       rangeDays,
       from: fromIso,
       to: now.toISOString(),
       funnel,
-      journeys: all,
+      radarLeadStages,
+      journeys: all.map((j) => ({ ...j, radar_lead_stage: radarLeadStagesMap.get(j.visitor_id) ?? null })),
       watched_returned: watchedReturned,
     });
   } catch (err) {

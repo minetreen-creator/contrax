@@ -55,6 +55,56 @@ export const MAX_TRADE_LENGTH = 120;
  *  query with dozens of OR branches). */
 export const MAX_EXPANDED_TERMS = 12;
 
+/**
+ * OWNER PRECISION CONSTRAINT (09-07) — structurally enforced.
+ *
+ * Ultra-generic trade words that are NEVER sufficient alone as a match term.
+ * Expansion must increase recall while REQUIRING meaningful category/NAICS
+ * evidence; a bare generic word ("transport", "delivery") that could appear in
+ * ANY solicitation must never carry a match by itself.
+ *
+ * Enforcement is single-point: expandTrade() filters these out of
+ * expansion.terms, so tradeTextIncludes / tradeProvenanceFor /
+ * tradeKeywordPred all inherit the rule for free — no downstream matcher can
+ * ever match on a generic word alone, even if a FUTURE registry entry lists
+ * one as a synonym. The evidence paths stay open: specific terms
+ * (freight, truckload, hauling, ltl, ...) match on text, and the implied
+ * NAICS codes match via the naics_code = ANY() branch.
+ *
+ * Deliberately NOT blocked: "freight" (specific trucking/NAICS-484121 word,
+ * not generic to procurement) and specific multi-word phrases that merely
+ * CONTAIN a generic word ("freight transportation", "delivery service",
+ * "motor carrier" — phrase-substring hits are specific enough to keep).
+ * The visitor's VERBATIM original term is also never filtered (terms[0]) —
+ * a literal query keeps today's precision/behavior; only ADDED synonyms are
+ * subject to the blocklist. When in doubt, this list errs toward precision.
+ */
+export const GENERIC_TRADE_TERMS: Set<string> = new Set([
+  "transport",
+  "transportation",
+  "delivery",
+  "deliveries",
+  "deliver",
+  "delivering",
+  "shipping",
+  "ship",
+  "shipped",
+  "moving",
+  "move",
+  "mover",
+  "movers",
+  "carrier",
+  "carriers",
+  "truck",
+  "trucks",
+  "logistics",
+  "service",
+  "services",
+  "support",
+  "supply",
+  "supplies",
+]);
+
 /** A registry entry: one industry key → procurement synonyms + NAICS codes. */
 export interface TradeAliasEntry {
   /** Display key for the why-line ("Trucking/Hauling") — honest, generic. */
@@ -214,10 +264,19 @@ export function expandTrade(original: string): TradeExpansion {
   }
 
   // Defensive cap so a pathological registry entry can never blow up a query.
+  // OWNER PRECISION CONSTRAINT (09-07): generic terms are filtered out of the
+  // match set HERE (single source of truth) — a generic word can never appear
+  // as a match term, so every downstream matcher (tradeTextIncludes,
+  // tradeProvenanceFor, tradeKeywordPred) inherits the rule for free. The
+  // verbatim original (terms[0]) is NEVER filtered: a literal user query keeps
+  // today's precision/behavior; only ADDED synonyms are subject to the block.
+  // Implied NAICS codes are untouched (the evidence path stays open).
+  const [verbatim, ...added] = terms;
+  const filtered = added.filter((t) => !GENERIC_TRADE_TERMS.has(t));
   return {
     original: raw,
     isNaics: false,
-    terms: terms.slice(0, MAX_EXPANDED_TERMS),
+    terms: [verbatim, ...filtered].slice(0, MAX_EXPANDED_TERMS),
     naicsCodes,
   };
 }
@@ -368,4 +427,50 @@ export function tradeKeywordPred(sql: any, expansion: TradeExpansion): any {
     acc = sql`(${acc} OR ${clauses[i]})`;
   }
   return sql`AND (${acc})`;
+}
+
+/**
+ * Precision self-check (owner 09-07 constraint). No test runner exists in this
+ * repo, so this throw-guarded verifier is the regression protection: run with
+ * `bun src/lib/trade-registry.ts` (import.meta.main guard — never runs on
+ * import). Asserts: (a) trucking expansion carries no bare generic match term;
+ * (b) "trucking" does NOT match generic "Transportation services" text;
+ * (c) a specific term ("freight hauling") still matches; (d) the NAICS path
+ * (484121) still works.
+ */
+export function verifyTradePrecision(): void {
+  const assert = (cond: boolean, msg: string) => {
+    if (!cond) throw new Error(`[trade-registry precision] FAIL: ${msg}`);
+  };
+  const exp = expandTrade("trucking");
+  assert(!exp.terms.includes("transport"), 'terms must not include "transport"');
+  assert(!exp.terms.includes("delivery"), 'terms must not include "delivery"');
+  assert(
+    !exp.terms.some((t) => GENERIC_TRADE_TERMS.has(t) && t !== exp.terms[0]),
+    "no added term may be a GENERIC_TRADE_TERMS entry",
+  );
+  assert(
+    tradeTextIncludes("Transportation services", exp) === false,
+    '"trucking" must NOT match "Transportation services"',
+  );
+  assert(
+    tradeProvenanceFor("Transportation services", exp, null) === null,
+    'no provenance for a generic-only hit (why-line must never overclaim)',
+  );
+  assert(
+    tradeTextIncludes("Freight hauling needed for base supply run", exp) === true,
+    'specific term "freight hauling" must still match',
+  );
+  assert(exp.naicsCodes.includes("484121"), "trucking must imply NAICS 484121");
+  assert(
+    tradeProvenanceFor("Office supplies", exp, "484121")?.matchedNaics === "484121",
+    "implied-NAICS branch must still produce provenance",
+  );
+}
+
+// @ts-ignore — bun-only entry guard; never runs on import.
+if ((import.meta as any).main) {
+  verifyTradePrecision();
+  // eslint-disable-next-line no-console
+  console.log("[trade-registry precision] PASS: generic-only never matches; specific + NAICS paths intact.");
 }

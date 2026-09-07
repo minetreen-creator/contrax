@@ -14,26 +14,40 @@ import {
 /**
  * /admin/ — Overview tab of the redesigned admin dashboard (owner 2026-09-07).
  *
- *   CONTRAX TODAY (headline metrics, same numbers as before — Qualified /
- *   Radar / Autopsy / Leads / Signups / Paid, live from the existing
- *   unified-funnel + autopsy-funnel + radar-leads-funnel + metrics + finance
- *   endpoints) + 🔥 PEOPLE TO ACT ON (top 5–10 highest-intent rows, ranked by
- *   the EXISTING board-side lead score from /api/admin/journeys — the same
- *   computeLeadScore heuristic + Conversion Opportunity best_next/cta mapping,
- *   PII-masked exactly like the board).
+ *   CONTRAX TODAY — the owner-exact 8-card scoreboard, in order: Qualified
+ *   Visitors / Radar Completed / Radar Leads / Autopsy Started / Signups /
+ *   Activated / Customers / MRR. Every number is live from the EXISTING
+ *   endpoints the merged dashboard already calls (unified-funnel,
+ *   radar-leads-funnel, autopsy-funnel, metrics, finance) — NO analytics
+ *   rewrite, NO new dependencies, NO schema changes. Bot/QA/admin rows are
+ *   excluded server-side by those endpoints; cards carry honest hints.
  *
- * The deep surfaces moved to tabs (Radar Leads, Autopsy, Visitors, Signups,
- * Customers); the old single-page sections below (users, waitlist, traffic,
- * acquisition, funnels) stay reachable via those tabs and /admin/journeys.
+ *   🔥 PEOPLE TO ACT ON — HIGH-VALUE ONLY: rows whose existing board-side lead
+ *   score is "Very High" or "High" (Medium/Low dropped), capped at top 10,
+ *   ranked by score. 4-part card per row: what-did (acquisition path) /
+ *   why-important (intent badge + score + reasons) / where-in-funnel
+ *   (signup/radar/radar-lead stage marker) / Recommended-Next (best_next +
+ *   Try: cta from the Conversion Opportunity mapping, PII-masked exactly like
+ *   the board).
+ *
+ *   REVENUE FUNNEL — the CEO health section: Radar → Lead → Confirmed →
+ *   Alert → Click → Signup → Activated → Paid, aggregated from EXISTING funnel
+ *   events (unified radar-completed, radar-leads capture/confirmed/alert/click/
+ *   signup, unified activated, live Stripe customers). Honest counts + drop-off
+ *   %; zero funnel → honest empty state, never fabricated.
+ *
+ * The deep surfaces stay on the tabs (Radar Leads, Autopsy, Visitors, Signups,
+ * Customers).
  */
 
 // ── Endpoint shapes (all pre-filtered server-side: bot/QA/admin excluded) ───
 interface UnifiedStage { stage: string; label: string; count: number; stepConversionPct: number | null; }
 interface UnifiedResult { rangeDays: number; stages: UnifiedStage[]; }
-interface SimpleFunnelStage { stage: string; label: string; count: number; dropOffPct: number | null; }
-interface SimpleFunnel { rangeDays: number; funnel: SimpleFunnelStage[]; }
-interface MetricsShape { totalSignups: number; }
+interface SimpleFunnel { rangeDays: number; funnel: { stage: string; label: string; count: number; dropOffPct: number | null }[]; }
 interface FinanceShape { mrrCents: number; customerCount: number; source: "stripe-live" | "app-db"; }
+
+type RadarLeadStage = "captured" | "confirmed" | "alerted" | "clicked";
+type SignupStatus = "Not started" | "Viewed" | "Started" | "Abandoned" | "Success";
 
 interface OppReason { points: number; reason: string; }
 interface ActOnRow {
@@ -46,7 +60,8 @@ interface ActOnRow {
   device_type: string | null;
   browser_label: string | null;
   radar: boolean;
-  signup: string;
+  signup: SignupStatus;
+  radar_lead_stage: RadarLeadStage | null;
   last_activity: string | null;
   score: number;
   level: "Very High" | "High" | "Medium" | "Low";
@@ -66,10 +81,11 @@ interface JourneysShape {
     device_type: string | null;
     browser_label: string | null;
     radar: boolean;
-    signup: string;
+    signup: SignupStatus;
+    radar_lead_stage?: RadarLeadStage | null;
     last_activity: string | null;
     lead_score?: { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: OppReason[] };
-    conversion_opportunity?: { reasons: OppReason[]; best_next: string; obstacle: string; cta: string };
+    conversion_opportunity?: { best_next: string; obstacle: string; cta: string };
   }[];
 }
 
@@ -98,6 +114,21 @@ function acquisitionPath(source: string | null, radar: boolean, signup: string):
   return steps.length > 0 ? `${src} → ${steps.join(" → ")}` : `${src} → Browsing`;
 }
 
+/** Where-in-funnel marker (owner 2026-09-07): signup + radar + radar-lead
+ *  stage in one compact chip row. Absent stages simply don't render. */
+function funnelMarkers(r: ActOnRow): { label: string; cls: string; key: string }[] {
+  const out: { label: string; cls: string; key: string }[] = [];
+  if (r.radar_lead_stage) {
+    const label = `Lead ${r.radar_lead_stage}`;
+    out.push({ label, key: `lead-${r.radar_lead_stage}`, cls: "border-violet-200 bg-violet-50/70 text-violet-800" });
+  }
+  if (r.radar) out.push({ label: "Radar done", key: "radar", cls: "border-indigo-200 bg-indigo-50/70 text-indigo-800" });
+  if (r.signup === "Success") out.push({ label: "Signed up", key: "signup-success", cls: "border-emerald-200 bg-emerald-50/70 text-emerald-800" });
+  else if (r.signup === "Started" || r.signup === "Abandoned") out.push({ label: "Signup started", key: "signup-started", cls: "border-amber-200 bg-amber-50/70 text-amber-800" });
+  else if (r.signup === "Viewed") out.push({ label: "Signup viewed", key: "signup-viewed", cls: "border-slate-200 bg-slate-50/70 text-slate-600" });
+  return out;
+}
+
 function locationDevice(r: ActOnRow): string {
   const geo = [r.city, r.region].filter(Boolean).join(", ");
   const device = r.browser_label || r.device_type;
@@ -105,6 +136,13 @@ function locationDevice(r: ActOnRow): string {
   if (geo) return geo;
   if (device) return device;
   return "Direct Lead";
+}
+
+/** Drop-off % to the NEXT stage (null when the current count is 0). */
+function dropPct(next: number, prev: number): number | null {
+  if (prev <= 0) return null;
+  const p = Math.round((1 - next / prev) * 100);
+  return p > 0 ? p : 0;
 }
 
 function PeopleToActOn({ rows, loading, error }: { rows: ActOnRow[]; loading: boolean; error: string }) {
@@ -128,6 +166,7 @@ function PeopleToActOn({ rows, loading, error }: { rows: ActOnRow[]; loading: bo
           <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
             <th className="px-5 py-3 font-medium">Visitor</th>
             <th className="px-5 py-3 font-medium">Intent</th>
+            <th className="px-5 py-3 font-medium">In funnel</th>
             <th className="px-5 py-3 font-medium">Path</th>
             <th className="px-5 py-3 font-medium">Recommended action</th>
             <th className="px-5 py-3 font-medium">Journey</th>
@@ -147,10 +186,26 @@ function PeopleToActOn({ rows, loading, error }: { rows: ActOnRow[]; loading: bo
                 </div>
                 <p className="mt-0.5 text-[11px] text-slate-400">last active {timeFmt(r.last_activity)}</p>
               </td>
-              <td className="px-5 py-3 whitespace-nowrap">
+              <td className="px-5 py-3 whitespace-nowrap align-top">
                 <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${LEVEL_STYLE[r.level]}`}>
                   {r.level === "Very High" ? "🔥 Very High" : r.level === "High" ? "🔥 High" : r.level} · {r.score}
                 </span>
+                {r.reasons.length > 0 && (
+                  <ul className="mt-1.5 max-w-[220px] space-y-0.5">
+                    {r.reasons.slice(0, 3).map((rs, i) => (
+                      <li key={i} className="text-[10px] leading-tight text-slate-500">+{rs.points} {rs.reason}</li>
+                    ))}
+                  </ul>
+                )}
+              </td>
+              <td className="px-5 py-3 align-top">
+                <div className="flex max-w-[200px] flex-wrap gap-1">
+                  {funnelMarkers(r).map((m) => (
+                    <span key={m.key} className={`inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${m.cls}`}>
+                      {m.label}
+                    </span>
+                  ))}
+                </div>
               </td>
               <td className="px-5 py-3 text-slate-600 whitespace-nowrap">{acquisitionPath(r.source, r.radar, r.signup)}</td>
               <td className="px-5 py-3">
@@ -172,9 +227,85 @@ function PeopleToActOn({ rows, loading, error }: { rows: ActOnRow[]; loading: bo
         </tbody>
       </table>
       <p className="px-5 py-3 text-[10px] text-slate-400 border-t border-slate-100">
-        Ranked by the existing board-side lead score (same heuristic + same recommended-action mapping as the
-        Conversion Opportunity panel). Location is approximate / IP-derived; linked users show the masked label.
-        Bot/QA/admin rows never appear.
+        HIGH-VALUE ONLY: rows restricted to the existing board-side lead score's "Very High" / "High" levels (Medium/Low
+        dropped), top 10 by score, newest activity breaks ties. Location is approximate / IP-derived; linked users show
+        the masked label. Bot/QA/admin rows never appear.
+      </p>
+    </div>
+  );
+}
+
+/** Revenue funnel bar (owner 2026-09-07 CEO health section). Every stage
+ *  aggregates EXISTING funnel events; Paid is the live Stripe customer count.
+ *  No fabricated numbers: a stage with no data renders "0" and 0% drop-off,
+ *  and a zero funnel shows the honest empty state. */
+function RevenueFunnel({ unified, radarLeads, fin, loading, error }: {
+  unified: UnifiedResult | null;
+  radarLeads: SimpleFunnel | null;
+  fin: FinanceShape | null;
+  loading: boolean;
+  error: string;
+}) {
+  if (error) return <SectionError message={error} />;
+  if (loading) return <SectionLoading message="Loading revenue funnel…" />;
+  const stage = (list: { stage: string; count: number }[] | undefined, name: string): number =>
+    list?.find((s) => s.stage === name)?.count ?? 0;
+  const radar = unified ? stage(unified.stages, "radar") : null;
+  const lead = radarLeads ? stage(radarLeads.funnel, "capture") : null;
+  const confirmed = radarLeads ? stage(radarLeads.funnel, "confirmed") : null;
+  const alertSent = radarLeads ? stage(radarLeads.funnel, "alert_sent") : null;
+  const click = radarLeads ? stage(radarLeads.funnel, "click") : null;
+  const signup = radarLeads ? stage(radarLeads.funnel, "signup") : null;
+  const activated = unified ? stage(unified.stages, "activated") : null;
+  const paid = fin ? fin.customerCount : null;
+  const stages: { label: string; value: number | null; hint: string }[] = [
+    { label: "Radar", value: radar, hint: "radar completed · 30d" },
+    { label: "Lead", value: lead, hint: "email captured · 30d" },
+    { label: "Confirmed", value: confirmed, hint: "email confirmed · 30d" },
+    { label: "Alert", value: alertSent, hint: "match alert sent · 30d" },
+    { label: "Click", value: click, hint: "opportunity clicked · 30d" },
+    { label: "Signup", value: signup, hint: "radar-funnel signups · 30d" },
+    { label: "Activated", value: activated, hint: "activated visitors · 30d" },
+    { label: "Paid", value: paid, hint: fin ? (fin.source === "stripe-live" ? "live Stripe customers" : "live app-DB customers") : "live" },
+  ];
+  const allZero = stages.every((s) => (s.value ?? 0) === 0);
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      {allZero ? (
+        <>
+          <p className="text-sm font-medium text-slate-700">No revenue-funnel traffic yet — honest zero state.</p>
+          <p className="mt-1 text-xs text-slate-400">
+            Radar completions flow through this funnel as real humans arrive; every stage reads live from the existing
+            funnel events (bot/QA/admin excluded).
+          </p>
+        </>
+      ) : (
+        <div className="flex flex-wrap items-center gap-y-3">
+          {stages.map((s, i) => {
+            const prev = i === 0 ? null : stages[i - 1].value;
+            const drop = prev != null && prev > 0 ? dropPct(s.value ?? 0, prev) : null;
+            return (
+              <div key={s.label} className="flex items-center">
+                <div className="min-w-[104px] rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
+                  <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{s.label}</p>
+                  <p className="text-xl font-bold text-slate-900">{s.value ?? "—"}</p>
+                  <p className="mt-0.5 text-[9px] leading-tight text-slate-400">{s.hint}</p>
+                </div>
+                {i < stages.length - 1 && (
+                  <span className="mx-1.5 w-10 text-center">
+                    <span className="text-[10px] font-bold text-rose-500">{drop != null ? `−${drop}%` : "—"}</span>
+                    <span className="block text-[9px] text-slate-300">→</span>
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="mt-3 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
+        Radar → Lead → Confirmed → Alert → Click → Signup → Activated → Paid. Aggregated from existing funnel events
+        (unified-funnel / radar-leads-funnel / finance) — no analytics rewrite. Drop-off % is lost vs. the previous
+        stage; null when the previous stage is 0.
       </p>
     </div>
   );
@@ -195,7 +326,6 @@ function AdminOverviewPage() {
   const [unified, setUnified] = useState<UnifiedResult | null>(null);
   const [autopsy, setAutopsy] = useState<SimpleFunnel | null>(null);
   const [radarLeads, setRadarLeads] = useState<SimpleFunnel | null>(null);
-  const [metrics, setMetrics] = useState<MetricsShape | null>(null);
   const [fin, setFin] = useState<FinanceShape | null>(null);
   const [actOn, setActOn] = useState<ActOnRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -209,15 +339,13 @@ function AdminOverviewPage() {
       getJson<UnifiedResult>("/api/admin/unified-funnel?days=30"),
       getJson<SimpleFunnel>("/api/admin/autopsy-funnel?days=30"),
       getJson<SimpleFunnel>("/api/admin/radar-leads-funnel?days=30"),
-      getJson<MetricsShape>("/api/admin/metrics"),
       getJson<FinanceShape>("/api/admin/finance"),
     ])
-      .then(([u, a, r, m, f]) => {
+      .then(([u, a, r, f]) => {
         if (cancelled) return;
         setUnified(u);
         setAutopsy(a);
         setRadarLeads(r);
-        setMetrics(m);
         setFin(f);
       })
       .catch((err) => {
@@ -227,7 +355,8 @@ function AdminOverviewPage() {
     return () => { cancelled = true; };
   }, []);
 
-  // 🔥 PEOPLE TO ACT ON — top 10 by the EXISTING board-side lead score.
+  // 🔥 PEOPLE TO ACT ON — HIGH-VALUE ONLY: "Very High" / "High" level rows
+  // (the existing board-side lead score), capped at top 10 by score.
   useEffect(() => {
     let cancelled = false;
     setActOnLoading(true);
@@ -237,6 +366,7 @@ function AdminOverviewPage() {
         if (cancelled) return;
         const scored = (d.journeys ?? [])
           .filter((j) => j.lead_score && j.conversion_opportunity)
+          .filter((j) => j.lead_score!.level === "Very High" || j.lead_score!.level === "High")
           .map((j): ActOnRow => ({
             visitor_id: j.visitor_id,
             label: j.label,
@@ -248,6 +378,7 @@ function AdminOverviewPage() {
             browser_label: j.browser_label,
             radar: j.radar,
             signup: j.signup,
+            radar_lead_stage: j.radar_lead_stage ?? null,
             last_activity: j.last_activity,
             score: j.lead_score!.score,
             level: j.lead_score!.level,
@@ -269,25 +400,26 @@ function AdminOverviewPage() {
 
   const stage = (name: string): number =>
     unified?.stages.find((s) => s.stage === name)?.count ?? 0;
+  const funnelCount = (name: string): number =>
+    radarLeads?.funnel.find((s) => s.stage === name)?.count ?? 0;
   const autopsyCount = (name: string): number =>
     autopsy?.funnel.find((s) => s.stage === name)?.count ?? 0;
-  const radarCount = (name: string): number =>
-    radarLeads?.funnel.find((s) => s.stage === name)?.count ?? 0;
 
-  // CONTRAX TODAY — same numbers as the existing surfaces:
-  // Qualified (unified) / Radar (unified radar completed) / Autopsy (autopsy award_found + report_viewed) /
-  // Leads (radar-leads captured) / Signups (metrics external signups) / Paid (finance live customers).
+  // CONTRAX TODAY — the owner-exact 8 cards, in order (owner 2026-09-07
+  // refined spec). Each maps LIVE from the existing endpoints:
+  //   Qualified / Radar / Signups / Activated → unified-funnel
+  //   Radar Leads (capture)                     → radar-leads-funnel
+  //   Autopsy Started (entry)                   → autopsy-funnel
+  //   Customers + MRR                           → finance (Stripe-live)
   const todayCards = [
-    { label: "Qualified", value: unified ? stage("qualified") : null, hint: "qualified visits · 30d" },
-    { label: "Radar", value: unified ? stage("radar") : null, hint: "radar completed · 30d" },
-    {
-      label: "Autopsy",
-      value: autopsy ? autopsyCount("award_found") : null,
-      hint: autopsy ? `${autopsyCount("report_viewed")} complete viewed · 30d` : "30d",
-    },
-    { label: "Leads", value: radarLeads ? radarCount("capture") : null, hint: "radar leads captured · 30d" },
-    { label: "Signups", value: metrics ? metrics.totalSignups : null, hint: "external accounts" },
-    { label: "Paid", value: fin ? fin.customerCount : null, hint: fin ? (fin.source === "stripe-live" ? "live Stripe customers" : "live app-DB customers") : "live" },
+    { label: "Qualified Visitors", value: unified ? stage("qualified") : null, hint: "qualified visits · 30d" },
+    { label: "Radar Completed", value: unified ? stage("radar") : null, hint: "radar scans completed · 30d" },
+    { label: "Radar Leads", value: radarLeads ? funnelCount("capture") : null, hint: "radar leads captured · 30d" },
+    { label: "Autopsy Started", value: autopsy ? autopsyCount("autopsy_landing") : null, hint: "autopsies started · 30d" },
+    { label: "Signups", value: unified ? stage("signup") : null, hint: "signups completed · 30d" },
+    { label: "Activated", value: unified ? stage("activated") : null, hint: "activated visitors · 30d" },
+    { label: "Customers", value: fin ? fin.customerCount : null, hint: fin ? (fin.source === "stripe-live" ? "live Stripe customers" : "live app-DB customers") : "live" },
+    { label: "MRR", value: fin ? moneyWhole(fin.mrrCents) : null, hint: fin ? (fin.source === "stripe-live" ? "live Stripe MRR" : "live app-DB MRR") : "live" },
   ];
 
   return (
@@ -299,18 +431,19 @@ function AdminOverviewPage() {
         </div>
         <AdminTabs active="overview" />
 
-        {/* CONTRAX TODAY — headline metrics, same numbers + same placement as before */}
+        {/* CONTRAX TODAY — owner-exact 8-card scoreboard */}
         <section>
           <h2 className="text-lg font-semibold text-slate-800 mb-1">Contrax Today</h2>
           <p className="mb-3 text-xs text-slate-500">
-            Qualified / Radar / Autopsy / Leads / Signups / Paid — live from the same endpoints as the tabs. QA/admin/bot/test excluded.
+            Qualified Visitors · Radar Completed · Radar Leads · Autopsy Started · Signups · Activated · Customers · MRR
+            — live from the same endpoints as the tabs (30d). QA/admin/bot/test excluded.
           </p>
           {error ? (
             <SectionError message={error} />
           ) : loading ? (
             <SectionLoading message="Loading today's numbers…" />
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {todayCards.map((c) => (
                 <div key={c.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                   <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">{c.label}</p>
@@ -328,12 +461,22 @@ function AdminOverviewPage() {
           )}
         </section>
 
-        {/* 🔥 PEOPLE TO ACT ON */}
+        {/* REVENUE FUNNEL — CEO health section */}
+        <section>
+          <h2 className="text-lg font-semibold text-slate-800 mb-1">💰 Revenue Funnel</h2>
+          <p className="mb-3 text-xs text-slate-500">
+            Radar → Lead → Confirmed → Alert → Click → Signup → Activated → Paid — every stage aggregates existing
+            funnel events (no analytics rewrite); Paid is the live Stripe customer count.
+          </p>
+          <RevenueFunnel unified={unified} radarLeads={radarLeads} fin={fin} loading={loading} error={error} />
+        </section>
+
+        {/* 🔥 PEOPLE TO ACT ON — HIGH-VALUE ONLY */}
         <section>
           <h2 className="text-lg font-semibold text-slate-800 mb-1">🔥 People to act on</h2>
           <p className="mb-3 text-xs text-slate-500">
-            Top 10 highest-intent visitors/leads by the existing lead-score heuristic — with the recommended next step
-            from the Conversion Opportunity mapping. Newest activity breaks ties.
+            High / Very High-intent visitors only (existing lead-score heuristic) — with the recommended next step from
+            the Conversion Opportunity mapping. Newest activity breaks ties.
           </p>
           <PeopleToActOn rows={actOn} loading={actOnLoading} error={actOnError} />
         </section>

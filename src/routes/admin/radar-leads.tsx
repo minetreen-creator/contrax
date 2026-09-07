@@ -1,6 +1,14 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
+import {
+  AdminHeader,
+  AdminTabs,
+  MrrScoreboard,
+  SectionError,
+  SectionLoading,
+  timeFmt as sharedTimeFmt,
+} from "~/components/AdminShared";
 
 /**
  * /admin/radar-leads — Radar Leads funnel + masked lead table (owner
@@ -55,12 +63,7 @@ async function fetchRadarLeadsFunnel(days: number): Promise<RadarLeadsResult> {
   return res.json();
 }
 
-function timeFmt(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleString("en-US", {
-    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-  });
-}
+const timeFmt = sharedTimeFmt;
 
 function RadarLeadsPage() {
   const [days, setDays] = useState(30);
@@ -81,20 +84,10 @@ function RadarLeadsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <a href="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
-          </a>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Admin</span>
-            <a href="/admin" className="text-sm font-medium text-slate-500 hover:text-slate-700">Admin Dashboard &rarr;</a>
-          </div>
-        </div>
-      </header>
+      <AdminHeader scoreboard={<MrrScoreboard />} />
       <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">Radar Leads</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
           <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
             {DAYS_OPTIONS.map((d) => (
               <button key={d} type="button" onClick={() => setDays(d)}
@@ -104,6 +97,7 @@ function RadarLeadsPage() {
             ))}
           </div>
         </div>
+        <AdminTabs active="radar-leads" />
 
         {/* Radars match-alert funnel (owner 2026-09-06/07 — 7 exact stages) */}
         <section>
@@ -114,9 +108,9 @@ function RadarLeadsPage() {
             QA/admin/bot/test traffic excluded.
           </p>
           {error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+            <SectionError message={error} />
           ) : loading || !data ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">Loading radar-leads funnel…</div>
+            <SectionLoading message="Loading radar-leads funnel…" />
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
               <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3">
@@ -148,9 +142,9 @@ function RadarLeadsPage() {
             unsubscribe_token is never read. Bot/QA/admin visitor traffic excluded.
           </p>
           {error ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
+            <SectionError message={error} />
           ) : loading || !data ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">Loading leads…</div>
+            <SectionLoading message="Loading leads…" />
           ) : data.leads.length === 0 ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-6">
               <p className="text-sm font-medium text-slate-700">No radar leads captured in this range.</p>

@@ -339,13 +339,15 @@ function AdminOverviewPage() {
       getJson<UnifiedResult>("/api/admin/unified-funnel?days=30"),
       getJson<SimpleFunnel>("/api/admin/autopsy-funnel?days=30"),
       getJson<SimpleFunnel>("/api/admin/radar-leads-funnel?days=30"),
+      getJson<SimpleFunnel>("/api/admin/radar-conversion-funnel?days=30"),
       getJson<FinanceShape>("/api/admin/finance"),
     ])
-      .then(([u, a, r, f]) => {
+      .then(([u, a, r, f, c]) => {
         if (cancelled) return;
         setUnified(u);
         setAutopsy(a);
         setRadarLeads(r);
+        setRadarConv(c);
         setFin(f);
       })
       .catch((err) => {
@@ -469,6 +471,50 @@ function AdminOverviewPage() {
             funnel events (no analytics rewrite); Paid is the live Stripe customer count.
           </p>
           <RevenueFunnel unified={unified} radarLeads={radarLeads} fin={fin} loading={loading} error={error} />
+        </section>
+        {/* RADAR CONVERSION (09-07 sprint, PR2) — separate 9-stage funnel */}
+        <section>
+          <h2 className="text-lg font-semibold text-slate-800 mb-1">Radar Conversion (09-07 sprint)</h2>
+          <p className="mb-3 text-xs text-slate-500">
+            Qualified Visit → Radar Started → Radar Completed → Results Viewed → Unlock Shown → Unlock Clicked →
+            Signup → Activated → Paid — separate from the 7-stage Radar-Leads funnel and the CEO Overview numbers
+            above (untouched). Distinct visitors, consecutive drop-off, bot/QA/admin excluded.
+          </p>
+          {error ? (
+            <SectionError message={error} />
+          ) : loading || !radarConv ? (
+            <SectionLoading message="Loading radar conversion funnel…" />
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center gap-y-3">
+                {radarConv.funnel.map((s, idx) => {
+                  const prev = idx === 0 ? null : radarConv.funnel[idx - 1].count;
+                  const drop = prev != null && prev > 0 ? dropPct(s.count, prev) : null;
+                  return (
+                    <div key={s.stage} className="flex items-center">
+                      <div className="min-w-[104px] rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{s.label}</p>
+                        <p className="text-xl font-bold text-slate-900">{s.count}</p>
+                        <p className="mt-0.5 text-[9px] leading-tight text-slate-400">
+                          {idx === 0 ? "base · 30d" : drop != null ? `−${drop}% vs prev` : "— vs prev"}
+                        </p>
+                      </div>
+                      {idx < radarConv.funnel.length - 1 && (
+                        <span className="mx-1.5 w-10 text-center">
+                          <span className="text-[10px] font-bold text-rose-500">{drop != null ? `−${drop}%` : "—"}</span>
+                          <span className="block text-[9px] text-slate-300">→</span>
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mt-3 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
+                Drop-off % is lost vs. the previous stage; 0 when the previous stage is 0. Reads live from existing
+                funnel events (no analytics rewrite).
+              </p>
+            </div>
+          )}
         </section>
 
         {/* 🔥 PEOPLE TO ACT ON — HIGH-VALUE ONLY */}

@@ -50,7 +50,7 @@ type SignupSearch = {
   // gate's bid/opportunity DB id; `title`/`agency` carry its context so the
   // incumbent banner can name the bid. `radar` continues a Contract Radar scan
   // (criteria read from localStorage — no email capture).
-  source?: "closing_soon" | "incumbent" | "radar" | "autopsy";
+  source?: "closing_soon" | "incumbent" | "radar" | "radar_results_unlock" | "autopsy";
   opportunity_id?: string;
   title?: string;
   agency?: string;
@@ -188,6 +188,46 @@ const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () =>
   }
 });
 
+// PR2 (owner 2026-09-07) — signed unlock-handoff reader. Runs inside a
+// createServerFn handler (the build-safe server scope: node:crypto stays out
+// of the client bundle — see the tanstack-start-server-imports skill). Reads
+// the HMAC-signed first-party handoff cookie minted by runRadarScan, verifies
+// it fail-closed, and returns the NON-PII scan state (criteria + locked match
+// ids) or null. NO email/PII ever rides in the URL.
+const readRadarHandoff = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { verifyRadarHandoff, RADAR_HANDOFF_COOKIE } = await import("~/lib/radar-handoff.server");
+    const cookie = getRequest().headers.get("cookie") ?? "";
+    const hit = cookie.split(";").map((c) => c.trim()).find((c) => c.startsWith(RADAR_HANDOFF_COOKIE + "="));
+    if (!hit) return null;
+    const raw = decodeURIComponent(hit.slice(RADAR_HANDOFF_COOKIE.length + 1)).trim();
+    const h = verifyRadarHandoff(raw);
+    if (!h) return null;
+    return { visitorId: h.v, trade: h.t, cert: h.c, state: h.s, sizePref: h.z, lockedIds: h.m, scannedAt: h.k };
+  } catch (err) {
+    // Fail-open unchanged (no verified handoff, page behaves as before) — but
+    // LOUD on the config failure so a missing Vercel env var can't silently
+    // disable the restore path (owner 09-07). Constant string only: never the
+    // secret value, never the payload/cookie, never PII, never err.stack.
+    if (err instanceof Error && err.message.includes("RADAR_HANDOFF_SECRET is required")) {
+      console.error("[radar-handoff] restore unavailable: missing server configuration (RADAR_HANDOFF_SECRET)");
+    }
+    return null;
+  }
+});
+// PR2 — consume the handoff cookie after a successful unlock signup so a
+// later /signup visit never restores a stale scan. Same build-safe scope.
+const clearRadarHandoff = createServerFn({ method: "POST" }).handler(async () => {
+  try {
+    const { deleteCookie } = await import("@tanstack/react-start/server");
+    const { RADAR_HANDOFF_COOKIE } = await import("~/lib/radar-handoff.server");
+    deleteCookie(RADAR_HANDOFF_COOKIE, { path: "/" });
+    return { cleared: true };
+  } catch {
+    return { cleared: false };
+  }
+});
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/signup")({
@@ -215,7 +255,11 @@ export const Route = createFileRoute("/signup")({
     bid: typeof search.bid === "string" && /^\d{1,10}$/.test(search.bid) ? search.bid : undefined,
     closes: typeof search.closes === "string" ? search.closes.slice(0, 120) : undefined,
     source:
-      search.source === "closing_soon" || search.source === "incumbent" || search.source === "radar" || search.source === "autopsy"
+    // PR2 (owner 2026-09-07): the anonymous locked-results card carries
+    // source=radar_results_unlock so the unlock handoff (signed cookie restore
+    // + signup_viewed_from_radar) is attributed distinctly from generic
+    // source=radar CTAs. Treated as a radar-family source everywhere below.
+      search.source === "closing_soon" || search.source === "incumbent" || search.source === "radar" || search.source === "radar_results_unlock" || search.source === "autopsy"
         ? search.source
         : undefined,
     opportunity_id:
@@ -332,8 +376,79 @@ function SignupPage() {
   // The visitor's SEEN radar matches (server-computed top-3, never fabricated).
   // Displayed on the signup page and preserved for them.
   const [radarMatches, setRadarMatches] = useState<RadarSeenMatch[] | null>(null);
+  // PR2 unlock-handoff state (owner 2026-09-07): the VERIFIED signed scan
+  // state from the anonymous locked-results card (criteria + locked match ids,
+  // non-PII). Null unless source=radar_results_unlock AND the handoff cookie
+  // verifies. Restores the scan's criteria/matches into the local session and
+  // fires signup_viewed_from_radar exactly once.
+  const [unlockHandoff, setUnlockHandoff] = useState<{
+    trade: string; cert: string; state: string; sizePref: string; lockedIds: number[];
+  } | null>(null);
+  const unlockViewedRef = useRef(false);
+  const unlockCompletedRef = useRef(false);
+  // PR2 unlock handoff (owner 2026-09-07): when the visitor arrives from the
+  // anonymous locked-results card (source=radar_results_unlock), verify the
+  // signed first-party handoff cookie server-side and restore the EXACT scan:
+  // criteria seed the local radar session (same store /radar + dashboard read)
+  // and the locked match ids re-resolve to full bid cards via a REAL server
+  // scan with the SAME criteria (never fabricated). Fires
+  // signup_viewed_from_radar exactly once. Fail-open: without a verified
+  // handoff the page behaves exactly as before.
   useEffect(() => {
-    if (source !== "radar") return;
+    if (source !== "radar_results_unlock") return;
+    if (unlockViewedRef.current) return;
+    unlockViewedRef.current = true;
+    readRadarHandoff()
+      .then((h) => {
+        if (!h || !h.trade) return;
+        setUnlockHandoff({ trade: h.trade, cert: h.cert, state: h.state, sizePref: h.sizePref, lockedIds: h.lockedIds || [] });
+        const certLabel = (RADAR_CERT_LABELS as Record<string, string>)[h.cert] || h.cert || "";
+        const sizeLabel = RADAR_SIZE_LABELS[h.sizePref] || "";
+        setRadarAnswers({ trade: h.trade, state: h.state, certLabel, sizeLabel });
+        if ((RADAR_CERTS as readonly string[]).includes(h.cert)) {
+          saveRadarPrefill({ trade: h.trade, state: h.state, cert: h.cert as RadarCertId, sizePref: (h.sizePref || "any") as RadarSizeId });
+        }
+        trackEvent("signup_viewed_from_radar", certLabel);
+        // Reproduce the scan's matches: run the SAME real server scan and keep
+        // the locked ids the cookie named (they are real bid ids from the scan
+        // the visitor just ran — validated against the live bids table below).
+        import("~/routes/radar")
+          .then(({ runRadarScan }) =>
+            runRadarScan({ data: { trade: h.trade, state: h.state, cert: h.cert || "sb", sizePref: h.sizePref || "any" } }),
+          )
+          .then((res) => {
+            const locked = new Set((h.lockedIds || []).map(Number));
+            const keep = res.matches.filter((m) => locked.has(m.id)).map((m) => ({
+              id: m.id, title: m.title, agency: m.agency, score: m.score,
+              score_label: m.score_label, due_date: m.due_date, source_url: m.source_url,
+            }));
+            const fallback = res.matches.slice(0, FREE_ANONYMOUS_RADAR_RESULTS).map((m) => ({
+              id: m.id, title: m.title, agency: m.agency, score: m.score,
+              score_label: m.score_label, due_date: m.due_date, source_url: m.source_url,
+            }));
+            const shown = keep.length > 0 ? keep : fallback;
+            if (shown.length > 0) {
+              setRadarMatches(shown);
+              saveRadarSeen({
+                answers: {
+                  trade: h.trade, state: h.state,
+                  cert: ((RADAR_CERTS as readonly string[]).includes(h.cert) ? h.cert : "sb") as RadarCertId,
+                  sizePref: (h.sizePref || "any") as RadarSizeId,
+                },
+                certLabel,
+                total: res.matches.length,
+                seenCount: Math.min(FREE_ANONYMOUS_RADAR_RESULTS, shown.length),
+                matches: shown,
+              });
+            }
+          })
+          .catch(() => { /* fail-open: criteria panel still shows */ });
+      })
+      .catch(() => { /* fail-open: no verified handoff */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [source]);
+  useEffect(() => {
+    if (source !== "radar" && source !== "radar_results_unlock") return;
     // SOURCE PRECEDENCE (owner rule): criteria come from the URL search params
     // FIRST (?source=radar&trade=…&cert=…&state=…&size=…), so a directly
     // shared/served signup link (e.g. an FB ad) shows its filter context and
@@ -462,7 +577,7 @@ function SignupPage() {
     if (signupStartedRef.current) return;
     signupStartedRef.current = true;
     signupStartedAtRef.current = Date.now();
-    trackEvent("signup_start", source === "radar" ? "radar" : selectedPlan);
+    trackEvent("signup_start", (source === "radar" || source === "radar_results_unlock") ? "radar" : selectedPlan);
   };
 
   // ── signup_field_reached: fire exactly ONCE per field per visit. The funnel
@@ -648,9 +763,13 @@ function SignupPage() {
   // unless a finite positive value is present).
   const bidTitle = (title || ticker_bid || "").trim();
   const hasBidContext = !!bidTitle;
-  const radarContext = source === "radar" || !!(trade || cert || state);
+  const isRadarFamily = source === "radar" || source === "radar_results_unlock";
+  const radarContext = isRadarFamily || !!(trade || cert || state);
   const estimate = formatEstimate(value);
-  const contextualHeader = hasBidContext
+  // PR2 contextual copy (owner 2026-09-07): unlock arrivals see "Your matches
+  // are waiting…" — the verified scan is being restored, not a generic pitch.
+  const unlockHeader = source === "radar_results_unlock" && unlockHandoff ? "Your matches are waiting…" : "";
+  const contextualHeader = unlockHeader || hasBidContext
     ? estimate
       ? `Sign up to track this ${estimate} ${bidTitle}`
       : `Sign up to track ${bidTitle}`
@@ -736,6 +855,19 @@ function SignupPage() {
       // for this visit (guarded in the pagehide/beforeunload listener).
       signupSucceededRef.current = true;
       trackEvent("signup_success");
+      // PR2 unlock completion (owner 2026-09-07): an unlock-handoff signup
+      // ATTRIBUTES the anonymous journey to the new account (the server's
+      // /api/signup identity backfill already ties visitor_id rows to the
+      // account — the handoff cookie's visitor id matches this browser, so no
+      // extra write is needed and no duplicate account is created), returns
+      // the user to their results (dashboard radar banner reads the restored
+      // radar_seen session), consumes the handoff cookie, and fires
+      // signup_completed_from_radar exactly once.
+      if (source === "radar_results_unlock" && unlockHandoff && !unlockCompletedRef.current) {
+        unlockCompletedRef.current = true;
+        trackEvent("signup_completed_from_radar", (RADAR_CERT_LABELS as Record<string, string>)[unlockHandoff.cert] || unlockHandoff.cert || "");
+        clearRadarHandoff().catch(() => { /* fail-open */ });
+      }
       // Part B — the draft promise: persist the scored solicitation
       // server-side keyed to this new user BEFORE any redirect. Fail-open by
       // design — a persist failure must never block signup, the save-to-
@@ -773,7 +905,7 @@ function SignupPage() {
       // pending-draft promise. Fail-open: a storage failure must never block
       // the redirect.
       storeRememberedNext(next);
-      if (source === "radar") {
+      if (source === "radar" || source === "radar_results_unlock") {
         navigate({ to: "/dashboard" });
       } else if (source === "autopsy") {
         // Free-First-Autopsy funnel (owner 2026-09-05): the new account lands
@@ -817,7 +949,7 @@ function SignupPage() {
             an Incumbent Intelligence gate CTA) renders the value-driven
             "unlock incumbent contract history & past pricing" banner — no
             countdown. */}
-        {source === "radar" ? (
+        {isRadarFamily ? (
           <SignupContextPanel source="radar" radar={radarAnswers} matches={radarMatches ?? undefined} />
         ) : source === "incumbent" ? (
           <SignupContextPanel source="incumbent" title={title || ticker_bid} agency={agency || ticker_agency} />

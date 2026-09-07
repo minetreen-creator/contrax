@@ -143,7 +143,7 @@ function computeMatch(
   // NAICS / trade alignment
   let naics = 8;
   if (input.isNaics && bid.naics_code && bid.naics_code.trim() === input.trade) naics = 30;
-  else if (!input.isNaics && expansion.terms.some((t) => t.length >= 2 && (title.includes(t) || category.includes(t)))) naics = 22;
+  else if (!input.isNaics && input.expansion.terms.some((t) => t.length >= 2 && (title.includes(t) || category.includes(t)))) naics = 22;
 
   // Set-aside eligibility
   const hasSetAside = !!bid.set_aside && String(bid.set_aside).trim().length > 0;

@@ -142,17 +142,22 @@ export interface RadarAlertRunResult {
 export async function ensureRadarLeadsAlertColumns(): Promise<void> {
   await sql()`ALTER TABLE radar_leads ADD COLUMN IF NOT EXISTS sent_bid_ids JSONB NOT NULL DEFAULT '[]'::jsonb`;
   await sql()`ALTER TABLE radar_leads ADD COLUMN IF NOT EXISTS last_alerted_at TIMESTAMPTZ`;
+  // NOTE: distinct table name `radar_leads_alerts_sent` — migration 019 already
+  // owns `radar_alerts_sent` (radar_save_id × bid_id, legacy radar_saves alerts),
+  // so reusing that name would silently no-op CREATE TABLE and the lead_id
+  // INSERT/index would crash. The 019 table must never be touched by this path.
   const cols = (await sql()`
     SELECT column_name FROM information_schema.columns
-    WHERE table_name = 'radar_alerts_sent' AND table_schema = 'public'
+    WHERE table_name = 'radar_leads_alerts_sent' AND table_schema = 'public'
   `) as Array<{ column_name: string }>;
   if (cols.length === 0) {
-    await sql()`CREATE TABLE IF NOT EXISTS radar_alerts_sent (
+    await sql()`CREATE TABLE IF NOT EXISTS radar_leads_alerts_sent (
       lead_id BIGINT NOT NULL REFERENCES radar_leads(id) ON DELETE CASCADE,
       bid_id INTEGER NOT NULL REFERENCES bids(id) ON DELETE CASCADE,
       sent_at TIMESTAMPTZ DEFAULT NOW(),
       PRIMARY KEY (lead_id, bid_id)
     )`;
+    await sql()`CREATE INDEX IF NOT EXISTS radar_leads_alerts_sent_lead_idx ON radar_leads_alerts_sent (lead_id)`;
   }
 }
 
@@ -357,7 +362,7 @@ async function sendForOneLead(
   for (const bidId of emailBidIds) {
     try {
       await sql()`
-        INSERT INTO radar_alerts_sent (lead_id, bid_id)
+        INSERT INTO radar_leads_alerts_sent (lead_id, bid_id)
         VALUES (${lead.id}, ${bidId})
         ON CONFLICT (lead_id, bid_id) DO NOTHING
       `;

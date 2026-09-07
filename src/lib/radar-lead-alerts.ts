@@ -421,6 +421,12 @@ async function sendForOneLead(
   // sent_bid_ids does not exist" send-failure. `?` checks the JSONB array for
   // the string element per row; `'[]'::jsonb ? id` is always false, so a fresh
   // lead passes every bid. The sent-log below is the crash-safe backstop.
+  // NO pre-filter LIMIT on this query: with thousands of open bids, a naive
+  // `LIMIT 500 ORDER BY due_date ASC` silently drops any match past the window
+  // (QA-proven: a trucking lead's real open match at due Sep 08 wasn't in the
+  // first 500 by due date → radar_alert_sent never fired). The profile match
+  // below is selective and caps at MAX_MATCHES_PER_EMAIL per lead, so scanning
+  // ALL open bids per lead is correct and bounded in practice.
   const sentArr: string[] = Array.isArray(lead.sent_bid_ids)
     ? (lead.sent_bid_ids as unknown[]).map((v) => String(v))
     : [];
@@ -432,7 +438,6 @@ async function sendForOneLead(
       AND ${sql().unsafe(LOW_CONTENT_SQL)}
       AND NOT (${JSON.stringify(sentArr)}::jsonb ? CAST(id AS text))
     ORDER BY due_date ASC NULLS LAST
-    LIMIT 500
   `) as unknown as BidRow[];
 
   const matched: BidRow[] = [];

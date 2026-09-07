@@ -84,8 +84,12 @@ export type SizeId = (typeof SIZE_OPTS)[number]["id"];
  * for the anonymous locked-results card's "Unlock My N Matches →" CTA — a clean
  * hook point; PR2 adds server/session restore of the anonymous scan.
  */
-export function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }): string {
-  const p = new URLSearchParams({ plan: "basic", source: "radar", next: "/dashboard?brief=1" });
+export function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }, opts?: { unlock?: boolean }): string {
+  // PR2 (owner 2026-09-07): the anonymous locked-results card passes
+  // source=radar_results_unlock so /signup can attribute the unlock handoff
+  // (signed cookie restore + signup_viewed_from_radar). Every other caller
+  // keeps source=radar — no behavior change there.
+  const p = new URLSearchParams({ plan: "basic", source: opts?.unlock ? "radar_results_unlock" : "radar", next: "/dashboard?brief=1" });
   const trade = (answers.trade || "").trim();
   if (trade) p.set("trade", trade.slice(0, 120));
   if (answers.state) p.set("state", answers.state.slice(0, 2));
@@ -253,6 +257,19 @@ export const runRadarScan = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const { trade, state, cert, sizePref } = data;
     const certId = cert as RadarCert;
+    // PR2 (owner 2026-09-07): read the request's visitor cookie so an anonymous
+    // gated scan can mint a SIGNED first-party handoff cookie after the scan.
+    // getRequest() runs inside this createServerFn handler — the build-safe
+    // server scope per the tanstack-start-server-imports skill.
+    let scanVisitorId = "";
+    try {
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const cookie = getRequest().headers.get("cookie") ?? "";
+      const hit = cookie.split(";").map((c) => c.trim()).find((c) => c.startsWith("contrax_vid="));
+      if (hit) scanVisitorId = decodeURIComponent(hit.slice("contrax_vid=".length)).trim().slice(0, 64);
+    } catch {
+      scanVisitorId = ""; // fail-open: no visitor id, no handoff cookie
+    }
     const isNaics = /^\d{6}$/.test(trade);
     // Trade-query normalization (owner 2026-09-06/07): expand AFTER the isNaics
     // gate — isNaics is derived ONLY from the ORIGINAL trade; expansion drives
@@ -397,6 +414,35 @@ export const runRadarScan = createServerFn({ method: "POST" })
       matches[i].incumbent = null;
     }
 
+    // PR2 signed handoff (owner 2026-09-07): when REAL matches exceed the free
+    // cap AND the scanner is anonymous AND a visitor id is present, mint the
+    // HMAC-signed first-party handoff cookie (criteria + locked match ids,
+    // NO PII/email) so /signup can restore this exact scan after account
+    // creation. Authenticated users never get it (normal entitlement, no
+    // gating); <=3-match scans never mint it (nothing locked, nothing to
+    // restore). Matching/ranking/eligibility are untouched — this only signs
+    // the ALREADY-COMPUTED result. Fail-open: never break the scan.
+    try {
+      if (scanVisitorId && matches.length > FREE_ANONYMOUS_RADAR_RESULTS) {
+        const { getCurrentUser: scanUser } = await import("~/lib/auth");
+        if (!(await scanUser())) {
+          const { signRadarHandoff, RADAR_HANDOFF_COOKIE, RADAR_HANDOFF_MAX_AGE_S } = await import("~/lib/radar-handoff.server");
+          const lockedIds = matches.slice(FREE_ANONYMOUS_RADAR_RESULTS).map((m) => m.id);
+          const { setCookie } = await import("@tanstack/react-start/server");
+          setCookie(RADAR_HANDOFF_COOKIE, signRadarHandoff({
+            v: scanVisitorId,
+            t: trade.slice(0, 120),
+            c: certId,
+            s: state.slice(0, 2),
+            z: (sizePref as string).slice(0, 24),
+            m: lockedIds,
+            k: Date.now(),
+          }), { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: RADAR_HANDOFF_MAX_AGE_S });
+        }
+      }
+    } catch {
+      /* handoff mint must never break the scan */
+    }
     return { matches, certLabel: CERT_LABEL[certId] };
   });
 
@@ -1348,7 +1394,7 @@ export function SignupGate({
   // R2: the gate CTA carries the visitor's radar criteria + the post-signup
   // brief return path (`next=/dashboard?brief=1`) so completing signup lands
   // directly on the "Run my first Executive Brief" moment.
-  const ctaHref = radarSignupHref({ trade, state, cert, sizePref });
+  const ctaHref = radarSignupHref({ trade, state, cert, sizePref }, { unlock: true });
   const locked = Math.max(totalFound - FREE_ANONYMOUS_RADAR_RESULTS, 0);
   // Never render a wall for ≤3 real matches. (The component lifecycle already
   // gates the caller, but this stays as a second guard against the impossible.)

@@ -3,6 +3,7 @@ import { US_STATES } from "~/lib/states";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { sendRadarMatchAlertEmail, type NewBidSummary } from "~/lib/email";
 import { ensureRadarLeadsClickLog, buildOpportunityClickUrl, hashClickToken } from "~/lib/radar-lead-clicks";
+import { expandTrade, tradeProvenanceFor } from "~/lib/trade-registry";
 
 /**
  * Periodic match-alert sender for CONFIRMED Radar leads (owner 2026-09-06;
@@ -144,6 +145,8 @@ export interface RadarLeadRow {
     state: string | null;
     cert: string | null;
     sizePref: string | null;
+    /** Expansion snapshot (migration 034); sender recomputes fresh (single source of truth). */
+    expanded?: { terms: string[]; naicsCodes: string[] } | null;
   } | null;
   unsubscribe_token: string;
 }
@@ -224,12 +227,18 @@ export function whyBidMatchesLeadProfile(
 
   const text = `${bid.title || ""} ${bid.agency || ""} ${bid.category || ""} ${bid.description || ""}`.toLowerCase();
 
-  // trade → substring against bid text; exact NAICS equality for a 6-digit code.
+  // trade → substring against the EXPANDED term set (trade-registry); exact
+  // NAICS equality for a 6-digit code (expansion never touches NAICS input).
   const isNaics = /^\d{6}$/.test(trade);
   const tradeFired = isNaics
     ? !!bid.naics_code && bid.naics_code.trim() === trade
-    : trade.length > 0 && text.includes(trade.toLowerCase());
-  if (tradeFired) why.category = trade;
+    : trade.length > 0 && expandTrade(trade).terms.some((t) => t.length >= 2 && text.includes(t));
+  if (tradeFired) {
+    // HONEST provenance: the register synonym that actually hit (e.g. "freight
+    // hauling") or the literal original term - never a fabricated reason.
+    const prov = tradeProvenanceFor(text, expandTrade(trade), bid.naics_code);
+    why.category = prov ? prov.matchedConcept : trade;
+  }
 
   // cert → literal set-aside map against set_aside OR the bid text.
   if (cert && (CERT_KEYS.includes(cert) || cert === "sb")) {
@@ -287,11 +296,12 @@ export function bidMatchesLeadProfile(p: RadarLeadRow["radar_profile"], bid: Bid
 
   const text = `${bid.title || ""} ${bid.agency || ""} ${bid.category || ""} ${bid.description || ""}`.toLowerCase();
 
-  // trade → substring against bid text; exact NAICS equality for a 6-digit code.
+  // trade → substring against the EXPANDED term set (trade-registry); exact
+  // NAICS equality for a 6-digit code (expansion never touches NAICS input).
   const isNaics = /^\d{6}$/.test(trade);
   const tradeMatch = isNaics
     ? !!bid.naics_code && bid.naics_code.trim() === trade
-    : trade.length > 0 && text.includes(trade.toLowerCase());
+    : trade.length > 0 && expandTrade(trade).terms.some((t) => t.length >= 2 && text.includes(t));
 
   // cert → literal set-aside map against set_aside OR the bid text.
   let certMatch = false;

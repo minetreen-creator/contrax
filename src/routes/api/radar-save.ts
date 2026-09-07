@@ -55,7 +55,7 @@ async function handler({ request }: { request: Request }) {
     const phone = typeof body.phone === "string" ? body.phone.trim().slice(0, 40) : null;
     // Radar criteria the visitor used — store exactly what they searched so a
     // future alert job matches new bids against it. All bounded + whitelisted.
-    const trade = typeof body.trade === "string" ? body.trade.trim().slice(0, 64) : null;
+    const trade = typeof body.trade === "string" ? body.trade.trim().slice(0, 120) : null;
     const state = typeof body.state === "string" ? body.state.trim().toUpperCase().slice(0, 2) : null;
     const certRaw = typeof body.cert === "string" ? body.cert : "";
     const cert = CERTS.has(certRaw) ? certRaw : null;

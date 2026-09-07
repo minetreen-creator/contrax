@@ -205,8 +205,15 @@ const readRadarHandoff = createServerFn({ method: "GET" }).handler(async () => {
     const h = verifyRadarHandoff(raw);
     if (!h) return null;
     return { visitorId: h.v, trade: h.t, cert: h.c, state: h.s, sizePref: h.z, lockedIds: h.m, scannedAt: h.k };
-  } catch {
-    return null; // fail-open: no verified handoff, page behaves as before
+  } catch (err) {
+    // Fail-open unchanged (no verified handoff, page behaves as before) — but
+    // LOUD on the config failure so a missing Vercel env var can't silently
+    // disable the restore path (owner 09-07). Constant string only: never the
+    // secret value, never the payload/cookie, never PII, never err.stack.
+    if (err instanceof Error && err.message.includes("RADAR_HANDOFF_SECRET is required")) {
+      console.error("[radar-handoff] restore unavailable: missing server configuration (RADAR_HANDOFF_SECRET)");
+    }
+    return null;
   }
 });
 // PR2 — consume the handoff cookie after a successful unlock signup so a

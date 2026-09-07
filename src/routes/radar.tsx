@@ -443,8 +443,14 @@ export const runRadarScan = createServerFn({ method: "POST" })
           }), { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: RADAR_HANDOFF_MAX_AGE_S });
         }
       }
-    } catch {
-      /* handoff mint must never break the scan */
+    } catch (err) {
+      // Fail-open (the mint must never break the scan) — but LOUD on the config
+      // failure so a missing Vercel env var can't silently disable the handoff
+      // (owner 09-07). Constant string only: never the secret value, never the
+      // payload/cookie, never the visitor id, never err.stack.
+      if (err instanceof Error && err.message.includes("RADAR_HANDOFF_SECRET is required")) {
+        console.error("[radar-handoff] mint unavailable: missing server configuration (RADAR_HANDOFF_SECRET)");
+      }
     }
     return { matches, certLabel: CERT_LABEL[certId] };
   });

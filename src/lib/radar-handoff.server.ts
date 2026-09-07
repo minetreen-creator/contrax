@@ -88,7 +88,14 @@ export function verifyRadarHandoff(raw: string | null | undefined): RadarHandoff
         : [],
       k,
     };
-  } catch {
+  } catch (err) {
+    // Fail-closed unchanged: ANY failure → null. Loud ONLY on the missing-secret
+    // config case (owner 09-07) so a dropped Vercel env var can't silently
+    // disable the restore path. Constant string only — never the secret value,
+    // never the payload/cookie, never PII, never err.stack.
+    if (err instanceof Error && err.message.includes("RADAR_HANDOFF_SECRET is required")) {
+      console.error("[radar-handoff] restore unavailable: missing server configuration (RADAR_HANDOFF_SECRET)");
+    }
     return null;
   }
 }

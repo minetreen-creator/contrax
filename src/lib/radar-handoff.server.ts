@@ -15,6 +15,9 @@ const COOKIE = "contrax_radar_handoff";
 // Owner gate: 24h window — cookie Max-Age matches the scannedAt validity window.
 const MAX_AGE_S = 24 * 60 * 60; // 24 hours
 const MAX_AGE_MS = MAX_AGE_S * 1000;
+// Owner gate #7: small clock-skew tolerance so a marginally-future scannedAt
+// from server/client clock slop still verifies; anything beyond is rejected.
+const ALLOWED_SKEW_MS = 30_000;
 
 export interface RadarHandoffPayload {
   v: string;
@@ -75,8 +78,10 @@ export function verifyRadarHandoff(raw: string | null | undefined): RadarHandoff
     if (!p || typeof p.v !== "string" || !p.v) return null;
     // Sanitize + bound every field so a valid signature can never carry junk.
     const k = typeof p.k === "number" && Number.isFinite(p.k) ? p.k : 0;
-    // Owner gate: short expiration — k must be present and within 24h of now.
-    if (k <= 0 || Date.now() - k > MAX_AGE_MS) return null;
+    // Owner gate: short expiration — k must be present, within 24h of now,
+    // and not from the future (beyond a small clock-skew tolerance).
+    const now = Date.now();
+    if (k <= 0 || k > now + ALLOWED_SKEW_MS || now - k > MAX_AGE_MS) return null;
     return {
       v: p.v.slice(0, 64),
       t: typeof p.t === "string" ? p.t.slice(0, 120) : "",

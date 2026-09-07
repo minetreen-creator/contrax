@@ -12,7 +12,9 @@
 import crypto from "node:crypto";
 
 const COOKIE = "contrax_radar_handoff";
-const MAX_AGE_S = 7 * 24 * 60 * 60; // 7 days — long enough to finish signup later
+// Owner gate: 24h window — cookie Max-Age matches the scannedAt validity window.
+const MAX_AGE_S = 24 * 60 * 60; // 24 hours
+const MAX_AGE_MS = MAX_AGE_S * 1000;
 
 export interface RadarHandoffPayload {
   v: string;
@@ -24,15 +26,13 @@ export interface RadarHandoffPayload {
   k: number;
 }
 
-function secret(): string {
-  // HMAC key: prefer a configured secret, else a stable deploy-local fallback.
-  // Fallback only weakens cross-deploy forgery resistance; cookies are
-  // short-lived, non-PII, and verified fail-closed, so this is fail-safe.
-  return (
-    process.env.RADAR_HANDOFF_SECRET ||
-    process.env.SESSION_SECRET ||
-    "contrax-radar-handoff-dev-only"
-  );
+function secret(): string | null {
+  // Owner gate: FAIL-CLOSED. The HMAC key is RADAR_HANDOFF_SECRET ONLY — no
+  // SESSION_SECRET, no literals, no defaults. RADAR_HANDOFF_SECRET is not yet
+  // set in Vercel prod (lead deploys post-merge); until then mint/verify are
+  // inert no-ops (never mint an unsigned/forgable cookie, nothing verifies).
+  const s = process.env.RADAR_HANDOFF_SECRET;
+  return s && s.length > 0 ? s : null;
 }
 
 function b64url(buf: Buffer): string {
@@ -44,28 +44,40 @@ function unb64url(s: string): Buffer {
   return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/") + pad, "base64");
 }
 
-/** Serialize + HMAC-sign a payload → cookie value `body.sig`. Pure. */
-export function signRadarHandoff(p: RadarHandoffPayload): string {
+/** Serialize + HMAC-sign a payload → cookie value `body.sig`, or null when no
+ *  secret is configured (fail-closed: never mint an unsigned/forgable cookie).
+ *  Pure. Caller only calls setCookie with a real non-empty string. */
+export function signRadarHandoff(p: RadarHandoffPayload): string | null {
+  const s = secret();
+  if (!s) return null;
   const body = b64url(Buffer.from(JSON.stringify(p), "utf8"));
-  const sig = b64url(crypto.createHmac("sha256", secret()).update(body).digest());
+  const sig = b64url(crypto.createHmac("sha256", s).update(body).digest());
   return `${body}.${sig}`;
 }
 
-/** Verify a cookie value → payload, or null on ANY failure (fail-closed). Pure. */
+/** Verify a cookie value → payload, or null on ANY failure (fail-closed).
+ *  Pure — covers EVERY restore path: after signature verification succeeds,
+ *  the `k` (scannedAt) field must be present, > 0, and within the 24h window;
+ *  expired/unverifiable → null, which the signup reader treats as absent. */
 export function verifyRadarHandoff(raw: string | null | undefined): RadarHandoffPayload | null {
   try {
+    const s = secret();
+    if (!s) return null; // fail-closed: nothing can verify without a secret
     if (!raw || typeof raw !== "string") return null;
     const dot = raw.lastIndexOf(".");
     if (dot <= 0) return null;
     const body = raw.slice(0, dot);
     const sig = raw.slice(dot + 1);
-    const expect = b64url(crypto.createHmac("sha256", secret()).update(body).digest());
+    const expect = b64url(crypto.createHmac("sha256", s).update(body).digest());
     const a = Buffer.from(sig);
     const b = Buffer.from(expect);
     if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
     const p = JSON.parse(unb64url(body).toString("utf8")) as Partial<RadarHandoffPayload>;
     if (!p || typeof p.v !== "string" || !p.v) return null;
     // Sanitize + bound every field so a valid signature can never carry junk.
+    const k = typeof p.k === "number" && Number.isFinite(p.k) ? p.k : 0;
+    // Owner gate: short expiration — k must be present and within 24h of now.
+    if (k <= 0 || Date.now() - k > MAX_AGE_MS) return null;
     return {
       v: p.v.slice(0, 64),
       t: typeof p.t === "string" ? p.t.slice(0, 120) : "",
@@ -75,7 +87,7 @@ export function verifyRadarHandoff(raw: string | null | undefined): RadarHandoff
       m: Array.isArray(p.m)
         ? p.m.filter((n) => Number.isInteger(n) && (n as number) > 0).slice(0, 25).map(Number)
         : [],
-      k: typeof p.k === "number" && Number.isFinite(p.k) ? p.k : 0,
+      k,
     };
   } catch {
     return null;

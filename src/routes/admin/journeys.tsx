@@ -1,6 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect, type ReactNode } from "react";
 import { getCurrentUser } from "~/lib/auth";
+import {
+  AdminHeader,
+  AdminTabs,
+  MrrScoreboard,
+} from "~/components/AdminShared";
 
 /**
  * Admin "Visitor Journeys" board + Visitor Intelligence panels (owner spec
@@ -66,13 +71,6 @@ interface Journey {
   conversion_opportunity?: ConversionOpportunity;
 }
 interface FunnelStage { stage: string; label: string; count: number; dropOffPct: number | null; }
-interface AutopsyFunnelStage { stage: string; label: string; count: number; dropOffPct: number | null; }
-interface AutopsyFunnelResult {
-  rangeDays: number;
-  from: string;
-  to: string;
-  funnel: AutopsyFunnelStage[];
-}
 interface WatchedReturned {
   visitor_id: string;
   label: string;
@@ -146,15 +144,6 @@ async function fetchJourneys(days: number): Promise<JourneysResult> {
   }
   return res.json();
 }
-async function fetchAutopsyFunnel(days: number): Promise<AutopsyFunnelResult> {
-  const res = await fetch(`/api/admin/autopsy-funnel?days=${days}`);
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Failed to load autopsy funnel" }));
-    throw new Error(err.error || "Failed to load autopsy funnel");
-  }
-  return res.json();
-}
-
 async function fetchTimeline(visitorId: string): Promise<TimelineItem[]> {
   const res = await fetch(`/api/admin/journeys-timeline?visitor_id=${encodeURIComponent(visitorId)}`);
   if (!res.ok) throw new Error("Failed to load timeline");
@@ -728,10 +717,6 @@ function JourneysPage() {
   const [data, setData] = useState<JourneysResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  // Autopsy Acquisition funnel (owner 2026-09-05) — the distinct 9-stage view.
-  const [autopsyFunnel, setAutopsyFunnel] = useState<AutopsyFunnelResult | null>(null);
-  const [autopsyLoading, setAutopsyLoading] = useState(true);
-  const [autopsyError, setAutopsyError] = useState("");
   // Banner rows dismissed for this browser session (admin can clear them).
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
@@ -743,20 +728,6 @@ function JourneysPage() {
       .then((d) => { if (!cancelled) setData(d); })
       .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load journeys"); })
       .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, [days]);
-
-  // Autopsy Acquisition funnel — LIVE per-stage counts + drop-off. The funnel
-  // is a distinct admin read-surface but the write side reuses the SAME
-  // funnel_events plumbing (no parallel system) — the owner's exact 9 stages.
-  useEffect(() => {
-    let cancelled = false;
-    setAutopsyLoading(true);
-    setAutopsyError("");
-    fetchAutopsyFunnel(days)
-      .then((d) => { if (!cancelled) setAutopsyFunnel(d); })
-      .catch((err) => { if (!cancelled) setAutopsyError(err instanceof Error ? err.message : "Failed to load autopsy funnel"); })
-      .finally(() => { if (!cancelled) setAutopsyLoading(false); });
     return () => { cancelled = true; };
   }, [days]);
 
@@ -784,21 +755,11 @@ function JourneysPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <a href="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
-          </a>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Admin</span>
-            <a href="/admin" className="text-sm font-medium text-slate-500 hover:text-slate-700">Admin Dashboard &rarr;</a>
-          </div>
-        </div>
-      </header>
+      <AdminHeader scoreboard={<MrrScoreboard />} />
 
       <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">Visitor Journeys</h1>
+          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
           <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-1">
             {DAYS_OPTIONS.map((d) => (
               <button key={d} type="button" onClick={() => setDays(d)}
@@ -808,6 +769,7 @@ function JourneysPage() {
             ))}
           </div>
         </div>
+        <AdminTabs active="visitors" />
 
         {/* Watched-visitors-returned banner (server-authoritative) */}
         {bannerRows.length > 0 && (
@@ -846,40 +808,27 @@ function JourneysPage() {
           </div>
         )}
 
-        {/* Autopsy Acquisition funnel (owner 2026-09-05 — 9 exact stages) */}
+        {/* Autopsy funnel lives on its own tab now */}
         <section>
-          <h2 className="text-lg font-semibold text-slate-800 mb-1">Autopsy Acquisition funnel</h2>
-          <p className="mb-3 text-xs text-slate-500">
-            "Why did you lose?" → lost solicitation → real award found → autopsy preview → signup wall → free
-            signup → complete first autopsy viewed → Radar cross-sell → paid. Stages 3–8 are attributed to
-            autopsy-funnel visitors only (organic signups never count here). QA/admin/bot/test traffic excluded.
-          </p>
-          {autopsyError ? (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{autopsyError}</div>
-          ) : autopsyLoading || !autopsyFunnel ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">Loading autopsy funnel…</div>
-          ) : (
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
-                {autopsyFunnel.funnel.map((s, i) => (
-                  <div key={s.stage} className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-                    <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-                      {i + 1}. {s.label}
-                    </p>
-                    <p className="mt-1 text-2xl font-bold text-slate-900">{s.count}</p>
-                    {s.dropOffPct !== null && s.count < autopsyFunnel.funnel[i - 1].count && (
-                      <p className="mt-0.5 text-[10px] text-red-500">−{s.dropOffPct}% from prior</p>
-                    )}
-                  </div>
-                ))}
+          <a
+            href="/admin/autopsy"
+            className="group flex flex-col gap-1 rounded-2xl border border-rose-200 bg-gradient-to-r from-rose-50 to-white p-6 shadow-sm transition-colors hover:border-rose-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-500 text-2xl shadow-sm">
+                🧬
+              </span>
+              <div>
+                <p className="text-lg font-bold text-slate-900">Autopsy Acquisition funnel</p>
+                <p className="mt-0.5 text-sm text-slate-600">
+                  The 9-stage free-first-autopsy funnel now lives on the Autopsy tab.
+                </p>
               </div>
-              <p className="mt-3 text-[10px] text-slate-400">
-                Live counts + drop-off per consecutive stage. Stage 6 reuses the existing signup-complete event;
-                stage 8 reuses radar completion / the cross-sell click; stage 9 derives from live subscriptions on
-                autopsy-involved accounts.
-              </p>
             </div>
-          )}
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-rose-700 group-hover:text-rose-800 sm:mt-0">
+              Open autopsy <span aria-hidden="true">&rarr;</span>
+            </span>
+          </a>
         </section>
         {/* Unified funnel */}
         <section>

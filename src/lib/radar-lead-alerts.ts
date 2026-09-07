@@ -149,6 +149,8 @@ export interface RadarLeadRow {
     expanded?: { terms: string[]; naicsCodes: string[] } | null;
   } | null;
   unsubscribe_token: string;
+  /** Per-lead already-alerted bid id array (migration 032) — the sender's dedupe. */
+  sent_bid_ids?: unknown[] | null;
 }
 
 interface BidRow {
@@ -368,7 +370,7 @@ export async function sendRadarLeadMatchAlerts(): Promise<RadarAlertRunResult> {
 
   // 1) Confirmed, not-unsubscribed, consenting leads ONLY — enforced in SQL.
   const leadRows = (await sql()`
-    SELECT id, email, visitor_id, radar_profile, unsubscribe_token
+    SELECT id, email, visitor_id, radar_profile, unsubscribe_token, sent_bid_ids
     FROM radar_leads
     WHERE confirmed_at IS NOT NULL
       AND unsubscribed_at IS NULL
@@ -413,13 +415,22 @@ async function sendForOneLead(
 
   // 2) Open bids the lead has NOT already been alerted about (dedupe via the
   //    per-lead sent_bid_ids JSONB array + the crash-safe sent-log).
+  // Dedupe via the lead's OWN sent_bid_ids array (loaded with the lead above —
+  // never an unqualified reference: sent_bid_ids lives on radar_leads, NOT on
+  // bids; an unqualified ref here was the cause of the prod "column
+  // sent_bid_ids does not exist" send-failure). JSONB containment uses @> with
+  // a JSONB array operand, not the text `?` operator. The sent-log below is the
+  // crash-safe backstop.
+  const sentArr: string[] = Array.isArray(lead.sent_bid_ids)
+    ? (lead.sent_bid_ids as unknown[]).map((v) => String(v))
+    : [];
   const bids = (await sql()`
     SELECT id, title, agency, category, description, location, set_aside,
            naics_code, due_date, estimated_value, source_url
     FROM bids
     WHERE due_date > NOW()
       AND ${sql().unsafe(LOW_CONTENT_SQL)}
-      AND NOT (sent_bid_ids ? CAST(id AS text))
+      AND NOT (sent_bid_ids @> CAST(${JSON.stringify(sentArr)} AS JSONB))
     ORDER BY due_date ASC NULLS LAST
     LIMIT 500
   `) as unknown as BidRow[];

@@ -50,3 +50,11 @@ jobs:
 
       - name: Run bid sync
         run: bun run sync-bids
+
+      - name: Send radar match alerts
+        # Periodic match-alert sender (owner 2026-09-06): emails confirmed,
+        # not-unsubscribed radar leads about NEW bid matches discovered by the
+        # sync above (deduped per lead). Fail-open per lead — a send failure
+        # never aborts the run or blocks other leads. Requires RESEND_API_KEY
+        # (already in env); skipped with a warning when absent.
+        run: bun run radar-alerts

@@ -68,6 +68,7 @@ export const EVENT_LABELS: Record<string, string> = {
   radar_scan_complete: "Radar scan completed",
   radar_save: "Saved radar match",
   radar_lead_captured: "Radar match-alert lead captured",
+  radar_alert_sent: "Radar match-alert sent",
   signup_view: "Signup viewed",
   signup_view_with_score: "Signup viewed (with score)",
   signup_start: "Signup started",

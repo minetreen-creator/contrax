@@ -270,6 +270,132 @@ function radarLeadConfirmationHtml(confirmUrl: string, unsubscribeUrl: string): 
 </html>`;
 }
 
+// ── Radar Match-Alert Email (periodic sender) ───────────────────────────────── ──
+
+/**
+ * Send the periodic "new matching opportunities" email to ONE confirmed Radar
+ * lead (owner 2026-09-06). Goes ONLY to confirmed, not-unsubscribed, consenting
+ * leads who opted in at capture — the useful follow-up, never cold. Each bid is
+ * a real NEW match against the lead's own Radar profile; no newsletters, no
+ * company news, no generic re-engagement copy. One-click unsubscribe always.
+ *
+ * Returns TRUE only when Resend accepted the send — the sender advances its
+ * per-lead dedupe ONLY on TRUE, so a failed email retries next run. Fire and
+ * forget, fail-open, PII-safe (never logs the address).
+ */
+export async function sendRadarMatchAlertEmail(
+  to: string,
+  token: string,
+  bids: NewBidSummary[],
+  truncatedCount: number,
+): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send radar match alert — RESEND_API_KEY not set");
+      return false;
+    }
+    const unsubscribeUrl = `https://www.contrax.company/api/radar/lead-unsubscribe?token=${encodeURIComponent(token)}`;
+
+    await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      to: [to],
+      subject: `Contrax found ${bids.length} new opportunity${bids.length === 1 ? "" : "ies"} matching your Radar profile`,
+      html: radarMatchAlertHtml(bids, truncatedCount, unsubscribeUrl),
+    });
+
+    console.log(`Radar match alert sent (${bids.length} bid${bids.length === 1 ? "" : "s"}, +${truncatedCount} truncated, 1 lead)`);
+    return true;
+  } catch (err) {
+    // PII-safe: never include the target address in the log line.
+    console.error("Failed to send radar match alert:", (err as Error).message);
+    return false;
+  }
+}
+
+/** Owner-exact V1 layout: header + per-bid cards + "See all my matches →", nothing else. */
+function radarMatchAlertHtml(bids: NewBidSummary[], truncatedCount: number, unsubscribeUrl: string): string {
+  const bidCards = bids
+    .map(
+      (bid) => `
+<tr>
+  <td style="padding:0 32px 24px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:12px;">
+      <tr>
+        <td style="padding:16px 20px;">
+          <a href="${bid.source_url}"
+             style="color:#2563eb;font-size:16px;font-weight:600;text-decoration:none;display:block;margin-bottom:8px;line-height:1.4;">
+            ${escapeHtml(bid.title)}
+          </a>
+          <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.5;">
+            ${escapeHtml(bid.agency)} · ${escapeHtml(bid.location)} · ${escapeHtml(bid.set_aside ?? "Not set aside")} · Due ${bid.due_date ? new Date(bid.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "TBA"}
+          </p>
+          <p style="margin:0;color:#374151;font-size:13px;line-height:1.5;">
+            <strong>Why it matches:</strong> your Radar profile
+          </p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>`,
+    )
+    .join("\n");
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New matching opportunities — Contrax</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4f4f5;">
+<tr>
+  <td align="center" style="padding:40px 16px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+      <!-- Header -->
+      <tr>
+        <td style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:32px 32px 24px;text-align:center;">
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;">
+            Contrax found ${bids.length} new opportunity${bids.length === 1 ? "" : "ies"} matching your Radar profile
+          </h1>
+        </td>
+      </tr>
+      <!-- Bids -->
+      <tr>
+        <td style="padding:24px 0 8px;">
+          ${bidCards}
+          ${truncatedCount > 0 ? `<p style="margin:0 32px 16px;color:#6b7280;font-size:13px;line-height:1.5;">…plus ${truncatedCount} more</p>` : ""}
+        </td>
+      </tr>
+      <!-- See all my matches -->
+      <tr>
+        <td style="padding:8px 32px 24px;text-align:center;">
+          <a href="https://www.contrax.company/radar"
+             style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-align:center;">
+            See all my matches →
+          </a>
+        </td>
+      </tr>
+      <!-- Footer -->
+      <tr>
+        <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+          <p style="margin:0 0 8px;color:#9ca3af;font-size:12px;">
+            We only send you new opportunities that match your Radar profile.
+          </p>
+          <p style="margin:0;color:#9ca3af;font-size:12px;">
+            <a href="${unsubscribeUrl}" style="color:#9ca3af;">Unsubscribe from match alerts</a>
+          </p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+</body>
+</html>`;
+}
+
 // ── HTML Template ──────────────────────────────────────────────────────────────
 
 function welcomeEmailHtml(email: string): string {

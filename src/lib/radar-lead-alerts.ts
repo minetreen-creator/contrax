@@ -415,12 +415,12 @@ async function sendForOneLead(
 
   // 2) Open bids the lead has NOT already been alerted about (dedupe via the
   //    per-lead sent_bid_ids JSONB array + the crash-safe sent-log).
-  // Dedupe via the lead's OWN sent_bid_ids array (loaded with the lead above —
-  // never an unqualified reference: sent_bid_ids lives on radar_leads, NOT on
-  // bids; an unqualified ref here was the cause of the prod "column
-  // sent_bid_ids does not exist" send-failure). JSONB containment uses @> with
-  // a JSONB array operand, not the text `?` operator. The sent-log below is the
-  // crash-safe backstop.
+  // Dedupe via the lead's OWN sent_bid_ids array, bound as a literal JSONB —
+  // NEVER an unqualified column reference: sent_bid_ids lives on radar_leads,
+  // not on bids; an unqualified ref here was the cause of the prod "column
+  // sent_bid_ids does not exist" send-failure. `?` checks the JSONB array for
+  // the string element per row; `'[]'::jsonb ? id` is always false, so a fresh
+  // lead passes every bid. The sent-log below is the crash-safe backstop.
   const sentArr: string[] = Array.isArray(lead.sent_bid_ids)
     ? (lead.sent_bid_ids as unknown[]).map((v) => String(v))
     : [];
@@ -430,7 +430,7 @@ async function sendForOneLead(
     FROM bids
     WHERE due_date > NOW()
       AND ${sql().unsafe(LOW_CONTENT_SQL)}
-      AND NOT (sent_bid_ids @> CAST(${JSON.stringify(sentArr)} AS JSONB))
+      AND NOT (${JSON.stringify(sentArr)}::jsonb ? CAST(id AS text))
     ORDER BY due_date ASC NULLS LAST
     LIMIT 500
   `) as unknown as BidRow[];

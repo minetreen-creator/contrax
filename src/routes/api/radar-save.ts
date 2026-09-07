@@ -93,10 +93,11 @@ async function handler({ request }: { request: Request }) {
     // UPSERT keyed on email: first-time = INSERT, returning visitor = UPDATE
     // (fresh criteria + attribution, original created_at preserved).
     const result = await sql()`
-      INSERT INTO radar_saves (email, trade, state, cert, size_pref, phone, visitor_id, visit_id, source, medium, campaign, matched_count)
-      VALUES (${email}, ${trade || null}, ${state || null}, ${cert || null}, ${sizePref || null}, ${phone || null}, ${visitorId || null}, ${visitId || null}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${matchedCount})
+      INSERT INTO radar_saves (email, trade, trade_expanded, state, cert, size_pref, phone, visitor_id, visit_id, source, medium, campaign, matched_count)
+      VALUES (${email}, ${trade || null}, CAST(${tradeExpanded ? JSON.stringify(tradeExpanded) : null} AS JSONB), ${state || null}, ${cert || null}, ${sizePref || null}, ${phone || null}, ${visitorId || null}, ${visitId || null}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${matchedCount})
       ON CONFLICT (email) DO UPDATE SET
         trade = EXCLUDED.trade,
+        trade_expanded = EXCLUDED.trade_expanded,
         state = EXCLUDED.state,
         cert = EXCLUDED.cert,
         size_pref = EXCLUDED.size_pref,

@@ -36,7 +36,6 @@
  * the funnel-involved visitor set (autopsy-funnel pattern) so reused events
  * never double-count organic traffic.
  */
-import { sql } from "~/db";
 
 /** Owner-exact 7 stages, in order (labels are owner-exact too). */
 export const RADAR_LEADS_FUNNEL_STAGES = [

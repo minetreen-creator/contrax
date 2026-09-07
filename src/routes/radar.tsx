@@ -18,6 +18,7 @@ import {
   type RadarCertId,
 } from "~/lib/radar-session";
 import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
+import { expandTrade, tradeKeywordPred, tradeProvenanceFor, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -102,19 +103,34 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
  *   Closing-soon           0–15   due ≤30d → 15; ≤90d → 11; else 7.
  * Absent/incomplete signals are credited conservatively (a low unknown always
  * lowers the total); nothing is invented. Clamped to [0,100].
+ *
+ * TRADE EXPANSION (owner 2026-09-07): `isNaics` is derived ONLY from the
+ * ORIGINAL trade input. The exact-NAICS 30pt branch stays on the ORIGINAL
+ * input (never compares an expanded code). The 22pt keyword branch matches the
+ * EXPANDED term set (trade-registry), so "trucking" scores 22 on a "freight
+ * hauling" solicitation — honest because the expansion is curated procurement
+ * language, and per-match provenance (match.trade_provenance) records WHICH
+ * concept actually hit for the why-line (never claims the literal word
+ * appeared).
  */
 function computeMatch(
   bid: RadarBidRow,
-  input: { trade: string; isNaics: boolean; state: string; cert: RadarCert; sizePref: SizeId },
+  input: {
+    trade: string;
+    isNaics: boolean;
+    expansion: TradeExpansion;
+    state: string;
+    cert: RadarCert;
+    sizePref: SizeId;
+  },
 ): { score: number; scoreLabel: "Strong Match" | "Good Match" | "Potential Match" } {
-  const t = input.trade.toLowerCase();
   const title = (bid.title || "").toLowerCase();
   const category = (bid.category || "").toLowerCase();
 
   // NAICS / trade alignment
   let naics = 8;
   if (input.isNaics && bid.naics_code && bid.naics_code.trim() === input.trade) naics = 30;
-  else if (!input.isNaics && t && (title.includes(t) || category.includes(t))) naics = 22;
+  else if (!input.isNaics && expansion.terms.some((t) => t.length >= 2 && (title.includes(t) || category.includes(t)))) naics = 22;
 
   // Set-aside eligibility
   const hasSetAside = !!bid.set_aside && String(bid.set_aside).trim().length > 0;
@@ -203,6 +219,11 @@ export type RadarMatch = {
   score: number; score_label: "Strong Match" | "Good Match" | "Potential Match";
   reasons: string[]; qualifications: string[]; requirements: string[];
   next_action: string;
+  /** Per-match provenance (owner 2026-09-07): WHICH expanded concept + NAICS
+   *  actually caused the trade match — never claims the literal word matched
+   *  when a curated synonym did. Null on NAICS-input matches (the code itself
+   *  is the provenance) and when no trade signal fired. */
+  trade_provenance: TradeMatchProvenance | null;
   incumbent: FPDSIntel | null;
   /** Contrax Learning ⚡ memory (PAID-ONLY, Professional+ — never Basic/Starter). */
   learned: PriorLossBadge | null;
@@ -224,6 +245,11 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const { trade, state, cert, sizePref } = data;
     const certId = cert as RadarCert;
     const isNaics = /^\d{6}$/.test(trade);
+    // Trade-query normalization (owner 2026-09-06/07): expand AFTER the isNaics
+    // gate — isNaics is derived ONLY from the ORIGINAL trade; expansion drives
+    // ONLY the non-NAICS keyword branch. The original is preserved verbatim
+    // everywhere it displays/stores.
+    const expansion = expandTrade(trade);
     // Contrax Learning ⚡ memory (PAID-ONLY, Professional+): the logged-in user's
     // own autopsied losses, loaded ONCE per scan. Anonymous visitors and Basic
     // users get NO memory — Basic never sees it (the accumulating reason not
@@ -252,12 +278,14 @@ export const runRadarScan = createServerFn({ method: "POST" })
       const certFrag =
         certId === "sb" ? sql().unsafe(`AND set_aside IS NOT NULL`) : setAsidePred(certId, sql);
       // Trade/NAICS predicate: exact NAICS equality when a 6-digit code is given,
-      // otherwise a keyword match on the trade text. Values are bound as
-      // parameters via the tagged template (injection-safe).
+      // otherwise the EXPANDED keyword set (trade-registry: curated synonyms +
+      // implied NAICS codes). isNaics is derived from the ORIGINAL input; the
+      // expanded fragment is used on the non-NAICS branch only. Every term is a
+      // bound `${...}` parameter (injection-safe by construction).
       const tradeFrag = isNaics
         ? sql()`AND LOWER(COALESCE(naics_code,'')) = ${trade.toLowerCase()}`
         : trade
-          ? sql()`AND (LOWER(COALESCE(title,'')) LIKE ${"%" + trade.toLowerCase() + "%"} OR LOWER(COALESCE(description,'')) LIKE ${"%" + trade.toLowerCase() + "%"} OR LOWER(COALESCE(category,'')) LIKE ${"%" + trade.toLowerCase() + "%"})`
+          ? tradeKeywordPred(sql, expansion)
           : sql()``;
       rows = await sql()`
         SELECT id, title, agency, description, location, category, due_date,
@@ -285,8 +313,12 @@ export const runRadarScan = createServerFn({ method: "POST" })
           estimated_value: r.estimated_value ? String(r.estimated_value) : null, naics_code: r.naics_code ? String(r.naics_code) : null,
           source_url: r.source_url ? String(r.source_url) : null, set_aside: r.set_aside ? String(r.set_aside) : null,
         };
-        const { score, scoreLabel } = computeMatch(bid, { trade, isNaics, state, cert: certId, sizePref: sizeId });
-        return { bid, score, scoreLabel };
+        const { score, scoreLabel } = computeMatch(bid, {
+          trade, isNaics, expansion, state, cert: certId, sizePref: sizeId,
+        });
+        const bidText = `${bid.title || ""} ${bid.category || ""} ${bid.description || ""}`;
+        const tradeProvenance = tradeProvenanceFor(bidText, expansion, bid.naics_code);
+        return { bid, score, scoreLabel, tradeProvenance };
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, 5);
@@ -295,7 +327,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
     // ~/lib/radar-config.ts). In teaser mode we skip the FPDS calls entirely.
     const matches: RadarMatch[] = [];
     for (let i = 0; i < ranked.length; i++) {
-      const { bid, score, scoreLabel } = ranked[i];
+      const { bid, score, scoreLabel, tradeProvenance } = ranked[i];
       const match: RadarMatch = {
         id: bid.id, title: bid.title, agency: bid.agency, category: bid.category,
         location: bid.location, set_aside: bid.set_aside, naics_code: bid.naics_code,
@@ -303,7 +335,8 @@ export const runRadarScan = createServerFn({ method: "POST" })
         estimated_value_num: parseValue(bid.estimated_value),
         due_date: bid.due_date, days_remaining: daysRemaining(bid.due_date),
         score, score_label: scoreLabel,
-        reasons: buildReasons(bid, { trade, isNaics, state, cert: certId, sizePref: sizeId, score, scoreLabel }),
+        trade_provenance: tradeProvenance,
+        reasons: buildReasons(bid, { trade, isNaics, expansion, state, cert: certId, sizePref: sizeId, score, scoreLabel, tradeProvenance }),
         qualifications: buildQualifications(bid, { trade, isNaics, state, cert: certId }),
         requirements: buildRequirements(bid),
         next_action: buildNextAction(bid),
@@ -360,7 +393,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
 
 function buildReasons(
   bid: RadarBidRow,
-  c: { trade: string; isNaics: boolean; state: string; cert: RadarCert; sizePref: SizeId; score: number; scoreLabel: string },
+  c: { trade: string; isNaics: boolean; expansion: TradeExpansion; state: string; cert: RadarCert; sizePref: SizeId; score: number; scoreLabel: string; tradeProvenance: TradeMatchProvenance | null },
 ): string[] {
   const reasons: string[] = [];
   reasons.push(`${CERT_LABEL[c.cert]} solicitation — set aside for your certification`);
@@ -370,8 +403,20 @@ function buildReasons(
   if (ev != null) reasons.push(`Estimated value ${money(ev)}${c.sizePref !== "any" ? " fits your size preference" : ""}`);
   else reasons.push("Estimated value not listed — verify in the full solicitation");
   if (c.isNaics && bid.naics_code) reasons.push(`NAICS ${bid.naics_code} matches your code`);
-  else if (!c.isNaics && c.trade && (bid.title || bid.category)?.toLowerCase().includes(c.trade.toLowerCase()))
-    reasons.push(`Trade "${c.trade}" aligns with this opportunity`);
+  else if (!c.isNaics && c.trade) {
+    const prov = c.tradeProvenance;
+    if (prov) {
+      // Honest provenance: if the LITERAL original term matched, say so;
+      // otherwise name the expanded concept (never claim the literal word
+      // appeared in the solicitation).
+      const label = prov.matchedConcept === c.trade.toLowerCase() ? c.trade : prov.matchedConcept;
+      reasons.push(
+        prov.matchedNaics
+          ? `Trade "${label}" — ${prov.conceptLabel} (NAICS ${prov.matchedNaics}) aligns with this opportunity`
+          : `Trade "${label}" aligns with this opportunity`,
+      );
+    }
+  }
   if (c.state) {
     const m = (bid.location || "").match(STATE_LOCATION_REGEX);
     reasons.push(m && m[1].toUpperCase() === c.state ? `Located in ${c.state}` : "Open nationwide");

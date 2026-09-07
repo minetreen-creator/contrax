@@ -69,6 +69,11 @@ export const EVENT_LABELS: Record<string, string> = {
   radar_save: "Saved radar match",
   radar_lead_captured: "Radar match-alert lead captured",
   radar_alert_sent: "Radar match-alert sent",
+  // Radar match-alert channel (owner 2026-09-06/07) — DISPLAY labels only; the
+  // admin radar-leads funnel reads these two as stage events (mirrors how the
+  // autopsy funnel reads AUTOPSY_EVENTS).
+  email_confirmed: "Radar match-alert confirmed",
+  opportunity_clicked: "Radar match-alert click",
   signup_view: "Signup viewed",
   signup_view_with_score: "Signup viewed (with score)",
   signup_start: "Signup started",

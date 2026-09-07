@@ -2,6 +2,7 @@ import { sql } from "~/db";
 import { US_STATES } from "~/lib/states";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { sendRadarMatchAlertEmail, type NewBidSummary } from "~/lib/email";
+import { ensureRadarLeadsClickLog, buildOpportunityClickUrl, hashClickToken } from "~/lib/radar-lead-clicks";
 
 /**
  * Periodic match-alert sender for CONFIRMED Radar leads (owner 2026-09-06;
@@ -49,6 +50,19 @@ import { sendRadarMatchAlertEmail, type NewBidSummary } from "~/lib/email";
  *   `radar_alert_sent` funnel event (label in tracking-intake EVENT_LABELS) +
  *   a `radar_alerts_sent` row per (lead, bid) as the crash-safe sent-log.
  *
+ * ── CTA click tracking (owner 2026-09-07) ───────────────────────────────────
+ *   Each per-bid card's "View opportunity →" carries {why_line} (the concrete
+ *   cert/category/size flags that actually fired — renderMatchWhyLine, NEVER
+ *   invented; state-only matches fall back to the honest "your Radar profile")
+ *   and {click_url} → https://www.contrax.company/api/radar/opportunity-click
+ *   ?bid=<id>&token=<unsubscribe_token> (built by buildOpportunityClickUrl —
+ *   ONE source of truth shared with the route). After a successful send we
+ *   pre-insert the (lead, bid) pair into radar_lead_opportunity_clicks (mig
+ *   033, self-healed): the redirect route's idempotent click-count then fires
+ *   ONLY for pairs that were genuinely emailed, and a repeat click never
+ *   double-counts (PK lead_id × bid_id). Raw email never in URLs or logs;
+ *   only the sha256 token hash is stored.
+ *
  * ── CLI ---------------------------------------------------------------
  *   bun run src/jobs/send-radar-lead-alerts.ts   (package.json "radar-alerts").
  *   Scheduling: sibling step in .github/workflows/sync-bids.yml right after
@@ -66,6 +80,24 @@ const CERT_TO_SET_ASIDE: Record<string, string[]> = {
   vosb: ["VOSB"],
 };
 const CERT_KEYS = Object.keys(CERT_TO_SET_ASIDE);
+
+/** Honest human label per lead cert key — used ONLY for a reason that fired. */
+const CERT_LABELS: Record<string, string> = {
+  "8a": "8(a)",
+  sdvosb: "SDVOSB",
+  wosb: "WOSB",
+  hubzone: "HUBZone",
+  vosb: "VOSB",
+  sb: "Small-business",
+};
+
+/** Honest human cap label per sizePref — shown ONLY when a stated bid value
+ *  actually fell within the cap (never fabricated, never for "any"). */
+const SIZE_CAP_LABELS: Record<string, string> = {
+  under250k: "Under $250K",
+  under1m: "Under $1M",
+  under10m: "Under $10M",
+};
 
 const SIZE_PREFS = new Set(["under250k", "under1m", "under10m", "any"]);
 const SIZE_CAPS: Record<string, number> = {
@@ -159,6 +191,85 @@ export async function ensureRadarLeadsAlertColumns(): Promise<void> {
     )`;
     await sql()`CREATE INDEX IF NOT EXISTS radar_leads_alerts_sent_lead_idx ON radar_leads_alerts_sent (lead_id)`;
   }
+}
+
+/**
+ * Per-bid WHY flags — the ACTUAL match reasons that fired for one bid against
+ * one lead profile (owner 2026-09-06; "Why it matches: CERT · Category ·
+ * Size"). Each flag recomputes the EXACT same predicate as
+ * bidMatchesLeadProfile below (same text blob, same cert map, same size rule):
+ * a reason appears ONLY when it genuinely fired. Omits reasons that did not
+ * fire; the email falls back to the honest "your Radar profile" ONLY when no
+ * concrete flag fired. NEVER invent a reason that did not fire.
+ *
+ *   cert     → e.g. "SDVOSB" (the lead's cert label, via the cert→set-aside map)
+ *   category → the lead's trade text as searched (or the 6-digit NAICS code)
+ *   size     → e.g. "Under $1M" (only when the bid STATED a value within cap)
+ */
+export interface MatchWhyFlags {
+  cert: string | null;
+  category: string | null;
+  size: string | null;
+}
+
+export function whyBidMatchesLeadProfile(
+  p: RadarLeadRow["radar_profile"],
+  bid: BidRow,
+): MatchWhyFlags {
+  const why: MatchWhyFlags = { cert: null, category: null, size: null };
+  if (!p) return why;
+  const trade = (p.trade ?? "").trim();
+  const cert = (p.cert ?? "").trim();
+  const sizePref = (p.sizePref ?? "").trim();
+
+  const text = `${bid.title || ""} ${bid.agency || ""} ${bid.category || ""} ${bid.description || ""}`.toLowerCase();
+
+  // trade → substring against bid text; exact NAICS equality for a 6-digit code.
+  const isNaics = /^\d{6}$/.test(trade);
+  const tradeFired = isNaics
+    ? !!bid.naics_code && bid.naics_code.trim() === trade
+    : trade.length > 0 && text.includes(trade.toLowerCase());
+  if (tradeFired) why.category = trade;
+
+  // cert → literal set-aside map against set_aside OR the bid text.
+  if (cert && (CERT_KEYS.includes(cert) || cert === "sb")) {
+    let fired = false;
+    if (cert === "sb") {
+      fired = !!bid.set_aside && String(bid.set_aside).trim().length > 0;
+    } else {
+      const pats = CERT_TO_SET_ASIDE[cert] ?? [];
+      fired = pats.some((pat) => {
+        const pLow = pat.toLowerCase();
+        return (
+          text.includes(pLow) ||
+          (!!bid.set_aside && String(bid.set_aside).toLowerCase().includes(pLow))
+        );
+      });
+    }
+    if (fired) why.cert = CERT_LABELS[cert] ?? cert;
+  }
+
+  // sizePref → ONLY when the bid carries a stated value within the cap (never
+  // fabricated; "any" has no cap so it never produces a size reason).
+  if (sizePref && SIZE_PREFS.has(sizePref) && SIZE_CAPS[sizePref] != null) {
+    const ev = parseRadarValue(bid.estimated_value);
+    if (ev != null && ev <= (SIZE_CAPS[sizePref] ?? 0)) {
+      why.size = SIZE_CAP_LABELS[sizePref] ?? null;
+    }
+  }
+
+  return why;
+}
+
+/** Render the WHY flags as the owner-exact "CERT · Category · Size" line, or
+ *  null when nothing concrete fired (caller falls back to the honest
+ *  "your Radar profile"). */
+export function renderMatchWhyLine(why: MatchWhyFlags): string | null {
+  const parts: string[] = [];
+  if (why.cert) parts.push(why.cert);
+  if (why.category) parts.push(why.category);
+  if (why.size) parts.push(why.size);
+  return parts.length > 0 ? parts.join(" · ") : null;
 }
 
 /**
@@ -315,18 +426,32 @@ async function sendForOneLead(
   // 4) One email per lead, honest subject, one-click unsubscribe. Returns TRUE
   //    only when Resend accepted — the sent-log advances ONLY on TRUE so a
   //    failed email retries next run (fire-and-forget, never throws).
+  //    Each bid card's "View opportunity →" CTA points at the PII-safe click
+  //    redirect (owner 2026-09-07): {why_line} shows ONLY the concrete flags
+  //    that actually fired for this bid (renderMatchWhyLine → null falls back
+  //    to the honest "your Radar profile" inside the email), and {click_url}
+  //    routes through /api/radar/opportunity-click so we can measure CTA clicks
+  //    without ever putting the raw email in a URL or log (token-only).
   const sentOk = await sendRadarMatchAlertEmail(
     lead.email,
     lead.unsubscribe_token,
-    emailBids.map((b): NewBidSummary => ({
-      title: b.title,
-      agency: b.agency ?? "",
-      source_url: b.source_url ?? "",
-      location: b.location ?? "",
-      due_date: b.due_date ? String(b.due_date) : null,
-      set_aside: b.set_aside ?? null,
-      bid_id: Number(b.id),
-    })),
+    emailBids.map((b): NewBidSummary => {
+      const why = renderMatchWhyLine(whyBidMatchesLeadProfile(lead.radar_profile, b));
+      return {
+        title: b.title,
+        agency: b.agency ?? "",
+        source_url: b.source_url ?? "",
+        location: b.location ?? "",
+        due_date: b.due_date ? String(b.due_date) : null,
+        set_aside: b.set_aside ?? null,
+        bid_id: Number(b.id),
+        // Always present for radar leads — click-tracking redirect (token-only,
+        // never the raw email). Falls back to source_url inside email.ts when
+        // a bid has no id (defensive; every matches-path bid does have one).
+        why_line: why,
+        click_url: Number.isFinite(Number(b.id)) ? buildOpportunityClickUrl(Number(b.id), lead.unsubscribe_token) : null,
+      };
+    }),
     truncatedCount,
   );
   if (!sentOk) return { emailsSent: 0, matchesEmailed: 0 };
@@ -368,6 +493,28 @@ async function sendForOneLead(
       `;
     } catch (e) {
       console.error("[radar-lead-alerts] sent-log insert failed:", (e as Error).message);
+    }
+  }
+  // 6b) The email's per-bid click CTAs are live now (the send succeeded), so
+  //  tell the click log the (lead, bid) pairs were actually emailed — the
+  //  opportunity-click route counts a click ONLY against an existing pair
+  //  (PK lead_id × bid_id), which keeps the funnel click strictly inside the
+  //  mailed set. Same table the route self-heals (migration 033) and a distinct
+  //  name from migration 019's radar_alerts_sent. Idempotent; fail-open.
+  try {
+    await ensureRadarLeadsClickLog();
+  } catch (e) {
+    console.error("[radar-lead-alerts] ensureRadarLeadsClickLog failed:", (e as Error).message);
+  }
+  for (const bidId of emailBidIds) {
+    try {
+      await sql()`
+        INSERT INTO radar_lead_opportunity_clicks (lead_id, bid_id, clicked_at, token_hash)
+        VALUES (${lead.id}, ${bidId}, NOW(), ${hashClickToken(lead.unsubscribe_token)})
+        ON CONFLICT (lead_id, bid_id) DO NOTHING
+      `;
+    } catch (e) {
+      console.error("[radar-lead-alerts] click-log preinsert failed:", (e as Error).message);
     }
   }
 

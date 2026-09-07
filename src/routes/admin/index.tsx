@@ -446,6 +446,29 @@ function AdminPage() {
           </a>
         </section>
 
+        {/* Radar Leads Section (anonymous-lead match-alert channel, 2026-09-06/07) */}
+        <section>
+          <a
+            href="/admin/radar-leads"
+            className="group flex flex-col gap-1 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-white p-6 shadow-sm transition-colors hover:border-violet-300 hover:shadow-md sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-center gap-4">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-500 text-2xl shadow-sm">
+                📧
+              </span>
+              <div>
+                <p className="text-lg font-bold text-slate-900">Radar Leads</p>
+                <p className="mt-0.5 text-sm text-slate-600">
+                  Anonymous-lead match-alert channel: capture → confirmed → alert sent → click → signup → radar used → paid,
+                  with a masked lead table.
+                </p>
+              </div>
+            </div>
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-semibold text-violet-700 group-hover:text-violet-800 sm:mt-0">
+              Open funnel <span aria-hidden="true">&rarr;</span>
+            </span>
+          </a>
+        </section>
         {/* FAR/DFARS Database Section */}
         <section>
           <div className="flex items-center justify-between mb-4">

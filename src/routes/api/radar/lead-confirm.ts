@@ -7,6 +7,9 @@ import { sql } from "~/db";
  * returns a simple honest HTML page. Idempotent: a second click reports
  * "already confirmed". An unsubscribed address can never be re-confirmed.
  * The same token also powers the one-click unsubscribe link.
+ * On the unconfirmed→confirmed transition it also records the `email_confirmed`
+ * funnel event (stage 2 of the radar-leads funnel, owner 2026-09-07) — the
+ * confirmation page itself never breaks on a funnel write failure.
  */
 
 const PAGE = (title: string, body: string) =>
@@ -38,8 +41,8 @@ async function handler({ request }: { request: Request }) {
       });
     }
     const rows = (await sql()`
-      SELECT email, confirmed_at, unsubscribed_at FROM radar_leads WHERE unsubscribe_token = ${token}
-    `) as Array<{ email: string; confirmed_at: string | null; unsubscribed_at: string | null }>;
+      SELECT email, confirmed_at, unsubscribed_at, visitor_id FROM radar_leads WHERE unsubscribe_token = ${token}
+    `) as Array<{ email: string; confirmed_at: string | null; unsubscribed_at: string | null; visitor_id: string | null }>;
     const lead = rows[0];
     if (!lead) {
       return new Response(
@@ -62,6 +65,19 @@ async function handler({ request }: { request: Request }) {
     await sql()`
       UPDATE radar_leads SET confirmed_at = NOW(), updated_at = NOW() WHERE unsubscribe_token = ${token}
     `;
+    // Stage-2 funnel event (radar-leads funnel, owner 2026-09-07): fired ONLY on
+    // the unconfirmed→confirmed transition (this branch — never for an
+    // already-confirmed replay above). Fire-and-log: a funnel write failure can
+    // never break the confirmation page.
+    try {
+      await sql()`
+        INSERT INTO funnel_events (event_name, label, path, user_agent, visitor_id)
+        VALUES ('email_confirmed', ${"lead-confirm"}, ${"/api/radar/lead-confirm"}, ${"lead-confirm"}, ${lead.visitor_id})
+        ON CONFLICT DO NOTHING
+      `;
+    } catch (e) {
+      console.error("[api/radar/lead-confirm] email_confirmed event failed (page still confirms):", (e as Error).message);
+    }
     return new Response(
       PAGE("You're confirmed ✓", "You're on the list. We'll email you when new government contract matches for your business open up."),
       { headers: { "content-type": "text/html; charset=utf-8" } },

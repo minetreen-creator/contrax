@@ -22,3 +22,22 @@
  * The only render path that reads this flag is RadarCard's incumbent block.
  */
 export const SHOW_FREE_INCUMBENT = true;
+
+/**
+ * RADAR CONVERSION SPRINT (owner 2026-09-07) — ANONYMOUS RESULTS GATING.
+ *
+ * This is the ONE centralized constant for how many REAL matched opportunities
+ * an ANONYMOUS visitor can see on the Radar results screen before the honest
+ * locked-results card appears. The conversion UI never scatters a literal `3`
+ * anywhere else:
+ *
+ *   - TOTAL_MATCHES  = real server-computed match count (as produced today)
+ *   - VISIBLE_COUNT  = min(TOTAL_MATCHES, FREE_ANONYMOUS_RADAR_RESULTS)
+ *   - LOCKED_COUNT   = max(TOTAL_MATCHES - FREE_ANONYMOUS_RADAR_RESULTS, 0)
+ *
+ * Rules (owner-brief non-negotiables): the locked card is shown ONLY when real
+ * matches exceed the free cap (never a manufactured wall), the counts shown are
+ * ALWAYS the real ones, and AUTHENTICATED users of any tier never see any gating
+ * (they keep normal entitlement — see /radar + HeroRadar).
+ */
+export const FREE_ANONYMOUS_RADAR_RESULTS = 3;

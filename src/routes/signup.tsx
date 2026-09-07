@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SignupContextPanel } from "~/components/SignupContextPanel";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import { FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
 import { getOrCreateVisitorId, getOrCreateVisitId } from "~/lib/visitor";
 import { setTrackingUser, getTrackingUser } from "~/lib/identity";
 import { persistPendingDraft } from "~/lib/pending-draft";
@@ -422,7 +423,7 @@ function SignupPage() {
               },
               certLabel,
               total: res.matches.length,
-              seenCount: Math.min(3, matches.length),
+              seenCount: Math.min(FREE_ANONYMOUS_RADAR_RESULTS, matches.length),
               matches,
             });
           }

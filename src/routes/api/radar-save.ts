@@ -56,6 +56,7 @@ async function handler({ request }: { request: Request }) {
     // Radar criteria the visitor used — store exactly what they searched so a
     // future alert job matches new bids against it. All bounded + whitelisted.
     const trade = typeof body.trade === "string" ? body.trade.trim().slice(0, 120) : null;
+    const tradeExpanded = trade && !/^\d{6}$/.test(trade) ? expandTrade(trade).terms?.length ? { terms: expandTrade(trade).terms, naicsCodes: expandTrade(trade).naicsCodes } : null : null;
     const state = typeof body.state === "string" ? body.state.trim().toUpperCase().slice(0, 2) : null;
     const certRaw = typeof body.cert === "string" ? body.cert : "";
     const cert = CERTS.has(certRaw) ? certRaw : null;

@@ -17,6 +17,19 @@ export interface NewBidSummary {
   due_date: string | null;
   set_aside?: string | null;
   bid_id?: number;
+  /**
+   * Owner-exact "Why it matches: CERT · Category · Size" line (Radar match
+   * alerts, 2026-09-07). Computed by the sender from the ACTUAL match flags
+   * that fired for this bid (whyBidMatchesLeadProfile) — never invented.
+   * Null/omitted → the honest "your Radar profile" fallback.
+   */
+  why_line?: string | null;
+  /**
+   * Per-bid "View opportunity →" CTA through the PII-safe click redirect
+   * (/api/radar/opportunity-click?bid=<id>&token=…). Falls back to source_url
+   * when absent (e.g. the legacy bid-digest path, which never sets it).
+   */
+  click_url?: string | null;
 }
 
 // ── Client Initialization ──────────────────────────────────────────────────────
@@ -316,14 +329,22 @@ export async function sendRadarMatchAlertEmail(
 /** Owner-exact V1 layout: header + per-bid cards + "See all my matches →", nothing else. */
 function radarMatchAlertHtml(bids: NewBidSummary[], truncatedCount: number, unsubscribeUrl: string): string {
   const bidCards = bids
-    .map(
-      (bid) => `
+    .map((bid) => {
+      // "View opportunity →" goes through the PII-safe click redirect (logs the
+      // opportunity_clicked funnel event, then 302s to the real source_url).
+      // Legacy callers (bid digest) never set click_url → source_url fallback.
+      const primaryUrl = bid.click_url || bid.source_url;
+      // "Why it matches" shows ONLY reasons that actually fired (computed by
+      // the sender); the honest "your Radar profile" fallback covers the rare
+      // state-only match where no concrete flag fired. Escaped — never raw.
+      const whyLine = bid.why_line?.trim() ? bid.why_line.trim() : "your Radar profile";
+      return `
 <tr>
   <td style="padding:0 32px 24px;">
     <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;margin-bottom:12px;">
       <tr>
         <td style="padding:16px 20px;">
-          <a href="${bid.source_url}"
+          <a href="${primaryUrl}"
              style="color:#2563eb;font-size:16px;font-weight:600;text-decoration:none;display:block;margin-bottom:8px;line-height:1.4;">
             ${escapeHtml(bid.title)}
           </a>
@@ -331,14 +352,20 @@ function radarMatchAlertHtml(bids: NewBidSummary[], truncatedCount: number, unsu
             ${escapeHtml(bid.agency)} · ${escapeHtml(bid.location)} · ${escapeHtml(bid.set_aside ?? "Not set aside")} · Due ${bid.due_date ? new Date(bid.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "TBA"}
           </p>
           <p style="margin:0;color:#374151;font-size:13px;line-height:1.5;">
-            <strong>Why it matches:</strong> your Radar profile
+            <strong>Why it matches:</strong> ${escapeHtml(whyLine)}
+          </p>
+          <p style="margin:12px 0 0;">
+            <a href="${primaryUrl}"
+               style="color:#2563eb;font-size:13px;font-weight:600;text-decoration:none;">
+              View opportunity →
+            </a>
           </p>
         </td>
       </tr>
     </table>
   </td>
-</tr>`,
-    )
+</tr>`;
+    })
     .join("\n");
 
   return `<!DOCTYPE html>

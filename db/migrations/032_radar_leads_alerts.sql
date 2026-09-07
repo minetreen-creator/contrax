@@ -12,11 +12,17 @@
 --      successful send. Capped at 512 ids (oldest half rotated out when past)
 --      so an extremely active lead's list stays bounded.
 --
---   2. radar_alerts_sent — a crash-safe sent-log (lead_id × bid_id, PK). If an
---      email sends but the process dies before sent_bid_ids is flushed, the
---      next run still won't re-notify about a bid already in this log — the
+--   2. radar_leads_alerts_sent — a crash-safe sent-log (lead_id × bid_id, PK).
+--      If an email sends but the process dies before sent_bid_ids is flushed,
+--      the next run still won't re-notify about a bid already in this log — the
 --      same belt-and-suspenders guarantee as the legacy radar_saves alerts
 --      (migration 019).
+--
+--      IMPORTANT: this uses a DISTINCT table name (radar_leads_alerts_sent).
+--      Migration 019 already owns `radar_alerts_sent` (radar_save_id × bid_id,
+--      legacy radar_saves alerts); reusing that name would silently no-op
+--      CREATE TABLE and the lead_id INSERT/index below would crash. 019's
+--      table must never be touched by the radar-lead path.
 --
 --   last_alerted_at — per-lead low-water mark (when the last alert email went
 --   out); informational + useful for admin reads.
@@ -27,7 +33,7 @@
 ALTER TABLE radar_leads ADD COLUMN IF NOT EXISTS sent_bid_ids JSONB NOT NULL DEFAULT '[]'::jsonb;
 ALTER TABLE radar_leads ADD COLUMN IF NOT EXISTS last_alerted_at TIMESTAMPTZ;
 
-CREATE TABLE IF NOT EXISTS radar_alerts_sent (
+CREATE TABLE IF NOT EXISTS radar_leads_alerts_sent (
   lead_id BIGINT NOT NULL REFERENCES radar_leads(id) ON DELETE CASCADE,
   bid_id INTEGER NOT NULL REFERENCES bids(id) ON DELETE CASCADE,
   sent_at TIMESTAMPTZ DEFAULT NOW(),
@@ -35,4 +41,4 @@ CREATE TABLE IF NOT EXISTS radar_alerts_sent (
 );
 -- PK(lead_id, bid_id) already serves the per-lead "already sent?" lookup; this
 -- secondary index lets "which lead ids have sent rows" scans stay narrow.
-CREATE INDEX IF NOT EXISTS radar_alerts_sent_lead_idx ON radar_alerts_sent (lead_id);
+CREATE INDEX IF NOT EXISTS radar_leads_alerts_sent_lead_idx ON radar_leads_alerts_sent (lead_id);

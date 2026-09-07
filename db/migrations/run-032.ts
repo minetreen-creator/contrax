@@ -9,14 +9,14 @@ async function run() {
   await db`ALTER TABLE radar_leads ADD COLUMN IF NOT EXISTS sent_bid_ids JSONB NOT NULL DEFAULT '[]'::jsonb`;
   await db`ALTER TABLE radar_leads ADD COLUMN IF NOT EXISTS last_alerted_at TIMESTAMPTZ`;
   await db`
-    CREATE TABLE IF NOT EXISTS radar_alerts_sent (
+    CREATE TABLE IF NOT EXISTS radar_leads_alerts_sent (
       lead_id BIGINT NOT NULL REFERENCES radar_leads(id) ON DELETE CASCADE,
       bid_id INTEGER NOT NULL REFERENCES bids(id) ON DELETE CASCADE,
       sent_at TIMESTAMPTZ DEFAULT NOW(),
       PRIMARY KEY (lead_id, bid_id)
     )
   `;
-  await db`CREATE INDEX IF NOT EXISTS radar_alerts_sent_lead_idx ON radar_alerts_sent (lead_id)`;
+  await db`CREATE INDEX IF NOT EXISTS radar_leads_alerts_sent_lead_idx ON radar_leads_alerts_sent (lead_id)`;
   console.log("✅ Migration 032 complete (radar_leads alert dedupe + sent-log)");
 }
 

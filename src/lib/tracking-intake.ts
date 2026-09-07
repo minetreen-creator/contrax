@@ -64,8 +64,12 @@ export const RADAR_COMPLETE_EVENT = "radar_scan_complete";
 export const EVENT_LABELS: Record<string, string> = {
   hero_cta_click: "Trial CTA clicked",
   hero_search: "Hero search submitted",
+  homepage_radar_cta_clicked: "Homepage Radar CTA clicked",
   radar_scan_start: "Radar scan started",
   radar_scan_complete: "Radar scan completed",
+  radar_results_viewed: "Radar results viewed (anonymous)",
+  radar_results_unlock_shown: "Radar locked-results card shown (anonymous)",
+  radar_results_unlock_clicked: "Radar locked-results CTA clicked",
   radar_save: "Saved radar match",
   radar_lead_captured: "Radar match-alert lead captured",
   radar_alert_sent: "Radar match-alert sent",

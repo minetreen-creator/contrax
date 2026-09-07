@@ -104,38 +104,38 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
+      { title: "Contrax — Find Government Contracts Your Business Can Actually Win" },
       {
         name: "description",
         content:
-          "Don't know which set-asides your 8(a), SDVOSB, WOSB, or HUBZone certification qualifies you for? Contrax matches you to live federal, state, and city solicitations and extracts the requirements, deadlines, and red flags — so you never miss a set-aside or waste a proposal.",
+          "Tell Contrax what your company does. We'll search thousands of federal, state, and local opportunities and show you the best matches — free, no account required, for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses.",
       },
       { name: "robots", content: "index, follow" },
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company" },
-      { property: "og:title", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
+      { property: "og:title", content: "Contrax — Find Government Contracts Your Business Can Actually Win" },
       {
         property: "og:description",
         content:
-          "Don't know which set-asides your 8(a), SDVOSB, WOSB, or HUBZone certification qualifies you for? Contrax matches you to live federal, state, and city solicitations and extracts the requirements, deadlines, and red flags — so you never miss a set-aside or waste a proposal.",
+          "Tell Contrax what your company does. We'll search thousands of federal, state, and local opportunities and show you the best matches — free, no account required, for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses.",
       },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
+      { property: "og:image:alt", content: "Contrax — Find Government Contracts Your Business Can Actually Win" },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
+      { name: "twitter:title", content: "Contrax — Find Government Contracts Your Business Can Actually Win" },
       {
         name: "twitter:description",
         content:
-          "Don't know which set-asides your 8(a), SDVOSB, WOSB, or HUBZone certification qualifies you for? Contrax matches you to live federal, state, and city solicitations and extracts the requirements, deadlines, and red flags — so you never miss a set-aside or waste a proposal.",
+          "Tell Contrax what your company does. We'll search thousands of federal, state, and local opportunities and show you the best matches — free, no account required, for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses.",
       },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
-      { name: "twitter:image:alt", content: "Contrax — Radar Finds Government Opportunities That Match Your Business" },
+      { name: "twitter:image:alt", content: "Contrax — Find Government Contracts Your Business Can Actually Win" },
     ],
     links: [{ rel: "canonical", href: "https://www.contrax.company" }],
   }),
@@ -191,30 +191,45 @@ function Home() {
       />
       <PartnershipBanner />
       <Navbar user={user} />
-      {/* ── 2. RADAR — the homepage hero (owner spec 2026-09-04 v2) ──
+      {/* ── 2. RADAR — the homepage hero (owner spec 2026-09-04 v2; hero copy
+          updated to owner 09-07 copy) ──
           The interactive Contract Radar match-finder IS the hero. The heading
           block below carries the page's single <h1>; HeroRadar renders with
           heading={false} so the form sits under it with no competing h2.
           Same walk as /radar: trade/state/cert/size → real scan, first-3-free,
-          full incumbent intel, SignupGate at match 4, save-your-matches. */}
+          full incumbent intel, anonymous locked-results card past the free cap,
+          save-your-matches. The primary CTA above the fold links to /radar and
+          fires homepage_radar_cta_clicked (owner 09-07). */}
       <section id="radar" className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
         <div className="mx-auto max-w-4xl text-center">
           <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">Contrax Radar</p>
           <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Find government contracts that actually fit your business.
+            Find government contracts your business can actually win.
           </h1>
           <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-gray-600">
-            Answer four quick questions. Contrax Radar scans live federal, state, and local opportunities and shows you the strongest matches for your company.
+            Tell Contrax what your company does. We&apos;ll search thousands of federal, state, and local
+            opportunities and show you the best matches.
           </p>
+          {/* Primary CTA — owner 09-07 copy. Above the fold at 1440×900 (the
+              PartnershipBanner stays slim; the radar embed below is tall). */}
+          <div className="mt-8">
+            <a
+              href="/radar"
+              onClick={() => trackEvent("homepage_radar_cta_clicked", "hero_primary")}
+              className="inline-block rounded-xl bg-amber-500 px-10 py-4 text-lg font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 hover:shadow-md active:scale-[0.98]"
+            >
+              Find My Contracts →
+            </a>
+            <p className="mt-3 text-sm font-medium text-gray-700">
+              Free · No account required
+            </p>
+          </div>
         </div>
         {/* The EXISTING radar embed — logic, analytics, and scan flow unchanged. */}
         <div className="mx-auto mt-8 max-w-5xl">
           <HeroRadar initialCert="all" heading={false} />
         </div>
         <div className="mx-auto mt-6 max-w-4xl text-center">
-          <p className="text-sm font-medium text-gray-700">
-            First 3 matches free · No credit card required
-          </p>
           {/* Honest dynamic counts — both numbers are ALREADY fetched by the
               loader (bidStats + contractMap); no new DB query is added. */}
           <p className="mt-2 text-xs font-medium text-gray-500">

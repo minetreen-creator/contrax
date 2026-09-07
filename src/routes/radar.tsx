@@ -8,7 +8,7 @@ import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
 import { getTrackingUser } from "~/lib/identity";
-import { SHOW_FREE_INCUMBENT } from "~/lib/radar-config";
+import { SHOW_FREE_INCUMBENT, FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
 import type { FPDSIntel } from "~/lib/fpds";
 import {
   getRadarAnswers,
@@ -36,9 +36,14 @@ import { expandTrade, tradeKeywordPred, tradeProvenanceFor, type TradeExpansion,
  * flag (default: teaser — see ~/lib/radar-config.ts). Deadline countdowns use the
  * real `due_date` — no manufactured urgency beyond the actual deadline.
  *
- * GATE: the first THREE matches are revealed without an account. After the 3rd,
- * a truthful signup CTA asks the visitor to create a free (Basic, `?plan=basic`)
- * account to save results, get alerts, and analyze full solicitations.
+ * GATE: anonymous visitors complete the FULL scan and land on a RESULTS screen
+ * where the first FREE_ANONYMOUS_RADAR_RESULTS (3) REAL matches are revealed
+ * immediately. Only when REAL matches exceed that cap does an honest
+ * locked-results card appear ("X more matching opportunities" — always the real
+ * count, never a manufactured wall; a visitor with ≤3 matches sees them ALL with
+ * no locked card and no "X more" line). Authenticated users of ANY tier keep
+ * normal entitlement — they are never gated. The unlock CTA routes to the
+ * EXISTING /signup for now (PR1; PR2 adds the server/session restore).
  * Consistent with the existing Professional paywalls: Basic is free forever
  * (up to 3 saved bids); AI scoring + draft tools are on Professional.
  */
@@ -74,6 +79,10 @@ export type SizeId = (typeof SIZE_OPTS)[number]["id"];
  * for matches when no local radar session exists — never fabricated). The
  * `next` path is a same-site relative URL, so the existing safeNext() guard on
  * /signup's redirect accepts it (no open redirect).
+ *
+ * PR1 of the Radar Conversion Sprint (owner 2026-09-07) reuses this SAME href
+ * for the anonymous locked-results card's "Unlock My N Matches →" CTA — a clean
+ * hook point; PR2 adds server/session restore of the anonymous scan.
  */
 export function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }): string {
   const p = new URLSearchParams({ plan: "basic", source: "radar", next: "/dashboard?brief=1" });
@@ -538,8 +547,31 @@ function RadarLanding() {
   const [flashTimer, setFlashTimer] = useState<number | null>(null);
   // Soft, dismissible "keep these matches" nudge shown after the FIRST match is
   // revealed (non-blocking — never a hard gate; the real gate still only
-  // appears after the 3rd free match).
+  // appears after the free cap).
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  // RADAR CONVERSION SPRINT PR1 (owner 2026-09-07): anonymous visitors no
+  // longer stop at the free cap mid-scan — they complete the FULL scan and see
+  // ALL their matches on the results screen (authenticated users keep normal
+  // entitlement). VISIBLE = real total capped at FREE_ANONYMOUS_RADAR_RESULTS;
+  // the locked card (with the REAL locked count) renders only when real matches
+  // exceed the cap.
+  const isAnonymous = !getTrackingUser();
+  const totalMatches = scan.status === "done" ? scan.matches.length : 0;
+  const visibleCount = Math.min(totalMatches, FREE_ANONYMOUS_RADAR_RESULTS);
+  /** Real locked count — ONLY non-zero when genuine matches exceed the free cap. */
+  const locked = Math.max(totalMatches - FREE_ANONYMOUS_RADAR_RESULTS, 0);
+
+  // PR1 funnel: fires exactly once when an ANONYMOUS visitor's results screen
+  // first renders after a completed scan (guarded so a refresh/re-render cannot
+  // double-fire; the server also collapses same-event+visitor+path within 1s).
+  const resultsViewedFired = useRef(false);
+  useEffect(() => {
+    if (!isAnonymous) return;
+    if (resultsViewedFired.current) return;
+    if (scan.status !== "done") return;
+    resultsViewedFired.current = true;
+    trackEvent("radar_results_viewed", scan.certLabel);
+  }, [scan.status, scan.certLabel, isAnonymous]);
   // Guards against re-prefilling and against persisting the mount-time prefill.
   // Starts TRUE when a deep link carried params (their initial-state prefill is
   // not a visitor action and must not be written to localStorage), FALSE
@@ -592,15 +624,20 @@ function RadarLanding() {
 
   // Reveal the next match + keep the persisted radar-session "seen" state in
   // sync, and fire the funnel event for the soft nudge the moment the FIRST
-  // match is behind the visitor.
+  // match is behind the visitor. Bounded: authenticated users can reveal any
+  // match; anonymous visitors stop at the REAL free cap (the locked card takes
+  // over at that point — it is only ever shown when real matches exceed the cap).
   const handleRevealNext = () => {
+    const total = scan.status === "done" ? scan.matches.length : 0;
+    const cap = getTrackingUser() ? total : Math.min(total, FREE_ANONYMOUS_RADAR_RESULTS);
     const next = revealed + 1;
     trackEvent("radar_next_match", scan.status === "done" ? scan.certLabel : "");
     if (scan.status === "done") {
       const existing = getRadarSeen();
-      if (existing) saveRadarSeen({ ...existing, seenCount: Math.min(next, existing.matches.length) });
+      const seenCap = getTrackingUser() ? total : Math.min(total, FREE_ANONYMOUS_RADAR_RESULTS);
+      if (existing) saveRadarSeen({ ...existing, seenCount: Math.min(Math.min(next, seenCap), existing.matches.length) });
     }
-    setRevealed(next);
+    setRevealed(Math.min(next, Math.max(cap, 0)));
   };
 
   const runScan = (input: { trade: string; state: string; cert: RadarCert; sizePref: SizeId }) => {
@@ -623,11 +660,17 @@ function RadarLanding() {
           // Persist this anonymous radar session (criteria + the REAL
           // server-computed matches) so a later signup/login can pick it up
           // in-app — no email involved (owner-directed: no email capture).
+          //
+          // PR1 seenCount: anonymous visitors see the first FREE matches up
+          // front (no more reveal-one-at-a-time until match 4); the count is
+          // set to how many they are entitled to see now (min(total, free cap))
+          // — /dashboard + /signup read this to show their matches.
+          const seenCap = getTrackingUser() ? res.matches.length : Math.min(res.matches.length, FREE_ANONYMOUS_RADAR_RESULTS);
           saveRadarSeen({
             answers: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref },
             certLabel: res.certLabel,
             total: res.matches.length,
-            seenCount: 0,
+            seenCount: seenCap,
             matches: res.matches.map((m) => ({
               id: m.id,
               title: m.title,
@@ -849,21 +892,24 @@ function RadarLanding() {
                 {scan.matches.length} found
               </span>
             </div>
-            {/* Match-progress — honest free-preview counter (3 free, then the gate). */}
+            {/* PR1 (owner 2026-09-07): anonymous visitors see their first
+                FREE_ANONYMOUS_RADAR_RESULTS REAL matches up front on the results
+                screen (no mid-flow gate). The lined count is always the real
+                total; the per-card "of N" index uses the visible cap so a
+                4th+ match can never claim "of 3". */}
             {scan.matches.length > 0 && (
               <p className="mt-3 text-xs font-medium text-slate-500">
-                Free preview: you&apos;ve seen{" "}
-                <span className="font-semibold text-amber-400">
-                  {Math.min(revealed + 1, Math.min(3, scan.matches.length))}
-                </span>{" "}
-                of {Math.min(3, scan.matches.length)} free{" "}
-                {Math.min(3, scan.matches.length) === 1 ? "match" : "matches"} — every one with full incumbent intel
+                {isAnonymous
+                  ? `Here are your strongest ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} ${
+                      Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1 ? "match" : "matches"
+                    } — every one with full incumbent intel`
+                  : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
               </p>
             )}
 
             {/* Soft, NON-BLOCKING nudge — appears after the FIRST match is revealed.
-                Dismissible; never a hard gate. The full SignupGate still only
-                appears after the 3rd free match. */}
+                Dismissible; never a hard gate. The full locked-results card still
+                only appears past the free cap (anonymous, real matches > cap). */}
             {scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (
               <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
                 <p className="text-sm leading-relaxed text-slate-200">
@@ -892,33 +938,40 @@ function RadarLanding() {
 
             {scan.matches.length === 0 && (
               <div className="mt-8 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-10 text-center text-sm text-slate-300">
-                We couldn't find an open {scan.certLabel} solicitation matching
-                your exact criteria right now. Try broadening your trade, state,
-                or contract size.
+                <p className="text-base font-semibold text-white">No strong matches yet.</p>
+                <p className="mx-auto mt-2 max-w-md text-slate-300">
+                  Try broadening your criteria, or leave your email and Contrax
+                  can notify you when a matching opportunity appears.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setStep(1); setScan({ status: "idle" }); setRevealed(0); setNudgeDismissed(false); }}
+                  className="mt-6 w-full rounded-2xl border border-slate-600 bg-slate-800 px-6 py-3 text-base font-bold text-white transition-all hover:bg-slate-700 active:scale-[0.98]"
+                >
+                  Adjust Radar
+                </button>
               </div>
             )}
 
-            {/* Reveal one at a time — max 3 free. */}
-            {scan.matches.length > 0 && revealed < scan.matches.length && (
-              <div className="mt-6">
-                <RadarCard
-                  match={scan.matches[revealed]}
-                  certLabel={scan.certLabel}
-                  index={revealed + 1}
-                  trade={trade}
-                  state={state}
-                  cert={cert}
-                  sizePref={sizePref}
-                />
-                {revealed < Math.min(2, scan.matches.length - 1) ? (
-                  <button
-                    type="button"
-                    onClick={handleRevealNext}
-                    className="mt-5 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
-                  >
-                    Reveal my next match →
-                  </button>
-                ) : (
+            {/* ANONYMOUS results (PR1): the first min(total, free cap) REAL
+                matches render up front; the locked-results card renders ONLY
+                when real matches exceed the cap (never a manufactured wall). */}
+            {isAnonymous && scan.matches.length > 0 && (
+              <div className="mt-6 flex flex-col gap-5">
+                {scan.matches.slice(0, visibleCount).map((m, i) => (
+                  <RadarCard
+                    key={m.id}
+                    match={m}
+                    certLabel={scan.certLabel}
+                    index={i + 1}
+                    total={visibleCount}
+                    trade={trade}
+                    state={state}
+                    cert={cert}
+                    sizePref={sizePref}
+                  />
+                ))}
+                {locked > 0 && (
                   <SignupGate
                     certLabel={scan.certLabel}
                     totalFound={scan.matches.length}
@@ -931,23 +984,36 @@ function RadarLanding() {
               </div>
             )}
 
-            {scan.matches.length > 0 && revealed >= scan.matches.length && revealed >= 3 && (
+            {/* AUTHENTICATED results (normal entitlement — NEVER gated): reveal
+                one at a time, unbounded by the anonymous free cap. */}
+            {!isAnonymous && scan.matches.length > 0 && revealed < scan.matches.length && (
               <div className="mt-6">
-                <SignupGate
+                <RadarCard
+                  match={scan.matches[revealed]}
                   certLabel={scan.certLabel}
-                  totalFound={scan.matches.length}
+                  index={revealed + 1}
+                  total={scan.matches.length}
                   trade={trade}
                   state={state}
                   cert={cert}
                   sizePref={sizePref}
                 />
+                {revealed < scan.matches.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={handleRevealNext}
+                    className="mt-5 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
+                  >
+                    Reveal my next match →
+                  </button>
+                ) : null}
               </div>
             )}
             {/* "Save your matches" — anonymous email opt-in (option A). Shows only
-                for ANONYMOUS visitors AFTER they've engaged the free matches
-                (revealed >= 1), is optional/dismissible, never a wall, and requires
+                for ANONYMOUS visitors on a COMPLETED scan with matches (post-scan
+                results screen), is optional/dismissible, never a wall, and requires
                 no account. Converts the bounce dead-end into an opted-in contact. */}
-            {!getTrackingUser() && scan.matches.length > 0 && revealed >= 1 && (
+            {isAnonymous && scan.matches.length > 0 && (
               <SaveMatchesCard
                 certLabel={scan.certLabel}
                 trade={trade}
@@ -959,12 +1025,14 @@ function RadarLanding() {
             )}
             {/* "Want new matches when we find them?" — anonymous match-ALERT
                 capture (owner 2026-09-06). ONLY for anonymous visitors, ONLY after
-                a COMPLETED scan (revealed >= 1). Optional, dismissible, never a
-                wall — a voluntary email with explicit consent to be alerted when
-                new matching opportunities open (no account required). Sends only
-                the ONE confirmation email; the periodic match-alert sender is a
-                separately queued follow-up. */}
-            {!getTrackingUser() && scan.matches.length > 0 && revealed >= 1 && (
+                a COMPLETED scan with matches. SECONDARY in the PR1 results
+                hierarchy under the locked-card CTA (phrased as the
+                "by email instead?" alternative, per owner 09-07). Optional,
+                dismissible, never a wall — a voluntary email with explicit
+                consent to be alerted when new matching opportunities open (no
+                account required). Sends only the ONE confirmation email; the
+                periodic match-alert sender is a separately queued follow-up. */}
+            {isAnonymous && scan.matches.length > 0 && (
               <MatchAlertsCard
                 certLabel={scan.certLabel}
                 trade={trade}
@@ -989,6 +1057,7 @@ export function RadarCard({
   match,
   certLabel,
   index,
+  total,
   trade,
   state,
   cert,
@@ -997,6 +1066,9 @@ export function RadarCard({
   match: RadarMatch;
   certLabel: string;
   index: number;
+  /** How many matches this card is part of (real count; anonymous visitors see
+   *  min(total, FREE_ANONYMOUS_RADAR_RESULTS) up front). */
+  total: number;
   trade: string;
   state: string;
   cert: RadarCertId | null;
@@ -1016,7 +1088,7 @@ export function RadarCard({
     <article className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900" aria-label={`Match ${index} — ${match.title}`}>
       <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-gradient-to-r from-amber-500/15 to-transparent px-5 py-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-amber-400">Match {index} of 3</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-amber-400">Match {index} of {total}</p>
           <p className={`mt-0.5 text-lg font-extrabold text-white ${match.score >= 80 ? "text-emerald-300" : match.score >= 65 ? "text-amber-300" : "text-blue-300"}`}>
             {match.score_label} — {match.score}%
           </p>
@@ -1224,6 +1296,32 @@ function IncumbentBlock({
   );
 }
 
+/**
+ * RADAR CONVERSION SPRINT PR1 (owner 2026-09-07) — ANONYMOUS RESULTS GATING.
+ *
+ * THREE rendering modes, driven by the real server-computed match count:
+ *
+ *   TOTAL  = scan.matches.length (real total, as produced today)
+ *   VIS    = min(TOTAL, FREE_ANONYMOUS_RADAR_RESULTS)
+ *   LOCKED = max(TOTAL − FREE_ANONYMOUS_RADAR_RESULTS, 0)
+ *
+ *   TOTAL ≤ FREE   → show ALL matches, NO locked card, NEVER "X more matches"
+ *                    (no manufactured wall).
+ *   TOTAL > FREE   → show the first FREE matches (full cards), then one honest
+ *                    locked-results card with REAL numbers + "Unlock My N
+ *                    Matches →" CTA routed to the EXISTING /signup for PR1
+ *                    (PR2 adds the server/session restore — this href already
+ *                    carries criteria + `?source=radar`, the hook point).
+ *   TOTAL = 0      → "No strong matches yet." + Adjust Radar + email capture.
+ *
+ * Authenticated users of ANY tier NEVER see the anonymous gating (only
+ * anonymous visitors get it). Events fire once per completed scan, guarded by
+ * the app's existing dedupe approach (the intake server also collapses
+ * same-event+visitor+path within 1s):
+ *   radar_results_viewed        — first anonymous results render after a scan
+ *   radar_results_unlock_shown  — ONLY when the locked card actually renders
+ *   radar_results_unlock_clicked— CTA click
+ */
 export function SignupGate({
   certLabel,
   totalFound,
@@ -1240,56 +1338,69 @@ export function SignupGate({
   sizePref: SizeId | null;
 }) {
   const [showExtra, setShowExtra] = useState(false);
-  // Funnel: fire exactly once when the gate is shown.
+  // Funnel: fire exactly once when the gate is shown (a shown gate IS a real
+  // locked-card display — the old `radar_signup_gate_shown` name is kept so the
+  // historical funnel is not re-labeled; the new name is additive).
   useEffect(() => {
     trackEvent("radar_signup_gate_shown", certLabel);
-  }, [certLabel]);
-  const freeCap = Math.min(3, totalFound);
-  const allWereFree = totalFound <= 3;
+    if (totalFound > FREE_ANONYMOUS_RADAR_RESULTS) trackEvent("radar_results_unlock_shown", certLabel);
+  }, [certLabel, totalFound]);
   // R2: the gate CTA carries the visitor's radar criteria + the post-signup
   // brief return path (`next=/dashboard?brief=1`) so completing signup lands
   // directly on the "Run my first Executive Brief" moment.
   const ctaHref = radarSignupHref({ trade, state, cert, sizePref });
+  const locked = Math.max(totalFound - FREE_ANONYMOUS_RADAR_RESULTS, 0);
+  // Never render a wall for ≤3 real matches. (The component lifecycle already
+  // gates the caller, but this stays as a second guard against the impossible.)
+  if (totalFound <= FREE_ANONYMOUS_RADAR_RESULTS) return null;
   return (
     <div className="mt-5 rounded-2xl border border-amber-500/40 bg-slate-900 p-5 text-center ring-1 ring-slate-800">
-      <p className="text-sm font-semibold uppercase tracking-wide text-amber-400">Your first 3 matches are free</p>
+      <p className="text-sm font-semibold uppercase tracking-wide text-amber-400">
+        We found {totalFound} opportunities for your business.
+      </p>
       <h3 className="mt-1.5 text-lg font-bold text-white">
-        {allWereFree
-          ? `You've seen all ${totalFound} ${totalFound === 1 ? "match" : "matches"} — save them free.`
-          : `You've seen ${freeCap} of ${freeCap} free matches — ${totalFound} total. Create a free account to see all ${totalFound}.`}
+        You can see {FREE_ANONYMOUS_RADAR_RESULTS} now.
       </h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-300">
-        {allWereFree
-          ? "Create a free account to save these results, get alerts when they change, and analyze the complete solicitation."
-          : "The remaining matches need a free account. Create one to see all of them, save results, and get deadline alerts."}
+        🔒 {locked} more matching {locked === 1 ? "opportunity" : "opportunities"}
       </p>
       <button
         type="button"
         onClick={() => setShowExtra(true)}
         className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-slate-400 hover:text-slate-200"
       >
-        Why should I sign up? <span aria-hidden="true">▾</span>
+        What&apos;s included? <span aria-hidden="true">▾</span>
       </button>
       {showExtra && (
         <ul className="mx-auto mt-2 max-w-sm space-y-1.5 text-left text-sm text-slate-300">
-          <li className="flex gap-2"><span className="text-emerald-400">✓</span>Save your top matches for later</li>
-          <li className="flex gap-2"><span className="text-emerald-400">✓</span>Get alerts when new opportunities close</li>
-          <li className="flex gap-2"><span className="text-emerald-400">✓</span>Analyze the complete solicitation details</li>
+          <li className="flex gap-2"><span className="text-emerald-400">✓</span>All {totalFound} matching opportunities</li>
+          <li className="flex gap-2"><span className="text-emerald-400">✓</span>Save this Radar and keep tracking it</li>
+          <li className="flex gap-2"><span className="text-emerald-400">✓</span>Deadline alerts when new opportunities close</li>
         </ul>
       )}
       <a
         href={ctaHref}
-        onClick={() => trackEvent("radar_signup_cta", certLabel)}
+        onClick={() => trackEvent("radar_results_unlock_clicked", certLabel)}
         className="mt-5 block w-full rounded-xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
       >
-        Create my free account →
+        {locked > 0 ? `Unlock My ${locked} Matches →` : `Create my free account →`}
       </a>
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
-        Basic is free forever — up to 3 saved bids, no card required.
-        AI match scoring &amp; draft tools are on Professional.
+        Free account · No credit card required. Save this Radar, see all{" "}
+        {totalFound}, and continue tracking opportunities.
       </p>
     </div>
   );
+}
+
+/**
+ * Helper: true when REAL matches exceed the anonymous free cap — the only
+ * condition under which the locked-results card may be shown (never a
+ * manufactured wall). Every consumer computes TOTAL from the real
+ * server-computed `matches.length`.
+ */
+export function hasLockedMatches(totalFound: number): boolean {
+  return totalFound > FREE_ANONYMOUS_RADAR_RESULTS;
 }
 
 /**
@@ -1556,7 +1667,7 @@ export function MatchAlertsCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-white">Want new matches when we find them?</h3>
+          <h3 className="text-base font-bold text-white">Want new matches by email instead?</h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-300">
             Leave your email and we&apos;ll send you matching opportunities as
             they open. No account required.

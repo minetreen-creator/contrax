@@ -44,6 +44,7 @@ import { US_STATES } from "~/lib/states";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
 import { getTrackingUser } from "~/lib/identity";
+import { FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
 import {
   getRadarAnswers,
   getRadarSeen,
@@ -90,7 +91,6 @@ export function HeroRadar({
   const [sizePref, setSizePref] = useState<SizeId | null>(null);
   const [scan, setScan] = useState<ScanState>({ status: "idle" });
   const [revealed, setRevealed] = useState(0);
-  const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const [flashTimer, setFlashTimer] = useState<number | null>(null);
   // Restored-once guard: saved answers (localStorage) prefill the hero form on
   // first paint only — the visitor's own edits always win after that.
@@ -139,15 +139,21 @@ export function HeroRadar({
   }, [trade, state, cert, sizePref]);
 
   const ready = trade.trim() !== "" && state !== "" && cert !== null && sizePref !== null;
+  // PR1 owner 2026-09-07: anonymous visitors see up to the free cap of REAL
+  // matches up front on the results; authenticated users are never gated.
+  const isAnonymous = !getTrackingUser();
 
   const handleRevealNext = () => {
+    const total = scan.status === "done" ? scan.matches.length : 0;
+    const cap = getTrackingUser() ? total : Math.min(total, FREE_ANONYMOUS_RADAR_RESULTS);
     const next = revealed + 1;
     trackEvent("hero_radar_next_match", scan.status === "done" ? scan.certLabel : "");
     if (scan.status === "done") {
       const existing = getRadarSeen();
-      if (existing) saveRadarSeen({ ...existing, seenCount: Math.min(next, existing.matches.length) });
+      const seenCap = getTrackingUser() ? total : Math.min(total, FREE_ANONYMOUS_RADAR_RESULTS);
+      if (existing) saveRadarSeen({ ...existing, seenCount: Math.min(Math.min(next, seenCap), existing.matches.length) });
     }
-    setRevealed(next);
+    setRevealed(Math.min(next, Math.max(cap, 0)));
   };
 
   const startScan = () => {
@@ -159,18 +165,20 @@ export function HeroRadar({
     saveRadarAnswers({ trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref });
     setScan({ status: "loading" });
     setRevealed(0);
-    setNudgeDismissed(false);
     const t = window.setTimeout(() => {
       runRadarScan({ data: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref } })
         .then((res) => {
           if (flashTimer) window.clearTimeout(flashTimer);
           trackEvent("hero_radar_scan_complete", input.cert);
           if (res.matches.length > 0) trackEvent("hero_radar_nudge_shown", res.certLabel);
+          // PR1 seenCount: anonymous visitors see the first FREE matches up
+          // front (no more reveal-one-at-a-time until match 4).
+          const seenCap = getTrackingUser() ? res.matches.length : Math.min(res.matches.length, FREE_ANONYMOUS_RADAR_RESULTS);
           saveRadarSeen({
             answers: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref },
             certLabel: res.certLabel,
             total: res.matches.length,
-            seenCount: 0,
+            seenCount: seenCap,
             matches: res.matches.map((m) => ({
               id: m.id,
               title: m.title,
@@ -361,7 +369,6 @@ export function HeroRadar({
           <div className="mt-8 flex flex-col">
             <button
               type="button"
-              onClick={() => { setScan({ status: "idle" }); setRevealed(0); setNudgeDismissed(false); }}
               className="self-start text-sm text-slate-400 hover:text-slate-200"
             >
               ← Adjust my answers
@@ -379,43 +386,49 @@ export function HeroRadar({
             </div>
             {scan.matches.length > 0 && (
               <p className="mt-3 text-xs font-medium text-slate-500">
-                Free preview: you&apos;ve seen{" "}
-                <span className="font-semibold text-amber-400">
-                  {Math.min(revealed + 1, Math.min(3, scan.matches.length))}
-                </span>{" "}
-                of {Math.min(3, scan.matches.length)} free{" "}
-                {Math.min(3, scan.matches.length) === 1 ? "match" : "matches"} — every one with full incumbent intel
+                {isAnonymous
+                  ? `Here are your strongest ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} ${
+                      Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1 ? "match" : "matches"
+                    } — every one with full incumbent intel`
+                  : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
               </p>
             )}
 
             {scan.matches.length === 0 && (
               <div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-10 text-center text-sm text-slate-300">
-                We couldn&apos;t find an open {scan.certLabel} solicitation matching
-                your exact criteria right now. Try broadening your trade, state,
-                or contract size.
+                <p className="text-base font-semibold text-white">No strong matches yet.</p>
+                <p className="mx-auto mt-2 max-w-md text-slate-300">
+                  Try broadening your criteria, or leave your email and Contrax
+                  can notify you when a matching opportunity appears.
+                </p>
+                <button
+                  type="button"
+                  className="mt-6 w-full rounded-2xl border border-slate-600 bg-slate-800 px-6 py-3 text-base font-bold text-white transition-all hover:bg-slate-700 active:scale-[0.98]"
+                >
+                  Adjust Radar
+                </button>
               </div>
             )}
 
-            {scan.matches.length > 0 && revealed < scan.matches.length && (
-              <div className="mt-6">
-                <RadarCard
-                  match={scan.matches[revealed]}
-                  certLabel={scan.certLabel}
-                  index={revealed + 1}
-                  trade={trade}
-                  state={state}
-                  cert={cert}
-                  sizePref={sizePref}
-                />
-                {revealed < Math.min(2, scan.matches.length - 1) ? (
-                  <button
-                    type="button"
-                    onClick={handleRevealNext}
-                    className="mt-5 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
-                  >
-                    Reveal my next match →
-                  </button>
-                ) : (
+            {/* ANONYMOUS results (PR1 owner 2026-09-07): the first min(total,
+                free cap) REAL matches render up front; the locked card ONLY when
+                real matches exceed the cap (never a manufactured wall). */}
+            {isAnonymous && scan.matches.length > 0 && (
+              <div className="mt-6 flex flex-col gap-5">
+                {scan.matches.slice(0, Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)).map((m, i) => (
+                  <RadarCard
+                    key={m.id}
+                    match={m}
+                    certLabel={scan.certLabel}
+                    index={i + 1}
+                    total={Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)}
+                    trade={trade}
+                    state={state}
+                    cert={cert}
+                    sizePref={sizePref}
+                  />
+                ))}
+                {scan.matches.length > FREE_ANONYMOUS_RADAR_RESULTS && (
                   <SignupGate
                     certLabel={scan.certLabel}
                     totalFound={scan.matches.length}
@@ -428,19 +441,32 @@ export function HeroRadar({
               </div>
             )}
 
-            {scan.matches.length > 0 && revealed >= scan.matches.length && revealed >= 3 && (
+            {/* AUTHENTICATED results (normal entitlement — NEVER gated): reveal
+                one at a time, unbounded by the anonymous free cap. */}
+            {!isAnonymous && scan.matches.length > 0 && revealed < scan.matches.length && (
               <div className="mt-6">
-                <SignupGate
+                <RadarCard
+                  match={scan.matches[revealed]}
                   certLabel={scan.certLabel}
-                  totalFound={scan.matches.length}
+                  index={revealed + 1}
+                  total={scan.matches.length}
                   trade={trade}
                   state={state}
                   cert={cert}
                   sizePref={sizePref}
                 />
+                {revealed < scan.matches.length - 1 ? (
+                  <button
+                    type="button"
+                    onClick={handleRevealNext}
+                    className="mt-5 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
+                  >
+                    Reveal my next match →
+                  </button>
+                ) : null}
               </div>
             )}
-            {!getTrackingUser() && scan.matches.length > 0 && revealed >= 1 && (
+            {!getTrackingUser() && scan.matches.length > 0 && (
               <SaveMatchesCard
                 certLabel={scan.certLabel}
                 trade={trade}

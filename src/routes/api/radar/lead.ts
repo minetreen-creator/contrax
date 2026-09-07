@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
+import { expandTrade } from "~/lib/trade-registry";
 import { z } from "zod";
 import { sendRadarLeadConfirmationEmail } from "~/lib/email";
 import { resolveAttribution, type Attribution } from "~/lib/attribution";
@@ -92,7 +93,14 @@ async function handler({ request }: { request: Request }) {
     const cert = d.cert && CERTS.has(d.cert) ? d.cert : null;
     const sizePref = d.sizePref && SIZE_PREFS.has(d.sizePref) ? d.sizePref : null;
     const radarProfile = d.trade || d.state || cert || sizePref
-      ? JSON.stringify({ trade: d.trade || null, state: d.state || null, cert, sizePref })
+      ? JSON.stringify({
+          trade: d.trade || null, state: d.state || null, cert, sizePref,
+          // Trade-query expansion snapshot (owner 2026-09-07) — WHAT the
+          // visitor's trade expanded to; refreshed on every capture.
+          expanded: d.trade && !/^\d{6}$/.test(d.trade)
+            ? (() => { const e = expandTrade(d.trade); return { terms: e.terms.slice(0, 12), naicsCodes: e.naicsCodes }; })()
+            : null,
+        })
       : null;
 
     // First-touch acquisition attribution — same precedence as /api/track-visitor.

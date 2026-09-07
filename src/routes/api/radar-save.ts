@@ -55,7 +55,8 @@ async function handler({ request }: { request: Request }) {
     const phone = typeof body.phone === "string" ? body.phone.trim().slice(0, 40) : null;
     // Radar criteria the visitor used — store exactly what they searched so a
     // future alert job matches new bids against it. All bounded + whitelisted.
-    const trade = typeof body.trade === "string" ? body.trade.trim().slice(0, 64) : null;
+    const trade = typeof body.trade === "string" ? body.trade.trim().slice(0, 120) : null;
+    const tradeExpanded = trade && !/^\d{6}$/.test(trade) ? expandTrade(trade).terms?.length ? { terms: expandTrade(trade).terms, naicsCodes: expandTrade(trade).naicsCodes } : null : null;
     const state = typeof body.state === "string" ? body.state.trim().toUpperCase().slice(0, 2) : null;
     const certRaw = typeof body.cert === "string" ? body.cert : "";
     const cert = CERTS.has(certRaw) ? certRaw : null;
@@ -92,10 +93,11 @@ async function handler({ request }: { request: Request }) {
     // UPSERT keyed on email: first-time = INSERT, returning visitor = UPDATE
     // (fresh criteria + attribution, original created_at preserved).
     const result = await sql()`
-      INSERT INTO radar_saves (email, trade, state, cert, size_pref, phone, visitor_id, visit_id, source, medium, campaign, matched_count)
-      VALUES (${email}, ${trade || null}, ${state || null}, ${cert || null}, ${sizePref || null}, ${phone || null}, ${visitorId || null}, ${visitId || null}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${matchedCount})
+      INSERT INTO radar_saves (email, trade, trade_expanded, state, cert, size_pref, phone, visitor_id, visit_id, source, medium, campaign, matched_count)
+      VALUES (${email}, ${trade || null}, CAST(${tradeExpanded ? JSON.stringify(tradeExpanded) : null} AS JSONB), ${state || null}, ${cert || null}, ${sizePref || null}, ${phone || null}, ${visitorId || null}, ${visitId || null}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${matchedCount})
       ON CONFLICT (email) DO UPDATE SET
         trade = EXCLUDED.trade,
+        trade_expanded = EXCLUDED.trade_expanded,
         state = EXCLUDED.state,
         cert = EXCLUDED.cert,
         size_pref = EXCLUDED.size_pref,

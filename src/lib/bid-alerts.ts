@@ -1,6 +1,7 @@
 import { sql } from "../db";
 import { fireBidMatchWebhooks, type BidMatchEvent } from "./webhooks";
 import { fireSlackBidMatchAlerts } from "./slack";
+import { expandTrade } from "./trade-registry";
 
 export interface BidAlert {
   id: number; bid_id: number; title: string; agency: string;
@@ -34,7 +35,13 @@ export async function generateBidAlerts(bidIds: number[]): Promise<number> {
       const categories = [...(Array.isArray(p.service_categories) ? p.service_categories : []), ...(Array.isArray(p.specialties) ? p.specialties : [])].map(String).filter(Boolean);
       const certs = Array.isArray(p.certifications) ? p.certifications.map(String) : [];
       const naicsMatch = naics.some((n) => text.includes(n.toLowerCase()));
-      const categoryMatch = categories.some((c) => text.includes(c.toLowerCase()));
+      // Category match applies the trade-query expansion registry (owner
+      // 2026-09-07): "trucking" now also matches "freight hauling" + 484121/484122.
+      const categoryMatch = categories.some((c) => {
+        const expansion = expandTrade(c);
+        if (expansion.terms.some((t) => t.length >= 2 && text.includes(t))) return true;
+        return expansion.naicsCodes.some((code) => String(bid.naics_code ?? "").trim() === code);
+      });
       const setAsideMatch = Boolean(bid.set_aside) && certs.some((c) => text.includes(c.toLowerCase()) || String(bid.set_aside).toLowerCase().includes(c.toLowerCase()));
       if (!naicsMatch && !categoryMatch && !setAsideMatch) continue;
       const matchedOn = [naicsMatch && "naics", categoryMatch && "category", setAsideMatch && "set_aside"].filter(Boolean) as string[];

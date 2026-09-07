@@ -1,0 +1,22 @@
+-- Migration 034 — Radar trade-query expansion snapshots (owner 2026-09-07).
+--
+-- The trade-query normalization registry (src/lib/trade-registry.ts) expands a
+-- plain-English trade term ("trucking") into procurement synonyms + implied
+-- NAICS codes BEFORE matching. This migration stores the expansion snapshot at
+-- the two persistence points so analytics + the sender can see WHAT the
+-- visitor's trade expanded to without recomputing:
+--
+--   1. radar_saves.trade_expanded — JSONB {terms, naicsCodes} alongside the
+--      stored original `trade` (migration 018). Null until a capture happens
+--      with an expandable non-NAICS trade.
+--   2. radar_leads.radar_profile.expanded — a NEW top-level key inside the
+--      existing JSONB profile (same COALESCE refresh semantics as the
+--      capture's radar_profile upsert in /api/radar/lead): absent/default null
+--      for old rows, refreshed on every capture with expansion.
+--
+-- DISTINCT naming: this migration only ADDs a column and touches the profile
+-- JSONB — it creates NO new table and never collides with radar_alerts_sent
+-- (019) / radar_leads_alerts_sent (032) / radar_lead_opportunity_clicks (033).
+--
+-- Idempotent: ADD COLUMN IF NOT EXISTS, safe to re-run on any environment.
+ALTER TABLE radar_saves ADD COLUMN IF NOT EXISTS trade_expanded JSONB;

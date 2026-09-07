@@ -429,9 +429,10 @@ export const runRadarScan = createServerFn({ method: "POST" })
           const { signRadarHandoff, RADAR_HANDOFF_COOKIE, RADAR_HANDOFF_MAX_AGE_S } = await import("~/lib/radar-handoff.server");
           const lockedIds = matches.slice(FREE_ANONYMOUS_RADAR_RESULTS).map((m) => m.id);
           const { setCookie } = await import("@tanstack/react-start/server");
-          // Fail-closed: sign returns null when RADAR_HANDOFF_SECRET is not
-          // configured — never mint an unsigned/forgable cookie.
-          const handoff = signRadarHandoff({
+          // Fail-closed: getRadarHandoffSecret THROWS when RADAR_HANDOFF_SECRET
+          // is not configured — never mint an unsigned/forgable cookie. The
+          // outer try/catch keeps this from breaking the scan.
+          setCookie(RADAR_HANDOFF_COOKIE, signRadarHandoff({
             v: scanVisitorId,
             t: trade.slice(0, 120),
             c: certId,
@@ -439,10 +440,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
             z: (sizePref as string).slice(0, 24),
             m: lockedIds,
             k: Date.now(),
-          });
-          if (handoff) {
-            setCookie(RADAR_HANDOFF_COOKIE, handoff, { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: RADAR_HANDOFF_MAX_AGE_S });
-          }
+          }), { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: RADAR_HANDOFF_MAX_AGE_S });
         }
       }
     } catch {

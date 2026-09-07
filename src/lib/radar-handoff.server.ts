@@ -26,13 +26,12 @@ export interface RadarHandoffPayload {
   k: number;
 }
 
-function secret(): string | null {
-  // Owner gate: FAIL-CLOSED. The HMAC key is RADAR_HANDOFF_SECRET ONLY — no
-  // SESSION_SECRET, no literals, no defaults. RADAR_HANDOFF_SECRET is not yet
-  // set in Vercel prod (lead deploys post-merge); until then mint/verify are
-  // inert no-ops (never mint an unsigned/forgable cookie, nothing verifies).
-  const s = process.env.RADAR_HANDOFF_SECRET;
-  return s && s.length > 0 ? s : null;
+function getRadarHandoffSecret(): string {
+  const secret = process.env.RADAR_HANDOFF_SECRET
+  if (!secret) {
+    throw new Error("RADAR_HANDOFF_SECRET is required")
+  }
+  return secret
 }
 
 function b64url(buf: Buffer): string {
@@ -44,12 +43,13 @@ function unb64url(s: string): Buffer {
   return Buffer.from(s.replace(/-/g, "+").replace(/_/g, "/") + pad, "base64");
 }
 
-/** Serialize + HMAC-sign a payload → cookie value `body.sig`, or null when no
- *  secret is configured (fail-closed: never mint an unsigned/forgable cookie).
- *  Pure. Caller only calls setCookie with a real non-empty string. */
-export function signRadarHandoff(p: RadarHandoffPayload): string | null {
-  const s = secret();
-  if (!s) return null;
+/** Serialize + HMAC-sign a payload → cookie value `body.sig`. The secret
+ *  getter THROWS when RADAR_HANDOFF_SECRET is unset (loud config failure);
+ *  the radar.tsx mint caller wraps this in try/catch, so a missing secret
+ *  never breaks the scan. Pure. Caller only calls setCookie with a real
+ *  non-empty string. */
+export function signRadarHandoff(p: RadarHandoffPayload): string {
+  const s = getRadarHandoffSecret();
   const body = b64url(Buffer.from(JSON.stringify(p), "utf8"));
   const sig = b64url(crypto.createHmac("sha256", s).update(body).digest());
   return `${body}.${sig}`;
@@ -61,8 +61,7 @@ export function signRadarHandoff(p: RadarHandoffPayload): string | null {
  *  expired/unverifiable → null, which the signup reader treats as absent. */
 export function verifyRadarHandoff(raw: string | null | undefined): RadarHandoffPayload | null {
   try {
-    const s = secret();
-    if (!s) return null; // fail-closed: nothing can verify without a secret
+    const s = getRadarHandoffSecret(); // THROWS if unset — the try/catch converts it to null (fail-closed)
     if (!raw || typeof raw !== "string") return null;
     const dot = raw.lastIndexOf(".");
     if (dot <= 0) return null;

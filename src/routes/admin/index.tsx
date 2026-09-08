@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
+import type { RadarConversionFunnelResult } from "~/lib/radar-conversion-funnel";
 import {
   AdminHeader,
   AdminTabs,
@@ -326,6 +327,7 @@ function AdminOverviewPage() {
   const [unified, setUnified] = useState<UnifiedResult | null>(null);
   const [autopsy, setAutopsy] = useState<SimpleFunnel | null>(null);
   const [radarLeads, setRadarLeads] = useState<SimpleFunnel | null>(null);
+  const [radarConv, setRadarConv] = useState<RadarConversionFunnelResult | null>(null);
   const [fin, setFin] = useState<FinanceShape | null>(null);
   const [actOn, setActOn] = useState<ActOnRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -339,16 +341,16 @@ function AdminOverviewPage() {
       getJson<UnifiedResult>("/api/admin/unified-funnel?days=30"),
       getJson<SimpleFunnel>("/api/admin/autopsy-funnel?days=30"),
       getJson<SimpleFunnel>("/api/admin/radar-leads-funnel?days=30"),
-      getJson<SimpleFunnel>("/api/admin/radar-conversion-funnel?days=30"),
+      getJson<RadarConversionFunnelResult>("/api/admin/radar-conversion-funnel?days=30"),
       getJson<FinanceShape>("/api/admin/finance"),
     ])
-      .then(([u, a, r, f, c]) => {
+      .then(([u, a, r, rc, fn]) => {
         if (cancelled) return;
         setUnified(u);
         setAutopsy(a);
         setRadarLeads(r);
-        setRadarConv(c);
-        setFin(f);
+        setRadarConv(rc);
+        setFin(fn);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load overview");

@@ -13,7 +13,7 @@ import { computeLeadScore, bidIdsFromPaths, getWatchedMap } from "~/lib/visitor-
  * Admin-only "Visitor Journeys" board (owner, 2026-09-01). One row per real
  * person/session, each expanding into a timestamped timeline. Returns:
  *
- *   funnel   — a unified funnel: Qualified visit → Radar completed → Signup
+ *   funnel   — a unified funnel: Active Visitors → Radar completed → Signup
  *              completed → Activated → Paid, with counts + drop-off % at each stage.
  *   journeys — one object per visitor_id: label (recognizable, NO raw plaintext
  *              PII), first-touch source, landing page, radar/signup/activated/paid
@@ -383,7 +383,7 @@ function isExcludedEmail(email: string | null | undefined): boolean {
  * 2026-09-02 — funnel-integrity). The fast read-path previously skipped the
  * BOT_EXCLUSION_SQL that the timeline+legacy paths apply, so explicitly
  * excluded test IPs (34.214.71.218 / 73.40.36.204) still rendered as labeled
- * journeys and inflated "Qualified visit" / "Signup completed". This mirrors
+ * journeys and inflated "Active Visitors" / "Signup completed". This mirrors
  * BOT_EXCLUSION_SQL's ip + referrer arms against the columns the `visitors`
  * table actually has (first_ip / last_ip / last_action), plus self-evident
  * `qa-*` probe/manual-exit visitor ids. Apply it the same way the timeline
@@ -1069,7 +1069,7 @@ async function handler({ request }: { request: Request }) {
     const activated = all.filter((j) => j.activated).length;
     const paid = all.filter((j) => j.paid).length;
     const funnel: FunnelStage[] = [
-      { stage: "qualified", label: "Qualified visit", count: total, dropOffPct: null },
+      { stage: "qualified", label: "Active Visitors", count: total, dropOffPct: null },
       { stage: "radar", label: "Radar completed", count: radar, dropOffPct: pct(radar, total) },
       { stage: "signup", label: "Signup completed", count: signup, dropOffPct: pct(signup, radar) },
       { stage: "activated", label: "Activated", count: activated, dropOffPct: pct(activated, signup) },

@@ -70,6 +70,10 @@ export const EVENT_LABELS: Record<string, string> = {
   radar_results_viewed: "Radar results viewed (anonymous)",
   radar_results_unlock_shown: "Radar locked-results card shown (anonymous)",
   radar_results_unlock_clicked: "Radar locked-results CTA clicked",
+  // Owner 09-09 ≤3-match results CTA (additive; NOT in the frozen 9-stage
+  // funnel map) — display labels only.
+  radar_results_cta_shown: "Radar free-results signup CTA shown (anonymous)",
+  radar_results_cta_clicked: "Radar free-results signup CTA clicked",
   radar_save: "Saved radar match",
   radar_lead_captured: "Radar match-alert lead captured",
   radar_alert_sent: "Radar match-alert sent",

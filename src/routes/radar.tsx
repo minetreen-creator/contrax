@@ -84,12 +84,15 @@ export type SizeId = (typeof SIZE_OPTS)[number]["id"];
  * for the anonymous locked-results card's "Unlock My N Matches →" CTA — a clean
  * hook point; PR2 adds server/session restore of the anonymous scan.
  */
-export function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }, opts?: { unlock?: boolean }): string {
+export function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }, opts?: { unlock?: boolean; cta?: boolean }): string {
   // PR2 (owner 2026-09-07): the anonymous locked-results card passes
   // source=radar_results_unlock so /signup can attribute the unlock handoff
-  // (signed cookie restore + signup_viewed_from_radar). Every other caller
-  // keeps source=radar — no behavior change there.
-  const p = new URLSearchParams({ plan: "basic", source: opts?.unlock ? "radar_results_unlock" : "radar", next: "/dashboard?brief=1" });
+  // (signed cookie restore + signup_viewed_from_radar). Owner 09-09: the
+  // ≤3-match results CTA passes source=radar_results_cta, which /signup
+  // handles IDENTICALLY to radar_results_unlock (same restore + attribution).
+  // Every other caller keeps source=radar — no behavior change there.
+  const source = opts?.unlock ? "radar_results_unlock" : opts?.cta ? "radar_results_cta" : "radar";
+  const p = new URLSearchParams({ plan: "basic", source, next: "/dashboard?brief=1" });
   const trade = (answers.trade || "").trim();
   if (trade) p.set("trade", trade.slice(0, 120));
   if (answers.state) p.set("state", answers.state.slice(0, 2));
@@ -453,6 +456,71 @@ export const runRadarScan = createServerFn({ method: "POST" })
       }
     }
     return { matches, certLabel: CERT_LABEL[certId] };
+  });
+
+/**
+ * ≤3-MATCH RESULTS CTA handoff mint (owner 2026-09-09, the one authorized
+ * exception to the frozen Radar Conversion experiment). The scan mints the PR2
+ * signed handoff cookie ONLY when real matches EXCEED the free cap — a ≤3-match
+ * scan has nothing locked, so no cookie exists. This mints the SAME cookie
+ * (same helper signRadarHandoff, same RADAR_HANDOFF_COOKIE name, same payload
+ * shape, same setCookie options, same RADAR_HANDOFF_SECRET) ON CLICK so /signup
+ * restores the scan identically to source=radar_results_unlock. m=[] because
+ * nothing is locked — /signup's restore falls back to the first
+ * FREE_ANONYMOUS_RADAR_RESULTS matches of the re-run scan, i.e. every match the
+ * visitor saw. No second mechanism. Fail-open: a mint failure never blocks the
+ * click — the CTA href carries the criteria in the URL and /signup recovers
+ * through its normal source=radar path.
+ */
+const mintRadarResultsCtaHandoff = createServerFn({ method: "POST" })
+  .validator((d: unknown) => {
+    const v = (d as any) ?? {};
+    return {
+      trade: String(v.trade ?? "").trim().slice(0, 120),
+      state: String(v.state ?? "").trim().slice(0, 2),
+      cert: (RADAR_CERTS as readonly string[]).includes(String(v.cert ?? "sb")) ? String(v.cert) : "sb",
+      sizePref: (SIZE_OPTS as readonly { id: string }[]).some((s) => s.id === String(v.sizePref ?? "any")) ? String(v.sizePref) : "any",
+    };
+  })
+  .handler(async ({ data }) => {
+    const { trade, state, cert, sizePref } = data;
+    // Read the request's visitor cookie exactly like the scan-time mint (same
+    // build-safe server scope). No visitor id → nothing to attribute → no cookie.
+    let scanVisitorId = "";
+    try {
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const cookie = getRequest().headers.get("cookie") ?? "";
+      const hit = cookie.split(";").map((c) => c.trim()).find((c) => c.startsWith("contrax_vid="));
+      if (hit) scanVisitorId = decodeURIComponent(hit.slice("contrax_vid=".length)).trim().slice(0, 64);
+    } catch {
+      scanVisitorId = ""; // fail-open: no visitor id, no handoff cookie
+    }
+    try {
+      if (!scanVisitorId) return { minted: false };
+      const { getCurrentUser } = await import("~/lib/auth");
+      if (await getCurrentUser()) return { minted: false }; // authenticated visitors never get the handoff
+      const { signRadarHandoff, RADAR_HANDOFF_COOKIE, RADAR_HANDOFF_MAX_AGE_S } = await import("~/lib/radar-handoff.server");
+      const { setCookie } = await import("@tanstack/react-start/server");
+      // Fail-closed: getRadarHandoffSecret THROWS when RADAR_HANDOFF_SECRET is
+      // not configured — never mint an unsigned/forgable cookie. The outer
+      // try/catch keeps this from blocking the CTA navigation.
+      setCookie(RADAR_HANDOFF_COOKIE, signRadarHandoff({
+        v: scanVisitorId,
+        t: trade,
+        c: cert,
+        s: state,
+        z: sizePref,
+        m: [], // ≤3-match scan: nothing locked — restore shows all the matches
+        k: Date.now(),
+      }), { httpOnly: true, secure: true, sameSite: "lax", path: "/", maxAge: RADAR_HANDOFF_MAX_AGE_S });
+      return { minted: true };
+    } catch (err) {
+      // Fail-open: navigation still happens; /signup recovers from URL criteria.
+      if (err instanceof Error && err.message.includes("RADAR_HANDOFF_SECRET is required")) {
+        console.error("[radar-handoff] mint unavailable: missing server configuration (RADAR_HANDOFF_SECRET)");
+      }
+      return { minted: false };
+    }
   });
 
 function buildReasons(
@@ -1036,6 +1104,21 @@ function RadarLanding() {
                     sizePref={sizePref}
                   />
                 )}
+                {/* Owner 09-09 (the ONE authorized exception to the frozen
+                    experiment): anonymous visitors with 1..=3 real matches see
+                    ALL of them — no locked card — so give them the signup CTA
+                    here instead (never authenticated, never 0 matches, never
+                    >3 — those keep the locked card above unchanged). */}
+                {locked === 0 && (
+                  <RadarResultsCta
+                    certLabel={scan.certLabel}
+                    totalFound={scan.matches.length}
+                    trade={trade}
+                    state={state}
+                    cert={cert}
+                    sizePref={sizePref}
+                  />
+                )}
               </div>
             )}
 
@@ -1376,6 +1459,9 @@ function IncumbentBlock({
  *   radar_results_viewed        — first anonymous results render after a scan
  *   radar_results_unlock_shown  — ONLY when the locked card actually renders
  *   radar_results_unlock_clicked— CTA click
+ * (owner 09-09, additive): the ≤3-match results CTA fires its OWN two events —
+ * radar_results_cta_shown / radar_results_cta_clicked — see RadarResultsCta
+ * below. Neither is part of the frozen 9-stage funnel map.
  */
 export function SignupGate({
   certLabel,
@@ -1443,6 +1529,88 @@ export function SignupGate({
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
         Free account · No credit card required. Save this Radar, see all{" "}
         {totalFound}, and continue tracking opportunities.
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Owner 09-09 — the ONE authorized exception to the frozen Radar Conversion
+ * experiment: an anonymous signup CTA below the results list for visitors whose
+ * REAL match count is 1..=FREE_ANONYMOUS_RADAR_RESULTS (they see ALL matches —
+ * no manufactured wall — but had no signup prompt at all). Additive ONLY:
+ *   - shown to anonymous visitors exactly when 1 <= totalFound <= 3; never for
+ *     authenticated users (the caller only renders in the anonymous block),
+ *     never for totalFound = 0, never for totalFound > 3 (those keep the
+ *     locked card — unchanged).
+ *   - two NEW events, NOT added to the frozen 9-stage funnel map:
+ *       radar_results_cta_shown    — first render of the CTA (ref-guard)
+ *       radar_results_cta_clicked  — CTA click (ref-guard)
+ *   - click mints the SAME PR2 signed handoff cookie via
+ *     mintRadarResultsCtaHandoff (which reuses signRadarHandoff exactly — no
+ *     second mechanism), then navigates to the signup href with the new
+ *     source=radar_results_cta — which /signup handles IDENTICALLY to
+ *     source=radar_results_unlock (restore criteria + re-resolve matches +
+ *     identity backfill attributes the anonymous journey).
+ */
+export function RadarResultsCta({
+  certLabel,
+  totalFound,
+  trade,
+  state,
+  cert,
+  sizePref,
+}: {
+  certLabel: string;
+  totalFound: number;
+  trade: string;
+  state: string;
+  cert: RadarCertId | null;
+  sizePref: SizeId | null;
+}) {
+  const shownRef = useRef(false);
+  const clickedRef = useRef(false);
+  const ctaHref = radarSignupHref({ trade, state, cert, sizePref }, { cta: true });
+  // Exactly-once impression (mirrors the results_viewed ref-guard pattern; the
+  // intake server also collapses same-event+visitor+path within 1s).
+  useEffect(() => {
+    if (shownRef.current) return;
+    if (totalFound < 1 || totalFound > FREE_ANONYMOUS_RADAR_RESULTS) return;
+    shownRef.current = true;
+    trackEvent("radar_results_cta_shown", certLabel);
+  }, [certLabel, totalFound]);
+  // Second guard against the impossible (caller already ensures it): this CTA
+  // never renders outside the 1..=3 real-match anonymous window.
+  if (totalFound < 1 || totalFound > FREE_ANONYMOUS_RADAR_RESULTS) return null;
+  const handleClick = () => {
+    if (clickedRef.current) return;
+    clickedRef.current = true;
+    trackEvent("radar_results_cta_clicked", certLabel);
+    // Mint the SAME PR2 signed handoff cookie (helper + payload shape + cookie
+    // name + setCookie options reused exactly; m=[] — nothing is locked on a
+    // ≤3 scan, so /signup's restore falls back to all the matches the visitor
+    // saw). Fail-open: a mint failure still navigates — the href carries the
+    // criteria in the URL, so /signup recovers via its normal source=radar path.
+    mintRadarResultsCtaHandoff({ data: { trade, state, cert: cert || "sb", sizePref: sizePref || "any" } })
+      .catch(() => ({ minted: false }))
+      .finally(() => {
+        window.location.assign(ctaHref);
+      });
+  };
+  return (
+    <div className="mt-5 rounded-2xl border border-amber-500/40 bg-slate-900 p-5 text-center ring-1 ring-slate-800">
+      <p className="text-sm font-semibold uppercase tracking-wide text-amber-400">
+        Found {totalFound} matching {totalFound === 1 ? "opportunity" : "opportunities"} for your business.
+      </p>
+      <button
+        type="button"
+        onClick={handleClick}
+        className="mt-4 block w-full rounded-xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
+      >
+        Create your free account
+      </button>
+      <p className="mt-3 text-xs leading-relaxed text-slate-400">
+        Save these matches and unlock full opportunity details.
       </p>
     </div>
   );

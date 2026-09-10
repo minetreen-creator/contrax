@@ -834,7 +834,7 @@ function JourneysPage() {
         <section>
           <h2 className="text-lg font-semibold text-slate-800 mb-1">Unified funnel</h2>
           <p className="mb-3 text-xs text-slate-500">
-            Qualified visit → Radar completed → Signup completed → Activated → Paid. <strong>Activated</strong> = first successful
+            Active Visitors → Radar completed → Signup completed → Activated → Paid. <strong>Activated</strong> = first successful
             AI Brief, saved bid, match-score action, or alert creation. QA/admin/bot/test traffic excluded.
           </p>
           {error ? (

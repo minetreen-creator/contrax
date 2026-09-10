@@ -50,7 +50,7 @@ type SignupSearch = {
   // gate's bid/opportunity DB id; `title`/`agency` carry its context so the
   // incumbent banner can name the bid. `radar` continues a Contract Radar scan
   // (criteria read from localStorage — no email capture).
-  source?: "closing_soon" | "incumbent" | "radar" | "radar_results_unlock" | "autopsy";
+  source?: "closing_soon" | "incumbent" | "radar" | "radar_results_unlock" | "radar_results_cta" | "autopsy";
   opportunity_id?: string;
   title?: string;
   agency?: string;
@@ -258,8 +258,10 @@ export const Route = createFileRoute("/signup")({
     // PR2 (owner 2026-09-07): the anonymous locked-results card carries
     // source=radar_results_unlock so the unlock handoff (signed cookie restore
     // + signup_viewed_from_radar) is attributed distinctly from generic
-    // source=radar CTAs. Treated as a radar-family source everywhere below.
-      search.source === "closing_soon" || search.source === "incumbent" || search.source === "radar" || search.source === "radar_results_unlock" || search.source === "autopsy"
+    // source=radar CTAs. Owner 09-09: source=radar_results_cta (the ≤3-match
+    // results CTA) is handled IDENTICALLY to radar_results_unlock — same
+    // restore + attribution. Both are radar-family sources everywhere below.
+      search.source === "closing_soon" || search.source === "incumbent" || search.source === "radar" || search.source === "radar_results_unlock" || search.source === "radar_results_cta" || search.source === "autopsy"
         ? search.source
         : undefined,
     opportunity_id:
@@ -380,7 +382,10 @@ function SignupPage() {
   // state from the anonymous locked-results card (criteria + locked match ids,
   // non-PII). Null unless source=radar_results_unlock AND the handoff cookie
   // verifies. Restores the scan's criteria/matches into the local session and
-  // fires signup_viewed_from_radar exactly once.
+  // fires signup_viewed_from_radar exactly once. Owner 09-09: the ≤3-match
+  // results CTA (source=radar_results_cta) restores through the SAME path —
+  // the cookie its click mints has m=[] (nothing locked), so the restore falls
+  // back to all the matches the visitor saw.
   const [unlockHandoff, setUnlockHandoff] = useState<{
     trade: string; cert: string; state: string; sizePref: string; lockedIds: number[];
   } | null>(null);
@@ -395,7 +400,7 @@ function SignupPage() {
   // signup_viewed_from_radar exactly once. Fail-open: without a verified
   // handoff the page behaves exactly as before.
   useEffect(() => {
-    if (source !== "radar_results_unlock") return;
+    if (source !== "radar_results_unlock" && source !== "radar_results_cta") return;
     if (unlockViewedRef.current) return;
     unlockViewedRef.current = true;
     readRadarHandoff()
@@ -448,7 +453,7 @@ function SignupPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source]);
   useEffect(() => {
-    if (source !== "radar" && source !== "radar_results_unlock") return;
+    if (source !== "radar" && source !== "radar_results_unlock" && source !== "radar_results_cta") return;
     // SOURCE PRECEDENCE (owner rule): criteria come from the URL search params
     // FIRST (?source=radar&trade=…&cert=…&state=…&size=…), so a directly
     // shared/served signup link (e.g. an FB ad) shows its filter context and
@@ -577,7 +582,7 @@ function SignupPage() {
     if (signupStartedRef.current) return;
     signupStartedRef.current = true;
     signupStartedAtRef.current = Date.now();
-    trackEvent("signup_start", (source === "radar" || source === "radar_results_unlock") ? "radar" : selectedPlan);
+    trackEvent("signup_start", (source === "radar" || source === "radar_results_unlock" || source === "radar_results_cta") ? "radar" : selectedPlan);
   };
 
   // ── signup_field_reached: fire exactly ONCE per field per visit. The funnel
@@ -763,12 +768,12 @@ function SignupPage() {
   // unless a finite positive value is present).
   const bidTitle = (title || ticker_bid || "").trim();
   const hasBidContext = !!bidTitle;
-  const isRadarFamily = source === "radar" || source === "radar_results_unlock";
+  const isRadarFamily = source === "radar" || source === "radar_results_unlock" || source === "radar_results_cta";
   const radarContext = isRadarFamily || !!(trade || cert || state);
   const estimate = formatEstimate(value);
   // PR2 contextual copy (owner 2026-09-07): unlock arrivals see "Your matches
   // are waiting…" — the verified scan is being restored, not a generic pitch.
-  const unlockHeader = source === "radar_results_unlock" && unlockHandoff ? "Your matches are waiting…" : "";
+  const unlockHeader = (source === "radar_results_unlock" || source === "radar_results_cta") && unlockHandoff ? "Your matches are waiting…" : "";
   const contextualHeader = unlockHeader || hasBidContext
     ? estimate
       ? `Sign up to track this ${estimate} ${bidTitle}`
@@ -863,7 +868,7 @@ function SignupPage() {
       // the user to their results (dashboard radar banner reads the restored
       // radar_seen session), consumes the handoff cookie, and fires
       // signup_completed_from_radar exactly once.
-      if (source === "radar_results_unlock" && unlockHandoff && !unlockCompletedRef.current) {
+      if ((source === "radar_results_unlock" || source === "radar_results_cta") && unlockHandoff && !unlockCompletedRef.current) {
         unlockCompletedRef.current = true;
         trackEvent("signup_completed_from_radar", (RADAR_CERT_LABELS as Record<string, string>)[unlockHandoff.cert] || unlockHandoff.cert || "");
         clearRadarHandoff().catch(() => { /* fail-open */ });
@@ -905,7 +910,7 @@ function SignupPage() {
       // pending-draft promise. Fail-open: a storage failure must never block
       // the redirect.
       storeRememberedNext(next);
-      if (source === "radar" || source === "radar_results_unlock") {
+      if (source === "radar" || source === "radar_results_unlock" || source === "radar_results_cta") {
         navigate({ to: "/dashboard" });
       } else if (source === "autopsy") {
         // Free-First-Autopsy funnel (owner 2026-09-05): the new account lands

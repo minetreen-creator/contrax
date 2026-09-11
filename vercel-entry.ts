@@ -622,6 +622,75 @@ async function handleCreateCheckoutSession(
   }
 }
 
+// ── Bid Scout checkout handler (lockstep parity) ──────────────────────────────
+//
+// Mirrors handleCreateCheckoutSession above: this interceptor exists for
+// code-level parity with serve.ts, but — exactly like create-checkout-session —
+// it is NOT dispatched from the main handler. On Vercel, JSON POST API routes
+// flow through the generic SSR path, which serves the canonical TanStack route
+// (src/routes/api/bid-scout/checkout.ts). Keep the two in lockstep: both
+// delegate to the same lib functions in src/lib/bid-scout.ts.
+async function handleBidScoutCheckoutRoute(
+  req: IncomingMessage,
+): Promise<{ status: number; body: string }> {
+  try {
+    const rawBody = await readRawBody(req);
+    const parsed = JSON.parse(rawBody || "{}") as unknown;
+
+    const { bidScoutCheckoutSchema, normalizeBidScoutInput, createBidScoutCheckoutSession } =
+      await import("./src/lib/bid-scout.ts");
+    const { resolveUserIdFromCookie } = await import("./src/lib/stripe.ts");
+    const { checkEmailLimit, checkIpLimit } = await import(
+      "./src/lib/rate-limit.ts"
+    );
+    const { isBlockedIp } = await import("./src/lib/request-ip.ts");
+
+    const webReq = toWebRequest(req);
+    if (isBlockedIp(webReq)) {
+      return { status: 403, body: JSON.stringify({ error: "Forbidden" }) };
+    }
+
+    const schemaResult = bidScoutCheckoutSchema.safeParse(parsed ?? {});
+    if (!schemaResult.success) {
+      const first = schemaResult.error.issues[0];
+      const message = first
+        ? `${first.path.join(".") || "field"}: ${first.message}`
+        : "Invalid submission";
+      return {
+        status: 400,
+        body: JSON.stringify({ error: `Please check your details — ${message}` }),
+      };
+    }
+    const input = normalizeBidScoutInput(schemaResult.data);
+
+    const ipLimit = await checkIpLimit(webReq, "bid_scout_checkout_ip", 10, 60 * 60);
+    if (!ipLimit.allowed) {
+      return { status: 429, body: JSON.stringify({ error: "Too many attempts. Please try again later." }) };
+    }
+    const acctLimit = await checkEmailLimit(input.email, "bid_scout_checkout_email", 5, 60 * 60);
+    if (!acctLimit.allowed) {
+      return { status: 429, body: JSON.stringify({ error: "Too many attempts. Please try again later." }) };
+    }
+
+    const userId = await resolveUserIdFromCookie(webReq.headers.get("cookie"));
+    const result = await createBidScoutCheckoutSession(input, { userId });
+
+    if (!result.success) {
+      return {
+        status: 500,
+        body: JSON.stringify({ error: result.error ?? "Internal server error" }),
+      };
+    }
+    return { status: 200, body: JSON.stringify({ url: result.url }) };
+  } catch (err) {
+    console.error("bid-scout checkout error:", err);
+    return {
+      status: 500,
+      body: JSON.stringify({ error: "Internal server error" }),
+    };
+  }
+}
+
 // ── Analytics handler ─────────────────────────────────────────────────────────
 
 async function handleAnalytics(req: Request): Promise<Response> {

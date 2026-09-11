@@ -122,6 +122,74 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
   }
 }
 
+// ── Bid Scout checkout handler ───────────────────────────────────────────────
+
+async function handleBidScoutCheckout(req: Request): Promise<Response> {
+  try {
+    const body = (await req.json().catch(() => null)) as unknown;
+
+    // Dynamically import so env vars resolve at runtime
+    const { bidScoutCheckoutSchema, normalizeBidScoutInput, createBidScoutCheckoutSession } =
+      await import("./src/lib/bid-scout.ts");
+    const { resolveUserIdFromCookie } = await import("./src/lib/stripe.ts");
+    const { checkEmailLimit, checkIpLimit, rateLimitedResponse } = await import(
+      "./src/lib/rate-limit.ts"
+    );
+    const { isBlockedIp } = await import("./src/lib/request-ip.ts");
+
+    if (isBlockedIp(req)) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    const parsed = bidScoutCheckoutSchema.safeParse(body ?? {});
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      const message = first
+        ? `${first.path.join(".") || "field"}: ${first.message}`
+        : "Invalid submission";
+      return new Response(
+        JSON.stringify({ error: `Please check your details — ${message}` }),
+        { status: 400, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    const input = normalizeBidScoutInput(parsed.data);
+
+    const ipLimit = await checkIpLimit(req, "bid_scout_checkout_ip", 10, 60 * 60);
+    if (!ipLimit.allowed) {
+      const r = rateLimitedResponse(ipLimit);
+      return new Response(await r.text(), { status: r.status, headers: Object.fromEntries(r.headers) });
+    }
+    const acctLimit = await checkEmailLimit(input.email, "bid_scout_checkout_email", 5, 60 * 60);
+    if (!acctLimit.allowed) {
+      const r = rateLimitedResponse(acctLimit);
+      return new Response(await r.text(), { status: r.status, headers: Object.fromEntries(r.headers) });
+    }
+
+    const userId = await resolveUserIdFromCookie(req.headers.get("cookie"));
+    const result = await createBidScoutCheckoutSession(input, { userId });
+
+    if (!result.success) {
+      return new Response(
+        JSON.stringify({ error: result.error ?? "Internal server error" }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
+    return new Response(JSON.stringify({ url: result.url }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (err) {
+    console.error("bid-scout checkout error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
 // ── Analytics handler (lightweight, no framework dependency) ──────────────────
 
 async function handleAnalytics(req: Request): Promise<Response> {
@@ -204,6 +272,13 @@ async function mainFetch(req: Request): Promise<Response> {
   // Stripe checkout session — handle before SSR
   if (pathname === "/api/stripe/create-checkout-session" && req.method === "POST") {
     return handleCreateCheckoutSession(req);
+  }
+
+  // Bid Scout checkout — handle before SSR (JSON body; same guardrails as the
+  // canonical TanStack route src/routes/api/bid-scout/checkout.ts, kept in
+  // lockstep and delegating to the same lib function)
+  if (pathname === "/api/bid-scout/checkout" && req.method === "POST") {
+    return handleBidScoutCheckout(req);
   }
 
   // Stripe webhook — needs raw body, handle before SSR

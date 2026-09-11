@@ -633,3 +633,13 @@ CREATE INDEX IF NOT EXISTS idx_bid_scout_subscriptions_status
     ON bid_scout_subscriptions (status);
 CREATE INDEX IF NOT EXISTS idx_bid_scout_subscriptions_user_id
     ON bid_scout_subscriptions (user_id);
+
+-- Migration 036 — Bid Scout Founders first-five offer columns (owner 2026-09-11).
+-- Additive + nullable; existing table semantics untouched. offer_code is written
+-- by the webhook from Stripe's completed-session numbers (NEVER offerCandidate).
+ALTER TABLE bid_scout_subscriptions
+    ADD COLUMN IF NOT EXISTS offer_code text,
+    ADD COLUMN IF NOT EXISTS first_invoice_amount integer,
+    ADD COLUMN IF NOT EXISTS currency text;
+CREATE INDEX IF NOT EXISTS idx_bid_scout_subscriptions_offer_code
+    ON bid_scout_subscriptions (offer_code) WHERE offer_code IS NOT NULL;

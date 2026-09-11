@@ -89,6 +89,104 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: "bg-slate-100 text-slate-500",
 };
 
+// ── Founders first-five offer (owner spec 2026-09-11 §6) ─────────────────────
+interface FoundersReport {
+  promo: {
+    promotionCodeId: string;
+    maxRedemptions: number;
+    timesRedeemed: number;
+    remaining: number;
+    available: boolean;
+  } | null;
+  foundersSubscriptions: number;
+  firstMonthMrrCents: number;
+  activeSubscriptions: number;
+  contractedRecurringMrrCents: number;
+}
+async function fetchFoundersReport(): Promise<FoundersReport> {
+  const res = await fetch("/api/admin/bid-scout-founders");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to load founders offer report" }));
+    throw new Error(err.error || "Failed to load founders offer report");
+  }
+  return res.json();
+}
+const fmtUsd = (cents: number) =>
+  `${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 0 })}`;
+
+/**
+ * §6 reporting — never changes subscription-table semantics:
+ *  · Founders spots redeemed: Stripe times_redeemed / 5 (server-side retrieve)
+ *  · Founders subscriptions: rows with offer_code='first_five_49'
+ *  · First-month MRR-equivalent: $49 per founder sub's FIRST paid invoice only
+ *  · Contracted recurring MRR: $99 for EVERY active subscription (a founder
+ *    sub is never $49 MRR after its first invoice — run rate is $99)
+ */
+function FoundersOfferPanel({ report, error }: { report: FoundersReport | null; error: string }) {
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        {error}
+      </div>
+    );
+  }
+  if (!report) return <SectionLoading message="Loading founders offer…" />;
+  const p = report.promo;
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-4">
+        <h2 className="text-base font-bold text-slate-900">Founders offer — first five at $49</h2>
+        <p className="mt-0.5 text-xs text-slate-500">
+          $50 off the first invoice via Stripe Promotion Code (max_redemptions=5 is the global
+          concurrency authority). Stripe-side redemption state; QA / admin / test rows excluded.
+        </p>
+      </div>
+      <div className="grid gap-4 px-5 py-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            Founders spots redeemed
+          </p>
+          <p className="mt-1 text-base font-bold tabular-nums text-slate-900">
+            {p ? `${p.timesRedeemed} / ${p.maxRedemptions}` : "—"}
+          </p>
+          <p className="text-[10px] text-slate-400">
+            {p ? `${p.remaining} remaining · ${p.available ? "active" : "exhausted/off"}` : "promo not wired"}
+          </p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            Founders subscriptions
+          </p>
+          <p className="mt-1 text-base font-bold tabular-nums text-slate-900">
+            {report.foundersSubscriptions}
+          </p>
+          <p className="text-[10px] text-slate-400">offer_code = first_five_49 (webhook-derived)</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            First-month MRR-equivalent
+          </p>
+          <p className="mt-1 text-base font-bold tabular-nums text-slate-900">
+            {fmtUsd(report.firstMonthMrrCents)}
+          </p>
+          <p className="text-[10px] text-slate-400">first paid invoice only ($49 each)</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+            Contracted recurring MRR
+          </p>
+          <p className="mt-1 text-base font-bold tabular-nums text-slate-900">
+            {fmtUsd(report.contractedRecurringMrrCents)}
+          </p>
+          <p className="text-[10px] text-slate-400">
+            $99 × {report.activeSubscriptions} active sub(s) — run rate stays $99 after month 1
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Phase B.1 acquisition funnel panel — 4 stage rows (unique visitors) + a
  * Conversion line (Purchased ÷ Landing, 0-guarded) above the source
@@ -195,6 +293,10 @@ function BidScoutAdminPage() {
   const [data, setData] = useState<SubscriptionsResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Founders offer report (non-blocking — the fulfillment table must render
+  // even when the report fetch fails).
+  const [founders, setFounders] = useState<FoundersReport | null>(null);
+  const [foundersError, setFoundersError] = useState("");
   // Phase B.1 acquisition funnel (non-blocking — the fulfillment table must
   // render even when the funnel fetch fails).
   const [funnel, setFunnel] = useState<AcquisitionFunnel | null>(null);
@@ -205,6 +307,7 @@ function BidScoutAdminPage() {
     setLoading(true);
     setError("");
     setFunnelError("");
+    setFoundersError("");
     fetchSubscriptions(status)
       .then((d) => { if (!cancelled) setData(d); })
       .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load subscriptions"); })
@@ -212,6 +315,9 @@ function BidScoutAdminPage() {
     fetchAcquisitionFunnel()
       .then((f) => { if (!cancelled) setFunnel(f); })
       .catch((err) => { if (!cancelled) setFunnelError(err instanceof Error ? err.message : "Failed to load acquisition funnel"); });
+    fetchFoundersReport()
+      .then((r) => { if (!cancelled) setFounders(r); })
+      .catch((err) => { if (!cancelled) setFoundersError(err instanceof Error ? err.message : "Failed to load founders offer"); });
     return () => { cancelled = true; };
   }, [status]);
 
@@ -244,6 +350,8 @@ function BidScoutAdminPage() {
           </div>
         </div>
         <AdminTabs active="bid-scout" />
+
+        <FoundersOfferPanel report={founders} error={foundersError} />
 
         <AcquisitionFunnelPanel funnel={funnel} error={funnelError} />
 

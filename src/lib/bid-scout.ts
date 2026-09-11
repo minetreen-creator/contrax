@@ -54,6 +54,109 @@ import { VISITOR_COOKIE_NAME } from "~/lib/visitor";
 export const BID_SCOUT_PRICE_USD = 9900; // $99.00 / month
 export const BID_SCOUT_PRICE_NAME = "Contrax Bid Scout";
 
+// ── Founders first-five offer (owner spec 2026-09-11) ────────────────────────
+//
+// The first five successful Bid Scout subscriptions get $50 off the FIRST
+// invoice (month 1 = $49, month 2+ = $99). The single source of truth for
+// concurrency is Stripe: one Promotion Code per environment whose coupon is
+// amount_off=$50, duration=once, and whose max_redemptions=5 bounds the whole
+// promotion. This module NEVER creates coupons or promotion codes — it only
+// RETRIEVES the pre-created code (scripts/create-bid-scout-founders-offer.ts
+// is the one-time setup; the owner created the live + test codes 09-11).
+export const BID_SCOUT_FOUNDERS_LIMIT = 5; // max_redemptions (concurrency authority)
+export const BID_SCOUT_FOUNDERS_DISCOUNT_AMOUNT = 5_000; // $50 off the first invoice
+export const BID_SCOUT_FOUNDERS_FIRST_TOTAL = 4_900; // $49 — first invoice total
+export const BID_SCOUT_FOUNDERS_RENEWAL_USD = BID_SCOUT_PRICE_USD; // 9_900 — month 2+
+
+export interface BidScoutFoundersOffer {
+  /** True only when the promotion code exists, is active, AND redemptions remain. */
+  available: boolean;
+  /** The env promotion code id (null when STRIPE_BID_SCOUT_FOUNDERS_PROMO_ID unset). */
+  promotionCodeId: string | null;
+  /** max(0, max_redemptions − times_redeemed). */
+  remaining: number;
+  /** Stripe-reported times_redeemed (0 when the env id is unset/unreachable). */
+  timesRedeemed: number;
+  /** Stripe-reported max_redemptions (BID_SCOUT_FOUNDERS_LIMIT default). */
+  maxRedemptions: number;
+}
+
+/** Narrow Stripe surface for the founders-offer read (GET /v1/promotion_codes/:id). */
+export interface BidScoutPromoRetrieveLike {
+  promotionCodes: {
+    retrieve: (id: string) => Promise<{
+      id: string;
+      active: boolean | null;
+      max_redemptions: number | null;
+      times_redeemed: number | null;
+    }>;
+  };
+}
+
+/**
+ * Retrieve-only founders availability read (owner spec §3). Reads
+ * STRIPE_BID_SCOUT_FOUNDERS_PROMO_ID; when absent the offer is simply
+ * unavailable (standard $99 path — the live default until the owner wires the
+ * id). Never creates or mutates pricing objects. Fail-safe: any retrieve error
+ * logs and returns unavailable so checkout can never be blocked by the offer
+ * machinery.
+ */
+export async function getBidScoutFoundersOffer(
+  stripe?: (BidScoutStripeLike & BidScoutPromoRetrieveLike) | null,
+): Promise<BidScoutFoundersOffer> {
+  const id = process.env.STRIPE_BID_SCOUT_FOUNDERS_PROMO_ID;
+  if (!id) {
+    return { available: false, promotionCodeId: null, remaining: 0, timesRedeemed: 0, maxRedemptions: BID_SCOUT_FOUNDERS_LIMIT };
+  }
+  try {
+    const client = stripe ?? (getStripe() as BidScoutStripeLike & BidScoutPromoRetrieveLike);
+    const promo = await client.promotionCodes.retrieve(id);
+    const maxRedemptions = promo.max_redemptions ?? BID_SCOUT_FOUNDERS_LIMIT;
+    const timesRedeemed = promo.times_redeemed ?? 0;
+    const remaining = Math.max(0, maxRedemptions - timesRedeemed);
+    const available = promo.active === true && remaining > 0;
+    return { available, promotionCodeId: id, remaining, timesRedeemed, maxRedemptions };
+  } catch (err) {
+    console.error(
+      "[bid-scout] founders promo retrieve failed (fail-safe to standard $99):",
+      (err as Error).message,
+    );
+    return { available: false, promotionCodeId: id, remaining: 0, timesRedeemed: 0, maxRedemptions: BID_SCOUT_FOUNDERS_LIMIT };
+  }
+}
+
+/** NARROW classifier for "the promotion/the coupon can no longer be redeemed".
+ *  Matches ONLY the exact Stripe error codes the checkout create emits when a
+ *  promo is exhausted/deleted between our retrieve and the session create:
+ *    promotion_code_used_up        — ACTUAL code observed on apiVersion
+ *                                    2024-12-18.acacia test mode: session
+ *                                    create with an exhausted code throws
+ *                                    StripeInvalidRequestError,
+ *                                    code="promotion_code_used_up",
+ *                                    "This promotion code has been used up."
+ *                                    (verified 2026-09-11 with a real
+ *                                    max_redemptions=1 code exhausted by a
+ *                                    real paid invoice).
+ *    promotion_code_max_redemptions_reached — spec-listed code (other Stripe
+ *                                    surfaces/versions); kept per owner spec.
+ *    coupon_max_redemptions_reached — spec-listed code; kept per owner spec.
+ *    resource_missing               — the promo/coupon no longer exists
+ *                                    (observed: StripeInvalidRequestError with
+ *                                    code="resource_missing").
+ *  Any other error (card, param, network…) returns false and rethrows upstream. */
+const PROMO_UNAVAILABLE_CODES = new Set([
+  "promotion_code_used_up",
+  "promotion_code_max_redemptions_reached",
+  "coupon_max_redemptions_reached",
+  "resource_missing",
+]);
+
+export function isPromotionUnavailableError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const e = err as { code?: unknown };
+  return typeof e.code === "string" && PROMO_UNAVAILABLE_CODES.has(e.code);
+}
+
 export function getBidScoutPriceId(): string {
   const id = process.env.STRIPE_BID_SCOUT_PRICE_ID;
   if (!id) {
@@ -132,11 +235,16 @@ export function normalizeBidScoutInput(
 const BASE_URL = process.env.PROD_URL || "https://www.contrax.company";
 
 /** Invoke-Stripe-shaped surface (real client satisfies it; tests inject a
- *  stub) — keeps this module testable without a live Stripe key. */
+ *  stub) — keeps this module testable without a live Stripe key. The
+ *  sessions.create second arg is the Stripe request options bag (idempotency
+ *  key); the real client accepts (params, options?). */
 export interface BidScoutStripeLike {
   checkout: {
     sessions: {
-      create: (params: Stripe.Checkout.SessionCreateParams) => Promise<{
+      create: (
+        params: Stripe.Checkout.SessionCreateParams,
+        options?: { idempotencyKey?: string },
+      ) => Promise<{
         id: string;
         url: string | null;
       }>;
@@ -153,6 +261,26 @@ export interface BidScoutStripeSubscriptionsLike {
       id: string;
       metadata?: { [key: string]: unknown } | null;
     }>;
+  };
+}
+
+/** Narrow Stripe surface for the checkout.session.completed derivation (§4):
+ *  re-retrieve the completed session so the APPLIED discount comes from
+ *  Stripe's authoritative numbers (total_details.amount_discount + amount_total),
+ *  never from app metadata. */
+export interface BidScoutStripeWebhookLike extends BidScoutStripeSubscriptionsLike {
+  checkout: {
+    sessions: {
+      retrieve: (
+        id: string,
+        params?: { expand?: string[] },
+      ) => Promise<{
+        id: string;
+        total_details?: { amount_discount?: number | null } | null;
+        amount_total?: number | null;
+        currency?: string | null;
+      }>;
+    };
   };
 }
 
@@ -209,21 +337,52 @@ export async function createBidScoutCheckoutSession(
 
   // 2) ONE Checkout Session. Metadata on BOTH the session and
   //    subscription_data so the webhook can always attribute the event.
-  const metadata: Record<string, string> = {
-    product: "bid_scout",
-    bidScoutId: recordId,
+  //    `offerCandidate` is DIAGNOSTIC ONLY (first_five_49 | standard_99) —
+  //    the webhook NEVER infers the applied discount from it; it derives the
+  //    stored offer from Stripe's completed session numbers (§4).
+  const founders = await getBidScoutFoundersOffer(
+    opts.stripe ?? null,
+  );
+  const makeMetadata = (offerCandidate: "first_five_49" | "standard_99") => {
+    const md: Record<string, string> = {
+      product: "bid_scout",
+      bidScoutId: recordId,
+      offerCandidate,
+    };
+    if (userId) md.user_id = userId;
+    return md;
   };
-  if (userId) metadata.user_id = userId;
+
+  const baseParams: Stripe.Checkout.SessionCreateParams = {
+    mode: "subscription",
+    line_items: [{ price: priceId, quantity: 1 }],
+    metadata: makeMetadata(founders.available ? "first_five_49" : "standard_99"),
+    subscription_data: {
+      metadata: makeMetadata(founders.available ? "first_five_49" : "standard_99"),
+    },
+    success_url: `${BASE_URL}/bid-scout/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${BASE_URL}/bid-scout?checkout=cancelled`,
+    customer_email: input.email,
+  };
+  // Founders offer is AUTOMATIC and capped globally — never user-entered
+  // (no allow_promotion_codes) and never per-checkout (no payment_method_types
+  // — Stripe's dynamic payment methods stay on).
+  const withDiscounts: Stripe.Checkout.SessionCreateParams = founders.available
+    ? { ...baseParams, discounts: [{ promotion_code: founders.promotionCodeId! }] }
+    : baseParams;
+
+  const persistSession = async (sessionId: string) => {
+    await sql()`
+      UPDATE bid_scout_subscriptions
+      SET stripe_checkout_session_id = ${sessionId}, updated_at = NOW()
+      WHERE id = ${recordId}
+    `;
+  };
 
   try {
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      line_items: [{ price: priceId, quantity: 1 }],
-      metadata,
-      subscription_data: { metadata },
-      success_url: `${BASE_URL}/bid-scout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${BASE_URL}/bid-scout?checkout=cancelled`,
-      customer_email: input.email,
+    // First attempt idempotency key (per pending row — unique per attempt).
+    const session = await stripe.checkout.sessions.create(withDiscounts, {
+      idempotencyKey: `bid-scout-checkout:${recordId}`,
     });
 
     if (!session.url) {
@@ -231,18 +390,52 @@ export async function createBidScoutCheckoutSession(
     }
 
     // 3) Persist the session id (unique — safe to re-set on retry).
-    await sql()`
-      UPDATE bid_scout_subscriptions
-      SET stripe_checkout_session_id = ${session.id}, updated_at = NOW()
-      WHERE id = ${recordId}
-    `;
+    await persistSession(session.id);
 
     console.log(
       `[bid-scout] checkout session created: record=${recordId} session=${session.id} ` +
-        `price=${priceId} source=${input.source} user=${userId ?? "anonymous"}`,
+        `price=${priceId} offer=${
+          founders.available ? "first_five_49" : "standard_99"
+        } source=${input.source} user=${userId ?? "anonymous"}`,
     );
     return { success: true, url: session.url, recordId };
   } catch (err) {
+    // Founders concurrency race: the retrieve said available, but by the time
+    // the session-create landed, Stripe had already granted the 5th (or a
+    // previous) redemption. Retry WITHOUT the discount, with a DIFFERENT
+    // idempotency key (the params differ, so replaying the original key would
+    // be wrong) and offerCandidate standard_99 in BOTH metadata spots.
+    if (isPromotionUnavailableError(err)) {
+      try {
+        const retryMetadata = makeMetadata("standard_99");
+        const session = await stripe.checkout.sessions.create(
+          {
+            ...baseParams,
+            metadata: retryMetadata,
+            subscription_data: { metadata: retryMetadata },
+          },
+          { idempotencyKey: `bid-scout-checkout-standard:${recordId}` },
+        );
+        if (!session.url) {
+          return { success: false, error: "Stripe did not return a checkout URL" };
+        }
+        await persistSession(session.id);
+        console.log(
+          `[bid-scout] founders promo exhausted at create — retried STANDARD $99 ` +
+            `(record=${recordId} session=${session.id} err=${(err as Error).message})`,
+        );
+        return { success: true, url: session.url, recordId };
+      } catch (retryErr) {
+        console.error(
+          "[bid-scout] standard retry after promo-exhaustion failed:",
+          (retryErr as Error).message,
+        );
+        return {
+          success: false,
+          error: "Checkout could not be started. Please try again or contact support.",
+        };
+      }
+    }
     console.error("[bid-scout] stripe checkout session failed:", (err as Error).message);
     return {
       success: false,
@@ -324,6 +517,15 @@ export interface BidScoutPurchasedEventMeta {
   recordId: string;
   sessionId: string;
   customerEmail?: string | null;
+  /** Applied offer DERIVED from Stripe's completed session numbers (§4) —
+   *  never from offerCandidate (diagnostic only). */
+  offer?: "first_five_49" | "standard_99" | null;
+  /** Actually-charged first invoice total (Stripe amount_total, e.g. 4900). */
+  firstInvoiceAmount?: number | null;
+  /** Recurring amount from the 2nd invoice onward — always $99 (9_900). */
+  renewalAmount?: number;
+  /** Session invoice currency (e.g. "usd"). */
+  currency?: string | null;
 }
 
 /**
@@ -360,8 +562,11 @@ export async function recordBidScoutPurchasedEvent(
       product: "bid_scout",
       bidScoutId: meta.recordId,
       stripeSessionId: meta.sessionId,
-      amount: BID_SCOUT_PRICE_USD,
-      currency: "usd",
+      amount: BID_SCOUT_PRICE_USD, // nominal recurring price (backward compatible)
+      currency: meta.currency ?? "usd",
+      renewal_amount: meta.renewalAmount ?? BID_SCOUT_FOUNDERS_RENEWAL_USD, // 9_900 — month 2+
+      offer: meta.offer ?? "standard_99", // derived from Stripe numbers, never offerCandidate
+      first_invoice_amount: meta.firstInvoiceAmount ?? BID_SCOUT_PRICE_USD, // what was actually charged
     });
     await sql()`
       INSERT INTO funnel_events (
@@ -399,7 +604,7 @@ export async function recordBidScoutPurchasedEvent(
  */
 export async function handleBidScoutSubscriptionEvent(
   event: Stripe.Event,
-  stripeOverride?: BidScoutStripeSubscriptionsLike | null,
+  stripeOverride?: BidScoutStripeWebhookLike | null,
 ): Promise<boolean> {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -412,6 +617,34 @@ export async function handleBidScoutSubscriptionEvent(
     const customerId = typeof session.customer === "string"
       ? session.customer
       : (session.customer?.id ?? null);
+
+    // ── Founders offer derivation (§4): store what ACTUALLY happened, not
+    // what was attempted. Re-retrieve the completed session (expand brings
+    // back the subscription + line items) and derive the applied offer from
+    // Stripe's authoritative numbers — $50 discount AND $49 total ⇒
+    // first_five_49; anything else ⇒ standard_99. offerCandidate metadata is
+    // NEVER trusted here (diagnostic only). A retrieve failure leaves the
+    // offer columns NULL — we never guess.
+    let offerCode: "first_five_49" | "standard_99" | null = null;
+    let firstInvoiceAmount: number | null = null;
+    let invoiceCurrency: string | null = null;
+    try {
+      const completed = await (stripeOverride ?? (getStripe() as unknown as BidScoutStripeWebhookLike))
+        .checkout.sessions.retrieve(session.id, { expand: ["subscription", "line_items"] });
+      const amountDiscount = completed.total_details?.amount_discount ?? 0;
+      const amountTotal = completed.amount_total ?? null;
+      const foundersApplied =
+        amountDiscount === BID_SCOUT_FOUNDERS_DISCOUNT_AMOUNT &&
+        amountTotal === BID_SCOUT_FOUNDERS_FIRST_TOTAL;
+      offerCode = foundersApplied ? "first_five_49" : "standard_99";
+      firstInvoiceAmount = amountTotal;
+      invoiceCurrency = completed.currency ?? null;
+    } catch (err) {
+      console.error(
+        "[bid-scout] webhook completed: session retrieve failed — offer columns left NULL (never inferred):",
+        (err as Error).message,
+      );
+    }
 
     try {
       // Primary path — the pending row id is in session metadata. RETURNING id
@@ -428,6 +661,9 @@ export async function handleBidScoutSubscriptionEvent(
               stripe_checkout_session_id = COALESCE(stripe_checkout_session_id, ${session.id}),
               stripe_customer_id = ${customerId ?? null},
               stripe_subscription_id = ${subId ?? null},
+              offer_code = COALESCE(offer_code, ${offerCode ?? null}),
+              first_invoice_amount = COALESCE(first_invoice_amount, ${firstInvoiceAmount ?? null}),
+              currency = COALESCE(currency, ${invoiceCurrency ?? null}),
               updated_at = NOW()
           WHERE id = ${recordId} AND status <> 'active'
           RETURNING id
@@ -440,6 +676,9 @@ export async function handleBidScoutSubscriptionEvent(
           SET status = 'active',
               stripe_customer_id = ${customerId ?? null},
               stripe_subscription_id = ${subId ?? null},
+              offer_code = COALESCE(offer_code, ${offerCode ?? null}),
+              first_invoice_amount = COALESCE(first_invoice_amount, ${firstInvoiceAmount ?? null}),
+              currency = COALESCE(currency, ${invoiceCurrency ?? null}),
               updated_at = NOW()
           WHERE stripe_checkout_session_id = ${session.id} AND status <> 'active'
           RETURNING id
@@ -451,6 +690,10 @@ export async function handleBidScoutSubscriptionEvent(
           recordId: transitionedId,
           sessionId: session.id,
           customerEmail: sessionEmail(session),
+          offer: offerCode ?? undefined,
+          firstInvoiceAmount: firstInvoiceAmount,
+          renewalAmount: BID_SCOUT_FOUNDERS_RENEWAL_USD,
+          currency: invoiceCurrency,
         });
       }
     } catch (err) {

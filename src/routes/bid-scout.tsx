@@ -53,6 +53,11 @@ interface SubmitState {
   message?: string;
 }
 
+interface FoundersOfferState {
+  available: boolean;
+  remaining: number;
+}
+
 function BidScoutPage() {
   // Query params are client-only (SSR renders the page without them).
   const [params] = useState(() => {
@@ -64,6 +69,31 @@ function BidScoutPage() {
       cancelled: sp.get("checkout") === "cancelled",
     };
   });
+
+  // ── Founders first-five offer (owner spec 2026-09-11) ─────────────────────
+  // Availability is read SERVER-side via /api/bid-scout/founders-offer (the
+  // Stripe promotion code is never touched by the browser). Informational
+  // display only — Stripe's max_redemptions is the concurrency authority at
+  // checkout. Fail-open: a fetch hiccup keeps the standard $99 copy.
+  const [founders, setFounders] = useState<FoundersOfferState | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/bid-scout/founders-offer")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        setFounders({
+          available: Boolean(d.available),
+          remaining: Math.max(0, Number(d.remaining ?? 0)),
+        });
+      })
+      .catch(() => {
+        /* fail-open to the standard $99 copy */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const [submit, setSubmit] = useState<SubmitState>({ kind: "idle" });
   // Phase B analytics: one bid_scout_viewed per qualifying visitor view.
@@ -144,12 +174,34 @@ function BidScoutPage() {
               best-fit federal opportunities for your company each week — and
               tells you what each one really takes.
             </p>
-            <p className="mt-4 flex items-baseline gap-2">
-              <span className="text-4xl font-extrabold text-slate-900">
-                $99
-              </span>
-              <span className="text-sm font-medium text-slate-500">/month</span>
-            </p>
+            {founders?.available ? (
+              <>
+                <p className="mt-4 text-sm font-bold uppercase tracking-wider text-blue-600">
+                  Founding customer offer — {founders.remaining} of 5 spots remain
+                </p>
+                <p className="mt-1 flex items-baseline gap-2">
+                  <span className="text-4xl font-extrabold text-slate-900">
+                    $49
+                  </span>
+                  <span className="text-sm font-medium text-slate-500">
+                    for your first month, then $99/month.
+                  </span>
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  The discount is applied automatically at checkout. Cancel anytime.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-4 flex items-baseline gap-2">
+                  <span className="text-4xl font-extrabold text-slate-900">
+                    $99
+                  </span>
+                  <span className="text-sm font-medium text-slate-500">/month</span>
+                </p>
+                <p className="mt-1 text-xs text-slate-500">Cancel anytime.</p>
+              </>
+            )}
             <ul className="mt-6 space-y-2.5">
               {BULLETS.map((b) => (
                 <li key={b} className="flex items-start gap-2.5 text-sm text-slate-700">

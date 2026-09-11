@@ -220,7 +220,7 @@ async function probeMode() {
   try {
     await stripe.subscriptions.create({ customer: cust2.id, items: [{ price: priceId }], promotion_code: p1.id });
   } catch (e: any) {
-    rmError = { code: e.code, type: e.type };
+    rmError = { code: e?.raw?.code ?? e?.code, type: e.type };
   }
   ok(rmError?.code === "resource_missing", "REAL Stripe resource_missing error captured", JSON.stringify(rmError));
   ok(isPromotionUnavailableError(makeStripeError("resource_missing")), "classifier matches resource_missing");

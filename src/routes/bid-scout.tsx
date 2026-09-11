@@ -79,6 +79,20 @@ function BidScoutPage() {
     trackEvent("bid_scout_viewed", params.source || "bid_scout_page", "/bid-scout");
   }, [params.source]);
 
+  // Phase B.1 acquisition: bid_scout_form_started — fires ONCE per page mount
+  // on the FIRST focus OR input into the company/capabilities fields (the
+  // intake form's required business fields). Ref-guarded so it never fires per
+  // keystroke; a fresh page load (new session/return visitor) may fire again —
+  // accepted + documented (one row per visitor per session is the contract).
+  // Same canonical writer + exclusions as bid_scout_viewed; standalone event
+  // name, no funnel stage membership.
+  const formStartedFired = useRef(false);
+  const fireFormStarted = () => {
+    if (formStartedFired.current) return;
+    formStartedFired.current = true;
+    trackEvent("bid_scout_form_started", params.source || "bid_scout_page", "/bid-scout");
+  };
+
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submit.kind === "submitting") return;
@@ -185,6 +199,8 @@ function BidScoutPage() {
                   maxLength={200}
                   placeholder="Acme Construction LLC"
                   className={INPUT_CLASS}
+                  onFocus={fireFormStarted}
+                  onInput={fireFormStarted}
                 />
               </div>
               <div>
@@ -213,6 +229,8 @@ function BidScoutPage() {
                   rows={3}
                   placeholder="e.g. General commercial construction, site work, design-build up to $5M"
                   className={INPUT_CLASS}
+                  onFocus={fireFormStarted}
+                  onInput={fireFormStarted}
                 />
                 <p className={NOTE_CLASS}>
                   What you do, typical project size, past performance.

@@ -102,14 +102,14 @@ export interface BidScoutPromoRetrieveLike {
  * machinery.
  */
 export async function getBidScoutFoundersOffer(
-  stripe?: (BidScoutStripeLike & BidScoutPromoRetrieveLike) | null,
+  stripe?: (BidScoutStripeLike & BidScoutPromoRetrieveLike) | BidScoutStripeLike | null,
 ): Promise<BidScoutFoundersOffer> {
   const id = process.env.STRIPE_BID_SCOUT_FOUNDERS_PROMO_ID;
   if (!id) {
     return { available: false, promotionCodeId: null, remaining: 0, timesRedeemed: 0, maxRedemptions: BID_SCOUT_FOUNDERS_LIMIT };
   }
   try {
-    const client = stripe ?? (getStripe() as BidScoutStripeLike & BidScoutPromoRetrieveLike);
+    const client = (stripe ?? getStripe()) as BidScoutStripeLike & BidScoutPromoRetrieveLike;
     const promo = await client.promotionCodes.retrieve(id);
     const maxRedemptions = promo.max_redemptions ?? BID_SCOUT_FOUNDERS_LIMIT;
     const timesRedeemed = promo.times_redeemed ?? 0;

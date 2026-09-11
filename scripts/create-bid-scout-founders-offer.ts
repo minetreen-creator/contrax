@@ -68,7 +68,7 @@ async function main() {
     max_redemptions: 5,
     restrictions: { first_time_transaction: true },
     metadata: { product: "bid_scout", offer: "first_five_49_first_month" },
-  });
+  } as any); // v22 types omit coupon param — API accepts it (verified in probe)
 
   // IDs ONLY — never the key/secret.
   console.log(

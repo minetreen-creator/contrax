@@ -11,6 +11,7 @@ import {
   rateLimitedResponse,
 } from "~/lib/rate-limit";
 import { isBlockedIp } from "~/lib/request-ip";
+import { recordBidScoutCheckoutStarted } from "~/lib/bid-scout";
 
 /**
  * POST /api/bid-scout/checkout
@@ -67,7 +68,19 @@ async function handler({ request }: { request: Request }) {
 
     // Reuse the logged-in user id (session cookie) when present.
     const userId = await resolveUserIdFromCookie(request.headers.get("cookie"));
-
+    // ── Phase B analytics: bid_scout_checkout_started ──────────────────────
+    // Fired AFTER validation + rate limits pass, IMMEDIATELY BEFORE the Stripe
+    // session creation — i.e. only when the checkout is genuinely starting.
+    // Shared helper: same intake pipeline as every other funnel event, same
+    // bot/QA/admin/test exclusions, acquisition attribution resolved from the
+    // cookie but NEVER modified (the Bid Scout CTA source stays in the row's
+    // `source` column — separate concern). Standalone event name: no funnel
+    // stage membership. Non-fatal: a tracking hiccup never blocks checkout.
+    await recordBidScoutCheckoutStarted(request, {
+      sourceLabel: input.source || "bid_scout_page",
+      userId,
+      userEmail: input.email,
+    });
     const result = await createBidScoutCheckoutSession(input, { userId });
     if (!result.success) {
       return Response.json(

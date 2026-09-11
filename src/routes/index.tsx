@@ -238,6 +238,23 @@ function Home() {
             agencies · Updated every 4 hours
           </p>
         </div>
+        {/* Bid Scout secondary CTA (owner 2026-09-11, Phase B) — BELOW the hero
+            and the Radar embed; the hero CTA + its homepage_radar_cta_clicked
+            event are untouched. Label and destination are owner-exact. */}
+        <div className="mx-auto mt-10 max-w-3xl text-center">
+          <a
+            href="/bid-scout?source=homepage"
+            className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-8 py-3.5 text-base font-bold text-slate-900 shadow-sm transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98]"
+          >
+            Have Contrax find opportunities for me
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5-5 5M6 12h12" />
+            </svg>
+          </a>
+          <p className="mt-2.5 text-xs font-medium text-gray-500">
+            $99/month — five handpicked federal opportunities matched to your business, every Friday
+          </p>
+        </div>
       </section>
       {/* ── AWARD AUTOPSY — homepage section #2, immediately below the Radar
           hero and above the Map (owner spec 2026-09-05). The second front

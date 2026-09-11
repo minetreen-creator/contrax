@@ -22,16 +22,27 @@
  *     All transitions are idempotent (guarded UPDATEs) — repeated deliveries
  *     never double-process.
  *
- * Deliberately NO analytics events in Phase A (bid_scout_purchased etc. are
- * Phase B). This module does NOT touch the Radar funnel, trial gating,
- * entitlements, the signed Radar handoff, existing plans, or any attribution
- * cookie — acquisition attribution stays on the visitor row untouched.
+ * Phase B analytics: `bid_scout_purchased` is written SERVER-SIDE ONLY here,
+ * inside the SAME transition guard (a delivery that actually flips
+ * pending→active writes the event; a replay matches no row and writes
+ * nothing — repeated webhook deliveries cannot create duplicate purchase
+ * events). The event is a standalone timeline/audit record: it NEVER
+ * synthesizes radar_completed / signup_completed / activated / paid and has
+ * NO stage membership in any existing funnel.
+ *
+ * This module does NOT touch the Radar funnel, trial gating, entitlements,
+ * the signed Radar handoff, existing plans, or any attribution cookie —
+ * acquisition attribution stays on the visitor row untouched (the Bid Scout
+ * CTA `source` is stored separately on the subscription row).
  */
 
 import Stripe from "stripe";
 import { sql } from "~/db";
 import { getStripe } from "~/lib/stripe";
 import { z } from "zod";
+import { handleIntake } from "~/lib/tracking-intake";
+import { getCookieValue } from "~/lib/attribution";
+import { VISITOR_COOKIE_NAME } from "~/lib/visitor";
 
 // ── Price ────────────────────────────────────────────────────────────────────
 //
@@ -240,7 +251,137 @@ export async function createBidScoutCheckoutSession(
   }
 }
 
+// ── Phase B analytics ──────────────────────────────────────────────────────────
+
+export interface RecordCheckoutStartedOpts {
+  /** Bid Scout CTA placement (?source= on the /bid-scout page). */
+  sourceLabel?: string;
+  /** Logged-in Contrax user id (from the session cookie), when present. */
+  userId?: number | string | null;
+  /** Business email from the intake form (stamped as the event's user_email). */
+  userEmail: string;
+}
+
+/**
+ * `bid_scout_checkout_started` — fired by the checkout endpoint AFTER
+ * validation + rate limits pass, IMMEDIATELY BEFORE the Stripe session
+ * creation (i.e. only when the checkout is genuinely starting). Flows through
+ * the SAME intake pipeline as every other funnel event (handleIntake →
+ * funnel_events): same bot filter, same 1s dedupe, same first-touch
+ * acquisition attribution (contrax_attr cookie → query → referer), same
+ * geo/device context, same @test.contrax/admin write-time exclusion for the
+ * summary row. The visitor's acquisition attribution is resolved from the
+ * cookie but NEVER modified — the Bid Scout CTA source lives separately in the
+ * subscription row's `source` column. Standalone event name: NO membership in
+ * any funnel stage set. Never throws (tracking is fire-and-forget).
+ */
+export async function recordBidScoutCheckoutStarted(
+  request: Request,
+  opts: RecordCheckoutStartedOpts,
+): Promise<void> {
+  try {
+    const cookie = request.headers.get("cookie") ?? "";
+    const visitorId = getCookieValue(cookie, VISITOR_COOKIE_NAME) ?? undefined;
+    const trackReq = new Request("https://www.contrax.company/api/track-visitor", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "user-agent": request.headers.get("user-agent") ?? "",
+        referer: request.headers.get("referer") ?? "",
+        cookie,
+        "x-forwarded-for": request.headers.get("x-forwarded-for") ?? "",
+      },
+      body: JSON.stringify({
+        kind: "event",
+        event: "bid_scout_checkout_started",
+        label: opts.sourceLabel || "bid_scout_page",
+        path: "/bid-scout",
+        ...(visitorId ? { visitor_id: visitorId } : {}),
+        ...(opts.userId != null && opts.userId !== ""
+          ? { user_id: String(opts.userId) }
+          : {}),
+        user_email: opts.userEmail,
+      }),
+    });
+    await handleIntake(trackReq, "event");
+  } catch (trackErr) {
+    // Tracking is fire-and-forget by design — a beacon hiccup must never
+    // block checkout.
+    console.error("[bid-scout] checkout_started event failed (non-fatal):", trackErr);
+  }
+}
+
 // ── Webhook event dispatch ────────────────────────────────────────────────────
+
+/** Customer email from a completed checkout session (may be null). */
+function sessionEmail(session: Stripe.Checkout.Session): string | null {
+  const details = (session as { customer_details?: { email?: string | null } | null })
+    .customer_details;
+  return details?.email ?? session.customer_email ?? null;
+}
+
+export interface BidScoutPurchasedEventMeta {
+  recordId: string;
+  sessionId: string;
+  customerEmail?: string | null;
+}
+
+/**
+ * Server-side-only purchase event (Phase B). Written by the webhook handler
+ * INSIDE the same transition guard that flips pending→active, so a replayed
+ * Stripe delivery can never append a duplicate `bid_scout_purchased` row.
+ *
+ * The row is a standalone timeline/audit record (NOT a funnel stage): it never
+ * synthesizes radar_completed / signup_completed / activated / paid, and no
+ * existing funnel queries read this event name. It writes through the same
+ * funnel_events table and column set the canonical analytics writer uses; the
+ * Stripe signature is the bot/visitor filter — there is no user agent or
+ * visitor session on a webhook. user_email is stamped from the customer's
+ * checkout email so the standard read-side QA/admin exclusions apply to it.
+ *
+ * Dedupe: callers only invoke this when the guarded UPDATE actually
+ * transitioned a row (RETURNING id non-empty). A second, belt-and-suspenders
+ * guard checks for an existing purchase event carrying this record id in its
+ * metadata label — permanent (not the 1s intake collapse), because replays
+ * arrive at any time.
+ */
+export async function recordBidScoutPurchasedEvent(
+  meta: BidScoutPurchasedEventMeta,
+): Promise<boolean> {
+  try {
+    const existing = (await sql()`
+      SELECT 1 FROM funnel_events
+      WHERE event_name = 'bid_scout_purchased'
+        AND label LIKE ${`%"bidScoutId":"${meta.recordId}"%`}
+      LIMIT 1
+    `) as Array<{ "?column?": number }>;
+    if (existing.length > 0) return true; // already recorded — never duplicate
+    const metadata = JSON.stringify({
+      product: "bid_scout",
+      bidScoutId: meta.recordId,
+      stripeSessionId: meta.sessionId,
+      amount: BID_SCOUT_PRICE_USD,
+      currency: "usd",
+    });
+    await sql()`
+      INSERT INTO funnel_events (
+        event_name, label, path, user_agent, ip, referrer,
+        source, medium, campaign, click_id,
+        visitor_id, visit_id, user_id, user_email,
+        city, region, device_type, browser_label
+      ) VALUES (
+        'bid_scout_purchased', ${metadata}, '/bid-scout',
+        NULL, NULL, NULL,
+        NULL, NULL, NULL, NULL,
+        NULL, NULL, NULL, ${meta.customerEmail ?? null},
+        NULL, NULL, NULL, NULL
+      )`;
+    return true;
+  } catch (err) {
+    console.error("[bid-scout] purchase event write failed:", (err as Error).message);
+    return false;
+  }
+}
 
 /**
  * Consume Stripe events that belong to Bid Scout. Returns TRUE when the event
@@ -273,9 +414,15 @@ export async function handleBidScoutSubscriptionEvent(
       : (session.customer?.id ?? null);
 
     try {
+      // Primary path — the pending row id is in session metadata. RETURNING id
+      // makes the idempotence seam visible: a delivery that actually performs
+      // the pending→active transition returns the row; a REPLAY (status already
+      // 'active') matches nothing. The Phase B purchase event is written ONLY
+      // inside this guard, so repeated webhook deliveries can never create
+      // duplicate bid_scout_purchased rows.
+      let transitionedId: string | null = null;
       if (recordId) {
-        // Primary path — the pending row id is in session metadata.
-        await sql()`
+        const updated = (await sql()`
           UPDATE bid_scout_subscriptions
           SET status = 'active',
               stripe_checkout_session_id = COALESCE(stripe_checkout_session_id, ${session.id}),
@@ -283,17 +430,28 @@ export async function handleBidScoutSubscriptionEvent(
               stripe_subscription_id = ${subId ?? null},
               updated_at = NOW()
           WHERE id = ${recordId} AND status <> 'active'
-        `;
+          RETURNING id
+        `) as Array<{ id: string }>;
+        if (updated.length > 0) transitionedId = updated[0].id;
       } else {
         // Fallback — match by the checkout session id (hand-created links).
-        await sql()`
+        const updated = (await sql()`
           UPDATE bid_scout_subscriptions
           SET status = 'active',
               stripe_customer_id = ${customerId ?? null},
               stripe_subscription_id = ${subId ?? null},
               updated_at = NOW()
           WHERE stripe_checkout_session_id = ${session.id} AND status <> 'active'
-        `;
+          RETURNING id
+        `) as Array<{ id: string }>;
+        if (updated.length > 0) transitionedId = updated[0].id;
+      }
+      if (transitionedId) {
+        await recordBidScoutPurchasedEvent({
+          recordId: transitionedId,
+          sessionId: session.id,
+          customerEmail: sessionEmail(session),
+        });
       }
     } catch (err) {
       console.error("[bid-scout] webhook checkout.session.completed failed:", (err as Error).message);

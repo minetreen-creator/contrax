@@ -13,7 +13,8 @@
  * This page lives OUTSIDE every existing funnel by design.
  */
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { trackEvent } from "~/lib/track";
 
 export const Route = createFileRoute("/bid-scout")({
   head: () => ({
@@ -65,6 +66,18 @@ function BidScoutPage() {
   });
 
   const [submit, setSubmit] = useState<SubmitState>({ kind: "idle" });
+  // Phase B analytics: one bid_scout_viewed per qualifying visitor view.
+  // Same client effect + firewall-and-forget beacon as every other funnel
+  // event: the intake handler applies the standard bot / QA / admin / test
+  // exclusions, the 1s write-time dedupe collapses double-fires, and the
+  // event name is standalone (no funnel stage membership). The useRef guard
+  // mirrors radar_results_viewed so a re-render cannot double-fire.
+  const viewedFired = useRef(false);
+  useEffect(() => {
+    if (viewedFired.current) return;
+    viewedFired.current = true;
+    trackEvent("bid_scout_viewed", params.source || "bid_scout_page", "/bid-scout");
+  }, [params.source]);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();

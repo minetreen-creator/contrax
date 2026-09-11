@@ -34,9 +34,20 @@ export function AdminHeader({ scoreboard }: { scoreboard?: ReactNode }) {
 export interface FinanceResult {
   mrrCents: number;
   customerCount: number;
+  /** MRR of existing Contrax plans ONLY (Bid Scout excluded — never
+   *  double-counted; owner 2026-09-11). */
+  existingPlanMrr: number;
+  /** MRR of Bid Scout subscriptions ONLY (separate assisted-service line). */
+  bidScoutMrr: number;
+  /** existingPlanMrr + bidScoutMrr — equals mrrCents (the true total). */
+  totalMrr: number;
+  /** Distinct Bid Scout customers (reported separately from customerCount). */
+  bidScoutCustomers: number;
   source: "stripe-live" | "app-db";
   truncated: boolean;
   tiers: { tier: string; customers: number; mrrCents: number }[];
+  /** Separately displayed finance lines (e.g. "Bid Scout MRR"). */
+  display: { label: string; amount: number; product: string }[];
   customers: { email: string; planTier: string | null; since: string | null }[];
   fetchedAt: string;
 }
@@ -92,7 +103,7 @@ export function MrrScoreboard() {
 }
 
 // ── Tab bar ──────────────────────────────────────────────────────────────────
-export type AdminTab = "overview" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers";
+export type AdminTab = "overview" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "bid-scout";
 
 export const ADMIN_TABS: { key: AdminTab; label: string; href: string }[] = [
   { key: "overview", label: "Overview", href: "/admin" },
@@ -101,6 +112,7 @@ export const ADMIN_TABS: { key: AdminTab; label: string; href: string }[] = [
   { key: "visitors", label: "Visitors", href: "/admin/journeys" },
   { key: "signups", label: "Signups", href: "/admin/signups" },
   { key: "customers", label: "Customers", href: "/admin/customers" },
+  { key: "bid-scout", label: "Bid Scout", href: "/admin/bid-scout" },
 ];
 
 export function AdminTabs({ active }: { active: AdminTab }) {

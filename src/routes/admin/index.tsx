@@ -46,6 +46,8 @@ interface UnifiedStage { stage: string; label: string; count: number; stepConver
 interface UnifiedResult { rangeDays: number; stages: UnifiedStage[]; }
 interface SimpleFunnel { rangeDays: number; funnel: { stage: string; label: string; count: number; dropOffPct: number | null }[]; }
 interface FinanceShape { mrrCents: number; customerCount: number; source: "stripe-live" | "app-db"; }
+interface BidScoutFunnelStageShape { key: "viewed" | "checkout_started" | "purchased"; label: string; count: number; }
+interface BidScoutFunnelShape { range: "30d"; stages: BidScoutFunnelStageShape[]; }
 
 type RadarLeadStage = "captured" | "confirmed" | "alerted" | "clicked";
 type SignupStatus = "Not started" | "Viewed" | "Started" | "Abandoned" | "Success";
@@ -328,6 +330,7 @@ function AdminOverviewPage() {
   const [autopsy, setAutopsy] = useState<SimpleFunnel | null>(null);
   const [radarLeads, setRadarLeads] = useState<SimpleFunnel | null>(null);
   const [radarConv, setRadarConv] = useState<RadarConversionFunnelResult | null>(null);
+  const [bidScoutFunnel, setBidScoutFunnel] = useState<BidScoutFunnelShape | null>(null);
   const [fin, setFin] = useState<FinanceShape | null>(null);
   const [actOn, setActOn] = useState<ActOnRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -342,14 +345,16 @@ function AdminOverviewPage() {
       getJson<SimpleFunnel>("/api/admin/autopsy-funnel?days=30"),
       getJson<SimpleFunnel>("/api/admin/radar-leads-funnel?days=30"),
       getJson<RadarConversionFunnelResult>("/api/admin/radar-conversion-funnel?days=30"),
+      getJson<BidScoutFunnelShape>("/api/admin/bid-scout-funnel"),
       getJson<FinanceShape>("/api/admin/finance"),
     ])
-      .then(([u, a, r, rc, fn]) => {
+      .then(([u, a, r, rc, bs, fn]) => {
         if (cancelled) return;
         setUnified(u);
         setAutopsy(a);
         setRadarLeads(r);
         setRadarConv(rc);
+        setBidScoutFunnel(bs);
         setFin(fn);
       })
       .catch((err) => {
@@ -514,6 +519,51 @@ function AdminOverviewPage() {
               <p className="mt-3 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
                 Drop-off % is lost vs. the previous stage; 0 when the previous stage is 0. Reads live from existing
                 funnel events (no analytics rewrite).
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* BID SCOUT FUNNEL — separate assisted-service path (owner 2026-09-11,
+            Phase B). Own card: NOT inside the Radar Conversion or Autopsy
+            components, and NEVER part of the canonical unified funnel. */}
+        <section>
+          <h2 className="text-lg font-semibold text-slate-800 mb-1">Bid Scout Funnel</h2>
+          <p className="mb-3 text-xs text-slate-500">Separate assisted-service path · last 30 days</p>
+          {error ? (
+            <SectionError message={error} />
+          ) : loading || !bidScoutFunnel ? (
+            <SectionLoading message="Loading bid scout funnel…" />
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex flex-wrap items-center gap-y-3">
+                {bidScoutFunnel.stages.map((s, idx) => {
+                  const prev = idx === 0 ? null : bidScoutFunnel.stages[idx - 1].count;
+                  const drop = prev != null && prev > 0 ? dropPct(s.count, prev) : null;
+                  return (
+                    <div key={s.key} className="flex items-center">
+                      <div className="min-w-[120px] rounded-xl border border-blue-200 bg-blue-50/50 px-3 py-2">
+                        <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{s.label}</p>
+                        <p className="text-xl font-bold text-slate-900">{s.count}</p>
+                        <p className="mt-0.5 text-[9px] leading-tight text-slate-400">
+                          {idx === 0 ? "base · 30d" : drop != null ? `−${drop}% vs prev` : "— vs prev"}
+                        </p>
+                      </div>
+                      {idx < bidScoutFunnel.stages.length - 1 && (
+                        <span className="mx-1.5 w-10 text-center">
+                          <span className="text-[10px] font-bold text-rose-500">{drop != null ? `−${drop}%` : "—"}</span>
+                          <span className="block text-[9px] text-slate-300">→</span>
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="mt-3 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
+                Bid Scout viewed → Checkout started → Purchased. Separate from the Radar Conversion and Autopsy
+                funnels and OUTSIDE the canonical unified funnel — a Bid Scout purchase never synthesizes signup,
+                activation, or paid-stage events. Purchased counts distinct bid_scout_subscriptions rows (status any)
+                in the window. Bot/QA/admin/test excluded.
               </p>
             </div>
           )}

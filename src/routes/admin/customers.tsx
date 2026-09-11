@@ -90,6 +90,19 @@ function CustomersPage() {
                         </div>
                       ))
                     )}
+                    {/* Bid Scout MRR — SEPARATE line (owner 2026-09-11): never
+                        inside the Starter/Professional/Agency buckets, never a
+                        9th CONTRAX TODAY card. Forward-compatible: present even
+                        when 0. */}
+                    {fin.display?.map((d) => (
+                      <div key={d.product} className="mt-2 flex items-center justify-between border-t border-slate-100 pt-2">
+                        <span className="text-sm font-semibold text-slate-700">{d.label}</span>
+                        <span className="text-sm text-slate-500">
+                          {fin.bidScoutCustomers != null ? `${fin.bidScoutCustomers} · ` : ""}
+                          <span className="font-bold text-slate-900">{moneyWhole(d.amount)}</span>
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

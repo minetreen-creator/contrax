@@ -3,6 +3,11 @@ import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { qaUserExclusionSQL } from "~/lib/qa-exclusion";
 import { getStripe } from "~/lib/stripe";
+import {
+  computeMrrBreakdown,
+  isBidScoutSubscription,
+} from "~/lib/finance-mrr";
+import { BID_SCOUT_PRICE_USD } from "~/lib/bid-scout";
 
 /**
  * GET /api/admin/finance
@@ -97,12 +102,35 @@ async function handler({ request }: { request: Request }) {
     console.error("[api/admin/finance] db aggregation failed (continuing):", err);
   }
 
+  // Split MRR: existing Contrax plans vs the SEPARATE Bid Scout product
+  // (owner 2026-09-11). Forward-compatible — both present even when 0.
+  let existingPlanMrr = 0;
+  let bidScoutMrr = 0;
+  let totalMrr = 0;
+  let bidScoutCustomers = 0;
+  let display: { label: string; amount: number; product: "bid_scout" }[] = [];
+
   // Preferred: live Stripe read of actual active subscriptions.
   let mrrCents = tiers.reduce((sum, t) => sum + t.mrrCents, 0);
   let customerCount = tiers.reduce((sum, t) => sum + t.customers, 0);
   let source: "stripe-live" | "app-db" = "app-db";
   let truncated = false;
   try {
+    // DB fallback baseline: Bid Scout MRR from the subscription rows the
+    // webhook maintains ($99/active) — used only when Stripe is unreachable.
+    try {
+      const qaExcl = qaUserExclusionSQL("");
+      const bsRows: any[] = await sql()`
+        SELECT COUNT(*)::int AS n FROM bid_scout_subscriptions
+        WHERE status = 'active'
+          AND ${sql().unsafe(qaExcl)}
+          AND LOWER(COALESCE(email, '')) NOT IN (${[...ADMIN_EMAILS].map((e) => e.toLowerCase())})`;
+      const n = Number(bsRows?.[0]?.n ?? 0);
+      bidScoutMrr = n * BID_SCOUT_PRICE_USD;
+      bidScoutCustomers = n;
+    } catch (err) {
+      console.error("[api/admin/finance] bid-scout DB mrr read failed (continuing):", err);
+    }
     const stripe = getStripe();
     const subs = await stripe.subscriptions.list({
       status: "active",
@@ -110,24 +138,29 @@ async function handler({ request }: { request: Request }) {
       expand: ["data.items.data.price"],
     });
     truncated = subs.has_more;
-    let liveCents = 0;
-    const liveCustomers = new Set<string>();
-    for (const s of subs.data) {
-      const custId = typeof s.customer === "string" ? s.customer : (s.customer as any)?.id;
-      if (custId) liveCustomers.add(String(custId));
-      for (const item of s.items.data) {
-        const price = item.price as any;
-        if (!price?.recurring) continue; // MRR = recurring only
-        const amt = Number(price?.unit_amount ?? 0);
-        if (amt > 0) liveCents += amt * (item.quantity ?? 1);
-      }
-    }
-    mrrCents = liveCents;
-    customerCount = liveCustomers.size;
+    // A SUCCESSFUL Stripe list is authoritative (an empty list means genuinely
+    // no active subscriptions — same semantics as the pre-Bid-Scout code).
+    const breakdown = computeMrrBreakdown(subs.data as never[]);
+    existingPlanMrr = breakdown.existingPlanMrr;
+    bidScoutMrr = breakdown.bidScoutMrr;
+    bidScoutCustomers = breakdown.bidScoutCustomers;
+    totalMrr = existingPlanMrr + bidScoutMrr;
+    display = [{ label: "Bid Scout MRR", amount: bidScoutMrr, product: "bid_scout" }];
+    mrrCents = totalMrr; // stays the true TOTAL (existing plans + Bid Scout)
+    // Customers = distinct holders of an EXISTING-plan active subscription.
+    // Bid Scout customers are reported separately (bidScoutCustomers + the
+    // separate Bid Scout MRR line) — never merged, never double-counted.
+    customerCount = breakdown.existingCustomers;
     source = "stripe-live";
     // Resolve display emails for live Stripe customers via the webhook-written
     // stripe_customer_id (fail-open; unresolved customers simply show no email).
-    if (liveCustomers.size > 0) {
+    const liveCustomers = subs.data
+      .filter((s) => !isBidScoutSubscription(s as never))
+      .map((s) =>
+        typeof s.customer === "string" ? s.customer : (s.customer as any)?.id,
+      )
+      .filter((id): id is string => !!id);
+    if (liveCustomers.length > 0) {
       try {
         const ids = [...liveCustomers];
         const emailRows: any[] = await sql()`
@@ -147,16 +180,30 @@ async function handler({ request }: { request: Request }) {
       customers = [];
     }
   } catch (err) {
-    // Fail-open to the DB aggregation above (source stays "app-db").
+    // Fail-open to the DB aggregation above (source stays "app-db"). Keep the
+    // split invariant: existingPlanMrr = the DB plan MRR, bidScoutMrr from the
+    // subscription rows read above, total = existing + bid scout.
+    existingPlanMrr = mrrCents;
+    totalMrr = existingPlanMrr + bidScoutMrr;
+    mrrCents = totalMrr;
+    display = [{ label: "Bid Scout MRR", amount: bidScoutMrr, product: "bid_scout" }];
     console.error("[api/admin/finance] live Stripe read failed, using app-db fallback:", (err as Error)?.message ?? err);
   }
 
   return Response.json({
+    // mrrCents stays the TRUE TOTAL (existing plans + Bid Scout) so the MRR
+    // card keeps showing the whole picture; the split below is forward-
+    // compatible analytics surface (both present even when 0).
     mrrCents,
     customerCount,
+    existingPlanMrr,
+    bidScoutMrr,
+    totalMrr,
+    bidScoutCustomers,
     source,
     truncated,
     tiers,
+    display,
     customers,
     fetchedAt: new Date().toISOString(),
   });

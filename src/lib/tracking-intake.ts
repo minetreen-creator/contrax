@@ -123,6 +123,15 @@ export const EVENT_LABELS: Record<string, string> = {
   // Display-only: NOT in AUTOPSY_EVENTS, so the admin autopsy-funnel stage
   // counts ignore it and the 9 owner-exact stages stay byte-identical.
   autopsy_home_cta: "Homepage autopsy section engaged",
+  // Bid Scout assisted-service path (owner 2026-09-11, Phase B) — THREE
+  // standalone event names. Display labels only: NOT in QUALIFYING_EVENTS,
+  // ACTIVATION_EVENTS, RADAR funnel sets, unified-funnel sets, or any stage
+  // definition. A Bid Scout purchase never synthesizes radar_completed /
+  // signup_completed / activated / paid. bid_scout_purchased is written
+  // SERVER-SIDE ONLY by the webhook (never by the client).
+  bid_scout_viewed: "Bid Scout page viewed",
+  bid_scout_checkout_started: "Bid Scout checkout started",
+  bid_scout_purchased: "Bid Scout purchased",
 };
 
 function getClientIp(request: Request): string | null {

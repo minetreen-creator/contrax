@@ -12,6 +12,7 @@ import { RadarLoginNotify } from "~/components/RadarLoginNotify";
 import { SavedRadarMatches } from "~/components/SavedRadarMatches";
 import { TrialChecklist } from "~/components/TrialChecklist";
 import { TrialStartCard } from "~/components/TrialStartCard";
+import { shouldShowTrialStartCard } from "~/lib/trial-start-card";
 import { isBriefMode, readRadarTopMatch, BRIEF_MODE_EVENTS } from "~/lib/brief-mode";
 import { trackEvent } from "~/lib/track";
 import { CompanyProfile, type BusinessProfile } from "~/components/CompanyProfile";
@@ -810,6 +811,43 @@ function ZeroMatchesEmpty({
 }
 
 // ── Deadline Alert Banner ────────────────────────────────────────────────────
+/**
+ * Bid Scout assistance card (owner 2026-09-11, Phase B) — the dashboard
+ * placement for the $99/mo assisted-service product. Shows ONLY to FREE-TIER
+ * users: no active paid plan AND no active trial/grant entitlement. The
+ * visibility predicate is the SAME one the trial/pricing code uses
+ * (shouldShowTrialStartCard — free-Basic only: not admin, not paid, not demo,
+ * not in/expired trial, no full-access grant). Trial/downgrade behavior is
+ * untouched. The CTA carries its placement in ?source=dashboard (Bid Scout's
+ * own source column — acquisition attribution is never touched).
+ */
+function BidScoutAssistanceCard({ trial, user }: { trial: TrialStatus | null; user: AuthUser }) {
+  const { show } = shouldShowTrialStartCard(trial, user);
+  if (!show) return null;
+  return (
+    <div className="mb-8 rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-50 to-white p-6 shadow-sm">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+        <div className="space-y-1.5">
+          <h2 className="text-lg font-bold text-slate-900">Bid Scout</h2>
+          <p className="text-sm text-slate-600">
+            Get five handpicked opportunities every Friday — matched to your business by a real person on our team.
+          </p>
+          <p className="text-xs text-slate-400">$99/month · Cancel anytime</p>
+        </div>
+        <a
+          href="/bid-scout?source=dashboard"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-500 active:scale-[0.98]"
+        >
+          Get five handpicked opportunities every Friday
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5-5 5M6 12h12" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  );
+}
+
 function DeadlineAlertBanner({ count }: { count: number }) {
   if (count === 0) return null;
   return (
@@ -1589,6 +1627,10 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
           <TrialStartCard onTrialStarted={onTrialStarted} preferredFirstId={briefRadarTop?.id ?? null} />
         )}
         {!briefMode && <TrialStartCard onTrialStarted={onTrialStarted} />}
+
+        {/* Bid Scout assistance card — free-tier users ONLY (no active paid
+            plan AND no active trial/grant entitlement). */}
+        <BidScoutAssistanceCard trial={trial} user={user} />
 
         {/* Deadline Alert Banner */}
         <DeadlineAlertBanner count={urgentTrackedCount} />

@@ -9,6 +9,7 @@
 
 import Stripe from "stripe";
 import { sql } from "~/db";
+import { handleBidScoutSubscriptionEvent } from "~/lib/bid-scout";
 import { sendWelcomeEmail } from "~/lib/email";
 import { hashPassword } from "~/lib/password";
 
@@ -422,6 +423,17 @@ export async function handleStripeWebhook(
   } catch (err) {
     console.error("Stripe webhook signature verification failed:", (err as Error).message);
     return { success: false, error: "Invalid signature" };
+  }
+
+  // Bid Scout is a SEPARATE product (not a Contrax user plan) — consume its
+  // events (checkout.session.completed / customer.subscription.deleted /
+  // invoice.payment_failed) here and NEVER fall through to the user-account
+  // flow below. Non-Bid-Scout events return false and take the existing path
+  // byte-identically. (Owner 09-10: "Use the existing verified Stripe webhook.
+  // Do not create a second webhook.")
+  const bidScoutConsumed = await handleBidScoutSubscriptionEvent(event);
+  if (bidScoutConsumed) {
+    return { success: true };
   }
 
   // Only handle checkout.session.completed

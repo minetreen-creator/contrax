@@ -20,6 +20,10 @@
  *   6. customer.subscription.deleted (signed) → cancelled
  *   7. invoice.payment_failed (signed) → past_due (and never resurrects a
  *      cancelled row; never touches a non-Bid-Scout event)
+ *   9. Recovery (owner 2026-09-11): invoice.paid → past_due → 'active' ONLY
+ *      for Bid Scout (subscription metadata product:"bid_scout") — cancelled
+ *      records stay cancelled; non-Bid-Scout invoices fall through untouched
+ *      (not consumed); replay of the same invoice.paid is a no-op.
  *
  * Usage: DATABASE_URL=... STRIPE_BID_SCOUT_PRICE_ID=price_test_xxx \
  *        bun run scripts/test-bid-scout.ts
@@ -65,7 +69,10 @@ function makeSignature(payload: string): string {
   return `t=${ts},v1=${mac}`;
 }
 
-async function deliverEvent(event: Record<string, unknown>) {
+async function deliverEvent(
+  event: Record<string, unknown>,
+  stripeOverride?: unknown,
+) {
   // NOTE: we validate the HMAC signature with Stripe's constructEventAsync
   // (the sync constructEvent used by src/lib/stripe.ts requires node's sync
   // crypto — it is the proven production path on Vercel's Node runtime; under
@@ -80,7 +87,7 @@ async function deliverEvent(event: Record<string, unknown>) {
     apiVersion: "2024-12-18.acacia" as never,
   });
   const verified = await client.webhooks.constructEventAsync(payload, sig, WEBHOOK_SECRET);
-  return handleBidScoutSubscriptionEvent(verified as never);
+  return handleBidScoutSubscriptionEvent(verified as never, stripeOverride as never);
 }
 
 // Fake Stripe client — records the session params so we can assert them.
@@ -97,6 +104,23 @@ const stubStripe = {
           url: `https://checkout.stripe.com/c/pay/cs_test_bidscout_${stubSessionCounter}`,
         };
       },
+    },
+  },
+} as never;
+
+// Fake Stripe subscriptions client for the invoice.paid verification step
+// (GET /v1/subscriptions/:id). The test controls each sub's metadata.
+const stubSubMetadata: Record<string, { metadata?: Record<string, unknown> }> = {};
+const stubSubscriptions = {
+  subscriptions: {
+    retrieve: async (id: string) => {
+      const hit = stubSubMetadata[id];
+      if (!hit) {
+        const err = new Error(`No such subscription: '${id}'`) as Error & { code?: string };
+        err.code = "resource_missing"; // Stripe's real error shape
+        throw err;
+      }
+      return { id, metadata: hit.metadata ?? {} };
     },
   },
 } as never;
@@ -134,6 +158,10 @@ async function main() {
   await db`${db.unsafe(ddl)}`; // second apply (no-op)
   await db`CREATE INDEX IF NOT EXISTS idx_bid_scout_subscriptions_email ON bid_scout_subscriptions (LOWER(email))`;
   ok(true, "035 DDL applies twice (idempotent)");
+  const baselineCount = (await db`
+    SELECT COUNT(*)::int AS c FROM bid_scout_subscriptions
+  `) as Array<{ c: number }>;
+  const BASELINE = baselineCount[0].c;
 
   // 2. Validation
   console.log("\n2) Validation");
@@ -350,11 +378,196 @@ async function main() {
   // regular flow is out of Phase A test scope. Just log.
   console.log(`     (regular-flow user rows for test email: ${regularUser.length})`);
 
+  // 9. Recovery: invoice.paid → past_due → 'active' (Bid Scout ONLY, owner 2026-09-11)
+  console.log("\n9) Webhook recovery: invoice.paid → active (Bid Scout only)");
+
+  // ① Setup: record3 = active → past_due (payment_failed), then invoice.paid
+  const input3 = { ...input, source: "pricing_page", notes: "recovery flow" };
+  const result3 = await createBidScoutCheckoutSession(input3, {
+    userId: null,
+    stripe: stubStripe as never,
+  });
+  if (!result3.recordId) throw new Error("no record3 id");
+  await deliverEvent({
+    id: "evt_test_bidscout_checkout3",
+    type: "checkout.session.completed",
+    data: {
+      object: {
+        id: "cs_test_bidscout_3",
+        object: "checkout.session",
+        metadata: { product: "bid_scout", bidScoutId: result3.recordId },
+        customer: "cus_test_bidscout_3",
+        subscription: "sub_test_bidscout_3",
+        customer_details: { email: TEST_EMAIL },
+      },
+    },
+  });
+  await deliverEvent({
+    id: "evt_test_bidscout_failed3",
+    type: "invoice.payment_failed",
+    data: { object: { id: "in_test_bidscout_3", object: "invoice", subscription: "sub_test_bidscout_3" } },
+  });
+  const beforeRecovery = (await db`
+    SELECT status FROM bid_scout_subscriptions WHERE id = ${result3.recordId}
+  `) as Array<{ status: string }>;
+  ok(beforeRecovery[0].status === "past_due", "precondition: record3 is past_due");
+
+  stubSubMetadata["sub_test_bidscout_3"] = {
+    metadata: { product: "bid_scout", bidScoutId: result3.recordId },
+  };
+  const paidEvent3 = {
+    id: "evt_test_bidscout_paid3",
+    type: "invoice.paid",
+    data: {
+      object: {
+        id: "in_test_bidscout_3",
+        object: "invoice",
+        subscription: "sub_test_bidscout_3",
+        paid: true,
+        amount_paid: 9900,
+      },
+    },
+  };
+  const recRes = await deliverEvent(paidEvent3, stubSubscriptions);
+  ok(recRes === true, "invoice.paid consumed (bid_scout)");
+  const afterRecovery = (await db`
+    SELECT status, updated_at FROM bid_scout_subscriptions WHERE id = ${result3.recordId}
+  `) as Array<{ status: string; updated_at: string }>;
+  ok(
+    afterRecovery[0].status === "active",
+    "past_due → active on invoice.paid",
+    `status=${afterRecovery[0].status}`,
+  );
+
+  // ④ Replay the same invoice.paid → no double update
+  const replayPaid = await deliverEvent(paidEvent3, stubSubscriptions);
+  ok(replayPaid === true, "invoice.paid replay consumed (no-op)");
+  const afterReplayPaid = (await db`
+    SELECT status, updated_at FROM bid_scout_subscriptions WHERE id = ${result3.recordId}
+  `) as Array<{ status: string; updated_at: string }>;
+  ok(
+    afterReplayPaid[0].status === "active" &&
+      new Date(afterReplayPaid[0].updated_at).getTime() ===
+        new Date(afterRecovery[0].updated_at).getTime(),
+    "invoice.paid replay is a no-op (status + updated_at unchanged)",
+  );
+
+  // ② Cancelled record + invoice.paid → STAYS cancelled (never reactivated)
+  stubSubMetadata["sub_test_bidscout_1"] = {
+    metadata: { product: "bid_scout", bidScoutId: result.recordId },
+  };
+  const paidCancelledEvent = {
+    id: "evt_test_bidscout_paid_cancelled",
+    type: "invoice.paid",
+    data: {
+      object: { id: "in_test_bidscout_1", object: "invoice", subscription: "sub_test_bidscout_1" },
+    },
+  };
+  const cancelledPaidRes = await deliverEvent(paidCancelledEvent, stubSubscriptions);
+  ok(cancelledPaidRes === true, "cancelled-bid_scout invoice.paid consumed (ours)");
+  const afterCancelledPaid = (await db`
+    SELECT status FROM bid_scout_subscriptions WHERE id = ${result.recordId}
+  `) as Array<{ status: string }>;
+  ok(
+    afterCancelledPaid[0].status === "cancelled",
+    "cancelled record STAYS cancelled (never reactivated)",
+  );
+
+  // ③ Non-Bid-Scout invoice.paid → fall through untouched (not consumed)
+  // (iii-a) subscription id has no row at all:
+  const paidUnknownEvent = {
+    id: "evt_test_bidscout_paid_unknown",
+    type: "invoice.paid",
+    data: {
+      object: { id: "in_unknown_999", object: "invoice", subscription: "sub_unknown_999" },
+    },
+  };
+  ok(
+    (await deliverEvent(paidUnknownEvent, stubSubscriptions)) === false,
+    "unknown-sub invoice.paid NOT consumed (fall-through)",
+  );
+
+  // (iii-b) row EXISTS + past_due, but subscription metadata carries NO
+  //         product:"bid_scout" → must NOT reactivate (owner verify rule).
+  stubSubMetadata["sub_test_bidscout_2"] = { metadata: { plan_tier: "starter" } };
+  const paidWrongProductEvent = {
+    id: "evt_test_bidscout_paid_wrongproduct",
+    type: "invoice.paid",
+    data: {
+      object: { id: "in_test_bidscout_2", object: "invoice", subscription: "sub_test_bidscout_2" },
+    },
+  };
+  ok(
+    (await deliverEvent(paidWrongProductEvent, stubSubscriptions)) === false,
+    "non-bid_scout-metadata invoice.paid NOT consumed",
+  );
+  const afterWrongProduct = (await db`
+    SELECT status FROM bid_scout_subscriptions WHERE id = ${result2.recordId}
+  `) as Array<{ status: string }>;
+  ok(
+    afterWrongProduct[0].status === "past_due",
+    "past_due record WITHOUT bid_scout metadata untouched",
+  );
+
+  // (iii-c) verification API failure → fail-closed: never reactivate
+  const input4 = { ...input, source: "pricing_page", notes: "fail-closed flow" };
+  const result4 = await createBidScoutCheckoutSession(input4, {
+    userId: null,
+    stripe: stubStripe as never,
+  });
+  if (!result4.recordId) throw new Error("no record4 id");
+  await deliverEvent({
+    id: "evt_test_bidscout_checkout4",
+    type: "checkout.session.completed",
+    data: {
+      object: {
+        id: "cs_test_bidscout_4",
+        object: "checkout.session",
+        metadata: { product: "bid_scout", bidScoutId: result4.recordId },
+        customer: "cus_test_bidscout_4",
+        subscription: "sub_test_bidscout_4",
+        customer_details: { email: TEST_EMAIL },
+      },
+    },
+  });
+  await deliverEvent({
+    id: "evt_test_bidscout_failed4",
+    type: "invoice.payment_failed",
+    data: { object: { id: "in_test_bidscout_4", object: "invoice", subscription: "sub_test_bidscout_4" } },
+  });
+  // NOTE: NO stubSubMetadata entry for sub_test_bidscout_4 → retrieve THROWS.
+  const paidVerifyFailEvent = {
+    id: "evt_test_bidscout_paid_verifyfail",
+    type: "invoice.paid",
+    data: {
+      object: { id: "in_test_bidscout_4", object: "invoice", subscription: "sub_test_bidscout_4" },
+    },
+  };
+  ok(
+    (await deliverEvent(paidVerifyFailEvent, stubSubscriptions)) === false,
+    "invoice.paid with failed verification NOT consumed (fail-closed)",
+  );
+  const afterVerifyFail = (await db`
+    SELECT status FROM bid_scout_subscriptions WHERE id = ${result4.recordId}
+  `) as Array<{ status: string }>;
+  ok(
+    afterVerifyFail[0].status === "past_due",
+    "fail-closed: record stays past_due when verification errors",
+  );
+
   // ── Cleanup ────────────────────────────────────────────────────────────────
   console.log("\n── Cleanup ──");
   await db`DELETE FROM bid_scout_subscriptions WHERE email = ${TEST_EMAIL}`;
   await db`DELETE FROM rate_limits WHERE scope LIKE 'bid_scout_%'`;
   ok(true, "test rows removed (email-scoped + bid_scout rate-limit scopes)");
+  const afterCleanup = (await db`
+    SELECT COUNT(*)::int AS c FROM bid_scout_subscriptions
+  `) as Array<{ c: number }>;
+  ok(
+    afterCleanup[0].c === BASELINE,
+    `table back to baseline (${BASELINE} row${BASELINE === 1 ? "" : "s"})`,
+    `count=${afterCleanup[0].c}`,
+  );
 
   console.log(`\n══ RESULT: ${passed} passed, ${failed} failed ══`);
   process.exit(failed > 0 ? 1 : 0);

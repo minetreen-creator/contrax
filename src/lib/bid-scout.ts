@@ -14,6 +14,11 @@
  *           → status 'active' + customer/subscription ids
  *       customer.subscription.deleted → status 'cancelled'
  *       invoice.payment_failed        → status 'past_due'
+ *       invoice.paid                  → status 'past_due' → 'active' (owner
+ *           rule 2026-09-11: ONLY when the subscription carries
+ *           product:"bid_scout" AND the record is currently past_due — never
+ *           reactivates a cancelled record, never touches non-Bid-Scout
+ *           invoices, never affects existing Contrax plans)
  *     All transitions are idempotent (guarded UPDATEs) — repeated deliveries
  *     never double-process.
  *
@@ -128,6 +133,18 @@ export interface BidScoutStripeLike {
   };
 }
 
+/** Narrow Stripe surface for the invoice.paid ownership/verification step
+ *  (GET /v1/subscriptions/:id). The real Stripe client satisfies it
+ *  structurally; tests inject a stub. */
+export interface BidScoutStripeSubscriptionsLike {
+  subscriptions: {
+    retrieve: (id: string) => Promise<{
+      id: string;
+      metadata?: { [key: string]: unknown } | null;
+    }>;
+  };
+}
+
 export interface CreateBidScoutCheckoutOpts {
   /** Logged-in Contrax user id (from the session cookie) — metadata only. */
   userId?: number | string | null;
@@ -233,9 +250,15 @@ export async function createBidScoutCheckoutSession(
  *
  * Idempotency: transitions are guarded (`status <> target`) so repeated
  * deliveries of the same verified event are no-ops.
+ *
+ * @param event  Verified Stripe event (post constructEvent).
+ * @param stripeOverride  Injectable Stripe-like client used ONLY for the
+ *   invoice.paid ownership verification (GET subscription). Tests pass a stub;
+ *   production callers omit it (defaults to getStripe()).
  */
 export async function handleBidScoutSubscriptionEvent(
   event: Stripe.Event,
+  stripeOverride?: BidScoutStripeSubscriptionsLike | null,
 ): Promise<boolean> {
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
@@ -316,6 +339,40 @@ export async function handleBidScoutSubscriptionEvent(
     return hasBidScoutSubscription(subId);
   }
 
+  if (event.type === "invoice.paid") {
+    // Owner rule (2026-09-11): recovery for Bid Scout ONLY. Apply when the
+    // Stripe subscription carries product:"bid_scout" and the current record
+    // is 'past_due' → 'active'. MUST never reactivate a cancelled record and
+    // MUST never affect existing Contrax plans (non-Bid-Scout invoices fall
+    // through untouched — no update, not consumed as Bid Scout).
+    const invoice = event.data.object as Stripe.Invoice;
+    const subId =
+      (invoice as { subscription?: string | null }).subscription ?? null;
+    if (!subId) return false;
+    try {
+      // 1) Resolve the record by stripe_subscription_id (only the Bid Scout
+      //    checkout ever writes these rows). No row → not ours → fall through.
+      if (!(await hasBidScoutSubscription(subId))) return false;
+      // 2) Verify the LIVE subscription (or its metadata) carries
+      //    product:"bid_scout" BEFORE acting. Fail-closed: an API error must
+      //    never reactivate (the outer handler acknowledges with no action).
+      if (!(await isBidScoutSubscriptionByStripe(subId, stripeOverride ?? null))) {
+        return false;
+      }
+      // 3) past_due → active ONLY. cancelled/pending/active rows match nothing
+      //    (a cancelled record stays cancelled; an active record stays active).
+      await sql()`
+        UPDATE bid_scout_subscriptions
+        SET status = 'active', updated_at = NOW()
+        WHERE stripe_subscription_id = ${subId} AND status = 'past_due'
+      `;
+    } catch (err) {
+      console.error("[bid-scout] webhook invoice.paid failed:", (err as Error).message);
+      return false;
+    }
+    return true;
+  }
+
   return false;
 }
 
@@ -339,4 +396,28 @@ async function hasBidScoutSubscription(subId: string | null): Promise<boolean> {
 function isBidScoutSubscription(sub: Stripe.Subscription): boolean {
   const md = sub.metadata ?? {};
   return md.product === "bid_scout" || md.bidScoutId != null;
+}
+
+/** Owner rule (2026-09-11) invoice.paid verification: confirm the LIVE
+ *  Stripe subscription (or its metadata) carries product:"bid_scout" before
+ *  reactivating a past_due record. Fail-closed — any API error returns
+ *  false so we NEVER reactivate without verification. */
+async function isBidScoutSubscriptionByStripe(
+  subId: string,
+  stripeOverride: BidScoutStripeSubscriptionsLike | null,
+): Promise<boolean> {
+  try {
+    const stripe =
+      stripeOverride ??
+      (getStripe() as unknown as BidScoutStripeSubscriptionsLike);
+    const sub = await stripe.subscriptions.retrieve(subId);
+    const md = sub.metadata ?? {};
+    return md.product === "bid_scout" || md.bidScoutId != null;
+  } catch (err) {
+    console.error(
+      "[bid-scout] stripe subscription verify failed (fail-closed):",
+      (err as Error).message,
+    );
+    return false;
+  }
 }

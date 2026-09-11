@@ -27,7 +27,13 @@
  *                     patterns) OR the referrer names an email-client/ESP host
  *                     (list-manage, mailchi.mp, sendgrid, mailgun, postmark,
  *                     customer.io, constantcontact, hubspot, mail.google.,
- *                     mail.yahoo., outlook., icloud.com/mail, mailto:).
+ *                     mail.yahoo., outlook., icloud.com/mail, mailto:) OR the
+ *                     CTA/placement `label` is an owner-outreach campaign slug:
+ *                     the outreach emails' `?source=` token is ROT13-obfuscated
+ *                     before intake, so the raw AND ROT13-decoded label are
+ *                     tested against the outreach campaign family (see
+ *                     OUTREACH_LABEL_PATTERNS / rot13Label; observed live
+ *                     2026-09-11 label 'gehdxvat_bhgefbdu' → 'truqking_outrsoqh').
  *   3. dashboard    — CTA placement `label` = 'dashboard' (the dashboard's
  *                     `?source=dashboard` link) OR a first-party referrer whose
  *                     PATH is an authenticated app route (/dashboard, /app,
@@ -131,6 +137,31 @@ const EMAIL_SOURCE_PATTERNS =
 const EMAIL_REFERRER_PATTERNS =
   /list-manage|mailchi\.mp|mailto:|mail\.google\.|mail\.yahoo\.|outlook\.|icloud\.com\/mail|sendgrid|mailgun|postmark|customer\.io|constantcontact|hubspot|eml\//i;
 
+/**
+ * ROT13 — the owner's outreach emails obfuscate the `?source=` campaign token
+ * with ROT13 before it reaches the intake, so the stored `label` is the
+ * encoded bytes (observed 2026-09-11: today's live trucking-outreach campaign
+ * stored label 'gehdxvat_bhgefbdu' — ROT13 of 'truqking_outrsoqh', i.e. the
+ * link generator mangles c→q / e→s / a→o vs. a clean 'trucking_outreach').
+ * ROT13 is an involution: decoding a plaintext label is a safe no-op for
+ * matching purposes, and decoding the encoded form recovers the campaign slug.
+ */
+export function rot13Label(s: string): string {
+  return s.replace(/[a-z]/gi, (ch) => {
+    const code = ch.charCodeAt(0);
+    const base = code <= 90 ? 65 : 97;
+    return String.fromCharCode(((code - base + 13) % 26) + base);
+  });
+}
+
+/** Outreach campaign labels — the owner's email/outreach campaign slugs.
+ * Tested against BOTH the raw label (plaintext campaign, e.g. 'trucking_
+ * outreach', 'email') and the ROT13-decoded label (as stored for today's
+ * live campaign). 'truqk…' / 'outrs…' cover the link generator's observed
+ * mangled family (decoded 'truqking_outrsoqh'). */
+const OUTREACH_LABEL_PATTERNS =
+  /(outreach|trucking|email|newsletter|mailing|mailer|blast|campaign|truqk|outrs)/i;
+
 /** Authenticated app paths — an internal referrer under any of these is a
  *  "dashboard" source (distinguished from the homepage by PATH). */
 const APP_PATH_PREFIXES = ["/dashboard", "/app", "/onboarding", "/settings"];
@@ -181,8 +212,16 @@ export function bucketBidScoutLanding(row: BucketInput): BidScoutSourceBucket {
   if (source === "facebook" || clickId.length > 0 || referrerMatches(ref, /facebook|fb\.com|fbclid/i)) {
     return "facebook";
   }
-  // 2. email/outreach — utm_source email-style values or an email-client/ESP referrer.
-  if (EMAIL_SOURCE_PATTERNS.test(source) || referrerMatches(ref, EMAIL_REFERRER_PATTERNS)) {
+  // 2. email/outreach — utm_source email-style values, an email-client/ESP
+  //    referrer, or an owner-outreach campaign label. The outreach emails'
+  //    ?source= token is ROT13-obfuscated before it reaches the intake, so
+  //    test the DECODED label too (see rot13Label / OUTREACH_LABEL_PATTERNS).
+  if (
+    EMAIL_SOURCE_PATTERNS.test(source) ||
+    referrerMatches(ref, EMAIL_REFERRER_PATTERNS) ||
+    OUTREACH_LABEL_PATTERNS.test(label) ||
+    OUTREACH_LABEL_PATTERNS.test(rot13Label(label))
+  ) {
     return "email_outreach";
   }
   // 3. dashboard — explicit placement label, or a first-party app-path referrer.

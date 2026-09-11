@@ -54,6 +54,34 @@ async function fetchSubscriptions(status: string): Promise<SubscriptionsResult> 
   return res.json();
 }
 
+// ── Phase B.1 acquisition funnel (owner 2026-09-11) ─────────────────────────
+interface AcquisitionStage {
+  key: string;
+  label: string;
+  count: number;
+}
+interface AcquisitionSource {
+  bucket: string;
+  label: string;
+  landing: number;
+  checkout_started: number;
+  purchased: number;
+}
+interface AcquisitionFunnel {
+  range: "30d";
+  stages: AcquisitionStage[];
+  conversionRatePct: number | null;
+  sources: AcquisitionSource[];
+}
+async function fetchAcquisitionFunnel(): Promise<AcquisitionFunnel> {
+  const res = await fetch("/api/admin/bid-scout-acquisition-funnel");
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Failed to load Bid Scout acquisition funnel" }));
+    throw new Error(err.error || "Failed to load Bid Scout acquisition funnel");
+  }
+  return res.json();
+}
+
 const STATUS_STYLE: Record<string, string> = {
   active: "bg-emerald-100 text-emerald-700",
   pending: "bg-amber-100 text-amber-800",
@@ -61,20 +89,129 @@ const STATUS_STYLE: Record<string, string> = {
   cancelled: "bg-slate-100 text-slate-500",
 };
 
+/**
+ * Phase B.1 acquisition funnel panel — 4 stage rows (unique visitors) + a
+ * Conversion line (Purchased ÷ Landing, 0-guarded) above the source
+ * breakdown (unique landing visitors per source + per-source
+ * checkout/purchased mini-columns). Read-only from the admin endpoint.
+ */
+function AcquisitionFunnelPanel({
+  funnel,
+  error,
+}: {
+  funnel: AcquisitionFunnel | null;
+  error: string;
+}) {
+  if (error) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        {error}
+      </div>
+    );
+  }
+  if (!funnel) {
+    return (
+      <SectionLoading message="Loading acquisition funnel…" />
+    );
+  }
+  const stageCount = (key: string) => funnel.stages.find((s) => s.key === key)?.count ?? 0;
+  const landing = stageCount("landing");
+  const purchased = stageCount("purchased");
+  const conversion =
+    funnel.conversionRatePct != null ? `${funnel.conversionRatePct.toFixed(1)}%` : "—";
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <div className="border-b border-slate-100 px-5 py-4">
+        <h2 className="text-base font-bold text-slate-900">Bid Scout acquisition funnel</h2>
+        <p className="mt-0.5 text-xs text-slate-500">
+          Unique visitors per stage · last 30 days · the success page never
+          counts as a purchase (webhook-confirmed only). QA / admin / test excluded.
+        </p>
+      </div>
+      <div className="grid gap-6 px-5 py-4 lg:grid-cols-2">
+        <div>
+          <table className="w-full text-sm">
+            <tbody>
+              {funnel.stages.map((s) => (
+                <tr key={s.key} className="border-b border-slate-50 last:border-0">
+                  <td className="py-2 pr-3 text-slate-600">{s.label}</td>
+                  <td className="py-2 text-right text-base font-bold tabular-nums text-slate-900">
+                    {s.count}
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td className="py-2 pr-3 font-semibold text-slate-700">
+                  Conversion <span className="font-normal text-slate-400">(Purchased ÷ Landing)</span>
+                </td>
+                <td className="py-2 text-right text-base font-bold tabular-nums text-blue-700">
+                  {conversion}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <p className="mt-3 text-[10px] leading-relaxed text-slate-400">
+            Purchased counts Stripe-webhook-confirmed purchases (exactly-once
+            <span className="mx-0.5">·</span>
+            webhook rows carry no visitor id, so the row counts purchases, not
+            visitors). Landing = {landing} unique visitor(s) in window.
+          </p>
+        </div>
+        <div>
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-wider text-slate-400">
+                <th className="pb-1.5 font-medium">Traffic source</th>
+                <th className="pb-1.5 text-right font-medium">Landing</th>
+                <th className="pb-1.5 text-right font-medium">Checkout</th>
+                <th className="pb-1.5 text-right font-medium">Purchased</th>
+              </tr>
+            </thead>
+            <tbody>
+              {funnel.sources.map((s) => (
+                <tr key={s.bucket} className="border-b border-slate-50 last:border-0">
+                  <td className="py-1.5 pr-3 text-slate-600">{s.label}</td>
+                  <td className="py-1.5 text-right tabular-nums text-slate-900">{s.landing}</td>
+                  <td className="py-1.5 text-right tabular-nums text-slate-900">{s.checkout_started}</td>
+                  <td className="py-1.5 text-right tabular-nums text-slate-900">{s.purchased}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-3 text-[10px] leading-relaxed text-slate-400">
+            Bucketing: facebook (source/fbclid) · email/outreach (utm_source
+            email-style or ESP referrer) · dashboard/homepage (first-party
+            referrer path or the CTA placement) · everything else =
+            other/direct. Refreshes never inflate (unique visitors).
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BidScoutAdminPage() {
   const [status, setStatus] = useState<StatusOption>("active");
   const [data, setData] = useState<SubscriptionsResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  // Phase B.1 acquisition funnel (non-blocking — the fulfillment table must
+  // render even when the funnel fetch fails).
+  const [funnel, setFunnel] = useState<AcquisitionFunnel | null>(null);
+  const [funnelError, setFunnelError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError("");
+    setFunnelError("");
     fetchSubscriptions(status)
       .then((d) => { if (!cancelled) setData(d); })
       .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load subscriptions"); })
       .finally(() => { if (!cancelled) setLoading(false); });
+    fetchAcquisitionFunnel()
+      .then((f) => { if (!cancelled) setFunnel(f); })
+      .catch((err) => { if (!cancelled) setFunnelError(err instanceof Error ? err.message : "Failed to load acquisition funnel"); });
     return () => { cancelled = true; };
   }, [status]);
 
@@ -107,6 +244,8 @@ function BidScoutAdminPage() {
           </div>
         </div>
         <AdminTabs active="bid-scout" />
+
+        <AcquisitionFunnelPanel funnel={funnel} error={funnelError} />
 
         {error ? (
           <SectionError message={error} />

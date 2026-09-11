@@ -393,7 +393,10 @@ async function raceMode() {
   console.log(`[race] edge (pay AFTER 5th redemption → completion-time enforcement): ${sb.id}`);
   console.log("[race] abandoned (never paid): " + st.sessions.find((x) => x.key === "abandoned")?.sessionId);
 
-  const abRow = await db`SELECT status FROM bid_scout_subscriptions WHERE email = ${ABANDONED_EMAIL}`;
+  // The abandoned row was created during MODE=create under ITS run — never
+  // re-derive the email from this process's RUN; use the state record.
+  const abEmail = st.sessions.find((x) => x.key === "abandoned")?.email ?? ABANDONED_EMAIL;
+  const abRow = await db`SELECT status FROM bid_scout_subscriptions WHERE email = ${abEmail}`;
   ok(abRow[0]?.status === "pending", "abandoned checkout row still pending (consumes NO completed row)", `=${abRow[0]?.status}`);
   void db;
 }
@@ -562,8 +565,9 @@ async function finalMode() {
     ok(false, "edge session present in state for never-infer verification");
   }
 
-  // §7.11 no-user-creation for buyers
-  const allEmails = [...FOUNDER_EMAILS, ABANDONED_EMAIL, `founders-edge-${st.run}@test.contrax`];
+  // §7.11 no-user-creation for buyers — emails come from the STATE records
+  // (the rows were created under earlier modes' runs, never this process's RUN).
+  const allEmails = [...new Set(st.sessions.map((s) => s.email))];
   const users = await db`SELECT COUNT(*)::int AS n FROM users WHERE email = ANY(${allEmails})`;
   ok(users[0].n === 0, "NO Contrax users auto-created for any test buyer", `n=${users[0].n}`);
 
@@ -598,7 +602,7 @@ async function finalMode() {
   // ── Cleanup (exact scope, exact ids) ─────────────────────────────────────
   console.log("\n── Cleanup ──");
   const recIds = st.sessions.map((s) => s.recordId);
-  const emails = [...allEmails, `founders-post-${RUN}@test.contrax`];
+  const emails = [...new Set([...st.sessions.map((s) => s.email)])];
   // Stripe test objects: cancel subscriptions + delete customers (by exact id)
   const sessList = await db`SELECT stripe_subscription_id, stripe_customer_id FROM bid_scout_subscriptions WHERE id = ANY(${recIds.map((r) => String(r))}::uuid[])`;
   for (const r of sessList) {

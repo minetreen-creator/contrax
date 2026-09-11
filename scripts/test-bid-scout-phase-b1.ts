@@ -15,10 +15,12 @@
  *      visitor_id by design — the stage counts webhook-confirmed purchases).
  *   3. Bucketing rule unit tests (pure function) + integration through the
  *      funnel query: facebook via first-touch attribution cookie,
- *      email via utm_source, dashboard/homepage via CTA placement label +
- *      first-party referrer PATH, everything else → other/direct; @test.contrax
- *      and admin emails excluded from every count; refresh rows never inflate
- *      (same visitor re-viewed collapses to one).
+ *      email via utm_source, B.1.1 owner-outreach via ROT13-obfuscated
+ *      campaign label (live token 'gehdxvat_bhgefbdu'), dashboard/homepage
+ *      via CTA placement label + first-party referrer PATH, everything else
+ *      → other/direct; @test.contrax and admin emails excluded from every
+ *      count; refresh rows never inflate (same visitor re-viewed collapses
+ *      to one).
  *   4. Purchased attribution: per-source purchased resolved through the
  *      buyer-email → earliest matched checkout_started visitor join;
  *      unmatchable purchases fall into other/direct; duplicate purchase
@@ -40,6 +42,7 @@ import { handleIntake } from "../src/lib/tracking-intake";
 import {
   getBidScoutAcquisitionFunnel30d,
   bucketBidScoutLanding,
+  rot13Label,
   type BidScoutSourceBucket,
 } from "../src/lib/bid-scout-acquisition-funnel";
 import { recordBidScoutCheckoutStarted } from "../src/lib/bid-scout";
@@ -56,12 +59,13 @@ const V_FB = `${PREFIX}-vfb`;
 const V_HOME = `${PREFIX}-vhome`;
 const V_DASH = `${PREFIX}-vdash`;
 const V_EMAIL = `${PREFIX}-vemail`;
+const V_OUTREACH = `${PREFIX}-voutreach`;
 const V_DIRECT = `${PREFIX}-vdirect`;
 const V_TEST = `${PREFIX}-vtest`;
 const V_ADMIN = `${PREFIX}-vadmin`;
 const V_BOT = `${PREFIX}-vbot`;
 const V_NOVID = `${PREFIX}-novid`;
-const ALL_VISITORS = [V_FB, V_HOME, V_DASH, V_EMAIL, V_DIRECT, V_TEST, V_ADMIN, V_BOT, V_NOVID];
+const ALL_VISITORS = [V_FB, V_HOME, V_DASH, V_EMAIL, V_OUTREACH, V_DIRECT, V_TEST, V_ADMIN, V_BOT, V_NOVID];
 
 const HUMAN_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
@@ -111,6 +115,10 @@ async function main() {
 
   // ── 0. Bucketing rule — unit tests (pure function) ────────────────────────
   console.log("\n0) bucketBidScoutLanding unit tests");
+  const rot13 = rot13Label;
+  ok(rot13("trucking_outreach") === "gehpxvat_bhgernpu", "rot13(trucking_outreach) = gehpxvat_bhgernpu", rot13("trucking_outreach"));
+  ok(rot13(rot13("trucking_outreach")) === "trucking_outreach", "rot13 is an involution (roundtrip)");
+  ok(rot13("gehdxvat_bhgefbdu") === "truqking_outrsoqh", "live token decodes to mangled family", rot13("gehdxvat_bhgefbdu"));
   const cases: [BucketInput, BidScoutSourceBucket, string][] = [
     [{ source: "facebook", click_id: "IwcGRvZgRleHRu" }, "facebook", "first-touch source=facebook"],
     [{ source: "direct", click_id: "fbclid_abc" }, "facebook", "click_id (fbclid) present"],
@@ -120,7 +128,14 @@ async function main() {
     [{ source: "email" }, "email_outreach", "utm_source=email"],
     [{ source: "outreach" }, "email_outreach", "utm_source=outreach"],
     [{ source: "direct", referrer: "https://us6.list-manage.com/track/click?u=1" }, "email_outreach", "ESP referrer (list-manage)"],
-    [{ label: "dashboard", source: "direct" }, "dashboard", "CTA placement label=dashboard"],
+    // B.1.1 — owner-outreach campaign labels (raw + ROT13-obfuscated).
+    [{ label: "gehpxvat_bhgernpu", source: "direct" }, "email_outreach", "label = clean ROT13('trucking_outreach') → decoded outreach → email/outreach"],
+    [{ label: "gehdxvat_bhgefbdu", source: "direct" }, "email_outreach", "label = LIVE owner-outreach token (mangled ROT13 family) → email/outreach"],
+    [{ label: "trucking_outreach", source: "direct" }, "email_outreach", "label = plaintext outreach campaign (generator fixed) → email/outreach"],
+    [{ label: "emailblast_jul", source: "direct" }, "email_outreach", "label contains email-family keyword"],
+    [{ label: "bid_scout_page", source: "direct", referrer: "https://www.contrax.company/bid-scout?source=bid_scout_page" }, "other_direct", "known placement label unaffected by rot13 rule"],
+    [{ label: "dashboard", source: "direct" }, "dashboard", "CTA placement label=dashboard (not email) — precedence"],
+    [{ source: "facebook", label: "gehpxvat_bhgernpu" }, "facebook", "facebook precedence over outreach label"],
     [{ source: "direct", referrer: "https://www.contrax.company/dashboard" }, "dashboard", "first-party referrer path /dashboard"],
     [{ label: "homepage", source: "direct" }, "homepage", "CTA placement label=homepage"],
     [{ source: "direct", referrer: "https://www.contrax.company/" }, "homepage", "first-party referrer path /"],
@@ -149,12 +164,15 @@ async function main() {
   await fireEvent({ event: "bid_scout_viewed", visitor: V_HOME, label: "homepage", cookie: attrCookie({ source: "direct" }), referer: "https://www.contrax.company/" });
   await fireEvent({ event: "bid_scout_viewed", visitor: V_DASH, label: "dashboard", cookie: attrCookie({ source: "direct" }), referer: "https://www.contrax.company/dashboard" });
   await fireEvent({ event: "bid_scout_viewed", visitor: V_EMAIL, cookie: attrCookie({ source: "newsletter" }) });
+  // B.1.1 — the live owner-outreach token (ROT13-obfuscated ?source= label,
+  // exactly as stored for tonight's campaign) must land in email/outreach.
+  await fireEvent({ event: "bid_scout_viewed", visitor: V_OUTREACH, label: "gehdxvat_bhgefbdu", cookie: attrCookie({ source: "direct" }) });
   await fireEvent({ event: "bid_scout_viewed", visitor: V_DIRECT, cookie: attrCookie({ source: "direct" }) });
   // Excluded classes:
   await fireEvent({ event: "bid_scout_viewed", visitor: V_TEST, email: EMAIL_TEST, cookie: attrCookie({ source: "direct" }) });
   await fireEvent({ event: "bid_scout_viewed", visitor: V_ADMIN, email: ADMINS[0], cookie: attrCookie({ source: "direct" }) });
   await fireEvent({ event: "bid_scout_viewed", visitor: V_BOT, ua: BOT_UA, cookie: attrCookie({ source: "direct" }) });
-  await fireEvent({ event: "bid_scout_viewed", cookie: attrCookie({ source: "direct" }) }); // V_NOVID — no visitor id
+  await fireEvent({ event: "bid_scout_viewed", label: `${PREFIX}-novid`, cookie: attrCookie({ source: "direct" }) }); // V_NOVID — no visitor id
   // Refresh duplicate for V_DIRECT (must NOT inflate distinct count):
   await fireEvent({ event: "bid_scout_viewed", visitor: V_DIRECT, cookie: attrCookie({ source: "direct" }) });
 
@@ -211,15 +229,15 @@ async function main() {
     `stages=${f.stages.map((s) => s.key).join(",")}`);
   const st = (k: string) => f.stages.find((s) => s.key === k)?.count ?? -1;
   const D = (k: string) => st(k) - B(k);
-  ok(D("landing") === 5, "landing delta = +5 (bot/test/admin/no-vid excluded; refresh did not inflate)",
+  ok(D("landing") === 6, "landing delta = +6 (bot/test/admin/no-vid excluded; refresh did not inflate)",
     `delta=${D("landing")} (baseline ${B("landing")} → ${st("landing")})`);
   ok(D("form_started") === 3, "form_started delta = +3 unique visitors", `delta=${D("form_started")}`);
   ok(D("checkout_started") === 3, "checkout_started delta = +3 unique visitors", `delta=${D("checkout_started")}`);
   ok(D("purchased") === 3, "purchased delta = +3 webhook-confirmed (duplicate metadata id counted once)",
     `delta=${D("purchased")} (baseline ${B("purchased")} → ${st("purchased")})`);
   const expectedConv =
-    B("purchased") + 3 > 0 && B("landing") + 5 > 0
-      ? Math.round(((B("purchased") + 3) / (B("landing") + 5)) * 1000) / 10
+    B("purchased") + 3 > 0 && B("landing") + 6 > 0
+      ? Math.round(((B("purchased") + 3) / (B("landing") + 6)) * 1000) / 10
       : 0;
   ok(f.conversionRatePct === expectedConv, "conversion = Purchased ÷ Landing recomputes on the real window",
     `=${f.conversionRatePct} (expected ${expectedConv})`);
@@ -228,8 +246,8 @@ async function main() {
     src(b)[field] - (before.sources.find((s) => s.bucket === b)?.[field] ?? 0);
   ok(sb("facebook", "landing") === 1 && sb("facebook", "checkout_started") === 1 && sb("facebook", "purchased") === 1,
     "facebook delta: +1 landing / +1 checkout / +1 purchased", JSON.stringify(src("facebook")));
-  ok(sb("email_outreach", "landing") === 1 && sb("email_outreach", "checkout_started") === 1 && sb("email_outreach", "purchased") === 0,
-    "email/outreach delta: +1 landing / +1 checkout / +0 purchased", JSON.stringify(src("email_outreach")));
+  ok(sb("email_outreach", "landing") === 2 && sb("email_outreach", "checkout_started") === 1 && sb("email_outreach", "purchased") === 0,
+    "email/outreach delta: +2 landing (newsletter utm + ROT13 outreach token) / +1 checkout / +0 purchased", JSON.stringify(src("email_outreach")));
   ok(sb("dashboard", "landing") === 1 && sb("dashboard", "checkout_started") === 1 && sb("dashboard", "purchased") === 1,
     "dashboard delta: +1 landing / +1 checkout / +1 purchased", JSON.stringify(src("dashboard")));
   ok(sb("homepage", "landing") === 1 && sb("homepage", "checkout_started") === 0 && sb("homepage", "purchased") === 0,
@@ -249,6 +267,13 @@ async function main() {
     "intake stamped facebook source + fbclid click_id on the landing row", JSON.stringify(fbRow[0]));
   ok(emRow[0]?.source === "newsletter", "intake stamped utm_source=newsletter (email bucket)", JSON.stringify(emRow[0]));
   ok(dhRow[0]?.label === "dashboard", "intake stamped CTA label=dashboard (dashboard bucket)", JSON.stringify(dhRow[0]));
+  // B.1.1 — outreach token stored VERBATIM by the intake (label = obfuscated
+  // slug, source stays 'direct'); the funnel's new decoded-label rule is what
+  // re-buckets it. Documents the live stored shape end-to-end.
+  const orRow = await db`SELECT source, label, referrer FROM funnel_events WHERE event_name='bid_scout_viewed' AND visitor_id=${V_OUTREACH} LIMIT 1`;
+  ok(orRow[0]?.label === "gehdxvat_bhgefbdu" && orRow[0]?.source === "direct",
+    "intake stored the ROT13 outreach token verbatim with source=direct (matcher decodes label)",
+    JSON.stringify(orRow[0]));
 
   // ── 4. Success page / client purity ────────────────────────────────────────
   console.log("\n4) Success page + client-side purchase-event purity");
@@ -274,12 +299,13 @@ async function main() {
     WHERE event_name LIKE 'bid_scout_%'
       AND (visitor_id = ANY(${ALL_VISITORS})
            OR user_email = ANY(${EMAILS})
-           OR label LIKE ${`%rec-${RUN}-%`})`;
+           OR label LIKE ${`%rec-${RUN}-%`}
+           OR label LIKE ${`%${PREFIX}-novid%`})`;
   await db`DELETE FROM visitors WHERE visitor_id = ANY(${ALL_VISITORS})`;
   const leftover = await db`
     SELECT COUNT(*)::int AS n FROM funnel_events
     WHERE event_name LIKE 'bid_scout_%'
-      AND (visitor_id = ANY(${ALL_VISITORS}) OR user_email = ANY(${EMAILS}) OR label LIKE ${`%rec-${RUN}-%`})`;
+      AND (visitor_id = ANY(${ALL_VISITORS}) OR user_email = ANY(${EMAILS}) OR label LIKE ${`%rec-${RUN}-%`} OR label LIKE ${`%${PREFIX}-novid%`})`;
   ok(leftover[0].n === 0, "no leftover bid_scout test rows", `leftover=${leftover[0].n}`);
   const visLeft = await db`SELECT COUNT(*)::int AS n FROM visitors WHERE visitor_id = ANY(${ALL_VISITORS})`;
   ok(visLeft[0].n === 0, "no leftover visitors summary rows");
@@ -297,7 +323,7 @@ main().catch(async (e) => {
     const db = neon(process.env.DATABASE_URL!);
     await db`DELETE FROM funnel_events
       WHERE event_name LIKE 'bid_scout_%'
-        AND (visitor_id = ANY(${ALL_VISITORS}) OR user_email = ANY(${EMAILS}) OR label LIKE ${`%rec-${RUN}-%`})`;
+        AND (visitor_id = ANY(${ALL_VISITORS}) OR user_email = ANY(${EMAILS}) OR label LIKE ${`%rec-${RUN}-%`} OR label LIKE ${`%${PREFIX}-novid%`})`;
     await db`DELETE FROM visitors WHERE visitor_id = ANY(${ALL_VISITORS})`;
   } catch { /* non-fatal */ }
   process.exit(1);

@@ -1,5 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+// Server-only module (tanstack-start-server-imports skill, rule 1): a route
+// file may import these bindings as long as they are referenced ONLY inside
+// createServerFn(...).handler() bodies — never in the loader (rule 2b) and
+// never in any client-reachable code path. REV 5 moved attempt-token transport
+// from cookie to tab-scoped sessionStorage, so only getRequest (cookie reads
+// inside handlers: readRadarHandoff / readVisitorIdCookie) and deleteCookie
+// (clearRadarHandoff) are used — setCookie is intentionally not imported.
+import { getRequest, deleteCookie } from "@tanstack/react-start/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SignupContextPanel } from "~/components/SignupContextPanel";
 import { getCurrentUser } from "~/lib/auth";
@@ -226,7 +234,6 @@ const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () =>
 // ids) or null. NO email/PII ever rides in the URL.
 const readRadarHandoff = createServerFn({ method: "GET" }).handler(async () => {
   try {
-    const { getRequest } = await import("@tanstack/react-start/server");
     const { verifyRadarHandoff, RADAR_HANDOFF_COOKIE } = await import("~/lib/radar-handoff.server");
     const cookie = getRequest().headers.get("cookie") ?? "";
     const hit = cookie.split(";").map((c) => c.trim()).find((c) => c.startsWith(RADAR_HANDOFF_COOKIE + "="));
@@ -250,7 +257,6 @@ const readRadarHandoff = createServerFn({ method: "GET" }).handler(async () => {
 // later /signup visit never restores a stale scan. Same build-safe scope.
 const clearRadarHandoff = createServerFn({ method: "POST" }).handler(async () => {
   try {
-    const { deleteCookie } = await import("@tanstack/react-start/server");
     const { RADAR_HANDOFF_COOKIE } = await import("~/lib/radar-handoff.server");
     deleteCookie(RADAR_HANDOFF_COOKIE, { path: "/" });
     return { cleared: true };
@@ -290,6 +296,30 @@ const mintSignupAttemptToken = createServerFn({ method: "POST" })
       return { token: null };
     }
   });
+// Rebuild-safe REV 5 fix (tanstack-start-server-imports skill, rule 2b): the
+// SSR loader must NOT import or call the server-only module (the loader body
+// is client-bundled and the import-protection plugin denies it with a trace
+// through router.tsx → routeTree.gen.ts → signup.tsx). The per-visitor
+// `contrax_vid` cookie read is therefore wrapped here in a
+// createServerFn({ method: "GET" }).handler(...) and the loader awaits it —
+// handler bodies are stripped from the client bundle. Pure cookie parse,
+// fail-open (returns { visitorId: "" } on any error, identical to a missing
+// cookie). No PII: the visitor id is an opaque server-generated uuid, never an
+// email.
+const readVisitorIdCookie = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const cookie = getRequest().headers.get("cookie") ?? "";
+    let visitorId = "";
+    for (const part of cookie.split(";")) {
+      const idx = part.indexOf("=");
+      if (idx === -1) continue;
+      if (part.slice(0, idx).trim() === "contrax_vid") visitorId = part.slice(idx + 1).trim();
+    }
+    return { visitorId: visitorId.slice(0, 64) };
+  } catch {
+    return { visitorId: "" };
+  }
+});
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
@@ -364,19 +394,12 @@ export const Route = createFileRoute("/signup")({
     let attemptToken: string | null = null;
     if (typeof window === "undefined") {
       try {
-        const { getRequest } = await import("@tanstack/react-start/server");
-        const cookie = getRequest().headers.get("cookie") ?? "";
-        let visitorId = "";
-        for (const part of cookie.split(";")) {
-          const idx = part.indexOf("=");
-          if (idx === -1) continue;
-          if (part.slice(0, idx).trim() === "contrax_vid") visitorId = part.slice(idx + 1).trim();
-        }
+        const { visitorId } = await readVisitorIdCookie();
         attemptToken = await signSignupSessionToken({
           v: SIGNUP_ATTEMPT_VERSION,
           n: mintAttemptNonce(),
           exp: Date.now() + SIGNUP_ATTEMPT_MAX_AGE_S * 1000,
-          visitorId: visitorId.slice(0, 64),
+          visitorId,
           visitId: "", // per-tab sessionStorage visit id is unknowable at SSR
         });
       } catch (err) {

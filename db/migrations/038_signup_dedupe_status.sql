@@ -1,0 +1,40 @@
+-- Migration 038 — funnel_events.dedupe_status: per-row dedupe outcome flag
+-- for the signup one-shot family (owner REV 5, PR #374 extension).
+--
+-- WHY: NEW forward-only migration. Migration 037 (dedupe_key) is FROZEN and
+-- immutable; a REV 5 revision that edited 037 in place was reverted so 037
+-- stays byte-identical to its ratified state. All REV 5 dedupe_status DDL
+-- lives here instead (db/migrations must stay numerically ordered and
+-- ADDITIVE — this is 038).
+--
+-- WHAT: dedupe_status is a nullable per-row outcome flag recording which
+-- dedupe path the intake took for a signup one-shot event:
+--   'applied'            — attempt token validated, dedupe_key derived, the
+--                          uniqueness rule suppressed the duplicate
+--   'fail_open_missing'  — no attempt token attached; key NULL; event recorded
+--   'fail_open_forged'   — token present but signature/binding invalid; key
+--                          NULL; event recorded
+--   'fail_open_expired'  — token signature valid but expired; key NULL; event
+--                          recorded
+-- NULL for every non-signup event (byte-identical behavior — the write path
+-- only ever sets the flag for the six signup one-shot events and only after
+-- resolving the token; see src/lib/signup-telemetry.ts resolveOneShotDedupe
+-- and the intake INSERT in src/lib/tracking-intake.ts).
+--
+-- The value allowlist is enforced at WRITE TIME in code (resolveOneShotDedupe
+-- returns exactly those four strings or null) — no CHECK constraint, so
+-- adding future outcome reasons never requires a table rewrite, and a NULL
+-- never confuses the dedupe_status NULL == non-signup convention.
+--
+-- Safe: plain additive DDL, no DROP, no TRUNCATE, no LOCK, ~1k rows so the
+-- statement is instant and non-blocking. Historical rows untouched (new
+-- column backfills NULL). Idempotent (IF NOT EXISTS) — safe to re-run, but
+-- run exactly once via `bun run db/migrations/run-038.ts`.
+--
+-- Mirrored (guarded) in src/db/schema.sql (canonical merged schema, applied
+-- by `bun run src/db/setup.ts`) and in the runtime DDL guard in
+-- src/lib/tracking-intake.ts (ensureFunnelEventsTable, plain IF NOT EXISTS
+-- form) so fresh environments self-heal.
+--
+ALTER TABLE funnel_events
+  ADD COLUMN IF NOT EXISTS dedupe_status text;

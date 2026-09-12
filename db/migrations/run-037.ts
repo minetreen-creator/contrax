@@ -7,13 +7,6 @@ async function run() {
     ALTER TABLE funnel_events
       ADD COLUMN IF NOT EXISTS dedupe_key text
   `;
-  // Owner REV 5 (09-12): per-row dedupe outcome flag for the signup one-shot
-  // family — 'applied' | 'fail_open_missing' | 'fail_open_forged' |
-  // 'fail_open_expired'. NULL for every non-signup event. Additive + nullable.
-  await db`
-    ALTER TABLE funnel_events
-      ADD COLUMN IF NOT EXISTS dedupe_status text
-  `;
   // Neon-safe online build for a populated table, executed OUTSIDE a
   // transaction (each neon() call is its own implicit transaction), per owner
   // REV 4 ("any index on an existing populated table must use CREATE UNIQUE
@@ -24,7 +17,7 @@ async function run() {
       ON funnel_events (dedupe_key) WHERE dedupe_key IS NOT NULL
   `;
   console.log(
-    "✅ Migration 037 complete (funnel_events.dedupe_key + dedupe_status + partial unique index)",
+    "✅ Migration 037 complete (funnel_events.dedupe_key + partial unique index)",
   );
 }
 run()

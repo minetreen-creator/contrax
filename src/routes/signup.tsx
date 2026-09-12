@@ -4,8 +4,9 @@ import { createServerFn } from "@tanstack/react-start";
 // file may import these bindings as long as they are referenced ONLY inside
 // createServerFn(...).handler() bodies — never in the loader (rule 2b) and
 // never in any client-reachable code path. REV 5 moved attempt-token transport
-// from cookie to tab-scoped sessionStorage, so only getRequest (cookie reads
-// inside handlers: readRadarHandoff / readVisitorIdCookie) and deleteCookie
+// from cookie to tab-scoped sessionStorage; the loader returns attemptToken:
+// null and the CLIENT mints via the mintSignupAttemptToken POST server fn
+// (owner 09-12). Only getRequest (readRadarHandoff) and deleteCookie
 // (clearRadarHandoff) are used — setCookie is intentionally not imported.
 import { getRequest, deleteCookie } from "@tanstack/react-start/server";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -296,31 +297,6 @@ const mintSignupAttemptToken = createServerFn({ method: "POST" })
       return { token: null };
     }
   });
-// Rebuild-safe REV 5 fix (tanstack-start-server-imports skill, rule 2b): the
-// SSR loader must NOT import or call the server-only module (the loader body
-// is client-bundled and the import-protection plugin denies it with a trace
-// through router.tsx → routeTree.gen.ts → signup.tsx). The per-visitor
-// `contrax_vid` cookie read is therefore wrapped here in a
-// createServerFn({ method: "GET" }).handler(...) and the loader awaits it —
-// handler bodies are stripped from the client bundle. Pure cookie parse,
-// fail-open (returns { visitorId: "" } on any error, identical to a missing
-// cookie). No PII: the visitor id is an opaque server-generated uuid, never an
-// email.
-const readVisitorIdCookie = createServerFn({ method: "GET" }).handler(async () => {
-  try {
-    const cookie = getRequest().headers.get("cookie") ?? "";
-    let visitorId = "";
-    for (const part of cookie.split(";")) {
-      const idx = part.indexOf("=");
-      if (idx === -1) continue;
-      if (part.slice(0, idx).trim() === "contrax_vid") visitorId = part.slice(idx + 1).trim();
-    }
-    return { visitorId: visitorId.slice(0, 64) };
-  } catch {
-    return { visitorId: "" };
-  }
-});
-
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/signup")({
@@ -370,43 +346,16 @@ export const Route = createFileRoute("/signup")({
     size: typeof search.size === "string" ? search.size.slice(0, 24) : undefined,
   }),
   loader: async () => {
-    // Owner REV 5 — SERVER-ISSUED attempt token: the SSR loader STILL mints
-    // ONE signed expiring token per page load, but instead of a cookie it
-    // RETURNS the token in the page data (loader payload). The client stores
-    // it in TAB-SCOPED sessionStorage ("signup_attempt_token") and attaches it
-    // to every signup-family telemetry request body (field `attempt_token`).
-    //
-    // BINDING fields: the per-visitor `contrax_vid` cookie is readable here
-    // (visitorId); the per-tab `visit` id lives in sessionStorage and is NOT
-    // knowable at SSR, so visitId is "" — the client-side init (below) adopts
-    // this token ONLY when it binds to the tab's real identity, otherwise it
-    // obtains a fresh server-signed token bound to that identity via
-    // mintSignupAttemptToken (still server-issued — the client never mints).
-    // Reloads / SPA nav reuse the stored unexpired token; completion retires
-    // it (sessionStorage.removeItem) so the next page load rotates.
-    //
-    // The server validates signature + expiry + event-scope + visitor/session
-    // BINDING before deriving funnel_events.dedupe_key (tracking-intake.ts /
-    // api/signup.ts) and flags funnel_events.dedupe_status. Fail-open: a mint
-    // failure (missing RADAR_HANDOFF_SECRET) must NEVER break the page — no
-    // token → dedupe_key NULL + dedupe_status fail_open_missing → events still
-    // record, identical to pre-PR no-key behavior.
-    let attemptToken: string | null = null;
-    if (typeof window === "undefined") {
-      try {
-        const { visitorId } = await readVisitorIdCookie();
-        attemptToken = await signSignupSessionToken({
-          v: SIGNUP_ATTEMPT_VERSION,
-          n: mintAttemptNonce(),
-          exp: Date.now() + SIGNUP_ATTEMPT_MAX_AGE_S * 1000,
-          visitorId,
-          visitId: "", // per-tab sessionStorage visit id is unknowable at SSR
-        });
-      } catch (err) {
-        // Constant string only — never the secret, never the token payload.
-        console.error("[signup] attempt-token mint unavailable (non-fatal, dedupe off):", (err as Error).message);
-      }
-    }
+    // Owner 09-12 — the SSR loader returns attemptToken: null BY DESIGN. The
+    // loader body is client-bundled, so it must not import or call the
+    // server-only module or mint tokens (import-protection build rule 2b). The
+    // CLIENT mints the signed tab-bound token via the mintSignupAttemptToken
+    // POST createServerFn (handler signs {v, n, exp, visitorId, visitId} with
+    // RADAR_HANDOFF_SECRET server-side — the client never sees the secret and
+    // never mints client-side crypto). Client init: an unexpired, identity-bound
+    // sessionStorage token is reused (SPA nav / reloads); otherwise a fresh
+    // server mint; fail-open null → events record without dedupe (dedupe_key
+    // NULL, dedupe_status fail_open_missing), identical to pre-PR behavior.
     const bidCounts = await getTrackedBidCount();
     return {
       currentUser: await getCurrentUser(),
@@ -420,10 +369,9 @@ export const Route = createFileRoute("/signup")({
       // with an honest reason instead of a live-looking link to a handshake
       // that would fail server-side (the callback needs both env vars).
       googleAuthUrl: await getGoogleAuthUrl(),
-      // REV 5: the server-issued attempt token for this page load (null when
-      // minting is unavailable — the client falls back to a fresh mint or
-      // fail-open no-token; never breaks the page).
-      attemptToken,
+      // Owner 09-12: always null by design — the client mints via the
+      // mintSignupAttemptToken server fn (tab-bound, expiring, fail-open).
+      attemptToken: null,
     };
   },
   component: SignupPage,
@@ -697,17 +645,19 @@ function SignupPage() {
   // BEFORE the view/exit effects so they can read the mounted values.
   const acquisitionBucketRef = useRef<AcquisitionBucket>("internal_other");
   const signupPageViewedAtRef = useRef<number>(0);
-  // ── Attempt token (owner REV 5): server-issued, signed, expiring, stored in
-  // TAB-SCOPED sessionStorage ("signup_attempt_token"), attached to EVERY
-  // signup-family telemetry request body (field `attempt_token`: beacons via
-  // trackEvent (src/lib/track.ts), the signup_exit/signup_abandon sendBeacon
-  // payloads, and the /api/signup POST). The init below implements the REV 5
-  // reuse rule: an existing sessionStorage token whose client-readable exp is
-  // in the future is REUSED (preserved across SPA nav and ordinary reloads);
-  // otherwise the loader-supplied token is adopted when it binds to this tab's
-  // visitor/visit identity, else a fresh bound token is minted server-side
-  // (independent token per tab). Completion rotates: clearStoredAttemptToken()
-  // after signup_success → the next page load mints a fresh token.
+  // ── Attempt token (owner REV 5 / 09-12): server-issued, signed, expiring,
+  // stored in TAB-SCOPED sessionStorage ("signup_attempt_token"), attached to
+  // EVERY signup-family telemetry request body (field `attempt_token`: beacons
+  // via trackEvent (src/lib/track.ts), the signup_exit/signup_abandon
+  // sendBeacon payloads, and the /api/signup POST). The loader returns
+  // attemptToken: null by design (owner 09-12), so this init ALWAYS falls
+  // through to a server mint: an existing sessionStorage token whose
+  // client-readable exp is in the future and whose binding matches this tab is
+  // REUSED (preserved across SPA nav and ordinary reloads); otherwise
+  // mintSignupAttemptToken (POST server fn — handler signs with
+  // RADAR_HANDOFF_SECRET server-side, the client never mints) issues a fresh
+  // tab-bound token. Completion rotates: clearStoredAttemptToken() after
+  // signup_success → the next page load mints a fresh token.
   const attemptTokenRef = useRef<string | null>(null);
   useEffect(() => {
     let cancelled = false;

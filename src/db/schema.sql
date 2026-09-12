@@ -643,3 +643,20 @@ ALTER TABLE bid_scout_subscriptions
     ADD COLUMN IF NOT EXISTS currency text;
 CREATE INDEX IF NOT EXISTS idx_bid_scout_subscriptions_offer_code
     ON bid_scout_subscriptions (offer_code) WHERE offer_code IS NOT NULL;
+-- Migration 037 — funnel_events.dedupe_key: server-side duplicate suppression
+-- for the signup one-shot family (owner 09-12, PR #374 extension, gates a–d).
+-- Guarded with IF EXISTS / a DO block because funnel_events is created lazily
+-- by the intake DDL guard (src/lib/tracking-intake.ts), not by this schema —
+-- on a fresh database the source table may not exist yet, and these statements
+-- must no-op rather than fail setup. Idempotent — safe to re-run.
+ALTER TABLE IF EXISTS funnel_events
+    ADD COLUMN IF NOT EXISTS dedupe_key text;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_class WHERE relname = 'funnel_events' AND relkind = 'r'
+  ) THEN
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_funnel_events_dedupe_key
+      ON funnel_events (dedupe_key) WHERE dedupe_key IS NOT NULL;
+  END IF;
+END $$;

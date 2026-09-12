@@ -42,6 +42,12 @@ import { sql } from "~/db";
 import { resolveAttribution, type Attribution } from "~/lib/attribution";
 import { parseClientContext } from "~/lib/client-context";
 import { ADMIN_EMAILS } from "~/lib/admin";
+import {
+  deriveDedupeKey,
+  isValidAttemptId,
+  resolveDedupeSecret,
+  SIGNUP_ONE_SHOT_EVENTS,
+} from "~/lib/signup-telemetry";
 
 export type IntakeKind = "event" | "page";
 
@@ -200,6 +206,7 @@ export async function ensureFunnelEventsTable(): Promise<void> {
     region TEXT,
     device_type TEXT,
     browser_label TEXT,
+    dedupe_key TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
   )`;
   await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS source TEXT`;
@@ -214,6 +221,15 @@ export async function ensureFunnelEventsTable(): Promise<void> {
   await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS region TEXT`;
   await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS device_type TEXT`;
   await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS browser_label TEXT`;
+  // Owner 09-12 (PR #374 extension): server-side idempotency for the signup
+  // one-shot family. Additive + nullable — every other event keeps
+  // dedupe_key NULL and a NULL never conflicts on a partial unique index, so
+  // behavior is byte-identical for them. The one-time migration
+  // (db/migrations/037) builds the SAME index CONCURRENTLY on prod; this
+  // idempotent guard keeps fresh environments self-healing.
+  await sql()`ALTER TABLE funnel_events ADD COLUMN IF NOT EXISTS dedupe_key TEXT`;
+  await sql()`CREATE UNIQUE INDEX IF NOT EXISTS idx_funnel_events_dedupe_key
+    ON funnel_events (dedupe_key) WHERE dedupe_key IS NOT NULL`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_created_at ON funnel_events (created_at)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_event_name ON funnel_events (event_name)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_funnel_events_source ON funnel_events (source)`;
@@ -418,6 +434,7 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
   let visitId: string | null = null;
   let userId: string | null = null;
   let userEmail: string | null = null;
+  let attemptId: string | null = null;
   try {
     // Skip known bots/crawlers — don't pollute funnel event / page counts.
     const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
@@ -438,6 +455,7 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
         visit_id?: unknown;
         user_id?: unknown;
         user_email?: unknown;
+        attempt_id?: unknown;
       };
       if (!kindOverride) {
         const k = typeof body.kind === "string" ? body.kind : typeof body.type === "string" ? body.type : "";
@@ -470,6 +488,14 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
       }
       if (typeof body.user_email === "string" && body.user_email.trim().length > 0) {
         userEmail = body.user_email.trim().slice(0, 254);
+      }
+      // attempt_id — client-minted UUIDv4 tying one logical attempt together
+      // (per page load for exit/abandon, per submit click for the submit
+      // family). OPTIONAL: a missing/malformed value means dedupe_key stays
+      // NULL and the event records normally (fail-open). The server validates
+      // the format and derives the key itself — never trusts the raw value.
+      if (typeof body.attempt_id === "string" && body.attempt_id.trim().length > 0) {
+        attemptId = body.attempt_id.trim().slice(0, 64);
       }
     } catch {
       // No/invalid JSON — nothing to record (events skip, pages record "/").
@@ -507,10 +533,24 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
         ? (EVENT_LABELS[event] ?? event.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()))
         : (pagePath ?? null);
 
+    // Server-side idempotency key (owner 09-12, gates a–d): derived ONLY for
+    // the signup one-shot family when the client sent a VALID UUIDv4 attempt id
+    // AND a visitor id AND a secret is configured. Everything else keeps
+    // dedupe_key NULL — the partial unique index never applies, so non-signup
+    // events are byte-identical behaviourally. The 64 ms double-fire of the
+    // SAME attempt (same visitor + event + attempt id) therefore derives the
+    // SAME key and is suppressed atomically by ON CONFLICT DO NOTHING below;
+    // a fresh attempt derives a fresh key and always records.
+    let dedupeKey: string | null = null;
+    if (kind === "event" && visitorId && SIGNUP_ONE_SHOT_EVENTS.has(event) && isValidAttemptId(attemptId)) {
+      dedupeKey = await deriveDedupeKey(resolveDedupeSecret(), visitorId, event, attemptId);
+    }
+
     if (kind === "event") {
       const insert = () =>
-        sql()`INSERT INTO funnel_events (event_name, label, path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email, city, region, device_type, browser_label)
-          VALUES (${event}, ${label}, ${pagePath}, ${userAgent}, ${ip}, ${storedReferrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail}, ${ctx.city}, ${ctx.region}, ${ctx.device_type}, ${ctx.browser_label})`;
+        sql()`INSERT INTO funnel_events (event_name, label, path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email, city, region, device_type, browser_label, dedupe_key)
+          VALUES (${event}, ${label}, ${pagePath}, ${userAgent}, ${ip}, ${storedReferrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail}, ${ctx.city}, ${ctx.region}, ${ctx.device_type}, ${ctx.browser_label}, ${dedupeKey})
+          ON CONFLICT (dedupe_key) DO NOTHING`;
 
       try {
         await ensureFunnelEventsTable();

@@ -10,7 +10,8 @@ import {
   checkIpLimit,
   rateLimitedResponse,
 } from "~/lib/rate-limit";
-import { isBot } from "~/lib/tracking-intake";
+import { isBot, ensureFunnelEventsTable } from "~/lib/tracking-intake";
+import { deriveDedupeKey, isValidAttemptId, resolveDedupeSecret } from "~/lib/signup-telemetry";
 
 const SESSION_TTL_DAYS = 30;
 // Account-creation floods are blocked per-IP and per-email BEFORE any insert.
@@ -56,7 +57,9 @@ async function backfillFunnelIdentity(userId: number, userEmail: string, visitor
  * signup derivation, radar-conversion-funnel, unified-funnel, journeys,
  * visitor-intel, analytics-consistency all read explicit event-name sets).
  * It is additionally invisible to the 1s intake dedupe / attribution — an
- * honest raw diagnostic row per failed submit.
+ * honest raw diagnostic row per failed submit (a DOUBLE-fire of the SAME
+ * attempt is still collapsed atomically via funnel_events.dedupe_key, owner
+ * 09-12 gate a: the server validates attempt_id and derives the key itself).
  *
  * Never throws, never blocks the signup response (own try/catch; single
  * INSERT).
@@ -65,15 +68,26 @@ async function recordSignupSubmitError(
   request: Request,
   reason: "email_taken" | "invalid_input" | "server_error",
   visitorId: string | null,
+  attemptId: string | null,
 ): Promise<void> {
   try {
     // Mirror the intake bot filter: crawlers/scripts must not pollute the
     // diagnostic rows (the UA is stored for analysts either way).
     const ua = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
     if (ua && isBot(ua)) return;
+    // Server-side idempotency (owner gates a–d): key derived from the SERVER
+    // secret + visitor + event + the client's UUIDv4 attempt id — never the
+    // raw browser value. Malformed/missing id → dedupe_key NULL → the event
+    // still records (fail-open).
+    let dedupeKey: string | null = null;
+    if (visitorId && isValidAttemptId(attemptId)) {
+      dedupeKey = await deriveDedupeKey(resolveDedupeSecret(), visitorId, "signup_submit_error", attemptId);
+    }
+    await ensureFunnelEventsTable();
     await sql()`
-      INSERT INTO funnel_events (event_name, label, path, user_agent, visitor_id)
-      VALUES ('signup_submit_error', ${reason}, '/api/signup', ${ua}, ${visitorId})
+      INSERT INTO funnel_events (event_name, label, path, user_agent, visitor_id, dedupe_key)
+      VALUES ('signup_submit_error', ${reason}, '/api/signup', ${ua}, ${visitorId}, ${dedupeKey})
+      ON CONFLICT (dedupe_key) DO NOTHING
     `;
   } catch (err) {
     console.error("[api/signup] signup_submit_error tracking failed (non-fatal):", (err as Error).message);
@@ -89,6 +103,11 @@ async function handler({ request }: { request: Request }) {
   // visitorId is hoisted so the error-path diagnostics below can attach the
   // persistent per-visitor id even when the body failed to parse (→ null).
   let visitorId: string | null = null;
+  // attemptId (client-minted UUIDv4 per submit attempt) is hoisted for the same
+  // reason: the error-path diagnostics derive the idempotency key from it when
+  // the body parsed; on a malformed body it stays null → dedupe_key NULL (the
+  // diagnostic still records, fail-open).
+  let attemptId: string | null = null;
   try {
     const body = (await request.json()) as {
       email?: string;
@@ -97,6 +116,7 @@ async function handler({ request }: { request: Request }) {
       plan?: string;
       visitor_id?: string;
       company?: string;
+      attempt_id?: string;
     };
 
     const email = (body.email || "").trim().toLowerCase();
@@ -108,6 +128,9 @@ async function handler({ request }: { request: Request }) {
     // Persistent per-visitor id (contrax_vid) rides in the body so the identity
     // backfill can tie this visitor's ENTIRE anonymous funnel to the new account.
     visitorId = (body.visitor_id || "").trim().slice(0, 64) || null;
+    if (typeof body.attempt_id === "string") {
+      attemptId = body.attempt_id.trim().slice(0, 64) || null;
+    }
     // No-bifurcation rule: the standard /signup flow provisions every NON-PAYING
     // signup on the free Basic Package. A cold signup (no explicit paid plan)
     // defaults to plan_tier='basic'; only a user who explicitly opted into a
@@ -135,14 +158,14 @@ async function handler({ request }: { request: Request }) {
       errors.push("Passwords do not match.");
     }
     if (errors.length > 0) {
-      await recordSignupSubmitError(request, "invalid_input", visitorId);
+      await recordSignupSubmitError(request, "invalid_input", visitorId, attemptId);
       return Response.json({ error: errors.join(" ") }, { status: 400 });
     }
 
     // Check for duplicate
     const existing = await sql()`SELECT id FROM users WHERE email = ${email}`;
     if (existing.length > 0) {
-      await recordSignupSubmitError(request, "email_taken", visitorId);
+      await recordSignupSubmitError(request, "email_taken", visitorId, attemptId);
       return Response.json({ error: "An account with this email already exists." }, { status: 409 });
     }
 
@@ -216,7 +239,7 @@ async function handler({ request }: { request: Request }) {
     });
   } catch (err) {
     console.error("[api/signup] error:", err);
-    await recordSignupSubmitError(request, "server_error", visitorId);
+    await recordSignupSubmitError(request, "server_error", visitorId, attemptId);
     return Response.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

@@ -4,6 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { SignupContextPanel } from "~/components/SignupContextPanel";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import {
+  buildExitPayload,
+  buildFieldErrorPayload,
+  mintAttemptId,
+  resolveAcquisitionPath,
+  type AcquisitionBucket,
+} from "~/lib/signup-telemetry";
 import { FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
 import { getOrCreateVisitorId, getOrCreateVisitId } from "~/lib/visitor";
 import { setTrackingUser, getTrackingUser } from "~/lib/identity";
@@ -29,39 +36,20 @@ import {
 
 
 // ── Acquisition-path bucket (owner 09-12 signup-diagnostic instrumentation) ──
-// Computed ONCE per page mount from document.referrer so every signup tracking
-// event can carry WHERE the visitor came from WITHOUT touching the frozen
-// signup_viewed_from_radar attribution in radar.tsx (this is a supplement, not
-// a replacement — radar.tsx keeps firing its own attribution unchanged).
-// Buckets (owner spec):
-//   radar          — same-site referrer path starts with /radar
-//   autopsy        — same-site referrer path starts with /autopsy
+// Computed ONCE per page mount. The bucket logic now lives in
+// src/lib/signup-telemetry.ts (pure, unit-tested): search.source param FIRST
+// (survives SPA client-side nav, redirects and restored sessions — referrer
+// alone dies on client-side nav), document.referrer as the fallback. Behavior
+// when no source param is present is identical to the previous referrer-only
+// resolution. Buckets (owner spec):
+//   radar          — radar / unlock / radar-results-CTA source, or same-site /radar referrer
+//   autopsy        — autopsy source, or same-site /autopsy referrer
 //   bid_scout      — same-site referrer path starts with /bid-scout
-//   awards         — same-site referrer path starts with /awards
-//   home           — any other same-site referrer
+//   awards         — incumbent source, or same-site /awards referrer
+//   home           — closing_soon source, or any other same-site referrer
 //   external       — cross-site referrer (facebook/google/etc.)
 //   internal_other — no referrer / unknown / malformed
-const ACQUISITION_BUCKETS = ["radar", "autopsy", "bid_scout", "awards", "home", "external", "internal_other"] as const;
-type AcquisitionBucket = (typeof ACQUISITION_BUCKETS)[number];
-
-function computeAcquisitionBucket(): AcquisitionBucket {
-  try {
-    if (typeof document !== "undefined" && document.referrer) {
-      const url = new URL(document.referrer);
-      if (url.origin === window.location.origin) {
-        if (url.pathname.startsWith("/radar")) return "radar";
-        if (url.pathname.startsWith("/autopsy")) return "autopsy";
-        if (url.pathname.startsWith("/bid-scout")) return "bid_scout";
-        if (url.pathname.startsWith("/awards")) return "awards";
-        return "home";
-      }
-      return "external";
-    }
-  } catch {
-    // malformed referrer — fall through to internal_other
-  }
-  return "internal_other";
-}
+// (Type imported from signup-telemetry; the const set + resolver live there.)
 
 type ScoreRec = "GO" | "CAUTIOUS" | "NO-GO";
 
@@ -598,9 +586,22 @@ function SignupPage() {
   // BEFORE the view/exit effects so they can read the mounted values.
   const acquisitionBucketRef = useRef<AcquisitionBucket>("internal_other");
   const signupPageViewedAtRef = useRef<number>(0);
+  // One attempt id per PAGE LOAD (owner 09-12): the signup_exit and
+  // signup_abandon beacons share it, so a pagehide+beforeunload double-fire of
+  // the SAME attempt is suppressed by the server-side dedupe key. A reload /
+  // new session mints a fresh id → fresh key → the new attempt still records.
+  const mountAttemptIdRef = useRef<string>("");
   useEffect(() => {
-    acquisitionBucketRef.current = computeAcquisitionBucket();
+    // Source-param-first acquisition attribution (owner 09-12): ?source= wins
+    // because it survives SPA client-side nav, redirects and restored sessions;
+    // document.referrer is the fallback (identical behavior to the PR when the
+    // param is absent).
+    acquisitionBucketRef.current = resolveAcquisitionPath(
+      source,
+      typeof document !== "undefined" ? document.referrer : undefined,
+    );
     signupPageViewedAtRef.current = Date.now();
+    mountAttemptIdRef.current = mintAttemptId();
   }, []);
   // Same extra-payload channel the signup_field_error event already uses (the
   // `path` argument of trackEvent → funnel_events.path, a JSON string — the
@@ -696,12 +697,23 @@ function SignupPage() {
       // never typed still gets a meaningful dwell time.
       const base = signupPageViewedAtRef.current || Date.now();
       const seconds = Math.max(0, Math.round((Date.now() - base) / 1000));
+      // Pure payload builder (src/lib/signup-telemetry.ts) — unit-tested:
+      // label distinguishes the cohort (view | form_started), seconds are the
+      // dwell time, and the acquisition bucket rides along.
+      const exit = buildExitPayload({
+        secondsOnPage: seconds,
+        formStarted,
+        from: acquisitionBucketRef.current,
+      });
       const payload: Record<string, string> = {
         event: "signup_exit",
         visitor_id: getOrCreateVisitorId(),
         visit_id: getOrCreateVisitId(),
-        label: formStarted ? "form_started" : "view",
-        path: JSON.stringify({ from: acquisitionBucketRef.current, seconds_on_page: String(seconds) }),
+        label: exit.label,
+        path: JSON.stringify({ from: exit.from, seconds_on_page: String(exit.seconds_on_page) }),
+        // One id per page load → pagehide+beforeunload double-fire dedupes
+        // server-side via HMAC(secret, visitor ∥ event ∥ attempt) (fail-open).
+        attempt_id: mountAttemptIdRef.current,
       };
       const user = getTrackingUser();
       if (user) {
@@ -731,6 +743,7 @@ function SignupPage() {
         visitor_id: getOrCreateVisitorId(),
         visit_id: getOrCreateVisitId(),
         path: JSON.stringify({ from: acquisitionBucketRef.current }),
+        attempt_id: mountAttemptIdRef.current,
       };
       const user = getTrackingUser();
       if (user) {
@@ -853,6 +866,13 @@ function SignupPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    // One UUIDv4 per submit attempt (owner 09-12): signup_submit,
+    // signup_success and signup_field_error from the SAME click share it, and
+    // it rides the /api/signup body so the server-side signup_submit_error uses
+    // the same attempt. The server VALIDATES this id and derives the dedupe key
+    // from it + a server secret (never the raw id). A fresh click mints a fresh
+    // id → fresh key → legitimate attempts never collapse.
+    const attemptId = mintAttemptId();
 
     const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string || "").trim().toLowerCase();
@@ -887,17 +907,22 @@ function SignupPage() {
       // payload" channel trackEvent already uses.
       const fieldErr =
         invalidEmail && invalidPassword ? "multiple" : invalidEmail ? "email" : "password";
+      // Pure payload builder — strict allowlist (email|password|multiple) and
+      // short reason only, NEVER the entered email/password/company values.
+      const fieldErrorPayload = buildFieldErrorPayload(fieldErr, clientErrors.join(" "));
       trackEvent(
         "signup_field_error",
-        fieldErr,
-        JSON.stringify({ field: fieldErr, error: clientErrors.join(" "), from: acquisitionBucketRef.current }),
+        fieldErrorPayload.field,
+        JSON.stringify({ ...fieldErrorPayload, from: acquisitionBucketRef.current }),
+        attemptId,
       );
       return;
     }
 
     // Fire exactly once per submit — the button is disabled while loading, so
-    // double-clicks can't double-fire.
-    trackEvent("signup_submit", undefined, signupFromExtra());
+    // double-clicks can't double-fire. The attempt id makes the server's
+    // dedupe_key authoritative even if a keepalive/delivery retry re-sends.
+    trackEvent("signup_submit", undefined, signupFromExtra(), attemptId);
     setLoading(true);
 
     try {
@@ -913,6 +938,10 @@ function SignupPage() {
           // Persistent per-visitor id — lets the server backfill this visitor's
           // anonymous funnel rows to the new account. Optional; never required.
           visitor_id: getOrCreateVisitorId(),
+          // Server-side dedupe: the server validates this UUIDv4 and derives
+          // the funnel_events.dedupe_key from it + a server secret (never the
+          // raw value) so a double-fired attempt collapses atomically.
+          attempt_id: attemptId,
         }),
       });
       const json = await res.json() as {
@@ -929,7 +958,7 @@ function SignupPage() {
       // Completed a signup — guarantee the abandonment beacon can never fire
       // for this visit (guarded in the pagehide/beforeunload listener).
       signupSucceededRef.current = true;
-      trackEvent("signup_success");
+      trackEvent("signup_success", undefined, undefined, attemptId);
       // PR2 unlock completion (owner 2026-09-07): an unlock-handoff signup
       // ATTRIBUTES the anonymous journey to the new account (the server's
       // /api/signup identity backfill already ties visitor_id rows to the

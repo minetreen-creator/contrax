@@ -18,8 +18,15 @@ import { getTrackingUser } from "~/lib/identity";
  * Usage:
  *   trackEvent("hero_cta_click", "hero_primary");
  *   trackEvent("score_submit");
+ *
+ * Optional `attemptId`: a client-minted UUIDv4 tying a logical attempt together
+ * (one UUID per page load for exit/abandon; a fresh UUID per submit click for
+ * submit/success/field_error). The server NEVER trusts this value directly — it
+ * validates the UUIDv4 format and derives the DB idempotency key from it +
+ * a server secret server-side (see src/lib/signup-telemetry.ts). Events without
+ * an attempt id record normally with dedupe_key NULL (byte-identical behavior).
  */
-export function trackEvent(event: string, label?: string, path?: string) {
+export function trackEvent(event: string, label?: string, path?: string, attemptId?: string) {
   if (typeof window === "undefined") return;
   const payload: Record<string, string> = { event, kind: "event" };
   // Persistent per-visitor + per-session identity (first-party, self-hosted).
@@ -39,6 +46,7 @@ export function trackEvent(event: string, label?: string, path?: string) {
   }
   if (label) payload.label = label;
   if (path) payload.path = path;
+  if (attemptId) payload.attempt_id = attemptId;
   try {
     fetch("/api/track-visitor", {
       method: "POST",

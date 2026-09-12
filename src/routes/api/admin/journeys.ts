@@ -631,7 +631,7 @@ function buildRowLeadScore(o: {
   reasons: { points: number; reason: string }[];
   opportunity: ConversionOpportunity | null;
 } {
-  const radarCompleted = o.radar || o.eventNames.includes("radar_scan_complete");
+  const radarCompleted = o.eventNames.includes("radar_scan_complete");
   const sawPath = (needle: string) => o.paths.some((p) => p.includes(needle));
   const has = (needle: string) => o.eventNames.some((e) => e.includes(needle));
   const signupStarted = o.eventNames.some((e) => ["signup_start", "signup_submit", "signup_abandon"].includes(e));
@@ -650,7 +650,11 @@ function buildRowLeadScore(o: {
   const scored = computeLeadScore({
     returnedMultiDay: !!(o.firstSeenIso && o.lastSeenIso && o.firstSeenIso.slice(0, 10) !== o.lastSeenIso.slice(0, 10)),
     sessions: o.sessions || 0,
-    radarStarted: radarCompleted || has("radar_") || sawPath("/radar"),
+    radarStarted:
+      !!o.radar ||
+      radarCompleted ||
+      o.eventNames.some((e) => e.startsWith("radar_")) ||
+      sawPath("/radar"),
     radarCompleted,
     incumbentViewed,
     briefViewed,
@@ -787,8 +791,7 @@ async function handler({ request }: { request: Request }) {
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
           AND created_at >= ${fromIso}
           AND event_name IN ('signup_success','signup_start','signup_submit','signup_abandon','signup_view','signup_view_with_score')
-          AND NOT COALESCE((${BOT_EXCLUSION_SQL}), false)
-          AND ${sql().unsafe(qaFilter)} AND ${sql().unsafe(adminFilter)}`;
+          ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}`;
       for (const fev of filteredEvents) {
         const vid = String(fev.visitor_id);
         const name = String(fev.event_name);
@@ -819,15 +822,13 @@ async function handler({ request }: { request: Request }) {
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
           AND event_name IS NOT NULL
           AND created_at >= ${fromIso}
-          AND NOT COALESCE((${BOT_EXCLUSION_SQL}), false)
-          AND ${sql().unsafe(qaFilter)} AND ${sql().unsafe(adminFilter)}
+          ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}
         UNION ALL
         SELECT visitor_id, NULL AS event_name, path, user_email FROM page_views
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
           AND path IS NOT NULL
           AND created_at >= ${fromIso}
-          AND NOT COALESCE((${BOT_EXCLUSION_SQL}), false)
-          AND ${sql().unsafe(qaFilter)} AND ${sql().unsafe(adminFilter)}`;
+          ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}`;
       for (const r of deRows) {
         const vid = String(r.visitor_id);
         const en = r.event_name ? String(r.event_name) : null;

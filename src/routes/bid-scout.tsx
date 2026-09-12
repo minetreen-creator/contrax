@@ -370,7 +370,9 @@ function BidScoutPage() {
               >
                 {submit.kind === "submitting"
                   ? "Starting checkout…"
-                  : "Start Bid Scout — $99/month"}
+                  : founders?.available
+                    ? "Start for $49 — then $99/month"
+                    : "Start Bid Scout — $99/month"}
               </button>
               <p className="text-center text-xs text-slate-400">
                 Secure checkout · Cancel anytime · First report by the Friday

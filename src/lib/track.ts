@@ -19,14 +19,15 @@ import { getTrackingUser } from "~/lib/identity";
  *   trackEvent("hero_cta_click", "hero_primary");
  *   trackEvent("score_submit");
  *
- * Optional `attemptId`: a client-minted UUIDv4 tying a logical attempt together
- * (one UUID per page load for exit/abandon; a fresh UUID per submit click for
- * submit/success/field_error). The server NEVER trusts this value directly — it
- * validates the UUIDv4 format and derives the DB idempotency key from it +
- * a server secret server-side (see src/lib/signup-telemetry.ts). Events without
- * an attempt id record normally with dedupe_key NULL (byte-identical behavior).
+ * The client NEVER sends an attempt id (owner REV 4 gate 1): attempt identity
+ * for the signup one-shot family is a SERVER-ISSUED signed token minted into
+ * the HttpOnly `signup_attempt` cookie by the /signup SSR loader. Beacons carry
+ * it back automatically; the server validates signature+version+expiry and
+ * derives the DB idempotency key from it (src/lib/signup-telemetry.ts). Events
+ * without a valid cookie record normally with dedupe_key NULL (fail-open,
+ * byte-identical behavior).
  */
-export function trackEvent(event: string, label?: string, path?: string, attemptId?: string) {
+export function trackEvent(event: string, label?: string, path?: string) {
   if (typeof window === "undefined") return;
   const payload: Record<string, string> = { event, kind: "event" };
   // Persistent per-visitor + per-session identity (first-party, self-hosted).
@@ -46,7 +47,6 @@ export function trackEvent(event: string, label?: string, path?: string, attempt
   }
   if (label) payload.label = label;
   if (path) payload.path = path;
-  if (attemptId) payload.attempt_id = attemptId;
   try {
     fetch("/api/track-visitor", {
       method: "POST",

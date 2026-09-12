@@ -44,7 +44,7 @@ import { parseClientContext } from "~/lib/client-context";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import {
   deriveDedupeKey,
-  isValidAttemptId,
+  readValidatedAttemptToken,
   resolveDedupeSecret,
   SIGNUP_ONE_SHOT_EVENTS,
 } from "~/lib/signup-telemetry";
@@ -434,7 +434,6 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
   let visitId: string | null = null;
   let userId: string | null = null;
   let userEmail: string | null = null;
-  let attemptId: string | null = null;
   try {
     // Skip known bots/crawlers — don't pollute funnel event / page counts.
     const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
@@ -455,7 +454,6 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
         visit_id?: unknown;
         user_id?: unknown;
         user_email?: unknown;
-        attempt_id?: unknown;
       };
       if (!kindOverride) {
         const k = typeof body.kind === "string" ? body.kind : typeof body.type === "string" ? body.type : "";
@@ -489,14 +487,10 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
       if (typeof body.user_email === "string" && body.user_email.trim().length > 0) {
         userEmail = body.user_email.trim().slice(0, 254);
       }
-      // attempt_id — client-minted UUIDv4 tying one logical attempt together
-      // (per page load for exit/abandon, per submit click for the submit
-      // family). OPTIONAL: a missing/malformed value means dedupe_key stays
-      // NULL and the event records normally (fail-open). The server validates
-      // the format and derives the key itself — never trusts the raw value.
-      if (typeof body.attempt_id === "string" && body.attempt_id.trim().length > 0) {
-        attemptId = body.attempt_id.trim().slice(0, 64);
-      }
+      // NOTE (owner REV 4 gate 1): the client NEVER sends an attempt id — the
+      // one-shot family's attempt basis is the SERVER-ISSUED `signup_attempt`
+      // cookie (signed, expiring, HttpOnly, minted per page load by the /signup
+      // SSR loader). It is read from the cookie header below, never the body.
     } catch {
       // No/invalid JSON — nothing to record (events skip, pages record "/").
     }
@@ -533,17 +527,28 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
         ? (EVENT_LABELS[event] ?? event.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()))
         : (pagePath ?? null);
 
-    // Server-side idempotency key (owner 09-12, gates a–d): derived ONLY for
-    // the signup one-shot family when the client sent a VALID UUIDv4 attempt id
-    // AND a visitor id AND a secret is configured. Everything else keeps
-    // dedupe_key NULL — the partial unique index never applies, so non-signup
-    // events are byte-identical behaviourally. The 64 ms double-fire of the
-    // SAME attempt (same visitor + event + attempt id) therefore derives the
-    // SAME key and is suppressed atomically by ON CONFLICT DO NOTHING below;
-    // a fresh attempt derives a fresh key and always records.
+    // Server-side idempotency key (owner REV 4 gate 1): derived ONLY for the
+    // signup one-shot family when the request carries a VALID SERVER-ISSUED
+    // attempt token (the signed `signup_attempt` cookie minted by the /signup
+    // SSR loader — signature + version + expiry validated here) AND a visitor
+    // id AND a secret is configured. The cookie is read from the raw Cookie
+    // header, so /api/event, /api/track-visitor AND /api/signup all see the
+    // SAME token for the same page session. Everything else keeps dedupe_key
+    // NULL — the partial unique index never applies, so non-signup events are
+    // byte-identical behaviourally. The 64 ms double-fire of the SAME page
+    // session (same visitor + event + token) therefore derives the SAME key
+    // and is suppressed atomically by ON CONFLICT DO NOTHING below; a NEW page
+    // load overwrites the cookie with a NEW token → fresh key → the new
+    // attempt always records.
     let dedupeKey: string | null = null;
-    if (kind === "event" && visitorId && SIGNUP_ONE_SHOT_EVENTS.has(event) && isValidAttemptId(attemptId)) {
-      dedupeKey = await deriveDedupeKey(resolveDedupeSecret(), visitorId, event, attemptId);
+    if (kind === "event" && visitorId && SIGNUP_ONE_SHOT_EVENTS.has(event)) {
+      const attemptToken = await readValidatedAttemptToken(
+        request.headers.get("cookie"),
+        { nowMs: Date.now() },
+      );
+      if (attemptToken) {
+        dedupeKey = await deriveDedupeKey(resolveDedupeSecret(), visitorId, event, attemptToken);
+      }
     }
 
     if (kind === "event") {

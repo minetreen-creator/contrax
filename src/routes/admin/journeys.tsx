@@ -275,37 +275,49 @@ function OpportunityPanel({ opp, score, level }: { opp: ConversionOpportunity; s
   );
 }
 
-/** 👀 Watch/unwatch toggle (row chip + panel button share this). */
+/** 👀 Watch/unwatch toggle (row chip + panel button share this).
+ *
+ * WATCH GATE (owner 2026-09-11): when the visitor's lead score is < 50 the
+ * "watch" direction is disabled with an explanatory tooltip; unwatch always
+ * stays available (an already-watched low-score visitor can still be
+ * unwatched). The authoritative check is server-side — this is UI only.
+ */
 function WatchToggle({
-  visitorId, watched, onChange, compact,
+  visitorId, watched, onChange, compact, watchable = true,
 }: {
   visitorId: string;
   watched: boolean;
   onChange: (watched: boolean, watchedSince: string | null) => void;
   compact?: boolean;
+  /** Whether this visitor's lead score is ≥ 50 (watchable). Defaults true. */
+  watchable?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
+  const scoreBlocked = !watched && !watchable;
   return (
     <button
       type="button"
-      disabled={busy}
+      disabled={busy || scoreBlocked}
       onClick={(e) => {
         e.stopPropagation();
         if (busy) return;
         setBusy(true);
         postWatch(visitorId, !watched)
           .then((r) => {
-            if (r && typeof r.watched === "boolean") onChange(r.watched, r.watched_since ?? null);
+            // Only trust a successful response — a server-side gate rejection
+            // (or a storage error) must NOT flip the toggle; it stays in its
+            // prior state.
+            if (r && r.ok !== false && typeof r.watched === "boolean") onChange(r.watched, r.watched_since ?? null);
           })
           .catch(() => { /* fail-open — button stays in prior state */ })
           .finally(() => setBusy(false));
       }}
-      title={watched ? "Stop watching this visitor" : "Watch this visitor — get flagged when they return"}
+      title={watched ? "Stop watching this visitor" : scoreBlocked ? "Lead score below 50 — not watchable" : "Watch this visitor — get flagged when they return"}
       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50 ${
         watched
           ? "border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200"
           : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-      }`}
+      } ${scoreBlocked ? "cursor-not-allowed" : ""}`}
     >
       {busy ? "…" : "👀"} {watched ? (compact ? "Watching" : "Watching — unwatch") : compact ? "Watch" : "Watch visitor"}
     </button>
@@ -425,7 +437,7 @@ function IntelPanel({
               <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${LEVEL_STYLES[lead_score.level]}`}>{LEVEL_LABEL[lead_score.level]} intent</span>
             </p>
           </div>
-          <WatchToggle visitorId={visitorId} watched={watched} onChange={onWatchedChange} />
+          <WatchToggle visitorId={visitorId} watched={watched} onChange={onWatchedChange} watchable={lead_score.score >= 50} />
         </div>
       </div>
 
@@ -643,7 +655,7 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
           </div>
           <Badges badges={j.badges} />
           <div className="mt-1.5 flex items-center gap-1.5">
-            <WatchToggle visitorId={j.visitor_id} watched={watched} onChange={handleWatchedChange} compact />
+            <WatchToggle visitorId={j.visitor_id} watched={watched} onChange={handleWatchedChange} compact watchable={(j.lead_score?.score ?? 0) >= 50} />
             {opp && (
               <button
                 type="button"

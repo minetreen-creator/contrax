@@ -116,7 +116,11 @@ async function handler({ request }: { request: Request }) {
   }
   // visitorId is hoisted so the error-path diagnostics below can attach the
   // persistent per-visitor id even when the body failed to parse (→ null).
+  // visitId + attemptTokenRaw are hoisted the same way (REV 5 binding + token
+  // inputs for signup_submit_error's dedupe on the server_error path).
   let visitorId: string | null = null;
+  let signupVisitId: string | null = null;
+  let attemptTokenRaw: string | null = null;
   // NOTE (owner REV 5): there is NO client-minted attempt id. The
   // error-path diagnostics validate the SERVER-ISSUED attempt token from the
   // POST body (field `attempt_token`; tab-scoped sessionStorage on the client)
@@ -145,9 +149,9 @@ async function handler({ request }: { request: Request }) {
     // backfill can tie this visitor's ENTIRE anonymous funnel to the new account.
     visitorId = (body.visitor_id || "").trim().slice(0, 64) || null;
     // REV 5 binding input: the request's resolved session (visit) id.
-    const visitId = (body.visit_id || "").trim().slice(0, 64) || null;
+    signupVisitId = (body.visit_id || "").trim().slice(0, 64) || null;
     // REV 5 transport: the server-issued attempt token rides the POST body.
-    const attemptTokenRaw = extractAttemptTokenFromBody(body);
+    attemptTokenRaw = extractAttemptTokenFromBody(body);
     // No-bifurcation rule: the standard /signup flow provisions every NON-PAYING
     // signup on the free Basic Package. A cold signup (no explicit paid plan)
     // defaults to plan_tier='basic'; only a user who explicitly opted into a
@@ -175,14 +179,14 @@ async function handler({ request }: { request: Request }) {
       errors.push("Passwords do not match.");
     }
     if (errors.length > 0) {
-      await recordSignupSubmitError(request, "invalid_input", visitorId, visitId, attemptTokenRaw);
+      await recordSignupSubmitError(request, "invalid_input", visitorId, signupVisitId, attemptTokenRaw);
       return Response.json({ error: errors.join(" ") }, { status: 400 });
     }
 
     // Check for duplicate
     const existing = await sql()`SELECT id FROM users WHERE email = ${email}`;
     if (existing.length > 0) {
-      await recordSignupSubmitError(request, "email_taken", visitorId, visitId, attemptTokenRaw);
+      await recordSignupSubmitError(request, "email_taken", visitorId, signupVisitId, attemptTokenRaw);
       return Response.json({ error: "An account with this email already exists." }, { status: 409 });
     }
 
@@ -256,7 +260,7 @@ async function handler({ request }: { request: Request }) {
     });
   } catch (err) {
     console.error("[api/signup] error:", err);
-    await recordSignupSubmitError(request, "server_error", visitorId, visitId, attemptTokenRaw);
+    await recordSignupSubmitError(request, "server_error", visitorId, signupVisitId, attemptTokenRaw);
     return Response.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

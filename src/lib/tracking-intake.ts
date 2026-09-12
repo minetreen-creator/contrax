@@ -438,6 +438,9 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
   let visitId: string | null = null;
   let userId: string | null = null;
   let userEmail: string | null = null;
+  // REV 5: raw attempt token from the request body (hoisted — set inside the
+  // parse try below where `body` is in scope; stays null on JSON failure).
+  let attemptTokenRaw: string | null = null;
   try {
     // Skip known bots/crawlers — don't pollute funnel event / page counts.
     const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
@@ -495,7 +498,8 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
       // NOTE (owner REV 5): the one-shot family's attempt basis is the
       // SERVER-ISSUED signed attempt token that the CLIENT attaches to the
       // request body (field `attempt_token`; stored tab-scoped in
-      // sessionStorage — NEVER a cookie). It is read from the body below.
+      // sessionStorage — NEVER a cookie). It is read from the body here.
+      attemptTokenRaw = extractAttemptTokenFromBody(body as Record<string, unknown>);
     } catch {
       // No/invalid JSON — nothing to record (events skip, pages record "/").
     }
@@ -503,7 +507,6 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
     // REV 5 transport: the raw attempt token rides the request BODY (the
     // /api/event + /api/track-visitor beacon bodies and the /api/signup POST
     // all carry `attempt_token`). Absent/empty → null (fail_open_missing).
-    const attemptTokenRaw = extractAttemptTokenFromBody(body);
 
     // Events REQUIRE a usable event name; pages default to "/".
     if (kind === "event" && !event) {

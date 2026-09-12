@@ -1,19 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { setCookie } from "@tanstack/react-start/server";
 import { SignupContextPanel } from "~/components/SignupContextPanel";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import {
   buildExitPayload,
   buildFieldErrorPayload,
-  SIGNUP_ATTEMPT_COOKIE,
+  clearStoredAttemptToken,
+  mintAttemptNonce,
+  readStoredAttemptToken,
+  resolveAcquisitionPath,
+  resolveSignupAttemptToken,
+  signSignupSessionToken,
   SIGNUP_ATTEMPT_MAX_AGE_S,
   SIGNUP_ATTEMPT_VERSION,
-  signSignupSessionToken,
-  mintAttemptNonce,
-  resolveAcquisitionPath,
+  storeAttemptToken,
   type AcquisitionBucket,
 } from "~/lib/signup-telemetry";
 import { FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
@@ -256,6 +258,39 @@ const clearRadarHandoff = createServerFn({ method: "POST" }).handler(async () =>
     return { cleared: false };
   }
 });
+// REV 5 (owner 09-12) — server-issued attempt token bound to the TAB's real
+// visitor/visit identity. The SSR loader's token cannot know the per-tab
+// sessionStorage visit id, so the client init calls THIS when it needs a
+// properly-bound token (new tab first visit, or after completion rotation).
+// The server signs {v, n, exp, visitorId, visitId} — the client never mints,
+// never sees the secret, and the payload carries no PII. Fail-open: any
+// failure returns null → no token → events record without dedupe.
+const mintSignupAttemptToken = createServerFn({ method: "POST" })
+  .validator((d: unknown) => {
+    const v = (d as any) ?? {};
+    return {
+      visitorId: String(v.visitorId ?? "").trim().slice(0, 64),
+      visitId: String(v.visitId ?? "").trim().slice(0, 64),
+    };
+  })
+  .handler(async ({ data }) => {
+    try {
+      if (!data.visitorId || !data.visitId) return { token: null }; // cannot bind a partial identity
+      const token = await signSignupSessionToken({
+        v: SIGNUP_ATTEMPT_VERSION,
+        n: mintAttemptNonce(),
+        exp: Date.now() + SIGNUP_ATTEMPT_MAX_AGE_S * 1000,
+        visitorId: data.visitorId,
+        visitId: data.visitId,
+      });
+      return { token };
+    } catch (err) {
+      // Constant string only — never the secret, never the token payload.
+      console.error("[signup] attempt-token mint unavailable (non-fatal, dedupe off):", (err as Error).message);
+      return { token: null };
+    }
+  });
+
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/signup")({
@@ -305,30 +340,44 @@ export const Route = createFileRoute("/signup")({
     size: typeof search.size === "string" ? search.size.slice(0, 24) : undefined,
   }),
   loader: async () => {
-    // Owner REV 4 gate 1 — SERVER-ISSUED attempt token: mint ONE signed
-    // session token per page load and hand it to the browser as the HttpOnly
-    // `signup_attempt` cookie (Path=/, SameSite=Lax). The client never mints
-    // and never reads it — beacons and /api/signup carry it back automatically.
-    // A NEW page load overwrites the cookie with a NEW token (new-attempt →
-    // new key); retries / double-fires within the same page session reuse the
-    // SAME cookie (retry-reuse → same key). The server validates signature +
-    // version + expiry before deriving the funnel_events.dedupe_key (see
-    // tracking-intake.ts / api/signup.ts). Fail-open: a mint failure (missing
-    // RADAR_HANDOFF_SECRET in this env) must NEVER break the page — no cookie
-    // → dedupe_key NULL → events still record, identical to pre-PR behavior.
+    // Owner REV 5 — SERVER-ISSUED attempt token: the SSR loader STILL mints
+    // ONE signed expiring token per page load, but instead of a cookie it
+    // RETURNS the token in the page data (loader payload). The client stores
+    // it in TAB-SCOPED sessionStorage ("signup_attempt_token") and attaches it
+    // to every signup-family telemetry request body (field `attempt_token`).
+    //
+    // BINDING fields: the per-visitor `contrax_vid` cookie is readable here
+    // (visitorId); the per-tab `visit` id lives in sessionStorage and is NOT
+    // knowable at SSR, so visitId is "" — the client-side init (below) adopts
+    // this token ONLY when it binds to the tab's real identity, otherwise it
+    // obtains a fresh server-signed token bound to that identity via
+    // mintSignupAttemptToken (still server-issued — the client never mints).
+    // Reloads / SPA nav reuse the stored unexpired token; completion retires
+    // it (sessionStorage.removeItem) so the next page load rotates.
+    //
+    // The server validates signature + expiry + event-scope + visitor/session
+    // BINDING before deriving funnel_events.dedupe_key (tracking-intake.ts /
+    // api/signup.ts) and flags funnel_events.dedupe_status. Fail-open: a mint
+    // failure (missing RADAR_HANDOFF_SECRET) must NEVER break the page — no
+    // token → dedupe_key NULL + dedupe_status fail_open_missing → events still
+    // record, identical to pre-PR no-key behavior.
+    let attemptToken: string | null = null;
     if (typeof window === "undefined") {
       try {
-        const attemptToken = await signSignupSessionToken({
+        const { getRequest } = await import("@tanstack/react-start/server");
+        const cookie = getRequest().headers.get("cookie") ?? "";
+        let visitorId = "";
+        for (const part of cookie.split(";")) {
+          const idx = part.indexOf("=");
+          if (idx === -1) continue;
+          if (part.slice(0, idx).trim() === "contrax_vid") visitorId = part.slice(idx + 1).trim();
+        }
+        attemptToken = await signSignupSessionToken({
           v: SIGNUP_ATTEMPT_VERSION,
           n: mintAttemptNonce(),
           exp: Date.now() + SIGNUP_ATTEMPT_MAX_AGE_S * 1000,
-        });
-        setCookie(SIGNUP_ATTEMPT_COOKIE, attemptToken, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "lax",
-          path: "/",
-          maxAge: SIGNUP_ATTEMPT_MAX_AGE_S,
+          visitorId: visitorId.slice(0, 64),
+          visitId: "", // per-tab sessionStorage visit id is unknowable at SSR
         });
       } catch (err) {
         // Constant string only — never the secret, never the token payload.
@@ -348,6 +397,10 @@ export const Route = createFileRoute("/signup")({
       // with an honest reason instead of a live-looking link to a handshake
       // that would fail server-side (the callback needs both env vars).
       googleAuthUrl: await getGoogleAuthUrl(),
+      // REV 5: the server-issued attempt token for this page load (null when
+      // minting is unavailable — the client falls back to a fresh mint or
+      // fail-open no-token; never breaks the page).
+      attemptToken,
     };
   },
   component: SignupPage,
@@ -393,7 +446,7 @@ export const Route = createFileRoute("/signup")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function SignupPage() {
-  const { currentUser, trackedBids, openBids, linkedInAuthUrl, googleAuthUrl: baseGoogleAuthUrl } =
+  const { currentUser, trackedBids, openBids, linkedInAuthUrl, googleAuthUrl: baseGoogleAuthUrl, attemptToken: loaderAttemptToken } =
     Route.useLoaderData();
   const navigate = useNavigate();
   const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency, trade, cert, state, size, value } =
@@ -621,13 +674,46 @@ function SignupPage() {
   // BEFORE the view/exit effects so they can read the mounted values.
   const acquisitionBucketRef = useRef<AcquisitionBucket>("internal_other");
   const signupPageViewedAtRef = useRef<number>(0);
-  // Attempt identity is SERVER-ISSUED (owner REV 4 gate 1): the SSR loader
-  // mints one signed session token per page load into the HttpOnly
-  // `signup_attempt` cookie. The client never mints, never reads, and never
-  // sends an attempt id — beacons and /api/signup carry the cookie back
-  // automatically, and the server validates signature+version+expiry before
-  // deriving the dedupe key. A reload / new session overwrites the cookie with
-  // a NEW token → new key → the new attempt still records.
+  // ── Attempt token (owner REV 5): server-issued, signed, expiring, stored in
+  // TAB-SCOPED sessionStorage ("signup_attempt_token"), attached to EVERY
+  // signup-family telemetry request body (field `attempt_token`: beacons via
+  // trackEvent (src/lib/track.ts), the signup_exit/signup_abandon sendBeacon
+  // payloads, and the /api/signup POST). The init below implements the REV 5
+  // reuse rule: an existing sessionStorage token whose client-readable exp is
+  // in the future is REUSED (preserved across SPA nav and ordinary reloads);
+  // otherwise the loader-supplied token is adopted when it binds to this tab's
+  // visitor/visit identity, else a fresh bound token is minted server-side
+  // (independent token per tab). Completion rotates: clearStoredAttemptToken()
+  // after signup_success → the next page load mints a fresh token.
+  const attemptTokenRef = useRef<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const visitorId = getOrCreateVisitorId();
+    const visitId = getOrCreateVisitId();
+    resolveSignupAttemptToken({
+      storedToken: readStoredAttemptToken(),
+      loaderToken: loaderAttemptToken,
+      nowMs: Date.now(),
+      visitorId,
+      visitId,
+      mint: async (vid, sid) => {
+        const res = await mintSignupAttemptToken({ data: { visitorId: vid, visitId: sid } });
+        return res?.token ?? null;
+      },
+    })
+      .then((r) => {
+        if (cancelled) return;
+        attemptTokenRef.current = r.token;
+        if (r.token && !r.reused) storeAttemptToken(r.token);
+      })
+      .catch(() => {
+        // fail-open: no token → events record without dedupe
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaderAttemptToken]);
   useEffect(() => {
     // Source-param-first acquisition attribution (owner 09-12): ?source= wins
     // because it survives SPA client-side nav, redirects and restored sessions;
@@ -747,9 +833,11 @@ function SignupPage() {
         visit_id: getOrCreateVisitId(),
         label: exit.label,
         path: JSON.stringify({ from: exit.from, seconds_on_page: String(exit.seconds_on_page) }),
-        // Attempt identity rides the HttpOnly `signup_attempt` cookie the SSR
-        // loader minted (server-issued, REV 4 gate 1) — no client attempt id.
       };
+      // REV 5: the server-issued attempt token rides the beacon BODY (the
+      // server binds it to this request's visitor/visit before dedupe).
+      const attempt = attemptTokenRef.current ?? readStoredAttemptToken();
+      if (attempt) payload.attempt_token = attempt;
       const user = getTrackingUser();
       if (user) {
         payload.user_id = user.id;
@@ -778,9 +866,10 @@ function SignupPage() {
         visitor_id: getOrCreateVisitorId(),
         visit_id: getOrCreateVisitId(),
         path: JSON.stringify({ from: acquisitionBucketRef.current }),
-        // Attempt identity rides the HttpOnly `signup_attempt` cookie the SSR
-        // loader minted (server-issued, REV 4 gate 1) — no client attempt id.
       };
+      // REV 5: the server-issued attempt token rides the beacon BODY.
+      const attempt = attemptTokenRef.current ?? readStoredAttemptToken();
+      if (attempt) payload.attempt_token = attempt;
       const user = getTrackingUser();
       if (user) {
         payload.user_id = user.id;
@@ -902,12 +991,14 @@ function SignupPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-    // Attempt identity is SERVER-ISSUED (owner REV 4 gate 1): the SSR loader
-    // minted the HttpOnly `signup_attempt` cookie for this page load. The
-    // client sends NO attempt id — submit/submit_error/success all carry the
-    // SAME cookie, so the server derives the SAME dedupe key for retries of the
-    // same page-session attempt and a NEW key after a new page load. The server
-    // validates signature+version+expiry before deriving (fail-open → no key).
+    // Attempt identity is SERVER-ISSUED (owner REV 5): the tab-scoped
+    // sessionStorage token (attemptTokenRef / readStoredAttemptToken) is
+    // attached to the POST body and every signup event beacon. submit /
+    // submit_error / success all carry the SAME token, so the server derives
+    // the SAME dedupe key for retries of the same attempt and a NEW key after
+    // completion rotation / a new tab. The server validates
+    // signature+expiry+scope+binding before deriving (fail-open → no key, flag
+    // dedupe_status).
 
     const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string || "").trim().toLowerCase();
@@ -954,9 +1045,10 @@ function SignupPage() {
     }
 
     // Fire exactly once per submit — the button is disabled while loading, so
-    // double-clicks can't double-fire. The signed attempt-token cookie (set by
-    // the SSR loader) makes the server's dedupe_key authoritative even if a
-    // keepalive/delivery retry re-sends the SAME page-session attempt.
+    // double-clicks can't double-fire. The signed attempt token (tab-scoped
+    // sessionStorage, server-issued) makes the server's dedupe_key
+    // authoritative even if a keepalive/delivery retry re-sends the SAME
+    // page-session attempt (trackEvent attaches attempt_token automatically).
     trackEvent("signup_submit", undefined, signupFromExtra());
     setLoading(true);
 
@@ -973,10 +1065,13 @@ function SignupPage() {
           // Persistent per-visitor id — lets the server backfill this visitor's
           // anonymous funnel rows to the new account. Optional; never required.
           visitor_id: getOrCreateVisitorId(),
-          // No attempt id: the server's dedupe basis is the HttpOnly
-          // `signup_attempt` cookie the SSR loader minted (server-issued,
-          // signed + expiring, validated server-side). Missing/invalid cookie
-          // → dedupe_key NULL → the event still records (fail-open).
+          // REV 5: the request's resolved session identity + the server-issued
+          // attempt token ride the POST body so the server can BIND the token
+          // to this visitor/visit before deriving the dedupe key. Missing
+          // token → dedupe_key NULL + dedupe_status fail_open_* → the event
+          // still records (fail-open).
+          visit_id: getOrCreateVisitId(),
+          attempt_token: attemptTokenRef.current ?? readStoredAttemptToken() ?? undefined,
         }),
       });
       const json = await res.json() as {
@@ -994,6 +1089,10 @@ function SignupPage() {
       // for this visit (guarded in the pagehide/beforeunload listener).
       signupSucceededRef.current = true;
       trackEvent("signup_success");
+      // REV 5 rotation: completion RETIRES the attempt token — the next page
+      // load adopts/mints a fresh one (never before the success beacon above,
+      // which still needs the same token to key the success event).
+      clearStoredAttemptToken();
       // PR2 unlock completion (owner 2026-09-07): an unlock-handoff signup
       // ATTRIBUTES the anonymous journey to the new account (the server's
       // /api/signup identity backfill already ties visitor_id rows to the

@@ -1,5 +1,6 @@
 import { trackingIds } from "~/lib/visitor";
 import { getTrackingUser } from "~/lib/identity";
+import { readStoredAttemptToken } from "~/lib/signup-telemetry";
 /**
  * Fire-and-forget funnel event tracking (client-side only).
  *
@@ -19,13 +20,15 @@ import { getTrackingUser } from "~/lib/identity";
  *   trackEvent("hero_cta_click", "hero_primary");
  *   trackEvent("score_submit");
  *
- * The client NEVER sends an attempt id (owner REV 4 gate 1): attempt identity
- * for the signup one-shot family is a SERVER-ISSUED signed token minted into
- * the HttpOnly `signup_attempt` cookie by the /signup SSR loader. Beacons carry
- * it back automatically; the server validates signature+version+expiry and
- * derives the DB idempotency key from it (src/lib/signup-telemetry.ts). Events
- * without a valid cookie record normally with dedupe_key NULL (fail-open,
- * byte-identical behavior).
+ * Attempt identity (owner REV 5): the signup one-shot family is deduped on a
+ * SERVER-ISSUED signed token stored in TAB-SCOPED sessionStorage by /signup
+ * and attached to every telemetry request body here (field `attempt_token`).
+ * The server validates signature + expiry + event-scope + visitor/session
+ * BINDING before deriving the DB idempotency key (src/lib/signup-telemetry.ts)
+ * and flags funnel_events.dedupe_status. Events outside the one-shot family —
+ * or without a token — record normally with dedupe_key NULL / no flag
+ * (fail-open, byte-identical behavior). A token attached to a non-signup event
+ * is IGNORED server-side.
  */
 export function trackEvent(event: string, label?: string, path?: string) {
   if (typeof window === "undefined") return;
@@ -47,6 +50,11 @@ export function trackEvent(event: string, label?: string, path?: string) {
   }
   if (label) payload.label = label;
   if (path) payload.path = path;
+  // REV 5 transport: attach the tab-scoped attempt token when one exists
+  // (only the signup page stores one; the server ignores it outside the
+  // signup one-shot family). sessionStorage read is guarded + cheap.
+  const attempt = readStoredAttemptToken();
+  if (attempt) payload.attempt_token = attempt;
   try {
     fetch("/api/track-visitor", {
       method: "POST",

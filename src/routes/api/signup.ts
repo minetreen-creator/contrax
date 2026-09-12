@@ -11,7 +11,11 @@ import {
   rateLimitedResponse,
 } from "~/lib/rate-limit";
 import { isBot, ensureFunnelEventsTable } from "~/lib/tracking-intake";
-import { deriveDedupeKey, readValidatedAttemptToken, resolveDedupeSecret } from "~/lib/signup-telemetry";
+import {
+  extractAttemptTokenFromBody,
+  resolveDedupeSecret,
+  resolveOneShotDedupe,
+} from "~/lib/signup-telemetry";
 
 const SESSION_TTL_DAYS = 30;
 // Account-creation floods are blocked per-IP and per-email BEFORE any insert.
@@ -59,9 +63,10 @@ async function backfillFunnelIdentity(userId: number, userEmail: string, visitor
  * It is additionally invisible to the 1s intake dedupe / attribution — an
  * honest raw diagnostic row per failed submit (a DOUBLE-fire of the SAME
  * page-session attempt is still collapsed atomically via
- * funnel_events.dedupe_key, owner REV 4 gate 1: the key derives from the
- * SERVER-ISSUED signed `signup_attempt` cookie the /signup SSR loader minted —
- * signature/version/expiry validated server-side, never a client value).
+ * funnel_events.dedupe_key, owner REV 5: the key derives from the
+ * SERVER-ISSUED signed attempt token the client attached to the POST body —
+ * signature/expiry/event-scope/visitor-session-binding validated server-side,
+ * never a client value, never a cookie).
  *
  * Never throws, never blocks the signup response (own try/catch; single
  * INSERT).
@@ -70,32 +75,32 @@ async function recordSignupSubmitError(
   request: Request,
   reason: "email_taken" | "invalid_input" | "server_error",
   visitorId: string | null,
+  visitId: string | null,
+  attemptTokenRaw: string | null,
 ): Promise<void> {
   try {
     // Mirror the intake bot filter: crawlers/scripts must not pollute the
     // diagnostic rows (the UA is stored for analysts either way).
     const ua = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
     if (ua && isBot(ua)) return;
-    // Server-side idempotency (owner REV 4 gate 1): key derived from the
-    // SERVER secret + visitor + event + the VALIDATED SERVER-ISSUED attempt
-    // token (the signed `signup_attempt` cookie the /signup SSR loader minted
-    // for this page load — signature + version + expiry checked HERE, never a
-    // client-minted value). Missing/invalid/expired cookie → dedupe_key NULL →
-    // the event still records (fail-open, byte-identical to the no-key path).
-    let dedupeKey: string | null = null;
-    if (visitorId) {
-      const attemptToken = await readValidatedAttemptToken(
-        request.headers.get("cookie"),
-        { nowMs: Date.now() },
-      );
-      if (attemptToken) {
-        dedupeKey = await deriveDedupeKey(resolveDedupeSecret(), visitorId, "signup_submit_error", attemptToken);
-      }
-    }
+    // Server-side idempotency (owner REV 5): the SAME four checks run for the
+    // signup one-shot family (classifySignupAttemptToken inside
+    // resolveOneShotDedupe — signature / expiry / scope / visitor-session
+    // BINDING against the request's resolved visitor/visit). Missing/invalid/
+    // expired/forged token → dedupe_key NULL + dedupe_status flag; the event
+    // still records (fail-open, byte-identical to the no-key path).
+    const outcome = await resolveOneShotDedupe({
+      secret: resolveDedupeSecret(),
+      rawToken: attemptTokenRaw,
+      nowMs: Date.now(),
+      visitorId,
+      visitId,
+      eventName: "signup_submit_error",
+    });
     await ensureFunnelEventsTable();
     await sql()`
-      INSERT INTO funnel_events (event_name, label, path, user_agent, visitor_id, dedupe_key)
-      VALUES ('signup_submit_error', ${reason}, '/api/signup', ${ua}, ${visitorId}, ${dedupeKey})
+      INSERT INTO funnel_events (event_name, label, path, user_agent, visitor_id, dedupe_key, dedupe_status)
+      VALUES ('signup_submit_error', ${reason}, '/api/signup', ${ua}, ${visitorId}, ${outcome.key}, ${outcome.status})
       ON CONFLICT (dedupe_key) DO NOTHING
     `;
   } catch (err) {
@@ -112,11 +117,12 @@ async function handler({ request }: { request: Request }) {
   // visitorId is hoisted so the error-path diagnostics below can attach the
   // persistent per-visitor id even when the body failed to parse (→ null).
   let visitorId: string | null = null;
-  // NOTE (owner REV 4 gate 1): there is NO client attempt id. The error-path
-  // diagnostics read the SERVER-ISSUED `signup_attempt` cookie (signed,
-  // expiring, validated server-side) directly from the request — the SAME
-  // cookie the client's trackEvent beacons carry, so signup_submit_error keys
-  // on the same page-session attempt as signup_submit/signup_success.
+  // NOTE (owner REV 5): there is NO client-minted attempt id. The
+  // error-path diagnostics validate the SERVER-ISSUED attempt token from the
+  // POST body (field `attempt_token`; tab-scoped sessionStorage on the client)
+  // against the request's resolved visitor/visit — the SAME token the client's
+  // trackEvent beacons carry, so signup_submit_error keys on the same
+  // page-session attempt as signup_submit/signup_success.
   try {
     const body = (await request.json()) as {
       email?: string;
@@ -124,7 +130,9 @@ async function handler({ request }: { request: Request }) {
       confirmPassword?: string;
       plan?: string;
       visitor_id?: string;
+      visit_id?: string;
       company?: string;
+      attempt_token?: unknown;
     };
 
     const email = (body.email || "").trim().toLowerCase();
@@ -136,6 +144,10 @@ async function handler({ request }: { request: Request }) {
     // Persistent per-visitor id (contrax_vid) rides in the body so the identity
     // backfill can tie this visitor's ENTIRE anonymous funnel to the new account.
     visitorId = (body.visitor_id || "").trim().slice(0, 64) || null;
+    // REV 5 binding input: the request's resolved session (visit) id.
+    const visitId = (body.visit_id || "").trim().slice(0, 64) || null;
+    // REV 5 transport: the server-issued attempt token rides the POST body.
+    const attemptTokenRaw = extractAttemptTokenFromBody(body);
     // No-bifurcation rule: the standard /signup flow provisions every NON-PAYING
     // signup on the free Basic Package. A cold signup (no explicit paid plan)
     // defaults to plan_tier='basic'; only a user who explicitly opted into a
@@ -163,14 +175,14 @@ async function handler({ request }: { request: Request }) {
       errors.push("Passwords do not match.");
     }
     if (errors.length > 0) {
-      await recordSignupSubmitError(request, "invalid_input", visitorId);
+      await recordSignupSubmitError(request, "invalid_input", visitorId, visitId, attemptTokenRaw);
       return Response.json({ error: errors.join(" ") }, { status: 400 });
     }
 
     // Check for duplicate
     const existing = await sql()`SELECT id FROM users WHERE email = ${email}`;
     if (existing.length > 0) {
-      await recordSignupSubmitError(request, "email_taken", visitorId);
+      await recordSignupSubmitError(request, "email_taken", visitorId, visitId, attemptTokenRaw);
       return Response.json({ error: "An account with this email already exists." }, { status: 409 });
     }
 
@@ -244,7 +256,7 @@ async function handler({ request }: { request: Request }) {
     });
   } catch (err) {
     console.error("[api/signup] error:", err);
-    await recordSignupSubmitError(request, "server_error", visitorId);
+    await recordSignupSubmitError(request, "server_error", visitorId, visitId, attemptTokenRaw);
     return Response.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

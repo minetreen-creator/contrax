@@ -651,6 +651,8 @@ CREATE INDEX IF NOT EXISTS idx_bid_scout_subscriptions_offer_code
 -- must no-op rather than fail setup. Idempotent — safe to re-run.
 ALTER TABLE IF EXISTS funnel_events
     ADD COLUMN IF NOT EXISTS dedupe_key text;
+ALTER TABLE IF EXISTS funnel_events
+    ADD COLUMN IF NOT EXISTS dedupe_status text;
 DO $$
 BEGIN
   IF EXISTS (

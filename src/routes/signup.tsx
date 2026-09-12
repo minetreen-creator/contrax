@@ -28,6 +28,41 @@ import {
 } from "~/lib/radar-session";
 
 
+// ── Acquisition-path bucket (owner 09-12 signup-diagnostic instrumentation) ──
+// Computed ONCE per page mount from document.referrer so every signup tracking
+// event can carry WHERE the visitor came from WITHOUT touching the frozen
+// signup_viewed_from_radar attribution in radar.tsx (this is a supplement, not
+// a replacement — radar.tsx keeps firing its own attribution unchanged).
+// Buckets (owner spec):
+//   radar          — same-site referrer path starts with /radar
+//   autopsy        — same-site referrer path starts with /autopsy
+//   bid_scout      — same-site referrer path starts with /bid-scout
+//   awards         — same-site referrer path starts with /awards
+//   home           — any other same-site referrer
+//   external       — cross-site referrer (facebook/google/etc.)
+//   internal_other — no referrer / unknown / malformed
+const ACQUISITION_BUCKETS = ["radar", "autopsy", "bid_scout", "awards", "home", "external", "internal_other"] as const;
+type AcquisitionBucket = (typeof ACQUISITION_BUCKETS)[number];
+
+function computeAcquisitionBucket(): AcquisitionBucket {
+  try {
+    if (typeof document !== "undefined" && document.referrer) {
+      const url = new URL(document.referrer);
+      if (url.origin === window.location.origin) {
+        if (url.pathname.startsWith("/radar")) return "radar";
+        if (url.pathname.startsWith("/autopsy")) return "autopsy";
+        if (url.pathname.startsWith("/bid-scout")) return "bid_scout";
+        if (url.pathname.startsWith("/awards")) return "awards";
+        return "home";
+      }
+      return "external";
+    }
+  } catch {
+    // malformed referrer — fall through to internal_other
+  }
+  return "internal_other";
+}
+
 type ScoreRec = "GO" | "CAUTIOUS" | "NO-GO";
 
 type SignupSearch = {
@@ -554,6 +589,24 @@ function SignupPage() {
     }
   }, [source, trade, cert, state, size]);
 
+  // ── Signup diagnostic context (owner 09-12 instrumentation): captured ONCE
+  // at mount. `acquisitionBucketRef` = acquisition-path bucket from
+  // document.referrer (attached to every signup event below); 
+  // `signupPageViewedAtRef` = page-view wall-clock so the signup_exit beacon
+  // can report seconds-on-page for EVERY visitor (not just form-starters).
+  // Pure measurement — nothing here changes the conversion flow. Declared
+  // BEFORE the view/exit effects so they can read the mounted values.
+  const acquisitionBucketRef = useRef<AcquisitionBucket>("internal_other");
+  const signupPageViewedAtRef = useRef<number>(0);
+  useEffect(() => {
+    acquisitionBucketRef.current = computeAcquisitionBucket();
+    signupPageViewedAtRef.current = Date.now();
+  }, []);
+  // Same extra-payload channel the signup_field_error event already uses (the
+  // `path` argument of trackEvent → funnel_events.path, a JSON string — the
+  // ONE precedent for structured event extras; no schema change needed).
+  const signupFromExtra = () => JSON.stringify({ from: acquisitionBucketRef.current });
+
   // Funnel: fire exactly ONE signup-page-view event per visit, once. The cold
   // path (e.g. the homepage Closing Soon → /signup) fires a plain `signup_view`;
   // the score-recommendation path keeps its distinct `signup_view_with_score`
@@ -563,8 +616,8 @@ function SignupPage() {
   useEffect(() => {
     if (scoredViewFiredRef.current) return;
     scoredViewFiredRef.current = true;
-    if (score_rec) trackEvent("signup_view_with_score", score_rec);
-    else trackEvent("signup_view");
+    if (score_rec) trackEvent("signup_view_with_score", score_rec, signupFromExtra());
+    else trackEvent("signup_view", undefined, signupFromExtra());
   }, [score_rec]);
 
   // ── signup_start: fire EXACTLY ONCE when the visitor begins the form (first
@@ -574,15 +627,14 @@ function SignupPage() {
   // stays a true form-start signal and never re-fires (ref guard).
   const signupStartedRef = useRef(false);
   // signupStartedAtRef: wall-clock time (ms) when the visitor BEGAN the form
-  // (first focus). Feeds the signup_exit seconds_on_signup beacon below; null
-  // until the form is actually started, so a visitor who never touches the form
-  // never fires signup_exit.
+  // (first focus). Feeds the signup_exit beacon's label below: null → the
+  // visitor never touched the form ("view" cohort), non-null → "form_started".
   const signupStartedAtRef = useRef<number | null>(null);
   const handleSignupStart = () => {
     if (signupStartedRef.current) return;
     signupStartedRef.current = true;
     signupStartedAtRef.current = Date.now();
-    trackEvent("signup_start", (source === "radar" || source === "radar_results_unlock" || source === "radar_results_cta") ? "radar" : selectedPlan);
+    trackEvent("signup_start", (source === "radar" || source === "radar_results_unlock" || source === "radar_results_cta") ? "radar" : selectedPlan, signupFromExtra());
   };
 
   // ── signup_field_reached: fire exactly ONCE per field per visit. The funnel
@@ -608,9 +660,20 @@ function SignupPage() {
   const abandonedFiredRef = useRef(false);
   // ── signup_exit: a DISTINCT page-unload event (NOT folded into signup_abandon
   // — signup_abandon stays byte-for-byte unchanged) carrying how many seconds the
-  // visitor spent on the signup form before leaving. At most once per visit
-  // (exitFiredRef), never after signup_success, never on the logged-in redirect,
-  // and ONLY when the visitor actually started the form (signupStartedAtRef set).
+  // visitor spent on the signup page before leaving. At most once per visit
+  // (exitFiredRef), never after signup_success, never on the logged-in redirect.
+  //
+  // OWNER 09-12 FIX: the old extra guard `signupStartedAtRef.current === null`
+  // meant the beacon fired ONLY when the visitor had started the form — nearly
+  // everyone bails in 2–17s BEFORE typing, so prod has 0 signup_exit rows ever.
+  // The guard is now exactly the signup_abandon guard set below (no logged-in
+  // redirect, no success, once-only), so EVERY visitor fires it. `label`
+  // distinguishes the cohort: "view" (never touched the form) vs
+  // "form_started". Seconds are measured from PAGE VIEW (mount), not form
+  // start, and the payload field is renamed seconds_on_page (0 legacy rows
+  // exist, so the rename breaks nothing). The seconds + acquisition bucket
+  // ride the same funnel_events.path JSON channel as signup_field_error.
+  // event_name stays signup_exit exactly.
   const exitFiredRef = useRef(false);
   // redirectingRef guards the logged-in redirect path below: when an
   // already-signed-in user lands on /signup we redirect (or complete a
@@ -622,20 +685,23 @@ function SignupPage() {
   useEffect(() => {
     const fireSignupExit = () => {
       // Same guards as signup_abandon: no-op on the logged-in redirect, after
-      // signup_success, or once already fired. PLUS: only when the visitor
-      // actually began the form (signupStartedAtRef non-null).
+      // signup_success, or once already fired. No form-start guard — every
+      // visitor who loaded the page gets a beacon.
       if (typeof navigator === "undefined") return;
       if (redirectingRef.current) return;
       if (signupSucceededRef.current || exitFiredRef.current) return;
-      if (signupStartedAtRef.current === null) return;
       exitFiredRef.current = true;
-      const seconds = Math.max(0, Math.round((Date.now() - signupStartedAtRef.current) / 1000));
+      const formStarted = signupStartedAtRef.current !== null;
+      // Seconds since PAGE VIEW (mount), not since form start — a visitor who
+      // never typed still gets a meaningful dwell time.
+      const base = signupPageViewedAtRef.current || Date.now();
+      const seconds = Math.max(0, Math.round((Date.now() - base) / 1000));
       const payload: Record<string, string> = {
         event: "signup_exit",
         visitor_id: getOrCreateVisitorId(),
         visit_id: getOrCreateVisitId(),
-        label: "seconds_on_signup",
-        seconds_on_signup: String(seconds),
+        label: formStarted ? "form_started" : "view",
+        path: JSON.stringify({ from: acquisitionBucketRef.current, seconds_on_page: String(seconds) }),
       };
       const user = getTrackingUser();
       if (user) {
@@ -653,7 +719,8 @@ function SignupPage() {
     };
     window.addEventListener("pagehide", fireSignupExit);
     window.addEventListener("beforeunload", fireSignupExit);
-    // signup_abandon — byte-for-byte unchanged.
+    // signup_abandon — event/labels byte-for-byte unchanged; the acquisition
+    // bucket rides the same extra-payload channel (path JSON) as signup_exit.
     const fireAbandoned = () => {
       if (typeof navigator === "undefined") return;
       if (redirectingRef.current) return; // logged-in redirect, not an abandon
@@ -663,6 +730,7 @@ function SignupPage() {
         event: "signup_abandon",
         visitor_id: getOrCreateVisitorId(),
         visit_id: getOrCreateVisitId(),
+        path: JSON.stringify({ from: acquisitionBucketRef.current }),
       };
       const user = getTrackingUser();
       if (user) {
@@ -810,24 +878,26 @@ function SignupPage() {
     if (clientErrors.length > 0) {
       setError(clientErrors.join(" "));
       // Track the validation failure so failed submissions are visible in the
-      // funnel. Structured payload { field, error } (owner spec): `field` is
-      // email | password | multiple; `error` is the short human message.
+      // funnel. Structured payload { field, error, from } (owner spec): `field`
+      // is email | password | multiple; `error` is the short human message;
+      // `from` is the acquisition-path bucket (owner 09-12). NEVER logs the
+      // entered email/password/company values — field NAME and reason only.
       // The field also rides as a plain label for easy filtering; the full
-      // {field,error} object is serialized via the same path "extra payload"
-      // channel trackEvent already uses.
+      // {field,error,from} object is serialized via the same path "extra
+      // payload" channel trackEvent already uses.
       const fieldErr =
         invalidEmail && invalidPassword ? "multiple" : invalidEmail ? "email" : "password";
       trackEvent(
         "signup_field_error",
         fieldErr,
-        JSON.stringify({ field: fieldErr, error: clientErrors.join(" ") }),
+        JSON.stringify({ field: fieldErr, error: clientErrors.join(" "), from: acquisitionBucketRef.current }),
       );
       return;
     }
 
     // Fire exactly once per submit — the button is disabled while loading, so
     // double-clicks can't double-fire.
-    trackEvent("signup_submit");
+    trackEvent("signup_submit", undefined, signupFromExtra());
     setLoading(true);
 
     try {

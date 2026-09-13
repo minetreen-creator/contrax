@@ -36,6 +36,30 @@ export interface AIResult {
 }
 
 /**
+ * Sanitize an arbitrary value (Error, string, or anything else) into a
+ * log-safe string: credential-like fragments are stripped FIRST (so a key
+ * straddling the truncation boundary cannot leak), then the result is
+ * truncated to `maxLen` characters. Used by telemetry only — never changes
+ * any response or error thrown to callers.
+ *
+ * Strips:
+ *   - `sk-...` OpenAI-style API keys (`sk-[A-Za-z0-9_-]{8,}`)
+ *   - `Authorization`-style bearer tokens (`bearer <token>`, case-insensitive)
+ */
+export function sanitizeLogString(input: unknown, maxLen = 200): string {
+  let s =
+    typeof input === "string"
+      ? input
+      : input instanceof Error
+        ? input.message
+        : String(input ?? "");
+  s = s
+    .replace(/sk-[A-Za-z0-9_-]{8,}/g, "[REDACTED]")
+    .replace(/bearer\s+\S+/gi, "bearer [REDACTED]");
+  return s.length > maxLen ? s.slice(0, maxLen) : s;
+}
+
+/**
  * Core callAI implementation returning both the content and the response's
  * token usage. `callAI` wraps this and returns just the string, so existing
  * callers keep their behavior; callers that need telemetry (token usage,
@@ -59,7 +83,14 @@ export async function callAIWithUsage(messages: AIMessage[], opts: AIOptions = {
   } catch (err) {
     throw new Error(`OpenAI request failed: ${err instanceof Error ? err.message : String(err)}`);
   }
-  if (!response.ok) throw new Error(`OpenAI API error (${response.status}): ${(await response.text().catch(() => "")).substring(0, 300)}`);
+  if (!response.ok) {
+    const status = response.status;
+    const err = new Error(`OpenAI API error (${status}): ${(await response.text().catch(() => "")).substring(0, 300)}`);
+    // Attach the HTTP status for diagnostics (consumed by the [ai-brief]
+    // generation_failed telemetry). Message is unchanged — purely additive.
+    (err as Error & { status?: number }).status = status;
+    throw err;
+  }
   const json = (await response.json()) as {
     choices?: { message?: { content?: unknown } }[];
     usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };

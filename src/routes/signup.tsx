@@ -1,9 +1,32 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+// Server-only module (tanstack-start-server-imports skill, rule 1): a route
+// file may import these bindings as long as they are referenced ONLY inside
+// createServerFn(...).handler() bodies — never in the loader (rule 2b) and
+// never in any client-reachable code path. REV 5 moved attempt-token transport
+// from cookie to tab-scoped sessionStorage; the loader returns attemptToken:
+// null and the CLIENT mints via the mintSignupAttemptToken POST server fn
+// (owner 09-12). Only getRequest (readRadarHandoff) and deleteCookie
+// (clearRadarHandoff) are used — setCookie is intentionally not imported.
+import { getRequest, deleteCookie } from "@tanstack/react-start/server";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SignupContextPanel } from "~/components/SignupContextPanel";
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import {
+  buildExitPayload,
+  buildFieldErrorPayload,
+  clearStoredAttemptToken,
+  mintAttemptNonce,
+  readStoredAttemptToken,
+  resolveAcquisitionPath,
+  resolveSignupAttemptToken,
+  signSignupSessionToken,
+  SIGNUP_ATTEMPT_MAX_AGE_S,
+  SIGNUP_ATTEMPT_VERSION,
+  storeAttemptToken,
+  type AcquisitionBucket,
+} from "~/lib/signup-telemetry";
 import { FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
 import { getOrCreateVisitorId, getOrCreateVisitId } from "~/lib/visitor";
 import { setTrackingUser, getTrackingUser } from "~/lib/identity";
@@ -27,6 +50,22 @@ import {
   type RadarSeenMatch,
 } from "~/lib/radar-session";
 
+
+// ── Acquisition-path bucket (owner 09-12 signup-diagnostic instrumentation) ──
+// Computed ONCE per page mount. The bucket logic now lives in
+// src/lib/signup-telemetry.ts (pure, unit-tested): search.source param FIRST
+// (survives SPA client-side nav, redirects and restored sessions — referrer
+// alone dies on client-side nav), document.referrer as the fallback. Behavior
+// when no source param is present is identical to the previous referrer-only
+// resolution. Buckets (owner spec):
+//   radar          — radar / unlock / radar-results-CTA source, or same-site /radar referrer
+//   autopsy        — autopsy source, or same-site /autopsy referrer
+//   bid_scout      — same-site referrer path starts with /bid-scout
+//   awards         — incumbent source, or same-site /awards referrer
+//   home           — closing_soon source, or any other same-site referrer
+//   external       — cross-site referrer (facebook/google/etc.)
+//   internal_other — no referrer / unknown / malformed
+// (Type imported from signup-telemetry; the const set + resolver live there.)
 
 type ScoreRec = "GO" | "CAUTIOUS" | "NO-GO";
 
@@ -196,7 +235,6 @@ const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () =>
 // ids) or null. NO email/PII ever rides in the URL.
 const readRadarHandoff = createServerFn({ method: "GET" }).handler(async () => {
   try {
-    const { getRequest } = await import("@tanstack/react-start/server");
     const { verifyRadarHandoff, RADAR_HANDOFF_COOKIE } = await import("~/lib/radar-handoff.server");
     const cookie = getRequest().headers.get("cookie") ?? "";
     const hit = cookie.split(";").map((c) => c.trim()).find((c) => c.startsWith(RADAR_HANDOFF_COOKIE + "="));
@@ -220,7 +258,6 @@ const readRadarHandoff = createServerFn({ method: "GET" }).handler(async () => {
 // later /signup visit never restores a stale scan. Same build-safe scope.
 const clearRadarHandoff = createServerFn({ method: "POST" }).handler(async () => {
   try {
-    const { deleteCookie } = await import("@tanstack/react-start/server");
     const { RADAR_HANDOFF_COOKIE } = await import("~/lib/radar-handoff.server");
     deleteCookie(RADAR_HANDOFF_COOKIE, { path: "/" });
     return { cleared: true };
@@ -228,6 +265,38 @@ const clearRadarHandoff = createServerFn({ method: "POST" }).handler(async () =>
     return { cleared: false };
   }
 });
+// REV 5 (owner 09-12) — server-issued attempt token bound to the TAB's real
+// visitor/visit identity. The SSR loader's token cannot know the per-tab
+// sessionStorage visit id, so the client init calls THIS when it needs a
+// properly-bound token (new tab first visit, or after completion rotation).
+// The server signs {v, n, exp, visitorId, visitId} — the client never mints,
+// never sees the secret, and the payload carries no PII. Fail-open: any
+// failure returns null → no token → events record without dedupe.
+const mintSignupAttemptToken = createServerFn({ method: "POST" })
+  .validator((d: unknown) => {
+    const v = (d as any) ?? {};
+    return {
+      visitorId: String(v.visitorId ?? "").trim().slice(0, 64),
+      visitId: String(v.visitId ?? "").trim().slice(0, 64),
+    };
+  })
+  .handler(async ({ data }) => {
+    try {
+      if (!data.visitorId || !data.visitId) return { token: null }; // cannot bind a partial identity
+      const token = await signSignupSessionToken({
+        v: SIGNUP_ATTEMPT_VERSION,
+        n: mintAttemptNonce(),
+        exp: Date.now() + SIGNUP_ATTEMPT_MAX_AGE_S * 1000,
+        visitorId: data.visitorId,
+        visitId: data.visitId,
+      });
+      return { token };
+    } catch (err) {
+      // Constant string only — never the secret, never the token payload.
+      console.error("[signup] attempt-token mint unavailable (non-fatal, dedupe off):", (err as Error).message);
+      return { token: null };
+    }
+  });
 // ── Route ─────────────────────────────────────────────────────────────────────
 
 export const Route = createFileRoute("/signup")({
@@ -277,6 +346,16 @@ export const Route = createFileRoute("/signup")({
     size: typeof search.size === "string" ? search.size.slice(0, 24) : undefined,
   }),
   loader: async () => {
+    // Owner 09-12 — the SSR loader returns attemptToken: null BY DESIGN. The
+    // loader body is client-bundled, so it must not import or call the
+    // server-only module or mint tokens (import-protection build rule 2b). The
+    // CLIENT mints the signed tab-bound token via the mintSignupAttemptToken
+    // POST createServerFn (handler signs {v, n, exp, visitorId, visitId} with
+    // RADAR_HANDOFF_SECRET server-side — the client never sees the secret and
+    // never mints client-side crypto). Client init: an unexpired, identity-bound
+    // sessionStorage token is reused (SPA nav / reloads); otherwise a fresh
+    // server mint; fail-open null → events record without dedupe (dedupe_key
+    // NULL, dedupe_status fail_open_missing), identical to pre-PR behavior.
     const bidCounts = await getTrackedBidCount();
     return {
       currentUser: await getCurrentUser(),
@@ -290,6 +369,9 @@ export const Route = createFileRoute("/signup")({
       // with an honest reason instead of a live-looking link to a handshake
       // that would fail server-side (the callback needs both env vars).
       googleAuthUrl: await getGoogleAuthUrl(),
+      // Owner 09-12: always null by design — the client mints via the
+      // mintSignupAttemptToken server fn (tab-bound, expiring, fail-open).
+      attemptToken: null,
     };
   },
   component: SignupPage,
@@ -335,7 +417,7 @@ export const Route = createFileRoute("/signup")({
 // ── Page Component ────────────────────────────────────────────────────────────
 
 function SignupPage() {
-  const { currentUser, trackedBids, openBids, linkedInAuthUrl, googleAuthUrl: baseGoogleAuthUrl } =
+  const { currentUser, trackedBids, openBids, linkedInAuthUrl, googleAuthUrl: baseGoogleAuthUrl, attemptToken: loaderAttemptToken } =
     Route.useLoaderData();
   const navigate = useNavigate();
   const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency, trade, cert, state, size, value } =
@@ -554,6 +636,73 @@ function SignupPage() {
     }
   }, [source, trade, cert, state, size]);
 
+  // ── Signup diagnostic context (owner 09-12 instrumentation): captured ONCE
+  // at mount. `acquisitionBucketRef` = acquisition-path bucket from
+  // document.referrer (attached to every signup event below); 
+  // `signupPageViewedAtRef` = page-view wall-clock so the signup_exit beacon
+  // can report seconds-on-page for EVERY visitor (not just form-starters).
+  // Pure measurement — nothing here changes the conversion flow. Declared
+  // BEFORE the view/exit effects so they can read the mounted values.
+  const acquisitionBucketRef = useRef<AcquisitionBucket>("internal_other");
+  const signupPageViewedAtRef = useRef<number>(0);
+  // ── Attempt token (owner REV 5 / 09-12): server-issued, signed, expiring,
+  // stored in TAB-SCOPED sessionStorage ("signup_attempt_token"), attached to
+  // EVERY signup-family telemetry request body (field `attempt_token`: beacons
+  // via trackEvent (src/lib/track.ts), the signup_exit/signup_abandon
+  // sendBeacon payloads, and the /api/signup POST). The loader returns
+  // attemptToken: null by design (owner 09-12), so this init ALWAYS falls
+  // through to a server mint: an existing sessionStorage token whose
+  // client-readable exp is in the future and whose binding matches this tab is
+  // REUSED (preserved across SPA nav and ordinary reloads); otherwise
+  // mintSignupAttemptToken (POST server fn — handler signs with
+  // RADAR_HANDOFF_SECRET server-side, the client never mints) issues a fresh
+  // tab-bound token. Completion rotates: clearStoredAttemptToken() after
+  // signup_success → the next page load mints a fresh token.
+  const attemptTokenRef = useRef<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    const visitorId = getOrCreateVisitorId();
+    const visitId = getOrCreateVisitId();
+    resolveSignupAttemptToken({
+      storedToken: readStoredAttemptToken(),
+      loaderToken: loaderAttemptToken,
+      nowMs: Date.now(),
+      visitorId,
+      visitId,
+      mint: async (vid, sid) => {
+        const res = await mintSignupAttemptToken({ data: { visitorId: vid, visitId: sid } });
+        return res?.token ?? null;
+      },
+    })
+      .then((r) => {
+        if (cancelled) return;
+        attemptTokenRef.current = r.token;
+        if (r.token && !r.reused) storeAttemptToken(r.token);
+      })
+      .catch(() => {
+        // fail-open: no token → events record without dedupe
+      });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaderAttemptToken]);
+  useEffect(() => {
+    // Source-param-first acquisition attribution (owner 09-12): ?source= wins
+    // because it survives SPA client-side nav, redirects and restored sessions;
+    // document.referrer is the fallback (identical behavior to the PR when the
+    // param is absent).
+    acquisitionBucketRef.current = resolveAcquisitionPath(
+      source,
+      typeof document !== "undefined" ? document.referrer : undefined,
+    );
+    signupPageViewedAtRef.current = Date.now();
+  }, []);
+  // Same extra-payload channel the signup_field_error event already uses (the
+  // `path` argument of trackEvent → funnel_events.path, a JSON string — the
+  // ONE precedent for structured event extras; no schema change needed).
+  const signupFromExtra = () => JSON.stringify({ from: acquisitionBucketRef.current });
+
   // Funnel: fire exactly ONE signup-page-view event per visit, once. The cold
   // path (e.g. the homepage Closing Soon → /signup) fires a plain `signup_view`;
   // the score-recommendation path keeps its distinct `signup_view_with_score`
@@ -563,8 +712,8 @@ function SignupPage() {
   useEffect(() => {
     if (scoredViewFiredRef.current) return;
     scoredViewFiredRef.current = true;
-    if (score_rec) trackEvent("signup_view_with_score", score_rec);
-    else trackEvent("signup_view");
+    if (score_rec) trackEvent("signup_view_with_score", score_rec, signupFromExtra());
+    else trackEvent("signup_view", undefined, signupFromExtra());
   }, [score_rec]);
 
   // ── signup_start: fire EXACTLY ONCE when the visitor begins the form (first
@@ -574,15 +723,14 @@ function SignupPage() {
   // stays a true form-start signal and never re-fires (ref guard).
   const signupStartedRef = useRef(false);
   // signupStartedAtRef: wall-clock time (ms) when the visitor BEGAN the form
-  // (first focus). Feeds the signup_exit seconds_on_signup beacon below; null
-  // until the form is actually started, so a visitor who never touches the form
-  // never fires signup_exit.
+  // (first focus). Feeds the signup_exit beacon's label below: null → the
+  // visitor never touched the form ("view" cohort), non-null → "form_started".
   const signupStartedAtRef = useRef<number | null>(null);
   const handleSignupStart = () => {
     if (signupStartedRef.current) return;
     signupStartedRef.current = true;
     signupStartedAtRef.current = Date.now();
-    trackEvent("signup_start", (source === "radar" || source === "radar_results_unlock" || source === "radar_results_cta") ? "radar" : selectedPlan);
+    trackEvent("signup_start", (source === "radar" || source === "radar_results_unlock" || source === "radar_results_cta") ? "radar" : selectedPlan, signupFromExtra());
   };
 
   // ── signup_field_reached: fire exactly ONCE per field per visit. The funnel
@@ -608,9 +756,20 @@ function SignupPage() {
   const abandonedFiredRef = useRef(false);
   // ── signup_exit: a DISTINCT page-unload event (NOT folded into signup_abandon
   // — signup_abandon stays byte-for-byte unchanged) carrying how many seconds the
-  // visitor spent on the signup form before leaving. At most once per visit
-  // (exitFiredRef), never after signup_success, never on the logged-in redirect,
-  // and ONLY when the visitor actually started the form (signupStartedAtRef set).
+  // visitor spent on the signup page before leaving. At most once per visit
+  // (exitFiredRef), never after signup_success, never on the logged-in redirect.
+  //
+  // OWNER 09-12 FIX: the old extra guard `signupStartedAtRef.current === null`
+  // meant the beacon fired ONLY when the visitor had started the form — nearly
+  // everyone bails in 2–17s BEFORE typing, so prod has 0 signup_exit rows ever.
+  // The guard is now exactly the signup_abandon guard set below (no logged-in
+  // redirect, no success, once-only), so EVERY visitor fires it. `label`
+  // distinguishes the cohort: "view" (never touched the form) vs
+  // "form_started". Seconds are measured from PAGE VIEW (mount), not form
+  // start, and the payload field is renamed seconds_on_page (0 legacy rows
+  // exist, so the rename breaks nothing). The seconds + acquisition bucket
+  // ride the same funnel_events.path JSON channel as signup_field_error.
+  // event_name stays signup_exit exactly.
   const exitFiredRef = useRef(false);
   // redirectingRef guards the logged-in redirect path below: when an
   // already-signed-in user lands on /signup we redirect (or complete a
@@ -622,21 +781,36 @@ function SignupPage() {
   useEffect(() => {
     const fireSignupExit = () => {
       // Same guards as signup_abandon: no-op on the logged-in redirect, after
-      // signup_success, or once already fired. PLUS: only when the visitor
-      // actually began the form (signupStartedAtRef non-null).
+      // signup_success, or once already fired. No form-start guard — every
+      // visitor who loaded the page gets a beacon.
       if (typeof navigator === "undefined") return;
       if (redirectingRef.current) return;
       if (signupSucceededRef.current || exitFiredRef.current) return;
-      if (signupStartedAtRef.current === null) return;
       exitFiredRef.current = true;
-      const seconds = Math.max(0, Math.round((Date.now() - signupStartedAtRef.current) / 1000));
+      const formStarted = signupStartedAtRef.current !== null;
+      // Seconds since PAGE VIEW (mount), not since form start — a visitor who
+      // never typed still gets a meaningful dwell time.
+      const base = signupPageViewedAtRef.current || Date.now();
+      const seconds = Math.max(0, Math.round((Date.now() - base) / 1000));
+      // Pure payload builder (src/lib/signup-telemetry.ts) — unit-tested:
+      // label distinguishes the cohort (view | form_started), seconds are the
+      // dwell time, and the acquisition bucket rides along.
+      const exit = buildExitPayload({
+        secondsOnPage: seconds,
+        formStarted,
+        from: acquisitionBucketRef.current,
+      });
       const payload: Record<string, string> = {
         event: "signup_exit",
         visitor_id: getOrCreateVisitorId(),
         visit_id: getOrCreateVisitId(),
-        label: "seconds_on_signup",
-        seconds_on_signup: String(seconds),
+        label: exit.label,
+        path: JSON.stringify({ from: exit.from, seconds_on_page: String(exit.seconds_on_page) }),
       };
+      // REV 5: the server-issued attempt token rides the beacon BODY (the
+      // server binds it to this request's visitor/visit before dedupe).
+      const attempt = attemptTokenRef.current ?? readStoredAttemptToken();
+      if (attempt) payload.attempt_token = attempt;
       const user = getTrackingUser();
       if (user) {
         payload.user_id = user.id;
@@ -653,7 +827,8 @@ function SignupPage() {
     };
     window.addEventListener("pagehide", fireSignupExit);
     window.addEventListener("beforeunload", fireSignupExit);
-    // signup_abandon — byte-for-byte unchanged.
+    // signup_abandon — event/labels byte-for-byte unchanged; the acquisition
+    // bucket rides the same extra-payload channel (path JSON) as signup_exit.
     const fireAbandoned = () => {
       if (typeof navigator === "undefined") return;
       if (redirectingRef.current) return; // logged-in redirect, not an abandon
@@ -663,7 +838,11 @@ function SignupPage() {
         event: "signup_abandon",
         visitor_id: getOrCreateVisitorId(),
         visit_id: getOrCreateVisitId(),
+        path: JSON.stringify({ from: acquisitionBucketRef.current }),
       };
+      // REV 5: the server-issued attempt token rides the beacon BODY.
+      const attempt = attemptTokenRef.current ?? readStoredAttemptToken();
+      if (attempt) payload.attempt_token = attempt;
       const user = getTrackingUser();
       if (user) {
         payload.user_id = user.id;
@@ -785,6 +964,14 @@ function SignupPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    // Attempt identity is SERVER-ISSUED (owner REV 5): the tab-scoped
+    // sessionStorage token (attemptTokenRef / readStoredAttemptToken) is
+    // attached to the POST body and every signup event beacon. submit /
+    // submit_error / success all carry the SAME token, so the server derives
+    // the SAME dedupe key for retries of the same attempt and a NEW key after
+    // completion rotation / a new tab. The server validates
+    // signature+expiry+scope+binding before deriving (fail-open → no key, flag
+    // dedupe_status).
 
     const formData = new FormData(e.currentTarget);
     const email = (formData.get("email") as string || "").trim().toLowerCase();
@@ -810,24 +997,32 @@ function SignupPage() {
     if (clientErrors.length > 0) {
       setError(clientErrors.join(" "));
       // Track the validation failure so failed submissions are visible in the
-      // funnel. Structured payload { field, error } (owner spec): `field` is
-      // email | password | multiple; `error` is the short human message.
+      // funnel. Structured payload { field, error, from } (owner spec): `field`
+      // is email | password | multiple; `error` is the short human message;
+      // `from` is the acquisition-path bucket (owner 09-12). NEVER logs the
+      // entered email/password/company values — field NAME and reason only.
       // The field also rides as a plain label for easy filtering; the full
-      // {field,error} object is serialized via the same path "extra payload"
-      // channel trackEvent already uses.
+      // {field,error,from} object is serialized via the same path "extra
+      // payload" channel trackEvent already uses.
       const fieldErr =
         invalidEmail && invalidPassword ? "multiple" : invalidEmail ? "email" : "password";
+      // Pure payload builder — strict allowlist (email|password|multiple) and
+      // short reason only, NEVER the entered email/password/company values.
+      const fieldErrorPayload = buildFieldErrorPayload(fieldErr, clientErrors.join(" "));
       trackEvent(
         "signup_field_error",
-        fieldErr,
-        JSON.stringify({ field: fieldErr, error: clientErrors.join(" ") }),
+        fieldErrorPayload.field,
+        JSON.stringify({ ...fieldErrorPayload, from: acquisitionBucketRef.current }),
       );
       return;
     }
 
     // Fire exactly once per submit — the button is disabled while loading, so
-    // double-clicks can't double-fire.
-    trackEvent("signup_submit");
+    // double-clicks can't double-fire. The signed attempt token (tab-scoped
+    // sessionStorage, server-issued) makes the server's dedupe_key
+    // authoritative even if a keepalive/delivery retry re-sends the SAME
+    // page-session attempt (trackEvent attaches attempt_token automatically).
+    trackEvent("signup_submit", undefined, signupFromExtra());
     setLoading(true);
 
     try {
@@ -843,6 +1038,13 @@ function SignupPage() {
           // Persistent per-visitor id — lets the server backfill this visitor's
           // anonymous funnel rows to the new account. Optional; never required.
           visitor_id: getOrCreateVisitorId(),
+          // REV 5: the request's resolved session identity + the server-issued
+          // attempt token ride the POST body so the server can BIND the token
+          // to this visitor/visit before deriving the dedupe key. Missing
+          // token → dedupe_key NULL + dedupe_status fail_open_* → the event
+          // still records (fail-open).
+          visit_id: getOrCreateVisitId(),
+          attempt_token: attemptTokenRef.current ?? readStoredAttemptToken() ?? undefined,
         }),
       });
       const json = await res.json() as {
@@ -860,6 +1062,10 @@ function SignupPage() {
       // for this visit (guarded in the pagehide/beforeunload listener).
       signupSucceededRef.current = true;
       trackEvent("signup_success");
+      // REV 5 rotation: completion RETIRES the attempt token — the next page
+      // load adopts/mints a fresh one (never before the success beacon above,
+      // which still needs the same token to key the success event).
+      clearStoredAttemptToken();
       // PR2 unlock completion (owner 2026-09-07): an unlock-handoff signup
       // ATTRIBUTES the anonymous journey to the new account (the server's
       // /api/signup identity backfill already ties visitor_id rows to the

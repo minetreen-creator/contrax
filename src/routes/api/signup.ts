@@ -10,6 +10,12 @@ import {
   checkIpLimit,
   rateLimitedResponse,
 } from "~/lib/rate-limit";
+import { isBot, ensureFunnelEventsTable } from "~/lib/tracking-intake";
+import {
+  extractAttemptTokenFromBody,
+  resolveDedupeSecret,
+  resolveOneShotDedupe,
+} from "~/lib/signup-telemetry";
 
 const SESSION_TTL_DAYS = 30;
 // Account-creation floods are blocked per-IP and per-email BEFORE any insert.
@@ -33,12 +39,94 @@ async function backfillFunnelIdentity(userId: number, userEmail: string, visitor
   await backfillVisitorIdentity(sql, userId, userEmail, visitorId);
 }
 
+/**
+ * Server-side submit-failure diagnostics (owner 09-12 instrumentation).
+ *
+ * Fires `signup_submit_error` on every non-2xx signup path so a submit that
+ * fails on the server becomes VISIBLE in the funnel_events table. Today the
+ * only failure signal is client-side validation — server rejections (email
+ * taken, server error) produce nothing, so "22 submits vs 21 successes" leaves
+ * exactly 1 invisible failure with no way to tell a dup-email from a 500.
+ *
+ * PII SAFETY: `label` carries the reason code ONLY — one of
+ * "email_taken" | "invalid_input" | "server_error". The submitted email,
+ * password, company, and any other form value are NEVER recorded anywhere.
+ *
+ * Mechanism: the same server-side funnel-event pattern the repo already uses
+ * (direct funnel_events INSERT, e.g. bid-alerts alert_created / radar-lead-
+ * alerts radar_alert_sent) — NOT a self-fetch to /api/track-visitor, so this
+ * event never touches the visitors-summary upsert, the signup-state machine
+ * (SIGNUP_STARTED_EVENTS / SIGNUP_VIEWED_EVENTS), lead scoring, or any admin
+ * board: none of them key on this event name (verified: tracking-intake
+ * signup derivation, radar-conversion-funnel, unified-funnel, journeys,
+ * visitor-intel, analytics-consistency all read explicit event-name sets).
+ * It is additionally invisible to the 1s intake dedupe / attribution — an
+ * honest raw diagnostic row per failed submit (a DOUBLE-fire of the SAME
+ * page-session attempt is still collapsed atomically via
+ * funnel_events.dedupe_key, owner REV 5: the key derives from the
+ * SERVER-ISSUED signed attempt token the client attached to the POST body —
+ * signature/expiry/event-scope/visitor-session-binding validated server-side,
+ * never a client value, never a cookie).
+ *
+ * Never throws, never blocks the signup response (own try/catch; single
+ * INSERT).
+ */
+async function recordSignupSubmitError(
+  request: Request,
+  reason: "email_taken" | "invalid_input" | "server_error",
+  visitorId: string | null,
+  visitId: string | null,
+  attemptTokenRaw: string | null,
+): Promise<void> {
+  try {
+    // Mirror the intake bot filter: crawlers/scripts must not pollute the
+    // diagnostic rows (the UA is stored for analysts either way).
+    const ua = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
+    if (ua && isBot(ua)) return;
+    // Server-side idempotency (owner REV 5): the SAME four checks run for the
+    // signup one-shot family (classifySignupAttemptToken inside
+    // resolveOneShotDedupe — signature / expiry / scope / visitor-session
+    // BINDING against the request's resolved visitor/visit). Missing/invalid/
+    // expired/forged token → dedupe_key NULL + dedupe_status flag; the event
+    // still records (fail-open, byte-identical to the no-key path).
+    const outcome = await resolveOneShotDedupe({
+      secret: resolveDedupeSecret(),
+      rawToken: attemptTokenRaw,
+      nowMs: Date.now(),
+      visitorId,
+      visitId,
+      eventName: "signup_submit_error",
+    });
+    await ensureFunnelEventsTable();
+    await sql()`
+      INSERT INTO funnel_events (event_name, label, path, user_agent, visitor_id, dedupe_key, dedupe_status)
+      VALUES ('signup_submit_error', ${reason}, '/api/signup', ${ua}, ${visitorId}, ${outcome.key}, ${outcome.status})
+      ON CONFLICT (dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING
+    `;
+  } catch (err) {
+    console.error("[api/signup] signup_submit_error tracking failed (non-fatal):", (err as Error).message);
+  }
+}
+
 async function handler({ request }: { request: Request }) {
   // Throttle a known hostile IP from account creation. Exact-match only; generic
   // 403 that does not reveal why. Runs before parsing the body / any DB write.
   if (isBlockedIp(request)) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
+  // visitorId is hoisted so the error-path diagnostics below can attach the
+  // persistent per-visitor id even when the body failed to parse (→ null).
+  // visitId + attemptTokenRaw are hoisted the same way (REV 5 binding + token
+  // inputs for signup_submit_error's dedupe on the server_error path).
+  let visitorId: string | null = null;
+  let signupVisitId: string | null = null;
+  let attemptTokenRaw: string | null = null;
+  // NOTE (owner REV 5): there is NO client-minted attempt id. The
+  // error-path diagnostics validate the SERVER-ISSUED attempt token from the
+  // POST body (field `attempt_token`; tab-scoped sessionStorage on the client)
+  // against the request's resolved visitor/visit — the SAME token the client's
+  // trackEvent beacons carry, so signup_submit_error keys on the same
+  // page-session attempt as signup_submit/signup_success.
   try {
     const body = (await request.json()) as {
       email?: string;
@@ -46,7 +134,9 @@ async function handler({ request }: { request: Request }) {
       confirmPassword?: string;
       plan?: string;
       visitor_id?: string;
+      visit_id?: string;
       company?: string;
+      attempt_token?: unknown;
     };
 
     const email = (body.email || "").trim().toLowerCase();
@@ -57,7 +147,11 @@ async function handler({ request }: { request: Request }) {
     const company = (body.company || "").trim().slice(0, 120) || null;
     // Persistent per-visitor id (contrax_vid) rides in the body so the identity
     // backfill can tie this visitor's ENTIRE anonymous funnel to the new account.
-    const visitorId = (body.visitor_id || "").trim().slice(0, 64) || null;
+    visitorId = (body.visitor_id || "").trim().slice(0, 64) || null;
+    // REV 5 binding input: the request's resolved session (visit) id.
+    signupVisitId = (body.visit_id || "").trim().slice(0, 64) || null;
+    // REV 5 transport: the server-issued attempt token rides the POST body.
+    attemptTokenRaw = extractAttemptTokenFromBody(body);
     // No-bifurcation rule: the standard /signup flow provisions every NON-PAYING
     // signup on the free Basic Package. A cold signup (no explicit paid plan)
     // defaults to plan_tier='basic'; only a user who explicitly opted into a
@@ -85,12 +179,14 @@ async function handler({ request }: { request: Request }) {
       errors.push("Passwords do not match.");
     }
     if (errors.length > 0) {
+      await recordSignupSubmitError(request, "invalid_input", visitorId, signupVisitId, attemptTokenRaw);
       return Response.json({ error: errors.join(" ") }, { status: 400 });
     }
 
     // Check for duplicate
     const existing = await sql()`SELECT id FROM users WHERE email = ${email}`;
     if (existing.length > 0) {
+      await recordSignupSubmitError(request, "email_taken", visitorId, signupVisitId, attemptTokenRaw);
       return Response.json({ error: "An account with this email already exists." }, { status: 409 });
     }
 
@@ -164,6 +260,7 @@ async function handler({ request }: { request: Request }) {
     });
   } catch (err) {
     console.error("[api/signup] error:", err);
+    await recordSignupSubmitError(request, "server_error", visitorId, signupVisitId, attemptTokenRaw);
     return Response.json({ error: "Something went wrong. Please try again." }, { status: 500 });
   }
 }

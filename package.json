@@ -14,6 +14,7 @@
     "radar-alerts": "bun run src/jobs/send-radar-lead-alerts.ts",
     "sync-far": "bun run src/jobs/far-sync.ts",
     "check:routes": "bun run scripts/check-routes.mjs",
+    "test": "bun test",
     "format": "prettier --write .",
     "backfill-naics": "bun run src/jobs/backfill-naics.ts"
   },

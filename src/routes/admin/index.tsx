@@ -520,6 +520,10 @@ function AdminOverviewPage() {
                 Drop-off % is lost vs. the previous stage; 0 when the previous stage is 0. Reads live from existing
                 funnel events (no analytics rewrite).
               </p>
+              <p className="mt-2 text-[11px] text-slate-500">
+                Small sample — post-tracking baseline of 6 organic signup-page visitors, 0 signups; not statistically
+                conclusive.
+              </p>
             </div>
           )}
         </section>

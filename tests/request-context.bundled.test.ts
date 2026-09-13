@@ -206,7 +206,7 @@ describe("request-context: ASSEMBLED render-function bundle", () => {
       ]);
       const [ta, tb] = await Promise.all([ra.text(), rb.text()]);
       if (ta.trimStart().startsWith("<!DOCTYPE")) {
-        return test.skip("server-fn RPC base not baked into this build (needs TSS_SERVER_FN_BASE at build time) — run against a Vercel build");
+        console.log("SKIP(d): server-fn RPC base not baked into this build (needs TSS_SERVER_FN_BASE at build time) — run against a Vercel build");
       }
       // seroval JSON body — assert the per-IP credit state (3=limited vs 0=open).
       expect(ta).toContain('"limited":true');

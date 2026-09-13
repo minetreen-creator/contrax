@@ -575,7 +575,7 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
       const insert = () =>
         sql()`INSERT INTO funnel_events (event_name, label, path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email, city, region, device_type, browser_label, dedupe_key, dedupe_status)
           VALUES (${event}, ${label}, ${pagePath}, ${userAgent}, ${ip}, ${storedReferrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail}, ${ctx.city}, ${ctx.region}, ${ctx.device_type}, ${ctx.browser_label}, ${dedupeKey}, ${dedupeStatus})
-          ON CONFLICT (dedupe_key) DO NOTHING`;
+          ON CONFLICT (dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING`;
 
       try {
         await ensureFunnelEventsTable();

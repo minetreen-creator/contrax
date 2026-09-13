@@ -101,7 +101,7 @@ async function recordSignupSubmitError(
     await sql()`
       INSERT INTO funnel_events (event_name, label, path, user_agent, visitor_id, dedupe_key, dedupe_status)
       VALUES ('signup_submit_error', ${reason}, '/api/signup', ${ua}, ${visitorId}, ${outcome.key}, ${outcome.status})
-      ON CONFLICT (dedupe_key) DO NOTHING
+      ON CONFLICT (dedupe_key) WHERE dedupe_key IS NOT NULL DO NOTHING
     `;
   } catch (err) {
     console.error("[api/signup] signup_submit_error tracking failed (non-fatal):", (err as Error).message);

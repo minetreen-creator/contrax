@@ -1,3 +1,4 @@
 {
-  "buildCommand": "bash build-vercel.sh"
+  "buildCommand": "bash build-vercel.sh",
+  "installCommand": "curl -fsSL https://bun.sh/install | bash -s bun-v1.4.2 && export PATH=\"$HOME/.bun/bin:$PATH\" && bun install --frozen-lockfile"
 }

@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { setAsidePred } from "~/lib/open-bids";
+import { certMatches, sbCertFragment, setAsideCardLabel } from "~/lib/cert-matching";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { US_STATES } from "~/lib/states";
 import { NAICS_NAMES } from "~/lib/naics-names";
@@ -233,7 +234,11 @@ type RadarBidRow = {
 
 export type RadarMatch = {
   id: number; title: string; agency: string | null; category: string | null;
-  location: string | null; set_aside: string | null; naics_code: string | null;
+  location: string | null; set_aside: string | null;
+  /** PR-C.0: honest card label — real set-aside text, or the exact
+   *  "Set-aside not specified — verify solicitation" string for NULL. */
+  set_aside_label: string | null;
+  naics_code: string | null;
   source_url: string | null;
   estimated_value: string | null;
   estimated_value_num: number | null;
@@ -309,10 +314,15 @@ export const runRadarScan = createServerFn({ method: "POST" })
     let rows: any[] = [];
     let relatedRows: any[] = [];
     try {
-      // Set-aside predicate fragment (Small Business = every set-aside row,
-      // otherwise the cert's literal set_aside patterns — mirrors /trades).
+      // Set-aside predicate fragment (PR-C.0, owner 09-13: Small Business
+      // DESCRIBES the user's business — the sb branch admits explicit SBA/
+      // small-business markers, unrestricted rows, and state/local rows whose
+      // portal publishes no set-aside metadata. The text-level include/exclude
+      // decision runs in JS below via the same certMatches predicate. Non-sb
+      // certs keep their literal set_aside patterns UNCHANGED (mirrors
+      // /trades).
       const certFrag =
-        certId === "sb" ? sql().unsafe(`AND set_aside IS NOT NULL`) : setAsidePred(certId, sql);
+        certId === "sb" ? sbCertFragment(sql) : setAsidePred(certId, sql);
       // Trade/NAICS predicate: exact NAICS equality when a 6-digit code is given,
       // otherwise the EXPANDED keyword set (trade-registry: curated synonyms +
       // implied NAICS codes). isNaics is derived from the ORIGINAL input; the
@@ -360,7 +370,12 @@ export const runRadarScan = createServerFn({ method: "POST" })
         // PR-B columns are NOT read). Raw values stay visible.
         const resolved = resolveBidState(r.location, r.agency);
         const conflicted = locationConflict(r.title, r.description, resolved);
-        return !conflicted && geoRelevantByState(r.location, r.agency, state);
+        return (
+          !conflicted &&
+          // PR-C.0: authoritative certification decision (see cert-matching.ts).
+          certMatches(r.set_aside, [r.source], certId) === "include" &&
+          geoRelevantByState(r.location, r.agency, state)
+        );
       })
       .map((r) => {
         const bid: RadarBidRow = {
@@ -387,7 +402,9 @@ export const runRadarScan = createServerFn({ method: "POST" })
       const { bid, score, scoreLabel, tradeProvenance } = ranked[i];
       const match: RadarMatch = {
         id: bid.id, title: bid.title, agency: bid.agency, category: bid.category,
-        location: bid.location, set_aside: bid.set_aside, naics_code: bid.naics_code,
+        location: bid.location, set_aside: bid.set_aside,
+        set_aside_label: setAsideCardLabel(bid.set_aside),
+        naics_code: bid.naics_code,
         source_url: bid.source_url, estimated_value: bid.estimated_value,
         estimated_value_num: parseValue(bid.estimated_value),
         due_date: bid.due_date, days_remaining: daysRemaining(bid.due_date),
@@ -518,7 +535,9 @@ export const runRadarScan = createServerFn({ method: "POST" })
       });
       related.push({
         id: bid.id, title: bid.title, agency: bid.agency, category: bid.category,
-        location: bid.location, set_aside: bid.set_aside, naics_code: bid.naics_code,
+        location: bid.location, set_aside: bid.set_aside,
+        set_aside_label: setAsideCardLabel(bid.set_aside),
+        naics_code: bid.naics_code,
         source_url: bid.source_url, estimated_value: bid.estimated_value,
         estimated_value_num: parseValue(bid.estimated_value),
         due_date: bid.due_date, days_remaining: daysRemaining(bid.due_date),
@@ -1526,7 +1545,9 @@ export function RadarCard({
         <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-300">
           {value && <span>{value} estimated</span>}
           {value && <span aria-hidden="true">·</span>}
-          {certLabel && <span>{certLabel}</span>}
+          {(match.set_aside_label ?? certLabel) && (
+            <span>{match.set_aside_label ?? certLabel}</span>
+          )}
           {due && (
             <>
               <span aria-hidden="true">·</span>

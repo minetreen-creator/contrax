@@ -15,7 +15,7 @@ src/routes/learnings.tsx(41,10): error TS6133: 'LearningsPageGated' is declared 
 src/routes/learnings.tsx(67,9): error TS6133: 'navigate' is declared but its value is never read.
 src/routes/learnings.tsx(89,13): error TS6133: 'fresh' is declared but its value is never read.
 src/routes/learnings.tsx(89,27): error TS2554: Expected 1 arguments, but got 0.
-src/routes/radar.tsx(812,25): error TS2339: Property 'certLabel' does not exist on type 'ScanState'.
+src/routes/radar.tsx(831,25): error TS2339: Property 'certLabel' does not exist on type 'ScanState'.
 src/routes/settings.tsx(48,11): error TS6196: 'BusinessProfileFull' is declared but never used.
 src/routes/tracking.tsx(160,7): error TS6133: 'getAmendments' is declared but its value is never read.
 src/routes/tracking.tsx(239,9): error TS6133: 'thisWeekStart' is declared but its value is never read.

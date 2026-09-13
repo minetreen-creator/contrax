@@ -48,7 +48,7 @@ export async function runKeywordScanQuery(
   try {
     return await s`
       SELECT id, title, agency, description, location, category, due_date,
-             estimated_value, naics_code, source_url, set_aside
+             estimated_value, naics_code, source_url, source, set_aside
       FROM bids
       WHERE due_date > NOW()
         AND ${s.unsafe(lowContentSql)}
@@ -97,7 +97,7 @@ export async function runRelatedScanQuery(
   try {
     return await s`
       SELECT id, title, agency, description, location, category, due_date,
-             estimated_value, naics_code, source_url, set_aside
+             estimated_value, naics_code, source_url, source, set_aside
       FROM bids
       WHERE due_date > NOW()
         AND ${s.unsafe(lowContentSql)}

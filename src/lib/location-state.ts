@@ -300,3 +300,141 @@ export function locationConflict(
   }
   return false;
 }
+
+// ── v6.2: PLACE-OF-PERFORMANCE DISPLAY ──────────────────────────────────────
+// Owner v6.2: every radar card must show the REAL place of performance — never
+// "nationwide" as a location ("Anderson AFB → Guam"; NNSY "Charleston to VA" →
+// its route). "nationalwide" is rendered as a separate ELIGIBILITY tag, and
+// state-local cards show their verified state. PURE + display-only: these
+// helpers NEVER affect matching/bucketing (resolveBidState stays the authority
+// there); they only turn existing fields into an honest human location label.
+
+/**
+ * Curated real places for well-known installations that routinely appear in bid
+ * TITLES while the stored `location` stays the generic "United States"
+ * placeholder. Display-only — curated constants, never user input.
+ */
+const BASE_PLACE_SIGNALS: ReadonlyArray<readonly [RegExp, string]> = [
+  [/anders(?:on|en)\s+afb/i, "Anderson AFB — Guam"],
+  [/fort\s+hood/i, "Fort Hood — Texas"],
+  [/norfolk\s+naval\s+shipyard|\bnnsy\b/i, "Norfolk Naval Shipyard — Portsmouth, VA"],
+  [/dayton\s+va\s+medical\s+center/i, "Dayton VA Medical Center — Ohio"],
+  [/virgin\s+islands/i, "U.S. Virgin Islands"],
+  [/marianas/i, "Guam (Mariana Islands)"],
+];
+
+/** Placeholder location strings that carry no place-of-performance signal. */
+const PLACEHOLDER_LOCATIONS = /^(united states|usa|us|u\.?s\.?|n\/a|multiple locations|various|various locations|tbd|to be determined|see solicitation|rc)$/i;
+
+/**
+ * Extract a "A to XX" route (e.g. "Charleston to VA") naming a real USPS
+ * state/DC code — owner v6.2 NNSY case (a ship/tug movement is the actual
+ * place of performance). Returns "Charleston to VA"-style or null.
+ */
+export function extractRouteFromText(
+  text: string | null | undefined,
+): string | null {
+  const t = String(text ?? "");
+  // A route is ONE capitalized place word + "to" + a real state code
+  // ("Charleston to VA"). Single-word origin keeps the match from swallowing
+  // whole sentence tails ("... Facilities Charleston to VA" → "Charleston to VA").
+  const re = /\b([A-Z][A-Za-z.'-]+)\s+to\s+([A-Z]{2})(?=$|[\s,.)/])/g;
+  let hit: { origin: string; code: string } | null = null;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(t)) !== null) {
+    const code = m[2].toUpperCase();
+    if (!STATE_CODES.has(code)) continue;
+    const origin = m[1].trim();
+    // Deny generic words that sentence-fill the pattern ("Services to VA" is
+    // Veterans Affairs routing, not a place-of-performance route).
+    if (/^(va|services|service|supplies|transport|transportation|delivery|support|equipment|vehicles)$/i.test(origin)) continue;
+    hit = { origin, code }; // last candidate wins
+  }
+  return hit ? `${hit.origin} to ${hit.code}` : null;
+}
+
+/**
+ * "City, XX" style place signal embedded in a title/location, where XX is a
+ * real USPS code (e.g. "Janitorial Services, Wilmington DE" → "Wilmington, DE").
+ * Display-only; never used for state matching.
+ */
+function extractCityState(
+  text: string | null | undefined,
+): string | null {
+  const t = String(text ?? "");
+  const bad = (city: string, code: string) =>
+    !STATE_CODES.has(code) ||
+    city.length < 2 ||
+    /\d/.test(city) ||
+    // "Services, VA" / "X VA Medical" are Veterans Affairs designators.
+    /^(va|medical|services|facilities|center)$/i.test(city);
+  // Space-form (dominant in procurement titles): "Janitorial Services,
+  // Wilmington DE" = work scope, then "City CODE". The code must NOT be
+  // followed by " medical" (a VA hospital, not a Virginia place).
+  const spaceRe = /(?:^|[\s,])([A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+)?)\s+([A-Z]{2})(?!\s+medical)(?=$|[\s,.)/])/gi;
+  let m: RegExpExecArray | null;
+  while ((m = spaceRe.exec(t)) !== null) {
+    const city = m[1].trim();
+    const code = m[2].toUpperCase();
+    if (!bad(city, code)) return `${city}, ${code}`;
+  }
+  // Comma-form: "Hardin County, OH" / "Norfolk, VA".
+  const commaRe = /([A-Za-z][A-Za-z .'-]{1,40}?)\s*,\s*([A-Z]{2})(?=$|[\s,.)/])/gi;
+  while ((m = commaRe.exec(t)) !== null) {
+    const city = m[1].trim();
+    const code = m[2].toUpperCase();
+    if (!bad(city, code)) return `${city}, ${code}`;
+  }
+  return null;
+}
+
+/**
+ * The card's place-of-performance line (owner v6.2). Resolution order:
+ *  1. curated base signal in title/agency (Anderson AFB → Guam, NNSY → base);
+ *     the NNSY route ("Charleston to VA") wins over the generic base label so
+ *     the ACTUAL route is what the card shows (never an implied PA relevance).
+ *  2. "A to XX" route naming a real state code (NNSY — Charleston to VA).
+ *  3. "City, XX" place signal in title or location (Wilmington, DE).
+ *  4. resolved geography (performance location, then agency) → state display name.
+ *  5. non-placeholder stored location / agency text.
+ *  6. null — caller renders the eligibility tag only ("place not specified").
+ */
+export function displayPlaceOfPerformance(
+  title: string | null | undefined,
+  location: string | null | undefined,
+  agency: string | null | undefined,
+): string | null {
+  const titleText = String(title ?? "");
+  const titleLower = titleText.toLowerCase();
+  const agencyText = String(agency ?? "");
+  const locationText = String(location ?? "").trim();
+
+  // 1) NNSY: the ROUTE is the real place of performance when the solicitation
+  //    names one ("NNSY - Transport 20 ... Charleston to VA"). The base label
+  //    is the fallback when no route appears in the title/agency.
+  const nnsyHit =
+    /norfolk naval shipyard|\bnnsy\b/i.test(`${titleLower} ${agencyText.toLowerCase()}`);
+  const route = extractRouteFromText(titleText) ?? extractRouteFromText(agencyText);
+  if (nnsyHit) {
+    return route
+      ? `${route} — Norfolk Naval Shipyard (NNSY)`
+      : "Norfolk Naval Shipyard — Portsmouth, VA";
+  }
+  // 1b) Other curated base signals.
+  for (const [re, label] of BASE_PLACE_SIGNALS) {
+    if (re.test(`${titleText} ${agencyText}`)) return label;
+  }
+  // 2) Route extraction (non-NNSY rows with a real "A to XX" route).
+  if (route) return route;
+  // 3) City, XX place signal.
+  const cityState = extractCityState(titleText) ?? extractCityState(locationText);
+  if (cityState) return cityState;
+  // 4) Resolved geography → display state name.
+  const resolved = resolveBidState(locationText, agencyText);
+  if (resolved) return STATE_CODE_TO_NAME[resolved] ?? resolved;
+  // 5) Meaningful stored location text only — the BUYER/agency is never shown
+  //    as a place of performance (the card already prints the agency line; the
+  //    curated signals above catch the agency-stamped bases like NNSY).
+  if (locationText && !PLACEHOLDER_LOCATIONS.test(locationText)) return locationText;
+  return null;
+}

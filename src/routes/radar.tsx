@@ -18,13 +18,14 @@ import {
   type RadarCertId,
 } from "~/lib/radar-session";
 import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
-import { expandTrade, tradeKeywordPred, tradeProvenanceFor, RELATED_TRADE_TERMS, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, tradeProvenanceFor, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
 import {
   normalizeStateInput,
   resolveBidState,
   locationConflict,
   geoRelevant as geoRelevantByState,
   STATE_NAME_TO_CODE,
+  displayPlaceOfPerformance,
 } from "~/lib/location-state";
 import {
   runKeywordScanQuery,
@@ -604,6 +605,20 @@ const mintRadarResultsCtaHandoff = createServerFn({ method: "POST" })
     }
   });
 
+/** v6.2 headline "Related: N" — related rows that ALSO satisfy the selected
+ *  certification (the section itself lists adjacent work, incl. uncertified DoD
+ *  rows, with an explicit awareness disclosure; the headline counts only what
+ *  is cert-actionable). Mirrors setAsidePred's literal patterns (open-bids.ts). */
+function setAsideUnderCert(cert: string | null, setAside: string | null): boolean {
+  const s = String(setAside ?? "").toLowerCase().trim();
+  if (cert === "sb" || cert === null) return s.length > 0;
+  const pats: Record<string, string[]> = {
+    "8a": ["8(a)", "8an"], sdvosb: ["sdvosb"], wosb: ["wosb", "edwosb"],
+    hubzone: ["hubzone"], vosb: ["vosb"],
+  };
+  return (pats[cert] ?? []).some((p) => s.includes(p));
+}
+
 function buildReasons(
   bid: RadarBidRow,
   c: { trade: string; isNaics: boolean; expansion: TradeExpansion; state: string; cert: RadarCert; sizePref: SizeId; score: number; scoreLabel: string; tradeProvenance: TradeMatchProvenance | null },
@@ -632,7 +647,14 @@ function buildReasons(
   }
   if (c.state) {
     const bidState = resolveBidState(bid.location, bid.agency);
-    reasons.push(bidState === c.state ? `Located in ${c.state}` : "Open nationwide");
+    // v6.2: "nationalwide" is the card's ELIGIBILITY tag; this reason bullet
+    // states eligibility plainly — never a location claim (the card shows the
+    // real place of performance separately).
+    reasons.push(
+      bidState === c.state
+        ? `Located in ${STATE_CODE_TO_NAME[c.state] ?? c.state} (verified)`
+        : "Eligible from any state — national set-aside row",
+    );
   }
   if (bid.agency) reasons.push(`Agency: ${bid.agency}`);
   return reasons;
@@ -1097,16 +1119,24 @@ function RadarLanding() {
             >
               ← Adjust my answers
             </button>
-            <div className="mt-4 flex items-end justify-between">
+            <div className="mt-4 flex items-end justify-between gap-3">
               <div>
                 <h2 className="text-xl font-bold text-white sm:text-2xl">Your top matches</h2>
                 <p className="mt-1 text-sm text-slate-400">
                   {scan.certLabel}{stateLabel} · {tradeLabel(track)} · real scores
                 </p>
               </div>
-              <span className="text-xs font-semibold text-amber-400">
-                {scan.matches.length} found
-              </span>
+              {state !== "" ? (
+                <span className="shrink-0 text-right text-xs font-semibold text-amber-400">
+                  {(scan.sections?.local ?? []).length} local ·{" "}
+                  {(scan.sections?.nationwide ?? []).length} nationwide · Related:{" "}
+                  {(scan.sections?.related ?? []).filter((m) => setAsideUnderCert(cert, m.set_aside)).length}
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-amber-400">
+                  {scan.matches.length} found
+                </span>
+              )}
             </div>
 {/* THREE-WAY BUCKETS (owner v6.1): LOCAL / NATIONWIDE / RELATED are
                 separate, explicitly labeled sections. Nationwide rows are kept
@@ -1152,13 +1182,13 @@ function RadarLanding() {
                 )}
               </section>
             )}
-            {state !== "" && scan.matches.length > 0 && (
+            {state !== "" && (scan.sections?.nationwide ?? []).length > 0 && (
               <div className="mt-8 flex items-center justify-between gap-3">
                 <h3 className="text-sm font-bold uppercase tracking-wide text-slate-200">
                   🌎 Open nationwide
                 </h3>
                 <span className="text-xs font-semibold text-amber-400">
-                  {scan.matches.length} found
+                  {(scan.sections?.nationwide ?? []).length} found
                 </span>
               </div>
             )}
@@ -1173,7 +1203,9 @@ function RadarLanding() {
                   ? `Here are your strongest ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} ${
                       Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1 ? "match" : "matches"
                     } — every one with full incumbent intel`
-                  : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
+                  : state !== ""
+                    ? `${(scan.sections?.local ?? []).length} local · ${(scan.sections?.nationwide ?? []).length} nationwide set-aside opportunities`
+                    : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
               </p>
             )}
 
@@ -1353,7 +1385,8 @@ function RadarLanding() {
                       >
                         <p className="text-sm font-semibold text-white">{m.title}</p>
                         <p className="mt-1 text-xs text-slate-400">
-                          {m.location}
+                          {displayPlaceOfPerformance(m.title, m.location, m.agency) ??
+                            "Place of performance not specified"}
                           {m.agency ? ` · ${m.agency}` : ""}
                           {m.due_date
                             ? ` · Due ${new Date(m.due_date).toLocaleDateString("en-US", {
@@ -1417,6 +1450,12 @@ export function RadarCard({
   sizePref: SizeId | null;
 }) {
   const due = match.due_date ? new Date(match.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
+  // v6.2: the REAL place of performance + whether this card is in the
+  // nationwide-eligibility bucket (never a location claim — see the tag below).
+  const bidState = resolveBidState(match.location, match.agency);
+  const isStateLocal = state !== "" && bidState === state;
+  const place = displayPlaceOfPerformance(match.title, match.location, match.agency);
+  const courierSubtype = isCourierFamilyNaics(match.naics_code) && !tradeExpresslyCourier(trade);
   const rawVal = (match.estimated_value || "").trim();
   const VALUE_PLACEHOLDER = /^(not specified|not available|n\/a|unknown|tbd|none|to be determined|available upon request|see solicitation)$/i;
   const value =
@@ -1460,6 +1499,30 @@ export function RadarCard({
         )}
         <h3 className="text-base font-bold leading-snug text-white">{match.title || "Solicitation"}</h3>
         {match.agency && <p className="mt-0.5 text-sm text-slate-400">{match.agency}</p>}
+        {/* v6.2: ACTUAL place of performance + eligibility tag — "nationalwide"
+            is a separate ELIGIBILITY tag, never the location. State-local cards
+            show their verified state. */}
+        {(place || !isStateLocal) && (
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {place ? (
+              <span className="text-xs font-medium text-slate-300">📍 {place}</span>
+            ) : (
+              <span className="text-xs font-medium text-slate-500">Place of performance not specified — see solicitation</span>
+            )}
+            {!isStateLocal && (
+              <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">
+                nationalwide
+              </span>
+            )}
+          </p>
+        )}
+        {courierSubtype && (
+          <p className="mt-1.5">
+            <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-300">
+              Related logistics — courier delivery
+            </span>
+          </p>
+        )}
         <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-300">
           {value && <span>{value} estimated</span>}
           {value && <span aria-hidden="true">·</span>}

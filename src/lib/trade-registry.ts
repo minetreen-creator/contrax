@@ -571,3 +571,21 @@ if ((import.meta as any).main) {
   // eslint-disable-next-line no-console
   console.log("[trade-registry precision] PASS: generic-only never matches; specific + NAICS paths intact.");
 }
+
+/**
+ * NAICS 492110-family detection (owner v6.2 courier subtype): 492110 Couriers
+ * and Express Delivery Services etc. The trucking registry IMPLIES 492110 as an
+ * adjacent logistics code, but courier delivery is NOT work a "trucking"
+ * business does by default — matches in this family render a "Related
+ * logistics — courier delivery" subtype label instead of plain trucking.
+ */
+export function isCourierFamilyNaics(code: string | null | undefined): boolean {
+  return /^49211/.test(String(code ?? "").trim());
+}
+
+/** True when the visitor's OWN trade wording expressly includes courier work
+ *  ("courier", "couriers", "courier services") — 492110-family matches then
+ *  present as real courier matches, NOT a related-logistics subtype. */
+export function tradeExpresslyCourier(trade: string | null | undefined): boolean {
+  return /\bcourier\b/i.test(String(trade ?? ""));
+}

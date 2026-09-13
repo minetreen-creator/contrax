@@ -18,7 +18,20 @@ import {
   type RadarCertId,
 } from "~/lib/radar-session";
 import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
-import { expandTrade, tradeKeywordPred, tradeProvenanceFor, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, tradeProvenanceFor, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
+import {
+  normalizeStateInput,
+  resolveBidState,
+  locationConflict,
+  geoRelevant as geoRelevantByState,
+  STATE_NAME_TO_CODE,
+  displayPlaceOfPerformance,
+} from "~/lib/location-state";
+import {
+  runKeywordScanQuery,
+  runRelatedScanQuery,
+  logScanFailure,
+} from "~/lib/radar-scan-query";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -95,7 +108,8 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   const p = new URLSearchParams({ plan: "basic", source, next: "/dashboard?brief=1" });
   const trade = (answers.trade || "").trim();
   if (trade) p.set("trade", trade.slice(0, 120));
-  if (answers.state) p.set("state", answers.state.slice(0, 2));
+  const st = normalizeStateInput(answers.state);
+  if (st) p.set("state", st);
   if (answers.cert) p.set("cert", answers.cert);
   if (answers.sizePref) p.set("size", answers.sizePref);
   return `/signup?${p.toString()}`;
@@ -154,11 +168,15 @@ function computeMatch(
   if (input.cert === "sb") elig = hasSetAside ? 20 : 0;
   else if (input.cert in { "8a": 1, sdvosb: 1, wosb: 1, hubzone: 1 }) elig = 20;
 
-  // Geography
+  // Geography (owner 09-13 breadth): resolve the bid's state from the
+  // performance location, then the buyer/agency field when the location has no
+  // state mention, then treat as nationwide/unknown. Contradictory-location
+  // rows (a different state's place signal in the title/description) are
+  // excluded earlier at scan time; the scorer never geocredits a conflict.
   let geo = 12;
   if (input.state) {
-    const m = (bid.location || "").match(STATE_LOCATION_REGEX);
-    geo = m && m[1].toUpperCase() === input.state ? 20 : 12;
+    const bidState = resolveBidState(bid.location, bid.agency);
+    geo = bidState === input.state ? 20 : 12;
   }
 
   // Size fit
@@ -179,18 +197,6 @@ function computeMatch(
   return { score, scoreLabel };
 }
 
-const STATE_LOCATION_REGEX = new RegExp(
-  `(?:^|,\\s*)(${US_STATES.join("|")})(?:$|\\s|,)`,
-  "i",
-);
-
-/** A bid stays relevant when it names the selected state OR is nationwide/unknown. */
-function geoRelevant(location: string | null | undefined, state: string): boolean {
-  if (!state) return true;
-  const m = (location || "").match(STATE_LOCATION_REGEX);
-  if (m) return m[1].toUpperCase() === state;
-  return true; // no extractable state → could be a nationwide opportunity
-}
 
 /** Parse "$185,000", "185000", "1.2M", "800K" … → number or null. */
 function parseValue(v: string | null | undefined): number | null {
@@ -252,7 +258,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const sizePref = String(v.sizePref ?? "any");
     return {
       trade: String(v.trade ?? "").trim(),
-      state: String(v.state ?? "").trim(),
+      state: normalizeStateInput(String(v.state ?? "").trim()),
       cert: (RADAR_CERTS as readonly string[]).includes(cert) ? cert : "sb",
       sizePref: (SIZE_OPTS as readonly { id: string }[]).some((s) => s.id === sizePref) ? sizePref : "any",
     };
@@ -301,6 +307,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const sizeId = sizePref as SizeId;
     const { sql } = await import("~/db");
     let rows: any[] = [];
+    let relatedRows: any[] = [];
     try {
       // Set-aside predicate fragment (Small Business = every set-aside row,
       // otherwise the cert's literal set_aside patterns — mirrors /trades).
@@ -316,24 +323,45 @@ export const runRadarScan = createServerFn({ method: "POST" })
         : trade
           ? tradeKeywordPred(sql, expansion)
           : sql()``;
-      rows = await sql()`
-        SELECT id, title, agency, description, location, category, due_date,
-               estimated_value, naics_code, source_url, set_aside
-        FROM bids
-        WHERE due_date > NOW()
-          AND ${sql().unsafe(LOW_CONTENT_SQL)}
-          ${certFrag}
-          ${tradeFrag}
-        ORDER BY due_date ASC NULLS LAST
-        LIMIT 100
-      `;
+      // Keyword-scan execution moved to a shared lib that THROWS RadarScanError
+      // on failure instead of letting it become a misleading 0 (owner v6) —
+      // the forced-failure regression test drives this same function.
+      rows = await runKeywordScanQuery(sql, { certFrag, tradeFrag }, LOW_CONTENT_SQL);
+      // RELATED opportunities (owner v6.1): adjacent-work terms, pulled only
+      // when a state is requested. Same open/low-content guards, but NO cert
+      // and NO strict trade filter — deliberately: the DoD related rows
+      // (134726 Norfolk remediation, 134575/134583 Alexandria epoxy) are
+      // set_aside NULL and must still surface HERE, in the explicitly labeled
+      // "Related opportunities" section, never as default matches. The section
+      // label discloses the absent cert filter. State resolution + contradiction
+      // exclusion happen in JS below (identical logic to the strict path).
+      if (state) {
+        relatedRows = await runRelatedScanQuery(
+          sql,
+          RELATED_TRADE_TERMS[trade.toLowerCase()] ?? [],
+          LOW_CONTENT_SQL,
+        );
+      }
     } catch (e) {
-      console.error("[radar] scan query failed:", e);
-      rows = [];
+      // Owner v6: NEVER swallow a query failure into a successful empty
+      // result. Log with context (incl. the query name) and rethrow so the
+      // client receives a NON-TRIVIAL error response and renders the existing
+      // error state + retry (never "0 matches").
+      logScanFailure(e, { trade, state, cert: certId, sizePref: sizeId });
+      throw e;
     }
 
     const ranked = rows
-      .filter((r) => geoRelevant(r.location, state))
+      .filter((r) => {
+        // Contradictory-location exclusion (owner 09-13): a row whose own
+        // title/description names a DIFFERENT state's place signal than its
+        // resolved geography is FLAGGED and excluded from state matching —
+        // computed at match time from EXISTING fields only (PR-A; the stored
+        // PR-B columns are NOT read). Raw values stay visible.
+        const resolved = resolveBidState(r.location, r.agency);
+        const conflicted = locationConflict(r.title, r.description, resolved);
+        return !conflicted && geoRelevantByState(r.location, r.agency, state);
+      })
       .map((r) => {
         const bid: RadarBidRow = {
           id: Number(r.id), title: String(r.title ?? ""), agency: r.agency ? String(r.agency) : null,
@@ -455,7 +483,61 @@ export const runRadarScan = createServerFn({ method: "POST" })
         console.error("[radar-handoff] mint unavailable: missing server configuration (RADAR_HANDOFF_SECRET)");
       }
     }
-    return { matches, certLabel: CERT_LABEL[certId] };
+    // THREE-WAY BUCKETING (owner v6.1): partition the ranked STRICT matches
+    // into LOCAL (resolved geography == the requested state) vs NATIONWIDE
+    // (no resolvable geography — national set-aside rows kept for every state
+    // by design, per-card "Open nationwide" label; a different state's rows are
+    // already excluded by geoRelevant above). RELATED is a separate bucket
+    // built from the adjacent-work query; its rows NEVER join `matches` — an
+    // adjacent item is never a default janitorial/trucking match.
+    const local: RadarMatch[] = [];
+    const nationwide: RadarMatch[] = [];
+    for (const m of matches) {
+      const bidState = resolveBidState(m.location, m.agency);
+      if (state !== "" && bidState === state) local.push(m);
+      else nationwide.push(m);
+    }
+    // Related rows are state-local adjacent work with related provenance (no
+    // strict trade term — the low score honestly reflects that), no incumbent
+    // intel (paid feature; the section is informational and explicitly labeled).
+    const related: RadarMatch[] = [];
+    for (const r of relatedRows) {
+      const bid: RadarBidRow = {
+        id: Number(r.id), title: String(r.title ?? ""), agency: r.agency ? String(r.agency) : null,
+        description: r.description ? String(r.description) : null, location: r.location ? String(r.location) : null,
+        category: r.category ? String(r.category) : null, due_date: r.due_date ? String(r.due_date) : null,
+        estimated_value: r.estimated_value ? String(r.estimated_value) : null, naics_code: r.naics_code ? String(r.naics_code) : null,
+        source_url: r.source_url ? String(r.source_url) : null, set_aside: r.set_aside ? String(r.set_aside) : null,
+      };
+      const resolved = resolveBidState(bid.location, bid.agency);
+      if (resolved !== state) continue; // related rows surface only for the requested state
+      if (locationConflict(bid.title, bid.description, resolved)) continue;
+      if (matches.some((m) => m.id === bid.id)) continue; // never duplicate a strict match
+      const { score, scoreLabel } = computeMatch(bid, {
+        trade, isNaics, expansion, state, cert: certId, sizePref: sizeId,
+      });
+      related.push({
+        id: bid.id, title: bid.title, agency: bid.agency, category: bid.category,
+        location: bid.location, set_aside: bid.set_aside, naics_code: bid.naics_code,
+        source_url: bid.source_url, estimated_value: bid.estimated_value,
+        estimated_value_num: parseValue(bid.estimated_value),
+        due_date: bid.due_date, days_remaining: daysRemaining(bid.due_date),
+        score, score_label: scoreLabel,
+        trade_provenance: null,
+        reasons: [
+          `Related opportunity — adjacent work, not a direct "${trade}" match`,
+          `Located in ${state}${bid.set_aside ? ` — ${String(bid.set_aside)} set-aside` : " — no set-aside designation (listed for awareness)"}`,
+        ],
+        qualifications: [], requirements: buildRequirements(bid), next_action: buildNextAction(bid),
+        incumbent: null, learned: null,
+      });
+    }
+    related.sort((a, b) =>
+      a.due_date && b.due_date
+        ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+        : a.due_date ? -1 : b.due_date ? 1 : 0,
+    );
+    return { matches, certLabel: CERT_LABEL[certId], sections: { local, nationwide, related } };
   });
 
 /**
@@ -477,7 +559,7 @@ const mintRadarResultsCtaHandoff = createServerFn({ method: "POST" })
     const v = (d as any) ?? {};
     return {
       trade: String(v.trade ?? "").trim().slice(0, 120),
-      state: String(v.state ?? "").trim().slice(0, 2),
+      state: normalizeStateInput(String(v.state ?? "").trim()),
       cert: (RADAR_CERTS as readonly string[]).includes(String(v.cert ?? "sb")) ? String(v.cert) : "sb",
       sizePref: (SIZE_OPTS as readonly { id: string }[]).some((s) => s.id === String(v.sizePref ?? "any")) ? String(v.sizePref) : "any",
     };
@@ -523,6 +605,20 @@ const mintRadarResultsCtaHandoff = createServerFn({ method: "POST" })
     }
   });
 
+/** v6.2 headline "Related: N" — related rows that ALSO satisfy the selected
+ *  certification (the section itself lists adjacent work, incl. uncertified DoD
+ *  rows, with an explicit awareness disclosure; the headline counts only what
+ *  is cert-actionable). Mirrors setAsidePred's literal patterns (open-bids.ts). */
+function setAsideUnderCert(cert: string | null, setAside: string | null): boolean {
+  const s = String(setAside ?? "").toLowerCase().trim();
+  if (cert === "sb" || cert === null) return s.length > 0;
+  const pats: Record<string, string[]> = {
+    "8a": ["8(a)", "8an"], sdvosb: ["sdvosb"], wosb: ["wosb", "edwosb"],
+    hubzone: ["hubzone"], vosb: ["vosb"],
+  };
+  return (pats[cert] ?? []).some((p) => s.includes(p));
+}
+
 function buildReasons(
   bid: RadarBidRow,
   c: { trade: string; isNaics: boolean; expansion: TradeExpansion; state: string; cert: RadarCert; sizePref: SizeId; score: number; scoreLabel: string; tradeProvenance: TradeMatchProvenance | null },
@@ -550,8 +646,15 @@ function buildReasons(
     }
   }
   if (c.state) {
-    const m = (bid.location || "").match(STATE_LOCATION_REGEX);
-    reasons.push(m && m[1].toUpperCase() === c.state ? `Located in ${c.state}` : "Open nationwide");
+    const bidState = resolveBidState(bid.location, bid.agency);
+    // v6.2: "nationalwide" is the card's ELIGIBILITY tag; this reason bullet
+    // states eligibility plainly — never a location claim (the card shows the
+    // real place of performance separately).
+    reasons.push(
+      bidState === c.state
+        ? `Located in ${STATE_CODE_TO_NAME[c.state] ?? c.state} (verified)`
+        : "Eligible from any state — national set-aside row",
+    );
   }
   if (bid.agency) reasons.push(`Agency: ${bid.agency}`);
   return reasons;
@@ -622,11 +725,23 @@ export const Route = createFileRoute("/radar")({
 });
 
 type Step = 1 | 2 | 3;
+/** Three-way result buckets (owner v6.1): LOCAL / NATIONWIDE / RELATED are
+ *  separate, explicitly labeled sections. RELATED items are adjacent work —
+ *  NEVER default janitorial/trucking matches. */
+export interface RadarSections {
+  local: RadarMatch[];
+  nationwide: RadarMatch[];
+  related: RadarMatch[];
+}
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string }
+  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections }
   | { status: "error" };
+/** USPS code → full state name (for section labels). */
+const STATE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
+  Object.entries(STATE_NAME_TO_CODE).map(([name, code]) => [code, name]),
+);
 
 const NAICS_SUGGESTIONS = Object.entries(NAICS_NAMES).slice(0, 120);
 
@@ -653,7 +768,7 @@ function RadarLanding() {
   const uCert = String(searchParams?.cert ?? "").trim();
   const uSize = String(searchParams?.size ?? "").trim();
   const urlTrade = uTrade;
-  const urlState = (US_STATES as readonly string[]).includes(uState) ? uState : "";
+  const urlState = normalizeStateInput(uState);
   const urlCert = (RADAR_CERTS as readonly string[]).includes(uCert)
     ? (uCert as RadarCert)
     : null;
@@ -804,7 +919,7 @@ function RadarLanding() {
               source_url: m.source_url,
             })),
           });
-          setScan({ status: "done", matches: res.matches, certLabel: res.certLabel });
+          setScan({ status: "done", matches: res.matches, certLabel: res.certLabel, sections: res.sections });
           setStep(3);
         })
         .catch(() => {
@@ -1004,17 +1119,79 @@ function RadarLanding() {
             >
               ← Adjust my answers
             </button>
-            <div className="mt-4 flex items-end justify-between">
+            <div className="mt-4 flex items-end justify-between gap-3">
               <div>
                 <h2 className="text-xl font-bold text-white sm:text-2xl">Your top matches</h2>
                 <p className="mt-1 text-sm text-slate-400">
                   {scan.certLabel}{stateLabel} · {tradeLabel(track)} · real scores
                 </p>
               </div>
-              <span className="text-xs font-semibold text-amber-400">
-                {scan.matches.length} found
-              </span>
+              {state !== "" ? (
+                <span className="shrink-0 text-right text-xs font-semibold text-amber-400">
+                  {(scan.sections?.local ?? []).length} local ·{" "}
+                  {(scan.sections?.nationwide ?? []).length} nationwide · Related:{" "}
+                  {(scan.sections?.related ?? []).filter((m) => setAsideUnderCert(cert, m.set_aside)).length}
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-amber-400">
+                  {scan.matches.length} found
+                </span>
+              )}
             </div>
+{/* THREE-WAY BUCKETS (owner v6.1): LOCAL / NATIONWIDE / RELATED are
+                separate, explicitly labeled sections. Nationwide rows are kept
+                for every state by design and carry the per-card "Open
+                nationwide" label; related items are adjacent work and are NEVER
+                default janitorial/trucking matches. */}
+            {state !== "" && (
+              <section
+                aria-label={`${STATE_CODE_TO_NAME[state] ?? state}-local opportunities`}
+                className="mt-6 rounded-2xl border border-slate-700 bg-slate-900/50 px-5 py-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-200">
+                    📍 {STATE_CODE_TO_NAME[state] ?? state}-local opportunities
+                  </h3>
+                  <span className="text-xs font-semibold text-slate-400">
+                    {(scan.sections?.local ?? []).length} found
+                  </span>
+                </div>
+                {scan.sections && scan.sections.local.length > 0 ? (
+                  <div className="mt-4 flex flex-col gap-4">
+                    {scan.sections.local.map((m, i) => (
+                      <RadarCard
+                        key={m.id}
+                        match={m}
+                        certLabel={scan.certLabel}
+                        index={i + 1}
+                        total={scan.sections.local.length}
+                        trade={trade}
+                        state={state}
+                        cert={cert}
+                        sizePref={sizePref}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    No open {STATE_CODE_TO_NAME[state] ?? state}-local{" "}
+                    {trade.trim() ? `"${trade.trim()}" ` : ""}opportunities right now — this is the
+                    honest, unfiltered result: the database currently has no open state-located
+                    row matching your trade and certification.
+                  </p>
+                )}
+              </section>
+            )}
+            {state !== "" && (scan.sections?.nationwide ?? []).length > 0 && (
+              <div className="mt-8 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-slate-200">
+                  🌎 Open nationwide
+                </h3>
+                <span className="text-xs font-semibold text-amber-400">
+                  {(scan.sections?.nationwide ?? []).length} found
+                </span>
+              </div>
+            )}
             {/* PR1 (owner 2026-09-07): anonymous visitors see their first
                 FREE_ANONYMOUS_RADAR_RESULTS REAL matches up front on the results
                 screen (no mid-flow gate). The lined count is always the real
@@ -1026,7 +1203,9 @@ function RadarLanding() {
                   ? `Here are your strongest ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} ${
                       Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1 ? "match" : "matches"
                     } — every one with full incumbent intel`
-                  : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
+                  : state !== ""
+                    ? `${(scan.sections?.local ?? []).length} local · ${(scan.sections?.nationwide ?? []).length} nationwide set-aside opportunities`
+                    : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
               </p>
             )}
 
@@ -1179,6 +1358,64 @@ function RadarLanding() {
                 sizePref={sizePref ?? ""}
               />
             )}
+            {/* RELATED opportunities (owner v6.1) — adjacent work in the
+                requested state, explicitly labeled, NEVER default matches. An
+                empty section is an honest, documented outcome (current data/
+                cert filters may legitimately leave it empty). */}
+            {state !== "" && (
+              <section
+                aria-label="Related opportunities"
+                className="mt-8 rounded-2xl border border-dashed border-amber-500/40 bg-slate-900/40 px-5 py-5"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-amber-300">
+                    Related opportunities
+                  </h3>
+                  <span className="text-xs font-semibold text-slate-400">
+                    {(scan.sections?.related ?? []).length}{" "}
+                    {scan.sections && scan.sections.related.length === 1 ? "item" : "items"}
+                  </span>
+                </div>
+                {scan.sections && scan.sections.related.length > 0 ? (
+                  <div className="mt-3 flex flex-col gap-3">
+                    {scan.sections.related.map((m) => (
+                      <article
+                        key={m.id}
+                        className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                      >
+                        <p className="text-sm font-semibold text-white">{m.title}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {displayPlaceOfPerformance(m.title, m.location, m.agency) ??
+                            "Place of performance not specified"}
+                          {m.agency ? ` · ${m.agency}` : ""}
+                          {m.due_date
+                            ? ` · Due ${new Date(m.due_date).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}`
+                            : ""}
+                        </p>
+                        {m.reasons.slice(0, 2).map((r) => (
+                          <p key={r} className="mt-1 text-xs text-slate-300">
+                            {r}
+                          </p>
+                        ))}
+                      </article>
+                    ))}
+                    <p className="mt-1 text-xs text-slate-500">
+                      Adjacent work is shown ONLY here — it is never a default{" "}
+                      {`"${trade.trim() || "trade"}"`} match.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    No adjacent work currently matches in {STATE_CODE_TO_NAME[state] ?? state} —
+                    an honest, documented outcome for this trade/state right now.
+                  </p>
+                )}
+              </section>
+            )}
           </section>
         )}
       </div>
@@ -1213,6 +1450,12 @@ export function RadarCard({
   sizePref: SizeId | null;
 }) {
   const due = match.due_date ? new Date(match.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
+  // v6.2: the REAL place of performance + whether this card is in the
+  // nationwide-eligibility bucket (never a location claim — see the tag below).
+  const bidState = resolveBidState(match.location, match.agency);
+  const isStateLocal = state !== "" && bidState === state;
+  const place = displayPlaceOfPerformance(match.title, match.location, match.agency);
+  const courierSubtype = isCourierFamilyNaics(match.naics_code) && !tradeExpresslyCourier(trade);
   const rawVal = (match.estimated_value || "").trim();
   const VALUE_PLACEHOLDER = /^(not specified|not available|n\/a|unknown|tbd|none|to be determined|available upon request|see solicitation)$/i;
   const value =
@@ -1256,6 +1499,30 @@ export function RadarCard({
         )}
         <h3 className="text-base font-bold leading-snug text-white">{match.title || "Solicitation"}</h3>
         {match.agency && <p className="mt-0.5 text-sm text-slate-400">{match.agency}</p>}
+        {/* v6.2: ACTUAL place of performance + eligibility tag — "nationalwide"
+            is a separate ELIGIBILITY tag, never the location. State-local cards
+            show their verified state. */}
+        {(place || !isStateLocal) && (
+          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+            {place ? (
+              <span className="text-xs font-medium text-slate-300">📍 {place}</span>
+            ) : (
+              <span className="text-xs font-medium text-slate-500">Place of performance not specified — see solicitation</span>
+            )}
+            {!isStateLocal && (
+              <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">
+                nationalwide
+              </span>
+            )}
+          </p>
+        )}
+        {courierSubtype && (
+          <p className="mt-1.5">
+            <span className="rounded-full border border-sky-500/40 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-300">
+              Related logistics — courier delivery
+            </span>
+          </p>
+        )}
         <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-300">
           {value && <span>{value} estimated</span>}
           {value && <span aria-hidden="true">·</span>}

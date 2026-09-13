@@ -8,7 +8,14 @@ name: Build Check
 #   3. build .vercel/output (vite build + vercel-entry bundle) — this also
 #      GENERATES src/routeTree.gen.ts
 #   4. prod-config typecheck AFTER route generation (routeTree.gen.ts must
-#      exist first — never typecheck before it)
+#      exist first — never typecheck before it) — BASELINE-DELTA GATE
+#      (owner-approved, PR #375): origin/main carries 56 pre-existing prod-config
+#      type errors (committed list in .github/typecheck-baseline.txt); the job
+#      FAILS ONLY on new/missing lines vs that baseline (prints the delta and a
+#      "baseline-only (56 pre-existing)" pass note when there is no delta). Never
+#      a silent pass — errors stay visible, and the separate type-debt PR absorbs
+#      them (it updates the baseline in the same commit).
+#      noUnusedLocals/noUnusedParameters remain true in tsconfig.prod.json.
 #   5. Build Output API validation (config.json v3, nodejs22.x, render bundle
 #      <= 12 MB)
 #   6. bundled request-context integration test against the ASSEMBLED render
@@ -43,8 +50,28 @@ jobs:
         run: bun run check:routes
       - name: Build .vercel/output (Build Output API v3)
         run: bash build-vercel.sh
-      - name: Typecheck (prod config, AFTER route generation — must be 0 errors)
-        run: bun run typecheck
+      - name: Typecheck (prod config) — baseline-delta gate vs committed 56-error baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Owner-approved baseline-delta gate (PR #375). origin/main carries 56
+          # pre-existing prod-config type errors (see .github/typecheck-baseline.txt;
+          # noUnusedLocals/noUnusedParameters stay true in tsconfig.prod.json).
+          # This step FAILS ONLY on new/missing error lines vs the committed
+          # baseline: a delta is printed and fails the job — it never silently
+          # passes and never hides errors. No delta = pass, with the count
+          # printed. The separate type-debt PR absorbs the 56 and updates the
+          # baseline in the same commit (which flips this gate to a real
+          # 0-delta-vs-0 baseline).
+          bun run typecheck > /tmp/typecheck-current.txt 2>&1 || true
+          grep -E 'error TS[0-9]+' /tmp/typecheck-current.txt | sort -u > /tmp/typecheck-current-lines.txt || true
+          sort -u .github/typecheck-baseline.txt > /tmp/typecheck-baseline-lines.txt
+          if ! diff -u /tmp/typecheck-baseline-lines.txt /tmp/typecheck-current-lines.txt; then
+            echo "::error::Typecheck delta vs .github/typecheck-baseline.txt detected (see diff above — new errors introduced, or the baseline needs a deliberate update). Failing."
+            exit 1
+          fi
+          COUNT=$(wc -l < /tmp/typecheck-current-lines.txt)
+          echo "baseline-only (${COUNT} pre-existing errors) — delta gate PASS (owner-approved: no new errors vs .github/typecheck-baseline.txt)"
       - name: Validate .vercel/output bundle
         run: |
           set -euo pipefail

@@ -13,8 +13,8 @@
  *   (a) two overlapping requests retain DIFFERENT cookies AND different IPs
  *   (b) authenticated SSR resolves the correct user from a REAL session cookie
  *   (c) an exception thrown mid-request does NOT leak context into the next
- *       request (/_server-fn/ with an empty id throws deterministically inside
- *       the AsyncLocalStorage run scope -> 500 -> next request must be clean)
+ *       request (an invalid Host header throws inside the AsyncLocalStorage
+ *       run scope -> 500 -> next request must be clean)
  *   (d) an anonymous /score RPC receives its OWN request IP (the free-score
  *       credits table is keyed by the REQUEST IP, not a shared/previous one)
  *
@@ -25,13 +25,14 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { neon } from "@neondatabase/serverless";
 
-// Server-fn RPC base must be set BEFORE the bundle is imported (the handler
-// reads it at module scope). Not set in prod Vercel env? — it is; locally we
-// must provide it to exercise the throwing case + the /score RPC.
-// Force the RPC base for the LOCAL test process (a pre-set sandbox value, if any,
-// would otherwise route /_server-fn/* to the normal router and 404).
-process.env.TSS_SERVER_FN_BASE = "/_server-fn/";
-const TSS_ORIG = process.env.TSS_SERVER_FN_BASE;
+// Server-function RPC URLs are `/_serverFn/<id>` — the base is baked into the
+// assembled bundle (SERVER_FN_BASE in the TanStack SSR handler; the sandbox
+// build bakes the default `/_serverFn/`). Case (d) therefore exercises the REAL
+// /score RPC (`getScoreCredits_createServerFn_handler`) through the ASSEMBLED
+// render function. The same-origin fetch sends no Origin/Sec-Fetch-Site header,
+// which the TanStack CSRF middleware allows (curl-style, no-op). Keep the env
+// set as belt-and-braces in case a future build reads it at runtime.
+process.env.TSS_SERVER_FN_BASE = "/_serverFn/";
 
 const bundle = (await import(
   "../.vercel/output/functions/render.func/index.mjs"
@@ -194,23 +195,77 @@ describe("request-context: ASSEMBLED render-function bundle", () => {
     await db()`INSERT INTO score_credits (ip, count) VALUES (${ipA}, 3), (${ipB}, 0)
       ON CONFLICT (ip) DO UPDATE SET count = EXCLUDED.count, updated_at = NOW()`;
     try {
-      // The server-fn RPC base is baked into the build from
-    // process.env.TSS_SERVER_FN_BASE at BUILD time; the local sandbox build
-    // has none, so /_server-fn/* falls through to the router (404 HTML).
-    // Detect that and skip explicitly instead of failing falsely — the RPC
-    // runs on Vercel builds, which inherit the env.
-    const url = `${baseUrl()}/_server-fn/getScoreCredits`;
+      // The RPC URL is `/_serverFn/<id>` where <id> is the server fn's
+      // deterministic content-hash id (createServerRpc id in the score chunk;
+      // stable unless the fn source changes). This is the EXACT URL the browser
+      // client would call. The response is a seroval-serialized JSON-ish body.
+      // If some build ever fails to route /_serverFn/* (404 HTML) or reports an
+      // unknown fn id (500 HTTPError JSON), skip explicitly — never false-fail.
+      const url = `${baseUrl()}/_serverFn/a6aba359ef4e6ea3da785195d753eeed6f2487e109ae995521f60c1906cdc6b2`;
       const [ra, rb] = await Promise.all([
-        fetch(url, { headers: { "x-tsr-serverFn": "true", "x-forwarded-for": ipA } }),
-        fetch(url, { headers: { "x-tsr-serverFn": "true", "x-forwarded-for": ipB } }),
+        fetch(url, {
+          headers: {
+            "x-tsr-serverFn": "true",
+            // TanStack CSRF middleware for server fns: with no
+            // Sec-Fetch-Site/Origin/Referer the request is 403 Forbidden.
+            "sec-fetch-site": "same-origin",
+            "x-forwarded-for": ipA,
+          },
+        }),
+        fetch(url, {
+          headers: {
+            "x-tsr-serverFn": "true",
+            "sec-fetch-site": "same-origin",
+            "x-forwarded-for": ipB,
+          },
+        }),
       ]);
       const [ta, tb] = await Promise.all([ra.text(), rb.text()]);
-      if (ta.trimStart().startsWith("<!DOCTYPE")) {
-        console.log("SKIP(d): server-fn RPC base not baked into this build (needs TSS_SERVER_FN_BASE at build time) — run against a Vercel build");
+      const unrouteable =
+        ta.trimStart().startsWith("<!DOCTYPE") ||
+        (ta.includes('"unhandled":true') && ta.includes("HTTPError"));
+      if (unrouteable) {
+        console.log("SKIP(d): /_serverFn/* not routable in this build — RPC cannot be exercised here");
+        return;
       }
-      // seroval JSON body — assert the per-IP credit state (3=limited vs 0=open).
-      expect(ta).toContain('"limited":true');
-      expect(tb).toContain('"limited":false');
+      // TanStack RPC responses are seroval cross-JSON graphs (not plain JSON).
+      // Decode just the shapes this test asserts on: numbers (t:0), strings
+      // (t:1), booleans (t:2 — s:2=true, s:3=false, s:1=undefined) and plain
+      // objects (t:10, keys in p.k aligned with values in p.v).
+      const decodeSeroval = (node: any): any => {
+        switch (node.t) {
+          case 0:
+            return Number(node.s);
+          case 1:
+            return String(node.s);
+          case 2:
+            return node.s === 2 ? true : node.s === 3 ? false : undefined;
+          case 10:
+          case 11: {
+            const out: Record<string, unknown> = {};
+            for (let i = 0; i < node.p.k.length; i++) {
+              out[node.p.k[i]] = decodeSeroval(node.p.v[i]);
+            }
+            return out;
+          }
+          default:
+            throw new Error(`unhandled seroval node type t=${node.t}`);
+        }
+      };
+      const creditsA = decodeSeroval(JSON.parse(ta)).result as {
+        used: number;
+        limited: boolean;
+      };
+      const creditsB = decodeSeroval(JSON.parse(tb)).result as {
+        used: number;
+        limited: boolean;
+      };
+      // The free-score limit is keyed by the REQUEST's OWN IP: ipA was seeded
+      // with 3 used credits (limited) and ipB with 0 (open).
+      expect(creditsA.used).toBe(3);
+      expect(creditsA.limited).toBe(true);
+      expect(creditsB.used).toBe(0);
+      expect(creditsB.limited).toBe(false);
     } finally {
       await db()`DELETE FROM score_credits WHERE ip = ${ipA} OR ip = ${ipB}`;
     }

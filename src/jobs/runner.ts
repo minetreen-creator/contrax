@@ -32,6 +32,8 @@ import { fetchBids as fetchSamGov } from "./sources/sam-gov";
 import { fetchBids as fetchCities } from "./sources/cities";
 import { nysSocrataSource } from "./sources/socrata";
 import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
+import { fetchPennBidOpen } from "./sources/pennbid";
+import { fetchVaEvirginia } from "./sources/va-ev";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
@@ -70,6 +72,11 @@ const SAM_GOV_SOURCES: SyncSource[] = [
     },
   },
   { name: "cities", fetchFn: fetchCities },
+  // PR-B owner 09-13: repaired coverage sources — PennBid (PA freight) and
+  // va_evirginia (VA place-of-performance verified). Both are serial like sam_gov
+  // so their run-log/tier is stable and independently observable.
+  { name: "pennbid", fetchFn: fetchPennBidOpen },
+  { name: "va_evirginia", fetchFn: fetchVaEvirginia },
 ];
 
 /**
@@ -397,12 +404,26 @@ async function syncSource(
     console.error(`  ${msg}`);
   }
 
-  // Log to sync_logs
+  // Log to sync_logs + collector_run_log (PR-B: honest run provenance — ran_zero
+  // distinguishes "ran and returned zero" from "never ran"; staleness tiers read
+  // from this). A fetched>>new signature (the PA 11->0 collapse pattern) is
+  // written to collector_collapse_log so it is alarmed, never silent.
   try {
     await sql`
       INSERT INTO sync_logs (source, fetched, new, errors, created_at)
       VALUES (${source.name}, ${fetched}, ${newCount}, ${errors.join("; ") || null}, NOW())
     `;
+    await sql`
+      INSERT INTO collector_run_log (source, ran_at, rows_fetched, rows_new, ran_zero, errors)
+      VALUES (${source.name}, NOW(), ${fetched}, ${newCount}, ${fetched === 0}, ${errors.length})
+    `;
+    if (fetched > 0 && newCount === 0) {
+      await sql`
+        INSERT INTO collector_collapse_log (source, occurred_at, rows_fetched, rows_new, note)
+        VALUES (${source.name}, NOW(), ${fetched}, ${newCount},
+          ${`sources fetched but no new rows persisted (visible-result collapse signature); inspect collector_collapse_alert`})
+      `;
+    }
   } catch (e) {
     console.error(`  Failed to log sync for ${source.name}:`, (e as Error).message);
   }

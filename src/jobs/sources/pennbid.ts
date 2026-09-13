@@ -110,8 +110,12 @@ export async function fetchPennBidOpen(): Promise<
       if (!projectId) continue;
       const title = String(proj.ProjectName ?? "").trim();
       if (!title) continue;
+      // Data honesty: never emit a row whose agency cannot be attributed — the
+      // buyer's ReferenceID is the only agency reference this portal carries.
+      // A project without one is SKIPPED (never a fabricated or empty agency).
+      const agency = String(proj.ReferenceID ?? "").trim();
+      if (!agency) continue;
 
-      const agency = proj.ReferenceID ? String(proj.ReferenceID).trim() : "";
       const due = parseCloseDate(proj.DateClose);
       // Defensive: the endpoint is the OPEN list; never insert a row that is
       // already closed (between fetch and insert).

@@ -23,6 +23,7 @@
  */
 
 import type { RawBid } from "./sam-gov";
+import type { FetchResult } from "../runner";
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
 const DETAIL_API = "https://sam.gov/api/prod/opps/v2/opportunities/";
@@ -111,11 +112,25 @@ function mapCategory(title: string, description: string): string {
   return "Other";
 }
 
+/**
+ * Cross-pass accounting context (owner 09-13 run-record). Each raw item is
+ * examined exactly once (first pass that sees it wins, keyed by noticeId /
+ * _id / solicitationNumber) so fetched = kept + skipped holds across the two
+ * SAM.gov passes. kept is keyed by external_id (existing cross-pass dedupe);
+ * skipped rows carry a diagnostic id + reason for the runner to print.
+ */
+interface PassCtx {
+  examined: Map<string, boolean>;
+  kept: Map<string, RawBid>;
+  skipped: Record<string, number>;
+  skippedRows: { id: string; reason: string }[];
+}
+
 async function queryPass(
   q: string,
   keep: (state: string | null, naics: string | null) => boolean,
-): Promise<RawBid[]> {
-  const results: RawBid[] = [];
+  ctx: PassCtx,
+): Promise<void> {
   for (let page = 0; page < 2; page++) {
     const url = `${SAM_API}?page=${page}&size=${PAGE_SIZE}&sort=-modifiedDate&mode=opportunities&q=${encodeURIComponent(q)}&is_active=true`;
     const resp = await fetch(url, { headers: HEADERS });
@@ -128,7 +143,13 @@ async function queryPass(
     const items: any[] = data?._embedded?.results ?? [];
     if (items.length === 0) break;
 
-    for (const item of items) {
+    for (const [idx, item] of items.entries()) {
+      const key = String(
+        item.parentNoticeId || item._id || item.solicitationNumber || `page${page}-${idx}`,
+      );
+      // Count each raw item once across both passes (dedupe the overlap).
+      if (ctx.examined.has(key)) continue;
+      ctx.examined.set(key, true);
       try {
         const noticeId = item.parentNoticeId || item._id || "";
         const detail = noticeId ? await fetchDetail(noticeId) : null;
@@ -137,16 +158,22 @@ async function queryPass(
         const naics = primaryNaics(detail);
         // DATA HONESTY: a row is accepted ONLY on a REAL VA place-of-performance
         // (plus, for the janitorial pass, the 561720 code). Detail-fetch failures
-        // (no POP) are skipped — location is never guessed from the query.
-        if (!keep(state, naics)) continue;
+        // (no POP) are counted as not_va_pop skips — location is never guessed
+        // from the query. (not_va_pop is informational — NOT quality-gated.)
+        if (!keep(state, naics)) {
+          ctx.skipped["not_va_pop"] = (ctx.skipped["not_va_pop"] ?? 0) + 1;
+          ctx.skippedRows.push({ id: key, reason: "not_va_pop" });
+          continue;
+        }
 
         const description = stripHtml(item.descriptions?.[0]?.content || "").substring(0, 2000);
         const orgs = item.organizationHierarchy || [];
         const deepest = orgs[orgs.length - 1];
         const agency = deepest?.name || orgs[0]?.name || "Virginia Agency";
 
-        results.push({
-          external_id: `va-${item._id || item.solicitationNumber || `page${page}-${results.length}`}`,
+        const externalId = `va-${item._id || item.solicitationNumber || key}`;
+        ctx.kept.set(externalId, {
+          external_id: externalId,
           title: item.title || "Untitled Opportunity",
           agency,
           description,
@@ -160,29 +187,39 @@ async function queryPass(
         });
       } catch (e) {
         console.error(`  va_evirginia: item parse error:`, (e as Error).message);
+        ctx.skipped["parse_error"] = (ctx.skipped["parse_error"] ?? 0) + 1;
+        ctx.skippedRows.push({ id: key, reason: "parse_error" });
       }
     }
-    console.log(`  va_evirginia: ${q} page ${page + 1}: ${items.length} items, pass-kept ${results.length}`);
+    console.log(
+      `  va_evirginia: ${q} page ${page + 1}: ${items.length} items, cumulative kept ${ctx.kept.size}`,
+    );
     if (items.length < PAGE_SIZE) break;
   }
-  return results;
 }
 
 /** Restored + repaired eVirginia source: VA-POP federal opportunities,
  *  including real VA-place 561720 janitorial work. */
-export async function fetchVaEvirginia(): Promise<RawBid[]> {
-  const seen = new Map<string, RawBid>();
+export async function fetchVaEvirginia(): Promise<FetchResult> {
+  const ctx: PassCtx = {
+    examined: new Map(),
+    kept: new Map(),
+    skipped: {},
+    skippedRows: [],
+  };
   // Pass 1: Virginia-keyword — genuine VA place-of-performance only.
-  for (const bid of await queryPass("Virginia", (state) => state === "VA")) {
-    seen.set(bid.external_id, bid);
-  }
+  await queryPass("Virginia", (state) => state === "VA", ctx);
   // Pass 2: janitorial — VA place AND 561720 (the owner-verified VA case).
-  for (const bid of await queryPass(
+  await queryPass(
     "janitorial",
     (state, naics) => state === "VA" && naics === "561720",
-  )) {
-    seen.set(bid.external_id, bid);
-  }
-  console.log(`  va_evirginia: ${seen.size} unique VA-place rows`);
-  return [...seen.values()];
+    ctx,
+  );
+  const rows = [...ctx.kept.values()];
+  console.log(
+    `  va_evirginia: ${rows.length} unique VA-place rows (examined ${ctx.examined.size}; skips: ${Object.entries(ctx.skipped)
+      .map(([r, n]) => `${r}=${n}`)
+      .join(", ") || "none"})`,
+  );
+  return { rows, skipped: ctx.skipped, skippedRows: ctx.skippedRows };
 }

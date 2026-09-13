@@ -23,6 +23,26 @@
  *    provable) is distinguishable from "collector never ran" (defect). Written
  *    by the existing GH Actions sync path (runner.ts syncSource).
  *
+ *    OWNER 09-13 RUN-RECORD EXTENSION (added IN PLACE; 039 has never run on
+ *    prod, and the version applied to the preview DB upgrades idempotently —
+ *    re-running adds the new columns without breaking anything):
+ *      fetched_count  integer — raw source items examined
+ *      accepted_count integer — passed guards AND upserted (new + duplicate)
+ *      skipped_count  integer — dropped by a deliberate pre-insert guard
+ *      failed_count   integer — rows that threw at INSERT time
+ *      skip_reasons   jsonb   — reason -> count (e.g. {"missing_agency": 2})
+ *      quality_gate   text    — 'pass' | 'fail'; runner writes the verdict of
+ *                               the MISSING_AGENCY_MAX_PCT gate (only
+ *                               'missing_agency' is gated) with a write-time
+ *                               allowlist (no CHECK — house style, mirrors 038)
+ *    Invariant: fetched = accepted + skipped + failed.
+ *    SCHEMA DECISION: quality_gate is TEXT ('pass'/'fail'), not a boolean —
+ *    self-describing in ops reads, and leaves room for future tiers ('warn').
+ *    No column renames: the PR-B v1 columns (rows_fetched / rows_new /
+ *    ran_zero / errors) are RETAINED and still written by the runner for
+ *    back-compat, so collector_staleness / collector_collapse_alert views
+ *    keep working UNCHANGED. The new *_count columns are canonical.
+ *
  * 3. collector_staleness VIEW — FRESH (<48h) / STALE (<=7d) / CRITICAL (>7d or
  *    never) per source, surfaced for ops and alerting. This is what flags
  *    va_evirginia (last real run 2026-08-29) as CRITICAL until the repaired
@@ -124,9 +144,11 @@ await run(
   `,
 );
 
-// 2. Collector run-log (each sync run per collector).
+// 2. Collector run-log (each sync run per collector). PR-B v1 columns retained
+//    (rows_fetched/rows_new/ran_zero/errors — read by the views below and any
+//    deployed dashboards); owner 09-13 run-record columns added in place.
 await run(
-  "collector_run_log table",
+  "collector_run_log table (run-record + quality gate)",
   `
   CREATE TABLE IF NOT EXISTS collector_run_log (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -135,8 +157,26 @@ await run(
     rows_fetched integer NOT NULL DEFAULT 0,
     rows_new integer NOT NULL DEFAULT 0,
     ran_zero boolean NOT NULL DEFAULT false,
-    errors integer NOT NULL DEFAULT 0
+    errors integer NOT NULL DEFAULT 0,
+    fetched_count integer NOT NULL DEFAULT 0,
+    accepted_count integer NOT NULL DEFAULT 0,
+    skipped_count integer NOT NULL DEFAULT 0,
+    failed_count integer NOT NULL DEFAULT 0,
+    skip_reasons jsonb NOT NULL DEFAULT '{}'::jsonb,
+    quality_gate text NOT NULL DEFAULT 'pass'
   );
+  `,
+);
+await run(
+  "collector_run_log: owner 09-13 run-record columns (idempotent upgrade)",
+  `
+  ALTER TABLE collector_run_log
+    ADD COLUMN IF NOT EXISTS fetched_count integer NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS accepted_count integer NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS skipped_count integer NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS failed_count integer NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS skip_reasons jsonb NOT NULL DEFAULT '{}'::jsonb,
+    ADD COLUMN IF NOT EXISTS quality_gate text NOT NULL DEFAULT 'pass';
   `,
 );
 await run(

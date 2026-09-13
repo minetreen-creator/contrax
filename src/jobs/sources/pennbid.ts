@@ -40,6 +40,19 @@ export interface PennBidProject {
   DepartmentID?: string;
 }
 
+import type { FetchResult } from "../runner";
+
+/** Record one deliberate pre-insert guard drop (reason-coded skip). */
+function recordSkip(
+  skipped: Record<string, number>,
+  skippedRows: { id: string; reason: string }[],
+  id: string,
+  reason: string,
+) {
+  skipped[reason] = (skipped[reason] ?? 0) + 1;
+  skippedRows.push({ id, reason });
+}
+
 const ENDPOINT =
   "https://pennbid.bonfirehub.com/PublicPortal/getOpenPublicOpportunitiesSectionData";
 
@@ -60,19 +73,7 @@ function parseCloseDate(raw: string | null | undefined): string | null {
   return `${y}-${mo}-${d}T${h}:${mi}:${s ?? "00"}.000Z`;
 }
 
-export async function fetchPennBidOpen(): Promise<
-  Array<{
-    external_id: string;
-    title: string;
-    agency: string;
-    description: string;
-    location: string;
-    category: string;
-    due_date: string | null;
-    estimated_value: string;
-    source_url: string;
-  }>
-> {
+export async function fetchPennBidOpen(): Promise<FetchResult> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 20000);
   let resp: Response;
@@ -80,18 +81,21 @@ export async function fetchPennBidOpen(): Promise<
     resp = await fetch(ENDPOINT, { headers: HEADERS, signal: controller.signal });
   } catch (e) {
     console.error(`  pennbid: fetch failed:`, (e as Error).message);
-    return [];
+    return { rows: [], skipped: {}, skippedRows: [] };
   } finally {
     clearTimeout(timer);
   }
   if (!resp.ok) {
     console.error(`  pennbid: HTTP ${resp.status}`);
-    return [];
+    return { rows: [], skipped: {}, skippedRows: [] };
   }
 
   const data = await resp.json();
   const projects: Record<string, PennBidProject> =
     data?.payload?.projects ?? {};
+  // Iterate entries (not values) so a project whose ProjectID field is missing
+  // still has the portal map key as a diagnostic identifier.
+  const entries = Object.entries(projects) as Array<[string, PennBidProject]>;
   const rows: Array<{
     external_id: string;
     title: string;
@@ -103,23 +107,40 @@ export async function fetchPennBidOpen(): Promise<
     estimated_value: string;
     source_url: string;
   }> = [];
+  // Run-record accounting (owner 09-13): every pre-insert guard emits a REASON
+  // and a diagnostic line carrying the skipped row's source identifier.
+  const skipped: Record<string, number> = {};
+  const skippedRows: { id: string; reason: string }[] = [];
 
-  for (const proj of Object.values(projects)) {
+  for (const [key, proj] of entries) {
     try {
+      const rowId = String(proj.ProjectID ?? "").trim() || key || "unknown-project";
       const projectId = String(proj.ProjectID ?? "").trim();
-      if (!projectId) continue;
+      if (!projectId) {
+        recordSkip(skipped, skippedRows, rowId, "missing_id");
+        continue;
+      }
       const title = String(proj.ProjectName ?? "").trim();
-      if (!title) continue;
+      if (!title) {
+        recordSkip(skipped, skippedRows, rowId, "missing_title");
+        continue;
+      }
       // Data honesty: never emit a row whose agency cannot be attributed — the
       // buyer's ReferenceID is the only agency reference this portal carries.
       // A project without one is SKIPPED (never a fabricated or empty agency).
       const agency = String(proj.ReferenceID ?? "").trim();
-      if (!agency) continue;
+      if (!agency) {
+        recordSkip(skipped, skippedRows, rowId, "missing_agency");
+        continue;
+      }
 
       const due = parseCloseDate(proj.DateClose);
       // Defensive: the endpoint is the OPEN list; never insert a row that is
       // already closed (between fetch and insert).
-      if (due && Date.parse(due) < Date.now()) continue;
+      if (due && Date.parse(due) < Date.now()) {
+        recordSkip(skipped, skippedRows, rowId, "closed");
+        continue;
+      }
 
       // One-line honest description — we do NOT invent scope detail the portal
       // JSON does not carry. The full solicitation lives at the source URL.
@@ -146,10 +167,15 @@ export async function fetchPennBidOpen(): Promise<
         source_url: `https://pennbid.bonfirehub.com/portal/?tab=openOpportunities&projectID=${projectId}`,
       });
     } catch (e) {
-      console.error(`  pennbid: error parsing project:`, (e as Error).message);
+      console.error(`  pennbid: error parsing project ${key}:`, (e as Error).message);
+      recordSkip(skipped, skippedRows, key || "unknown-project", "parse_error");
     }
   }
 
-  console.log(`  pennbid: got ${rows.length} open projects from Pennsylvania portal`);
-  return rows;
+  console.log(
+    `  pennbid: ${rows.length} open projects accepted (skips: ${Object.entries(skipped)
+      .map(([r, n]) => `${r}=${n}`)
+      .join(", ") || "none"})`,
+  );
+  return { rows, skipped, skippedRows };
 }

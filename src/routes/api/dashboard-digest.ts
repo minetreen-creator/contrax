@@ -7,6 +7,7 @@ interface DigestEntry {
   bid_id: number; title: string; agency: string; estimated_value: string;
   win_probability: number; reason: string;
 }
+interface DigestResult { entries: DigestEntry[]; hasRecentBids: boolean; }
 
 // Mirrors fetchDigest in src/routes/dashboard.tsx (migrated from a
 // createServerFn client RPC that silently failed on production).

@@ -39,9 +39,49 @@ async function handler({ request }: { request: Request }): Promise<Response> {
     const naicsList = (data.naics_codes || []).filter(Boolean);
     const descWords = (data.description || "").split(/\s+/).filter((w: string) => w.length > 4).slice(0, 6);
 
+    // Build query conditions
+    const conditions: string[] = [];
+    const params: any[] = [];
+
+    if (naicsList.length > 0) {
+      // Match by overlapping NAICS codes (prefix match: first 4 digits)
+      const prefixPatterns = naicsList.map((c: string) => c.slice(0, 4)).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i);
+      const naicsConditions = prefixPatterns.map((p: string) => {
+        params.push(p + "%");
+        return `naics_code LIKE $${params.length}`;
+      });
+      conditions.push(`(${naicsConditions.join(" OR ")})`);
+    }
+
+    // Same or similar agency
+    if (data.agency) {
+      params.push(data.agency);
+      conditions.push(`agency = $${params.length}`);
+    }
+
+    // Keyword match in description or title
+    if (descWords.length > 0) {
+      const kwConditions = descWords.map((w: string) => {
+        params.push("%" + w + "%");
+        return `(description ILIKE $${params.length} OR title ILIKE $${params.length})`;
+      });
+      conditions.push(`(${kwConditions.join(" OR ")})`);
+    }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const query = `
+      SELECT title, agency, award_amount, award_date, winning_company, naics_code
+      FROM awarded_contracts
+      ${where}
+      ORDER BY award_date DESC
+      LIMIT 15
+    `;
+
     let pastAwards: any[];
     try {
       // Use raw query with parameterized approach via sql template
+      let sqlBuilder = sql();
+      // Build the query manually since we need dynamic WHERE
       const allRows = await sql()`SELECT title, agency, award_amount, award_date, winning_company, naics_code FROM awarded_contracts ORDER BY award_date DESC LIMIT 50`;
       pastAwards = (allRows as any[]).filter((a) => {
         let match = false;

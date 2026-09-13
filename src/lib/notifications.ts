@@ -109,6 +109,7 @@ export async function createDeadlineAlertsForUser(
   const now = Date.now();
 
   for (const row of trackedRows as any[]) {
+    const bidId = row.bid_id as string;
     const bidTitle = row.bid_title as string;
     const agency = row.agency as string;
     const dueDate = new Date(row.due_date);

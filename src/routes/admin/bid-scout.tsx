@@ -214,6 +214,7 @@ function AcquisitionFunnelPanel({
   }
   const stageCount = (key: string) => funnel.stages.find((s) => s.key === key)?.count ?? 0;
   const landing = stageCount("landing");
+  const purchased = stageCount("purchased");
   const conversion =
     funnel.conversionRatePct != null ? `${funnel.conversionRatePct.toFixed(1)}%` : "—";
   return (

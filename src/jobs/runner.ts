@@ -32,6 +32,8 @@ import { fetchBids as fetchSamGov } from "./sources/sam-gov";
 import { fetchBids as fetchCities } from "./sources/cities";
 import { nysSocrataSource } from "./sources/socrata";
 import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
+import { fetchPennBidOpen } from "./sources/pennbid";
+import { fetchVaEvirginia } from "./sources/va-ev";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
@@ -39,9 +41,47 @@ import { createNotification } from "../lib/notifications";
 import { generateBidAlerts } from "../lib/bid-alerts";
 import { inferNaics } from "../lib/naics-infer";
 
+/**
+ * Run-record contract (owner 09-13): a source MAY return a FetchResult instead
+ * of a bare row array to carry per-reason skip accounting. Sources that do not
+ * opt in default to fetched = rows.length, skipped = {}, failed = [].
+ *
+ * Count definitions (fetched = accepted + skipped + failed):
+ *   fetched  = raw source items examined (rows + every deliberate skip)
+ *   accepted = passed the source's pre-insert guards AND upserted
+ *              (new insert + existing-row refresh; insert errors are excluded)
+ *   skipped  = dropped by a deliberate pre-insert guard, WITH a reason
+ *   failed   = rows that threw at INSERT time
+ */
+export interface SkippedRow {
+  /** Source identifier of the skipped row (e.g. PennBid ProjectID, VA noticeId). */
+  id: string;
+  /** Machine reason key — e.g. 'missing_id' | 'missing_title' | 'missing_agency' | 'closed' | 'not_va_pop'. */
+  reason: string;
+}
+
+export interface FetchResult {
+  rows: RawBid[];
+  /** reason -> skip count (mirrors fetched = accepted + skipped + failed). */
+  skipped: Record<string, number>;
+  /** One diagnostic per skipped row, for the runner to print (id + reason). */
+  skippedRows: SkippedRow[];
+}
+
+export type FetchFn = () => Promise<RawBid[] | FetchResult>;
+
+/**
+ * Quality gate (owner 09-13): MISSING_AGENCY_MAX_PCT % of fetched rows may be
+ * skipped for 'missing_agency' before the run is marked fail. A source-format
+ * change that strips agency fields must trip this gate instead of silently
+ * shrinking coverage. ONLY the 'missing_agency' reason is gated — 'not_va_pop'
+ * and friends are informational.
+ */
+export const MISSING_AGENCY_MAX_PCT = 25;
+
 interface SyncSource {
   name: string;
-  fetchFn: () => Promise<RawBid[]>;
+  fetchFn: FetchFn;
 }
 
 /**
@@ -70,6 +110,11 @@ const SAM_GOV_SOURCES: SyncSource[] = [
     },
   },
   { name: "cities", fetchFn: fetchCities },
+  // PR-B owner 09-13: repaired coverage sources — PennBid (PA freight) and
+  // va_evirginia (VA place-of-performance verified). Both are serial like sam_gov
+  // so their run-log/tier is stable and independently observable.
+  { name: "pennbid", fetchFn: fetchPennBidOpen },
+  { name: "va_evirginia", fetchFn: fetchVaEvirginia },
 ];
 
 /**
@@ -129,9 +174,18 @@ function toIsoDueDate(value: string | null | undefined): string | null {
 
 export interface SyncSourceResult {
   fetched: number;
+  /** Genuinely NEW rows inserted (subset of accepted). */
   new: number;
+  /** Rows that passed guards and were upserted without error (new + existing refresh). */
+  accepted: number;
+  /** Rows that threw at INSERT time (subset of fetched, excluded from accepted). */
+  failed: number;
   errors: string[];
   newBids: NewBidSummary[];
+  /** reason -> skip count (informational; only 'missing_agency' is gated). */
+  skipped: Record<string, number>;
+  /** 'fail' when missing-agency skips exceed MISSING_AGENCY_MAX_PCT of fetched. */
+  qualityGate: "pass" | "fail";
 }
 
 export interface SyncResult {
@@ -348,20 +402,41 @@ async function insertBid(
   };
 }
 
-async function syncSource(
+/** Normalize a source's fetch return into the run-record shape. Bare row arrays
+ *  are treated as FetchResults with no skips (sources that don't opt in). */
+function toFetchResult(raw: RawBid[] | FetchResult): FetchResult {
+  if (Array.isArray(raw)) return { rows: raw, skipped: {}, skippedRows: [] };
+  return raw;
+}
+
+export async function syncSource(
   sql: Sql,
   source: SyncSource,
 ): Promise<SyncSourceResult> {
   const errors: string[] = [];
   const newBids: NewBidSummary[] = [];
-  let fetched = 0;
   let newCount = 0;
+  let failedCount = 0;
+  let fetchedCount = 0;
+  let acceptedCount = 0;
+  let skippedCount = 0;
+  let bids: RawBid[] = [];
+  const skipReasons: Record<string, number> = {};
+  let qualityGate: "pass" | "fail" = "pass";
 
   try {
     console.log(`\n📡 Fetching from ${source.name}...`);
-    const bids = await source.fetchFn();
-    fetched = bids.length;
-    console.log(`  Fetched ${fetched} bids from ${source.name}`);
+    const fr = toFetchResult(await source.fetchFn());
+    bids = fr.rows;
+    skippedCount = Object.values(fr.skipped).reduce((s, n) => s + n, 0);
+    fetchedCount = bids.length + skippedCount;
+    Object.assign(skipReasons, fr.skipped);
+    console.log(
+      `  Fetched ${bids.length} bid(s) from ${source.name} (${fetchedCount} fetched incl. ${skippedCount} skipped)`,
+    );
+    for (const s of fr.skippedRows) {
+      console.log(`  ${source.name} skip id=${s.id} reason=${s.reason}`);
+    }
 
     for (let i = 0; i < bids.length; i += INSERT_BATCH_SIZE) {
       const chunk = bids.slice(i, i + INSERT_BATCH_SIZE);
@@ -382,6 +457,7 @@ async function syncSource(
               newBids.push(summary);
             }
           } catch (e2) {
+            failedCount++;
             const msg = `Insert error for ${bid.external_id}: ${(e2 as Error).message}`;
             errors.push(msg);
             console.error(`  ${msg}`);
@@ -390,24 +466,80 @@ async function syncSource(
       }
     }
 
-    console.log(`  ${source.name}: ${newCount} new, ${fetched - newCount} duplicates, ${errors.length} errors`);
+    // accepted = passed guards AND upserted; rows that threw at insert are
+    // 'failed', not accepted. Invariant: fetched = accepted + skipped + failed.
+    acceptedCount = bids.length - failedCount;
+
+    // Quality gate: only 'missing_agency' is gated (a format change that strips
+    // agency fields must trip the gate instead of silently shrinking coverage).
+    const missingAgency = skipReasons["missing_agency"] ?? 0;
+    qualityGate =
+      fetchedCount > 0 && (missingAgency / fetchedCount) * 100 > MISSING_AGENCY_MAX_PCT
+        ? "fail"
+        : "pass";
+    if (qualityGate === "fail") {
+      console.error(
+        `  ⛔ ${source.name}: QUALITY GATE FAIL — ${missingAgency}/${fetchedCount} fetched rows skipped 'missing_agency' (>${MISSING_AGENCY_MAX_PCT}%) — source format may have changed`,
+      );
+    }
+    const invariantHolds =
+      fetchedCount === acceptedCount + skippedCount + failedCount;
+    if (!invariantHolds) {
+      console.error(
+        `  ⚠️ ${source.name}: run-record invariant broken (fetched ${fetchedCount} != accepted ${acceptedCount} + skipped ${skippedCount} + failed ${failedCount})`,
+      );
+    }
+
+    console.log(
+      `  ${source.name}: ${newCount} new, ${acceptedCount - newCount} existing/dup, ${skippedCount} skipped, ${failedCount} failed`,
+    );
   } catch (e) {
     const msg = `Source error for ${source.name}: ${(e as Error).message}`;
     errors.push(msg);
     console.error(`  ${msg}`);
   }
 
-  // Log to sync_logs
+  // Log to sync_logs + collector_run_log (PR-B: honest run provenance — ran_zero
+  // distinguishes "ran and returned zero" from "never ran"; staleness tiers read
+  // from this). A fetched>>new signature (the PA 11->0 collapse pattern) is
+  // written to collector_collapse_log so it is alarmed, never silent.
+  // Owner 09-13: the run record carries fetched/accepted/skipped/failed counts,
+  // the skip_reasons map, and the quality gate verdict.
   try {
     await sql`
       INSERT INTO sync_logs (source, fetched, new, errors, created_at)
-      VALUES (${source.name}, ${fetched}, ${newCount}, ${errors.join("; ") || null}, NOW())
+      VALUES (${source.name}, ${fetchedCount}, ${newCount}, ${errors.join("; ") || null}, NOW())
     `;
+    await sql`
+      INSERT INTO collector_run_log
+        (source, ran_at, rows_fetched, rows_new, ran_zero, errors,
+         fetched_count, accepted_count, skipped_count, failed_count,
+         skip_reasons, quality_gate)
+      VALUES (${source.name}, NOW(), ${fetchedCount}, ${newCount}, ${fetchedCount === 0}, ${errors.length},
+              ${fetchedCount}, ${acceptedCount}, ${skippedCount}, ${failedCount},
+              ${JSON.stringify(skipReasons)}::jsonb, ${qualityGate})
+    `;
+    if (fetchedCount > 0 && newCount === 0) {
+      await sql`
+        INSERT INTO collector_collapse_log (source, occurred_at, rows_fetched, rows_new, note)
+        VALUES (${source.name}, NOW(), ${fetchedCount}, ${newCount},
+          ${`sources fetched but no new rows persisted (visible-result collapse signature); inspect collector_collapse_alert`})
+      `;
+    }
   } catch (e) {
     console.error(`  Failed to log sync for ${source.name}:`, (e as Error).message);
   }
 
-  return { fetched, new: newCount, errors, newBids };
+  return {
+    fetched: fetchedCount,
+    new: newCount,
+    accepted: acceptedCount,
+    failed: failedCount,
+    errors,
+    newBids,
+    skipped: skipReasons,
+    qualityGate,
+  };
 }
 
 export async function runSync(): Promise<SyncResult> {
@@ -498,6 +630,13 @@ export async function runSync(): Promise<SyncResult> {
       for (const err of r.errors) {
         console.log(`   [${source}] ${err}`);
       }
+    }
+  }
+
+  // Surface quality-gate failures at the run level (owner 09-13).
+  for (const [source, r] of Object.entries(results)) {
+    if (r.qualityGate === "fail") {
+      console.error(`   ⛔ [${source}] QUALITY GATE FAIL — latest collector_run_log row carries quality_gate='fail'`);
     }
   }
 

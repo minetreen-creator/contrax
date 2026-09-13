@@ -128,7 +128,7 @@ async function handler({ request }: { request: Request }) {
   const source = sourceParam.length > 0 ? sourceParam.slice(0, 64) : null;
   // Empty-fragment when source is null; `AND source = $n` when active. Added to
   // the WHERE of every query so filtering is eager, not post-hoc.
-  const sourceFilter = source === null ? sql().unsafe("") : sql()`AND source = ${source}`;
+  const sourceFilter = source === null ? sql`` : sql`AND source = ${source}`;
   const empty = emptyResult(rangeDays, now, from, source);
   try {
     // Distinct human visitors who reached each stage in the window.
@@ -170,7 +170,7 @@ async function handler({ request }: { request: Request }) {
     // advanced visitors (those who reached signup_success). For QA / sanity —
     // samples are illustrative, so we don't bot-filter these (they're examples,
     // not headline counts).
-    const journeyRows: any[] = await sql()`
+    const journeyRows: any[] = await sql`
       SELECT visitor_id,
              array_agg(event_name ORDER BY created_at) AS events,
              MAX(user_id) FILTER (WHERE user_id IS NOT NULL AND user_id <> '') AS user_id,
@@ -195,7 +195,7 @@ async function handler({ request }: { request: Request }) {
     let conversionGoal: ConversionGoal | undefined;
     if (source !== null) {
       // (a) Distinct human visitors who reached radar_scan_complete.
-      const radarRows: any[] = await sql()`
+      const radarRows: any[] = await sql`
         SELECT COUNT(DISTINCT visitor_id)::int AS count
         FROM funnel_events
         WHERE event_name = 'radar_scan_complete'
@@ -208,7 +208,7 @@ async function handler({ request }: { request: Request }) {
       // that visitor's radar_scan_complete created_at). Both sides of the
       // self-join are source- and bot-filtered (the unqualified BOT_EXCLUSION_SQL
       // resolves to the single in-scope alias at each level).
-      const viewAfterRows: any[] = await sql()`
+      const viewAfterRows: any[] = await sql`
         SELECT COUNT(DISTINCT s.visitor_id)::int AS count
         FROM funnel_events s
         WHERE s.event_name = 'signup_view'
@@ -227,7 +227,7 @@ async function handler({ request }: { request: Request }) {
               ${sql().unsafe(HUMAN_FILTER)}
           )`;
       // (c) Distinct human visitors who reached signup_success.
-      const successRows: any[] = await sql()`
+      const successRows: any[] = await sql`
         SELECT COUNT(DISTINCT visitor_id)::int AS count
         FROM funnel_events
         WHERE event_name = 'signup_success'

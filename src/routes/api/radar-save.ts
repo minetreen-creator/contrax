@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { resolveAttribution, type Attribution } from "~/lib/attribution";
+import { expandTrade } from "~/lib/trade-registry";
 import { checkEmailLimit, checkIpLimit, rateLimitedResponse } from "~/lib/rate-limit";
 /**
  * POST /api/radar-save — anonymous email opt-in for the Contract Radar

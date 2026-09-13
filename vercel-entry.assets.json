@@ -1,9 +1,10 @@
 {
-  "entryChunk": "index-yJcJcsO1.js",
-  "appCss": "app-3lMeOF70.css",
+  "entryChunk": "index-BRuH1YDj.js",
+  "appCss": "app-DfFGudNM.css",
   "preloads": [
-    "index-yJcJcsO1.js",
+    "index-BRuH1YDj.js",
     "vendor-dLFFNdXe.js",
-    "router-B7DceLpq.js"
+    "router-mBxtbGrm.js",
+    "blog-BaYIB1fH.js"
   ]
 }

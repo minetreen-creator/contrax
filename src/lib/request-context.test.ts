@@ -1,8 +1,8 @@
 /**
  * Request-context isolation tests (bun test).
  *
- * Proves the AsyncLocalStorage replacement for the old
- * `globalThis.__contrax_request_cookie__/__contrax_request_ip__` stash:
+ * Proves the AsyncLocalStorage replacement for the per-request globalThis
+ * cookie/IP stash that used to live in vercel-entry.ts:
  *   1. concurrent requests with different cookie/IP values never cross-talk;
  *   2. an error thrown mid-request leaves the store clean for the next one.
  */

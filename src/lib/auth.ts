@@ -6,6 +6,7 @@
  */
 
 import { isAdminEmail } from "~/lib/admin";
+import { getRequestContext } from "~/lib/request-context";
 
 const SESSION_COOKIE = "contrax_session";
 
@@ -22,9 +23,10 @@ export interface AuthUser {
  * Uses the request's session cookie through the auth API endpoint.
  */
 export async function getCurrentUser(): Promise<AuthUser | null> {
-  // Server-side: use the cookie that vercel-entry.ts stashed on globalThis
+  // Server-side: use the cookie from the request-scoped AsyncLocalStorage
+  // context (src/lib/request-context.server.ts) installed by vercel-entry.ts.
   if (typeof window === "undefined") {
-    const cookie = (globalThis as any).__contrax_request_cookie__ as string | undefined;
+    const cookie = getRequestContext().cookie;
     if (cookie) {
       // Parse contrax_session token from the cookie header string
       let token: string | undefined;

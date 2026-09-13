@@ -21,7 +21,7 @@ umask 002
 #   DATABASE_URL          — Neon Postgres connection string
 #   GOOGLE_CLIENT_ID      — Google OAuth client ID ("Continue with Google")
 #   GOOGLE_CLIENT_SECRET  — Google OAuth client secret (callback code exchange)
-#   SYNC_TOKEN            — cron token for /api/sync-bids, /api/sync-far
+#   SYNC_TOKEN            — cron token for /api/sync-far (and legacy /api/sync-bids callers)
 #   STRIPE_SECRET_KEY     — Stripe API key (checkout)
 #   STRIPE_WEBHOOK_SECRET — Stripe webhook signing secret
 #   OPENAI_API_KEY        — AI features

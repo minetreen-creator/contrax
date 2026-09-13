@@ -11,6 +11,11 @@
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from "node:http";
 
 import handler from "./dist/server/server.js";
+// Request-scoped AsyncLocalStorage context (cookie + client IP) for SSR route
+// loaders / server functions — replaces the old globalThis stash. The module
+// side effect wires the store into the client-safe readers (request-context.ts)
+// at boot; see src/lib/request-context.server.ts.
+import { contraxRequestStore } from "./src/lib/request-context.server";
 
 // ── Client asset references for the static SEO pages ─────────────────────────
 // The entry chunk / CSS / preload filenames come from vercel-entry.assets.json,
@@ -726,43 +731,6 @@ async function handleAnalytics(req: Request): Promise<Response> {
   }
 }
 
-// ── Sync-Bids handler ─────────────────────────────────────────────────────────
-
-async function handleSyncBidsRoute(
-  req: IncomingMessage,
-): Promise<{ status: number; body: string }> {
-  try {
-    // Auth check
-    const authHeader = req.headers["authorization"] as string | undefined;
-    const expectedToken = process.env.SYNC_TOKEN;
-
-    if (!expectedToken) {
-      return {
-        status: 500,
-        body: JSON.stringify({ error: "SYNC_TOKEN not configured on server" }),
-      };
-    }
-
-    if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
-      return {
-        status: 401,
-        body: JSON.stringify({ error: "Unauthorized" }),
-      };
-    }
-
-    const { runSync } = await import("./src/jobs/runner.ts");
-    const result = await runSync();
-
-    return { status: 200, body: JSON.stringify(result) };
-  } catch (err) {
-    console.error("sync-bids error:", err);
-    return {
-      status: 500,
-      body: JSON.stringify({ error: "Internal server error" }),
-    };
-  }
-}
-
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export default async function vercelHandler(
@@ -848,14 +816,11 @@ export default async function vercelHandler(
       return;
     }
 
-    // Sync bids — cron endpoint
-    if (url.pathname === "/api/sync-bids" && req.method === "POST") {
-      const { status, body } = await handleSyncBidsRoute(req);
-      res.statusCode = status;
-      res.setHeader("content-type", "application/json");
-      res.end(body);
-      return;
-    }
+    // NOTE: /api/sync-bids is intentionally NOT special-cased here anymore —
+    // the TanStack route (src/routes/api/sync-bids.ts) is canonical. The old
+    // inline handler ran the full 6–15 min sync inside Vercel's 10s serverless
+    // cap (guaranteed timeout) and shadowed the route's 202-accepted response;
+    // the sync itself moved to GitHub Actions (.github/workflows/sync-bids.yml).
 
     // 1-hour edge cache on public SSR marketing/SEO routes (home, map, radar,
     // state pages, industry hub, cert-hub hubs, and the trades landing page).
@@ -878,9 +843,17 @@ export default async function vercelHandler(
     // Make the request cookie + client IP available to route loaders and server
     // functions during SSR (same stash pattern; the IP backs the anonymous
     // /score free-score limit, derived exactly like /api/event's getClientIp).
-    (globalThis as any).__contrax_request_cookie__ = (req.headers.cookie as string) || "";
-    (globalThis as any).__contrax_request_ip__ = getClientIp(req.headers);
-    const webRes = await fetchHandler.fetch(toWebRequest(req));
+    // AsyncLocalStorage request context: scoped to this request's async
+    // execution chain, auto-cleaned when run() settles even on error (see
+    // src/lib/request-context.server.ts). The cookie backs SSR auth reads,
+    // the IP backs the anonymous /score free-score limit.
+    const requestContext = {
+      cookie: (req.headers.cookie as string) || "",
+      ip: getClientIp(req.headers),
+    };
+    const webRes = await contraxRequestStore.run(requestContext, () =>
+      fetchHandler.fetch(toWebRequest(req)),
+    );
     res.statusCode = webRes.status;
     webRes.headers.forEach((value, key) => res.setHeader(key, value));
     // Set our public edge-cache header AFTER copying the SSR framework headers,
@@ -898,8 +871,6 @@ export default async function vercelHandler(
       }
     }
     res.end();
-    delete (globalThis as any).__contrax_request_cookie__;
-    delete (globalThis as any).__contrax_request_ip__;
   } catch (error) {
     // Log the detail server-side (captured by the host's function logs); never
     // return a stack trace to the public visitor of the site.

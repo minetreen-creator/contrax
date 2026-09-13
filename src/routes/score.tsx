@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { getRequestContext } from "~/lib/request-context";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
@@ -96,18 +97,17 @@ interface ScoreCredits {
 }
 
 /**
- * Client IP for the anonymous free-score limit. Mirrors the cookie stash
- * pattern (src/lib/auth.ts): vercel-entry.ts stashes the real client IP
- * (x-forwarded-for first value / cf-connecting-ip / x-real-ip, sliced to 64
- * chars — the same derivation as /api/event) on globalThis before the SSR
- * handler runs, so createServerFn handlers can read it without importing any
- * node builtins (keeps the client-bundle protection happy). Outside the Vercel
- * launcher (local serve / smoke tests) the global is absent → null → the limit
- * is skipped (fail-open), never a crash.
+ * Client IP for the anonymous free-score limit. Resolves the request-scoped
+ * AsyncLocalStorage context (src/lib/request-context.server.ts) installed by
+ * vercel-entry.ts with the real client IP (x-forwarded-for first value /
+ * cf-connecting-ip / x-real-ip, sliced to 64 chars — the same derivation as
+ * /api/event). Outside the Vercel launcher (local serve / smoke tests / client
+ * bundle) the context is empty → null → the limit is skipped (fail-open),
+ * never a crash.
  */
 function getStashedClientIp(): string | null {
   if (typeof window === "undefined") {
-    const ip = (globalThis as any).__contrax_request_ip__ as string | undefined;
+    const ip = getRequestContext().ip;
     return ip && ip.length > 0 ? ip : null;
   }
   return null;

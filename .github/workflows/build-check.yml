@@ -1,0 +1,54 @@
+name: Build Check
+# Deploy-blocking build gate: reproduces the Vercel prebuilt pipeline
+# (build-vercel.sh -> .vercel/output) and validates the Build Output API
+# bundle BEFORE merge, so a broken prod build can never reach production:
+#   - prod-config typecheck (tsc -p tsconfig.prod.json — 0 errors)
+#   - route JSX syntax check
+#   - full bundle + render.func size ceiling (12 MB index.mjs)
+# Runs alongside check-routes.yml on every pull request and push to main.
+#
+# No DB / secrets required: typecheck and the bundle build are env-free
+# (runtime env vars are read at request time on Vercel, not inlined).
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: build-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Typecheck + build + bundle validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies (frozen lockfile)
+        run: bun install --frozen-lockfile
+      - name: Typecheck (prod config — must be 0 errors)
+        run: bun run typecheck
+      - name: Route JSX syntax check
+        run: bun run check:routes
+      - name: Build .vercel/output (Build Output API v3)
+        run: bash build-vercel.sh
+      - name: Validate .vercel/output bundle
+        run: |
+          set -euo pipefail
+          test -f .vercel/output/config.json || { echo "missing config.json"; exit 1; }
+          grep -q '"version": 3' .vercel/output/config.json || { echo "config.json version != 3"; exit 1; }
+          test -f .vercel/output/functions/render.func/.vc-config.json || { echo "missing render.func/.vc-config.json"; exit 1; }
+          grep -q 'nodejs22.x' .vercel/output/functions/render.func/.vc-config.json || { echo "vc-config runtime != nodejs22.x"; exit 1; }
+          SIZE=$(stat -c%s .vercel/output/functions/render.func/index.mjs)
+          echo "render.func/index.mjs size: $SIZE bytes"
+          if [ "$SIZE" -gt $((12 * 1024 * 1024)) ]; then
+            echo "FAIL: render function bundle exceeds 12 MB ceiling ($SIZE bytes)"
+            exit 1
+          fi
+          echo "bundle validation OK"

@@ -45,7 +45,7 @@ import {
   AI_BRIEF_LOCKED_PREVIEW,
   type AllowanceStatus,
 } from "~/lib/ai-brief-allowance";
-import { checkTrialCap, consumeTrial, TRIAL_CAPS } from "~/lib/trial-usage";
+import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
 import { ensureTrialStarted } from "~/lib/trial";
 
 /** Cache identity fields — part of the cache key (see point 1). */

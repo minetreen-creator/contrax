@@ -13,7 +13,7 @@ import { ClauseCtaCard } from "~/components/ClauseCtaCard";
  *    clause numbers; subpart titles are NOT in the DB and are never invented.
  */
 
-function RelatedPartLinks({ related, part }: { related: RelatedPart[]; part: string }) {
+function RelatedPartLinks({ related, part: _part }: { related: RelatedPart[]; part: string }) {
   if (related.length === 0) return null;
   return (
     <div className="mt-8 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">

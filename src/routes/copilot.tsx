@@ -2,9 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { TrialGate } from "~/components/TrialGate";
-import { normalizeCert } from "~/lib/profile-context";
-import { getUserPatterns } from "~/lib/learning";
-import { sql } from "~/db";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

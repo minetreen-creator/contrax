@@ -324,7 +324,7 @@ function buildAnonymousLabel(ctx: {
 }
 
 /** Masked, recognizable identity — never a full email. */
-function buildLabel(userEmail: string | null | undefined, visitorId: string): string {
+function buildLabel(userEmail: string | null | undefined, _visitorId: string): string {
   const email = userEmail?.trim().toLowerCase();
   if (email && email.includes("@")) {
     const [local] = email.split("@");

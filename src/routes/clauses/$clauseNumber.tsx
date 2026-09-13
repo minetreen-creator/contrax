@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { trackEvent } from "~/lib/track";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { ClauseCtaCard } from "~/components/ClauseCtaCard";

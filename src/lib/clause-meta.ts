@@ -58,7 +58,7 @@ function truncateAtWord(s: string, max: number): string {
 export function buildClauseMetaDescription({
   clause_number,
   title,
-  part,
+  part: _part,
   source,
   full_text,
 }: ClauseMetaInput): string {

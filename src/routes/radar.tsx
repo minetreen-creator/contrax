@@ -101,7 +101,8 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   const p = new URLSearchParams({ plan: "basic", source, next: "/dashboard?brief=1" });
   const trade = (answers.trade || "").trim();
   if (trade) p.set("trade", trade.slice(0, 120));
-  if (answers.state) p.set("state", answers.state.slice(0, 2));
+  const st = normalizeStateInput(answers.state);
+  if (st) p.set("state", st);
   if (answers.cert) p.set("cert", answers.cert);
   if (answers.sizePref) p.set("size", answers.sizePref);
   return `/signup?${p.toString()}`;
@@ -167,7 +168,7 @@ function computeMatch(
   // excluded earlier at scan time; the scorer never geocredits a conflict.
   let geo = 12;
   if (input.state) {
-    const bidState = resolveBidState(bid.location, bid.agency, bid.normalized_state);
+    const bidState = resolveBidState(bid.location, bid.agency);
     geo = bidState === input.state ? 20 : 12;
   }
 
@@ -189,19 +190,6 @@ function computeMatch(
   return { score, scoreLabel };
 }
 
-/** A bid stays relevant when it names the selected state OR is nationwide/
- * unknown. State resolution: performance location first, buyer/agency fallback
- * when the location has no state mention (owner 09-13 breadth). Contradictory
- * location rows are excluded at scan time (never reach this predicate except
- * with a stored/derived conflict already resolved to false). */
-function geoRelevant(
-  location: string | null | undefined,
-  agency: string | null | undefined,
-  state: string,
-  normalizedState?: string | null,
-): boolean {
-  return geoRelevantByState(location, agency, state, normalizedState);
-}
 
 /** Parse "$185,000", "185000", "1.2M", "800K" … → number or null. */
 function parseValue(v: string | null | undefined): number | null {
@@ -234,11 +222,6 @@ type RadarBidRow = {
   location: string | null; category: string | null; due_date: string | null;
   estimated_value: string | null; naics_code: string | null;
   source_url: string | null; set_aside: string | null;
-  // PR-B read fail-open: populated only when the ingestion schema already has
-  // these columns (probe below); null/undefined keeps the matcher-side
-  // derivation path.
-  location_conflict?: boolean | null;
-  normalized_state?: string | null;
 };
 
 export type RadarMatch = {
@@ -318,19 +301,6 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const { sql } = await import("~/db");
     let rows: any[] = [];
     try {
-      // PR-B read fail-open: when the ingestion schema already carries the
-      // location columns (location_conflict / normalized_state /
-      // source_jurisdiction), read them — the probe is allowlisted and cached
-      // in the SELECT list below; absent columns keep the matcher-side
-      // derivation path (resolveBidState + locationConflict).
-      let extraCols = "";
-      try {
-        const cols = await sql()\`SELECT column_name FROM information_schema.columns WHERE table_name = 'bids' AND column_name IN ('location_conflict','normalized_state','source_jurisdiction')\`;
-        const names = (cols as any[]).map((c: any) => String(c.column_name ?? ""));
-        if (names.length) extraCols = ", " + names.join(", ");
-      } catch {
-        extraCols = "";
-      }
       // Set-aside predicate fragment (Small Business = every set-aside row,
       // otherwise the cert's literal set_aside patterns — mirrors /trades).
       const certFrag =
@@ -347,7 +317,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
           : sql()``;
       rows = await sql()`
         SELECT id, title, agency, description, location, category, due_date,
-               estimated_value, naics_code, source_url, set_aside${sql().unsafe(extraCols)}
+               estimated_value, naics_code, source_url, set_aside
         FROM bids
         WHERE due_date > NOW()
           AND ${sql().unsafe(LOW_CONTENT_SQL)}
@@ -365,13 +335,12 @@ export const runRadarScan = createServerFn({ method: "POST" })
       .filter((r) => {
         // Contradictory-location exclusion (owner 09-13): a row whose own
         // title/description names a DIFFERENT state's place signal than its
-        // resolved geography is FLAGGED (stored column when present, derived
-        // otherwise) and excluded from state matching — raw values preserved.
-        const resolved = resolveBidState(r.location, r.agency, r.normalized_state);
-        const stored = r.location_conflict;
-        const conflicted =
-          stored === true || (stored == null && locationConflict(r.title, r.description, resolved));
-        return !conflicted && geoRelevant(r.location, r.agency, state, r.normalized_state);
+        // resolved geography is FLAGGED and excluded from state matching —
+        // computed at match time from EXISTING fields only (PR-A; the stored
+        // PR-B columns are NOT read). Raw values stay visible.
+        const resolved = resolveBidState(r.location, r.agency);
+        const conflicted = locationConflict(r.title, r.description, resolved);
+        return !conflicted && geoRelevantByState(r.location, r.agency, state);
       })
       .map((r) => {
         const bid: RadarBidRow = {
@@ -380,8 +349,6 @@ export const runRadarScan = createServerFn({ method: "POST" })
           category: r.category ? String(r.category) : null, due_date: r.due_date ? String(r.due_date) : null,
           estimated_value: r.estimated_value ? String(r.estimated_value) : null, naics_code: r.naics_code ? String(r.naics_code) : null,
           source_url: r.source_url ? String(r.source_url) : null, set_aside: r.set_aside ? String(r.set_aside) : null,
-          location_conflict: r.location_conflict != null ? !!r.location_conflict : null,
-          normalized_state: r.normalized_state != null ? String(r.normalized_state) : null,
         };
         const { score, scoreLabel } = computeMatch(bid, {
           trade, isNaics, expansion, state, cert: certId, sizePref: sizeId,
@@ -591,7 +558,7 @@ function buildReasons(
     }
   }
   if (c.state) {
-    const bidState = resolveBidState(bid.location, bid.agency, bid.normalized_state);
+    const bidState = resolveBidState(bid.location, bid.agency);
     reasons.push(bidState === c.state ? `Located in ${c.state}` : "Open nationwide");
   }
   if (bid.agency) reasons.push(`Agency: ${bid.agency}`);

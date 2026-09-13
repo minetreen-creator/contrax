@@ -428,27 +428,35 @@ export function tradeProvenanceFor(
  * trade / isNaics — callers interpolate it unconditionally).
  */
 export function tradeKeywordPred(sql: any, expansion: TradeExpansion): any {
-  if (expansion.isNaics || expansion.terms.length === 0) return sql()``;
+  // Callers pass the ~/db FACTORY (`sql = () => neon(url)`), per the
+  // documented contract. Tagging the factory directly (`` sql`...` ``) just
+  // RETURNS an unexecuted neon query object instead of a composable fragment —
+  // the interpolated function then serializes into invalid SQL and every
+  // keyword-trade Radar scan died with "syntax error at or near $1"
+  // (owner 09-13 zero-results root cause, fixed here). Resolve a live neon
+  // handle first; accept an already-resolved instance (has .unsafe) as-is.
+  const s = typeof (sql as any)?.unsafe === "function" ? sql : sql();
+  if (expansion.isNaics || expansion.terms.length === 0) return s``;
   const clauses: any[] = [];
   for (const term of expansion.terms.slice(0, MAX_EXPANDED_TERMS)) {
     if (!term || term.length < 2) continue;
     clauses.push(
-      sql`(
-        ${sql`LOWER(COALESCE(title,'')) LIKE ${"%" + term + "%"}`} OR
-        ${sql`LOWER(COALESCE(description,'')) LIKE ${"%" + term + "%"}`} OR
-        ${sql`LOWER(COALESCE(category,'')) LIKE ${"%" + term + "%"}`}
+      s`(
+        ${s`LOWER(COALESCE(title,'')) LIKE ${"%" + term + "%"}`} OR
+        ${s`LOWER(COALESCE(description,'')) LIKE ${"%" + term + "%"}`} OR
+        ${s`LOWER(COALESCE(category,'')) LIKE ${"%" + term + "%"}`}
       )`,
     );
   }
   if (expansion.naicsCodes.length > 0) {
-    clauses.push(sql`naics_code = ANY(${expansion.naicsCodes})`);
+    clauses.push(s`naics_code = ANY(${expansion.naicsCodes})`);
   }
-  if (clauses.length === 0) return sql()``;
+  if (clauses.length === 0) return s``;
   let acc = clauses[0] as any;
   for (let i = 1; i < clauses.length; i++) {
-    acc = sql`(${acc} OR ${clauses[i]})`;
+    acc = s`(${acc} OR ${clauses[i]})`;
   }
-  return sql`AND (${acc})`;
+  return s`AND (${acc})`;
 }
 
 /**

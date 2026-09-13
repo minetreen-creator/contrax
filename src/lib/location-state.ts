@@ -5,9 +5,10 @@
  * Today `bids.location` is free text that conflates THREE concepts the owner
  * separated in the v3 directive (PR-B adds the `source_jurisdiction` /
  * `raw_location` / `normalized_state` columns; PR-A implements the EQUIVALENT
- * derivation rules here so the matcher works today and keeps working when the
- * columns land — read fail-open via the stored `normalized_state` /
- * `location_conflict` columns when present).
+ * derivation rules here so the matcher works today, computed from EXISTING
+ * fields only (location + agency + title/description). The stored PR-B columns
+ * are NOT read by PR-A (owner v4: no cross-PR column dependencies, no runtime
+ * schema detection); the follow-up PR switches to them after B ships).
  *
  * Rules (documented + reproducible — used by the matcher AND by the nationwide
  * audit so both count the same rows):
@@ -109,7 +110,7 @@ export const STATE_FULL_NAMES: string[] = Object.keys(STATE_NAME_TO_CODE).sort(
 );
 
 /** Set of valid USPS codes (from the shared US_STATES constant). */
-const STATE_CODES = new Set(US_STATES);
+const STATE_CODES = new Set<string>(US_STATES);
 
 /**
  * Normalize a user-entered state to a 2-letter USPS code. Accepts the code
@@ -169,13 +170,12 @@ function nameToTitle(name: string): string {
 export function resolveBidState(
   location: string | null | undefined,
   agency: string | null | undefined,
-  normalizedStateColumn?: string | null,
 ): string | null {
-  // PR-B read fail-open: when the ingestion schema has already written a
-  // normalized_state column, prefer it (it is the ingestion-side derivation;
-  // this function is the matcher-side equivalent).
-  const stored = String(normalizedStateColumn ?? "").trim().toUpperCase();
-  if (stored && STATE_CODES.has(stored)) return stored;
+  // Resolve the bid's geography from the PERFORMANCE location first; when the
+  // location carries NO state mention, fall back to the BUYER/AGENCY field
+  // before treating the row as nationwide/unknown (owner acceptance #6).
+  // PR-A computes this purely from EXISTING fields (location + agency) — the
+  // later normalized_state column (PR-B) is intentionally NOT read here.
   const fromLocation = resolveStateFromText(location);
   if (fromLocation) return fromLocation;
   return resolveStateFromText(agency);
@@ -188,10 +188,9 @@ export function geoRelevant(
   location: string | null | undefined,
   agency: string | null | undefined,
   stateCode: string,
-  normalizedStateColumn?: string | null,
 ): boolean {
   if (!stateCode) return true;
-  const bidState = resolveBidState(location, agency, normalizedStateColumn);
+  const bidState = resolveBidState(location, agency);
   if (!bidState) return true; // nationwide/unknown → kept (pre-existing semantics)
   return bidState === stateCode;
 }

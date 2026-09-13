@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { expandTrade } from "~/lib/trade-registry";
+import { normalizeStateInput } from "~/lib/location-state";
 import { z } from "zod";
 import { sendRadarLeadConfirmationEmail } from "~/lib/email";
 import { resolveAttribution, type Attribution } from "~/lib/attribution";
@@ -53,7 +54,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LEAD_SCHEMA = z.object({
   email: z.string().trim().toLowerCase().regex(EMAIL_PATTERN).max(254),
   trade: z.string().trim().max(120).optional(),
-  state: z.string().trim().max(2).optional(),
+  state: z.string().trim().max(40).optional(),
   cert: z.string().trim().max(16).optional(),
   sizePref: z.string().trim().max(16).optional(),
   visitor_id: z.string().trim().max(64).optional(),
@@ -94,7 +95,10 @@ async function handler({ request }: { request: Request }) {
     const sizePref = d.sizePref && SIZE_PREFS.has(d.sizePref) ? d.sizePref : null;
     const radarProfile = d.trade || d.state || cert || sizePref
       ? JSON.stringify({
-          trade: d.trade || null, state: d.state || null, cert, sizePref,
+          // state normalized to the 2-letter USPS code (full names accepted —
+          // owner 09-13 state breadth): the snapshot mirrors what the visitor
+          // searched, normalized like the matcher input.
+          trade: d.trade || null, state: d.state ? normalizeStateInput(d.state) : null, cert, sizePref,
           // Trade-query expansion snapshot (owner 2026-09-07) — WHAT the
           // visitor's trade expanded to; refreshed on every capture.
           expanded: d.trade && !/^\d{6}$/.test(d.trade)

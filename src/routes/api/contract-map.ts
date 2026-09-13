@@ -22,7 +22,7 @@ import { buildContractMap } from "~/lib/contract-map";
  * "$218M in stated value across N bids" honestly. Bids we cannot attribute to
  * a specific state roll into totals.unspecified (never fabricated into a state).
  */
-async function handler({ request }: { request: Request }) {
+async function handler({ request: _request }: { request: Request }) {
   try {
     const rows = await sql()`
       SELECT location, set_aside, estimated_value, agency, category, due_date

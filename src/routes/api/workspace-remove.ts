@@ -17,7 +17,7 @@ async function owner(request: Request) {
 }
 
 // Mirrors createTeamActivityNotifications in src/routes/workspace.tsx.
-async function createTeamActivityNotifications(ownerId: number, action: string, memberEmail: string, details: string) {
+async function createTeamActivityNotifications(ownerId: number, _action: string, memberEmail: string, details: string) {
   const recipients = await sql()`SELECT ${ownerId} AS user_id UNION SELECT id AS user_id FROM users WHERE lower(email)=lower(${memberEmail}) UNION SELECT u.id AS user_id FROM users u JOIN team_members tm ON lower(tm.email)=lower(u.email) WHERE tm.owner_id=${ownerId}` as any[];
   await Promise.all(recipients.map((r) => createNotification({ userId: Number(r.user_id), type: "team_activity", title: "Team activity", message: details })));
 }

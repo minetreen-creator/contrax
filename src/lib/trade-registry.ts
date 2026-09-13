@@ -157,9 +157,6 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
 const NAICS_RE = /^\d{6}$/;
 
 /** All synonyms in the baked registry (deduped, lowercased). */
-const REGISTRY_SYNONYMS = new Set(
-  Object.values(TRADE_ALIASES).flatMap((e) => e.synonyms.map((s) => s.toLowerCase())),
-);
 
 /** All NAICS codes named by the registry (validated against NAICS_NAMES). */
 const REGISTRY_NAICS: string[] = Object.values(TRADE_ALIASES).flatMap((e) => e.naics);

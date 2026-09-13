@@ -224,7 +224,7 @@ export const getAgencyIntelligence = analyzeAgencyPatterns;
 /** Build a text summary of the user's learning history for use in AI prompts. */
 export async function getLearningContext(
   userEmail: string,
-  bidTitle: string,
+  _bidTitle: string,
   agency: string,
   naics: string,
   estimatedValue: string,

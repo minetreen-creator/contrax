@@ -94,7 +94,7 @@ const handleLinkedInAuth = createServerFn({ method: "POST" })
         : undefined;
     return { code: d.code, plan };
   })
-  .handler(async ({ data: { code, plan } }) => {
+  .handler(async ({ data: { code, plan: _plan } }) => {
     const { sql } = await import("~/db");
     const clientId = process.env.LINKEDIN_CLIENT_ID;
     const clientSecret = process.env.LINKEDIN_CLIENT_SECRET;

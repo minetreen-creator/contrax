@@ -45,29 +45,6 @@ const REVENUE_RANGES = [
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
-interface BusinessProfileFull {
-  id: number;
-  business_name: string;
-  industry: string;
-  locations: string[];
-  service_categories: string[];
-  naics_codes: string[];
-  uei: string | null;
-  cage_code: string | null;
-  duns: string | null;
-  sam_expiration: string | null;
-  certifications: string[];
-  certification_dates: Record<string, string>;
-  years_in_business: number | null;
-  employee_count: number | null;
-  annual_revenue: string | null;
-  past_performance_summary: string | null;
-  capability_statement: string | null;
-  specialties: string[];
-  licenses: License[];
-  typical_contract_value: string | null;
-  naics_inactive_codes?: string[];
-}
 
 interface SettingsFormData {
   businessName: string;

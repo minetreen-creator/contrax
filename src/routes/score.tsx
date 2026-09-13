@@ -8,7 +8,7 @@ import { trackEvent } from "~/lib/track";
 import { storePendingDraft } from "~/lib/pending-draft";
 import { buildProfileContext } from "~/lib/profile-context";
 import { getRelevantContext } from "~/lib/knowledge";
-import { checkTrialCap, consumeTrial, TRIAL_CAPS } from "~/lib/trial-usage";
+import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import {

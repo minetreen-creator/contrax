@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { TrialGate } from "~/components/TrialGate";
-import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
+import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus } from "~/lib/certifications";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface TrackedBid {
@@ -157,25 +157,6 @@ const getTrackedBids = createServerFn({ method: "GET" }).handler(async (): Promi
   return bids;
 });
 
-const getAmendments = createServerFn({ method: "GET" })
-  .validator((data: unknown) => {
-    const d = data as any;
-    if (!d || typeof d.bid_id !== "string") throw new Error("bid_id required");
-    return d as { bid_id: string };
-  })
-  .handler(async ({ data }) => {
-    await sql()`CREATE TABLE IF NOT EXISTS bid_amendments (id SERIAL PRIMARY KEY, bid_id TEXT NOT NULL, change_type TEXT NOT NULL, old_value TEXT, new_value TEXT, detected_at TIMESTAMPTZ DEFAULT NOW())`;
-    const rows = await sql()`SELECT * FROM bid_amendments WHERE bid_id = ${data.bid_id} ORDER BY detected_at DESC`;
-    return (rows as any[]).map((a) => ({
-      id: a.id,
-      bid_id: String(a.bid_id),
-      change_type: a.change_type,
-      old_value: a.old_value || "",
-      new_value: a.new_value || "",
-      detected_at: String(a.detected_at),
-    })) as Amendment[];
-  });
-
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function daysUntil(d: string) {
   return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000);
@@ -236,7 +217,6 @@ function groupByDeadline(bids: TrackedBid[]): CalendarGroup[] {
     return new Date(start.getFullYear(), start.getMonth(), start.getDate() + 6);
   };
 
-  const thisWeekStart = startOfWeek(now);
   const thisWeekEnd = endOfWeek(now);
   const nextWeekStart = new Date(thisWeekEnd.getTime() + 86400000);
   const nextWeekEnd = new Date(nextWeekStart.getTime() + 6 * 86400000);
@@ -496,7 +476,7 @@ function TrackingPage({ currentUser }: { currentUser: AuthUser }) {
     setCertSaving(true);
     setCertError("");
     try {
-      await saveCertificationDates({ certificationDates: certDates });
+      await (saveCertificationDates as unknown as (opts: { certificationDates: Record<string, string> }) => Promise<unknown>)({ certificationDates: certDates });
       const result = await getCertificationDates();
       setCertData(result);
       setCertDates({ ...(result.certification_dates ?? {}) });

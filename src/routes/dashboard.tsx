@@ -6,7 +6,7 @@ import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { locationMatchesStates, shouldApplyStateFilter } from "~/lib/open-bids";
 import type { PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
-import { isHealthcareBid, type License } from "~/lib/healthcare";
+import { isHealthcareBid } from "~/lib/healthcare";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import { RadarLoginNotify } from "~/components/RadarLoginNotify";
 import { SavedRadarMatches } from "~/components/SavedRadarMatches";
@@ -870,7 +870,7 @@ function DeadlineAlertBanner({ count }: { count: number }) {
   );
 }
 
-function TrialBanner({ daysLeft, planTier, endsAt }: { daysLeft: number; planTier: string | null; endsAt: string | null }) {
+function TrialBanner({ daysLeft, planTier: _planTier, endsAt }: { daysLeft: number; planTier: string | null; endsAt: string | null }) {
   return (
     <div className="mx-auto max-w-5xl px-4 pt-4">
       <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
@@ -2174,8 +2174,6 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
                           <div>
                             {pricing[bid.id] ? (() => {
                               const p = pricing[bid.id];
-                              const rangeSpan = p.suggested_high - p.suggested_low;
-                              const medPct = rangeSpan > 0 ? ((p.suggested_median - p.suggested_low) / rangeSpan) * 100 : 50;
                               const fmt = (n: number) => "$" + n.toLocaleString();
                               const confColor = p.confidence > 70 ? "text-green-600" : p.confidence > 40 ? "text-amber-600" : "text-red-600";
                               const confBg = p.confidence > 70 ? "bg-green-50 border-green-200" : p.confidence > 40 ? "bg-amber-50 border-amber-200" : "bg-red-50 border-red-200";

@@ -5,7 +5,6 @@ import {
   ensureTable,
   saveEmbedding,
   KNOWLEDGE_DOC_TYPES,
-  type KnowledgeDocType,
   mapDoc,
 } from "~/lib/knowledge";
 

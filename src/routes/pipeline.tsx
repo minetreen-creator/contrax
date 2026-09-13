@@ -61,7 +61,7 @@ function PipelineRoute() {
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
-function PipelinePage({ user }: { user: AuthUser }) {
+function PipelinePage({ user: _user }: { user: AuthUser }) {
   const navigate = useNavigate();
   const [items, setItems] = useState<PipelineItem[] | null>(null);
   const [loading, setLoading] = useState(true);

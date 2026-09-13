@@ -40,24 +40,6 @@ import { checkIpLimit } from "~/lib/rate-limit";
  * The URL itself is built by buildOpportunityClickUrl in radar-lead-clicks.ts
  * (single source of truth shared with the sender — see that module).
  */
-const PAGE = (title: string, body: string) =>
-  `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${title} — Contrax</title>
-</head>
-<body style="margin:0;padding:0;background-color:#020617;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <div style="max-width:520px;margin:0 auto;padding:48px 20px;text-align:center;">
-    <p style="margin:0 0 8px;font-size:13px;font-weight:700;letter-spacing:0.12em;color:#fbbf24;text-transform:uppercase;">Contrax</p>
-    <h1 style="margin:0 0 12px;font-size:24px;font-weight:800;color:#ffffff;">${title}</h1>
-    <p style="margin:0;font-size:15px;line-height:1.6;color:#cbd5e1;">${body}</p>
-    <a href="https://www.contrax.company/radar" style="display:inline-block;margin-top:28px;background:#fbbf24;color:#020617;text-decoration:none;padding:12px 28px;border-radius:10px;font-size:15px;font-weight:700;">Back to Contract Radar</a>
-    <p style="margin-top:24px;font-size:12px;color:#64748b;">No account required · unsubscribe anytime with one click</p>
-  </div>
-</body>
-</html>`;
 
 const redirect = (location: string) =>
   new Response(null, { status: 302, headers: { location } });

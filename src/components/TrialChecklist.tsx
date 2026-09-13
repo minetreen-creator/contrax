@@ -41,7 +41,7 @@ export function TrialChecklist() {
   if (!data?.active) return null;
   const u = data.usage;
   const counts: Record<string, number> = { briefs: u.briefs, incumbent: u.incumbent, scores: u.scores, drafts: u.drafts };
-  const item = (key: string, used: number, limit: number) => ({
+  const item = (_key: string, used: number, limit: number) => ({
     done: used > 0,
     remaining: Math.max(0, limit - used),
   });

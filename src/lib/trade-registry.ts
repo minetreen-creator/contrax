@@ -116,6 +116,31 @@ export interface TradeAliasEntry {
    *  NAICS_NAMES — validated at module load so a typo fails fast). */
   naics: string[];
 }
+/**
+ * RELATED-work concept terms (owner v6.1): adjacent work is NEVER a default
+ * janitorial/trucking match — these terms drive ONLY the explicitly labeled
+ * "Related opportunities" section. Remediation/specialty cleaning and
+ * epoxy-floor installation are NOT substitutes for routine custodial services,
+ * so they must never satisfy a "janitorial" search; they surface in the
+ * related section when their row is open and located in the requested state.
+ */
+export const RELATED_TRADE_TERMS: Record<string, string[]> = {
+  janitorial: [
+    "remediation",
+    "specialty cleaning",
+    "epoxy",
+    "floor coating",
+    "floor installation",
+    "abatement",
+    "mold remediation",
+  ],
+  trucking: [
+    "moving services",
+    "warehousing",
+    "storage and distribution",
+    "equipment relocation",
+  ],
+};
 
 /**
  * GENERIC industry-keyed expansion registry — seeded with the

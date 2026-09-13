@@ -27,7 +27,7 @@
  */
 import { afterAll, describe, expect, test } from "bun:test";
 import { sql as dbFactory } from "~/db";
-import { expandTrade, tradeKeywordPred } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, RELATED_TRADE_TERMS } from "~/lib/trade-registry";
 import { setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import {
@@ -36,6 +36,7 @@ import {
   geoRelevant,
   locationConflict,
 } from "~/lib/location-state";
+import { runKeywordScanQuery, runRelatedScanQuery, RadarScanError } from "~/lib/radar-scan-query";
 
 const HAS_DB = !!process.env.DATABASE_URL;
 const FIXTURES_ALLOWED =
@@ -252,5 +253,69 @@ describe("PA trucking controlled fixture (LABELED: NOT live-source data)", () =>
     expect(fixture).toBeTruthy();
     expect(String(fixture.title)).toContain("FIXTURE");
     expect(new Date(fixture.due_date).getTime()).toBeGreaterThan(Date.now());
+  });
+});
+
+describe("FORCED query failure surfaces (owner v6) — never a successful empty result", () => {
+  test("a forced keyword-scan SQL failure rejects with a query-named RadarScanError (logged with context by the handler's rethrow path)", async () => {
+    if (!HAS_DB) return;
+    const { runKeywordScanQuery, RadarScanError } = await import(
+      "~/lib/radar-scan-query"
+    );
+    const certFrag = dbFactory().unsafe(`AND set_aside IS NOT NULL`);
+    // Force a genuine Postgres failure INSIDE the keyword-scan path: a
+    // syntactically valid predicate referencing a column that does not exist.
+    // (Fragment construction is identical to the handler's; only this term is
+    // poisoned.) The wrapper MUST convert it into a non-trivial, query-named
+    // error — it must NOT resolve as 0 rows.
+    const poisonedTradeFrag = dbFactory()`AND radars_missing_column_xyz = 1`;
+    let caught: unknown = null;
+    try {
+      await runKeywordScanQuery(dbFactory, { certFrag, tradeFrag: poisonedTradeFrag }, LOW_CONTENT_SQL);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(RadarScanError);
+    expect((caught as RadarScanError).queryName).toBe("keyword-scan");
+    expect((caught as Error).message).toMatch(/keyword-scan/);
+    expect((caught as Error).message).toMatch(/radars_missing_column_xyz|does not exist/i);
+    // The error path is OBSERVABLE (rejects), not a successful empty result:
+    expect(caught).not.toBeUndefined();
+  });
+});
+
+describe("three-way bucketing + related section (owner v6.1)", () => {
+  test("VA janitorial partitions into local=0 / nationwide>0; related bucket holds the owner-named adjacent rows and NEVER leaks them into strict matches", async () => {
+    if (!HAS_DB) return;
+    const { runRelatedScanQuery } = await import("~/lib/radar-scan-query");
+    const r = await runScan("janitorial", "Virginia", "sb");
+    // Same classification rule the handler uses (resolveBidState vs requested state).
+    const local = r.kept.filter(
+      (m: any) => resolveBidState(m.location, m.agency) === "VA",
+    );
+    const nationwide = r.kept.filter(
+      (m: any) => resolveBidState(m.location, m.agency) === null,
+    );
+    // Honest local 0: no open VA-located 561720/term rows exist in the data
+    // (owner v6.1 restates this as the expected, documented outcome).
+    expect(local.length).toBe(0);
+    // The labeled nationwide bucket still has the real open rows.
+    expect(nationwide.length).toBeGreaterThan(0);
+    // Related bucket: adjacent-work rows in VA (set_aside NULL by nature).
+    const rel = await runRelatedScanQuery(
+      dbFactory,
+      RELATED_TRADE_TERMS.janitorial,
+      LOW_CONTENT_SQL,
+    );
+    const rows = rel
+      .filter((x: any) => resolveBidState(x.location, x.agency) === "VA")
+      .filter((x: any) => !locationConflict(x.title, x.description, "VA"));
+    const ids = rows.map((x: any) => Number(x.id));
+    expect(ids).toEqual(expect.arrayContaining([134726, 134575, 134583]));
+    // Adjacent work is NEVER a default janitorial match (strict rule).
+    const strictIds = r.kept.map((m: any) => Number(m.id));
+    for (const id of [134726, 134575, 134583]) {
+      expect(strictIds).not.toContain(id);
+    }
   });
 });

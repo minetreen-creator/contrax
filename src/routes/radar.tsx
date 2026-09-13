@@ -18,13 +18,19 @@ import {
   type RadarCertId,
 } from "~/lib/radar-session";
 import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
-import { expandTrade, tradeKeywordPred, tradeProvenanceFor, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, tradeProvenanceFor, RELATED_TRADE_TERMS, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
 import {
   normalizeStateInput,
   resolveBidState,
   locationConflict,
   geoRelevant as geoRelevantByState,
+  STATE_NAME_TO_CODE,
 } from "~/lib/location-state";
+import {
+  runKeywordScanQuery,
+  runRelatedScanQuery,
+  logScanFailure,
+} from "~/lib/radar-scan-query";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -300,6 +306,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const sizeId = sizePref as SizeId;
     const { sql } = await import("~/db");
     let rows: any[] = [];
+    let relatedRows: any[] = [];
     try {
       // Set-aside predicate fragment (Small Business = every set-aside row,
       // otherwise the cert's literal set_aside patterns — mirrors /trades).
@@ -315,20 +322,32 @@ export const runRadarScan = createServerFn({ method: "POST" })
         : trade
           ? tradeKeywordPred(sql, expansion)
           : sql()``;
-      rows = await sql()`
-        SELECT id, title, agency, description, location, category, due_date,
-               estimated_value, naics_code, source_url, set_aside
-        FROM bids
-        WHERE due_date > NOW()
-          AND ${sql().unsafe(LOW_CONTENT_SQL)}
-          ${certFrag}
-          ${tradeFrag}
-        ORDER BY due_date ASC NULLS LAST
-        LIMIT 100
-      `;
+      // Keyword-scan execution moved to a shared lib that THROWS RadarScanError
+      // on failure instead of letting it become a misleading 0 (owner v6) —
+      // the forced-failure regression test drives this same function.
+      rows = await runKeywordScanQuery(sql, { certFrag, tradeFrag }, LOW_CONTENT_SQL);
+      // RELATED opportunities (owner v6.1): adjacent-work terms, pulled only
+      // when a state is requested. Same open/low-content guards, but NO cert
+      // and NO strict trade filter — deliberately: the DoD related rows
+      // (134726 Norfolk remediation, 134575/134583 Alexandria epoxy) are
+      // set_aside NULL and must still surface HERE, in the explicitly labeled
+      // "Related opportunities" section, never as default matches. The section
+      // label discloses the absent cert filter. State resolution + contradiction
+      // exclusion happen in JS below (identical logic to the strict path).
+      if (state) {
+        relatedRows = await runRelatedScanQuery(
+          sql,
+          RELATED_TRADE_TERMS[trade.toLowerCase()] ?? [],
+          LOW_CONTENT_SQL,
+        );
+      }
     } catch (e) {
-      console.error("[radar] scan query failed:", e);
-      rows = [];
+      // Owner v6: NEVER swallow a query failure into a successful empty
+      // result. Log with context (incl. the query name) and rethrow so the
+      // client receives a NON-TRIVIAL error response and renders the existing
+      // error state + retry (never "0 matches").
+      logScanFailure(e, { trade, state, cert: certId, sizePref: sizeId });
+      throw e;
     }
 
     const ranked = rows
@@ -463,7 +482,61 @@ export const runRadarScan = createServerFn({ method: "POST" })
         console.error("[radar-handoff] mint unavailable: missing server configuration (RADAR_HANDOFF_SECRET)");
       }
     }
-    return { matches, certLabel: CERT_LABEL[certId] };
+    // THREE-WAY BUCKETING (owner v6.1): partition the ranked STRICT matches
+    // into LOCAL (resolved geography == the requested state) vs NATIONWIDE
+    // (no resolvable geography — national set-aside rows kept for every state
+    // by design, per-card "Open nationwide" label; a different state's rows are
+    // already excluded by geoRelevant above). RELATED is a separate bucket
+    // built from the adjacent-work query; its rows NEVER join `matches` — an
+    // adjacent item is never a default janitorial/trucking match.
+    const local: RadarMatch[] = [];
+    const nationwide: RadarMatch[] = [];
+    for (const m of matches) {
+      const bidState = resolveBidState(m.location, m.agency);
+      if (state !== "" && bidState === state) local.push(m);
+      else nationwide.push(m);
+    }
+    // Related rows are state-local adjacent work with related provenance (no
+    // strict trade term — the low score honestly reflects that), no incumbent
+    // intel (paid feature; the section is informational and explicitly labeled).
+    const related: RadarMatch[] = [];
+    for (const r of relatedRows) {
+      const bid: RadarBidRow = {
+        id: Number(r.id), title: String(r.title ?? ""), agency: r.agency ? String(r.agency) : null,
+        description: r.description ? String(r.description) : null, location: r.location ? String(r.location) : null,
+        category: r.category ? String(r.category) : null, due_date: r.due_date ? String(r.due_date) : null,
+        estimated_value: r.estimated_value ? String(r.estimated_value) : null, naics_code: r.naics_code ? String(r.naics_code) : null,
+        source_url: r.source_url ? String(r.source_url) : null, set_aside: r.set_aside ? String(r.set_aside) : null,
+      };
+      const resolved = resolveBidState(bid.location, bid.agency);
+      if (resolved !== state) continue; // related rows surface only for the requested state
+      if (locationConflict(bid.title, bid.description, resolved)) continue;
+      if (matches.some((m) => m.id === bid.id)) continue; // never duplicate a strict match
+      const { score, scoreLabel } = computeMatch(bid, {
+        trade, isNaics, expansion, state, cert: certId, sizePref: sizeId,
+      });
+      related.push({
+        id: bid.id, title: bid.title, agency: bid.agency, category: bid.category,
+        location: bid.location, set_aside: bid.set_aside, naics_code: bid.naics_code,
+        source_url: bid.source_url, estimated_value: bid.estimated_value,
+        estimated_value_num: parseValue(bid.estimated_value),
+        due_date: bid.due_date, days_remaining: daysRemaining(bid.due_date),
+        score, score_label: scoreLabel,
+        trade_provenance: null,
+        reasons: [
+          `Related opportunity — adjacent work, not a direct "${trade}" match`,
+          `Located in ${state}${bid.set_aside ? ` — ${String(bid.set_aside)} set-aside` : " — no set-aside designation (listed for awareness)"}`,
+        ],
+        qualifications: [], requirements: buildRequirements(bid), next_action: buildNextAction(bid),
+        incumbent: null, learned: null,
+      });
+    }
+    related.sort((a, b) =>
+      a.due_date && b.due_date
+        ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+        : a.due_date ? -1 : b.due_date ? 1 : 0,
+    );
+    return { matches, certLabel: CERT_LABEL[certId], sections: { local, nationwide, related } };
   });
 
 /**
@@ -630,11 +703,23 @@ export const Route = createFileRoute("/radar")({
 });
 
 type Step = 1 | 2 | 3;
+/** Three-way result buckets (owner v6.1): LOCAL / NATIONWIDE / RELATED are
+ *  separate, explicitly labeled sections. RELATED items are adjacent work —
+ *  NEVER default janitorial/trucking matches. */
+export interface RadarSections {
+  local: RadarMatch[];
+  nationwide: RadarMatch[];
+  related: RadarMatch[];
+}
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string }
+  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections }
   | { status: "error" };
+/** USPS code → full state name (for section labels). */
+const STATE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
+  Object.entries(STATE_NAME_TO_CODE).map(([name, code]) => [code, name]),
+);
 
 const NAICS_SUGGESTIONS = Object.entries(NAICS_NAMES).slice(0, 120);
 
@@ -812,7 +897,7 @@ function RadarLanding() {
               source_url: m.source_url,
             })),
           });
-          setScan({ status: "done", matches: res.matches, certLabel: res.certLabel });
+          setScan({ status: "done", matches: res.matches, certLabel: res.certLabel, sections: res.sections });
           setStep(3);
         })
         .catch(() => {
@@ -1023,6 +1108,60 @@ function RadarLanding() {
                 {scan.matches.length} found
               </span>
             </div>
+{/* THREE-WAY BUCKETS (owner v6.1): LOCAL / NATIONWIDE / RELATED are
+                separate, explicitly labeled sections. Nationwide rows are kept
+                for every state by design and carry the per-card "Open
+                nationwide" label; related items are adjacent work and are NEVER
+                default janitorial/trucking matches. */}
+            {state !== "" && (
+              <section
+                aria-label={`${STATE_CODE_TO_NAME[state] ?? state}-local opportunities`}
+                className="mt-6 rounded-2xl border border-slate-700 bg-slate-900/50 px-5 py-4"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-slate-200">
+                    📍 {STATE_CODE_TO_NAME[state] ?? state}-local opportunities
+                  </h3>
+                  <span className="text-xs font-semibold text-slate-400">
+                    {(scan.sections?.local ?? []).length} found
+                  </span>
+                </div>
+                {scan.sections && scan.sections.local.length > 0 ? (
+                  <div className="mt-4 flex flex-col gap-4">
+                    {scan.sections.local.map((m, i) => (
+                      <RadarCard
+                        key={m.id}
+                        match={m}
+                        certLabel={scan.certLabel}
+                        index={i + 1}
+                        total={scan.sections.local.length}
+                        trade={trade}
+                        state={state}
+                        cert={cert}
+                        sizePref={sizePref}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    No open {STATE_CODE_TO_NAME[state] ?? state}-local{" "}
+                    {trade.trim() ? `"${trade.trim()}" ` : ""}opportunities right now — this is the
+                    honest, unfiltered result: the database currently has no open state-located
+                    row matching your trade and certification.
+                  </p>
+                )}
+              </section>
+            )}
+            {state !== "" && scan.matches.length > 0 && (
+              <div className="mt-8 flex items-center justify-between gap-3">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-slate-200">
+                  🌎 Open nationwide
+                </h3>
+                <span className="text-xs font-semibold text-amber-400">
+                  {scan.matches.length} found
+                </span>
+              </div>
+            )}
             {/* PR1 (owner 2026-09-07): anonymous visitors see their first
                 FREE_ANONYMOUS_RADAR_RESULTS REAL matches up front on the results
                 screen (no mid-flow gate). The lined count is always the real
@@ -1186,6 +1325,63 @@ function RadarLanding() {
                 cert={cert ?? ""}
                 sizePref={sizePref ?? ""}
               />
+            )}
+            {/* RELATED opportunities (owner v6.1) — adjacent work in the
+                requested state, explicitly labeled, NEVER default matches. An
+                empty section is an honest, documented outcome (current data/
+                cert filters may legitimately leave it empty). */}
+            {state !== "" && (
+              <section
+                aria-label="Related opportunities"
+                className="mt-8 rounded-2xl border border-dashed border-amber-500/40 bg-slate-900/40 px-5 py-5"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-amber-300">
+                    Related opportunities
+                  </h3>
+                  <span className="text-xs font-semibold text-slate-400">
+                    {(scan.sections?.related ?? []).length}{" "}
+                    {scan.sections && scan.sections.related.length === 1 ? "item" : "items"}
+                  </span>
+                </div>
+                {scan.sections && scan.sections.related.length > 0 ? (
+                  <div className="mt-3 flex flex-col gap-3">
+                    {scan.sections.related.map((m) => (
+                      <article
+                        key={m.id}
+                        className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
+                      >
+                        <p className="text-sm font-semibold text-white">{m.title}</p>
+                        <p className="mt-1 text-xs text-slate-400">
+                          {m.location}
+                          {m.agency ? ` · ${m.agency}` : ""}
+                          {m.due_date
+                            ? ` · Due ${new Date(m.due_date).toLocaleDateString("en-US", {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric",
+                              })}`
+                            : ""}
+                        </p>
+                        {m.reasons.slice(0, 2).map((r) => (
+                          <p key={r} className="mt-1 text-xs text-slate-300">
+                            {r}
+                          </p>
+                        ))}
+                      </article>
+                    ))}
+                    <p className="mt-1 text-xs text-slate-500">
+                      Adjacent work is shown ONLY here — it is never a default{" "}
+                      {`"${trade.trim() || "trade"}"`} match.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-2 text-sm leading-relaxed text-slate-300">
+                    No adjacent work currently matches in {STATE_CODE_TO_NAME[state] ?? state} —
+                    an honest, documented outcome for this trade/state right now.
+                  </p>
+                )}
+              </section>
             )}
           </section>
         )}

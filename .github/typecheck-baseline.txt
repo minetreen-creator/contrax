@@ -6,9 +6,6 @@ src/routes/admin/bid-scout.tsx(217,9): error TS6133: 'purchased' is declared but
 src/routes/api/dashboard-digest.ts(10,11): error TS6196: 'DigestResult' is declared but never used.
 src/routes/api/pricing-recommend.ts(72,11): error TS6133: 'query' is declared but its value is never read.
 src/routes/api/pricing-recommend.ts(83,11): error TS6133: 'sqlBuilder' is declared but its value is never read.
-src/routes/api/radar-save.ts(59,105): error TS2304: Cannot find name 'expandTrade'.
-src/routes/api/radar-save.ts(59,143): error TS2304: Cannot find name 'expandTrade'.
-src/routes/api/radar-save.ts(59,61): error TS2304: Cannot find name 'expandTrade'.
 src/routes/api/radar/opportunity-click.ts(43,7): error TS6133: 'PAGE' is declared but its value is never read.
 src/routes/awards.tsx(34,7): error TS6133: 'SEED_AWARDS' is declared but its value is never read.
 src/routes/compliance.tsx(279,7): error TS6133: 'severityBadge' is declared but its value is never read.

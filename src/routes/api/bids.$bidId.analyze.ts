@@ -30,7 +30,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { sql } from "~/db";
-import { callAIWithUsage } from "~/lib/ai";
+import { callAIWithUsage, sanitizeLogString } from "~/lib/ai";
 import { getUserFromRequest } from "~/lib/api-auth";
 import {
   checkEmailLimit,
@@ -400,6 +400,8 @@ async function handler({
         latency_ms: Date.now() - startedAt,
         cache: "generated",
         validation_fail: validationFail,
+        status: (err as { status?: number } | null)?.status ?? null,
+        error: sanitizeLogString(err),
       }));
       data = buildFallback(bid);
       fallback = true;

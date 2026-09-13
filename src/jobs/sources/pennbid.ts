@@ -64,7 +64,7 @@ export async function fetchPennBidOpen(): Promise<
   Array<{
     external_id: string;
     title: string;
-    agency: string | null;
+    agency: string;
     description: string;
     location: string;
     category: string;
@@ -95,7 +95,7 @@ export async function fetchPennBidOpen(): Promise<
   const rows: Array<{
     external_id: string;
     title: string;
-    agency: string | null;
+    agency: string;
     description: string;
     location: string;
     category: string;
@@ -111,7 +111,7 @@ export async function fetchPennBidOpen(): Promise<
       const title = String(proj.ProjectName ?? "").trim();
       if (!title) continue;
 
-      const agency = proj.ReferenceID ? String(proj.ReferenceID).trim() : null;
+      const agency = proj.ReferenceID ? String(proj.ReferenceID).trim() : "";
       const due = parseCloseDate(proj.DateClose);
       // Defensive: the endpoint is the OPEN list; never insert a row that is
       // already closed (between fetch and insert).
@@ -119,7 +119,7 @@ export async function fetchPennBidOpen(): Promise<
 
       // One-line honest description — we do NOT invent scope detail the portal
       // JSON does not carry. The full solicitation lives at the source URL.
-      const description = `Open PennBid solicitation issued by ${agency ?? "a Pennsylvania agency"}. Full details and documents are on the PennBid portal (see source link).`;
+      const description = `Open PennBid solicitation issued by ${agency || "a Pennsylvania agency"}. Full details and documents are on the PennBid portal (see source link).`;
 
       const full = `${title} ${description}`.toLowerCase();
       let category = "Other";

@@ -1,14 +1,21 @@
 name: Build Check
 # Deploy-blocking build gate: reproduces the Vercel prebuilt pipeline
 # (build-vercel.sh -> .vercel/output) and validates the Build Output API
-# bundle BEFORE merge, so a broken prod build can never reach production:
-#   - prod-config typecheck (tsc -p tsconfig.prod.json — 0 errors)
-#   - route JSX syntax check
-#   - full bundle + render.func size ceiling (12 MB index.mjs)
-# Runs alongside check-routes.yml on every pull request and push to main.
-#
-# No DB / secrets required: typecheck and the bundle build are env-free
-# (runtime env vars are read at request time on Vercel, not inlined).
+# bundle BEFORE merge, so a broken prod build can never reach production.
+# Order matters:
+#   1. frozen-lockfile install
+#   2. route JSX syntax check (faill fast on malformed TSX)
+#   3. build .vercel/output (vite build + vercel-entry bundle) — this also
+#      GENERATES src/routeTree.gen.ts
+#   4. prod-config typecheck AFTER route generation (routeTree.gen.ts must
+#      exist first — never typecheck before it)
+#   5. Build Output API validation (config.json v3, nodejs22.x, render bundle
+#      <= 12 MB)
+#   6. bundled request-context integration test against the ASSEMBLED render
+#      function (executes .vercel/output/functions/render.func/index.mjs —
+#      concurrent request isolation, authenticated SSR via the global accessor
+#      registry, error-cleanup, per-request IP). DB-dependent cases run when
+#      DATABASE_URL is present and are explicitly skipped otherwise.
 on:
   pull_request:
   push:
@@ -20,9 +27,9 @@ permissions:
   contents: read
 jobs:
   build:
-    name: Typecheck + build + bundle validation
+    name: Typecheck (post-build) + bundle validation + integration test
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,12 +39,12 @@ jobs:
           bun-version: 1.4.2
       - name: Install dependencies (frozen lockfile)
         run: bun install --frozen-lockfile
-      - name: Typecheck (prod config — must be 0 errors)
-        run: bun run typecheck
       - name: Route JSX syntax check
         run: bun run check:routes
       - name: Build .vercel/output (Build Output API v3)
         run: bash build-vercel.sh
+      - name: Typecheck (prod config, AFTER route generation — must be 0 errors)
+        run: bun run typecheck
       - name: Validate .vercel/output bundle
         run: |
           set -euo pipefail
@@ -47,8 +54,12 @@ jobs:
           grep -q 'nodejs22.x' .vercel/output/functions/render.func/.vc-config.json || { echo "vc-config runtime != nodejs22.x"; exit 1; }
           SIZE=$(stat -c%s .vercel/output/functions/render.func/index.mjs)
           echo "render.func/index.mjs size: $SIZE bytes"
+          TOTAL=$(du -sb .vercel/output | cut -f1)
+          echo ".vercel/output total bytes: $TOTAL"
           if [ "$SIZE" -gt $((12 * 1024 * 1024)) ]; then
             echo "FAIL: render function bundle exceeds 12 MB ceiling ($SIZE bytes)"
             exit 1
           fi
           echo "bundle validation OK"
+      - name: Bundled request-context integration test (assembled render function)
+        run: bun test tests/request-context.bundled.test.ts

@@ -3,7 +3,7 @@
   "include": ["src"],
   "exclude": ["node_modules", "dist", ".vercel", "**/*.test.ts", "**/*.test.tsx"],
   "compilerOptions": {
-    "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   }
 }

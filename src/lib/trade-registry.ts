@@ -98,6 +98,7 @@ export const GENERIC_TRADE_TERMS: Set<string> = new Set([
   "truck",
   "trucks",
   "logistics",
+  "cleaning",
   "service",
   "services",
   "support",
@@ -141,15 +142,36 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "freight transportation",
       "logistics",
       "motor carrier",
+      "equipment transport",
       "dry van",
       "flatbed",
       "delivery service",
     ],
-    // Only codes present in NAICS_NAMES (the product's authoritative code
-    // list — the infer map is the same authority). "488510 (freight
-    // transportation arrangement)" is NOT in the product's list yet, so it is
-    // deliberately omitted; add it here when the NAICS list grows.
-    naics: ["484121", "484122"],
+    // Owner 09-13 breadth expansion: full trucking-adjacent NAICS family. All
+    // codes are present in NAICS_NAMES (module-load validation enforces it).
+    // "488510 (freight transportation arrangement)" is NOT in the product's
+    // list yet, so it is deliberately omitted; add it when the list grows.
+    naics: ["484110", "484121", "484122", "484230", "492110"],
+  },
+  // Owner 09-13 (radar zero-results): janitorial vertical. The term set is the
+  // owner's exact curated procurement language — deliberately NO bare
+  // "cleaning" (ultra-generic: "ROD,CLEANING,SMALL ARM" is munitions work, not
+  // janitorial). The precision filter below (GENERIC_TRADE_TERMS) enforces the
+  // same rule structurally for every registry entry.
+  "janitorial-cleaning-services": {
+    label: "Janitorial/Cleaning",
+    synonyms: [
+      "janitorial",
+      "custodial",
+      "commercial cleaning",
+      "building cleaning",
+      "housekeeping",
+      "floor care",
+      "carpet cleaning",
+      "restroom sanitation",
+      "window cleaning",
+    ],
+    naics: ["561720"],
   },
 };
 
@@ -465,6 +487,48 @@ export function verifyTradePrecision(): void {
   assert(
     tradeProvenanceFor("Office supplies", exp, "484121")?.matchedNaics === "484121",
     "implied-NAICS branch must still produce provenance",
+  );
+  // Owner 09-13: trucking breadth — full NAICS family + "equipment transport".
+  for (const code of ["484110", "484121", "484122", "484230", "492110"]) {
+    assert(exp.naicsCodes.includes(code), `trucking must imply NAICS ${code}`);
+  }
+  assert(
+    tradeTextIncludes("Equipment transport for the logistics yard", exp) === true,
+    '"equipment transport" must match after the registry expansion',
+  );
+
+  // Owner 09-13: janitorial vertical — curated terms only, NO bare "cleaning".
+  const jan = expandTrade("janitorial");
+  for (const t of [
+    "janitorial",
+    "custodial",
+    "commercial cleaning",
+    "building cleaning",
+    "housekeeping",
+    "floor care",
+    "carpet cleaning",
+    "restroom sanitation",
+    "window cleaning",
+  ]) {
+    assert(jan.terms.includes(t), `janitorial expansion must include "${t}"`);
+  }
+  assert(!jan.terms.includes("cleaning"), 'janitorial terms must NOT include bare "cleaning"');
+  assert(jan.naicsCodes.includes("561720"), "janitorial must imply NAICS 561720");
+  assert(
+    tradeTextIncludes("Janitorial and Custodial Services for Municipal Complex", jan) === true,
+    "a real janitorial solicitation must match",
+  );
+  assert(
+    tradeTextIncludes("10--ROD,CLEANING,SMALL ARM", jan) === false,
+    '"cleaning" alone must never match unrelated munitions-cleaning work',
+  );
+  assert(
+    tradeTextIncludes("Kitchen Hood Cleaning Services", jan) === false,
+    "kitchen-hood cleaning (561790) must not match janitorial without another signal",
+  );
+  assert(
+    tradeProvenanceFor("Office supplies", jan, "561720")?.matchedNaics === "561720",
+    "janitorial implied-NAICS branch must produce provenance",
   );
 }
 

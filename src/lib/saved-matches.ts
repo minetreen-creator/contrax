@@ -51,7 +51,9 @@ export function safeNext(next: unknown): string | null {
  * loader rendering. Runs server-side via RPC; returns [] on any DB failure so
  * the page still renders with the button in its default (unsaved) state.
  */
-export const getSavedBidIds = createServerFn({ method: "GET" }).handler(
+export const getSavedBidIds = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as { userId: number })
+  .handler(
   async ({ data }: { data: { userId: number } }): Promise<number[]> => {
     try {
       const { sql } = await import("~/db");

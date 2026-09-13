@@ -73,7 +73,9 @@ const STATE_LOCATION_REGEX = new RegExp(
   "i",
 );
 
-const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }: { data: { search?: string } }): Promise<{ awards: Award[]; similarBids: Record<number, SimilarBid[]> }> => {
+const getAwardsData = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as { search?: string })
+  .handler(async ({ data }: { data: { search?: string } }): Promise<{ awards: Award[]; similarBids: Record<number, SimilarBid[]> }> => {
   // The sync job stores procurement opportunities in `bids`.  Do not use the
   // legacy `awarded_contracts` table here: it is unrelated to synced data and
   // is not present in every production database.
@@ -173,7 +175,9 @@ const getAwardsData = createServerFn({ method: "GET" }).handler(async ({ data }:
   return { awards, similarBids };
 });
 
-const getIncumbentIntel = createServerFn({ method: "GET" }).handler(async ({ data }: { data: { naicsCode: string; agency: string; title: string } }): Promise<FPDSIntel | null> => {
+const getIncumbentIntel = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as { naicsCode: string; agency: string; title: string })
+  .handler(async ({ data }: { data: { naicsCode: string; agency: string; title: string } }): Promise<FPDSIntel | null> => {
   return getFPDSIntel(data.naicsCode, data.agency, data.title);
 });
 
@@ -204,7 +208,7 @@ export const Route = createFileRoute("/awards")({
     // logged-in/logged-out button state (and the saved state) in the HTML.
     const currentUser = await getCurrentUser();
     const [data, savedBidIds] = await Promise.all([
-      getAwardsData({ data: { search: context.search } }),
+      getAwardsData({ data: { search: (context as { search?: string }).search } }),
       currentUser
         ? getSavedBidIds({ data: { userId: currentUser.id } })
         : Promise.resolve([] as number[]),

@@ -57,7 +57,9 @@ const getContractMap = createServerFn({ method: "GET" }).handler(
   },
 );
 
-const getStateBids = createServerFn({ method: "GET" }).handler(
+const getStateBids = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as { state: string })
+  .handler(
   async ({ data }: { data: { state: string } }): Promise<{ state: string; name: string; bids: DrillBid[] }> => {
     const raw = (data.state || "").toUpperCase();
     const isUnspecified = raw === UNSPECIFIED;

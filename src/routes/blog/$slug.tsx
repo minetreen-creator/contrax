@@ -11,6 +11,9 @@ export const Route = createFileRoute("/blog/$slug")({
   },
   head: ({ loaderData }) => {
     const post = loaderData;
+    if (!post) {
+      return { meta: [{ title: "Contrax Blog" }], links: [] };
+    }
     const title = `${post.title} — Contrax Blog`;
     const url = `${PROD_URL}/blog/${post.slug}`;
     return {

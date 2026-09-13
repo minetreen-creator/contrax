@@ -86,7 +86,7 @@ function LearningsPage() {
   const refreshInsights = async () => {
     setInsightsLoading(true);
     try {
-      const fresh = await generateInsights(/* will be called via fetchLearnings */);
+      const fresh = await generateInsights("");
       const d = await fetchLearnings();
       setInsights(d.insights);
       setPatterns(d.patterns);

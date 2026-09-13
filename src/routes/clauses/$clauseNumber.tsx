@@ -47,7 +47,9 @@ type RouteData = ClausePageData | PartPageData;
 // that isn't in far_clauses both resolve to notFound:true → the clean
 // "Clause not found" page below. Also loads prev/next clause within the part
 // and related parts for the footer nav (one extra indexed query set).
-const getClauseByNumber = createServerFn({ method: "GET" }).handler(
+const getClauseByNumber = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as string)
+  .handler(
   async ({ data }: { data: string }): Promise<ClausePageData> => {
     const requested = data.trim();
     if (!CLAUSE_NUMBER_RE.test(requested)) {

@@ -117,7 +117,7 @@ function detectSetAside(textValue: string): string | null {
 // ── Per-city record mappers ───────────────────────────────────────────────────
 
 /** NYC City Record Online — active solicitations with due dates. */
-function mapNyc(record: SocrataRecord, source: CitySourceConfig, index: number): RawBid | null {
+function mapNyc(record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, index: number): RawBid | null {
   const id = text(first(record, "request_id"));
   const title = text(first(record, "short_title", "title"), "Untitled Opportunity");
   const agency = text(first(record, "agency_name", "agency"), "City of New York");
@@ -140,7 +140,7 @@ function mapNyc(record: SocrataRecord, source: CitySourceConfig, index: number):
 }
 
 /** Chicago Contracts — awarded contracts with amounts and vendors. */
-function mapChicago(record: SocrataRecord, source: CitySourceConfig, index: number): RawBid | null {
+function mapChicago(record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, index: number): RawBid | null {
   const poNumber = text(first(record, "purchase_order_contract_number"));
   const revision = text(first(record, "revision_number"));
   const specNumber = text(first(record, "specification_number"));
@@ -169,7 +169,7 @@ function mapChicago(record: SocrataRecord, source: CitySourceConfig, index: numb
 }
 
 /** Los Angeles RAMP Open Bid Opportunities — live solicitations with close dates. */
-function mapLa(record: SocrataRecord, source: CitySourceConfig, index: number): RawBid | null {
+function mapLa(record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, index: number): RawBid | null {
   const id = text(first(record, "rampid"));
   const title = text(first(record, "title"), "Untitled Opportunity");
   const department = text(first(record, "department"), "City of Los Angeles");
@@ -194,7 +194,7 @@ function mapLa(record: SocrataRecord, source: CitySourceConfig, index: number): 
 }
 
 /** SF Supplier Contracts — citywide contract awards with amounts. */
-function mapSf(record: SocrataRecord, source: CitySourceConfig, index: number): RawBid | null {
+function mapSf(record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, index: number): RawBid | null {
   const contractNo = text(first(record, "contract_no"));
   const title = text(first(record, "contract_title"), "Untitled Contract");
   const department = text(first(record, "department"), "City of San Francisco");
@@ -223,7 +223,7 @@ function mapSf(record: SocrataRecord, source: CitySourceConfig, index: number): 
 }
 
 /** Austin Contracts — master agreements with spend limits and vendors. */
-function mapAustin(record: SocrataRecord, source: CitySourceConfig, index: number): RawBid | null {
+function mapAustin(record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, index: number): RawBid | null {
   const docId = text(first(record, "doc_id"));
   const version = text(first(record, "doc_vers_no"));
   const title = text(first(record, "doc_dscr"), "Untitled Contract");
@@ -254,9 +254,9 @@ function mapAustin(record: SocrataRecord, source: CitySourceConfig, index: numbe
 
 // ── Generic Socrata SODA fetch (paginated, resilient) ────────────────────────
 
-type RecordMapper = (record: SocrataRecord, source: CitySourceConfig, index: number) => RawBid | null;
+type RecordMapper = (record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, index: number) => RawBid | null;
 
-async function fetchSocrataBids(source: CitySourceConfig, mapRecord: RecordMapper): Promise<RawBid[]> {
+async function fetchSocrataBids(source: Omit<CitySourceConfig, "fetch">, mapRecord: RecordMapper): Promise<RawBid[]> {
   const results: RawBid[] = [];
   const endpoint = `${source.baseUrl.replace(/\/$/, "")}/resource/${encodeURIComponent(source.datasetId)}.json`;
 

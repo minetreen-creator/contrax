@@ -101,7 +101,9 @@ export function parseEstimatedValue(v: string | null | undefined): number | null
 // site-wide equivalent exists), applied in JS on the already-deduped rows using
 // the same state regex the /awards page uses. The count is therefore truthful
 // and server-side, never gameable.
-const countMatchOpportunities = createServerFn({ method: "GET" }).handler(
+const countMatchOpportunities = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as { certification?: string; query?: string; states?: string[]; range?: string; naicsCodes?: string[] })
+  .handler(
   async ({
     data,
   }: {

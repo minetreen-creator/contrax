@@ -35,7 +35,7 @@ let resolvePromise: Promise<TrackingUser | null> | null = null;
 
 /** Stamp the current user into the tracking layer (call after signup/login). */
 export function setTrackingUser(
-  user: { id: number | string; email: string } | null,
+  user: { id?: number | string; email?: string } | null,
 ): void {
   cachedUser =
     user && user.id != null && typeof user.email === "string" && user.email.length > 0

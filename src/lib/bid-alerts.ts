@@ -34,7 +34,7 @@ export async function generateBidAlerts(bidIds: number[]): Promise<number> {
       const naics = Array.isArray(p.naics_codes) ? p.naics_codes.map(String) : [];
       const categories = [...(Array.isArray(p.service_categories) ? p.service_categories : []), ...(Array.isArray(p.specialties) ? p.specialties : [])].map(String).filter(Boolean);
       const certs = Array.isArray(p.certifications) ? p.certifications.map(String) : [];
-      const naicsMatch = naics.some((n) => text.includes(n.toLowerCase()));
+      const naicsMatch = naics.some((n: string) => text.includes(n.toLowerCase()));
       // Category match applies the trade-query expansion registry (owner
       // 2026-09-07): "trucking" now also matches "freight hauling" + 484121/484122.
       const categoryMatch = categories.some((c) => {
@@ -42,7 +42,7 @@ export async function generateBidAlerts(bidIds: number[]): Promise<number> {
         if (expansion.terms.some((t) => t.length >= 2 && text.includes(t))) return true;
         return expansion.naicsCodes.some((code) => String(bid.naics_code ?? "").trim() === code);
       });
-      const setAsideMatch = Boolean(bid.set_aside) && certs.some((c) => text.includes(c.toLowerCase()) || String(bid.set_aside).toLowerCase().includes(c.toLowerCase()));
+      const setAsideMatch = Boolean(bid.set_aside) && certs.some((c: string) => text.includes(c.toLowerCase()) || String(bid.set_aside).toLowerCase().includes(c.toLowerCase()));
       if (!naicsMatch && !categoryMatch && !setAsideMatch) continue;
       const matchedOn = [naicsMatch && "naics", categoryMatch && "category", setAsideMatch && "set_aside"].filter(Boolean) as string[];
       const inserted = await sql()`INSERT INTO bid_alerts (user_id,bid_id,alert_type) VALUES (${p.user_id},${bidId},'new_match') ON CONFLICT (user_id,bid_id,alert_type) DO NOTHING RETURNING id`;

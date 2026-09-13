@@ -496,7 +496,7 @@ function TrackingPage({ currentUser }: { currentUser: AuthUser }) {
     setCertSaving(true);
     setCertError("");
     try {
-      await saveCertificationDates({ certificationDates: certDates });
+      await saveCertificationDates({ data: { certificationDates: certDates } });
       const result = await getCertificationDates();
       setCertData(result);
       setCertDates({ ...(result.certification_dates ?? {}) });

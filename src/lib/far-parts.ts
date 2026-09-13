@@ -20,7 +20,7 @@ import { sql } from "~/db";
 export const PART_TITLES: Record<string, string> = partTitles as Record<string, string>;
 
 /** "FAR" | "DFARS" — mirrors the clause-index grouping rule. */
-export function partLabel(part: string, source?: string | null): string {
+export function partLabel(part: string, source?: string | null): "FAR" | "DFARS" {
   if (source === "dfars" || Number(part) >= 200) return "DFARS";
   return "FAR";
 }
@@ -88,7 +88,9 @@ export interface PartPageData {
  * Server fn backing /clauses/{part} part pages. DB-driven: the part set comes
  * from DISTINCT far_clauses.part — never a hardcoded list.
  */
-export const getPartPageData = createServerFn({ method: "GET" }).handler(
+export const getPartPageData = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as string)
+  .handler(
   async ({ data }: { data: string }): Promise<PartPageData> => {
     const part = String(data).trim();
     const empty: PartPageData = {

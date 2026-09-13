@@ -21,7 +21,7 @@ umask 002
 #   DATABASE_URL          — Neon Postgres connection string
 #   GOOGLE_CLIENT_ID      — Google OAuth client ID ("Continue with Google")
 #   GOOGLE_CLIENT_SECRET  — Google OAuth client secret (callback code exchange)
-#   SYNC_TOKEN            — cron token for /api/sync-bids, /api/sync-far
+#   SYNC_TOKEN            — cron token for /api/sync-far (and legacy /api/sync-bids callers)
 #   STRIPE_SECRET_KEY     — Stripe API key (checkout)
 #   STRIPE_WEBHOOK_SECRET — Stripe webhook signing secret
 #   OPENAI_API_KEY        — AI features
@@ -29,6 +29,19 @@ umask 002
 #
 # `bunx vercel deploy --prebuilt` inherits the project env, so nothing more is
 # needed here.
+
+# ── Pin Bun 1.4.2 (owner supply-chain gate: checksum-verified install, never
+#    `curl | bash`). scripts/setup-bun.sh downloads bun-linux-x64.zip + the
+#    official SHASUMS256.txt from the oven-sh/bun GitHub release, fails closed
+#    unless sha256(zip) matches BOTH the official entry AND the hardcoded pinned
+#    digest, extracts, verifies the pinned binary digest, and fails closed unless
+#    `bun --version` == 1.4.2 exactly. A verified 1.4.2 install (e.g. from the
+#    vercel.json installCommand) is reused with a fresh digest check, so the
+#    build log still shows the [bun-checksum] verification lines in BOTH the
+#    install and the build sections.
+bash scripts/setup-bun.sh
+export PATH="$HOME/.bun/bin:$PATH"
+echo "[bun-pin] verified bun $(bun --version) at $(command -v bun)"
 
 echo "[1/5] vite build (light — safe under the sandbox memory cap)"
 # The workspace starts as sources only (deps live with the image's pre-built

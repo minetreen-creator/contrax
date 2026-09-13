@@ -1,0 +1,103 @@
+name: Build Check
+# Deploy-blocking build gate: reproduces the Vercel prebuilt pipeline
+# (build-vercel.sh -> .vercel/output) and validates the Build Output API
+# bundle BEFORE merge, so a broken prod build can never reach production.
+# Order matters:
+#   1. frozen-lockfile install
+#   2. route JSX syntax check (faill fast on malformed TSX)
+#   3. build .vercel/output (vite build + vercel-entry bundle) — this also
+#      GENERATES src/routeTree.gen.ts
+#   4. prod-config typecheck AFTER route generation (routeTree.gen.ts must
+#      exist first — never typecheck before it) — BASELINE-DELTA GATE
+#      (owner-approved, PR #375): a committed 56-error baseline
+#      (.github/typecheck-baseline.txt) lists origin/main's PRE-EXISTING
+#      prod-config type errors; the job prints the CURRENT error count + an
+#      explicit unified diff vs the baseline and FAILS on added lines (new
+#      errors) AND on removed lines (visible baseline mismatch requiring a
+#      deliberate baseline-file update). Pass note wording: "56 pre-existing
+#      baseline + delta gate — PASS ..." — never "typecheck-clean".
+#      noUnusedLocals/noUnusedParameters remain true in tsconfig.prod.json.
+#   5. Build Output API validation (config.json v3, nodejs22.x, render bundle
+#      <= 12 MB)
+#   6. bundled request-context integration test against the ASSEMBLED render
+#      function (executes .vercel/output/functions/render.func/index.mjs —
+#      concurrent request isolation, authenticated SSR via the global accessor
+#      registry, error-cleanup, per-request IP). DB-dependent cases run when
+#      DATABASE_URL is present and are explicitly skipped otherwise.
+on:
+  pull_request:
+  push:
+    branches: [main]
+concurrency:
+  group: build-check-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Typecheck (post-build) + bundle validation + integration test
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies (frozen lockfile)
+        run: bun install --frozen-lockfile
+      - name: Route JSX syntax check
+        run: bun run check:routes
+      - name: Build .vercel/output (Build Output API v3)
+        run: bash build-vercel.sh
+      - name: Typecheck (prod config) — 56 pre-existing baseline + delta gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Owner-approved baseline-delta gate (PR #375): origin/main carries a
+          # committed 56-error baseline (.github/typecheck-baseline.txt) of
+          # PRE-EXISTING prod-config type errors (noUnusedLocals /
+          # noUnusedParameters stay true in tsconfig.prod.json). This step:
+          #   - prints the CURRENT error count;
+          #   - prints an explicit unified diff of the current error lines vs the
+          #     baseline (added lines = NEW errors, removed lines = a baseline
+          #     mismatch that must surface as a visible diff requiring a
+          #     DELIBERATE baseline-file update);
+          #   - FAILS on BOTH directions — never a silent pass, never described
+          #     as typecheck-clean. The separate type-debt PR absorbs the 56 and
+          #     updates the baseline in the same commit (flipping this gate to a
+          #     real 0-delta-vs-0 baseline).
+          bun run typecheck > /tmp/typecheck-current.txt 2>&1 || true
+          grep -E 'error TS[0-9]+' /tmp/typecheck-current.txt | sort -u > /tmp/typecheck-current-lines.txt || true
+          sort -u .github/typecheck-baseline.txt > /tmp/typecheck-baseline-lines.txt
+          COUNT=$(wc -l < /tmp/typecheck-current-lines.txt)
+          echo "--- current prod-config typecheck error lines: ${COUNT} ---"
+          echo "--- unified diff vs .github/typecheck-baseline.txt (56 pre-existing baseline; '-' = baseline-only line, '+' = current-only line) ---"
+          set +e
+          diff -u /tmp/typecheck-baseline-lines.txt /tmp/typecheck-current-lines.txt
+          DIFF_RC=$?
+          set -e
+          if [ "$DIFF_RC" -ne 0 ]; then
+            echo "::error::Typecheck delta vs the committed 56-error baseline detected — see the unified diff above (added lines = new errors; removed lines = baseline mismatch requiring a deliberate baseline-file update). Failing."
+            exit 1
+          fi
+          echo "56 pre-existing baseline + delta gate — PASS (current error lines: ${COUNT}; delta vs committed baseline: 0)"
+      - name: Validate .vercel/output bundle
+        run: |
+          set -euo pipefail
+          test -f .vercel/output/config.json || { echo "missing config.json"; exit 1; }
+          grep -q '"version": 3' .vercel/output/config.json || { echo "config.json version != 3"; exit 1; }
+          test -f .vercel/output/functions/render.func/.vc-config.json || { echo "missing render.func/.vc-config.json"; exit 1; }
+          grep -q 'nodejs22.x' .vercel/output/functions/render.func/.vc-config.json || { echo "vc-config runtime != nodejs22.x"; exit 1; }
+          SIZE=$(stat -c%s .vercel/output/functions/render.func/index.mjs)
+          echo "render.func/index.mjs size: $SIZE bytes"
+          TOTAL=$(du -sb .vercel/output | cut -f1)
+          echo ".vercel/output total bytes: $TOTAL"
+          if [ "$SIZE" -gt $((12 * 1024 * 1024)) ]; then
+            echo "FAIL: render function bundle exceeds 12 MB ceiling ($SIZE bytes)"
+            exit 1
+          fi
+          echo "bundle validation OK"
+      - name: Bundled request-context integration test (assembled render function)
+        run: bun test tests/request-context.bundled.test.ts

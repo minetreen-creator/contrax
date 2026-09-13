@@ -70,7 +70,7 @@ import {
 type ScoreRec = "GO" | "CAUTIOUS" | "NO-GO";
 
 type SignupSearch = {
-  plan?: string;
+  plan?: Plan;
   ticker_bid?: string;
   ticker_agency?: string;
   score_rec?: ScoreRec;
@@ -306,7 +306,7 @@ export const Route = createFileRoute("/signup")({
     // tier (no-bifurcation rule). Intent links (?plan=starter|professional
     // from the pricing page, or ?plan=professional from an Incumbent gate)
     // still preselect a paid plan via the URL.
-    plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? search.plan : "basic",
+    plan: typeof search.plan === "string" && validPlans.includes(search.plan as typeof validPlans[number]) ? (search.plan as Plan) : "basic",
     ticker_bid: typeof search.ticker_bid === "string" ? search.ticker_bid : undefined,
     ticker_agency: typeof search.ticker_agency === "string" ? search.ticker_agency : undefined,
     score_rec:
@@ -426,7 +426,7 @@ function SignupPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<Plan>(plan);
+  const [selectedPlan, setSelectedPlan] = useState<Plan>(plan as Plan);
   // Browser-tab title matches the selected plan (P2): Basic is genuinely free
   // forever (no card), paid tiers carry the 14-day trial. Kept in sync client-
   // side so the tab reads truthfully however the visitor arrived.
@@ -897,7 +897,7 @@ function SignupPage() {
   // Keep the selector in sync if the ?plan= search param changes (e.g. a
   // pricing page CTA navigates here while the component is mounted).
   useEffect(() => {
-    setSelectedPlan(plan);
+    setSelectedPlan(plan as Plan);
   }, [plan]);
 
   // Google OAuth URL, built from the runtime-verified base the loader's

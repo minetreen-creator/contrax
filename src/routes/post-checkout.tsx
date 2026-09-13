@@ -13,6 +13,7 @@
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import type Stripe from "stripe";
 import { setCookie } from "@tanstack/react-start/server";
 import { useEffect, useState, useCallback } from "react";
 import { hashPassword } from "~/lib/password";
@@ -69,7 +70,7 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
     const StripeModule = await import("stripe");
     const Stripe = StripeModule.default;
     const stripe = new Stripe(stripeKey, {
-      apiVersion: "2025-06-16.acacia",
+      apiVersion: "2025-06-16.acacia" as Stripe.LatestApiVersion,
     }) as {
       checkout: {
         sessions: {

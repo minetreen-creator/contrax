@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { syncFarDfars } from "../../lib/far-dfars";
+import { syncFarDfars, type FARSource } from "../../lib/far-dfars";
 
 /**
  * GET /api/sync-far
@@ -52,7 +52,7 @@ async function handler({ request }: { request: Request }) {
 
     const params = new URL(request.url).searchParams;
     const sourceParam = params.get("source") ?? "all";
-    const sources = sourceParam === "far" ? ["far"] : sourceParam === "dfars" ? ["dfars"] : ["far", "dfars"];
+    const sources: FARSource[] = sourceParam === "far" ? ["far"] : sourceParam === "dfars" ? ["dfars"] : ["far", "dfars"];
     const partsParam = params.get("parts");
     const parts = partsParam
       ? partsParam.split(",").map((p) => Number(p.trim())).filter((p) => Number.isInteger(p) && p > 0)

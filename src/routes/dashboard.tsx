@@ -142,7 +142,9 @@ const dismissBid = createServerFn({ method: "POST" })
     return { success: true };
   });
 
-const generateSummary = createServerFn({ method: "GET" }).handler(async ({ data }: { data: { bidId: number } }) => {
+const generateSummary = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as { bidId: number })
+  .handler(async ({ data }: { data: { bidId: number } }) => {
     const user = await getCurrentUser();
     if (!user) throw new Error("Not authenticated");
 
@@ -1097,7 +1099,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
   const handledDeepLinkRef = useRef<string | null>(null);
   useEffect(() => {
     if (!data) return;
-    const raw = location.search.bid_id;
+    const raw = (location.search as Record<string, unknown>).bid_id;
     const bidIdStr =
       Array.isArray(raw) ? String(raw[0] ?? "") : raw == null ? "" : String(raw);
     if (!bidIdStr) { handledDeepLinkRef.current = null; return; }
@@ -1109,7 +1111,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
     requestAnimationFrame(() => {
       document.getElementById(`bid-${bidId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }, [data, location.search.bid_id]);
+  }, [data, (location.search as Record<string, unknown>).bid_id]);
 
   // Focus a single match within the current result set and persist it to the
   // URL so it survives navigation and is shareable.
@@ -1125,7 +1127,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
   // Return to the full results list (clears the single-match focus deep-link).
   const backToResults = useCallback(() => {
     setExpandedBid(null);
-    const raw = location.search.bid_id;
+    const raw = (location.search as Record<string, unknown>).bid_id;
     if (raw === undefined || raw === null) return;
     const next = { ...((location.search as Record<string, unknown>) ?? {}) };
     delete next.bid_id;
@@ -1196,7 +1198,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
     fetch("/api/pricing-cache").then((r) => r.json()).then((pricingList) => {
       if (cancelled) return;
       const pricingMap: Record<number, PricingRecommendation> = {};
-      pricingList.forEach((p) => { pricingMap[Number(p.bid_id)] = p; });
+      pricingList.forEach((p: PricingRecommendation) => { pricingMap[Number(p.bid_id)] = p; });
       setPricing(pricingMap);
     }).catch(() => {});
     return () => { cancelled = true; };
@@ -1564,7 +1566,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
         priceNote={SAVE_LIMIT_PAYWALL_PRICE}
       />
       {user.email === "demo@contrax.company" && <div className="border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900">🔍 You're exploring a demo account with sample data. When you're ready, <a href="/signup" className="font-bold underline">create your free account</a> to track real bids.</div>}
-      {location.search.notice === "admin-only" && (
+      {(location.search as Record<string, unknown>).notice === "admin-only" && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-900">
           Admin access is restricted to authorized users only.
         </div>
@@ -1714,7 +1716,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
         {profile && <CertificationStatusCard profile={profile} />}
         {/* How Contrax understands your business — collapsible profile summary */}
         {profile && <CompanyProfile profile={profile} />}
-        {profile && <GettingStarted hasSavedBids={data.savedMatches.length > 0} hasDrafts={data.drafts.length > 0} />}
+        {profile && <GettingStarted hasSavedBids={(data?.savedMatches.length ?? 0) > 0} hasDrafts={(data?.drafts.length ?? 0) > 0} />}
 
         <a href="/evaluate" className="mb-4 block rounded-2xl border border-red-200 bg-gradient-to-r from-red-50 to-white p-5 shadow-sm transition hover:border-red-300"><div className="flex items-center justify-between gap-4"><div><div className="flex items-center gap-2"><h2 className="font-bold text-slate-900">🔴 Red Team</h2><span className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">Agency</span></div><p className="mt-1 text-sm text-slate-600">AI proposal auditing — find the holes before submission</p></div><span className="shrink-0 text-sm font-semibold text-red-700">Run review →</span></div></a>
         <a href="/competitors" className="mb-4 block rounded-2xl border border-blue-100 bg-white p-5 shadow-sm transition hover:border-blue-300"><div className="flex items-center justify-between gap-4"><div><h2 className="font-bold text-slate-900">Competitor intelligence</h2><p className="mt-1 text-sm text-slate-600">Top competing firm: <b>{data?.topCompetitor?.name || "No match yet"}</b>{data?.topCompetitor ? ` (${data.topCompetitor.awards} recent awards)` : ""}</p><p className="mt-1 text-xs text-slate-500">Competition in your categories: <b>{(data?.activeAwardees || 0) > 20 ? "High" : (data?.activeAwardees || 0) > 7 ? "Medium" : "Low"}</b></p></div><span className="shrink-0 text-sm font-semibold text-blue-700">View competitors →</span></div></a>

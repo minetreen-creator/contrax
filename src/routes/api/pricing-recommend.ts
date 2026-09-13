@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
+import type { PricingRecommendation } from "~/lib/pricing";
 
 async function handler({ request }: { request: Request }): Promise<Response> {
   const user = await getUserFromRequest(request);
@@ -44,7 +45,7 @@ async function handler({ request }: { request: Request }): Promise<Response> {
 
     if (naicsList.length > 0) {
       // Match by overlapping NAICS codes (prefix match: first 4 digits)
-      const prefixPatterns = naicsList.map((c: string) => c.slice(0, 4)).filter((v, i, a) => a.indexOf(v) === i);
+      const prefixPatterns = naicsList.map((c: string) => c.slice(0, 4)).filter((v: string, i: number, a: string[]) => a.indexOf(v) === i);
       const naicsConditions = prefixPatterns.map((p: string) => {
         params.push(p + "%");
         return `naics_code LIKE $${params.length}`;

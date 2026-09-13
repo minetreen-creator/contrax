@@ -96,7 +96,9 @@ interface SetAsidePageData {
 }
 
 // ── Server function ────────────────────────────────────────────────────────────
-const getSetAsideOpportunities = createServerFn({ method: "GET" }).handler(
+const getSetAsideOpportunities = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as { setAside: string; naics: string })
+  .handler(
   async ({ data }: { data: { setAside: string; naics: string } }): Promise<SetAsidePageData> => {
     const setAside = normalizeSetAsideParam(data.setAside);
     const naics = data.naics.trim();
@@ -186,6 +188,14 @@ export const Route = createFileRoute("/opportunities/$setaside/$naics")({
   },
   head: ({ loaderData }) => {
     const d = loaderData;
+    if (!d) {
+      return {
+        meta: [
+          { title: "Set-Aside Opportunities | Contrax" },
+          { name: "robots", content: "noindex, nofollow" },
+        ],
+      };
+    }
     const title = d.notFound
       ? "Set-Aside Opportunities | Contrax"
       : `${d.setAside} ${d.industryName} Contracts — Set-Aside Opportunities | Contrax`;

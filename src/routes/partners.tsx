@@ -62,7 +62,7 @@ export const findPartners = createServerFn({ method: "GET" }).validator((data: u
   const rows = await sql() `SELECT * FROM partner_companies ORDER BY company_name`;
   return (rows as any[]).map((r) => {
     const caps: string[] = Array.isArray(r.capabilities) ? r.capabilities : []; const codes: string[] = Array.isArray(r.naics_codes) ? r.naics_codes.map(String) : []; const awards: Award[] = Array.isArray(r.past_awards) ? r.past_awards : [];
-    const overlap = codes.filter((c) => userNaics.has(c)); const complementary = caps.filter((c) => !userCaps.some((u) => c.toLowerCase().includes(u) || u.includes(c.toLowerCase())));
+    const overlap = codes.filter((c) => userNaics.has(c)); const complementary = caps.filter((c) => !userCaps.some((u: string) => c.toLowerCase().includes(u) || u.includes(c.toLowerCase())));
     const relevantAwards = awards.filter((a) => `${a.title} ${a.agency}`.toLowerCase().split(/\s+/).some((word) => word.length > 4 && targetText.includes(word)));
     const score = Math.min(100, Math.round((overlap.length ? Math.min(45, overlap.length * 22) : 0) + Math.min(35, complementary.length * 7) + Math.min(20, (relevantAwards.length || (awards.length && targetText ? 1 : 0)) * 10) + (overlap.length || complementary.length ? 5 : 0)));
     const reasons = [...overlap.map((c) => `NAICS overlap: ${c}`), ...relevantAwards.slice(0, 2).map((a) => `Past award: ${a.title}`), ...complementary.slice(0, 2).map((c) => `Complementary: ${c}`)];

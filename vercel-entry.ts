@@ -11,6 +11,13 @@
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from "node:http";
 
 import handler from "./dist/server/server.js";
+// Request-scoped AsyncLocalStorage context (cookie + client IP) for SSR route
+// loaders / server functions — replaces the old globalThis stash. The module
+// side effect wires the store into the client-safe readers (request-context.ts)
+// at boot via a GLOBAL registry key (both this launcher bundle and the dist
+// SSR handler carry their own copy of request-context.ts; the registry makes
+// them share one accessor slot). See src/lib/request-context.server.ts.
+import { runWithRequestContext } from "./src/lib/request-context.server";
 
 // ── Client asset references for the static SEO pages ─────────────────────────
 // The entry chunk / CSS / preload filenames come from vercel-entry.assets.json,
@@ -875,12 +882,17 @@ export default async function vercelHandler(
         ) ||
         /^\/contracts-in\/[a-z0-9-]+\/?$/.test(url.pathname));
 
-    // Make the request cookie + client IP available to route loaders and server
-    // functions during SSR (same stash pattern; the IP backs the anonymous
-    // /score free-score limit, derived exactly like /api/event's getClientIp).
-    (globalThis as any).__contrax_request_cookie__ = (req.headers.cookie as string) || "";
-    (globalThis as any).__contrax_request_ip__ = getClientIp(req.headers);
-    const webRes = await fetchHandler.fetch(toWebRequest(req));
+    // AsyncLocalStorage request context: scoped to this request's async
+    // execution chain, auto-cleaned when run() settles even on error (see
+    // src/lib/request-context.server.ts). The cookie backs SSR auth reads,
+    // the IP backs the anonymous /score free-score limit.
+    const requestContext = {
+      cookie: (req.headers.cookie as string) || "",
+      ip: getClientIp(req.headers),
+    };
+    const webRes = await runWithRequestContext(requestContext, () =>
+      fetchHandler.fetch(toWebRequest(req)),
+    );
     res.statusCode = webRes.status;
     webRes.headers.forEach((value, key) => res.setHeader(key, value));
     // Set our public edge-cache header AFTER copying the SSR framework headers,
@@ -898,8 +910,6 @@ export default async function vercelHandler(
       }
     }
     res.end();
-    delete (globalThis as any).__contrax_request_cookie__;
-    delete (globalThis as any).__contrax_request_ip__;
   } catch (error) {
     // Log the detail server-side (captured by the host's function logs); never
     // return a stack trace to the public visitor of the site.

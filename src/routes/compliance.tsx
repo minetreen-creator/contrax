@@ -73,7 +73,9 @@ const getHistory = createServerFn({ method: "GET" }).handler(async (): Promise<C
   return (rows as any[]).map(mapResult);
 });
 
-const getBidContext = createServerFn({ method: "GET" }).handler(async ({ data }: { data: { bidId: number } }) => {
+const getBidContext = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as { bidId: number })
+  .handler(async ({ data }: { data: { bidId: number } }) => {
   const user = await getCurrentUser(); if (!user) throw new Error("Not authenticated");
   const bids = await sql()`SELECT title, description FROM bids WHERE id = ${data.bidId}`;
   if (!bids.length) return { bidTitle: null, bidDescription: null, proposalText: null };

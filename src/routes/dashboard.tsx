@@ -1198,7 +1198,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
     fetch("/api/pricing-cache").then((r) => r.json()).then((pricingList) => {
       if (cancelled) return;
       const pricingMap: Record<number, PricingRecommendation> = {};
-      pricingList.forEach((p: any) => { pricingMap[Number(p.bid_id)] = p; });
+      pricingList.forEach((p: PricingRecommendation) => { pricingMap[Number(p.bid_id)] = p; });
       setPricing(pricingMap);
     }).catch(() => {});
     return () => { cancelled = true; };

@@ -9,11 +9,21 @@
  *
  * Pipeline fidelity: the handler (src/routes/radar.tsx) builds its query from
  * the exported predicates `tradeKeywordPred` (trade-registry), `setAsidePred`
- * (open-bids), `LOW_CONTENT_SQL` (low-content) and the ~/db FACTORY, then
- * filters with `resolveBidState` + `locationConflict` + `geoRelevant`
- * (location-state). This file drives those EXACT components; the only thing
- * not exercised is the createServerFn wrapper itself (needs a Start request
- * context — the bundled request-context test covers that seam).
+ * (open-bids), `sbCertFragment` + `certMatches` (cert-matching, PR-C.0),
+ * `LOW_CONTENT_SQL` (low-content) and the ~/db FACTORY, then filters with
+ * `resolveBidState` + `locationConflict` + `geoRelevant` (location-state).
+ * This file drives those EXACT components; the only thing not exercised is
+ * the createServerFn wrapper itself (needs a Start request context — the
+ * bundled request-context test covers that seam).
+ *
+ * PR-C.0 (owner 09-13) certification semantics: "Small Business" DESCRIBES
+ * the user's business. The `sb` branch INCLUDES explicit SBA / small-business
+ * markers, unrestricted/full-and-open rows, and state/local rows whose portal
+ * publishes no set-aside metadata (NULL set_aside); it EXCLUDES rows whose
+ * set-aside names ONLY certifications the user lacks (8(a)/SDVOSB/WOSB/
+ * HUBZone/VOSB); a NULL set-aside never becomes a "Small Business" label —
+ * cards show "Set-aside not specified — verify solicitation" instead. Non-sb
+ * certs keep their exact-match behavior unchanged.
  *
  * DB-backed cases run when DATABASE_URL is set (local sandbox / QA env); in CI
  * (no secrets) they skip like the other DB cases in this repo. The PA-trucking
@@ -29,6 +39,12 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { sql as dbFactory } from "~/db";
 import { expandTrade, tradeKeywordPred, RELATED_TRADE_TERMS } from "~/lib/trade-registry";
 import { setAsidePred } from "~/lib/open-bids";
+import {
+  certMatches,
+  sbCertFragment,
+  setAsideCardLabel,
+  SET_ASIDE_NOT_SPECIFIED_LABEL,
+} from "~/lib/cert-matching";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import {
   normalizeStateInput,
@@ -50,9 +66,7 @@ async function runScan(trade: string, stateIn: string, cert: string) {
   const isNaics = /^\d{6}$/.test(trade);
   const expansion = expandTrade(trade);
   const certFrag =
-    cert === "sb"
-      ? dbFactory().unsafe(`AND set_aside IS NOT NULL`)
-      : setAsidePred(cert, dbFactory);
+    cert === "sb" ? sbCertFragment(dbFactory) : setAsidePred(cert, dbFactory);
   const tradeFrag = isNaics
     ? dbFactory()`AND LOWER(COALESCE(naics_code,'')) = ${trade.toLowerCase()}`
     : trade
@@ -60,7 +74,7 @@ async function runScan(trade: string, stateIn: string, cert: string) {
       : dbFactory()``;
   const rows: any[] = await dbFactory()`
     SELECT id, title, agency, description, location, category, due_date,
-           estimated_value, naics_code, source_url, set_aside
+           estimated_value, naics_code, source_url, source, set_aside
     FROM bids
     WHERE due_date > NOW()
       AND ${dbFactory().unsafe(LOW_CONTENT_SQL)}
@@ -75,7 +89,12 @@ async function runScan(trade: string, stateIn: string, cert: string) {
       r.description,
       resolved,
     );
-    return !conflicted && geoRelevant(r.location, r.agency, state);
+    return (
+      !conflicted &&
+      // PR-C.0: authoritative certification decision (cert-matching.ts).
+      certMatches(r.set_aside, [r.source], cert) === "include" &&
+      geoRelevant(r.location, r.agency, state)
+    );
   });
   return { rows, kept, expansion, state };
 }
@@ -221,6 +240,122 @@ describe("search path (real pipeline components, DB-backed)", () => {
   });
 });
 
+describe("certification semantics (PR-C.0, owner 09-13)", () => {
+  // A. PA PennBid row + SB selection → INCLUDED, card label = the exact
+  //    honest "Set-aside not specified — verify solicitation" string
+  //    (NULL set_aside, source pennbid).
+  test("A: PennBid NULL set_aside + Small Business → include + honest label", () => {
+    expect(certMatches(null, ["pennbid"], "sb")).toBe("include");
+    expect(setAsideCardLabel(null)).toBe(SET_ASIDE_NOT_SPECIFIED_LABEL);
+    expect(setAsideCardLabel(null)).toBe("Set-aside not specified — verify solicitation");
+  });
+
+  // B. SAM row with set_aside that explicitly matches SB/SBA → INCLUDED,
+  //    label shows the REAL set-aside text.
+  test("B: explicit SBA/small-business set-aside text → include with real label", () => {
+    expect(certMatches("SBA", ["sam_gov"], "sb")).toBe("include");
+    expect(setAsideCardLabel("SBA")).toBe("SBA");
+    expect(
+      certMatches("Total Small Business Set-Aside (FAR 19.5)", ["sam_gov"], "sb"),
+    ).toBe("include");
+    expect(
+      setAsideCardLabel("Total Small Business Set-Aside (FAR 19.5)"),
+    ).toBe("Total Small Business Set-Aside (FAR 19.5)");
+  });
+
+  // C. Unrestricted row (set_aside 'Unrestricted' or equivalent) → INCLUDED
+  //    under SB.
+  test("C: unrestricted / full-and-open rows → include under SB", () => {
+    expect(certMatches("Unrestricted", ["sam_gov"], "sb")).toBe("include");
+    expect(certMatches("Full and Open Competition", ["sam_gov"], "sb")).toBe("include");
+    expect(certMatches("FULL & OPEN", ["sam_gov"], "sb")).toBe("include");
+  });
+
+  // D. Explicitly incompatible set-aside (e.g. '8(a)' only) → EXCLUDED under
+  //    SB; exclusion applies when the text names ONLY certs the user lacks —
+  //    rows naming the user's cert (or unrestricted/unknown) stay in.
+  test("D: explicitly restricted set-asides → exclude under SB; named-cert/unknown stay", () => {
+    for (const v of [
+      "8(a)", "8AN", "SDVOSB", "WOSB", "EDWOSB", "HUBZone", "VOSB",
+      "8(a) and HUBZone", "Competitive 8(a)",
+    ]) {
+      expect(certMatches(v, ["sam_gov"], "sb")).toBe("exclude");
+    }
+    // Rows naming the user's cert (or unrestricted/unknown markers) stay in.
+    expect(certMatches("SBA", ["sam_gov"], "sb")).toBe("include");
+    expect(certMatches("MWBE", ["cities"], "sb")).toBe("include");
+    expect(certMatches("LAS", ["sam_gov"], "sb")).toBe("include");
+  });
+
+  // E. NULL set_aside rows never acquire a fabricated certification value —
+  //    the label is the honest not-specified string and the stored value
+  //    stays NULL (asserted end-to-end in F plus the pure checks here).
+  test("E: NULL set_aside never fabricates a certification value", () => {
+    // Federal / unknown NULL: no opinion (radar keeps today's exclusion —
+    //   1,200+ fed NULL rows must not flood the SB pool).
+    expect(certMatches(null, ["sam_gov"], "sb")).toBeNull();
+    expect(certMatches(null, [], "sb")).toBeNull();
+    // The label is NEVER a certification claim.
+    expect(setAsideCardLabel(null)).not.toMatch(/small business/i);
+    expect(setAsideCardLabel(null)).toBe(SET_ASIDE_NOT_SPECIFIED_LABEL);
+  });
+
+  // Non-sb certs: current exact-match behavior UNCHANGED.
+  test("non-sb certs (8a/sdvosb/wosb/hubzone) keep exact-match behavior", () => {
+    expect(certMatches("8(a)", ["sam_gov"], "8a")).toBe("include");
+    expect(certMatches("8AN", [], "8a")).toBe("include");
+    expect(certMatches("SDVOSB", [], "sdvosb")).toBe("include");
+    expect(certMatches("WOSB", [], "wosb")).toBe("include");
+    expect(certMatches("EDWOSB", [], "wosb")).toBe("include");
+    expect(certMatches("HUBZone", [], "hubzone")).toBe("include");
+    expect(certMatches("VOSB", [], "vosb")).toBe("include");
+    expect(certMatches("8(a)", [], "sdvosb")).toBe("exclude");
+    expect(certMatches(null, ["pennbid"], "8a")).toBe("exclude");
+    expect(certMatches("SBA", ["sam_gov"], "wosb")).toBe("exclude");
+  });
+
+  // F. The two real PA-local PennBid trucking rows ("2027 Sludge Hauling
+  //    Contracts", "Hauling of Dewatered Sludge") pass the REAL pipeline
+  //    (trade expansion + state filter + the new cert predicate) as local PA
+  //    matches with valid locations and future due dates.
+  test("F: the two real PA-local PennBid trucking rows pass the REAL pipeline as PA local matches", async () => {
+    if (!HAS_DB) return;
+    const r = await runScan("trucking", "Pennsylvania", "sb");
+    expect(r.state).toBe("PA");
+    const paLocal = r.kept.filter(
+      (m: any) => resolveBidState(m.location, m.agency) === "PA",
+    );
+    const titles = paLocal.map((m: any) => String(m.title));
+    expect(titles.some((t: string) => t.includes("Sludge Hauling"))).toBe(true);
+    expect(titles.some((t: string) => t.includes("Dewatered Sludge"))).toBe(true);
+    const now = Date.now();
+    for (const m of paLocal) {
+      // Valid location: Pennsylvania; future due date.
+      expect(resolveBidState(m.location, m.agency)).toBe("PA");
+      expect(new Date(m.due_date).getTime()).toBeGreaterThan(now);
+      // E: NULL set_aside stays NULL end-to-end — never fabricated.
+      expect(m.set_aside).toBeNull();
+      expect(m.source).toBe("pennbid");
+      // Honest label (A) for a NULL set-aside row.
+      expect(setAsideCardLabel(m.set_aside)).toBe(SET_ASIDE_NOT_SPECIFIED_LABEL);
+    }
+  });
+
+  // G. Nationwide behavior unchanged: no-resolvable-geography rows keep
+  //    surfacing for a state search under SB (fed NULL rows stay excluded).
+  test("G: nationwide rows (no resolvable geography) still surface under SB", async () => {
+    if (!HAS_DB) return;
+    const r = await runScan("janitorial", "Virginia", "sb");
+    const nationwide = r.kept.filter(
+      (m: any) => resolveBidState(m.location, m.agency) === null,
+    );
+    expect(nationwide.length).toBeGreaterThan(0);
+    for (const m of nationwide) {
+      expect(certMatches(m.set_aside, [m.source], "sb")).toBe("include");
+    }
+  });
+});
+
 describe("PA trucking controlled fixture (LABELED: NOT live-source data)", () => {
   let fixtureId: number | null = null;
   afterAll(async () => {
@@ -235,6 +370,10 @@ describe("PA trucking controlled fixture (LABELED: NOT live-source data)", () =>
       // Not armed: report skip, never write.
       return;
     }
+    // PR-C.0: an 8(a)-ONLY set-aside is now EXCLUDED under a plain Small
+    // Business selection (acceptance D), so the fixture uses an explicit SBA
+    // marker — it proves INCLUSION of a PennBid-style PA freight row through
+    // the real pipeline.
     const ins: any[] = await dbFactory()`
       INSERT INTO bids (title, agency, description, location, category,
                         due_date, naics_code, source_url, set_aside, source)
@@ -243,7 +382,7 @@ describe("PA trucking controlled fixture (LABELED: NOT live-source data)", () =>
               'Truckload freight and hauling services for state facilities.',
               'Harrisburg, PA', 'Services (Non-Medical)',
               NOW() + INTERVAL '14 days', '484110',
-              'https://example.invalid/fixture', '8(a)', 'fixture_test')
+              'https://example.invalid/fixture', 'SBA', 'fixture_test')
       RETURNING id`;
     fixtureId = Number(ins[0].id);
     const r = await runScan("trucking", "Pennsylvania", "sb");
@@ -262,7 +401,7 @@ describe("FORCED query failure surfaces (owner v6) — never a successful empty 
     const { runKeywordScanQuery, RadarScanError } = await import(
       "~/lib/radar-scan-query"
     );
-    const certFrag = dbFactory().unsafe(`AND set_aside IS NOT NULL`);
+    const certFrag = sbCertFragment(dbFactory);
     // Force a genuine Postgres failure INSIDE the keyword-scan path: a
     // syntactically valid predicate referencing a column that does not exist.
     // (Fragment construction is identical to the handler's; only this term is
@@ -284,8 +423,8 @@ describe("FORCED query failure surfaces (owner v6) — never a successful empty 
   });
 });
 
-describe("three-way bucketing + related section (owner v6.1)", () => {
-  test("VA janitorial partitions into local=0 / nationwide>0; related bucket holds the owner-named adjacent rows and NEVER leaks them into strict matches", async () => {
+describe("three-way bucketing + related section (owner v6.1 / PR-C.0)", () => {
+  test("VA janitorial partitions into local (SBA + state-local NULL rows) / nationwide>0; related bucket holds adjacent rows and never duplicates strict matches", async () => {
     if (!HAS_DB) return;
     const { runRelatedScanQuery } = await import("~/lib/radar-scan-query");
     const r = await runScan("janitorial", "Virginia", "sb");
@@ -296,10 +435,23 @@ describe("three-way bucketing + related section (owner v6.1)", () => {
     const nationwide = r.kept.filter(
       (m: any) => resolveBidState(m.location, m.agency) === null,
     );
-    // Honest local 0: no open VA-located 561720/term rows exist in the data
-    // (owner v6.1 restates this as the expected, documented outcome).
-    expect(local.length).toBe(0);
-    // The labeled nationwide bucket still has the real open rows.
+    // LOCAL: (a) the explicit-SBA Salem row (Custodial Services - Salem, VA,
+    // set_aside='SBA' — an SBA marker is a legit Small Business match under
+    // PR-C.0 rule 1; the stale local=0 expectation was ALREADY failing on main
+    // at c9624ee once PR-B's collectors landed that row) and (b) 134726
+    // "Remediation and Specialty Cleaning Services" (Norfolk, VA) — a
+    // state/local-portal row (source wv) with NULL set-aside whose CATEGORY is
+    // Janitorial, so it legitimately matches the strict trade terms and is
+    // pursuable by a small business under PR-C.0 rule 3 (the pre-PR-C.0
+    // `set_aside IS NOT NULL` filter kept it out; the owner's new semantics
+    // admit state/local NULL-set-aside rows).
+    expect(local.length).toBeGreaterThanOrEqual(1);
+    expect(local.some((m: any) => String(m.title).includes("Salem"))).toBe(true);
+    for (const m of local) {
+      expect(certMatches(m.set_aside, [m.source], "sb")).toBe("include");
+    }
+    // Nationwide bucket unchanged (no-resolvable-geography rows keep
+    // surfacing for every state; fed NULL rows stay excluded).
     expect(nationwide.length).toBeGreaterThan(0);
     // Related bucket: adjacent-work rows in VA (set_aside NULL by nature).
     const rel = await runRelatedScanQuery(
@@ -312,10 +464,14 @@ describe("three-way bucketing + related section (owner v6.1)", () => {
       .filter((x: any) => !locationConflict(x.title, x.description, "VA"));
     const ids = rows.map((x: any) => Number(x.id));
     expect(ids).toEqual(expect.arrayContaining([134726, 134575, 134583]));
-    // Adjacent work is NEVER a default janitorial match (strict rule).
+    // Adjacent work is NEVER a default janitorial match: the epoxy rows
+    // (134575/134583, category Other) stay out of strict matches. 134726
+    // legitimately JOINS strict matches under PR-C.0 rule 3 — its category is
+    // Janitorial and it is a state/local NULL-set-aside row (see above).
     const strictIds = r.kept.map((m: any) => Number(m.id));
-    for (const id of [134726, 134575, 134583]) {
+    for (const id of [134575, 134583]) {
       expect(strictIds).not.toContain(id);
     }
+    expect(strictIds).toContain(134726);
   });
 });

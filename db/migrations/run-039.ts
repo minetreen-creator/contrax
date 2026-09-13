@@ -119,7 +119,7 @@ await run(
       normalized_state = ws.st,
       location_conflict = COALESCE(cf.names_other_state, false)
   FROM with_state ws
-  LEFT JOIN conflict cf ON cf.id = b.id
+  LEFT JOIN conflict cf ON cf.id = ws.id
   WHERE b.id = ws.id;
   `,
 );
@@ -137,6 +137,11 @@ await run(
     ran_zero boolean NOT NULL DEFAULT false,
     errors integer NOT NULL DEFAULT 0
   );
+  `,
+);
+await run(
+  "collector_run_log index",
+  `
   CREATE INDEX IF NOT EXISTS idx_collector_run_log_source_ran
     ON collector_run_log (source, ran_at DESC);
   `,

@@ -438,3 +438,69 @@ export function displayPlaceOfPerformance(
   if (locationText && !PLACEHOLDER_LOCATIONS.test(locationText)) return locationText;
   return null;
 }
+
+// ── INSERT-TIME LOCATION COLUMNS (PR-B.2) ───────────────────────────────────
+// Owner PR-C prerequisite: every row INSERTED from now on carries the four
+// additive columns (source_jurisdiction / raw_location / normalized_state /
+// location_conflict) populated — the 21:07Z sync proved 039's backfill cannot
+// fix future rows. This derivation is the SINGLE source of truth for the write
+// path, and it reuses the EXACT read-path authority above (resolveBidState /
+// locationConflict) so stored columns and the radar's query-time derivation can
+// never drift. No guessing: a state is written only when provable from the
+// row's own location/agency text; unprovable rows stay NULL (never guessed).
+// The radar read path and what users see are untouched — this only feeds new
+// INSERTs (and the conflict-refresh of mutable fields).
+
+/** Collectors whose HOME JURISDICTION is provable by construction — the portal
+ *  itself is a state program, so the code is never a guess:
+ *    pennbid       → Pennsylvania local-government solicitation portal.
+ *    va_evirginia  → eVA Virginia; keeps only VA place-of-performance items.
+ *  Everything else derives the jurisdiction from the row's own text (or NULL
+ *  where unprovable) — same conservative rule as normalized_state. */
+const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
+  pennbid: "PA",
+  va_evirginia: "VA",
+};
+
+export interface InsertLocationColumns {
+  source_jurisdiction: string | null;
+  raw_location: string | null;
+  normalized_state: string | null;
+  location_conflict: boolean | null;
+}
+
+/**
+ * Derive the four additive location columns for a row ABOUT to be inserted
+ * (runner's insertBidsBatch / insertBid). PURE — no DB, no server fns.
+ *
+ *   source_jurisdiction — the collector's home jurisdiction USPS code when the
+ *       SOURCE proves it (curated map above); otherwise the row's own
+ *       geography derived exactly like normalized_state; NULL when unprovable.
+ *   raw_location        — the verbatim pre-normalization location value (the
+ *       value stored in bids.location; mirrors the 039 backfill's
+ *       `raw_location = b.location`).
+ *   normalized_state    — resolveBidState(location, agency): performance
+ *       location first, then buyer/agency; NULL when neither proves one.
+ *   location_conflict   — true only when the row's OWN title/description names
+ *       a DIFFERENT state than the derived one (read-path locationConflict);
+ *       false when a state is derived and nothing contradicts it; NULL when no
+ *       state is derived (nothing to contradict — mirrors the backfill's
+ *       NULL-for-unprovable convention).
+ */
+export function deriveInsertLocationColumns(args: {
+  location: string | null | undefined;
+  agency: string | null | undefined;
+  title: string | null | undefined;
+  description: string | null | undefined;
+  sourceName: string;
+}): InsertLocationColumns {
+  const raw = String(args.location ?? "");
+  const raw_location = raw ? raw : null;
+  const normalized_state = resolveBidState(args.location, args.agency);
+  const curated = SOURCE_HOME_JURISDICTIONS[args.sourceName];
+  const source_jurisdiction = curated ?? normalized_state;
+  const location_conflict = normalized_state
+    ? locationConflict(args.title, args.description, normalized_state)
+    : null;
+  return { source_jurisdiction, raw_location, normalized_state, location_conflict };
+}

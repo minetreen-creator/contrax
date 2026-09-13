@@ -28,6 +28,7 @@
 
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { US_STATES } from "../lib/states";
+import { deriveInsertLocationColumns } from "../lib/location-state";
 import { fetchBids as fetchSamGov } from "./sources/sam-gov";
 import { fetchBids as fetchCities } from "./sources/cities";
 import { nysSocrataSource } from "./sources/socrata";
@@ -145,7 +146,7 @@ const TAIL_SOURCES: SyncSource[] = [
 const PARALLEL_BATCH_SIZE = 5;
 /** Politeness delay between serial SAM.gov passes (was 500ms). */
 const INTER_SOURCE_DELAY_MS = 100;
-/** Rows per multi-row INSERT (12 cols × 250 rows = 3,000 params — well under Neon's limit). */
+/** Rows per multi-row INSERT (17 cols × 250 rows = 4,250 params — well under Neon's limit). */
 const INSERT_BATCH_SIZE = 250;
 
 const BID_COLUMNS = [
@@ -162,6 +163,14 @@ const BID_COLUMNS = [
   "external_id",
   "naics_code",
   "naics_code_source",
+  // PR-B.2: insert-time location columns (source_jurisdiction /
+  // raw_location / normalized_state / location_conflict) — derived from the
+  // row's own text via src/lib/location-state.ts (never guessed), so future
+  // syncs write populated rows that match what the radar computes at query time.
+  "source_jurisdiction",
+  "raw_location",
+  "normalized_state",
+  "location_conflict",
 ] as const;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -222,6 +231,17 @@ async function insertBidsBatch(
     // (authoritative from the source, or inferred from title/description).
     const code = bid.naics_code ?? inferNaics(bid.title, bid.description);
     const codeSource = bid.naics_code ? "authoritative" : code ? "inferred" : null;
+    // PR-B.2: derive the 4 additive location columns from the row's own text
+    // (same conservative logic the radar read path uses — never guessed). The
+    // stored `source` value is used for the source-name input so pennbid /
+    // va_evirginia resolve to their curated PA / VA home jurisdictions.
+    const loc = deriveInsertLocationColumns({
+      location: bid.location,
+      agency: bid.agency,
+      title: bid.title,
+      description: bid.description,
+      sourceName: bid.source_label ?? source.name,
+    });
     const row = [
       bid.title,
       bid.agency,
@@ -236,15 +256,26 @@ async function insertBidsBatch(
       bid.external_id,
       code,
       codeSource,
+      loc.source_jurisdiction,
+      loc.raw_location,
+      loc.normalized_state,
+      // Text-encoded boolean + explicit ::boolean cast (same driver-safety
+      // pattern as the due_date ::timestamptz cast below): the untyped VALUES
+      // list otherwise yields text and Postgres refuses implicit text→boolean
+      // in INSERT…SELECT.
+      loc.location_conflict === null ? null : loc.location_conflict ? "true" : "false",
     ];
-    // Index 6 is due_date (TIMESTAMPTZ). The untyped VALUES list otherwise
-    // yields a text column, and PostgreSQL refuses an implicit text→timestamptz
-    // cast in INSERT…SELECT (it would only coerce untyped literals). Casting it
-    // here mirrors the single-bid path's explicit `::timestamptz` so EXCLUDED
-    // and the conflict guard compare timestamptz-to-timestamptz reliably.
+    // Index 6 is due_date (TIMESTAMPTZ) and index 16 is location_conflict
+    // (BOOLEAN). The untyped VALUES list otherwise yields a text column, and
+    // PostgreSQL refuses an implicit text→timestamptz / text→boolean cast in
+    // INSERT…SELECT (it would only coerce untyped literals). Casting them here
+    // mirrors the single-bid path's explicit casts so EXCLUDED and the conflict
+    // guard compare timestamptz-to-timestamptz / boolean-to-boolean reliably.
     const placeholders = row
       .map((_, j) =>
-        "$" + (params.length + j + 1) + (j === 6 ? "::timestamptz" : ""),
+        "$" +
+          (params.length + j + 1) +
+          (j === 6 ? "::timestamptz" : j === 16 ? "::boolean" : ""),
       )
       .join(", ");
     valueRows.push(`(${placeholders})`);
@@ -256,7 +287,8 @@ async function insertBidsBatch(
      SELECT * FROM (VALUES ${valueRows.join(", ")})
        AS v(title, agency, description, location, category, set_aside,
             due_date, estimated_value, source_url, source, external_id,
-            naics_code, naics_code_source)
+            naics_code, naics_code_source, source_jurisdiction, raw_location,
+            normalized_state, location_conflict)
      -- Cross-source dedup guard: skip a row whose natural key (title, agency)
      -- already exists in bids. Multiple sync sources return the SAME national
      -- solicitation (e.g. state-keyword sources va and va_evirginia), so
@@ -283,6 +315,12 @@ async function insertBidsBatch(
          WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
          ELSE bids.naics_code_source
        END,
+       -- PR-B.2: keep the additive location columns aligned with the row's
+       -- current mutable fields (they follow location/agency/title changes).
+       source_jurisdiction = EXCLUDED.source_jurisdiction,
+       raw_location = EXCLUDED.raw_location,
+       normalized_state = EXCLUDED.normalized_state,
+       location_conflict = EXCLUDED.location_conflict,
        -- Source-freshness: advance ONLY when the compute-saver guard below
        -- concludes a real change (the WHERE clause gates the whole UPDATE, so
        -- no-op re-syncs leave updated_at untouched). Feeds the AI Executive
@@ -301,12 +339,21 @@ async function insertBidsBatch(
      WHERE (bids.title, bids.location, bids.category, bids.due_date,
             bids.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
             CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
-                 ELSE bids.naics_code_source END)
+                 ELSE bids.naics_code_source END,
+            -- PR-B.2: plain equality on the additive columns (NOT COALESCE'd):
+            -- a row whose stored columns are still NULL but whose incoming
+            -- values are populated counts as a REAL change, so the first
+            -- re-sync of a pre-PR-B.2 row populates its location columns;
+            -- once populated (values equal), the no-op skip resumes.
+            bids.source_jurisdiction, bids.raw_location, bids.normalized_state,
+            bids.location_conflict)
            IS DISTINCT FROM
            (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date::timestamptz,
             EXCLUDED.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
             CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
-                 ELSE bids.naics_code_source END)
+                 ELSE bids.naics_code_source END,
+            EXCLUDED.source_jurisdiction, EXCLUDED.raw_location,
+            EXCLUDED.normalized_state, EXCLUDED.location_conflict)
      RETURNING id, external_id, (xmax = 0) AS inserted`,
     params,
   )) as any[];
@@ -342,8 +389,17 @@ async function insertBid(
   // authoritative code, and label provenance alongside whatever code is stored.
   const code = bid.naics_code ?? inferNaics(bid.title, bid.description);
   const codeSource = bid.naics_code ? "authoritative" : code ? "inferred" : null;
+  // PR-B.2: derive the 4 additive location columns (same conservative logic as
+  // the batch path — never guessed).
+  const loc = deriveInsertLocationColumns({
+    location: bid.location,
+    agency: bid.agency,
+    title: bid.title,
+    description: bid.description,
+    sourceName: bid.source_label ?? source.name,
+  });
   const result = (await sql`
-    INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code, naics_code_source)
+    INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code, naics_code_source, source_jurisdiction, raw_location, normalized_state, location_conflict)
     SELECT
       ${bid.title},
       ${bid.agency},
@@ -357,7 +413,11 @@ async function insertBid(
       ${bid.source_label ?? source.name},
       ${bid.external_id},
       ${code},
-      ${codeSource}
+      ${codeSource},
+      ${loc.source_jurisdiction},
+      ${loc.raw_location},
+      ${loc.normalized_state},
+      ${loc.location_conflict === null ? null : loc.location_conflict ? "true" : "false"}::boolean
     -- Cross-source dedup guard (same natural-key check as the batch path).
     WHERE NOT EXISTS (
       SELECT 1 FROM bids b
@@ -375,19 +435,31 @@ async function insertBid(
         WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
         ELSE bids.naics_code_source
       END,
+      -- PR-B.2: keep the additive location columns aligned with the row's
+      -- current mutable fields.
+      source_jurisdiction = EXCLUDED.source_jurisdiction,
+      raw_location = EXCLUDED.raw_location,
+      normalized_state = EXCLUDED.normalized_state,
+      location_conflict = EXCLUDED.location_conflict,
       updated_at = NOW()
     -- Same compute saver as the batch path: skip no-op rewrites of unchanged
-    -- bids. Dry: a skipped conflict returns no row (result.length === 0), so
-    -- it is not treated as new.
+    -- bids (plain equality on the additive columns — a NULL-stored row whose
+    -- incoming values are populated counts as a real change). Dry: a skipped
+    -- conflict returns no row (result.length === 0), so it is not treated as
+    -- new.
     WHERE (bids.title, bids.location, bids.category, bids.due_date,
            bids.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
            CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
-                ELSE bids.naics_code_source END)
+                ELSE bids.naics_code_source END,
+           bids.source_jurisdiction, bids.raw_location, bids.normalized_state,
+           bids.location_conflict)
           IS DISTINCT FROM
           (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date,
            EXCLUDED.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
            CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
-                ELSE bids.naics_code_source END)
+                ELSE bids.naics_code_source END,
+           EXCLUDED.source_jurisdiction, EXCLUDED.raw_location,
+           EXCLUDED.normalized_state, EXCLUDED.location_conflict)
     RETURNING id, (xmax = 0) AS inserted
   `) as any[];
   if (result.length === 0 || !result[0].inserted) return null;

@@ -33,6 +33,12 @@ import {
   runRelatedScanQuery,
   logScanFailure,
 } from "~/lib/radar-scan-query";
+import {
+  raceRadarScan,
+  RADAR_SCAN_TIMEOUT_MS,
+  RADAR_SCAN_TIMEOUT_ERROR,
+  type RadarScanRace,
+} from "~/lib/radar-scan-runner";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -757,6 +763,12 @@ type ScanState =
   | { status: "loading" }
   | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections }
   | { status: "error" };
+/** Resolved payload of a successful runRadarScan call (handler return shape). */
+type ScanResult = {
+  matches: RadarMatch[];
+  certLabel: string;
+  sections: RadarSections;
+};
 /** USPS code → full state name (for section labels). */
 const STATE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
   Object.entries(STATE_NAME_TO_CODE).map(([name, code]) => [code, name]),
@@ -850,6 +862,19 @@ function RadarLanding() {
     };
   }, [flashTimer]);
 
+  // OWNER 09-14 HARDENING: the Radar screen can never be left stuck on
+  // "scanning…". scanCancelledRef flips true on unmount and every success /
+  // failure handler checks it before touching state; scanRaceRef holds the
+  // active scan race so unmount can clear the 15s timeout timer too.
+  const scanCancelledRef = useRef(false);
+  const scanRaceRef = useRef<RadarScanRace<ScanResult> | null>(null);
+  useEffect(() => {
+    return () => {
+      scanCancelledRef.current = true;
+      scanRaceRef.current?.clearTimer();
+    };
+  }, []);
+
   // Persist the visitor's radar criteria as they answer (no email involved).
   // Saved only once they're complete (cert + size chosen). /signup and /radar
   // both read this to make resuming a ~10s continuation instead of a restart.
@@ -897,55 +922,108 @@ function RadarLanding() {
     setRevealed(Math.min(next, Math.max(cap, 0)));
   };
 
-  const runScan = (input: { trade: string; state: string; cert: RadarCert; sizePref: SizeId }) => {
+  const runScan = (
+    input: { trade: string; state: string; cert: RadarCert; sizePref: SizeId },
+    opts?: { timeoutMs?: number },
+  ) => {
     // A visitor-initiated scan is real activity — from here on the save effect
     // may persist the criteria (and runScan itself persists the SEEN matches).
     didInteract.current = true;
     trackEvent("radar_scan_start", input.cert);
     setScan({ status: "loading" });
     setRevealed(0);
+
+    // OWNER 09-14 HARDENING — the "scanning…" screen can NEVER stay stuck:
+    //  1. the runRadarScan invocation is wrapped in a try/catch so a
+    //     synchronous throw cannot leave scan.status="loading";
+    //  2. a 15s client timeout (RADAR_SCAN_TIMEOUT_MS) races the real scan via
+    //     Promise.race (lib raceRadarScan — owner-verbatim structure, unit
+    //     tested for all four exit paths);
+    //  3. on timeout OR any error: state moves to the existing error/retry
+    //     screen and a radar_scan_failed event logs reason "timeout" |
+    //     "request_error" — a failed request never shows an honest-zero result;
+    //  4. the race timer is cleared on BOTH success and failure (clearTimer in
+    //     .then and .catch) and on unmount (scanCancelledRef / scanRaceRef).
+    // Latency note (for review): representative real scans can take 10-30s+
+    // cold/heavier trades, so the 15s cap will surface the error screen +
+    // Try again for slow scans — by design per owner spec (see PR body).
+    const handleSuccessfulScan = (res: ScanResult) => {
+      // Success path — clear the 15s timer, then guard against unmount.
+      scanRaceRef.current?.clearTimer();
+      if (scanCancelledRef.current) return;
+      if (flashTimer) window.clearTimeout(flashTimer);
+      trackEvent("radar_scan_complete", input.cert);
+      // The soft nudge is visible the moment the FIRST match is revealed
+      // (revealed stays 0 on completion), so attribute its impression here.
+      if (res.matches.length > 0) trackEvent("radar_nudge_shown", res.certLabel);
+      // Persist this anonymous radar session (criteria + the REAL
+      // server-computed matches) so a later signup/login can pick it up
+      // in-app — no email involved (owner-directed: no email capture).
+      //
+      // PR1 seenCount: anonymous visitors see the first FREE matches up
+      // front (no more reveal-one-at-a-time until match 4); the count is
+      // set to how many they are entitled to see now (min(total, free cap))
+      // — /dashboard + /signup read this to show their matches.
+      const seenCap = getTrackingUser() ? res.matches.length : Math.min(res.matches.length, FREE_ANONYMOUS_RADAR_RESULTS);
+      saveRadarSeen({
+        answers: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref },
+        certLabel: res.certLabel,
+        total: res.matches.length,
+        seenCount: seenCap,
+        matches: res.matches.map((m) => ({
+          id: m.id,
+          title: m.title,
+          agency: m.agency,
+          score: m.score,
+          score_label: m.score_label,
+          due_date: m.due_date,
+          source_url: m.source_url,
+        })),
+      });
+      setScan({ status: "done", matches: res.matches, certLabel: res.certLabel, sections: res.sections });
+      setStep(3);
+    };
+
+    const handleFailedScan = (error: unknown) => {
+      // Failure path — clear the 15s timer, then guard against unmount.
+      scanRaceRef.current?.clearTimer();
+      if (scanCancelledRef.current) return;
+      if (flashTimer) window.clearTimeout(flashTimer);
+      // NEVER an honest-zero result: a failed request only ever lands on the
+      // error/retry screen, with the cause logged for the funnel.
+      setScan({ status: "error" });
+      setStep(3);
+      trackEvent(
+        "radar_scan_failed",
+        error instanceof Error && error.message === RADAR_SCAN_TIMEOUT_ERROR
+          ? "timeout"
+          : "request_error",
+      );
+    };
+
     // Small real processing pause so the "scanning" reveal reads as active work,
     // while the actual match computation happens server-side over live data.
     const t = window.setTimeout(() => {
-      runRadarScan({ data: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref } })
-        .then((res) => {
-          if (flashTimer) window.clearTimeout(flashTimer);
-          trackEvent("radar_scan_complete", input.cert);
-          // The soft nudge is visible the moment the FIRST match is revealed
-          // (revealed stays 0 on completion), so attribute its impression here.
-          if (res.matches.length > 0) trackEvent("radar_nudge_shown", res.certLabel);
-          // Persist this anonymous radar session (criteria + the REAL
-          // server-computed matches) so a later signup/login can pick it up
-          // in-app — no email involved (owner-directed: no email capture).
-          //
-          // PR1 seenCount: anonymous visitors see the first FREE matches up
-          // front (no more reveal-one-at-a-time until match 4); the count is
-          // set to how many they are entitled to see now (min(total, free cap))
-          // — /dashboard + /signup read this to show their matches.
-          const seenCap = getTrackingUser() ? res.matches.length : Math.min(res.matches.length, FREE_ANONYMOUS_RADAR_RESULTS);
-          saveRadarSeen({
-            answers: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref },
-            certLabel: res.certLabel,
-            total: res.matches.length,
-            seenCount: seenCap,
-            matches: res.matches.map((m) => ({
-              id: m.id,
-              title: m.title,
-              agency: m.agency,
-              score: m.score,
-              score_label: m.score_label,
-              due_date: m.due_date,
-              source_url: m.source_url,
-            })),
-          });
-          setScan({ status: "done", matches: res.matches, certLabel: res.certLabel, sections: res.sections });
-          setStep(3);
-        })
-        .catch(() => {
-          if (flashTimer) window.clearTimeout(flashTimer);
-          setScan({ status: "error" });
-          setStep(3);
-        });
+      try {
+        const race = raceRadarScan<ScanResult>(
+          () =>
+            runRadarScan({
+              data: {
+                trade: input.trade,
+                state: input.state,
+                cert: input.cert,
+                sizePref: input.sizePref,
+              },
+            }),
+          opts?.timeoutMs ?? RADAR_SCAN_TIMEOUT_MS,
+        );
+        scanRaceRef.current = race;
+        race.promise.then(handleSuccessfulScan).catch(handleFailedScan);
+      } catch (error) {
+        // Synchronous throw from the invocation itself — same failure path,
+        // so status can never remain "loading".
+        handleFailedScan(error);
+      }
     }, 1100);
     setFlashTimer(t);
     setStep(2);

@@ -733,43 +733,6 @@ async function handleAnalytics(req: Request): Promise<Response> {
   }
 }
 
-// ── Sync-Bids handler ─────────────────────────────────────────────────────────
-
-async function handleSyncBidsRoute(
-  req: IncomingMessage,
-): Promise<{ status: number; body: string }> {
-  try {
-    // Auth check
-    const authHeader = req.headers["authorization"] as string | undefined;
-    const expectedToken = process.env.SYNC_TOKEN;
-
-    if (!expectedToken) {
-      return {
-        status: 500,
-        body: JSON.stringify({ error: "SYNC_TOKEN not configured on server" }),
-      };
-    }
-
-    if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
-      return {
-        status: 401,
-        body: JSON.stringify({ error: "Unauthorized" }),
-      };
-    }
-
-    const { runSync } = await import("./src/jobs/runner.ts");
-    const result = await runSync();
-
-    return { status: 200, body: JSON.stringify(result) };
-  } catch (err) {
-    console.error("sync-bids error:", err);
-    return {
-      status: 500,
-      body: JSON.stringify({ error: "Internal server error" }),
-    };
-  }
-}
-
 // ── Main handler ──────────────────────────────────────────────────────────────
 
 export default async function vercelHandler(
@@ -855,14 +818,6 @@ export default async function vercelHandler(
       return;
     }
 
-    // Sync bids — cron endpoint
-    if (url.pathname === "/api/sync-bids" && req.method === "POST") {
-      const { status, body } = await handleSyncBidsRoute(req);
-      res.statusCode = status;
-      res.setHeader("content-type", "application/json");
-      res.end(body);
-      return;
-    }
 
     // 1-hour edge cache on public SSR marketing/SEO routes (home, map, radar,
     // state pages, industry hub, cert-hub hubs, and the trades landing page).

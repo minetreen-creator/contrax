@@ -19,12 +19,14 @@ import {
   type RadarCertId,
 } from "~/lib/radar-session";
 import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
-import { expandTrade, tradeKeywordPred, tradeProvenanceFor, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
 import {
   normalizeStateInput,
   resolveBidState,
   locationConflict,
   geoRelevant as geoRelevantByState,
+  isNationalScope,
+  matchGeographyBucket,
   STATE_NAME_TO_CODE,
   displayPlaceOfPerformance,
 } from "~/lib/location-state";
@@ -183,7 +185,10 @@ function computeMatch(
   let geo = 12;
   if (input.state) {
     const bidState = resolveBidState(bid.location, bid.agency);
-    geo = bidState === input.state ? 20 : 12;
+    // A NATIONAL-SCOPE location never earns the state-local geography credit
+    // (owner 09-14): "United States"-located rows are eligible nationwide, not
+    // local to the buyer's state.
+    geo = !isNationalScope(bid.location) && bidState === input.state ? 20 : 12;
   }
 
   // Size fit
@@ -367,7 +372,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
       throw e;
     }
 
-    const ranked = rows
+    const scored = rows
       .filter((r) => {
         // Contradictory-location exclusion (owner 09-13): a row whose own
         // title/description names a DIFFERENT state's place signal than its
@@ -396,10 +401,17 @@ export const runRadarScan = createServerFn({ method: "POST" })
         });
         const bidText = `${bid.title || ""} ${bid.category || ""} ${bid.description || ""}`;
         const tradeProvenance = tradeProvenanceFor(bidText, expansion, bid.naics_code);
-        return { bid, score, scoreLabel, tradeProvenance };
+        return { bid, score, scoreLabel, tradeProvenance, strong: isStrongTradeMatch(bid.title, bid.category, bid.description, bid.naics_code, expansion) };
       })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
+      .sort((a, b) => b.score - a.score);
+    // FIX 1 (owner 09-14): only TITLE/NAICS-corroborated rows are DEFAULT
+    // matches. Description/category-only keyword hits (junk category stamps
+    // like "Construction" on a food bid, stray "security" wording) are WEAK —
+    // excluded from the default result set and handled under Related
+    // opportunities below (state-local rows only). NAICS-input queries are
+    // exact-code matches and are strong by construction.
+    const ranked = scored.filter((m) => m.strong).slice(0, 5);
+    const weakRowCandidates = scored.filter((m) => !m.strong);
 
     // Incumbent intel: only fetched + surfaced when the flag is ON (see
     // ~/lib/radar-config.ts). In teaser mode we skip the FPDS calls entirely.
@@ -516,8 +528,11 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const local: RadarMatch[] = [];
     const nationwide: RadarMatch[] = [];
     for (const m of matches) {
-      const bidState = resolveBidState(m.location, m.agency);
-      if (state !== "" && bidState === state) local.push(m);
+      // OWNER 09-14 (FIX 2): a NATIONAL-SCOPE contract ("United States", "RC",
+      // "Multiple locations"…) is NEVER a local match — even when the buyer/
+      // agency field names a state. matchGeographyBucket is the single source
+      // of truth (also exercised by the regression tests).
+      if (matchGeographyBucket(state, m.location, m.agency) === "local") local.push(m);
       else nationwide.push(m);
     }
     // Related rows are state-local adjacent work with related provenance (no
@@ -551,6 +566,38 @@ export const runRadarScan = createServerFn({ method: "POST" })
         trade_provenance: null,
         reasons: [
           `Related opportunity — adjacent work, not a direct "${trade}" match`,
+          `Located in ${state}${bid.set_aside ? ` — ${String(bid.set_aside)} set-aside` : " — no set-aside designation (listed for awareness)"}`,
+        ],
+        qualifications: [], requirements: buildRequirements(bid), next_action: buildNextAction(bid),
+        incumbent: null, learned: null,
+      });
+    }
+    // FIX 1 (owner 09-14): description/category-only keyword hits (WEAK —
+    // no title term, no implied NAICS) join the explicitly labeled Related
+    // section when they are state-local; identical guards to relatedRows
+    // (state resolution, contradiction exclusion, no duplicate of a strict
+    // match or of an adjacent-work row). Nationwide weak rows are dropped
+    // entirely — they are not local and not adjacent-local work, so they must
+    // not dilute any default bucket.
+    for (const w of weakRowCandidates) {
+      const bid = w.bid;
+      const resolved = resolveBidState(bid.location, bid.agency);
+      if (resolved !== state) continue;
+      if (locationConflict(bid.title, bid.description, resolved)) continue;
+      if (matches.some((m) => m.id === bid.id)) continue;
+      if (related.some((m) => m.id === bid.id)) continue;
+      related.push({
+        id: bid.id, title: bid.title, agency: bid.agency, category: bid.category,
+        location: bid.location, set_aside: bid.set_aside,
+        set_aside_label: setAsideCardLabel(bid.set_aside),
+        naics_code: bid.naics_code,
+        source_url: bid.source_url, estimated_value: bid.estimated_value,
+        estimated_value_num: parseValue(bid.estimated_value),
+        due_date: bid.due_date, days_remaining: daysRemaining(bid.due_date),
+        score: w.score, score_label: w.scoreLabel,
+        trade_provenance: null,
+        reasons: [
+          `Related opportunity — "${trade}" appears only in the description/category, not the title/NAICS (listed as adjacent evidence, never a default match)`,
           `Located in ${state}${bid.set_aside ? ` — ${String(bid.set_aside)} set-aside` : " — no set-aside designation (listed for awareness)"}`,
         ],
         qualifications: [], requirements: buildRequirements(bid), next_action: buildNextAction(bid),
@@ -674,9 +721,10 @@ function buildReasons(
     const bidState = resolveBidState(bid.location, bid.agency);
     // v6.2: "nationalwide" is the card's ELIGIBILITY tag; this reason bullet
     // states eligibility plainly — never a location claim (the card shows the
-    // real place of performance separately).
+    // real place of performance separately). Owner 09-14: a national-scope
+    // location never borrows the buyer/agency state either.
     reasons.push(
-      bidState === c.state
+      !isNationalScope(bid.location) && bidState === c.state
         ? `Located in ${STATE_CODE_TO_NAME[c.state] ?? c.state} (verified)`
         : "Eligible from any state — national set-aside row",
     );
@@ -1550,7 +1598,10 @@ export function RadarCard({
   // v6.2: the REAL place of performance + whether this card is in the
   // nationwide-eligibility bucket (never a location claim — see the tag below).
   const bidState = resolveBidState(match.location, match.agency);
-  const isStateLocal = state !== "" && bidState === state;
+  // Owner 09-14: a national-scope location is never state-local — the card's
+  // "nationalwide" eligibility tag must show even when the buyer/agency field
+  // names the requested state.
+  const isStateLocal = state !== "" && !isNationalScope(match.location) && bidState === state;
   const place = displayPlaceOfPerformance(match.title, match.location, match.agency);
   const courierSubtype = isCourierFamilyNaics(match.naics_code) && !tradeExpresslyCourier(trade);
   const rawVal = (match.estimated_value || "").trim();

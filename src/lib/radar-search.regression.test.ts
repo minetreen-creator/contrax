@@ -37,7 +37,7 @@
  */
 import { afterAll, describe, expect, test } from "bun:test";
 import { sql as dbFactory } from "~/db";
-import { expandTrade, tradeKeywordPred, RELATED_TRADE_TERMS } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, isStrongTradeMatch, RELATED_TRADE_TERMS } from "~/lib/trade-registry";
 import { setAsidePred } from "~/lib/open-bids";
 import {
   certMatches,
@@ -51,6 +51,8 @@ import {
   resolveBidState,
   geoRelevant,
   locationConflict,
+  isNationalScope,
+  matchGeographyBucket,
 } from "~/lib/location-state";
 import { runKeywordScanQuery, runRelatedScanQuery, RadarScanError } from "~/lib/radar-scan-query";
 
@@ -96,7 +98,16 @@ async function runScan(trade: string, stateIn: string, cert: string) {
       geoRelevant(r.location, r.agency, state)
     );
   });
-  return { rows, kept, expansion, state };
+  // FIX 1 (owner 09-14): same strong/weak classification the handler applies —
+  // DEFAULT-eligible rows are TITLE/NAICS-corroborated; description/category-
+  // only hits are weak and belong under Related opportunities.
+  const strong = kept.filter((m: any) =>
+    isStrongTradeMatch(m.title, m.category, m.description, m.naics_code, expansion),
+  );
+  const weak = kept.filter(
+    (m: any) => !isStrongTradeMatch(m.title, m.category, m.description, m.naics_code, expansion),
+  );
+  return { rows, kept, strong, weak, expansion, state };
 }
 
 const JANITORIAL_TERMS = [
@@ -428,30 +439,47 @@ describe("three-way bucketing + related section (owner v6.1 / PR-C.0)", () => {
     if (!HAS_DB) return;
     const { runRelatedScanQuery } = await import("~/lib/radar-scan-query");
     const r = await runScan("janitorial", "Virginia", "sb");
-    // Same classification rule the handler uses (resolveBidState vs requested state).
-    const local = r.kept.filter(
-      (m: any) => resolveBidState(m.location, m.agency) === "VA",
+    // Same classification rule the handler now uses (FIX 1 + FIX 2 owner 09-14):
+    // the local bucket holds STRONG rows whose geography bucket is local.
+    const local = r.strong.filter(
+      (m: any) => matchGeographyBucket("VA", m.location, m.agency) === "local",
     );
-    const nationwide = r.kept.filter(
-      (m: any) => resolveBidState(m.location, m.agency) === null,
-    );
-    // LOCAL: (a) the explicit-SBA Salem row (Custodial Services - Salem, VA,
-    // set_aside='SBA' — an SBA marker is a legit Small Business match under
-    // PR-C.0 rule 1; the stale local=0 expectation was ALREADY failing on main
-    // at c9624ee once PR-B's collectors landed that row) and (b) 134726
-    // "Remediation and Specialty Cleaning Services" (Norfolk, VA) — a
-    // state/local-portal row (source wv) with NULL set-aside whose CATEGORY is
-    // Janitorial, so it legitimately matches the strict trade terms and is
-    // pursuable by a small business under PR-C.0 rule 3 (the pre-PR-C.0
-    // `set_aside IS NOT NULL` filter kept it out; the owner's new semantics
-    // admit state/local NULL-set-aside rows).
-    expect(local.length).toBeGreaterThanOrEqual(1);
-    expect(local.some((m: any) => String(m.title).includes("Salem"))).toBe(true);
+    // Honest inventory tie (PR-B gap pattern — PA-trucking precedent, owner
+    // v5 rule 1): the matcher returns what the DB stores, never manufactured
+    // results. VA-local janitorial inventory is 0 RIGHT NOW (the explicit-SBA
+    // Salem row 136176 "Custodial Services - Salem, VA" closed 2026-09-14T15:00Z
+    // and PR-B's state-portal ingestion remains thin). When the inventory
+    // returns, the invariant checks below lock the bucket behavior.
+    const inv: any[] = await dbFactory()`
+      SELECT count(*) AS n FROM bids
+      WHERE due_date > NOW()
+        AND (LOWER(COALESCE(location,'')) LIKE '%virginia%'
+             OR LOWER(COALESCE(location,'')) LIKE '%, va%'
+             OR LOWER(COALESCE(location,'')) = 'va')
+        AND (LOWER(COALESCE(title,'')) LIKE '%janitor%'
+             OR LOWER(COALESCE(title,'')) LIKE '%custodial%'
+             OR LOWER(COALESCE(title,'')) LIKE '%housekeeping%'
+             OR LOWER(COALESCE(naics_code,'')) = '561720')`;
+    const stored = Number(inv[0]?.n ?? 0);
+    if (stored === 0) {
+      expect(local.length).toBe(0); // honest: no open VA-local janitorial rows stored
+    }
     for (const m of local) {
+      // FIX 1: every local row is TITLE/NAICS-corroborated (strong).
+      expect(
+        isStrongTradeMatch(m.title, m.category, m.description, m.naics_code, r.expansion),
+      ).toBe(true);
+      // FIX 2: a local row is never national-scope, never an agency-fallback
+      // of a national-scope location.
+      expect(isNationalScope(m.location)).toBe(false);
+      expect(matchGeographyBucket("VA", m.location, m.agency)).toBe("local");
       expect(certMatches(m.set_aside, [m.source], "sb")).toBe("include");
     }
     // Nationwide bucket unchanged (no-resolvable-geography rows keep
     // surfacing for every state; fed NULL rows stay excluded).
+    const nationwide = r.kept.filter(
+      (m: any) => resolveBidState(m.location, m.agency) === null,
+    );
     expect(nationwide.length).toBeGreaterThan(0);
     // Related bucket: adjacent-work rows in VA (set_aside NULL by nature).
     const rel = await runRelatedScanQuery(
@@ -465,14 +493,17 @@ describe("three-way bucketing + related section (owner v6.1 / PR-C.0)", () => {
     const ids = rows.map((x: any) => Number(x.id));
     expect(ids).toEqual(expect.arrayContaining([134726, 134575, 134583]));
     // Adjacent work is NEVER a default janitorial match: the epoxy rows
-    // (134575/134583, category Other) stay out of strict matches. 134726
-    // legitimately JOINS strict matches under PR-C.0 rule 3 — its category is
-    // Janitorial and it is a state/local NULL-set-aside row (see above).
-    const strictIds = r.kept.map((m: any) => Number(m.id));
-    for (const id of [134575, 134583]) {
+    // (134575/134583, category Other) stay out of strict matches. 134726's
+    // category is Janitorial but its TITLE/NAICS do not corroborate the trade
+    // ("Remediation and Specialty Cleaning" carries no janitorial expansion
+    // term; naics is NULL) — under FIX 1 (owner 09-14) it is WEAK evidence and
+    // belongs in Related opportunities (the owner's v6.1 original placement),
+    // never in the default result set.
+    const strictIds = r.strong.map((m: any) => Number(m.id));
+    for (const id of [134575, 134583, 134726]) {
       expect(strictIds).not.toContain(id);
     }
-    expect(strictIds).toContain(134726);
+    expect(r.weak.map((m: any) => Number(m.id))).toContain(134726);
   });
 });
 
@@ -544,5 +575,209 @@ describe("any-state (nationwide) radar form gating + headings (owner spec: state
     expect(showNationwideHeading("VA", 0)).toBe(false);
     expect(scanningSuffix("VA")).toBe(" in VA");
     expect(summaryForState("VA", 5, 2, 3)).toBe("2 local · 3 nationwide set-aside opportunities");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX 1 + FIX 2 — RADAR MATCH-QUALITY + LOCAL-ACCURACY (owner 09-14, owner-gated
+// PR). The six real bids below are the owner's regression fixtures:
+//   132562 Frozen Beef Coarse Ground Products      (category "Construction")
+//   135195 Dental Pro Curing Light Introductory Kits (category "Construction")
+//   126573 Commercial food delivery service for MSG (category "Security")
+//   133297 Market Research … Training Services       (category "Security")
+//   134321 Solid Waste Disposal and Backhauling      (title "…BACKHAULING")
+//   136051/136136 PA PennBid sludge-hauling — MUST remain local trucking.
+// Every fixture's title/category/naics is the LIVE stored row (verified
+// 2026-09-14); the pure cases classify with the SAME exported helpers the
+// handler runs (isStrongTradeMatch / matchGeographyBucket / isNationalScope),
+// and the DB-backed cases drive the REAL pipeline (runScan above) and the real
+// row ids.
+
+describe("FIX 1 match quality (owner 09-14): description/category-only keyword hits are never default matches", () => {
+  const CONSTRUCTION = expandTrade("construction");
+  const SECURITY = expandTrade("security");
+  const TRUCKING = expandTrade("trucking");
+  const JANITORIAL = expandTrade("janitorial");
+
+  test("Frozen Beef 132562 + Dental Light 135195 are NOT strong construction matches (junk category stamp only)", () => {
+    expect(
+      isStrongTradeMatch(
+        "Frozen Beef Coarse Ground Products for use in Domestic Food Assistance Programs",
+        "Construction",
+        "This is a combined synopsis/solicitation for commercial products",
+        "311612",
+        CONSTRUCTION,
+      ),
+    ).toBe(false);
+    expect(
+      isStrongTradeMatch(
+        "Dental Pro Curing Light Introductory Kits",
+        "Construction",
+        "The Indian Health Service, Chinle Service Unit … deliver Den…",
+        "339114",
+        CONSTRUCTION,
+      ),
+    ).toBe(false);
+  });
+
+  test("food-delivery 126573 + market-research 133297 are NOT strong security matches (description/category wording only)", () => {
+    expect(
+      isStrongTradeMatch(
+        "Commercial food delivery service for MSG",
+        "Security",
+        "…food services program for U.S. Government at U.S. Embassy Tallinn for Marine Security Guards…",
+        "561612",
+        SECURITY,
+      ),
+    ).toBe(false);
+    expect(
+      isStrongTradeMatch(
+        "Market Research for Specialized Flight Test and Evaluation Training Services",
+        "Security",
+        "…test pilot training…",
+        null,
+        SECURITY,
+      ),
+    ).toBe(false);
+  });
+
+  test("title-corroborated trucking rows stay STRONG (legit matches must remain)", () => {
+    // 134321 Solid Waste/Backhauling — title "…BACKHAULING" contains the
+    // expansion term "hauling"; the owner's waste→trucking case from the
+    // 50-state matrix MUST stay a trucking match.
+    expect(
+      isStrongTradeMatch(
+        "F--SOLID WASTE DISPOSAL AND BACKHAULING - TUBA CITY D",
+        "Other",
+        "SOLID WASTE DISPOSAL AND BACKHAULING - TUBA CITY DUMP PROJECT",
+        null,
+        TRUCKING,
+      ),
+    ).toBe(true);
+    // PA PennBid sludge-hauling rows (zero-results-fix acceptance).
+    expect(
+      isStrongTradeMatch("2027 Sludge Hauling Contracts", "Transportation", "Open PennBid solicitation…", null, TRUCKING),
+    ).toBe(true);
+    expect(
+      isStrongTradeMatch("Hauling of Dewatered Sludge", "Transportation", "Open PennBid solicitation…", null, TRUCKING),
+    ).toBe(true);
+    // NYC Housing Authority mattress-hauling row (title corroboration).
+    expect(
+      isStrongTradeMatch(
+        "Expressions of interest for Mattress Hauling and Recycling Services",
+        "Services (other than human services)",
+        "The Asset and Capital Management Sustainability Department…",
+        "562920",
+        TRUCKING,
+      ),
+    ).toBe(true);
+  });
+
+  test("janitorial: title/NAICS rows stay strong; category-only 134726 is WEAK (Related only)", () => {
+    // Strong: title term ("custodial") AND/OR implied NAICS 561720.
+    expect(isStrongTradeMatch("Custodial Services at TX190, Denton, TX", "Janitorial", "…", "561720", JANITORIAL)).toBe(true);
+    expect(isStrongTradeMatch("Custodial Services - Salem, VA", "Facilities", "…", null, JANITORIAL)).toBe(true);
+    expect(isStrongTradeMatch("USCG - JANITORIAL SERVICES - BASE NEW ORLEANS", "Janitorial", "…", null, JANITORIAL)).toBe(true);
+    // Weak: title carries NO janitorial expansion term ("cleaning" is
+    // generic-blocked), naics NULL — only the category stamp matches.
+    expect(
+      isStrongTradeMatch("Remediation and Specialty Cleaning Services", "Janitorial", "…biohazard remediation, specialty cleaning…", null, JANITORIAL),
+    ).toBe(false);
+  });
+
+  test("real pipeline: construction + security defaults exclude the four flagged bids (DB-backed)", async () => {
+    if (!HAS_DB) return;
+    const c = await runScan("construction", "New York", "sb");
+    const cIds = c.strong.map((m: any) => Number(m.id));
+    expect(cIds).not.toContain(132562);
+    expect(cIds).not.toContain(135195);
+    const s = await runScan("security", "Virginia", "sb");
+    const sIds = s.strong.map((m: any) => Number(m.id));
+    expect(sIds).not.toContain(126573);
+    expect(sIds).not.toContain(133297);
+    // The flagged rows may still be weak candidates (allowed under the
+    // explicitly labeled Related section for their state), never defaults.
+  });
+
+  test("real pipeline: PA trucking sludge rows remain strong LOCAL; VA janitorial keeps strong local rows (DB-backed)", async () => {
+    if (!HAS_DB) return;
+    const t = await runScan("trucking", "Pennsylvania", "sb");
+    const strongT = t.strong.map((m: any) => Number(m.id));
+    expect(strongT).toContain(136051);
+    expect(strongT).toContain(136136);
+    const paLocalStrong = t.strong
+      .filter((m: any) => matchGeographyBucket("PA", m.location, m.agency) === "local")
+      .map((m: any) => Number(m.id));
+    expect(paLocalStrong).toContain(136051);
+    expect(paLocalStrong).toContain(136136);
+
+    const j = await runScan("janitorial", "Virginia", "sb");
+    const strongJ = j.strong.map((m: any) => Number(m.id));
+    expect(strongJ.some((id: number) => id > 0)).toBe(true); // >=1 strong VA janitorial row
+    expect(strongJ).not.toContain(134726);
+    expect(j.weak.map((m: any) => Number(m.id))).toContain(134726);
+
+    // Legitimate janitorial matches MUST remain: NC has real VA-style local
+    // inventory today (title-corroborated "Janitorial Services" rows) — they
+    // stay STRONG local defaults under FIX 1/FIX 2.
+    const nc = await runScan("janitorial", "North Carolina", "sb");
+    const ncLocal = nc.strong
+      .filter((m: any) => matchGeographyBucket("NC", m.location, m.agency) === "local")
+      .map((m: any) => Number(m.id));
+    expect(ncLocal).toContain(122605); // "Grandfather Ranger District - West - Janitorial Services…"
+    expect(ncLocal.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("FIX 2 local accuracy (owner 09-14): nationwide contracts NEVER count as local", () => {
+  test("134321 (location 'United States') is nationwide in EVERY state and never local", () => {
+    const states = ["", "AL","AK","AZ","AR","CA","CO","CT","DE","DC","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"];
+    for (const st of states) {
+      expect(
+        matchGeographyBucket(st, "United States", "WESTERN REGION"),
+      ).toBe("nationwide");
+    }
+    expect(isNationalScope("United States")).toBe(true);
+  });
+
+  test("a national-scope location NEVER borrows the buyer/agency state (DLA Philadelphia class)", () => {
+    // These real rows (loc "United States", state-named buyer) previously
+    // resolved LOCAL for the buyer's state via the agency fallback.
+    expect(
+      matchGeographyBucket("PA", "United States", "DLA AVIATION AT PHILADELPHIA, PA"),
+    ).toBe("nationwide");
+    expect(
+      matchGeographyBucket("NY", "United States", "W2SD ENDIST NEW YORK"),
+    ).toBe("nationwide");
+    expect(
+      matchGeographyBucket("DC", "United States", "WASHINGTON DC OFFICE"),
+    ).toBe("nationwide");
+    expect(matchGeographyBucket("NY", "RC", "W6QM MICC FT MCCOY (RC)")).toBe("nationwide");
+    expect(matchGeographyBucket("", "Norfolk, VA", "NAVSUP FLT LOG CTR NORFOLK")).toBe("nationwide"); // state="" → all nationwide
+  });
+
+  test("breadth preserved: genuinely local rows and empty-location buyer fallback stay LOCAL", () => {
+    expect(isNationalScope("Pennsylvania")).toBe(false);
+    expect(isNationalScope("Norfolk, VA")).toBe(false);
+    expect(isNationalScope("")).toBe(false); // absent → buyer/agency fallback stays (acceptance #6)
+    expect(matchGeographyBucket("PA", "Pennsylvania", "East Vincent Township, Chester County")).toBe("local");
+    expect(matchGeographyBucket("PA", null, "Pennsylvania Department of Environmental Protection")).toBe("local");
+  });
+
+  test("real pipeline: 134321 is a strong trucking match but NATIONWIDE in every scanned state — never local (DB-backed)", async () => {
+    if (!HAS_DB) return;
+    for (const st of ["PA", "VA", "NY", "AZ", "CA", "TX"]) {
+      const r = await runScan("trucking", st, "sb");
+      const m = r.strong.find((x: any) => Number(x.id) === 134321);
+      if (m) {
+        expect(matchGeographyBucket(st, m.location, m.agency)).toBe("nationwide");
+      }
+      // invariant: no LOCAL strong row is national-scope
+      for (const lm of r.strong) {
+        if (matchGeographyBucket(st, lm.location, lm.agency) === "local") {
+          expect(isNationalScope(lm.location)).toBe(false);
+        }
+      }
+    }
   });
 });

@@ -437,6 +437,41 @@ export function tradeProvenanceFor(
 }
 
 /**
+ * DEFAULT-MATCH STRENGTH (owner 09-14 match-quality / local-accuracy PR).
+ *
+ * A keyword hit is a DEFAULT result only when the trade is corroborated by the
+ * bid's TITLE or an implied NAICS code:
+ *   - a non-NAICS query is STRONG when any expanded term appears in the TITLE,
+ *     or the bid's stored naics_code is in the expansion's implied code set;
+ *   - a NAICS-code query (the input itself is a 6-digit code) is STRONG by
+ *     construction — the SQL predicate is exact equality, so every returned
+ *     row IS the code.
+ *
+ * A hit that appears ONLY in the description and/or the category field is WEAK
+ * evidence: source category tags are frequently junk ("Construction" stamped
+ * on a Frozen Beef supply solicitation; "Security" on a food-delivery row), and
+ * a stray description word ("Securities", "security clearance") is not a trade.
+ * Weak rows are EXCLUDED from the default result set (local + nationwide) and
+ * surface — when their resolved geography is the requested state — only under
+ * the explicitly labeled "Related opportunities" section (adjacent evidence,
+ * never a direct match). See radar.tsx's handler, which applies this split.
+ */
+export function isStrongTradeMatch(
+  title: string | null | undefined,
+  _category: string | null | undefined,
+  _description: string | null | undefined,
+  naicsCode: string | null | undefined,
+  expansion: TradeExpansion,
+): boolean {
+  if (expansion.isNaics) return true; // exact NAICS equality — strong by construction
+  const titleText = String(title ?? "").toLowerCase();
+  const terms = expansion.terms.filter((t) => t && t.length >= 2);
+  if (terms.some((t) => titleText.includes(t))) return true;
+  const code = String(naicsCode ?? "").trim();
+  return !!code && expansion.naicsCodes.includes(code);
+}
+
+/**
  * SQL fragment builder for the expanded non-NAICS keyword branch. Callers pass
  * their own `sql` factory (the `~/db` value — `sql()` yields the neon tagged
  * template). Every term is a bound ${…} parameter (registry-sourced constants,

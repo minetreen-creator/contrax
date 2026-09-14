@@ -190,9 +190,45 @@ export function geoRelevant(
   stateCode: string,
 ): boolean {
   if (!stateCode) return true;
+  if (isNationalScope(location)) return true; // national-scope row → never state-local
   const bidState = resolveBidState(location, agency);
   if (!bidState) return true; // nationwide/unknown → kept (pre-existing semantics)
   return bidState === stateCode;
+}
+
+/** NATIONAL-SCOPE LOCATIONS (owner 09-14 local-accuracy PR). A bid whose own
+ *  `location` declares national scope ("United States", "RC", "Multiple
+ *  locations", …) is a NATIONWIDE contract: its work is not tied to a single
+ *  state, so it must NEVER be counted as a state-local match and MUST NEVER
+ *  borrow a state from the BUYER/AGENCY field (a "United States"-located DLA
+ *  row is not a Pennsylvania bid just because the buyer's address says
+ *  "Philadelphia, PA"). Exact-match only — "National City, CA" is untouched.
+ *  Absent location ("") is NOT national scope: the pre-existing buyer/agency
+ *  fallback stays (owner acceptance #6 breadth for state portals whose rows
+ *  carry no location text). */
+const NATIONAL_SCOPE_LOCATIONS =
+  /^(united states|u\.?s\.?(a)?|usa|national|nationwide|all states|multiple locations|various|various locations|n\/a|na|tbd|to be determined|see solicitation|rc|unknown)$/i;
+
+export function isNationalScope(location: string | null | undefined): boolean {
+  const loc = String(location ?? "").trim();
+  if (!loc) return false; // absent → keep the buyer/agency fallback (breadth fix)
+  return NATIONAL_SCOPE_LOCATIONS.test(loc);
+}
+
+/** Radar bucket for one scanned match (owner 09-14). "local" ONLY when the
+ *  requested state is set, the row is NOT national-scope, and its resolved
+ *  geography (performance location, then buyer/agency) equals the requested
+ *  state. Everything else — no state requested ("Any state (nationwide)"),
+ *  national scope, or a different state — is "nationwide". Single source of
+ *  truth for the handler's three-way bucketing and the regression tests. */
+export function matchGeographyBucket(
+  stateCode: string,
+  location: string | null | undefined,
+  agency: string | null | undefined,
+): "local" | "nationwide" {
+  if (!stateCode) return "nationwide";
+  if (isNationalScope(location)) return "nationwide";
+  return resolveBidState(location, agency) === stateCode ? "local" : "nationwide";
 }
 
 /**
@@ -429,8 +465,13 @@ export function displayPlaceOfPerformance(
   // 3) City, XX place signal.
   const cityState = extractCityState(titleText) ?? extractCityState(locationText);
   if (cityState) return cityState;
-  // 4) Resolved geography → display state name.
-  const resolved = resolveBidState(locationText, agencyText);
+  // 4) Resolved geography → display state name. A NATIONAL-SCOPE location
+  //    ("United States", "RC"…) never borrows the buyer/agency state as the
+  //    place of performance (owner 09-14) — those cards show the eligibility
+  //    tag only, exactly like other no-place rows.
+  const resolved = isNationalScope(locationText)
+    ? null
+    : resolveBidState(locationText, agencyText);
   if (resolved) return STATE_CODE_TO_NAME[resolved] ?? resolved;
   // 5) Meaningful stored location text only — the BUYER/agency is never shown
   //    as a place of performance (the card already prints the agency line; the

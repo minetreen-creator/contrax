@@ -475,3 +475,74 @@ describe("three-way bucketing + related section (owner v6.1 / PR-C.0)", () => {
     expect(strictIds).toContain(134726);
   });
 });
+
+
+describe("any-state (nationwide) radar form gating + headings (owner spec: state=\"\" is canonical nationwide)", () => {
+  /** EXACT mirror of radar.tsx L880 post-fix: the Scan button enables when
+   *  trade + cert + size are set — state is INTENTIONALLY not required so
+   *  "Any state (nationwide)" (state=\"\") can scan. Update BOTH if gating changes. */
+  function radarEditingEnabled(trade: string, state: string, cert: string | null, sizePref: string | null): boolean {
+    return trade.trim() !== "" && cert !== null && sizePref !== null;
+  }
+  test("1: any state (state=\"\") + trade + cert + size enables Scan", () => {
+    expect(radarEditingEnabled("HVAC", "", "sb", "any")).toBe(true);
+  });
+  test("2: nationwide scan submits state=\"\" successfully (normalize + geo filter treat it as all-states)", async () => {
+    // Canonical value preserved, untouched by the fix.
+    expect(normalizeStateInput("")).toBe("");
+    // geoRelevant(state=\"\") never excludes a row — the server-side filter
+    // interprets empty state as nationwide (location-state.ts).
+    expect(geoRelevant("Richmond, VA", "Veterans Affairs", "")).toBe(true);
+    expect(geoRelevant(null, null, "")).toBe(true);
+    expect(geoRelevant("Denver, CO", "GSA", "")).toBe(true);
+    // Real pipeline accepts state=\"\" end-to-end when a DB is present (skips in CI).
+    if (!HAS_DB) return;
+    const r = await runScan("janitorial", "", "sb");
+    expect(r.state).toBe("");
+    expect(r.rows.length).toBeGreaterThanOrEqual(r.kept.length); // no state filter applied
+  });
+  test("3: specific-state scan unchanged (state still gates geo relevance, not form completeness)", () => {
+    expect(radarEditingEnabled("HVAC", "VA", "sb", "any")).toBe(true);
+    expect(normalizeStateInput("VA")).toBe("VA");
+    expect(geoRelevant("Richmond, VA", "Veterans Affairs", "VA")).toBe(true);
+    expect(geoRelevant("Denver, CO", "GSA", "VA")).toBe(false); // other-state row excluded
+  });
+  test("4: missing trade keeps Scan disabled", () => {
+    expect(radarEditingEnabled("   ", "", "sb", "any")).toBe(false);
+    expect(radarEditingEnabled("", "VA", "sb", "any")).toBe(false);
+  });
+  test("5: missing cert keeps Scan disabled", () => {
+    expect(radarEditingEnabled("HVAC", "", null, "any")).toBe(false);
+    expect(radarEditingEnabled("HVAC", "VA", null, "any")).toBe(false);
+  });
+  test("6: missing size keeps Scan disabled", () => {
+    expect(radarEditingEnabled("HVAC", "", "sb", null)).toBe(false);
+    expect(radarEditingEnabled("HVAC", "VA", "sb", null)).toBe(false);
+  });
+  test("7: nationwide results use nationwide headings and never imply a local state", () => {
+    // Mirrors the rendering guards in radar.tsx: the "X-local opportunities"
+    // section and the "🌎 Open nationwide" heading are gated on state !== "";
+    // the scanning interstitial reads "nationwide" for state=\"\".
+    const showLocalSection = (state: string) => state !== "";
+    const showNationwideHeading = (state: string, nationwideCount: number) =>
+      state !== "" && nationwideCount > 0;
+    const scanningSuffix = (state: string) => (state ? ` in ${state}` : " nationwide");
+    const summaryForState = (state: string, matches: number, local: number, nationwide: number) =>
+      state !== ""
+        ? `${local} local · ${nationwide} nationwide set-aside opportunities`
+        : `${matches} ${matches === 1 ? "match" : "matches"} found for you`;
+    // state=\"\": no local section, no nationwide-heading wrapper, "nationwide" copy,
+    // never a state code after this state's heading.
+    expect(showLocalSection("")).toBe(false);
+    expect(showNationwideHeading("", 5)).toBe(false);
+    expect(scanningSuffix("")).toBe(" nationwide");
+    expect(summaryForState("", 4, 0, 4)).toBe("4 matches found for you");
+    expect(summaryForState("", 1, 0, 1)).toBe("1 match found for you");
+    // state-specific scan unchanged: local heading + local/nationwide split stay.
+    expect(showLocalSection("VA")).toBe(true);
+    expect(showNationwideHeading("VA", 3)).toBe(true);
+    expect(showNationwideHeading("VA", 0)).toBe(false);
+    expect(scanningSuffix("VA")).toBe(" in VA");
+    expect(summaryForState("VA", 5, 2, 3)).toBe("2 local · 3 nationwide set-aside opportunities");
+  });
+});

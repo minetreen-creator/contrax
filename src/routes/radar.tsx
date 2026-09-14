@@ -877,7 +877,7 @@ function RadarLanding() {
     }
   }, [cert, sizePref]);
 
-  const editing = trade.trim() !== "" && state !== "" && cert !== null && sizePref !== null;
+  const editing = trade.trim() !== "" && cert !== null && sizePref !== null;
 
   // Reveal the next match + keep the persisted radar-session "seen" state in
   // sync, and fire the funnel event for the soft nudge the moment the FIRST

@@ -226,44 +226,6 @@ async function handleAnalytics(req: Request): Promise<Response> {
   }
 }
 
-// ── Sync-Bids handler ─────────────────────────────────────────────────────────
-
-async function handleSyncBidsRoute(req: Request): Promise<Response> {
-  try {
-    // Auth check
-    const authHeader = req.headers.get("authorization");
-    const expectedToken = process.env.SYNC_TOKEN;
-
-    if (!expectedToken) {
-      return new Response(
-        JSON.stringify({ error: "SYNC_TOKEN not configured on server" }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
-    }
-
-    if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-
-    const { runSync } = await import("./src/jobs/runner.ts");
-    const result = await runSync();
-
-    return new Response(JSON.stringify(result), {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    });
-  } catch (err) {
-    console.error("sync-bids error:", err);
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
-  }
-}
-
 // ── Main fetch handler ───────────────────────────────────────────────────────
 
 async function mainFetch(req: Request): Promise<Response> {
@@ -291,10 +253,6 @@ async function mainFetch(req: Request): Promise<Response> {
     return handleAnalytics(req);
   }
 
-  // Sync bids — cron endpoint
-  if (pathname === "/api/sync-bids" && req.method === "POST") {
-    return handleSyncBidsRoute(req);
-  }
 
   // Static assets
   if (pathname !== "/") {
@@ -331,7 +289,7 @@ for (let attempt = 1; ; attempt++) {
       port: PORT,
       hostname: HOST,
       fetch: mainFetch,
-      idleTimeout: 120, // allow long-running sync-bids requests
+      idleTimeout: 120, // keep connections alive for long-running Stripe webhook/checkout requests
     });
     break;
   } catch (err) {

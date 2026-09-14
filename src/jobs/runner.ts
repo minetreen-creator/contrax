@@ -11,10 +11,12 @@
  *
  * Scheduling (production):
  *   GitHub Actions workflow .github/workflows/sync-bids.yml runs
- *   `bun run sync-bids` every 4 hours on weekdays (Mon–Fri) and can be
+ *   `bun run sync-bids` every 4 hours, every day (incl. weekends — the
+ *   homepage "Newest solicitations" window is a rolling 24h) and can be
  *   triggered manually via workflow_dispatch. The Vercel cron entry for
  *   /api/sync-bids was removed — Vercel Hobby's 10s serverless cap cannot
- *   fit a multi-minute sync across 59 sources. /api/sync-bids remains as an
+ *   fit a multi-minute sync across 61 sources (4 SAM.gov passes, 51
+ *   state-keyword queries, 6 open-data tail). /api/sync-bids remains as an
  *   admin diagnostic that returns 202 and points at the workflow.
  *
  * Performance notes:
@@ -794,10 +796,12 @@ async function main() {
 }
 
 // Only run the CLI entrypoint when this file is executed directly
-// (e.g. `bun run src/jobs/runner.ts`). When imported — e.g. by the
-// /api/sync-bids route for Vercel Cron — import.meta.main is undefined in the
+// (e.g. `bun run src/jobs/runner.ts`). When imported — the legacy inline
+// /api/sync-bids Vercel-cron handlers were removed (sync-bids cleanup), and
+// nothing imports runner.ts today — import.meta.main is undefined in the
 // server bundle, so main() must not run (it would trigger a full sync and
-// call process.exit(), killing the request handler).
+// call process.exit(), killing the importing process). Kept as a defensive
+// guard.
 if ((import.meta as ImportMeta & { main?: boolean }).main) {
   main();
 }

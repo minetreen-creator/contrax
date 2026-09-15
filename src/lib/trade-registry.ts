@@ -174,9 +174,15 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     ],
     // Owner 09-13 breadth expansion: full trucking-adjacent NAICS family. All
     // codes are present in NAICS_NAMES (module-load validation enforces it).
-    // "488510 (freight transportation arrangement)" is NOT in the product's
-    // list yet, so it is deliberately omitted; add it when the list grows.
-    naics: ["484110", "484121", "484122", "484230", "492110"],
+    // Owner 09-14 task: + 484220 Specialized Freight (except Used Goods)
+    // Trucking, Local (real code) — "hauling" is registered as a searchable
+    // Trucking term (it already resolves here via the synonym list) and now also
+    // implies the LOCAL specialized-freight code 484220 alongside the kept
+    // codes 484110/484121/484122/484230. 492110 stays (owner-ratified 09-13
+    // breadth). "488510 (freight transportation arrangement)" is NOT in the
+    // product's list yet, so it is deliberately omitted; add it when the list
+    // grows.
+    naics: ["484110", "484121", "484122", "484220", "484230", "492110"],
   },
   // Owner 09-13 (radar zero-results): janitorial vertical. The term set is the
   // owner's exact curated procurement language — deliberately NO bare
@@ -563,6 +569,43 @@ export function verifyTradePrecision(): void {
   assert(
     tradeTextIncludes("Equipment transport for the logistics yard", exp) === true,
     '"equipment transport" must match after the registry expansion',
+  );
+
+  // Owner 09-14 (hauling amendment): "hauling" is a SEARCHABLE Trucking trade
+  // term — it resolves to the SAME trucking expansion (label "Trucking/Hauling")
+  // and implies the full trucking NAICS set INCLUDING the newly added
+  // 484220 Specialized Freight (except Used Goods) Trucking, Local, alongside
+  // the kept codes 484110/484121/484122/484230 (+ 492110).
+  const haul = expandTrade("hauling");
+  assert(haul.terms[0] === "hauling", '"hauling" original term is preserved');
+  assert(haul.terms.includes("trucking"), '"hauling" must expand to the trucking term');
+  assert(haul.naicsCodes.includes("484220"), '"hauling" must imply NAICS 484220');
+  for (const code of ["484110", "484121", "484122", "484230", "492110"]) {
+    assert(haul.naicsCodes.includes(code), `"hauling" must imply NAICS ${code}`);
+  }
+  assert(
+    tradeTextIncludes("2027 Sludge Hauling Contracts", haul) === true,
+    '"hauling" must match a real sludge-hauling solicitation',
+  );
+  assert(
+    tradeTextIncludes("F--SOLID WASTE DISPOSAL AND BACKHAULING - TUBA CITY D", haul) === true,
+    '"hauling" must match the owner waste→trucking backhauling title',
+  );
+  // When the ORIGINAL term itself is what matched, provenance preserves the
+  // verbatim term (existing documented behavior) — so the industry label
+  // check uses a non-original synonym hit ("freight hauling" → Trucking/Hauling).
+  const haulProv = tradeProvenanceFor("Freight hauling needed for base supply run", haul, null);
+  assert(haulProv?.conceptLabel === "Trucking/Hauling", '"hauling" provenance label must be "Trucking/Hauling"');
+  assert(
+    haulProv?.matchedNaics != null &&
+      ["484110", "484121", "484122", "484220", "484230", "492110"].includes(haulProv.matchedNaics),
+    '"hauling" provenance must imply a trucking NAICS code (got ' + String(haulProv?.matchedNaics) + ')',
+  );
+  // A literal "hauling" text hit keeps the VERBATIM label (original preserved
+  // — never an overclaim to a different concept).
+  assert(
+    tradeProvenanceFor("2027 Sludge Hauling Contracts", haul, null)?.conceptLabel === "hauling",
+    'a literal "hauling" text hit keeps the verbatim label',
   );
 
   // Owner 09-13: janitorial vertical — curated terms only, NO bare "cleaning".

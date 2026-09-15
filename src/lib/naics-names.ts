@@ -183,6 +183,11 @@ export const NAICS_NAMES: Record<string, string> = {
   "484122": "General Freight Trucking, Long-Distance, Less Than Truckload",
   "484220": "Specialized Freight (except Used Goods) Trucking, Local",
   "484230": "Specialized Freight Trucking, Long-Distance",
+  // Owner 09-15 (delivery/logistics/warehousing trades): + 488510 Freight
+  // Transportation Arrangement — real code backing the new Logistics trade.
+  // NAICS_NAMES is the registry's module-load validation authority, so every
+  // code TRADE_ALIASES names must exist here.
+  "488510": "Freight Transportation Arrangement",
   "492110": "Couriers and Express Delivery Services",
   "488119": "Other Airport Operations",
   "493110": "General Warehousing and Storage",

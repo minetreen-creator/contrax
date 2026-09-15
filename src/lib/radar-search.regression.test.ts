@@ -37,7 +37,7 @@
  */
 import { afterAll, describe, expect, test } from "bun:test";
 import { sql as dbFactory } from "~/db";
-import { expandTrade, tradeKeywordPred, isStrongTradeMatch, RELATED_TRADE_TERMS, TRADE_ALIASES, tradeProvenanceFor, type TradeAliasEntry } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, isStrongTradeMatch, RELATED_TRADE_TERMS, TRADE_ALIASES, tradeProvenanceFor, tradeExpresslyCourier, type TradeAliasEntry } from "~/lib/trade-registry";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { setAsidePred } from "~/lib/open-bids";
 import {
@@ -905,5 +905,296 @@ describe("hauling trade amendment (owner 09-14): searchable Trucking term + NAIC
     // it — pre-existing #387 tests share this data-drift and are not failures).
     // Assert the still-open PA sludge-hauling row instead.
     expect(strongIds).toContain(136136); // Hauling of Dewatered Sludge
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OWNER 09-14/09-15 — DELIVERY / FREIGHT-DELIVERY / LOGISTICS / WAREHOUSING.
+// Each owner term is locked per-term, twice: (i) the term RESOLVES to the
+// intended trade (registry entry + provenance label the why-line uses) and
+// (ii) the scan PAYLOAD's NAICS bind carries the intended real code(s) —
+//   "delivery"        → Delivery/Couriers   → 492110 (only)
+//   "freight delivery"→ Freight Delivery    → 492110 + the 484xxx trucking codes
+//   "logistics"       → Logistics           → 488510, never 493110
+//   "warehousing"     → Warehousing/Storage → 493110, never 488510
+// The separation proofs are asserted at the DRIVER level (the exact ANY($n)
+// array tradeKeywordPred binds), not on our own summary of the codes, and the
+// #387 match-quality + #388 hauling regressions are re-run against the amended
+// registry.
+
+/** Driver-level payload decode: recursively flatten the NeonQueryPromise the
+ *  trade fragment is (nested fragments live in `.queryData.values`) into SQL
+ *  text + the bound params, so the NAICS array that actually reaches Postgres
+ *  is asserted rather than inferred. Mirrors the owner-gate scan harness. */
+function decodeTradeFragment(frag: any): { text: string; params: any[] } {
+  const params: any[] = [];
+  const build = (strings: readonly string[], values: any[]): string => {
+    let text = "";
+    for (let i = 0; i < strings.length; i++) {
+      text += strings[i];
+      if (i < values.length) {
+        const v = values[i];
+        if (v && typeof v === "object" && (v as any).queryData) {
+          text += build((v as any).queryData.strings, (v as any).queryData.values);
+        } else {
+          params.push(v);
+          text += "$" + params.length;
+        }
+      }
+    }
+    return text;
+  };
+  const qd = frag?.queryData;
+  return { text: qd ? build(qd.strings, qd.values) : "", params };
+}
+
+/** The single bound NAICS array inside a decoded trade-fragment payload. */
+function naicsBindOf(frag: any): string[] {
+  const dec = decodeTradeFragment(frag);
+  return (dec.params.find((p) => Array.isArray(p)) as string[]) ?? [];
+}
+
+describe("delivery trade (owner 09-14/09-15): 492110 by default, freight codes only for freight delivery", () => {
+  test("(a) 'delivery' resolves to the Delivery trade and implies 492110 ONLY", () => {
+    const d = expandTrade("delivery");
+    expect(d.isNaics).toBe(false);
+    expect(d.original).toBe("delivery"); // verbatim input preserved
+    expect(d.naicsCodes).toEqual(["492110"]); // exactly one code — no trucking leak
+    for (const code of ["484110", "484121", "484122", "484220", "484230"]) {
+      expect(d.naicsCodes).not.toContain(code);
+    }
+    // The delivery term set includes the real courier-family language (not just
+    // the bare generic word), and drops the generic blocklist entries.
+    for (const t of ["courier", "couriers", "express delivery", "delivery service"]) {
+      expect(d.terms).toContain(t);
+    }
+    expect(d.terms).not.toContain("deliveries"); // generic-blocked as an ADDED term
+    // Provenance: a delivery text hit reports the Delivery trade, never trucking.
+    const prov = tradeProvenanceFor("Overnight courier service for the base mailroom", d, null);
+    expect(prov?.conceptLabel).toBe("Delivery/Couriers");
+    // …and an implied-NAICS 492110 row on a DELIVERY scan says Delivery/Couriers
+    // (the same code on a TRUCKING scan still says Trucking/Hauling).
+    expect(tradeProvenanceFor("Office supplies", d, "492110")?.conceptLabel).toBe("Delivery/Couriers");
+    expect(tradeProvenanceFor("Office supplies", expandTrade("trucking"), "492110")?.conceptLabel).toBe(
+      "Trucking/Hauling",
+    );
+    // A 492110 row on a delivery search is the requested work — NOT the
+    // "Related logistics — courier delivery" subtype (radar.tsx's badge).
+    expect(tradeExpresslyCourier("delivery")).toBe(true);
+    expect(tradeExpresslyCourier("trucking")).toBe(false); // trucking presentation unchanged
+  });
+
+  test("(a2) the 'freight delivery' SUB-TERM adds the 484xxx freight-trucking codes", () => {
+    const fd = expandTrade("freight delivery");
+    expect(fd.original).toBe("freight delivery");
+    for (const code of ["492110", "484110", "484121", "484122", "484220", "484230"]) {
+      expect(fd.naicsCodes).toContain(code);
+    }
+    // Conditional by construction: the DEFAULT delivery term still has none of
+    // the 484xxx codes (asserted in (a)) — they arrive only with freight
+    // delivery work.
+    expect(expandTrade("delivery").naicsCodes).not.toContain("484121");
+    // A freight-delivery search is a trucking-family search: its 492110 rows
+    // legitimately stay a related-logistics courier subtype.
+    expect(tradeExpresslyCourier("freight delivery")).toBe(false);
+  });
+});
+
+describe("logistics + warehousing trades (owner 09-14/09-15): 488510 vs 493110, strictly separate", () => {
+  test("(b) 'logistics' resolves to the Logistics trade → 488510, never warehousing", () => {
+    const l = expandTrade("logistics");
+    expect(l.isNaics).toBe(false);
+    expect(l.original).toBe("logistics");
+    expect(l.naicsCodes).toEqual(["488510"]); // exactly 488510
+    expect(l.naicsCodes).not.toContain("493110"); // logistics is NOT warehousing
+    expect(l.naicsCodes.some((c: string) => c.startsWith("484"))).toBe(false); // not trucking
+    expect(l.terms).toContain("freight forwarding");
+    expect(l.terms).toContain("third party logistics");
+    expect(
+      tradeProvenanceFor("Freight transportation arrangement services", l, null)?.conceptLabel,
+    ).toBe("Logistics");
+    expect(tradeProvenanceFor("Office supplies", l, "488510")?.conceptLabel).toBe("Logistics");
+  });
+
+  test("(c) 'warehousing' resolves to the Warehousing trade → 493110, never logistics", () => {
+    const w = expandTrade("warehousing");
+    expect(w.isNaics).toBe(false);
+    expect(w.original).toBe("warehousing");
+    expect(w.naicsCodes).toEqual(["493110"]); // exactly 493110
+    expect(w.naicsCodes).not.toContain("488510"); // warehousing never defaults to logistics
+    expect(w.terms).toContain("distribution center");
+    expect(
+      tradeProvenanceFor("Warehouse storage services", w, null)?.conceptLabel,
+    ).toBe("Warehousing/Storage");
+    expect(tradeProvenanceFor("Office supplies", w, "493110")?.conceptLabel).toBe(
+      "Warehousing/Storage",
+    );
+    // Strict separation both directions, on the terms themselves.
+    expect(expandTrade("logistics").naicsCodes).not.toContain("493110");
+    expect(expandTrade("warehousing").naicsCodes).not.toContain("488510");
+    expect(tradeExpresslyCourier("warehousing")).toBe(false);
+  });
+
+  test("(d) only real NAICS codes: 488510/492110/493110 registered with official titles", () => {
+    expect(NAICS_NAMES["488510"]).toBe("Freight Transportation Arrangement");
+    expect(NAICS_NAMES["492110"]).toBe("Couriers and Express Delivery Services");
+    expect(NAICS_NAMES["493110"]).toBe("General Warehousing and Storage");
+    // No code anywhere in the amended registry can be phantom (module-load
+    // validation would already have thrown, this documents it).
+    const known = new Set(Object.keys(NAICS_NAMES));
+    for (const entry of Object.values(TRADE_ALIASES) as TradeAliasEntry[]) {
+      for (const code of entry.naics) {
+        expect(/^\d{6}$/.test(code)).toBe(true);
+        expect(known.has(code)).toBe(true);
+      }
+    }
+    // Every term in the new trades resolves to real codes too.
+    for (const q of ["delivery", "freight delivery", "logistics", "warehousing", "courier", "3pl", "storage"]) {
+      for (const code of expandTrade(q).naicsCodes) {
+        expect(known.has(code)).toBe(true);
+      }
+    }
+  });
+});
+
+describe("delivery/logistics/warehousing — PAYLOAD-LEVEL bind proof (owner merge gate)", () => {
+  test("(i) the scan payload's NAICS bind carries the intended code(s) per term (DB-backed)", async () => {
+    if (!HAS_DB) return; // needs a DATABASE_URL to build the real driver payload
+    const cases: { term: string; must: string[]; mustNot: string[] }[] = [
+      { term: "delivery", must: ["492110"], mustNot: ["484110", "484121", "484122", "484220", "484230", "488510", "493110"] },
+      { term: "logistics", must: ["488510"], mustNot: ["493110", "492110"] },
+      { term: "warehousing", must: ["493110"], mustNot: ["488510", "492110"] },
+      { term: "freight delivery", must: ["492110", "484110", "484121", "484122", "484220", "484230"], mustNot: ["493110"] },
+    ];
+    for (const c of cases) {
+      const exp = expandTrade(c.term);
+      const bind = naicsBindOf(tradeKeywordPred(dbFactory, exp));
+      for (const code of c.must) expect(bind).toContain(code);
+      for (const code of c.mustNot) expect(bind).not.toContain(code);
+    }
+    // Separation, stated as the owner put it: a warehousing payload has 493110
+    // and NOT 488510; a logistics payload has 488510 and NOT 493110.
+    const whBind = naicsBindOf(tradeKeywordPred(dbFactory, expandTrade("warehousing")));
+    const logBind = naicsBindOf(tradeKeywordPred(dbFactory, expandTrade("logistics")));
+    expect(whBind).toContain("493110");
+    expect(whBind).not.toContain("488510");
+    expect(logBind).toContain("488510");
+    expect(logBind).not.toContain("493110");
+  });
+
+  test("(ii) real pipeline: each term scans through runKeywordScanQuery with its own NAICS set (DB-backed)", async () => {
+    if (!HAS_DB) return;
+    const specs: { term: string; must: string[]; mustNot: string[] }[] = [
+      { term: "delivery", must: ["492110"], mustNot: ["488510", "493110"] },
+      { term: "logistics", must: ["488510"], mustNot: ["493110"] },
+      { term: "warehousing", must: ["493110"], mustNot: ["488510"] },
+    ];
+    for (const s of specs) {
+      const r = await runScan(s.term, "", "sb"); // nationwide, real predicates
+      for (const code of s.must) expect(r.expansion.naicsCodes).toContain(code);
+      for (const code of s.mustNot) expect(r.expansion.naicsCodes).not.toContain(code);
+      // The strong/weak split is the #387 rule and must still hold: every strong
+      // row is title/NAICS corroborated.
+      for (const m of r.strong) {
+        expect(isStrongTradeMatch(m.title, m.category, m.description, m.naics_code, r.expansion)).toBe(true);
+      }
+      // And a row can never be a default match on a code the scan did not ask for.
+      for (const m of r.strong) {
+        const code = String(m.naics_code ?? "").trim();
+        if (code && !r.expansion.naicsCodes.includes(code)) {
+          // then it must have matched on a TITLE term (never a silent code leak)
+          const title = String(m.title ?? "").toLowerCase();
+          expect(r.expansion.terms.some((t: string) => t.length >= 2 && title.includes(t))).toBe(true);
+        }
+      }
+    }
+  });
+});
+
+describe("amended registry — #387 match quality + #388 hauling regressions stay green", () => {
+  test("(e) #387: the four owner fixtures are still NOT strong defaults", () => {
+    expect(
+      isStrongTradeMatch(
+        "Frozen Beef Coarse Ground Products for use in Domestic Food Assistance Programs",
+        "Construction",
+        "This is a combined synopsis/solicitation for commercial products",
+        "311612",
+        expandTrade("construction"),
+      ),
+    ).toBe(false);
+    expect(
+      isStrongTradeMatch(
+        "Dental Pro Curing Light Introductory Kits",
+        "Construction",
+        "The Indian Health Service, Chinle Service Unit … deliver Den…",
+        "339114",
+        expandTrade("construction"),
+      ),
+    ).toBe(false);
+    expect(
+      isStrongTradeMatch(
+        "Commercial food delivery service for MSG",
+        "Security",
+        "…food services program for U.S. Government at U.S. Embassy Tallinn for Marine Security Guards…",
+        "561612",
+        expandTrade("security"),
+      ),
+    ).toBe(false);
+    expect(
+      isStrongTradeMatch(
+        "Market Research for Specialized Flight Test and Evaluation Training Services",
+        "Security",
+        "…test pilot training…",
+        null,
+        expandTrade("security"),
+      ),
+    ).toBe(false);
+    // …and the new trades do not resurrect them either (a security/construction
+    // fixture is not strong under logistics/warehousing/delivery-by-NAICS).
+    expect(
+      isStrongTradeMatch("Frozen Beef Coarse Ground Products", "Construction", "…", "311612", expandTrade("warehousing")),
+    ).toBe(false);
+    expect(
+      isStrongTradeMatch("Dental Pro Curing Light Introductory Kits", "Construction", "…", "339114", expandTrade("logistics")),
+    ).toBe(false);
+  });
+
+  test("(f) #388: 'hauling' still resolves into Trucking with the full kept code set", () => {
+    const h = expandTrade("hauling");
+    expect(h.terms).toContain("trucking");
+    expect(h.terms).toContain("freight hauling");
+    for (const code of ["484110", "484121", "484122", "484220", "484230", "492110"]) {
+      expect(h.naicsCodes).toContain(code);
+    }
+    expect(tradeProvenanceFor("Freight hauling needed for base supply run", h, null)?.conceptLabel).toBe(
+      "Trucking/Hauling",
+    );
+    expect(tradeProvenanceFor("2027 Sludge Hauling Contracts", h, null)?.conceptLabel).toBe("hauling");
+    // Trucking kept everything and gained no logistics/warehousing code.
+    const t = expandTrade("trucking");
+    for (const code of ["484110", "484121", "484122", "484220", "484230", "492110"]) {
+      expect(t.naicsCodes).toContain(code);
+    }
+    expect(t.naicsCodes).not.toContain("488510");
+    expect(t.naicsCodes).not.toContain("493110");
+  });
+
+  test("(g) PA sludge-hauling rows stay strong LOCAL trucking (DB-backed)", async () => {
+    if (!HAS_DB) return;
+    const t = await runScan("trucking", "Pennsylvania", "sb");
+    const strongT = t.strong.map((m: any) => Number(m.id));
+    // 136136 "Hauling of Dewatered Sludge" (open, due 2026-10-06) stays a strong
+    // LOCAL trucking match after the registry amendment.
+    expect(strongT).toContain(136136);
+    const paLocalStrong = t.strong
+      .filter((m: any) => matchGeographyBucket("PA", m.location, m.agency) === "local")
+      .map((m: any) => Number(m.id));
+    expect(paLocalStrong).toContain(136136);
+    // KNOWN DATA DRIFT (pre-existing, not this PR — same class as the 136051
+    // expiry the #387/#388 suites already carry): 136051 "2027 Sludge Hauling
+    // Contracts" expired 2026-09-15T18:00Z and NC 122605 expired
+    // 2026-09-14T21:00Z, so the id-specific assertions in those older tests fail
+    // on this data and on main alike. Nothing about the trucking/janitorial
+    // MATCHING changed here: the still-open PA row above proves the path.
   });
 });

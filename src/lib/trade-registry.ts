@@ -152,7 +152,7 @@ export const RELATED_TRADE_TERMS: Record<string, string[]> = {
  * engine change.
  */
 export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
-  "trucking-hauling-logistics": {
+  "trucking-hauling": {
     label: "Trucking/Hauling",
     synonyms: [
       "trucking",
@@ -165,12 +165,10 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "freight shipping",
       "freight hauling",
       "freight transportation",
-      "logistics",
       "motor carrier",
       "equipment transport",
       "dry van",
       "flatbed",
-      "delivery service",
     ],
     // Owner 09-13 breadth expansion: full trucking-adjacent NAICS family. All
     // codes are present in NAICS_NAMES (module-load validation enforces it).
@@ -179,9 +177,16 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     // Trucking term (it already resolves here via the synonym list) and now also
     // implies the LOCAL specialized-freight code 484220 alongside the kept
     // codes 484110/484121/484122/484230. 492110 stays (owner-ratified 09-13
-    // breadth). "488510 (freight transportation arrangement)" is NOT in the
-    // product's list yet, so it is deliberately omitted; add it when the list
-    // grows.
+    // breadth): 492110 is therefore deliberately implied by BOTH trucking and
+    // the Delivery trade below — 492110-family rows on a TRUCKING scan keep
+    // their documented "Related logistics — courier delivery" subtype, while on
+    // a DELIVERY scan they are the intended default (see tradeExpresslyCourier).
+    // Owner 09-15: the term "logistics" was REMOVED from this entry's synonyms
+    // (it is its own trade now, implying 488510 only) and "delivery service" was
+    // MOVED to the Delivery trade (so a bare "delivery" query can never stem
+    // into the trucking code set) — the freight-trucking codes stay exactly as
+    // they were. Key renamed trucking-hauling-logistics → trucking-hauling to
+    // match what the entry now covers.
     naics: ["484110", "484121", "484122", "484220", "484230", "492110"],
   },
   // Owner 09-13 (radar zero-results): janitorial vertical. The term set is the
@@ -203,6 +208,110 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "window cleaning",
     ],
     naics: ["561720"],
+  },
+  /**
+   * OWNER 09-15 — DELIVERY → NAICS 492110 (Couriers and Express Delivery
+   * Services). The DEFAULT implied code for delivery work is 492110 ONLY.
+   *
+   * The freight-trucking 484xxx codes are deliberately NOT part of default
+   * delivery: a "delivery" search must never silently become a trucking search.
+   * Freight delivery is modeled by the explicit SUB-TERM entry directly below
+   * ("freight delivery"), which adds the 484xxx freight-trucking codes on top of
+   * 492110 — using the registry's existing lookup (direct synonym hit), the same
+   * mechanism every other trade uses. No new machinery.
+   *
+   * "delivery service" MOVED here from the trucking entry (owner 09-15): while it
+   * lived in trucking, the documented stem rule ("delivery" is the first word of
+   * the "delivery service" synonym) made a bare "delivery" query pull the whole
+   * trucking set — exactly the coupling the owner asked to remove.
+   */
+  "delivery-couriers": {
+    label: "Delivery/Couriers",
+    synonyms: [
+      "delivery",
+      "deliveries",
+      "courier",
+      "couriers",
+      "courier service",
+      "courier services",
+      "express delivery",
+      "package delivery",
+      "parcel delivery",
+      "delivery service",
+      "delivery services",
+    ],
+    naics: ["492110"],
+  },
+  /**
+   * OWNER 09-15 — FREIGHT DELIVERY sub-term: the CONDITIONAL half of the
+   * Delivery trade. When — and only when — the selected work is FREIGHT delivery
+   * ("freight delivery" / "freight delivery service(s)"), the freight-trucking
+   * codes 484110/484121/484122/484220/484230 ride ALONGSIDE the delivery
+   * default 492110 (the owner's "freight delivery adds the 484xxx codes").
+   *
+   * Nothing else changes: the term is an ordinary registry entry, so
+   * expandTrade's existing direct-synonym lookup resolves it and the freight
+   * codes are already validated against NAICS_NAMES at module load.
+   */
+  "freight-delivery": {
+    label: "Freight Delivery",
+    synonyms: [
+      "freight delivery",
+      "freight delivery service",
+      "freight delivery services",
+    ],
+    naics: ["492110", "484110", "484121", "484122", "484220", "484230"],
+  },
+  /**
+   * OWNER 09-14/09-15 — LOGISTICS → NAICS 488510 Freight Transportation
+   * Arrangement (real code, registered in NAICS_NAMES).
+   *
+   * "logistics" is its OWN trade from 09-15 on. It was a synonym inside the
+   * trucking entry during the 09-13 breadth fix; it was removed there so the
+   * term resolves to exactly ONE trade instead of two (trucking keeps all of its
+   * codes — nothing else about trucking changed).
+   *
+   * STRICT SEPARATION (owner add-on 09-15): 488510 is the ONLY code implied
+   * here. Logistics is NOT warehousing — 493110 is never added to a logistics
+   * scan — and the Warehousing trade below never adds 488510. The two verticals
+   * do not imply each other in either direction.
+   */
+  "logistics-freight-arrangement": {
+    label: "Logistics",
+    synonyms: [
+      "logistics",
+      "freight transportation arrangement",
+      "freight forwarding",
+      "freight forwarder",
+      "freight broker",
+      "freight brokerage",
+      "third party logistics",
+      "3pl",
+    ],
+    naics: ["488510"],
+  },
+  /**
+   * OWNER 09-15 — WAREHOUSING → NAICS 493110 General Warehousing and Storage.
+   *
+   * Warehousing is its own trade: "warehousing" (and the storage/distribution
+   * language procurement actually uses) resolves HERE, to 493110, and is never
+   * defaulted to logistics (488510 is not in this entry's naics list, and no
+   * logistics synonym stems off these terms). 493110 stays available for
+   * warehousing work exactly as the owner asked.
+   */
+  "warehousing-storage": {
+    label: "Warehousing/Storage",
+    synonyms: [
+      "warehousing",
+      "warehouse",
+      "warehouses",
+      "storage",
+      "storage services",
+      "distribution center",
+      "distribution centers",
+      "order fulfillment",
+    ],
+    naics: ["493110"],
   },
 };
 
@@ -366,12 +475,35 @@ export interface TradeMatchProvenance {
   matchedNaics: string | null;
 }
 
-/** Registry label for a code (industry-level, owner-exact why-line fragment). */
-function registryLabelForCode(code: string): string | null {
-  for (const entry of Object.values(TRADE_ALIASES)) {
-    if (entry.naics.includes(code)) return entry.label;
+/** Registry label for a code (industry-level, owner-exact why-line fragment).
+ *
+ *  A code can legitimately be implied by MORE THAN ONE trade (owner 09-15:
+ *  492110 is implied by the trucking entry AND by the Delivery trade). Returning
+ *  the first entry blindly would label a DELIVERY scan's implied-NAICS match
+ *  "Trucking/Hauling" — an overclaim. So when the expansion is known, the entry
+ *  is chosen by SPECIFICITY against the scan actually running: most codes shared
+ *  with the expansion wins, and among equally-overlapping entries the SMALLEST
+ *  naics set wins (the 1-code Delivery set is more specific than the 6-code
+ *  trucking set). Display/provenance only — no matching or scoring path reads
+ *  this. */
+function registryLabelForCode(code: string, expansion?: TradeExpansion): string | null {
+  const candidates = Object.values(TRADE_ALIASES).filter((e) => e.naics.includes(code));
+  if (candidates.length === 0) return null;
+  if (!expansion) return candidates[0].label;
+  const implied = new Set(expansion.naicsCodes);
+  let best = candidates[0];
+  let bestOverlap = -1;
+  for (const entry of candidates) {
+    const overlap = entry.naics.filter((c) => implied.has(c)).length;
+    if (
+      overlap > bestOverlap ||
+      (overlap === bestOverlap && entry.naics.length < best.naics.length)
+    ) {
+      best = entry;
+      bestOverlap = overlap;
+    }
   }
-  return null;
+  return best.label;
 }
 
 /**
@@ -433,7 +565,7 @@ export function tradeProvenanceFor(
   // branch pulled it). Honest industry-level label; never claims a text hit.
   const code = bidNaics?.trim() ?? "";
   if (!NAICS_RE.test(code) || !expansion.naicsCodes.includes(code)) return null;
-  const label = registryLabelForCode(code) ?? NAICS_NAMES[code] ?? code;
+  const label = registryLabelForCode(code, expansion) ?? NAICS_NAMES[code] ?? code;
   return {
     original: expansion.original,
     matchedConcept: label,
@@ -641,6 +773,108 @@ export function verifyTradePrecision(): void {
     tradeProvenanceFor("Office supplies", jan, "561720")?.matchedNaics === "561720",
     "janitorial implied-NAICS branch must produce provenance",
   );
+
+  // ── OWNER 09-14/09-15: DELIVERY / FREIGHT-DELIVERY / LOGISTICS / WAREHOUSING
+  // (1) "delivery" → the Delivery trade: DEFAULT code 492110 ONLY. The
+  //     freight-trucking 484xxx codes are the explicit "freight delivery"
+  //     sub-term's job, never a bare "delivery" query's.
+  const del = expandTrade("delivery");
+  assert(del.terms[0] === "delivery", '"delivery" original term is preserved');
+  assert(del.naicsCodes.includes("492110"), '"delivery" must imply NAICS 492110');
+  assert(
+    del.naicsCodes.length === 1,
+    '"delivery" must imply EXACTLY one code (492110) — got ' + JSON.stringify(del.naicsCodes),
+  );
+  for (const code of ["484110", "484121", "484122", "484220", "484230"]) {
+    assert(
+      !del.naicsCodes.includes(code),
+      `default "delivery" must NOT imply freight-trucking ${code}`,
+    );
+  }
+  assert(
+    tradeProvenanceFor("Overnight courier service", del, null)?.conceptLabel === "Delivery/Couriers",
+    '"delivery" text hit must resolve to the Delivery/Couriers trade',
+  );
+  assert(
+    tradeProvenanceFor("Office supplies", del, "492110")?.conceptLabel === "Delivery/Couriers",
+    'a delivery scan\'s implied-NAICS 492110 match must say "Delivery/Couriers" (NOT Trucking/Hauling)',
+  );
+  assert(
+    tradeProvenanceFor("Office supplies", exp, "492110")?.conceptLabel === "Trucking/Hauling",
+    "the SAME 492110 code on a trucking scan must still say Trucking/Hauling",
+  );
+  // (2) "freight delivery" — the conditional sub-term: 492110 + the 484xxx
+  //     freight-trucking codes.
+  const fd = expandTrade("freight delivery");
+  assert(fd.terms[0] === "freight delivery", '"freight delivery" original term is preserved');
+  for (const code of ["492110", "484110", "484121", "484122", "484220", "484230"]) {
+    assert(fd.naicsCodes.includes(code), `"freight delivery" must imply NAICS ${code}`);
+  }
+  // (3) "logistics" → the Logistics trade: 488510 ONLY, never warehousing.
+  const log = expandTrade("logistics");
+  assert(log.terms[0] === "logistics", '"logistics" original term is preserved');
+  assert(log.naicsCodes.includes("488510"), '"logistics" must imply NAICS 488510');
+  assert(
+    !log.naicsCodes.includes("493110"),
+    '"logistics" is NOT warehousing — it must never imply 493110',
+  );
+  assert(
+    !log.naicsCodes.some((c) => c.startsWith("484")),
+    '"logistics" must not imply the freight-trucking 484xxx codes',
+  );
+  assert(
+    tradeProvenanceFor("Freight transportation arrangement services", log, null)?.conceptLabel ===
+      "Logistics",
+    '"logistics" text hit must resolve to the Logistics trade',
+  );
+  assert(
+    tradeProvenanceFor("Office supplies", log, "488510")?.conceptLabel === "Logistics",
+    'a logistics scan\'s implied-NAICS 488510 match must say "Logistics"',
+  );
+  // (4) "warehousing" → the Warehousing trade: 493110 ONLY, never logistics.
+  const wh = expandTrade("warehousing");
+  assert(wh.terms[0] === "warehousing", '"warehousing" original term is preserved');
+  assert(wh.naicsCodes.includes("493110"), '"warehousing" must imply NAICS 493110');
+  assert(
+    wh.naicsCodes.length === 1,
+    '"warehousing" must imply EXACTLY one code (493110) — got ' + JSON.stringify(wh.naicsCodes),
+  );
+  assert(
+    !wh.naicsCodes.includes("488510"),
+    '"warehousing" must NEVER default to logistics — 488510 must not be implied',
+  );
+  assert(
+    tradeProvenanceFor("Warehouse storage services", wh, null)?.conceptLabel === "Warehousing/Storage",
+    '"warehousing" text hit must resolve to the Warehousing/Storage trade',
+  );
+  assert(
+    tradeProvenanceFor("Office supplies", wh, "493110")?.conceptLabel === "Warehousing/Storage",
+    'a warehousing scan\'s implied-NAICS 493110 match must say "Warehousing/Storage"',
+  );
+  // STRICT SEPARATION, both directions (owner add-on 09-15).
+  assert(
+    !log.naicsCodes.includes("493110") && !wh.naicsCodes.includes("488510"),
+    "logistics and warehousing must never imply each other's code",
+  );
+  // Trucking kept everything it had (incl. owner-ratified 492110) and gained no
+  // logistics/warehousing code.
+  assert(exp.naicsCodes.includes("492110"), "trucking must KEEP owner-ratified 492110");
+  for (const code of ["484110", "484121", "484122", "484220", "484230"]) {
+    assert(exp.naicsCodes.includes(code), `trucking must keep freight-trucking ${code}`);
+  }
+  assert(
+    !exp.naicsCodes.includes("488510") && !exp.naicsCodes.includes("493110"),
+    "trucking must not have gained 488510 (logistics) or 493110 (warehousing)",
+  );
+  // Courier presentation: a delivery search IS courier work (never badged
+  // "Related logistics — courier delivery"); trucking/freight/warehousing keep
+  // the existing related-subtype behavior.
+  assert(tradeExpresslyCourier("delivery") === true, 'a "delivery" search presents 492110 rows as its own work');
+  assert(tradeExpresslyCourier("courier services") === true, "an express courier search stays courier work");
+  assert(tradeExpresslyCourier("trucking") === false, '"trucking" presentation is unchanged');
+  assert(tradeExpresslyCourier("hauling") === false, '"hauling" presentation is unchanged');
+  assert(tradeExpresslyCourier("freight delivery") === false, 'a freight-delivery search keeps the related courier subtype');
+  assert(tradeExpresslyCourier("warehousing") === false, '"warehousing" is never courier work');
 }
 
 // @ts-ignore — bun-only entry guard; never runs on import.
@@ -663,7 +897,21 @@ export function isCourierFamilyNaics(code: string | null | undefined): boolean {
 
 /** True when the visitor's OWN trade wording expressly includes courier work
  *  ("courier", "couriers", "courier services") — 492110-family matches then
- *  present as real courier matches, NOT a related-logistics subtype. */
+ *  present as real courier matches, NOT a related-logistics subtype.
+ *
+ *  Owner 09-15 (Delivery trade): the same must hold for a search whose IMPLIED
+ *  NAICS set is entirely 492110 — the new "delivery" trade (and its courier
+ *  synonyms). 492110 is not adjacent work for a delivery search, it IS the
+ *  requested work, so its rows must not be badged "Related logistics — courier
+ *  delivery" (radar.tsx's courierSubtype). Trucks/freight are unaffected: any
+ *  484xxx code in the implied set makes `every` false, preserving the existing
+ *  trucking presentation (including "freight delivery", where a 492110 row
+ *  legitimately stays a related-logistics subtype next to the freight codes). */
 export function tradeExpresslyCourier(trade: string | null | undefined): boolean {
-  return /\bcourier\b/i.test(String(trade ?? ""));
+  const t = String(trade ?? "");
+  if (/\bcourier\b/i.test(t)) return true;
+  const expansion = expandTrade(t);
+  return (
+    expansion.naicsCodes.length > 0 && expansion.naicsCodes.every((c) => isCourierFamilyNaics(c))
+  );
 }

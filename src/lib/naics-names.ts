@@ -176,9 +176,12 @@ export const NAICS_NAMES: Record<string, string> = {
   // codes back the expanded TRADE_ALIASES trucking entry — NAICS_NAMES is the
   // registry's module-load validation authority, so every code the registry
   // names must exist here.
+  // Owner 09-14: + 484220 Specialized Freight (except Used Goods) Trucking,
+  // Local — real NAICS code backing the hauling trade amendment.
   "484110": "General Freight Trucking, Local",
   "484121": "General Freight Trucking, Long-Distance, Truckload",
   "484122": "General Freight Trucking, Long-Distance, Less Than Truckload",
+  "484220": "Specialized Freight (except Used Goods) Trucking, Local",
   "484230": "Specialized Freight Trucking, Long-Distance",
   "492110": "Couriers and Express Delivery Services",
   "488119": "Other Airport Operations",

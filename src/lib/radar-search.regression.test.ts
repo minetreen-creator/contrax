@@ -37,7 +37,8 @@
  */
 import { afterAll, describe, expect, test } from "bun:test";
 import { sql as dbFactory } from "~/db";
-import { expandTrade, tradeKeywordPred, isStrongTradeMatch, RELATED_TRADE_TERMS } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, isStrongTradeMatch, RELATED_TRADE_TERMS, TRADE_ALIASES, tradeProvenanceFor, type TradeAliasEntry } from "~/lib/trade-registry";
+import { NAICS_NAMES } from "~/lib/naics-names";
 import { setAsidePred } from "~/lib/open-bids";
 import {
   certMatches,
@@ -779,5 +780,130 @@ describe("FIX 2 local accuracy (owner 09-14): nationwide contracts NEVER count a
         }
       }
     }
+  });
+});
+
+describe("hauling trade amendment (owner 09-14): searchable Trucking term + NAICS 484220", () => {
+  test("(a) 'hauling' normalizes/resolves to the Trucking trade", () => {
+    const h = expandTrade("hauling");
+    expect(h.isNaics).toBe(false);
+    expect(h.original).toBe("hauling");
+    expect(h.terms[0]).toBe("hauling"); // verbatim original preserved
+    expect(h.terms).toContain("trucking"); // resolves INTO the trucking term family
+    expect(h.terms).toContain("freight hauling");
+    // provenance: a non-original synonym hit ("freight hauling") is labeled
+    // with the industry label Trucking/Hauling
+    const prov = tradeProvenanceFor("Freight hauling needed for base supply run", h, null);
+    expect(prov?.conceptLabel).toBe("Trucking/Hauling");
+    expect(prov?.matchedConcept).toBe("freight hauling");
+    expect(["484110", "484121", "484122", "484220", "484230", "492110"]).toContain(prov?.matchedNaics);
+    // a literal "hauling" text hit keeps the verbatim label (existing behavior)
+    expect(tradeProvenanceFor("2027 Sludge Hauling Contracts", h, null)?.conceptLabel).toBe("hauling");
+  });
+
+  test("(b) trucking expansion includes 484220 and keeps 484110/484121/484122/484230 (+492110)", () => {
+    for (const q of ["trucking", "hauling"]) {
+      const e = expandTrade(q);
+      for (const code of ["484110", "484121", "484122", "484220", "484230", "492110"]) {
+        expect(e.naicsCodes).toContain(code);
+      }
+    }
+  });
+
+  test("(c) no unknown/fabricated NAICS codes anywhere in the registry result set", () => {
+    const knownReal = new Set(Object.keys(NAICS_NAMES));
+    // every code the registry NAMES must be a known-real 6-digit code
+    for (const entry of Object.values(TRADE_ALIASES) as TradeAliasEntry[]) {
+      for (const code of entry.naics) {
+        expect(/^\d{6}$/.test(code)).toBe(true);
+        expect(knownReal.has(code)).toBe(true);
+      }
+    }
+    // every code ANY expansion returns (registry synonyms + infer-map fallback)
+    // must land in the known-real set — no phantom codes can enter a scan.
+    const queries = new Set<string>(["trucking", "hauling", "janitorial"]);
+    for (const entry of Object.values(TRADE_ALIASES)) {
+      for (const s of entry.synonyms) queries.add(s);
+    }
+    for (const q of queries) {
+      const e = expandTrade(q);
+      for (const code of e.naicsCodes) {
+        expect(/^\d{6}$/.test(code)).toBe(true);
+        expect(knownReal.has(code)).toBe(true);
+      }
+    }
+  });
+
+  test("(d) #387 match-quality regressions unchanged under the amended trucking set", () => {
+    // description/category-only hits are STILL never defaults
+    expect(
+      isStrongTradeMatch(
+        "Frozen Beef Coarse Ground Products for use in Domestic Food Assistance Programs",
+        "Construction",
+        "This is a combined synopsis/solicitation for commercial products",
+        "311612",
+        expandTrade("construction"),
+      ),
+    ).toBe(false);
+    expect(
+      isStrongTradeMatch(
+        "Dental Pro Curing Light Introductory Kits",
+        "Construction",
+        "The Indian Health Service, Chinle Service Unit … deliver Den…",
+        "339114",
+        expandTrade("construction"),
+      ),
+    ).toBe(false);
+    expect(
+      isStrongTradeMatch(
+        "Commercial food delivery service for MSG",
+        "Security",
+        "…food services program for U.S. Government at U.S. Embassy Tallinn for Marine Security Guards…",
+        "561612",
+        expandTrade("security"),
+      ),
+    ).toBe(false);
+    expect(
+      isStrongTradeMatch(
+        "Market Research for Specialized Flight Test and Evaluation Training Services",
+        "Security",
+        "…test pilot training…",
+        null,
+        expandTrade("security"),
+      ),
+    ).toBe(false);
+    // title-corroborated trucking rows stay STRONG with the amended set
+    const TRUCKING = expandTrade("trucking");
+    expect(
+      isStrongTradeMatch("2027 Sludge Hauling Contracts", "Transportation", "Open PennBid solicitation…", null, TRUCKING),
+    ).toBe(true);
+    expect(
+      isStrongTradeMatch("Hauling of Dewatered Sludge", "Transportation", "Open PennBid solicitation…", null, TRUCKING),
+    ).toBe(true);
+    expect(
+      isStrongTradeMatch(
+        "F--SOLID WASTE DISPOSAL AND BACKHAULING - TUBA CITY D",
+        "Other",
+        "SOLID WASTE DISPOSAL AND BACKHAULING - TUBA CITY DUMP PROJECT",
+        null,
+        TRUCKING,
+      ),
+    ).toBe(true);
+  });
+
+  test("real pipeline: trade='hauling' scan resolves to trucking and returns the PA sludge rows (DB-backed)", async () => {
+    if (!HAS_DB) return;
+    const r = await runScan("hauling", "Pennsylvania", "sb");
+    expect(r.expansion.naicsCodes).toContain("484220");
+    expect(r.expansion.naicsCodes).toContain("484110");
+    expect(r.expansion.naicsCodes).toContain("484121");
+    expect(r.expansion.naicsCodes).toContain("484122");
+    expect(r.expansion.naicsCodes).toContain("484230");
+    const strongIds = r.strong.map((m: any) => Number(m.id));
+    // NOTE: 136051 "2027 Sludge Hauling Contracts" expired 2026-09-15T18:00Z
+    // (its due_date is now in the past, so the open-bid scan correctly excludes
+    // it — pre-existing #387 tests share this data-drift and are not failures).
+    // Assert the still-open PA sludge-hauling row instead.
+    expect(strongIds).toContain(136136); // Hauling of Dewatered Sludge
   });
 });

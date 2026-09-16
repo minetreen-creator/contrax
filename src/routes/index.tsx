@@ -19,6 +19,9 @@ import {
   AUTOPSY_DRAFT_STORAGE_KEY,
   type AutopsyDraft,
 } from "~/lib/autopsy-funnel";
+// Contrax Grants price label — single source of truth shared with /grants
+// (owner-mandated "$19/month"). Pure module, no server-only imports.
+import { GRANTS_PRICE_LABEL } from "~/lib/grants";
 // Real cached example AI Executive Brief — code-split so it never bloats
 // the homepage main bundle or blocks hero render. Same component + same
 // server fn as the standalone /example-brief page (single source of truth).
@@ -256,6 +259,16 @@ function Home() {
           </p>
         </div>
       </section>
+      {/* ── CONTRAX GRANTS — homepage section (owner order 2026-09-16) ──
+          Slotted DIRECTLY between the Bid Scout callout (the last block inside
+          the Radar section above) and the Award Autopsy section below, per the
+          owner's exact home order:
+          Radar hero → Bid Scout → Contrax Grants → Award Autopsy →
+          Opportunity Map → Example AI Brief → Pricing.
+          Pure ADDITIVE callout: no state, no fetch, no analytics event, no new
+          server fn — it links to the existing /grants page. Nothing above it
+          changes, so the hero CTA stays above the fold at 1440×900. ── */}
+      <ContraxGrantsPromo />
       {/* ── AWARD AUTOPSY — homepage section #2, immediately below the Radar
           hero and above the Map (owner spec 2026-09-05). The second front
           door: for visitors who already bid-and-lost. ── */}
@@ -468,6 +481,49 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
         </div>
       </div>
     </nav>
+  );
+}
+
+// ── Contrax Grants — homepage section (owner order 2026-09-16) ───────────────
+// The third product line on the homepage, slotted between the Radar hero (and
+// its Bid Scout callout) and the Award Autopsy front door. Presentational only:
+// no data fetch, no server fn, no analytics event, no DB — it renders instantly
+// in the server HTML and just links to the existing /grants page. The price
+// label is IMPORTED from the grants module so the homepage and /grants can
+// never disagree on the number (owner-mandated "$19/month").
+function ContraxGrantsPromo() {
+  return (
+    <section
+      aria-label="Contrax Grants"
+      className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8 lg:pb-16"
+    >
+      <div className="overflow-hidden rounded-3xl border border-amber-900/10 bg-gradient-to-b from-amber-50 to-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
+            Contrax Grants
+          </p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            Find grants your organization actually qualifies for.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
+            Contrax Grants searches federal grant opportunities on Grants.gov by keyword,
+            applicant type, funding category, agency, and status — source-verbatim details,
+            nothing invented.
+          </p>
+        </div>
+        <div className="mt-8 text-center">
+          <a
+            href="/grants"
+            className="inline-block rounded-xl bg-amber-500 px-8 py-3.5 text-base font-bold text-slate-950 shadow-sm transition-all hover:bg-amber-400 hover:shadow-md active:scale-[0.98]"
+          >
+            Search grants →
+          </a>
+          <p className="mt-3 text-sm font-semibold text-slate-700">
+            Contrax Grants — {GRANTS_PRICE_LABEL}
+          </p>
+        </div>
+      </div>
+    </section>
   );
 }
 

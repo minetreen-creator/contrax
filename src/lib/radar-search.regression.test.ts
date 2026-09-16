@@ -39,6 +39,14 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { sql as dbFactory } from "~/db";
 import { expandTrade, tradeKeywordPred, isStrongTradeMatch, RELATED_TRADE_TERMS, TRADE_ALIASES, REGISTRY_IMPLIED_NAICS, tradeProvenanceFor, tradeExpresslyCourier, type TradeAliasEntry } from "~/lib/trade-registry";
 import { NAICS_NAMES } from "~/lib/naics-names";
+import { readFileSync } from "node:fs";
+import {
+  TRADE_SUGGESTIONS,
+  NAICS_CODE_SUGGESTIONS,
+  CURATED_TRADE_SUGGESTIONS,
+  CURATED_SUGGESTION_NAICS,
+  OWNER_EVERYDAY_SERVICE_NAICS,
+} from "~/lib/trade-suggestions";
 import { setAsidePred } from "~/lib/open-bids";
 import {
   certMatches,
@@ -1357,5 +1365,276 @@ describe("owner 09-15 canonical 492110 presentation (Directive B) — ONCE, cano
     expect(NAICS_NAMES["492110"]).toBe("Couriers and Express Delivery Services");
     expect(NAICS_NAMES["488510"]).toBe("Freight Transportation Arrangement");
     expect(NAICS_NAMES["493110"]).toBe("General Warehousing and Storage");
+  });
+});
+
+/** Repo source read for the STRUCTURAL datalist assertions (owner 09-15/09-16):
+ *  the check that both Radar inputs render the shared suggestion list and that
+ *  the old `Object.entries(NAICS_NAMES).slice(0, 120)` window is gone has to run
+ *  against the real route/component source, not a copy of the list. */
+function readSrc(rel: string): string {
+  return readFileSync(new URL(`../${rel}`, import.meta.url), "utf8");
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * OWNER 09-15/09-16 — EVERYDAY-SERVICE TRADES
+ * (janitorial re-verify FIRST, then landscaping 561730 + security guards
+ *  561612, then the Radar datalist cutoff fix).
+ *
+ * Owner order of work is preserved in this section: the janitorial live
+ * re-verification comes first, because the owner's rule is that "adding a trade
+ * label alone won't solve that if matching is the cause" — a curated label is
+ * only worth shipping if the scan behind it returns REAL open rows.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+describe("owner 09-15/09-16 janitorial RE-VERIFY — live assertions that can never be masked by the PA expiry drift", () => {
+  test("VA janitorial: kept > 0 real OPEN rows, none expired, USCG BASE NEW ORLEANS excluded, full name == abbreviation (DB-backed)", async () => {
+    if (!HAS_DB) return;
+    const va = await runScan("janitorial", "Virginia", "sb");
+    const abbr = await runScan("janitorial", "VA", "sb");
+    expect(va.state).toBe("VA");
+    // The curated trade still implies 561720 and nothing else.
+    expect(va.expansion.naicsCodes).toEqual(["561720"]);
+    // THE owner acceptance: real open rows on live data, not just a label.
+    expect(va.kept.length).toBeGreaterThan(0);
+    const now = Date.now();
+    for (const m of va.kept) {
+      // never an expired row presented as open
+      expect(new Date(m.due_date).getTime()).toBeGreaterThan(now);
+      // honest evidence: a curated term hit or the implied NAICS code
+      const text = `${m.title ?? ""} ${m.category ?? ""} ${m.description ?? ""}`.toLowerCase();
+      const termHit = va.expansion.terms.some((t: string) => t.length >= 2 && text.includes(t));
+      const naicsHit = va.expansion.naicsCodes.includes(String(m.naics_code ?? ""));
+      expect(termHit || naicsHit).toBe(true);
+    }
+    // The contradictory-location row (USCG BASE NEW ORLEANS) can never survive.
+    expect(
+      va.kept.some((m: any) => String(m.title).toUpperCase().includes("BASE NEW ORLEANS")),
+    ).toBe(false);
+    // Full state name and abbreviation are the SAME scan.
+    expect(abbr.kept.map((m: any) => Number(m.id)).sort((a: number, b: number) => a - b)).toEqual(
+      va.kept.map((m: any) => Number(m.id)).sort((a: number, b: number) => a - b),
+    );
+  });
+});
+
+describe("owner 09-15/09-16 landscaping trade (561730) — curated registry entry", () => {
+  const LANDSCAPING = expandTrade("landscaping");
+  test("(a) 'landscaping' resolves to Landscaping/Grounds → 561730 ONLY, superset of the infer keywords", () => {
+    expect(LANDSCAPING.isNaics).toBe(false);
+    expect(LANDSCAPING.original).toBe("landscaping");
+    expect(LANDSCAPING.naicsCodes).toEqual(["561730"]);
+    // Every term the pre-existing 561730 inference matched on is STILL there —
+    // the curated set can only add recall, never take it away.
+    for (const t of [
+      "landscaping",
+      "landscape",
+      "landscaper",
+      "lawn",
+      "grounds maintenance",
+      "grounds keeping",
+      "snow removal",
+    ]) {
+      expect(LANDSCAPING.terms).toContain(t);
+    }
+    expect(new Set(LANDSCAPING.naicsCodes).size).toBe(LANDSCAPING.naicsCodes.length);
+    // real Census code with its official title
+    expect(NAICS_NAMES["561730"]).toBe("Landscaping Services");
+    expect(TRADE_ALIASES["landscaping-grounds"].label).toBe("Landscaping/Grounds");
+    expect(TRADE_ALIASES["landscaping-grounds"].naics).toEqual(["561730"]);
+  });
+  test("(b) the real query forms resolve (exact synonyms + prefix stems) — payload-level binds", () => {
+    for (const q of [
+      "landscaping",
+      "landscaping services",
+      "lawn care",
+      "lawn mowing",
+      "grounds maintenance",
+      "snow removal",
+      "snow plowing",
+    ]) {
+      const e = expandTrade(q);
+      expect(e.naicsCodes).toEqual(["561730"]);
+      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).toEqual(["561730"]);
+    }
+    // …and it never carries another trade's code.
+    for (const code of ["561720", "561612", "561621", "562111", "484121", "492110"]) {
+      expect(LANDSCAPING.naicsCodes).not.toContain(code);
+    }
+  });
+});
+
+describe("owner 09-15/09-16 security guards (561612) vs security systems (561621) — payload-level separation", () => {
+  const GUARD_TERMS = [
+    "security guard",
+    "security guards",
+    "security officer",
+    "guard services",
+    "armed guard",
+    "armed guards",
+    "unarmed guard",
+    "badge guard",
+  ];
+  const SYSTEM_TERMS = [
+    "security system",
+    "security systems",
+    "access control",
+    "alarm system",
+    "cctv",
+    "video surveillance",
+  ];
+  test("(a) every guard-intent phrase binds 561612 ONLY (expansion + the array that reaches Postgres)", () => {
+    for (const q of GUARD_TERMS) {
+      const e = expandTrade(q);
+      expect(e.naicsCodes).toEqual(["561612"]);
+      const bind = naicsBindOf(tradeKeywordPred(dbFactory, e));
+      expect(bind).toEqual(["561612"]);
+      expect(bind).not.toContain("561621");
+    }
+    expect(NAICS_NAMES["561612"]).toBe("Security Guards and Patrol Services");
+    expect(TRADE_ALIASES["security-guards-patrol"].label).toBe("Security Guards/Patrol");
+    expect(TRADE_ALIASES["security-guards-patrol"].naics).toEqual(["561612"]);
+  });
+  test("(b) every systems phrase stays 561621 ONLY — no guard code, no guard term", () => {
+    for (const q of SYSTEM_TERMS) {
+      const e = expandTrade(q);
+      expect(e.naicsCodes).toEqual(["561621"]);
+      const bind = naicsBindOf(tradeKeywordPred(dbFactory, e));
+      expect(bind).toEqual(["561621"]);
+      expect(bind).not.toContain("561612");
+      expect(e.terms).not.toContain("security guard");
+    }
+    expect(NAICS_NAMES["561621"]).toBe("Security Systems Services");
+  });
+  test("(c) bare 'security' stays generic (exactOnly), while the pre-existing infer keywords are untouched; guard-rail work is never protective services", () => {
+    // "security" alone is a category stamp (the #387 junk rows) — the curated
+    // entry can NOT be reached through the stem, so nothing changes for it.
+    expect(expandTrade("security").naicsCodes).toEqual([]);
+    // the pre-existing infer keywords keep working exactly as before.
+    expect(expandTrade("guards").naicsCodes).toEqual(["561612"]);
+    expect(expandTrade("patrol").naicsCodes).toEqual(["561612"]);
+    // prefix-stem hazard the exactOnly flag prevents: guard hardware / structures
+    for (const q of ["guardrail installation", "guard rail repair", "guard station construction"]) {
+      const e = expandTrade(q);
+      expect(e.naicsCodes).toEqual([]);
+      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).toEqual([]);
+    }
+  });
+  test("(d) the two trades are disjoint in BOTH directions", () => {
+    const guard = new Set(GUARD_TERMS.flatMap((q) => expandTrade(q).naicsCodes));
+    const systems = new Set(SYSTEM_TERMS.flatMap((q) => expandTrade(q).naicsCodes));
+    expect([...guard]).toEqual(["561612"]);
+    expect([...systems]).toEqual(["561621"]);
+    for (const c of systems) expect(guard.has(c)).toBe(false);
+    for (const c of guard) expect(systems.has(c)).toBe(false);
+  });
+});
+
+describe("owner 09-15/09-16 Radar datalist fix — everyday-service codes reachable in BOTH inputs", () => {
+  const CODE_VALUES = NAICS_CODE_SUGGESTIONS.map(([code]) => code);
+  test("(a) all five owner codes are present, once, under their canonical NAICS_NAMES title", () => {
+    for (const code of OWNER_EVERYDAY_SERVICE_NAICS) {
+      expect(CODE_VALUES).toContain(code);
+      const opt = NAICS_CODE_SUGGESTIONS.find(([c]) => c === code);
+      expect(opt?.[1]).toBe(`${code} — ${NAICS_NAMES[code]}`);
+    }
+    expect(CODE_VALUES.filter((c) => c === "561720")).toHaveLength(1);
+  });
+  test("(b) complete + canonical-once: every NAICS_NAMES code exactly once, nothing invented", () => {
+    expect(new Set(CODE_VALUES).size).toBe(CODE_VALUES.length);
+    expect([...CODE_VALUES].sort()).toEqual(Object.keys(NAICS_NAMES).sort());
+    // one option per curated trade + one per code, with unique values (a
+    // duplicate value would collapse the datalist entry).
+    expect(TRADE_SUGGESTIONS.length).toBe(
+      CURATED_TRADE_SUGGESTIONS.length + NAICS_CODE_SUGGESTIONS.length,
+    );
+    const values = TRADE_SUGGESTIONS.map(([value]) => value);
+    expect(new Set(values).size).toBe(values.length);
+    for (const [value, text] of TRADE_SUGGESTIONS) {
+      expect(typeof value).toBe("string");
+      expect(value.length).toBeGreaterThan(0);
+      expect(typeof text).toBe("string");
+      expect(text.length).toBeGreaterThan(0);
+    }
+  });
+  test("(c) CURATE FIRST: the curated codes lead the code block (no arbitrary window, no cliff)", () => {
+    expect(CODE_VALUES.slice(0, CURATED_SUGGESTION_NAICS.length)).toEqual([
+      ...CURATED_SUGGESTION_NAICS,
+    ]);
+    for (const code of [...REGISTRY_IMPLIED_NAICS, ...OWNER_EVERYDAY_SERVICE_NAICS]) {
+      expect(CURATED_SUGGESTION_NAICS).toContain(code);
+      expect(NAICS_NAMES[code]).toBeTruthy(); // real, official-titled codes only
+    }
+    // 492110 is implied by two trades but presented ONCE (owner 09-15).
+    expect(CURATED_SUGGESTION_NAICS.filter((c) => c === "492110")).toHaveLength(1);
+  });
+  test("(d) every curated trade suggestion is LIVE: it resolves to its own entry's NAICS set", () => {
+    expect(CURATED_TRADE_SUGGESTIONS.length).toBe(Object.keys(TRADE_ALIASES).length);
+    for (const [term, text] of CURATED_TRADE_SUGGESTIONS) {
+      const entry = Object.values(TRADE_ALIASES).find((e) => e.synonyms[0] === term);
+      expect(entry).toBeTruthy();
+      expect(expandTrade(term).naicsCodes).toEqual((entry as TradeAliasEntry).naics);
+      expect(text).toBe(`${term} — ${(entry as TradeAliasEntry).label}`);
+    }
+    // the everyday-service trades the owner asked for are all surfaced by name.
+    const terms = CURATED_TRADE_SUGGESTIONS.map(([t]) => t);
+    expect(terms).toContain("janitorial");
+    expect(terms).toContain("landscaping");
+    expect(terms).toContain("security guard");
+  });
+  test("(e) structural: neither input truncates NAICS_NAMES any more; both render the shared list", () => {
+    // Assert against the CODE, not the explanatory comments: strip line + block
+    // comments first so the module/props can keep documenting the bug they fix.
+    const stripComments = (src: string) =>
+      src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    const sources: [string, string, string][] = [
+      ["radar", readSrc("routes/radar.tsx"), "radar-naics-list"],
+      ["hero", readSrc("components/HeroRadar.tsx"), "hero-radar-naics-list"],
+    ];
+    for (const [name, raw, datalistId] of sources) {
+      expect(`${name}:${raw.includes('from "~/lib/trade-suggestions"')}`).toBe(`${name}:true`);
+      expect(`${name}:${raw.includes("TRADE_SUGGESTIONS.map")}`).toBe(`${name}:true`);
+      expect(`${name}:${raw.includes(datalistId)}`).toBe(`${name}:true`);
+      const src = stripComments(raw);
+      // …and the arbitrary first-120-code window is gone for good. (Assertions
+      // are specific: `trade.slice(0, 120)` is MAX_TRADE_LENGTH and legitimately
+      // stays — what must never come back is a window over NAICS_NAMES.)
+      expect(`${name}:${src.includes("Object.entries(NAICS_NAMES)")}`).toBe(`${name}:false`);
+      expect(`${name}:${src.includes("slice120")}`).toBe(`${name}:false`);
+      expect(`${name}:${src.includes("NAICS_SUGGESTIONS")}`).toBe(`${name}:false`);
+    }
+    // the shared module itself never truncates the canonical set either.
+    const mod = stripComments(readSrc("lib/trade-suggestions.ts"));
+    expect(mod.includes("Object.entries(NAICS_NAMES)")).toBe(false);
+    expect(mod.includes("slice120")).toBe(false);
+  });
+});
+
+describe("owner 09-15/09-16 everyday-service trades — real pipeline (DB-backed)", () => {
+  test("landscaping / security-guard / janitorial scans run through the real predicates with their own NAICS set, and keep only open, corroborated rows", async () => {
+    if (!HAS_DB) return;
+    const specs: [string, string][] = [
+      ["landscaping", "561730"],
+      ["security guard", "561612"],
+      ["janitorial", "561720"],
+    ];
+    for (const [term, code] of specs) {
+      const r = await runScan(term, "", "sb"); // nationwide, real predicates
+      expect(r.expansion.naicsCodes).toEqual([code]);
+      const now = Date.now();
+      for (const m of r.kept) {
+        expect(new Date(m.due_date).getTime()).toBeGreaterThan(now);
+      }
+      for (const m of r.strong) {
+        // DEFAULT matches are title- or implied-NAICS-corroborated (#387 rule).
+        const titleText = String(m.title ?? "").toLowerCase();
+        const titleHit = r.expansion.terms.some(
+          (t: string) => t.length >= 2 && titleText.includes(t),
+        );
+        const codeHit = r.expansion.naicsCodes.includes(String(m.naics_code ?? ""));
+        expect(titleHit || codeHit).toBe(true);
+      }
+    }
   });
 });

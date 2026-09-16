@@ -19,7 +19,8 @@ import {
   type RadarCertId,
 } from "~/lib/radar-session";
 import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
-import { expandTrade, tradeKeywordPred, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, REGISTRY_IMPLIED_NAICS, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
+import { TRADE_SUGGESTIONS } from "~/lib/trade-suggestions";
 import {
   normalizeStateInput,
   resolveBidState,
@@ -822,23 +823,16 @@ const STATE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
   Object.entries(STATE_NAME_TO_CODE).map(([name, code]) => [code, name]),
 );
 
-// OWNER 09-15 (canonical NAICS presentation): the datalist suggestion list is
-// NAICS_NAMES (each code ONCE under its official title) PLUS every code the
-// trade registry implies (492110/488510/493110 + the 484xxx freight codes) that
-// the 120-entry slice would otherwise omit — so a "delivery"/"trucking"/
-// "logistics"/"warehousing" chooser always sees the canonical selectable codes
-// exactly once, each with its official NAICS_NAMES title. The trade field stays
-// free text; this only widens the suggestion list (presentation-only).
-const NAICS_SUGGESTIONS: [string, string][] = (() => {
-  const slice120 = Object.entries(NAICS_NAMES).slice(0, 120);
-  const present = new Set(slice120.map(([code]) => code));
-  return [
-    ...slice120,
-    ...REGISTRY_IMPLIED_NAICS.filter((code) => !present.has(code)).map(
-      (code) => [code, NAICS_NAMES[code]] as [string, string],
-    ),
-  ];
-})();
+// OWNER 09-15/09-16 (everyday-service trades + canonical NAICS presentation):
+// the datalist suggestions come from ONE shared source (~/lib/trade-suggestions)
+// instead of the old `slice(0, 120)` window over NAICS_NAMES. That window
+// stopped inside the support-services sector, so Facilities Support 561210,
+// Security Guards 561612, Janitorial 561720, Landscaping 561730 and Solid Waste
+// Collection 562111 (positions 129-148 of 184) never reached the public
+// dropdown. The shared list leads with the curated TRADES (search term + curated
+// label), then the curated codes (each ONCE under its official NAICS_NAMES
+// title — 492110 canonical-once), then the COMPLETE code set. HeroRadar renders
+// the exact same list. The trade field stays free text; presentation-only.
 
 function RadarLanding() {
   const [step, setStep] = useState<Step>(1);
@@ -1141,8 +1135,8 @@ function RadarLanding() {
                   className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-4 text-base text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                 />
                 <datalist id="radar-naics-list">
-                  {NAICS_SUGGESTIONS.map(([code, name]) => (
-                    <option key={code} value={code}>{`${code} — ${name}`}</option>
+                  {TRADE_SUGGESTIONS.map(([value, text]) => (
+                    <option key={value} value={value}>{text}</option>
                   ))}
                 </datalist>
               </div>

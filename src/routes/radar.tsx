@@ -12,6 +12,12 @@ import { getTrackingUser } from "~/lib/identity";
 import { SHOW_FREE_INCUMBENT, FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
 import type { FPDSIntel } from "~/lib/fpds";
 import {
+  loadRadarIntel,
+  type MatchIntelResult,
+  type MatchIntelState,
+  type MatchIntelStatus,
+} from "~/lib/radar-intel";
+import {
   getRadarAnswers,
   getRadarSeen,
   saveRadarSeen,
@@ -414,8 +420,11 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const ranked = scored.filter((m) => m.strong).slice(0, 5);
     const weakRowCandidates = scored.filter((m) => !m.strong);
 
-    // Incumbent intel: only fetched + surfaced when the flag is ON (see
-    // ~/lib/radar-config.ts). In teaser mode we skip the FPDS calls entirely.
+    // OWNER 09-16 (Radar scan-latency fix, order #1): this handler performs NO
+    // FPDS/USAspending work. Incumbent intel is loaded LAZILY, per displayed
+    // opportunity, by getRadarMatchIntel below — the scan now returns on the
+    // base path (~0.2 s measured) instead of 7.6–15.8 s (up to 5 sequential,
+    // rate-limited upstream lookups used to run right here).
     const matches: RadarMatch[] = [];
     for (let i = 0; i < ranked.length; i++) {
       const { bid, score, scoreLabel, tradeProvenance } = ranked[i];
@@ -436,49 +445,40 @@ export const runRadarScan = createServerFn({ method: "POST" })
         incumbent: null,
         learned: matchPriorLoss(priorLossIndex, bid.agency, bid.naics_code),
       };
-      // Fetch incumbent intel for every candidate so we can order the free
-      // preview toward incumbent-rich matches. Only the first THREE are ever
-      // displayed free (the rest sit behind the gate), so this never leaks a
-      // paid feature — it just tells us which real matches to put first.
-      if (SHOW_FREE_INCUMBENT) {
-        try {
-          const { getFPDSIntel } = await import("~/lib/fpds");
-          match.incumbent = await getFPDSIntel(bid.naics_code || "", bid.agency || "", bid.title);
-        } catch {
-          match.incumbent = null;
-        }
-      }
+      // No enrichment here (owner 09-16): the card's incumbent field stays
+      // null in the scan payload and is filled in lazily on the results screen.
       matches.push(match);
     }
 
-    // FREE-FIRST-3 BIAS (P1): the free preview is sold on "first 3 matches with
-    // full incumbent intel", so prefer the incumbent-rich, adequate-runway bids
-    // first so the marquee differentiator is actually demonstrated. This is a
-    // PURE re-ordering of the same real matches — match % stays deterministic
-    // and real, and any bid with no incumbent data still shows its honest
-    // "not available" placeholder (never fabricated). Within a priority group we
-    // keep the higher score first.
-    (() => {
-      const MIN_RUNWAY_DAYS = 3; // a real bid needs more than a ~1-day closing window
-      const hasRealIncumbent = (m: RadarMatch) =>
-        !!m.incumbent && !!m.incumbent.incumbent_name && (m.incumbent.total_obligated ?? 0) > 0;
-      const hasRunway = (m: RadarMatch) => m.days_remaining == null || m.days_remaining >= MIN_RUNWAY_DAYS;
-      const priority = (m: RadarMatch) =>
-        hasRealIncumbent(m) && hasRunway(m) ? 0 : hasRealIncumbent(m) ? 1 : hasRunway(m) ? 2 : 3;
-      matches.sort((a, b) => priority(a) - priority(b) || b.score - a.score);
-    })();
-
-    // GATING (owner rule): Incumbent intel is Professional+, EXCEPT the first
-    // three FREE radar matches. We fetched it for every candidate so we could
-    // order the free preview toward incumbent-rich bids, but we must NOT ship
-    // the paywalled previous-winner/award-price data for the gated (3rd+) matches
-    // to the client — the full `matches` array is stored in client state + saved
-    // to localStorage, so a visitor could read match #5's award price otherwise.
-    // Strip incumbent for everything beyond the free 3 (the gate unlocks it on a
-    // paid tier via its own path). The reordering above already put the best free
-    // matches first.
-    for (let i = 3; i < matches.length; i++) {
-      matches[i].incumbent = null;
+    // ORDERING (owner 09-16): the incumbent-rich "FREE-FIRST-3 BIAS" (P1) re-order
+    // existed only because the scan held incumbent data for every candidate. With
+    // enrichment moved out of the synchronous path that data does not exist at
+    // scan time, so the free preview falls back to the deterministic SCORE order
+    // (the pre-#231 order). Matching, scoring, bucketing and the free-preview CAP
+    // are unchanged; only the now-impossible intel-based re-ordering is gone.
+    //
+    // GATING (owner rule, UNCHANGED): incumbent intel is Professional+ EXCEPT the
+    // free ≤3 radar matches — the scan used to strip it for every match past the
+    // free 3 so the paywalled award price could never reach the client. The scan
+    // now ships no intel at all, so that boundary moves to the lazy endpoint,
+    // which must be able to PROVE entitlement: mint a signed ticket naming exactly
+    // the ids that were entitled before (the first FREE_ANONYMOUS_RADAR_RESULTS
+    // matches). Fail-open for the scan, fail-CLOSED for the data: no ticket ⇒ the
+    // cards render "unavailable", never data.
+    let intelTicket: string | null = null;
+    try {
+      if (SHOW_FREE_INCUMBENT && matches.length > 0) {
+        const { signRadarIntelTicket } = await import("~/lib/radar-handoff.server");
+        intelTicket = signRadarIntelTicket(
+          matches.slice(0, FREE_ANONYMOUS_RADAR_RESULTS).map((m) => m.id),
+        );
+      }
+    } catch (err) {
+      // Constant string only — never the secret, never the payload.
+      if (err instanceof Error && err.message.includes("RADAR_HANDOFF_SECRET is required")) {
+        console.error("[radar] incumbent intel unavailable: missing server configuration (RADAR_HANDOFF_SECRET)");
+      }
+      intelTicket = null;
     }
 
     // PR2 signed handoff (owner 2026-09-07): when REAL matches exceed the free
@@ -610,7 +610,76 @@ export const runRadarScan = createServerFn({ method: "POST" })
         ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
         : a.due_date ? -1 : b.due_date ? 1 : 0,
     );
-    return { matches, certLabel: CERT_LABEL[certId], sections: { local, nationwide, related } };
+    return { matches, certLabel: CERT_LABEL[certId], sections: { local, nationwide, related }, intelTicket };
+  });
+
+/**
+ * RADAR INCUMBENT INTEL — LAZY, PER DISPLAYED OPPORTUNITY (owner 09-16 order #1).
+ *
+ * The owner's order: "Return Radar matches BEFORE FPDS enrichment: remove
+ * getFPDSIntel from the synchronous scan path. Load incumbent intelligence
+ * separately, for each displayed opportunity." This is that endpoint — the
+ * results screen calls it once per card, after the matches have rendered.
+ *
+ * Contract / guarantees:
+ *   - Entitlement is verified SERVER-SIDE against the scan's signed ticket
+ *     (~/lib/radar-handoff.server): only the match ids the scan minted (the free
+ *     ≤3) can be looked up, so the paywalled previous-winner/award-price data for
+ *     gated (4th+) matches can never be fetched by a crafted call. Fail-closed.
+ *   - The lookup inputs come from the bid's OWN row (naics/agency/title) plus its
+ *     STABLE identifiers (source + external_id) for the cache key — the client
+ *     supplies only the bid id, never fields that steer the lookup.
+ *   - NEVER HANGS: the lookup is bounded by its own AbortSignal budget in
+ *     ~/lib/fpds, and this handler additionally races a wall-clock guard so the
+ *     request answers even if a dependency in front of the lookup stalls.
+ *   - Three-way status so the card can be honest: ok / none / unavailable.
+ */
+export const getRadarMatchIntel = createServerFn({ method: "POST" })
+  .validator((d: unknown) => {
+    const v = (d as any) ?? {};
+    const bidId = Math.trunc(Number(v.bidId));
+    return {
+      bidId: Number.isFinite(bidId) && bidId > 0 ? bidId : 0,
+      ticket: String(v.ticket ?? "").slice(0, 4096),
+    };
+  })
+  .handler(async ({ data }): Promise<MatchIntelResult> => {
+    const unavailable: MatchIntelResult = { status: "unavailable", intel: null };
+    if (!SHOW_FREE_INCUMBENT || !data.bidId) return unavailable;
+    const { lookupFPDSIntel, FPDS_RADAR_LOOKUP_TIMEOUT_MS } = await import("~/lib/fpds");
+    const work = async (): Promise<MatchIntelResult> => {
+      const { verifyRadarIntelTicket, intelTicketAllows } = await import("~/lib/radar-handoff.server");
+      if (!intelTicketAllows(verifyRadarIntelTicket(data.ticket), data.bidId)) return unavailable;
+      const { sql } = await import("~/db");
+      let row: any = null;
+      try {
+        const rows: any[] = await sql()`
+          SELECT id, title, agency, naics_code, source, external_id
+          FROM bids WHERE id = ${data.bidId} LIMIT 1`;
+        row = rows[0] ?? null;
+      } catch (err) {
+        console.error("[radar-intel] bid read failed:", err);
+      }
+      if (!row) return unavailable;
+      const res = await lookupFPDSIntel(row.naics_code ?? "", row.agency ?? "", row.title ?? "", {
+        totalTimeoutMs: FPDS_RADAR_LOOKUP_TIMEOUT_MS,
+        key: { source: row.source, opportunityId: row.external_id },
+      });
+      return res.status === "ok" ? { status: "ok", intel: res.intel } : { status: res.status, intel: null };
+    };
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    try {
+      const guard = new Promise<MatchIntelResult>((resolve) => {
+        timer = setTimeout(() => resolve(unavailable), FPDS_RADAR_LOOKUP_TIMEOUT_MS + 1_500);
+      });
+      const result = work().catch((err) => {
+        console.error("[radar-intel] failed:", err);
+        return unavailable;
+      });
+      return await Promise.race([result, guard]);
+    } finally {
+      if (timer !== null) clearTimeout(timer);
+    }
   });
 
 /**
@@ -810,13 +879,18 @@ export interface RadarSections {
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections }
+  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null }
   | { status: "error" };
-/** Resolved payload of a successful runRadarScan call (handler return shape). */
+/** Resolved payload of a successful runRadarScan call (handler return shape).
+ *  `intelTicket` (owner 09-16): the signed, server-minted list of the match ids
+ *  entitled to incumbent intel — the lazy getRadarMatchIntel endpoint requires
+ *  it. null = no ticket (missing server config) ⇒ the cards show an honest
+ *  "unavailable", never a fabricated "no previous winner". */
 type ScanResult = {
   matches: RadarMatch[];
   certLabel: string;
   sections: RadarSections;
+  intelTicket: string | null;
 };
 /** USPS code → full state name (for section labels). */
 const STATE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
@@ -960,6 +1034,13 @@ function RadarLanding() {
     }
   }, [cert, sizePref]);
 
+  // LAZY incumbent intel (owner 09-16): nothing is fetched during the scan; the
+  // results screen pulls it per displayed opportunity once matches are on screen.
+  const matchIntel = useRadarIntel(
+    scan.status === "done" ? scan.matches : [],
+    scan.status === "done" ? scan.intelTicket : null,
+  );
+
   const editing = trade.trim() !== "" && cert !== null && sizePref !== null;
 
   // Reveal the next match + keep the persisted radar-session "seen" state in
@@ -1038,7 +1119,13 @@ function RadarLanding() {
           source_url: m.source_url,
         })),
       });
-      setScan({ status: "done", matches: res.matches, certLabel: res.certLabel, sections: res.sections });
+      setScan({
+        status: "done",
+        matches: res.matches,
+        certLabel: res.certLabel,
+        sections: res.sections,
+        intelTicket: res.intelTicket ?? null,
+      });
       setStep(3);
     };
 
@@ -1317,6 +1404,7 @@ function RadarLanding() {
                       <RadarCard
                         key={m.id}
                         match={m}
+                        intel={matchIntel[m.id]}
                         certLabel={scan.certLabel}
                         index={i + 1}
                         total={scan.sections.local.length}
@@ -1419,6 +1507,7 @@ function RadarLanding() {
                   <RadarCard
                     key={m.id}
                     match={m}
+                    intel={matchIntel[m.id]}
                     certLabel={scan.certLabel}
                     index={i + 1}
                     total={visibleCount}
@@ -1462,6 +1551,7 @@ function RadarLanding() {
               <div className="mt-6">
                 <RadarCard
                   match={scan.matches[revealed]}
+                  intel={matchIntel[scan.matches[revealed].id]}
                   certLabel={scan.certLabel}
                   index={revealed + 1}
                   total={scan.matches.length}
@@ -1583,6 +1673,49 @@ function tradeLabel(t: string): string {
   return `"${t}"`;
 }
 
+/**
+ * LAZY INCUMBENT-INTEL HOOK (owner 09-16) — the client half of the fix.
+ *
+ * The scan returns matches immediately and ships NO intel; this hook fills it in
+ * AFTER the results render, per DISPLAYED opportunity (the free ≤3 the scan
+ * minted a ticket for — the same matches that were enriched before), through the
+ * bounded getRadarMatchIntel server fn. Every card state is one of
+ * loading / ok / none / unavailable; the "loading" state is bounded client-side
+ * by RADAR_INTEL_CLIENT_TIMEOUT_MS (~/lib/radar-intel), so a card can never sit
+ * in a loading state and no request can hang. The 15 s scan cap is untouched.
+ */
+function useRadarIntel(
+  matches: RadarMatch[],
+  intelTicket: string | null,
+): Record<number, MatchIntelState> {
+  const [intel, setIntel] = useState<Record<number, MatchIntelState>>({});
+  // Bounded, serializable dependency: the entitled (first ≤3) match ids.
+  const eligibleIds = matches.slice(0, FREE_ANONYMOUS_RADAR_RESULTS).map((m) => m.id);
+  const eligibleKey = eligibleIds.join(",");
+  useEffect(() => {
+    if (!SHOW_FREE_INCUMBENT || !eligibleKey) return;
+    const ids = eligibleKey.split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    if (!ids.length) return;
+    if (!intelTicket) {
+      // No entitlement ticket (e.g. missing server configuration): honest
+      // "unavailable" — never a fabricated "no previous winner".
+      setIntel(Object.fromEntries(ids.map((id) => [id, { status: "unavailable" as MatchIntelStatus, intel: null }])));
+      return;
+    }
+    let cancelled = false;
+    setIntel(Object.fromEntries(ids.map((id) => [id, { status: "loading" as MatchIntelStatus, intel: null }])));
+    const ticket = intelTicket;
+    for (const id of ids) {
+      loadRadarIntel(() => getRadarMatchIntel({ data: { bidId: id, ticket } })).then((state) => {
+        if (cancelled) return;
+        setIntel((prev) => ({ ...prev, [id]: state }));
+      });
+    }
+    return () => { cancelled = true; };
+  }, [eligibleKey, intelTicket]);
+  return intel;
+}
+
 export function RadarCard({
   match,
   certLabel,
@@ -1592,10 +1725,15 @@ export function RadarCard({
   state,
   cert,
   sizePref,
+  intel,
 }: {
   match: RadarMatch;
   certLabel: string;
   index: number;
+  /** Lazy incumbent-intel state for THIS card (owner 09-16). Absent for cards
+   *  that are not entitled to / not part of the lazy load (Related section,
+   *  gated matches) — they keep the honest "not available" placeholder. */
+  intel?: MatchIntelState;
   /** How many matches this card is part of (real count; anonymous visitors see
    *  min(total, FREE_ANONYMOUS_RADAR_RESULTS) up front). */
   total: number;
@@ -1737,6 +1875,7 @@ export function RadarCard({
         <RadarSection title="Previous winner & award price">
           <IncumbentBlock
             match={match}
+            intel={intel}
             trade={trade}
             state={state}
             cert={cert}
@@ -1803,35 +1942,57 @@ export function RadarSection({ title, children }: { title: string; children: Rea
 /** Single render path gated by SHOW_FREE_INCUMBENT (see ~/lib/radar-config.ts). */
 function IncumbentBlock({
   match,
+  intel,
   trade,
   state,
   cert,
   sizePref,
 }: {
   match: RadarMatch;
+  /** Lazy per-card intel state (owner 09-16); undefined ⇒ fall back to the
+   *  (now always null) scan-payload field, preserving the honest placeholder. */
+  intel?: MatchIntelState;
   trade: string;
   state: string;
   cert: RadarCertId | null;
   sizePref: SizeId | null;
 }) {
-  if (SHOW_FREE_INCUMBENT && match.incumbent) {
-    const i = match.incumbent;
-    return (
-      <div className="space-y-1.5">
-        <p className="flex gap-2 text-sm text-slate-300">
-          <span className="text-amber-400" aria-hidden="true">→</span>
-          <span>Previous winner: <strong className="text-white">{i.incumbent_name}</strong></span>
-        </p>
-        <p className="flex gap-2 text-sm text-slate-300">
-          <span className="text-amber-400" aria-hidden="true">→</span>
-          <span>Prior award value: <strong className="text-white">{money(i.total_obligated)}</strong></span>
-        </p>
-        <p className="mt-1 text-[11px] text-slate-500">Powered by FPDS / USASpending.gov</p>
-      </div>
-    );
-  }
   if (SHOW_FREE_INCUMBENT) {
-    // No incumbent data available for this bid — graceful placeholder, never fabricated.
+    // OWNER 09-16: the scan ships NO incumbent data any more — each card loads
+    // it lazily (useRadarIntel → getRadarMatchIntel). Four honest states; a card
+    // is never a stuck spinner and never claims "no previous winner" when we
+    // simply could not find out.
+    const status: MatchIntelStatus = intel?.status ?? (match.incumbent ? "ok" : "none");
+    const i = intel ? intel.intel : match.incumbent;
+    if (status === "loading") {
+      return (
+        <p className="text-sm text-slate-400">Checking previous winner &amp; award price…</p>
+      );
+    }
+    if (status === "unavailable") {
+      return (
+        <p className="text-sm text-slate-400">
+          Previous winner &amp; award price unavailable right now — we couldn&rsquo;t reach the award database.
+        </p>
+      );
+    }
+    if (status === "ok" && i) {
+      return (
+        <div className="space-y-1.5">
+          <p className="flex gap-2 text-sm text-slate-300">
+            <span className="text-amber-400" aria-hidden="true">→</span>
+            <span>Previous winner: <strong className="text-white">{i.incumbent_name}</strong></span>
+          </p>
+          <p className="flex gap-2 text-sm text-slate-300">
+            <span className="text-amber-400" aria-hidden="true">→</span>
+            <span>Prior award value: <strong className="text-white">{money(i.total_obligated)}</strong></span>
+          </p>
+          <p className="mt-1 text-[11px] text-slate-500">Powered by FPDS / USASpending.gov</p>
+        </div>
+      );
+    }
+    // status "none" (upstream answered: no record for this notice), or an "ok"
+    // state that carries no data — graceful placeholder, never fabricated.
     return (
       <p className="text-sm text-slate-400">
         Previous winner &amp; award price not available for this notice.

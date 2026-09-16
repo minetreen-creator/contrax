@@ -303,6 +303,132 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     naics: ["561612"],
   },
   /**
+   * OWNER 09-16 — FACILITIES SUPPORT → NAICS 561210 Facilities Support Services
+   * (real Census code; the 4th of the owner's five everyday-service codes named
+   * 09-15 — the set the old 120-code datalist window cut off).
+   *
+   * Same curated procurement treatment janitorial/landscaping/security already
+   * had: the language procurement actually uses for base/facility OPERATIONS
+   * MANAGEMENT ("facilities support", "facilities management", "integrated
+   * facilities", "base operations support", …) resolves HERE, to 561210, and to
+   * no other code. The first-word stem additionally lets the real query forms
+   * ("facilities support services", "facility operations services", "base
+   * operations support services") resolve, exactly as landscaping's stem
+   * resolves "snow plowing".
+   *
+   * SUPERSET of the pre-existing 561210 infer keywords (recall can only grow):
+   * four of the five are curated synonyms here — facilities support, facilities
+   * management, building maintenance, integrated facilities. The fifth,
+   * "janitorial management", is deliberately NOT repeated in this entry even
+   * though the infer map maps it to 561210: its first word is a stem into the
+   * JANITORIAL entry ("janitorial"), so making it an exact synonym here would
+   * (a) strip 561720 from that phrase and (b) pull 561210 into a plain "janitor"
+   * query — the exact bleed this entry must not create. It keeps resolving to
+   * 561210 through the infer map, unchanged (pinned in the regression suite), and
+   * the superset rule's purpose still holds structurally: every curated
+   * facilities phrase's expansion carries all five 561210 infer keywords,
+   * because the implied code 561210 pulls its infer keyword list (asserted).
+   *
+   * SEPARATION — 561210 vs 561720 (janitorial) vs 561110 (office admin):
+   *   561210 = BROAD base-operations / facility-operations MANAGEMENT
+   *     (facilities / facility management, integrated facilities, facilities
+   *     and base operations, facilities maintenance, building maintenance);
+   *   561720 Janitorial Services = the CLEANING work itself
+   *     (custodial, commercial cleaning, floor care, restroom sanitation,
+   *     window cleaning, …);
+   *   561110 Office Administrative Services = office admin
+   *     (office administrative, administrative services, office services).
+   * Not one synonym here is a cleaning-service phrase and not one 561720/561110
+   * phrase is an exact synonym of this entry, so the payloads are disjoint in
+   * BOTH directions (proven at payload level in the regression suite).
+   *
+   * Precision: no synonym is a bare "facilities" or "maintenance" (the same rule
+   * that keeps janitorial free of bare "cleaning") — every term is a compound
+   * phrase procurement actually writes, and GENERIC_TRADE_TERMS structurally
+   * filters whole-term generics out of the match set. The list is held at 8
+   * compound phrases so that no OTHER query's 12-term expansion cap is disturbed
+   * — the 437-query before/after diff shows zero code losses and zero term
+   * losses everywhere except the one documented phrase below.
+   *
+   * DOCUMENTED SIDE EFFECT of exact-hit-wins (see expandTrade): "building
+   * maintenance" is BOTH a curated synonym here and a first-word stem into the
+   * janitorial entry ("building cleaning"). As an exact curated phrase it now
+   * binds exactly — 561210 + 561790 (its two pre-existing infer owners) — so the
+   * 561720 that it used to inherit through that stem is gone, which is what the
+   * infer map always said this phrase is (building maintenance is not janitorial
+   * cleaning). No cleaning-only query and no janitorial match TERM changed: the
+   * regression suite pins both this binding and the untouched 561720 payload.
+   */
+  "facilities-support-services": {
+    label: "Facilities Support/Operations",
+    synonyms: [
+      "facilities support",
+      "facilities management",
+      "facility management",
+      "integrated facilities",
+      "facilities operations",
+      "facilities maintenance",
+      "building maintenance",
+      "base operations support",
+    ],
+    naics: ["561210"],
+  },
+
+  /**
+   * OWNER 09-16 — SOLID WASTE COLLECTION → NAICS 562111 Solid Waste Collection
+   * (real Census code; the 5th and last of the owner's five everyday-service
+   * codes named 09-15).
+   *
+   * `exactOnly` — the same mechanism the owner's 09-15 arrangement-intent ruling
+   * put on Logistics/488510 and #391 put on Security Guards. "waste" is a prefix
+   * stem onto everything waste-adjacent (waste management, hazardous waste,
+   * wastewater, waste disposal) and "trash"/"garbage" are single generic nouns,
+   * so 562111 binds ONLY for the exact collection/hauling phrases below: a bare
+   * "waste" query keeps EXACTLY today's behavior (no code implied) and nothing
+   * can inherit this entry through the stem.
+   *
+   * SUPERSET: the synonym set contains every pre-existing 562111 infer keyword
+   * (solid waste, waste collection, waste hauling, trash, garbage, refuse,
+   * rubbish), so a "solid waste" scan keeps every term it already matched on —
+   * recall can only grow — plus the collection phrases procurement uses. The
+   * list is deliberately held at MAX_EXPANDED_TERMS (12), the same cap
+   * discipline Security Guards applies: every entry is BOTH a curated match term
+   * and a query form, and a 13th term would push a real term (and a pre-existing
+   * infer keyword) out of the cap on some queries. Longer/shorter variants users
+   * type ("waste collection services") still match by substring of the shorter
+   * phrase once it resolves.
+   *
+   * SEPARATION — 562111 vs the other 562x codes:
+   *   562111 = collection/hauling of MUNICIPAL SOLID WASTE (trash, garbage,
+   *     refuse, rubbish, solid waste collection/hauling);
+   *   562112 = HAZARDOUS waste collection, 562119 = other waste collection;
+   *   562212 / 562219 = landfill and waste DISPOSAL;
+   *   562920 = recycling / materials recovery.
+   * Not one synonym here mentions hazardous, disposal, landfill or recycling,
+   * and no 5621xx-other / 5622xx / 5629xx phrase is an exact synonym of this
+   * entry — the payloads are disjoint in BOTH directions (proven at payload
+   * level in the regression suite).
+   */
+  "solid-waste-collection": {
+    label: "Solid Waste/Collection",
+    exactOnly: true,
+    synonyms: [
+      "solid waste",
+      "solid waste collection",
+      "municipal solid waste",
+      "waste collection",
+      "waste hauling",
+      "trash",
+      "trash collection",
+      "garbage",
+      "garbage collection",
+      "refuse",
+      "refuse collection",
+      "rubbish",
+    ],
+    naics: ["562111"],
+  },
+  /**
    * OWNER 09-15 — DELIVERY → NAICS 492110 (Couriers and Express Delivery
    * Services). The DEFAULT implied code for delivery work is 492110 ONLY.
    *

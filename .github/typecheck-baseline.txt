@@ -1,7 +1,7 @@
 src/lib/far-parts.ts(108,9): error TS6133: 'rows' is declared but its value is never read.
 src/lib/notifications.ts(112,11): error TS6133: 'bidId' is declared but its value is never read.
 src/lib/radar-leads-funnel.ts(105,10): error TS6133: 'pct' is declared but its value is never read.
-src/lib/trade-registry.ts(428,7): error TS6133: 'REGISTRY_SYNONYMS' is declared but its value is never read.
+src/lib/trade-registry.ts(554,7): error TS6133: 'REGISTRY_SYNONYMS' is declared but its value is never read.
 src/routes/admin/bid-scout.tsx(217,9): error TS6133: 'purchased' is declared but its value is never read.
 src/routes/api/dashboard-digest.ts(10,11): error TS6196: 'DigestResult' is declared but never used.
 src/routes/api/pricing-recommend.ts(72,11): error TS6133: 'query' is declared but its value is never read.

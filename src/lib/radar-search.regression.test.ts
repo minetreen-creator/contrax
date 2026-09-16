@@ -1638,3 +1638,356 @@ describe("owner 09-15/09-16 everyday-service trades — real pipeline (DB-backed
     }
   });
 });
+
+/**
+ * ─────────────────────────────────────────────────────────────────────────────
+ * OWNER 09-16 — FACILITIES SUPPORT 561210 + SOLID WASTE COLLECTION 562111
+ * (the last two of the owner's five everyday-service codes, owner-approved
+ *  09-16; #391 shipped janitorial / landscaping / security under the same
+ *  curated-registry pattern — curated label + procurement synonyms + NAICS
+ *  binding, recall only grows, neighbouring codes kept disjoint at payload
+ *  level).
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+const FACILITIES_SYNONYMS = [
+  "facilities support",
+  "facilities management",
+  "facility management",
+  "integrated facilities",
+  "facilities operations",
+  "facilities maintenance",
+  "building maintenance",
+  "base operations support",
+];
+/** Facilities query forms (curated synonyms + stem forms) that imply 561210 ONLY. */
+const FACILITIES_PURE_561210 = [
+  "facilities support",
+  "facility management",
+  "integrated facilities",
+  "facilities operations",
+  "facilities maintenance",
+  "base operations support",
+  "facilities support services",
+  "facility operations services",
+  "base operations support services",
+  "facilities",
+  "facility",
+  "base operations",
+];
+
+describe("owner 09-16 facilities support (561210) — curated registry entry", () => {
+  const F = expandTrade("facilities support");
+  test("(a) 'facilities support' resolves to Facilities Support/Operations → 561210 ONLY", () => {
+    expect(F.isNaics).toBe(false);
+    expect(F.original).toBe("facilities support");
+    expect(F.naicsCodes).toEqual(["561210"]);
+    // real Census code with its official title + the curated metadata
+    expect(NAICS_NAMES["561210"]).toBe("Facilities Support Services");
+    expect(TRADE_ALIASES["facilities-support-services"].label).toBe(
+      "Facilities Support/Operations",
+    );
+    expect(TRADE_ALIASES["facilities-support-services"].naics).toEqual(["561210"]);
+    // NOT exactOnly: the stem carries the real query forms (see (c)).
+    expect(TRADE_ALIASES["facilities-support-services"].exactOnly).toBeUndefined();
+    // 561210 has exactly ONE curated owner — the why-line label is unambiguous.
+    expect(
+      Object.entries(TRADE_ALIASES)
+        .filter(([, e]) => e.naics.includes("561210"))
+        .map(([k]) => k),
+    ).toEqual(["facilities-support-services"]);
+  });
+  test("(b) SUPERSET: every pre-existing 561210 infer keyword still matches (recall only grows)", () => {
+    // Four of the five are curated synonyms; the fifth ("janitorial management")
+    // rides along structurally, because the implied code pulls its infer keyword
+    // list — see (e) for why it is deliberately not a synonym here.
+    for (const t of [
+      "facilities support",
+      "facilities management",
+      "building maintenance",
+      "janitorial management",
+      "integrated facilities",
+    ]) {
+      expect(F.terms).toContain(t);
+    }
+    expect(new Set(F.naicsCodes).size).toBe(F.naicsCodes.length);
+    expect(new Set(F.terms).size).toBe(F.terms.length);
+  });
+  test("(c) every curated phrase + the stem query forms bind 561210 (expansion AND the SQL payload)", () => {
+    for (const q of FACILITIES_SYNONYMS) {
+      const e = expandTrade(q);
+      expect(e.naicsCodes).toContain("561210");
+      const bind = naicsBindOf(tradeKeywordPred(dbFactory, e));
+      expect(bind).toContain("561210");
+      // …and never a neighbouring trade's code the entry must not touch
+      expect(bind).not.toContain("561720");
+      expect(bind).not.toContain("561110");
+    }
+    // The singular / services query forms users actually type resolve via the
+    // first-word stem — and they imply 561210 and nothing else.
+    for (const q of FACILITIES_PURE_561210) {
+      const e = expandTrade(q);
+      expect(`${q}:${JSON.stringify(e.naicsCodes)}`).toBe(`${q}:["561210"]`);
+      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).toContain("561210");
+    }
+    // "building maintenance" is also a 561790 infer owner, and "facilities
+    // management" keeps its 541513 (Computer Facilities Management Services)
+    // infer owner: the curated entry ADDS 561210, it never removes another code.
+    expect([...expandTrade("building maintenance").naicsCodes].sort()).toEqual([
+      "561210",
+      "561790",
+    ]);
+    expect([...expandTrade("facilities management").naicsCodes].sort()).toEqual([
+      "541513",
+      "561210",
+    ]);
+  });
+  test("(d) provenance: a facilities hit is labeled Facilities Support/Operations, never overclaimed", () => {
+    const hit = tradeProvenanceFor("Base operations support for the installation", F, null);
+    expect(hit?.conceptLabel).toBe("Facilities Support/Operations");
+    expect(hit?.matchedNaics).toBe("561210");
+    // implied-NAICS branch (the SQL ANY() code branch) is labeled the same way
+    const implied = tradeProvenanceFor("Office supplies", F, "561210");
+    expect(implied?.conceptLabel).toBe("Facilities Support/Operations");
+    expect(implied?.matchedNaics).toBe("561210");
+    // a bid with neither a term nor the implied code must NEVER claim facilities
+    expect(tradeProvenanceFor("Office supplies", F, null)).toBe(null);
+  });
+  test("(e) 'janitorial management' stays the infer map's phrase — unchanged, and no bleed into janitorial", () => {
+    // Deliberately NOT repeated as a curated synonym: its first word stems into
+    // the JANITORIAL entry, so pinning it here would strip 561720 from that
+    // phrase and pull 561210 into a plain "janitor" search.
+    expect([...expandTrade("janitorial management").naicsCodes].sort()).toEqual([
+      "561210",
+      "561720",
+    ]);
+    expect(expandTrade("janitor").naicsCodes).toEqual(["561720"]);
+    expect(TRADE_ALIASES["facilities-support-services"].synonyms).not.toContain(
+      "janitorial management",
+    );
+  });
+  test("(f) SEPARATION both directions: cleaning-only stays 561720, office-admin stays 561110", () => {
+    for (const q of [
+      "janitorial",
+      "custodial",
+      "commercial cleaning",
+      "restroom sanitation",
+      "floor care",
+      "building cleaning",
+    ]) {
+      const e = expandTrade(q);
+      expect(`${q}:${JSON.stringify(e.naicsCodes)}`).toBe(`${q}:["561720"]`);
+      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("561210");
+    }
+    // window/carpet cleaning have their own pre-existing infer co-owners (561790 /
+    // 561740) — what matters is that neither is a facilities match.
+    for (const q of ["window cleaning", "carpet cleaning"]) {
+      const e = expandTrade(q);
+      expect(e.naicsCodes).toContain("561720");
+      expect(e.naicsCodes).not.toContain("561210");
+      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("561210");
+    }
+    for (const q of [
+      "office administrative",
+      "administrative services",
+      "office services",
+      "administrative support",
+    ]) {
+      const e = expandTrade(q);
+      expect(`${q}:${JSON.stringify(e.naicsCodes)}`).toBe(`${q}:["561110"]`);
+      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("561210");
+    }
+    // structurally: the two payloads share no phrase in either direction.
+    const JAN = TRADE_ALIASES["janitorial-cleaning-services"].synonyms;
+    for (const t of FACILITIES_SYNONYMS) expect(JAN).not.toContain(t);
+    for (const t of JAN) {
+      expect(TRADE_ALIASES["facilities-support-services"].synonyms).not.toContain(t);
+    }
+  });
+  test("(g) 'building maintenance': the documented exact-hit binding (no 561720 stem inheritance)", () => {
+    // It is BOTH a curated facilities phrase and a first-word stem into the
+    // janitorial entry ("building cleaning"). As an exact curated phrase it now
+    // binds exactly — 561210 + 561790, its two pre-existing infer owners — which
+    // is what the infer map always said this phrase is.
+    const bm = expandTrade("building maintenance");
+    expect([...bm.naicsCodes].sort()).toEqual(["561210", "561790"]);
+    expect(bm.naicsCodes).not.toContain("561720");
+    expect(naicsBindOf(tradeKeywordPred(dbFactory, bm))).not.toContain("561720");
+    expect(bm.terms).toContain("building maintenance");
+  });
+  test("(h) datalist: the curated trade surfaces by name + 561210 once under its canonical title", () => {
+    expect(CURATED_TRADE_SUGGESTIONS).toContainEqual([
+      "facilities support",
+      "facilities support — Facilities Support/Operations",
+    ]);
+    expect(NAICS_CODE_SUGGESTIONS.filter(([c]) => c === "561210")).toEqual([
+      ["561210", "561210 — Facilities Support Services"],
+    ]);
+    expect(REGISTRY_IMPLIED_NAICS).toContain("561210");
+    expect(OWNER_EVERYDAY_SERVICE_NAICS).toContain("561210");
+  });
+});
+
+const SOLID_WASTE_SYNONYMS = [
+  "solid waste",
+  "solid waste collection",
+  "municipal solid waste",
+  "waste collection",
+  "waste hauling",
+  "trash",
+  "trash collection",
+  "garbage",
+  "garbage collection",
+  "refuse",
+  "refuse collection",
+  "rubbish",
+];
+/** The neighbouring waste codes 562111 must never reach or inherit from. */
+const WASTE_OTHER_CODES = ["562112", "562119", "562212", "562219", "562920"];
+const WASTE_OTHER_PHRASES = [
+  "hazardous waste",
+  "hazardous waste collection",
+  "hazardous waste disposal",
+  "hazardous materials",
+  "landfill",
+  "solid waste landfill",
+  "waste disposal",
+  "solid waste disposal",
+  "nonhazardous waste",
+  "non-hazardous waste",
+  "recycling",
+  "materials recovery",
+  "recyclable",
+  "recycling services",
+  "trash removal",
+  "waste collection services",
+];
+
+describe("owner 09-16 solid waste collection (562111) — curated entry + 5621xx separation", () => {
+  const W = expandTrade("solid waste");
+  test("(a) 'solid waste' resolves to Solid Waste/Collection → 562111 ONLY, superset of the 7 infer keywords", () => {
+    expect(W.isNaics).toBe(false);
+    expect(W.original).toBe("solid waste");
+    expect(W.naicsCodes).toEqual(["562111"]);
+    // every term the pre-existing 562111 inference matched on is STILL there.
+    for (const t of [
+      "solid waste",
+      "waste collection",
+      "waste hauling",
+      "trash",
+      "garbage",
+      "refuse",
+      "rubbish",
+    ]) {
+      expect(W.terms).toContain(t);
+    }
+    expect(NAICS_NAMES["562111"]).toBe("Solid Waste Collection");
+    expect(TRADE_ALIASES["solid-waste-collection"].label).toBe("Solid Waste/Collection");
+    expect(TRADE_ALIASES["solid-waste-collection"].naics).toEqual(["562111"]);
+    // exactOnly — the prefix stem must never reach this entry (see (c)).
+    expect(TRADE_ALIASES["solid-waste-collection"].exactOnly).toBe(true);
+    expect(
+      Object.entries(TRADE_ALIASES)
+        .filter(([, e]) => e.naics.includes("562111"))
+        .map(([k]) => k),
+    ).toEqual(["solid-waste-collection"]);
+  });
+  test("(b) every collection phrase binds 562111 ONLY (expansion + the array that reaches Postgres)", () => {
+    for (const q of SOLID_WASTE_SYNONYMS) {
+      const e = expandTrade(q);
+      expect(`${q}:${JSON.stringify(e.naicsCodes)}`).toBe(`${q}:["562111"]`);
+      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).toEqual(["562111"]);
+      for (const c of WASTE_OTHER_CODES) expect(e.naicsCodes).not.toContain(c);
+    }
+  });
+  test("(c) exactOnly: the 'waste' stem can never drag in waste management / hazardous / wastewater", () => {
+    for (const q of [
+      "waste",
+      "waste management",
+      "wastewater",
+      "wastewater treatment",
+      "waste services",
+      "waste collection services",
+      "trash removal",
+    ]) {
+      const e = expandTrade(q);
+      expect(e.naicsCodes).not.toContain("562111");
+      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("562111");
+    }
+    // bare "waste" implies nothing at all — exactly today's behavior.
+    expect(expandTrade("waste").naicsCodes).toEqual([]);
+    // no bare generic noun is a synonym (the same precision rule janitorial keeps
+    // for "cleaning"/"service").
+    const syn = TRADE_ALIASES["solid-waste-collection"].synonyms;
+    for (const bare of ["waste", "services", "service", "collection", "hauling"]) {
+      expect(syn).not.toContain(bare);
+    }
+  });
+  test("(d) SEPARATION both directions: hazardous / other-collection / landfill / disposal / recycling never 562111", () => {
+    for (const q of WASTE_OTHER_PHRASES) {
+      const e = expandTrade(q);
+      expect(`${q}:${JSON.stringify(e.naicsCodes)}`).not.toContain("562111");
+      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("562111");
+    }
+    // payload-level disjointness, both ways.
+    const solid = new Set(SOLID_WASTE_SYNONYMS.flatMap((q) => expandTrade(q).naicsCodes));
+    const other = new Set(WASTE_OTHER_PHRASES.flatMap((q) => expandTrade(q).naicsCodes));
+    expect([...solid]).toEqual(["562111"]);
+    for (const c of WASTE_OTHER_CODES) expect(solid.has(c)).toBe(false);
+    for (const c of solid) expect(other.has(c)).toBe(false);
+    // the neighbouring phrases keep their OWN codes (nothing was swallowed).
+    expect([...other].sort()).toEqual(["562212", "562219", "562920"]);
+    expect(NAICS_NAMES["562212"]).toBe("Solid Waste Landfill");
+    expect(NAICS_NAMES["562920"]).toBe("Materials Recovery Facilities");
+  });
+  test("(e) provenance: a collection hit is labeled Solid Waste/Collection, never overclaimed", () => {
+    const hit = tradeProvenanceFor("Curbside refuse collection and disposal services", W, null);
+    expect(hit?.conceptLabel).toBe("Solid Waste/Collection");
+    expect(hit?.matchedNaics).toBe("562111");
+    const implied = tradeProvenanceFor("Office supplies", W, "562111");
+    expect(implied?.conceptLabel).toBe("Solid Waste/Collection");
+    expect(implied?.matchedNaics).toBe("562111");
+    expect(tradeProvenanceFor("Office supplies", W, null)).toBe(null);
+  });
+  test("(f) datalist: the curated trade surfaces by name + 562111 once under its canonical title", () => {
+    expect(CURATED_TRADE_SUGGESTIONS).toContainEqual([
+      "solid waste",
+      "solid waste — Solid Waste/Collection",
+    ]);
+    expect(NAICS_CODE_SUGGESTIONS.filter(([c]) => c === "562111")).toEqual([
+      ["562111", "562111 — Solid Waste Collection"],
+    ]);
+    expect(REGISTRY_IMPLIED_NAICS).toContain("562111");
+    expect(OWNER_EVERYDAY_SERVICE_NAICS).toContain("562111");
+  });
+});
+
+describe("owner 09-16 everyday-service trades — real pipeline (DB-backed)", () => {
+  test("facilities-support and solid-waste scans run through the real predicates with their own NAICS set, and keep only open, corroborated rows", async () => {
+    if (!HAS_DB) return;
+    const specs: [string, string][] = [
+      ["facilities support", "561210"],
+      ["base operations support", "561210"],
+      ["solid waste", "562111"],
+      ["solid waste collection", "562111"],
+    ];
+    for (const [term, code] of specs) {
+      const r = await runScan(term, "", "sb"); // nationwide, real predicates
+      expect(r.expansion.naicsCodes).toEqual([code]);
+      const now = Date.now();
+      for (const m of r.kept) {
+        // never an expired row presented as open
+        expect(new Date(m.due_date).getTime()).toBeGreaterThan(now);
+      }
+      for (const m of r.strong) {
+        // DEFAULT matches are title- or implied-NAICS-corroborated (#387 rule).
+        const titleText = String(m.title ?? "").toLowerCase();
+        const titleHit = r.expansion.terms.some(
+          (t: string) => t.length >= 2 && titleText.includes(t),
+        );
+        const codeHit = r.expansion.naicsCodes.includes(String(m.naics_code ?? ""));
+        expect(titleHit || codeHit).toBe(true);
+      }
+    }
+  });
+});

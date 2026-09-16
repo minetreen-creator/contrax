@@ -115,6 +115,15 @@ export interface TradeAliasEntry {
   /** 6-digit NAICS codes implied by the industry (all must exist in
    *  NAICS_NAMES — validated at module load so a typo fails fast). */
   naics: string[];
+  /** OWNER 09-15 (arrangement-intent): when true, ONLY exact synonym hits
+   *  resolve to this entry — the first-word prefix STEM never applies. Used by
+   *  the Logistics trade: NAICS 488510 "Freight Transportation Arrangement" is
+   *  for businesses that ARRANGE freight (brokers/forwarders/3PLs), so 488510
+   *  must bind only for the exact arrangement phrases ("freight broker",
+   *  "freight forwarder", "3PL", "third party logistics", …). A generic
+   *  "freight <noun>" query must NOT inherit this entry via the stem — bare
+   *  "freight" is a CARRIER business (trucking), not an arranger. */
+  exactOnly?: boolean;
 }
 /**
  * RELATED-work concept terms (owner v6.1): adjacent work is NEVER a default
@@ -275,9 +284,21 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
    * here. Logistics is NOT warehousing — 493110 is never added to a logistics
    * scan — and the Warehousing trade below never adds 488510. The two verticals
    * do not imply each other in either direction.
+   *
+   * ARRANGEMENT-INTENT ONLY (owner 09-15 ruling): NAICS 488510 is for businesses
+   * that ARRANGE freight transportation (brokers / forwarders / 3PLs) — a
+   * trucking company CARRIES freight. So this entry is `exactOnly`: 488510 binds
+   * ONLY for the exact arrangement phrases below ("freight broker", "freight
+   * brokerage", "freight forwarder", "freight forwarding", "3PL", "third party
+   * logistics" / "third-party logistics", "freight transportation arrangement").
+   * Bare "freight" and generic "freight <noun>" queries ("freight delivery",
+   * "freight shipping", "freight hauling", "freight transportation") are
+   * CARRIER intent and resolve to Trucking/Delivery with NO 488510 — the stem
+   * rule can never pull this entry in.
    */
   "logistics-freight-arrangement": {
     label: "Logistics",
+    exactOnly: true,
     synonyms: [
       "logistics",
       "freight transportation arrangement",
@@ -286,6 +307,7 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "freight broker",
       "freight brokerage",
       "third party logistics",
+      "third-party logistics",
       "3pl",
     ],
     naics: ["488510"],
@@ -330,6 +352,20 @@ for (const code of REGISTRY_NAICS) {
     throw new Error(`[trade-registry] bad NAICS code in TRADE_ALIASES: "${code}"`);
   }
 }
+
+/**
+ * OWNER 09-15 (canonical code presentation): every 6-digit NAICS code the
+ * registry implies — deduped, in first-seen order. A code can legitimately be
+ * implied by MORE THAN ONE trade (492110 is in both Trucking and Delivery),
+ * so any surface presenting "the codes for my trade" must render it ONCE; this
+ * list is the deduped source for such surfaces (e.g. the Radar trade-field
+ * datalist suggestions, which append these so 492110/488510/493110 and the
+ * 484xxx freight codes are always selectable under their canonical
+ * NAICS_NAMES title). Presentation-only — matching/scoring never reads it.
+ */
+export const REGISTRY_IMPLIED_NAICS: string[] = REGISTRY_NAICS.filter(
+  (c, i, a) => a.indexOf(c) === i,
+);
 
 /**
  * The full expandable keyword index: every NAICS inference keyword (the curated
@@ -393,16 +429,37 @@ export function expandTrade(original: string): TradeExpansion {
   const terms: string[] = [lower];
   const naicsCodes: string[] = [];
 
-  // 1) Registry lookup — every alias whose synonym set overlaps the query
-  //    (direct hit, or the query's first word matches a multi-word synonym's
-  //    first word: "freight hauling" stems "freight").
-  for (const entry of Object.values(TRADE_ALIASES)) {
+  // 1) Registry lookup.
+  //
+  //    DIRECT HITS WIN (owner 09-15 arrangement-intent ruling). When the query
+  //    is an EXACT synonym of any entry, ONLY the exact-hit entries fire — the
+  //    first-word prefix stem is skipped entirely. This keeps a precise phrase
+  //    from ALSO pulling in a broader trade through the stem: "freight broker"
+  //    resolves to Logistics (488510) and NOT trucking (its stem would match
+  //    trucking's synonym "freight"), and "freight delivery" resolves to the
+  //    freight-delivery sub-term exactly — no 488510 from the logistics stem.
+  const registryEntries = Object.values(TRADE_ALIASES);
+  const exactHits = registryEntries.filter((entry) =>
+    entry.synonyms.some((s) => s.toLowerCase() === lower),
+  );
+  const useStem = exactHits.length === 0;
+  for (const entry of registryEntries) {
     const synonyms = entry.synonyms.map((s) => s.toLowerCase());
-    const firstWord = lower.split(/\s+/)[0] || "";
     const hitDirect = synonyms.includes(lower);
+    if (hitDirect) {
+      for (const s of synonyms) if (!terms.includes(s)) terms.push(s);
+      for (const code of entry.naics) if (!naicsCodes.includes(code)) naicsCodes.push(code);
+      continue;
+    }
+    // No exact phrase anywhere → the first-word stem may fire, EXCEPT for
+    // exactOnly entries (the Logistics trade): 488510 is arrangement-intent
+    // ONLY, so a bare "freight" or a generic "freight <noun>" query can never
+    // inherit its "freight forwarding"/"freight broker" synonyms via the stem.
+    if (!useStem || entry.exactOnly) continue;
+    const firstWord = lower.split(/\s+/)[0] || "";
     const hitStem =
       firstWord.length >= 3 && synonyms.some((s) => s === firstWord || s.startsWith(firstWord));
-    if (!hitDirect && !hitStem) continue;
+    if (!hitStem) continue;
     for (const s of synonyms) if (!terms.includes(s)) terms.push(s);
     for (const code of entry.naics) if (!naicsCodes.includes(code)) naicsCodes.push(code);
   }
@@ -855,6 +912,76 @@ export function verifyTradePrecision(): void {
   assert(
     !log.naicsCodes.includes("493110") && !wh.naicsCodes.includes("488510"),
     "logistics and warehousing must never imply each other's code",
+  );
+  // ── OWNER 09-15 ARRANGEMENT-INTENT RULING: 488510 binds ONLY for the exact
+  // arrangement phrases. Bare "freight" and generic "freight <noun>" queries
+  // are CARRIER intent → Trucking/Delivery, never Logistics.
+  const freight = expandTrade("freight");
+  assert(
+    freight.terms[0] === "freight",
+    '"freight" original term is preserved',
+  );
+  assert(
+    !freight.naicsCodes.includes("488510"),
+    'bare "freight" is a CARRIER business — it must NOT imply 488510 (arrangement-intent only)',
+  );
+  for (const code of ["484110", "484121", "484122", "484220", "484230", "492110"]) {
+    assert(freight.naicsCodes.includes(code), `"freight" must imply trucking code ${code}`);
+  }
+  assert(
+    tradeProvenanceFor("Freight hauling needed for base supply run", freight, null)?.conceptLabel ===
+      "Trucking/Hauling",
+    '"freight" text hit must resolve to the Trucking/Hauling trade',
+  );
+  // "freight delivery" → the freight-delivery sub-term EXACTLY (six codes) with
+  // NO 488510 — the old stem-on-"freight" no longer inherits Logistics.
+  const fdExact = expandTrade("freight delivery");
+  assert(
+    fdExact.naicsCodes.length === 6 && !fdExact.naicsCodes.includes("488510"),
+    '"freight delivery" must be EXACTLY the six freight codes with NO 488510 — got ' +
+      JSON.stringify(fdExact.naicsCodes),
+  );
+  // Other carrier-intent freight phrases stay trucking-only, no 488510.
+  for (const q of ["freight shipping", "freight hauling", "freight transportation"]) {
+    const carrier = expandTrade(q);
+    assert(
+      !carrier.naicsCodes.includes("488510"),
+      `"${q}" is carrier intent — must NOT imply 488510`,
+    );
+    assert(
+      carrier.naicsCodes.includes("484121"),
+      `"${q}" must imply the freight-trucking codes`,
+    );
+  }
+  // The EXACT arrangement phrases resolve to Logistics and ONLY 488510.
+  for (const q of [
+    "freight broker",
+    "freight brokerage",
+    "freight forwarder",
+    "freight forwarding",
+    "3pl",
+    "3PL",
+    "third party logistics",
+    "third-party logistics",
+    "freight transportation arrangement",
+  ]) {
+    const arr = expandTrade(q);
+    assert(
+      arr.naicsCodes.length === 1 && arr.naicsCodes[0] === "488510",
+      `"${q}" must resolve to Logistics ONLY (488510) — got ` + JSON.stringify(arr.naicsCodes),
+    );
+    assert(
+      !arr.naicsCodes.includes("493110") && !arr.terms.includes("warehousing"),
+      `"${q}" must never imply warehousing`,
+    );
+  }
+  assert(
+    tradeProvenanceFor(
+      "Third party logistics coordination for the region",
+      expandTrade("freight broker"),
+      null,
+    )?.conceptLabel === "Logistics",
+    '"freight broker" expansion must label a synonym hit as the Logistics trade',
   );
   // Trucking kept everything it had (incl. owner-ratified 492110) and gained no
   // logistics/warehousing code.

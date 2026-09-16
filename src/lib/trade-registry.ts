@@ -219,6 +219,90 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     naics: ["561720"],
   },
   /**
+   * OWNER 09-15/09-16 — LANDSCAPING → NAICS 561730 Landscaping Services
+   * (real Census code, owner's everyday-service set).
+   *
+   * Same curated procurement treatment janitorial already had: the language
+   * procurement actually uses for this work ("lawn care", "lawn mowing",
+   * "grounds maintenance", "snow removal", …) resolves HERE, to 561730, and to
+   * no other code. The synonym set is deliberately a SUPERSET of the
+   * pre-existing naics-infer keywords for 561730 (landscaping, landscape,
+   * landscaper, lawn, grounds maintenance, grounds keeping, snow removal), so a
+   * "landscaping" scan keeps every term it already matched on — recall can only
+   * grow, never shrink — and the first-word stem additionally lets the real
+   * query forms "landscaping services" / "snow plowing" / "lawn mowing" resolve.
+   *
+   * Precision note (same rule as janitorial, which keeps no bare "cleaning"):
+   * the generic words are already structurally filtered by GENERIC_TRADE_TERMS
+   * (whole-term match), and no synonym here is a word that could carry a match
+   * on its own outside landscape work.
+   */
+  "landscaping-grounds": {
+    label: "Landscaping/Grounds",
+    synonyms: [
+      "landscaping",
+      "landscape",
+      "landscaper",
+      "lawn",
+      "lawn care",
+      "lawn maintenance",
+      "lawn mowing",
+      "grounds maintenance",
+      "grounds keeping",
+      "groundskeeping",
+      "snow removal",
+    ],
+    naics: ["561730"],
+  },
+  /**
+   * OWNER 09-15/09-16 — SECURITY GUARDS → NAICS 561612 Security Guards and
+   * Patrol Services (real Census code, owner's everyday-service set).
+   *
+   * `exactOnly` (the same mechanism the owner's 09-15 arrangement-intent ruling
+   * put on Logistics/488510). "security" on its own is GENERIC: it is a
+   * category stamp on everything from market research to food delivery — those
+   * are exactly the rows #387 had to demote — and the prefix stem on "guard"
+   * would also drag in guardrail/guard-station procurement, which is
+   * construction work, not protective services. So this trade binds ONLY for
+   * the exact guard-intent phrases below; a bare "security" (or "guards",
+   * "patrol") query keeps EXACTLY today's behavior (verbatim-text matching plus
+   * the pre-existing 561612 infer keywords), and nothing can inherit this entry
+   * through the stem.
+   *
+   * SEPARATION — 561612 vs 561621 (owner 09-15):
+   *   561612 Security Guards and Patrol Services = PEOPLE who guard
+   *     (guards / officers / patrols / armed / unarmed / badge guards);
+   *   561621 Security Systems Services = SYSTEMS
+   *     (security systems, access control, CCTV, surveillance, alarm systems).
+   * Not one synonym here mentions a system, an alarm, access control, CCTV or
+   * surveillance, and no 561621 phrase is an exact synonym of this entry — so
+   * the two payloads are disjoint in BOTH directions (proven at payload level
+   * in the regression suite).
+   *
+   * The list is deliberately held at 8 phrases: expansion terms are capped at
+   * MAX_EXPANDED_TERMS (12) and the two guard phrases that are ALSO infer
+   * keywords ("security guard", "armed guard") additionally inherit the infer
+   * keyword set — keeping the curated list at 8 means no previously-matched term
+   * is ever pushed out of the cap. Plural/query variants of a multi-word phrase
+   * ("security officers", "armed guards") are covered by substring matching of
+   * the singular term; the plural QUERY forms users actually type are listed.
+   */
+  "security-guards-patrol": {
+    label: "Security Guards/Patrol",
+    exactOnly: true,
+    synonyms: [
+      "security guard",
+      "security guards",
+      "security officer",
+      "guard services",
+      "armed guard",
+      "armed guards",
+      "unarmed guard",
+      "badge guard",
+    ],
+    naics: ["561612"],
+  },
+  /**
    * OWNER 09-15 — DELIVERY → NAICS 492110 (Couriers and Express Delivery
    * Services). The DEFAULT implied code for delivery work is 492110 ONLY.
    *

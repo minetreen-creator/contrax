@@ -1669,7 +1669,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <p className="text-xs font-medium uppercase tracking-wide text-slate-400 mb-2">NAICS Codes</p>
                 <div className="flex flex-wrap gap-1.5">
-                  {profile.naics_codes.map((code) => (
+                  {[...new Set(profile.naics_codes)].map((code) => (
                     <span key={code} className="rounded-md border border-slate-200 bg-white px-2 py-0.5 text-xs font-mono font-medium text-slate-600">{code}</span>
                   ))}
                 </div>

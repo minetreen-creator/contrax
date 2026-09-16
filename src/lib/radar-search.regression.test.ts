@@ -37,7 +37,7 @@
  */
 import { afterAll, describe, expect, test } from "bun:test";
 import { sql as dbFactory } from "~/db";
-import { expandTrade, tradeKeywordPred, isStrongTradeMatch, RELATED_TRADE_TERMS, TRADE_ALIASES, tradeProvenanceFor, tradeExpresslyCourier, type TradeAliasEntry } from "~/lib/trade-registry";
+import { expandTrade, tradeKeywordPred, isStrongTradeMatch, RELATED_TRADE_TERMS, TRADE_ALIASES, REGISTRY_IMPLIED_NAICS, tradeProvenanceFor, tradeExpresslyCourier, type TradeAliasEntry } from "~/lib/trade-registry";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { setAsidePred } from "~/lib/open-bids";
 import {
@@ -1196,5 +1196,166 @@ describe("amended registry — #387 match quality + #388 hauling regressions sta
     // 2026-09-14T21:00Z, so the id-specific assertions in those older tests fail
     // on this data and on main alike. Nothing about the trucking/janitorial
     // MATCHING changed here: the still-open PA row above proves the path.
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// OWNER 09-15 — ARRANGEMENT-INTENT ONLY (Directive A) + CANONICAL 492110
+// PRESENTATION (Directive B). Tests at BOTH the expandTrade level and the
+// driver-level payload bind (the exact ANY($n) array), same style as the #389
+// suites above.
+const TRUCKING_SET = ["484110", "484121", "484122", "484220", "484230", "492110"];
+const FREIGHT_DELIVERY_SET = ["492110", "484110", "484121", "484122", "484220", "484230"];
+const ARRANGEMENT_PHRASES = [
+  "freight broker",
+  "freight brokerage",
+  "freight forwarder",
+  "freight forwarding",
+  "3pl",
+  "3PL",
+  "third party logistics",
+  "third-party logistics",
+  "freight transportation arrangement",
+];
+const CARRIER_FREIGHT_PHRASES = ["freight shipping", "freight hauling", "freight transportation"];
+
+describe("owner 09-15 arrangement-intent: 488510 binds ONLY for exact arrangement phrases", () => {
+  test("(A) bare 'freight' stays Trucking — NO 488510", () => {
+    const f = expandTrade("freight");
+    expect(f.isNaics).toBe(false);
+    expect(f.original).toBe("freight");
+    // resolves to the Trucking/Hauling trade: carrier intent, not an arranger.
+    for (const code of TRUCKING_SET) expect(f.naicsCodes).toContain(code);
+    expect(f.naicsCodes).not.toContain("488510");
+    expect(f.naicsCodes).not.toContain("493110");
+    // the carrier-intent freight phrases ride along as match terms.
+    for (const t of ["freight shipping", "freight hauling", "freight transportation"]) {
+      expect(f.terms).toContain(t);
+    }
+    expect(
+      tradeProvenanceFor("Freight hauling needed for base supply run", f, null)?.conceptLabel,
+    ).toBe("Trucking/Hauling");
+  });
+
+  test("(B) 'freight delivery' is EXACTLY the six freight codes — NO 488510", () => {
+    for (const q of ["freight delivery", "freight delivery service", "freight delivery services"]) {
+      const fd = expandTrade(q);
+      expect(fd.naicsCodes).toEqual(FREIGHT_DELIVERY_SET);
+      expect(fd.naicsCodes).not.toContain("488510");
+      expect(fd.naicsCodes).not.toContain("493110");
+    }
+  });
+
+  test("(C) exact arrangement phrases resolve to the Logistics trade — ONLY 488510", () => {
+    for (const q of ARRANGEMENT_PHRASES) {
+      const log = expandTrade(q);
+      expect(log.naicsCodes).toEqual(["488510"]);
+      expect(log.naicsCodes).not.toContain("493110");
+      expect(log.naicsCodes.some((c: string) => c.startsWith("484"))).toBe(false);
+      expect(log.naicsCodes).not.toContain("492110");
+    }
+    // a synonym hit (not the verbatim original) labels the Logistics trade.
+    expect(
+      tradeProvenanceFor(
+        "Third party logistics coordination for the region",
+        expandTrade("freight broker"),
+        null,
+      )?.conceptLabel,
+    ).toBe("Logistics");
+  });
+
+  test("(D) carrier-intent freight phrases stay trucking-only — no 488510", () => {
+    for (const q of CARRIER_FREIGHT_PHRASES) {
+      const c = expandTrade(q);
+      expect(c.naicsCodes).not.toContain("488510");
+      expect(c.naicsCodes).not.toContain("493110");
+      for (const code of TRUCKING_SET) expect(c.naicsCodes).toContain(code);
+    }
+  });
+
+  test("(E) everything else from #389 is unchanged: delivery/logistics/warehousing/trucking + separation", () => {
+    expect(expandTrade("delivery").naicsCodes).toEqual(["492110"]);
+    expect(expandTrade("logistics").naicsCodes).toEqual(["488510"]);
+    expect(expandTrade("warehousing").naicsCodes).toEqual(["493110"]);
+    expect(expandTrade("trucking").naicsCodes).toEqual(TRUCKING_SET);
+    expect(expandTrade("hauling").naicsCodes).toEqual(TRUCKING_SET);
+    // separation both ways stays structural
+    expect(expandTrade("logistics").naicsCodes).not.toContain("493110");
+    expect(expandTrade("warehousing").naicsCodes).not.toContain("488510");
+    expect(expandTrade("trucking").naicsCodes).not.toContain("488510");
+    expect(expandTrade("trucking").naicsCodes).not.toContain("493110");
+  });
+});
+
+describe("owner 09-15 arrangement-intent — PAYLOAD-LEVEL bind proof (owner merge gate)", () => {
+  test("(i) the scan payload's NAICS bind per term (DB-backed)", async () => {
+    if (!HAS_DB) return;
+    const cases: { term: string; must: string[]; mustNot: string[] }[] = [
+      { term: "freight", must: TRUCKING_SET, mustNot: ["488510", "493110"] },
+      { term: "freight delivery", must: FREIGHT_DELIVERY_SET, mustNot: ["488510", "493110"] },
+      { term: "freight broker", must: ["488510"], mustNot: ["492110", "484110", "484121", "484122", "484220", "484230", "493110"] },
+      { term: "freight forwarder", must: ["488510"], mustNot: ["492110", "493110"] },
+      { term: "3pl", must: ["488510"], mustNot: ["492110", "493110"] },
+      { term: "third party logistics", must: ["488510"], mustNot: ["492110", "493110"] },
+      { term: "freight shipping", must: TRUCKING_SET, mustNot: ["488510", "493110"] },
+      { term: "delivery", must: ["492110"], mustNot: ["484110", "484121", "484122", "484220", "484230", "488510", "493110"] },
+      { term: "logistics", must: ["488510"], mustNot: ["493110", "492110"] },
+      { term: "warehousing", must: ["493110"], mustNot: ["488510", "492110"] },
+    ];
+    for (const c of cases) {
+      const exp = expandTrade(c.term);
+      const bind = naicsBindOf(tradeKeywordPred(dbFactory, exp));
+      for (const code of c.must) expect(bind).toContain(code);
+      for (const code of c.mustNot) expect(bind).not.toContain(code);
+    }
+  });
+
+  test("(ii) real pipeline: arrangement/carrier terms scan with their own NAICS set (DB-backed)", async () => {
+    if (!HAS_DB) return;
+    const specs: { term: string; mustNot: string[] }[] = [
+      { term: "freight", mustNot: ["488510"] },
+      { term: "freight delivery", mustNot: ["488510"] },
+      { term: "freight broker", mustNot: ["484110", "484121", "484122", "484220", "484230", "492110", "493110"] },
+    ];
+    for (const sp of specs) {
+      const r = await runScan(sp.term, "", "sb");
+      for (const code of sp.mustNot) expect(r.expansion.naicsCodes).not.toContain(code);
+      // strong/weak split (#387) must still hold for every strong row
+      for (const m of r.strong) {
+        expect(isStrongTradeMatch(m.title, m.category, m.description, m.naics_code, r.expansion)).toBe(true);
+      }
+    }
+  });
+});
+
+describe("owner 09-15 canonical 492110 presentation (Directive B) — ONCE, canonical title", () => {
+  test("492110 is registered exactly once with its canonical NAICS title", () => {
+    expect(NAICS_NAMES["492110"]).toBe("Couriers and Express Delivery Services");
+    // REGISTRY_IMPLIED_NAICS is deduped — 492110 appears ONCE despite living in
+    // both the Trucking and Delivery trade sets.
+    expect(REGISTRY_IMPLIED_NAICS.filter((c) => c === "492110")).toHaveLength(1);
+    // every registered code is real + official-titled.
+    for (const code of REGISTRY_IMPLIED_NAICS) {
+      expect(/^\d{6}$/.test(code)).toBe(true);
+      expect(typeof NAICS_NAMES[code]).toBe("string");
+    }
+  });
+
+  test("every trade expansion implies 492110 at most once (chips can never duplicate it)", () => {
+    for (const q of ["delivery", "trucking", "hauling", "freight delivery"]) {
+      const codes = expandTrade(q).naicsCodes;
+      expect(new Set(codes).size).toBe(codes.length);
+      expect(codes.filter((c) => c === "492110")).toHaveLength(
+        codes.includes("492110") ? 1 : 0,
+      );
+    }
+    // a merged view of the two trades still shows 492110 once.
+    const merged = [...expandTrade("trucking").naicsCodes, ...expandTrade("delivery").naicsCodes];
+    expect(merged.filter((c) => c === "492110")).toHaveLength(2);
+    expect([...new Set(merged)].filter((c) => c === "492110")).toHaveLength(1);
+    // the canonical title is what every chip/datalist label must use.
+    expect(NAICS_NAMES["492110"]).toBe("Couriers and Express Delivery Services");
+    expect(NAICS_NAMES["488510"]).toBe("Freight Transportation Arrangement");
+    expect(NAICS_NAMES["493110"]).toBe("General Warehousing and Storage");
   });
 });

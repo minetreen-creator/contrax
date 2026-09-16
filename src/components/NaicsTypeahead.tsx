@@ -172,10 +172,13 @@ export function NaicsTypeahead({
 
   return (
     <div ref={rootRef} className="relative">
-      {/* Selected chips */}
+      {/* Selected chips — deduped so a code present twice in `value` can never
+          render two chips (owner 09-15 canonical presentation: 492110 is
+          implied by BOTH Trucking and Delivery but must appear ONCE, labeled
+          with its canonical NAICS_NAMES title). Presentation-only. */}
       {value.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-1.5">
-          {value.map((code) => (
+          {[...new Set(value)].map((code) => (
             <span
               key={code}
               className="inline-flex max-w-full items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 py-1 pl-2 pr-0.5 sm:pr-1"

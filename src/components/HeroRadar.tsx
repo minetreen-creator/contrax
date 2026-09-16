@@ -42,6 +42,7 @@ import {
 } from "~/routes/radar";
 import { US_STATES } from "~/lib/states";
 import { NAICS_NAMES } from "~/lib/naics-names";
+import { REGISTRY_IMPLIED_NAICS } from "~/lib/trade-registry";
 import { trackEvent } from "~/lib/track";
 import { getTrackingUser } from "~/lib/identity";
 import { FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
@@ -66,7 +67,23 @@ type ScanState =
   | { status: "done"; matches: RadarMatch[]; certLabel: string }
   | { status: "error" };
 
-const NAICS_SUGGESTIONS = Object.entries(NAICS_NAMES).slice(0, 120);
+// OWNER 09-15 (canonical NAICS presentation): the datalist suggestion list is
+// NAICS_NAMES (each code ONCE under its official title) PLUS every code the
+// trade registry implies (492110/488510/493110 + the 484xxx freight codes) that
+// the 120-entry slice would otherwise omit — so a "delivery"/"trucking"/
+// "logistics"/"warehousing" chooser always sees the canonical selectable codes
+// exactly once, each with its official NAICS_NAMES title. The trade field stays
+// free text; this only widens the suggestion list (presentation-only).
+const NAICS_SUGGESTIONS: [string, string][] = (() => {
+  const slice120 = Object.entries(NAICS_NAMES).slice(0, 120);
+  const present = new Set(slice120.map(([code]) => code));
+  return [
+    ...slice120,
+    ...REGISTRY_IMPLIED_NAICS.filter((code) => !present.has(code)).map(
+      (code) => [code, NAICS_NAMES[code]] as [string, string],
+    ),
+  ];
+})();
 
 function toRadarCert(raw: unknown): RadarCert | null {
   const c = String(raw ?? "").trim();

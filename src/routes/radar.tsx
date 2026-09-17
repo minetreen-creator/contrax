@@ -1683,8 +1683,15 @@ function tradeLabel(t: string): string {
  * loading / ok / none / unavailable; the "loading" state is bounded client-side
  * by RADAR_INTEL_CLIENT_TIMEOUT_MS (~/lib/radar-intel), so a card can never sit
  * in a loading state and no request can hang. The 15 s scan cap is untouched.
+ *
+ * EXPORTED (owner 09-16, homepage-hero follow-up): the homepage hero
+ * (HeroRadar) runs this SAME scan and shows the same intel on its displayed
+ * free <=3 cards, so it reuses THIS hook and the getRadarMatchIntel server fn
+ * verbatim instead of growing a parallel loader. Only the first
+ * FREE_ANONYMOUS_RADAR_RESULTS ids - the ones the scan's signed intel ticket
+ * covers - are ever requested, so gated cards still cost zero requests.
  */
-function useRadarIntel(
+export function useRadarIntel(
   matches: RadarMatch[],
   intelTicket: string | null,
 ): Record<number, MatchIntelState> {

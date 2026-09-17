@@ -14,6 +14,7 @@ import {
   NOT_SPECIFIED,
   PAGE_SIZE,
   PREVIEW_LIMIT,
+  grantsCheckoutToastVisible,
   type GrantResult,
 } from "~/lib/grants";
 
@@ -114,8 +115,10 @@ function GrantsPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [anonUsed, setAnonUsed] = useState(false);
   // Grants entitlement (server-written by Stripe webhooks). The ?checkout=success
-  // parameter NEVER grants access — it only drives the toast below.
+  // parameter NEVER grants access — it only drives the toast below, and only for
+  // a visitor the server already reports as subscribed (grantsCheckoutToastVisible).
   const [subscribed, setSubscribed] = useState(false);
+  /** True only when the success toast may honestly be shown (subscribed). */
   const [checkoutDone, setCheckoutDone] = useState(false);
   const [billingBusy, setBillingBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -138,11 +141,15 @@ function GrantsPage() {
       /* sessionStorage can throw (private mode) — the server cap still holds */
     }
     // ?checkout=success is a TOAST ONLY — access comes from the server-written
-    // subscription status, never from this parameter.
+    // subscription status, never from this parameter. Anyone can put the param
+    // on the URL, so the toast is decided ONLY after the subscription read
+    // resolves (grantsCheckoutToastVisible) — a visitor who did not actually
+    // subscribe gets the param stripped and no claim made about them.
+    let checkoutParam: string | null = null;
     try {
       const params = new URLSearchParams(window.location.search);
       if (params.get("checkout") === "success") {
-        setCheckoutDone(true);
+        checkoutParam = "success";
         params.delete("checkout");
         const qs = params.toString();
         window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
@@ -162,7 +169,11 @@ function GrantsPage() {
     fetch("/api/grants/subscription", { headers: { accept: "application/json" } })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
-        if (!cancelled) setSubscribed(Boolean(d && d.subscribed));
+        if (cancelled) return;
+        const isSubscribed = Boolean(d && d.subscribed);
+        setSubscribed(isSubscribed);
+        // Honest by construction: no subscription → no "you're set up" toast.
+        setCheckoutDone(grantsCheckoutToastVisible({ checkoutParam, subscribed: isSubscribed }));
       })
       .catch(() => {
         /* treat as not subscribed; the search API is authoritative */
@@ -374,6 +385,9 @@ function GrantsPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8">
+        {/* checkoutDone is only ever set when the server-written subscription
+            status is granted (grantsCheckoutToastVisible) — a URL fiddler who
+            never paid is never told a subscription is set up. */}
         {checkoutDone && (
           <div
             role="status"

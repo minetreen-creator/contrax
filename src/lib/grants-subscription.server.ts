@@ -132,6 +132,11 @@ export function grantsStatusAfterEvent(
     case "customer.subscription.deleted":
       return "canceled";
     case "invoice.paid":
+    // `invoice_payment.paid` is the event the owner's live webhook endpoint is
+    // actually configured with (2026-09-17); `invoice.paid` is kept as a
+    // backward-compatible alias. Both mean "this invoice was paid" → active, so a
+    // past_due subscription recovers its access.
+    case "invoice_payment.paid":
       return "active";
     case "invoice.payment_failed":
       return "past_due";
@@ -141,16 +146,24 @@ export function grantsStatusAfterEvent(
 }
 
 /**
- * The events this module consumes (owner spec: six event types, each with the
- * right entitlement effect).
+ * The events this module consumes — the ACTUAL set configured on the owner's
+ * live Stripe webhook endpoint (verified 2026-09-17): checkout.session.completed,
+ * invoice_payment.paid, invoice.payment_failed and
+ * customer.subscription.created / updated / deleted.
+ *
+ * `invoice.paid` is kept as a backward-compatible alias for
+ * `invoice_payment.paid` (the older event name, still emitted for some invoice
+ * flows): both are accepted and both mean "paid → active".
  */
 export const GRANTS_HANDLED_EVENTS: readonly string[] = [
   "checkout.session.completed",
   "customer.subscription.created",
   "customer.subscription.updated",
   "customer.subscription.deleted",
-  "invoice.paid",
+  "invoice_payment.paid",
   "invoice.payment_failed",
+  // Backward-compatible alias of invoice_payment.paid — harmless to accept both.
+  "invoice.paid",
 ];
 
 /**
@@ -457,6 +470,79 @@ function isGrantsMetadata(md: Stripe.Metadata | null | undefined): boolean {
   return md?.product === GRANTS_PRODUCT;
 }
 
+/** A Stripe id that may arrive as a string or as an expanded object. */
+function stripeIdOrNull(value: unknown): string | null {
+  if (typeof value === "string") return value.length > 0 ? value : null;
+  if (value && typeof value === "object") {
+    const id = (value as { id?: unknown }).id;
+    return typeof id === "string" && id.length > 0 ? id : null;
+  }
+  return null;
+}
+
+/**
+ * The subscription an invoice-family event is about, resolved WITHOUT ever
+ * guessing. Returns null when the id cannot be established — the caller then
+ * logs and consumes nothing (fail-closed: no access is ever granted from an
+ * event we could not attribute).
+ *
+ * TWO OBJECT SHAPES, and their fields verified 2026-09-17:
+ *   • `invoice.paid` / `invoice.payment_failed` deliver an Invoice, which carries
+ *     `subscription` (string or expanded subscription) — read directly, no call.
+ *   • `invoice_payment.paid` — the event the owner's live endpoint is actually
+ *     configured with — delivers an InvoicePayment (`object: "invoice_payment"`),
+ *     which has NO `subscription` and NO `customer` field: its documented fields
+ *     are id, object, amount_paid, amount_requested, created, currency, invoice,
+ *     is_default, livemode, payment, status, status_transitions, and `invoice` is
+ *     the only expandable one that leads anywhere. Verified against three
+ *     independent sources (Stripe OpenAPI spec components.schemas.invoice_payment;
+ *     the installed stripe@22 types resources/InvoicePayments.d.ts — zero
+ *     occurrences of "customer"/"subscription"; and the live API reference page).
+ *     So the id is reached through the invoice: used straight off an already
+ *     expanded invoice when the payload carries one, otherwise via ONE verified
+ *     Stripe read of that invoice id — the same "read it from Stripe, never
+ *     assume it" rule the checkout handler already follows.
+ *
+ * Any other shape (no invoice, a deleted/malformed object, no stripe client,
+ * a failed read) → null. Unknown extra fields in a payload are ignored.
+ */
+async function resolveEventSubscriptionId(
+  object: Record<string, unknown>,
+  loadStripe: () => Promise<Stripe | undefined>,
+): Promise<string | null> {
+  // 1. The object itself carries the subscription (Invoice shape, unchanged).
+  const direct = stripeIdOrNull(object.subscription);
+  if (direct) return direct;
+
+  // 2. An invoice expanded onto the delivered object (InvoicePayment with
+  //    ?expand[]=invoice, or any future shape that inlines it).
+  const invoice = object.invoice;
+  const expanded =
+    typeof invoice === "object" && invoice !== null
+      ? (invoice as Record<string, unknown>)
+      : null;
+  const fromExpandedInvoice = expanded ? stripeIdOrNull(expanded.subscription) : null;
+  if (fromExpandedInvoice) return fromExpandedInvoice;
+
+  // 3. Only an invoice id → ONE verified read. The Stripe client is obtained
+  //    lazily HERE, so an event with nothing to resolve (a one-off invoice, a
+  //    malformed object) never touches Stripe at all.
+  const invoiceId = stripeIdOrNull(invoice);
+  if (!invoiceId) return null;
+  const stripe = await loadStripe();
+  if (!stripe) return null;
+  try {
+    const fetched = await stripe.invoices.retrieve(invoiceId);
+    return stripeIdOrNull((fetched as unknown as { subscription?: unknown }).subscription);
+  } catch (err) {
+    console.warn(
+      `[grants] could not read invoice ${invoiceId} to attribute the event:`,
+      (err as Error).message,
+    );
+    return null;
+  }
+}
+
 /**
  * Consume the Grants subscription events from the ONE verified webhook.
  *
@@ -561,11 +647,38 @@ export async function handleGrantsSubscriptionEvent(
     const object = event.data.object as
       | Stripe.Subscription
       | Stripe.Invoice;
-    const subscriptionId =
-      isSubscriptionEvent
-        ? (object as Stripe.Subscription).id
-        : ((object as { subscription?: string | null }).subscription ?? null);
-    if (!subscriptionId) return false;
+    // Attribution id. `customer.subscription.*` events carry the subscription
+    // itself; the invoice events only point at one — directly for an Invoice
+    // (`subscription`), through the invoice for `invoice_payment.paid` (its
+    // InvoicePayment object has neither `subscription` nor `customer` — see
+    // resolveEventSubscriptionId). No resolvable id → nothing is consumed and
+    // nothing is granted.
+    let subscriptionId: string | null = isSubscriptionEvent
+      ? (object as Stripe.Subscription).id
+      : stripeIdOrNull((object as { subscription?: unknown }).subscription);
+    if (!subscriptionId && !isSubscriptionEvent) {
+      subscriptionId = await resolveEventSubscriptionId(
+        object as unknown as Record<string, unknown>,
+        async () => {
+          if (deps.stripe) return deps.stripe;
+          try {
+            return await stripeClient();
+          } catch (err) {
+            console.warn(
+              "[grants] Stripe client unavailable while attributing an invoice event:",
+              (err as Error).message,
+            );
+            return undefined;
+          }
+        },
+      );
+    }
+    if (!subscriptionId) {
+      console.warn(
+        `[grants] ${event.type} could not be attributed to a subscription — no row written`,
+      );
+      return false;
+    }
 
     const existing = await store.getBySubscriptionId(subscriptionId);
     const subMetadata = isSubscriptionEvent
@@ -590,10 +703,19 @@ export async function handleGrantsSubscriptionEvent(
     } else {
       // First time we hear about this subscription (e.g. checkout webhook
       // missed): attribute it and store it, so entitlement is still correct.
-      const sub = object as Stripe.Subscription;
-      const customerId =
-        typeof sub.customer === "string" ? sub.customer : sub.customer?.id ?? null;
-      const metadataUserId = sub.metadata?.user_id ? Number(sub.metadata.user_id) : null;
+      // Read the fields structurally — the object is a Subscription or an
+      // Invoice (both expose customer/metadata/items). An InvoicePayment
+      // exposes NONE of them, so such an event can only ever update an existing
+      // row; with no row it is not attributed and nothing is written.
+      const source = object as unknown as {
+        customer?: unknown;
+        metadata?: Stripe.Metadata | null;
+        items?: { data?: Array<{ price?: { id?: string } | null }> } | null;
+      };
+      const customerId = stripeIdOrNull(source.customer);
+      const metadataUserId = source.metadata?.user_id
+        ? Number(source.metadata.user_id)
+        : null;
       const userId =
         metadataUserId != null && Number.isInteger(metadataUserId)
           ? metadataUserId
@@ -611,7 +733,7 @@ export async function handleGrantsSubscriptionEvent(
         status,
         stripe_customer_id: customerId,
         stripe_subscription_id: subscriptionId,
-        price_id: sub.items?.data?.[0]?.price?.id ?? null,
+        price_id: source.items?.data?.[0]?.price?.id ?? null,
         current_period_end: currentPeriodEnd,
       });
     }

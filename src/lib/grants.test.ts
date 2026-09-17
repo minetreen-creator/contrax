@@ -34,6 +34,7 @@ import {
   eligibleApplicants,
   formatFundingValue,
   fundingDisplay,
+  grantsCheckoutToastVisible,
   isUpgradePromptEnabled,
   mapGrantResult,
   officialOpportunityUrl,
@@ -349,6 +350,33 @@ describe("grants: $19 upgrade flag is DISABLED by default", () => {
 
   test("the displayed price copy is the owner's exact string", () => {
     expect(GRANTS_PRICE_LABEL).toBe("$19/month");
+  });
+});
+describe("grants: ?checkout=success toast is gated on real entitlement (QA 09-17)", () => {
+  test("the param ALONE never justifies a 'subscription is set up' toast", () => {
+    // Anonymous URL fiddler: no subscription → the param must claim nothing.
+    expect(grantsCheckoutToastVisible({ checkoutParam: "success", subscribed: false })).toBe(
+      false,
+    );
+  });
+  test("only a server-reported subscription shows the toast", () => {
+    expect(grantsCheckoutToastVisible({ checkoutParam: "success", subscribed: true })).toBe(
+      true,
+    );
+  });
+  test("no param, a cancel param, or a bogus object never shows the toast", () => {
+    expect(grantsCheckoutToastVisible({ checkoutParam: null, subscribed: true })).toBe(false);
+    expect(grantsCheckoutToastVisible({ checkoutParam: "cancel", subscribed: true })).toBe(
+      false,
+    );
+    expect(
+      grantsCheckoutToastVisible({
+        checkoutParam: "success",
+        // A truthy-but-not-true value (a string straight off a URL) is not
+        // entitlement evidence.
+        subscribed: "yes" as unknown as boolean,
+      }),
+    ).toBe(false);
   });
 });
 

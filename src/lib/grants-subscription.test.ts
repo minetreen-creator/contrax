@@ -14,7 +14,10 @@
  *      anonymous `preview` limits (the owner's behavior change), never `full`.
  *   3. checkout.session.completed / subscription.created → active (access).
  *   4. subscription.deleted → no access; invoice.payment_failed → no access;
- *      invoice.paid → access restored.
+ *      invoice.paid AND invoice_payment.paid (the event the owner's live endpoint
+ *      is actually configured with — an InvoicePayment, which carries neither
+ *      `subscription` nor `customer`, so the id is resolved through its invoice)
+ *      → access restored. Unattributable invoice_payment.paid → nothing granted.
  *   5. Events for OTHER products (Contrax plans, Bid Scout) are NOT consumed, so
  *      the existing webhook flow is untouched.
  *   6. The checkout route's input validation — no client-supplied price/quantity.
@@ -99,6 +102,23 @@ function fakeStripe(status = "active", periodEnd = 1_800_000_000) {
   } as unknown as Parameters<typeof handleGrantsSubscriptionEvent>[1]["stripe"];
 }
 
+/**
+ * Minimal Stripe stand-in for the invoice read that `invoice_payment.paid`
+ * needs: an InvoicePayment has no subscription field of its own, so the id is
+ * read off its invoice. An unknown invoice throws (a real 404 would too).
+ */
+function fakeInvoiceStripe(subscriptionByInvoice: Record<string, string | null>) {
+  return {
+    invoices: {
+      async retrieve(id: string) {
+        const subscription = subscriptionByInvoice[id];
+        if (subscription === undefined) throw new Error(`No such invoice: ${id}`);
+        return { id, object: "invoice", subscription };
+      },
+    },
+  } as unknown as Parameters<typeof handleGrantsSubscriptionEvent>[1]["stripe"];
+}
+
 function event(type: string, object: Record<string, unknown>): Parameters<
   typeof handleGrantsSubscriptionEvent
 >[0] {
@@ -133,6 +153,28 @@ const grantsSubscription = {
   customer: "cus_test_1",
   current_period_end: 1_800_000_000,
   items: { data: [{ price: { id: "price_test_grants" }, current_period_end: 1_800_000_000 }] },
+};
+
+/**
+ * A REAL `invoice_payment` object, verbatim field set (owner's live endpoint is
+ * configured with `invoice_payment.paid`). Note what is NOT here: no
+ * `subscription` and no `customer` — verified 2026-09-17 against the Stripe
+ * OpenAPI spec (components.schemas.invoice_payment), the installed stripe@22
+ * types (resources/InvoicePayments.d.ts) and the live API reference page.
+ */
+const invoicePayment = {
+  id: "inpay_test_1",
+  object: "invoice_payment",
+  amount_paid: 1900,
+  amount_requested: 1900,
+  created: 1_800_000_000,
+  currency: "usd",
+  invoice: "in_test_1",
+  is_default: true,
+  livemode: true,
+  payment: { type: "payment_intent", payment_intent: "pi_test_1" },
+  status: "paid",
+  status_transitions: { paid_at: 1_800_000_000 },
 };
 
 // ── 1. Entitlement status set ────────────────────────────────────────────────
@@ -216,13 +258,17 @@ describe("grants access tiers", () => {
 // ── 3./4. Webhook transitions ────────────────────────────────────────────────
 
 describe("grants webhook transitions", () => {
-  test("handles exactly the six owner-specified events", () => {
+  test("handles the six configured events plus the invoice.paid alias", () => {
     expect([...GRANTS_HANDLED_EVENTS].sort()).toEqual(
       [
         "checkout.session.completed",
         "customer.subscription.created",
         "customer.subscription.deleted",
         "customer.subscription.updated",
+        // The owner's live webhook endpoint is configured with this one
+        // (verified 2026-09-17); `invoice.paid` is kept as a backward-compatible
+        // alias, so both names are accepted.
+        "invoice_payment.paid",
         "invoice.paid",
         "invoice.payment_failed",
       ].sort(),
@@ -305,6 +351,101 @@ describe("grants webhook transitions", () => {
     expect(evaluateGrantsSubscription(fake.rowFor("sub_test_1")).subscribed).toBe(true);
   });
 
+  // ── invoice_payment.paid — the event the LIVE endpoint is configured with ──
+
+  test("invoice_payment.paid (real InvoicePayment shape) recovers past_due → active and writes the row", async () => {
+    const fake = fakeStore([
+      { user_id: 42, status: "past_due", stripe_subscription_id: "sub_test_1" },
+    ]);
+    const consumed = await handleGrantsSubscriptionEvent(
+      event("invoice_payment.paid", invoicePayment),
+      { store: fake.store, stripe: fakeInvoiceStripe({ in_test_1: "sub_test_1" }) },
+    );
+    expect(consumed).toBe(true);
+    // Exactly one write: the status transition on the known subscription.
+    expect(fake.writes).toEqual(["set:sub_test_1:active"]);
+    expect(fake.rowFor("sub_test_1")?.status).toBe("active");
+    expect(evaluateGrantsSubscription(fake.rowFor("sub_test_1")).subscribed).toBe(true);
+  });
+
+  test("invoice_payment.paid with an EXPANDED invoice needs no extra Stripe read", async () => {
+    const fake = fakeStore([
+      { user_id: 42, status: "past_due", stripe_subscription_id: "sub_test_1" },
+    ]);
+    // No stripe client injected at all — the subscription id is already in the
+    // payload, so the handler must not need one.
+    const consumed = await handleGrantsSubscriptionEvent(
+      event("invoice_payment.paid", {
+        ...invoicePayment,
+        invoice: { id: "in_test_1", object: "invoice", subscription: "sub_test_1" },
+      }),
+      { store: fake.store },
+    );
+    expect(consumed).toBe(true);
+    expect(fake.rowFor("sub_test_1")?.status).toBe("active");
+    expect(evaluateGrantsSubscription(fake.rowFor("sub_test_1")).subscribed).toBe(true);
+  });
+
+  test("invoice_payment.paid that cannot be attributed grants nothing (fail-closed)", async () => {
+    const fake = fakeStore([
+      { user_id: 42, status: "past_due", stripe_subscription_id: "sub_test_1" },
+    ]);
+    // No invoice at all → nothing to resolve, and no Stripe client is reachable.
+    const consumed = await handleGrantsSubscriptionEvent(
+      event("invoice_payment.paid", { ...invoicePayment, invoice: null }),
+      { store: fake.store },
+    );
+    expect(consumed).toBe(false);
+    expect(fake.writes).toHaveLength(0);
+    // The existing row is untouched: still past_due, still no access.
+    expect(fake.rowFor("sub_test_1")?.status).toBe("past_due");
+    expect(evaluateGrantsSubscription(fake.rowFor("sub_test_1")).subscribed).toBe(false);
+  });
+
+  test("a FAILED invoice read on invoice_payment.paid grants nothing (fail-closed)", async () => {
+    const fake = fakeStore([
+      { user_id: 42, status: "past_due", stripe_subscription_id: "sub_test_1" },
+    ]);
+    const consumed = await handleGrantsSubscriptionEvent(
+      event("invoice_payment.paid", invoicePayment),
+      // The invoice id is unknown to Stripe → the read throws.
+      { store: fake.store, stripe: fakeInvoiceStripe({}) },
+    );
+    expect(consumed).toBe(false);
+    expect(fake.writes).toHaveLength(0);
+    expect(fake.rowFor("sub_test_1")?.status).toBe("past_due");
+    expect(evaluateGrantsSubscription(fake.rowFor("sub_test_1")).subscribed).toBe(false);
+  });
+
+  test("another product's invoice_payment.paid is NOT consumed and writes nothing", async () => {
+    const fake = fakeStore();
+    const consumed = await handleGrantsSubscriptionEvent(
+      event("invoice_payment.paid", invoicePayment),
+      // Resolves to a subscription with NO grants row and no grants metadata.
+      { store: fake.store, stripe: fakeInvoiceStripe({ in_test_1: "sub_bid_scout_1" }) },
+    );
+    expect(consumed).toBe(false);
+    expect(fake.writes).toHaveLength(0);
+    expect(fake.rowFor("sub_bid_scout_1")).toBe(null);
+  });
+
+  test("a payload that ever DOES carry subscription/customer is used directly (no read)", async () => {
+    const fake = fakeStore([
+      { user_id: 42, status: "past_due", stripe_subscription_id: "sub_test_1" },
+    ]);
+    const consumed = await handleGrantsSubscriptionEvent(
+      event("invoice_payment.paid", {
+        ...invoicePayment,
+        subscription: "sub_test_1",
+        customer: "cus_test_1",
+      }),
+      // No stripe client at all: the object's own subscription is authoritative.
+      { store: fake.store },
+    );
+    expect(consumed).toBe(true);
+    expect(fake.rowFor("sub_test_1")?.status).toBe("active");
+  });
+
   test("customer.subscription.updated syncs status (unpaid → no access)", async () => {
     const fake = fakeStore([
       { user_id: 42, status: "active", stripe_subscription_id: "sub_test_1" },
@@ -352,6 +493,7 @@ describe("grants webhook transitions", () => {
     expect(grantsStatusAfterEvent("customer.subscription.updated", "past_due")).toBe("past_due");
     expect(grantsStatusAfterEvent("customer.subscription.deleted")).toBe("canceled");
     expect(grantsStatusAfterEvent("invoice.paid")).toBe("active");
+    expect(grantsStatusAfterEvent("invoice_payment.paid")).toBe("active");
     expect(grantsStatusAfterEvent("invoice.payment_failed")).toBe("past_due");
     expect(grantsStatusAfterEvent("charge.refunded")).toBe(null);
   });

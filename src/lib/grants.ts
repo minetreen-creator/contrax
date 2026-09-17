@@ -533,3 +533,24 @@ export function isUpgradePromptEnabled(env: Record<string, string | undefined>):
 
 /** Displayed price of the grants plan (owner-mandated copy). */
 export const GRANTS_PRICE_LABEL = "$19/month";
+/**
+ * May the "your subscription is set up" toast be shown? (QA 09-17 honesty fix.)
+ *
+ * `?checkout=success` is part of a URL: ANYONE can type it, so on its own it is
+ * not evidence of anything and must never be turned into a claim about a
+ * subscription. The toast is therefore shown only when the server-written
+ * subscription state (`GET /api/grants/subscription`) actually grants access.
+ * The parameter is still stripped from the URL either way — a non-subscriber
+ * just gets no claim made about them (access is NEVER granted from this param;
+ * Stripe webhooks are the only writer).
+ *
+ * Pure so it is unit-tested rather than living only in the page component.
+ */
+export function grantsCheckoutToastVisible(input: {
+  /** The raw `?checkout=` value that was on the URL (null when absent). */
+  checkoutParam: string | null;
+  /** Server-reported subscription state, never a client guess. */
+  subscribed: boolean;
+}): boolean {
+  return input.checkoutParam === "success" && input.subscribed === true;
+}

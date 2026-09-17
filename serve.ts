@@ -190,6 +190,64 @@ async function handleBidScoutCheckout(req: Request): Promise<Response> {
   }
 }
 
+// ── Contrax Grants billing handlers (lockstep with the canonical routes) ─────
+//
+// Mirrors /api/stripe/create-checkout-session above: these exist for code-level
+// parity with src/routes/api/stripe/grants-{checkout,portal}-session.ts and
+// delegate to the same lib functions in src/lib/grants-subscription.server.ts.
+// Both require a signed-in user (401 otherwise) and take no input.
+
+async function handleGrantsBilling(
+  req: Request,
+  kind: "checkout" | "portal",
+): Promise<Response> {
+  try {
+    const { resolveUserIdFromCookie } = await import("./src/lib/stripe.ts");
+    const { createGrantsCheckoutSession, createGrantsPortalSession, getGrantsSubscription } =
+      await import("./src/lib/grants-subscription.server.ts");
+    const jsonHeaders = { "Content-Type": "application/json" };
+
+    const userId = await resolveUserIdFromCookie(req.headers.get("cookie"));
+    if (userId == null) {
+      return new Response(
+        JSON.stringify({ error: "Sign in to subscribe to Contrax Grants." }),
+        { status: 401, headers: jsonHeaders },
+      );
+    }
+
+    if (kind === "portal") {
+      const subscription = await getGrantsSubscription(userId);
+      if (!subscription.stripeCustomerId) {
+        return new Response(
+          JSON.stringify({ error: "No Contrax Grants subscription found for your account." }),
+          { status: 403, headers: jsonHeaders },
+        );
+      }
+    }
+
+    const result =
+      kind === "checkout"
+        ? await createGrantsCheckoutSession(userId)
+        : await createGrantsPortalSession(userId);
+    if (!result.success || !result.url) {
+      return new Response(
+        JSON.stringify({ error: result.error ?? "Internal server error" }),
+        { status: 500, headers: jsonHeaders },
+      );
+    }
+    return new Response(JSON.stringify({ url: result.url }), {
+      status: 200,
+      headers: jsonHeaders,
+    });
+  } catch (err) {
+    console.error(`grants-${kind}-session error:`, err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+}
+
 // ── Analytics handler (lightweight, no framework dependency) ──────────────────
 
 async function handleAnalytics(req: Request): Promise<Response> {
@@ -241,6 +299,15 @@ async function mainFetch(req: Request): Promise<Response> {
   // lockstep and delegating to the same lib function)
   if (pathname === "/api/bid-scout/checkout" && req.method === "POST") {
     return handleBidScoutCheckout(req);
+  }
+
+  // Contrax Grants billing — handle before SSR (same guardrails as the
+  // canonical TanStack routes, which also serve these paths in production)
+  if (pathname === "/api/stripe/grants-checkout-session" && req.method === "POST") {
+    return handleGrantsBilling(req, "checkout");
+  }
+  if (pathname === "/api/stripe/grants-portal-session" && req.method === "POST") {
+    return handleGrantsBilling(req, "portal");
   }
 
   // Stripe webhook — needs raw body, handle before SSR

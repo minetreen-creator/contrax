@@ -8,6 +8,66 @@
 type PlanTier = "starter" | "professional" | "agency" | "savings_premium";
 
 /**
+ * Redirect the browser to the Contrax Grants $19/month subscription checkout.
+ *
+ * Sign-in is required: an unauthenticated call gets a 401 from the API and the
+ * user is sent to the free signup page (the server never creates a customer for
+ * an unknown visitor). The price and quantity are entirely server-side, so this
+ * helper sends NO body.
+ */
+export async function redirectToGrantsCheckout(): Promise<void> {
+  try {
+    const response = await fetch("/api/stripe/grants-checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (response.ok) {
+      const { url } = (await response.json()) as { url?: string };
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+    }
+    if (response.status === 401) {
+      window.location.href = "/signup?next=/grants";
+      return;
+    }
+    const body = await response.text().catch(() => "unknown error");
+    console.error("Grants checkout API error:", response.status, body);
+    alert("Sorry, we couldn't start the checkout. Please try again or contact support.");
+  } catch {
+    alert("Checkout is temporarily unavailable. Please check your connection and try again.");
+  }
+}
+
+/**
+ * Open the Stripe Customer Portal for a Grants subscriber ("Manage
+ * subscription"). Returns `true` when the redirect was initiated.
+ */
+export async function openGrantsPortal(): Promise<void> {
+  try {
+    const response = await fetch("/api/stripe/grants-portal-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+    if (response.ok) {
+      const { url } = (await response.json()) as { url?: string };
+      if (url) {
+        window.location.href = url;
+        return;
+      }
+    }
+    const body = await response.text().catch(() => "unknown error");
+    console.error("Grants portal API error:", response.status, body);
+    alert("Sorry, we couldn't open the billing portal. Please try again or contact support.");
+  } catch {
+    alert("The billing portal is temporarily unavailable. Please try again.");
+  }
+}
+
+/**
  * Redirect the browser to a Stripe Checkout Session for the given plan tier.
  *
  * If the API call fails (network error or server error), alerts the user and

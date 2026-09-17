@@ -698,6 +698,63 @@ async function handleBidScoutCheckoutRoute(
   }
 }
 
+// ── Contrax Grants billing handlers (lockstep parity) ─────────────────────────
+//
+// Mirrors handleBidScoutCheckoutRoute above: kept for code-level parity with
+// serve.ts and the canonical TanStack routes
+// (src/routes/api/stripe/grants-{checkout,portal}-session.ts), but NOT dispatched
+// from the main handler — JSON POST API routes flow through the generic SSR path
+// on Vercel. Both delegate to src/lib/grants-subscription.server.ts.
+async function handleGrantsBillingRoute(
+  req: IncomingMessage,
+  kind: "checkout" | "portal",
+): Promise<{ status: number; body: string }> {
+  try {
+    const {
+      createGrantsCheckoutSession,
+      createGrantsPortalSession,
+      getGrantsSubscription,
+    } = await import("./src/lib/grants-subscription.server.ts");
+    const { resolveUserIdFromCookie } = await import("./src/lib/stripe.ts");
+
+    const cookieHeader = (req.headers.cookie as string | undefined) ?? null;
+    const userId = await resolveUserIdFromCookie(cookieHeader);
+    if (userId == null) {
+      return {
+        status: 401,
+        body: JSON.stringify({ error: "Sign in to subscribe to Contrax Grants." }),
+      };
+    }
+
+    if (kind === "portal") {
+      const subscription = await getGrantsSubscription(userId);
+      if (!subscription.stripeCustomerId) {
+        return {
+          status: 403,
+          body: JSON.stringify({
+            error: "No Contrax Grants subscription found for your account.",
+          }),
+        };
+      }
+    }
+
+    const result =
+      kind === "checkout"
+        ? await createGrantsCheckoutSession(userId)
+        : await createGrantsPortalSession(userId);
+    if (!result.success || !result.url) {
+      return {
+        status: 500,
+        body: JSON.stringify({ error: result.error ?? "Internal server error" }),
+      };
+    }
+    return { status: 200, body: JSON.stringify({ url: result.url }) };
+  } catch (err) {
+    console.error(`grants-${kind}-session error:`, err);
+    return { status: 500, body: JSON.stringify({ error: "Internal server error" }) };
+  }
+}
+
 // ── Analytics handler ─────────────────────────────────────────────────────────
 
 async function handleAnalytics(req: Request): Promise<Response> {

@@ -15,6 +15,11 @@ import {
 } from "~/lib/grants";
 import { GrantsUpstreamError, enrichGrants, searchGrantsUpstream } from "~/lib/grants.server";
 import {
+  NO_GRANTS_SUBSCRIPTION,
+  getGrantsSubscription,
+  grantsAccessTier,
+} from "~/lib/grants-subscription.server";
+import {
   checkGrantsAnonIpLimit,
   checkGrantsIpLimit,
   checkGrantsUserLimit,
@@ -40,15 +45,16 @@ import {
  *   status           `open` (default: posted|forecasted) | `closed`
  *   page             1..MAX_PAGE (5) — the "Load more" cursor, 10 results/page
  *
- * ACCESS MODEL (owner spec):
- *   - anonymous: ONE search (server-authoritative, see grants-limits.server.ts)
- *     returning at most PREVIEW_LIMIT (3) cards + the total count so the page can
- *     say how many are behind the wall. A second search answers 200 with
- *     `requiresAuth: true` — the signup wall, not an error.
- *   - signed in   : full pages, "Load more" up to MAX_PAGE.
+ * ACCESS MODEL (owner spec, updated 2026-09-17 for the $19/month product):
+ *   - granted (signed in + a Stripe-written status of `active`/`trialing`):
+ *     full pages, "Load more" up to MAX_PAGE — the same path signed-in users had.
+ *   - everyone else — anonymous AND signed in without a granted subscription —
+ *     gets the EXISTING anonymous limits (one search per visitor per day, at most
+ *     PREVIEW_LIMIT cards, then a 200 with `requiresAuth: true`) plus the upgrade
+ *     prompt. grants-limits.server.ts is unchanged, and access is NEVER taken
+ *     from the ?checkout=success redirect parameter.
  *   - the $19/month prompt is gated by GRANTS_UPGRADE_PROMPT_ENABLED (default
- *     OFF) and only ever echoed to the page as a boolean — no Stripe product,
- *     price, link, or subscription code path is touched by this feature.
+ *     OFF); `subscribed` tells the page which CTA to render.
  *
  * FAILURE MODEL (no endless loader, ever): the upstream search has an 8s
  * AbortController deadline (14s shared budget for detail enrichment). A timeout
@@ -74,6 +80,8 @@ interface GrantsSearchPayload {
   ok: true;
   source: string;
   authenticated: boolean;
+  /** True only when the caller has a granted ($19/month) Grants subscription. */
+  subscribed: boolean;
   requiresAuth?: boolean;
   message?: string;
   totalCount: number;
@@ -91,6 +99,9 @@ interface GrantsSearchPayload {
 
 function buildPayload(opts: {
   authenticated: boolean;
+  /** full access = signed in AND subscribed; otherwise the anonymous preview. */
+  granted: boolean;
+  subscribed: boolean;
   results: GrantResult[];
   totalCount: number;
   page: number;
@@ -98,15 +109,16 @@ function buildPayload(opts: {
   message?: string;
   upgradePromptEnabled: boolean;
 }): GrantsSearchPayload {
-  const results = opts.authenticated
+  const results = opts.granted
     ? opts.results
     : applyPreviewCap(opts.results, false); // belt + braces: the cap is applied here, not by callers
   const returned = results.length;
   const totalCount = opts.totalCount;
-  // "Load more" is an authenticated affordance only: an anonymous visitor gets
-  // the preview + the signup wall instead of another page of results.
+  // "Load more" is a subscriber affordance only: a visitor without a granted
+  // subscription gets the preview + the wall/upgrade prompt instead of another
+  // page of results.
   const hasMore =
-    opts.authenticated &&
+    opts.granted &&
     !opts.requiresAuth &&
     totalCount > opts.page * PAGE_SIZE &&
     opts.page < MAX_PAGE;
@@ -114,6 +126,7 @@ function buildPayload(opts: {
     ok: true,
     source: GRANTS_SOURCE_LABEL,
     authenticated: opts.authenticated,
+    subscribed: opts.subscribed,
     ...(opts.requiresAuth ? { requiresAuth: true } : {}),
     ...(opts.message ? { message: opts.message } : {}),
     totalCount,
@@ -122,7 +135,7 @@ function buildPayload(opts: {
     maxPage: MAX_PAGE,
     hasMore,
     lockedCount: Math.max(0, totalCount - returned),
-    previewLimit: opts.authenticated ? PAGE_SIZE : PREVIEW_LIMIT,
+    previewLimit: opts.granted ? PAGE_SIZE : PREVIEW_LIMIT,
     upgradePromptEnabled: opts.upgradePromptEnabled,
     upgradePrice: GRANTS_PRICE_LABEL,
     notice: GRANTS_ORG_NOTICE,
@@ -145,6 +158,19 @@ async function handler({ request }: { request: Request }): Promise<Response> {
   const user = await getUserFromRequest(request);
   const authenticated = user !== null;
 
+  // Entitlement (owner 2026-09-17): full access comes ONLY from a granted
+  // ($19/month) subscription status written by verified Stripe webhooks. A
+  // signed-in user WITHOUT one falls back to the anonymous limits + upgrade
+  // prompt — the ?checkout=success param is never consulted here.
+  const subscription = authenticated
+    ? await getGrantsSubscription(user.id)
+    : NO_GRANTS_SUBSCRIPTION;
+  const tier = grantsAccessTier({
+    authenticated,
+    subscribed: subscription.subscribed,
+  });
+  const granted = tier === "full";
+
   // Layer 3: per-IP backstop for every request.
   const ipLimit = await checkGrantsIpLimit(request);
   if (!ipLimit.allowed) return rateLimitedResponse(ipLimit);
@@ -153,22 +179,27 @@ async function handler({ request }: { request: Request }): Promise<Response> {
   if (authenticated) {
     const userLimit = await checkGrantsUserLimit(user.id);
     if (!userLimit.allowed) return rateLimitedResponse(userLimit);
-  } else {
+  }
+  if (!granted) {
     // Layer 2: anonymous IP backstop (cookie-clearing abuse).
     const anonIpLimit = await checkGrantsAnonIpLimit(request);
     if (!anonIpLimit.allowed) return rateLimitedResponse(anonIpLimit);
-    // Layer 1: the single free search.
+    // Layer 1: the single free search (anonymous OR signed in without a
+    // granted subscription — unchanged policy, grants-limits.server.ts).
     const anon = await consumeAnonymousSearch(request);
     if (!anon.allowed) {
       return json(
         buildPayload({
-          authenticated: false,
+          authenticated,
+          granted: false,
+          subscribed: subscription.subscribed,
           results: [],
           totalCount: 0,
           page: 1,
           requiresAuth: true,
-          message:
-            "You've used your free grant search. Create a free account to keep searching Grants.gov — it's free.",
+          message: authenticated
+            ? `You've used your free grant search. Subscribe to Contrax Grants (${GRANTS_PRICE_LABEL}) for full results and unlimited searches.`
+            : "You've used your free grant search. Create a free account to keep searching Grants.gov — it's free.",
           upgradePromptEnabled,
         }),
       );
@@ -176,8 +207,8 @@ async function handler({ request }: { request: Request }): Promise<Response> {
     countsAgainstAnonymousCredit = true;
   }
 
-  // Cap the upstream rows we ask for: an anonymous preview needs only 3 cards.
-  const detailLimit = authenticated ? PAGE_SIZE : PREVIEW_LIMIT;
+  // Cap the upstream rows we ask for: a preview needs only PREVIEW_LIMIT cards.
+  const detailLimit = granted ? PAGE_SIZE : PREVIEW_LIMIT;
 
   try {
     const { hits, totalCount } = await searchGrantsUpstream(params);
@@ -185,6 +216,8 @@ async function handler({ request }: { request: Request }): Promise<Response> {
     return json(
       buildPayload({
         authenticated,
+        granted,
+        subscribed: subscription.subscribed,
         results: enriched,
         totalCount,
         page: params.page,

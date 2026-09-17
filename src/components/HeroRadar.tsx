@@ -9,6 +9,12 @@
  *     truth; no new ranking logic, no fabricated data, no fake urgency/counts)
  *   - first 3 matches free, revealed one at a time, with FULL incumbent intel
  *     (the only free place — SHOW_FREE_INCUMBENT path, reused verbatim)
+ *   - incumbent intel is loaded LAZILY, PER DISPLAYED CARD (owner 09-16): the
+ *     scan returns the matches in ~0.2 s and ships NO intel; the hero then calls
+ *     the SAME useRadarIntel hook / getRadarMatchIntel server fn / 6 s client cap
+ *     that /radar uses, keyed by the signed intelTicket the scan minted for the
+ *     free ≤FREE_ANONYMOUS_RADAR_RESULTS match ids. Locked (gated) cards are
+ *     never in that id list, so they cost zero requests and show zero data.
  *   - SignupGate at match 4 (R2 brief-mode CTA: radarSignupHref → /dashboard?brief=1)
  *   - Save-your-matches lead capture (SaveMatchesCard, anonymous-only)
  *   - honest copy only; source line names the real SAM.gov + state/city sync
@@ -33,6 +39,7 @@ import {
   RADAR_CERTS,
   SIZE_OPTS,
   runRadarScan,
+  useRadarIntel,
   RadarCard,
   SignupGate,
   SaveMatchesCard,
@@ -63,7 +70,15 @@ const CERT_LABEL: Record<string, string> = {
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string }
+  | {
+      status: "done";
+      matches: RadarMatch[];
+      certLabel: string;
+      /** Signed, server-minted entitlement ticket for the free ≤3 match ids
+       *  (owner 09-16) — required by the lazy getRadarMatchIntel server fn.
+       *  null ⇒ no intel is claimed anywhere (honest "unavailable"). */
+      intelTicket: string | null;
+    }
   | { status: "error" };
 
 // OWNER 09-15/09-16 (everyday-service trades + canonical NAICS presentation):
@@ -152,6 +167,21 @@ export function HeroRadar({
   // matches up front on the results; authenticated users are never gated.
   const isAnonymous = !getTrackingUser();
 
+  // LAZY INCUMBENT INTEL (owner 09-16) — the /radar hook, reused verbatim so the
+  // front door cannot drift from the results page. Nothing is fetched during the
+  // scan; once the scan is done this asks getRadarMatchIntel for the free
+  // ≤FREE_ANONYMOUS_RADAR_RESULTS displayed cards ONLY (the ids the scan's signed
+  // intelTicket entitles), one bounded call per card. Every card settles into one
+  // of four honest states — "Checking previous winner…" → real winner / "not
+  // available for this notice" / "unavailable right now" — because each fetch is
+  // raced against RADAR_INTEL_CLIENT_TIMEOUT_MS (6 s) client-side and the server
+  // side is independently bounded + fail-closed on the ticket. No stuck spinner,
+  // no hanging request, and locked cards are never in this list.
+  const matchIntel = useRadarIntel(
+    scan.status === "done" ? scan.matches : [],
+    scan.status === "done" ? scan.intelTicket : null,
+  );
+
   const handleRevealNext = () => {
     const total = scan.status === "done" ? scan.matches.length : 0;
     const cap = getTrackingUser() ? total : Math.min(total, FREE_ANONYMOUS_RADAR_RESULTS);
@@ -198,7 +228,7 @@ export function HeroRadar({
               source_url: m.source_url,
             })),
           });
-          setScan({ status: "done", matches: res.matches, certLabel: res.certLabel });
+          setScan({ status: "done", matches: res.matches, certLabel: res.certLabel, intelTicket: res.intelTicket ?? null });
         })
         .catch(() => {
           if (flashTimer) window.clearTimeout(flashTimer);
@@ -435,6 +465,9 @@ export function HeroRadar({
                     state={state}
                     cert={cert}
                     sizePref={sizePref}
+                    // Lazy per-card intel for THIS displayed free card (undefined
+                    // for any id outside the entitled ≤3 → honest fallback).
+                    intel={matchIntel[m.id]}
                   />
                 ))}
                 {scan.matches.length > FREE_ANONYMOUS_RADAR_RESULTS && (
@@ -463,6 +496,9 @@ export function HeroRadar({
                   state={state}
                   cert={cert}
                   sizePref={sizePref}
+                  // Same lazy intel as /radar's authenticated reveal: present only
+                  // for the entitled ≤3 ids, undefined (honest fallback) beyond.
+                  intel={matchIntel[scan.matches[revealed].id]}
                 />
                 {revealed < scan.matches.length - 1 ? (
                   <button

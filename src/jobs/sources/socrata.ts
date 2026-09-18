@@ -4,6 +4,7 @@
  * $limit/$offset pagination without an API key for public datasets.
  */
 import type { RawBid } from "./sam-gov";
+import { nycCityRecordNoticeUrl } from "../../lib/city-procurement";
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 3;
@@ -75,8 +76,11 @@ export async function fetchSocrataBids(
         const dueDate = text(value(record, "due_date", "response_due_date", "bid_due_date")) || null;
         const location = sourceName === "nyc_socrata" ? "New York, NY" : text(value(record, "location", "county", "city"), "New York");
         const fullText = `${title} ${description}`;
+        // NYC City Record notice ids only resolve under /RequestDetail/{id};
+        // the bare-id form redirects to the publisher's 200-answering error
+        // page (see nycCityRecordNoticeUrl). Verified 2026-09-18.
         const sourceUrl = sourceName === "nyc_socrata"
-          ? `https://a856-cityrecord.nyc.gov/${id}`
+          ? nycCityRecordNoticeUrl(id)
           : `${baseUrl.replace(/\/$/, "")}/resource/${datasetId}.json`;
 
         results.push({

@@ -116,6 +116,22 @@ function detectSetAside(textValue: string): string | null {
 
 // ── Per-city record mappers ───────────────────────────────────────────────────
 
+/**
+ * Canonical City Record Online (CROL) notice URL for a City Record notice id
+ * (e.g. "20260902028").
+ *
+ * The bare-id form `https://a856-cityrecord.nyc.gov/{id}` is NOT a notice page:
+ * it redirects to the publisher's own error page —
+ * `/Error/Error404?aspxerrorpath=/{id}` — which answers **HTTP 200** (verified
+ * 2026-09-18 for notice 20260902028 and 20260909003). Every NYC City Record
+ * link built from the bare form was therefore dead, including the homepage
+ * example's "Open original notice ↗"; the real page is `/RequestDetail/{id}`
+ * ("The City Record Online (CROL) | Notice Details").
+ */
+export function nycCityRecordNoticeUrl(id: string): string {
+  return `https://a856-cityrecord.nyc.gov/RequestDetail/${encodeURIComponent(id)}`;
+}
+
 /** NYC City Record Online — active solicitations with due dates. */
 function mapNyc(record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, index: number): RawBid | null {
   const id = text(first(record, "request_id"));
@@ -134,7 +150,7 @@ function mapNyc(record: SocrataRecord, source: Omit<CitySourceConfig, "fetch">, 
     due_date: dueDate,
     location: source.location,
     estimated_value: "Not specified",
-    source_url: id ? `https://a856-cityrecord.nyc.gov/${id}` : source.datasetPageUrl,
+    source_url: id ? nycCityRecordNoticeUrl(id) : source.datasetPageUrl,
     set_aside: detectSetAside(fullText),
   };
 }

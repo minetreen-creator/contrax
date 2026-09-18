@@ -1,13 +1,22 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
-import type { RfpSummary } from "~/components/RfpSummaryCard";
 import {
   fingerprintFor,
-  isoOrNull,
   selectExampleBrief,
   type ExampleBidRow,
-  type ExampleEvaluation,
+  type ExampleSelection,
 } from "~/lib/brief-source";
+import {
+  EXAMPLE_BRIEF_MAX_LINK_CHECKS,
+  loadExampleBriefWithDeps,
+  parseLinkBudgetMs,
+  parseRecoveryGraceMs,
+} from "~/lib/example-brief-loader";
+import {
+  checkNoticeLink,
+  noticeLinkTimeoutMs,
+  type NoticeLinkStatus,
+} from "~/lib/notice-link-check";
 
 /**
  * Shared single source of truth for loading the homepage / /example-brief
@@ -19,7 +28,7 @@ import {
  *   - the standalone route  src/routes/example-brief.tsx
  *   - the homepage embed     src/routes/index.tsx (via src/components/ExampleBrief.tsx)
  *
- * ── WHY THIS FILE CHANGED (owner order 2026-09-18) ─────────────────────────
+ * ── THE SELECTION RULES (owner order 2026-09-18, PR #397) ──────────────────
  * The old loader picked "the richest cached ai_summary" with NO freshness,
  * deadline or milestone checks, so the homepage showed a stale, internally
  * contradictory example: the card header rendered the bid's CURRENT due_date
@@ -27,68 +36,69 @@ import {
  * deadline was Sep 16, 2026 and listed mandatory pre-bid meetings that had
  * already happened.
  *
- * The selection rules now live in ~/lib/brief-source.ts (pure + unit tested) and
+ * The selection rules live in ~/lib/brief-source.ts (pure + unit tested) and
  * are applied in the owner's priority order — every candidate must be:
  *   1. open                    due_date parseable and strictly in the future
- *                              (rank: ≥7 days remaining preferred),
  *   2. complete                non-empty summary, ≥1 mandatory requirement,
- *                              ≥1 dated milestone,
- *   3. linkable                source_url present (original notice),
- *   4. still biddable          NO binding pre-bid date (mandatory site visit /
- *                              pre-bid conference / Q&A deadline) in the past,
+ *                              ≥1 dated milestone
+ *   3. linkable                source_url present (original notice)
+ *   4. still biddable          NO binding pre-bid date in the past
  *   5. internally consistent   the cached submission-deadline milestone must
- *                              equal the record's CURRENT due_date,
- *   6. FRESH                   the stored source fingerprint (hash + model +
- *                              schema version, now including updated_at and the
- *                              newest amendment stamp) must match the row's
- *                              current fingerprint — stale cached briefs are
- *                              never displayed,
- *   7. title preference        correction/amendment notices rank last.
+ *                              equal the record's CURRENT due_date
+ *   6. FRESH                   the stored source fingerprint must match the
+ *                              row's current fingerprint
+ *   7. title preference        correction/amendment notices rank last
+ *
+ * ── TWO OWNER-REQUIRED FOLLOW-UPS (revision 226) ──────────────────────────
+ *  (1) NON-BLOCKING SELF-HEAL. Adding updated_at / amendment timestamps to the
+ *      fingerprint deliberately invalidates every previously cached brief, so
+ *      the loader regenerates the best content-eligible example ONCE through the
+ *      shared generation core (~/lib/ai-brief.ts: same prompt, same schema, same
+ *      cache identity as /api/bids/:id/analyze). PR #397 did that INLINE with a
+ *      25 s ceiling, which could hold a public homepage request for 25 s. Now
+ *      the request side is bounded by a short GRACE
+ *      (EXAMPLE_BRIEF_RECOVERY_GRACE_MS, default 2.5 s): serve the regenerated
+ *      brief if it lands inside the grace, otherwise return null (the homepage
+ *      section hides) while the bounded regeneration CONTINUES so the next
+ *      request serves the persisted result. A fresh cached brief performs no
+ *      repair work at all. Semantics live in ~/lib/example-brief-loader.ts.
+ *  (2) THE ORIGINAL NOTICE LINK MUST RESOLVE. The displayed example's
+ *      "Open original notice ↗" link (bid 134946, City Record
+ *      /20260902028 → /Error/Error404) was dead at the publisher, which fails
+ *      the owner's acceptance. A candidate whose source_url does not resolve is
+ *      now INELIGIBLE and selection falls through to the next eligible bid —
+ *      using the bounded, cached probe in ~/lib/notice-link-check.ts (one
+ *      limited GET per URL, ~12 h cache, never on the fast path more than once
+ *      per URL per TTL).
  *
  * If NO candidate survives, this returns null: the homepage embed renders
  * nothing at all (never "No example brief is available right now." — banned on
  * the homepage), while the standalone page keeps an honest fallback.
- *
- * ── STALE CACHE REPAIR ────────────────────────────────────────────────────
- * Adding updated_at / amendment timestamps to the fingerprint deliberately
- * invalidates every previously cached brief (owner: "existing cached summaries
- * will be treated stale until regenerated. That is the intent"). To keep the
- * homepage section alive — instead of hiding forever until some signed-in user
- * happens to press "Regenerate" — when no fresh candidate exists the loader
- * regenerates the best content-eligible example ONCE through the shared
- * generation core (~/lib/ai-brief.ts: same prompt, same schema, same cache
- * identity as /api/bids/:id/analyze). It is bounded: one attempt per bid per
- * cooldown window, it only ever runs for a candidate that already passed every
- * content check above, and a successful generation is persisted, so the next
- * load (and every other surface) is fresh with no further calls.
  */
 
-export interface ExampleBrief {
-  id: number;
-  title: string;
-  agency: string | null;
-  set_aside: string | null;
-  due_date: string | null;
-  source_url: string | null;
-  location: string | null;
-  estimated_value: string | null;
-  summary: RfpSummary | null;
-  /** Real NAICS code from the bids row — used as a trade fallback when the
-   *  brief's `trade_category` is missing or "Unknown". */
-  naics_code: string | null;
-  generatedAt: string | null;
-}
+export type { ExampleBrief } from "~/lib/example-brief-loader";
 
 /** How many recent cached briefs to consider before ranking (cheap pre-sort). */
 const CANDIDATE_LIMIT = 30;
 /** Minimum gap between cache-repair attempts for the same bid. */
 const REPAIR_COOLDOWN_MS = 10 * 60 * 1000;
-/** Hard cap on a repair attempt so a hung upstream can never wedge the loader. */
-const REPAIR_TIMEOUT_MS = 25_000;
+/**
+ * Ceiling on a BACKGROUND repair attempt so a hung upstream cannot wedge
+ * anything. This is NOT the request budget any more — the homepage request is
+ * bounded by EXAMPLE_BRIEF_RECOVERY_GRACE_MS (see the loader core); the
+ * background attempt keeps this much larger ceiling so a slow-but-working
+ * generation still completes and gets persisted.
+ */
+const REPAIR_BACKGROUND_TIMEOUT_MS = 25_000;
 
 /** In-process throttle for cache repairs (per server instance). */
 const repairAttempts = new Map<number, number>();
 
+/**
+ * One repair attempt per bid per cooldown window. The timestamp is written when
+ * the attempt STARTS (see the loader core), so a serverless instance frozen
+ * after responding cannot leave the homepage retrying the same bid forever.
+ */
 function repairAllowed(bidId: number, now: number): boolean {
   const last = repairAttempts.get(bidId);
   if (last !== undefined && now - last < REPAIR_COOLDOWN_MS) return false;
@@ -97,8 +107,11 @@ function repairAllowed(bidId: number, now: number): boolean {
       if (now - at > REPAIR_COOLDOWN_MS) repairAttempts.delete(id);
     }
   }
-  repairAttempts.set(bidId, now);
   return true;
+}
+
+function markRepairAttempt(bidId: number, now: number): void {
+  repairAttempts.set(bidId, now);
 }
 
 /**
@@ -130,12 +143,43 @@ async function loadCandidates(): Promise<ExampleBidRow[]> {
   `) as unknown as ExampleBidRow[];
 }
 
-async function evaluateCandidates(now: number) {
+async function evaluateCandidates(now: number): Promise<ExampleSelection> {
   const rows = await loadCandidates();
   const candidates = await Promise.all(
     rows.map(async (row) => ({ row, currentFingerprint: await fingerprintFor(row) })),
   );
   return selectExampleBrief(candidates, now);
+}
+
+/**
+ * Regenerate one stale example through the shared generation core. Bounded by
+ * the BACKGROUND ceiling (the request side is already bounded by the grace) and
+ * gated by the cooldown in the caller.
+ */
+async function regenerateExample(row: ExampleBidRow): Promise<boolean> {
+  try {
+    const { generateAndStoreBrief } = await import("~/lib/ai-brief");
+    const ok = await withTimeout(
+      generateAndStoreBrief({
+        id: Number(row.id),
+        title: row.title,
+        agency: row.agency,
+        description: row.description,
+        category: row.category,
+        set_aside: row.set_aside,
+        due_date: row.due_date,
+        estimated_value: row.estimated_value,
+        updated_at: row.updated_at,
+        latest_amendment_at: row.latest_amendment_at,
+      }),
+      REPAIR_BACKGROUND_TIMEOUT_MS,
+      false,
+    );
+    return ok;
+  } catch (err) {
+    console.error("[example-brief] cache repair failed:", err);
+    return false;
+  }
 }
 
 /** Run a promise with a hard cap; resolves to `onTimeout` instead of hanging. */
@@ -153,94 +197,66 @@ async function withTimeout<T>(p: Promise<T>, ms: number, onTimeout: T): Promise<
   }
 }
 
-/**
- * Regenerate the best content-eligible example whose cached brief is stale
- * (fingerprint changed) so the homepage has a fresh, internally consistent
- * example to show. Returns true when a fresh brief is now cached.
- */
-async function repairStaleExample(target: ExampleEvaluation): Promise<boolean> {
-  if (!repairAllowed(target.row.id, Date.now())) return false;
-  try {
-    const { generateAndStoreBrief } = await import("~/lib/ai-brief");
-    const row = target.row;
-    const ok = await withTimeout(
-      generateAndStoreBrief({
-        id: row.id,
-        title: row.title,
-        agency: row.agency,
-        description: row.description,
-        category: row.category,
-        set_aside: row.set_aside,
-        due_date: row.due_date,
-        estimated_value: row.estimated_value,
-        updated_at: row.updated_at,
-        latest_amendment_at: row.latest_amendment_at,
-      }),
-      REPAIR_TIMEOUT_MS,
-      false,
-    );
-    console.log(
-      "[example-brief]",
-      JSON.stringify({
-        event: "cache_repair",
-        bid_id: row.id,
-        due_date: isoOrNull(row.due_date),
-        ok,
-      }),
-    );
-    return ok;
-  } catch (err) {
-    console.error("[example-brief] cache repair failed:", err);
-    return false;
-  }
+/** Cached notice-link probe → status only (the loader never sees raw probes). */
+async function checkLinkStatus(url: string, timeoutMs: number): Promise<NoticeLinkStatus> {
+  const probe = await checkNoticeLink(url, { timeoutMs });
+  return probe.status;
 }
 
-/** Map a ranked evaluation to the public ExampleBrief contract. */
-function toExampleBrief(evaluation: ExampleEvaluation): ExampleBrief {
-  const r = evaluation.row;
-  return {
-    id: Number(r.id),
-    title: String(r.title ?? ""),
-    agency: r.agency ? String(r.agency) : null,
-    set_aside: r.set_aside ? String(r.set_aside) : null,
-    due_date: isoOrNull(r.due_date),
-    source_url: r.source_url ? String(r.source_url) : null,
-    location: r.location ? String(r.location) : null,
-    estimated_value: r.estimated_value ? String(r.estimated_value) : null,
-    summary: evaluation.summary,
-    naics_code: r.naics_code ? String(r.naics_code) : null,
-    generatedAt: isoOrNull(r.ai_summary_at),
-  };
+function logEvent(event: Record<string, unknown>): void {
+  console.log("[example-brief]", JSON.stringify(event));
 }
 
 /**
- * Pick the best REAL, currently-open, internally consistent example brief.
- * Honest — never fabricated, never stale, null when nothing qualifies.
+ * Pick the best REAL, currently-open, internally consistent, LINK-RESOLVING
+ * example brief. Honest — never fabricated, never stale, never a dead notice
+ * link, null when nothing qualifies.
  */
 export const getExampleBrief = createServerFn({ method: "GET" }).handler(
-  async (): Promise<ExampleBrief | null> => {
+  async () => {
     try {
-      let selection = await evaluateCandidates(Date.now());
+      const env = process.env;
+      const result = await loadExampleBriefWithDeps({
+        now: () => Date.now(),
+        loadSelection: evaluateCandidates,
+        checkLink: checkLinkStatus,
+        regenerate: regenerateExample,
+        repairAllowed,
+        markRepairAttempt,
+        graceMs: parseRecoveryGraceMs(env),
+        linkTimeoutMs: noticeLinkTimeoutMs(env),
+        linkBudgetMs: parseLinkBudgetMs(env),
+        maxLinkChecks: EXAMPLE_BRIEF_MAX_LINK_CHECKS,
+        log: logEvent,
+      });
 
-      // No fresh example? Repair the best content-eligible one once (bounded),
-      // then re-evaluate. Nothing else is ever displayed.
-      if (!selection.best && selection.staleEligible.length > 0) {
-        const repaired = await repairStaleExample(selection.staleEligible[0]);
-        if (repaired) selection = await evaluateCandidates(Date.now());
-      }
-
-      if (!selection.best) {
-        console.log(
-          "[example-brief]",
-          JSON.stringify({
-            event: "no_valid_example",
-            considered: selection.all.length,
-            reasons: selection.all.map((e) => ({ id: e.row.id, why: e.reasons })),
-          }),
-        );
+      if (!result.brief) {
+        // The regeneration (if any) is still running in the background; the
+        // section hides for this request and the next one serves the result.
+        logEvent({
+          event: "no_valid_example",
+          path: result.path,
+          waited_ms: result.waitedMs,
+          link_checks: result.linkChecks,
+          dead_link_ids: result.deadLinkIds,
+          uncertain_link_ids: result.uncertainLinkIds,
+          repair_target: result.repairTargetId,
+        });
         return null;
       }
-      return toExampleBrief(selection.best);
+
+      if (result.deadLinkIds.length > 0 || result.path !== "fresh") {
+        logEvent({
+          event: "example_served",
+          bid_id: result.brief.id,
+          path: result.path,
+          waited_ms: result.waitedMs,
+          link_checks: result.linkChecks,
+          dead_link_ids: result.deadLinkIds,
+          uncertain_link_ids: result.uncertainLinkIds,
+        });
+      }
+      return result.brief;
     } catch (e) {
       console.error("[example-brief] load failed:", e);
       return null;

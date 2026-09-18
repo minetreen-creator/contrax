@@ -436,6 +436,20 @@ export async function handleStripeWebhook(
     return { success: true };
   }
 
+  // Contrax Grants is a SEPARATE product line (its own $19/month subscription,
+  // not a tier) — its events are consumed here and NEVER fall through to the
+  // user-account flow below. Ownership is proven by product:"grants" metadata or
+  // an existing grants_subscriptions row; anything else returns false and takes
+  // the existing path byte-identically. Entitlement is written ONLY from these
+  // verified events (see src/lib/grants-subscription.server.ts).
+  const { handleGrantsSubscriptionEvent } = await import(
+    "~/lib/grants-subscription.server"
+  );
+  const grantsConsumed = await handleGrantsSubscriptionEvent(event);
+  if (grantsConsumed) {
+    return { success: true };
+  }
+
   // Only handle checkout.session.completed
   if (event.type !== "checkout.session.completed") {
     return { success: true }; // Acknowledge but no action needed

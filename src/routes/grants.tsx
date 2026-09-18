@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { openGrantsPortal, redirectToGrantsCheckout } from "~/lib/checkout";
 import { GRANTS_EVENTS, trackGrantsEvent } from "~/lib/grants-analytics";
 import {
   APPLICANT_TYPES,
@@ -13,6 +14,7 @@ import {
   NOT_SPECIFIED,
   PAGE_SIZE,
   PREVIEW_LIMIT,
+  grantsCheckoutToastVisible,
   type GrantResult,
 } from "~/lib/grants";
 
@@ -69,6 +71,8 @@ interface SearchResponse {
   error?: string;
   source?: string;
   authenticated?: boolean;
+  /** True only with a granted ($19/month) Stripe subscription (server-written). */
+  subscribed?: boolean;
   requiresAuth?: boolean;
   message?: string;
   totalCount?: number;
@@ -110,6 +114,13 @@ function GrantsPage() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
   const [anonUsed, setAnonUsed] = useState(false);
+  // Grants entitlement (server-written by Stripe webhooks). The ?checkout=success
+  // parameter NEVER grants access — it only drives the toast below, and only for
+  // a visitor the server already reports as subscribed (grantsCheckoutToastVisible).
+  const [subscribed, setSubscribed] = useState(false);
+  /** True only when the success toast may honestly be shown (subscribed). */
+  const [checkoutDone, setCheckoutDone] = useState(false);
+  const [billingBusy, setBillingBusy] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const tickRef = useRef<number | null>(null);
   const requestSeq = useRef(0);
@@ -122,12 +133,29 @@ function GrantsPage() {
     trackGrantsEvent(GRANTS_EVENTS.pageViewed, "grants_page");
   }, []);
 
-  // ── Client-side anonymous cap + signed-in detection ───────────────────────
+  // ── Client-side anonymous cap + signed-in detection + entitlement ──────────
   useEffect(() => {
     try {
       if (sessionStorage.getItem(ANON_USED_KEY) === "1") setAnonUsed(true);
     } catch {
       /* sessionStorage can throw (private mode) — the server cap still holds */
+    }
+    // ?checkout=success is a TOAST ONLY — access comes from the server-written
+    // subscription status, never from this parameter. Anyone can put the param
+    // on the URL, so the toast is decided ONLY after the subscription read
+    // resolves (grantsCheckoutToastVisible) — a visitor who did not actually
+    // subscribe gets the param stripped and no claim made about them.
+    let checkoutParam: string | null = null;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("checkout") === "success") {
+        checkoutParam = "success";
+        params.delete("checkout");
+        const qs = params.toString();
+        window.history.replaceState({}, "", `${window.location.pathname}${qs ? `?${qs}` : ""}`);
+      }
+    } catch {
+      /* history/URL unavailable — the toast is decorative */
     }
     let cancelled = false;
     fetch("/api/auth/me", { headers: { accept: "application/json" } })
@@ -137,6 +165,18 @@ function GrantsPage() {
       })
       .catch(() => {
         /* anonymous by default — never block the page on this */
+      });
+    fetch("/api/grants/subscription", { headers: { accept: "application/json" } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled) return;
+        const isSubscribed = Boolean(d && d.subscribed);
+        setSubscribed(isSubscribed);
+        // Honest by construction: no subscription → no "you're set up" toast.
+        setCheckoutDone(grantsCheckoutToastVisible({ checkoutParam, subscribed: isSubscribed }));
+      })
+      .catch(() => {
+        /* treat as not subscribed; the search API is authoritative */
       });
     return () => {
       cancelled = true;
@@ -154,9 +194,9 @@ function GrantsPage() {
 
   const runSearch = useCallback(
     async (page: number, mode: "new" | "more") => {
-      // Client-side cap: an anonymous visitor's single search is enforced here
-      // first (the server enforces it again, authoritatively).
-      if (!authenticated && anonUsed && mode === "new") {
+      // Client-side cap: a visitor without a granted subscription gets the one
+      // free search enforced here first (the server enforces it authoritatively).
+      if (!subscribed && anonUsed && mode === "new") {
         setPhase("wall");
         return;
       }
@@ -227,7 +267,8 @@ function GrantsPage() {
         }
         const incoming = body.results ?? [];
         // Belt + braces preview cap (the API already applied it server-side).
-        const capped = authenticated ? incoming : incoming.slice(0, PREVIEW_LIMIT);
+        const capped = subscribed ? incoming : incoming.slice(0, PREVIEW_LIMIT);
+        if (typeof body.subscribed === "boolean") setSubscribed(body.subscribed);
         setData(body);
         setResults((prev) => (mode === "more" ? [...prev, ...capped] : capped));
         setPhase(capped.length === 0 ? "empty" : "results");
@@ -279,7 +320,24 @@ function GrantsPage() {
     trackGrantsEvent(GRANTS_EVENTS.upgradeClicked, "grants_page");
   }
 
-  const showWall = phase === "wall" || (!authenticated && anonUsed && phase !== "results");
+  /** Subscribe — $19/month (server-side price; no client input at all). */
+  function onSubscribeClick() {
+    if (billingBusy) return;
+    onUpgradeClick();
+    setBillingBusy(true);
+    void redirectToGrantsCheckout().finally(() => setBillingBusy(false));
+  }
+
+  /** Stripe Customer Portal for an existing subscriber. */
+  function onManageClick() {
+    if (billingBusy) return;
+    setBillingBusy(true);
+    void openGrantsPortal().finally(() => setBillingBusy(false));
+  }
+
+  const needsSubscription = authenticated && !subscribed;
+  const previewOnly = !subscribed;
+  const showWall = phase === "wall" || (previewOnly && anonUsed && phase !== "results");
   const upgradeEnabled = data?.upgradePromptEnabled === true;
   const notice = data?.notice ?? GRANTS_ORG_NOTICE;
 
@@ -294,6 +352,26 @@ function GrantsPage() {
             <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">
               Dashboard
             </a>
+            {subscribed && (
+              <button
+                type="button"
+                onClick={onManageClick}
+                disabled={billingBusy}
+                className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold whitespace-nowrap text-slate-800 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+              >
+                Manage subscription
+              </button>
+            )}
+            {needsSubscription && upgradeEnabled && (
+              <button
+                type="button"
+                onClick={onSubscribeClick}
+                disabled={billingBusy}
+                className="rounded-xl bg-amber-400 px-4 py-2 text-sm font-semibold whitespace-nowrap text-slate-900 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-amber-200"
+              >
+                {billingBusy ? "Opening…" : `Subscribe — ${GRANTS_PRICE_LABEL}`}
+              </button>
+            )}
             {!authenticated && (
               <a
                 href="/signup?next=/grants"
@@ -307,6 +385,27 @@ function GrantsPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8">
+        {/* checkoutDone is only ever set when the server-written subscription
+            status is granted (grantsCheckoutToastVisible) — a URL fiddler who
+            never paid is never told a subscription is set up. */}
+        {checkoutDone && (
+          <div
+            role="status"
+            className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4"
+          >
+            <p className="text-sm font-semibold text-emerald-900">
+              Thanks — your Contrax Grants subscription is set up.
+            </p>
+            <button
+              type="button"
+              onClick={() => setCheckoutDone(false)}
+              className="text-xs font-semibold text-emerald-800 underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-slate-900">Contrax Grants</h1>
           <p className="mt-2 text-lg text-slate-500">
@@ -315,7 +414,11 @@ function GrantsPage() {
           <p className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm">
             Contrax Grants — {GRANTS_PRICE_LABEL}
             <span className="text-xs font-medium text-slate-500">
-              {upgradeEnabled ? "Search is free — upgrade for the full workspace." : "Coming soon"}
+              {subscribed
+                ? "Active — full results and unlimited searches."
+                : upgradeEnabled
+                  ? "Search is free — subscribe for the full workspace."
+                  : "Coming soon"}
             </span>
           </p>
           <p className="mt-3 max-w-3xl text-xs text-slate-500">{notice}</p>
@@ -486,17 +589,42 @@ function GrantsPage() {
 
         {showWall && (
           <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-6 shadow-sm">
-            <p className="text-sm font-semibold text-amber-900">Create a free account to keep searching</p>
+            <p className="text-sm font-semibold text-amber-900">
+              {needsSubscription ? "Subscribe to keep searching" : "Create a free account to keep searching"}
+            </p>
             <p className="mt-1 text-sm text-amber-900">
               {data?.message ??
-                "You've used your free grant search. A free Contrax account unlocks full grant results and unlimited searches."}
+                (needsSubscription
+                  ? `You've used your free grant search. Contrax Grants (${GRANTS_PRICE_LABEL}) unlocks the full result list, every page, and unlimited searches.`
+                  : "You've used your free grant search. A free Contrax account unlocks full grant results and unlimited searches.")}
             </p>
-            <a
-              href="/signup?next=/grants"
-              className="mt-4 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300"
-            >
-              Create free account
-            </a>
+            {needsSubscription ? (
+              upgradeEnabled ? (
+                <button
+                  type="button"
+                  onClick={onSubscribeClick}
+                  disabled={billingBusy}
+                  className="mt-4 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-amber-200"
+                >
+                  {billingBusy ? "Opening…" : `Subscribe — ${GRANTS_PRICE_LABEL}`}
+                </button>
+              ) : (
+                <a
+                  href="/pricing"
+                  onClick={onUpgradeClick}
+                  className="mt-4 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300"
+                >
+                  See the plan
+                </a>
+              )
+            ) : (
+              <a
+                href="/signup?next=/grants"
+                className="mt-4 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300"
+              >
+                Create free account
+              </a>
+            )}
           </div>
         )}
 
@@ -593,29 +721,53 @@ function GrantsPage() {
               ))}
             </div>
 
-            {!authenticated && (
+            {previewOnly && (
               <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
                 <p className="text-sm font-semibold text-amber-900">
                   {typeof data?.lockedCount === "number" && data.lockedCount > 0
                     ? `${data.lockedCount.toLocaleString("en-US")} more matching ${
                         data.lockedCount === 1 ? "opportunity" : "opportunities"
-                      } need a free account`
-                    : "Create a free account for full grant results"}
+                      } ${needsSubscription ? "need a Contrax Grants subscription" : "need a free account"}`
+                    : needsSubscription
+                      ? `Subscribe to Contrax Grants (${GRANTS_PRICE_LABEL}) for full results`
+                      : "Create a free account for full grant results"}
                 </p>
                 <p className="mt-1 text-sm text-amber-900">
-                  You're seeing the first {PREVIEW_LIMIT} previews. A free Contrax account unlocks the full result
-                  list, every page, and unlimited searches.
+                  {needsSubscription
+                    ? `You're seeing the first ${PREVIEW_LIMIT} previews. A ${GRANTS_PRICE_LABEL} Contrax Grants subscription unlocks the full result list, every page, and unlimited searches.`
+                    : `You're seeing the first ${PREVIEW_LIMIT} previews. A free Contrax account unlocks the full result list, every page, and unlimited searches.`}
                 </p>
-                <a
-                  href="/signup?next=/grants"
-                  className="mt-4 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300"
-                >
-                  Create free account
-                </a>
+                {needsSubscription ? (
+                  upgradeEnabled ? (
+                    <button
+                      type="button"
+                      onClick={onSubscribeClick}
+                      disabled={billingBusy}
+                      className="mt-4 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-amber-200"
+                    >
+                      {billingBusy ? "Opening…" : `Subscribe — ${GRANTS_PRICE_LABEL}`}
+                    </button>
+                  ) : (
+                    <a
+                      href="/pricing"
+                      onClick={onUpgradeClick}
+                      className="mt-4 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300"
+                    >
+                      See the plan
+                    </a>
+                  )
+                ) : (
+                  <a
+                    href="/signup?next=/grants"
+                    className="mt-4 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300"
+                  >
+                    Create free account
+                  </a>
+                )}
               </div>
             )}
 
-            {authenticated && data?.hasMore && (
+            {subscribed && data?.hasMore && (
               <div className="mt-5">
                 <button
                   type="button"
@@ -631,28 +783,52 @@ function GrantsPage() {
               </div>
             )}
 
-            {authenticated && !data?.hasMore && (data?.totalCount ?? 0) > PAGE_SIZE * (data?.page ?? 1) && (
+            {subscribed && !data?.hasMore && (data?.totalCount ?? 0) > PAGE_SIZE * (data?.page ?? 1) && (
               <p className="mt-4 text-xs text-slate-500">
                 Showing the first {PAGE_SIZE * (data?.page ?? 1)} of {(data?.totalCount ?? 0).toLocaleString("en-US")}{" "}
                 matches — the {MAX_PAGE}-page cap keeps live searches fast.
               </p>
             )}
 
-            {upgradeEnabled && (
+            {upgradeEnabled && needsSubscription && (
               <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <p className="text-sm font-semibold text-slate-900">
                   Contrax Grants — {GRANTS_PRICE_LABEL}
                 </p>
                 <p className="mt-1 text-sm text-slate-600">
-                  Save grants, track deadlines, and keep unlimited searches in your workspace.
+                  Full result lists, every page, and unlimited searches — billed monthly, cancel any time.
                 </p>
-                <a
-                  href="/pricing"
-                  onClick={onUpgradeClick}
-                  className="mt-3 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300"
+                <button
+                  type="button"
+                  onClick={onSubscribeClick}
+                  disabled={billingBusy}
+                  className="mt-3 inline-flex items-center rounded-xl bg-amber-400 px-5 py-2.5 text-sm font-semibold text-slate-900 transition-colors hover:bg-amber-300 disabled:cursor-not-allowed disabled:bg-amber-200"
                 >
-                  See the plan
-                </a>
+                  {billingBusy ? "Opening…" : `Subscribe — ${GRANTS_PRICE_LABEL}`}
+                </button>
+              </div>
+            )}
+
+            {subscribed && (
+              <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-sm font-semibold text-slate-900">
+                  Contrax Grants — {GRANTS_PRICE_LABEL}
+                  <span className="ml-2 rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-800">
+                    Active
+                  </span>
+                </p>
+                <p className="mt-1 text-sm text-slate-600">
+                  Your subscription renews automatically — update payment details, invoices, or cancel in the
+                  Stripe billing portal.
+                </p>
+                <button
+                  type="button"
+                  onClick={onManageClick}
+                  disabled={billingBusy}
+                  className="mt-3 inline-flex items-center rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+                >
+                  Manage subscription
+                </button>
               </div>
             )}
           </div>

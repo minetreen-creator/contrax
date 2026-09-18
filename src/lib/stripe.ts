@@ -379,6 +379,13 @@ export async function createCheckoutSession(
         },
       ],
       metadata,
+      // Carry the SAME attribution metadata on the SUBSCRIPTION (not just the
+      // checkout session) so the lifecycle webhook can attribute
+      // customer.subscription.* / invoice.* events even if it never saw the
+      // checkout — the Grants checkout has always done this. `subscription_data`
+      // is only valid in subscription mode (a one-time price would be rejected),
+      // so it is omitted for mode="payment".
+      ...(mode === "subscription" ? { subscription_data: { metadata } } : {}),
       success_url: `${BASE_URL}/post-checkout?session_id={CHECKOUT_SESSION_ID}&plan=${planTier}`,
       cancel_url: `${BASE_URL}/`,
     });
@@ -447,6 +454,24 @@ export async function handleStripeWebhook(
   );
   const grantsConsumed = await handleGrantsSubscriptionEvent(event);
   if (grantsConsumed) {
+    return { success: true };
+  }
+
+  // The plan TIERS (Starter/Professional/Agency) keep their subscription state
+  // on the `users` row (plan_tier / subscription_status / subscription_current_
+  // period_end) — the same row the checkout flow below writes. Their LIFECYCLE
+  // events (customer.subscription.updated/deleted, invoice.paid /
+  // invoice_payment.paid / invoice.payment_failed) are consumed here, AFTER the
+  // two product lines so neither Grants nor Bid Scout can be affected. Ownership
+  // is proven by the stored stripe_subscription_id or the subscription's own
+  // metadata; an unattributable event returns false and writes nothing
+  // (fail-closed). `checkout.session.completed` is deliberately NOT handled by
+  // this module — the existing user-plan flow below owns it byte-identically.
+  const { handleTierSubscriptionEvent } = await import(
+    "~/lib/tier-subscription.server"
+  );
+  const tierConsumed = await handleTierSubscriptionEvent(event);
+  if (tierConsumed) {
     return { success: true };
   }
 

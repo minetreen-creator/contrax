@@ -5,6 +5,7 @@ import { checkTrial, type TrialStatus } from "~/lib/trial";
 import { SPECIALTY_OPTIONS, daysUntilExpiry, type License } from "~/lib/healthcare";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus } from "~/lib/certifications";
 import { NaicsTypeahead, naicsTitle } from "~/components/NaicsTypeahead";
+import { openBillingPortal } from "~/lib/checkout";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -140,6 +141,26 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
   const [toast, setToast] = useState("");
   const [trial, setTrial] = useState<TrialStatus | null>(null);
   useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
+
+  // Plan-tier billing portal ("Manage subscription"). Only a user on one of the
+  // three paid ladder tiers has a Stripe subscription to manage.
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingMessage, setBillingMessage] = useState("");
+  const isPaidTier =
+    trial?.planTier === "starter" ||
+    trial?.planTier === "professional" ||
+    trial?.planTier === "agency";
+  const handleManageSubscription = useCallback(async () => {
+    setBillingBusy(true);
+    setBillingMessage("");
+    try {
+      const result = await openBillingPortal();
+      // On success the browser has already been redirected to Stripe.
+      if (!result.ok) setBillingMessage(result.error);
+    } finally {
+      setBillingBusy(false);
+    }
+  }, []);
 
   const [form, setForm] = useState<SettingsFormData>({
     businessName: "",
@@ -389,10 +410,27 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
               <h2 className="text-lg font-semibold text-slate-900 mb-1">Plan &amp; Trial</h2>
               <p className="text-sm text-slate-500">Your subscription status and 14-day free trial.</p>
             </div>
-            <a href="/upgrade" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
-              Manage plan
-            </a>
+            <div className="flex flex-wrap items-center gap-2">
+              {isPaidTier && (
+                <button
+                  type="button"
+                  onClick={handleManageSubscription}
+                  disabled={billingBusy}
+                  className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60"
+                >
+                  {billingBusy ? "Opening…" : "Manage subscription"}
+                </button>
+              )}
+              <a href="/upgrade" className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50">
+                Manage plan
+              </a>
+            </div>
           </div>
+          {billingMessage && (
+            <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {billingMessage}
+            </p>
+          )}
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Current plan</p>

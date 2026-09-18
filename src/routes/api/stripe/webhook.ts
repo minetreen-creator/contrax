@@ -7,7 +7,20 @@ import { handleStripeWebhook } from "~/lib/stripe";
  * Stripe webhook endpoint. Requires the `stripe-signature` header; the raw
  * request body is verified against STRIPE_WEBHOOK_SECRET before any DB work.
  *
- * Handles `checkout.session.completed`:
+ * ONE endpoint, THREE product lines — the dispatcher in src/lib/stripe.ts
+ * (handleStripeWebhook) consumes an event for whichever line owns it, in this
+ * order, and stops:
+ *
+ *   1. Bid Scout ($99/month, bid_scout_subscriptions) — src/lib/bid-scout.ts
+ *   2. Contrax Grants ($19/month, grants_subscriptions)
+ *         — src/lib/grants-subscription.server.ts
+ *   3. Contrax plan TIERS (Starter/Professional/Agency, state on the `users`
+ *      row) — src/lib/tier-subscription.server.ts:
+ *        customer.subscription.updated / .deleted (cancel → plan downgrade to
+ *        'basic'), invoice.paid / invoice_payment.paid (→ active),
+ *        invoice.payment_failed (→ past_due)
+ *
+ * Handles `checkout.session.completed` for the plan tiers:
  *   - sets the user's plan_tier to the purchased tier
  *   - sets subscription_status = 'active'
  *   - clears trial_started_at (payment ends the 14-day trial)

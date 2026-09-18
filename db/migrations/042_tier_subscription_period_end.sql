@@ -1,0 +1,24 @@
+-- Migration 042 — users.subscription_current_period_end (plan-tier lifecycle
+-- hardening, owner order 2026-09-18).
+--
+-- The three paid ladder tiers (Starter $19 / Professional $79 / Agency $199) keep
+-- their subscription state ON THE `users` ROW (plan_tier, subscription_status,
+-- stripe_customer_id, stripe_subscription_id) — there is no tier subscriptions
+-- table. `current_period_end` is the one piece of subscription state the tier
+-- flow was missing, so the verified Stripe webhook had nowhere to store it:
+-- this column is where the lifecycle handler
+-- (src/lib/tier-subscription.server.ts) records the end of the paid period, for
+-- the "renews / access until" copy and for support/reconciliation.
+--
+-- Conventions mirror the product-line tables (grants_subscriptions /
+-- bid_scout_subscriptions, migrations 035/039/041): a NULLABLE TIMESTAMPTZ,
+-- written ONLY by the verified Stripe webhook, and NULL whenever Stripe did not
+-- report a period end (never guessed).
+--
+-- ADDITIVE + IDEMPOTENT: adds one nullable column, touches no data, and is safe
+-- to re-run any number of times.
+--
+-- Mirrored in src/db/schema.sql (canonical merged schema, applied by
+-- `bun run src/db/setup.ts`) and in db/migrations/run-042.ts (idempotent runner).
+ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS subscription_current_period_end TIMESTAMPTZ;

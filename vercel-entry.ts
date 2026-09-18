@@ -573,6 +573,23 @@ async function handleCreateCheckoutSession(
   req: IncomingMessage,
 ): Promise<{ status: number; body: string }> {
   try {
+    const { createCheckoutSession, resolveUserIdFromCookie } = await import(
+      "./src/lib/stripe.ts"
+    );
+
+    // SIGN-IN REQUIRED (owner order 2026-09-18): a checkout must never be
+    // created without a resolvable user id. Identical to the canonical route
+    // src/routes/api/stripe/create-checkout-session.ts, to serve.ts and to
+    // handleGrantsBillingRoute below.
+    const cookieHeader = (req.headers.cookie as string | undefined) ?? null;
+    const userId = await resolveUserIdFromCookie(cookieHeader);
+    if (userId == null) {
+      return {
+        status: 401,
+        body: JSON.stringify({ error: "Sign in to choose a Contrax plan." }),
+      };
+    }
+
     const rawBody = await readRawBody(req);
     const parsed = JSON.parse(rawBody || "{}") as {
       planTier?: string;
@@ -598,12 +615,6 @@ async function handleCreateCheckoutSession(
       };
     }
 
-    const { createCheckoutSession, resolveUserIdFromCookie } = await import(
-      "./src/lib/stripe.ts"
-    );
-    // Attribute the checkout to the logged-in user (if any) via session cookie
-    const cookieHeader = (req.headers.cookie as string | undefined) ?? null;
-    const userId = await resolveUserIdFromCookie(cookieHeader);
     const normalized = (parsed.promoCode ?? "").trim().toLowerCase();
     const promoCode = normalized === "vad26" ? "VAD26" : undefined;
     const result = await createCheckoutSession(parsed.planTier as any, {
@@ -751,6 +762,55 @@ async function handleGrantsBillingRoute(
     return { status: 200, body: JSON.stringify({ url: result.url }) };
   } catch (err) {
     console.error(`grants-${kind}-session error:`, err);
+    return { status: 500, body: JSON.stringify({ error: "Internal server error" }) };
+  }
+}
+
+// ── Plan-tier billing portal (lockstep parity) ────────────────────────────────
+//
+// Mirrors handleGrantsBillingRoute above: kept for code-level parity with
+// serve.ts and the canonical TanStack route
+// (src/routes/api/stripe/portal-session.ts), but NOT dispatched from the main
+// handler — JSON POST API routes flow through the generic SSR path on Vercel.
+// Both delegate to src/lib/tier-subscription.server.ts. Sign-in required.
+async function handleTierPortalSessionRoute(
+  req: IncomingMessage,
+): Promise<{ status: number; body: string }> {
+  try {
+    const { resolveUserIdFromCookie } = await import("./src/lib/stripe.ts");
+    const { createTierPortalSession, getTierBilling } = await import(
+      "./src/lib/tier-subscription.server.ts"
+    );
+
+    const cookieHeader = (req.headers.cookie as string | undefined) ?? null;
+    const userId = await resolveUserIdFromCookie(cookieHeader);
+    if (userId == null) {
+      return {
+        status: 401,
+        body: JSON.stringify({ error: "Sign in to manage your subscription." }),
+      };
+    }
+
+    const billing = await getTierBilling(userId);
+    if (!billing.stripeCustomerId) {
+      return {
+        status: 403,
+        body: JSON.stringify({
+          error: "No paid Contrax subscription found for your account.",
+        }),
+      };
+    }
+
+    const result = await createTierPortalSession(userId);
+    if (!result.success || !result.url) {
+      return {
+        status: result.code === "portal_not_configured" ? 503 : 500,
+        body: JSON.stringify({ error: result.error ?? "Internal server error" }),
+      };
+    }
+    return { status: 200, body: JSON.stringify({ url: result.url }) };
+  } catch (err) {
+    console.error("portal-session error:", err);
     return { status: 500, body: JSON.stringify({ error: "Internal server error" }) };
   }
 }

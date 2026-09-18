@@ -11,6 +11,11 @@ CREATE TABLE IF NOT EXISTS users (
     subscription_status TEXT,
     plan_tier TEXT,
     trial_started_at TIMESTAMPTZ,
+    -- Migration 042 (plan-tier lifecycle hardening, owner 2026-09-18): the end
+    -- of the paid period for the Starter/Professional/Agency subscription. The
+    -- verified Stripe webhook is the only writer; NULL when Stripe did not
+    -- report a period end (never guessed).
+    subscription_current_period_end TIMESTAMPTZ,
     active_profile_id INTEGER,
     is_admin BOOLEAN NOT NULL DEFAULT FALSE
 );
@@ -253,6 +258,10 @@ BEGIN
     END IF;
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='trial_started_at') THEN
         ALTER TABLE users ADD COLUMN trial_started_at TIMESTAMPTZ;
+    END IF;
+    -- Migration 042: plan-tier subscription period end (see above).
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='subscription_current_period_end') THEN
+        ALTER TABLE users ADD COLUMN subscription_current_period_end TIMESTAMPTZ;
     END IF;
 END $$;
 

@@ -61,6 +61,23 @@ async function handleStripeWebhookRoute(req: Request): Promise<Response> {
 
 async function handleCreateCheckoutSession(req: Request): Promise<Response> {
   try {
+    const { createCheckoutSession, resolveUserIdFromCookie } = await import(
+      "./src/lib/stripe.ts"
+    );
+    const jsonHeaders = { "Content-Type": "application/json" };
+
+    // SIGN-IN REQUIRED (owner order 2026-09-18): a checkout must never be
+    // created without a resolvable user id. Identical to the canonical route
+    // src/routes/api/stripe/create-checkout-session.ts and to
+    // handleGrantsBilling below.
+    const userId = await resolveUserIdFromCookie(req.headers.get("cookie"));
+    if (userId == null) {
+      return new Response(
+        JSON.stringify({ error: "Sign in to choose a Contrax plan." }),
+        { status: 401, headers: jsonHeaders },
+      );
+    }
+
     const body = (await req.json().catch(() => ({}))) as {
       planTier?: string;
       mode?: "payment" | "subscription";
@@ -89,11 +106,6 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
       );
     }
 
-    const { createCheckoutSession, resolveUserIdFromCookie } = await import(
-      "./src/lib/stripe.ts"
-    );
-    // Attribute the checkout to the logged-in user (if any) via session cookie
-    const userId = await resolveUserIdFromCookie(req.headers.get("cookie"));
     const normalized = (body.promoCode ?? "").trim().toLowerCase();
     const promoCode = normalized === "vad26" ? "VAD26" : undefined;
     const result = await createCheckoutSession(body.planTier as any, {
@@ -248,6 +260,61 @@ async function handleGrantsBilling(
   }
 }
 
+// ── Plan-tier billing handler (lockstep with the canonical route) ─────────────
+//
+// Mirrors /api/stripe/create-checkout-session and the Grants handlers above:
+// this exists for code-level parity with
+// src/routes/api/stripe/portal-session.ts (the "Manage subscription" button on
+// Settings) and delegates to the same lib functions in
+// src/lib/tier-subscription.server.ts. Sign-in required (401 otherwise).
+
+async function handleTierPortalSession(req: Request): Promise<Response> {
+  const jsonHeaders = { "Content-Type": "application/json" };
+  try {
+    const { resolveUserIdFromCookie } = await import("./src/lib/stripe.ts");
+    const { createTierPortalSession, getTierBilling } = await import(
+      "./src/lib/tier-subscription.server.ts"
+    );
+
+    const userId = await resolveUserIdFromCookie(req.headers.get("cookie"));
+    if (userId == null) {
+      return new Response(
+        JSON.stringify({ error: "Sign in to manage your subscription." }),
+        { status: 401, headers: jsonHeaders },
+      );
+    }
+
+    const billing = await getTierBilling(userId);
+    if (!billing.stripeCustomerId) {
+      return new Response(
+        JSON.stringify({ error: "No paid Contrax subscription found for your account." }),
+        { status: 403, headers: jsonHeaders },
+      );
+    }
+
+    const result = await createTierPortalSession(userId);
+    if (!result.success || !result.url) {
+      return new Response(
+        JSON.stringify({ error: result.error ?? "Internal server error" }),
+        {
+          status: result.code === "portal_not_configured" ? 503 : 500,
+          headers: jsonHeaders,
+        },
+      );
+    }
+    return new Response(JSON.stringify({ url: result.url }), {
+      status: 200,
+      headers: jsonHeaders,
+    });
+  } catch (err) {
+    console.error("portal-session error:", err);
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: jsonHeaders,
+    });
+  }
+}
+
 // ── Analytics handler (lightweight, no framework dependency) ──────────────────
 
 async function handleAnalytics(req: Request): Promise<Response> {
@@ -308,6 +375,13 @@ async function mainFetch(req: Request): Promise<Response> {
   }
   if (pathname === "/api/stripe/grants-portal-session" && req.method === "POST") {
     return handleGrantsBilling(req, "portal");
+  }
+
+  // Plan-tier billing portal (Starter/Professional/Agency) — handle before SSR
+  // (same guardrails as the canonical TanStack route, which also serves this
+  // path in production)
+  if (pathname === "/api/stripe/portal-session" && req.method === "POST") {
+    return handleTierPortalSession(req);
   }
 
   // Stripe webhook — needs raw body, handle before SSR

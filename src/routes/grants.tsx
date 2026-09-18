@@ -9,13 +9,20 @@ import {
   GRANTS_ORG_NOTICE,
   GRANTS_PRICE_LABEL,
   GRANTS_SOURCE_LABEL,
+  GRANT_DERIVED_LABELS,
   MAX_KEYWORD_LENGTH,
   MAX_PAGE,
   NOT_SPECIFIED,
   PAGE_SIZE,
   PREVIEW_LIMIT,
+  SOURCE_LAST_UPDATED_NOT_CHECKED,
+  SOURCE_LAST_UPDATED_NOT_PUBLISHED,
+  describeGrantCount,
+  grantDeadlineDisplay,
   grantsCheckoutToastVisible,
+  type GrantDerivedStatus,
   type GrantResult,
+  type GrantsStatus,
 } from "~/lib/grants";
 
 /**
@@ -70,12 +77,21 @@ interface SearchResponse {
   ok?: boolean;
   error?: string;
   source?: string;
+  /** Which status filter this response answers (server echo). */
+  status?: GrantsStatus;
   authenticated?: boolean;
   /** True only with a granted ($19/month) Stripe subscription (server-written). */
   subscribed?: boolean;
   requiresAuth?: boolean;
   message?: string;
+  /** Honest count for the active filter (for Open: posted AND not yet due). */
   totalCount?: number;
+  /** False when totalCount is a lower bound ("N+"), never a confirmed total. */
+  countExact?: boolean;
+  /** Server timestamp of the upstream search this response came from. */
+  asOf?: string;
+  /** Rows the source returned that we deliberately do not show as open. */
+  excluded?: { expiredPosted: number; missingDeadline: number; forecasts: number | null };
   page?: number;
   pageSize?: number;
   maxPage?: number;
@@ -93,7 +109,30 @@ interface Filters {
   applicantType: string;
   fundingCategory: string;
   agency: string;
-  status: "open" | "closed";
+  status: GrantsStatus;
+}
+
+/** Card accent per derived status — the badge text is the source-truthful label. */
+const DERIVED_BADGE_CLASS: Record<GrantDerivedStatus, string> = {
+  open: "border-emerald-200 bg-emerald-50 text-emerald-800",
+  forecast: "border-sky-200 bg-sky-50 text-sky-800",
+  closed: "border-slate-200 bg-slate-50 text-slate-600",
+  expired: "border-amber-200 bg-amber-50 text-amber-800",
+  unconfirmed: "border-slate-200 bg-white text-slate-500",
+};
+
+/** "Sep 18, 2026, 1:42 PM" for the server's as-of timestamp (client-rendered). */
+function asOfText(asOf: string | undefined): string {
+  if (!asOf) return "";
+  const d = new Date(asOf);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 type Phase = "initial" | "loading" | "results" | "empty" | "error" | "wall";
@@ -271,7 +310,10 @@ function GrantsPage() {
         if (typeof body.subscribed === "boolean") setSubscribed(body.subscribed);
         setData(body);
         setResults((prev) => (mode === "more" ? [...prev, ...capped] : capped));
-        setPhase(capped.length === 0 ? "empty" : "results");
+        // A "Load more" page can legitimately come back empty (the Open tab drops
+        // rows the source has expired or published without a deadline): keep the
+        // results the visitor already has instead of claiming nothing matched.
+        setPhase(mode === "more" && capped.length === 0 ? "results" : capped.length === 0 ? "empty" : "results");
         if (!authenticated) {
           setAnonUsed(true);
           try {
@@ -506,11 +548,20 @@ function GrantsPage() {
                 id="grants-status"
                 value={filters.status}
                 onChange={(e) =>
-                  setFilters((f) => ({ ...f, status: e.target.value === "closed" ? "closed" : "open" }))
+                  setFilters((f) => ({
+                    ...f,
+                    status:
+                      e.target.value === "closed"
+                        ? "closed"
+                        : e.target.value === "forecast"
+                          ? "forecast"
+                          : "open",
+                  }))
                 }
                 className={INPUT_CLASS}
               >
-                <option value="open">Open</option>
+                <option value="open">Open — accepting applications</option>
+                <option value="forecast">Forecast — announced, not yet open</option>
                 <option value="closed">Closed</option>
               </select>
             </div>
@@ -631,19 +682,52 @@ function GrantsPage() {
         {phase === "results" && (
           <div className="mt-6">
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-lg font-bold text-slate-900">Potential matches</h2>
+              <h2 className="text-lg font-bold text-slate-900">
+                {data?.status === "forecast"
+                  ? "Forecasted opportunities"
+                  : data?.status === "closed"
+                    ? "Closed opportunities"
+                    : "Potential matches"}
+              </h2>
               <p className="text-xs text-slate-500">
                 {typeof data?.totalCount === "number"
-                  ? `${data.totalCount.toLocaleString("en-US")} granting ${
-                      data.totalCount === 1 ? "opportunity" : "opportunities"
-                    } matched`
+                  ? describeGrantCount(
+                      data.status ?? filters.status,
+                      data.totalCount,
+                      data.countExact !== false,
+                    )
                   : "Results from Grants.gov"}
               </p>
             </div>
+            {/* Results-level freshness — a separate field from each card's own
+                "Source last updated" below. */}
+            {asOfText(data?.asOf) && (
+              <p className="mt-1 text-xs text-slate-500">
+                Data as of <span className="font-medium text-slate-700">{asOfText(data?.asOf)}</span> —{" "}
+                {GRANTS_SOURCE_LABEL} was searched for this result set.
+              </p>
+            )}
             <p className="mt-1 text-xs text-slate-500">
               Eligibility is shown exactly as {GRANTS_SOURCE_LABEL} lists it — confirm it in the official notice
               before you apply.
             </p>
+            {data?.excluded && data.status === "open" && (
+              <p className="mt-1 text-xs text-slate-500">
+                Not counted as open:{" "}
+                {[
+                  // Only stated when the source's own forecasted total was
+                  // retrieved — an unknown figure is omitted, never shown as 0.
+                  ...(typeof data.excluded.forecasts === "number"
+                    ? [
+                        `${data.excluded.forecasts.toLocaleString("en-US")} forecasted (see the Forecast filter)`,
+                      ]
+                    : []),
+                  `${data.excluded.expiredPosted.toLocaleString("en-US")} past deadline`,
+                  `${data.excluded.missingDeadline.toLocaleString("en-US")} posted without a published deadline`,
+                ].join(", ")}
+                .
+              </p>
+            )}
 
             <div className="mt-4 space-y-4">
               {results.map((r, i) => (
@@ -653,11 +737,26 @@ function GrantsPage() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <h3 className="text-base font-bold text-slate-900">{r.title}</h3>
-                    <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">
-                      Source: {GRANTS_SOURCE_LABEL}
+                    <span className="flex shrink-0 flex-wrap items-center gap-1.5">
+                      <span
+                        className={`rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${
+                          DERIVED_BADGE_CLASS[r.derivedStatus]
+                        }`}
+                      >
+                        {GRANT_DERIVED_LABELS[r.derivedStatus]}
+                      </span>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-semibold text-slate-500">
+                        Source: {GRANTS_SOURCE_LABEL}
+                      </span>
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-slate-600">{r.agency}</p>
+                  {r.derivedStatus === "forecast" && r.estimatedDeadlinePassed && (
+                    <p className="mt-2 text-xs font-medium text-sky-900">
+                      {GRANTS_SOURCE_LABEL} still lists this as a forecast — its estimated date has passed, and it
+                      has not been posted as an open opportunity.
+                    </p>
+                  )}
                   <dl className="mt-3 grid gap-3 text-xs sm:grid-cols-2">
                     <div>
                       <dt className="font-semibold text-slate-500">Opportunity number</dt>
@@ -665,19 +764,36 @@ function GrantsPage() {
                     </div>
                     <div>
                       <dt className="font-semibold text-slate-500">Status</dt>
-                      <dd className="text-slate-800 capitalize">{r.status || NOT_SPECIFIED}</dd>
+                      <dd className="text-slate-800">{GRANT_DERIVED_LABELS[r.derivedStatus]}</dd>
                     </div>
                     <div>
                       <dt className="font-semibold text-slate-500">Posted date</dt>
                       <dd className="text-slate-800">{r.postedDate ?? NOT_SPECIFIED}</dd>
                     </div>
-                    <div>
-                      <dt className="font-semibold text-slate-500">Closing date</dt>
-                      <dd className="text-slate-800">{r.closingDate ?? NOT_SPECIFIED}</dd>
-                    </div>
+                    {/* Exactly one date row, chosen so an estimated date can never
+                        be presented as a closing date (grantDeadlineDisplay). */}
+                    {(() => {
+                      const deadline = grantDeadlineDisplay(r);
+                      if (!deadline) return null;
+                      return (
+                        <div>
+                          <dt className="font-semibold text-slate-500">{deadline.label}</dt>
+                          <dd className="text-slate-800">{deadline.value}</dd>
+                        </div>
+                      );
+                    })()}
                     <div>
                       <dt className="font-semibold text-slate-500">Estimated funding</dt>
                       <dd className="text-slate-800">{r.estimatedFunding ?? NOT_SPECIFIED}</dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-slate-500">Source last updated</dt>
+                      <dd className="text-slate-800">
+                        {r.sourceLastUpdated ??
+                          (r.sourceLastUpdatedKnown
+                            ? SOURCE_LAST_UPDATED_NOT_PUBLISHED
+                            : SOURCE_LAST_UPDATED_NOT_CHECKED)}
+                      </dd>
                     </div>
                   </dl>
                   <div className="mt-3">

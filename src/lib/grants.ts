@@ -25,6 +25,30 @@
  * ISOLATION CONTRACT: nothing in this module — and none of the six grants_*
  * analytics events (src/lib/grants-analytics.ts) — is ever part of the Radar
  * conversion funnel, the unified funnel, or the Radar-leads funnel.
+ *
+ * FRESHNESS CONTRACT (owner order 2026-09-18 — see
+ * shared/grants-freshness-fix-2026-09-18.md). There is NO grants record
+ * storage: every search is a live call to Grants.gov, so "freshness" is decided
+ * per request from the source's own current fields:
+ *   1. `oppStatus` (search2) is the ONLY authority for status. A forecast is
+ *      NEVER promoted to open on an estimated date — forecasts carry no
+ *      closing date at all upstream (verified live: 590/590 forecasted rows in
+ *      the whole corpus had an empty `closeDate`), so the only thing an
+ *      estimate can do is age.
+ *   2. Open = source-confirmed `posted` AND a published `closeDate` that has not
+ *      passed. `posted` + missing deadline and `posted` + past deadline are
+ *      NEVER open (conservative by construction — a record we cannot confirm is
+ *      never silently shown as open).
+ *   3. Forecasts are their own filter (`forecasted`) and are labelled
+ *      "Forecast — not yet open for applications"; an estimated date supplied by
+ *      the source is labelled "Estimated", never rendered as a Closing date.
+ *   4. Closed/archived stay searchable under `closed` and are excluded from the
+ *      open results and the open count.
+ *   5. `fetchOpportunity` (detail) is used for enrichment only — funding,
+ *      eligibility, description, the source's last-updated stamp and a
+ *      forecast's estimated date. Classification NEVER depends on it, so the
+ *      page stays correct when the detail service is unavailable (it was down
+ *      for earlier work on 2026-09-18 and recovered; probed live 17:39 UTC).
  */
 
 /** Displayed source label on every result card (owner-mandated). */
@@ -60,20 +84,64 @@ export const MAX_KEYWORD_LENGTH = 120;
 /** Hard cap on the upstream-supplied description we render (plain text). */
 export const MAX_DESCRIPTION_LENGTH = 400;
 
-export type GrantsStatus = "open" | "closed";
+export type GrantsStatus = "open" | "forecast" | "closed";
 
 /** Status filter → the upstream `oppStatuses` pipe-separated value. */
-export const GRANTS_STATUSES: readonly GrantsStatus[] = ["open", "closed"] as const;
+export const GRANTS_STATUSES: readonly GrantsStatus[] = ["open", "forecast", "closed"] as const;
 
 /**
- * Open = the Grants.gov search UI's own default (posted + forecasted).
- * Closed = closed only. `archived` is deliberately NOT included: it is a
- * ~73k-row historical bucket that would swamp the page (probed live 2026-09-16).
+ * Status filter → upstream `oppStatuses` (owner fix 2026-09-18).
+ *
+ * Open = `posted` ONLY. It used to be "posted|forecasted" (the Grants.gov search
+ * UI's own default) — that is what put MP-CPI-25-001/003 (FY2025 forecasts whose
+ * estimated response dates, Jun 23 / Jul 1 2025, had long passed) into the Open
+ * results. Forecasts are not open for applications, so they get their own filter
+ * instead of hiding inside Open.
+ * Forecast = `forecasted` only. Closed = `closed` only; `archived` is
+ * deliberately NOT included — it is a ~73k-row historical bucket that would
+ * swamp the page (probed live 2026-09-16) and it is not "closed" as the source
+ * defines it.
  */
 export const OPP_STATUSES_BY_FILTER: Record<GrantsStatus, string> = {
-  open: "posted|forecasted",
+  open: "posted",
+  forecast: "forecasted",
   closed: "closed",
 };
+
+/**
+ * The status we actually DERIVE for a hit, from source fields only:
+ *   open        – source says posted AND a published deadline has not passed
+ *   expired     – source says posted AND its deadline has passed
+ *   forecast    – source says forecasted (an estimated date is never enough)
+ *   closed      – source says closed
+ *   unconfirmed – source status missing/unrecognised, or posted with no usable
+ *                 deadline ⇒ conservative: never treated as open
+ */
+export type GrantDerivedStatus = "open" | "expired" | "forecast" | "closed" | "unconfirmed";
+
+/** Human labels for the derived status (shown on every card). */
+export const GRANT_DERIVED_LABELS: Record<GrantDerivedStatus, string> = {
+  open: "Open — accepting applications",
+  expired: "Deadline passed",
+  forecast: "Forecast — not yet open for applications",
+  closed: "Closed",
+  unconfirmed: "Status not confirmed by source",
+};
+
+/** When the source did not publish a "last updated" value for a card. */
+export const SOURCE_LAST_UPDATED_NOT_PUBLISHED = "Not published";
+/** When we did not retrieve that card's detail at all (never called "Not published"). */
+export const SOURCE_LAST_UPDATED_NOT_CHECKED = "Not checked";
+
+/**
+ * Hard upstream cap on rows per search2 request (verified live 2026-09-18:
+ * `rows: 5000`/`20000` both returned exactly 1000 hits, and `rows: 1000` on
+ * keyword "a" returned 789 = its hitCount). The open-count scan asks for this
+ * many rows and is therefore EXACT whenever the status-filtered result set is
+ * ≤ this number — which was the case for the entire live `posted` corpus
+ * (951 rows) on 2026-09-18. Above it the count is an honest lower bound ("N+").
+ */
+export const COUNT_SCAN_ROWS = 1000;
 
 export interface GrantsOption {
   value: string;
@@ -283,12 +351,20 @@ export function startRecordForPage(page: number): number {
 }
 
 /** The JSON body sent to Grants.gov's search2 service (single source of truth). */
-export function buildUpstreamSearchBody(params: GrantsSearchParams): Record<string, unknown> {
+export function buildUpstreamSearchBody(
+  params: GrantsSearchParams,
+  /**
+   * Optional overrides for the paging window. Used by the bounded open-count
+   * scan (`rows: COUNT_SCAN_ROWS`, `startRecordNum: 0`); the visitor search path
+   * always uses the defaults below, so its body is byte-identical to before.
+   */
+  overrides: { rows?: number; startRecordNum?: number } = {},
+): Record<string, unknown> {
   const body: Record<string, unknown> = {
     keyword: params.keyword,
     oppStatuses: OPP_STATUSES_BY_FILTER[params.status],
-    rows: PAGE_SIZE,
-    startRecordNum: startRecordForPage(params.page),
+    rows: overrides.rows ?? PAGE_SIZE,
+    startRecordNum: overrides.startRecordNum ?? startRecordForPage(params.page),
   };
   // Only send the filters the visitor actually chose — an empty string is a real
   // upstream filter value meaning "no restriction", so it must be omitted.
@@ -297,6 +373,240 @@ export function buildUpstreamSearchBody(params: GrantsSearchParams): Record<stri
   if (params.agency) body.agencies = params.agency;
   return body;
 }
+
+// ── Freshness: source dates + derived status ─────────────────────────────────
+
+/**
+ * Grants.gov's search2 date format — `MM/DD/YYYY`, empty string when absent
+ * (verified live 2026-09-18: `"10/31/2026"` for posted rows, `""` for every
+ * forecast). Returns the UTC midnight epoch of the calendar day, or null when
+ * the source did not supply a usable date. No other format is accepted: guessing
+ * a date is exactly the fabrication this feature forbids.
+ */
+export function parseSourceDay(raw: unknown): number | null {
+  if (typeof raw !== "string") return null;
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(raw.trim());
+  if (!m) return null;
+  const month = Number(m[1]);
+  const day = Number(m[2]);
+  const year = Number(m[3]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const ms = Date.UTC(year, month - 1, day);
+  if (!Number.isFinite(ms)) return null;
+  return ms;
+}
+
+/**
+ * Start (UTC midnight) of "today" in US Eastern Time — the day boundary the
+ * whole Grants.gov product line uses (the source's own dates and deadlines are
+ * Eastern: "Applications must be submitted electronically no later than 6:00 pm
+ * Eastern Time", observed live in a forecast detail).
+ *
+ * The deadline DAY IS INCLUSIVE: a `posted` opportunity whose `closeDate` equals
+ * the current ET date is still open — the deadline has not passed yet. Only a
+ * closeDate strictly BEFORE today (ET) is expired.
+ *
+ * Documented and tested rather than assumed: at 2026-09-19T02:00:00Z it is still
+ * 2026-09-18 in ET (22:00 the previous evening), so a 09/18/2026 deadline is
+ * still open. A UTC-day rule would have wrongly expired it.
+ */
+export function easternDayStart(now: Date | number): number {
+  const d = typeof now === "number" ? new Date(now) : now;
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return NaN;
+  try {
+    // en-CA renders YYYY-MM-DD, which is unambiguous to parse back.
+    const et = d.toLocaleDateString("en-CA", {
+      timeZone: "America/New_York",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(et);
+    if (m) return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  } catch {
+    /* Intl/timeZone unavailable — fall through to the UTC day */
+  }
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+/**
+ * The freshness decision for one hit, from source fields only.
+ *
+ * `rawOppStatus` is the source's CURRENT status (search2 `oppStatus`) and is the
+ * only authority for it: an amendment is reflected there directly (verified live
+ * 2026-09-18 — id 363657 carries the amended `closeDate: 10/15/2026`, with the
+ * pre-amendment value preserved by the source as `originalDueDate: 10/05/2026`
+ * and the amendment stamped by `synopsis.lastUpdatedDate` "Sep 09, 2026"; the
+ * amendment COMMENT field was empty in that capture, so nothing but the source's
+ * own dates is claimed). We therefore need no "superseding" logic of our own, and
+ * we must never infer a status change from an estimated date.
+ *
+ * Conservative by construction: anything we cannot confirm as posted-and-not-yet-
+ * due is NOT open (missing status, missing/unparseable deadline, past deadline).
+ */
+export function classifyGrantStatus(
+  rawOppStatus: unknown,
+  closeDate: unknown,
+  now: Date | number = new Date(),
+): GrantDerivedStatus {
+  const status = typeof rawOppStatus === "string" ? rawOppStatus.trim().toLowerCase() : "";
+  if (status === "forecasted") return "forecast";
+  if (status === "closed") return "closed";
+  if (status !== "posted") return "unconfirmed";
+  const deadline = parseSourceDay(closeDate);
+  if (deadline === null) return "unconfirmed"; // requirement: posted + no deadline is never Open
+  return deadline >= easternDayStart(now) ? "open" : "expired";
+}
+
+/** Does a derived status belong in the tab the visitor asked for? */
+export function derivedStatusMatchesFilter(
+  derived: GrantDerivedStatus,
+  status: GrantsStatus,
+): boolean {
+  if (status === "open") return derived === "open";
+  if (status === "forecast") return derived === "forecast";
+  return derived === "closed";
+}
+
+/**
+ * Keeps only the rows whose DERIVED status matches the active filter, so a card
+ * can never be displayed under a status the source does not confirm for it.
+ */
+export function filterResultsForStatus<T extends { derivedStatus: GrantDerivedStatus }>(
+  results: readonly T[],
+  status: GrantsStatus,
+): T[] {
+  return results.filter((r) => derivedStatusMatchesFilter(r.derivedStatus, status));
+}
+
+/** Per-status tally of a scanned hit window (the open-count scan). */
+export interface GrantsStatusTally {
+  open: number;
+  expired: number;
+  forecast: number;
+  closed: number;
+  unconfirmed: number;
+  /** `posted` rows whose deadline is past — reported so it is never hidden. */
+  expiredPosted: number;
+  /** `posted` rows with no published deadline — excluded from the open count. */
+  missingDeadline: number;
+}
+
+/**
+ * Tallies a scanned window by derived status. Used by the bounded open-count
+ * scan: the Open tab's upstream request is `posted` only, so an `open` here is
+ * exactly "source-confirmed posted with a deadline that has not passed".
+ */
+export function tallyGrantStatuses(
+  hits: readonly GrantsUpstreamHit[],
+  now: Date | number = new Date(),
+): GrantsStatusTally {
+  const tally: GrantsStatusTally = {
+    open: 0,
+    expired: 0,
+    forecast: 0,
+    closed: 0,
+    unconfirmed: 0,
+    expiredPosted: 0,
+    missingDeadline: 0,
+  };
+  for (const hit of hits) {
+    const derived = classifyGrantStatus(hit?.oppStatus, hit?.closeDate, now);
+    tally[derived] += 1;
+    const raw = typeof hit?.oppStatus === "string" ? hit.oppStatus.trim().toLowerCase() : "";
+    if (raw === "posted") {
+      if (derived === "expired") tally.expiredPosted += 1;
+      if (derived === "unconfirmed") tally.missingDeadline += 1;
+    }
+  }
+  return tally;
+}
+
+/**
+ * Normalises a long source timestamp ("Sep 09, 2026 11:09:00 AM EDT") to
+ * "Sep 09, 2026". Returns null when the source supplied nothing we can read as a
+ * date — the card then says "Not published" rather than showing a guess.
+ */
+export function formatSourceDayText(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const m = /^([A-Z][a-z]{2} \d{1,2}, \d{4})/.exec(raw.trim());
+  return m ? m[1] : null;
+}
+
+const MONTH_INDEX: Record<string, number> = {
+  Jan: 0,
+  Feb: 1,
+  Mar: 2,
+  Apr: 3,
+  May: 4,
+  Jun: 5,
+  Jul: 6,
+  Aug: 7,
+  Sep: 8,
+  Oct: 9,
+  Nov: 10,
+  Dec: 11,
+};
+
+/**
+ * The epoch day of a long source date ("Jun 23, 2025 12:00:00 AM EDT" — the
+ * format fetchOpportunity uses, including for a forecast's
+ * `estApplicationResponseDate`). Null when it cannot be read as a date.
+ */
+export function parseSourceLongDay(raw: unknown): number | null {
+  const text = formatSourceDayText(raw);
+  if (!text) return null;
+  const m = /^([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$/.exec(text);
+  if (!m) return null;
+  const month = MONTH_INDEX[m[1]];
+  if (month === undefined) return null;
+  return Date.UTC(Number(m[3]), month, Number(m[2]));
+}
+
+/**
+ * The honest count label for the active filter. `exact === false` appends "+"
+ * and is used only when the bounded scan could not cover the whole result set —
+ * a lower bound is shown as a lower bound, never as a total.
+ */
+export function describeGrantCount(
+  status: GrantsStatus,
+  count: number,
+  exact: boolean,
+): string {
+  const n = `${count.toLocaleString("en-US")}${exact ? "" : "+"}`;
+  const noun = count === 1 ? "opportunity" : "opportunities";
+  if (status === "open") return `${n} posted ${noun} accepting applications`;
+  if (status === "forecast") return `${n} forecasted ${noun} — not yet open for applications`;
+  return `${n} closed ${noun}`;
+}
+
+/**
+ * The single date row a card shows, chosen so an estimated date can never be
+ * presented as a closing date. Pure + tested; the page renders exactly this.
+ */
+export function grantDeadlineDisplay(result: {
+  derivedStatus: GrantDerivedStatus;
+  closingDate: string | null;
+  estimatedDeadline: string | null;
+}): { label: string; value: string } | null {
+  if (result.derivedStatus === "forecast") {
+    if (!result.estimatedDeadline) return null; // never invent one for a forecast
+    return {
+      label: "Estimated application deadline",
+      value: `${result.estimatedDeadline} (source estimate — not a posted closing date)`,
+    };
+  }
+  if (result.derivedStatus === "expired") {
+    return { label: "Deadline passed", value: result.closingDate ?? NOT_SPECIFIED };
+  }
+  if (result.derivedStatus === "open" || result.derivedStatus === "closed") {
+    return { label: "Closing date", value: result.closingDate ?? NOT_SPECIFIED };
+  }
+  return result.closingDate
+    ? { label: "Source closing date", value: result.closingDate }
+    : { label: "Closing date", value: NOT_SPECIFIED };
+}
+
 
 // ── Response mapping ─────────────────────────────────────────────────────────
 
@@ -313,7 +623,7 @@ export interface GrantsUpstreamHit {
   docType?: unknown;
 }
 
-/** The subset of fetchOpportunity's `data.synopsis` we render (untrusted). */
+/** The subset of fetchOpportunity's detail we render (untrusted). */
 export interface GrantsUpstreamDetail {
   awardFloor?: unknown;
   awardCeiling?: unknown;
@@ -322,6 +632,15 @@ export interface GrantsUpstreamDetail {
   responseDate?: unknown;
   applicantTypes?: unknown;
   synopsisDesc?: unknown;
+  /**
+   * ESTIMATED application deadline. Forecasts have no synopsis; their detail
+   * carries `forecast.estApplicationResponseDate` (normalised to this field by
+   * grants.server.ts). It is an estimate, never a closing date, and it is shown
+   * only with an explicit "Estimated" label.
+   */
+  estimatedDeadline?: unknown;
+  /** The source's own "last updated" stamp (`synopsis.lastUpdatedDate`). */
+  lastUpdated?: unknown;
 }
 
 export interface GrantResult {
@@ -331,9 +650,31 @@ export interface GrantResult {
   title: string;
   agency: string;
   agencyCode: string;
+  /** Raw source status, verbatim (`posted` / `forecasted` / `closed`). */
   status: string;
+  /**
+   * The status we actually act on, derived from source fields only by
+   * classifyGrantStatus(). A card is never shown under a status the source does
+   * not confirm — this is what keeps past-dated forecasts out of Open.
+   */
+  derivedStatus: GrantDerivedStatus;
   postedDate: string | null;
   closingDate: string | null;
+  /**
+   * Source-supplied ESTIMATED application deadline (forecast detail only).
+   * Never rendered as a closing date — see grantDeadlineDisplay().
+   */
+  estimatedDeadline: string | null;
+  /** True only when the source supplied an estimate that is already in the past. */
+  estimatedDeadlinePassed: boolean;
+  /**
+   * The source's own "last updated" date ("Sep 09, 2026"), or null. Paired with
+   * `sourceLastUpdatedKnown`: null + known ⇒ the source published none (render
+   * "Not published"); null + unknown ⇒ we did not retrieve the detail (render
+   * "Not checked"). The two must never be conflated.
+   */
+  sourceLastUpdated: string | null;
+  sourceLastUpdatedKnown: boolean;
   /** Source-supplied funding, already formatted; null → "Not specified". */
   estimatedFunding: string | null;
   /** Source-supplied eligible applicant types (id + description), may be empty. */
@@ -484,21 +825,41 @@ export function officialOpportunityUrl(rawId: unknown): string | null {
  * Maps one upstream hit (+ its optional detail) to a card. `officialUrl` is null
  * when the source gave no usable numeric id — the card then renders the
  * opportunity number without a dead/incorrect link (we never guess a URL).
+ *
+ * `now` drives the derived status (day boundary, ET). It is injectable so the
+ * classification is unit-tested against fixed clocks instead of "whenever the
+ * suite ran"; production callers use the default.
  */
 export function mapGrantResult(
   hit: GrantsUpstreamHit,
   detail: GrantsUpstreamDetail | null,
+  now: Date | number = new Date(),
 ): GrantResult {
   const id = asText(hit.id) ?? "";
+  const rawStatus = asText(hit.oppStatus) ?? "";
+  const closingDate = asText(hit.closeDate);
+  const estimatedDeadline = formatSourceDayText(detail?.estimatedDeadline);
+  const estimatedMs = parseSourceLongDay(detail?.estimatedDeadline);
   return {
     id,
     opportunityNumber: decodeSourceText(asText(hit.number) ?? "") || NOT_SPECIFIED,
     title: decodeSourceText(asText(hit.title) ?? "") || NOT_SPECIFIED,
     agency: decodeSourceText(asText(hit.agency) ?? "") || NOT_SPECIFIED,
     agencyCode: asText(hit.agencyCode) ?? "",
-    status: asText(hit.oppStatus) ?? "",
+    status: rawStatus,
+    derivedStatus: classifyGrantStatus(rawStatus, closingDate, now),
     postedDate: asText(hit.openDate),
-    closingDate: asText(hit.closeDate),
+    closingDate,
+    estimatedDeadline,
+    // An estimate that is already past is reported as such — never used to change
+    // the status (a forecast stays a forecast until the SOURCE posts it).
+    estimatedDeadlinePassed:
+      estimatedMs !== null && estimatedMs < easternDayStart(now),
+    sourceLastUpdated: formatSourceDayText(detail?.lastUpdated),
+    // Only true when we actually retrieved this opportunity's detail: that is the
+    // difference between "the source published no last-updated value" and "we did
+    // not look", and the card words them differently.
+    sourceLastUpdatedKnown: detail !== null,
     estimatedFunding: fundingDisplay(detail),
     eligibleApplicants: eligibleApplicants(detail),
     description: detail ? (toPlainText(detail.synopsisDesc) || null) : null,

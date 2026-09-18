@@ -29,6 +29,7 @@ import {
   mapGrantResult,
   type GrantResult,
   type GrantsSearchParams,
+  type GrantsStatus,
   type GrantsUpstreamDetail,
   type GrantsUpstreamHit,
 } from "~/lib/grants";
@@ -106,13 +107,22 @@ export interface GrantsUpstreamSearchResult {
 /**
  * Runs the upstream keyword/enum search. Only fields the front end renders are
  * read out of the response; the raw payload is never stored or echoed.
+ *
+ * `overrides` widens/narrows the paging window. The bounded open-count scan uses
+ * it (`rows: COUNT_SCAN_ROWS`, `startRecordNum: 0`); the visitor search path
+ * passes nothing, so its upstream body is byte-identical to before.
  */
 export async function searchGrantsUpstream(
   params: GrantsSearchParams,
+  overrides: { rows?: number; startRecordNum?: number } = {},
 ): Promise<GrantsUpstreamSearchResult> {
-  const payload = (await postJson(GRANTS_UPSTREAM_SEARCH_URL, buildUpstreamSearchBody(params), {
-    timeoutMs: UPSTREAM_SEARCH_TIMEOUT_MS,
-  })) as { errorcode?: unknown; data?: unknown } | null;
+  const payload = (await postJson(
+    GRANTS_UPSTREAM_SEARCH_URL,
+    buildUpstreamSearchBody(params, overrides),
+    {
+      timeoutMs: UPSTREAM_SEARCH_TIMEOUT_MS,
+    },
+  )) as { errorcode?: unknown; data?: unknown } | null;
 
   // Grants.gov signals application-level failures with errorcode !== 0 too.
   if (payload && typeof payload === "object" && "errorcode" in payload) {
@@ -135,9 +145,62 @@ export async function searchGrantsUpstream(
 }
 
 /**
- * Fetches one opportunity's synopsis detail (funding + eligibility + text).
+ * The bounded status scan behind the honest counts (owner fix 2026-09-18).
+ *
+ * Same query filters as the visitor's search, forced to ONE upstream status
+ * (`posted` for the Open tab), asking for COUNT_SCAN_ROWS rows from the start.
+ * The hits are tallied locally by derived status and are NEVER rendered — this
+ * exists so the Open count can exclude forecasts, expired rows and rows whose
+ * deadline the source has not published.
+ *
+ * The response also carries the upstream `hitCount` for that single status: when
+ * it is ≤ the rows we asked for, the scan covered the whole set and the tally is
+ * exact; above it the tally is a lower bound and the caller labels it "N+".
+ */
+export async function scanGrantsUpstream(
+  params: GrantsSearchParams,
+  /** The tab whose single upstream status this scan covers. */
+  status: GrantsStatus,
+  rows: number,
+): Promise<GrantsUpstreamSearchResult & { scanned: number }> {
+  const payload = (await postJson(
+    GRANTS_UPSTREAM_SEARCH_URL,
+    buildUpstreamSearchBody({ ...params, status }, { rows, startRecordNum: 0 }),
+    { timeoutMs: UPSTREAM_SEARCH_TIMEOUT_MS },
+  )) as { errorcode?: unknown; data?: unknown } | null;
+
+  if (payload && typeof payload === "object" && "errorcode" in payload) {
+    const code = Number((payload as { errorcode?: unknown }).errorcode);
+    if (Number.isFinite(code) && code !== 0) {
+      throw new GrantsUpstreamError("http", `Grants.gov error code ${code}`);
+    }
+  }
+  const data = (payload as { data?: unknown } | null)?.data;
+  if (!data || typeof data !== "object") {
+    throw new GrantsUpstreamError("malformed", "Grants.gov returned no data");
+  }
+  const rawHits = (data as { oppHits?: unknown }).oppHits;
+  const hits = Array.isArray(rawHits) ? (rawHits as GrantsUpstreamHit[]) : [];
+  const rawCount = Number((data as { hitCount?: unknown }).hitCount);
+  return {
+    hits,
+    scanned: hits.length,
+    totalCount: Number.isFinite(rawCount) && rawCount >= 0 ? Math.floor(rawCount) : hits.length,
+  };
+}
+
+/**
+ * Fetches one opportunity's detail (funding + eligibility + text, the source's
+ * last-updated stamp, and — for a forecast — its ESTIMATED application deadline).
  * Returns null on any failure — the caller renders "Not specified" rather than
- * inventing a value.
+ * inventing a value, and classification NEVER depends on this call.
+ *
+ * Two shapes exist upstream (verified live 2026-09-18): a POSTED opportunity
+ * carries `data.synopsis` (verified for ids 363657 / 356559), while a FORECAST
+ * carries `data.forecast` instead and has no synopsis at all (id 355824:
+ * MP-CPI-25-001). A forecast's estimate lives in
+ * `forecast.estApplicationResponseDate` — normalised here into the pure module's
+ * `estimatedDeadline` field so it can only ever be displayed as an ESTIMATE.
  */
 async function fetchOpportunityDetail(
   id: string,
@@ -149,10 +212,37 @@ async function fetchOpportunityDetail(
       GRANTS_UPSTREAM_DETAIL_URL,
       { opportunityId: Number(id) },
       { timeoutMs: UPSTREAM_DETAIL_TIMEOUT_MS, deadline },
-    )) as { data?: { synopsis?: unknown } } | null;
+    )) as { data?: { synopsis?: unknown; forecast?: unknown } } | null;
     const synopsis = payload?.data?.synopsis;
-    if (!synopsis || typeof synopsis !== "object") return null;
-    return synopsis as GrantsUpstreamDetail;
+    if (synopsis && typeof synopsis === "object") {
+      const s = synopsis as Record<string, unknown>;
+      return {
+        awardFloor: s.awardFloor,
+        awardCeiling: s.awardCeiling,
+        estimatedFunding: s.estimatedFunding,
+        postingDate: s.postingDate,
+        responseDate: s.responseDate,
+        applicantTypes: s.applicantTypes,
+        synopsisDesc: s.synopsisDesc,
+        lastUpdated: s.lastUpdatedDate,
+      };
+    }
+    const forecast = payload?.data?.forecast;
+    if (forecast && typeof forecast === "object") {
+      const f = forecast as Record<string, unknown>;
+      return {
+        awardFloor: f.awardFloor,
+        awardCeiling: f.awardCeiling,
+        estimatedFunding: f.estimatedFunding,
+        postingDate: f.postingDate,
+        responseDate: null, // a forecast has no response date — only an estimate
+        applicantTypes: f.applicantTypes,
+        synopsisDesc: f.forecastDesc,
+        estimatedDeadline: f.estApplicationResponseDate,
+        lastUpdated: f.lastUpdatedDate,
+      };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -162,11 +252,14 @@ async function fetchOpportunityDetail(
  * Maps hits to card-ready results, enriching the first `detailLimit` with source
  * funding/eligibility/description in parallel under one shared deadline. Detail
  * calls for cards beyond the limit are skipped entirely — for an anonymous
- * preview that means we fetch 3 details, not 10.
+ * preview that means we fetch 3 details, not 10. `now` (the ET day boundary) is
+ * passed through to the classifier so every card in one response is judged
+ * against the same clock.
  */
 export async function enrichGrants(
   hits: readonly GrantsUpstreamHit[],
   detailLimit: number,
+  now: Date | number = new Date(),
 ): Promise<GrantResult[]> {
   const deadline = Date.now() + UPSTREAM_TOTAL_BUDGET_MS;
   const details = await Promise.all(
@@ -176,5 +269,5 @@ export async function enrichGrants(
       return fetchOpportunityDetail(id, deadline);
     }),
   );
-  return hits.map((hit, index) => mapGrantResult(hit, details[index] ?? null));
+  return hits.map((hit, index) => mapGrantResult(hit, details[index] ?? null, now));
 }

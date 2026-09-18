@@ -19,6 +19,17 @@
  *           product:"bid_scout" AND the record is currently past_due — never
  *           reactivates a cancelled record, never touches non-Bid-Scout
  *           invoices, never affects existing Contrax plans)
+ *       invoice_payment.paid          → SAME paid-recovery branch as
+ *           invoice.paid (owner fix order 2026-09-18). Stripe sends the newer
+ *           payment-level event on successful subscription payments, and the
+ *           live webhook endpoint is subscribed to BOTH; an invoice_payment.paid
+ *           delivery previously left the row stuck in past_due and the owner
+ *           never got the manual-recovery credit. Its object is an
+ *           `invoice_payment`, which has NEITHER `subscription` NOR `customer`,
+ *           so the subscription is resolved through its invoice (expanded
+ *           inline, or ONE verified GET /v1/invoices/:id) and then verified
+ *           exactly like invoice.paid. Unresolvable/unverified → fail-closed:
+ *           log, leave the row untouched, never fabricate attribution.
  *     All transitions are idempotent (guarded UPDATEs) — repeated deliveries
  *     never double-process.
  *
@@ -264,11 +275,29 @@ export interface BidScoutStripeSubscriptionsLike {
   };
 }
 
+/** Narrow Stripe surface for the invoice read that `invoice_payment.paid` needs
+ *  (GET /v1/invoices/:id). An `invoice_payment` object carries neither
+ *  `subscription` nor `customer` — only `invoice` — so the subscription id must
+ *  be read off that invoice. OPTIONAL on the webhook surface, so every existing
+ *  subscription-only stub keeps compiling; when a caller does not provide it the
+ *  real getStripe() client is used instead (production path). */
+export interface BidScoutStripeInvoicesLike {
+  invoices: {
+    retrieve: (id: string) => Promise<{
+      id: string;
+      subscription?: unknown;
+      customer?: unknown;
+    }>;
+  };
+}
+
 /** Narrow Stripe surface for the checkout.session.completed derivation (§4):
  *  re-retrieve the completed session so the APPLIED discount comes from
  *  Stripe's authoritative numbers (total_details.amount_discount + amount_total),
  *  never from app metadata. */
-export interface BidScoutStripeWebhookLike extends BidScoutStripeSubscriptionsLike {
+export interface BidScoutStripeWebhookLike
+  extends BidScoutStripeSubscriptionsLike,
+    Partial<BidScoutStripeInvoicesLike> {
   checkout: {
     sessions: {
       retrieve: (
@@ -598,9 +627,11 @@ export async function recordBidScoutPurchasedEvent(
  * deliveries of the same verified event are no-ops.
  *
  * @param event  Verified Stripe event (post constructEvent).
- * @param stripeOverride  Injectable Stripe-like client used ONLY for the
- *   invoice.paid ownership verification (GET subscription). Tests pass a stub;
- *   production callers omit it (defaults to getStripe()).
+ * @param stripeOverride  Injectable Stripe-like client used for the
+ *   invoice.paid / invoice_payment.paid ownership verification (GET
+ *   subscription) and for the invoice read that attributes an
+ *   `invoice_payment.paid` event (GET invoice). Tests pass a stub; production
+ *   callers omit it (defaults to getStripe()).
  */
 export async function handleBidScoutSubscriptionEvent(
   event: Stripe.Event,
@@ -740,16 +771,32 @@ export async function handleBidScoutSubscriptionEvent(
     return hasBidScoutSubscription(subId);
   }
 
-  if (event.type === "invoice.paid") {
-    // Owner rule (2026-09-11): recovery for Bid Scout ONLY. Apply when the
-    // Stripe subscription carries product:"bid_scout" and the current record
-    // is 'past_due' → 'active'. MUST never reactivate a cancelled record and
-    // MUST never affect existing Contrax plans (non-Bid-Scout invoices fall
-    // through untouched — no update, not consumed as Bid Scout).
-    const invoice = event.data.object as Stripe.Invoice;
-    const subId =
-      (invoice as { subscription?: string | null }).subscription ?? null;
-    if (!subId) return false;
+  if (event.type === "invoice.paid" || event.type === "invoice_payment.paid") {
+    // Owner rules: recovery for Bid Scout ONLY (2026-09-11), and BOTH paid
+    // event types must recover (fix order 2026-09-18). Apply when the Stripe
+    // subscription carries product:"bid_scout" and the current record is
+    // 'past_due' → 'active'. MUST never reactivate a cancelled record and MUST
+    // never affect existing Contrax plans (non-Bid-Scout invoices fall through
+    // untouched — no update, not consumed as Bid Scout).
+    //
+    // Attribution is resolved WITHOUT guessing: `invoice.paid` delivers an
+    // Invoice (carries `subscription` directly); `invoice_payment.paid` — the
+    // newer payment-level event Stripe actually sends on successful subscription
+    // payments, and which the live webhook endpoint is subscribed to — delivers
+    // an `invoice_payment` that has NEITHER `subscription` NOR `customer`, so the
+    // id is read off its invoice (expanded inline, else ONE verified Stripe read
+    // of the invoice id). Unresolvable → fail-closed: log, change nothing.
+    const subId = await resolveInvoiceEventSubscriptionId(
+      event.data.object as unknown as Record<string, unknown>,
+      stripeOverride ?? null,
+      event.type,
+    );
+    if (!subId) {
+      console.warn(
+        `[bid-scout] ${event.type} could not be attributed to a subscription — no row change`,
+      );
+      return false;
+    }
     try {
       // 1) Resolve the record by stripe_subscription_id (only the Bid Scout
       //    checkout ever writes these rows). No row → not ours → fall through.
@@ -768,13 +815,99 @@ export async function handleBidScoutSubscriptionEvent(
         WHERE stripe_subscription_id = ${subId} AND status = 'past_due'
       `;
     } catch (err) {
-      console.error("[bid-scout] webhook invoice.paid failed:", (err as Error).message);
+      console.error(`[bid-scout] webhook ${event.type} failed:`, (err as Error).message);
       return false;
     }
     return true;
   }
 
   return false;
+}
+
+/** A Stripe id field as a plain string, or null. Ids arrive either as a string
+ *  or as an expanded object (`{ id }`) depending on the event's expansion. */
+function stripeIdOrNull(value: unknown): string | null {
+  if (typeof value === "string") return value;
+  if (value && typeof value === "object") {
+    const id = (value as { id?: unknown }).id;
+    if (typeof id === "string") return id;
+  }
+  return null;
+}
+
+/**
+ * The subscription an invoice-family event is about, resolved WITHOUT ever
+ * guessing. Returns null when the id cannot be established — the caller then
+ * logs and changes nothing (fail-closed: a Bid Scout row is never flipped from
+ * an event we could not attribute, and attribution is never fabricated).
+ *
+ * TWO OBJECT SHAPES:
+ *   • `invoice.paid` / `invoice.payment_failed` deliver an Invoice, which carries
+ *     `subscription` (string or expanded subscription) — read directly, no call.
+ *   • `invoice_payment.paid` delivers an InvoicePayment (`object: "invoice_payment"`)
+ *     whose documented field set has NO `subscription` and NO `customer`; its
+ *     `invoice` is the only field that leads anywhere. So the id is reached
+ *     through that invoice: used straight off an already-expanded invoice when
+ *     the payload carries one, otherwise via ONE verified Stripe read of the
+ *     invoice id — the same "read it from Stripe, never assume it" rule the
+ *     Grants handler and the checkout derivation already follow.
+ *
+ * Any other shape (no invoice, no stripe client, a failed read) → null.
+ */
+async function resolveInvoiceEventSubscriptionId(
+  object: Record<string, unknown>,
+  stripeOverride: BidScoutStripeWebhookLike | null,
+  eventType: string,
+): Promise<string | null> {
+  // 1. The object itself carries the subscription (Invoice shape, unchanged).
+  const direct = stripeIdOrNull(object.subscription);
+  if (direct) return direct;
+
+  // 2. An invoice expanded onto the delivered object (InvoicePayment with
+  //    ?expand[]=invoice, or any future shape that inlines it).
+  const invoice = object.invoice;
+  const expanded =
+    typeof invoice === "object" && invoice !== null
+      ? (invoice as Record<string, unknown>)
+      : null;
+  const fromExpandedInvoice = expanded ? stripeIdOrNull(expanded.subscription) : null;
+  if (fromExpandedInvoice) return fromExpandedInvoice;
+
+  // 3. Only an invoice id → ONE verified read (never an inference).
+  const invoiceId = stripeIdOrNull(invoice);
+  if (!invoiceId) return null;
+  let stripe: BidScoutStripeInvoicesLike;
+  if (stripeOverride?.invoices) {
+    stripe = stripeOverride as BidScoutStripeInvoicesLike;
+  } else {
+    try {
+      stripe = getStripe() as unknown as BidScoutStripeInvoicesLike;
+    } catch (err) {
+      console.warn(
+        "[bid-scout] Stripe client unavailable while attributing an invoice event:",
+        (err as Error).message,
+      );
+      return null;
+    }
+  }
+  try {
+    const fetched = await stripe.invoices.retrieve(invoiceId);
+    const subscriptionId = stripeIdOrNull(fetched.subscription);
+    if (!subscriptionId) {
+      console.warn(
+        `[bid-scout] invoice ${invoiceId} (customer ${
+          stripeIdOrNull(fetched.customer) ?? "unknown"
+        }) names no subscription — ${eventType} not attributed`,
+      );
+    }
+    return subscriptionId;
+  } catch (err) {
+    console.warn(
+      `[bid-scout] could not read invoice ${invoiceId} to attribute the event:`,
+      (err as Error).message,
+    );
+    return null;
+  }
 }
 
 /** Re-query helper for invoice.payment_failed ownership. */

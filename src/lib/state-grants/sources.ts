@@ -18,6 +18,12 @@ import { delawareConnector } from "~/lib/state-grants/connectors/delaware";
 import { hawaiiConnector } from "~/lib/state-grants/connectors/hawaii";
 import { pennsylvaniaConnector } from "~/lib/state-grants/connectors/pennsylvania";
 import { rhodeIslandConnector } from "~/lib/state-grants/connectors/rhode-island";
+// NATIONWIDE workstream, batch 1 (owner order 2026-09-19): CA, KS, WA. A missing
+// entry here is SILENT — the state still syncs, but the coverage row reports
+// `sourceCount 0` — so every batch must add its connectors to this list.
+import { californiaConnector } from "~/lib/state-grants/connectors/california";
+import { kansasConnector } from "~/lib/state-grants/connectors/kansas";
+import { washingtonConnector } from "~/lib/state-grants/connectors/washington";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -53,6 +59,11 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   hawaiiConnector as unknown as StateGrantConnector<never>,
   pennsylvaniaConnector as unknown as StateGrantConnector<never>,
   rhodeIslandConnector as unknown as StateGrantConnector<never>,
+  // NATIONWIDE batch 1 (2026-09-19): one validated source per state, so each of
+  // these states is `limited` — never advertised as statewide coverage.
+  californiaConnector as unknown as StateGrantConnector<never>,
+  kansasConnector as unknown as StateGrantConnector<never>,
+  washingtonConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

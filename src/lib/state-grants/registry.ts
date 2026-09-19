@@ -39,11 +39,13 @@
  *   entry (+ host on the allowlist) → suites green. Until then it is
  *   `unavailable`, even with a perfect connector. That is the point.
  *
- * All 50 states + DC are listed. 45 states + DC are `unavailable` on purpose
- * (2026-09-19: Virginia plus the five P3 batch-1 states are validated as
- * `limited` — one source each): the registry existing is NOT coverage, and
- * nothing in the rollout may imply nationwide coverage (owner order). The
- * coverage UI reads listStates().
+ * All 50 states + DC are listed. 42 states + DC are `unavailable` on purpose
+ * (2026-09-19: Virginia, the five P3 batch-1 states and the three NATIONWIDE
+ * batch-1 states — CA, KS, WA — are validated as `limited`, one source each; NC
+ * and Utah exited the batch under the checklist §0 exit rule with no dependable
+ * official dated listing and therefore have NO manifest entry): the registry
+ * existing is NOT coverage, and nothing in the rollout may imply nationwide
+ * coverage (owner order). The coverage UI reads listStates().
  */
 import {
   VIRGINIA_APPROVED_HOSTS,
@@ -87,6 +89,28 @@ import {
   RHODE_ISLAND_SOURCE_VALIDATION_TEST,
   rhodeIslandConnector,
 } from "~/lib/state-grants/connectors/rhode-island";
+// NATIONWIDE workstream, batch 1 (owner order 2026-09-19): CA, KS, WA.
+import {
+  CALIFORNIA_APPROVED_HOSTS,
+  CALIFORNIA_CONNECTOR_ID,
+  CALIFORNIA_SOURCE_URL,
+  CALIFORNIA_SOURCE_VALIDATION_TEST,
+  californiaConnector,
+} from "~/lib/state-grants/connectors/california";
+import {
+  KANSAS_APPROVED_HOSTS,
+  KANSAS_CONNECTOR_ID,
+  KANSAS_SOURCE_URL,
+  KANSAS_SOURCE_VALIDATION_TEST,
+  kansasConnector,
+} from "~/lib/state-grants/connectors/kansas";
+import {
+  WASHINGTON_APPROVED_HOSTS,
+  WASHINGTON_CONNECTOR_ID,
+  WASHINGTON_SOURCE_URL,
+  WASHINGTON_SOURCE_VALIDATION_TEST,
+  washingtonConnector,
+} from "~/lib/state-grants/connectors/washington";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -209,6 +233,10 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...HAWAII_APPROVED_HOSTS,
   ...PENNSYLVANIA_APPROVED_HOSTS,
   ...RHODE_ISLAND_APPROVED_HOSTS,
+  // NATIONWIDE batch 1 (owner 2026-09-19).
+  ...CALIFORNIA_APPROVED_HOSTS,
+  ...KANSAS_APPROVED_HOSTS,
+  ...WASHINGTON_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -277,6 +305,45 @@ export const RHODE_ISLAND_REGISTRY_ENTRY: SourceValidationEntry = {
   note: "One validated source (the Rhode Island State Council on the Arts' Our Grants page). RISCA publishes its in-card dates without a year, so most of its programs are honestly `unverified` until the source publishes dated cycles. This is not statewide coverage.",
 };
 
+/**
+ * NATIONWIDE BATCH 1 manifest entries (owner order 2026-09-19: evaluate every
+ * remaining jurisdiction; one workstream, batches of five, one accumulating PR).
+ * Batch 1 evaluated CA, KS, NC, UT and WA: NC and Utah exited under the
+ * checklist §0 exit rule (no dependable official dated listing — they stay
+ * `unavailable`, with the exact reasons in the batch report), so THREE connectors
+ * landed. Each is ONE agency's/portal's official listing, so each declares
+ * `limited` — the ladder requires at least `CONNECTED_MIN_SOURCES` (2) distinct
+ * sources before any state can be reported as statewide multi-source coverage.
+ * Every `verifiedOn` date is the day the state's own
+ * `<state>.source-validation.test.ts` PASSED against the live source.
+ */
+export const CALIFORNIA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: CALIFORNIA_CONNECTOR_ID,
+  sourceUrl: CALIFORNIA_SOURCE_URL,
+  testFile: CALIFORNIA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the California Grants Portal's own Active-results view, page 1). The portal also lists Forecasted, Closed and Post-Award grants we do not serve, and we read only the first page of the Active facet — this is not statewide coverage.",
+};
+
+export const KANSAS_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: KANSAS_CONNECTOR_ID,
+  sourceUrl: KANSAS_SOURCE_URL,
+  testFile: KANSAS_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Kansas Department of Commerce's grants calendar). The calendar publishes its Application Period as year-less month ranges, so most programs are honestly `unverified` until the source publishes dated cycles, and no program has its own page — this is not statewide coverage.",
+};
+
+export const WASHINGTON_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: WASHINGTON_CONNECTOR_ID,
+  sourceUrl: WASHINGTON_SOURCE_URL,
+  testFile: WASHINGTON_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (ArtsWA's Open and Upcoming Grants listing). Other Washington agencies publish funding programs we have NOT validated — this is not statewide coverage.",
+};
+
 /** The sources registered for every state, keyed by state code. */
 function sourcesByStateMap(): Record<string, readonly string[]> {
   const out: Record<string, readonly string[]> = {};
@@ -296,6 +363,9 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     HI: hawaiiConnector as unknown as StateGrantConnector<never>,
     PA: pennsylvaniaConnector as unknown as StateGrantConnector<never>,
     RI: rhodeIslandConnector as unknown as StateGrantConnector<never>,
+    CA: californiaConnector as unknown as StateGrantConnector<never>,
+    KS: kansasConnector as unknown as StateGrantConnector<never>,
+    WA: washingtonConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -304,6 +374,9 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     HI: HAWAII_REGISTRY_ENTRY,
     PA: PENNSYLVANIA_REGISTRY_ENTRY,
     RI: RHODE_ISLAND_REGISTRY_ENTRY,
+    CA: CALIFORNIA_REGISTRY_ENTRY,
+    KS: KANSAS_REGISTRY_ENTRY,
+    WA: WASHINGTON_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

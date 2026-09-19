@@ -56,19 +56,35 @@ export interface FetchSourceOptions {
   /** Bodies smaller than this are implausible — never parsed as a corpus. */
   minBytes?: number;
   fetchImpl?: typeof fetch;
+  /**
+   * Hosts the FINAL response URL may use once redirects have been followed (the
+   * connector's own approved-host allowlist).
+   *
+   * WHY (QA flag #5 on the batch-1 checklist): the gate used to check only the
+   * status, the body size and the content marker, so a listing fetch that
+   * redirected to a vendor portal or a parked domain could still be parsed as if
+   * it were the agency's own page — the record-level URLs are pinned, but the
+   * PAGE we read was not. A connector that passes this list now fails the fetch
+   * stage when the final host is not one of its official hosts. Optional and
+   * additive: a connector that does not pass it keeps its previous behaviour.
+   */
+  approvedHosts?: readonly string[];
 }
 
 /**
  * Fetches one official listing page. Throws on timeout, a non-2xx response, an
- * implausibly small body, or a body that no longer contains the source's marker
- * — fail-closed: a failed run writes NOTHING, rather than a half-parsed corpus.
+ * implausibly small body, a final URL that left the approved hosts, or a body
+ * that no longer contains the source's marker — fail-closed: a failed run writes
+ * NOTHING, rather than a half-parsed corpus.
  */
 export async function fetchStateGrantSource(options: FetchSourceOptions): Promise<string> {
-  const { url, marker, label, minBytes = 1000, fetchImpl = fetch } = options;
+  const { url, marker, label, minBytes = 1000, fetchImpl = fetch, approvedHosts } = options;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), STATE_SOURCE_TIMEOUT_MS);
   let status: number;
   let body: string;
+  /** The URL the request finally landed on (redirects followed). */
+  let finalUrl = "";
   try {
     const res = await fetchImpl(url, {
       method: "GET",
@@ -77,6 +93,7 @@ export async function fetchStateGrantSource(options: FetchSourceOptions): Promis
       redirect: "follow",
     });
     status = res.status;
+    finalUrl = typeof res.url === "string" ? res.url : "";
     body = await res.text();
   } catch (e) {
     const aborted = e instanceof Error && e.name === "AbortError";
@@ -91,6 +108,20 @@ export async function fetchStateGrantSource(options: FetchSourceOptions): Promis
   }
   if (status < 200 || status >= 300) {
     throw new StateSourceError("fetch", `${label} source responded ${status} (${url})`);
+  }
+  if (approvedHosts && approvedHosts.length > 0 && finalUrl.length > 0) {
+    let finalHost: string | null = null;
+    try {
+      finalHost = new URL(finalUrl).host;
+    } catch {
+      finalHost = null;
+    }
+    if (finalHost === null || !approvedHosts.includes(finalHost)) {
+      throw new StateSourceError(
+        "fetch",
+        `${label} source redirected off the approved hosts (${finalUrl}) — refusing to parse a listing served by a host that is not on the allowlist`,
+      );
+    }
   }
   if (!body || body.length < minBytes) {
     throw new StateSourceError(
@@ -116,6 +147,10 @@ export function decodeEntities(text: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
+    // Named dash entities (the California Grants Portal publishes its award
+    // ranges as "$100,000 &ndash; $600,000"): decoded like the numeric forms
+    // below, so a record never carries raw markup in a displayed field.
+    .replace(/&ndash;|&mdash;/g, "-")
     .replace(/&#0?39;|&apos;|&rsquo;|&#8217;/g, "'")
     .replace(/&hellip;/g, "…")
     .replace(/&#(\d+);/g, (_m, code: string) => {

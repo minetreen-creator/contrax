@@ -104,6 +104,18 @@ export const FLORIDA_CYCLE_CLOSED_SENTENCE = "The application cycle for this pro
 export const FLORIDA_DEADLINE_LABEL = "Next Deadline";
 /** The label whose value is an ACTIVITY PERIOD — never a deadline. */
 export const FLORIDA_GRANT_PERIOD_LABEL = "Grant Period";
+/**
+ * The ONE place this source dates a cycle: a programme page that states its own
+ * closed cycle in prose also gives the day it closed —
+ *   "The application submission period closed on August 6, 2025, at 5:00 p.m.
+ *    (Eastern)."   (America 250 Florida Grants)
+ * That sentence is the programme's OWN past APPLICATION deadline, so on a record
+ * whose page declares the cycle CLOSED the day it names is the record's close
+ * date. The pattern names the application period explicitly, so it can never
+ * match an award, an event, or the Grant Period (which stays undated forever).
+ */
+const CYCLE_CLOSED_ON_RE =
+  /\bapplication\s+(?:submission\s+)?period\s+(?:has\s+)?closed\s+on\s+([A-Z][a-z]+\s+\d{1,2},\s+\d{4})/i;
 /** A value the Division marks as an estimate goes to `estimatedCloseDate`, never `closeDate`. */
 const ESTIMATE_MARKER_RE = /\b(estimated|anticipated|expected|tentative)\b/i;
 
@@ -226,6 +238,8 @@ export function parseFloridaCulturalGrants(payload: string): SourceGrantRecord[]
     const periodItem =
       items.find((i) => splitLabel(i.text).label.startsWith(FLORIDA_GRANT_PERIOD_LABEL)) ?? null;
     const proseClosed = page.html.includes(FLORIDA_CYCLE_CLOSED_SENTENCE);
+    /** The page's own prose text — where its closed-cycle sentence lives. */
+    const pageText = stripTags(page.html);
     // A programme with no application statement at all is programme history, not
     // an opportunity: it contributes NO record (never an undated one).
     if (fiscalItem === null && !proseClosed) continue;
@@ -241,7 +255,15 @@ export function parseFloridaCulturalGrants(payload: string): SourceGrantRecord[]
     // value the Division marks as an estimate can only ever be an estimate.
     const dayFromValue = deadlineValue === null ? null : singlePublishedDay(deadlineValue);
     const valueIsEstimate = deadlineValue !== null && ESTIMATE_MARKER_RE.test(deadlineValue);
-    const closeDay = valueIsEstimate ? null : dayFromValue;
+    // The programme's own statement that its cycle closed, and the day it named.
+    // ONLY a cycle the source itself declares CLOSED may carry this day, so this
+    // can never date an open or upcoming cycle.
+    const closedOnMatch = CYCLE_CLOSED_ON_RE.exec(pageText);
+    const closedOnText = closedOnMatch === null ? null : (closedOnMatch[1] ?? "").trim();
+    const closedOnDay = sourceClosed && closedOnText !== null ? singlePublishedDay(closedOnText) : null;
+    // The deadline slot's own value first (a real open cycle), then — only for a
+    // cycle the source already closed — the programme's own closed-on sentence.
+    const closeDay = valueIsEstimate ? null : (dayFromValue ?? closedOnDay);
     const estimateDay = valueIsEstimate ? dayFromValue : null;
     const title = floridaPageTitle(page.html) ?? nameByUrl.get(page.url) ?? null;
     if (title === null) continue;
@@ -285,12 +307,18 @@ export function parseFloridaCulturalGrants(payload: string): SourceGrantRecord[]
         // The deadline LABEL and its own value, verbatim ("TBD" is not a date).
         deadlineLabelText: deadlineItem?.text ?? null,
         nextDeadlineText: deadlineValue,
-        closingText: deadlineValue,
+        closingText: deadlineValue ?? closedOnText,
         closingDayPublishedBySource: closeDay,
         deadlineValueIsNeverSpreadAcrossOtherPrograms: true,
-        deadlineValueTbdIsNotADate: deadlineValue === null || /\bTBD\b/i.test(deadlineValue),
+        // Strictly the deadline SLOT holding "TBD": that value is not a date. A
+        // page with no deadline slot at all has nothing to declare here.
+        deadlineValueTbdIsNotADate: deadlineValue !== null && /\bTBD\b/i.test(deadlineValue),
         deadlineValueIsAnEstimate: valueIsEstimate,
         estimateIsNeverADeadline: true,
+        // The programme's own sentence about its closed cycle, verbatim, and the
+        // day read only from it (never from an award, event or grant period).
+        closedCycleOnText: closedOnText,
+        closedCycleDayIsFromThisProgramsOwnPage: closedOnDay !== null,
         // The activity period, carried for review and NEVER used as a date.
         grantPeriodText: periodValue,
         grantPeriodIsNeverADeadline: true,

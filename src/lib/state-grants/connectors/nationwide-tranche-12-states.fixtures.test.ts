@@ -599,7 +599,12 @@ describe("Florida — Division of Arts and Culture grant programmes (index + pro
       expect(o.status).toBe("closed");
       // "Next Deadline: TBD" is not a date, and the 2028/2029 dates the source
       // publishes are the GRANT PERIOD: no date is ever read from them.
-      expect(o.closeDate).toBeNull();
+      if (o.raw.closedCycleDayIsFromThisProgramsOwnPage === true) {
+        // This programme's own page dates the cycle it closed (America 250).
+        expect(o.closeDate).toBe("2025-08-06");
+      } else {
+        expect(o.closeDate).toBeNull();
+      }
       expect(o.estimatedCloseDate).toBeNull();
       expect(o.postedDate).toBeNull();
       expect(o.raw.grantPeriodIsNeverADeadline).toBe(true);
@@ -619,6 +624,47 @@ describe("Florida — Division of Arts and Culture grant programmes (index + pro
     // The deadline label's own value is "TBD", kept for review.
     expect(gps.raw.nextDeadlineText).toBe("TBD");
     expect(gps.raw.deadlineValueTbdIsNotADate).toBe(true);
+  });
+  test("the ONE dated cycle is the programme's own closed-on sentence, read verbatim", () => {
+    const records = FL();
+    const a250 = exact(records, "america-250-florida-grants");
+    // "The application submission period closed on August 6, 2025, at 5:00 p.m."
+    // — the programme's own past APPLICATION deadline, on its own page.
+    expect(a250.raw.closedCycleOnText).toBe("August 6, 2025");
+    expect(a250.raw.closedCycleDayIsFromThisProgramsOwnPage).toBe(true);
+    expect(a250.closeDate).toBe("2025-08-06");
+    expect(a250.estimatedCloseDate).toBeNull();
+    expect(a250.postedDate).toBeNull();
+    expect(a250.status).toBe("closed");
+    // No deadline slot on that page, so the TBD flag has nothing to declare, and
+    // the record's close date is NOT claimed to be an estimate.
+    expect(a250.raw.deadlineValueTbdIsNotADate).toBe(false);
+    expect(a250.raw.deadlineValueIsAnEstimate).toBe(false);
+    // A sibling programme with a "TBD" deadline is untouched by it.
+    const gps = exact(records, "general-program-support");
+    expect(gps.closeDate).toBeNull();
+    expect(gps.raw.closedCycleOnText).toBeNull();
+    expect(gps.raw.closedCycleDayIsFromThisProgramsOwnPage).toBe(false);
+  });
+  test("a closed-on day is read ONLY for a cycle the source declares closed", () => {
+    // The same sentence on a page whose statement says the cycle is OPEN must
+    // never become a close date (a stale prose line is not the live cycle).
+    const child =
+      `<h1>Synthetic Program</h1><ul>` +
+      `<li><strong>Applications for Fiscal Year 2029-2030 are OPEN</strong></li>` +
+      `<li><strong>Next Deadline: TBD</strong></li>` +
+      `</ul>` +
+      `<p>The application submission period closed on August 6, 2025, at 5:00 p.m. (Eastern).</p>`;
+    const records = parseGrantOpportunities(
+      floridaConnector,
+      floridaPayloadWith(child),
+      NOW,
+    ).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.raw.closedCycleOnText).toBe("August 6, 2025");
+    expect(records[0]!.raw.closedCycleDayIsFromThisProgramsOwnPage).toBe(false);
+    expect(records[0]!.closeDate).toBeNull();
+    expect(records[0]!.status).not.toBe("closed");
   });
   test("a programme page with its own OPEN cycle and a real deadline is read from its own value", () => {
     const child =

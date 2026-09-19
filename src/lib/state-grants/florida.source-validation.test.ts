@@ -61,5 +61,17 @@ await runLiveSourceValidation({
     // The Division's own past-tense statement is on the live pages, so at least
     // one programme is served `closed` — never as an open cycle on a live page.
     expect(opportunities.some((o) => o.status === "closed")).toBe(true);
+    // Any live close date is the ONE kind of day this source publishes: a
+    // programme page's own sentence about the cycle it already CLOSED. A live
+    // page can therefore never serve a dated OPEN cycle, and no date is ever an
+    // estimate on this source (the Division publishes a Grant Period instead).
+    for (const o of opportunities) {
+      if (o.closeDate !== null) {
+        expect(o.raw.closedCycleDayIsFromThisProgramsOwnPage).toBe(true);
+        expect(o.status).toBe("closed");
+        expect(typeof o.raw.closedCycleOnText).toBe("string");
+      }
+      expect(o.estimatedCloseDate).toBeNull();
+    }
   },
 });

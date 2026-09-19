@@ -38,6 +38,7 @@ import { sql } from "~/db";
 import type { GrantOpportunity, StateGrantStatus } from "~/lib/state-grants/connector";
 import type { StateGrantSource } from "~/lib/state-grants/sources";
 import type { StateGrantRegistryStatus, StateRegistryEntry } from "~/lib/state-grants/registry";
+import { stateGrantToday } from "~/lib/state-grants/search";
 
 // ── Write surface ───────────────────────────────────────────────────────────
 
@@ -494,12 +495,23 @@ export interface StateGrantRow {
   id: string;
   sourceId: string;
   sourceKey: string;
+  /** The source's human name + agency + official URL (state_grant_sources). */
+  sourceName: string | null;
+  sourceAgency: string | null;
+  sourceOfficialUrl: string | null;
   stateCode: string;
   externalId: string;
   title: string;
   agency: string | null;
   summary: string | null;
+  /**
+   * The status this row is SERVED with today (read-time honesty): an `open` row
+   * whose published closing date has passed since the sync is served `closed`.
+   */
   status: StateGrantStatus;
+  /** The status the sync classified it with. Equal to `status` unless a
+   *  deadline has passed since that sync — see effectiveStateGrantStatus(). */
+  storedStatus: StateGrantStatus;
   postedDate: string | null;
   closeDate: string | null;
   estimatedCloseDate: string | null;
@@ -526,9 +538,38 @@ export interface StateGrantQuery {
   /** One source, or several (a state with several sources). */
   sourceKey?: string | null;
   sourceKeys?: readonly string[] | null;
+  /**
+   * Matches the status the row is SERVED with (effectiveStatus), so a filter,
+   * a count and the rendered card can never disagree — an `open` row whose
+   * deadline has passed is returned by a `closed` filter, not an `open` one.
+   */
   status?: StateGrantStatus | null;
   /** Free text matched against title, agency and summary (ILIKE, escaped). */
   term?: string | null;
+  // ── Normalized-column filters (owner correction 4: real columns, so part 2
+  //    can filter on them). Text filters are escaped substring matches; a row
+  //    whose source published nothing on that field is NEVER matched — we
+  //    cannot verify a value we do not have.
+  eligibleApplicants?: string | null;
+  eligibleGeography?: string | null;
+  /** Match any of these category labels (case-insensitive, exact labels). */
+  categories?: readonly string[] | null;
+  awardRange?: string | null;
+  totalFunding?: string | null;
+  matchingRequirement?: string | null;
+  /**
+   * Rows whose published award range reaches AT LEAST this amount (compared to
+   * `award_max_amount` — a single published amount is stored as the ceiling).
+   */
+  awardMinAmount?: number | null;
+  /**
+   * Rows whose published award range does not exceed this amount (compared to
+   * `award_min_amount`, which for a single published amount is absent, so such
+   * a row is only returned when its ceiling is within the bound).
+   */
+  awardMaxAmount?: number | null;
+  /** The day the read is evaluated against (defaults to now; see today param). */
+  now?: Date | number;
   limit?: number;
   offset?: number;
 }
@@ -541,9 +582,46 @@ function likeTerm(term: string): string {
   return `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
 }
 
+/** A trimmed, escaped ILIKE pattern — or null for "this filter is not set". */
+function likeFilter(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? likeTerm(trimmed) : null;
+}
+
+/**
+ * A list filter as a comma-joined bound parameter (the repo's convention —
+ * `string_to_array`, no driver-dependent array parameter). Our own values only:
+ * an entry carrying a comma, brace or newline is REFUSED rather than silently
+ * split into two filters the caller never asked for.
+ */
+function csvParam(
+  values: readonly string[] | null | undefined,
+  normalize: (value: string) => string,
+): string | null {
+  const cleaned = (values ?? [])
+    .map((v) => (typeof v === "string" ? normalize(v) : ""))
+    .filter((v) => v.length > 0);
+  if (cleaned.length === 0) return null;
+  const bad = cleaned.find((v) => /[,\n\r{}]/.test(v));
+  if (bad !== undefined) {
+    throw new Error(
+      `list filter value ${JSON.stringify(bad)} contains a separator character (comma, brace or newline) — refusing to build a filter that could silently widen its own match`,
+    );
+  }
+  return cleaned.join(",");
+}
+
+/** A finite number bound, or null (never NaN/Infinity in a numeric comparison). */
+function finiteOrNull(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
 const ROW_COLUMNS = `
   o.id::text AS id, o.source_id::text AS source_id, s.source_key AS source_key,
-  o.state_code, o.external_id, o.title, o.agency, o.summary, o.status,
+  s.name AS source_name, s.agency AS source_agency, s.official_url AS source_official_url,
+  o.state_code, o.external_id, o.title, o.agency, o.summary,
+  o.status AS stored_status,
   to_char(o.posted_date, 'YYYY-MM-DD') AS posted_date,
   to_char(o.close_date, 'YYYY-MM-DD') AS close_date,
   to_char(o.estimated_close_date, 'YYYY-MM-DD') AS estimated_close_date,
@@ -556,12 +634,17 @@ interface RawStateGrantRow {
   id: string;
   source_id: string;
   source_key: string | null;
+  source_name: string | null;
+  source_agency: string | null;
+  source_official_url: string | null;
   state_code: string;
   external_id: string;
   title: string;
   agency: string | null;
   summary: string | null;
-  status: StateGrantStatus;
+  /** Read-time status (the CASE expression below), never the stored column. */
+  effective_status: StateGrantStatus;
+  stored_status: StateGrantStatus;
   posted_date: string | null;
   close_date: string | null;
   estimated_close_date: string | null;
@@ -601,12 +684,16 @@ function mapRow(r: RawStateGrantRow): StateGrantRow {
     id: r.id,
     sourceId: r.source_id,
     sourceKey: r.source_key ?? "",
+    sourceName: r.source_name,
+    sourceAgency: r.source_agency,
+    sourceOfficialUrl: r.source_official_url,
     stateCode: r.state_code,
     externalId: r.external_id,
     title: r.title,
     agency: r.agency,
     summary: r.summary,
-    status: r.status,
+    status: r.effective_status,
+    storedStatus: r.stored_status,
     postedDate: r.posted_date,
     closeDate: r.close_date,
     estimatedCloseDate: r.estimated_close_date,
@@ -635,45 +722,83 @@ function mapRow(r: RawStateGrantRow): StateGrantRow {
  * Ordering is the product's canonical one (STATE_GRANT_STATUS_ORDER): open, then
  * upcoming, then rolling, then closed, then unverified, and within a status the
  * nearest closing date first (rows with no closing date last, never first).
+ *
+ * The status of a row is computed AT READ TIME (the CASE expression below, whose
+ * TS twin is effectiveStateGrantStatus() in search.ts): an `open` row whose
+ * published closing date has passed since the last sync is served — and
+ * filtered, and counted — as `closed`. Nothing else ever changes at read time,
+ * so a read can only expire a deadline the calendar has overtaken, never
+ * promote a row into a status the sync did not establish.
+ *
+ * NOTE: the row query and the count query below repeat the same WHERE clause on
+ * purpose (there is no string builder in this file, and every value is bound);
+ * the integration suite asserts the count always agrees with the filtered rows
+ * for every status filter, so the two can never drift silently.
  */
 export async function queryStateGrants(
   query: StateGrantQuery = {},
 ): Promise<{ results: StateGrantRow[]; totalCount: number; limit: number; offset: number }> {
   const limit = Math.min(Math.max(1, Math.floor(query.limit ?? DEFAULT_QUERY_LIMIT)), MAX_QUERY_LIMIT);
   const offset = Math.max(0, Math.floor(query.offset ?? 0));
-  const stateCode = query.stateCode ?? null;
+  const today = stateGrantToday(query.now ?? new Date());
+  const stateCode = query.stateCode ? query.stateCode.trim().toUpperCase() : null;
   // A comma-joined list rather than a JS array parameter: string_to_array keeps
   // the statement identical across drivers, with no array-serialisation guess.
-  const stateCodes =
-    query.stateCodes && query.stateCodes.length > 0
-      ? query.stateCodes.map((s) => s.trim().toUpperCase()).filter(Boolean).join(",")
-      : null;
+  const stateCodes = csvParam(query.stateCodes, (s) => s.trim().toUpperCase());
   const sourceKey = query.sourceKey ?? null;
-  const sourceKeys =
-    query.sourceKeys && query.sourceKeys.length > 0
-      ? query.sourceKeys.map((s) => s.trim()).filter(Boolean).join(",")
-      : null;
+  const sourceKeys = csvParam(query.sourceKeys, (s) => s.trim());
   const status = query.status ?? null;
-  const term = query.term && query.term.trim() ? likeTerm(query.term.trim()) : null;
+  const term = likeFilter(query.term);
+  const eligibleApplicants = likeFilter(query.eligibleApplicants);
+  const eligibleGeography = likeFilter(query.eligibleGeography);
+  const categories = csvParam(query.categories, (s) => s.trim().toLowerCase());
+  const awardRange = likeFilter(query.awardRange);
+  const totalFunding = likeFilter(query.totalFunding);
+  const matchingRequirement = likeFilter(query.matchingRequirement);
+  const awardMinAmount = finiteOrNull(query.awardMinAmount);
+  const awardMaxAmount = finiteOrNull(query.awardMaxAmount);
   const db = sql();
 
   const rows = (await db`
-    SELECT ${db.unsafe(ROW_COLUMNS)}
+    SELECT ${db.unsafe(ROW_COLUMNS)},
+      CASE WHEN o.status = 'open' AND o.close_date IS NOT NULL AND o.close_date < ${today}::date
+           THEN 'closed' ELSE o.status END AS effective_status
     FROM state_grant_opportunities o
     LEFT JOIN state_grant_sources s ON s.id = o.source_id
     WHERE (${stateCode}::text IS NULL OR o.state_code = ${stateCode}::text)
       AND (${stateCodes}::text IS NULL OR o.state_code = ANY(string_to_array(${stateCodes}::text, ',')))
       AND (${sourceKey}::text IS NULL OR s.source_key = ${sourceKey}::text)
       AND (${sourceKeys}::text IS NULL OR s.source_key = ANY(string_to_array(${sourceKeys}::text, ',')))
-      AND (${status}::text IS NULL OR o.status = ${status}::text)
+      AND (
+        ${status}::text IS NULL
+        OR (CASE WHEN o.status = 'open' AND o.close_date IS NOT NULL AND o.close_date < ${today}::date
+                 THEN 'closed' ELSE o.status END) = ${status}::text
+      )
       AND (
         ${term}::text IS NULL
         OR o.title ILIKE ${term}::text
         OR COALESCE(o.agency, '') ILIKE ${term}::text
         OR COALESCE(o.summary, '') ILIKE ${term}::text
       )
+      AND (${eligibleApplicants}::text IS NULL OR o.eligible_applicants ILIKE ${eligibleApplicants}::text)
+      AND (${eligibleGeography}::text IS NULL OR o.eligible_geography ILIKE ${eligibleGeography}::text)
+      AND (
+        ${categories}::text IS NULL
+        OR EXISTS (
+          SELECT 1 FROM unnest(o.categories) AS c
+          WHERE lower(c) = ANY(string_to_array(lower(${categories}::text), ','))
+        )
+      )
+      AND (${awardRange}::text IS NULL OR o.award_range ILIKE ${awardRange}::text)
+      AND (${totalFunding}::text IS NULL OR o.total_funding ILIKE ${totalFunding}::text)
+      AND (${matchingRequirement}::text IS NULL OR o.matching_requirement ILIKE ${matchingRequirement}::text)
+      AND (${awardMinAmount}::numeric IS NULL OR (o.award_max_amount IS NOT NULL AND o.award_max_amount >= ${awardMinAmount}::numeric))
+      AND (${awardMaxAmount}::numeric IS NULL OR (o.award_min_amount IS NOT NULL AND o.award_min_amount <= ${awardMaxAmount}::numeric))
     ORDER BY
-      CASE o.status WHEN 'open' THEN 0 WHEN 'upcoming' THEN 1 WHEN 'rolling' THEN 2 WHEN 'closed' THEN 3 ELSE 4 END,
+      CASE WHEN o.status = 'open' AND o.close_date IS NOT NULL AND o.close_date < ${today}::date
+           THEN 3
+           ELSE CASE o.status WHEN 'open' THEN 0 WHEN 'upcoming' THEN 1 WHEN 'rolling' THEN 2 WHEN 'closed' THEN 3 ELSE 4 END
+      END,
       o.close_date ASC NULLS LAST,
       o.title ASC
     LIMIT ${limit} OFFSET ${offset}
@@ -687,13 +812,31 @@ export async function queryStateGrants(
       AND (${stateCodes}::text IS NULL OR o.state_code = ANY(string_to_array(${stateCodes}::text, ',')))
       AND (${sourceKey}::text IS NULL OR s.source_key = ${sourceKey}::text)
       AND (${sourceKeys}::text IS NULL OR s.source_key = ANY(string_to_array(${sourceKeys}::text, ',')))
-      AND (${status}::text IS NULL OR o.status = ${status}::text)
+      AND (
+        ${status}::text IS NULL
+        OR (CASE WHEN o.status = 'open' AND o.close_date IS NOT NULL AND o.close_date < ${today}::date
+                 THEN 'closed' ELSE o.status END) = ${status}::text
+      )
       AND (
         ${term}::text IS NULL
         OR o.title ILIKE ${term}::text
         OR COALESCE(o.agency, '') ILIKE ${term}::text
         OR COALESCE(o.summary, '') ILIKE ${term}::text
       )
+      AND (${eligibleApplicants}::text IS NULL OR o.eligible_applicants ILIKE ${eligibleApplicants}::text)
+      AND (${eligibleGeography}::text IS NULL OR o.eligible_geography ILIKE ${eligibleGeography}::text)
+      AND (
+        ${categories}::text IS NULL
+        OR EXISTS (
+          SELECT 1 FROM unnest(o.categories) AS c
+          WHERE lower(c) = ANY(string_to_array(lower(${categories}::text), ','))
+        )
+      )
+      AND (${awardRange}::text IS NULL OR o.award_range ILIKE ${awardRange}::text)
+      AND (${totalFunding}::text IS NULL OR o.total_funding ILIKE ${totalFunding}::text)
+      AND (${matchingRequirement}::text IS NULL OR o.matching_requirement ILIKE ${matchingRequirement}::text)
+      AND (${awardMinAmount}::numeric IS NULL OR (o.award_max_amount IS NOT NULL AND o.award_max_amount >= ${awardMinAmount}::numeric))
+      AND (${awardMaxAmount}::numeric IS NULL OR (o.award_min_amount IS NOT NULL AND o.award_min_amount <= ${awardMaxAmount}::numeric))
   `) as { total: number }[];
 
   return {
@@ -721,9 +864,42 @@ export async function stateGrantStatusCounts(
     WHERE (${stateCode}::text IS NULL OR state_code = ${stateCode}::text)
     GROUP BY status
   `) as { status: StateGrantStatus; n: number }[];
-  const counts = { open: 0, upcoming: 0, rolling: 0, closed: 0, unverified: 0, total: 0 };
+  const counts = emptyStatusCounts();
   for (const row of rows) {
     counts[row.status] = Number(row.n);
+    counts.total += Number(row.n);
+  }
+  return counts;
+}
+
+/** Zeroed per-status counter, so every status is always present exactly once. */
+function emptyStatusCounts(): Record<StateGrantStatus, number> & { total: number } {
+  return { open: 0, upcoming: 0, rolling: 0, closed: 0, unverified: 0, total: 0 };
+}
+
+/**
+ * The same counts, computed with the READ-TIME status (an `open` row whose
+ * deadline has passed counts as `closed`). The coverage page shows these, so
+ * what it prints always agrees with what a search returns for that status.
+ */
+export async function stateGrantEffectiveStatusCounts(
+  stateCode: string | null = null,
+  now: Date | number = new Date(),
+): Promise<Record<StateGrantStatus, number> & { total: number }> {
+  const today = stateGrantToday(now);
+  const db = sql();
+  const rows = (await db`
+    SELECT
+      CASE WHEN status = 'open' AND close_date IS NOT NULL AND close_date < ${today}::date
+           THEN 'closed' ELSE status END AS effective_status,
+      count(*)::int AS n
+    FROM state_grant_opportunities
+    WHERE (${stateCode}::text IS NULL OR state_code = ${stateCode}::text)
+    GROUP BY effective_status
+  `) as { effective_status: StateGrantStatus; n: number }[];
+  const counts = emptyStatusCounts();
+  for (const row of rows) {
+    counts[row.effective_status] = Number(row.n);
     counts.total += Number(row.n);
   }
   return counts;
@@ -778,4 +954,29 @@ export async function listStateSyncRuns(
     updatedCount: Number(r.updated_count),
     error: r.error ?? null,
   }));
+}
+
+/**
+ * The most recent SUCCESSFUL sync among the given states — the honest "as of"
+ * stamp for a search or coverage response. An `error` run never sets it (a
+ * failed run wrote nothing, so it cannot make the data fresher), and `null`
+ * means "no state in scope has ever synced cleanly", never "just now".
+ */
+export async function latestSuccessfulStateSync(
+  stateCodes: readonly string[] | null = null,
+): Promise<string | null> {
+  const codes =
+    stateCodes && stateCodes.length > 0
+      ? stateCodes.map((s) => s.trim().toUpperCase()).filter(Boolean).join(",")
+      : null;
+  const db = sql();
+  const rows = (await db`
+    SELECT max(finished_at) AS latest
+    FROM state_grant_sync_runs
+    WHERE status = 'ok'
+      AND finished_at IS NOT NULL
+      AND (${codes}::text IS NULL OR state_code = ANY(string_to_array(${codes}::text, ',')))
+  `) as { latest: string | null }[];
+  const latest = rows[0]?.latest ?? null;
+  return latest ? new Date(latest).toISOString() : null;
 }

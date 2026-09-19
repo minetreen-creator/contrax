@@ -10,7 +10,10 @@ name: Check Routes
 # No env vars required — pure syntax checking (see scripts/check-routes.mjs).
 
 on:
+  # Explicit triggers, so this workflow is unmistakably its own pull-request
+  # check: every PR (any base branch) plus pushes to main as the safety net.
   pull_request:
+    branches: [main]
   push:
     branches: [main]
 
@@ -23,7 +26,11 @@ permissions:
 
 jobs:
   check:
-    name: Route JSX syntax check
+    # Named after the WORKFLOW, not after the step build-check.yml also runs
+    # ("Route JSX syntax check"), because the two were indistinguishable in the
+    # PR check list: the job name is the check name, so the workflow name never
+    # showed up on the PR.
+    name: Check Routes — route JSX syntax gate
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

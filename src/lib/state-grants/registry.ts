@@ -282,6 +282,13 @@ import {
   VERMONT_SOURCE_VALIDATION_TEST,
   vermontConnector,
 } from "~/lib/state-grants/connectors/vermont";
+import {
+  NEBRASKA_APPROVED_HOSTS,
+  NEBRASKA_CONNECTOR_ID,
+  NEBRASKA_SOURCE_URL,
+  NEBRASKA_SOURCE_VALIDATION_TEST,
+  nebraskaConnector,
+} from "~/lib/state-grants/connectors/nebraska";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -437,6 +444,7 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   // NEXT-12 TRANCHE (owner 2026-09-19): MD, VT.
   ...MARYLAND_APPROVED_HOSTS,
   ...VERMONT_APPROVED_HOSTS,
+  ...NEBRASKA_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -787,9 +795,18 @@ export const VERMONT_REGISTRY_ENTRY: SourceValidationEntry = {
   note: "One validated source: the Vermont Agency of Commerce and Community Development's own Funding and Incentives listing (accd.vermont.gov) PLUS the programme pages that listing publishes. The listing is a PROGRAM CATALOGUE with no application dates of its own, so the connector fetches it and reads each record from the programme's OWN page(s) \u2014 never from the listing and never from a sibling programme. The agency labels only two statuses in its own words: VCDP (\"VCDP accepts applications on a rolling basis\") and CHIP (\"Applications will be accepted on a rolling basis until December 31, 2035\") are `rolling` with NO close date, and the Downtown Transportation Fund page states \"The application period for the 2026 Downtown Transportation Fund grant is now closed\" so it is `closed`. The only dated records are the rows of the VCDP Community Development Board submission schedule, read from the column the agency itself labels \"Submission Date for Application\" on the row that published it (a future submission date is open, a passed one closed). Everything else this source dates is REFUSED and recorded verbatim in each record's `raw.refusedDates`: TIF's example timeline (\"Deadline to incur all TIF debt\") is a municipal debt-incurrence obligation, VEGI's \"July 1, 2025 to June 30, 2026\" is an incentive/labour-market-enhancement PERIOD, and VCDP's \"Seeking Comments for FY25 DRAFT CAPER by September 28, 2026\" is a document-review deadline on a draft federal report. Vermont's own /grants page is a 2020 pandemic-recovery archive and is never read. This is six pages across five programme families of ONE agency out of a much larger catalogue: `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
 };
 
+export const NEBRASKA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: NEBRASKA_CONNECTOR_ID,
+  sourceUrl: NEBRASKA_SOURCE_URL,
+  testFile: NEBRASKA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the Nebraska Department of Economic Development's own Programs index on opportunity.nebraska.gov plus 46 of the 63 programme pages that index links \u2014 the ones whose own page publishes a labelled application-window block (verified live 2026-09-19). The index itself publishes ZERO date tokens (its news and \u201cstay up to date\u201d furniture is never read), so every record is read from ONE programme page's own Divi promo module: the module's own heading is the title, and its own labels (Open Date/Close Date, Submission Open|Close Date, Pre-/Full Application Opens|Closes, Application Deadline, a date-to-date range under \u201cApplication Period\u201d, or the source's own \u201cOpen Cycle\u201d wording) decide the window. Anticipated award dates, letters of intent, periods of performance and press-release dates are never read; a year-less deadline (\u201cApplication Deadline: Sept. 15\u201d) is kept verbatim with NO close date, and a block publishing two successive periods at once is refused rather than picked. Past cycles the DED leaves on live pages are served `closed`, never hidden and never open. Two of the index's 63 links 404, which is why the child list is PINNED rather than link-derived. This is ONE agency's programme pages: other Nebraska agencies and local bodies award grants we have NOT validated, so the state is `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
+    NE: nebraskaConnector as unknown as StateGrantConnector<never>,
     AZ: arizonaConnector as unknown as StateGrantConnector<never>,
     DE: delawareConnector as unknown as StateGrantConnector<never>,
     HI: hawaiiConnector as unknown as StateGrantConnector<never>,
@@ -828,6 +845,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
+    NE: NEBRASKA_REGISTRY_ENTRY,
     AZ: ARIZONA_REGISTRY_ENTRY,
     DE: DELAWARE_REGISTRY_ENTRY,
     HI: HAWAII_REGISTRY_ENTRY,

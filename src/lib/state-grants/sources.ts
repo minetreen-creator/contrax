@@ -56,6 +56,7 @@ import { texasConnector } from "~/lib/state-grants/connectors/texas";
 import { marylandConnector } from "~/lib/state-grants/connectors/maryland";
 // NEXT-12 TRANCHE (owner 2026-09-19): VT.
 import { vermontConnector } from "~/lib/state-grants/connectors/vermont";
+import { nebraskaConnector } from "~/lib/state-grants/connectors/nebraska";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -130,6 +131,8 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   texasConnector as unknown as StateGrantConnector<never>,
   marylandConnector as unknown as StateGrantConnector<never>,
   vermontConnector as unknown as StateGrantConnector<never>,
+  // NE (nationwide workstream): one agency (Nebraska DED), `limited`.
+  nebraskaConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

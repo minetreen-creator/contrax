@@ -21,8 +21,11 @@ await runLiveSourceValidation({
   validationTestFile: OKLAHOMA_SOURCE_VALIDATION_TEST,
   expectLive: (opportunities, liveText) => {
     // Both of the Council's program indexes are represented in the one payload.
-    expect(liveText).toContain("grants-for-organizations");
-    expect(liveText).toContain("grants-for-schools");
+    // The CMS (AEM) inlines its own page metadata as JSON, where a hyphen is
+    // escaped as \u002D — so the slug is matched after undoing that escaping.
+    const unescaped = liveText.replace(/\\u002D/g, "-");
+    expect(unescaped).toContain("grants-for-organizations");
+    expect(unescaped).toContain("grants-for-schools");
     // The legacy host is never used, and no award-record link is ever a page.
     for (const o of opportunities) {
       expect(o.url).not.toContain("arts.ok.gov");

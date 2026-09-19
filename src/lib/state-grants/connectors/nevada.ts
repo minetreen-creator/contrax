@@ -181,7 +181,7 @@ export function parseNevadaGrantOfferingsPage(html: string): SourceGrantRecord[]
       openValue === null &&
       eligibility === null &&
       amount === null &&
-      card.indexOf(GUIDELINES_LINK_RE) === -1
+      card.search(GUIDELINES_LINK_RE) === -1
     ) {
       continue;
     }

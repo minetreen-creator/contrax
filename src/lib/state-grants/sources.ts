@@ -51,6 +51,7 @@ import { newHampshireConnector } from "~/lib/state-grants/connectors/new-hampshi
 import { montanaConnector } from "~/lib/state-grants/connectors/montana";
 import { indianaConnector } from "~/lib/state-grants/connectors/indiana";
 import { floridaConnector } from "~/lib/state-grants/connectors/florida";
+import { texasConnector } from "~/lib/state-grants/connectors/texas";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -122,6 +123,7 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   // IN (next-12 tranche): one agency (Indiana Arts Commission), `limited`.
   indianaConnector as unknown as StateGrantConnector<never>,
   floridaConnector as unknown as StateGrantConnector<never>,
+  texasConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

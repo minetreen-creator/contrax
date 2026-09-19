@@ -260,6 +260,13 @@ import {
   FLORIDA_SOURCE_VALIDATION_TEST,
   floridaConnector,
 } from "~/lib/state-grants/connectors/florida";
+import {
+  TEXAS_APPROVED_HOSTS,
+  TEXAS_CONNECTOR_ID,
+  TEXAS_SOURCE_URL,
+  TEXAS_SOURCE_VALIDATION_TEST,
+  texasConnector,
+} from "~/lib/state-grants/connectors/texas";
 
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
@@ -412,6 +419,7 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...MONTANA_APPROVED_HOSTS,
   ...INDIANA_APPROVED_HOSTS,
   ...FLORIDA_APPROVED_HOSTS,
+  ...TEXAS_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -736,6 +744,14 @@ export const FLORIDA_REGISTRY_ENTRY: SourceValidationEntry = {
   tier: "limited",
   note: "One validated source: the Florida Department of State's Division of Arts and Culture grants index on dos.fl.gov plus the grant PROGRAMME pages that index publishes. The index is a PROGRAM CATALOGUE (27.9 KB live, twenty-seven grant mentions, ZERO dates), so the connector fetches the index plus each programme page the index itself links and reads each programme's OWN application statement. The Division's own past-tense label (\"Applications for Fiscal Year 2027-2028 are CLOSED\", and the prose \"The application cycle for this program has CLOSED.\" on the America 250 page) makes those programmes `closed` on a live page. The Division's \"Next Deadline: TBD\" is a deadline label with NO date, so the record keeps no close date at all (and is never an estimate), and that single value is never spread across the catalogue. The 2028/2029 dates the pages publish are the GRANT PERIOD for the NEXT application cycle \u2014 an activity period, labelled as such \u2014 and are never read as a posted or close date; the funding-process page's one general `deadline` token sits OUTSIDE the child scope for exactly that reason. The Cultural Endowment page is programme history with no application statement, so it contributes no record rather than an undated one. This is ONE division of ONE department: other Florida agencies award grants we have NOT validated, so the state is `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
 };
+export const TEXAS_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: TEXAS_CONNECTOR_ID,
+  sourceUrl: TEXAS_SOURCE_URL,
+  testFile: TEXAS_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the Texas Military Preparedness Commission's own DEAAG grant program page on gov.texas.gov (Office of the Governor). The build spec's first candidate, the Governor's financial-services grants catalogue, was re-verified live 2026-09-19 (105,109 bytes, ZERO dates) \u2014 as were /organization/hsgd (97,673 B) and /organization/cjd/resources (96,669 B) \u2014 so those pages are a PROGRAM CATALOGUE with no dated listing and could only ever produce undated records. The dated page is the DEAAG page, whose own paragraph says \"The FY 27 Round of DEAAG will open on September 1, 2026. DEAAG applications will be due on or before 5 PM Friday, November 06, 2026.\" Both ends are read from that one paragraph in source order and never picked apart; a year-less or unreadable end yields no date rather than an invented one, and a passed round classifies `closed`, never open. The award timing in the same paragraph (\"Grants will be awarded at the beginning of 2027\") is kept for review and is NEVER a posted, close or estimated date. This is ONE programme family of ONE office: the Governor's office publishes other grant catalogues with no per-programme dates, so the state is `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -771,6 +787,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     MT: montanaConnector as unknown as StateGrantConnector<never>,
     IN: indianaConnector as unknown as StateGrantConnector<never>,
     FL: floridaConnector as unknown as StateGrantConnector<never>,
+    TX: texasConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -806,6 +823,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     MT: MONTANA_REGISTRY_ENTRY,
     IN: INDIANA_REGISTRY_ENTRY,
     FL: FLORIDA_REGISTRY_ENTRY,
+    TX: TEXAS_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

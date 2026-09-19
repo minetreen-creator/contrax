@@ -28,6 +28,7 @@ import {
 } from "~/lib/state-grants/connector";
 import { newHampshireConnector } from "~/lib/state-grants/connectors/new-hampshire";
 import { montanaConnector } from "~/lib/state-grants/connectors/montana";
+import { texasConnector } from "~/lib/state-grants/connectors/texas";
 import { joinSourcePages } from "~/lib/state-grants/connectors/multi-page";
 import {
   INDIANA_SOURCE_URL,
@@ -58,6 +59,8 @@ const NH_FILE = "new-hampshire-jpp-program.html";
 const MT_FILE = "montana-commerce-tourism-grant-program.html";
 const NH = () => parse(newHampshireConnector, NH_FILE);
 const MT = () => parse(montanaConnector, MT_FILE);
+const TX_FILE = "texas-deaag-grant-program.html";
+const TX = () => parse(texasConnector, TX_FILE);
 
 /**
  * Indiana is a MULTI-PAGE source: the hub plus every funding programme page the
@@ -151,6 +154,7 @@ const ALL = [
   ["MT", montanaConnector, MT],
   ["IN", indianaConnector, IN],
   ["FL", floridaConnector, FL],
+  ["TX", texasConnector, TX],
 ] as const;
 function count(records: GrantOpportunity[], status: string): number {
   return records.filter((o) => o.status === status).length;
@@ -723,5 +727,81 @@ describe("Florida — Division of Arts and Culture grant programmes (index + pro
     expect(scp.closeDate).toBeNull();
     expect(scp.status).toBe("closed");
     expect(scp.raw.nextDeadlineText).toBe("TBD");
+  });
+});
+
+describe("Texas — the Governor's office DEAAG grant programme (one dated round)", () => {
+  test("the Commission's own open/due pair, read from its own paragraph", () => {
+    const records = TX();
+    expect(records.length).toBe(1);
+    const o = records[0]!;
+    expect(o.externalId).toBe("deaag-fy-27");
+    expect(o.title).toContain("Defense Economic Adjustment Assistance Grant (DEAAG)");
+    expect(o.title).toContain("FY 27");
+    expect(o.postedDate).toBe("2026-09-01");
+    expect(o.closeDate).toBe("2026-11-06");
+    expect(o.estimatedCloseDate).toBeNull();
+    // 2026-09-19: the round has opened and its deadline has not passed.
+    expect(o.status).toBe("open");
+    expect(o.url).toBe(texasConnector.sourceUrl);
+    expect(o.raw.orderedOpenThenDueSentence).toBe(true);
+    expect(o.raw.datesReadOnlyFromThisProgramsOwnParagraph).toBe(true);
+    expect(o.raw.openingText).toBe("September 1, 2026");
+    expect(String(o.raw.closingText)).toContain("November 06, 2026");
+    expect(o.raw.roundLabel).toBe("FY 27");
+    expect(o.raw.rollingDeclaredBySource).toBe(false);
+  });
+  test("the award timing in the same paragraph is never a deadline", () => {
+    const o = TX()[0]!;
+    expect(String(o.raw.awardAnnouncementText)).toContain("awarded");
+    expect(o.raw.awardAnnouncementIsNeverADeadline).toBe(true);
+    // The award sentence names 2027: no date on the record comes from it.
+    expect(String(o.closeDate)).not.toContain("2027");
+    expect(String(o.postedDate)).not.toContain("2027");
+    expect(o.estimatedCloseDate).toBeNull();
+  });
+  test("a passed round is closed, never open", () => {
+    const records = parseGrantOpportunities(
+      texasConnector,
+      fixture(TX_FILE),
+      new Date("2027-01-15T12:00:00Z"),
+    ).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.status).toBe("closed");
+    expect(records[0]!.closeDate).toBe("2026-11-06");
+  });
+  test("a reworded, unreadable end yields NO invented date", () => {
+    const reworded = fixture(TX_FILE).replace(
+      "DEAAG applications will be due on or before 5 PM Friday, November 06, 2026.",
+      "DEAAG applications will be due sometime this fall.",
+    );
+    const records = parseGrantOpportunities(texasConnector, reworded, NOW).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.closeDate).toBeNull();
+    expect(records[0]!.estimatedCloseDate).toBeNull();
+    expect(records[0]!.raw.closingText).toBeNull();
+    // The published opening day is still read from the source's own words.
+    expect(records[0]!.postedDate).toBe("2026-09-01");
+  });
+  test("dates on another programme's paragraph are never read into this record", () => {
+    const extra = fixture(TX_FILE).replace(
+      "</main>",
+      "<p>The Governor's Committee on People with Disabilities awards will open on " +
+        "March 3, 2027 and close on April 4, 2027.</p></main>",
+    );
+    const records = parseGrantOpportunities(texasConnector, extra, NOW).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.externalId).toBe("deaag-fy-27");
+    expect(records[0]!.closeDate).toBe("2026-11-06");
+  });
+  test("a payload that is not the DEAAG page fails loudly at the parse stage", () => {
+    let thrown: { stage?: string } | null = null;
+    try {
+      texasConnector.parse("<html><body>No marker here</body></html>");
+    } catch (e) {
+      thrown = e as { stage?: string };
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown!.stage).toBe("parse");
   });
 });

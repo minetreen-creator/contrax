@@ -1,5 +1,6 @@
 /**
- * Contrax Grants — STATE REGISTRY (owner ROLLOUT order 2026-09-18, part 1).
+ * Contrax Grants — STATE REGISTRY (owner ROLLOUT order 2026-09-18, part 1;
+ * coverage ladder corrected by the owner's 2026-09-19 review).
  *
  * PURE MODULE: no DB, no network, no node builtins (it reads only the connector
  * objects themselves, which are pure). The `state_grant_registry` TABLE is a
@@ -7,29 +8,40 @@
  * an independent source of truth.
  *
  * FAIL-CLOSED DERIVATION — the heart of this file
- *   A state reports `connected` ONLY when ALL of these hold:
- *     1. a connector is registered for it,
- *     2. a source-validation manifest entry exists for it, and
- *     3. the entry agrees with the connector on BOTH the connector id and the
- *        source URL, and
- *     4. the connector's `officialHost` is on the approved-host allowlist.
+ *   A state reports a VALIDATED tier (limited | curated | connected) ONLY when
+ *   ALL of these hold:
+ *     1. at least one connector is registered for it,
+ *     2. a source-validation manifest entry exists for it,
+ *     3. the entry agrees with the connector on the connector id AND the source
+ *        URL (checked for EVERY connector of the state, not just one),
+ *     4. every connector's `officialHost` is on the approved-host allowlist, and
+ *     5. the entry declares a valid coverage TIER.
  *   Anything else → `unavailable`, with a machine-readable reason. There is no
  *   code path that lets a hand-set status, a connector alone, or a hopeful
- *   default produce `connected`: the status is computed from the registry inputs
- *   every time it is asked for, and `getConnector()` refuses to hand back a
- *   connector for a state that is not connected.
+ *   default reach a validated tier.
  *
- *   Requirement 2/3 encode the owner's gate: "a state whose connector has no
- *   passing source-validation test must never report connected". The manifest
- *   names the test file; that test (virginia.source-validation.test.ts) asserts
- *   the manifest entry itself, so the two cannot drift apart silently — if the
- *   test is deleted or renamed, it stops running, and the manifest can no longer
- *   be justified. Va is the ONLY entry, and it is `connected` only because its
- *   connector and its live source-validation test both exist and pass.
+ * THE LADDER (owner 2026-09-19; proposed wording, pending owner confirmation of
+ * the prose — the four VALUES themselves are the owner's):
+ *   unavailable = no validated source for this state. Nothing is served.
+ *   limited     = one, or a few, validated SINGLE-AGENCY sources. Real records,
+ *                 but plainly not a statewide view (this is Virginia today: one
+ *                 tourism source).
+ *   curated     = a state's own curated/portal listing, or manually curated
+ *                 substantive coverage across agencies.
+ *   connected   = statewide comprehensive MULTI-SOURCE coverage.
+ *   The tier is DECLARED by the manifest entry (a human judgement about coverage)
+ *   and then ENFORCED structurally: `connected` additionally requires at least
+ *   two distinct registered sources, so a single-source state can never be
+ *   advertised as statewide comprehensive. A `connected` claim that fails that
+ *   test is downgraded to `limited` with the reason spelled out.
+ *
+ *   Adding a state still means: connector → source-validation test → manifest
+ *   entry (+ host on the allowlist) → suites green. Until then it is
+ *   `unavailable`, even with a perfect connector. That is the point.
  *
  * All 50 states + DC are listed. 49 states + DC are `unavailable` on purpose:
  * the registry existing is NOT coverage, and nothing in the rollout may imply
- * nationwide coverage (owner order). Part 2's coverage UI reads listStates().
+ * nationwide coverage (owner order). The coverage UI reads listStates().
  */
 import {
   VIRGINIA_APPROVED_HOSTS,
@@ -38,6 +50,7 @@ import {
   VIRGINIA_SOURCE_VALIDATION_TEST,
   virginiaConnector,
 } from "~/lib/state-grants/connectors/virginia";
+import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
 /** All 50 states + the District of Columbia, USPS order (alphabetical). */
@@ -68,9 +81,43 @@ export const STATE_NAMES: Record<UsStateCode, string> = {
   WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
 };
 
-export type StateGrantRegistryStatus = "unavailable" | "connected";
+/**
+ * The owner's coverage ladder (2026-09-19): connected | curated | limited |
+ * unavailable. `unavailable` is the only one that is NOT a validated tier.
+ */
+export type StateGrantRegistryStatus = "connected" | "curated" | "limited" | "unavailable";
 
-/** A state's source-validation manifest entry — the `connected` gate. */
+/** The tiers a state may only hold WITH a passing source-validation gate. */
+export const VALIDATED_REGISTRY_STATUSES: readonly StateGrantRegistryStatus[] = [
+  "limited",
+  "curated",
+  "connected",
+] as const;
+
+/** Human labels for the coverage UI. `limited` says exactly what it is not. */
+export const REGISTRY_STATUS_LABELS: Record<StateGrantRegistryStatus, string> = {
+  connected: "Connected — statewide, multi-source coverage",
+  curated: "Curated — the state's own listings, curated by us",
+  limited: "Limited — one or a few validated sources, not statewide",
+  unavailable: "Not covered yet",
+};
+
+/** How many distinct sources `connected` requires (statewide comprehensive). */
+export const CONNECTED_MIN_SOURCES = 2;
+
+export function isValidatedStatus(status: StateGrantRegistryStatus): boolean {
+  return status !== "unavailable";
+}
+
+/** True only for the tiers that require the source-validation gate. */
+export function isValidatedTier(value: unknown): value is Exclude<StateGrantRegistryStatus, "unavailable"> {
+  return (
+    typeof value === "string" &&
+    (VALIDATED_REGISTRY_STATUSES as readonly string[]).includes(value)
+  );
+}
+
+/** A state's source-validation manifest entry — the gate for a validated tier. */
 export interface SourceValidationEntry {
   connectorId: string;
   sourceUrl: string;
@@ -78,6 +125,13 @@ export interface SourceValidationEntry {
   testFile: string;
   /** When that test was last verified against the live source. */
   verifiedOn: string;
+  /**
+   * The coverage tier this source set justifies. Enforced structurally: see
+   * CONNECTED_MIN_SOURCES and deriveStateRegistry().
+   */
+  tier: Exclude<StateGrantRegistryStatus, "unavailable">;
+  /** Plain-language honesty note about what this coverage is NOT. */
+  note: string | null;
 }
 
 export interface StateRegistryEntry {
@@ -85,10 +139,14 @@ export interface StateRegistryEntry {
   name: string;
   status: StateGrantRegistryStatus;
   connectorId: string | null;
-  /** Why this status — `connected` entries carry the gate that passed. */
+  /** Why this status — validated entries carry the gate that passed. */
   reason: string;
   sourceUrl: string | null;
   sourceValidationTest: string | null;
+  /** How many distinct sources are registered for this state. */
+  sourceCount: number;
+  /** The manifest's honesty note, when it carries one. */
+  note: string | null;
 }
 
 /** Everything the derivation needs, injectable so fail-closed is testable. */
@@ -98,11 +156,13 @@ export interface RegistryInputs {
   approvedHosts: readonly string[];
   states?: readonly string[];
   names?: Record<string, string>;
+  /** state code → the source keys registered for it (identity + the ladder). */
+  sourcesByState?: Record<string, readonly string[]>;
 }
 
 /**
  * Hosts a state connector's official source may live on. A connector whose
- * `officialHost` is not listed here can never be `connected` — so a typo'd or
+ * `officialHost` is not listed here can never be validated — so a typo'd or
  * replaced domain fails the gate instead of silently shipping.
  */
 export const APPROVED_SOURCE_HOSTS: readonly string[] = [...VIRGINIA_APPROVED_HOSTS];
@@ -112,9 +172,14 @@ export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
   sourceUrl: VIRGINIA_SOURCE_URL,
   testFile: VIRGINIA_SOURCE_VALIDATION_TEST,
   verifiedOn: "2026-09-19",
+  // ONE tourism source. Virginia publishes many more programs through other
+  // agencies we have not validated, so this is `limited`, never `connected`
+  // (owner review 2026-09-19).
+  tier: "limited",
+  note: "One validated source (the Virginia Tourism Corporation grants page). The Commonwealth publishes many more programs through other agencies that we have NOT validated — this is not statewide coverage.",
 };
 
-/** The default inputs: one connector, one validated state. */
+/** The default inputs: one connector, one validated source, tier `limited`. */
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -125,12 +190,13 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,
   names: STATE_NAMES as Record<string, string>,
+  sourcesByState: { VA: sourcesForState("VA").map((s) => s.sourceKey) },
 };
 
 /**
  * Derives every registry row from the inputs. Pure and total: every state in
- * `states` gets exactly one entry, and the ONLY way to reach `connected` is the
- * four-part gate documented at the top of this file.
+ * `states` gets exactly one entry, and the ONLY way to reach a validated tier is
+ * the five-part gate documented at the top of this file.
  */
 export function deriveStateRegistry(inputs: RegistryInputs): StateRegistryEntry[] {
   const states = inputs.states ?? STATE_CODES;
@@ -141,6 +207,7 @@ export function deriveStateRegistry(inputs: RegistryInputs): StateRegistryEntry[
     const base = {
       stateCode: stateCode as UsStateCode,
       name,
+      sourceCount: (inputs.sourcesByState?.[stateCode] ?? []).length,
     };
     const connector = inputs.connectors[stateCode];
     if (!connector) {
@@ -151,13 +218,14 @@ export function deriveStateRegistry(inputs: RegistryInputs): StateRegistryEntry[
         reason: "no connector registered for this state",
         sourceUrl: null,
         sourceValidationTest: null,
+        note: null,
       };
     }
-    const validation = inputs.validations[stateCode];
     const connectorId = connector.id;
+    const validation = inputs.validations[stateCode];
     if (!validation) {
-      // A connector WITHOUT a passing source-validation test must never report
-      // connected — this is the owner's rollout gate, enforced in code.
+      // A connector WITHOUT a passing source-validation test must never reach a
+      // validated tier — this is the owner's rollout gate, enforced in code.
       return {
         ...base,
         status: "unavailable" as const,
@@ -165,6 +233,7 @@ export function deriveStateRegistry(inputs: RegistryInputs): StateRegistryEntry[
         reason: "connector registered but no source-validation test is recorded — not verified against the live source",
         sourceUrl: connector.sourceUrl,
         sourceValidationTest: null,
+        note: null,
       };
     }
     if (validation.connectorId !== connectorId || validation.sourceUrl !== connector.sourceUrl) {
@@ -172,9 +241,10 @@ export function deriveStateRegistry(inputs: RegistryInputs): StateRegistryEntry[
         ...base,
         status: "unavailable" as const,
         connectorId,
-        reason: "source-validation manifest disagrees with the connector (connector id or source URL mismatch) — re-validate before connecting",
+        reason: "source-validation manifest disagrees with the connector (connector id or source URL mismatch) — re-validate before covering this state",
         sourceUrl: connector.sourceUrl,
         sourceValidationTest: validation.testFile,
+        note: null,
       };
     }
     if (!approved.has(connector.officialHost)) {
@@ -185,15 +255,42 @@ export function deriveStateRegistry(inputs: RegistryInputs): StateRegistryEntry[
         reason: `official host ${connector.officialHost} is not on the approved-source allowlist`,
         sourceUrl: connector.sourceUrl,
         sourceValidationTest: validation.testFile,
+        note: null,
+      };
+    }
+    if (!isValidatedTier(validation.tier)) {
+      // Fail-closed on a malformed manifest: an unknown/missing tier can never
+      // silently become the most permissive one.
+      return {
+        ...base,
+        status: "unavailable" as const,
+        connectorId,
+        reason: `source-validation manifest declares no valid coverage tier (${VALIDATED_REGISTRY_STATUSES.join(" | ")})`,
+        sourceUrl: connector.sourceUrl,
+        sourceValidationTest: validation.testFile,
+        note: validation.note ?? null,
+      };
+    }
+    const gate = `source-validation test ${validation.testFile} verified against ${connector.sourceUrl} on ${validation.verifiedOn}`;
+    if (validation.tier === "connected" && base.sourceCount < CONNECTED_MIN_SOURCES) {
+      return {
+        ...base,
+        status: "limited" as const,
+        connectorId,
+        reason: `${gate} — but only ${base.sourceCount} source(s) are registered for this state, and the ladder requires at least ${CONNECTED_MIN_SOURCES} for statewide multi-source coverage; reported as limited`,
+        sourceUrl: connector.sourceUrl,
+        sourceValidationTest: validation.testFile,
+        note: validation.note ?? null,
       };
     }
     return {
       ...base,
-      status: "connected" as const,
+      status: validation.tier,
       connectorId,
-      reason: `source-validation test ${validation.testFile} verified against ${connector.sourceUrl} on ${validation.verifiedOn}`,
+      reason: gate,
       sourceUrl: connector.sourceUrl,
       sourceValidationTest: validation.testFile,
+      note: validation.note ?? null,
     };
   });
 }
@@ -210,45 +307,71 @@ export function getStateEntry(stateCode: string): StateRegistryEntry | null {
   return listStates().find((s) => s.stateCode === code) ?? null;
 }
 
-/** One state's derived status. Unknown codes are `unavailable`, never open. */
+/** One state's derived status. Unknown codes are `unavailable`, never covered. */
 export function getStateStatus(stateCode: string): StateGrantRegistryStatus {
   return getStateEntry(stateCode)?.status ?? "unavailable";
 }
 
+/** True when the state holds a VALIDATED tier (limited | curated | connected). */
+export function isStateValidated(stateCode: string): boolean {
+  return isValidatedStatus(getStateStatus(stateCode));
+}
+
+/** True only for the top tier: statewide, multi-source coverage. */
 export function isStateConnected(stateCode: string): boolean {
   return getStateStatus(stateCode) === "connected";
 }
 
 /**
- * The connector for a state, or null when the state is NOT connected. This is
+ * The connector for a state, or null when the state is NOT validated. This is
  * the fail-closed door the sync runner goes through: a state whose validation
- * gate does not hold cannot be synced at all.
+ * gate does not hold cannot be synced at all. `limited` and `curated` states are
+ * real, syncable coverage — the owner's correction to part 1 made this explicit.
  */
 export function getConnector(stateCode: string): StateGrantConnector<never> | null {
   const entry = getStateEntry(stateCode);
-  if (!entry || entry.status !== "connected") return null;
+  if (!entry || !isValidatedStatus(entry.status)) return null;
   return DEFAULT_REGISTRY_INPUTS.connectors[entry.stateCode] ?? null;
 }
 
+/** Every state with a validated source (the states a sync may touch). */
+export function validatedStates(): UsStateCode[] {
+  return listStates()
+    .filter((s) => isValidatedStatus(s.status))
+    .map((s) => s.stateCode);
+}
+
+/** The states at the top tier only. */
 export function connectedStates(): UsStateCode[] {
   return listStates()
     .filter((s) => s.status === "connected")
     .map((s) => s.stateCode);
 }
 
-/** Honest coverage counts for the (part 2) coverage page. */
+/** Honest coverage counts for the coverage page. */
 export interface CoverageCounts {
   total: number;
   connected: number;
+  curated: number;
+  limited: number;
   unavailable: number;
+  /** Every state with a validated source (limited + curated + connected). */
+  validated: number;
 }
 
 export function coverageCounts(): CoverageCounts {
   const states = listStates();
-  const connected = states.filter((s) => s.status === "connected").length;
+  const count = (status: StateGrantRegistryStatus) =>
+    states.filter((s) => s.status === status).length;
+  const connected = count("connected");
+  const curated = count("curated");
+  const limited = count("limited");
   return {
     total: states.length,
     connected,
-    unavailable: states.length - connected,
+    curated,
+    limited,
+    unavailable: states.length - connected - curated - limited,
+    validated: connected + curated + limited,
   };
 }

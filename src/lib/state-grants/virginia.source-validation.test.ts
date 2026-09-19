@@ -1,8 +1,8 @@
 /**
- * VIRGINIA SOURCE-VALIDATION TEST — the LIVE gate that lets Virginia report
- * `connected` (owner ROLLOUT order 2026-09-18: "source-validation tests REQUIRED
- * before any state goes unavailable→connected"; owner guardrail 2026-09-19:
- * ordinary CI must never depend on a live external website).
+ * VIRGINIA SOURCE-VALIDATION TEST — the LIVE gate that lets Virginia report a
+ * validated coverage tier (owner ROLLOUT order 2026-09-18: "source-validation
+ * tests REQUIRED before any state goes unavailable→validated"; owner guardrail
+ * 2026-09-19: ordinary CI must never depend on a live external website).
  *
  * OPT-IN BY DESIGN (owner guardrail 2026-09-19). This file does NOTHING unless it
  * is explicitly invoked:
@@ -16,8 +16,8 @@
  * is printed, so the skip can never be silent. The default suite stays 100%
  * deterministic (saved fixtures only, ZERO network; the fixture half of the same
  * ground is covered by state-grants.test.ts). A skipped run proves NOTHING about
- * Virginia: a state may only flip `unavailable → connected` on a PASSING explicit
- * run of this file against the real official source.
+ * Virginia: a state may only reach a validated tier on a PASSING explicit run of
+ * this file against the real official source.
  *
  * This is the ONLY place in the rollout that talks to the real official source.
  * It proves, against the live page:
@@ -26,9 +26,12 @@
  *      a source URL that is the official listing;
  *   3. every parsed URL stays on the approved official hosts;
  *   4. every date either parses exactly or is null — nothing is invented;
- *   5. classification obeys the honesty contract (no forecast carries a
- *      close_date, and no record is open without a deadline the source published
- *      or an explicit ongoing declaration);
+ *   5. classification obeys the owner's ordered status model (2026-09-19/20:
+ *      open | upcoming | rolling | closed | unverified): no `forecast`, no
+ *      `unverified`/`rolling` row carrying a deadline, `open` only with a
+ *      published live deadline, `rolling` only on the source's own ongoing
+ *      declaration, `upcoming` only with published dates, and an estimate never
+ *      standing in for a deadline;
  *   6. every parsed title really appears in the fetched page (spot-check against
  *      the live payload, not just against our own parser);
  *   7. parsing the same page twice gives the SAME fingerprint for every record,
@@ -42,7 +45,7 @@
  *
  * Once invoked, any failure to reach the source FAILS the test — it does not
  * skip — because a source we cannot verify is exactly the state that must not be
- * `connected`.
+ * reported as covered.
  */
 import { describe, expect, test } from "bun:test";
 import {
@@ -57,7 +60,8 @@ import {
   stripTags,
   virginiaConnector,
 } from "~/lib/state-grants/connectors/virginia";
-import { getStateEntry, isStateConnected } from "~/lib/state-grants/registry";
+import { getStateEntry, isStateValidated } from "~/lib/state-grants/registry";
+import { sourcesForState } from "~/lib/state-grants/sources";
 
 /** The live source validation is OPT-IN — see the header for why. */
 const RUN_LIVE = process.env.STATE_GRANTS_RUN_LIVE_SOURCE_TESTS === "1";
@@ -72,7 +76,7 @@ if (SKIP) {
   console.warn(
     `\n${BOLD}${YELLOW}LIVE SOURCE VALIDATION SKIPPED — run \`bun run validate:live-sources\` ` +
       `(or \`STATE_GRANTS_RUN_LIVE_SOURCE_TESTS=1 bun test src/lib/state-grants\`) to verify VA against the real ` +
-      `official source (required before VA flips to connected).${RESET}\n` +
+      `official source (required before VA's coverage tier changes).${RESET}\n` +
       `  The default run is fixture-only and deterministic: it proves the parser/classifier logic, NOT the live source.\n`,
   );
 } else {
@@ -106,7 +110,11 @@ describe.skipIf(SKIP)("virginia source validation (live)", () => {
     );
     const entry = getStateEntry("VA")!;
     expect(entry.sourceValidationTest).toBe(VIRGINIA_SOURCE_VALIDATION_TEST);
-    expect(isStateConnected("VA")).toBe(true);
+    expect(isStateValidated("VA")).toBe(true);
+    // One validated source, so `limited` — never advertised as statewide.
+    expect(entry.status).toBe("limited");
+    expect(entry.sourceCount).toBe(sourcesForState("VA").length);
+    expect(entry.sourceCount).toBe(1);
   });
 
   test("the live source yields at least one real opportunity", () => {
@@ -115,10 +123,14 @@ describe.skipIf(SKIP)("virginia source validation (live)", () => {
       expect(o.title.trim().length).toBeGreaterThan(2);
       expect(o.externalId.length).toBeGreaterThan(0);
       expect(o.stateCode).toBe("VA");
+      expect(o.sourceKey).toBe(virginiaConnector.id);
       expect(o.sourceUrl).toBe(VIRGINIA_SOURCE_URL);
       expect(STATE_GRANT_STATUSES).toContain(o.status);
       expect(o.statusReason.length).toBeGreaterThan(10);
       expect(o.fingerprint).toMatch(/^[0-9a-f]{32}$/);
+      // Owner correction 5: a missing date is never rendered — `forecast` is not
+      // a status any more.
+      expect(o.status as string).not.toBe("forecast");
     }
   }, LIVE_TIMEOUT_MS);
 
@@ -148,22 +160,54 @@ describe.skipIf(SKIP)("virginia source validation (live)", () => {
     expect(datesSeen).toBeGreaterThanOrEqual(1);
   }, LIVE_TIMEOUT_MS);
 
-  test("the honesty contract holds on live data", () => {
+  test("the owner's status model holds on live data", () => {
     for (const o of opportunities) {
-      if (o.status === "forecast") {
-        expect(o.closeDate).toBeNull(); // an estimate is never a deadline
+      const sourceClosed = o.raw.sourceClosedDeclaredBySource === true;
+      const ongoingDeclared = o.raw.ongoingDeclaredBySource === true;
+      const closeDay = o.closeDate ? Date.parse(`${o.closeDate}T00:00:00Z`) : null;
+      const openDay = o.postedDate ? Date.parse(`${o.postedDate}T00:00:00Z`) : null;
+
+      switch (o.status) {
+        case "open":
+          // Open needs a PUBLISHED deadline that has not passed.
+          expect(closeDay).not.toBeNull();
+          expect(closeDay!).toBeGreaterThanOrEqual(liveToday);
+          break;
+        case "upcoming":
+          // An announced cycle with published dates and a future opening date.
+          expect(closeDay).not.toBeNull();
+          expect(openDay).not.toBeNull();
+          expect(openDay!).toBeGreaterThan(liveToday);
+          expect(o.estimatedCloseDate).toBeNull();
+          break;
+        case "rolling":
+          // Only ever on the source's own ongoing / year-round declaration.
+          expect(ongoingDeclared).toBe(true);
+          expect(o.closeDate).toBeNull();
+          break;
+        case "closed":
+          // Either the source said so, or its published date has passed.
+          expect(sourceClosed || (closeDay !== null && closeDay < liveToday)).toBe(true);
+          break;
+        case "unverified":
+          // The honest home for missing/ambiguous/estimate-only dates.
+          expect(o.closeDate).toBeNull();
+          break;
+        default:
+          throw new Error(`unexpected status ${o.status} on the live source`);
       }
-      if (o.status === "open") {
-        const ongoing = o.raw.ongoingDeclaredBySource === true;
-        const hasLiveDeadline =
-          o.closeDate !== null && Date.parse(`${o.closeDate}T00:00:00Z`) >= liveToday;
-        expect(ongoing || hasLiveDeadline).toBe(true);
-      }
-      if (o.status === "closed" && o.closeDate !== null) {
-        const sourceSaidClosed = o.raw.sourceClosedDeclaredBySource === true;
-        const passed = Date.parse(`${o.closeDate}T00:00:00Z`) < liveToday;
-        expect(sourceSaidClosed || passed).toBe(true);
-      }
+    }
+  }, LIVE_TIMEOUT_MS);
+
+  test("the live page still shows the realities the owner asked us to classify", () => {
+    // A tourism grants page carries year-round programs (rolling) and programs
+    // whose cycle has closed (closed). Extra shapes (upcoming / unverified) are
+    // asserted only for the invariant that they never carry a deadline, so this
+    // gate stays true as the page changes.
+    expect(opportunities.some((o) => o.status === "rolling")).toBe(true);
+    expect(opportunities.some((o) => o.status === "closed")).toBe(true);
+    for (const o of opportunities) {
+      if (o.status === "unverified" || o.status === "rolling") expect(o.closeDate).toBeNull();
     }
   }, LIVE_TIMEOUT_MS);
 

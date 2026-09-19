@@ -1,6 +1,7 @@
 /**
- * VIRGINIA REFERENCE CONNECTOR — the first (and, at part 1, only) state
- * connector for Contrax Grants' state rollout (owner ROLLOUT order 2026-09-18).
+ * VIRGINIA REFERENCE CONNECTOR — the first state connector for Contrax Grants'
+ * state rollout (owner ROLLOUT order 2026-09-18; corrected by the owner's
+ * 2026-09-19 P1 review).
  *
  * OFFICIAL SOURCE (named constant below, verified live 2026-09-19):
  *   https://www.vatc.org/grants/
@@ -21,7 +22,12 @@
  *   - virginiahousing.com/grants                    → reachable, but a program
  *     index without published dates, so nothing could be classified honestly
  * The host must stay on VIRGINIA_APPROVED_HOSTS or the state registry refuses to
- * report Virginia as `connected` (fail-closed — see registry.ts).
+ * report Virginia above `unavailable` (fail-closed — see registry.ts).
+ *
+ * ONE SOURCE IS NOT A STATEWIDE VIEW (owner 2026-09-19): this is ONE tourism
+ * source, and Virginia publishes many more programs through other agencies we
+ * have not validated. That is why the registry reports Virginia as `limited`,
+ * not `connected`, and why the registry entry carries an explicit note.
  *
  * WHY A FINGERPRINT OF THE PAGE, NOT A JSON API: VTC publishes no grant feed.
  * The grants page is a hand-maintained WordPress page whose program blocks are
@@ -35,8 +41,10 @@ import {
   NOT_SPECIFIED,
   classifyStateGrant,
   contentFingerprint,
+  isEstimatedText,
   parseStateDay,
   slugify,
+  stripEstimateMarkers,
   type GrantClassification,
   type SourceGrantRecord,
   type StateGrantConnector,
@@ -64,12 +72,15 @@ export const VIRGINIA_APPROVED_HOSTS: readonly string[] = ["www.vatc.org", "vatc
  */
 export const VIRGINIA_AGENCY = "Virginia Tourism Corporation";
 
+/** Human label of the listing itself — the `state_grant_sources.name` value. */
+export const VIRGINIA_SOURCE_NAME = "Virginia Tourism Corporation — Grants and Funding";
+
 export const VIRGINIA_CONNECTOR_ID = "va-vtc-grants";
 
 /**
- * The source-validation test that GATES Virginia's `unavailable → connected`
- * flip. Named here so the registry can require it, and asserted by that test
- * itself so the manifest and the test can never drift apart silently.
+ * The source-validation test that GATES Virginia's tier. Named here so the
+ * registry can require it, and asserted by that test itself so the manifest and
+ * the test can never drift apart silently.
  */
 export const VIRGINIA_SOURCE_VALIDATION_TEST =
   "src/lib/state-grants/virginia.source-validation.test.ts";
@@ -257,17 +268,32 @@ function isNavigationText(text: string): boolean {
 }
 
 /** The labelled facts of one block, keyed by the label the source used. */
-interface LabeledFacts {
+export interface LabeledFacts {
   /** label (lower-cased, de-punctuated) → the source's value, verbatim. */
   values: Record<string, string>;
   /** Unlabelled list lines (the program description), in source order. */
   descriptions: string[];
   /** Labels in the order the source wrote them. */
   order: string[];
+  /** Every list line's text, in source order — the block's full text. */
+  text: string;
+  /**
+   * label → true when the label ITSELF marks its value as an estimate
+   * ("Closes (estimated):", "Estimated closing date:"). The marker is a property
+   * of the source's own wording, so it is captured rather than dropped.
+   */
+  estimatedLabels: Record<string, boolean>;
 }
 
+/**
+ * Every label the VTC page uses, longest-first so "total funding" is never read
+ * as "funding" and "award tiers" never as "award". A label only matches when a
+ * colon follows it (`\s*:`), optionally with a short parenthetical in between
+ * ("Closes (estimated):"), which is what keeps ordinary prose from becoming a
+ * label.
+ */
 const LABEL_RE =
-  /(who is eligible|additional eligibility|eligibility|what'?s available|what is available|description|opened|opens|open date|closes|closing date|closing|close date|closed|deadline|due date|due|when|award tiers?|award tier|award amount|award|maximum award|max award|match|funding|amount|how|marketing focus|contact|apply|application|learn more)\s*:/gi;
+  /(who is eligible|who can apply|additional eligibility|eligible applicants|eligible geography|service area|geography|eligibility|location|what'?s available|what is available|description|opened|opens|open date|closes|closing date|close date|closing|closed|deadline|due date|due|when|award tiers|award tier|award amount|maximum award|max award|award|total funding|funding available|funding|cost share|matching requirement|match|amount|how|marketing focus|focus area|focus|category|categories|contact|apply|application|learn more)\s*(?:\([^)]{0,40}\))?\s*:/gi;
 
 /** Extracts `Label: value` pairs plus unlabelled description lines from a block. */
 export function extractFacts(body: string): LabeledFacts {
@@ -275,10 +301,13 @@ export function extractFacts(body: string): LabeledFacts {
   const values: Record<string, string> = {};
   const order: string[] = [];
   const descriptions: string[] = [];
+  const lines: string[] = [];
+  const estimatedLabels: Record<string, boolean> = {};
   let m: RegExpExecArray | null;
   while ((m = listRe.exec(body)) !== null) {
     const text = stripTags(m[1] ?? "");
     if (!text) continue;
+    lines.push(text);
     const matches = [...text.matchAll(LABEL_RE)];
     if (matches.length === 0) {
       if (!isContactOnlyLine(text)) descriptions.push(text);
@@ -290,6 +319,7 @@ export function extractFacts(body: string): LabeledFacts {
       const valueEnd = i + 1 < matches.length ? (matches[i + 1].index ?? text.length) : text.length;
       const value = text.slice(valueStart, valueEnd).trim().replace(/^[.\s]+/, "").trim();
       order.push(label);
+      if (isEstimatedText(matches[i][0])) estimatedLabels[label] = true;
       if (value) {
         values[label] = values[label] ? `${values[label]} ${value}` : value;
       } else if (!(label in values)) {
@@ -297,7 +327,7 @@ export function extractFacts(body: string): LabeledFacts {
       }
     }
   }
-  return { values, descriptions, order };
+  return { values, descriptions, order, text: lines.join(" "), estimatedLabels };
 }
 
 function normalizeLabel(raw: string): string {
@@ -316,27 +346,119 @@ function isContactOnlyLine(text: string): boolean {
   );
 }
 
-const OPENING_LABELS = ["opened", "opens", "open date"];
-const CLOSING_LABELS = ["closes", "closing", "closing date", "close date", "closed", "deadline", "due", "due date"];
+const OPENING_LABELS = ["opened", "opens", "open date", "opening date"];
+const CLOSING_LABELS = [
+  "closes",
+  "closing",
+  "closing date",
+  "estimated closing date",
+  "estimated close date",
+  "close date",
+  "closed",
+  "deadline",
+  "due",
+  "due date",
+];
 /** Past-tense closing labels: the source itself says this cycle is over. */
 const PAST_TENSE_CLOSING_LABELS = ["closed"];
+
+/** Labels carrying the normalized fields (owner correction 4, 2026-09-19). */
+const ELIGIBILITY_LABELS = [
+  "who is eligible",
+  "who can apply",
+  "eligible applicants",
+  "eligibility",
+  "additional eligibility",
+];
+const GEOGRAPHY_LABELS = ["eligible geography", "service area", "geography", "location"];
+const CATEGORY_LABELS = ["marketing focus", "focus area", "focus", "category", "categories"];
+const AWARD_LABELS = [
+  "award tiers",
+  "award tier",
+  "maximum award",
+  "max award",
+  "award amount",
+  "award",
+];
+const TOTAL_FUNDING_LABELS = ["total funding", "funding available", "funding", "amount"];
+const MATCH_LABELS = ["matching requirement", "cost share", "match"];
 
 /** Does the source's own words declare a program with no deadline to expire? */
 const ONGOING_RE =
   /\b(year[\s-]?round|rolling|ongoing|continuous|no (?:time|deadline)|no application deadline|accept(?:s|ing) applications (?:on a )?rolling|open until filled|always open)\b/i;
 
+/**
+ * A match phrase inside the source's own award wording, e.g. "1:1 minimum cash
+ * match" or "minimum 50% cash or in-kind match". Used only when the source gives
+ * no `Match:` label of its own — the phrase is quoted verbatim either way.
+ */
+const MATCH_PHRASE_RE =
+  /(?:\d+:\d+|\d+\s*%)\s+(?:minimum\s+|min\.?\s+)?(?:cash(?:\s+or\s+in-kind)?|in-kind(?:\s+cash)?)\s+match/i;
+
+/** All dollar amounts in a value, largest-last order preserved. */
+export function dollarAmounts(text: string): number[] {
+  const out: number[] = [];
+  for (const m of text.matchAll(/\$\s*(\d[\d,]*(?:\.\d{1,2})?)/g)) {
+    const n = Number((m[1] ?? "").replace(/,/g, ""));
+    if (Number.isFinite(n) && n > 0) out.push(n);
+  }
+  return out;
+}
+
+/**
+ * The numeric award range implied by the amounts the source published. A single
+ * amount is the ceiling (the source's own "up to $X" framing); several amounts
+ * give the smallest and largest. No amount published ⇒ both null — the range
+ * text itself is still stored verbatim.
+ */
+export function awardAmounts(text: string): { min: number | null; max: number | null } {
+  const amounts = dollarAmounts(text);
+  if (amounts.length === 0) return { min: null, max: null };
+  if (amounts.length === 1) return { min: null, max: amounts[0] };
+  return { min: Math.min(...amounts), max: Math.max(...amounts) };
+}
+
+/** First non-empty source value for a set of labels (label order wins). */
+function firstValue(
+  facts: LabeledFacts,
+  labels: readonly string[],
+): { value: string | null; label: string | null } {
+  for (const label of labels) {
+    const value = facts.values[label];
+    if (value !== undefined && value.trim().length > 0) return { value: value.trim(), label };
+  }
+  return { value: null, label: null };
+}
+
+/** Every non-empty source value for a set of labels, in label order, deduped. */
+function allValues(facts: LabeledFacts, labels: readonly string[]): string[] {
+  const out: string[] = [];
+  for (const label of labels) {
+    const value = facts.values[label];
+    if (value === undefined) continue;
+    const trimmed = value.trim();
+    if (trimmed && !out.includes(trimmed)) out.push(trimmed);
+  }
+  return out;
+}
+
 /** First usable date among a set of labels, plus which label produced it. */
 function firstDate(
   facts: LabeledFacts,
   labels: readonly string[],
-): { date: string | null; label: string | null; raw: string | null } {
+): { date: string | null; label: string | null; raw: string | null; estimated: boolean } {
   for (const label of labels) {
     const value = facts.values[label];
     if (value === undefined) continue;
-    const date = parseStateDay(value);
-    if (date) return { date, label, raw: value };
+    // A value may carry an estimate marker in front of the date ("est. 2026-10-29")
+    // or after it ("October 29, 2026 (estimated)"); the label itself may carry one
+    // too ("Closes (estimated):"). Either way the date is an ESTIMATE — never a
+    // published deadline.
+    const estimated = isEstimatedText(value) || (facts.estimatedLabels[label] ?? false);
+    const date = parseStateDay(value) ?? parseStateDay(stripEstimateMarkers(value));
+    if (date) return { date, label, raw: value, estimated };
   }
-  return { date: null, label: null, raw: null };
+  return { date: null, label: null, raw: null, estimated: false };
 }
 
 /** Parses the whole page into normalised, UNCLASSIFIED records. */
@@ -382,7 +504,37 @@ export function parseVirginiaGrantsPage(html: string, now: Date = new Date()): S
       facts.descriptions[0] ??
       "";
 
+    // ── Normalized fields (owner correction 4) ────────────────────────────────
+    // Every one of these is the source's own words, or NOT_SPECIFIED. Eligibility
+    // statements are concatenated in label order (the source publishes a primary
+    // statement and sometimes an "Additional eligibility" one; both are kept).
+    const eligibility = allValues(facts, ELIGIBILITY_LABELS);
+    const eligibleApplicants = eligibility.length > 0 ? eligibility.join(" ") : NOT_SPECIFIED;
+    const geography = firstValue(facts, GEOGRAPHY_LABELS);
+    const eligibleGeography = geography.value ?? NOT_SPECIFIED;
+    const categories = allValues(facts, CATEGORY_LABELS);
+    const awardLabeled = allValues(facts, AWARD_LABELS);
+    // The VTC page often labels "Award Tiers:" with the tiers on their own lines.
+    const awardTierLines = facts.descriptions.filter((line) => /^tier\s+(?:one|two|three|\d+)\b/i.test(line));
+    const awardTextParts = awardLabeled.length > 0 ? awardLabeled : awardTierLines;
+    const awardRange = awardTextParts.length > 0 ? awardTextParts.join(" ") : NOT_SPECIFIED;
+    const award = awardAmounts(awardRange === NOT_SPECIFIED ? "" : awardRange);
+    const totalFunding = firstValue(facts, TOTAL_FUNDING_LABELS).value ?? NOT_SPECIFIED;
+    const matchLabeled = firstValue(facts, MATCH_LABELS).value;
+    const matchPhrase = matchLabeled ?? MATCH_PHRASE_RE.exec(facts.text)?.[0]?.trim() ?? null;
+    const matchingRequirement = matchPhrase ?? NOT_SPECIFIED;
+
+    // ── Dates, with the owner's estimate rule (correction 5) ─────────────────
+    // A PUBLISHED date is a date. A date the source marks as an estimate goes to
+    // estimatedCloseDate instead, and `closeDate` stays null — an estimate can
+    // never be rendered as a deadline. An estimated OPENING date is likewise not
+    // a posted opening date.
+    const closeDate = closing.estimated ? null : closing.date;
+    const estimatedCloseDate = closing.estimated ? closing.date : null;
+    const postedDate = opening.estimated ? null : opening.date;
+
     records.push({
+      sourceKey: VIRGINIA_CONNECTOR_ID,
       stateCode: "VA",
       externalId,
       title,
@@ -390,8 +542,9 @@ export function parseVirginiaGrantsPage(html: string, now: Date = new Date()): S
       summary: description || NOT_SPECIFIED,
       url,
       sourceUrl: VIRGINIA_SOURCE_URL,
-      postedDate: opening.date,
-      closeDate: closing.date,
+      postedDate,
+      closeDate,
+      estimatedCloseDate,
       ongoing,
       sourceClosed,
       // The VTC grants page publishes NO per-record "last updated" stamp, and its
@@ -399,27 +552,33 @@ export function parseVirginiaGrantsPage(html: string, now: Date = new Date()): S
       // exact no-op-write churn this repo avoids. So it stays null, and
       // amendment detection rides on the content fingerprint (see CONVENTIONS.md).
       sourceUpdatedAt: null,
+      eligibleApplicants,
+      eligibleGeography,
+      categories,
+      awardRange,
+      awardMinAmount: award.min,
+      awardMaxAmount: award.max,
+      totalFunding,
+      matchingRequirement,
       raw: {
         // Source fields verbatim, in the source's own label order.
         labels: facts.order,
         facts: facts.values,
-        eligibility:
-          facts.values["who is eligible"] ??
-          facts.values["eligibility"] ??
-          facts.values["additional eligibility"] ??
-          NOT_SPECIFIED,
-        award:
-          facts.values["award tiers"] ??
-          facts.values["award tier"] ??
-          facts.values["award"] ??
-          facts.values["award amount"] ??
-          facts.values["max award"] ??
-          facts.values["maximum award"] ??
-          NOT_SPECIFIED,
+        eligibility: eligibleApplicants,
+        geography: eligibleGeography,
+        categories,
+        award: awardRange,
+        awardMinAmount: award.min,
+        awardMaxAmount: award.max,
+        totalFunding,
+        matching: matchingRequirement,
+        matchPhraseFromSource: !!matchPhrase,
         openingLabel: opening.label,
         openingText: opening.raw,
+        openingEstimated: opening.estimated,
         closingLabel: closing.label,
         closingText: closing.raw,
+        closingEstimated: closing.estimated,
         ongoingDeclaredBySource: ongoing,
         sourceClosedDeclaredBySource: sourceClosed,
       },
@@ -482,11 +641,13 @@ export function classifyVirginiaRecord(
   return classifyStateGrant(record, now);
 }
 
-/** The connector object the registry and the sync runner use. */
+/** The connector object the registry, the sources registry and the runner use. */
 export const virginiaConnector: StateGrantConnector<string> = {
   id: VIRGINIA_CONNECTOR_ID,
   stateCode: "VA",
   stateName: "Virginia",
+  sourceName: VIRGINIA_SOURCE_NAME,
+  agency: VIRGINIA_AGENCY,
   sourceUrl: VIRGINIA_SOURCE_URL,
   officialHost: VIRGINIA_SOURCE_HOST,
   sourceValidationTest: VIRGINIA_SOURCE_VALIDATION_TEST,

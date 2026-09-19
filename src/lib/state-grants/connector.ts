@@ -1,6 +1,6 @@
 /**
  * Contrax Grants — State Grants connector contract (owner ROLLOUT order
- * 2026-09-18, part 1: data infrastructure + the Virginia reference connector).
+ * 2026-09-18, part 1; corrections owner 2026-09-19 / R1).
  *
  * PURE MODULE: no DB, no network, no node builtins, no env reads, no import
  * side effects. Every decision below is unit-tested in
@@ -13,24 +13,36 @@
  *   parse(raw)       → SourceGrantRecord[] — normalised, still UNCLASSIFIED, and
  *                      faithful: a field the source does not publish becomes
  *                      NOT_SPECIFIED (or null for a date) and is NEVER inferred.
- *   classify(record) → open | forecast | closed, plus which date is which.
- *   dedupe()         → one record per (state, external_id). A re-published
+ *   classify(record) → open | upcoming | rolling | closed | unverified.
+ *   dedupe()         → one record per (source, external_id). A re-published
  *                      (amended) record is the SAME external_id, so the store
  *                      updates that row — it never inserts a second one.
  *
- * HONESTY CONTRACT (carried over verbatim from the federal grants freshness fix,
- * #399 — the state classifier must not be more permissive than the federal one):
- *   1. `open` requires a published closing date that has not passed (US Eastern
- *      day boundary, the deadline day itself is inclusive) OR an explicit
- *      source-declared ongoing/rolling program. A record whose deadline cannot
- *      be confirmed is NEVER open — no exceptions for looking plausible.
- *   2. `forecast` covers a cycle the source announces but has not opened yet,
- *      and a record the source published without a usable deadline. A forecast's
- *      announced date is written to `estimatedCloseDate` and is NEVER promoted
- *      into `closeDate`, so an estimate can never masquerade as a deadline.
- *   3. `closed` means the source's own published closing date has passed.
- *   4. Every displayed string is the source's own words, else NOT_SPECIFIED.
+ * HONESTY CONTRACT (carried over from the federal grants freshness fix, #399, and
+ * corrected by the owner's 2026-09-19 P1 review — the state classifier must not
+ * be more permissive than the federal one):
+ *   1. `open` requires a PUBLISHED closing date that has not passed (US Eastern
+ *      day boundary, the deadline day itself inclusive). A record whose deadline
+ *      cannot be confirmed is NEVER open — no exceptions for looking plausible.
+ *   2. `upcoming` is a cycle the source ANNOUNCED with published (non-estimated)
+ *      dates whose opening date has not arrived yet.
+ *   3. `rolling` is a program the SOURCE ITSELF declares ongoing / year-round /
+ *      without a deadline: there is no deadline to expire.
+ *   4. `closed` means the source's own published closing date has passed, or the
+ *      source marks the cycle closed in its own words.
+ *   5. `unverified` is the honest home for everything else: dates missing, dates
+ *      ambiguous, or an ESTIMATE the source published instead of a date. An
+ *      ambiguous record is NEVER auto-classified as a future cycle ("forecast" is
+ *      deliberately not a status any more).
+ *   6. An estimate (e.g. "est. 2026-10-29") lives ONLY in `estimatedCloseDate`,
+ *      is stored in the `estimated_close_date` column, and is never promoted into
+ *      `closeDate`: a row whose only date is an estimate is `unverified`.
+ *   7. Every displayed string is the source's own words, else NOT_SPECIFIED.
  *      Nothing is averaged, inferred, generated or back-filled.
+ *
+ * IDENTITY is (source, external_id) — see `dedupeByExternalId`. The same
+ * external id published by two different agencies in one state is TWO records;
+ * `stateCode` alone can never merge them.
  *
  * ISOLATION: nothing in this module (and none of the state tables) is part of
  * the federal /grants experience, the Radar funnel, or any grants_* event.
@@ -43,21 +55,38 @@ export const NOT_SPECIFIED = "Not specified";
 /** Two-letter USPS state codes, plus DC. */
 export type StateCode = string;
 
-/** The three states the store records. Derived — never chosen by a connector. */
-export type StateGrantStatus = "open" | "forecast" | "closed";
+/**
+ * The owner's ordered status model (2026-09-19). Derived — never chosen by a
+ * connector, and never hand-set in the database.
+ */
+export type StateGrantStatus = "open" | "upcoming" | "rolling" | "closed" | "unverified";
 
 export const STATE_GRANT_STATUSES: readonly StateGrantStatus[] = [
   "open",
-  "forecast",
+  "upcoming",
+  "rolling",
   "closed",
+  "unverified",
 ] as const;
 
-/** Human labels (mirrors the federal labels so the copy cannot drift). */
+/**
+ * The canonical display order, best-first (mirrors the query surface's ORDER BY
+ * so a UI and the API can never disagree about what "first" means).
+ */
+export const STATE_GRANT_STATUS_ORDER: readonly StateGrantStatus[] = STATE_GRANT_STATUSES;
+
+/** Human labels. `unverified` says exactly what is unknown — never "forecast". */
 export const STATE_GRANT_STATUS_LABELS: Record<StateGrantStatus, string> = {
   open: "Open — accepting applications",
-  forecast: "Forecast — not yet open for applications",
+  upcoming: "Upcoming — announced cycle, not open yet",
+  rolling: "Rolling — the source declares the program ongoing",
   closed: "Closed",
+  unverified: "Unverified — the source published no confirmable dates",
 };
+
+export function isStateGrantStatus(value: unknown): value is StateGrantStatus {
+  return typeof value === "string" && (STATE_GRANT_STATUSES as readonly string[]).includes(value);
+}
 
 // ── Dates ────────────────────────────────────────────────────────────────────
 
@@ -143,6 +172,56 @@ export function stateDayEpoch(raw: string | null): number | null {
   return Date.parse(`${day}T00:00:00Z`);
 }
 
+// ── Estimates (the owner's 2026-09-19 rule: an estimate is never a deadline) ──
+
+/**
+ * Words a source uses to mark a date as an ESTIMATE rather than a published
+ * date. Kept explicit (no bare "target"/"expected in" patterns) so the list can
+ * be audited: a false positive here would send a real deadline to `unverified`.
+ */
+const ESTIMATE_WORDS = [
+  "est\\.?",
+  "estimated",
+  "approx\\.?",
+  "approximately",
+  "tentative",
+  "anticipated",
+  "expected",
+  "projected",
+] as const;
+
+const ESTIMATE_RE = new RegExp(`(?:^|[\\s(])(${ESTIMATE_WORDS.join("|")})(?=[\\s),.:]|$)`, "i");
+const ESTIMATE_PAREN_RE = new RegExp(`\\(\\s*(${ESTIMATE_WORDS.join("|")})\\s*\\)`, "gi");
+/**
+ * The marker plus the punctuation glued to it, but NOT the date: "est. 2026-10-29"
+ * → "2026-10-29", "Estimated: October 29, 2026" → "October 29, 2026". The
+ * trailing `\b` of a naive word match would stop before the "." of "est." and
+ * leave it behind, so this pattern matches the word AND its punctuation.
+ */
+const ESTIMATE_PREFIX_RE = new RegExp(
+  `(?:^|[\\s(])(?:${ESTIMATE_WORDS.join("|")})\\s*[:,-]?\\s*`,
+  "gi",
+);
+
+/** True when the source's own text marks this value as an estimate. */
+export function isEstimatedText(raw: unknown): boolean {
+  return typeof raw === "string" && ESTIMATE_RE.test(raw);
+}
+
+/**
+ * Removes an estimate marker so the underlying date can be parsed exactly:
+ * "est. 2026-10-29" → "2026-10-29", "October 29, 2026 (estimated)" →
+ * "October 29, 2026". The marker is preserved on the record as a boolean, never
+ * silently dropped (see isEstimatedText).
+ */
+export function stripEstimateMarkers(raw: string): string {
+  return raw
+    .replace(ESTIMATE_PAREN_RE, " ")
+    .replace(ESTIMATE_PREFIX_RE, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 // ── Content fingerprint (change detection, NOT a security primitive) ─────────
 
 /**
@@ -154,7 +233,7 @@ export function stateDayEpoch(raw: string | null): number | null {
  * Implemented as four independent FNV-1a 32-bit lanes over the canonical JSON,
  * concatenated into 32 hex chars. It is deliberately dependency-free so the
  * pure module stays pure (no `node:crypto`, and therefore nothing for a future
- * client bundle to trip over). The row IDENTITY is (state_code, external_id) —
+ * client bundle to trip over). The row IDENTITY is (source_id, external_id) —
  * this value is never used for uniqueness, so a non-cryptographic hash is the
  * right tool here. Documented rather than assumed.
  */
@@ -195,8 +274,14 @@ export function slugify(raw: string): string {
 /**
  * A normalised-but-UNCLASSIFIED source record. Every field is either the
  * source's own value or NOT_SPECIFIED/null — a connector may never invent one.
+ *
+ * `sourceKey` is the id of the SOURCE this record came from (the connector's own
+ * id, stamped by `parseGrantOpportunities` so it can never drift from the
+ * connector that produced it). It is half of the row identity.
  */
 export interface SourceGrantRecord {
+  /** The source's stable key (the connector id), e.g. "va-vtc-grants". */
+  sourceKey: string;
   stateCode: StateCode;
   /** The source's own id for this opportunity (stable across runs). */
   externalId: string;
@@ -211,12 +296,29 @@ export interface SourceGrantRecord {
   postedDate: string | null;
   /** Source-published closing date ('YYYY-MM-DD'), null when none published. */
   closeDate: string | null;
+  /**
+   * A date the source published ONLY as an estimate ('YYYY-MM-DD'), or null.
+   * Never a deadline — see the honesty contract.
+   */
+  estimatedCloseDate: string | null;
   /** True ONLY when the source itself declares the program ongoing/rolling. */
   ongoing: boolean;
   /** True when the source itself marks this cycle closed (past-tense label). */
   sourceClosed: boolean;
   /** The source's own per-record updated stamp, when it publishes one. */
   sourceUpdatedAt: string | null;
+  // ── Normalized fields (owner 2026-09-19, correction 4) ────────────────────
+  // Real columns so part 2 can filter. Each is the source's own words, or
+  // NOT_SPECIFIED ("Not specified") when the source published nothing.
+  eligibleApplicants: string;
+  eligibleGeography: string;
+  /** Source-published categories/focus labels; EMPTY when it published none. */
+  categories: string[];
+  awardRange: string;
+  awardMinAmount: number | null;
+  awardMaxAmount: number | null;
+  totalFunding: string;
+  matchingRequirement: string;
   /** The parsed source fields verbatim (no HTML, no invented keys). */
   raw: Record<string, unknown>;
 }
@@ -225,9 +327,12 @@ export interface SourceGrantRecord {
 export interface GrantClassification {
   status: StateGrantStatus;
   postedDate: string | null;
-  /** Set ONLY for open/closed — never for a forecast. */
+  /** Set only when the source PUBLISHED a closing date (open/upcoming/closed). */
   closeDate: string | null;
-  /** Set ONLY for a forecast whose source announced dates. */
+  /**
+   * Set ONLY when the source published an estimate and no usable published
+   * closing date exists (an `unverified` row whose only date is an estimate).
+   */
   estimatedCloseDate: string | null;
   /** Why — stored with the record so a reviewer can re-derive the decision. */
   reason: string;
@@ -248,7 +353,42 @@ export interface GrantOpportunity extends SourceGrantRecord {
  *
  * `today` is the start of the current US Eastern day, so the deadline day itself
  * is still open — the federal rule, reused rather than re-invented.
+ *
+ * TRUTH TABLE (in evaluation order — the full table is in CONVENTIONS.md):
+ *   1. source marks the cycle closed              → closed   (its words win)
+ *   2. source declares ongoing/year-round         → rolling  (close_date NULL)
+ *   3. published close date, opening date later   → upcoming (close_date set)
+ *   4. published close date >= today              → open
+ *   5. published close date < today               → closed
+ *   6. no published close date, published estimate→ unverified (estimate kept in
+ *                                                    estimated_close_date)
+ *   7. anything else (no dates, or an opening date with no closing date) →
+ *      unverified. Never "open", and never a forecast of a cycle we cannot see.
  */
+
+/**
+ * What an announced-but-not-yet-open cycle is reported as — the one judgement
+ * call in the owner's status model, kept as ONE explicit constant.
+ *
+ * The owner defined `upcoming` as "announced not-yet-open cycle (published,
+ * non-estimated dates)", so a cycle whose source publishes real dates and whose
+ * opening date has not arrived yet is `upcoming`, and its published closing date
+ * is a published close date — not an estimate. The same 2026-09-19 review note
+ * called Virginia's Special Events cycle "est. only"; the live page publishes
+ * that cycle's dates with NO estimate marker anywhere (verified 2026-09-19), so
+ * it classifies as `upcoming` here. This constant is the whole decision: set it
+ * to "unverified" to treat every announced-not-yet-open cycle as unverified
+ * instead, in which case the announced date is kept (labelled as an estimate) in
+ * estimated_close_date and close_date stays empty. Nothing else changes — a
+ * record whose only date is already an estimate is ALWAYS unverified.
+ */
+export const ANNOUNCED_CYCLE_STATUS: "upcoming" | "unverified" = "upcoming";
+
+/** The freshness decision for one state record's announced-cycle branch. */
+function announcedCycleStatus(): StateGrantStatus {
+  return ANNOUNCED_CYCLE_STATUS;
+}
+
 export function classifyStateGrant(
   record: SourceGrantRecord,
   now: Date | number = new Date(),
@@ -256,19 +396,10 @@ export function classifyStateGrant(
   const today = easternDayStart(now);
   const openDay = stateDayEpoch(record.postedDate);
   const closeDay = stateDayEpoch(record.closeDate);
+  const estimateDay = stateDayEpoch(record.estimatedCloseDate);
+  const usableToday = !Number.isNaN(today);
 
-  // 1. The source's own words first, conservatively: an explicit ongoing
-  //    declaration is an open program with no deadline to expire, and an
-  //    explicit "closed" marker is closed even if a stray date looks future.
-  if (record.ongoing) {
-    return {
-      status: "open",
-      postedDate: record.postedDate,
-      closeDate: null,
-      estimatedCloseDate: null,
-      reason: "source declares the program ongoing (year-round / rolling), so there is no deadline to expire",
-    };
-  }
+  // 1. The source's own past-tense words win over any date that looks future.
   if (record.sourceClosed) {
     return {
       status: "closed",
@@ -279,48 +410,81 @@ export function classifyStateGrant(
     };
   }
 
-  // 2. No usable closing date → never open. A forecast is the honest home for
-  //    "the source published this, but not when it closes".
-  if (closeDay === null) {
+  // 2. An explicit ongoing / year-round declaration is a program with no
+  //    deadline to expire (the source's own words, not an inference).
+  if (record.ongoing) {
     return {
-      status: "forecast",
+      status: "rolling",
       postedDate: record.postedDate,
       closeDate: null,
       estimatedCloseDate: null,
-      reason: "source published no usable closing date — not confirmed open",
+      reason:
+        "source declares the program ongoing (year-round / rolling / no time limitations), so there is no deadline to expire",
     };
   }
 
-  // 3. A cycle the source announces but has not opened yet: the announced close
-  //    date is an ESTIMATE, not a deadline.
-  if (openDay !== null && !Number.isNaN(today) && openDay > today) {
+  // 3-5. A published closing date is the only thing that can make a record open
+  //      or upcoming, or (once it passes) closed.
+  if (closeDay !== null) {
+    if (openDay !== null && usableToday && openDay > today) {
+      const announced = announcedCycleStatus();
+      return {
+        status: announced,
+        postedDate: record.postedDate,
+        // In `upcoming` mode the source's published close date IS a close date.
+        // In the alternative mode the announced date is kept as an ESTIMATE, so
+        // it can never be shown as a deadline.
+        closeDate: announced === "upcoming" ? record.closeDate : null,
+        estimatedCloseDate: announced === "upcoming" ? null : record.closeDate,
+        reason:
+          announced === "upcoming"
+            ? "source published a cycle whose opening date has not arrived yet — upcoming, not open"
+            : "source published a cycle whose opening date has not arrived yet — the announced date is an estimate, so the record is unverified rather than open",
+      };
+    }
+    if (usableToday && closeDay >= today) {
+      return {
+        status: "open",
+        postedDate: record.postedDate,
+        closeDate: record.closeDate,
+        estimatedCloseDate: null,
+        reason: "source confirms a published closing date that has not passed (deadline day inclusive)",
+      };
+    }
     return {
-      status: "forecast",
-      postedDate: record.postedDate,
-      closeDate: null,
-      estimatedCloseDate: record.closeDate,
-      reason: "source announces a cycle that has not opened yet — the announced closing date is an estimate, not a deadline",
-    };
-  }
-
-  // 4. Confirmable: a published closing date that has not passed (inclusive).
-  if (!Number.isNaN(today) && closeDay >= today) {
-    return {
-      status: "open",
+      status: "closed",
       postedDate: record.postedDate,
       closeDate: record.closeDate,
       estimatedCloseDate: null,
-      reason: "source confirms a published closing date that has not passed (deadline day inclusive)",
+      reason: "source's published closing date has passed",
     };
   }
 
-  // 5. Past deadline.
+  // 6. The source published an ESTIMATE instead of a date: keep it, label it as
+  //    an estimate, and do not claim the cycle is open.
+  if (estimateDay !== null) {
+    return {
+      status: "unverified",
+      postedDate: record.postedDate,
+      closeDate: null,
+      estimatedCloseDate: record.estimatedCloseDate,
+      reason:
+        "the source published only an ESTIMATED date and no closing date — unverified, and the estimate is never treated as a deadline",
+    };
+  }
+
+  // 7. No usable dates at all (or an opening date with no closing date): we
+  //    cannot confirm the source is accepting applications.
+  const reason =
+    openDay !== null
+      ? "the source published an opening date but no closing date — we cannot confirm the cycle is accepting applications (never open, never a forecast)"
+      : "the source published no usable dates — unverified rather than guessed";
   return {
-    status: "closed",
+    status: "unverified",
     postedDate: record.postedDate,
-    closeDate: record.closeDate,
+    closeDate: null,
     estimatedCloseDate: null,
-    reason: "source's published closing date has passed",
+    reason,
   };
 }
 
@@ -337,6 +501,7 @@ export function toOpportunity(
     estimatedCloseDate: classification.estimatedCloseDate,
     statusReason: classification.reason,
     fingerprint: contentFingerprint({
+      sourceKey: record.sourceKey,
       stateCode: record.stateCode,
       externalId: record.externalId,
       title: record.title,
@@ -345,9 +510,18 @@ export function toOpportunity(
       url: record.url,
       postedDate: record.postedDate,
       closeDate: record.closeDate,
+      estimatedCloseDate: record.estimatedCloseDate,
       ongoing: record.ongoing,
       sourceClosed: record.sourceClosed,
       sourceUpdatedAt: record.sourceUpdatedAt,
+      eligibleApplicants: record.eligibleApplicants,
+      eligibleGeography: record.eligibleGeography,
+      categories: record.categories,
+      awardRange: record.awardRange,
+      awardMinAmount: record.awardMinAmount,
+      awardMaxAmount: record.awardMaxAmount,
+      totalFunding: record.totalFunding,
+      matchingRequirement: record.matchingRequirement,
       raw: record.raw,
     }),
   };
@@ -355,22 +529,31 @@ export function toOpportunity(
 
 export interface DedupeResult {
   records: SourceGrantRecord[];
-  /** `<state>:<external_id>` for every duplicate a payload contained. */
+  /** `<source>:<external_id>` for every duplicate a payload contained. */
   collisions: string[];
 }
 
 /**
- * One record per (state, external_id) — the first occurrence wins, and every
- * collision is reported rather than silently dropped. An amendment arrives as
- * the SAME external_id with different content, so it is not a collision: it is
- * one record here and one updated row in the store.
+ * One record per (SOURCE, external_id) — the first occurrence wins, and every
+ * collision is reported rather than silently dropped.
+ *
+ * The key is the source key, NOT the state code (owner correction 1,
+ * 2026-09-19): two agencies in one state can and do publish the same short
+ * program id, and under a state-keyed identity the second would look like a
+ * duplicate of the first instead of a record of its own. A payload is one
+ * source's page, so the state code is implied — the source key is what actually
+ * distinguishes two publishers.
+ *
+ * An amendment arrives as the SAME (source, external_id) with different content,
+ * so it is not a collision: it is one record here and one updated row in the
+ * store.
  */
 export function dedupeByExternalId(records: readonly SourceGrantRecord[]): DedupeResult {
   const seen = new Map<string, SourceGrantRecord>();
   const order: string[] = [];
   const collisions: string[] = [];
   for (const record of records) {
-    const key = `${record.stateCode}:${record.externalId}`;
+    const key = `${record.sourceKey}:${record.externalId}`;
     if (seen.has(key)) {
       collisions.push(key);
       continue;
@@ -387,19 +570,28 @@ export function dedupeByExternalId(records: readonly SourceGrantRecord[]): Dedup
  * What every state connector must implement. `sourceUrl` is HARD-CODED in the
  * connector (there is no client-controllable URL anywhere in this flow) and
  * `officialHost` is cross-checked against the approved-host allowlist in
- * registry.ts before a state may report `connected`.
+ * registry.ts before a state may report anything above `unavailable`.
+ *
+ * A connector IS a source: its `id` is the `state_grant_sources.source_key`, and
+ * `sourceName` / `agency` populate that row. A state with several sources has
+ * several connectors, and their records can never collide, because the row
+ * identity is (source, external_id).
  */
 export interface StateGrantConnector<TRaw = unknown> {
-  /** Stable id, e.g. "va-vtc-grants". Stored on the registry row. */
+  /** Stable id, e.g. "va-vtc-grants". The source key, and the registry's id. */
   readonly id: string;
   readonly stateCode: StateCode;
   /** Human name of the state, for the coverage UI. */
   readonly stateName: string;
+  /** Human name of the SOURCE (the listing), for the sources registry. */
+  readonly sourceName: string;
+  /** The publishing body, in the source's own words where it names itself. */
+  readonly agency: string;
   /** The one official source this connector reads. */
   readonly sourceUrl: string;
   /** Host that must be on the approved allowlist (fail-closed gate). */
   readonly officialHost: string;
-  /** The body-name of the source-validation test that gates `connected`. */
+  /** The body-name of the source-validation test that gates the state's tier. */
   readonly sourceValidationTest: string;
   /**
    * Fetches the raw source payload. Must throw on any failure (fail-closed).
@@ -418,13 +610,17 @@ export interface StateGrantConnector<TRaw = unknown> {
   classify(record: SourceGrantRecord, now?: Date): GrantClassification;
 }
 
-/** The full pipeline a connector run uses: parse → classify → dedupe. */
+/**
+ * Applies a connector to a raw payload: parse → stamp the source key → dedupe →
+ * classify. The source key is stamped from the CONNECTOR, not trusted from the
+ * payload, so a record can never claim to come from a source it did not.
+ */
 export function parseGrantOpportunities<TRaw>(
   connector: StateGrantConnector<TRaw>,
   raw: TRaw,
   now: Date | number = new Date(),
 ): { opportunities: GrantOpportunity[]; collisions: string[] } {
-  const parsed = connector.parse(raw);
+  const parsed = connector.parse(raw).map((r) => ({ ...r, sourceKey: connector.id }));
   const { records, collisions } = dedupeByExternalId(parsed);
   return { opportunities: records.map((r) => toOpportunity(r, now)), collisions };
 }

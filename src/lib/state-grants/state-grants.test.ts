@@ -758,7 +758,7 @@ describe("sources registry", () => {
   test("a state can hold several sources, and unknown keys resolve to null", () => {
     expect(sourcesForState("VA").map((s) => s.sourceKey)).toEqual([VIRGINIA_CONNECTOR_ID]);
     expect(sourcesForState("va")).toHaveLength(1); // case-insensitive
-    expect(sourcesForState("MD")).toEqual([]);
+    expect(sourcesForState("NC")).toEqual([]);
     expect(getStateSource("nope")).toBeNull();
   });
 });
@@ -819,7 +819,7 @@ describe("state registry", () => {
     expect(isStateConnected("VA")).toBe(false); // limited is NOT the top tier
     // A limited state IS syncable — that is the owner's correction to part 1.
     expect(getConnector("VA")?.id).toBe(VIRGINIA_CONNECTOR_ID);
-    expect(validatedStates()).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "KS", "KY", "MD", "ME", "MN", "MT", "NV", "NH", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VA", "WA", "WV"]);
+    expect(validatedStates()).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "KS", "KY", "ME", "MD", "MN", "MT", "NV", "NH", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VA", "WA", "WV"]);
   });
 
   test("every other state is unavailable — the registry is NOT coverage", () => {

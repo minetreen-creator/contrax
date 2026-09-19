@@ -92,9 +92,9 @@ describe("the coverage payload", () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     expect(payload.states.length).toBe(STATE_CODES.length);
     expect(payload.states.length).toBe(51);
-    expect(payload.counts.validated).toBe(14);
+    expect(payload.counts.validated).toBe(16);
     expect(payload.counts.unavailable).toBe(37);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "AR", "CA", "CO", "DE", "HI", "KS", "MN", "NM", "ND", "PA", "RI", "VA", "WA"]);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "AR", "CA", "CO", "DE", "HI", "KS", "MN", "NM", "ND", "PA", "RI", "TN", "UT", "VA", "WA"]);
     for (const state of payload.validated) {
       // Each of these is ONE validated source — never statewide, never connected.
       expect(state.tier).toBe("limited");

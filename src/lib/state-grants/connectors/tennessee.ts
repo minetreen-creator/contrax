@@ -163,6 +163,9 @@ export function parseTennesseeGrantsPage(html: string): SourceGrantRecord[] {
   const nextId = uniqueExternalIdFactory();
   const records: SourceGrantRecord[] = deadlineLines.map((line) => {
     const ongoing = declaresOngoing(line.text);
+    // The fiscal-year label is the SOURCE's own token, read off the line — never
+    // a constant baked into this connector.
+    const cycle = /\bFY\s?(\d{2})\b/i.exec(line.text);
     return {
       sourceKey: TENNESSEE_CONNECTOR_ID,
       stateCode: "TN",
@@ -194,7 +197,7 @@ export function parseTennesseeGrantsPage(html: string): SourceGrantRecord[] {
         closingText: line.text,
         applicationDueDateText: line.text,
         deadlineLabel: line.label,
-        cycle: "FY28",
+        cycle: cycle ? `FY${cycle[1]}` : null,
         // The cycle's own opening line, kept verbatim (null when the list has
         // none). This is why `postedDate` above is not an invention.
         cycleOpeningText: openingLine?.text ?? null,

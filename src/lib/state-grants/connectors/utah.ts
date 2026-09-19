@@ -34,11 +34,12 @@
  *     read would see TWO days and (correctly) refuse both. Reading each labelled
  *     value on its own keeps both real dates without ever picking between them.
  *   - ROLLING IS DECIDED ON THE PROGRAM'S OWN SCHEDULE TEXT ONLY. The page uses
- *     the word "ongoing" elsewhere in a different sense ("Organizations that
- *     receive ongoing legislative pass-through funding … are not eligible"), so
- *     `declaresOngoing()` is applied to the labelled schedule text alone, never to
- *     the whole panel — otherwise an eligibility sentence would flip a program to
- *     `rolling`.
+ *     the word "ongoing" in a different sense in an eligibility block beyond the
+ *     listing region ("Organizations that receive ongoing legislative
+ *     pass-through funding … are not eligible"), and a future revision could put
+ *     such a sentence inside a panel — so `declaresOngoing()` is applied to the
+ *     labelled schedule text alone, never to a whole panel, and a sentence about
+ *     eligibility can never flip a program to `rolling`.
  *   - A PROGRAM WHOSE SCHEDULE PUBLISHES NO DAY IS STILL A RECORD, and it is
  *     `unverified`: it is never dropped (that would misreport the listing) and it
  *     is never dated by inference.

@@ -148,6 +148,23 @@ import {
   NEW_MEXICO_SOURCE_VALIDATION_TEST,
   newMexicoConnector,
 } from "~/lib/state-grants/connectors/new-mexico";
+// ESCALATION PASS (owner escalation order 2026-09-19, checklist §0.5): two of
+// the 14 UNCERTAIN jurisdictions whose sources the re-probe turned up.
+import {
+  TENNESSEE_APPROVED_HOSTS,
+  tennesseeConnector,
+  TENNESSEE_CONNECTOR_ID,
+  TENNESSEE_SOURCE_URL,
+  TENNESSEE_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/tennessee";
+import {
+  UTAH_APPROVED_HOSTS,
+  utahConnector,
+  UTAH_CONNECTOR_ID,
+  UTAH_SOURCE_URL,
+  UTAH_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/utah";
+
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -280,6 +297,9 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...MINNESOTA_APPROVED_HOSTS,
   ...NORTH_DAKOTA_APPROVED_HOSTS,
   ...NEW_MEXICO_APPROVED_HOSTS,
+  // ESCALATION PASS (owner 2026-09-19).
+  ...TENNESSEE_APPROVED_HOSTS,
+  ...UTAH_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -442,6 +462,32 @@ export const NEW_MEXICO_REGISTRY_ENTRY: SourceValidationEntry = {
   note: "One validated source (New Mexico Arts' \"Apply for a Grant\" page, from which only the labelled application-deadline milestones are read). New Mexico Arts' grants-information index publishes no year-bearing date at all, and other New Mexico agencies publish funding programs we have NOT validated: this is not statewide coverage.",
 };
 
+/**
+ * ESCALATION PASS manifest entries (owner escalation order 2026-09-19,
+ * checklist §0.5). Both states were UNCERTAIN in phase 1 (Tennessee could not be
+ * reached at all; Utah had exited nationwide batch #1 under the §0 exit rule).
+ * Each is ONE agency's own listing, so each declares `limited`: the ladder
+ * requires at least `CONNECTED_MIN_SOURCES` (2) distinct sources before any state
+ * may be reported as statewide multi-source coverage.
+ */
+export const TENNESSEE_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: TENNESSEE_CONNECTOR_ID,
+  sourceUrl: TENNESSEE_SOURCE_URL,
+  testFile: TENNESSEE_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Tennessee Arts Commission's own Apply for a Grant page, which publishes the current FY28 grant cycle as a dated Important Dates list). The list is a milestone calendar, not a program directory: the two lines that publish no day are not dates at all, and the cycle's own October 9, 2026 opening line is the source's separate bullet — the program deadlines carry the published close date and that opening day, so a cycle that has not opened yet is honestly `upcoming`, never `open`. Tennessee publishes funding through other departments we have NOT validated: this is not statewide coverage.",
+};
+
+export const UTAH_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: UTAH_CONNECTOR_ID,
+  sourceUrl: UTAH_SOURCE_URL,
+  testFile: UTAH_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Utah Division of Arts & Museums' Project Grants page, which publishes a per-program Grant Opens / Grant Closes schedule). Every published cycle on 2026-09-19 has closed, so those records are honestly `closed` and are never shown as open because the page is still live; the dated Info Session webinars on the same panels are events and are never treated as deadlines. This is one division's Project Grants, not Utah's General Operating Support grants or any other agency: this is not statewide coverage.",
+};
+
 /** The sources registered for every state, keyed by state code. */
 function sourcesByStateMap(): Record<string, readonly string[]> {
   const out: Record<string, readonly string[]> = {};
@@ -469,6 +515,9 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     MN: minnesotaConnector as unknown as StateGrantConnector<never>,
     ND: northDakotaConnector as unknown as StateGrantConnector<never>,
     NM: newMexicoConnector as unknown as StateGrantConnector<never>,
+    // ESCALATION PASS (owner 2026-09-19).
+    TN: tennesseeConnector as unknown as StateGrantConnector<never>,
+    UT: utahConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -485,6 +534,9 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     MN: MINNESOTA_REGISTRY_ENTRY,
     ND: NORTH_DAKOTA_REGISTRY_ENTRY,
     NM: NEW_MEXICO_REGISTRY_ENTRY,
+    // ESCALATION PASS (owner 2026-09-19).
+    TN: TENNESSEE_REGISTRY_ENTRY,
+    UT: UTAH_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

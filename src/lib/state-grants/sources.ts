@@ -32,6 +32,11 @@ import { coloradoConnector } from "~/lib/state-grants/connectors/colorado";
 import { minnesotaConnector } from "~/lib/state-grants/connectors/minnesota";
 import { northDakotaConnector } from "~/lib/state-grants/connectors/north-dakota";
 import { newMexicoConnector } from "~/lib/state-grants/connectors/new-mexico";
+// ESCALATION PASS (owner escalation order 2026-09-19): TN, UT.
+// A missing entry here is SILENT — the state still syncs, but the coverage row
+// reports `sourceCount 0` — so every batch must add its connectors to this list.
+import { tennesseeConnector } from "~/lib/state-grants/connectors/tennessee";
+import { utahConnector } from "~/lib/state-grants/connectors/utah";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -79,6 +84,10 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   minnesotaConnector as unknown as StateGrantConnector<never>,
   northDakotaConnector as unknown as StateGrantConnector<never>,
   newMexicoConnector as unknown as StateGrantConnector<never>,
+  // ESCALATION PASS (2026-09-19): one validated source per state, so each of
+  // these states is `limited` — never advertised as statewide coverage.
+  tennesseeConnector as unknown as StateGrantConnector<never>,
+  utahConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

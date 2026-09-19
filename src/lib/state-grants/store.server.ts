@@ -24,6 +24,10 @@
 import { sql } from "~/db";
 import type { GrantOpportunity, StateGrantStatus } from "~/lib/state-grants/connector";
 import type { StateRegistryEntry } from "~/lib/state-grants/registry";
+import {
+  STATE_GRANT_EFFECTIVE_STATUS_SQL,
+  easternDayString,
+} from "~/lib/state-grants/search";
 
 // ── Write surface ───────────────────────────────────────────────────────────
 
@@ -308,6 +312,11 @@ export interface StateGrantQuery {
   term?: string | null;
   limit?: number;
   offset?: number;
+  /**
+   * The clock the READ is evaluated against, for the read-time freshness rule
+   * below. Defaults to now. Injected by tests so a read is deterministic.
+   */
+  now?: Date | number;
 }
 
 export const DEFAULT_QUERY_LIMIT = 25;
@@ -319,11 +328,11 @@ function likeTerm(term: string): string {
 }
 
 const ROW_COLUMNS = `
-  id::text AS id, state_code, external_id, title, agency, summary, status,
-  to_char(posted_date, 'YYYY-MM-DD') AS posted_date,
-  to_char(close_date, 'YYYY-MM-DD') AS close_date,
-  to_char(estimated_close_date, 'YYYY-MM-DD') AS estimated_close_date,
-  url, source_url, source_updated_at, fetched_at, updated_at`;
+  o.id::text AS id, o.state_code, o.external_id, o.title, o.agency, o.summary, o.status,
+  to_char(o.posted_date, 'YYYY-MM-DD') AS posted_date,
+  to_char(o.close_date, 'YYYY-MM-DD') AS close_date,
+  to_char(o.estimated_close_date, 'YYYY-MM-DD') AS estimated_close_date,
+  o.url, o.source_url, o.source_updated_at, o.fetched_at, o.updated_at`;
 
 interface RawStateGrantRow {
   id: string;
@@ -341,6 +350,8 @@ interface RawStateGrantRow {
   source_updated_at: string | null;
   fetched_at: string;
   updated_at: string;
+  /** The read-time status (see STATE_GRANT_EFFECTIVE_STATUS_SQL). */
+  effective_status: StateGrantStatus;
 }
 
 function mapRow(r: RawStateGrantRow): StateGrantRow {
@@ -351,7 +362,9 @@ function mapRow(r: RawStateGrantRow): StateGrantRow {
     title: r.title,
     agency: r.agency,
     summary: r.summary,
-    status: r.status,
+    // The status SERVED is the read-time one, never the stored snapshot: an
+    // `open` row whose published deadline has since passed is returned closed.
+    status: r.effective_status ?? r.status,
     postedDate: r.posted_date,
     closeDate: r.close_date,
     estimatedCloseDate: r.estimated_close_date,
@@ -363,10 +376,29 @@ function mapRow(r: RawStateGrantRow): StateGrantRow {
   };
 }
 
+export interface StateGrantQueryResult {
+  results: StateGrantRow[];
+  /** Exact number of stored rows matching the filters (not just this page). */
+  totalCount: number;
+  /** Distinct state codes matching the filters — what the response covers. */
+  statesIncluded: string[];
+  limit: number;
+  offset: number;
+}
+
 /**
  * Searches stored state opportunities. Every filter is an optional bound
  * parameter (`IS NULL OR …`), so there are no dynamically assembled SQL strings
  * and nothing a caller passes can change the statement's shape.
+ *
+ * READ-TIME FRESHNESS (owner honesty rules, 2026-09-18): the status a row is
+ * FILTERED BY, COUNTED AS, ORDERED BY and RETURNED WITH is the read-time status
+ * (STATE_GRANT_EFFECTIVE_STATUS_SQL — the SQL twin of
+ * effectiveStateGrantStatus in search.ts), so an `open` row whose published
+ * closing date has passed since the last sync can never be served, counted or
+ * sorted as open. The stored snapshot is left untouched: the next sync
+ * re-classifies it. One fragment, one rule, applied identically in both
+ * statements below — so a filtered page, its total and its ordering agree.
  *
  * Ordering is the product's canonical one: open first, then forecast, then
  * closed, and within a status the nearest closing date first (rows with no
@@ -374,7 +406,7 @@ function mapRow(r: RawStateGrantRow): StateGrantRow {
  */
 export async function queryStateGrants(
   query: StateGrantQuery = {},
-): Promise<{ results: StateGrantRow[]; totalCount: number; limit: number; offset: number }> {
+): Promise<StateGrantQueryResult> {
   const limit = Math.min(Math.max(1, Math.floor(query.limit ?? DEFAULT_QUERY_LIMIT)), MAX_QUERY_LIMIT);
   const offset = Math.max(0, Math.floor(query.offset ?? 0));
   const stateCode = query.stateCode ?? null;
@@ -386,44 +418,51 @@ export async function queryStateGrants(
       : null;
   const status = query.status ?? null;
   const term = query.term && query.term.trim() ? likeTerm(query.term.trim()) : null;
+  const today = easternDayString(query.now ?? new Date());
   const db = sql();
 
   const rows = (await db`
-    SELECT ${db.unsafe(ROW_COLUMNS)}
-    FROM state_grant_opportunities
-    WHERE (${stateCode}::text IS NULL OR state_code = ${stateCode}::text)
-      AND (${stateCodes}::text IS NULL OR state_code = ANY(string_to_array(${stateCodes}::text, ',')))
-      AND (${status}::text IS NULL OR status = ${status}::text)
+    SELECT ${db.unsafe(ROW_COLUMNS)},
+           ${db.unsafe(STATE_GRANT_EFFECTIVE_STATUS_SQL)} AS effective_status
+    FROM state_grant_opportunities o
+    CROSS JOIN (SELECT ${today}::date AS today) t
+    WHERE (${stateCode}::text IS NULL OR o.state_code = ${stateCode}::text)
+      AND (${stateCodes}::text IS NULL OR o.state_code = ANY(string_to_array(${stateCodes}::text, ',')))
+      AND (${status}::text IS NULL OR ${db.unsafe(STATE_GRANT_EFFECTIVE_STATUS_SQL)} = ${status}::text)
       AND (
         ${term}::text IS NULL
-        OR title ILIKE ${term}::text
-        OR COALESCE(agency, '') ILIKE ${term}::text
-        OR COALESCE(summary, '') ILIKE ${term}::text
+        OR o.title ILIKE ${term}::text
+        OR COALESCE(o.agency, '') ILIKE ${term}::text
+        OR COALESCE(o.summary, '') ILIKE ${term}::text
       )
     ORDER BY
-      CASE status WHEN 'open' THEN 0 WHEN 'forecast' THEN 1 ELSE 2 END,
-      close_date ASC NULLS LAST,
-      title ASC
+      CASE ${db.unsafe(STATE_GRANT_EFFECTIVE_STATUS_SQL)}
+        WHEN 'open' THEN 0 WHEN 'forecast' THEN 1 ELSE 2 END,
+      o.close_date ASC NULLS LAST,
+      o.title ASC
     LIMIT ${limit} OFFSET ${offset}
   `) as RawStateGrantRow[];
 
   const countRows = (await db`
-    SELECT count(*)::int AS total
-    FROM state_grant_opportunities
-    WHERE (${stateCode}::text IS NULL OR state_code = ${stateCode}::text)
-      AND (${stateCodes}::text IS NULL OR state_code = ANY(string_to_array(${stateCodes}::text, ',')))
-      AND (${status}::text IS NULL OR status = ${status}::text)
+    SELECT count(*)::int AS total,
+           COALESCE(array_agg(DISTINCT o.state_code ORDER BY o.state_code), ARRAY[]::text[]) AS states
+    FROM state_grant_opportunities o
+    CROSS JOIN (SELECT ${today}::date AS today) t
+    WHERE (${stateCode}::text IS NULL OR o.state_code = ${stateCode}::text)
+      AND (${stateCodes}::text IS NULL OR o.state_code = ANY(string_to_array(${stateCodes}::text, ',')))
+      AND (${status}::text IS NULL OR ${db.unsafe(STATE_GRANT_EFFECTIVE_STATUS_SQL)} = ${status}::text)
       AND (
         ${term}::text IS NULL
-        OR title ILIKE ${term}::text
-        OR COALESCE(agency, '') ILIKE ${term}::text
-        OR COALESCE(summary, '') ILIKE ${term}::text
+        OR o.title ILIKE ${term}::text
+        OR COALESCE(o.agency, '') ILIKE ${term}::text
+        OR COALESCE(o.summary, '') ILIKE ${term}::text
       )
-  `) as { total: number }[];
+  `) as { total: number; states: string[] | null }[];
 
   return {
     results: rows.map(mapRow),
     totalCount: Number(countRows[0]?.total ?? 0),
+    statesIncluded: (countRows[0]?.states ?? []) as string[],
     limit,
     offset,
   };
@@ -445,6 +484,34 @@ export async function stateGrantStatusCounts(
     FROM state_grant_opportunities
     WHERE (${stateCode}::text IS NULL OR state_code = ${stateCode}::text)
     GROUP BY status
+  `) as { status: StateGrantStatus; n: number }[];
+  const counts = { open: 0, forecast: 0, closed: 0, total: 0 };
+  for (const row of rows) {
+    counts[row.status] = Number(row.n);
+    counts.total += Number(row.n);
+  }
+  return counts;
+}
+
+/**
+ * Per-status counts of the STORED snapshot (above) vs per-status counts of the
+ * statuses actually SERVED today (this one). The coverage page reports the
+ * served counts, so its "2 open" can never include a deadline that expired
+ * since the last sync: it applies the identical read-time rule the search API
+ * filters by (STATE_GRANT_EFFECTIVE_STATUS_SQL).
+ */
+export async function stateGrantEffectiveStatusCounts(
+  stateCode: string | null = null,
+  now: Date | number = new Date(),
+): Promise<Record<StateGrantStatus, number> & { total: number }> {
+  const today = easternDayString(now);
+  const db = sql();
+  const rows = (await db`
+    SELECT ${db.unsafe(STATE_GRANT_EFFECTIVE_STATUS_SQL)} AS status, count(*)::int AS n
+    FROM state_grant_opportunities o
+    CROSS JOIN (SELECT ${today}::date AS today) t
+    WHERE (${stateCode}::text IS NULL OR o.state_code = ${stateCode}::text)
+    GROUP BY 1
   `) as { status: StateGrantStatus; n: number }[];
   const counts = { open: 0, forecast: 0, closed: 0, total: 0 };
   for (const row of rows) {
@@ -503,4 +570,29 @@ export async function listStateSyncRuns(
     updatedCount: Number(r.updated_count),
     error: r.error ?? null,
   }));
+}
+
+/**
+ * When the store was last successfully refreshed for these states — the `asOf`
+ * a search response reports. Only `ok` runs count: a failed run did not refresh
+ * anything, so quoting its timestamp would claim a freshness that does not
+ * exist. Null means "no successful sync recorded", which the API reports as
+ * null rather than substituting a hopeful time.
+ */
+export async function latestStateGrantSync(
+  stateCodes?: readonly string[] | null,
+): Promise<string | null> {
+  const codes =
+    stateCodes && stateCodes.length > 0
+      ? stateCodes.map((s) => s.trim().toUpperCase()).filter(Boolean).join(",")
+      : null;
+  const db = sql();
+  const rows = (await db`
+    SELECT max(finished_at) AS finished_at
+    FROM state_grant_sync_runs
+    WHERE status = 'ok'
+      AND (${codes}::text IS NULL OR state_code = ANY(string_to_array(${codes}::text, ',')))
+  `) as { finished_at: string | null }[];
+  const value = rows[0]?.finished_at ?? null;
+  return value ? new Date(value).toISOString() : null;
 }

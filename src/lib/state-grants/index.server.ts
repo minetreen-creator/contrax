@@ -10,13 +10,17 @@
  *
  * Query surface (what part 2 will call):
  *   coverage:  listStates(), getStateEntry(), coverageCounts(), readStateRegistry()
- *   search:    queryStateGrants({ stateCode | stateCodes, status, term, limit, offset })
+ *              readStateSources(stateCode)
+ *   search:    queryStateGrants({ stateCode | stateCodes, sourceKey | sourceKeys,
+ *                                status, term, limit, offset })
  *              countStateGrants(...), stateGrantStatusCounts(stateCode)
  *   health:    listStateSyncRuns(stateCode)
- *   ops:       runStateGrantSync(stateCode), runAllConnectedStateSyncs(), syncStateRegistry()
+ *   ops:       runStateGrantSync(stateCode), runAllValidatedStateSyncs(),
+ *              syncStateRegistry(), syncStateSources()
  */
 export * from "~/lib/state-grants/connector";
 export * from "~/lib/state-grants/registry";
+export * from "~/lib/state-grants/sources";
 export * from "~/lib/state-grants/store.server";
 export * from "~/lib/state-grants/sync.server";
 export { virginiaConnector } from "~/lib/state-grants/connectors/virginia";

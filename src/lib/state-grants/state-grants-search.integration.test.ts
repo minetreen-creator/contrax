@@ -603,7 +603,7 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     expect(virginia.recordCount).toBe(vaBaseline.length);
     expect(virginia.statusCounts.total).toBe(vaBaseline.length);
     expect(JSON.stringify(payload)).not.toContain("forecast");
-    expect(payload.headline).toContain("16 of 51 states have a validated source");
+    expect(payload.headline).toContain("21 of 51 states have a validated source");
   });
 
   test("isolation: the suite never wrote a Virginia row, and every state table is intact", async () => {

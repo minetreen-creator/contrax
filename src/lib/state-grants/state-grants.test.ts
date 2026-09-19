@@ -835,9 +835,9 @@ describe("state registry", () => {
       total: 51,
       connected: 0,
       curated: 0,
-      limited: 16,
-      unavailable: 35,
-      validated: 16,
+      limited: 21,
+      unavailable: 30,
+      validated: 21,
     });
   });
 

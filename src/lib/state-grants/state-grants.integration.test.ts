@@ -552,7 +552,7 @@ describe.skipIf(!DB_READY)("state grants integration (real DB)", () => {
   test("the registry gate refuses to sync a state with no validated source", async () => {
     await resetSynthetic();
     // No connector injected: the runner goes through the real registry, and
-    // Maryland is (correctly) `unavailable` at this stage of the rollout.
+    // REFUSED_STATE (NC) is (correctly) `unavailable` at this stage of the rollout.
     const result = await runStateGrantSync(REFUSED_STATE, { now: FIXTURE_NOW });
     expect(result.status).toBe("error");
     expect(result.error?.stage).toBe("registry");

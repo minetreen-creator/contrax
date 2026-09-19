@@ -68,8 +68,8 @@
  *     which an incentive may be earned, never an application deadline, so it is
  *     REFUSED too and the record stays `unverified` with no close date.
  *
- * NARROW BY CONSTRUCTION. This is five programme pages of ONE agency (ACCD) out of
- * a much larger catalogue the agency publishes. Vermont's own /grants page is a
+ * NARROW BY CONSTRUCTION. This is six pages across five programme families of ONE
+ * agency (ACCD) out of a much larger catalogue the agency publishes. Vermont's own /grants page is a
  * 2020 pandemic-recovery ARCHIVE and is never read (an archive is not coverage).
  * So the state is `limited` — never `curated`/`connected`, and the registry note
  * says so.

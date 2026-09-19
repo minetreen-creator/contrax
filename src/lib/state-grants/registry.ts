@@ -253,6 +253,13 @@ import {
   INDIANA_SOURCE_VALIDATION_TEST,
   indianaConnector,
 } from "~/lib/state-grants/connectors/indiana";
+import {
+  FLORIDA_APPROVED_HOSTS,
+  FLORIDA_CONNECTOR_ID,
+  FLORIDA_SOURCE_URL,
+  FLORIDA_SOURCE_VALIDATION_TEST,
+  floridaConnector,
+} from "~/lib/state-grants/connectors/florida";
 
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
@@ -404,6 +411,7 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...NEW_HAMPSHIRE_APPROVED_HOSTS,
   ...MONTANA_APPROVED_HOSTS,
   ...INDIANA_APPROVED_HOSTS,
+  ...FLORIDA_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -720,6 +728,14 @@ export const INDIANA_REGISTRY_ENTRY: SourceValidationEntry = {
   tier: "limited",
   note: "One validated source: the Indiana Arts Commission's own funding programme pages on in.gov, reached from the Commission's funding hub. The hub itself is a PROGRAM CATALOGUE (63 KB live, thirteen grant mentions, ZERO dates), so the connector fetches the hub plus the funding programme pages the HUB publishes (Arts Project Support, Arts Organization Support, America250 Grant Program, Every County Funded) and reads every cycle from its OWN page's “Application Timeline” table. Only the row the Commission labels \"Application Due\" is a deadline: the \"Draft Application Review Deadline for New Applicants\", \"Funding Notification\", \"Final Grant Report Due\", webinar and panel rows are process dates and the \"Grant Period\" is an activity period — none of them is ever a deadline. A struck-through (<del>) value is the Commission's own superseded value, so the replacement in the same cell is read and the struck-through day is not. Previous fiscal-year cycles stay visible as published records and are `closed` (never hidden, never open on a live page). The Every County Funded page publishes programme copy and an awardee list with no timeline, so it contributes no record. This is ONE agency's funding programmes: other Indiana agencies award grants we have NOT validated, so the state is `limited`, never `curated`/`connected` — this is not statewide coverage.",
 };
+export const FLORIDA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: FLORIDA_CONNECTOR_ID,
+  sourceUrl: FLORIDA_SOURCE_URL,
+  testFile: FLORIDA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the Florida Department of State's Division of Arts and Culture grants index on dos.fl.gov plus the grant PROGRAMME pages that index publishes. The index is a PROGRAM CATALOGUE (27.9 KB live, twenty-seven grant mentions, ZERO dates), so the connector fetches the index plus each programme page the index itself links and reads each programme's OWN application statement. The Division's own past-tense label (\"Applications for Fiscal Year 2027-2028 are CLOSED\", and the prose \"The application cycle for this program has CLOSED.\" on the America 250 page) makes those programmes `closed` on a live page. The Division's \"Next Deadline: TBD\" is a deadline label with NO date, so the record keeps no close date at all (and is never an estimate), and that single value is never spread across the catalogue. The 2028/2029 dates the pages publish are the GRANT PERIOD for the NEXT application cycle \u2014 an activity period, labelled as such \u2014 and are never read as a posted or close date; the funding-process page's one general `deadline` token sits OUTSIDE the child scope for exactly that reason. The Cultural Endowment page is programme history with no application statement, so it contributes no record rather than an undated one. This is ONE division of ONE department: other Florida agencies award grants we have NOT validated, so the state is `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -754,6 +770,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     NH: newHampshireConnector as unknown as StateGrantConnector<never>,
     MT: montanaConnector as unknown as StateGrantConnector<never>,
     IN: indianaConnector as unknown as StateGrantConnector<never>,
+    FL: floridaConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -788,6 +805,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     NH: NEW_HAMPSHIRE_REGISTRY_ENTRY,
     MT: MONTANA_REGISTRY_ENTRY,
     IN: INDIANA_REGISTRY_ENTRY,
+    FL: FLORIDA_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

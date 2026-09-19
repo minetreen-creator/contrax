@@ -34,6 +34,15 @@ import {
   indianaConnector,
   indianaFundingPrograms,
 } from "~/lib/state-grants/connectors/indiana";
+import {
+  FLORIDA_DEADLINE_LABEL,
+  FLORIDA_MAX_CHILD_PAGES,
+  FLORIDA_PROGRAM_PATH_PREFIX,
+  FLORIDA_SOURCE_URL,
+  FLORIDA_STATUS_MARKER,
+  floridaConnector,
+  floridaGrantPrograms,
+} from "~/lib/state-grants/connectors/florida";
 
 /** One fixed clock for every classification below (2026-09-19, US Eastern). */
 const NOW = new Date("2026-09-19T12:00:00Z");
@@ -93,10 +102,55 @@ const IN = () =>
     NOW,
   ).opportunities;
 
+/**
+ * Florida is also a MULTI-PAGE source: the Division's grants index plus every
+ * grant PROGRAMME page the index publishes, concatenated with the shared
+ * delimiters. One fixture per fetched page, each a trimmed real capture.
+ */
+const FL_FILES = {
+  index: "florida-dos-cultural-grants.html",
+  generalProgramSupport: "florida-dos-general-program-support.html",
+  specificCulturalProjects: "florida-dos-specific-cultural-projects.html",
+  culturalFacilities: "florida-dos-cultural-facilities.html",
+  culturalEndowment: "florida-dos-cultural-endowment.html",
+  america250: "florida-dos-america-250-grants.html",
+} as const;
+const FL_CHILD_FIXTURES = [
+  [
+    `${FLORIDA_SOURCE_URL}grant-programs/general-program-support/`,
+    FL_FILES.generalProgramSupport,
+  ],
+  [
+    `${FLORIDA_SOURCE_URL}grant-programs/specific-cultural-projects/`,
+    FL_FILES.specificCulturalProjects,
+  ],
+  [`${FLORIDA_SOURCE_URL}grant-programs/cultural-facilities/`, FL_FILES.culturalFacilities],
+  [`${FLORIDA_SOURCE_URL}grant-programs/cultural-endowment/`, FL_FILES.culturalEndowment],
+  [`${FLORIDA_SOURCE_URL}grant-programs/america-250-florida-grants/`, FL_FILES.america250],
+] as const;
+/** The index page text alone (a catalog with no dated listing of its own). */
+const FL_INDEX_ONLY = () => floridaConnector.parse(fixture(FL_FILES.index));
+/** A synthetic programme page served in place of a real one. */
+function floridaPayloadWith(childHtml: string): string {
+  return joinSourcePages(FLORIDA_SOURCE_URL, fixture(FL_FILES.index), [
+    { url: `${FLORIDA_SOURCE_URL}grant-programs/general-program-support/`, html: childHtml },
+  ]);
+}
+const FL = () =>
+  parseGrantOpportunities(
+    floridaConnector,
+    joinSourcePages(
+      FLORIDA_SOURCE_URL,
+      fixture(FL_FILES.index),
+      FL_CHILD_FIXTURES.map(([url, file]) => ({ url, html: fixture(file) })),
+    ),
+    NOW,
+  ).opportunities;
 const ALL = [
   ["NH", newHampshireConnector, NH],
   ["MT", montanaConnector, MT],
   ["IN", indianaConnector, IN],
+  ["FL", floridaConnector, FL],
 ] as const;
 function count(records: GrantOpportunity[], status: string): number {
   return records.filter((o) => o.status === status).length;
@@ -488,5 +542,140 @@ describe("Indiana — Arts Commission funding programmes (hub + programme pages)
     expect(records[0]!.estimatedCloseDate).toBeNull();
     expect(records[0]!.status).toBe("unverified");
     expect(records[0]!.raw.grantPeriodText).toContain("July 1, 2027");
+  });
+});
+
+describe("Florida — Division of Arts and Culture grant programmes (index + programme pages)", () => {
+  test("the index is a 0-date catalogue; only the programme pages carry a statement", () => {
+    // The source map's evidence for Florida: the grants index publishes
+    // twenty-seven grant links and NO dates and NO per-programme statement, so
+    // an index-only parse can only ever be an undated catalogue. The connector
+    // refuses it rather than serving one.
+    expect(fixture(FL_FILES.index)).not.toContain(FLORIDA_STATUS_MARKER);
+    expect(fixture(FL_FILES.index)).not.toContain(FLORIDA_DEADLINE_LABEL);
+    let thrown: { stage?: string } | null = null;
+    try {
+      FL_INDEX_ONLY();
+    } catch (e) {
+      thrown = e as { stage?: string };
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown!.stage).toBe("parse");
+  });
+  test("the child scope is the grant PROGRAMME pages — never the funding-process page", () => {
+    const programs = floridaGrantPrograms(fixture(FL_FILES.index));
+    expect(programs.map((p) => p.slug)).toEqual([
+      "general-program-support",
+      "specific-cultural-projects",
+      "cultural-facilities",
+      "cultural-endowment",
+      "america-250-florida-grants",
+    ]);
+    expect(programs.map((p) => p.url)).toEqual([...FL_CHILD_FIXTURES.map(([url]) => url)]);
+    expect(programs.length).toBeLessThanOrEqual(FLORIDA_MAX_CHILD_PAGES);
+    for (const p of programs) {
+      expect(p.url.startsWith(FLORIDA_SOURCE_URL)).toBe(true);
+      expect(p.url).toContain(FLORIDA_PROGRAM_PATH_PREFIX);
+      // The funding-process page carries ONE general `deadline` token that is not
+      // any programme's deadline, so it can never be swept into the corpus.
+      expect(p.url).not.toContain("application-and-funding-process");
+      expect(p.url).not.toContain("grant-resources");
+      expect(p.url).not.toContain("managing-your-grants");
+    }
+  });
+  test("one record per programme that publishes its own statement, all served closed", () => {
+    const records = FL();
+    expect(records.map((o) => o.externalId)).toEqual([
+      "general-program-support",
+      "specific-cultural-projects",
+      "cultural-facilities",
+      "america-250-florida-grants",
+    ]);
+    // The Cultural Endowment page is programme history with no application
+    // status and no dated cycle: it contributes NO record.
+    expect(records.some((o) => o.externalId === "cultural-endowment")).toBe(false);
+    for (const o of records) {
+      // The Division's own past-tense statement wins over the live page.
+      expect(o.status).toBe("closed");
+      // "Next Deadline: TBD" is not a date, and the 2028/2029 dates the source
+      // publishes are the GRANT PERIOD: no date is ever read from them.
+      expect(o.closeDate).toBeNull();
+      expect(o.estimatedCloseDate).toBeNull();
+      expect(o.postedDate).toBeNull();
+      expect(o.raw.grantPeriodIsNeverADeadline).toBe(true);
+      expect(o.raw.datesReadOnlyFromThisProgramsOwnPage).toBe(true);
+      expect(o.raw.sourceClosedDeclaredBySource).toBe(true);
+      expect(o.sourceUrl).toBe(FLORIDA_SOURCE_URL);
+      expect(o.url.startsWith(FLORIDA_SOURCE_URL)).toBe(true);
+      expect(o.url).toBe(o.raw.childPageUrl);
+    }
+    // The Grant Period's own days are the 2028/2029 dates the source publishes —
+    // and they are carried verbatim, never promoted.
+    const gps = exact(records, "general-program-support");
+    expect(String(gps.raw.grantPeriodText)).toContain("July 1, 2028");
+    expect(gps.raw.grantPeriodText).not.toBe(gps.raw.closingText);
+    expect(gps.closeDate).not.toBe("2028-07-01");
+    expect(gps.postedDate).not.toBe("2028-07-01");
+    // The deadline label's own value is "TBD", kept for review.
+    expect(gps.raw.nextDeadlineText).toBe("TBD");
+    expect(gps.raw.deadlineValueTbdIsNotADate).toBe(true);
+  });
+  test("a programme page with its own OPEN cycle and a real deadline is read from its own value", () => {
+    const child =
+      `<h1>Synthetic Program</h1><ul>` +
+      `<li><strong>Applications for Fiscal Year 2029-2030 are OPEN</strong></li>` +
+      `<li><strong>Next Deadline: March 5, 2027</strong></li>` +
+      `<li><strong>Grant Period for Next Application Cycle: July 1, 2027 through June 30, 2028</strong></li>` +
+      `</ul>`;
+    const records = parseGrantOpportunities(
+      floridaConnector,
+      floridaPayloadWith(child),
+      NOW,
+    ).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.externalId).toBe("general-program-support");
+    expect(records[0]!.closeDate).toBe("2027-03-05");
+    expect(records[0]!.status).toBe("open");
+    // The Grant Period in the same list is still not a date.
+    expect(records[0]!.postedDate).toBeNull();
+    expect(records[0]!.raw.grantPeriodIsNeverADeadline).toBe(true);
+  });
+  test("a value the Division marks as an estimate can only ever be an estimate", () => {
+    const child =
+      `<h1>Synthetic Program</h1><ul>` +
+      `<li><strong>Applications for Fiscal Year 2029-2030 are OPEN</strong></li>` +
+      `<li><strong>Next Deadline: Estimated March 5, 2027</strong></li>` +
+      `</ul>`;
+    const records = parseGrantOpportunities(
+      floridaConnector,
+      floridaPayloadWith(child),
+      NOW,
+    ).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.closeDate).toBeNull();
+    expect(records[0]!.estimatedCloseDate).toBe("2027-03-05");
+    expect(records[0]!.status).toBe("unverified");
+    expect(records[0]!.raw.deadlineValueIsAnEstimate).toBe(true);
+  });
+  test("one programme's deadline value is never spread across the catalogue", () => {
+    const child =
+      `<h1>Synthetic Program</h1><ul>` +
+      `<li><strong>Applications for Fiscal Year 2029-2030 are OPEN</strong></li>` +
+      `<li><strong>Next Deadline: March 5, 2027</strong></li>` +
+      `</ul>`;
+    const payload = joinSourcePages(FLORIDA_SOURCE_URL, fixture(FL_FILES.index), [
+      { url: `${FLORIDA_SOURCE_URL}grant-programs/general-program-support/`, html: child },
+      {
+        url: `${FLORIDA_SOURCE_URL}grant-programs/specific-cultural-projects/`,
+        html: fixture(FL_FILES.specificCulturalProjects),
+      },
+    ]);
+    const records = parseGrantOpportunities(floridaConnector, payload, NOW).opportunities;
+    expect(records.length).toBe(2);
+    const scp = exact(records, "specific-cultural-projects");
+    // The sibling programme's deadline did NOT leak into the second record.
+    expect(scp.closeDate).toBeNull();
+    expect(scp.status).toBe("closed");
+    expect(scp.raw.nextDeadlineText).toBe("TBD");
   });
 });

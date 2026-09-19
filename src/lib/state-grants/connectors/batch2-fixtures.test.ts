@@ -389,7 +389,7 @@ describe("washington: a window's end is a deadline, an opening is not, and off-h
       const record = records.find((o) => o.externalId === id)!;
       expect(record.status).toBe("closed");
       expect(record.closeDate).toBeNull();
-      expect(record.raw.statusDeclaresClosed).toBe(true);
+      expect(record.raw.sourceClosedDeclaredBySource).toBe(true);
       expect(record.raw.statusText).toBe("This grant is closed.");
     }
   });

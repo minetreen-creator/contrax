@@ -297,11 +297,17 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     expect((await queryStateGrants({ stateCode: HEALTHY_STATE })).totalCount).toBe(6);
 
     // ...and the PRODUCTION gate still serves none of them: ZZ is unavailable, so
-    // the default search narrows to the validated set (VA) and says so.
+    // the default search narrows to the validated set (VA) and says so. Note that
+    // the proof is NOT an empty answer: production really does hold VA's own corpus
+    // (synced 2026-09-19), and a validated state's rows ARE served. The proof is
+    // that the narrowed scope is exactly the validated set, so no unvalidated
+    // state's stored row can appear — and the ZZ rows above are in the store while
+    // none of them is in this answer.
     const unscoped = bodyOf(await runStateGrantSearch({}, FIXTURE_NOW, PRODUCTION_DEPS));
-    expect(unscoped.totalCount).toBe(0);
-    expect(unscoped.records.length).toBe(0);
     expect(unscoped.statesIncluded.join(",")).toBe("VA");
+    expect(unscoped.totalCount).toBe(vaBaseline.length);
+    expect(unscoped.records.every((r) => r.stateCode === "VA")).toBe(true);
+    expect(unscoped.records.some((r) => r.stateCode === HEALTHY_STATE)).toBe(false);
 
     // A caller that NAMES a real but unvalidated state (MD) gets the same empty,
     // explained answer: the state is never reported as included — it appears in

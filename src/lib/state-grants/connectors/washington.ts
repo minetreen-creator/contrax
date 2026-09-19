@@ -200,7 +200,10 @@ export function parseWashingtonGrantsPage(html: string): SourceGrantRecord[] {
       matchingRequirement: NOT_SPECIFIED,
       raw: {
         statusText,
-        statusDeclaresClosed: sourceClosed,
+        // Same key + meaning as the Virginia connector, because the shared live
+        // harness reads exactly this field (it must never miss a source's own
+        // past-tense "closed" wording).
+        sourceClosedDeclaredBySource: sourceClosed,
         rollingDeclaredBySource: ongoing,
         // The source's own window/announcement wording (the harness's date-text
         // spot check reads this field), and which side of the cycle it published.

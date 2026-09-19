@@ -589,11 +589,11 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     if (outcome.status !== 200) throw new Error(`expected 200, got ${outcome.status}`);
     const payload = outcome.body;
     expect(payload.states.length).toBe(51);
-    expect(payload.counts.validated).toBe(21);
-    expect(payload.counts.limited).toBe(21);
+    expect(payload.counts.validated).toBe(25);
+    expect(payload.counts.limited).toBe(25);
     expect(payload.counts.connected).toBe(0);
-    expect(payload.counts.unavailable).toBe(30);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "HI", "KS", "KY", "ME", "MN", "NM", "ND", "PA", "RI", "TN", "UT", "VA", "WA", "WV"]);
+    expect(payload.counts.unavailable).toBe(26);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "HI", "IL", "KS", "KY", "ME", "MN", "NV", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "UT", "VA", "WA", "WV"]);
     const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
     expect(virginia.tier).toBe("limited");
     expect(virginia.note).toContain("not statewide coverage");
@@ -603,7 +603,7 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     expect(virginia.recordCount).toBe(vaBaseline.length);
     expect(virginia.statusCounts.total).toBe(vaBaseline.length);
     expect(JSON.stringify(payload)).not.toContain("forecast");
-    expect(payload.headline).toContain("21 of 51 states have a validated source");
+    expect(payload.headline).toContain("25 of 51 states have a validated source");
   });
 
   test("isolation: the suite never wrote a Virginia row, and every state table is intact", async () => {

@@ -581,7 +581,12 @@ describe.skipIf(!DB_READY)("state grants integration (real DB)", () => {
     const second = await ensureStateSource(codeSource);
     expect(second).toBe(first);
     expect((await readStateSources("VA")).length).toBe(1);
-  });
+    // Real-DB budget: syncStateSources + ensureStateSource are two round trips
+    // PER REGISTERED SOURCE against a remote Neon instance, and this test syncs
+    // the whole registry twice. At 25 sources that is ~100 round trips and
+    // ~5.2s — no longer inside bun's 5s default. The assertions are unchanged;
+    // only the wall-clock allowance is stated honestly.
+  }, 20_000);
 
   test("the registry mirror reflects the DERIVED registry and re-syncs for free", async () => {
     const entries = listStates();
@@ -596,8 +601,8 @@ describe.skipIf(!DB_READY)("state grants integration (real DB)", () => {
     expect(va.status).toBe("limited");
     expect(va.connectorId).toBe(VIRGINIA_CONNECTOR_ID);
     expect(mirrored.filter((r) => r.status === "connected").length).toBe(0);
-    expect(mirrored.filter((r) => r.status === "limited").length).toBe(21);
-    expect(mirrored.filter((r) => r.status === "unavailable").length).toBe(30);
+    expect(mirrored.filter((r) => r.status === "limited").length).toBe(25);
+    expect(mirrored.filter((r) => r.status === "unavailable").length).toBe(26);
 
     // Nothing changed, so a second mirror writes nothing at all.
     expect(await syncStateRegistry(entries)).toBe(0);

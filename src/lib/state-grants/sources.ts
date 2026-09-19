@@ -42,6 +42,10 @@ import { westVirginiaConnector } from "~/lib/state-grants/connectors/west-virgin
 import { kentuckyConnector } from "~/lib/state-grants/connectors/kentucky";
 import { alabamaConnector } from "~/lib/state-grants/connectors/alabama";
 import { maineConnector } from "~/lib/state-grants/connectors/maine";
+import { nevadaConnector } from "~/lib/state-grants/connectors/nevada";
+import { oklahomaConnector } from "~/lib/state-grants/connectors/oklahoma";
+import { southCarolinaConnector } from "~/lib/state-grants/connectors/south-carolina";
+import { illinoisConnector } from "~/lib/state-grants/connectors/illinois";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -101,6 +105,11 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   kentuckyConnector as unknown as StateGrantConnector<never>,
   alabamaConnector as unknown as StateGrantConnector<never>,
   maineConnector as unknown as StateGrantConnector<never>,
+  // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19).
+  nevadaConnector as unknown as StateGrantConnector<never>,
+  oklahomaConnector as unknown as StateGrantConnector<never>,
+  southCarolinaConnector as unknown as StateGrantConnector<never>,
+  illinoisConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

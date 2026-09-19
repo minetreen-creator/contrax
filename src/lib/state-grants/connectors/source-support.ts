@@ -249,6 +249,74 @@ export function singlePublishedDay(raw: string): string | null {
   return unique.length === 1 ? unique[0] : null;
 }
 
+/**
+ * The ordered ends of a date RANGE the source published in ONE cell/value
+ * ("08/25/2026 - 03/25/2027", "04/03/2025 - No end date").
+ *
+ * WHY THIS EXISTS (QA flag #4 on the batch-1 checklist): `singlePublishedDay()`
+ * refuses a cell holding several distinct days, which is RIGHT for an ambiguous
+ * multi-deadline cell — but a source that publishes its application window as an
+ * ORDERED range ("Application Period: A - B", "Application Date Range: A - B")
+ * has told us exactly which end is the opening day and which is the closing day.
+ * Reading them in source order is not an inference: it is the source's own cell
+ * semantics, which is why this returns the two ends SEPARATELY and never picks,
+ * averages or interpolates anything.
+ *
+ * HONESTY RULES (each one is pinned by a test):
+ *   - exactly two ends, else both are null (a single day, or three-part text, is
+ *     not a range we can read — the record stays honestly undated);
+ *   - each end must parse as a single exact day (`singlePublishedDay`), so a
+ *     year-less or multi-day end yields null rather than a guessed date;
+ *   - the source's own "no end date" wording (and only that) is reported as
+ *     `openEnded: true` — the connector decides what to do with it (this module
+ *     never turns it into a status);
+ *   - the RAW ends are returned verbatim for `raw`, so a reviewer sees the text.
+ */
+export interface PublishedRange {
+  startDay: string | null;
+  endDay: string | null;
+  /** True only when the SECOND end is the source's own "no end date" wording. */
+  openEnded: boolean;
+  /** The source's own two ends, verbatim (empty when the cell is not a range). */
+  parts: string[];
+}
+
+/** The source's own wording that declares an application window has no end. */
+const NO_END_DATE_RE = /^(no end date|no closing date|no deadline|open[- ]ended|no end)$/i;
+
+export function publishedRangeEnds(raw: string): PublishedRange {
+  const text = stripTags(raw);
+  const parts = text
+    .split(/\s+[-\u2013\u2014]\s+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  if (parts.length !== 2) return { startDay: null, endDay: null, openEnded: false, parts };
+  const [start, end] = parts as [string, string];
+  const openEnded = NO_END_DATE_RE.test(end);
+  return {
+    startDay: singlePublishedDay(start),
+    endDay: openEnded ? null : singlePublishedDay(end),
+    openEnded,
+    parts,
+  };
+}
+
+/**
+ * The award amounts the source published, read off its own wording.
+ * One amount is the ceiling the source states ("Up to $5,000" ⇒ max only);
+ * two become the range it publishes ("$15000 - $75000" ⇒ min + max).
+ * No amount, or wording that states none, ⇒ both null (never invented).
+ */
+export function publishedAmountRange(raw: string): { min: number | null; max: number | null } {
+  const amounts = [...stripTags(raw).matchAll(/\$\s*([\d,]+(?:\.\d+)?)/g)]
+    .map((m) => Number((m[1] ?? "").replace(/,/g, "")))
+    .filter((n) => Number.isFinite(n));
+  if (amounts.length === 0) return { min: null, max: null };
+  return amounts.length === 1
+    ? { min: null, max: amounts[0]! }
+    : { min: Math.min(...amounts), max: Math.max(...amounts) };
+}
+
 /** True when the source's own words declare a program with no deadline. */
 const ONGOING_RE =
   /\b(year[\s-]?round|rolling|ongoing|continuous|no (?:time|deadline)|no application deadline|accept(?:s|ing) applications (?:on a )?rolling|open until filled|always open|until (?:all )?funds (?:are|is) (?:awarded|exhausted))\b/i;

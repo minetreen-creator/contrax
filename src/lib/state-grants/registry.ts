@@ -203,6 +203,34 @@ import {
   MAINE_SOURCE_URL,
   MAINE_SOURCE_VALIDATION_TEST,
 } from "~/lib/state-grants/connectors/maine";
+import {
+  nevadaConnector,
+  NEVADA_APPROVED_HOSTS,
+  NEVADA_CONNECTOR_ID,
+  NEVADA_SOURCE_URL,
+  NEVADA_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/nevada";
+import {
+  oklahomaConnector,
+  OKLAHOMA_APPROVED_HOSTS,
+  OKLAHOMA_CONNECTOR_ID,
+  OKLAHOMA_SOURCE_URL,
+  OKLAHOMA_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/oklahoma";
+import {
+  southCarolinaConnector,
+  SOUTH_CAROLINA_APPROVED_HOSTS,
+  SOUTH_CAROLINA_CONNECTOR_ID,
+  SOUTH_CAROLINA_SOURCE_URL,
+  SOUTH_CAROLINA_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/south-carolina";
+import {
+  illinoisConnector,
+  ILLINOIS_APPROVED_HOSTS,
+  ILLINOIS_CONNECTOR_ID,
+  ILLINOIS_SOURCE_URL,
+  ILLINOIS_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/illinois";
 
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
@@ -345,6 +373,11 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...KENTUCKY_APPROVED_HOSTS,
   ...ALABAMA_APPROVED_HOSTS,
   ...MAINE_APPROVED_HOSTS,
+  // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19): NV, OK, SC, IL.
+  ...NEVADA_APPROVED_HOSTS,
+  ...OKLAHOMA_APPROVED_HOSTS,
+  ...SOUTH_CAROLINA_APPROVED_HOSTS,
+  ...ILLINOIS_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -598,6 +631,45 @@ function sourcesByStateMap(): Record<string, readonly string[]> {
 }
 
 /** The default inputs: every validated source, all other states `unavailable`. */
+// ---------------------------------------------------------------------------
+// CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19, ratified 243): the NV, OK,
+// SC and IL registry entries. Each one names its OWN source, its own hosts and
+// its own live realities — the manifest gate in the shared live harness compares
+// the DERIVED registry row against these declarations, so a silent `sources.ts`
+// omission or an inflated tier fails that state's own gate.
+// ---------------------------------------------------------------------------
+export const NEVADA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: NEVADA_CONNECTOR_ID,
+  sourceUrl: NEVADA_SOURCE_URL,
+  testFile: NEVADA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the Nevada Arts Council's own FY27 Grant Offerings page on the Council's own domain (nvartscouncil.org / www.nvartscouncil.org). The phase-1 map named the Council's /grants/ page; live re-verification on 2026-09-19 showed that page is the Council's FAQ (it publishes exactly one date in its body and points readers to the Grant Offerings page for deadlines), so the connector reads the dated listing the Council itself points at. Only the Council's own labelled \"Application deadline:\" value is read: the \"Grant Activity Period\" on every card is the funded ACTIVITY period and is never a deadline, and deadlines published as RULES (\"At least 30 days before the proposed project (while funds remain available)\") are served `unverified` rather than inferred. A published deadline that has passed is `closed` even under the Council's own \"Open and Upcoming Grants:\" heading, and the programs under its \"Closed Grants:\" heading are served as the source's own closed state. The Council's past-grantee/award pages are award records and are never served as opportunities. Nevada publishes funding through other departments we have NOT validated: this is ONE agency, so `limited`, never `connected` — not statewide coverage.",
+};
+export const OKLAHOMA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: OKLAHOMA_CONNECTOR_ID,
+  sourceUrl: OKLAHOMA_SOURCE_URL,
+  testFile: OKLAHOMA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source read across the Oklahoma Arts Council's TWO program indexes on the State of Oklahoma's canonical oklahoma.gov host (grants-for-organizations.html and grants-for-schools.html): the Council's /arts/grants.html hub publishes no per-program date at all, so both indexes are fetched fail-closed every run as ONE source. Only the Council's own labelled \"Application Deadlines\" value is read: \"Project Activity Dates\" is the funded ACTIVITY period and is never a deadline, the Council's own \"(Closed)\" marker is served as its closed state (with the date it published alongside it), and deadlines published as RULES (\"60 days before your project begins\", \"30 days before the scheduled field trip date\") are served `unverified` rather than inferred. The legacy arts.ok.gov host is never used. Oklahoma publishes funding through other departments we have NOT validated: this is ONE agency, so `limited`, never `connected` — not statewide coverage.",
+};
+export const SOUTH_CAROLINA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: SOUTH_CAROLINA_CONNECTOR_ID,
+  sourceUrl: SOUTH_CAROLINA_SOURCE_URL,
+  testFile: SOUTH_CAROLINA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the South Carolina Arts Commission's own All Grants listing on the Commission's own domain (southcarolinaarts.com / www.southcarolinaarts.com; the /grants/ path 301s elsewhere, so the FINAL /all-grants/ URL is hard-coded). This listing is MIXED — 14 of its 19 cards carry the Commission's own `Closed` badge and 5 are Open/Closing Soon — so the cards the Commission badges Closed are served closed with the source's own published window, and an Open/Closing-Soon badge is never promoted into a date: status comes only from the Commission's own Application Period, read as an ordered range. The \"Apply at least five (5) weeks before grant-funded activities begin\" rule and the Letter-of-Intent notes are never deadlines. The Commission publishes no summary/eligibility text in machine-labelable form, so those fields stay unstated, and no third-party host (e.g. its scheduling link) is ever served as a record's page. South Carolina publishes funding through other departments we have NOT validated: this is ONE agency, so `limited`, never `connected` — not statewide coverage.",
+};
+export const ILLINOIS_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: ILLINOIS_CONNECTOR_ID,
+  sourceUrl: ILLINOIS_SOURCE_URL,
+  testFile: ILLINOIS_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the Illinois CSFA current funding-opportunity list, located live on 2026-09-19 after the phase-1 map recorded that the dated NOFO path was NOT found (the guessed /csfa/ and /nofo.html both 404 and the gata.illinois.gov root is informational). The real path was found by following the State's own link graph — gata.illinois.gov root → its own CSFA page /grants/csfa.html → the public CSFA application it embeds at omb.illinois.gov/public/gata/csfa/ → its own link to OpportunityList.aspx — and the list is the statewide catalog the Grants Accountability and Transparency Act (30 ILCS 708) requires. The whole unpaginated list is read (the page states its own total, which the tests cross-check): the Application Date Range column is read as its two ordered ends, the State's own \"No end date\" is the ONLY input to `rolling` (never an invented deadline), a passed published end date is `closed`, and \"Not Applicable\" award ranges are stored as no amount rather than as a number. Only the current-opportunity VIEW of the catalog is read, and other agencies' own listings were NOT validated, so `limited`, never `curated`/`connected` — not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -623,6 +695,11 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     KY: kentuckyConnector as unknown as StateGrantConnector<never>,
     AL: alabamaConnector as unknown as StateGrantConnector<never>,
     ME: maineConnector as unknown as StateGrantConnector<never>,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19).
+    NV: nevadaConnector as unknown as StateGrantConnector<never>,
+    OK: oklahomaConnector as unknown as StateGrantConnector<never>,
+    SC: southCarolinaConnector as unknown as StateGrantConnector<never>,
+    IL: illinoisConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -648,6 +725,11 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     KY: KENTUCKY_REGISTRY_ENTRY,
     AL: ALABAMA_REGISTRY_ENTRY,
     ME: MAINE_REGISTRY_ENTRY,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19).
+    NV: NEVADA_REGISTRY_ENTRY,
+    OK: OKLAHOMA_REGISTRY_ENTRY,
+    SC: SOUTH_CAROLINA_REGISTRY_ENTRY,
+    IL: ILLINOIS_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

@@ -13,6 +13,11 @@
  */
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 import { virginiaConnector } from "~/lib/state-grants/connectors/virginia";
+import { arizonaConnector } from "~/lib/state-grants/connectors/arizona";
+import { delawareConnector } from "~/lib/state-grants/connectors/delaware";
+import { hawaiiConnector } from "~/lib/state-grants/connectors/hawaii";
+import { pennsylvaniaConnector } from "~/lib/state-grants/connectors/pennsylvania";
+import { rhodeIslandConnector } from "~/lib/state-grants/connectors/rhode-island";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -41,6 +46,13 @@ export function sourceForConnector(connector: StateGrantConnector<never>): State
 
 const CONNECTORS: readonly StateGrantConnector<never>[] = [
   virginiaConnector as unknown as StateGrantConnector<never>,
+  // P3 batch #1 (2026-09-19): one validated source per state, so each of these
+  // states is `limited` — never advertised as statewide coverage.
+  arizonaConnector as unknown as StateGrantConnector<never>,
+  delawareConnector as unknown as StateGrantConnector<never>,
+  hawaiiConnector as unknown as StateGrantConnector<never>,
+  pennsylvaniaConnector as unknown as StateGrantConnector<never>,
+  rhodeIslandConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

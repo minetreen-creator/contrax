@@ -589,11 +589,11 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     if (outcome.status !== 200) throw new Error(`expected 200, got ${outcome.status}`);
     const payload = outcome.body;
     expect(payload.states.length).toBe(51);
-    expect(payload.counts.validated).toBe(16);
-    expect(payload.counts.limited).toBe(16);
+    expect(payload.counts.validated).toBe(21);
+    expect(payload.counts.limited).toBe(21);
     expect(payload.counts.connected).toBe(0);
-    expect(payload.counts.unavailable).toBe(35);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "AR", "CA", "CO", "DE", "HI", "KS", "MN", "NM", "ND", "PA", "RI", "TN", "UT", "VA", "WA"]);
+    expect(payload.counts.unavailable).toBe(30);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AR", "AZ", "CA", "CO", "DC", "DE", "HI", "KS", "KY", "ME", "MN", "ND", "NM", "PA", "RI", "TN", "UT", "VA", "WA", "WV"]);
     const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
     expect(virginia.tier).toBe("limited");
     expect(virginia.note).toContain("not statewide coverage");

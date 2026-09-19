@@ -37,6 +37,11 @@ import { newMexicoConnector } from "~/lib/state-grants/connectors/new-mexico";
 // reports `sourceCount 0` — so every batch must add its connectors to this list.
 import { tennesseeConnector } from "~/lib/state-grants/connectors/tennessee";
 import { utahConnector } from "~/lib/state-grants/connectors/utah";
+import { districtOfColumbiaConnector } from "~/lib/state-grants/connectors/district-of-columbia";
+import { westVirginiaConnector } from "~/lib/state-grants/connectors/west-virginia";
+import { kentuckyConnector } from "~/lib/state-grants/connectors/kentucky";
+import { alabamaConnector } from "~/lib/state-grants/connectors/alabama";
+import { maineConnector } from "~/lib/state-grants/connectors/maine";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -88,6 +93,14 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   // these states is `limited` — never advertised as statewide coverage.
   tennesseeConnector as unknown as StateGrantConnector<never>,
   utahConnector as unknown as StateGrantConnector<never>,
+  // NATIONWIDE continuous tranche (owner 2026-09-19): one validated source per
+  // state, so each of these states is `limited` — never advertised as statewide
+  // coverage.
+  districtOfColumbiaConnector as unknown as StateGrantConnector<never>,
+  westVirginiaConnector as unknown as StateGrantConnector<never>,
+  kentuckyConnector as unknown as StateGrantConnector<never>,
+  alabamaConnector as unknown as StateGrantConnector<never>,
+  maineConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

@@ -164,6 +164,45 @@ import {
   UTAH_SOURCE_URL,
   UTAH_SOURCE_VALIDATION_TEST,
 } from "~/lib/state-grants/connectors/utah";
+// NATIONWIDE workstream — the continuous tranche after the escalation pass
+// (owner correction 2026-09-19, ratified 243: ONE continuous nationwide
+// workstream, no separate batches): DC, WV, KY, AL, ME. Each is ONE agency's own
+// listing, so each declares `limited`.
+import {
+  DISTRICT_OF_COLUMBIA_APPROVED_HOSTS,
+  DISTRICT_OF_COLUMBIA_CONNECTOR_ID,
+  DISTRICT_OF_COLUMBIA_SOURCE_URL,
+  DISTRICT_OF_COLUMBIA_SOURCE_VALIDATION_TEST,
+  districtOfColumbiaConnector,
+} from "~/lib/state-grants/connectors/district-of-columbia";
+import {
+  WEST_VIRGINIA_APPROVED_HOSTS,
+  westVirginiaConnector,
+  WEST_VIRGINIA_CONNECTOR_ID,
+  WEST_VIRGINIA_SOURCE_URL,
+  WEST_VIRGINIA_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/west-virginia";
+import {
+  KENTUCKY_APPROVED_HOSTS,
+  kentuckyConnector,
+  KENTUCKY_CONNECTOR_ID,
+  KENTUCKY_SOURCE_URL,
+  KENTUCKY_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/kentucky";
+import {
+  ALABAMA_APPROVED_HOSTS,
+  alabamaConnector,
+  ALABAMA_CONNECTOR_ID,
+  ALABAMA_SOURCE_URL,
+  ALABAMA_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/alabama";
+import {
+  MAINE_APPROVED_HOSTS,
+  maineConnector,
+  MAINE_CONNECTOR_ID,
+  MAINE_SOURCE_URL,
+  MAINE_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/maine";
 
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
@@ -300,6 +339,12 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   // ESCALATION PASS (owner 2026-09-19).
   ...TENNESSEE_APPROVED_HOSTS,
   ...UTAH_APPROVED_HOSTS,
+  // NATIONWIDE continuous tranche (owner 2026-09-19): DC, WV, KY, AL, ME.
+  ...DISTRICT_OF_COLUMBIA_APPROVED_HOSTS,
+  ...WEST_VIRGINIA_APPROVED_HOSTS,
+  ...KENTUCKY_APPROVED_HOSTS,
+  ...ALABAMA_APPROVED_HOSTS,
+  ...MAINE_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -488,6 +533,60 @@ export const UTAH_REGISTRY_ENTRY: SourceValidationEntry = {
   note: "One validated source (the Utah Division of Arts & Museums' Project Grants page, which publishes a per-program Grant Opens / Grant Closes schedule). Every published cycle on 2026-09-19 has closed, so those records are honestly `closed` and are never shown as open because the page is still live; the dated Info Session webinars on the same panels are events and are never treated as deadlines. This is one division's Project Grants, not Utah's General Operating Support grants or any other agency: this is not statewide coverage.",
 };
 
+/**
+ * NATIONWIDE continuous-tranche manifest entries (owner correction 2026-09-19,
+ * ratified 243: one continuous nationwide workstream, no separate batches).
+ * Each state is ONE agency's own listing, so each declares `limited` — the ladder
+ * requires at least `CONNECTED_MIN_SOURCES` (2) distinct sources before any state
+ * may be reported as statewide multi-source coverage. Every `verifiedOn` date is
+ * the day the state's own `<state>.source-validation.test.ts` PASSED against the
+ * live official source.
+ */
+export const DISTRICT_OF_COLUMBIA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: DISTRICT_OF_COLUMBIA_CONNECTOR_ID,
+  sourceUrl: DISTRICT_OF_COLUMBIA_SOURCE_URL,
+  testFile: DISTRICT_OF_COLUMBIA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the DC Office of the Deputy Mayor for Planning and Economic Development's Grant Opportunities listing). The page tags each card OPEN or CLOSED in its own words: the CLOSED cards are served `closed`, and the one card tagged OPEN that publishes no closing date at all is honestly `unverified` rather than assumed open. A card whose own published closing date has passed is served `closed` even when the page still tags it OPEN — a stale page never makes a deadline look open. The District runs funding through other agencies and councils we have NOT validated (`dslbd.dc.gov` answers 403 from this egress): this is not statewide coverage.",
+};
+
+export const WEST_VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: WEST_VIRGINIA_CONNECTOR_ID,
+  sourceUrl: WEST_VIRGINIA_SOURCE_URL,
+  testFile: WEST_VIRGINIA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the West Virginia Division of Culture and History, Arts Section's own grants page). Its two labelled sections are read exactly as published: the programs under \"Currently Open for Application:\" are served with their own published deadline (or `rolling` where the source's own value says Rolling), and the two programs under \"Not Currently Open for Application:\" are served as the source's own closed state rather than being invented a date. The page's final-report due date is a reporting date for awards already made and is never treated as an application deadline. West Virginia publishes funding through other departments we have NOT validated: this is not statewide coverage.",
+};
+
+export const KENTUCKY_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: KENTUCKY_CONNECTOR_ID,
+  sourceUrl: KENTUCKY_SOURCE_URL,
+  testFile: KENTUCKY_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Kentucky Arts Council's own program listing). The listing's WordPress title reads \"Grants Archives\", which was checked against the current-vs-past rule BEFORE any record was published: it is the `program-type` taxonomy listing, its deadlines run both before and after today, and each program's own page publishes the same live deadline — so its past deadlines are served `closed` and its future ones `open`, and nothing is served open merely because the page is live. Kentucky publishes funding through other departments we have NOT validated: this is not statewide coverage.",
+};
+
+export const ALABAMA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: ALABAMA_CONNECTOR_ID,
+  sourceUrl: ALABAMA_SOURCE_URL,
+  testFile: ALABAMA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (ADECA's own Funding Opportunities page, at its FINAL URL — the short `/funding-opportunities/` address redirects here and the redirect target's host is the only one allowlisted). ADECA's intro says the page lists currently open opportunities only, but its own published dates are what decide: two programs whose September 18, 2026 deadline had passed are served `closed`, and the two still ahead are `open`. The dated application workshop on the VW Settlement card is an event and is never a deadline. Alabama publishes funding through other departments we have NOT validated: this is not statewide coverage.",
+};
+
+export const MAINE_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: MAINE_CONNECTOR_ID,
+  sourceUrl: MAINE_SOURCE_URL,
+  testFile: MAINE_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Maine Arts Commission's own Grants Home page, read at its deep URL). Both shapes the page publishes are read: the current/upcoming opportunity cards (with their own \"Applications Open:\" and \"Application Deadline:\" labels) and the funding directory's per-program \"Current Status:\". Programs the agency files as Closed — including ones it last awarded in FY2027 — are served `closed` and are never presented as open; a program whose status is neither open nor closed and which publishes no date stays `unverified`. A program the page publishes in both shapes is ONE record, identified by the agency's own page path for it. Maine publishes funding through other departments we have NOT validated: this is not statewide coverage.",
+};
+
 /** The sources registered for every state, keyed by state code. */
 function sourcesByStateMap(): Record<string, readonly string[]> {
   const out: Record<string, readonly string[]> = {};
@@ -518,6 +617,12 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     // ESCALATION PASS (owner 2026-09-19).
     TN: tennesseeConnector as unknown as StateGrantConnector<never>,
     UT: utahConnector as unknown as StateGrantConnector<never>,
+    // NATIONWIDE continuous tranche (owner 2026-09-19): DC, WV, KY, AL, ME.
+    DC: districtOfColumbiaConnector as unknown as StateGrantConnector<never>,
+    WV: westVirginiaConnector as unknown as StateGrantConnector<never>,
+    KY: kentuckyConnector as unknown as StateGrantConnector<never>,
+    AL: alabamaConnector as unknown as StateGrantConnector<never>,
+    ME: maineConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -537,6 +642,12 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     // ESCALATION PASS (owner 2026-09-19).
     TN: TENNESSEE_REGISTRY_ENTRY,
     UT: UTAH_REGISTRY_ENTRY,
+    // NATIONWIDE continuous tranche (owner 2026-09-19): DC, WV, KY, AL, ME.
+    DC: DISTRICT_OF_COLUMBIA_REGISTRY_ENTRY,
+    WV: WEST_VIRGINIA_REGISTRY_ENTRY,
+    KY: KENTUCKY_REGISTRY_ENTRY,
+    AL: ALABAMA_REGISTRY_ENTRY,
+    ME: MAINE_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

@@ -601,8 +601,8 @@ describe.skipIf(!DB_READY)("state grants integration (real DB)", () => {
     expect(va.status).toBe("limited");
     expect(va.connectorId).toBe(VIRGINIA_CONNECTOR_ID);
     expect(mirrored.filter((r) => r.status === "connected").length).toBe(0);
-    expect(mirrored.filter((r) => r.status === "limited").length).toBe(27);
-    expect(mirrored.filter((r) => r.status === "unavailable").length).toBe(24);
+    expect(mirrored.filter((r) => r.status === "limited").length).toBe(28);
+    expect(mirrored.filter((r) => r.status === "unavailable").length).toBe(23);
 
     // Nothing changed, so a second mirror writes nothing at all.
     expect(await syncStateRegistry(entries)).toBe(0);

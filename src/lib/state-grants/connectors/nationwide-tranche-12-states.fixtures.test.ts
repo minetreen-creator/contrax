@@ -12,6 +12,11 @@
  *     a passed round is `closed` on a still-live page.
  *   - Montana: "will open X and close on Y" is read as its two ordered ends; a
  *     year-less or unreadable end yields NO date; a passed cycle is `closed`.
+ *   - Indiana: ONE row of a cycle's own timeline table is the deadline
+ *     ("Application Due"); the draft-review / funding-notification / final-report
+ *     rows and the "Grant Period" activity period are NEVER deadlines; a
+ *     struck-through (<del>) value is the Commission's own superseded value; every
+ *     record comes from its OWN child page (the hub is a 0-date catalogue).
  */
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
@@ -23,6 +28,12 @@ import {
 } from "~/lib/state-grants/connector";
 import { newHampshireConnector } from "~/lib/state-grants/connectors/new-hampshire";
 import { montanaConnector } from "~/lib/state-grants/connectors/montana";
+import { joinSourcePages } from "~/lib/state-grants/connectors/multi-page";
+import {
+  INDIANA_SOURCE_URL,
+  indianaConnector,
+  indianaFundingPrograms,
+} from "~/lib/state-grants/connectors/indiana";
 
 /** One fixed clock for every classification below (2026-09-19, US Eastern). */
 const NOW = new Date("2026-09-19T12:00:00Z");
@@ -38,9 +49,54 @@ const NH_FILE = "new-hampshire-jpp-program.html";
 const MT_FILE = "montana-commerce-tourism-grant-program.html";
 const NH = () => parse(newHampshireConnector, NH_FILE);
 const MT = () => parse(montanaConnector, MT_FILE);
+
+/**
+ * Indiana is a MULTI-PAGE source: the hub plus every funding programme page the
+ * hub publishes, concatenated with the shared delimiters. The fixture for each
+ * fetched page is its own trimmed real capture.
+ */
+const IN_FILES = {
+  index: "indiana-arts-commission-funding.html",
+  artsProjectSupport: "indiana-arts-project-support.html",
+  artsOrganizationSupport: "indiana-arts-organization-support.html",
+  everyCountyFunded: "indiana-every-county-funded.html",
+  america250: "indiana-america250.html",
+} as const;
+const IN_CHILD_URLS = {
+  artsProjectSupport: `${INDIANA_SOURCE_URL}arts-project-support`,
+  artsOrganizationSupport: `${INDIANA_SOURCE_URL}arts-organization-support`,
+  everyCountyFunded: `${INDIANA_SOURCE_URL}every-county-funded`,
+  america250: `${INDIANA_SOURCE_URL}america250`,
+} as const;
+const IN_CHILD_FIXTURES = [
+  [IN_CHILD_URLS.artsProjectSupport, IN_FILES.artsProjectSupport],
+  [IN_CHILD_URLS.artsOrganizationSupport, IN_FILES.artsOrganizationSupport],
+  [IN_CHILD_URLS.everyCountyFunded, IN_FILES.everyCountyFunded],
+  [IN_CHILD_URLS.america250, IN_FILES.america250],
+] as const;
+/** The hub's own page text, alone (the fixture lookup helper takes a file NAME). */
+const IN_INDEX_ONLY = () => indianaConnector.parse(fixture(IN_FILES.index));
+/** A synthetic cycle page served in place of the real Arts Project Support page. */
+function indianaPayloadWith(childHtml: string): string {
+  return joinSourcePages(INDIANA_SOURCE_URL, fixture(IN_FILES.index), [
+    { url: IN_CHILD_URLS.artsProjectSupport, html: childHtml },
+  ]);
+}
+const IN = () =>
+  parseGrantOpportunities(
+    indianaConnector,
+    joinSourcePages(
+      INDIANA_SOURCE_URL,
+      fixture(IN_FILES.index),
+      IN_CHILD_FIXTURES.map(([url, file]) => ({ url, html: fixture(file) })),
+    ),
+    NOW,
+  ).opportunities;
+
 const ALL = [
   ["NH", newHampshireConnector, NH],
   ["MT", montanaConnector, MT],
+  ["IN", indianaConnector, IN],
 ] as const;
 function count(records: GrantOpportunity[], status: string): number {
   return records.filter((o) => o.status === status).length;
@@ -79,7 +135,13 @@ describe("next-12 tranche — determinism and shared invariants", () => {
         expect(o.stateCode).toBe(code);
         expect(o.sourceKey).toBe(connector.id);
         expect(o.sourceUrl).toBe(connector.sourceUrl);
-        expect(o.url).toBe(connector.sourceUrl);
+        // A single-page connector's records are the listing itself. A MULTI-PAGE
+        // connector (Indiana) attributes each record to the CHILD page that
+        // published it, so the record's page must sit under the connector's own
+        // source URL on the same host — never on a sibling host or the hub only.
+        expect(
+          o.url === connector.sourceUrl || o.url.startsWith(connector.sourceUrl),
+        ).toBe(true);
         expect(o.title.trim().length).toBeGreaterThan(2);
         expect(STATE_GRANT_STATUSES).toContain(o.status);
         // `forecast` is not a status any more (owner 2026-09-19).
@@ -218,5 +280,213 @@ describe("Montana — Tourism Development Grant Program cycle", () => {
     // Department rolls the page to a new cycle the fixture test still passes,
     // but the pinned close date proves the parser reads the LATEST cycle.
     expect(MT()[0]!.closeDate! >= TODAY).toBe(true);
+  });
+});
+describe("Indiana — Arts Commission funding programmes (hub + programme pages)", () => {
+  test("the hub is a 0-date catalogue; only the funding programme pages carry a timeline", () => {
+    // The source map's evidence for Indiana: the hub publishes thirteen grant
+    // links and NO dates, so a hub-only parse can only ever be undated. The
+    // connector refuses it rather than serving an all-`unverified` catalogue.
+    expect(fixture(IN_FILES.index)).not.toContain("Application Due");
+    // Either refusal is a refusal: the trimmed hub fixture carries no timeline
+    // marker, and a full hub-only payload (which does) would still yield zero
+    // cycles. Both are PARSE-stage failures — never an empty corpus.
+    let thrown: { stage?: string } | null = null;
+    try {
+      IN_INDEX_ONLY();
+    } catch (e) {
+      thrown = e as { stage?: string };
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown!.stage).toBe("parse");
+  });
+  test("the child scope is the hub's own funding programmes — never its training pages", () => {
+    const programs = indianaFundingPrograms(fixture(IN_FILES.index));
+    expect(programs.map((p) => p.name)).toEqual([
+      "Arts Project Support",
+      "Arts Organization Support",
+      "Every County Funded",
+      "America250 Grant Program",
+    ]);
+    expect(programs.map((p) => p.url)).toEqual([...IN_CHILD_FIXTURES.map(([url]) => url)]);
+    for (const p of programs) {
+      expect(p.url.startsWith(INDIANA_SOURCE_URL)).toBe(true);
+      // A generic /arts/ sweep would pull the Commission's training pages in.
+      expect(p.url).not.toContain("/training");
+    }
+  });
+  test("one record per published cycle, each attributed to its own child page", () => {
+    const records = IN();
+    expect(records.map((o) => o.externalId)).toEqual([
+      "arts-project-support-fy2027-spring",
+      "arts-project-support-fy2027-fall",
+      "arts-project-support-fy2026-spring",
+      "arts-project-support-fy2026-fall",
+      "arts-organization-support-timeline-for-fy26-27-aos-granting-cycle",
+      "america250",
+    ]);
+    expect(records.map((o) => o.raw.childPageUrl)).toEqual([
+      IN_CHILD_URLS.artsProjectSupport,
+      IN_CHILD_URLS.artsProjectSupport,
+      IN_CHILD_URLS.artsProjectSupport,
+      IN_CHILD_URLS.artsProjectSupport,
+      IN_CHILD_URLS.artsOrganizationSupport,
+      IN_CHILD_URLS.america250,
+    ]);
+    for (const o of records) {
+      expect(o.status).not.toBe("forecast");
+      expect(o.title.length).toBeGreaterThan(2);
+      expect(o.agency).toBe("Indiana Arts Commission");
+      expect(o.url).toBe(o.raw.childPageUrl);
+      expect(o.sourceUrl).toBe(INDIANA_SOURCE_URL);
+    }
+  });
+  test("each cycle's dates come from ITS OWN Application Due row", () => {
+    const records = IN();
+    expect(records.map((o) => o.postedDate)).toEqual([
+      "2026-01-08",
+      "2026-07-07",
+      "2025-01-07",
+      "2025-09-01",
+      "2025-01-07",
+      "2025-11-13",
+    ]);
+    expect(records.map((o) => o.closeDate)).toEqual([
+      "2026-03-05",
+      "2026-09-03",
+      "2025-03-04",
+      "2025-09-30",
+      "2025-03-04",
+      "2025-12-15",
+    ]);
+    expect(exact(records, "arts-project-support-fy2027-spring").raw.applicationDueDateText).toContain(
+      "Thursday, March 5, 2026",
+    );
+  });
+  test("every cycle is honestly CLOSED on 2026-09-19 (a live page is not an open cycle)", () => {
+    const records = IN();
+    expect(count(records, "closed")).toBe(6);
+    expect(count(records, "open")).toBe(0);
+    expect(count(records, "upcoming")).toBe(0);
+    expect(count(records, "unverified")).toBe(0);
+    for (const o of records) {
+      expect(o.closeDate! < TODAY).toBe(true);
+      expect(o.estimatedCloseDate).toBeNull();
+      expect(o.statusReason.length).toBeGreaterThan(10);
+    }
+  });
+  test("process dates and the Grant Period activity period are NEVER deadlines", () => {
+    const processDays = [
+      "2026-01-29", // Program Informational Webinar (FY2027 spring)
+      "2026-02-23", // Draft Application Review Deadline (FY2027 spring)
+      "2026-07-01", // Funding Notification (FY2027 spring)
+      "2027-07-15", // Final Grant Report Due (FY2027 spring)
+      "2026-08-24", // Draft Application Review Deadline (FY2027 fall)
+      "2026-12-21", // Funding Notification (FY2027 fall)
+      "2028-01-14", // Final Grant Report Due (FY2027 fall)
+      "2025-02-24", // Draft Application Review Deadline (FY2026 spring)
+      "2025-08-01", // Funding Notification (FY2026 spring)
+    ];
+    for (const o of IN()) {
+      for (const day of processDays) {
+        expect(o.closeDate).not.toBe(day);
+        expect(o.postedDate).not.toBe(day);
+        expect(o.estimatedCloseDate).not.toBe(day);
+      }
+      // The Grant Period is an activity period: it is carried verbatim and is
+      // never a date input, so none of its days can appear on the record.
+      expect(o.raw.grantPeriodIsNeverADeadline).toBe(true);
+      expect(o.raw.grantPeriodText === null || /^(January 1|July 1)/.test(o.raw.grantPeriodText)).toBe(
+        true,
+      );
+      expect(o.postedDate).not.toBe("2026-06-30");
+      expect(o.closeDate).not.toBe("2026-06-30");
+      expect(o.raw.draftReviewDeadlineIsNeverADeadline).toBe(true);
+      expect(o.raw.fundingNotificationIsNeverADeadline).toBe(true);
+      expect(o.raw.finalGrantReportIsNeverADeadline).toBe(true);
+      expect(o.raw.datesReadOnlyFromThisCyclesOwnCells).toBe(true);
+    }
+    // The process values ARE read — they are kept in `raw` for review.
+    const spring = exact(IN(), "arts-project-support-fy2027-spring");
+    expect(spring.raw.draftReviewDeadlineText).toContain("February 23, 2026");
+    expect(spring.raw.fundingNotificationText).toContain("July 1, 2026");
+    expect(spring.raw.finalGrantReportText).toContain("July 15, 2027");
+    expect(spring.raw.grantPeriodText).toContain("July 1, 2026");
+  });
+  test("a struck-through value is the source's own superseded value", () => {
+    // The FY2026 fall row publishes BOTH the original deadline (struck through in
+    // the Commission's own markup: September 9, 2025) and its replacement. The
+    // source's markup says which is in force, so the replacement is the deadline
+    // and the struck-through day appears nowhere on the record.
+    const fall = exact(IN(), "arts-project-support-fy2026-fall");
+    expect(fall.raw.closingText).not.toContain("September 9, 2025");
+    expect(fall.closeDate).toBe("2025-09-30");
+    expect(fall.postedDate).toBe("2025-09-01");
+    expect(fall.raw.struckThroughValuesAreSupersededBySource).toBe(true);
+  });
+  test("the Every County Funded page is fetched but publishes no cycle, not a fabricated one", () => {
+    const programs = indianaFundingPrograms(fixture(IN_FILES.index));
+    // It IS in the corpus (the hub links it as a funding programme) …
+    expect(programs.some((p) => p.slug === "every-county-funded")).toBe(true);
+    // … and it contributes NO record: its page text is programme copy and a list
+    // of funded projects, with no "Application Due" row anywhere.
+    expect(fixture(IN_FILES.everyCountyFunded)).not.toContain("Application Due");
+    expect(IN().some((o) => o.raw.childPageUrl.includes("every-county-funded"))).toBe(false);
+  });
+  test("a cycle whose only other row is the draft-review step is NOT given that date", () => {
+    const child =
+      `<h2><strong>APS FY2028 Application Timeline</strong></h2>` +
+      `<p><strong>Spring Application Cycle (Grant Period July 1, 2027 &ndash; June 30, 2028)</strong></p>` +
+      `<table><tbody><tr><td>Program Opens for Applications</td><td>January 3, 2028</td></tr>` +
+      `<tr><td>Draft Application Review Deadline for New Applicants</td><td>February 20, 2028</td></tr>` +
+      `<tr><td>Application Due</td><td>Thursday, March 4, 2028 by 11:59 p.m. ET</td></tr>` +
+      `</tbody></table>`;
+    const records = parseGrantOpportunities(
+      indianaConnector,
+      indianaPayloadWith(child),
+      NOW,
+    ).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.closeDate).toBe("2028-03-04");
+    expect(records[0]!.postedDate).toBe("2028-01-03");
+    // Opening day still in the future ⇒ `upcoming`, and the draft-review date is
+    // nowhere near it.
+    expect(records[0]!.status).toBe("upcoming");
+    expect(records[0]!.closeDate).not.toBe("2028-02-20");
+    expect(records[0]!.postedDate).not.toBe("2028-02-20");
+  });
+  test("two LIVE days in one deadline cell are refused, never picked", () => {
+    const child =
+      `<h2><strong>APS FY2028 Application Timeline</strong></h2>` +
+      `<table><tbody><tr><td>Program Opens for Applications</td><td>January 3, 2028</td></tr>` +
+      `<tr><td>Application Due</td><td><p>September 9, 2025 by 11:59 p.m. ET</p>` +
+      `<p>September 30, 2025 by 11:59 p.m. ET</p></td></tr></tbody></table>`;
+    const records = parseGrantOpportunities(
+      indianaConnector,
+      indianaPayloadWith(child),
+      NOW,
+    ).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.closeDate).toBeNull();
+    expect(records[0]!.status).toBe("unverified");
+    expect(records[0]!.raw.closingText).toContain("September 30, 2025");
+  });
+  test("a cycle heading that carries only a Grant Period leaves no date behind", () => {
+    const child =
+      `<h2><strong>APS FY2028 Application Timeline</strong></h2>` +
+      `<p><strong>Spring Application Cycle (Grant Period July 1, 2027 &ndash; June 30, 2028)</strong></p>` +
+      `<table><tbody><tr><td>Program Opens for Applications</td><td>Not specified</td></tr>` +
+      `<tr><td>Application Due</td><td>Not specified</td></tr></tbody></table>`;
+    const records = parseGrantOpportunities(
+      indianaConnector,
+      indianaPayloadWith(child),
+      NOW,
+    ).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.postedDate).toBeNull();
+    expect(records[0]!.closeDate).toBeNull();
+    expect(records[0]!.estimatedCloseDate).toBeNull();
+    expect(records[0]!.status).toBe("unverified");
+    expect(records[0]!.raw.grantPeriodText).toContain("July 1, 2027");
   });
 });

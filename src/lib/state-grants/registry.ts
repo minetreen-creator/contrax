@@ -246,6 +246,13 @@ import {
   MONTANA_SOURCE_VALIDATION_TEST,
   montanaConnector,
 } from "~/lib/state-grants/connectors/montana";
+import {
+  INDIANA_APPROVED_HOSTS,
+  INDIANA_CONNECTOR_ID,
+  INDIANA_SOURCE_URL,
+  INDIANA_SOURCE_VALIDATION_TEST,
+  indianaConnector,
+} from "~/lib/state-grants/connectors/indiana";
 
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
@@ -396,6 +403,7 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   // NEXT-12 TRANCHE (owner 2026-09-19).
   ...NEW_HAMPSHIRE_APPROVED_HOSTS,
   ...MONTANA_APPROVED_HOSTS,
+  ...INDIANA_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -704,6 +712,14 @@ export const MONTANA_REGISTRY_ENTRY: SourceValidationEntry = {
   tier: "limited",
   note: "One validated source: the Montana Department of Commerce's own Montana Tourism Development Grant Program page on commerce.mt.gov. The dated sentence is NOT on the parent Tourism Grant Program catalogue (322 KB live, 45 grant mentions, zero dates — parsing it could only ever produce undated records); the connector reads the CHILD programme page the Department publishes, whose \"Resources for Applicants\" list carries its own ordered \"will open Jan. 6, 2027 and close on Feb. 3, 2027\" cycle sentence. Both ends are read in source order and never picked apart; a year-less or unreadable end yields no date rather than an invented one, and a passed cycle is `closed`. The Montana Arts Council's art.mt.gov pages are stale (2022) or award lists and represent no coverage. This is ONE programme family of ONE department: `limited`, never `connected` — this is not statewide coverage.",
 };
+export const INDIANA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: INDIANA_CONNECTOR_ID,
+  sourceUrl: INDIANA_SOURCE_URL,
+  testFile: INDIANA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the Indiana Arts Commission's own funding programme pages on in.gov, reached from the Commission's funding hub. The hub itself is a PROGRAM CATALOGUE (63 KB live, thirteen grant mentions, ZERO dates), so the connector fetches the hub plus the funding programme pages the HUB publishes (Arts Project Support, Arts Organization Support, America250 Grant Program, Every County Funded) and reads every cycle from its OWN page's “Application Timeline” table. Only the row the Commission labels \"Application Due\" is a deadline: the \"Draft Application Review Deadline for New Applicants\", \"Funding Notification\", \"Final Grant Report Due\", webinar and panel rows are process dates and the \"Grant Period\" is an activity period — none of them is ever a deadline. A struck-through (<del>) value is the Commission's own superseded value, so the replacement in the same cell is read and the struck-through day is not. Previous fiscal-year cycles stay visible as published records and are `closed` (never hidden, never open on a live page). The Every County Funded page publishes programme copy and an awardee list with no timeline, so it contributes no record. This is ONE agency's funding programmes: other Indiana agencies award grants we have NOT validated, so the state is `limited`, never `curated`/`connected` — this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -737,6 +753,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     // NEXT-12 TRANCHE (owner 2026-09-19).
     NH: newHampshireConnector as unknown as StateGrantConnector<never>,
     MT: montanaConnector as unknown as StateGrantConnector<never>,
+    IN: indianaConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -770,6 +787,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     // NEXT-12 TRANCHE (owner 2026-09-19).
     NH: NEW_HAMPSHIRE_REGISTRY_ENTRY,
     MT: MONTANA_REGISTRY_ENTRY,
+    IN: INDIANA_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

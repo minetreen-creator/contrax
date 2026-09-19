@@ -51,8 +51,6 @@ export interface LiveSourceValidationOptions {
   sourceName: string;
   /** Repo-relative path of THIS test file (the manifest gate). */
   validationTestFile: string;
-  /** The record-level marker a wrong payload must be refused for. */
-  contentMarker: string;
   /**
    * Whether the live source publishes at least one parseable day today. Rhode
    * Island deliberately does NOT (its in-card dates are year-less), so its file
@@ -75,6 +73,14 @@ export interface LiveSourceValidationOptions {
 }
 
 /**
+ * This harness is deliberately named with a `.test.ts` suffix (even though it
+ * only exports helpers): the prod-config typecheck excludes test files from its
+ * program, and importing bun:test from a non-test file adds a typecheck delta
+ * for no benefit. The harness is never run as its own file's tests — it is
+ * invoked by the per-state source-validation test files.
+ */
+
+/**
  * Runs the whole live gate for one state. Called at module top level by
  * `<state>.source-validation.test.ts`, so the single live fetch is shared by
  * every assertion in the file.
@@ -82,7 +88,7 @@ export interface LiveSourceValidationOptions {
 export async function runLiveSourceValidation(
   options: LiveSourceValidationOptions,
 ): Promise<void> {
-  const { connector, approvedHosts, sourceName, validationTestFile, contentMarker } = options;
+  const { connector, approvedHosts, sourceName, validationTestFile } = options;
   const skip = !LIVE_SOURCE_TESTS_ENABLED;
 
   if (skip) {
@@ -254,8 +260,8 @@ export async function runLiveSourceValidation(
       }
       expect(thrown).not.toBeNull();
       // A parse-stage StateSourceError: the connector refused the payload instead
-      // of inventing records from it (the `contentMarker` it looks for is the
-      // reason, and each connector names it in its own message).
+      // of inventing records from it (each connector names its own marker in the
+      // error message).
       expect((thrown as { stage?: string }).stage).toBe("parse");
       expect((thrown as Error).message.length).toBeGreaterThan(10);
     }, LIVE_TIMEOUT_MS);

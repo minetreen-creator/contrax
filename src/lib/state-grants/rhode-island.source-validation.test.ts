@@ -12,7 +12,7 @@
  * With that variable unset every test is SKIPPED with a loud notice and the
  * default suite stays fixture-only and deterministic (ZERO network). A skip
  * proves NOTHING about Rhode Island. The shared gate lives in
- * `connectors/live-validation-harness.ts`; the assertions below are what is
+ * `connectors/live-validation-harness.test.ts`; the assertions below are what is
  * specific to the Rhode Island State Council on the Arts' "Our Grants" page.
  */
 import {
@@ -20,14 +20,13 @@ import {
   RHODE_ISLAND_SOURCE_VALIDATION_TEST,
   rhodeIslandConnector,
 } from "~/lib/state-grants/connectors/rhode-island";
-import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness";
+import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness.test";
 
 await runLiveSourceValidation({
   connector: rhodeIslandConnector,
   approvedHosts: RHODE_ISLAND_APPROVED_HOSTS,
   sourceName: "Rhode Island",
   validationTestFile: RHODE_ISLAND_SOURCE_VALIDATION_TEST,
-  contentMarker: 'data-component-id="ecms:paragraph-card"',
   // RISCA publishes no year-bearing date at all today, so the gate must NOT
   // require one from it — the honest outcome is that every date stays null.
   expectParsedDates: false,

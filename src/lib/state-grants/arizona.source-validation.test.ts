@@ -14,7 +14,7 @@
  * fixture-only and deterministic (ZERO network). A skip proves NOTHING about
  * Arizona: the state may only hold its tier on a PASSING explicit run of this
  * file against the real official source. The shared gate lives in
- * `connectors/live-validation-harness.ts`; the assertions below are what is
+ * `connectors/live-validation-harness.test.ts`; the assertions below are what is
  * specific to the Arizona Commission on the Arts' grants page.
  */
 import {
@@ -22,14 +22,13 @@ import {
   ARIZONA_SOURCE_VALIDATION_TEST,
   arizonaConnector,
 } from "~/lib/state-grants/connectors/arizona";
-import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness";
+import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness.test";
 
 await runLiveSourceValidation({
   connector: arizonaConnector,
   approvedHosts: ARIZONA_APPROVED_HOSTS,
   sourceName: "Arizona",
   validationTestFile: ARIZONA_SOURCE_VALIDATION_TEST,
-  contentMarker: 'class="grant ',
   expectLive(opportunities) {
     // The page publishes its own dated application cycles, so at least one
     // record carries the source's own deadline (and the classifier used it).

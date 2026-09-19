@@ -12,7 +12,7 @@
  * With that variable unset every test is SKIPPED with a loud notice and the
  * default suite stays fixture-only and deterministic (ZERO network). A skip
  * proves NOTHING about Pennsylvania. The shared gate lives in
- * `connectors/live-validation-harness.ts`; the assertions below are what is
+ * `connectors/live-validation-harness.test.ts`; the assertions below are what is
  * specific to Pennsylvania Creative Industries' "Due Dates for Grants" page.
  */
 import {
@@ -20,14 +20,13 @@ import {
   PENNSYLVANIA_SOURCE_VALIDATION_TEST,
   pennsylvaniaConnector,
 } from "~/lib/state-grants/connectors/pennsylvania";
-import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness";
+import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness.test";
 
 await runLiveSourceValidation({
   connector: pennsylvaniaConnector,
   approvedHosts: PENNSYLVANIA_APPROVED_HOSTS,
   sourceName: "Pennsylvania",
   validationTestFile: PENNSYLVANIA_SOURCE_VALIDATION_TEST,
-  contentMarker: "Due Dates Calendar",
   expectLive(opportunities) {
     // The programme rows publish application dates and the source's own "Rolling"
     // statement; both shapes must still be visible on the live page.

@@ -11,7 +11,7 @@
  * With that variable unset every test is SKIPPED with a loud notice and the
  * default suite stays fixture-only and deterministic (ZERO network). A skip
  * proves NOTHING about Hawaii. The shared gate lives in
- * `connectors/live-validation-harness.ts`; the assertions below are what is
+ * `connectors/live-validation-harness.test.ts`; the assertions below are what is
  * specific to the State Foundation on Culture and the Arts' grants page.
  */
 import {
@@ -19,14 +19,13 @@ import {
   HAWAII_SOURCE_VALIDATION_TEST,
   hawaiiConnector,
 } from "~/lib/state-grants/connectors/hawaii";
-import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness";
+import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness.test";
 
 await runLiveSourceValidation({
   connector: hawaiiConnector,
   approvedHosts: HAWAII_APPROVED_HOSTS,
   sourceName: "Hawaii",
   validationTestFile: HAWAII_SOURCE_VALIDATION_TEST,
-  contentMarker: 'id="grant-table"',
   expectLive(opportunities) {
     // Only the "Current and Upcoming Grants and Fellowships" table is coverage:
     // the FY2026 awardee table below it is a list of past recipients, and no

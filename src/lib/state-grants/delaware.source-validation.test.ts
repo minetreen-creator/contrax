@@ -11,7 +11,7 @@
  * With that variable unset every test is SKIPPED with a loud notice and the
  * default suite stays fixture-only and deterministic (ZERO network). A skip
  * proves NOTHING about Delaware. The shared gate lives in
- * `connectors/live-validation-harness.ts`; the assertions below are what is
+ * `connectors/live-validation-harness.test.ts`; the assertions below are what is
  * specific to the Delaware Division of the Arts' Grant Programs Overview.
  */
 import {
@@ -19,14 +19,13 @@ import {
   DELAWARE_SOURCE_VALIDATION_TEST,
   delawareConnector,
 } from "~/lib/state-grants/connectors/delaware";
-import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness";
+import { runLiveSourceValidation } from "~/lib/state-grants/connectors/live-validation-harness.test";
 
 await runLiveSourceValidation({
   connector: delawareConnector,
   approvedHosts: DELAWARE_APPROVED_HOSTS,
   sourceName: "Delaware",
   validationTestFile: DELAWARE_SOURCE_VALIDATION_TEST,
-  contentMarker: "wp-block-gic-tabs",
   expectLive(opportunities) {
     // The page publishes real year-bearing deadlines ("Next Deadline: March 1,
     // 2027 at 4:30pm"), so several records must carry one.

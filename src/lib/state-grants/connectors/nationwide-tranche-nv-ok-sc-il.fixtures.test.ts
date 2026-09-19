@@ -307,8 +307,8 @@ describe("Oklahoma (oklahoma.gov) — the Council's two program indexes, read as
     const parsed = records();
     expect(parsed.length).toBe(13);
     expect(parseGrantOpportunities(oklahomaConnector, fixture(OK_FILE), NOW).collisions).toEqual([]);
-    expect(count(parsed, "closed")).toBe(5);
-    expect(count(parsed, "unverified")).toBe(8);
+    expect(count(parsed, "closed")).toBe(6);
+    expect(count(parsed, "unverified")).toBe(7);
     expect(count(parsed, "open")).toBe(0);
     // Both indexes contributed: the schools index supplies the last six.
     expect(byTitle(parsed, "Classroom Supply Grants").sourceUrl).toBe(oklahomaConnector.sourceUrl);
@@ -365,19 +365,89 @@ describe("Oklahoma (oklahoma.gov) — the Council's two program indexes, read as
     );
   });
 
-  test("a passed published deadline is closed, and a card with no deadline paragraph is not invented one", () => {
+  test("the schools index's own \"Application Period: April 1 – May 1, 2026 … (closed)\" is read as a published window (QA finding, tranche NV/OK/SC/IL)", () => {
+    const sch = exact(records(), "Oklahoma Poetry Out Loud Partnership Grant");
+    // The Council's own value under its OTHER own label, verbatim.
+    expect(String(sch.raw.applicationPeriod)).toContain("April 1");
+    expect(String(sch.raw.applicationPeriod)).toContain(
+      "May 1, 2026, at 5:00 p.m. Central Time (closed)",
+    );
+    // ...and it is never read from the card's "Project Activity Dates" paragraph.
+    expect(sch.raw.deadlineValue).toBeNull();
+    // Read as its two SOURCE-ORDERED ends — never as one picked date.
+    const ends = sch.raw.applicationPeriodEnds as string[];
+    expect(ends.length).toBe(2);
+    expect(ends[0]).toBe("April 1");
+    expect(ends[1]).toContain("May 1, 2026");
+    expect(sch.raw.applicationPeriodIsOrderedRange).toBe(true);
+    // The opening end publishes no year of its own: its year comes from the
+    // window's own closing end, and it is NEVER served as a date of the record.
+    expect(sch.raw.applicationPeriodStartDay).toBe("2026-04-01");
+    expect(sch.raw.applicationPeriodStartDayYearComesFromTheWindowsClosingEnd).toBe(true);
+    expect(sch.raw.applicationPeriodEndDay).toBe("2026-05-01");
+    expect(sch.postedDate).toBeNull();
+    // The Council's "(closed)" mark AND the window's end agree: closed, dated.
+    expect(sch.raw.applicationPeriodClosedMarkerDeclaredBySource).toBe(true);
+    expect(sch.sourceClosed).toBe(true);
+    expect(sch.closeDate).toBe("2026-05-01");
+    expect(sch.status).toBe("closed");
+    // The "Project Activity Dates" period on the same card is still not a date.
+    expect(String(sch.raw.projectActivityDates)).toContain("July 1, 2026");
+    expect(sch.closeDate).not.toBe("2027-06-30");
+    // The orgs-index counterpart is UNCHANGED: its own label publishes "( Closed )"
+    // and no day at all, so it stays closed with NO invented date.
+    const org = exact(records(), "Poetry Out Loud Partnership Grant");
+    expect(org.raw.deadlineValue).toBe("( Closed )");
+    expect(org.raw.applicationPeriod).toBeNull();
+    expect(org.sourceClosed).toBe(true);
+    expect(org.closeDate).toBeNull();
+    expect(org.status).toBe("closed");
+  });
+
+  test("the Council's own \"(closed)\" mark and its own end date must AGREE (a disagreeing date is withheld)", () => {
+    const sch = exact(records(), "Oklahoma Poetry Out Loud Partnership Grant");
+    // Before the window's own end, the past tense still wins for the STATUS — the
+    // cycle can never be served open — but no contradicting date is served.
+    const early = oklahomaConnector.classify(sch, new Date("2026-04-15T12:00:00Z"));
+    expect(early.status).toBe("closed");
+    expect(early.closeDate).toBeNull();
+    // From the end day onwards the two agree and the source's own date is served.
+    const atEnd = oklahomaConnector.classify(sch, new Date("2026-05-01T12:00:00Z"));
+    expect(atEnd.status).toBe("closed");
+    expect(atEnd.closeDate).toBe("2026-05-01");
+    // A passed published date with NO marker is untouched by this rule: the
+    // Classroom Supply card is closed by its own date alone, with its date kept.
+    const classroom = byTitle(records(), "Classroom Supply Grants");
+    expect(classroom.sourceClosed).toBe(false);
+    expect(
+      oklahomaConnector.classify(classroom, new Date("2026-08-01T12:00:00Z")).closeDate,
+    ).toBe("2026-09-15");
+  });
+
+  test("a passed published window is closed, and NOTHING but the Council's own window labels dates a card", () => {
     const classroom = byTitle(records(), "Classroom Supply Grants");
     expect(classroom.closeDate).toBe("2026-09-15");
     expect(classroom.closeDate! < TODAY).toBe(true);
     expect(classroom.status).toBe("closed");
-    for (const o of records().filter((r) => r.raw.cardPublishesNoApplicationDeadline === true)) {
-      expect(o.closeDate).toBeNull();
-      expect(o.status).toBe("unverified");
+    // Every dated record is dated under one of the Council's OWN window labels —
+    // "Application Deadlines" or, on the schools index, "Application Period".
+    for (const o of records()) {
+      if (o.closeDate === null) continue;
+      expect(o.raw.deadlineValue !== null || o.raw.applicationPeriodEndDay !== null).toBe(true);
+      expect(o.raw.projectActivityDatesIsNeverADeadline).toBe(true);
     }
-    // Exactly ONE card in this source publishes no deadline paragraph at all.
-    const none = records().filter((r) => r.raw.cardPublishesNoApplicationDeadline === true);
-    expect(none.length).toBe(1);
-    expect(none[0]!.title).toBe("Oklahoma Poetry Out Loud Partnership Grant");
+    // No card in this source publishes NO window at all...
+    const none = records().filter((r) => r.raw.cardPublishesNoApplicationWindow === true);
+    expect(none.length).toBe(0);
+    // ...and exactly ONE card publishes no "Application Deadlines" paragraph: its
+    // window is the "Application Period" the test above pins.
+    const noDeadlineParagraph = records().filter(
+      (r) => r.raw.cardPublishesNoApplicationDeadline === true,
+    );
+    expect(noDeadlineParagraph.length).toBe(1);
+    expect(noDeadlineParagraph[0]!.title).toBe("Oklahoma Poetry Out Loud Partnership Grant");
+    expect(noDeadlineParagraph[0]!.raw.applicationPeriodEndDay).toBe("2026-05-01");
+    expect(noDeadlineParagraph[0]!.status).toBe("closed");
     // ...and the field-trip card publishes a RULE instead, which is not a date.
     expect(String(exact(records(), "Capitol Art Field Trip Grants").raw.deadlineValue)).toContain(
       "30 days before the scheduled field trip date",

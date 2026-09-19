@@ -28,7 +28,8 @@
  *
  * WHAT THE PAGES PUBLISH: one `<h3 class="cmp-title__text">` card per program,
  * each with the Council's own labelled paragraphs — "Project Activity Dates",
- * "Grant Amount", "Application Deadlines".
+ * "Grant Amount", "Application Deadlines" (the organizations index) and
+ * "Application Period" (ONE card on the schools index).
  *
  * HONESTY TRAPS HANDLED HERE
  *   - "Project Activity Dates" IS NOT AN APPLICATION DEADLINE. It is the period
@@ -40,6 +41,25 @@
  *     marker, and one publishes "(Closed)" with no date at all. The marker is
  *     read as `sourceClosed` (so those cycles can never be served open) and the
  *     date the source published alongside it is kept as the published close date.
+ *   - THE COUNCIL LABELS ITS APPLICATION WINDOW TWO WAYS, and both are the
+ *     Council's own label for the same fact: "Application Deadlines" on twelve of
+ *     the thirteen cards, and "Application Period" on ONE schools card, whose
+ *     value is a WINDOW — "April 1 – May 1, 2026, at 5:00 p.m. Central Time
+ *     (closed)" (QA finding, tranche NV/OK/SC/IL, 2026-09-19: that card was
+ *     served `unverified` while publishing a dated closed window, because only
+ *     the "Application Deadlines" label was read). The window is read as its two
+ *     SOURCE-ORDERED ends — never as a picked date: the CLOSING end is the
+ *     Council's own published close date, and the opening end is used only to
+ *     confirm the range ASCENDS (readable, ascending ends or no date at all).
+ *     The opening end carries no year of its own, so its year is taken from the
+ *     window's own closing end; it is never served as a date of the record
+ *     (`postedDate` stays empty — see `readOklahomaApplicationPeriod`).
+ *   - THE "(closed)" MARK AND THE END DATE MUST AGREE. A past-tense marker on a
+ *     card that publishes no readable window still means closed with NO date
+ *     (never an invented one), and a window's end is only served alongside a
+ *     dated `closed` when that end has actually PASSED — the classifier keeps the
+ *     Council's own past tense for the status but withholds a date its own words
+ *     contradict (see `classifyOklahomaRecord`).
  *   - A DEADLINE RULE IS NOT A DATE. Three cards publish "60 days before your
  *     project begins." — a rule, never a deadline. It parses to no day, so those
  *     records stay honestly `unverified`.
@@ -52,16 +72,20 @@
 import {
   NOT_SPECIFIED,
   classifyStateGrant,
+  parseStateDay,
+  stateDayEpoch,
   type GrantClassification,
   type SourceGrantRecord,
   type StateGrantConnector,
 } from "~/lib/state-grants/connector";
+import { easternDayStart } from "~/lib/grants";
 import {
   StateSourceError,
   declaresClosed,
   declaresOngoing,
   fetchStateGrantSource,
   publishedAmountRange,
+  publishedRangeEnds,
   singlePublishedDay,
   stripTags,
   uniqueExternalIdFactory,
@@ -95,6 +119,90 @@ const TITLE_END = "</h3>";
 const ACTIVITY_LABEL_RE = /\bProject\s+Activity\s+Dates\s*/i;
 const AMOUNT_LABEL_RE = /\bGrant\s+Amount\s*/i;
 const DEADLINE_LABEL_RE = /\bApplication\s+Deadlines?\s*/i;
+/**
+ * The Council's OTHER own label for the same fact — the schools index uses it on
+ * ONE card ("Application Period: April 1 – May 1, 2026, at 5:00 p.m. Central Time
+ * (closed)"). Read only when the card publishes no "Application Deadlines"
+ * paragraph, so the label that already worked can never change its behaviour.
+ */
+const PERIOD_LABEL_RE = /\bApplication\s+Period\s*/i;
+
+/** A month and day the source published WITHOUT a year of its own ("April 1"). */
+const MONTH_DAY_NO_YEAR_RE = /^([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/;
+
+/**
+ * The Council's own "Application Period" value, read as the WINDOW it is.
+ *
+ * WHAT THE SOURCE PUBLISHED, AND WHAT IS DERIVED FROM ITS OWN WORDS:
+ *   - `ends` / `endDay` / `startDay` — the value is split into its two ordered
+ *     ends the same way South Carolina's period cell is (`publishedRangeEnds`),
+ *     so the CLOSING end is the Council's own published close date and nothing is
+ *     picked, averaged or interpolated. A value that is not exactly two ends, or
+ *     whose closing end carries no exact year, yields no date at all.
+ *   - `startDayYearFromClosingEnd` — the opening end publishes no year of its own
+ *     ("April 1 – May 1, 2026"). Its year is read from the window's OWN closing
+ *     end (the only year the source published in this value), preferring the year
+ *     that keeps the range ASCENDING — which is what "April 1 – May 1" and
+ *     "December 1 – January 15" both mean. It is used to confirm the range
+ *     ascends and is kept in `raw` for a reviewer; it is NEVER written to the
+ *     record's own `postedDate`/`closeDate`, and when the two ends do not ascend
+ *     the whole window is refused (`orderedRange: false`, no date).
+ *   - `declaresClosed` — the Council's own "(closed)" past tense on this value.
+ *   - `declaresNoEndDate` — the source's own "no end date" wording, kept but
+ *     never turned into a status here (the connector does not invent a rolling
+ *     program it was not told about).
+ */
+export interface OklahomaApplicationPeriod {
+  /** The Council's own value, verbatim. */
+  value: string;
+  /** Its two ordered ends, verbatim (empty when it is not a two-ended range). */
+  ends: string[];
+  /** The opening end as a day, or null (never a guess). */
+  startDay: string | null;
+  /** The closing end as a day — the window's published close date. */
+  endDay: string | null;
+  /** True only for a readable, ASCENDING two-ended range. */
+  orderedRange: boolean;
+  /** True when the opening end's year came from the window's own closing end. */
+  startDayYearFromClosingEnd: boolean;
+  /** The Council's own "(closed)" past tense on this value. */
+  declaresClosed: boolean;
+  /** The Council's own "no end date" wording on this value. */
+  declaresNoEndDate: boolean;
+}
+
+export function readOklahomaApplicationPeriod(value: string): OklahomaApplicationPeriod {
+  const range = publishedRangeEnds(value);
+  const ends = range.parts;
+  const endDay = range.openEnded ? null : range.endDay;
+  let startDay = range.startDay;
+  let startDayYearFromClosingEnd = false;
+  if (startDay === null && endDay !== null) {
+    const m = MONTH_DAY_NO_YEAR_RE.exec(stripTags(ends[0] ?? ""));
+    if (m) {
+      const monthDay = m[0].replace(/(st|nd|rd|th)\b/i, "");
+      const endYear = Number(endDay.slice(0, 4));
+      for (const year of [endYear, endYear - 1]) {
+        const candidate = parseStateDay(`${monthDay}, ${year}`);
+        if (candidate === null) continue;
+        startDay = candidate;
+        startDayYearFromClosingEnd = true;
+        break;
+      }
+    }
+  }
+  const orderedRange = startDay !== null && endDay !== null && startDay <= endDay;
+  return {
+    value,
+    ends,
+    startDay: orderedRange ? startDay : null,
+    endDay: orderedRange ? endDay : null,
+    orderedRange,
+    startDayYearFromClosingEnd: orderedRange && startDayYearFromClosingEnd,
+    declaresClosed: declaresClosed(value),
+    declaresNoEndDate: range.openEnded,
+  };
+}
 
 /**
  * The Council's own value for one of its labelled paragraphs, read from the
@@ -134,16 +242,32 @@ export function parseOklahomaProgramIndex(
     const title = titleEnd === -1 ? "" : stripTags(card.slice(0, titleEnd));
     const body = card.slice(titleEnd === -1 ? 0 : titleEnd + TITLE_END.length);
     const deadlineValue = labelledParagraph(body, DEADLINE_LABEL_RE);
+    // The Council's other own label for its application window, read only when
+    // the card publishes no "Application Deadlines" paragraph (see the header).
+    const periodValue = deadlineValue === null ? labelledParagraph(body, PERIOD_LABEL_RE) : null;
+    const period = periodValue === null ? null : readOklahomaApplicationPeriod(periodValue);
     const activityPeriod = labelledParagraph(body, ACTIVITY_LABEL_RE);
     const amount = labelledParagraph(body, AMOUNT_LABEL_RE);
     // A card is a program when it names itself and publishes at least one of the
     // Council's own labelled facts — never a heading with nothing under it.
     if (title.length < 3) continue;
-    if (deadlineValue === null && activityPeriod === null && amount === null) continue;
+    if (deadlineValue === null && periodValue === null && activityPeriod === null && amount === null) {
+      continue;
+    }
 
-    const ongoing = deadlineValue !== null && declaresOngoing(deadlineValue);
-    const sourceClosed = deadlineValue !== null && declaresClosed(deadlineValue);
-    const day = ongoing || deadlineValue === null ? null : singlePublishedDay(deadlineValue);
+    const windowText = deadlineValue ?? periodValue;
+    const ongoing = windowText !== null && declaresOngoing(windowText);
+    const sourceClosed =
+      (deadlineValue !== null && declaresClosed(deadlineValue)) || period?.declaresClosed === true;
+    const day = ongoing
+      ? null
+      : deadlineValue !== null
+        ? singlePublishedDay(deadlineValue)
+        : (period?.endDay ?? null);
+    // The Council's own text that carries the window's closing end, from EITHER
+    // of its two labels — the value a reviewer can check the date against.
+    const closingText =
+      deadlineValue ?? (period?.orderedRange === true ? (period.ends[1] ?? null) : null);
     const amounts = publishedAmountRange(amount ?? "");
 
     records.push({
@@ -159,6 +283,9 @@ export function parseOklahomaProgramIndex(
       // page can never look like a second source.
       url: pageUrl,
       sourceUrl: OKLAHOMA_SOURCE_URL,
+      // The Council publishes no OPENING date for these programs: the period
+      // window's opening end is kept in `raw` only (see
+      // readOklahomaApplicationPeriod) and never served as a posted date.
       postedDate: null,
       closeDate: day,
       estimatedCloseDate: null,
@@ -175,9 +302,9 @@ export function parseOklahomaProgramIndex(
       matchingRequirement: NOT_SPECIFIED,
       raw: {
         deadlineValue,
-        applicationDeadline: deadlineValue,
-        closingText: deadlineValue,
-        applicationDueDateText: deadlineValue,
+        applicationDeadline: closingText,
+        closingText,
+        applicationDueDateText: closingText,
         rollingDeclaredBySource: ongoing,
         sourceClosedDeclaredBySource: sourceClosed,
         // The Council's own "Project Activity Dates" is the period the funded
@@ -187,6 +314,19 @@ export function parseOklahomaProgramIndex(
         deadlineIsARuleWhenNoDayParsed:
           deadlineValue !== null && day === null && !ongoing && !sourceClosed,
         cardPublishesNoApplicationDeadline: deadlineValue === null,
+        // The window the card published under the Council's OTHER own label
+        // ("Application Period"), when it published one (QA finding 2026-09-19).
+        applicationPeriod: periodValue,
+        applicationPeriodEnds: period?.ends ?? [],
+        applicationPeriodStartDay: period?.startDay ?? null,
+        applicationPeriodEndDay: period?.endDay ?? null,
+        applicationPeriodEndDayIsTheClosingEndPublishedBySource: true,
+        applicationPeriodIsOrderedRange: period?.orderedRange ?? false,
+        applicationPeriodStartDayYearComesFromTheWindowsClosingEnd:
+          period?.startDayYearFromClosingEnd ?? false,
+        applicationPeriodClosedMarkerDeclaredBySource: period?.declaresClosed ?? false,
+        applicationPeriodNoEndDateDeclaredBySource: period?.declaresNoEndDate ?? false,
+        cardPublishesNoApplicationWindow: deadlineValue === null && periodValue === null,
         pagePublishesNoEligibilityOrAwardText: true,
       },
     });
@@ -230,12 +370,41 @@ export function parseOklahomaGrantsPages(raw: string): SourceGrantRecord[] {
   return records;
 }
 
-/** The classifier this connector uses, unmodified (owner status model). */
+/**
+ * The classifier this connector uses. It is `classifyStateGrant()` — the owner's
+ * status model, unmodified — plus ONE stricter rule the Council's own pages need.
+ *
+ * THE RULE: the Council's "(closed)" mark and its own published END DATE must
+ * AGREE. `classifyStateGrant()` lets the source's past tense win outright, so a
+ * card marked "(closed)" whose date is still AHEAD of us would be served `closed`
+ * WITH a future closing date — a contradiction the source itself does not make.
+ * Here the past tense still wins for the STATUS (that cycle is not accepting
+ * applications, and it can never be served open), but a date that is still ahead
+ * is WITHHELD rather than served as a deadline the Council's own words
+ * contradict. The end day ITSELF is the window's last day, so it agrees and its
+ * date is served. Everything else — including a passed published date with no
+ * marker at all — is untouched, so this override is strictly less informative
+ * than the shared classifier, never more.
+ */
 export function classifyOklahomaRecord(
   record: SourceGrantRecord,
   now: Date | number = new Date(),
 ): GrantClassification {
-  return classifyStateGrant(record, now);
+  const classification = classifyStateGrant(record, now);
+  if (classification.status !== "closed" || !record.sourceClosed) return classification;
+  if (classification.closeDate === null) return classification;
+  const endDay = stateDayEpoch(classification.closeDate);
+  const today = easternDayStart(now);
+  if (endDay === null || Number.isNaN(endDay) || Number.isNaN(today)) return classification;
+  if (endDay <= today) return classification;
+  return {
+    status: "closed",
+    postedDate: classification.postedDate,
+    closeDate: null,
+    estimatedCloseDate: null,
+    reason:
+      'the Council marks this cycle "(closed)" but its own end date is still ahead — the past tense wins for the status, so no disagreeing date is served',
+  };
 }
 
 export const oklahomaConnector: StateGrantConnector<string> = {

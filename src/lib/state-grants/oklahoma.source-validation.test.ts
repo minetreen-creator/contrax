@@ -32,5 +32,28 @@ await runLiveSourceValidation({
       expect(o.raw.projectActivityDatesIsNeverADeadline).toBe(true);
       if (o.raw.sourceClosedDeclaredBySource === true) expect(o.status).toBe("closed");
     }
+    // QA finding (tranche NV/OK/SC/IL, 2026-09-19): the schools index dates its
+    // "Oklahoma Poetry Out Loud Partnership Grant" card with the Council's own
+    // "Application Period: April 1 – May 1, 2026, at 5:00 p.m. Central Time
+    // (closed)". On the LIVE bytes it must be served `closed` WITH that published
+    // close date — so the fix is verified against the source itself, not only
+    // against the saved fixture.
+    const poetry = opportunities.find(
+      (o) => o.externalId === "oklahoma-poetry-out-loud-partnership-grant",
+    );
+    expect(poetry).toBeDefined();
+    expect(poetry!.title).toBe("Oklahoma Poetry Out Loud Partnership Grant");
+    expect(poetry!.raw.deadlineValue).toBeNull();
+    expect(poetry!.raw.applicationPeriodEndDay).toBe("2026-05-01");
+    expect(poetry!.closeDate).toBe("2026-05-01");
+    expect(poetry!.status).toBe("closed");
+    // The organizations index's own counterpart still publishes "( Closed )" with
+    // no day at all: closed, and no date is invented for it.
+    const orgsPoetry = opportunities.find(
+      (o) => o.externalId === "poetry-out-loud-partnership-grant",
+    );
+    expect(orgsPoetry).toBeDefined();
+    expect(orgsPoetry!.closeDate).toBeNull();
+    expect(orgsPoetry!.status).toBe("closed");
   },
 });

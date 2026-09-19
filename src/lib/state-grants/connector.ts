@@ -401,7 +401,12 @@ export interface StateGrantConnector<TRaw = unknown> {
   readonly officialHost: string;
   /** The body-name of the source-validation test that gates `connected`. */
   readonly sourceValidationTest: string;
-  /** Fetches the raw source payload. Must throw on any failure (fail-closed). */
+  /**
+   * Fetches the raw source payload. Must throw on any failure (fail-closed).
+   * An optional `stage: "fetch" | "parse"` on the thrown error is honoured by
+   * the sync runner; without it the runner attributes the failure to the phase
+   * it escaped from (fetch() → "fetch", parse/classify → "parse").
+   */
   fetch(now?: Date): Promise<TRaw>;
   /** Parses the raw payload into normalised, unclassified records. */
   parse(raw: TRaw): SourceGrantRecord[];

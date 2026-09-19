@@ -169,13 +169,22 @@ export async function runStateGrantSync(
   // 2. Pull and normalise. Anything thrown here aborts with zero writes.
   let opportunities: GrantOpportunity[];
   let collisions: string[];
+  // The failure stage is attributed by the PHASE the error escaped from: fetch()
+  // → "fetch", parse/classify → "parse". An error that carries its own
+  // `stage` (VirginiaSourceError does — it can reject a payload it already
+  // fetched) still wins. Before 2026-09-19 a plain `Error` thrown by fetch() was
+  // mislabelled "parse", which made every failing state connector look like a
+  // parser bug in the run log.
+  let phase: "fetch" | "parse" = "fetch";
   try {
     const raw = await connector.fetch(now);
+    phase = "parse";
     const parsed = parseGrantOpportunities(connector, raw, now);
     opportunities = parsed.opportunities;
     collisions = parsed.collisions;
   } catch (e) {
-    const stage = (e as { stage?: string }).stage === "fetch" ? "fetch" : "parse";
+    const explicit = (e as { stage?: unknown }).stage;
+    const stage = explicit === "fetch" || explicit === "parse" ? explicit : phase;
     return fail(stage, e);
   }
 

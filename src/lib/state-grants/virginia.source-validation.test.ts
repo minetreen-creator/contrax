@@ -1,7 +1,23 @@
 /**
- * VIRGINIA SOURCE-VALIDATION TEST — the gate that lets Virginia report
+ * VIRGINIA SOURCE-VALIDATION TEST — the LIVE gate that lets Virginia report
  * `connected` (owner ROLLOUT order 2026-09-18: "source-validation tests REQUIRED
- * before any state goes unavailable→connected").
+ * before any state goes unavailable→connected"; owner guardrail 2026-09-19:
+ * ordinary CI must never depend on a live external website).
+ *
+ * OPT-IN BY DESIGN (owner guardrail 2026-09-19). This file does NOTHING unless it
+ * is explicitly invoked:
+ *
+ *     bun run validate:live-sources
+ *     # equivalently, from anywhere in the repo:
+ *     STATE_GRANTS_RUN_LIVE_SOURCE_TESTS=1 bun test src/lib/state-grants
+ *
+ * With `STATE_GRANTS_RUN_LIVE_SOURCE_TESTS` unset — the default `bun test`, and
+ * therefore every CI/test run — all of these tests are SKIPPED and a loud notice
+ * is printed, so the skip can never be silent. The default suite stays 100%
+ * deterministic (saved fixtures only, ZERO network; the fixture half of the same
+ * ground is covered by state-grants.test.ts). A skipped run proves NOTHING about
+ * Virginia: a state may only flip `unavailable → connected` on a PASSING explicit
+ * run of this file against the real official source.
  *
  * This is the ONLY place in the rollout that talks to the real official source.
  * It proves, against the live page:
@@ -18,10 +34,15 @@
  *   7. parsing the same page twice gives the SAME fingerprint for every record,
  *      so a re-run cannot rewrite a row it already has.
  *
- * SKIPPING. The owner's brief: skippable ONLY via an explicit env var, never
- * silently. `STATE_GRANTS_SKIP_LIVE_SOURCE_TESTS=1` skips it and says so loudly.
- * Any failure to reach the source FAILS the test — it does not skip — because a
- * source we cannot verify is exactly the state that must not be `connected`.
+ * WHEN IT RUNS. Only with `STATE_GRANTS_RUN_LIVE_SOURCE_TESTS=1` (opt-IN). The
+ * default is SKIPPED + a loud notice, never a silent live fetch. A previous
+ * opt-OUT variable (`STATE_GRANTS_SKIP_LIVE_SOURCE_TESTS`) is deliberately gone:
+ * an opt-out defaulted to network access, which is exactly the CI hazard the
+ * owner's 2026-09-19 guardrail forbids.
+ *
+ * Once invoked, any failure to reach the source FAILS the test — it does not
+ * skip — because a source we cannot verify is exactly the state that must not be
+ * `connected`.
  */
 import { describe, expect, test } from "bun:test";
 import {
@@ -38,11 +59,25 @@ import {
 } from "~/lib/state-grants/connectors/virginia";
 import { getStateEntry, isStateConnected } from "~/lib/state-grants/registry";
 
-const SKIP = process.env.STATE_GRANTS_SKIP_LIVE_SOURCE_TESTS === "1";
+/** The live source validation is OPT-IN — see the header for why. */
+const RUN_LIVE = process.env.STATE_GRANTS_RUN_LIVE_SOURCE_TESTS === "1";
+const SKIP = !RUN_LIVE;
+
+/** Bold/coloured so a skip cannot scroll past unnoticed in a CI log. */
+const BOLD = "\u001b[1m";
+const YELLOW = "\u001b[33m";
+const RESET = "\u001b[0m";
+
 if (SKIP) {
   console.warn(
-    "[virginia source validation] SKIPPED via STATE_GRANTS_SKIP_LIVE_SOURCE_TESTS=1 — " +
-      "Virginia's connected status is NOT proven by this run.",
+    `\n${BOLD}${YELLOW}LIVE SOURCE VALIDATION SKIPPED — run \`bun run validate:live-sources\` ` +
+      `(or \`STATE_GRANTS_RUN_LIVE_SOURCE_TESTS=1 bun test src/lib/state-grants\`) to verify VA against the real ` +
+      `official source (required before VA flips to connected).${RESET}\n` +
+      `  The default run is fixture-only and deterministic: it proves the parser/classifier logic, NOT the live source.\n`,
+  );
+} else {
+  console.warn(
+    `\n${BOLD}LIVE SOURCE VALIDATION RUNNING — fetching ${VIRGINIA_SOURCE_URL} for real (opt-in).${RESET}\n`,
   );
 }
 

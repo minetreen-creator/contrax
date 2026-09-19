@@ -17,15 +17,23 @@
  *     rows it writes are byte-for-byte what a real sync writes. They are left in
  *     place: deleting a correct mirror would be the destructive choice.
  *
- * SCHEMA: migration 043 is NOT applied to production (owner approval pending —
- * see shared/state-grants-p1-2026-09-18.md). So the DB half of this suite runs
- * only when the three tables already exist; otherwise it provisions them from
- * db/migrations/043_state_grants.sql, but ONLY when the operator opts in:
+ * SCHEMA: migration 043 IS applied to production (owner-approved, applied
+ * 2026-09-19). The DB half of this suite therefore runs whenever the three tables
+ * exist; when they do NOT (a fresh database), it can provision them from
+ * db/migrations/043_state_grants.sql — but ONLY when the operator opts in:
  *
  *   STATE_GRANTS_TEST_PROVISION_SCHEMA=1 bun test src/lib/state-grants
+ *   # or: bun run test:state-grants:integration
  *
- * Without that flag and without the tables, the suite SKIPS LOUDLY (printing the
+ * The flag is the ONLY path that creates schema, and it creates nothing but these
+ * three tables (+ their indexes) from the migration file itself.
+ *
+ * Without the tables and without that flag, the suite SKIPS LOUDLY (printing the
  * exact command) rather than failing or silently passing.
+ *
+ * The live half (virginia.source-validation.test.ts) is opt-IN and separate —
+ * this suite never touches the network:
+ *   STATE_GRANTS_RUN_LIVE_SOURCE_TESTS=1 bun test src/lib/state-grants
  */
 import { afterAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
@@ -337,8 +345,15 @@ describe.skipIf(!DB_READY)("state grants integration (real DB)", () => {
 
   test("the registry mirror reflects the DERIVED registry and re-syncs for free", async () => {
     const entries = listStates();
+    // The mirror rows are deliberately LEFT IN PLACE by this suite (deleting a
+    // correct mirror would be the destructive choice), so the test must hold on
+    // a re-run too: an empty mirror is written in full, an already-correct one
+    // costs nothing. Asserting `written > 0` unconditionally made the suite fail
+    // on its second consecutive run against the same database (found 2026-09-19).
+    const beforeMirror = await readStateRegistry();
     const written = await syncStateRegistry(entries);
-    expect(written).toBeGreaterThan(0);
+    if (beforeMirror.length === 0) expect(written).toBe(51);
+    else expect(written).toBe(0);
     const mirrored = await readStateRegistry();
     expect(mirrored.length).toBe(51);
     const va = mirrored.find((r) => r.stateCode === "VA")!;

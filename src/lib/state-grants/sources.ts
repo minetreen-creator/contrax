@@ -24,6 +24,14 @@ import { rhodeIslandConnector } from "~/lib/state-grants/connectors/rhode-island
 import { californiaConnector } from "~/lib/state-grants/connectors/california";
 import { kansasConnector } from "~/lib/state-grants/connectors/kansas";
 import { washingtonConnector } from "~/lib/state-grants/connectors/washington";
+// NATIONWIDE workstream, batch 2 (owner order 2026-09-19): AR, CO, MN, ND, NM.
+// A missing entry here is SILENT — the state still syncs, but the coverage row
+// reports `sourceCount 0` — so every batch must add its connectors to this list.
+import { arkansasConnector } from "~/lib/state-grants/connectors/arkansas";
+import { coloradoConnector } from "~/lib/state-grants/connectors/colorado";
+import { minnesotaConnector } from "~/lib/state-grants/connectors/minnesota";
+import { northDakotaConnector } from "~/lib/state-grants/connectors/north-dakota";
+import { newMexicoConnector } from "~/lib/state-grants/connectors/new-mexico";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -64,6 +72,13 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   californiaConnector as unknown as StateGrantConnector<never>,
   kansasConnector as unknown as StateGrantConnector<never>,
   washingtonConnector as unknown as StateGrantConnector<never>,
+  // NATIONWIDE batch 2 (2026-09-19): one validated source per state, so each of
+  // these states is `limited` — never advertised as statewide coverage.
+  arkansasConnector as unknown as StateGrantConnector<never>,
+  coloradoConnector as unknown as StateGrantConnector<never>,
+  minnesotaConnector as unknown as StateGrantConnector<never>,
+  northDakotaConnector as unknown as StateGrantConnector<never>,
+  newMexicoConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

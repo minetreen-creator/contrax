@@ -39,11 +39,12 @@
  *   entry (+ host on the allowlist) → suites green. Until then it is
  *   `unavailable`, even with a perfect connector. That is the point.
  *
- * All 50 states + DC are listed. 42 states + DC are `unavailable` on purpose
- * (2026-09-19: Virginia, the five P3 batch-1 states and the three NATIONWIDE
- * batch-1 states — CA, KS, WA — are validated as `limited`, one source each; NC
- * and Utah exited the batch under the checklist §0 exit rule with no dependable
- * official dated listing and therefore have NO manifest entry): the registry
+ * All 50 states + DC are listed. 37 states + DC are `unavailable` on purpose
+ * (2026-09-19: Virginia, the five P3 batch-1 states, the three NATIONWIDE
+ * batch-1 states — CA, KS, WA — and the five NATIONWIDE batch-2 states — AR, CO,
+ * MN, ND, NM — are validated as `limited`, one source each; NC and Utah exited
+ * batch 1 under the checklist §0 exit rule with no dependable official dated
+ * listing and therefore have NO manifest entry): the registry
  * existing is NOT coverage, and nothing in the rollout may imply nationwide
  * coverage (owner order). The coverage UI reads listStates().
  */
@@ -111,6 +112,42 @@ import {
   WASHINGTON_SOURCE_VALIDATION_TEST,
   washingtonConnector,
 } from "~/lib/state-grants/connectors/washington";
+// NATIONWIDE workstream, batch 2 (owner order 2026-09-19): AR, CO, MN, ND, NM.
+import {
+  ARKANSAS_APPROVED_HOSTS,
+  ARKANSAS_CONNECTOR_ID,
+  ARKANSAS_SOURCE_URL,
+  ARKANSAS_SOURCE_VALIDATION_TEST,
+  arkansasConnector,
+} from "~/lib/state-grants/connectors/arkansas";
+import {
+  COLORADO_APPROVED_HOSTS,
+  COLORADO_CONNECTOR_ID,
+  COLORADO_SOURCE_URL,
+  COLORADO_SOURCE_VALIDATION_TEST,
+  coloradoConnector,
+} from "~/lib/state-grants/connectors/colorado";
+import {
+  MINNESOTA_APPROVED_HOSTS,
+  MINNESOTA_CONNECTOR_ID,
+  MINNESOTA_SOURCE_URL,
+  MINNESOTA_SOURCE_VALIDATION_TEST,
+  minnesotaConnector,
+} from "~/lib/state-grants/connectors/minnesota";
+import {
+  NORTH_DAKOTA_APPROVED_HOSTS,
+  NORTH_DAKOTA_CONNECTOR_ID,
+  NORTH_DAKOTA_SOURCE_URL,
+  NORTH_DAKOTA_SOURCE_VALIDATION_TEST,
+  northDakotaConnector,
+} from "~/lib/state-grants/connectors/north-dakota";
+import {
+  NEW_MEXICO_APPROVED_HOSTS,
+  NEW_MEXICO_CONNECTOR_ID,
+  NEW_MEXICO_SOURCE_URL,
+  NEW_MEXICO_SOURCE_VALIDATION_TEST,
+  newMexicoConnector,
+} from "~/lib/state-grants/connectors/new-mexico";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -237,6 +274,12 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...CALIFORNIA_APPROVED_HOSTS,
   ...KANSAS_APPROVED_HOSTS,
   ...WASHINGTON_APPROVED_HOSTS,
+  // NATIONWIDE batch 2 (owner 2026-09-19).
+  ...ARKANSAS_APPROVED_HOSTS,
+  ...COLORADO_APPROVED_HOSTS,
+  ...MINNESOTA_APPROVED_HOSTS,
+  ...NORTH_DAKOTA_APPROVED_HOSTS,
+  ...NEW_MEXICO_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -344,6 +387,61 @@ export const WASHINGTON_REGISTRY_ENTRY: SourceValidationEntry = {
   note: "One validated source (ArtsWA's Open and Upcoming Grants listing). Other Washington agencies publish funding programs we have NOT validated — this is not statewide coverage.",
 };
 
+/**
+ * NATIONWIDE BATCH 2 manifest entries (owner order 2026-09-19: evaluate every
+ * remaining jurisdiction; one workstream, batches of five, one accumulating PR).
+ * Batch 2 evaluated AR, CO, MN, ND and NM and landed a connector for each — every
+ * one of these sources is ONE agency's official listing, so each declares
+ * `limited`: the ladder requires at least `CONNECTED_MIN_SOURCES` (2) distinct
+ * sources before any state may be reported as statewide multi-source coverage.
+ * Every `verifiedOn` date is the day the state's own
+ * `<state>.source-validation.test.ts` PASSED against the live source.
+ */
+export const ARKANSAS_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: ARKANSAS_CONNECTOR_ID,
+  sourceUrl: ARKANSAS_SOURCE_URL,
+  testFile: ARKANSAS_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Arkansas Arts Council's Art Grants listing, on the agency's own arkansasheritage.com domain). The listing publishes no per-program deadline — its dated \"When To Apply\" list does not map onto the individual grant cards — so every record is honestly `unverified` rather than dated by inference. Other Arkansas agencies publish funding programs we have NOT validated: this is not statewide coverage.",
+};
+
+export const COLORADO_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: COLORADO_CONNECTOR_ID,
+  sourceUrl: COLORADO_SOURCE_URL,
+  testFile: COLORADO_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (OEDIT's Advanced Industries Accelerator Programs listing). OEDIT's own Programs-and-Funding index publishes no per-program dates, so this is ONE program family of ONE division — Colorado publishes funding through many other agencies we have NOT validated: this is not statewide coverage.",
+};
+
+export const MINNESOTA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: MINNESOTA_CONNECTOR_ID,
+  sourceUrl: MINNESOTA_SOURCE_URL,
+  testFile: MINNESOTA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Minnesota State Arts Board's own Arts Board Calendar, current fiscal-year table, Application Deadline column only). This is one agency's calendar — other Minnesota agencies publish funding programs we have NOT validated: this is not statewide coverage.",
+};
+
+export const NORTH_DAKOTA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: NORTH_DAKOTA_CONNECTOR_ID,
+  sourceUrl: NORTH_DAKOTA_SOURCE_URL,
+  testFile: NORTH_DAKOTA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the North Dakota Council on the Arts' \"Grants at a Glance\" listing). Cards that state their deadline as a RULE (\"6 weeks prior to project start date\") and the two-round card are honestly `unverified`, never guessed. Other North Dakota agencies publish funding programs we have NOT validated: this is not statewide coverage.",
+};
+
+export const NEW_MEXICO_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: NEW_MEXICO_CONNECTOR_ID,
+  sourceUrl: NEW_MEXICO_SOURCE_URL,
+  testFile: NEW_MEXICO_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (New Mexico Arts' \"Apply for a Grant\" page, from which only the labelled application-deadline milestones are read). New Mexico Arts' grants-information index publishes no year-bearing date at all, and other New Mexico agencies publish funding programs we have NOT validated: this is not statewide coverage.",
+};
+
 /** The sources registered for every state, keyed by state code. */
 function sourcesByStateMap(): Record<string, readonly string[]> {
   const out: Record<string, readonly string[]> = {};
@@ -366,6 +464,11 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     CA: californiaConnector as unknown as StateGrantConnector<never>,
     KS: kansasConnector as unknown as StateGrantConnector<never>,
     WA: washingtonConnector as unknown as StateGrantConnector<never>,
+    AR: arkansasConnector as unknown as StateGrantConnector<never>,
+    CO: coloradoConnector as unknown as StateGrantConnector<never>,
+    MN: minnesotaConnector as unknown as StateGrantConnector<never>,
+    ND: northDakotaConnector as unknown as StateGrantConnector<never>,
+    NM: newMexicoConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -377,6 +480,11 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     CA: CALIFORNIA_REGISTRY_ENTRY,
     KS: KANSAS_REGISTRY_ENTRY,
     WA: WASHINGTON_REGISTRY_ENTRY,
+    AR: ARKANSAS_REGISTRY_ENTRY,
+    CO: COLORADO_REGISTRY_ENTRY,
+    MN: MINNESOTA_REGISTRY_ENTRY,
+    ND: NORTH_DAKOTA_REGISTRY_ENTRY,
+    NM: NEW_MEXICO_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

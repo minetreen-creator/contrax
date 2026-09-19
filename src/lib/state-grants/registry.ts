@@ -231,6 +231,21 @@ import {
   ILLINOIS_SOURCE_URL,
   ILLINOIS_SOURCE_VALIDATION_TEST,
 } from "~/lib/state-grants/connectors/illinois";
+// NEXT-12 TRANCHE (owner 2026-09-19, one continuous workstream): NH, MT.
+import {
+  NEW_HAMPSHIRE_APPROVED_HOSTS,
+  NEW_HAMPSHIRE_CONNECTOR_ID,
+  NEW_HAMPSHIRE_SOURCE_URL,
+  NEW_HAMPSHIRE_SOURCE_VALIDATION_TEST,
+  newHampshireConnector,
+} from "~/lib/state-grants/connectors/new-hampshire";
+import {
+  MONTANA_APPROVED_HOSTS,
+  MONTANA_CONNECTOR_ID,
+  MONTANA_SOURCE_URL,
+  MONTANA_SOURCE_VALIDATION_TEST,
+  montanaConnector,
+} from "~/lib/state-grants/connectors/montana";
 
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
@@ -378,6 +393,9 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...OKLAHOMA_APPROVED_HOSTS,
   ...SOUTH_CAROLINA_APPROVED_HOSTS,
   ...ILLINOIS_APPROVED_HOSTS,
+  // NEXT-12 TRANCHE (owner 2026-09-19).
+  ...NEW_HAMPSHIRE_APPROVED_HOSTS,
+  ...MONTANA_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -670,6 +688,22 @@ export const ILLINOIS_REGISTRY_ENTRY: SourceValidationEntry = {
   tier: "limited",
   note: "One validated source: the Illinois CSFA current funding-opportunity list, located live on 2026-09-19 after the phase-1 map recorded that the dated NOFO path was NOT found (the guessed /csfa/ and /nofo.html both 404 and the gata.illinois.gov root is informational). The real path was found by following the State's own link graph — gata.illinois.gov root → its own CSFA page /grants/csfa.html → the public CSFA application it embeds at omb.illinois.gov/public/gata/csfa/ → its own link to OpportunityList.aspx — and the list is the statewide catalog the Grants Accountability and Transparency Act (30 ILCS 708) requires. The whole unpaginated list is read (the page states its own total, which the tests cross-check): the Application Date Range column is read as its two ordered ends, the State's own \"No end date\" is the ONLY input to `rolling` (never an invented deadline), a passed published end date is `closed`, and \"Not Applicable\" award ranges are stored as no amount rather than as a number. Only the current-opportunity VIEW of the catalog is read, and other agencies' own listings were NOT validated, so `limited`, never `curated`/`connected` — not statewide coverage.",
 };
+export const NEW_HAMPSHIRE_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: NEW_HAMPSHIRE_CONNECTOR_ID,
+  sourceUrl: NEW_HAMPSHIRE_SOURCE_URL,
+  testFile: NEW_HAMPSHIRE_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the New Hampshire Joint Promotional Program (JPP) deadlines page, published by the Division of Travel and Tourism Development on visitnh.gov (inside the Department of Business and Economic Affairs, DRED). PROVENANCE: the phase-1 map's PRIMARY candidate for New Hampshire was a DIFFERENT agency (nheconomy.com/about-us/grant-programs), which publishes ten grant links and ZERO dates live; the dated listing is this one programme of this one division. Only the Division's own labelled \"Application Due Date\" value is read — its \"Applicants Notified\" value is a notification date and is never a deadline — and the four published rounds are four separate records, each with its own date. A round whose published deadline has passed is `closed` even though the page is live. New Hampshire publishes funding through other departments and agencies we have NOT validated, so this is ONE programme of ONE division: `limited`, never `curated`/`connected` — this is not statewide coverage.",
+};
+export const MONTANA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: MONTANA_CONNECTOR_ID,
+  sourceUrl: MONTANA_SOURCE_URL,
+  testFile: MONTANA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the Montana Department of Commerce's own Montana Tourism Development Grant Program page on commerce.mt.gov. The dated sentence is NOT on the parent Tourism Grant Program catalogue (322 KB live, 45 grant mentions, zero dates — parsing it could only ever produce undated records); the connector reads the CHILD programme page the Department publishes, whose \"Resources for Applicants\" list carries its own ordered \"will open Jan. 6, 2027 and close on Feb. 3, 2027\" cycle sentence. Both ends are read in source order and never picked apart; a year-less or unreadable end yields no date rather than an invented one, and a passed cycle is `closed`. The Montana Arts Council's art.mt.gov pages are stale (2022) or award lists and represent no coverage. This is ONE programme family of ONE department: `limited`, never `connected` — this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -700,6 +734,9 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     OK: oklahomaConnector as unknown as StateGrantConnector<never>,
     SC: southCarolinaConnector as unknown as StateGrantConnector<never>,
     IL: illinoisConnector as unknown as StateGrantConnector<never>,
+    // NEXT-12 TRANCHE (owner 2026-09-19).
+    NH: newHampshireConnector as unknown as StateGrantConnector<never>,
+    MT: montanaConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -730,6 +767,9 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     OK: OKLAHOMA_REGISTRY_ENTRY,
     SC: SOUTH_CAROLINA_REGISTRY_ENTRY,
     IL: ILLINOIS_REGISTRY_ENTRY,
+    // NEXT-12 TRANCHE (owner 2026-09-19).
+    NH: NEW_HAMPSHIRE_REGISTRY_ENTRY,
+    MT: MONTANA_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

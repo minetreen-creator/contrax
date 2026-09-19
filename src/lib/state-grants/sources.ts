@@ -46,6 +46,9 @@ import { nevadaConnector } from "~/lib/state-grants/connectors/nevada";
 import { oklahomaConnector } from "~/lib/state-grants/connectors/oklahoma";
 import { southCarolinaConnector } from "~/lib/state-grants/connectors/south-carolina";
 import { illinoisConnector } from "~/lib/state-grants/connectors/illinois";
+// NEXT-12 TRANCHE (owner 2026-09-19, one continuous workstream).
+import { newHampshireConnector } from "~/lib/state-grants/connectors/new-hampshire";
+import { montanaConnector } from "~/lib/state-grants/connectors/montana";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -110,6 +113,10 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   oklahomaConnector as unknown as StateGrantConnector<never>,
   southCarolinaConnector as unknown as StateGrantConnector<never>,
   illinoisConnector as unknown as StateGrantConnector<never>,
+  // NEXT-12 TRANCHE (owner 2026-09-19): one validated source per state, so each
+  // of these states is `limited` — never advertised as statewide coverage.
+  newHampshireConnector as unknown as StateGrantConnector<never>,
+  montanaConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

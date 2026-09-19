@@ -6,11 +6,13 @@ import {
   STATE_GRANTS_NOTICE,
   STATE_GRANT_MAX_CATEGORIES,
   STATE_GRANT_SEARCH_MAX_TERM,
-  STATE_GRANT_STATUS_LABELS,
   STATE_GRANT_STATUS_OPTIONS,
   type StateGrantRecordView,
-  type StateGrantStatus,
 } from "~/lib/state-grants/search";
+import {
+  STATE_GRANT_STATUS_LABELS,
+  type StateGrantStatus,
+} from "~/lib/state-grants/connector";
 import {
   coverageCounts,
   isValidatedStatus,

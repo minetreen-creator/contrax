@@ -303,13 +303,20 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     expect(unscoped.records.length).toBe(0);
     expect(unscoped.statesIncluded.join(",")).toBe("VA");
 
+    // A caller that NAMES a real but unvalidated state (MD) gets the same empty,
+    // explained answer: the state is never reported as included — it appears in
+    // the uncovered notice only — and no row is invented for it.
     const asked = bodyOf(
-      await runStateGrantSearch({}, FIXTURE_NOW, PRODUCTION_DEPS),
+      await runStateGrantSearch({ stateCodes: ["MD"] }, FIXTURE_NOW, PRODUCTION_DEPS),
     );
     expect(asked.totalCount).toBe(0);
     expect(asked.records.length).toBe(0);
     expect(asked.statesIncluded.length).toBe(0);
-    expect(asked.uncoveredStates).toEqual([HEALTHY_STATE]);
+    // The echoed scope is the narrowed one, so the uncovered state cannot be read
+    // back out of the applied filters either.
+    expect(asked.filters.stateCodes).toEqual([]);
+    expect(asked.uncoveredStates).toEqual(["MD"]);
+    expect(asked.uncoveredNotice).toContain("Maryland (MD)");
     expect(asked.uncoveredNotice).toContain("no records are invented");
     expect(asked.asOf).toBeNull();
 

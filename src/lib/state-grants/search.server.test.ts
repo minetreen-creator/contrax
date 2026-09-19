@@ -129,6 +129,27 @@ describe("the registry gate", () => {
     const query = calls.query[0] as { stateCodes: string[] };
     expect(query.stateCodes).toEqual(["VA"]);
   });
+  test("statesIncluded can only ever hold validated states — repeats and uncovered codes never leak in", async () => {
+    const { deps: d, calls } = deps([storedRow()], ["VA"]);
+    const body = bodyOf(
+      await runStateGrantSearch({ stateCodes: ["MD", "VA", "MD", "CA"] }, TODAY, d),
+    );
+    expect(body.statesIncluded).toEqual(["VA"]);
+    expect(body.uncoveredStates).toEqual(["MD", "CA"]);
+    // The echoed scope is the narrowed one, so a client can never read an
+    // uncovered state out of the applied filters either.
+    expect(body.filters.stateCodes).toEqual(["VA"]);
+    const query = calls.query[0] as { stateCodes: string[] };
+    expect(query.stateCodes).toEqual(["VA"]);
+  });
+  test("a repeated covered code is not queried twice and does not inflate the echo", async () => {
+    const { deps: d, calls } = deps([storedRow()], ["VA"]);
+    const body = bodyOf(await runStateGrantSearch({ stateCodes: ["VA", "VA"] }, TODAY, d));
+    expect(body.statesIncluded).toEqual(["VA"]);
+    expect(body.uncoveredStates).toEqual([]);
+    const query = calls.query[0] as { stateCodes: string[] };
+    expect(query.stateCodes).toEqual(["VA"]);
+  });
 
   test("with no state requested the scope is exactly the validated set", async () => {
     const { deps: d, calls } = deps([], ["VA"]);

@@ -71,7 +71,13 @@ export interface StateGrantSearchPayload {
   source: string;
   /** Echoes the status filter that was applied (null = any status). */
   status: StateGrantStatus | null;
-  /** The VALIDATED states this search actually covered. */
+  /**
+   * The VALIDATED states this search actually covered. Always a SUBSET of the
+   * validated set (registry tiers `limited` | `curated` | `connected`) — never a
+   * state the caller named that has no validated source. Such a state is reported
+   * in `uncoveredStates` / `uncoveredNotice` only, so the response can never
+   * claim to have included a state it served nothing from.
+   */
   statesIncluded: string[];
   /** The states the MATCHING records actually come from (empty when none match). */
   statesMatched: string[];
@@ -197,11 +203,16 @@ export async function runStateGrantSearch(
   const coveredList = [...covered].sort();
 
   const requested = params.stateCodes;
-  const servedScope =
-    requested.length > 0
-      ? requested.filter((c) => covered.has(c))
-      : coveredList;
-  const uncovered = requested.filter((c) => !covered.has(c));
+  // The served scope is the INTERSECTION of what the caller asked for with the
+  // validated set — never the raw request. A state the caller named that has no
+  // validated source is therefore not "included" in any sense: it is reported
+  // only in `uncoveredStates` / `uncoveredNotice`, and the echoed
+  // `filters.stateCodes` shows exactly the narrowed scope that was applied.
+  // Deduped, so the scope, the query, the echo and `statesIncluded` are one
+  // array and a repeated code cannot inflate the response.
+  const requestedScope = requested.length > 0 ? requested : coveredList;
+  const servedScope = [...new Set(requestedScope.filter((c) => covered.has(c)))];
+  const uncovered = [...new Set(requested.filter((c) => !covered.has(c)))];
 
   try {
     const today = stateGrantToday(now);

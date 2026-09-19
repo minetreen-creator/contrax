@@ -692,9 +692,9 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
       if (outcome.status !== 200) throw new Error(`expected 200, got ${outcome.status}`);
       const payload = outcome.body;
       expect(payload.headline).toBe(
-        "State grant coverage: 25 of 51 states have a validated source (0 connected, 0 curated, 25 limited)",
+        "State grant coverage: 27 of 51 states have a validated source (0 connected, 0 curated, 27 limited)",
       );
-      expect(payload.counts).toEqual({ total: 51, validated: 25, connected: 0, curated: 0, limited: 25, unavailable: 26 });
+      expect(payload.counts).toEqual({ total: 51, validated: 27, connected: 0, curated: 0, limited: 27, unavailable: 24 });
       expect(payload.states.length).toBe(51);
       expect(payload.counts.unavailable).toBe(24);
       expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "HI", "IL", "KS", "KY", "ME", "MN", "MT", "NV", "NH", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "UT", "VA", "WA", "WV"]);

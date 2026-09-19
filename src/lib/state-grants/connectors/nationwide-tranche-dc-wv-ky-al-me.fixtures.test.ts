@@ -215,6 +215,60 @@ describe("District of Columbia (dmped.dc.gov) — the source's own status token 
       expect(o.raw.rollingDeclaredBySource).toBe(false);
     }
   });
+  test("each card carries that card's OWN published cycle, never a neighbour's dates", () => {
+    // REGRESSION (QA tranche-3 §2, 2026-09-19). dmped.dc.gov prints the
+    // Technology Ecosystem Fund's OWN schedule lines ("Opened: March 27, 2026" /
+    // "Submission Deadline: May 29, 2026") at the HEAD of the paragraph that then
+    // introduces the NEXT card (Vitality Fund). A split anchored on the paragraph
+    // holding the `STATUS:` token served TEF's deadline under *Vitality Fund* and
+    // left TEF dateless. Each card's content is now anchored on the card's OWN
+    // title, so every card carries exactly the cycle the source publishes for it.
+    // This pins the per-card cycle for ALL nine cards — the assertion the old
+    // fixture never made.
+    const OWN_CYCLE: readonly [string, string | null, string | null][] = [
+      ["Commercial Property Acquisition Fund", null, null],
+      ["Special Event Relief Fund", "2025-10-01", "2026-09-01"],
+      ["FY26 Washington, DC Global Soft Landing", "2026-05-22", "2026-06-22"],
+      ["FY26 Chinatown Lease Incentive Grant Program", "2026-05-15", "2026-06-22"],
+      ["FY2026 Rhode Island Avenue Support Grant Program", "2026-05-15", "2026-07-06"],
+      ["Restaurant & Retail Stabilization Grant", "2026-05-05", "2026-06-05"],
+      ["FY26 Capitol Hilll Construction Impact Grant Program", "2026-05-01", "2026-06-12"],
+      ["FY26 Technology Ecosystem Fund (TEF)", "2026-03-27", "2026-05-29"],
+      ["Vitality Fund", "2026-02-06", "2026-07-15"],
+    ];
+    const parsed = records();
+    expect(parsed.length).toBe(OWN_CYCLE.length);
+    for (const [title, postedDate, closeDate] of OWN_CYCLE) {
+      const o = byTitle(parsed, title);
+      expect([o.title, o.postedDate, o.closeDate]).toEqual([title, postedDate, closeDate]);
+    }
+  });
+  test("TEF and Vitality Fund each carry their OWN verbatim published schedule", () => {
+    // The two cards the mis-segmentation swapped dates between. Both date values
+    // must be the source's own words for that program, attributed to it.
+    const tef = byTitle(records(), "Technology Ecosystem Fund");
+    expect(tef.raw.openingText).toBe("March 27, 2026 at 4PM EST");
+    expect(tef.raw.closingText).toBe("May 29, 2026 at 4PM EST");
+    expect(tef.postedDate).toBe("2026-03-27");
+    expect(tef.closeDate).toBe("2026-05-29");
+
+    const vitality = byTitle(records(), "Vitality Fund");
+    expect(vitality.raw.openingText).toBe("February 6, 2026 at 4PM EST");
+    expect(vitality.raw.closingText).toBe("July 15, 2026 at 4PM EST");
+    expect(vitality.postedDate).toBe("2026-02-06");
+    expect(vitality.closeDate).toBe("2026-07-15");
+
+    // A cycle the source publishes once is served on exactly ONE record: TEF's
+    // days never reappear on Vitality Fund (the old bug), nor vice versa.
+    const owners = (day: string) =>
+      records()
+        .filter((o) => o.postedDate === day || o.closeDate === day)
+        .map((o) => o.title);
+    expect(owners("2026-03-27")).toEqual(["FY26 Technology Ecosystem Fund (TEF)"]);
+    expect(owners("2026-05-29")).toEqual(["FY26 Technology Ecosystem Fund (TEF)"]);
+    expect(owners("2026-02-06")).toEqual(["Vitality Fund"]);
+    expect(owners("2026-07-15")).toEqual(["Vitality Fund"]);
+  });
 });
 
 describe("West Virginia (wvculture.org) — the source's own deadline value decides", () => {

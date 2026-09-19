@@ -45,6 +45,14 @@
  *     "Submission Deadline:", "Closing:"). The description prose is never
  *     scanned for a date, so a sentence like "own and occupy the commercial
  *     property for at least 7 years" can never become a deadline.
+ *   - A DATE BELONGS TO THE PROGRAM THE SOURCE BINDS IT TO. Each card's content
+ *     is anchored on the card's OWN title, not on the paragraph that happens to
+ *     carry its `STATUS:` token: the page prints the Technology Ecosystem Fund's
+ *     own "Opened: March 27, 2026 / Submission Deadline: May 29, 2026" lines at
+ *     the head of the paragraph that then introduces the NEXT card (Vitality
+ *     Fund). A status-anchored split served TEF's dates under Vitality Fund and
+ *     left TEF dateless (QA tranche-3 §2) — the ownership bug this segmentation
+ *     exists to prevent.
  *   - The page publishes no eligibility, geography, award or match text in a
  *     machine-labelable form, so every one of those fields stays
  *     NOT_SPECIFIED/empty — nothing is inferred from prose.
@@ -104,12 +112,17 @@ const STATUS_RE = /\bSTATUS:\s*(OPEN|CLOSED)\b/i;
 const OPENING_LABELS: readonly string[] = ["Applications Open", "Opened", "Open"];
 const CLOSING_LABELS: readonly string[] = ["Submission Deadline", "Closing", "Deadline"];
 
-/** The last `<strong>` element's own text in a fragment, or null. */
-function lastStrongText(html: string): string | null {
-  let out: string | null = null;
+/**
+ * The last `<strong>` element in a fragment: its own text AND its offset in the
+ * fragment. The offset is what lets a card's content be sliced from its OWN
+ * title rather than from the paragraph that happens to hold its `STATUS:` line
+ * (see `parseDistrictOfColumbiaCards`).
+ */
+function lastStrongElement(html: string): { text: string; index: number } | null {
+  let out: { text: string; index: number } | null = null;
   for (const m of html.matchAll(/<strong\b[^>]*>([\s\S]*?)<\/strong>/gi)) {
     const text = stripTags(m[1] ?? "");
-    if (text.length > 0) out = text;
+    if (text.length > 0) out = { text, index: m.index ?? 0 };
   }
   return out;
 }
@@ -159,16 +172,35 @@ interface DcCard {
 }
 
 /**
- * Splits the listing into cards. Each card is anchored on the source's own
- * `STATUS:` line: the card's title is either earlier in the same block (the
- * CLOSED cards publish title + status + dates in ONE paragraph) or in the
- * immediately preceding block (the OPEN cards publish the title alone first).
+ * Splits the listing into cards.
+ *
+ * A card is IDENTIFIED by the source's own `STATUS:` line (the page tags every
+ * program OPEN or CLOSED), but its CONTENT is anchored on the card's OWN TITLE —
+ * the `<strong>` the source binds that program's schedule to — never on the
+ * paragraph that happens to carry the status token. On the live page one
+ * paragraph can open with the PREVIOUS card's labelled schedule before it
+ * reaches the next card's title:
+ *
+ *   <p>Opened: March 27, 2026 at 4PM EST<br/>
+ *      Submission Deadline: May 29, 2026 at 4PM EST<br/><br/>
+ *      <a href="/node/1757011"><strong>Vitality Fund&nbsp;</strong></a><br/><br/>
+ *      <strong>STATUS: CLOSED</strong>…</p>
+ *
+ * Those `Opened:`/`Submission Deadline:` lines are the Technology Ecosystem
+ * Fund's OWN published cycle. Anchoring content on the status block made
+ * *Vitality Fund* inherit TEF's dates and left TEF dateless — a published date
+ * served under the wrong program (QA tranche-3 §2). Slicing from the title's own
+ * offset keeps a preceding card's schedule lines with the preceding card, so
+ * ownership is decided by the source's own document order.
  */
 export function parseDistrictOfColumbiaCards(region: string): DcCard[] {
-  const blocks = [...region.matchAll(PARAGRAPH_RE)].map((m) => m[0]);
+  const blocks = [...region.matchAll(PARAGRAPH_RE)].map((m) => ({
+    html: m[0],
+    offset: m.index ?? 0,
+  }));
   const statusBlocks: { index: number; statusText: string; token: string }[] = [];
   for (let i = 0; i < blocks.length; i++) {
-    const m = STATUS_RE.exec(stripTags(blocks[i]!));
+    const m = STATUS_RE.exec(stripTags(blocks[i]!.html));
     if (m) {
       statusBlocks.push({
         index: i,
@@ -178,21 +210,22 @@ export function parseDistrictOfColumbiaCards(region: string): DcCard[] {
     }
   }
 
-  const cards: { startBlock: number; card: DcCard }[] = [];
+  const cards: { titleOffset: number; card: DcCard }[] = [];
   for (const status of statusBlocks) {
-    const raw = blocks[status.index]!;
-    const pos = raw.search(/\bSTATUS:/i);
-    const before = pos === -1 ? "" : raw.slice(0, pos);
-    const inBlock = lastStrongText(before);
-    const startBlock = inBlock && inBlock.length >= 3 ? status.index : status.index - 1;
-    const title = inBlock && inBlock.length >= 3
-      ? inBlock
-      : startBlock >= 0
-        ? stripTags(blocks[startBlock]!)
-        : "";
+    const block = blocks[status.index]!;
+    const pos = block.html.search(/\bSTATUS:/i);
+    const before = pos === -1 ? "" : block.html.slice(0, pos);
+    const inBlock = lastStrongElement(before);
+    const useInBlock = inBlock !== null && inBlock.text.length >= 3;
+    // The CLOSED cards publish title + status + dates in ONE paragraph; the OPEN
+    // cards publish the title alone in the immediately preceding paragraph.
+    const previous = useInBlock ? null : blocks[status.index - 1];
+    const title = useInBlock ? inBlock!.text : previous ? stripTags(previous.html) : "";
     if (title.length < 3) continue;
     cards.push({
-      startBlock,
+      // Where THIS card's own content starts: at its title, so nothing the
+      // preceding card published can be absorbed into it.
+      titleOffset: useInBlock ? block.offset + inBlock!.index : previous!.offset,
       card: {
         title,
         statusText: status.statusText,
@@ -202,13 +235,17 @@ export function parseDistrictOfColumbiaCards(region: string): DcCard[] {
     });
   }
 
-  // Each card's content runs from its own title block to the block before the
-  // next card's title block.
+  // Each card's content runs from its OWN title to the next card's title. The
+  // LAST card stops at the end of the final paragraph of the listing — never at
+  // the raw region end, which is cut mid-paragraph at the checklist marker and
+  // would otherwise leak the checklist/award links into the last card.
+  const lastBlock = blocks[blocks.length - 1];
+  const regionParagraphEnd = lastBlock ? lastBlock.offset + lastBlock.html.length : region.length;
   return cards.map((entry, i) => {
-    const end = cards[i + 1]?.startBlock ?? blocks.length;
+    const end = cards[i + 1]?.titleOffset ?? regionParagraphEnd;
     return {
       ...entry.card,
-      content: blocks.slice(Math.max(0, entry.startBlock), Math.max(entry.startBlock, end)).join("\n"),
+      content: region.slice(entry.titleOffset, Math.max(entry.titleOffset, end)),
     };
   });
 }

@@ -6,7 +6,7 @@
  * tests assert the real ladder as the code derives it — Virginia, the five P3
  * batch-1 states (AZ, DE, HI, PA, RI) and the three NATIONWIDE batch-1 states
  * (CA, KS, WA) and the five NATIONWIDE batch-2 states (AR, CO, MN, ND, NM)
- * `limited`, and 37 states + D.C. `unavailable` — while the store
+ * `limited`, and 19 states `unavailable` (every jurisdiction but D.C.) — while the store
  * half is injected, so the payload shape and the fail-closed 500 need no database:
  *   * VA must NEVER be described as connected or statewide;
  *   * the payload must never claim nationwide coverage;
@@ -92,9 +92,9 @@ describe("the coverage payload", () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     expect(payload.states.length).toBe(STATE_CODES.length);
     expect(payload.states.length).toBe(51);
-    expect(payload.counts.validated).toBe(31);
-    expect(payload.counts.unavailable).toBe(20);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "KS", "KY", "ME", "MD", "MN", "MT", "NV", "NH", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VA", "WA", "WV"]);
+    expect(payload.counts.validated).toBe(32);
+    expect(payload.counts.unavailable).toBe(19);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "KS", "KY", "ME", "MD", "MN", "MT", "NV", "NH", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV"]);
     for (const state of payload.validated) {
       // Each of these is ONE validated source — never statewide, never connected.
       expect(state.tier).toBe("limited");
@@ -139,7 +139,7 @@ describe("the coverage payload", () => {
   test("every uncovered state carries a machine-readable reason", async () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     const unavailable = payload.states.filter((s) => s.status === "unavailable");
-    expect(unavailable.length).toBe(20);
+    expect(unavailable.length).toBe(19);
     for (const state of unavailable) {
       expect(state.reason.length).toBeGreaterThan(0);
       expect(state.sourceValidationTest).toBeNull();

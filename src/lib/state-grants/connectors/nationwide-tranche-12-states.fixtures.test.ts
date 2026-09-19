@@ -31,6 +31,19 @@ import {
   MARYLAND_SOURCE_URL,
   marylandConnector,
 } from "~/lib/state-grants/connectors/maryland";
+import {
+  VERMONT_CHIP_URL,
+  VERMONT_DOWNTOWN_TRANSPORTATION_FUND_URL,
+  VERMONT_LISTING_URL,
+  VERMONT_PROGRAMME_PAGES,
+  VERMONT_SOURCE_URL,
+  VERMONT_SUBMISSION_COLUMN_LABEL,
+  VERMONT_TIF_URL,
+  VERMONT_VCDP_APPLICANT_GUIDANCE_URL,
+  VERMONT_VCDP_URL,
+  VERMONT_VEGI_URL,
+  vermontConnector,
+} from "~/lib/state-grants/connectors/vermont";
 import { montanaConnector } from "~/lib/state-grants/connectors/montana";
 import { texasConnector } from "~/lib/state-grants/connectors/texas";
 import { joinSourcePages } from "~/lib/state-grants/connectors/multi-page";
@@ -186,6 +199,43 @@ const MD = () =>
   ).opportunities;
 
 
+/**
+ * Vermont is a MULTI-PAGE source too: the agency's Funding and Incentives listing
+ * plus the programme pages it publishes (the listing itself carries no application
+ * dates), plus the VCDP applicant-guidance page the VCDP page links, which is where
+ * that programme's rolling wording and its board-meeting submission schedule live.
+ */
+const VT_FILES = {
+  index: "vermont-accd-funding-incentives.html",
+  vcdp: "vermont-vcdp.html",
+  vcdpApplicantGuidance: "vermont-vcdp-applicant-guidance.html",
+  chip: "vermont-chip.html",
+  downtownTransportationFund: "vermont-downtown-transportation-fund.html",
+  tif: "vermont-tif.html",
+  vegi: "vermont-vegi.html",
+} as const;
+const VT_CHILD_FIXTURES = [
+  [VERMONT_VCDP_URL, VT_FILES.vcdp],
+  [VERMONT_VCDP_APPLICANT_GUIDANCE_URL, VT_FILES.vcdpApplicantGuidance],
+  [VERMONT_CHIP_URL, VT_FILES.chip],
+  [VERMONT_DOWNTOWN_TRANSPORTATION_FUND_URL, VT_FILES.downtownTransportationFund],
+  [VERMONT_TIF_URL, VT_FILES.tif],
+  [VERMONT_VEGI_URL, VT_FILES.vegi],
+] as const;
+function vermontPayload(skip: readonly string[] = []): string {
+  return joinSourcePages(
+    VERMONT_LISTING_URL,
+    fixture(VT_FILES.index),
+    VT_CHILD_FIXTURES.filter(([url]) => !skip.includes(url)).map(([url, file]) => ({
+      url,
+      html: fixture(file),
+    })),
+  );
+}
+/** The listing alone (a catalogue with no application dates of its own). */
+const VT_INDEX_ONLY = () => vermontConnector.parse(fixture(VT_FILES.index));
+const VT = () => parseGrantOpportunities(vermontConnector, vermontPayload(), NOW).opportunities;
+
 const ALL = [
   ["NH", newHampshireConnector, NH],
   ["MT", montanaConnector, MT],
@@ -193,6 +243,7 @@ const ALL = [
   ["FL", floridaConnector, FL],
   ["TX", texasConnector, TX],
   ["MD", marylandConnector, MD],
+  ["VT", vermontConnector, VT],
 ] as const;
 function count(records: GrantOpportunity[], status: string): number {
   return records.filter((o) => o.status === status).length;
@@ -960,5 +1011,192 @@ describe("Maryland — MSAC Grants for Organizations (index + programme pages)",
     }
     expect(thrown).not.toBeNull();
     expect(thrown!.stage).toBe("parse");
+  });
+});
+
+describe("Vermont — ACCD funding programmes and the VCDP application schedule", () => {
+  test("one record per programme family, plus one per published application cycle", () => {
+    const records = VT();
+    expect(records.map((o) => o.externalId)).toEqual([
+      "vt-accd-funding-incentives:vcdp",
+      "vt-accd-funding-incentives:vcdp-application-round",
+      "vt-accd-funding-incentives:vcdp-application-round-2",
+      "vt-accd-funding-incentives:vcdp-application-round-3",
+      "vt-accd-funding-incentives:vcdp-application-round-4",
+      "vt-accd-funding-incentives:vcdp-application-round-5",
+      "vt-accd-funding-incentives:vcdp-application-round-6",
+      "vt-accd-funding-incentives:chip",
+      "vt-accd-funding-incentives:downtown-transportation-fund",
+      "vt-accd-funding-incentives:tif",
+      "vt-accd-funding-incentives:vegi",
+    ]);
+    // The agency's own page titles are the record titles — never a label we wrote.
+    expect(exact(records, "vt-accd-funding-incentives:vcdp").title).toBe(
+      "Vermont Community Development Program",
+    );
+    expect(exact(records, "vt-accd-funding-incentives:vegi").title).toBe(
+      "Vermont Employment Growth Incentive (VEGI)",
+    );
+  });
+
+  test("every record is attributed to a page THIS connector reads, and names the listing", () => {
+    for (const o of VT()) {
+      expect(VERMONT_PROGRAMME_PAGES).toContain(o.url);
+      expect(new URL(o.url).host).toBe("accd.vermont.gov");
+      expect(o.sourceUrl).toBe(VERMONT_SOURCE_URL);
+      expect(o.raw.listedBy).toBe(VERMONT_LISTING_URL);
+      // The agency's page title names every page it publishes, so the live gate's
+      // title spot-check can always find a record's title in the page text.
+      expect(o.title.trim().length).toBeGreaterThan(2);
+    }
+  });
+
+  test("rolling comes only from the agency's own rolling statement", () => {
+    const records = VT();
+    const vcdp = exact(records, "vt-accd-funding-incentives:vcdp");
+    const chip = exact(records, "vt-accd-funding-incentives:chip");
+    expect(vcdp.status).toBe("rolling");
+    expect(chip.status).toBe("rolling");
+    expect(vcdp.raw.rollingDeclaredBySource).toBe(true);
+    expect(chip.raw.rollingDeclaredBySource).toBe(true);
+    // The agency's own words, verbatim, and never a deadline.
+    expect(String(chip.raw.rollingSentence)).toContain("on a rolling basis");
+    expect(String(chip.raw.rollingSentence)).toContain("December 31, 2035");
+    expect(String(vcdp.raw.rollingSentence)).toContain("on a rolling basis");
+    expect(chip.closeDate).toBeNull();
+    expect(vcdp.closeDate).toBeNull();
+    // A programme that never declared rolling is never rolling.
+    for (const id of [
+      "vt-accd-funding-incentives:tif",
+      "vt-accd-funding-incentives:vegi",
+      "vt-accd-funding-incentives:downtown-transportation-fund",
+    ]) {
+      expect(exact(records, id).raw.rollingDeclaredBySource).toBe(false);
+      expect(exact(records, id).status).not.toBe("rolling");
+    }
+  });
+
+  test("the only dated records are schedule rows, each read from its OWN labelled cell", () => {
+    const records = VT();
+    const dated = records.filter((o) => o.closeDate !== null);
+    expect(dated.map((o) => o.closeDate)).toEqual([
+      "2026-10-14",
+      "2027-04-14",
+      "2025-10-15",
+      "2026-03-02",
+      "2024-09-17",
+      "2025-04-08",
+    ]);
+    for (const o of dated) {
+      // The column the agency itself labels, and the row's own cell value.
+      expect(o.raw.submissionColumnLabel).toBe(VERMONT_SUBMISSION_COLUMN_LABEL);
+      expect(o.raw.datesReadFromOwnRowCell).toBe(true);
+      expect(String(o.raw.submissionCellText).length).toBeGreaterThan(4);
+      expect(o.url).toBe(VERMONT_VCDP_APPLICANT_GUIDANCE_URL);
+      expect(o.estimatedCloseDate).toBeNull();
+    }
+    // A future published submission date is open; a passed one is closed on a
+    // still-live page. Neither is ever a forecast.
+    expect(exact(records, "vt-accd-funding-incentives:vcdp-application-round").status).toBe("open");
+    expect(exact(records, "vt-accd-funding-incentives:vcdp-application-round-2").status).toBe("open");
+    expect(exact(records, "vt-accd-funding-incentives:vcdp-application-round-3").status).toBe(
+      "closed",
+    );
+  });
+
+  test("TIF: the agency's debt-incurrence rows are REFUSED — never a close date", () => {
+    const tif = exact(VT(), "vt-accd-funding-incentives:tif");
+    expect(tif.status).toBe("unverified");
+    expect(tif.closeDate).toBeNull();
+    expect(tif.estimatedCloseDate).toBeNull();
+    const refusals = tif.raw.refusedDates as { text: string; kind: string; reason: string }[];
+    const debt = refusals.filter((r) => r.kind === "debt-incurrence");
+    expect(debt.length).toBeGreaterThanOrEqual(2);
+    // The 3/31/2027 row, verbatim, with the reason it can never be a deadline.
+    expect(debt.some((r) => r.text.includes("March 31, 2027"))).toBe(true);
+    expect(debt.some((r) => r.text.includes("March 31, 2022"))).toBe(true);
+    for (const r of debt) expect(r.reason).toContain("debt-incurrence");
+    expect(tif.raw.refusedDatesNeverCloseDates).toBe(true);
+    // No record anywhere in the payload may carry a TIF debt date as its deadline.
+    for (const o of VT()) {
+      expect(o.closeDate).not.toBe("2027-03-31");
+      expect(o.closeDate).not.toBe("2022-03-31");
+    }
+  });
+
+  test("VEGI: an incentive PERIOD is never a deadline", () => {
+    const vegi = exact(VT(), "vt-accd-funding-incentives:vegi");
+    expect(vegi.status).toBe("unverified");
+    expect(vegi.closeDate).toBeNull();
+    expect(vegi.estimatedCloseDate).toBeNull();
+    const refusals = vegi.raw.refusedDates as { text: string; kind: string; reason: string }[];
+    const period = refusals.filter((r) => r.kind === "incentive-period");
+    expect(period.length).toBeGreaterThanOrEqual(1);
+    expect(period.some((r) => r.text.includes("July 1, 2025 to June 30, 2026"))).toBe(true);
+    for (const r of period) expect(r.reason).toContain("activity period");
+    for (const o of VT()) {
+      expect(o.closeDate).not.toBe("2025-07-01");
+      expect(o.closeDate).not.toBe("2026-06-30");
+    }
+  });
+
+  test("VCDP: a public-comment deadline is not an application deadline", () => {
+    const vcdp = exact(VT(), "vt-accd-funding-incentives:vcdp");
+    expect(vcdp.status).toBe("rolling");
+    expect(vcdp.closeDate).toBeNull();
+    const refusals = vcdp.raw.refusedDates as { text: string; kind: string; reason: string }[];
+    const comment = refusals.filter((r) => r.kind === "public-comment");
+    expect(comment.length).toBe(1);
+    expect(comment[0]!.text).toContain("September 28, 2026");
+    expect(comment[0]!.text).toContain("CAPER");
+    expect(comment[0]!.reason).toContain("never an application deadline");
+    // The recommended board-meeting targets of a rolling programme are refused too.
+    expect(refusals.some((r) => r.kind === "recommended-schedule")).toBe(true);
+    // Nothing in the payload may be dated from that comment deadline.
+    for (const o of VT()) {
+      expect(o.closeDate).not.toBe("2026-09-28");
+    }
+  });
+
+  test("Downtown Transportation Fund: the agency's own past tense decides, not a live page", () => {
+    const dtf = exact(VT(), "vt-accd-funding-incentives:downtown-transportation-fund");
+    expect(dtf.status).toBe("closed");
+    expect(dtf.raw.sourceClosedDeclaredBySource).toBe(true);
+    expect(String(dtf.raw.closedSentence)).toContain("is now closed");
+    // A closed record with no published deadline carries no date at all.
+    expect(dtf.closeDate).toBeNull();
+    expect(dtf.statusReason.length).toBeGreaterThan(10);
+  });
+
+  test("the listing alone is not a corpus: the programme pages are required", () => {
+    // The listing is a CATALOGUE: parsing it alone must not invent records, and a
+    // payload missing a programme's own page must fail loudly rather than serve a
+    // partial corpus.
+    let thrown: { stage?: string } | null = null;
+    try {
+      VT_INDEX_ONLY();
+    } catch (e) {
+      thrown = e as { stage?: string };
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown!.stage).toBe("parse");
+
+    let missing: { stage?: string } | null = null;
+    try {
+      vermontConnector.parse(vermontPayload([VERMONT_VEGI_URL]));
+    } catch (e) {
+      missing = e as { stage?: string };
+    }
+    expect(missing).not.toBeNull();
+    expect(missing!.stage).toBe("parse");
+  });
+
+  test("the listing's own date tokens are never a record's date", () => {
+    // The listing publishes furniture dates (a PDF's year, the 1974 CDBG origin,
+    // the Designation 2050 programme). No record may be dated from them.
+    for (const o of VT()) {
+      expect(o.raw.listingDatesNeverRead).toBe(true);
+      expect(o.closeDate).not.toBe("1974-01-01");
+    }
   });
 });

@@ -39,7 +39,7 @@
  *   entry (+ host on the allowlist) → suites green. Until then it is
  *   `unavailable`, even with a perfect connector. That is the point.
  *
- * All 50 states + DC are listed. 37 states + DC are `unavailable` on purpose
+ * All 50 states + DC are listed. 19 states are `unavailable` on purpose
  * (2026-09-19: Virginia, the five P3 batch-1 states, the three NATIONWIDE
  * batch-1 states — CA, KS, WA — and the five NATIONWIDE batch-2 states — AR, CO,
  * MN, ND, NM — are validated as `limited`, one source each; NC and Utah exited
@@ -275,6 +275,13 @@ import {
   marylandConnector,
 } from "~/lib/state-grants/connectors/maryland";
 
+import {
+  VERMONT_APPROVED_HOSTS,
+  VERMONT_CONNECTOR_ID,
+  VERMONT_SOURCE_URL,
+  VERMONT_SOURCE_VALIDATION_TEST,
+  vermontConnector,
+} from "~/lib/state-grants/connectors/vermont";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -427,8 +434,9 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...INDIANA_APPROVED_HOSTS,
   ...FLORIDA_APPROVED_HOSTS,
   ...TEXAS_APPROVED_HOSTS,
-  // NEXT-12 TRANCHE (owner 2026-09-19): MD.
+  // NEXT-12 TRANCHE (owner 2026-09-19): MD, VT.
   ...MARYLAND_APPROVED_HOSTS,
+  ...VERMONT_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -770,6 +778,15 @@ export const MARYLAND_REGISTRY_ENTRY: SourceValidationEntry = {
   note: "One validated source: the Maryland State Arts Council's own Grants for Organizations (GFO) programme page on msac.org (an agency domain rather than a .gov one) PLUS the GFO programme pages that page itself publishes. The GFO index is a PROGRAM CATALOGUE — its only date token is September 9, 2021, the day the Council adopted its funding formula (governance history, never a cycle) — so the connector fetches the index plus every GFO programme page it publishes and reads each record from its OWN page. Only the ONE date the Council itself LABELS is read: the `Deadline` value in a programme page's own Quick Resources box. A labelled deadline with no readable day keeps the record with NO close date rather than a guess. The Council's year-less prose deadlines (\"by September 15th annually\", \"by November 15\"), the eligibility page's process and reporting notes, and the index's 2021 formula date are never deadlines. The deadline the Council publishes today (09/15/2026) has passed, so it is served `closed` on a live page. The Council's other programme families (Arts Capital, Arts in Education, Maryland Traditions, Poetry Out Loud and the rest) are deliberately out of scope — Poetry Out Loud publishes a schools COMPETITION deadline, which is not a grant deadline. Maryland awards grants through other agencies we have NOT validated, so this is ONE programme of ONE agency: `limited`, never `curated`/`connected` — this is not statewide coverage.",
 };
 
+export const VERMONT_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: VERMONT_CONNECTOR_ID,
+  sourceUrl: VERMONT_SOURCE_URL,
+  testFile: VERMONT_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the Vermont Agency of Commerce and Community Development's own Funding and Incentives listing (accd.vermont.gov) PLUS the programme pages that listing publishes. The listing is a PROGRAM CATALOGUE with no application dates of its own, so the connector fetches it and reads each record from the programme's OWN page(s) \u2014 never from the listing and never from a sibling programme. The agency labels only two statuses in its own words: VCDP (\"VCDP accepts applications on a rolling basis\") and CHIP (\"Applications will be accepted on a rolling basis until December 31, 2035\") are `rolling` with NO close date, and the Downtown Transportation Fund page states \"The application period for the 2026 Downtown Transportation Fund grant is now closed\" so it is `closed`. The only dated records are the rows of the VCDP Community Development Board submission schedule, read from the column the agency itself labels \"Submission Date for Application\" on the row that published it (a future submission date is open, a passed one closed). Everything else this source dates is REFUSED and recorded verbatim in each record's `raw.refusedDates`: TIF's example timeline (\"Deadline to incur all TIF debt\") is a municipal debt-incurrence obligation, VEGI's \"July 1, 2025 to June 30, 2026\" is an incentive/labour-market-enhancement PERIOD, and VCDP's \"Seeking Comments for FY25 DRAFT CAPER by September 28, 2026\" is a document-review deadline on a draft federal report. Vermont's own /grants page is a 2020 pandemic-recovery archive and is never read. This is five programme pages of ONE agency out of a much larger catalogue: `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
+};
+
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -807,6 +824,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     FL: floridaConnector as unknown as StateGrantConnector<never>,
     TX: texasConnector as unknown as StateGrantConnector<never>,
     MD: marylandConnector as unknown as StateGrantConnector<never>,
+    VT: vermontConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -844,6 +862,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     FL: FLORIDA_REGISTRY_ENTRY,
     TX: TEXAS_REGISTRY_ENTRY,
     MD: MARYLAND_REGISTRY_ENTRY,
+    VT: VERMONT_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

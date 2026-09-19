@@ -561,8 +561,12 @@ describe.skipIf(!DB_READY)("state grants integration (real DB)", () => {
   });
 
   test("the sources table is seeded from the code registry and stays idempotent", async () => {
+    // First sync brings the DB to the code registry (fresh schemas are seeded
+    // only with the sources that existed at migration time).
+    await syncStateSources(listStateSources());
+    // A second sync must add nothing — idempotent by construction.
     const created = await syncStateSources(listStateSources());
-    expect(created).toBe(0); // the migration seed already holds every source
+    expect(created).toBe(0);
     const va = (await readStateSources("VA")).find((s) => s.sourceKey === VIRGINIA_CONNECTOR_ID)!;
     expect(va).toBeDefined();
     expect(va.officialUrl).toBe(VIRGINIA_SOURCE_URL);

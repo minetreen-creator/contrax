@@ -562,7 +562,9 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
       expect(body.ok).toBe(true);
       expect(body.totalCount).toBe(5);
       expect(body.countExact).toBe(true);
-      expect(body.statesIncluded).toEqual(["VA"]);
+      // Every validated state (the landed batch set) is structurally included;
+      // the rows in this throwaway DB are all VA fixtures, so only VA matches.
+      expect(body.statesIncluded).toEqual(validatedStates());
       expect(body.statesMatched).toEqual(["VA"]);
       expect(body.uncoveredStates).toEqual([]);
       // The freshness stamp comes from the ok run rows the sync wrote.

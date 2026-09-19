@@ -747,7 +747,7 @@ describe("sources registry", () => {
     // One source per connector, on an approved host, with a non-empty key.
     for (const source of listStateSources()) {
       expect(source.sourceKey.length).toBeGreaterThan(0);
-      expect(source.stateCode).toBe(virginiaConnector.stateCode);
+      expect(validatedStates()).toContain(source.stateCode);
       expect(source.name.length).toBeGreaterThan(0);
       expect(source.agency.length).toBeGreaterThan(0);
       expect(APPROVED_SOURCE_HOSTS).toContain(source.officialHost);

@@ -94,14 +94,6 @@ const YEAR_BEARING_DAY_RE =
  */
 const RANGE_SEPARATOR_RE = /(?:-|–|—|\bto\b|\bthrough\b)\s*$/i;
 
-/** One record card: a `<p>` block holding the program link and its status text. */
-interface Card {
-  href: string;
-  title: string;
-  /** The source's own status sentence, e.g. "This grant is open …". */
-  statusText: string;
-}
-
 /**
  * Splits a card's `<p>` text into the source's status sentence: everything after
  * the LAST "|" separator the listing prints between the title and the status.

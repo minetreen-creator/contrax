@@ -143,7 +143,7 @@ CREATE TABLE IF NOT EXISTS sync_logs (
 );
 
 -- Migration: Add source/external_id columns to existing bids table if missing
-DO $$$
+DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bids' AND column_name='source') THEN
         ALTER TABLE bids ADD COLUMN source TEXT NOT NULL DEFAULT 'sam_gov';
@@ -154,7 +154,7 @@ BEGIN
 END $$;
 
 -- Migration: Add UNIQUE constraint if missing
-DO $$$
+DO $$
 BEGIN
     IF NOT EXISTS (
         SELECT 1 FROM pg_constraint WHERE conname = 'bids_source_external_id_key'
@@ -367,10 +367,18 @@ ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS partner_type TEXT DEFAULT
 ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS rating INTEGER DEFAULT 3;
 ALTER TABLE partner_companies ADD COLUMN IF NOT EXISTS description TEXT;
 
--- Migration: Add naics_match column to bid_scores if missing
+-- Migration: Add naics_match column to bid_scores if missing.
+-- GUARDED ON THE TABLE ITSELF: schema.sql never creates `bid_scores` (it is a
+-- backward-compat tweak for installs that have it), so on a fresh database this
+-- block must be a no-op. Unguarded it aborts the whole bootstrap with
+-- `relation "bid_scores" does not exist` — the second pre-existing defect the
+-- state-grants bootstrap test surfaced, on a path (src/db/setup.ts) that had not
+-- run against an empty database in a long time. Same idiom as the
+-- funnel_events guard further down this file.
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bid_scores' AND column_name='naics_match') THEN
+    IF EXISTS (SELECT 1 FROM pg_class WHERE relname = 'bid_scores' AND relkind = 'r')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='bid_scores' AND column_name='naics_match') THEN
         ALTER TABLE bid_scores ADD COLUMN naics_match TEXT DEFAULT '';
     END IF;
 END $$;
@@ -718,48 +726,159 @@ CREATE INDEX IF NOT EXISTS idx_grants_subscriptions_customer_id
 CREATE INDEX IF NOT EXISTS idx_grants_subscriptions_status
     ON grants_subscriptions (status);
 
--- ── State Grants (migration 043, owner ROLLOUT order 2026-09-18) ──
--- Mirrors db/migrations/043_state_grants.sql (additive + idempotent; replayed by
--- db/migrations/run-043.ts). Part 1 of the state rollout: the stored corpus for
--- STATE-level grant opportunities, which (unlike Grants.gov) has no national API
--- and therefore has to persist between scheduled scrapes. Isolated from the
--- federal product: /grants, /api/grants/search, its freshness logic, events and
--- pricing never read these tables.
+-- ── State Grants (migrations 043 + 044; owner ROLLOUT order 2026-09-18, plus the
+--    owner's 2026-09-19 P1 corrections in 044) ──
+-- Mirrors BOTH db/migrations/043_state_grants.sql AND
+-- db/migrations/044_state_grants_sources.sql (additive + idempotent; replayed by
+-- db/migrations/run-043.ts and run-044.ts). A database built from THIS FILE ALONE
+-- must be functionally identical to one built by applying 043 and then 044, so
+-- the shape below is the POST-044 shape — the mirror 044 was deliberately NOT
+-- given in R1 is closed here, and
+-- src/lib/state-grants/state-grants-bootstrap.test.ts proves the equivalence by
+-- diffing the two structures (columns, indexes, constraints) and then exercising
+-- the part 2 search + coverage surface on the schema.sql-only database.
 --
--- state_grant_opportunities: one row per source opportunity keyed by
--- (state_code, external_id) — the source's own id — so an amended record updates
--- the SAME row. `fingerprint` is a content hash used only for change detection,
--- which is why the upsert can leave an unchanged row completely untouched (no
--- no-op rewrites). `close_date` is only ever set for open/closed rows and
--- `estimated_close_date` only ever for forecast rows, so a source's estimate can
--- never masquerade as a deadline (freshness contract carried over from #399).
+-- Part 1 of the state rollout: the stored corpus for STATE-level grant
+-- opportunities, which (unlike Grants.gov) has no national API and therefore has
+-- to persist between scheduled scrapes. Isolated from the federal product:
+-- /grants, /api/grants/search, its freshness logic, events and pricing never read
+-- these tables.
+--
+-- state_grant_sources (044): the registry of the official sources we read. A
+-- row's identity is (source_id, external_id) — the SOURCE, never the state —
+-- because two agencies in one state routinely publish the same short program id.
+-- The seed row below is the only validated source today (Virginia, the reference
+-- connector).
+-- state_grant_opportunities: one row per source opportunity, keyed by
+-- (source_id, external_id) by the unique index further down, so a re-published
+-- (amended) record updates the SAME row. `fingerprint` is a CONTENT hash used only
+-- for change detection, which is why the upsert can leave an unchanged row
+-- completely untouched (no no-op rewrites — the Neon CU discipline used elsewhere
+-- in this repo). `last_seen_at` is the last COMPLETE sync that saw the row
+-- (unchanged rows included), which is what lets a record the source stopped
+-- publishing flip to `unverified` instead of sitting there looking open.
+-- `close_date` is only ever set for open/closed rows and `estimated_close_date`
+-- only for a row whose source published an ESTIMATE, so an estimate can never
+-- masquerade as a deadline (freshness contract carried over from #399). The
+-- normalized columns (eligible applicants / geography / categories / award range /
+-- amounts / total funding / matching) hold the source's own words, or
+-- 'Not specified' when it published nothing, so part 2 filters on real columns.
 -- state_grant_sync_runs: one row per sync attempt (ok|error) with the counts and
 -- the error payload. A failed run writes ZERO opportunity rows.
 -- state_grant_registry: the mirror of src/lib/state-grants/registry.ts, whose
 -- status is DERIVED (a state is `connected` only with a connector AND a passing
--- source-validation test). The table never decides anything on its own.
+-- source-validation test). The table never decides anything on its own. 044's
+-- one-time remap of a pre-044 `connected` VA row to `limited` has no counterpart
+-- here: this file builds an EMPTY registry table, and the registry mirror sync
+-- writes it from the derived registry (VA = limited) — which the bootstrap test
+-- asserts on a schema.sql-only database.
+CREATE TABLE IF NOT EXISTS state_grant_sources (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    -- The connector's stable id (e.g. 'va-vtc-grants'). Code owns this value;
+    -- the table mirrors it, and the sync runner resolves a connector to this row.
+    source_key TEXT NOT NULL UNIQUE,
+    -- Two-letter USPS state code (may occur many times: one row per SOURCE).
+    state_code TEXT NOT NULL,
+    -- Human label for the listing this source is.
+    name TEXT NOT NULL,
+    -- The publishing body, in the source's own words where it names itself.
+    agency TEXT NOT NULL,
+    -- The ONE official listing this source reads (hard-coded in its connector).
+    official_url TEXT NOT NULL,
+    -- Host that must be on the approved-host allowlist before a state may be
+    -- reported above `unavailable` (fail-closed; see registry.ts).
+    official_host TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_state_grant_sources_state ON state_grant_sources (state_code);
+-- Seed: the only validated source today (Virginia, the reference connector).
+-- Idempotent: re-running rewrites nothing unless one of the values changed.
+INSERT INTO state_grant_sources
+    (source_key, state_code, name, agency, official_url, official_host)
+VALUES
+    ('va-vtc-grants', 'VA', 'Virginia Tourism Corporation — Grants and Funding',
+     'Virginia Tourism Corporation', 'https://www.vatc.org/grants/', 'www.vatc.org')
+ON CONFLICT (source_key) DO UPDATE SET
+    state_code = EXCLUDED.state_code,
+    name = EXCLUDED.name,
+    agency = EXCLUDED.agency,
+    official_url = EXCLUDED.official_url,
+    official_host = EXCLUDED.official_host,
+    updated_at = NOW()
+WHERE state_grant_sources.state_code IS DISTINCT FROM EXCLUDED.state_code
+   OR state_grant_sources.name IS DISTINCT FROM EXCLUDED.name
+   OR state_grant_sources.agency IS DISTINCT FROM EXCLUDED.agency
+   OR state_grant_sources.official_url IS DISTINCT FROM EXCLUDED.official_url
+   OR state_grant_sources.official_host IS DISTINCT FROM EXCLUDED.official_host;
+
 CREATE TABLE IF NOT EXISTS state_grant_opportunities (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    -- Two-letter USPS state code, incl. 'DC'. Denormalised for queries — the
+    -- state registry (not this column) is the authority on which states we cover,
+    -- and the identity below is the SOURCE, not the state.
     state_code TEXT NOT NULL,
+    -- The SOURCE's own identifier for this opportunity (for Virginia: the slug
+    -- of the official VTC program page). Never invented, never positional.
     external_id TEXT NOT NULL,
     title TEXT NOT NULL,
     agency TEXT,
     summary TEXT,
-    status TEXT NOT NULL CHECK (status IN ('open', 'forecast', 'closed')),
+    -- Derived by src/lib/state-grants/connector.ts classifyStateGrant() under the
+    -- owner's ordered taxonomy: anything unconfirmed is `unverified`, never
+    -- auto-classified as a forecast of a future cycle.
+    status TEXT NOT NULL CHECK (status IN ('open', 'upcoming', 'rolling', 'closed', 'unverified')),
+    -- Source-published dates, 'YYYY-MM-DD'. NULL when the source published none.
     posted_date DATE,
     close_date DATE,
+    -- The date the source itself announced as an ESTIMATE. Never a deadline, and
+    -- only ever present on a row whose status is `unverified`.
     estimated_close_date DATE,
+    -- The opportunity's own page on the official source (falls back to the
+    -- listing page when the source gives no per-record link).
     url TEXT NOT NULL,
+    -- The official listing page this row was parsed from.
     source_url TEXT NOT NULL,
+    -- Content hash (not a security primitive). Same content means the same value,
+    -- so a re-run leaves the row untouched, while changed content is a detected
+    -- amendment.
     fingerprint TEXT NOT NULL,
+    -- The source's own "last updated" stamp, when it publishes a per-record one.
+    -- NULL when it does not (Virginia publishes none — see CONVENTIONS.md).
     source_updated_at TIMESTAMPTZ,
+    -- The parsed source fields verbatim, so nothing has to be re-fetched to
+    -- re-derive a decision. Raw source payload only — no invented keys.
     raw JSONB NOT NULL DEFAULT '{}'::jsonb,
     fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    CONSTRAINT state_grant_opportunities_state_external_key
-        UNIQUE (state_code, external_id)
+    -- ── Added by 044, in 044's own order (the mirror must match the migration-
+    --    built table column for column, which the bootstrap test asserts) ──
+    -- The source this row came from. NOT NULL: we do not invent a source for a
+    -- row we cannot attribute, and one opportunity belongs to exactly one source.
+    source_id UUID NOT NULL REFERENCES state_grant_sources (id),
+    -- The last COMPLETE sync that saw this row (unchanged rows included).
+    last_seen_at TIMESTAMPTZ,
+    -- The normalized filter columns part 2 queries on.
+    eligible_applicants TEXT NOT NULL DEFAULT 'Not specified',
+    eligible_geography TEXT NOT NULL DEFAULT 'Not specified',
+    categories TEXT[] NOT NULL DEFAULT '{}'::text[],
+    award_range TEXT NOT NULL DEFAULT 'Not specified',
+    award_min_amount NUMERIC,
+    award_max_amount NUMERIC,
+    total_funding TEXT NOT NULL DEFAULT 'Not specified',
+    matching_requirement TEXT NOT NULL DEFAULT 'Not specified'
 );
+-- IDENTITY (044): (source_id, external_id) as a UNIQUE INDEX — the same external
+-- id from two agencies in one state is TWO rows, never an overwrite. It is an
+-- index rather than a table constraint because 044 swaps the old state-keyed
+-- UNIQUE constraint for it with plain, re-runnable statements (see
+-- db/migrations/sql-statements.ts for why a PL/pgSQL block is not allowed there),
+-- and the shape must match the migration-built table exactly.
+CREATE UNIQUE INDEX IF NOT EXISTS state_grant_opportunities_source_external_key
+    ON state_grant_opportunities (source_id, external_id);
+CREATE INDEX IF NOT EXISTS idx_state_grant_opportunities_source_status
+    ON state_grant_opportunities (source_id, status);
 CREATE INDEX IF NOT EXISTS idx_state_grant_opportunities_state_status
     ON state_grant_opportunities (state_code, status);
 CREATE INDEX IF NOT EXISTS idx_state_grant_opportunities_state_close_date
@@ -770,10 +889,13 @@ CREATE TABLE IF NOT EXISTS state_grant_sync_runs (
     state_code TEXT NOT NULL,
     started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     finished_at TIMESTAMPTZ,
+    -- ok only when the whole run committed. Every failure path records an error
+    -- row with zero opportunity writes from that run.
     status TEXT NOT NULL CHECK (status IN ('ok', 'error')),
     fetched_count INTEGER NOT NULL DEFAULT 0,
     inserted_count INTEGER NOT NULL DEFAULT 0,
     updated_count INTEGER NOT NULL DEFAULT 0,
+    -- { stage, message, ... } for a failed run, NULL when ok.
     error JSONB
 );
 CREATE INDEX IF NOT EXISTS idx_state_grant_sync_runs_state_started
@@ -782,7 +904,11 @@ CREATE INDEX IF NOT EXISTS idx_state_grant_sync_runs_state_started
 CREATE TABLE IF NOT EXISTS state_grant_registry (
     state_code TEXT PRIMARY KEY,
     name TEXT NOT NULL,
-    status TEXT NOT NULL CHECK (status IN ('unavailable', 'connected')),
+    -- DERIVED, never hand-set: the owner's ladder, where `connected` requires a
+    -- connector AND a passing source-validation test (src/lib/state-grants/
+    -- registry.ts). The mirror is written from the derived registry; nothing in
+    -- the product reads a tier out of this table.
+    status TEXT NOT NULL CHECK (status IN ('unavailable', 'limited', 'curated', 'connected')),
     connector_id TEXT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

@@ -101,3 +101,24 @@ jobs:
           echo "bundle validation OK"
       - name: Bundled request-context integration test (assembled render function)
         run: bun test tests/request-context.bundled.test.ts
+      # State grants (owner R3 order, 2026-09-19): the unit half (schema.sql
+      # mirror assertions, parsers, search/coverage shaping) always runs; the
+      # DB-backed half — including state-grants-bootstrap.test.ts, which builds a
+      # throwaway database from src/db/schema.sql ALONE and then runs the part 2
+      # search + coverage surface on it — runs whenever the repo has a
+      # DATABASE_URL secret (this job had none before, so the DB half was only
+      # ever exercised locally). With no secret the suite SKIPS LOUDLY, exactly as
+      # it does for any developer without a database, and this step says which
+      # case the log is looking at.
+      - name: State grants tests (unit + fresh-bootstrap + DB integration when available)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          STATE_GRANTS_TEST_PROVISION_SCHEMA: "1"
+        run: |
+          set -uo pipefail
+          if [ -n "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret present — the DB-backed state grants suites (incl. the fresh-database bootstrap test) will run for real."
+          else
+            echo "DATABASE_URL secret NOT configured — the DB-backed state grants suites skip loudly (the unit half still runs and must pass)."
+          fi
+          bun test src/lib/state-grants

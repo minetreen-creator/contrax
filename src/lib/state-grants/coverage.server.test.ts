@@ -3,9 +3,10 @@
  * corrected model; owner R1 2026-09-19).
  *
  * The registry half of the coverage payload is DERIVED (registry.ts), so these
- * tests assert the real ladder as the code derives it — Virginia `limited`, and
- * 50 states + D.C. `unavailable` — while the store half is injected, so the
- * payload shape and the fail-closed 500 need no database:
+ * tests assert the real ladder as the code derives it — Virginia plus the five
+ * P3 batch-1 states (AZ, DE, HI, PA, RI) `limited`, and 45 states + D.C.
+ * `unavailable` — while the store half is injected, so the payload shape and the
+ * fail-closed 500 need no database:
  *   * VA must NEVER be described as connected or statewide;
  *   * the payload must never claim nationwide coverage;
  *   * the ladder values are exactly the owner's four, in order;
@@ -76,30 +77,37 @@ describe("the ladder", () => {
     }
   });
 
-  test("the headline counts a `limited` state honestly and never says connected", () => {
+  test("the headline counts the validated states honestly and never says connected", () => {
     const headline = coverageHeadline(coverageCounts());
-    expect(headline).toContain("1 of 51 states have a validated source");
-    expect(headline).toContain("1 limited");
+    expect(headline).toContain(`${coverageCounts().validated} of 51 states have a validated source`);
+    expect(headline).toContain(`${coverageCounts().validated} limited`);
     expect(headline).toContain("0 connected");
     expect(headline.toLowerCase()).not.toContain("nationwide");
   });
 });
 
 describe("the coverage payload", () => {
-  test("lists all 51 states and details only the validated one", async () => {
+  test("lists all 51 states and details every validated state", async () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     expect(payload.states.length).toBe(STATE_CODES.length);
     expect(payload.states.length).toBe(51);
-    expect(payload.counts.validated).toBe(1);
-    expect(payload.counts.unavailable).toBe(50);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["VA"]);
+    expect(payload.counts.validated).toBe(6);
+    expect(payload.counts.unavailable).toBe(45);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "DE", "HI", "PA", "RI", "VA"]);
+    for (const state of payload.validated) {
+      // Each of these is ONE validated source — never statewide, never connected.
+      expect(state.tier).toBe("limited");
+      expect(state.tierLabel).toContain("not statewide");
+      expect(state.sourceCount).toBe(1);
+      expect(state.note).toContain("not statewide coverage");
+    }
     expect(payload.searchUrl).toBe("/api/state-grants/search");
     expect(payload.coverageUrl).toBe(STATE_GRANTS_COVERAGE_URL);
   });
 
   test("Virginia is `limited` with its honesty note, its source and its counts", async () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
-    const virginia = payload.validated[0];
+    const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
     expect(virginia.tier).toBe("limited");
     expect(virginia.tierLabel).toContain("not statewide");
     expect(virginia.note).toContain("One validated source");
@@ -130,7 +138,7 @@ describe("the coverage payload", () => {
   test("every uncovered state carries a machine-readable reason", async () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     const unavailable = payload.states.filter((s) => s.status === "unavailable");
-    expect(unavailable.length).toBe(50);
+    expect(unavailable.length).toBe(45);
     for (const state of unavailable) {
       expect(state.reason.length).toBeGreaterThan(0);
       expect(state.sourceValidationTest).toBeNull();

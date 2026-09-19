@@ -747,7 +747,7 @@ describe("sources registry", () => {
     // One source per connector, on an approved host, with a non-empty key.
     for (const source of listStateSources()) {
       expect(source.sourceKey.length).toBeGreaterThan(0);
-      expect(source.stateCode).toBe(virginiaConnector.stateCode);
+      expect(validatedStates()).toContain(source.stateCode);
       expect(source.name.length).toBeGreaterThan(0);
       expect(source.agency.length).toBeGreaterThan(0);
       expect(APPROVED_SOURCE_HOSTS).toContain(source.officialHost);
@@ -819,12 +819,12 @@ describe("state registry", () => {
     expect(isStateConnected("VA")).toBe(false); // limited is NOT the top tier
     // A limited state IS syncable — that is the owner's correction to part 1.
     expect(getConnector("VA")?.id).toBe(VIRGINIA_CONNECTOR_ID);
-    expect(validatedStates()).toEqual(["VA"]);
+    expect(validatedStates()).toEqual(["AZ", "DE", "HI", "PA", "RI", "VA"]);
   });
 
   test("every other state is unavailable — the registry is NOT coverage", () => {
-    const others = listStates().filter((s) => s.stateCode !== "VA");
-    expect(others.length).toBe(50);
+    const others = listStates().filter((s) => !validatedStates().includes(s.stateCode));
+    expect(others.length).toBe(45);
     for (const s of others) {
       expect(s.status).toBe("unavailable");
       expect(s.connectorId).toBeNull();
@@ -835,9 +835,9 @@ describe("state registry", () => {
       total: 51,
       connected: 0,
       curated: 0,
-      limited: 1,
-      unavailable: 50,
-      validated: 1,
+      limited: 6,
+      unavailable: 45,
+      validated: 6,
     });
   });
 

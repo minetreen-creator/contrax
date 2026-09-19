@@ -562,7 +562,9 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
       expect(body.ok).toBe(true);
       expect(body.totalCount).toBe(5);
       expect(body.countExact).toBe(true);
-      expect(body.statesIncluded).toEqual(["VA"]);
+      // Every validated state (the landed batch set) is structurally included;
+      // the rows in this throwaway DB are all VA fixtures, so only VA matches.
+      expect(body.statesIncluded).toEqual(validatedStates());
       expect(body.statesMatched).toEqual(["VA"]);
       expect(body.uncoveredStates).toEqual([]);
       // The freshness stamp comes from the ok run rows the sync wrote.
@@ -686,13 +688,13 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
       if (outcome.status !== 200) throw new Error(`expected 200, got ${outcome.status}`);
       const payload = outcome.body;
       expect(payload.headline).toBe(
-        "State grant coverage: 1 of 51 states have a validated source (0 connected, 0 curated, 1 limited)",
+        "State grant coverage: 6 of 51 states have a validated source (0 connected, 0 curated, 6 limited)",
       );
-      expect(payload.counts).toEqual({ total: 51, validated: 1, connected: 0, curated: 0, limited: 1, unavailable: 50 });
+      expect(payload.counts).toEqual({ total: 51, validated: 6, connected: 0, curated: 0, limited: 6, unavailable: 45 });
       expect(payload.states.length).toBe(51);
-      expect(payload.counts.unavailable).toBe(50);
-      expect(payload.validated.map((v) => v.stateCode)).toEqual(["VA"]);
-      const virginia = payload.validated[0];
+      expect(payload.counts.unavailable).toBe(45);
+      expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "DE", "HI", "PA", "RI", "VA"]);
+      const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
       expect(virginia.tier).toBe("limited");
       expect(virginia.note).toContain("not statewide coverage");
       expect(virginia.sourceUrl).toBe(VIRGINIA_SOURCE_URL);

@@ -39,9 +39,11 @@
  *   entry (+ host on the allowlist) → suites green. Until then it is
  *   `unavailable`, even with a perfect connector. That is the point.
  *
- * All 50 states + DC are listed. 49 states + DC are `unavailable` on purpose:
- * the registry existing is NOT coverage, and nothing in the rollout may imply
- * nationwide coverage (owner order). The coverage UI reads listStates().
+ * All 50 states + DC are listed. 45 states + DC are `unavailable` on purpose
+ * (2026-09-19: Virginia plus the five P3 batch-1 states are validated as
+ * `limited` — one source each): the registry existing is NOT coverage, and
+ * nothing in the rollout may imply nationwide coverage (owner order). The
+ * coverage UI reads listStates().
  */
 import {
   VIRGINIA_APPROVED_HOSTS,
@@ -50,6 +52,41 @@ import {
   VIRGINIA_SOURCE_VALIDATION_TEST,
   virginiaConnector,
 } from "~/lib/state-grants/connectors/virginia";
+import {
+  ARIZONA_APPROVED_HOSTS,
+  ARIZONA_CONNECTOR_ID,
+  ARIZONA_SOURCE_URL,
+  ARIZONA_SOURCE_VALIDATION_TEST,
+  arizonaConnector,
+} from "~/lib/state-grants/connectors/arizona";
+import {
+  DELAWARE_APPROVED_HOSTS,
+  DELAWARE_CONNECTOR_ID,
+  DELAWARE_SOURCE_URL,
+  DELAWARE_SOURCE_VALIDATION_TEST,
+  delawareConnector,
+} from "~/lib/state-grants/connectors/delaware";
+import {
+  HAWAII_APPROVED_HOSTS,
+  HAWAII_CONNECTOR_ID,
+  HAWAII_SOURCE_URL,
+  HAWAII_SOURCE_VALIDATION_TEST,
+  hawaiiConnector,
+} from "~/lib/state-grants/connectors/hawaii";
+import {
+  PENNSYLVANIA_APPROVED_HOSTS,
+  PENNSYLVANIA_CONNECTOR_ID,
+  PENNSYLVANIA_SOURCE_URL,
+  PENNSYLVANIA_SOURCE_VALIDATION_TEST,
+  pennsylvaniaConnector,
+} from "~/lib/state-grants/connectors/pennsylvania";
+import {
+  RHODE_ISLAND_APPROVED_HOSTS,
+  RHODE_ISLAND_CONNECTOR_ID,
+  RHODE_ISLAND_SOURCE_URL,
+  RHODE_ISLAND_SOURCE_VALIDATION_TEST,
+  rhodeIslandConnector,
+} from "~/lib/state-grants/connectors/rhode-island";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -165,7 +202,14 @@ export interface RegistryInputs {
  * `officialHost` is not listed here can never be validated — so a typo'd or
  * replaced domain fails the gate instead of silently shipping.
  */
-export const APPROVED_SOURCE_HOSTS: readonly string[] = [...VIRGINIA_APPROVED_HOSTS];
+export const APPROVED_SOURCE_HOSTS: readonly string[] = [
+  ...VIRGINIA_APPROVED_HOSTS,
+  ...ARIZONA_APPROVED_HOSTS,
+  ...DELAWARE_APPROVED_HOSTS,
+  ...HAWAII_APPROVED_HOSTS,
+  ...PENNSYLVANIA_APPROVED_HOSTS,
+  ...RHODE_ISLAND_APPROVED_HOSTS,
+];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
   connectorId: VIRGINIA_CONNECTOR_ID,
@@ -179,18 +223,92 @@ export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
   note: "One validated source (the Virginia Tourism Corporation grants page). The Commonwealth publishes many more programs through other agencies that we have NOT validated — this is not statewide coverage.",
 };
 
-/** The default inputs: one connector, one validated source, tier `limited`. */
+/**
+ * P3 BATCH #1 manifest entries (five states, 2026-09-19). Each is ONE agency's
+ * official listing, so each declares `limited` — the ladder requires at least
+ * `CONNECTED_MIN_SOURCES` (2) distinct sources before any state can be reported
+ * as statewide multi-source coverage. Every `verifiedOn` date is the day the
+ * state's own `<state>.source-validation.test.ts` PASSED against the live
+ * source; a state whose live validation failed has NO entry here and stays
+ * `unavailable`.
+ */
+export const ARIZONA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: ARIZONA_CONNECTOR_ID,
+  sourceUrl: ARIZONA_SOURCE_URL,
+  testFile: ARIZONA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Arizona Commission on the Arts grants page). Other Arizona agencies publish funding programs we have NOT validated — this is not statewide coverage.",
+};
+
+export const DELAWARE_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: DELAWARE_CONNECTOR_ID,
+  sourceUrl: DELAWARE_SOURCE_URL,
+  testFile: DELAWARE_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Delaware Division of the Arts Grant Programs Overview). Other Delaware agencies publish funding programs we have NOT validated — this is not statewide coverage.",
+};
+
+export const HAWAII_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: HAWAII_CONNECTOR_ID,
+  sourceUrl: HAWAII_SOURCE_URL,
+  testFile: HAWAII_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the State Foundation on Culture and the Arts' current and upcoming grants table — not its separate list of past award recipients). This is not statewide coverage.",
+};
+
+export const PENNSYLVANIA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: PENNSYLVANIA_CONNECTOR_ID,
+  sourceUrl: PENNSYLVANIA_SOURCE_URL,
+  testFile: PENNSYLVANIA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (Pennsylvania Creative Industries' Due Dates for Grants page), which publishes application due dates only. Program detail lives elsewhere and some cycles are multi-deadline, so those records are honestly `unverified`. This is not statewide coverage.",
+};
+
+export const RHODE_ISLAND_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: RHODE_ISLAND_CONNECTOR_ID,
+  sourceUrl: RHODE_ISLAND_SOURCE_URL,
+  testFile: RHODE_ISLAND_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Rhode Island State Council on the Arts' Our Grants page). RISCA publishes its in-card dates without a year, so most of its programs are honestly `unverified` until the source publishes dated cycles. This is not statewide coverage.",
+};
+
+/** The sources registered for every state, keyed by state code. */
+function sourcesByStateMap(): Record<string, readonly string[]> {
+  const out: Record<string, readonly string[]> = {};
+  for (const stateCode of STATE_CODES) {
+    const keys = sourcesForState(stateCode).map((s) => s.sourceKey);
+    if (keys.length > 0) out[stateCode] = keys;
+  }
+  return out;
+}
+
+/** The default inputs: every validated source, all other states `unavailable`. */
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
+    AZ: arizonaConnector as unknown as StateGrantConnector<never>,
+    DE: delawareConnector as unknown as StateGrantConnector<never>,
+    HI: hawaiiConnector as unknown as StateGrantConnector<never>,
+    PA: pennsylvaniaConnector as unknown as StateGrantConnector<never>,
+    RI: rhodeIslandConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
+    AZ: ARIZONA_REGISTRY_ENTRY,
+    DE: DELAWARE_REGISTRY_ENTRY,
+    HI: HAWAII_REGISTRY_ENTRY,
+    PA: PENNSYLVANIA_REGISTRY_ENTRY,
+    RI: RHODE_ISLAND_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,
   names: STATE_NAMES as Record<string, string>,
-  sourcesByState: { VA: sourcesForState("VA").map((s) => s.sourceKey) },
+  sourcesByState: sourcesByStateMap(),
 };
 
 /**

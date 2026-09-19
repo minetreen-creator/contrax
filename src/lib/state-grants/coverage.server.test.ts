@@ -94,7 +94,7 @@ describe("the coverage payload", () => {
     expect(payload.states.length).toBe(51);
     expect(payload.counts.validated).toBe(21);
     expect(payload.counts.unavailable).toBe(30);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AR", "AZ", "CA", "CO", "DC", "DE", "HI", "KS", "KY", "ME", "MN", "ND", "NM", "PA", "RI", "TN", "UT", "VA", "WA", "WV"]);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "HI", "KS", "KY", "ME", "MN", "NM", "ND", "PA", "RI", "TN", "UT", "VA", "WA", "WV"]);
     for (const state of payload.validated) {
       // Each of these is ONE validated source — never statewide, never connected.
       expect(state.tier).toBe("limited");

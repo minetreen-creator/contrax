@@ -819,7 +819,7 @@ describe("state registry", () => {
     expect(isStateConnected("VA")).toBe(false); // limited is NOT the top tier
     // A limited state IS syncable — that is the owner's correction to part 1.
     expect(getConnector("VA")?.id).toBe(VIRGINIA_CONNECTOR_ID);
-    expect(validatedStates()).toEqual(["AL", "AR", "AZ", "CA", "CO", "DC", "DE", "HI", "KS", "KY", "ME", "MN", "ND", "NM", "PA", "RI", "TN", "UT", "VA", "WA", "WV"]);
+    expect(validatedStates()).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "HI", "KS", "KY", "ME", "MN", "NM", "ND", "PA", "RI", "TN", "UT", "VA", "WA", "WV"]);
   });
 
   test("every other state is unavailable — the registry is NOT coverage", () => {

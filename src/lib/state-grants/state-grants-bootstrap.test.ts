@@ -696,7 +696,7 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
       );
       expect(payload.counts).toEqual({ total: 51, validated: 16, connected: 0, curated: 0, limited: 16, unavailable: 35 });
       expect(payload.states.length).toBe(51);
-      expect(payload.counts.unavailable).toBe(37);
+      expect(payload.counts.unavailable).toBe(35);
       expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "AR", "CA", "CO", "DE", "HI", "KS", "MN", "NM", "ND", "PA", "RI", "TN", "UT", "VA", "WA"]);
       const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
       expect(virginia.tier).toBe("limited");

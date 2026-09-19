@@ -590,9 +590,9 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     const payload = outcome.body;
     expect(payload.states.length).toBe(51);
     expect(payload.counts.validated).toBe(16);
-    expect(payload.counts.limited).toBe(14);
+    expect(payload.counts.limited).toBe(16);
     expect(payload.counts.connected).toBe(0);
-    expect(payload.counts.unavailable).toBe(37);
+    expect(payload.counts.unavailable).toBe(35);
     expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "AR", "CA", "CO", "DE", "HI", "KS", "MN", "NM", "ND", "PA", "RI", "TN", "UT", "VA", "WA"]);
     const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
     expect(virginia.tier).toBe("limited");

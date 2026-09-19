@@ -93,7 +93,7 @@ describe("the coverage payload", () => {
     expect(payload.states.length).toBe(STATE_CODES.length);
     expect(payload.states.length).toBe(51);
     expect(payload.counts.validated).toBe(16);
-    expect(payload.counts.unavailable).toBe(37);
+    expect(payload.counts.unavailable).toBe(35);
     expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "AR", "CA", "CO", "DE", "HI", "KS", "MN", "NM", "ND", "PA", "RI", "TN", "UT", "VA", "WA"]);
     for (const state of payload.validated) {
       // Each of these is ONE validated source — never statewide, never connected.
@@ -139,7 +139,7 @@ describe("the coverage payload", () => {
   test("every uncovered state carries a machine-readable reason", async () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     const unavailable = payload.states.filter((s) => s.status === "unavailable");
-    expect(unavailable.length).toBe(37);
+    expect(unavailable.length).toBe(35);
     for (const state of unavailable) {
       expect(state.reason.length).toBeGreaterThan(0);
       expect(state.sourceValidationTest).toBeNull();

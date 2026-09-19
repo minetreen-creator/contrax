@@ -824,7 +824,7 @@ describe("state registry", () => {
 
   test("every other state is unavailable — the registry is NOT coverage", () => {
     const others = listStates().filter((s) => !validatedStates().includes(s.stateCode));
-    expect(others.length).toBe(37);
+    expect(others.length).toBe(35);
     for (const s of others) {
       expect(s.status).toBe("unavailable");
       expect(s.connectorId).toBeNull();

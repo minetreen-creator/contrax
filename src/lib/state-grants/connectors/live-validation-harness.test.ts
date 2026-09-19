@@ -29,7 +29,13 @@ import {
   type GrantOpportunity,
   type StateGrantConnector,
 } from "~/lib/state-grants/connector";
-import { getStateEntry, isStateValidated } from "~/lib/state-grants/registry";
+import {
+  CONNECTED_MIN_SOURCES,
+  DEFAULT_REGISTRY_INPUTS,
+  VALIDATED_REGISTRY_STATUSES,
+  getStateEntry,
+  isStateValidated,
+} from "~/lib/state-grants/registry";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import { stripTags } from "~/lib/state-grants/connectors/source-support";
 
@@ -126,10 +132,52 @@ export async function runLiveSourceValidation(
       expect(entry).not.toBeNull();
       expect(entry.sourceValidationTest).toBe(validationTestFile);
       expect(isStateValidated(connector.stateCode)).toBe(true);
-      // ONE source, so `limited` — never advertised as statewide.
-      expect(entry.status).toBe("limited");
-      expect(entry.sourceCount).toBe(sourcesForState(connector.stateCode).length);
-      expect(entry.sourceCount).toBe(1);
+
+      // MANIFEST-DRIVEN, NOT HARD-CODED (escalation-pass fix, 2026-09-19).
+      //
+      // This assertion used to hard-code `limited` + `sourceCount === 1`, which
+      // is only true for a ONE-source state. A `curated`/multi-source state, or
+      // any state wired with more than one connector, could never pass its own
+      // live gate without editing the shared harness — and an edit that WEAKENS a
+      // gate is exactly the mistake this harness exists to prevent. So the gate
+      // now compares the state's DERIVED registry entry against the state's OWN
+      // declared manifest, which still fails on every real dishonesty:
+      //   - sources.ts omitted a connector ⇒ `sourcesForState()` is 0 ⇒ the
+      //     derived `sourceCount` disagrees and this test fails (the silent-omission
+      //     trap the batch checklist calls out);
+      //   - a manifest that declares `connected` without the ladder's minimum
+      //     number of registered sources ⇒ `deriveStateRegistry()` demotes the
+      //     entry to `limited`, so the declared tier and the derived status
+      //     disagree and this test fails;
+      //   - a state that reached a validated tier with NO source at all ⇒ fails;
+      //   - a hand-set status that the derivation would never produce ⇒ fails.
+      // A one-source `limited` state passes exactly as it did before.
+      const manifest = DEFAULT_REGISTRY_INPUTS.validations[connector.stateCode];
+      expect(manifest).not.toBeUndefined();
+      expect(manifest!.connectorId).toBe(connector.id);
+      const declaredSources = sourcesForState(connector.stateCode).length;
+      expect(declaredSources).toBeGreaterThanOrEqual(1);
+      // The ladder's own promotion rule, applied to the DECLARED tier: a
+      // `connected` claim needs CONNECTED_MIN_SOURCES distinct registered sources.
+      const expectedStatus =
+        manifest!.tier === "connected" && declaredSources < CONNECTED_MIN_SOURCES
+          ? ("limited" as const)
+          : manifest!.tier;
+      expect(entry.status).toBe(expectedStatus);
+      expect(entry.sourceCount).toBe(declaredSources);
+      // The tier is always one the manifest may declare — never `unavailable`
+      // (this test file only runs for a validated state) and never a status the
+      // ladder does not define.
+      expect(VALIDATED_REGISTRY_STATUSES).toContain(entry.status);
+      // `connected` (statewide, multi-source) is only ever true at the minimum.
+      if (entry.status === "connected") {
+        expect(entry.sourceCount).toBeGreaterThanOrEqual(CONNECTED_MIN_SOURCES);
+      }
+      // Every source registered for the state is a real, distinct source with
+      // its own key — a duplicate key would be one source wearing two hats.
+      const keys = sourcesForState(connector.stateCode).map((s) => s.sourceKey);
+      expect(new Set(keys).size).toBe(keys.length);
+      expect(keys).toContain(connector.id);
     });
 
     test("the live source yields at least one real opportunity", () => {

@@ -39,11 +39,14 @@
  *   entry (+ host on the allowlist) → suites green. Until then it is
  *   `unavailable`, even with a perfect connector. That is the point.
  *
- * All 50 states + DC are listed. 45 states + DC are `unavailable` on purpose
- * (2026-09-19: Virginia plus the five P3 batch-1 states are validated as
- * `limited` — one source each): the registry existing is NOT coverage, and
- * nothing in the rollout may imply nationwide coverage (owner order). The
- * coverage UI reads listStates().
+ * All 50 states + DC are listed. 37 states + DC are `unavailable` on purpose
+ * (2026-09-19: Virginia, the five P3 batch-1 states, the three NATIONWIDE
+ * batch-1 states — CA, KS, WA — and the five NATIONWIDE batch-2 states — AR, CO,
+ * MN, ND, NM — are validated as `limited`, one source each; NC and Utah exited
+ * batch 1 under the checklist §0 exit rule with no dependable official dated
+ * listing and therefore have NO manifest entry): the registry
+ * existing is NOT coverage, and nothing in the rollout may imply nationwide
+ * coverage (owner order). The coverage UI reads listStates().
  */
 import {
   VIRGINIA_APPROVED_HOSTS,
@@ -87,6 +90,81 @@ import {
   RHODE_ISLAND_SOURCE_VALIDATION_TEST,
   rhodeIslandConnector,
 } from "~/lib/state-grants/connectors/rhode-island";
+// NATIONWIDE workstream, batch 1 (owner order 2026-09-19): CA, KS, WA.
+import {
+  CALIFORNIA_APPROVED_HOSTS,
+  CALIFORNIA_CONNECTOR_ID,
+  CALIFORNIA_SOURCE_URL,
+  CALIFORNIA_SOURCE_VALIDATION_TEST,
+  californiaConnector,
+} from "~/lib/state-grants/connectors/california";
+import {
+  KANSAS_APPROVED_HOSTS,
+  KANSAS_CONNECTOR_ID,
+  KANSAS_SOURCE_URL,
+  KANSAS_SOURCE_VALIDATION_TEST,
+  kansasConnector,
+} from "~/lib/state-grants/connectors/kansas";
+import {
+  WASHINGTON_APPROVED_HOSTS,
+  WASHINGTON_CONNECTOR_ID,
+  WASHINGTON_SOURCE_URL,
+  WASHINGTON_SOURCE_VALIDATION_TEST,
+  washingtonConnector,
+} from "~/lib/state-grants/connectors/washington";
+// NATIONWIDE workstream, batch 2 (owner order 2026-09-19): AR, CO, MN, ND, NM.
+import {
+  ARKANSAS_APPROVED_HOSTS,
+  ARKANSAS_CONNECTOR_ID,
+  ARKANSAS_SOURCE_URL,
+  ARKANSAS_SOURCE_VALIDATION_TEST,
+  arkansasConnector,
+} from "~/lib/state-grants/connectors/arkansas";
+import {
+  COLORADO_APPROVED_HOSTS,
+  COLORADO_CONNECTOR_ID,
+  COLORADO_SOURCE_URL,
+  COLORADO_SOURCE_VALIDATION_TEST,
+  coloradoConnector,
+} from "~/lib/state-grants/connectors/colorado";
+import {
+  MINNESOTA_APPROVED_HOSTS,
+  MINNESOTA_CONNECTOR_ID,
+  MINNESOTA_SOURCE_URL,
+  MINNESOTA_SOURCE_VALIDATION_TEST,
+  minnesotaConnector,
+} from "~/lib/state-grants/connectors/minnesota";
+import {
+  NORTH_DAKOTA_APPROVED_HOSTS,
+  NORTH_DAKOTA_CONNECTOR_ID,
+  NORTH_DAKOTA_SOURCE_URL,
+  NORTH_DAKOTA_SOURCE_VALIDATION_TEST,
+  northDakotaConnector,
+} from "~/lib/state-grants/connectors/north-dakota";
+import {
+  NEW_MEXICO_APPROVED_HOSTS,
+  NEW_MEXICO_CONNECTOR_ID,
+  NEW_MEXICO_SOURCE_URL,
+  NEW_MEXICO_SOURCE_VALIDATION_TEST,
+  newMexicoConnector,
+} from "~/lib/state-grants/connectors/new-mexico";
+// ESCALATION PASS (owner escalation order 2026-09-19, checklist §0.5): two of
+// the 14 UNCERTAIN jurisdictions whose sources the re-probe turned up.
+import {
+  TENNESSEE_APPROVED_HOSTS,
+  tennesseeConnector,
+  TENNESSEE_CONNECTOR_ID,
+  TENNESSEE_SOURCE_URL,
+  TENNESSEE_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/tennessee";
+import {
+  UTAH_APPROVED_HOSTS,
+  utahConnector,
+  UTAH_CONNECTOR_ID,
+  UTAH_SOURCE_URL,
+  UTAH_SOURCE_VALIDATION_TEST,
+} from "~/lib/state-grants/connectors/utah";
+
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -209,6 +287,19 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...HAWAII_APPROVED_HOSTS,
   ...PENNSYLVANIA_APPROVED_HOSTS,
   ...RHODE_ISLAND_APPROVED_HOSTS,
+  // NATIONWIDE batch 1 (owner 2026-09-19).
+  ...CALIFORNIA_APPROVED_HOSTS,
+  ...KANSAS_APPROVED_HOSTS,
+  ...WASHINGTON_APPROVED_HOSTS,
+  // NATIONWIDE batch 2 (owner 2026-09-19).
+  ...ARKANSAS_APPROVED_HOSTS,
+  ...COLORADO_APPROVED_HOSTS,
+  ...MINNESOTA_APPROVED_HOSTS,
+  ...NORTH_DAKOTA_APPROVED_HOSTS,
+  ...NEW_MEXICO_APPROVED_HOSTS,
+  // ESCALATION PASS (owner 2026-09-19).
+  ...TENNESSEE_APPROVED_HOSTS,
+  ...UTAH_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -277,6 +368,126 @@ export const RHODE_ISLAND_REGISTRY_ENTRY: SourceValidationEntry = {
   note: "One validated source (the Rhode Island State Council on the Arts' Our Grants page). RISCA publishes its in-card dates without a year, so most of its programs are honestly `unverified` until the source publishes dated cycles. This is not statewide coverage.",
 };
 
+/**
+ * NATIONWIDE BATCH 1 manifest entries (owner order 2026-09-19: evaluate every
+ * remaining jurisdiction; one workstream, batches of five, one accumulating PR).
+ * Batch 1 evaluated CA, KS, NC, UT and WA: NC and Utah exited under the
+ * checklist §0 exit rule (no dependable official dated listing — they stay
+ * `unavailable`, with the exact reasons in the batch report), so THREE connectors
+ * landed. Each is ONE agency's/portal's official listing, so each declares
+ * `limited` — the ladder requires at least `CONNECTED_MIN_SOURCES` (2) distinct
+ * sources before any state can be reported as statewide multi-source coverage.
+ * Every `verifiedOn` date is the day the state's own
+ * `<state>.source-validation.test.ts` PASSED against the live source.
+ */
+export const CALIFORNIA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: CALIFORNIA_CONNECTOR_ID,
+  sourceUrl: CALIFORNIA_SOURCE_URL,
+  testFile: CALIFORNIA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the California Grants Portal's own Active-results view, page 1). The portal also lists Forecasted, Closed and Post-Award grants we do not serve, and we read only the first page of the Active facet — this is not statewide coverage.",
+};
+
+export const KANSAS_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: KANSAS_CONNECTOR_ID,
+  sourceUrl: KANSAS_SOURCE_URL,
+  testFile: KANSAS_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Kansas Department of Commerce's grants calendar). The calendar publishes its Application Period as year-less month ranges, so most programs are honestly `unverified` until the source publishes dated cycles, and no program has its own page — this is not statewide coverage.",
+};
+
+export const WASHINGTON_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: WASHINGTON_CONNECTOR_ID,
+  sourceUrl: WASHINGTON_SOURCE_URL,
+  testFile: WASHINGTON_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (ArtsWA's Open and Upcoming Grants listing). Other Washington agencies publish funding programs we have NOT validated — this is not statewide coverage.",
+};
+
+/**
+ * NATIONWIDE BATCH 2 manifest entries (owner order 2026-09-19: evaluate every
+ * remaining jurisdiction; one workstream, batches of five, one accumulating PR).
+ * Batch 2 evaluated AR, CO, MN, ND and NM and landed a connector for each — every
+ * one of these sources is ONE agency's official listing, so each declares
+ * `limited`: the ladder requires at least `CONNECTED_MIN_SOURCES` (2) distinct
+ * sources before any state may be reported as statewide multi-source coverage.
+ * Every `verifiedOn` date is the day the state's own
+ * `<state>.source-validation.test.ts` PASSED against the live source.
+ */
+export const ARKANSAS_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: ARKANSAS_CONNECTOR_ID,
+  sourceUrl: ARKANSAS_SOURCE_URL,
+  testFile: ARKANSAS_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Arkansas Arts Council's Art Grants listing, on the agency's own arkansasheritage.com domain). The listing publishes no per-program deadline — its dated \"When To Apply\" list does not map onto the individual grant cards — so every record is honestly `unverified` rather than dated by inference. Other Arkansas agencies publish funding programs we have NOT validated: this is not statewide coverage.",
+};
+
+export const COLORADO_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: COLORADO_CONNECTOR_ID,
+  sourceUrl: COLORADO_SOURCE_URL,
+  testFile: COLORADO_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (OEDIT's Advanced Industries Accelerator Programs listing). OEDIT's own Programs-and-Funding index publishes no per-program dates, so this is ONE program family of ONE division — Colorado publishes funding through many other agencies we have NOT validated: this is not statewide coverage.",
+};
+
+export const MINNESOTA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: MINNESOTA_CONNECTOR_ID,
+  sourceUrl: MINNESOTA_SOURCE_URL,
+  testFile: MINNESOTA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Minnesota State Arts Board's own Arts Board Calendar, current fiscal-year table, Application Deadline column only). This is one agency's calendar — other Minnesota agencies publish funding programs we have NOT validated: this is not statewide coverage.",
+};
+
+export const NORTH_DAKOTA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: NORTH_DAKOTA_CONNECTOR_ID,
+  sourceUrl: NORTH_DAKOTA_SOURCE_URL,
+  testFile: NORTH_DAKOTA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the North Dakota Council on the Arts' \"Grants at a Glance\" listing). Cards that state their deadline as a RULE (\"6 weeks prior to project start date\") and the two-round card are honestly `unverified`, never guessed. Other North Dakota agencies publish funding programs we have NOT validated: this is not statewide coverage.",
+};
+
+export const NEW_MEXICO_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: NEW_MEXICO_CONNECTOR_ID,
+  sourceUrl: NEW_MEXICO_SOURCE_URL,
+  testFile: NEW_MEXICO_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (New Mexico Arts' \"Apply for a Grant\" page, from which only the labelled application-deadline milestones are read). New Mexico Arts' grants-information index publishes no year-bearing date at all, and other New Mexico agencies publish funding programs we have NOT validated: this is not statewide coverage.",
+};
+
+/**
+ * ESCALATION PASS manifest entries (owner escalation order 2026-09-19,
+ * checklist §0.5). Both states were UNCERTAIN in phase 1 (Tennessee could not be
+ * reached at all; Utah had exited nationwide batch #1 under the §0 exit rule).
+ * Each is ONE agency's own listing, so each declares `limited`: the ladder
+ * requires at least `CONNECTED_MIN_SOURCES` (2) distinct sources before any state
+ * may be reported as statewide multi-source coverage.
+ */
+export const TENNESSEE_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: TENNESSEE_CONNECTOR_ID,
+  sourceUrl: TENNESSEE_SOURCE_URL,
+  testFile: TENNESSEE_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Tennessee Arts Commission's own Apply for a Grant page, which publishes the current FY28 grant cycle as a dated Important Dates list). The list is a milestone calendar, not a program directory: the two lines that publish no day are not dates at all, and the cycle's own October 9, 2026 opening line is the source's separate bullet — the program deadlines carry the published close date and that opening day, so a cycle that has not opened yet is honestly `upcoming`, never `open`. Tennessee publishes funding through other departments we have NOT validated: this is not statewide coverage.",
+};
+
+export const UTAH_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: UTAH_CONNECTOR_ID,
+  sourceUrl: UTAH_SOURCE_URL,
+  testFile: UTAH_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source (the Utah Division of Arts & Museums' Project Grants page, which publishes a per-program Grant Opens / Grant Closes schedule). Every published cycle on 2026-09-19 has closed, so those records are honestly `closed` and are never shown as open because the page is still live; the dated Info Session webinars on the same panels are events and are never treated as deadlines. This is one division's Project Grants, not Utah's General Operating Support grants or any other agency: this is not statewide coverage.",
+};
+
 /** The sources registered for every state, keyed by state code. */
 function sourcesByStateMap(): Record<string, readonly string[]> {
   const out: Record<string, readonly string[]> = {};
@@ -296,6 +507,17 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     HI: hawaiiConnector as unknown as StateGrantConnector<never>,
     PA: pennsylvaniaConnector as unknown as StateGrantConnector<never>,
     RI: rhodeIslandConnector as unknown as StateGrantConnector<never>,
+    CA: californiaConnector as unknown as StateGrantConnector<never>,
+    KS: kansasConnector as unknown as StateGrantConnector<never>,
+    WA: washingtonConnector as unknown as StateGrantConnector<never>,
+    AR: arkansasConnector as unknown as StateGrantConnector<never>,
+    CO: coloradoConnector as unknown as StateGrantConnector<never>,
+    MN: minnesotaConnector as unknown as StateGrantConnector<never>,
+    ND: northDakotaConnector as unknown as StateGrantConnector<never>,
+    NM: newMexicoConnector as unknown as StateGrantConnector<never>,
+    // ESCALATION PASS (owner 2026-09-19).
+    TN: tennesseeConnector as unknown as StateGrantConnector<never>,
+    UT: utahConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -304,6 +526,17 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     HI: HAWAII_REGISTRY_ENTRY,
     PA: PENNSYLVANIA_REGISTRY_ENTRY,
     RI: RHODE_ISLAND_REGISTRY_ENTRY,
+    CA: CALIFORNIA_REGISTRY_ENTRY,
+    KS: KANSAS_REGISTRY_ENTRY,
+    WA: WASHINGTON_REGISTRY_ENTRY,
+    AR: ARKANSAS_REGISTRY_ENTRY,
+    CO: COLORADO_REGISTRY_ENTRY,
+    MN: MINNESOTA_REGISTRY_ENTRY,
+    ND: NORTH_DAKOTA_REGISTRY_ENTRY,
+    NM: NEW_MEXICO_REGISTRY_ENTRY,
+    // ESCALATION PASS (owner 2026-09-19).
+    TN: TENNESSEE_REGISTRY_ENTRY,
+    UT: UTAH_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

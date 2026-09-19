@@ -297,11 +297,17 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     expect((await queryStateGrants({ stateCode: HEALTHY_STATE })).totalCount).toBe(6);
 
     // ...and the PRODUCTION gate still serves none of them: ZZ is unavailable, so
-    // the default search narrows to the validated set (VA) and says so.
+    // the default search narrows to the validated set (VA) and says so. Note that
+    // the proof is NOT an empty answer: production really does hold VA's own corpus
+    // (synced 2026-09-19), and a validated state's rows ARE served. The proof is
+    // that the narrowed scope is exactly the validated set, so no unvalidated
+    // state's stored row can appear — and the ZZ rows above are in the store while
+    // none of them is in this answer.
     const unscoped = bodyOf(await runStateGrantSearch({}, FIXTURE_NOW, PRODUCTION_DEPS));
-    expect(unscoped.totalCount).toBe(0);
-    expect(unscoped.records.length).toBe(0);
     expect(unscoped.statesIncluded.join(",")).toBe("VA");
+    expect(unscoped.totalCount).toBe(vaBaseline.length);
+    expect(unscoped.records.every((r) => r.stateCode === "VA")).toBe(true);
+    expect(unscoped.records.some((r) => r.stateCode === HEALTHY_STATE)).toBe(false);
 
     // A caller that NAMES a real but unvalidated state (MD) gets the same empty,
     // explained answer: the state is never reported as included — it appears in
@@ -583,11 +589,11 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     if (outcome.status !== 200) throw new Error(`expected 200, got ${outcome.status}`);
     const payload = outcome.body;
     expect(payload.states.length).toBe(51);
-    expect(payload.counts.validated).toBe(6);
-    expect(payload.counts.limited).toBe(6);
+    expect(payload.counts.validated).toBe(16);
+    expect(payload.counts.limited).toBe(14);
     expect(payload.counts.connected).toBe(0);
-    expect(payload.counts.unavailable).toBe(45);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "DE", "HI", "PA", "RI", "VA"]);
+    expect(payload.counts.unavailable).toBe(37);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "AR", "CA", "CO", "DE", "HI", "KS", "MN", "NM", "ND", "PA", "RI", "TN", "UT", "VA", "WA"]);
     const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
     expect(virginia.tier).toBe("limited");
     expect(virginia.note).toContain("not statewide coverage");
@@ -597,7 +603,7 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     expect(virginia.recordCount).toBe(vaBaseline.length);
     expect(virginia.statusCounts.total).toBe(vaBaseline.length);
     expect(JSON.stringify(payload)).not.toContain("forecast");
-    expect(payload.headline).toContain("6 of 51 states have a validated source");
+    expect(payload.headline).toContain("16 of 51 states have a validated source");
   });
 
   test("isolation: the suite never wrote a Virginia row, and every state table is intact", async () => {

@@ -14,10 +14,13 @@
     "radar-alerts": "bun run src/jobs/send-radar-lead-alerts.ts",
     "sync-far": "bun run src/jobs/far-sync.ts",
     "check:routes": "bun run scripts/check-routes.mjs",
+    "validate:live-sources": "STATE_GRANTS_RUN_LIVE_SOURCE_TESTS=1 bun test src/lib/state-grants/virginia.source-validation.test.ts",
+    "test:state-grants:integration": "STATE_GRANTS_TEST_PROVISION_SCHEMA=1 bun test src/lib/state-grants",
     "typecheck": "tsc --noEmit -p tsconfig.prod.json",
     "test": "bun test",
     "format": "prettier --write .",
-    "backfill-naics": "bun run src/jobs/backfill-naics.ts"
+    "backfill-naics": "bun run src/jobs/backfill-naics.ts",
+    "sync:state": "bun run src/jobs/state-grants-sync.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

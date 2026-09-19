@@ -717,3 +717,72 @@ CREATE INDEX IF NOT EXISTS idx_grants_subscriptions_customer_id
     ON grants_subscriptions (stripe_customer_id);
 CREATE INDEX IF NOT EXISTS idx_grants_subscriptions_status
     ON grants_subscriptions (status);
+
+-- ── State Grants (migration 043, owner ROLLOUT order 2026-09-18) ──
+-- Mirrors db/migrations/043_state_grants.sql (additive + idempotent; replayed by
+-- db/migrations/run-043.ts). Part 1 of the state rollout: the stored corpus for
+-- STATE-level grant opportunities, which (unlike Grants.gov) has no national API
+-- and therefore has to persist between scheduled scrapes. Isolated from the
+-- federal product: /grants, /api/grants/search, its freshness logic, events and
+-- pricing never read these tables.
+--
+-- state_grant_opportunities: one row per source opportunity keyed by
+-- (state_code, external_id) — the source's own id — so an amended record updates
+-- the SAME row. `fingerprint` is a content hash used only for change detection,
+-- which is why the upsert can leave an unchanged row completely untouched (no
+-- no-op rewrites). `close_date` is only ever set for open/closed rows and
+-- `estimated_close_date` only ever for forecast rows, so a source's estimate can
+-- never masquerade as a deadline (freshness contract carried over from #399).
+-- state_grant_sync_runs: one row per sync attempt (ok|error) with the counts and
+-- the error payload. A failed run writes ZERO opportunity rows.
+-- state_grant_registry: the mirror of src/lib/state-grants/registry.ts, whose
+-- status is DERIVED (a state is `connected` only with a connector AND a passing
+-- source-validation test). The table never decides anything on its own.
+CREATE TABLE IF NOT EXISTS state_grant_opportunities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    state_code TEXT NOT NULL,
+    external_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    agency TEXT,
+    summary TEXT,
+    status TEXT NOT NULL CHECK (status IN ('open', 'forecast', 'closed')),
+    posted_date DATE,
+    close_date DATE,
+    estimated_close_date DATE,
+    url TEXT NOT NULL,
+    source_url TEXT NOT NULL,
+    fingerprint TEXT NOT NULL,
+    source_updated_at TIMESTAMPTZ,
+    raw JSONB NOT NULL DEFAULT '{}'::jsonb,
+    fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT state_grant_opportunities_state_external_key
+        UNIQUE (state_code, external_id)
+);
+CREATE INDEX IF NOT EXISTS idx_state_grant_opportunities_state_status
+    ON state_grant_opportunities (state_code, status);
+CREATE INDEX IF NOT EXISTS idx_state_grant_opportunities_state_close_date
+    ON state_grant_opportunities (state_code, close_date);
+
+CREATE TABLE IF NOT EXISTS state_grant_sync_runs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    state_code TEXT NOT NULL,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at TIMESTAMPTZ,
+    status TEXT NOT NULL CHECK (status IN ('ok', 'error')),
+    fetched_count INTEGER NOT NULL DEFAULT 0,
+    inserted_count INTEGER NOT NULL DEFAULT 0,
+    updated_count INTEGER NOT NULL DEFAULT 0,
+    error JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_state_grant_sync_runs_state_started
+    ON state_grant_sync_runs (state_code, started_at DESC);
+
+CREATE TABLE IF NOT EXISTS state_grant_registry (
+    state_code TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('unavailable', 'connected')),
+    connector_id TEXT,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

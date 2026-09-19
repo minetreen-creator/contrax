@@ -10,7 +10,7 @@
  * TEST DATA DISCIPLINE (nothing a real state could ever collide with):
  *   - every opportunity/run row written here uses a SYNTHETIC state code
  *     ('ZZ' for the healthy source, 'ZY' for the sibling that must survive
- *     another source's failure, 'MD' only for the registry-refusal case), and
+ *     another source's failure, 'NC' only for the registry-refusal case), and
  *     every source row uses an `itest-` key, so cleanup can only ever delete rows
  *     this suite created. A real state's rows are never read, updated or deleted.
  *   - this suite NEVER syncs Virginia: no VA opportunity row is created, and the
@@ -73,7 +73,10 @@ const PROVISION = process.env.STATE_GRANTS_TEST_PROVISION_SCHEMA === "1";
 
 const HEALTHY_STATE = "ZZ";
 const SIBLING_STATE = "ZY";
-const REFUSED_STATE = "MD";
+// SYNTHETIC-UNCOVERED-STATE: a state with NO connector, used only to prove the
+// registry refuses an uncovered state. Re-point it (grep SYNTHETIC-UNCOVERED-STATE)
+// whenever this state lands a connector of its own.
+const REFUSED_STATE = "NC";
 const SOURCE_A = "itest-zz-a";
 const SOURCE_B = "itest-zz-b";
 const SOURCE_SIBLING = "itest-zy-a";
@@ -601,8 +604,8 @@ describe.skipIf(!DB_READY)("state grants integration (real DB)", () => {
     expect(va.status).toBe("limited");
     expect(va.connectorId).toBe(VIRGINIA_CONNECTOR_ID);
     expect(mirrored.filter((r) => r.status === "connected").length).toBe(0);
-    expect(mirrored.filter((r) => r.status === "limited").length).toBe(30);
-    expect(mirrored.filter((r) => r.status === "unavailable").length).toBe(21);
+    expect(mirrored.filter((r) => r.status === "limited").length).toBe(31);
+    expect(mirrored.filter((r) => r.status === "unavailable").length).toBe(20);
 
     // Nothing changed, so a second mirror writes nothing at all.
     expect(await syncStateRegistry(entries)).toBe(0);

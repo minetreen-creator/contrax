@@ -27,6 +27,10 @@ import {
   type StateGrantConnector,
 } from "~/lib/state-grants/connector";
 import { newHampshireConnector } from "~/lib/state-grants/connectors/new-hampshire";
+import {
+  MARYLAND_SOURCE_URL,
+  marylandConnector,
+} from "~/lib/state-grants/connectors/maryland";
 import { montanaConnector } from "~/lib/state-grants/connectors/montana";
 import { texasConnector } from "~/lib/state-grants/connectors/texas";
 import { joinSourcePages } from "~/lib/state-grants/connectors/multi-page";
@@ -149,12 +153,46 @@ const FL = () =>
     ),
     NOW,
   ).opportunities;
+const MD_FILES = {
+  index: "maryland-msac-grants-organizations.html",
+  newGfoApplicants: "maryland-msac-new-gfo-applicants.html",
+  currentGfoGrantees: "maryland-msac-current-gfo-grantees.html",
+} as const;
+const MD_CHILD_URLS = {
+  newGfoApplicants: `${MARYLAND_SOURCE_URL}/new-gfo-applicants`,
+  currentGfoGrantees: `${MARYLAND_SOURCE_URL}/current-gfo-grantees`,
+} as const;
+const MD_CHILD_FIXTURES = [
+  [MD_CHILD_URLS.newGfoApplicants, MD_FILES.newGfoApplicants],
+  [MD_CHILD_URLS.currentGfoGrantees, MD_FILES.currentGfoGrantees],
+] as const;
+/** The index page text alone (a catalogue with no cycle of its own). */
+const MD_INDEX_ONLY = () => marylandConnector.parse(fixture(MD_FILES.index));
+/** A synthetic GFO page served in place of the real New GFO Applicants page. */
+function marylandPayloadWith(childHtml: string): string {
+  return joinSourcePages(MARYLAND_SOURCE_URL, fixture(MD_FILES.index), [
+    { url: MD_CHILD_URLS.newGfoApplicants, html: childHtml },
+  ]);
+}
+const MD = () =>
+  parseGrantOpportunities(
+    marylandConnector,
+    joinSourcePages(
+      MARYLAND_SOURCE_URL,
+      fixture(MD_FILES.index),
+      MD_CHILD_FIXTURES.map(([url, file]) => ({ url, html: fixture(file) })),
+    ),
+    NOW,
+  ).opportunities;
+
+
 const ALL = [
   ["NH", newHampshireConnector, NH],
   ["MT", montanaConnector, MT],
   ["IN", indianaConnector, IN],
   ["FL", floridaConnector, FL],
   ["TX", texasConnector, TX],
+  ["MD", marylandConnector, MD],
 ] as const;
 function count(records: GrantOpportunity[], status: string): number {
   return records.filter((o) => o.status === status).length;
@@ -798,6 +836,125 @@ describe("Texas — the Governor's office DEAAG grant programme (one dated round
     let thrown: { stage?: string } | null = null;
     try {
       texasConnector.parse("<html><body>No marker here</body></html>");
+    } catch (e) {
+      thrown = e as { stage?: string };
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown!.stage).toBe("parse");
+  });
+});
+
+describe("Maryland — MSAC Grants for Organizations (index + programme pages)", () => {
+  test("the one deadline the Council labels is read from its own page", () => {
+    const records = MD();
+    expect(records.length).toBe(1);
+    const o = records[0]!;
+    expect(o.externalId).toBe("new-gfo-applicants");
+    expect(o.title).toBe("Grants for Organizations (GFO) — New GFO Applicants");
+    expect(o.closeDate).toBe("2026-09-15");
+    expect(o.postedDate).toBeNull();
+    expect(o.estimatedCloseDate).toBeNull();
+    // 2026-09-19: the published deadline is four days past — closed, never open.
+    expect(o.status).toBe("closed");
+    // The page that published it, never the index, never a sibling family.
+    expect(o.url).toBe(MD_CHILD_URLS.newGfoApplicants);
+    expect(o.sourceUrl).toBe(MARYLAND_SOURCE_URL);
+    expect(o.raw.deadlineLabel).toBe("Deadline");
+    expect(o.raw.labelledBySource).toBe(true);
+    expect(o.raw.deadlineValueText).toBe("09/15/2026");
+    expect(o.raw.quickResourcesHeading).toBe("Quick Resources");
+    expect(o.raw.datesReadOnlyFromThisPagesOwnBlock).toBe(true);
+    expect(o.raw.rollingDeclaredBySource).toBe(false);
+  });
+  test("the deadline is `open` while it is still ahead, and `closed` once it passes", () => {
+    const before = parseGrantOpportunities(
+      marylandConnector,
+      joinSourcePages(
+        MARYLAND_SOURCE_URL,
+        fixture(MD_FILES.index),
+        MD_CHILD_FIXTURES.map(([url, file]) => ({ url, html: fixture(file) })),
+      ),
+      new Date("2026-09-01T12:00:00Z"),
+    ).opportunities;
+    expect(before.length).toBe(1);
+    expect(before[0]!.status).toBe("open");
+    expect(before[0]!.closeDate).toBe("2026-09-15");
+  });
+  test("the page's year-less prose deadlines are never promoted to dates", () => {
+    const o = MD()[0]!;
+    const prose = String(o.raw.applicationWindowProseText);
+    // The Council's own sentence names BOTH of its prose dates, and neither has a
+    // year — so neither can ever become the record's close date.
+    expect(prose).toContain("by September 15th annually");
+    expect(prose).toContain("by November 15");
+    expect(prose).not.toContain("2026");
+    expect(o.raw.yearLessProseDeadlinesNeverRead).toBe(true);
+    expect(o.closeDate).not.toBe("2026-11-15");
+    expect(o.postedDate).toBeNull();
+  });
+  test("an undated GFO page contributes NO record (no fabricated deadline)", () => {
+    const onlyDated = MD().filter((o) => o.url === MD_CHILD_URLS.currentGfoGrantees);
+    expect(onlyDated.length).toBe(0);
+    // The eligibility page really is in the corpus (its own words are on it), so
+    // the emptiness above is the page having no labelled deadline, not a skip.
+    expect(fixture(MD_FILES.currentGfoGrantees)).toContain("Intent to Apply");
+  });
+  test("the index's own dates are governance history, never cycles", () => {
+    // The index publishes exactly one date token ("September 9, 2021", the day the
+    // Council adopted the funding formula); parsing it alone yields no record at
+    // all, and no record's date comes from it.
+    expect(fixture(MD_FILES.index)).toContain("September 9, 2021");
+    let thrown: { stage?: string } | null = null;
+    try {
+      MD_INDEX_ONLY();
+    } catch (e) {
+      thrown = e as { stage?: string };
+    }
+    expect(thrown).not.toBeNull();
+    expect(thrown!.stage).toBe("parse");
+    for (const o of MD()) {
+      expect(o.closeDate).not.toBe("2021-09-09");
+      expect(o.raw.indexDatesAreGovernanceHistory).toBe(true);
+    }
+  });
+  test("a Deadline label with no readable day keeps the record undated, never guessed", () => {
+    const synthetic =
+      "<h1><span>New GFO Applicants</span></h1>" +
+      '<h2 class="aside__heading">Quick Resources</h2>' +
+      '<aside class="aside"><h3 class="aside__section-heading">Deadline</h3>' +
+      "<div><p>TBD</p></div></aside>";
+    const records = parseGrantOpportunities(
+      marylandConnector,
+      marylandPayloadWith(synthetic),
+      NOW,
+    ).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.closeDate).toBeNull();
+    expect(records[0]!.estimatedCloseDate).toBeNull();
+    expect(records[0]!.status).toBe("unverified");
+  });
+  test("a date in a SIBLING block is never read as this block's deadline", () => {
+    const synthetic =
+      "<h1><span>New GFO Applicants</span></h1>" +
+      '<h2 class="aside__heading">Quick Resources</h2>' +
+      '<aside class="aside"><h3 class="aside__section-heading">Deadline</h3>' +
+      "<div><p>09/15/2026</p></div></div>" +
+      '<div class="aside__section"><h3 class="aside__section-heading">Grant Period</h3>' +
+      "<div><p>07/01/2029</p></div></div></aside>";
+    const records = parseGrantOpportunities(
+      marylandConnector,
+      marylandPayloadWith(synthetic),
+      NOW,
+    ).opportunities;
+    expect(records.length).toBe(1);
+    expect(records[0]!.closeDate).toBe("2026-09-15");
+    expect(records[0]!.closeDate).not.toBe("2029-07-01");
+    expect(String(records[0]!.raw.deadlineValueText)).not.toContain("2029");
+  });
+  test("a payload that is not the GFO programme page fails loudly at the parse stage", () => {
+    let thrown: { stage?: string } | null = null;
+    try {
+      marylandConnector.parse("<html><body>No marker here</body></html>");
     } catch (e) {
       thrown = e as { stage?: string };
     }

@@ -102,13 +102,6 @@ function paragraphs(html: string): { text: string }[] {
   return out;
 }
 
-/** The page's own h1 (the programme name the Governor's office publishes for it). */
-function texasPageTitle(html: string): string | null {
-  const m = /<h1\b[^>]*>([\s\S]*?)<\/h1>/i.exec(html);
-  const text = m ? stripTags(m[1] ?? "").replace(/\s+/g, " ").trim() : "";
-  return text.length > 0 ? text : null;
-}
-
 /** Parses the DEAAG page into UNCLASSIFIED records (one dated grant round). */
 export function parseTexasDeaagPage(html: string): SourceGrantRecord[] {
   if (typeof html !== "string" || !html.includes(TEXAS_CONTENT_MARKER)) {

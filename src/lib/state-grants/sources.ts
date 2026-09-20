@@ -61,6 +61,10 @@ import { nebraskaConnector } from "~/lib/state-grants/connectors/nebraska";
 // here is SILENT — the state still syncs, but the coverage row reports
 // `sourceCount 0` — so every batch must add its connectors to this list.
 import { iowaConnector } from "~/lib/state-grants/connectors/iowa";
+// CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY. A missing entry here
+// is SILENT — the state still syncs, but the coverage row reports `sourceCount 0`
+// — so every state must add its connector to this list.
+import { wyomingConnector } from "~/lib/state-grants/connectors/wyoming";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -140,6 +144,9 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   // IA (continuous nationwide workstream): one agency (Iowa EDA / Iowa Arts
   // Council), `limited`.
   iowaConnector as unknown as StateGrantConnector<never>,
+  // WY (continuous nationwide workstream): one agency (Wyoming Business Council),
+  // `limited`.
+  wyomingConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

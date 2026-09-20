@@ -296,6 +296,13 @@ import {
   IOWA_SOURCE_VALIDATION_TEST,
   iowaConnector,
 } from "~/lib/state-grants/connectors/iowa";
+import {
+  WYOMING_APPROVED_HOSTS,
+  WYOMING_CONNECTOR_ID,
+  WYOMING_SOURCE_URL,
+  WYOMING_SOURCE_VALIDATION_TEST,
+  wyomingConnector,
+} from "~/lib/state-grants/connectors/wyoming";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -453,6 +460,8 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...VERMONT_APPROVED_HOSTS,
   ...NEBRASKA_APPROVED_HOSTS,
   ...IOWA_APPROVED_HOSTS,
+  // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY.
+  ...WYOMING_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -819,6 +828,14 @@ export const IOWA_REGISTRY_ENTRY: SourceValidationEntry = {
   tier: "limited",
   note: "One validated source: the Iowa Economic Development Authority / Iowa Arts Council's own Grants & Programs catalogue on opportunityiowa.gov (the FINAL URL the off-host iowaculture.gov/grants 301 lands on) plus 18 of the 19 programme pages that catalogue publishes. The catalogue is a JS-rendered program catalogue with NO date token of its own, so every record is read from ONE programme page's OWN body region. Only labels the agency itself publishes are read: a `Deadline:` block per applicant role (the Iowans Create Community Mural Program publishes one for Communities and one for Artists), a `<date> | <label>` line in a Timeline list, the agency's sentence \"The deadline for submitting an online application is 11:59PM on <date>\", a published acceptance window (\"accepted from February 2, 2026, through March 16, 2026\") and its own rolling declaration (\"accepted on a rolling basis until April 15, 2027\") \u2014 which is served `rolling` with NO close date. Everything else this source dates is REFUSED and recorded verbatim in each record's `raw.refusedDates`: the Final Report Deadline, Finalist Applicant Interviews and Award Notification milestones in the Scholarship Timeline, the Film Rebate page's fund-availability and expense-window days, and the eligible funding periods. Twelve programmes whose pages state in the agency's own words that they are \"not currently accepting applications\" (or \"will not be accepting applications\") are served `closed` with no date; three pages that publish no window of their own are `unverified` rather than guessed. Two catalogue tiles are deliberately NOT read: a program-guidelines page that restates its parent's window (reading both would double-count one application) and a grantee support FAQ. This is ONE agency's arts-and-culture catalogue: Iowa awards grants through other departments and local bodies we have NOT validated, so the state is `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
 };
+export const WYOMING_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: WYOMING_CONNECTOR_ID,
+  sourceUrl: WYOMING_SOURCE_URL,
+  testFile: WYOMING_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-20",
+  tier: "limited",
+  note: "One validated source: the Wyoming Business Council's own grants catalogue on wyomingbusiness.org plus the 10 programme pages that catalogue publishes. The catalogue is real and current, but it publishes almost no year-bearing application deadline: so every record is read from ONE programme page's own body region and only the agency's OWN status sentences are read \u2014 Kickstart's \u201ccurrently paused until further notice\u201d makes it `closed` and SBIR's \u201copen year-round\u201d / \u201crolling basis\u201d makes it `rolling`, in both cases with NO date. Every other date-like token (the STEP grant \u201cperiod\u201d of July 1, 2026 to September 29, 2027, the year-less \u201cMarch 1 and September 1\u201d rule, the Building Resilient Communities table's year-less cells, a 2019-2020 application schedule and a relative \u201c(Day 90)\u201d timeline) is REFUSED verbatim into each record's `raw.refusedDates` and is never a posted, close or estimated date \u2014 so the remaining pages are honestly `unverified` rather than dated by inference. Other Wyoming departments, boards and local bodies award grants we have NOT validated: this is ONE agency, so `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -860,6 +877,8 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     VT: vermontConnector as unknown as StateGrantConnector<never>,
     // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19): IA.
     IA: iowaConnector as unknown as StateGrantConnector<never>,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY.
+    WY: wyomingConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -901,6 +920,8 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     VT: VERMONT_REGISTRY_ENTRY,
     // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19): IA.
     IA: IOWA_REGISTRY_ENTRY,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY.
+    WY: WYOMING_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

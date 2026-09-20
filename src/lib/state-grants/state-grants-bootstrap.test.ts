@@ -692,12 +692,12 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
       if (outcome.status !== 200) throw new Error(`expected 200, got ${outcome.status}`);
       const payload = outcome.body;
       expect(payload.headline).toBe(
-        "State grant coverage: 34 of 51 states have a validated source (0 connected, 0 curated, 34 limited)",
+        "State grant coverage: 35 of 51 states have a validated source (0 connected, 0 curated, 35 limited)",
       );
-      expect(payload.counts).toEqual({ total: 51, validated: 34, connected: 0, curated: 0, limited: 34, unavailable: 17 });
+      expect(payload.counts).toEqual({ total: 51, validated: 35, connected: 0, curated: 0, limited: 35, unavailable: 16 });
       expect(payload.states.length).toBe(51);
-      expect(payload.counts.unavailable).toBe(17);
-      expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV"]);
+      expect(payload.counts.unavailable).toBe(16);
+      expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WY"]);
       const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
       expect(virginia.tier).toBe("limited");
       expect(virginia.note).toContain("not statewide coverage");

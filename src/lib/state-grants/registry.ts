@@ -303,6 +303,15 @@ import {
   WYOMING_SOURCE_VALIDATION_TEST,
   wyomingConnector,
 } from "~/lib/state-grants/connectors/wyoming";
+import {
+  NEW_JERSEY_AGENCY,
+  NEW_JERSEY_APPROVED_HOSTS,
+  NEW_JERSEY_CONNECTOR_ID,
+  NEW_JERSEY_SOURCE_NAME,
+  NEW_JERSEY_SOURCE_URL,
+  NEW_JERSEY_SOURCE_VALIDATION_TEST,
+  newJerseyConnector,
+} from "~/lib/state-grants/connectors/new-jersey";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -462,6 +471,8 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...IOWA_APPROVED_HOSTS,
   // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY.
   ...WYOMING_APPROVED_HOSTS,
+  // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): NJ.
+  ...NEW_JERSEY_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -836,6 +847,46 @@ export const WYOMING_REGISTRY_ENTRY: SourceValidationEntry = {
   tier: "limited",
   note: "One validated source: the Wyoming Business Council's own grants catalogue on wyomingbusiness.org plus the 10 programme pages that catalogue publishes. The catalogue is real and current, but it publishes almost no year-bearing application deadline: so every record is read from ONE programme page's own body region and only the agency's OWN status sentences are read \u2014 Kickstart's \u201ccurrently paused until further notice\u201d makes it `closed` and SBIR's \u201copen year-round\u201d / \u201crolling basis\u201d makes it `rolling`, in both cases with NO date. Every other date-like token (the STEP grant \u201cperiod\u201d of July 1, 2026 to September 29, 2027, the year-less \u201cMarch 1 and September 1\u201d rule, the Building Resilient Communities table's year-less cells, a 2019-2020 application schedule and a relative \u201c(Day 90)\u201d timeline) is REFUSED verbatim into each record's `raw.refusedDates` and is never a posted, close or estimated date \u2014 so the remaining pages are honestly `unverified` rather than dated by inference. Other Wyoming departments, boards and local bodies award grants we have NOT validated: this is ONE agency, so `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
 };
+
+/**
+ * NEW JERSEY — one validated source, so `limited`, never statewide.
+ *
+ * The recon handoff's first candidate (NJ Dept of Community Affairs
+ * `nj.gov/dca/home/grants.shtml` + its dhcr/grants child) publishes no grant
+ * record of its own: both re-fetched live 2026-09-20 (40,148 B / 41,756 B) and
+ * they only POINT at the DCA's SAGE system on `dcasage.intelligrants.com` — a
+ * THIRD-PARTY, vendor-hosted system, never a state connector's source. The
+ * state's own directory (`grants.nj.gov` → NJ Treasury Grants Management Office)
+ * links each department's grants page, and the NJDA page is the one that
+ * publishes a current, dated notice-of-funding-availability list on the
+ * department's own host (required of NJDA by N.J.S.A. 52:14-34.5, in the page's
+ * own words).
+ *
+ * HONESTY: `closed` comes only from the source's own past-tense statement (so a
+ * closed round that also mentions a "rolling basis" stays closed); `rolling`
+ * only from the source's own open-ended declaration ("There is no deadline to
+ * apply", "may apply at any time … reviewed on a rolling basis"); a close date
+ * only from the source's own label inside that programme's own section ("no
+ * later than October 16, 2026"); every other date the page publishes — the
+ * year-less email cut-offs, the funding-availability days, the month-and-year
+ * periods — is REFUSED verbatim into `raw.refusedDates`. A programme the page
+ * lists as open with no deadline (the Animal Waste Management Plan grant) is
+ * served `unverified` with no close date rather than dated by inference, and the
+ * page's own "Other Funding Opportunities" bucket — which the page says is "not
+ * offered by the NJDA directly" — is excluded by construction and named in
+ * `raw.thirdPartyProgramsExcluded`. This is ONE department (NJDA, with the SADC
+ * programmes it publishes on the same page); other New Jersey departments award
+ * grants we have NOT validated, so `limited`, never `curated`/`connected` — this
+ * is not statewide coverage.
+ */
+export const NEW_JERSEY_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: NEW_JERSEY_CONNECTOR_ID,
+  sourceUrl: NEW_JERSEY_SOURCE_URL,
+  testFile: NEW_JERSEY_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-20",
+  tier: "limited",
+  note: "One validated source: the New Jersey Department of Agriculture's own grant opportunities page on nj.gov (agriculture/financial-services/grants), the publication of NJDA notice of funding availability required by N.J.S.A. 52:14-34.5. The page groups its programmes under its OWN bucket headings \u2014 Open Opportunities, Closed Opportunities and SADC Grant Opportunities \u2014 and each programme section carries its own labelled fields (Purpose, Eligible Applicants, Funding Available, How to Apply, Program Webpage, Contact). Every record is read from ONE programme's own section: `closed` only from the source's own past-tense statement, `rolling` only from its own open-ended declaration, and a close date only from its own deadline label (\"no later than October 16, 2026\" on the USDA-AMS Specialty Crop Multi-State round). Every other date the page publishes is REFUSED verbatim into `raw.refusedDates` and is never a posted, close or estimated date: the year-less email cut-offs (\"on or before July 31st, 12:00pm EDT\", \"after January 30th, 5 PM EST\", the SCBGP \"May 14th\"), the funding-availability days (\"available \u2026 after April 1, 2025\") and the month-and-year period (AFT: \"available until June 2027\"). The Animal Waste Management Plan grant, which the page lists under Open Opportunities, publishes NO deadline at all, so it is served `unverified` with no close date rather than dated by inference. The page's \"Other Funding Opportunities\" bucket \u2014 which the page itself says is \"not offered by the NJDA directly\" (American Farmland Trust, Fulfill, the Community FoodBank of NJ, the NJ Junior Breeder Loan Fund) \u2014 is excluded by construction and named in `raw.thirdPartyProgramsExcluded`. The DCA candidate from the recon handoff was rejected on evidence: it publishes no record of its own and points at a third-party vendor system (SAGE). NJDA is ONE department of a state whose other departments award grants we have NOT validated, so this is `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -879,6 +930,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     IA: iowaConnector as unknown as StateGrantConnector<never>,
     // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY.
     WY: wyomingConnector as unknown as StateGrantConnector<never>,
+    NJ: newJerseyConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -922,6 +974,7 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     IA: IOWA_REGISTRY_ENTRY,
     // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY.
     WY: WYOMING_REGISTRY_ENTRY,
+    NJ: NEW_JERSEY_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,
@@ -1110,4 +1163,30 @@ export function coverageCounts(): CoverageCounts {
     unavailable: states.length - connected - curated - limited,
     validated: connected + curated + limited,
   };
+}
+/**
+ * OWNER COPY RULE (2026-09-20) — "50 states, plus D.C.", never "51 states".
+ * D.C. is a JURISDICTION, not a state, so the coverage headline may never read
+ * "X of 51 states". The registry itself keeps counting all 51 jurisdictions
+ * (`counts.total` is untouched); only the RENDERED wording separates D.C. out.
+ */
+export function isDcValidated(): boolean {
+  return listStates().some((s) => s.stateCode === "DC" && isValidatedStatus(s.status));
+}
+/**
+ * THE one coverage-headline generator, shared by the /state-grants page and the
+ * coverage API so the two can never drift apart:
+ *   "State grant coverage: 35 of 50 states validated, plus Washington, D.C.
+ *    (0 connected, 0 curated, 36 limited)".
+ * `statesValidated` excludes D.C. when — and only when — the DERIVED registry
+ * currently holds D.C. at a validated tier; if it does not, the count is every
+ * validated state and no D.C. suffix is printed.
+ */
+export function coverageHeadlineFor(counts: CoverageCounts, dcValidated: boolean): string {
+  const statesValidated = counts.validated - (dcValidated ? 1 : 0);
+  return (
+    `State grant coverage: ${statesValidated} of 50 states validated` +
+    `${dcValidated ? ", plus Washington, D.C." : ""} ` +
+    `(${counts.connected} connected, ${counts.curated} curated, ${counts.limited} limited)`
+  );
 }

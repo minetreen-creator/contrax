@@ -15,6 +15,8 @@ import {
 } from "~/lib/state-grants/connector";
 import {
   coverageCounts,
+  coverageHeadlineFor,
+  isDcValidated,
   isValidatedStatus,
   listStates,
   REGISTRY_STATUS_LABELS,
@@ -239,10 +241,10 @@ function StateGrantsPage() {
 
   // The headline is computed from the DERIVED registry, so it is correct even
   // when the coverage request fails. "Validated source" — never "connected
-  // states", because `limited` is not statewide coverage.
-  const headline = `State grant coverage: ${counts.validated} of ${counts.total} ${
-    counts.total === 1 ? "state has" : "states have"
-  } a validated source (${counts.connected} connected, ${counts.curated} curated, ${counts.limited} limited)`;
+  // states", because `limited` is not statewide coverage. Wording comes from
+  // the SHARED registry generator (owner copy rule 2026-09-20): 50 STATES, with
+  // D.C. named separately — the headline never says "51 states".
+  const headline = coverageHeadlineFor(counts, isDcValidated());
 
   const onSearch = useCallback(
     async (e: FormEvent<HTMLFormElement>) => {

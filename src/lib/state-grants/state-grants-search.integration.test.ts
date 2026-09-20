@@ -22,6 +22,12 @@
  * snapshotted before the suite and asserted byte-identical afterwards, and every
  * synthetic row is removed in afterAll.
  *
+ * RUN ONE AT A TIME: this suite shares the configured database with anyone else
+ * running it — CI and a local `bun test` on the same DATABASE_URL must not
+ * overlap. Two concurrent runs each clean up the other's `itest-` rows in
+ * beforeEach/afterEach, so both see wrong counts (a real CI red on 2026-09-20
+ * whose only cause was a local run racing the CI run). Serialize them.
+ *
  * NETWORK: none. The connectors here read an in-process fixture string; only the
  * database is touched (and the whole file is skipped without DATABASE_URL).
  */

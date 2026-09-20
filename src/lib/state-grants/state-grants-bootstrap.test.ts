@@ -694,12 +694,12 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
       expect(payload.headline).toBe(
         // 50 STATES plus D.C. (owner copy rule 2026-09-20): D.C. is a validated
         // jurisdiction today, so it is counted out of the 50 and named apart.
-        "State grant coverage: 35 of 50 states validated, plus Washington, D.C. (0 connected, 0 curated, 36 limited)",
+        "State grant coverage: 36 of 50 states validated, plus Washington, D.C. (0 connected, 0 curated, 37 limited)",
       );
-      expect(payload.counts).toEqual({ total: 51, validated: 36, connected: 0, curated: 0, limited: 36, unavailable: 15 });
+      expect(payload.counts).toEqual({ total: 51, validated: 37, connected: 0, curated: 0, limited: 37, unavailable: 14 });
       expect(payload.states.length).toBe(51);
-      expect(payload.counts.unavailable).toBe(15);
-      expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NJ", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WY"]);
+      expect(payload.counts.unavailable).toBe(14);
+      expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NJ", "NM", "ND", "OH", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WY"]);
       const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
       expect(virginia.tier).toBe("limited");
       expect(virginia.note).toContain("not statewide coverage");

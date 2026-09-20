@@ -310,6 +310,16 @@ import {
   NEW_JERSEY_SOURCE_VALIDATION_TEST,
   newJerseyConnector,
 } from "~/lib/state-grants/connectors/new-jersey";
+// CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): OH. The statewide portal
+// is not readable over verified TLS (see OHIO_REGISTRY_ENTRY), so Ohio is served
+// by the Ohio Arts Council catalogue and stays `limited`.
+import {
+  OHIO_APPROVED_HOSTS,
+  OHIO_CONNECTOR_ID,
+  OHIO_SOURCE_URL,
+  OHIO_SOURCE_VALIDATION_TEST,
+  ohioConnector,
+} from "~/lib/state-grants/connectors/ohio";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -471,6 +481,8 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...WYOMING_APPROVED_HOSTS,
   // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): NJ.
   ...NEW_JERSEY_APPROVED_HOSTS,
+  // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): OH.
+  ...OHIO_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -885,6 +897,41 @@ export const NEW_JERSEY_REGISTRY_ENTRY: SourceValidationEntry = {
   tier: "limited",
   note: "One validated source: the New Jersey Department of Agriculture's own grant opportunities page on nj.gov (agriculture/financial-services/grants), the publication of NJDA notice of funding availability required by N.J.S.A. 52:14-34.5. The page groups its programmes under its OWN bucket headings \u2014 Open Opportunities, Closed Opportunities and SADC Grant Opportunities \u2014 and each programme section carries its own labelled fields (Purpose, Eligible Applicants, Funding Available, How to Apply, Program Webpage, Contact). Every record is read from ONE programme's own section: `closed` only from the source's own past-tense statement, `rolling` only from its own open-ended declaration, and a close date only from its own deadline label (\"no later than October 16, 2026\" on the USDA-AMS Specialty Crop Multi-State round). Every other date the page publishes is REFUSED verbatim into `raw.refusedDates` and is never a posted, close or estimated date: the year-less email cut-offs (\"on or before July 31st, 12:00pm EDT\", \"after January 30th, 5 PM EST\", the SCBGP \"May 14th\"), the funding-availability days (\"available \u2026 after April 1, 2025\") and the month-and-year period (AFT: \"available until June 2027\"). The Animal Waste Management Plan grant, which the page lists under Open Opportunities, publishes NO deadline at all, so it is served `unverified` with no close date rather than dated by inference. The page's \"Other Funding Opportunities\" bucket \u2014 which the page itself says is \"not offered by the NJDA directly\" (American Farmland Trust, Fulfill, the Community FoodBank of NJ, the NJ Junior Breeder Loan Fund) \u2014 is excluded by construction and named in `raw.thirdPartyProgramsExcluded`. The DCA candidate from the recon handoff was rejected on evidence: it publishes no record of its own and points at a third-party vendor system (SAGE). NJDA is ONE department of a state whose other departments award grants we have NOT validated, so this is `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
 };
+/**
+ * OHIO — the Ohio Arts Council's grant-programme catalogue on the Council's own
+ * `oac.ohio.gov` host (the catalogue plus its 14 pinned programme pages), accepted
+ * as Ohio's connector by the lead on 2026-09-20 after the statewide portal was
+ * found unreadable (see the note).
+ *
+ * WHY THIS IS `limited` AND NOT STATEWIDE. Ohio's statewide funding-opportunities
+ * listing IS published as JSON by the official OBM API host
+ * `api.obm.ohio.gov/grants/getfundingopportunities/0/0/1` — but that host serves
+ * an INCOMPLETE TLS chain (its leaf certificate only), so verification fails with
+ * "unable to get local issuer certificate" in curl, bun and node; only a fetch
+ * with verification OFF reads it, and this workstream does not do that. So Ohio is
+ * served by ONE agency's catalogue, never advertised as statewide coverage.
+ *
+ * HONESTY: EXACTLY ONE row type is ever read — the source's own
+ * `Application Deadline …` row whose value is a full published day — and the
+ * LATEST such row on a page is that programme's close date (never rolled forward,
+ * never interpolated). The read is done on the STRIPPED text of each labelled row
+ * (several pages wrap the label in markup a raw-HTML read misses) and is NOT
+ * scoped by an `<h2>TIMELINE</h2>` heading (only one of the 14 pages has one).
+ * Every other date the pages publish — agreement/report/off-year deadlines, the
+ * ARTIE availability windows, award-announcement months, ADAP's ADA enactment
+ * date in the prose, the site's own news dates, and every month-and-year period —
+ * is REFUSED verbatim into `raw.refusedDates` with a reason. A programme whose
+ * only application-deadline row is RELATIVE stays `unverified` with no date, and
+ * no posting date or estimate is ever produced.
+ */
+export const OHIO_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: OHIO_CONNECTOR_ID,
+  sourceUrl: OHIO_SOURCE_URL,
+  testFile: OHIO_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-20",
+  tier: "limited",
+  note: "One validated source: the Ohio Arts Council's own grant-program catalogue on oac.ohio.gov (grants/10-grant-opportunities) together with the 14 programme pages it links. Ohio's STATEWIDE funding-opportunities listing is published as JSON by the official OBM API host api.obm.ohio.gov, but that host presents an INCOMPLETE TLS chain (it sends only its leaf certificate, so curl, bun and node all fail verification with \"unable to get local issuer certificate\"; a browser recovers by fetching the missing intermediate) — a verified-TLS fetch cannot read it, so this connector does NOT use it and Ohio is served by ONE agency. Each programme page publishes a labelled lifecycle table under its own cycle headings, with rows such as \"*Grant Agreement Deadline: August 30, 2026\", \"Off-year Update Deadline at 5 p.m.: April 1, 2026\", \"Application Available in ARTIE: November 2024\", \"Large Orgs' Financial Materials Due: April 1, 2023\" and \"Grant Award Announcement: July 2026\". EXACTLY ONE row type is ever read: the source's own \"Application Deadline …\" row whose value is a full published day, and the LATEST such row on the page becomes the record's close date — read on STRIPPED text (several pages wrap the label in markup that a raw-HTML read misses) and never scoped by an h2 TIMELINE heading, because only one of the 14 pages has that heading. Every other date is REFUSED verbatim into raw.refusedDates with a kind and a reason and is never a posted, close or estimated date: the agreement, final-report and off-year deadlines, the ARTIE availability windows (a window OPENING, not a closing), the award-announcement months, the ADA enactment date in the ADAP page's own prose, the site's news dates around the body, and every month-and-year period. A programme whose ONLY application-deadline row is RELATIVE publishes no date and stays `unverified` (ArtsRISE: \"90 days prior to Project Start Date\"; Big Yellow School Bus: \"At least 8 weeks prior to event\"), as does Ohio Artists on Tour, which publishes no application deadline at all. No posting date and no estimate is ever produced by this source. As of 2026-09-20 the corpus yields 14 records, 2 of them open (Capacity Building and the Artists with Disabilities Access Program, both \"November 1, 2026\"). The Ohio Arts Council is ONE agency of a state whose other departments award grants we have NOT validated, so this is `limited`, never `curated`/`connected` — this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -929,6 +976,8 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY.
     WY: wyomingConnector as unknown as StateGrantConnector<never>,
     NJ: newJerseyConnector as unknown as StateGrantConnector<never>,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): OH.
+    OH: ohioConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -973,6 +1022,8 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY.
     WY: WYOMING_REGISTRY_ENTRY,
     NJ: NEW_JERSEY_REGISTRY_ENTRY,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): OH.
+    OH: OHIO_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,
@@ -1174,8 +1225,8 @@ export function isDcValidated(): boolean {
 /**
  * THE one coverage-headline generator, shared by the /state-grants page and the
  * coverage API so the two can never drift apart:
- *   "State grant coverage: 35 of 50 states validated, plus Washington, D.C.
- *    (0 connected, 0 curated, 36 limited)".
+ *   "State grant coverage: 36 of 50 states validated, plus Washington, D.C.
+ *    (0 connected, 0 curated, 37 limited)".
  * `statesValidated` excludes D.C. when — and only when — the DERIVED registry
  * currently holds D.C. at a validated tier; if it does not, the count is every
  * validated state and no D.C. suffix is printed.

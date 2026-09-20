@@ -595,11 +595,11 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     if (outcome.status !== 200) throw new Error(`expected 200, got ${outcome.status}`);
     const payload = outcome.body;
     expect(payload.states.length).toBe(51);
-    expect(payload.counts.validated).toBe(36);
-    expect(payload.counts.limited).toBe(36);
+    expect(payload.counts.validated).toBe(37);
+    expect(payload.counts.limited).toBe(37);
     expect(payload.counts.connected).toBe(0);
-    expect(payload.counts.unavailable).toBe(15);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NJ", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WY"]);
+    expect(payload.counts.unavailable).toBe(14);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NJ", "NM", "ND", "OH", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WY"]);
     const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
     expect(virginia.tier).toBe("limited");
     expect(virginia.note).toContain("not statewide coverage");
@@ -610,7 +610,7 @@ describe.skipIf(!DB_READY)("state grants search + coverage (real DB)", () => {
     expect(virginia.statusCounts.total).toBe(vaBaseline.length);
     expect(JSON.stringify(payload)).not.toContain("forecast");
     // 50 STATES plus D.C. (owner copy rule 2026-09-20) — never "51 states".
-    expect(payload.headline).toContain("35 of 50 states validated, plus Washington, D.C.");
+    expect(payload.headline).toContain("36 of 50 states validated, plus Washington, D.C.");
   });
 
   test("isolation: the suite never wrote a Virginia row, and every state table is intact", async () => {

@@ -65,10 +65,7 @@ import { iowaConnector } from "~/lib/state-grants/connectors/iowa";
 // is SILENT — the state still syncs, but the coverage row reports `sourceCount 0`
 // — so every state must add its connector to this list.
 import { wyomingConnector } from "~/lib/state-grants/connectors/wyoming";
-import {
-  NEW_JERSEY_CONNECTOR_ID,
-  newJerseyConnector,
-} from "~/lib/state-grants/connectors/new-jersey";
+import { newJerseyConnector } from "~/lib/state-grants/connectors/new-jersey";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {

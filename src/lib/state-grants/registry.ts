@@ -304,10 +304,8 @@ import {
   wyomingConnector,
 } from "~/lib/state-grants/connectors/wyoming";
 import {
-  NEW_JERSEY_AGENCY,
   NEW_JERSEY_APPROVED_HOSTS,
   NEW_JERSEY_CONNECTOR_ID,
-  NEW_JERSEY_SOURCE_NAME,
   NEW_JERSEY_SOURCE_URL,
   NEW_JERSEY_SOURCE_VALIDATION_TEST,
   newJerseyConnector,

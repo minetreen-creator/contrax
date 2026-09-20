@@ -79,7 +79,7 @@ describe("the ladder", () => {
 
   test("the headline counts the validated states honestly and never says connected", () => {
     const headline = coverageHeadline(coverageCounts());
-    expect(headline).toContain(`${coverageCounts().validated} of 51 states have a validated source`);
+    expect(headline).toContain(`${coverageCounts().validated} of 50 states validated`);
     expect(headline).toContain(`${coverageCounts().validated} limited`);
     expect(headline).toContain("0 connected");
     expect(headline.toLowerCase()).not.toContain("nationwide");

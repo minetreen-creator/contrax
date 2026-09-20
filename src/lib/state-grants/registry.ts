@@ -493,3 +493,29 @@ export function coverageCounts(): CoverageCounts {
     validated: connected + curated + limited,
   };
 }
+/**
+ * OWNER COPY RULE (2026-09-20) — "50 states, plus D.C.", never "51 states".
+ * D.C. is a JURISDICTION, not a state, so the coverage headline may never read
+ * "X of 51 states". The registry itself keeps counting all 51 jurisdictions
+ * (`counts.total` is untouched); only the RENDERED wording separates D.C. out.
+ */
+export function isDcValidated(): boolean {
+  return listStates().some((s) => s.stateCode === "DC" && isValidatedStatus(s.status));
+}
+/**
+ * THE one coverage-headline generator, shared by the /state-grants page and the
+ * coverage API so the two can never drift apart:
+ *   "State grant coverage: 35 of 50 states validated, plus Washington, D.C.
+ *    (0 connected, 0 curated, 36 limited)".
+ * `statesValidated` excludes D.C. when — and only when — the DERIVED registry
+ * currently holds D.C. at a validated tier; if it does not, the count is every
+ * validated state and no D.C. suffix is printed.
+ */
+export function coverageHeadlineFor(counts: CoverageCounts, dcValidated: boolean): string {
+  const statesValidated = counts.validated - (dcValidated ? 1 : 0);
+  return (
+    `State grant coverage: ${statesValidated} of 50 states validated` +
+    `${dcValidated ? ", plus Washington, D.C." : ""} ` +
+    `(${counts.connected} connected, ${counts.curated} curated, ${counts.limited} limited)`
+  );
+}

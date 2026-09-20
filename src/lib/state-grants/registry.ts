@@ -320,6 +320,18 @@ import {
   OHIO_SOURCE_VALIDATION_TEST,
   ohioConnector,
 } from "~/lib/state-grants/connectors/ohio";
+// CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): NY. The owner's only
+// public-session jurisdiction ("temporary public-session cookies only … fail
+// closed", §9 of the escalation pass): the State's own Grant Opportunity Portal
+// inside the SFS Vendor Portal, read through its PUBLIC guest page. ONE source,
+// so NY stays `limited`, never advertised as statewide comprehensive coverage.
+import {
+  NEW_YORK_APPROVED_HOSTS,
+  NEW_YORK_CONNECTOR_ID,
+  NEW_YORK_SOURCE_URL,
+  NEW_YORK_SOURCE_VALIDATION_TEST,
+  newYorkConnector,
+} from "~/lib/state-grants/connectors/new-york";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -483,6 +495,8 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...NEW_JERSEY_APPROVED_HOSTS,
   // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): OH.
   ...OHIO_APPROVED_HOSTS,
+  // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): NY.
+  ...NEW_YORK_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -932,6 +946,54 @@ export const OHIO_REGISTRY_ENTRY: SourceValidationEntry = {
   tier: "limited",
   note: "One validated source: the Ohio Arts Council's own grant-program catalogue on oac.ohio.gov (grants/10-grant-opportunities) together with the 14 programme pages it links. Ohio's STATEWIDE funding-opportunities listing is published as JSON by the official OBM API host api.obm.ohio.gov, but that host presents an INCOMPLETE TLS chain (it sends only its leaf certificate, so curl, bun and node all fail verification with \"unable to get local issuer certificate\"; a browser recovers by fetching the missing intermediate) — a verified-TLS fetch cannot read it, so this connector does NOT use it and Ohio is served by ONE agency. Each programme page publishes a labelled lifecycle table under its own cycle headings, with rows such as \"*Grant Agreement Deadline: August 30, 2026\", \"Off-year Update Deadline at 5 p.m.: April 1, 2026\", \"Application Available in ARTIE: November 2024\", \"Large Orgs' Financial Materials Due: April 1, 2023\" and \"Grant Award Announcement: July 2026\". EXACTLY ONE row type is ever read: the source's own \"Application Deadline …\" row whose value is a full published day, and the LATEST such row on the page becomes the record's close date — read on STRIPPED text (several pages wrap the label in markup that a raw-HTML read misses) and never scoped by an h2 TIMELINE heading, because only one of the 14 pages has that heading. Every other date is REFUSED verbatim into raw.refusedDates with a kind and a reason and is never a posted, close or estimated date: the agreement, final-report and off-year deadlines, the ARTIE availability windows (a window OPENING, not a closing), the award-announcement months, the ADA enactment date in the ADAP page's own prose, the site's news dates around the body, and every month-and-year period. A programme whose ONLY application-deadline row is RELATIVE publishes no date and stays `unverified` (ArtsRISE: \"90 days prior to Project Start Date\"; Big Yellow School Bus: \"At least 8 weeks prior to event\"), as does Ohio Artists on Tour, which publishes no application deadline at all. No posting date and no estimate is ever produced by this source. As of 2026-09-20 the corpus yields 14 records, 2 of them open (Capacity Building and the Artists with Disabilities Access Program, both \"November 1, 2026\"). The Ohio Arts Council is ONE agency of a state whose other departments award grants we have NOT validated, so this is `limited`, never `curated`/`connected` — this is not statewide coverage.",
 };
+/**
+ * NEW YORK — the State's own Grant Opportunity Portal inside the SFS Vendor
+ * Portal (`esupplier.sfs.ny.gov`), the source the owner ruled on explicitly
+ * (2026-09-19): "Allow normal, temporary public-session cookies only—no login,
+ * CAPTCHA bypass, or persistent credential storage. Fail closed if the public
+ * session cannot be established."
+ *
+ * WHY THE HANDSHAKE IS NEEDED. New York's own Grants Management page
+ * (`grantsmanagement.ny.gov/search-funding-sfs`) links this portal directly and
+ * says of it: "Anyone can access the Grant Opportunity Portal. A username and
+ * password are not necessary to view anticipated and available grant
+ * opportunities." The portal, however, serves the listing only inside a session:
+ * a cookie-less GET of the listing URL answers 302 with no grid at all
+ * (verified 2026-09-20), while a GET of the portal's own PUBLIC guest page
+ * followed by the listing — carrying the temporary public-session cookies that
+ * page set, in memory for that run only — answers 200 with the 22-row
+ * "Response Bid Inquiry" grid (`szPinCrefLabel` = "Search for Grant
+ * Opportunities"). No credentials are sent, nothing is persisted, and any
+ * failure fails closed (the run writes nothing).
+ *
+ * HONESTY. ONE record per grid row. The record's ONLY date is the column the
+ * portal's own header labels "Due Date" — and that binding is proven
+ * structurally, by zipping the labels the page prints with the column order its
+ * own `gridFieldList_win0` declares, so a grid whose two declarations disagree
+ * fails closed instead of being read. The portal's other two date columns
+ * ("Availability Date", "Anticipated Release Date") are REFUSED verbatim into
+ * `raw.refusedDates`; the second is an ANTICIPATED (i.e. estimated) date, which
+ * this workstream never promotes. So no record carries a posting date or an
+ * estimate. The grid's own declared row count is cross-checked against the rows
+ * parsed, so a truncated grid is a failed read rather than a shorter listing. A
+ * row's Grant Opportunity cell is a PeopleSoft `javascript:` post-back and not a
+ * URL, so no per-opportunity URL is published — every record points at the
+ * official portal page it was read from.
+ *
+ * TIER. This IS the State's own multi-agency portal (its "Funding Agency" column
+ * carries AGM01, CFS01, DDP01, DEC01, DOH01, DOL01, OMH01, TDA01 …), but it is
+ * ONE source, so the tier is the owner's own ruling — `limited`, "on one
+ * statewide public portal" — and never `curated`/`connected`, and the state is
+ * never advertised as statewide comprehensive coverage.
+ */
+export const NEW_YORK_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: NEW_YORK_CONNECTOR_ID,
+  sourceUrl: NEW_YORK_SOURCE_URL,
+  testFile: NEW_YORK_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-20",
+  tier: "limited",
+  note: "One validated source: New York State's own Grant Opportunity Portal inside the SFS Vendor Portal on esupplier.sfs.ny.gov — the portal the State links from grantsmanagement.ny.gov/search-funding-sfs, which states \"Anyone can access the Grant Opportunity Portal. A username and password are not necessary to view anticipated and available grant opportunities.\" The listing is served only inside a PUBLIC session: a cookie-less GET answers 302 with no grid, so it is read through the portal's own public guest page and the temporary public-session cookies that page sets — in memory for that run only, with no credentials sent, nothing persisted, and every failure failing closed (the owner's 2026-09-19 terms). The grid is an Oracle PeopleSoft table with its own printed column headers; EXACTLY ONE of its date columns is ever published as a record's date — the one the portal labels \"Due Date\" (for example \"10/08/2026 4:30PM EDT\") — and that ownership is checked structurally against the grid's own gridFieldList_win0 declaration, so a grid whose headers and field list disagree is refused rather than read. The portal's other two date columns are REFUSED verbatim into raw.refusedDates: \"Availability Date\" is a release/availability stamp, not a closing date, and \"Anticipated Release Date\" is by the source's own word an ANTICIPATED (estimated) date, which this workstream never promotes into a date. Consequently no record carries a posting date or an estimate, no status is inferred from page prose (only from the portal's own Status cell: \"Available\" or \"Advertised Only - Not in SFS\"), and the grid's own declared row count is cross-checked so a truncated grid fails the read. Each row's Grant Opportunity cell is a PeopleSoft javascript post-back rather than a link, so no static per-opportunity URL exists and every record points at the official portal page instead. As of 2026-09-20 the corpus yields 22 records, all of them `open` (every published Due Date is still ahead). Although this IS the State's own multi-agency portal, it is ONE source, so New York is `limited` — the owner's own ruling of 2026-09-19 — and is never presented as statewide comprehensive coverage: this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -978,6 +1040,8 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     NJ: newJerseyConnector as unknown as StateGrantConnector<never>,
     // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): OH.
     OH: ohioConnector as unknown as StateGrantConnector<never>,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): NY.
+    NY: newYorkConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -1024,6 +1088,8 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     NJ: NEW_JERSEY_REGISTRY_ENTRY,
     // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): OH.
     OH: OHIO_REGISTRY_ENTRY,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): NY.
+    NY: NEW_YORK_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,
@@ -1225,7 +1291,7 @@ export function isDcValidated(): boolean {
 /**
  * THE one coverage-headline generator, shared by the /state-grants page and the
  * coverage API so the two can never drift apart:
- *   "State grant coverage: 36 of 50 states validated, plus Washington, D.C.
+ *   "State grant coverage: 37 of 50 states validated, plus Washington, D.C.
  *    (0 connected, 0 curated, 37 limited)".
  * `statesValidated` excludes D.C. when — and only when — the DERIVED registry
  * currently holds D.C. at a validated tier; if it does not, the count is every

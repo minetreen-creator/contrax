@@ -47,6 +47,47 @@ export class StateSourceError extends Error {
   }
 }
 
+/**
+ * OPT-IN PUBLIC-SESSION HANDSHAKE — the ONE portal in this workstream whose
+ * listing is served only inside a session (New York's SFS Vendor Portal).
+ *
+ * WHY THIS IS ALLOWED AT ALL (owner decision, 2026-09-19, verbatim):
+ * "Allow normal, temporary public-session cookies only—no login, CAPTCHA bypass,
+ * or persistent credential storage. Fail closed if the public session cannot be
+ * established." New York's own Grants Management page says of this portal:
+ * "Anyone can access the Grant Opportunity Portal. A username and password are
+ * not necessary to view anticipated and available grant opportunities."
+ *
+ * WHAT IT IS: a GET of the portal's own PUBLIC guest/session page, and then the
+ * listing GET carrying — in memory, for this run only — the cookies THAT page's
+ * own response told us to send. It is exactly what a browser does before it can
+ * read the listing, and nothing more.
+ *
+ * WHAT IT IS NOT (each bar is structural, not a comment):
+ *   - NO credentials are sent: no POST, no form fields, no Authorization header
+ *     (we only ever set `accept`, `user-agent` and, when a handshake ran,
+ *     `cookie`), so no login can take place even if the page later asks;
+ *   - NO CAPTCHA or access control is solved or bypassed: a handshake that is not
+ *     completed by an ordinary 2xx response FAILS CLOSED below;
+ *   - NOTHING IS PERSISTED: the jar is a local Map inside the call. No file, no
+ *     env, no module state, no database, and the values are never logged;
+ *   - NO dormant capability: the option is read only when a connector declares
+ *     it, so every other state's single fail-closed GET is byte-identical.
+ */
+export interface PublicSessionOptions {
+  /** The portal's own public session page. GET only — never a login form post. */
+  sessionUrl: string;
+  /** Marker the session page must carry (fail-closed proof we hit the portal). */
+  sessionMarker: string;
+  /** A session page smaller than this is implausible. */
+  sessionMinBytes?: number;
+  /**
+   * Cookie name(s) that response must set, or the handshake fails closed. The
+   * caller names the ONE session cookie the portal's public pages depend on.
+   */
+  requiredCookies: readonly string[];
+}
+
 export interface FetchSourceOptions {
   url: string;
   /** HTML marker the page must contain, or the run fails as a PARSE failure. */
@@ -56,6 +97,11 @@ export interface FetchSourceOptions {
   /** Bodies smaller than this are implausible — never parsed as a corpus. */
   minBytes?: number;
   fetchImpl?: typeof fetch;
+  /**
+   * OPT-IN public-session handshake (see `PublicSessionOptions`). Absent for
+   * every state but New York, which is what keeps this change additive.
+   */
+  publicSession?: PublicSessionOptions;
   /**
    * Hosts the FINAL response URL may use once redirects have been followed (the
    * connector's own approved-host allowlist).
@@ -77,24 +123,34 @@ export interface FetchSourceOptions {
  * that no longer contains the source's marker — fail-closed: a failed run writes
  * NOTHING, rather than a half-parsed corpus.
  */
-export async function fetchStateGrantSource(options: FetchSourceOptions): Promise<string> {
-  const { url, marker, label, minBytes = 1000, fetchImpl = fetch, approvedHosts } = options;
+async function requestOnce(options: {
+  url: string;
+  label: string;
+  fetchImpl: typeof fetch;
+  /** Present only after a completed public handshake — never user input. */
+  cookie?: string;
+}): Promise<{ status: number; body: string; finalUrl: string; res: Response }> {
+  const { url, label, fetchImpl, cookie } = options;
+  const headers: Record<string, string> = {
+    accept: "text/html,application/xhtml+xml",
+    "user-agent": STATE_SOURCE_USER_AGENT,
+  };
+  // The ONLY header a handshake ever adds. No cookie is user- or
+  // credential-derived: it is what the portal's own public page just set.
+  if (cookie) headers.cookie = cookie;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), STATE_SOURCE_TIMEOUT_MS);
-  let status: number;
-  let body: string;
-  /** The URL the request finally landed on (redirects followed). */
-  let finalUrl = "";
   try {
     const res = await fetchImpl(url, {
       method: "GET",
-      headers: { accept: "text/html,application/xhtml+xml", "user-agent": STATE_SOURCE_USER_AGENT },
+      headers,
       signal: controller.signal,
       redirect: "follow",
     });
-    status = res.status;
-    finalUrl = typeof res.url === "string" ? res.url : "";
-    body = await res.text();
+    const status = res.status;
+    const finalUrl = typeof res.url === "string" ? res.url : "";
+    const body = await res.text();
+    return { status, body, finalUrl, res };
   } catch (e) {
     const aborted = e instanceof Error && e.name === "AbortError";
     throw new StateSourceError(
@@ -106,6 +162,21 @@ export async function fetchStateGrantSource(options: FetchSourceOptions): Promis
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** The four fail-closed checks every fetched page must pass, unchanged. */
+function assertUsablePage(
+  page: { status: number; body: string; finalUrl: string },
+  options: {
+    url: string;
+    label: string;
+    marker: string;
+    minBytes: number;
+    approvedHosts?: readonly string[];
+  },
+): void {
+  const { url, label, marker, minBytes, approvedHosts } = options;
+  const { status, body, finalUrl } = page;
   if (status < 200 || status >= 300) {
     throw new StateSourceError("fetch", `${label} source responded ${status} (${url})`);
   }
@@ -135,7 +206,86 @@ export async function fetchStateGrantSource(options: FetchSourceOptions): Promis
       `${label} source no longer looks like the expected listing (marker ${JSON.stringify(marker)} missing)`,
     );
   }
-  return body;
+}
+
+/** Set-Cookie values of one response, however the runtime exposes them. */
+function readSetCookies(res: Response): string[] {
+  const headers = res.headers as Headers & { getSetCookie?: () => string[] };
+  if (typeof headers.getSetCookie === "function") {
+    try {
+      const all = headers.getSetCookie();
+      if (Array.isArray(all) && all.length > 0) return all;
+    } catch {
+      // Fall through to the single-header path below.
+    }
+  }
+  const combined = res.headers.get("set-cookie");
+  if (!combined) return [];
+  // Split only at a comma that is followed by `name=`, so an Expires date
+  // ("…, 01-Jan-1970 …") is never mistaken for a cookie boundary.
+  return combined.split(/,(?=\s*[A-Za-z0-9!#$%&'*+\-.^_`|~]+=)/);
+}
+
+/**
+ * The cookie header for THIS request only, built from the cookies the portal's
+ * own session page set. Never returned, never logged, never stored anywhere.
+ */
+function sessionCookieHeader(
+  res: Response,
+  options: PublicSessionOptions,
+  label: string,
+): string {
+  const jar = new Map<string, string>();
+  for (const raw of readSetCookies(res)) {
+    const pair = (raw.split(";")[0] ?? "").trim();
+    const eq = pair.indexOf("=");
+    if (eq <= 0) continue;
+    const name = pair.slice(0, eq).trim();
+    const value = pair.slice(eq + 1).trim();
+    if (name.length === 0) continue;
+    // A server clearing a cookie (empty value) is not a session we can use.
+    if (value.length === 0) {
+      jar.delete(name);
+      continue;
+    }
+    jar.set(name, value);
+  }
+  for (const required of options.requiredCookies) {
+    if (!jar.has(required)) {
+      throw new StateSourceError(
+        "fetch",
+        `${label} public session did not set the ${required} cookie — refusing to read a listing served outside a public session (fail closed)`,
+      );
+    }
+  }
+  return [...jar].map(([name, value]) => `${name}=${value}`).join("; ");
+}
+
+export async function fetchStateGrantSource(options: FetchSourceOptions): Promise<string> {
+  const { url, marker, label, minBytes = 1000, fetchImpl = fetch, approvedHosts, publicSession } =
+    options;
+  // 0. OPT-IN public-session handshake. Absent for every state but New York, so
+  //    every other source's single fail-closed GET is byte-identical to before.
+  let cookie: string | undefined;
+  if (publicSession) {
+    const sessionLabel = `${label} public session page`;
+    const sessionPage = await requestOnce({
+      url: publicSession.sessionUrl,
+      label: sessionLabel,
+      fetchImpl,
+    });
+    assertUsablePage(sessionPage, {
+      url: publicSession.sessionUrl,
+      label: sessionLabel,
+      marker: publicSession.sessionMarker,
+      minBytes: publicSession.sessionMinBytes ?? 1000,
+      approvedHosts,
+    });
+    cookie = sessionCookieHeader(sessionPage.res, publicSession, label);
+  }
+  const page = await requestOnce({ url, label, fetchImpl, cookie });
+  assertUsablePage(page, { url, label, marker, minBytes, approvedHosts });
+  return page.body;
 }
 
 // ── Text ────────────────────────────────────────────────────────────────────

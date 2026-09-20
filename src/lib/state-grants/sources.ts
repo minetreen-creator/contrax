@@ -70,6 +70,10 @@ import { newJerseyConnector } from "~/lib/state-grants/connectors/new-jersey";
 // is SILENT — the state still syncs, but the coverage row reports `sourceCount 0`
 // — so every state must add its connector to this list.
 import { ohioConnector } from "~/lib/state-grants/connectors/ohio";
+// CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): NY. A missing entry here
+// is SILENT — the state still syncs, but the coverage row reports `sourceCount 0`
+// — so every state must add its connector to this list.
+import { newYorkConnector } from "~/lib/state-grants/connectors/new-york";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -157,6 +161,10 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   // OH (continuous nationwide workstream): one agency (Ohio Arts Council),
   // `limited` — the statewide portal is not readable over verified TLS.
   ohioConnector as unknown as StateGrantConnector<never>,
+  // NY (continuous nationwide workstream): the State's own Grant Opportunity
+  // Portal inside the SFS Vendor Portal — read through its public guest page.
+  // ONE source, so `limited`, never advertised as statewide coverage.
+  newYorkConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

@@ -289,6 +289,13 @@ import {
   NEBRASKA_SOURCE_VALIDATION_TEST,
   nebraskaConnector,
 } from "~/lib/state-grants/connectors/nebraska";
+import {
+  IOWA_APPROVED_HOSTS,
+  IOWA_CONNECTOR_ID,
+  IOWA_SOURCE_URL,
+  IOWA_SOURCE_VALIDATION_TEST,
+  iowaConnector,
+} from "~/lib/state-grants/connectors/iowa";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import type { StateGrantConnector } from "~/lib/state-grants/connector";
 
@@ -445,6 +452,7 @@ export const APPROVED_SOURCE_HOSTS: readonly string[] = [
   ...MARYLAND_APPROVED_HOSTS,
   ...VERMONT_APPROVED_HOSTS,
   ...NEBRASKA_APPROVED_HOSTS,
+  ...IOWA_APPROVED_HOSTS,
 ];
 
 export const VIRGINIA_REGISTRY_ENTRY: SourceValidationEntry = {
@@ -803,6 +811,14 @@ export const NEBRASKA_REGISTRY_ENTRY: SourceValidationEntry = {
   tier: "limited",
   note: "One validated source: the Nebraska Department of Economic Development's own Programs index on opportunity.nebraska.gov plus 46 of the 63 programme pages that index links \u2014 the ones whose own page publishes a labelled application-window block (verified live 2026-09-19). The index itself publishes ZERO date tokens (its news and \u201cstay up to date\u201d furniture is never read), so every record is read from ONE programme page's own Divi promo module: the module's own heading is the title, and its own labels (Open Date/Close Date, Submission Open|Close Date, Pre-/Full Application Opens|Closes, Application Deadline, a date-to-date range under \u201cApplication Period\u201d, or the source's own \u201cOpen Cycle\u201d wording) decide the window. Anticipated award dates, letters of intent, periods of performance and press-release dates are never read; a year-less deadline (\u201cApplication Deadline: Sept. 15\u201d) is kept verbatim with NO close date, and a block publishing two successive periods at once is refused rather than picked. Past cycles the DED leaves on live pages are served `closed`, never hidden and never open. Two of the index's 63 links 404, which is why the child list is PINNED rather than link-derived. This is ONE agency's programme pages: other Nebraska agencies and local bodies award grants we have NOT validated, so the state is `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
 };
+export const IOWA_REGISTRY_ENTRY: SourceValidationEntry = {
+  connectorId: IOWA_CONNECTOR_ID,
+  sourceUrl: IOWA_SOURCE_URL,
+  testFile: IOWA_SOURCE_VALIDATION_TEST,
+  verifiedOn: "2026-09-19",
+  tier: "limited",
+  note: "One validated source: the Iowa Economic Development Authority / Iowa Arts Council's own Grants & Programs catalogue on opportunityiowa.gov (the FINAL URL the off-host iowaculture.gov/grants 301 lands on) plus 18 of the 19 programme pages that catalogue publishes. The catalogue is a JS-rendered program catalogue with NO date token of its own, so every record is read from ONE programme page's OWN body region. Only labels the agency itself publishes are read: a `Deadline:` block per applicant role (the Iowans Create Community Mural Program publishes one for Communities and one for Artists), a `<date> | <label>` line in a Timeline list, the agency's sentence \"The deadline for submitting an online application is 11:59PM on <date>\", a published acceptance window (\"accepted from February 2, 2026, through March 16, 2026\") and its own rolling declaration (\"accepted on a rolling basis until April 15, 2027\") \u2014 which is served `rolling` with NO close date. Everything else this source dates is REFUSED and recorded verbatim in each record's `raw.refusedDates`: the Final Report Deadline, Finalist Applicant Interviews and Award Notification milestones in the Scholarship Timeline, the Film Rebate page's fund-availability and expense-window days, and the eligible funding periods. Twelve programmes whose pages state in the agency's own words that they are \"not currently accepting applications\" (or \"will not be accepting applications\") are served `closed` with no date; three pages that publish no window of their own are `unverified` rather than guessed. Two catalogue tiles are deliberately NOT read: a program-guidelines page that restates its parent's window (reading both would double-count one application) and a grantee support FAQ. This is ONE agency's arts-and-culture catalogue: Iowa awards grants through other departments and local bodies we have NOT validated, so the state is `limited`, never `curated`/`connected` \u2014 this is not statewide coverage.",
+};
 export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
   connectors: {
     VA: virginiaConnector as unknown as StateGrantConnector<never>,
@@ -842,6 +858,8 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     TX: texasConnector as unknown as StateGrantConnector<never>,
     MD: marylandConnector as unknown as StateGrantConnector<never>,
     VT: vermontConnector as unknown as StateGrantConnector<never>,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19): IA.
+    IA: iowaConnector as unknown as StateGrantConnector<never>,
   },
   validations: {
     VA: VIRGINIA_REGISTRY_ENTRY,
@@ -881,6 +899,8 @@ export const DEFAULT_REGISTRY_INPUTS: RegistryInputs = {
     TX: TEXAS_REGISTRY_ENTRY,
     MD: MARYLAND_REGISTRY_ENTRY,
     VT: VERMONT_REGISTRY_ENTRY,
+    // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19): IA.
+    IA: IOWA_REGISTRY_ENTRY,
   },
   approvedHosts: APPROVED_SOURCE_HOSTS,
   states: STATE_CODES,

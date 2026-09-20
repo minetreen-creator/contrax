@@ -21,7 +21,12 @@ import {
   coverageLadder,
   type StateGrantCoverageDeps,
 } from "~/lib/state-grants/coverage.server";
-import { STATE_CODES, coverageCounts } from "~/lib/state-grants/registry";
+import {
+  STATE_CODES,
+  coverageCounts,
+  coverageHeadlineFor,
+  isDcValidated,
+} from "~/lib/state-grants/registry";
 
 const NOW = new Date("2026-09-19T12:00:00Z");
 
@@ -78,12 +83,34 @@ describe("the ladder", () => {
     }
   });
 
-  test("the headline counts the validated states honestly and never says connected", () => {
-    const headline = coverageHeadline(coverageCounts());
-    expect(headline).toContain(`${coverageCounts().validated} of 51 states have a validated source`);
-    expect(headline).toContain(`${coverageCounts().validated} limited`);
+  test("the headline counts 50 STATES plus D.C. and never says connected", () => {
+    const counts = coverageCounts();
+    const headline = coverageHeadline(counts);
+    // D.C. is a jurisdiction, not a state (owner copy rule 2026-09-20): the
+    // headline counts it out of the 50 and names it on its own. Today the
+    // derived registry holds D.C. at a validated tier, so the suffix is present.
+    expect(isDcValidated()).toBe(true);
+    expect(headline).toContain(
+      `${counts.validated - 1} of 50 states validated, plus Washington, D.C.`,
+    );
+    expect(headline).toContain(`${counts.validated} limited`);
     expect(headline).toContain("0 connected");
+    // The owner's rule, stated as a copy guard: never "51 states".
+    expect(headline).not.toContain("51 states");
+    expect(headline).not.toContain("of 51");
     expect(headline.toLowerCase()).not.toContain("nationwide");
+  });
+  test("with no validated D.C. the count is every validated state and no suffix prints", () => {
+    // Deterministic branch check, independent of today's registry: the shared
+    // generator is the single source of the wording for both callers.
+    const counts = { ...coverageCounts(), total: 50, connected: 0, curated: 0, limited: 4, validated: 4, unavailable: 46 };
+    expect(coverageHeadlineFor(counts, false)).toBe(
+      "State grant coverage: 4 of 50 states validated (0 connected, 0 curated, 4 limited)",
+    );
+    expect(coverageHeadlineFor(counts, true)).toBe(
+      "State grant coverage: 3 of 50 states validated, plus Washington, D.C. (0 connected, 0 curated, 4 limited)",
+    );
+    expect(coverageHeadlineFor(counts, true)).not.toContain("51 states");
   });
 });
 
@@ -92,9 +119,9 @@ describe("the coverage payload", () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     expect(payload.states.length).toBe(STATE_CODES.length);
     expect(payload.states.length).toBe(51);
-    expect(payload.counts.validated).toBe(35);
-    expect(payload.counts.unavailable).toBe(16);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WY"]);
+    expect(payload.counts.validated).toBe(36);
+    expect(payload.counts.unavailable).toBe(15);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NJ", "NM", "ND", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WY"]);
     for (const state of payload.validated) {
       // Each of these is ONE validated source — never statewide, never connected.
       expect(state.tier).toBe("limited");
@@ -139,7 +166,7 @@ describe("the coverage payload", () => {
   test("every uncovered state carries a machine-readable reason", async () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     const unavailable = payload.states.filter((s) => s.status === "unavailable");
-    expect(unavailable.length).toBe(16);
+    expect(unavailable.length).toBe(15);
     for (const state of unavailable) {
       expect(state.reason.length).toBeGreaterThan(0);
       expect(state.sourceValidationTest).toBeNull();

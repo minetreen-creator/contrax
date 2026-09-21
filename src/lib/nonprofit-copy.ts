@@ -108,6 +108,27 @@ export function nonprofitVerificationBadge(entitlement: {
   return verificationWording(entitlement.irsRecordsAsOf);
 }
 
+// ── Same-site return paths (the `?next=` guard) ───────────────────────────────
+/**
+ * A same-site absolute return path, or null when the value must not be honoured.
+ *
+ * WHY THIS IS A FUNCTION AND NOT A REGEX AT THE CALL SITE (QA finding §1.30). The apply
+ * page honours `?next=` by handing it to `window.location.assign()` after a successful
+ * submit. The original inline pattern `/^\/[A-Za-z0-9\-_/.]*$/` also matches `//evil.com`,
+ * which a browser reads as PROTOCOL-RELATIVE — so `?next=%2F%2Fevil.com` sent a successful
+ * applicant to an external host (an open redirect). A leading `//` is therefore refused
+ * explicitly, and so is a backslash anywhere (browsers normalise `\` to `/`, so `/\evil.com`
+ * is the same attack). Anything that is not a plain absolute path — a scheme, a host, a
+ * query string, whitespace — is refused by the character class.
+ */
+export function safeNonprofitReturnPath(value: string | null | undefined): string | null {
+  if (typeof value !== "string") return null;
+  const candidate = value.trim();
+  if (!candidate.startsWith("/")) return null;
+  if (candidate.startsWith("//") || candidate.includes("\\")) return null;
+  return /^\/[A-Za-z0-9\-_/.]*$/.test(candidate) ? candidate : null;
+}
+
 // ── Apply page copy ───────────────────────────────────────────────────────────
 export const NONPROFIT_APPLY_HEADLINE = "Apply for Nonprofit Free";
 export const NONPROFIT_APPLY_INTRO = NONPROFIT_FREE_PROMISE;
@@ -183,6 +204,13 @@ export const NONPROFIT_STATUS_HEADLINE = "Your Nonprofit Free status";
 export const NONPROFIT_STATUS_NONE_COPY =
   "This account has not applied for Nonprofit Free access yet.";
 export const NONPROFIT_STATUS_APPLY_LINK_LABEL = "Apply for Nonprofit Free";
+/**
+ * The link label for a surface that is ALREADY linked to the status page (QA finding §1.31):
+ * the apply page's "you already have an application" panel used
+ * `NONPROFIT_STATUS_APPLY_LINK_LABEL` while pointing at /nonprofit/status, so the applicant
+ * was invited to "Apply for Nonprofit Free →" on the page where they were applying.
+ */
+export const NONPROFIT_STATUS_PAGE_LINK_LABEL = "View your application status";
 export const NONPROFIT_STATUS_APPROVED_DETAIL =
   "Free grant search is active on this account. Basic searching stays free for a verified " +
   "nonprofit — there is no end date and nothing to renew.";
@@ -331,6 +359,7 @@ export function nonprofitCopyStrings(): string[] {
     NONPROFIT_STATUS_HEADLINE,
     NONPROFIT_STATUS_NONE_COPY,
     NONPROFIT_STATUS_APPLY_LINK_LABEL,
+    NONPROFIT_STATUS_PAGE_LINK_LABEL,
     NONPROFIT_STATUS_APPROVED_DETAIL,
     NONPROFIT_STATUS_MANUAL_DETAIL,
     NONPROFIT_STATUS_DOCS_REQUESTED_DETAIL,

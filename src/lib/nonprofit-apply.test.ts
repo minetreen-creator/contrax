@@ -37,7 +37,9 @@ import {
   NONPROFIT_APPLY_VALIDATION,
   NONPROFIT_NOT_GRANTED_COPY,
   NONPROFIT_PROMISE,
+  NONPROFIT_STATUS_PAGE_LINK_LABEL,
   nonprofitCopyStrings,
+  safeNonprofitReturnPath,
   statusCopyFor,
   verificationWording,
 } from "~/lib/nonprofit-copy";
@@ -232,6 +234,77 @@ describe("the apply flow's order of operations", () => {
     expect(harness.saved()?.input.userId).toBe(42);
   });
 
+  test("a RELEASED EIN's new applicant is judged on its OWN merits — the released row is never fed to the engine (QA §0)", async () => {
+    // The normal case for a released EIN: an administrator released the previous row, and a
+    // DIFFERENT organization then legitimately claims the EIN. Its name is therefore
+    // materially different from the released holder's — Tier C to the engine.
+    const RELEASED_HOLDER = {
+      user_id: 99,
+      status: "denied",
+      org_name: "Previously Denied Org",
+      released_at: "2026-09-20T00:00:00.000Z",
+    };
+    // A live 501(c)(3) whose legal name corresponds to THIS applicant (the auto-approve shape).
+    const BMF_MATCH = {
+      einFormat: "ok" as const,
+      ein: "010488538",
+      einFound: true,
+      nameTier: "A" as const,
+      submittedNameNormalized: "MAINE ASSOCIATION OF NONPROFITS",
+      matchedBmfName: "MAINE ASSOCIATION OF NONPROFITS",
+      bmfStatus: "01",
+      bmfSubsection: "03",
+      bmfGroupNo: "0000",
+      bmfPostingDate: "2026-09-08",
+      onRevocationList: false,
+      inPub78: true,
+      pub78DeductibilityCode: "PC",
+    };
+    const harness = makeDeps({
+      findEinHolder: async () => RELEASED_HOLDER,
+      // The verdict is NOT stubbed: whatever `einClaim` the apply flow produced is handed
+      // straight to the REAL engine, so this test fails the moment a released row reaches it
+      // as a claim (the pre-fix `einClaim: holder ? {…} : null`).
+      verify: async (input) => {
+        harness.calls.verify += 1;
+        return decideNonprofitVerification({
+          ...BMF_MATCH,
+          ein: input.ein,
+          einClaim: input.einClaim ?? null,
+          applicantUserId: input.applicantUserId ?? null,
+          now: FIXED_NOW,
+        });
+      },
+    });
+
+    const result = await applyForNonprofitFree({ userId: 42, body: VALID_BODY }, harness.deps);
+    expect(result.body.status).toBe("approved");
+    expect(harness.saved()?.outcome.decision).toBe("auto_approve");
+    expect(harness.saved()?.outcome.reasonClass).toBe("clear-match");
+    expect(harness.saved()?.outcome.status).toBe("approved");
+    expect(harness.calls.notify).toEqual(["approved"]);
+    // ...and the new applicant wrote THEIR OWN row.
+    expect(harness.saved()?.input.userId).toBe(42);
+
+    // CONTROL — the regression this fix removes, pinned. Had the released row been passed as
+    // a claim (the pre-fix behaviour), the Tier-C name comparison would have routed an
+    // innocent applicant into the owner's DENY lane and filed a fraud class against them.
+    const poisoned = decideNonprofitVerification({
+      ...BMF_MATCH,
+      einClaim: {
+        userId: RELEASED_HOLDER.user_id,
+        orgName: RELEASED_HOLDER.org_name,
+        status: RELEASED_HOLDER.status,
+      },
+      applicantUserId: 42,
+      now: FIXED_NOW,
+    });
+    expect(poisoned.decision).toBe("deny");
+    expect(poisoned.status).toBe("denied");
+    expect(poisoned.reason).toBe("ein_conflict_different_org");
+    expect(poisoned.reasonClass).toBe("fraud-likely");
+  });
+
   test("an approval returns the owner's wording built from the mirror's posting date", async () => {
     const harness = makeDeps({
       verify: async () => {
@@ -246,6 +319,49 @@ describe("the apply flow's order of operations", () => {
     );
     expect(result.body.statusLabel).toBe("Verified");
     expect(harness.calls.notify).toEqual(["approved"]);
+  });
+
+  test("no NON-approved outcome ever carries the verification wording (QA §1.32)", async () => {
+    // Both verdicts are given a mirror POSTING DATE, so the wording genuinely exists — the
+    // only reason it must not appear in the response is the status. Nothing renders it today;
+    // gating it on `approved` means no future consumer can show a verification claim to an
+    // unverified applicant.
+    const manualWithDate = decideNonprofitVerification({
+      einFormat: "ok",
+      ein: "142007220",
+      einFound: false,
+      submittedNameNormalized: "SOME NEW CHARITY",
+      bmfPostingDate: "2026-09-08",
+      now: FIXED_NOW,
+    });
+    const deniedWithDate = decideNonprofitVerification({
+      einFormat: "ok",
+      ein: "010488538",
+      einFound: true,
+      nameTier: "A",
+      submittedNameNormalized: "MAINE ASSOCIATION OF NONPROFITS",
+      matchedBmfName: "MAINE ASSOCIATION OF NONPROFITS",
+      bmfStatus: "01",
+      bmfSubsection: "03",
+      bmfPostingDate: "2026-09-08",
+      conflicts: ["identity_contradicts_application"],
+      now: FIXED_NOW,
+    });
+    expect(manualWithDate.status).toBe("manual_review");
+    expect(deniedWithDate.status).toBe("denied");
+    for (const outcome of [manualWithDate, deniedWithDate]) {
+      expect(outcome.signals.bmfPostingDate).toBe("2026-09-08");
+      // The wording the pre-fix code would have returned for this outcome:
+      expect(verificationWording(outcome.signals.bmfPostingDate)).not.toBeNull();
+      const result = await applyForNonprofitFree(
+        { userId: 42, body: VALID_BODY },
+        makeDeps({ verify: async () => outcome }).deps,
+      );
+      expect(result.body.status).not.toBe("approved");
+      expect(result.body.verificationWording).toBeNull();
+      expect(result.body.statusLabel).not.toBe("Verified");
+    }
+    // The approved branch is the ONLY one that carries it (the pairing test above).
   });
 
   test("a denial returns the neutral, appealable copy — never the reason or the class", async () => {
@@ -347,6 +463,54 @@ describe("the released-EIN claim semantics", () => {
     });
     const result = await applyForNonprofitFree({ userId: 42, body: VALID_BODY }, harness.deps);
     expect(JSON.stringify(result.body)).not.toContain("777");
+  });
+});
+
+describe("the apply page's ?next= return path and its link copy (QA §1.30 / §1.31 / §1.41)", () => {
+  const APPLY_PAGE = readFileSync(new URL("../routes/nonprofit/apply.tsx", import.meta.url), "utf8");
+
+  test("a same-site path is honoured, and an off-site one can never be reached", () => {
+    expect(safeNonprofitReturnPath("/nonprofit/status")).toBe("/nonprofit/status");
+    expect(safeNonprofitReturnPath("/grants")).toBe("/grants");
+    // THE OPEN REDIRECT (the finding): `//evil.com` is PROTOCOL-RELATIVE, so
+    // window.location.assign() would have sent a successful applicant to an external host.
+    expect(safeNonprofitReturnPath("//evil.com")).toBeNull();
+    expect(safeNonprofitReturnPath("///evil.com")).toBeNull();
+    expect(safeNonprofitReturnPath("/\\evil.com")).toBeNull();
+    expect(safeNonprofitReturnPath("\\evil.com")).toBeNull();
+    expect(safeNonprofitReturnPath("//evil.com/nonprofit/status")).toBeNull();
+    expect(safeNonprofitReturnPath("https://evil.com")).toBeNull();
+    expect(safeNonprofitReturnPath("http://evil.com")).toBeNull();
+    expect(safeNonprofitReturnPath("javascript:alert(1)")).toBeNull();
+    expect(safeNonprofitReturnPath("nonprofit/status")).toBeNull();
+    expect(safeNonprofitReturnPath("")).toBeNull();
+    expect(safeNonprofitReturnPath(null)).toBeNull();
+    expect(safeNonprofitReturnPath(undefined)).toBeNull();
+  });
+
+  test("the page routes ?next= through the guard, and the guard rejects the payload", () => {
+    // The page must not carry its own regex any more: the rule lives in one tested place.
+    expect(APPLY_PAGE).toContain("safeNonprofitReturnPath(params.get(\"next\"))");
+    expect(APPLY_PAGE).not.toContain("/^\\/[A-Za-z0-9");
+    expect(APPLY_PAGE).toContain("window.location.assign(returnPath)");
+  });
+
+  test("the already-applied panel links to the status page with the STATUS label", () => {
+    expect(NONPROFIT_STATUS_PAGE_LINK_LABEL).toBe("View your application status");
+    expect(APPLY_PAGE).toContain('href="/nonprofit/status"');
+    expect(APPLY_PAGE).toContain("{NONPROFIT_STATUS_PAGE_LINK_LABEL}");
+    // The finding: the panel asked an applicant to "Apply for Nonprofit Free →" while
+    // pointing at /nonprofit/status.
+    expect(APPLY_PAGE).not.toContain("NONPROFIT_STATUS_APPLY_LINK_LABEL");
+  });
+
+  test("no real EIN example is exposed on the public apply page (QA §1.41)", () => {
+    // 010488538 is the Maine Association of Nonprofits' real EIN (used in fixtures and in the
+    // DB suite as a documented real record). A public form must not print it.
+    expect(APPLY_PAGE).not.toContain("010488538");
+    expect(APPLY_PAGE).toContain("for example 01-2345678");
+    // ...and the synthetic example is one the form itself accepts (not a bogus pattern).
+    expect(validateNonprofitApplyFields({ ...VALID_BODY, ein: "01-2345678" }).ok).toBe(true);
   });
 });
 
@@ -481,14 +645,45 @@ describe("copy module rules (build plan §6)", () => {
   });
 
   test("no surface contains a forbidden phrase or pattern", () => {
-    const surfaces = [
+    const copySurfaces = [
       "./nonprofit-copy.ts",
       "../routes/nonprofit/apply.tsx",
       "../routes/nonprofit/status.tsx",
     ];
+    // QA §1.39: the wall also covers the SERVER half of the flow, the /grants nonprofit
+    // banner and both applicant emails — previously only the copy module and the two pages
+    // were scanned, so the strings the API and the mailer actually send were unchecked.
+    // Doc comments are stripped for the code files (a comment may legitimately NAME the
+    // thing it forbids); applicant-facing text is scanned verdict-verbatim.
+    const codeSurfaces = [
+      "./nonprofit-apply.server.ts",
+      "../routes/api/nonprofit/apply.ts",
+      "../routes/api/nonprofit/status.ts",
+    ];
+    const grantsPage = readFileSync(new URL("../routes/grants.tsx", import.meta.url), "utf8");
+    const grantsBanner = grantsPage.slice(
+      grantsPage.indexOf("Nonprofit Free door"),
+      grantsPage.indexOf("checkoutDone &&"),
+    );
+    const emailSource = readFileSync(new URL("./email.ts", import.meta.url), "utf8");
+    const emailHelpers = emailSource.indexOf("// ── Helpers");
+    expect(emailHelpers).toBeGreaterThan(0);
+    const applicantEmails = emailSource.slice(
+      emailSource.indexOf("sendNonprofitApprovedEmail"),
+      emailHelpers,
+    );
+    // A renamed marker would silently widen or empty a slice, disabling the check.
+    expect(grantsBanner.length).toBeGreaterThan(200);
+    expect(applicantEmails.length).toBeGreaterThan(200);
+
     const strings = [
       ...nonprofitCopyStrings(),
-      ...surfaces.map((path) => readFileSync(new URL(path, import.meta.url), "utf8")),
+      ...copySurfaces.map((path) => readFileSync(new URL(path, import.meta.url), "utf8")),
+      ...codeSurfaces.map((path) =>
+        stripComments(readFileSync(new URL(path, import.meta.url), "utf8")),
+      ),
+      grantsBanner,
+      applicantEmails,
     ];
     for (const text of strings) {
       for (const phrase of FORBIDDEN_NONPROFIT_PHRASES) {

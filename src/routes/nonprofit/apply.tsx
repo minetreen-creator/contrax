@@ -22,7 +22,8 @@ import {
   NONPROFIT_APPLY_SIGNED_OUT_LOGIN_LABEL,
   NONPROFIT_APPLY_SIGNED_OUT_SIGNUP_LABEL,
   NONPROFIT_APPLY_SUBMIT_LABEL,
-  NONPROFIT_STATUS_APPLY_LINK_LABEL,
+  NONPROFIT_STATUS_PAGE_LINK_LABEL,
+  safeNonprofitReturnPath,
 } from "~/lib/nonprofit-copy";
 import { US_STATES } from "~/lib/states";
 
@@ -75,9 +76,12 @@ function NonprofitApplyPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const next = params.get("next");
     // Only a same-site absolute path is honoured; anything else returns to the status page.
-    if (next && /^\/[A-Za-z0-9\-_/.]*$/.test(next)) setReturnPath(next);
+    // The guard itself lives in the copy module (`safeNonprofitReturnPath`) so the
+    // open-redirect rule — never `//evil.com`, never a backslash — is testable rather than a
+    // regex re-read by hand at every call site.
+    const next = safeNonprofitReturnPath(params.get("next"));
+    if (next) setReturnPath(next);
     let cancelled = false;
     fetch("/api/nonprofit/status", { headers: { accept: "application/json" } })
       .then(async (response) => {
@@ -202,7 +206,7 @@ function NonprofitApplyPage() {
               href="/nonprofit/status"
               className="mt-3 inline-block text-sm font-semibold text-blue-700 hover:text-blue-800"
             >
-              {NONPROFIT_STATUS_APPLY_LINK_LABEL} →
+              {NONPROFIT_STATUS_PAGE_LINK_LABEL} →
             </a>
           </div>
         )}
@@ -238,7 +242,7 @@ function NonprofitApplyPage() {
                 className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm"
               />
               <p className="mt-1 text-xs text-slate-500">
-                Nine digits, as they appear on IRS records (for example 010488538).
+                Nine digits, as they appear on IRS records (for example 01-2345678).
               </p>
               {errors.ein && <p className="mt-1 text-sm text-red-600">{errors.ein}</p>}
             </div>

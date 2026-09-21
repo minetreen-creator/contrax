@@ -431,11 +431,23 @@ export async function applyForNonprofitFree(
   }
 
   // 5. Verification — the local IRS mirror only, fail-closed to manual review.
+  //
+  // A RELEASED EIN MUST NOT REACH THE ENGINE AS A CLAIM (QA finding §0). The engine has no
+  // "released" concept: it would read the released row as a live second claim, and because a
+  // released EIN is normally re-claimed by a DIFFERENT organization, the name comparison
+  // would be material (Tier C) → `ein_claimed_by_different_org` → the DENY lane, or at best
+  // the `ein_already_claimed` manual branch. Either way an administrator's release would
+  // re-poisons the EIN and file a fraud-class verdict against an innocent applicant. An
+  // administrator's release makes the EIN UNCLAIMED (`evaluateNonprofitEinClaim`), so the
+  // released row is dropped here and the applicant is judged on their own merits. The
+  // pre-write claim check is unchanged: the released row still may not block the new
+  // claimant, who writes their OWN row (the released row is never deleted or reused).
+  const heldByAnotherAccount = holder != null && claim.outcome !== "released_claimable";
   const outcome = await deps.verify({
     ein: input.ein,
     orgName: input.orgName,
     websiteOrEmail: input.website ?? input.workEmail,
-    einClaim: holder
+    einClaim: heldByAnotherAccount
       ? { userId: holder.user_id, orgName: holder.org_name ?? null, status: holder.status }
       : null,
     applicantUserId: request.userId,
@@ -456,7 +468,15 @@ export async function applyForNonprofitFree(
 
   // 7. The applicant is told the outcome in plain language. Copy comes from the copy
   // module, so the API response and the page cannot state different things.
-  const wording = verificationWording(outcome.signals.bmfPostingDate ?? null);
+  //
+  // The owner's wording is a CLAIM OF VERIFICATION, so it is built ONLY for an approved
+  // application (QA finding §1.32): a manual_review or denied response must never carry it,
+  // or a future consumer could render "Verified against IRS tax-exempt records…" for an
+  // applicant who has not been verified. (The approval email already omits a null wording.)
+  const wording =
+    outcome.status === "approved"
+      ? verificationWording(outcome.signals.bmfPostingDate ?? null)
+      : null;
   const copy = statusCopyFor(outcome.status);
   if (deps.notify && (outcome.status === "approved" || outcome.status === "denied")) {
     // Fail-open by contract: a mail problem never changes the applicant's outcome. The
@@ -486,7 +506,8 @@ export async function applyForNonprofitFree(
       reviewWindow: NONPROFIT_APPLY_REVIEW_WINDOW,
       supportingDocsRequested: outcome.supportingDocsRequested,
       // The owner's wording, from the mirror's date — null (rendered as nothing) when the
-      // mirror has not been imported, which is also when nothing can be auto-approved.
+      // mirror has not been imported, and null for every non-approved status: an
+      // unverified applicant is never handed a verification claim.
       verificationWording: wording,
     },
   };

@@ -60,8 +60,8 @@ import {
   nonprofitSearchAllowance,
   nonprofitSearchPolicy,
   subsectionLabel,
-  verificationWording,
   verificationWordingForIrsRecordsAsOf,
+  verificationWordingForMonth,
   type NonprofitApplicationRow,
   type NonprofitEntitlement,
   type NonprofitSearchPolicy,
@@ -660,10 +660,10 @@ describe("the verification-status wording (owner decision, RESOLVED 2026-09-21)"
     expect(NONPROFIT_VERIFICATION_WORDING_TEMPLATE).toBe(
       "Verified against IRS tax-exempt records updated {Month Year}",
     );
-    expect(verificationWording("September", 2026)).toBe(
+    expect(verificationWordingForMonth("September", 2026)).toBe(
       "Verified against IRS tax-exempt records updated September 2026",
     );
-    expect(verificationWording("January", "2027")).toBe(
+    expect(verificationWordingForMonth("January", "2027")).toBe(
       "Verified against IRS tax-exempt records updated January 2027",
     );
   });

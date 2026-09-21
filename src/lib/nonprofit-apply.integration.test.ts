@@ -30,6 +30,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { neon } from "@neondatabase/serverless";
 import { schemaStatements } from "../../db/migrations/sql-statements";
+import { decideNonprofitVerification } from "~/lib/nonprofit-verification.server";
 
 const ENABLED =
   process.env.NONPROFIT_TEST_PROVISION_SCHEMA === "1" && !!process.env.DATABASE_URL;
@@ -222,5 +223,119 @@ describe.if(ENABLED)("migration 046 on a schema.sql-only database", () => {
       rejected = String((error as Error).message);
     }
     expect(rejected).toMatch(/check constraint|violates/i);
+  });
+
+  /**
+   * QA §2.53. The unit suite proves "one row per user" by SOURCE TEXT; this proves it by
+   * BEHAVIOUR, through the writer that production actually runs
+   * (`saveNonprofitApplicationOutcome`: INSERT … ON CONFLICT (user_id) DO UPDATE).
+   *
+   * HOW IT REACHES THE THROWAWAY DATABASE. `~/db`'s `sql()` resolves `process.env.DATABASE_URL`
+   * LAZILY on every call (deliberately — the site must build without a database), so pointing
+   * that variable at the throwaway schema database for the duration of this one test is
+   * enough; the original value is restored in `finally`, and every other query in this file
+   * keeps using its own `neon(SCHEMA_URL)` handle. The alternative — hand-writing the
+   * upsert — is exactly the thing that would have to be trusted instead of tested.
+   */
+  test("a re-apply updates ONE row and the first grant date survives", async () => {
+    const db = neon(SCHEMA_URL as string);
+    const users = (await db`
+      INSERT INTO users (email, password_hash) VALUES ('reapply-one-row@example.org', 'x')
+      RETURNING id
+    `) as { id: number }[];
+    const userId = users[0]!.id;
+
+    const previousUrl = process.env.DATABASE_URL;
+    process.env.DATABASE_URL = SCHEMA_URL as string;
+    try {
+      const { saveNonprofitApplicationOutcome } = await import("./nonprofit-apply.server");
+      const input = {
+        userId,
+        orgName: "Reapply Test Org",
+        workEmail: "reapply@example.org",
+        website: null,
+        ein: "142007299",
+        state: "ME",
+        contactName: "Test Applicant",
+        contactRole: "Director",
+        orgUseConfirmed: true,
+        now: new Date("2026-09-21T12:00:00.000Z"),
+      };
+
+      // 1. A first application that AUTO-APPROVES — this is what stamps `granted_at`.
+      const approved = decideNonprofitVerification({
+        einFormat: "ok",
+        ein: "142007299",
+        einFound: true,
+        nameTier: "A",
+        submittedNameNormalized: "REAPPLY TEST ORG",
+        matchedBmfName: "REAPPLY TEST ORG",
+        bmfStatus: "01",
+        bmfSubsection: "03",
+        bmfGroupNo: "0000",
+        bmfPostingDate: "2026-09-08",
+        onRevocationList: false,
+        inPub78: true,
+        pub78DeductibilityCode: "PC",
+        now: input.now,
+      });
+      expect(approved.decision).toBe("auto_approve");
+      const first = await saveNonprofitApplicationOutcome(approved, input);
+      expect(first.ok).toBe(true);
+      const grantedRow = (await db`
+        SELECT id, status, granted_at FROM nonprofit_applications WHERE user_id = ${userId}
+      `) as { id: number; status: string; granted_at: string | null }[];
+      expect(grantedRow).toHaveLength(1);
+      expect(grantedRow[0]!.status).toBe("approved");
+      expect(grantedRow[0]!.granted_at).not.toBeNull();
+
+      // 2. The SAME user re-applies and does NOT get approved this time (the EIN is not in
+      //    the mirror → manual review, a null `granted_at`).
+      const manual = decideNonprofitVerification({
+        einFormat: "ok",
+        ein: "142007299",
+        einFound: false,
+        submittedNameNormalized: "REAPPLY TEST ORG RENAMED",
+        now: input.now,
+      });
+      expect(manual.status).toBe("manual_review");
+      const second = await saveNonprofitApplicationOutcome(manual, {
+        ...input,
+        orgName: "Reapply Test Org Renamed",
+      });
+      expect(second.ok).toBe(true);
+      expect(second.applicationId).toBe(first.applicationId);
+
+      const after = (await db`
+        SELECT id, status, granted_at, org_name, ein,
+               (SELECT COUNT(*) FROM nonprofit_applications WHERE user_id = ${userId}) AS rows_for_user
+        FROM nonprofit_applications WHERE user_id = ${userId}
+      `) as {
+        id: number;
+        status: string;
+        granted_at: string | null;
+        org_name: string;
+        ein: string;
+        rows_for_user: string | number;
+      }[];
+      // ONE row, the SAME row, updated in place — the audit trail cannot fork.
+      expect(after).toHaveLength(1);
+      expect(Number(after[0]!.rows_for_user)).toBe(1);
+      expect(after[0]!.id).toBe(first.applicationId);
+      expect(after[0]!.status).toBe("manual_review");
+      expect(after[0]!.org_name).toBe("Reapply Test Org Renamed");
+      // `granted_at = COALESCE(EXCLUDED.granted_at, nonprofit_applications.granted_at)`: the
+      // historical first-grant date survives a later verdict that grants nothing.
+      expect(after[0]!.granted_at).not.toBeNull();
+      expect(new Date(after[0]!.granted_at as string).toISOString()).toBe(
+        new Date(grantedRow[0]!.granted_at as string).toISOString(),
+      );
+      // The EIN round-trips through the writer as a nine-character STRING (owner rule:
+      // never an integer — 3% of real EINs start with a zero).
+      expect(after[0]!.ein).toBe("142007299");
+      expect(String(after[0]!.ein).length).toBe(9);
+    } finally {
+      process.env.DATABASE_URL = previousUrl;
+    }
   });
 });

@@ -31,9 +31,9 @@ export const NONPROFIT_FREE_TIER_NAME = "Nonprofit Free";
  * both of the two former "open decisions" are CLOSED and this comment is not a proposal
  * any more. The owner's exact phrase is
  * `"Verified against IRS tax-exempt records updated [Month Year]"`, built by
- * `verificationWording()` below from the mirror's OWN posting date (never hand-typed),
- * which is why every verify path carries `irsRecordsAsOf` through to the UI instead of a
- * bare "verified" badge.
+ * `verificationWordingForIrsRecordsAsOf()` below from the mirror's OWN posting date (never
+ * hand-typed), which is why every verify path carries `irsRecordsAsOf` through to the UI
+ * instead of a bare "verified" badge.
  */
 export const NONPROFIT_FREE_PROMISE =
   "Government grant search—free for verified nonprofit organizations. No credit card required.";
@@ -77,10 +77,17 @@ export function monthNameOf(month: number): string | null {
 }
 /**
  * The owner's sentence for one month and year:
- * `verificationWording("September", 2026)` →
+ * `verificationWordingForMonth("September", 2026)` →
  * `"Verified against IRS tax-exempt records updated September 2026"`.
+ *
+ * NAMED FOR ITS INPUTS ON PURPOSE (QA finding §1.40). This module and
+ * `src/lib/nonprofit-copy.ts` both build the owner's sentence; the copy module's
+ * `verificationWording(isoDate)` takes an IRS posting DATE, this one a month NAME + year.
+ * Two exported functions with the same name and different signatures invited a
+ * mis-import that silently renders "…updated 2026-09-08 undefined", so the month/year
+ * form carries a name only it can mean.
  */
-export function verificationWording(monthName: string, year: number | string): string {
+export function verificationWordingForMonth(monthName: string, year: number | string): string {
   return `Verified against IRS tax-exempt records updated ${monthName} ${year}`;
 }
 /**
@@ -98,7 +105,7 @@ export function verificationWordingForIrsRecordsAsOf(
   if (!match) return null;
   const month = monthNameOf(Number(match[2]));
   if (!month) return null;
-  return verificationWording(month, match[1]);
+  return verificationWordingForMonth(month, match[1]);
 }
 /** The paid upgrades are roadmap, NOT this build (owner spec item 4). */
 export const NONPROFIT_PAID_UPGRADES: readonly string[] = [

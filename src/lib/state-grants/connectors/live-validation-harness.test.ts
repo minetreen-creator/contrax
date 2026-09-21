@@ -71,6 +71,23 @@ export interface LiveSourceValidationOptions {
    */
   spotCheckTitles?: boolean;
   /**
+   * The exact string this source expects to find on the live page as the
+   * publishing body's own name.
+   *
+   * WHY THIS IS AN OPTION AND NOT A DELETION (owner-approved 2026-09-20, QA
+   * MED-1): a connector's `agency` is sometimes a COMPOSED publishing-body
+   * label — "New York State — Statewide Financial System (SFS) Vendor Portal"
+   * names the publisher and its portal in one human-readable string, and no
+   * page ever prints that sentence. The check below is about honesty: the
+   * publishing body must name itself on the page we read, and `agency` must not
+   * be invented. So a source whose label is composed states the string it
+   * really does print here, and the gate asserts THAT string on the page —
+   * whitespace-collapsed, because the rendered page breaks lines. The fallback
+   * (option unset) is unchanged `toContain(connector.agency)`, so no other
+   * state's gate gets weaker, and nothing here allows skipping the check.
+   */
+  agencyTextOnPage?: string;
+  /**
    * Source-specific live realities: what this listing is expected to show today
    * (a rolling program, a closed cycle, the source's own wording). Kept in the
    * state's own file so the shared gate stays generic.
@@ -273,13 +290,29 @@ export async function runLiveSourceValidation(
         expect(liveText.replace(/\s+/g, " ")).toContain(key);
       }
       // The publishing body names itself on the page (agency is not inferred).
-      expect(liveText).toContain(connector.agency);
+      // A COMPOSED label ("State — Portal") is asserted through
+      // `agencyTextOnPage` instead — still a verbatim on-page check, never a
+      // skipped one; see the option's comment in the interface above.
+      const foldedPage = liveText.replace(/\s+/g, " ");
+      if (options.agencyTextOnPage !== undefined) {
+        expect(foldedPage).toContain(options.agencyTextOnPage.replace(/\s+/g, " ").trim());
+      } else {
+        expect(liveText).toContain(connector.agency);
+      }
       const dateTexts = [
         ...opportunities.map((o) => o.raw.closingText),
         ...opportunities.map((o) => o.raw.applicationDeadline),
         ...opportunities.map((o) => o.raw.enrollmentDatesText),
         ...opportunities.map((o) => o.raw.deadlineValue),
         ...opportunities.map((o) => o.raw.applicationDueDateText),
+        // Generic: any connector that keeps the source's own close-date label
+        // under one of these two names still shows its date evidence to the
+        // gate instead of a "Received: 0". New Jersey and Ohio keep the label
+        // as `closeDateLabelText`; New York keeps the published Due Date cell
+        // verbatim as `closeDateCellText`. Both are the source's own words, so
+        // both are exactly the evidence this assertion asks for.
+        ...opportunities.map((o) => o.raw.closeDateLabelText),
+        ...opportunities.map((o) => o.raw.closeDateCellText),
       ].filter((v): v is string => typeof v === "string" && v.trim().length > 4);
       expect(dateTexts.length).toBeGreaterThanOrEqual(1);
     }, LIVE_TIMEOUT_MS);

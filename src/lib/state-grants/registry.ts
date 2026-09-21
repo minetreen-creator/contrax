@@ -583,7 +583,7 @@ export const CALIFORNIA_REGISTRY_ENTRY: SourceValidationEntry = {
   testFile: CALIFORNIA_SOURCE_VALIDATION_TEST,
   verifiedOn: "2026-09-19",
   tier: "limited",
-  note: "One validated source (the California Grants Portal's own Active-results view, page 1). The portal also lists Forecasted, Closed and Post-Award grants we do not serve, and we read only the first page of the Active facet — this is not statewide coverage.",
+  note: "One validated source (the California Grants Portal's own Active-results view, page 1). The portal also lists upcoming, Closed and Post-Award grants we do not serve, and we read only the first page of the Active facet — this is not statewide coverage.",
 };
 
 export const KANSAS_REGISTRY_ENTRY: SourceValidationEntry = {

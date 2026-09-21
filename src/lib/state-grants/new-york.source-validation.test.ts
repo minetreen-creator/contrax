@@ -24,6 +24,14 @@ await runLiveSourceValidation({
   approvedHosts: NEW_YORK_APPROVED_HOSTS,
   sourceName: NEW_YORK_SOURCE_NAME,
   validationTestFile: NEW_YORK_SOURCE_VALIDATION_TEST,
+  // `newYorkConnector.agency` is the composed publishing-body label "New York
+  // State — Statewide Financial System (SFS) Vendor Portal" — a human-readable
+  // name for the publisher plus its portal, which no page prints as a sentence.
+  // What the page DOES print, and what this gate asserts instead, is the
+  // publisher's own name: "New York State" (in the site title and in program
+  // titles such as "New York Statewide Fatherhood Engagement"). QA MED-1,
+  // owner-approved 2026-09-20 — the assertion is retargeted, never dropped.
+  agencyTextOnPage: "New York State",
   expectLive: (opportunities, liveText) => {
     // The portal's own words are on the page we read, and the handshake page is
     // the portal's own public guest page (never a third-party or an error page).

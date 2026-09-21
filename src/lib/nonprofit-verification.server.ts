@@ -313,7 +313,9 @@ export function domainCorrespondsToName(
   // Drop the public suffix labels; keep the registrable-ish remainder.
   const suffix = new Set(["com", "org", "net", "edu", "gov", "us", "info", "io", "co", "biz"]);
   const root = labels.filter((label) => !suffix.has(label)).join("");
-  const nameLetters = normalizedName.replace(/[^A-Z0-9]/g, "");
+  // Both sides are compared case-insensitively: the host is lower-cased above and the
+  // normalised name is upper-cased by normalizeOrgName().
+  const nameLetters = normalizedName.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (root.length < 4 || nameLetters.length < 4) return false;
   return (
     nameLetters.includes(root) ||

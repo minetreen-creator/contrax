@@ -305,7 +305,7 @@ export class EinTracker {
   finish(stats: ParseStats): void {
     if (!this.seen) return;
     stats.distinctEinCount = this.seen.size;
-    stats.einDigest = contentHash([...this.seen].sort().join(","));
+    stats.einDigest = contentHash([[...this.seen].sort().join(",")]);
   }
 }
 

@@ -47,6 +47,7 @@ import {
   type RawBid,
 } from "./sam-gov";
 import { tradePassExclusion } from "~/lib/trade-classification";
+import { FEDERAL_TRADE_SOURCE_LABELS } from "~/lib/cert-matching";
 
 /** Same page size as the national pass (SAM.gov's documented practical max). */
 export const TRADE_PAGE_SIZE = 25;
@@ -125,6 +126,19 @@ function validateTradeFilters(filters: SamTradeFilter[]): void {
     }
     if (seen.has(f.name)) {
       throw new Error(`[sam-gov-trades] duplicate source name: "${f.name}"`);
+    }
+    // QA re-verification N2 (PR #414): every pass's `name` IS the stored `source`
+    // value, so it must be registered as a FEDERAL source label. Otherwise the
+    // certification rule 3/5 path would treat this federal feed as a state/local
+    // portal (NULL set-aside pulled into the Small-Business pool) and Bid Alerts
+    // would render the row as "City". Enforced here so a future 12th pass cannot
+    // reintroduce that silently — the failure is at module load, i.e. in CI.
+    if (!FEDERAL_TRADE_SOURCE_LABELS.includes(f.name)) {
+      throw new Error(
+        `[sam-gov-trades] source "${f.name}" is not listed in ` +
+          `FEDERAL_TRADE_SOURCE_LABELS (src/lib/cert-matching.ts) — a federal ` +
+          `trade pass must be registered there (QA N2).`,
+      );
     }
     seen.add(f.name);
   }

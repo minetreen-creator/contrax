@@ -44,7 +44,11 @@
 
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { NAICS_INFER_MAP } from "~/lib/naics-infer";
-import { isSpecialtyCleaningOnly } from "~/lib/trade-classification";
+import {
+  hasExplicitJanitorialServicePhrase,
+  isProductBuy,
+  isSpecialtyCleaningOnly,
+} from "~/lib/trade-classification";
 
 /** How long a radar `trade` input may be — ONE definition everywhere (owner
  *  09-07: the 64-vs-120 mismatch is fixed by this single constant; every
@@ -783,6 +787,61 @@ function purchasedServiceVeto(text: string, expansion: TradeExpansion): boolean 
   if (!expansion.naicsCodes.includes("561720")) return false;
   return isSpecialtyCleaningOnly(text);
 }
+/**
+ * STRONG/DEFAULT TITLE VETO (QA re-verification N1 + F8, PR #414 fix round 2).
+ *
+ * WHY. The owner's FIX 1 rule is "only TITLE/NAICS-corroborated rows are DEFAULT
+ * matches" (radar.tsx: `ranked = scored.filter(m => m.strong)`). Two things broke
+ * that on the surface path once R3 made "cleaning services" (and F8 made
+ * "sanitation") curated janitorial terms:
+ *
+ *   1. The owner's FIX-1 pin "Remediation and Specialty Cleaning Services" — a
+ *      biohazard/mold remediation contract (562910-class work, NOT custodial
+ *      work) — is a strong default janitorial match again, because the term
+ *      "cleaning services" is a substring of its title. `isSpecialtyCleaningOnly`
+ *      already returns true for it; the veto simply was not consulted here.
+ *      `src/lib/radar-search.regression.test.ts:694` pins exactly this and was
+ *      RED (that file is now wired into CI — see .github/workflows/build-check.yml).
+ *   2. A janitorial TERM inside a PRODUCT listing ("Sanitation Supplies",
+ *      "Sanitation Kit") satisfied the same pure-`includes` test, so a supply buy
+ *      could surface as a strong default janitorial match (QA F8 residual).
+ *
+ * WHAT IT IS. The same two negative guards the ingest path applies
+ * (`isJanitorialWork` / `tradePassExclusion`), applied to the ONE field the
+ * strong decision is allowed to read:
+ *   (a) SPECIALTY-CLEANING-ONLY text — laundry, sewer/tank/duct/hood cleaning,
+ *       remediation/"specialty cleaning", … (a row that also spells out
+ *       janitorial/custodial/housekeeping work keeps its identity — see
+ *       `isSpecialtyCleaningOnly`);
+ *   (b) a PRODUCT/SUPPLY/EQUIPMENT buy whose title names no janitorial SERVICE
+ *       phrase (mirrors `isJanitorialWork` exactly, so the Radar default and the
+ *       ingest stamp can never disagree about the same title).
+ *
+ * SCOPE (deliberately narrow).
+ *   - Only expansions that imply 561720. Every other trade is untouched.
+ *   - Only the TITLE-TERM branch of `isStrongTradeMatch`. A vetoed title falls
+ *     through to the IMPLIED-NAICS branch unchanged, so a row whose STORED
+ *     naics_code IS 561720 (source-coded janitorial) keeps its strong match — the
+ *     veto can never remove a NAICS-corroborated match, exactly like
+ *     `purchasedServiceVeto` below.
+ *   - Only the TITLE is read (the function's contract: title/NAICS
+ *     corroboration). Descriptions routinely mention "septic", "hood cleaning"
+ *     or "supplies" as incidental scope inside a genuine custodial contract; the
+ *     broad title+description specialty test stays where it belongs, in the
+ *     ingest gate.
+ *   - `expandTrade("janitorial").terms` is NOT changed: the term must stay in the
+ *     search expansion, because `tradeKeywordPred` uses those terms as SQL LIKE
+ *     patterns — dropping "cleaning services" from the term set would silently
+ *     stop RETRIEVING legitimate "… Cleaning Services" notices from the corpus
+ *     (a recall regression), instead of merely downgrading them out of the
+ *     default set. The veto is applied at the strong-vs-weak DECISION, not at
+ *     retrieval.
+ */
+function strongTitleVeto(titleText: string, expansion: TradeExpansion): boolean {
+  if (!expansion.naicsCodes.includes("561720")) return false;
+  if (isSpecialtyCleaningOnly(titleText)) return true;
+  return isProductBuy(titleText) && !hasExplicitJanitorialServicePhrase(titleText);
+}
 
 /** Pure text matcher: does the expanded keyword set hit the bid text?
  *  Substring semantics across the RAW expanded terms (mirrors today's 22pt
@@ -927,8 +986,10 @@ export function tradeProvenanceFor(
  *
  * A keyword hit is a DEFAULT result only when the trade is corroborated by the
  * bid's TITLE or an implied NAICS code:
- *   - a non-NAICS query is STRONG when any expanded term appears in the TITLE,
- *     or the bid's stored naics_code is in the expansion's implied code set;
+ *   - a non-NAICS query is STRONG when any expanded term appears in the TITLE and
+ *     the title survives the purchased-service guard for the janitorial
+ *     expansion (`strongTitleVeto` — QA N1/F8), or the bid's stored naics_code is
+ *     in the expansion's implied code set;
  *   - a NAICS-code query (the input itself is a 6-digit code) is STRONG by
  *     construction — the SQL predicate is exact equality, so every returned
  *     row IS the code.
@@ -952,7 +1013,16 @@ export function isStrongTradeMatch(
   if (expansion.isNaics) return true; // exact NAICS equality — strong by construction
   const titleText = String(title ?? "").toLowerCase();
   const terms = expansion.terms.filter((t) => t && t.length >= 2);
-  if (terms.some((t) => titleText.includes(t))) return true;
+  // QA re-verification N1/F8 (PR #414): a TITLE-TERM hit on the janitorial
+  // expansion must survive the purchased-service guards before it counts as a
+  // DEFAULT match — see `strongTitleVeto`. A vetoed title still falls through to
+  // the implied-NAICS check below, so a NAICS-corroborated row is never removed.
+  if (
+    terms.some((t) => titleText.includes(t)) &&
+    !strongTitleVeto(titleText, expansion)
+  ) {
+    return true;
+  }
   const code = String(naicsCode ?? "").trim();
   return !!code && expansion.naicsCodes.includes(code);
 }

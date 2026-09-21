@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { GENERIC_TRADE_TERMS, expandTrade, tradeTextIncludes } from "~/lib/trade-registry";
+import { GENERIC_TRADE_TERMS, expandTrade, isStrongTradeMatch, tradeTextIncludes } from "~/lib/trade-registry";
 import { inferNaics } from "~/lib/naics-infer";
 import {
   hasExplicitTransportationServicePhrase,
@@ -18,12 +18,22 @@ import {
   mapCategory,
   tradePassExclusion,
 } from "~/lib/trade-classification";
+import {
+  certMatches,
+  FEDERAL_TRADE_SOURCE_LABELS,
+  isStateLocalSource,
+  NON_STATE_LOCAL_SOURCES,
+  sbCertFragment,
+  sourceBadgeLabel,
+} from "~/lib/cert-matching";
+import { SAM_TRADE_FILTERS } from "~/jobs/sources/sam-gov-trades";
 import { collapseDuplicateNotices, noticeDedupeKey } from "~/lib/notice-dedupe";
 import { collapseScanRows } from "~/lib/radar-scan-query";
 import { pennBidCategory } from "~/jobs/sources/pennbid";
 import { vaEvCategory } from "~/jobs/sources/va-ev";
 
 const JANITORIAL = expandTrade("janitorial");
+const TRUCKING = expandTrade("trucking");
 
 describe("R3 — trade-registry completeness (audit §2.2 gaps)", () => {
   test("the natural buyer phrasings resolve to NAICS 561720", () => {
@@ -390,5 +400,158 @@ describe("R4 (QA F4a) — the state/local sources use the SHARED classifier", ()
     expect(vaEvCategory("Furniture relocation services")).toBe("Transportation");
     expect(vaEvCategory("Truck tires")).not.toBe("Transportation");
     expect(vaEvCategory("Roof renovation", "renovation of the clinic roof")).toBe("Construction");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QA RE-VERIFICATION N1 / F8 (fix round 2, 2026-09-21) — the Radar READ path.
+// The ingest classifier was already correctly guarded; the missing guard was the
+// STRONG/DEFAULT decision (radar.tsx: `scored.filter(m => m.strong)`, computed by
+// isStrongTradeMatch). These cases pin it next to the classification rule it
+// mirrors. The end-to-end pin lives in src/lib/radar-search.regression.test.ts
+// (:694 — now wired into CI, see .github/workflows/build-check.yml).
+// ─────────────────────────────────────────────────────────────────────────────
+describe("QA N1/F8 — the Radar DEFAULT (strong) decision applies the purchased-service guards", () => {
+  test("the owner's FIX-1 pin is NOT a strong default janitorial match", () => {
+    // Before this fix: `expandTrade("janitorial").terms` contains the curated
+    // synonym "cleaning services", which is a substring of this title, so the
+    // pure includes() test made a remediation contract a DEFAULT janitorial
+    // match while isSpecialtyCleaningOnly() already said it was specialty work.
+    expect(
+      isStrongTradeMatch(
+        "Remediation and Specialty Cleaning Services",
+        "Janitorial",
+        "…biohazard remediation, specialty cleaning…",
+        null,
+        JANITORIAL,
+      ),
+    ).toBe(false);
+    // other specialty-only titles that happen to carry a janitorial term
+    for (const t of [
+      "Kitchen Hood Cleaning Services",
+      "Laundry and Dry-Cleaning CBRNE Mobility Gear",
+      "Septic Tank Pumping and Cleaning Services",
+    ]) {
+      expect(`${t} → strong:${isStrongTradeMatch(t, "Other", "", null, JANITORIAL)}`).toBe(
+        `${t} → strong:false`,
+      );
+    }
+  });
+  test("genuine custodial/janitorial titles stay STRONG defaults (no recall loss)", () => {
+    for (const t of [
+      "Custodial Services at TX190, Denton, TX",
+      "Janitorial and Custodial Services for the Municipal Complex",
+      "Cleaning services for the federal building",
+      "Restroom sanitation services",
+      "USCG - JANITORIAL SERVICES - BASE NEW ORLEANS",
+    ]) {
+      expect(`${t} → strong:${isStrongTradeMatch(t, "Janitorial", "", null, JANITORIAL)}`).toBe(
+        `${t} → strong:true`,
+      );
+    }
+  });
+  test("a PRODUCT title that merely re-uses a janitorial term is not a strong default (F8)", () => {
+    // Same guard the ingest stamp applies: a supply/equipment buy is not service work.
+    for (const t of ["Sanitation Supplies", "SANITATION SUPPLIES - GROUP N", "Sanitation Kit"]) {
+      expect(`${t} → strong:${isStrongTradeMatch(t, "Other", "", null, JANITORIAL)}`).toBe(
+        `${t} → strong:false`,
+      );
+    }
+    // …and the read path agrees with the ingest classifier on the escape case:
+    // a title that NAMES the janitorial service survives the product veto.
+    expect(mapCategory("Solicitation", "Restroom sanitation supplies", "")).toBe("Janitorial");
+    expect(
+      isStrongTradeMatch("Restroom sanitation supplies", "Janitorial", "", null, JANITORIAL),
+    ).toBe(true);
+    expect(mapCategory("Solicitation", "Janitorial and Custodial Services, supplies included", "")).toBe(
+      "Janitorial",
+    );
+    expect(
+      isStrongTradeMatch(
+        "Janitorial and Custodial Services, supplies included",
+        "Janitorial",
+        "",
+        null,
+        JANITORIAL,
+      ),
+    ).toBe(true);
+  });
+  test("the veto never removes a NAICS-corroborated match and never touches another trade", () => {
+    // A row whose STORED naics_code IS 561720 was coded janitorial by the source.
+    expect(
+      isStrongTradeMatch("Remediation and Specialty Cleaning Services", "Janitorial", "", "561720", JANITORIAL),
+    ).toBe(true);
+    // Trucking is untouched (its own veto lives in the classifier/ingest gate).
+    expect(
+      isStrongTradeMatch("Freight hauling services for the base supply run", "Transportation", "", null, TRUCKING),
+    ).toBe(true);
+    expect(isStrongTradeMatch("2027 Sludge Hauling Contracts", "Transportation", "", null, TRUCKING)).toBe(true);
+  });
+  test("the Radar scan route still makes its default/related split with this decision", () => {
+    // Guards the QA N1 mechanism: the veto can only work if the route's
+    // default-vs-related split is still computed by isStrongTradeMatch.
+    const src = readFileSync(new URL("../routes/radar.tsx", import.meta.url), "utf8");
+    expect(src).toContain("strong: isStrongTradeMatch(");
+    expect(src).toContain("scored.filter((m) => m.strong)");
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// QA RE-VERIFICATION N2 (fix round 2, 2026-09-21) — the 11 new SAM trade-pass
+// source labels are FEDERAL feeds. Two production dependencies on the `source`
+// literal had to know about them: the certification rule 3/5 decision
+// (cert-matching.ts) and the Bid Alerts Federal/City badge (alerts.tsx).
+// ─────────────────────────────────────────────────────────────────────────────
+describe("QA N2 — the 11 new federal trade labels are federal, not state/local", () => {
+  test("every registered trade pass is a registered FEDERAL source label", () => {
+    expect(SAM_TRADE_FILTERS.length).toBe(11);
+    for (const f of SAM_TRADE_FILTERS) {
+      expect(FEDERAL_TRADE_SOURCE_LABELS).toContain(f.name);
+      expect(NON_STATE_LOCAL_SOURCES.has(f.name)).toBe(true);
+    }
+    // no label is registered that no pass produces (the two lists stay equal)
+    expect([...FEDERAL_TRADE_SOURCE_LABELS].sort()).toEqual(
+      SAM_TRADE_FILTERS.map((f) => f.name).sort(),
+    );
+  });
+  test("a NULL set-aside on a new label is 'no opinion', never a Small Business include", () => {
+    for (const f of SAM_TRADE_FILTERS) {
+      expect(`${f.name} isStateLocal=${isStateLocalSource([f.name])}`).toBe(
+        `${f.name} isStateLocal=false`,
+      );
+      expect(`${f.name} certMatches=${certMatches(null, [f.name], "sb")}`).toBe(
+        `${f.name} certMatches=null`,
+      );
+    }
+    // unchanged for the pre-existing labels, and rule 3 still holds for a real
+    // state/local portal (pennbid) — the state/local half of the matrix never moved.
+    expect(certMatches(null, ["sam_gov"], "sb")).toBeNull();
+    expect(certMatches(null, ["sam_gov_regional"], "sb")).toBeNull();
+    expect(certMatches(null, ["pennbid"], "sb")).toBe("include");
+    expect(isStateLocalSource(["pennbid"])).toBe(true);
+  });
+  test("the sb SQL window excludes them too (the query and the JS filter agree)", () => {
+    const stub: any = () => {
+      const tag: any = (strings: readonly string[], ...values: any[]) => ({ strings, values });
+      tag.unsafe = (q: string) => ({ unsafeText: q });
+      return tag;
+    };
+    const frag: any = sbCertFragment(stub);
+    const text = String(frag.values[0]?.unsafeText ?? "");
+    for (const f of SAM_TRADE_FILTERS) expect(text).toContain(`'${f.name}'`);
+  });
+  test("Bid Alerts renders the new labels as Federal, not City", () => {
+    for (const f of SAM_TRADE_FILTERS) expect(sourceBadgeLabel(f.name)).toBe("Federal");
+    expect(sourceBadgeLabel("sam_gov")).toBe("Federal");
+    expect(sourceBadgeLabel("sam_gov_regional")).toBe("Federal");
+    // the pre-existing state/local branch is byte-identical (no new claim)
+    expect(sourceBadgeLabel("pennbid")).toBe("City");
+    expect(sourceBadgeLabel("va_evirginia")).toBe("City");
+    expect(sourceBadgeLabel("oh")).toBe("City");
+    expect(sourceBadgeLabel(null)).toBe("City");
+    // …and the route uses the shared predicate instead of a re-inlined literal
+    const src = readFileSync(new URL("../routes/alerts.tsx", import.meta.url), "utf8");
+    expect(src).toContain("sourceBadgeLabel(a.source)");
+    expect(src).not.toContain('a.source === "sam_gov"');
   });
 });

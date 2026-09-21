@@ -19,21 +19,64 @@
  * This module is deliberately client-safe (no `@tanstack/react-start/server`, no
  * database access at module scope): the apply and status pages import it directly.
  */
-import {
-  NONPROFIT_APPLICATION_STATUSES,
-  NONPROFIT_FREE_PROMISE,
-  NONPROFIT_FREE_TIER_NAME,
-  NONPROFIT_MONTH_NAMES,
-  NONPROFIT_VERIFICATION_WORDING_TEMPLATE,
-  monthNameOf,
-  verificationWordingForIrsRecordsAsOf,
-  type NonprofitStatus,
-} from "~/lib/nonprofit.server";
+// ── CLIENT-SAFE DEFINITIONS (no `*.server` import — see the header above) ──────
+// This module is bundled into client routes (/nonprofit/apply, /nonprofit/status and the
+// /grants CTA). The framework's import protection FAILS THE BUILD if a `*.server` module is
+// reachable from a client bundle, so these strings and helpers are defined HERE rather than
+// imported from `nonprofit.server.ts`. They are the same values: a unit test asserts the copy
+// module and the server module agree, so a page can never state something the API does not.
+export const NONPROFIT_FREE_PROMISE = "Government grant search—free for verified nonprofit organizations. No credit card required.";
+export const NONPROFIT_FREE_TIER_NAME = "Nonprofit Free";
+export const NONPROFIT_APPLICATION_STATUSES = [
+  "pending",
+  "approved",
+  "manual_review",
+  "denied",
+  "revoked",
+] as const;
+export type NonprofitStatus = (typeof NONPROFIT_APPLICATION_STATUSES)[number];
+
+/** Calendar month names, used only to render the owner's wording sentence. */
+export const NONPROFIT_MONTH_NAMES = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+] as const;
+
+/** The month name of a mirror posting date, or null when there is no usable date. */
+export function monthNameOf(value: string | Date | null | undefined): string | null {
+  if (value == null) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : NONPROFIT_MONTH_NAMES[value.getUTCMonth()];
+  }
+  const match = /^(\d{4})-(\d{2})/.exec(String(value).trim());
+  if (!match) return null;
+  const month = Number(match[2]);
+  if (month < 1 || month > 12) return null;
+  return NONPROFIT_MONTH_NAMES[month - 1];
+}
+
+/** The owner's exact sentence, as a template a test can assert on. */
+export const NONPROFIT_VERIFICATION_WORDING_TEMPLATE =
+  "Verified against IRS tax-exempt records updated {Month Year}";
+
+/**
+ * "Verified against IRS tax-exempt records updated September 2026" — built from the IRS
+ * mirror's POSTING date, or null when there is no usable date (in which case nothing is
+ * rendered: a verification badge with no date is never shown).
+ */
+export function verificationWordingForIrsRecordsAsOf(
+  value: string | Date | null | undefined,
+): string | null {
+  const month = monthNameOf(value);
+  const year = typeof value === "string" ? /^(\d{4})/.exec(value.trim())?.[1] : undefined;
+  const resolvedYear =
+    year ?? (value instanceof Date && !Number.isNaN(value.getTime()) ? String(value.getUTCFullYear()) : null);
+  if (!month || !resolvedYear) return null;
+  return `Verified against IRS tax-exempt records updated ${month} ${resolvedYear}`;
+}
 
 /** The owner's promise, reused verbatim (never re-typed by a surface). */
 export const NONPROFIT_PROMISE = NONPROFIT_FREE_PROMISE;
-export { NONPROFIT_FREE_TIER_NAME, NONPROFIT_VERIFICATION_WORDING_TEMPLATE };
-export { NONPROFIT_MONTH_NAMES, monthNameOf };
 
 /** Where an applicant writes when something looks wrong (the appeal path). */
 export const NONPROFIT_APPEAL_EMAIL = "hello@contrax.company";
@@ -195,7 +238,6 @@ export function statusCopyFor(status: string | null | undefined): NonprofitStatu
     null
   );
 }
-export { NONPROFIT_APPLICATION_STATUSES };
 
 // ── Pending-tier counters (owner's numbers, never pressure) ───────────────────
 /**

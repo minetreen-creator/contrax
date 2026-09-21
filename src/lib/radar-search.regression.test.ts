@@ -1212,7 +1212,11 @@ describe("amended registry — #387 match quality + #388 hauling regressions sta
 // PRESENTATION (Directive B). Tests at BOTH the expandTrade level and the
 // driver-level payload bind (the exact ANY($n) array), same style as the #389
 // suites above.
-const TRUCKING_SET = ["484110", "484121", "484122", "484220", "484230", "492110"];
+// Owner PRIORITY 09-21 (PR #414 R3): 484210 (Used Household and Office Goods
+// Moving) is part of the trucking family — the owner's own trucking code list is
+// 484110/484121/484122/484210/484220/484230/492110, and the registry entry
+// carries it. The pin below records that set.
+const TRUCKING_SET = ["484110", "484121", "484122", "484210", "484220", "484230", "492110"];
 const FREIGHT_DELIVERY_SET = ["492110", "484110", "484121", "484122", "484220", "484230"];
 const ARRANGEMENT_PHRASES = [
   "freight broker",

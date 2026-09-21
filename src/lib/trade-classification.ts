@@ -58,6 +58,15 @@ export const JANITORIAL_SERVICE_PATTERNS: RegExp[] = [
   /\bjanitorial services?\b/,
   /\bcustodial services?\b/,
   /\brestroom sanitation\b/,
+  // OWNER 09-21 trade-term fold-in (the Ohio fix list): bare "sanitation" IS a
+  // janitorial term — sanitation work is custodial work (the owner's janitorial
+  // category list: restrooms/facility sanitation alongside refuse removal,
+  // street cleaning, recycling, septic/sewer and snow removal). It is added as a
+  // SERVICE SIGNAL only, NOT to JANITORIAL_EXPLICIT_PHRASES, so the product veto
+  // in isJanitorialWork still wins: "SANITATION SUPPLIES"/"Sanitation Kit" stay
+  // product buys, a genuinely specialty job ("septic tank sanitation") is still
+  // vetoed by isSpecialtyCleaningOnly.
+  /\bsanitation\b/,
 ];
 
 /**
@@ -97,6 +106,14 @@ export const SPECIALTY_CLEANING_PATTERNS: RegExp[] = [
   /\bcbrne\b/,
   /\bmobility gear/,
   /\brod\b[^a-z0-9]{0,3}cleaning\b/,
+  // Remediation / "specialty cleaning" work (QA fix-round: PR #414's R3 change
+  // made "cleaning services" a curated janitorial term, which turned the owner's
+  // FIX-1 pin "Remediation and Specialty Cleaning Services" into a STRONG default
+  // janitorial match — a biohazard/mold/remediation contract is 562910-class
+  // work, not custodial work). A row that also spells out custodial/janitorial/
+  // housekeeping work still keeps its janitorial identity via isSpecialtyCleaningOnly.
+  /\bspecialty clean/,
+  /\bremediat/,
 ];
 
 /**
@@ -123,6 +140,15 @@ export const PRODUCT_BUY_PATTERNS: RegExp[] = [
   /\bvehicles?\b/,
   /\btrailers?\b/,
   /\bparts\b/,
+  // Fuel / lubricant is a SUPPLY, not transportation SERVICE work (QA F4b: the
+  // live `naics=484110` result "91--Service, Diesel Fuel and Delivery" is a fuel
+  // buy with delivery, not a trucking solicitation). The explicit-service-phrase
+  // escape keeps a real service contract that merely mentions fuel
+  // ("Fuel delivery services for the depot").
+  /\bfuel\b/,
+  // Materials-handling EQUIPMENT (audit §2.2: "39--CART, GENERAL HAULING" is a
+  // cart product whose "hauling" word previously matched the trucking branch).
+  /\bcarts?\b/,
 ];
 
 /**
@@ -196,6 +222,40 @@ export function hasExplicitJanitorialServicePhrase(text: string): boolean {
   return anyMatch(JANITORIAL_EXPLICIT_PHRASES, text);
 }
 
+/**
+ * The EXPLICIT transportation SERVICE phrasings — the transportation counterpart
+ * of JANITORIAL_EXPLICIT_PHRASES (QA F3). These decide whether a title that also
+ * names a PRODUCT is really a SERVICE contract: "Freight hauling services for the
+ * base supply run" is a hauling contract (its "supply" word is the run, not the
+ * purchase), while "FREIGHT TIRES" / "HAULING EQUIPMENT PARTS" are product buys.
+ *
+ * Deliberately EXCLUDES the bare single verbs/nouns ("freight", "hauling", "ltl",
+ * "flatbed", "dry van", "relocation") — each of those is exactly the word a
+ * product title re-uses ("HAULING EQUIPMENT PARTS", "FREIGHT TIRES"), so bare
+ * presence must never defeat the product veto.
+ */
+const TRANSPORTATION_EXPLICIT_PHRASES: RegExp[] = [
+  /\btrucking\b/,
+  /\btruckload\b/,
+  /\bless than truckload\b/,
+  /\bfreight\s+(?:services?|hauling|forwarding|transportation|brokerage)\b/,
+  /\bhauling\s+services?\b/,
+  /\bdrayage\b/,
+  /\bmotor carrier\b/,
+  /\bcourier services?\b/,
+  /\bdelivery services?\b/,
+  /\bexpress delivery\b/,
+  /\bmoving services?\b/,
+  /\bhousehold goods\b/,
+  /\bhhg\b/,
+  /\brelocation services?\b/,
+];
+
+/** Does the text spell out a transportation SERVICE phrase (not just the trade word)? */
+export function hasExplicitTransportationServicePhrase(text: string): boolean {
+  return anyMatch(TRANSPORTATION_EXPLICIT_PHRASES, text);
+}
+
 /** Custodial cleaning work AS A SERVICE (never a bare "cleaning" mention). */
 export function isJanitorialService(text: string): boolean {
   return anyMatch(JANITORIAL_SERVICE_PATTERNS, text);
@@ -254,16 +314,21 @@ export function isJanitorialWork(title: string, full: string): boolean {
 /**
  * The trucking/transportation decision, single-point and reusable. The service
  * signal is read from the TITLE (descriptions mention hauling/relocation
- * incidentally), and both negative guards apply.
+ * incidentally), and BOTH negative guards apply — the dump-truck/vehicle guard
+ * AND the product/supply/equipment veto (QA F3: this branch previously skipped
+ * the product veto entirely, so a title such as "FREIGHT TIRES" or "HAULING
+ * EQUIPMENT PARTS" — a transport service word inside a PRODUCT listing — was
+ * stamped Transportation, contradicting this function's own contract).
+ *
+ * The product veto is skipped when the title itself names the transport SERVICE
+ * ("Freight hauling services for the base supply run" is a hauling contract, not
+ * a supply buy) — see hasExplicitTransportationServicePhrase.
  */
 export function isTransportationWork(title: string, _full: string): boolean {
-  // Both guards read the TITLE: vehicle-buy wording ("purchase … dump truck",
-  // "truck tires") lives in the title, and a description routinely mentions
-  // hauling/trucks incidentally. The product veto is skipped when the title
-  // itself names the transport SERVICE ("Freight hauling services for the base
-  // supply run" is a hauling contract, not a supply buy).
-  if (isDumpTruckLike(title)) return false;
-  return isTransportationService(title);
+  const titleLc = (title || "").toLowerCase();
+  if (isDumpTruckLike(titleLc)) return false;
+  if (isProductBuy(titleLc) && !hasExplicitTransportationServicePhrase(titleLc)) return false;
+  return isTransportationService(titleLc);
 }
 
 /**
@@ -296,4 +361,43 @@ export function mapCategory(typeValue: string, title: string, description: strin
   if (t.includes("special")) return "Construction";
 
   return "Other";
+}
+
+/** Reason keys recorded when a trade pass refuses a notice. */
+export type TradeGateReason = "product_buy" | "dump_truck" | "specialty_cleaning_only";
+
+/**
+ * TRADE-PASS ELIGIBILITY (owner PRIORITY 09-21, R3/R4 — QA F4b).
+ *
+ * A structured-filter pass (`naics=484110`, `psc=S201`, …) asks SAM for every
+ * notice SAM has coded with that code — and SAM's codes include PRODUCT
+ * contracts. Live `naics=484110` returns "Depot Consumable Parts Processing &
+ * Disposal (DEMIL)" and "Removal of 32 FT Bathroom Trailer": not trucking work.
+ * This gate runs per notice BEFORE mapping, so such a row can never enter the
+ * pass's output and can never be stamped with the trade's code.
+ *
+ * Deliberately an EXCLUSION gate, not a positive requirement: a genuine trucking
+ * notice may carry no service phrase at all ("Office Move", 484210) and must
+ * never be lost, whereas the negative guards below (a product/supply/equipment
+ * buy, a dump-truck listing, specialty-only cleaning) are exactly the owner's
+ * exclusions. `title` drives the product veto; `description` carries the
+ * specialty-cleaning signal, matching isJanitorialWork / isTransportationWork.
+ *
+ * Returns the skip reason, or null when the notice may enter the trade's set.
+ */
+export function tradePassExclusion(
+  trade: "janitorial" | "trucking",
+  title: string,
+  description: string,
+): TradeGateReason | null {
+  const titleLc = (title || "").toLowerCase();
+  const full = `${titleLc} ${(description || "").toLowerCase()}`.trim();
+  if (isDumpTruckLike(titleLc)) return "dump_truck";
+  if (trade === "janitorial") {
+    if (isProductBuy(titleLc) && !hasExplicitJanitorialServicePhrase(titleLc)) return "product_buy";
+    if (isSpecialtyCleaningOnly(full)) return "specialty_cleaning_only";
+    return null;
+  }
+  if (isProductBuy(titleLc) && !hasExplicitTransportationServicePhrase(titleLc)) return "product_buy";
+  return null;
 }

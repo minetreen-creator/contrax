@@ -109,11 +109,14 @@ export const GENERIC_TRADE_TERMS: Set<string> = new Set([
   "trucks",
   "logistics",
   "cleaning",
-  // OWNER 09-21 (R3, audit §2.2): bare "sanitation" stays OUT of every synonym
-  // set — it is generic to restroom/science/water contexts. Listing it here
-  // makes that structural: if a future entry adds it, expansion filters it out.
-  // The SPECIFIC phrase "restroom sanitation" is unaffected (whole-term match).
-  "sanitation",
+  // OWNER 09-21 (R3, audit §2.2 + QA F8 fold-in): bare "sanitation" was held
+  // OUT of every synonym set while the audit's precision work was in progress.
+  // It is now a CURATED janitorial term (the owner's category list names
+  // sanitation as janitorial work), so it is no longer listed here; the
+  // purchased-service-only guards that keep the amplifier risk bounded live in
+  // trade-classification.ts (product-buy + specialty-cleaning vetoes) and in
+  // purchasedServiceVeto below. The SPECIFIC phrase "restroom sanitation" and
+  // bare "cleaning" are unchanged: "cleaning" stays generic here.
   "service",
   "services",
   "support",
@@ -241,6 +244,17 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "floor care",
       "carpet cleaning",
       "restroom sanitation",
+      // OWNER 09-21 trade-term fold-in (QA F8): bare "sanitation" is a
+      // janitorial term per the owner's category list (restroom/facility
+      // sanitation with refuse removal, street cleaning, recycling, septic/
+      // sewer and snow removal). It is a CURATED term here (and no longer in
+      // GENERIC_TRADE_TERMS), so a "sanitation" scan resolves to this entry and
+      // implies 561720. The purchased-service-only guards still hold on the
+      // other side: the classification veto (isProductBuy + the specialty-only
+      // veto) keeps "sanitation supplies"/"septic tank sanitation" out of the
+      // Janitorial CATEGORY (trade-classification.ts), and a text hit is
+      // vetoed by purchasedServiceVeto below exactly like "cleaning services".
+      "sanitation",
       "window cleaning",
     ],
     naics: ["561720"],

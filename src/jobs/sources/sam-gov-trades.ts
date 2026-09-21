@@ -42,9 +42,11 @@
 import {
   SAM_HEADERS,
   mapSamItem,
+  stripHtml,
   type OpportunityDetail,
   type RawBid,
 } from "./sam-gov";
+import { tradePassExclusion } from "~/lib/trade-classification";
 
 /** Same page size as the national pass (SAM.gov's documented practical max). */
 export const TRADE_PAGE_SIZE = 25;
@@ -155,6 +157,19 @@ export interface TradeFetchDeps {
   maxPages?: number;
 }
 
+/**
+ * One trade pass's rows PLUS its reason-coded skip accounting — the same shape
+ * the runner's run-record contract consumes for every other source, so a
+ * `fetched = accepted + skipped + failed` invariant holds per trade pass too.
+ */
+export interface TradeFetchResult {
+  rows: RawBid[];
+  /** reason -> count (e.g. `product_buy: 4`). */
+  skipped: Record<string, number>;
+  /** One diagnostic per skipped notice (id = SAM notice id / fixture fallback). */
+  skippedRows: { id: string; reason: string }[];
+}
+
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function defaultFetchJson(url: string): Promise<any> {
@@ -174,15 +189,25 @@ async function defaultFetchJson(url: string): Promise<any> {
  * returned the notice FOR that code), plus the notice type / solicitation number
  * from the summary and the set-aside + the complementary code from the detail
  * endpoint — the same mapping the national pass uses (`mapSamItem`).
+ *
+ * PURCHASED-SERVICE GATE (QA F4b): before a notice is mapped, it is put through
+ * the shared `tradePassExclusion` gate. A notice whose purchased thing is a
+ * PRODUCT / equipment buy, a dump-truck listing or specialty-only cleaning is
+ * SKIPPED with a reason — it never enters this trade's output and is therefore
+ * never stamped with the trade's code as "authoritative". Live `naics=484110`
+ * really does return "Depot Consumable Parts Processing & Disposal (DEMIL)" and
+ * "Removal of 32 FT Bathroom Trailer"; those must not become "trucking".
  */
-export async function fetchTradeFilter(
+export async function fetchTradeFilterDetailed(
   filter: SamTradeFilter,
   deps: TradeFetchDeps = {},
-): Promise<RawBid[]> {
+): Promise<TradeFetchResult> {
   const fetchJson = deps.fetchJson ?? defaultFetchJson;
   const maxPages = deps.maxPages ?? TRADE_MAX_PAGES;
   const delayMs = deps.delayMs ?? TRADE_DELAY_MS;
   const results: RawBid[] = [];
+  const skipped: Record<string, number> = {};
+  const skippedRows: { id: string; reason: string }[] = [];
 
   for (let page = 0; page < maxPages; page++) {
     const url = buildTradeSearchUrl(filter, page);
@@ -199,7 +224,21 @@ export async function fetchTradeFilter(
     if (!Array.isArray(items) || items.length === 0) break;
 
     for (const [index, item] of items.entries()) {
+      const fallbackId = `${filter.name}-p${page}-${index}`;
       try {
+        // Purchased-service-only gate, on the SAME title/description the mapper
+        // stores (identical extraction: item.title + stripped description).
+        const title = String(item?.title ?? "");
+        const description = stripHtml(item?.descriptions?.[0]?.content || "").substring(0, 2000);
+        const exclusion = tradePassExclusion(filter.trade, title, description);
+        if (exclusion) {
+          skipped[exclusion] = (skipped[exclusion] ?? 0) + 1;
+          skippedRows.push({
+            id: String(item?.parentNoticeId || item?._id || item?.solicitationNumber || fallbackId),
+            reason: exclusion,
+          });
+          continue;
+        }
         results.push(
           await mapSamItem(item, {
             sourceLabel: filter.name,
@@ -208,7 +247,7 @@ export async function fetchTradeFilter(
             filterNaics: filter.kind === "naics" ? filter.code : null,
             filterPsc: filter.kind === "psc" ? filter.code : null,
             detailFetcher: deps.detailFetcher,
-            fallbackId: `${filter.name}-p${page}-${index}`,
+            fallbackId,
           }),
         );
       } catch (e) {
@@ -220,13 +259,26 @@ export async function fetchTradeFilter(
     if (delayMs > 0) await sleep(delayMs);
   }
 
-  return results;
+  return { rows: results, skipped, skippedRows };
+}
+
+/**
+ * The pass's rows only (every other caller's contract — the gated set is the
+ * same one `fetchTradeFilterDetailed` returns).
+ */
+export async function fetchTradeFilter(
+  filter: SamTradeFilter,
+  deps: TradeFetchDeps = {},
+): Promise<RawBid[]> {
+  return (await fetchTradeFilterDetailed(filter, deps)).rows;
 }
 
 /**
  * Build the SyncSource fetch function for one filter (the runner registers one
- * SyncSource per filter so each has its own run-log row).
+ * SyncSource per filter so each has its own run-log row). Returns the
+ * reason-coded skip accounting alongside the rows, so the run record for each
+ * trade pass shows exactly how many notices the purchased-service gate refused.
  */
-export function createSamTradeSource(filter: SamTradeFilter): () => Promise<RawBid[]> {
-  return () => fetchTradeFilter(filter);
+export function createSamTradeSource(filter: SamTradeFilter): () => Promise<TradeFetchResult> {
+  return () => fetchTradeFilterDetailed(filter);
 }

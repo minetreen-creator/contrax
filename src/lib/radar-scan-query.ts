@@ -13,6 +13,8 @@
  * rejects with RadarScanError("keyword-scan") / ("related-scan") instead of
  * resolving with rows.
  */
+import { collapseDuplicateNotices } from "~/lib/notice-dedupe";
+
 export class RadarScanError extends Error {
   readonly queryName: string;
   constructor(queryName: string, cause: unknown) {
@@ -122,4 +124,92 @@ export function logScanFailure(
     `[radar] scan query failed ("${queryName}", trade="${ctx.trade}", state="${ctx.state}", cert="${ctx.cert}", sizePref="${ctx.sizePref ?? "any"}"):`,
     error,
   );
+}
+
+/**
+ * READ-TIME DUPLICATE COLLAPSE — the PRODUCTION caller of the R5 dedupe
+ * (`~/lib/notice-dedupe`); QA F2 found the module was library-only, so the
+ * audit's measured 3,652 title groups / 36.9 % inflation was still live and
+ * duplicate rows could consume the ≤5 default-match cap.
+ *
+ * The scan's result set is collapsed BEFORE scoring/ranking: the SAME notice
+ * re-ingested under several state-door source labels ("F108--Mobile Firing Range
+ * Cleaning" alone was counted 11×) becomes one row. Nothing is deleted — the
+ * database keeps every row; only the returned array is collapsed, and the
+ * collapsed count is returned so a caller can report "N rows / M distinct".
+ *
+ * THE KEY (owner rule 4): SAM's own solicitation number when present
+ * (`bids.solicitation_number`, migration 047 / R2), else the (title, agency)
+ * natural key. The solicitation numbers are loaded in ONE extra read, FAIL-SOFT:
+ * before migration 047 is applied the column does not exist, which must never
+ * take the Radar scan down — the collapse then falls back to (title, agency),
+ * exactly the key the ingest path already dedupes on.
+ */
+export type SolicitationNumberLoader = (
+  ids: number[],
+) => Promise<Map<number, string | null>>;
+
+export interface ScanCollapseResult<T> {
+  rows: T[];
+  /** How many duplicate rows were collapsed away. */
+  collapsed: number;
+  /** True when the solicitation-number column was readable (migration 047 live). */
+  solicitationNumbers: boolean;
+}
+
+/**
+ * Load the stored solicitation number for a batch of row ids. Throws when the
+ * column is missing (047 unapplied) or the read fails — the caller decides.
+ */
+export async function loadSolicitationNumbers(
+  sqlFactory: unknown,
+  ids: number[],
+): Promise<Map<number, string | null>> {
+  const out = new Map<number, string | null>();
+  if (ids.length === 0) return out;
+  const s = (sqlFactory as any)?.unsafe
+    ? (sqlFactory as any)
+    : (sqlFactory as any)();
+  const rows: any[] = await s`
+    SELECT id, solicitation_number FROM bids WHERE id = ANY(${ids})
+  `;
+  for (const row of rows) {
+    const id = Number(row?.id);
+    if (!Number.isFinite(id)) continue;
+    const sol = row?.solicitation_number;
+    out.set(id, sol == null || String(sol).trim() === "" ? null : String(sol));
+  }
+  return out;
+}
+
+/**
+ * Collapse one scan result set through `~/lib/notice-dedupe`. The loader is
+ * injected so the collapse is unit-testable with zero network and zero database.
+ */
+export async function collapseScanRows<T extends { id: number }>(
+  rows: readonly T[],
+  loadSolicitations: SolicitationNumberLoader,
+): Promise<ScanCollapseResult<T>> {
+  if (rows.length < 2) {
+    return { rows: [...rows], collapsed: 0, solicitationNumbers: false };
+  }
+  let solicitations = new Map<number, string | null>();
+  let keyedBySolicitation = false;
+  try {
+    solicitations = await loadSolicitations(rows.map((r) => r.id));
+    keyedBySolicitation = true;
+  } catch (e) {
+    // Fail-soft: the natural-key fallback is the ingest path's own dedupe key,
+    // so Radar still collapses cross-source duplicates without 047.
+    console.error(
+      "[radar] dedupe: solicitation-number read unavailable — collapsing on (title, agency):",
+      e instanceof Error ? e.message : e,
+    );
+  }
+  const withKeys = rows.map((row) => ({
+    ...row,
+    solicitation_number: keyedBySolicitation ? (solicitations.get(row.id) ?? null) : null,
+  }));
+  const { rows: kept, collapsed } = collapseDuplicateNotices(withKeys);
+  return { rows: kept, collapsed, solicitationNumbers: keyedBySolicitation };
 }

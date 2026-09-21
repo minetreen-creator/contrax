@@ -18,6 +18,7 @@ import {
   TRUCKING_TRADE_FILTERS,
   buildTradeSearchUrl,
   fetchTradeFilter,
+  fetchTradeFilterDetailed,
   type SamTradeFilter,
 } from "./sam-gov-trades";
 import { normalizePsc, type OpportunityDetail } from "./sam-gov";
@@ -230,5 +231,127 @@ describe("R1/R2 — rows carry the filter's code plus the preserved notice field
     // its live titles name courier / delivery / transport, never janitorial.
     const r602Titles = (PSC_R602._embedded.results as any[]).map((i) => String(i.title).toLowerCase());
     expect(r602Titles.some((t) => t.includes("courier") || t.includes("delivery"))).toBe(true);
+  });
+});
+
+describe("R4 (QA F4b) — the pass refuses non-trade notices before they are stamped", () => {
+  /** One page whose notices are the LIVE naics=484110 false positives plus a real one. */
+  function mixedPage(titles: string[], base: any) {
+    return {
+      ...base,
+      _embedded: {
+        results: titles.map((title, i) => ({
+          ...base._embedded.results[i % base._embedded.results.length],
+          _id: `mixed-${i}`,
+          title,
+          descriptions: [{ content: "<p>See attached statement of work.</p>" }],
+        })),
+      },
+    };
+  }
+
+  const NAICS_484110 = SAM_TRADE_FILTERS.find((f) => f.name === "sam_naics_484110")!;
+
+  test("product / incidental notices never enter the trucking pass", async () => {
+    const { fetchJson } = pageFetcher(
+      mixedPage(
+        [
+          "Depot Consumable Parts Processing & Disposal (DEMIL)",
+          "Removal of 32 FT Bathroom Trailer",
+          "91--Service, Diesel Fuel and Delivery",
+          "FREIGHT TIRES",
+          "Office Move",
+        ],
+        NAICS_484210,
+      ),
+    );
+    const res = await fetchTradeFilterDetailed(NAICS_484110, {
+      fetchJson,
+      detailFetcher: async () => DETAIL,
+      delayMs: 0,
+    });
+    // Only the REAL notice survives — and it keeps the pass's authoritative code.
+    expect(res.rows.length).toBe(1);
+    expect(res.rows[0]!.title).toBe("Office Move");
+    expect(res.rows[0]!.naics_code).toBe("484110");
+    expect(res.skipped).toEqual({ product_buy: 4 });
+    // every refusal is diagnosed with the notice's own SAM id + reason
+    expect(res.skippedRows.length).toBe(4);
+    expect(res.skippedRows.every((r) => r.reason === "product_buy" && r.id.length > 0)).toBe(true);
+    // fetched = accepted + skipped holds for the pass (run-record contract)
+    expect(res.rows.length + Object.values(res.skipped).reduce((a, b) => a + b, 0)).toBe(5);
+  });
+
+  test("a dump-truck listing is refused with its own reason", async () => {
+    const { fetchJson } = pageFetcher(
+      mixedPage(["MORR PURCHASE NEW DUMP TRUCK", "Bldgs 1469 METC Furniture Relocation and Storage"], NAICS_484210),
+    );
+    const res = await fetchTradeFilterDetailed(NAICS_484110, {
+      fetchJson,
+      detailFetcher: async () => DETAIL,
+      delayMs: 0,
+    });
+    expect(res.rows.map((r) => r.title)).toEqual(["Bldgs 1469 METC Furniture Relocation and Storage"]);
+    expect(res.skipped).toEqual({ dump_truck: 1 });
+  });
+
+  test("a janitorial pass refuses a supplies buy and specialty cleaning", async () => {
+    const { fetchJson } = pageFetcher(
+      mixedPage(
+        [
+          "Janitorial supplies (restroom paper towels)",
+          "Kitchen Hood Cleaning Services",
+          "S201--Janitorial Services l Chattanooga National Cemetery",
+        ],
+        NAICS_561720,
+      ),
+    );
+    const res = await fetchTradeFilterDetailed(janitorialFilter, {
+      fetchJson,
+      detailFetcher: async () => DETAIL,
+      delayMs: 0,
+    });
+    expect(res.rows.map((r) => r.title)).toEqual([
+      "S201--Janitorial Services l Chattanooga National Cemetery",
+    ]);
+    expect(res.skipped).toEqual({ product_buy: 1, specialty_cleaning_only: 1 });
+  });
+
+  test("the committed fixtures are all legitimate trade notices (no fixture is gated out)", async () => {
+    const cases: [SamTradeFilter, any][] = [
+      [janitorialFilter, NAICS_561720],
+      [pscS201Filter, PSC_S201],
+      [SAM_TRADE_FILTERS.find((f) => f.name === "sam_naics_484210")!, NAICS_484210],
+      [SAM_TRADE_FILTERS.find((f) => f.name === "sam_psc_v112")!, PSC_V112],
+      [SAM_TRADE_FILTERS.find((f) => f.name === "sam_psc_r602")!, PSC_R602],
+    ];
+    for (const [filter, page] of cases) {
+      const { fetchJson } = pageFetcher(page);
+      const res = await fetchTradeFilterDetailed(filter, {
+        fetchJson,
+        detailFetcher: async () => DETAIL,
+        delayMs: 0,
+      });
+      const fetched = (page._embedded.results as any[]).length;
+      expect(`${filter.name}: ${res.rows.length}/${fetched} kept, skips=${JSON.stringify(res.skipped)}`).toBe(
+        `${filter.name}: ${fetched}/${fetched} kept, skips={}`,
+      );
+    }
+  });
+
+  test("the runner receives the skip accounting (source returns the run-record shape)", async () => {
+    const { fetchJson } = pageFetcher(
+      mixedPage(["Depot Consumable Parts Processing & Disposal (DEMIL)", "Office Move"], NAICS_484210),
+    );
+    // createSamTradeSource uses the real fetcher; drive the detailed fn directly
+    // (same function the source returns) with the injected fixture.
+    const res = await fetchTradeFilterDetailed(NAICS_484110, {
+      fetchJson,
+      detailFetcher: async () => DETAIL,
+      delayMs: 0,
+    });
+    expect(typeof res.skipped).toBe("object");
+    expect(Array.isArray(res.skippedRows)).toBe(true);
+    expect(Array.isArray(res.rows)).toBe(true);
   });
 });

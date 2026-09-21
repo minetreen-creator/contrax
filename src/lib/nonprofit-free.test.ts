@@ -1621,3 +1621,577 @@ describe("migration 045 and the schema.sql mirror", () => {
     for (const statement of ddl) expect(SCHEMA_SQL).toContain(statement);
   });
 });
+
+// ── The owner's status-change rule (IMPLEMENTATION LOCK 2026-09-21) ────────────
+/**
+ * THE OWNER'S RULE, recorded verbatim (plan rev 267, implementation lock):
+ *
+ * "A status change detected by reverification suspends the free entitlement and opens a
+ * review case — it never deletes the user's account, and saved data remains intact while
+ * the organization's status is reviewed."
+ *
+ * The pass itself (nonprofit-reverify.server.ts) already routes a changed organization to
+ * `manual_review` — that IS the review case. What this block pins is the other half of the
+ * rule: that the suspension is NON-DESTRUCTIVE. Each test runs the REAL pass against an
+ * injected store carrying the whole migration-045 picture for one organization — its
+ * `nonprofit_applications` row, its `users` row and its `saved_grants` rows — and asserts
+ * that after a refresh detects a changed status: the review case is open, the entitlement
+ * is the suspended (pending) tier rather than a deletion or the anonymous tier, every row
+ * of user data is byte-identical to what it was, and not one destructive statement was
+ * issued. The store journals every statement it would have run, which is the spy behind
+ * "no DELETE anywhere". ZERO network, ZERO database (the sandbox DATABASE_URL is prod).
+ */
+describe("the owner's status-change rule (IMPLEMENTATION LOCK 2026-09-21): suspend, never destroy", () => {
+  /** The refresh whose posting date is the audit anchor for the suspension. */
+  const REFRESH_POSTING_DATE = "2026-10-08";
+  /** The moment the pass runs (injected clock — the audit record must be deterministic). */
+  const REVIEWED_AT = "2026-10-12T12:00:00.000Z";
+
+  interface LifecycleUserRow {
+    id: number;
+    email: string;
+    created_at: string;
+  }
+  /** nonprofit_applications (migration 045) — only the columns this lifecycle moves. */
+  interface LifecycleApplicationRow {
+    user_id: number;
+    org_name: string;
+    work_email: string;
+    ein: string;
+    status: string;
+    verification_method: string | null;
+    decision: string | null;
+    decision_reason: string | null;
+    reason_class: string | null;
+    decision_flags: string[];
+    supporting_docs_requested: boolean;
+    bmf_status: string | null;
+    bmf_subsection: string | null;
+    bmf_posting_date: string | null;
+    on_revocation_list: boolean | null;
+    review_notes: string | null;
+    reviewed_at: string | null;
+    evidence: Record<string, unknown>;
+    granted_at: string | null;
+    reverify_due_at: string | null;
+    created_at: string;
+    updated_at: string;
+  }
+  /** saved_grants (migration 045): `opportunity_id` is TEXT and the snapshot is kept. */
+  interface LifecycleSavedGrantRow {
+    id: number;
+    user_id: number;
+    opportunity_id: string;
+    source: string;
+    title: string;
+    agency: string | null;
+    status: string | null;
+    closing_date: string | null;
+    award_display: string | null;
+    official_url: string | null;
+    snapshot: Record<string, unknown>;
+    created_at: string;
+  }
+  interface LifecycleDb {
+    users: LifecycleUserRow[];
+    applications: LifecycleApplicationRow[];
+    savedGrants: LifecycleSavedGrantRow[];
+    /** EVERY statement the fake issued — the spy behind "no delete anywhere". */
+    journal: string[];
+  }
+  /** Deep copy, so a snapshot cannot be mutated by the code under test. */
+  function lifecycleClone<T>(value: T): T {
+    return JSON.parse(JSON.stringify(value)) as T;
+  }
+  /** An organization that was AUTO-APPROVED before the refresh (the row the pass reads). */
+  function lifecycleApprovedApplication(
+    overrides: Partial<LifecycleApplicationRow> = {},
+  ): LifecycleApplicationRow {
+    return {
+      user_id: 7,
+      org_name: "Masonic Trustees of Portland",
+      work_email: "grants@portland-lodge.example.org",
+      ein: "010116380",
+      status: "approved",
+      verification_method: "irs_eo_bmf",
+      decision: "auto_approve",
+      decision_reason: "clear_match",
+      reason_class: "clear-match",
+      decision_flags: [],
+      supporting_docs_requested: false,
+      bmf_status: "01",
+      bmf_subsection: "03",
+      bmf_posting_date: "2026-09-08",
+      on_revocation_list: false,
+      review_notes: null,
+      reviewed_at: null,
+      evidence: {
+        auto_approve: {
+          engine: NONPROFIT_VERIFICATION_ENGINE,
+          source: IRS_SOURCE_LABEL,
+          posting_date: "2026-09-08",
+        },
+      },
+      granted_at: "2026-09-21T00:00:00.000Z",
+      reverify_due_at: "2027-09-21T00:00:00.000Z",
+      created_at: "2026-09-21T00:00:00.000Z",
+      updated_at: "2026-09-21T00:00:00.000Z",
+      ...overrides,
+    };
+  }
+  /** The org's `users` row — the account the owner's rule protects. */
+  function lifecycleUser(id = 7, email = "grants@portland-lodge.example.org"): LifecycleUserRow {
+    return { id, email, created_at: "2026-09-21T00:00:00.000Z" };
+  }
+  /** N = 3 saved grants, in the migration-045 shapes (federal, a state grant, one with no deadline). */
+  function lifecycleSavedGrants(userId = 7): LifecycleSavedGrantRow[] {
+    return [
+      {
+        id: 501,
+        user_id: userId,
+        opportunity_id: "360331",
+        source: "grants_gov",
+        title: "Rural Community Facilities Grant",
+        agency: "USDA Rural Development",
+        status: "posted",
+        closing_date: "2026-11-05",
+        award_display: "$150,000",
+        official_url: "https://www.grants.gov/search-results-detail/360331",
+        snapshot: { opportunityNumber: "USDA-RCF-2026", syncedAt: "2026-09-22T10:00:00.000Z" },
+        created_at: "2026-09-22T10:00:00.000Z",
+      },
+      {
+        id: 502,
+        user_id: userId,
+        opportunity_id: "ME-DHHS-CHEF-07",
+        source: "state:ME",
+        title: "Community Health Equity Fund",
+        agency: "Maine Department of Health and Human Services",
+        status: "posted",
+        closing_date: "2026-12-01",
+        award_display: "$75,000",
+        official_url: "https://www.maine.gov/dhhs/grants/chef",
+        snapshot: { state: "ME", jurisdiction: "ME" },
+        created_at: "2026-09-22T10:05:00.000Z",
+      },
+      {
+        id: 503,
+        user_id: userId,
+        opportunity_id: "345901",
+        source: "grants_gov",
+        title: "Youth Workforce Development Initiative",
+        agency: "Department of Labor",
+        status: "forecasted",
+        closing_date: null,
+        award_display: "Not disclosed",
+        official_url: "https://www.grants.gov/search-results-detail/345901",
+        snapshot: { opportunityNumber: "DOL-YWDI-2026" },
+        created_at: "2026-09-22T10:09:00.000Z",
+      },
+    ];
+  }
+  /**
+   * The injected store: the REAL fixtures for the IRS read side, plus an in-memory
+   * application/users/saved_grants picture that journals every statement. `routeToReview`
+   * performs the SAME guarded UPDATE the Neon store does (it is the stand-in for it), and
+   * the store exposes no delete entry point of any kind — the pass literally cannot ask it
+   * to destroy a row. The admin's re-approval writer is returned SEPARATELY (`admin`), so
+   * the pass has no way to approve anything either.
+   */
+  function lifecycleStore(options: {
+    applications: LifecycleApplicationRow[];
+    users?: LifecycleUserRow[];
+    savedGrants?: LifecycleSavedGrantRow[];
+  }) {
+    const db: LifecycleDb = {
+      users: options.users ?? [],
+      applications: options.applications,
+      savedGrants: options.savedGrants ?? [],
+      journal: [],
+    };
+    const fixtures = mirrorVerificationStore();
+    const store: NonprofitReverifyStore = {
+      mirror: {
+        async findBmfByEin(ein) {
+          db.journal.push(`SELECT irs_eo_bmf ein=${ein}`);
+          return fixtures.findBmfByEin(ein);
+        },
+        async findPub78ByEin(ein) {
+          db.journal.push(`SELECT irs_pub78 ein=${ein}`);
+          return fixtures.findPub78ByEin(ein);
+        },
+        async findRevocationsByEin(ein) {
+          db.journal.push(`SELECT irs_revocations ein=${ein}`);
+          return fixtures.findRevocationsByEin(ein);
+        },
+        async bmfPostingDate() {
+          return fixtures.bmfPostingDate();
+        },
+      },
+      async listApprovedApplications() {
+        db.journal.push("SELECT nonprofit_applications WHERE status = 'approved'");
+        return db.applications
+          .filter((application) => application.status === "approved")
+          .map((application) => ({
+            user_id: application.user_id,
+            ein: application.ein,
+            org_name: application.org_name,
+            bmf_status: application.bmf_status,
+            bmf_subsection: application.bmf_subsection,
+            bmf_posting_date: application.bmf_posting_date,
+            on_revocation_list: application.on_revocation_list,
+          }));
+      },
+      async routeToReview(route) {
+        const row = db.applications.find(
+          (application) =>
+            application.user_id === route.application.user_id && application.status === "approved",
+        );
+        if (!row) {
+          db.journal.push(
+            `UPDATE nonprofit_applications SKIPPED (not approved) user_id=${route.application.user_id}`,
+          );
+          return false;
+        }
+        db.journal.push(
+          `UPDATE nonprofit_applications SET status = 'manual_review' WHERE user_id = ${row.user_id} AND status = 'approved'`,
+        );
+        row.status = "manual_review";
+        row.decision = "manual_review";
+        row.decision_reason = route.reason;
+        row.reason_class = NONPROFIT_REVERIFY_REASON_CLASS;
+        row.supporting_docs_requested = false;
+        row.decision_flags = [...row.decision_flags, NONPROFIT_REVERIFY_FLAG, route.reason];
+        row.bmf_status = route.current.bmfStatus;
+        row.bmf_subsection = route.current.bmfSubsection;
+        row.bmf_posting_date = route.current.bmfPostingDate;
+        row.on_revocation_list = route.current.onRevocationList;
+        row.review_notes = route.message;
+        // MERGE, exactly like the Neon store: the original approval record must survive.
+        row.evidence = { ...row.evidence, ...route.evidence };
+        row.updated_at = REVIEWED_AT;
+        return true;
+      },
+    };
+    /**
+     * Phase 2's review-queue writer, modelled so the "data survives the whole review" half
+     * of the owner's rule is testable. Guarded on `status = 'manual_review'`, so it can
+     * neither double-write nor touch a row that is not under review.
+     */
+    const admin = {
+      async approveAfterReview(userId: number): Promise<boolean> {
+        const row = db.applications.find(
+          (application) =>
+            application.user_id === userId && application.status === "manual_review",
+        );
+        if (!row) return false;
+        db.journal.push(
+          `UPDATE nonprofit_applications SET status = 'approved' WHERE user_id = ${userId} AND status = 'manual_review'`,
+        );
+        row.status = "approved";
+        row.verification_method = "manual_exception";
+        row.review_notes = "Reviewed after the IRS refresh: status confirmed, free access restored.";
+        row.reviewed_at = REVIEWED_AT;
+        row.evidence = {
+          ...row.evidence,
+          manual_review_approval: {
+            reviewed_by: "agent-lead",
+            reviewed_at: REVIEWED_AT,
+            posting_date: REFRESH_POSTING_DATE,
+          },
+        };
+        row.updated_at = REVIEWED_AT;
+        return true;
+      },
+    };
+    return { db, store, admin };
+  }
+  /** Run the REAL pass over that store, for one organization whose status changed. */
+  async function runSuspension() {
+    const application = lifecycleApprovedApplication();
+    const savedGrants = lifecycleSavedGrants(application.user_id);
+    const users = [lifecycleUser(application.user_id, application.work_email)];
+    const lifecycle = lifecycleStore({ applications: [application], users, savedGrants });
+    const summary = await runNonprofitPostRefreshReverify(
+      { postingDate: REFRESH_POSTING_DATE, now: new Date(REVIEWED_AT) },
+      lifecycle.store,
+    );
+    return { ...lifecycle, summary };
+  }
+
+  test("a refresh-detected status change opens the review case, deletes nothing, and leaves every saved grant intact", async () => {
+    const application = lifecycleApprovedApplication();
+    const savedGrants = lifecycleSavedGrants(application.user_id);
+    const users = [lifecycleUser(application.user_id, application.work_email)];
+    const { db, store } = lifecycleStore({ applications: [application], users, savedGrants });
+    const before = {
+      users: lifecycleClone(db.users),
+      savedGrants: lifecycleClone(db.savedGrants),
+    };
+    const summary = await runNonprofitPostRefreshReverify(
+      { postingDate: REFRESH_POSTING_DATE, now: new Date(REVIEWED_AT) },
+      store,
+    );
+
+    // (a) THE REVIEW CASE IS OPEN — `manual_review`, never revoked/denied/deleted — and the
+    // audit record NAMES the refresh that caused it.
+    const row = db.applications[0];
+    expect(summary).toMatchObject({
+      postingDate: REFRESH_POSTING_DATE,
+      checked: 1,
+      routed: 1,
+      kept: 0,
+      skipped: 0,
+      failures: [],
+    });
+    expect(row.status).toBe("manual_review");
+    expect(row.decision).toBe("manual_review");
+    expect(row.decision_reason).toBe("refresh_revoked");
+    expect(row.reason_class).toBe("possible-match");
+    expect(row.supporting_docs_requested).toBe(false);
+    expect(row.decision_flags).toContain(NONPROFIT_REVERIFY_FLAG);
+    expect(row.review_notes).toContain("automatic-revocation list");
+    expect(row.evidence.refresh_reverify).toMatchObject({
+      trigger: "post_refresh_reverify",
+      reason: "refresh_revoked",
+      reason_class: "possible-match",
+      posting_date: REFRESH_POSTING_DATE,
+      checked_at: REVIEWED_AT,
+    });
+    // The ORIGINAL auto-approve record is still on the row: a review is a new chapter, not
+    // a rewrite of the history (the evidence payload is MERGED, never replaced).
+    expect(row.evidence.auto_approve).toEqual({
+      engine: NONPROFIT_VERIFICATION_ENGINE,
+      source: IRS_SOURCE_LABEL,
+      posting_date: "2026-09-08",
+    });
+
+    // (b) EVERY saved grant survives: same count, same content, same ids and timestamps.
+    expect(db.savedGrants).toHaveLength(3);
+    expect(db.savedGrants).toEqual(before.savedGrants);
+    expect(db.savedGrants.map((grant) => grant.id)).toEqual([501, 502, 503]);
+    expect(db.savedGrants.map((grant) => grant.opportunity_id)).toEqual([
+      "360331",
+      "ME-DHHS-CHEF-07",
+      "345901",
+    ]);
+
+    // (c) The account itself is still there, unchanged.
+    expect(db.users).toEqual(before.users);
+    expect(db.applications).toHaveLength(1);
+
+    // (d) NOT ONE destructive statement was issued. The fake journals every statement it
+    // would have run: the whole journal is the pass's reads plus one guarded UPDATE.
+    expect(db.journal.filter((entry) => /DELETE|TRUNCATE|DROP/i.test(entry))).toEqual([]);
+    expect(db.journal.filter((entry) => /users|saved_grants/.test(entry))).toEqual([]);
+    expect(db.journal.filter((entry) => entry.startsWith("UPDATE"))).toEqual([
+      "UPDATE nonprofit_applications SET status = 'manual_review' WHERE user_id = 7 AND status = 'approved'",
+    ]);
+    expect([...db.journal].sort()).toEqual(
+      [
+        "SELECT irs_eo_bmf ein=010116380",
+        "SELECT irs_revocations ein=010116380",
+        "SELECT nonprofit_applications WHERE status = 'approved'",
+        "UPDATE nonprofit_applications SET status = 'manual_review' WHERE user_id = 7 AND status = 'approved'",
+      ].sort(),
+    );
+
+    // ...and the pass's ENTIRE store surface is three methods, none of them a delete.
+    expect(Object.keys(store).sort()).toEqual([
+      "listApprovedApplications",
+      "mirror",
+      "routeToReview",
+    ]);
+  });
+
+  test("after the suspension the free entitlement is SUSPENDED — pending tier, not anonymous, not deleted", async () => {
+    const { db, summary } = await runSuspension();
+    expect(summary.routed).toBe(1);
+    // The row the entitlement is read from: suspended, and still there.
+    const application = db.applications[0];
+    const entitlement = evaluateNonprofitEntitlement(application, new Date("2026-10-12T00:00:00Z"));
+    expect(entitlement.verified).toBe(false);
+    expect(entitlement.status).toBe("manual_review");
+
+    const policy = nonprofitSearchPolicy(entitlement);
+    // 1) The suspension is the PENDING tier — limited access, not a cut to nothing.
+    expect(policy.tier).toBe("nonprofit_pending");
+    expect(policy).toEqual(NONPROFIT_PENDING_SEARCH_POLICY);
+    expect(policy.searchesPerDay).toBe(3);
+    expect(policy.fullDetailsPerDay).toBe(5);
+    expect(policy.previewLimit).toBe(5);
+    // 2) NOT the anonymous tier: an org under review still gets more than a stranger.
+    expect(policy.tier).not.toBe("anonymous");
+    expect(NONPROFIT_ANONYMOUS_SEARCH_POLICY.searchesPerDay).toBe(1);
+    expect(policy.searchesPerDay).not.toBe(NONPROFIT_ANONYMOUS_SEARCH_POLICY.searchesPerDay);
+    // 3) NOT the revoked/denied lane either: a refresh-detected change is never an
+    // automatic revocation (that is a human act — the plan's "owner's right to revoke").
+    expect(entitlement.status).not.toBe("revoked");
+    // 4) The VERIFIED perks are off — that IS the suspension: no saved-grant writes, no
+    // weekly digest, no basic filters, and the day's allowance is finite again.
+    expect(policy.canSave).toBe(false);
+    expect(policy.saveLimit).toBe(0);
+    expect(policy.weeklyDeadlineEmail).toBe(false);
+    expect(policy.basicFilters).toBe(false);
+    expect(nonprofitSearchAllowance(policy, 3)).toEqual({ allowed: false, remaining: 0 });
+    // 5) The staleness claim is withdrawn while the org is under review (it is no longer
+    // "verified") — suspension is visible, and honest.
+    expect(entitlement.verificationWording).toBeNull();
+
+    // 6) And the guarantee a policy object cannot express lives on the ROWS: suspension is
+    // a status, never a deletion. Account, saved data and the review case all still exist.
+    expect(db.applications).toHaveLength(1);
+    expect(db.users).toHaveLength(1);
+    expect(db.users[0].email).toBe("grants@portland-lodge.example.org");
+    expect(db.savedGrants).toHaveLength(3);
+    expect(db.journal.filter((entry) => /DELETE|TRUNCATE|DROP/i.test(entry))).toEqual([]);
+  });
+
+  test("an unchanged organization keeps its approved row AND its saved grants — the pass writes nothing", async () => {
+    const changed = lifecycleApprovedApplication();
+    const unchanged = lifecycleApprovedApplication({
+      user_id: 11,
+      org_name: "Maine Association of Nonprofits",
+      work_email: "hello@mainenonprofits.example.org",
+      ein: "010488538",
+      updated_at: "2026-09-22T09:00:00.000Z",
+    });
+    const savedGrants = [
+      ...lifecycleSavedGrants(7),
+      ...lifecycleSavedGrants(11).map((grant) => ({ ...grant, id: grant.id + 100 })),
+    ];
+    const users = [lifecycleUser(7), lifecycleUser(11, "hello@mainenonprofits.example.org")];
+    const { db, store } = lifecycleStore({ applications: [changed, unchanged], users, savedGrants });
+    const before = {
+      users: lifecycleClone(db.users),
+      savedGrants: lifecycleClone(db.savedGrants),
+      unchangedApplication: lifecycleClone(unchanged),
+    };
+    const summary = await runNonprofitPostRefreshReverify(
+      { postingDate: REFRESH_POSTING_DATE },
+      store,
+    );
+    expect(summary).toMatchObject({ checked: 2, routed: 1, kept: 1, failures: [] });
+    expect(summary.entries).toEqual([
+      { user_id: 7, ein: "010116380", action: "route_to_review", reason: "refresh_revoked" },
+      { user_id: 11, ein: "010488538", action: "keep", reason: null },
+    ]);
+    // The unchanged org's application row is COMPLETELY untouched — updated_at has not
+    // moved, so there is no tuple rewrite and no churn (the zero-writes rule, now carried
+    // across the whole lifecycle picture instead of the application row alone).
+    expect(db.applications.find((application) => application.user_id === 11)).toEqual(
+      before.unchangedApplication,
+    );
+    // Every saved grant of BOTH organizations is untouched — the pass has no business in
+    // `saved_grants` for any org, changed or unchanged: the changed org's saves survive the
+    // suspension, and the unchanged org's are never even looked at.
+    expect(db.savedGrants).toEqual(before.savedGrants);
+    expect(db.savedGrants).toHaveLength(6);
+    expect(db.users).toEqual(before.users);
+    expect(db.journal.filter((entry) => entry.startsWith("UPDATE"))).toEqual([
+      "UPDATE nonprofit_applications SET status = 'manual_review' WHERE user_id = 7 AND status = 'approved'",
+    ]);
+    expect(db.journal.filter((entry) => /saved_grants/.test(entry))).toEqual([]);
+  });
+
+  test("a later re-approval restores the free entitlement with the SAME saved data — the review lifecycle is data-safe end to end", async () => {
+    const { db, admin } = await runSuspension();
+    const savedBeforeReview = lifecycleClone(db.savedGrants);
+    const usersBeforeReview = lifecycleClone(db.users);
+    expect(db.applications[0].status).toBe("manual_review");
+    // While the status is being reviewed the org keeps the pending tier (never a delete).
+    expect(nonprofitSearchPolicy(evaluateNonprofitEntitlement(db.applications[0])).tier).toBe(
+      "nonprofit_pending",
+    );
+
+    // The human re-approves (phase 2's queue writer; guarded on status = 'manual_review').
+    const reviewedAt = new Date("2026-10-14T00:00:00.000Z");
+    expect(await admin.approveAfterReview(7)).toBe(true);
+    expect(db.applications[0].status).toBe("approved");
+
+    // The entitlement is fully restored...
+    const entitlement = evaluateNonprofitEntitlement(db.applications[0], reviewedAt);
+    expect(entitlement.verified).toBe(true);
+    expect(entitlement.status).toBe("approved");
+    expect(nonprofitSearchPolicy(entitlement)).toEqual(NONPROFIT_FREE_SEARCH_POLICY);
+    expect(nonprofitSearchPolicy(entitlement).tier).toBe("nonprofit_free");
+    expect(nonprofitSearchPolicy(entitlement).canSave).toBe(true);
+    expect(nonprofitSearchPolicy(entitlement).saveLimit).toBe(NONPROFIT_SAVE_LIMIT);
+
+    // ...and the data it was suspended with is byte-identical: NOTHING was lost while the
+    // organization's status was under review.
+    expect(db.savedGrants).toEqual(savedBeforeReview);
+    expect(db.savedGrants.map((grant) => grant.id)).toEqual([501, 502, 503]);
+    expect(db.savedGrants.map((grant) => grant.created_at)).toEqual([
+      "2026-09-22T10:00:00.000Z",
+      "2026-09-22T10:05:00.000Z",
+      "2026-09-22T10:09:00.000Z",
+    ]);
+    expect(db.users).toEqual(usersBeforeReview);
+
+    // The whole audit trail survives too: the original approval, the refresh-driven review
+    // and the review's outcome.
+    expect(Object.keys(db.applications[0].evidence).sort()).toEqual([
+      "auto_approve",
+      "manual_review_approval",
+      "refresh_reverify",
+    ]);
+    // The guarded UPDATE cannot double-write, nor touch a row that is not under review.
+    expect(await admin.approveAfterReview(7)).toBe(false);
+    expect(await admin.approveAfterReview(999)).toBe(false);
+    expect(db.journal.filter((entry) => /DELETE|TRUNCATE/i.test(entry))).toEqual([]);
+  });
+
+  // ── The static half: the PRODUCTION path has no destructive statement at all ──
+  const REVERIFY_SOURCE = readFileSync(
+    new URL("./nonprofit-reverify.server.ts", import.meta.url),
+    "utf8",
+  );
+  test("the production status-change path issues exactly two statements, both on nonprofit_applications, and no DELETE", () => {
+    // Every statement the module issues, straight out of the source that ships.
+    const statements = [...REVERIFY_SOURCE.matchAll(/sql\(\)`([\s\S]*?)`/g)].map(
+      (match) => match[1],
+    );
+    expect(statements).toHaveLength(2);
+    for (const statement of statements) {
+      expect(statement).toContain("nonprofit_applications");
+      expect(statement).not.toMatch(/saved_grants/);
+      expect(statement).not.toMatch(/\busers\b/);
+      expect(statement).not.toMatch(/\b(DELETE|TRUNCATE|DROP)\b/);
+      expect(statement).not.toMatch(/CASCADE/i);
+      expect(statement).not.toMatch(/\b(INSERT|ALTER)\b/);
+    }
+    // Exactly ONE of them writes, it moves the row to the review case, and it is guarded on
+    // the previous state so a human decision made concurrently is never overwritten.
+    const writes = statements.filter((statement) => /\bUPDATE\b/.test(statement));
+    expect(writes).toHaveLength(1);
+    expect(writes[0]).toContain("SET status = 'manual_review'");
+    expect(writes[0]).toContain("AND status = 'approved'");
+    // The pass's store contract has three methods — none of them can destroy a row.
+    const shape = REVERIFY_SOURCE.match(/export interface NonprofitReverifyStore \{([\s\S]*?)\n\}/);
+    expect(shape).not.toBeNull();
+    expect(shape?.[1]).toContain("listApprovedApplications");
+    expect(shape?.[1]).toContain("routeToReview");
+    expect(shape?.[1]).not.toMatch(/delete|truncate|purge/i);
+  });
+
+  test("the owner's rule is recorded verbatim where the pass is defined, and manual_review → pending IS the suspension", () => {
+    // The doc block the owner's implementation lock requires, on the module that runs the
+    // pass (whitespace/comment-prefix normalised, so a re-wrap does not hide it).
+    const prose = REVERIFY_SOURCE.replace(/^[ \t]*\*[ \t]?/gm, " ").replace(/\s+/g, " ");
+    expect(prose).toContain(
+      "A status change detected by reverification suspends the free entitlement and opens a review case — " +
+        "it never deletes the user's account, and saved data remains intact while the organization's status is reviewed " +
+        "(owner 09-21, implementation lock).",
+    );
+    // The entitlement mapping that IS the suspension: `manual_review` gets the PENDING tier.
+    // A future edit that quietly rerouted under-review orgs to `anonymous` (or to nothing)
+    // would fail here.
+    const server = readFileSync(new URL("./nonprofit.server.ts", import.meta.url), "utf8");
+    const branch = server.match(
+      /if \(entitlement\.status === "pending" \|\| entitlement\.status === "manual_review"\) \{([\s\S]*?)\}/,
+    );
+    expect(branch).not.toBeNull();
+    expect(branch?.[1]).toContain("return NONPROFIT_PENDING_SEARCH_POLICY;");
+  });
+});

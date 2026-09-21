@@ -22,6 +22,34 @@
  *   • never run against a mirror the importer failed to prove complete — the caller
  *     (refreshIrsSource) invokes it only after a COMMITTED swap.
  *
+ * ── THE OWNER'S RULE (IMPLEMENTATION LOCK, owner 2026-09-21) ─────────────────
+ *
+ * VERBATIM, and this module is where it is enforced:
+ *
+ * "A status change detected by reverification suspends the free entitlement and opens a
+ * review case — it never deletes the user's account, and saved data remains intact while
+ * the organization's status is reviewed (owner 09-21, implementation lock)."
+ *
+ * What that means in THIS file, concretely — every bullet below is pinned by a
+ * regression test in src/lib/nonprofit-free.test.ts (describe: "the owner's status-change
+ * rule (IMPLEMENTATION LOCK 2026-09-21): suspend, never destroy"):
+ *   • the ONLY write on this path is `routeToReview` — ONE UPDATE of
+ *     `nonprofit_applications`, guarded on `status = 'approved'`, moving the row to
+ *     `status = 'manual_review'` (the REVIEW CASE the owner asked for);
+ *   • it never reads, writes, joins or cascades to `users`: the account, the login and
+ *     the organisation's identity are untouched, so a suspended org is never locked out
+ *     and never has to re-register;
+ *   • it never reads, writes, joins or cascades to `saved_grants`: every saved row
+ *     survives the suspension untouched — and therefore also survives the re-approval
+ *     that ends the review;
+ *   • there is NO DELETE, no TRUNCATE and no ON DELETE CASCADE anywhere on this path, and
+ *     `NonprofitReverifyStore` exposes no delete entry point at all — the pass has three
+ *     methods, and none of them can destroy a row.
+ *
+ * SUSPENSION, NOT DELETION: a changed status weakens exactly one thing — the
+ * entitlement. See the ACCESS NOTE below: the org drops from `nonprofit_free` to the
+ * pending tier (`nonprofit_pending`) for as long as a human is reviewing it.
+ *
  * ACCESS NOTE: routing to review is NOT the anonymous tier. `nonprofitSearchPolicy` gives
  * `manual_review` the PENDING policy (3 searches / 5 full details a day), so a nonprofit
  * under review keeps limited access while a human looks — never a silent cut to nothing.
@@ -402,6 +430,15 @@ export const neonNonprofitReverifyStore: NonprofitReverifyStore = {
     return rows.map((row) => ({ ...row, ein: String(row.ein).padStart(9, "0") }));
   },
   async routeToReview(route) {
+    // THE ONLY MUTATION ON THE STATUS-CHANGE PATH (the owner's implementation lock,
+    // 2026-09-21): ONE UPDATE of `nonprofit_applications`, GUARDED on
+    // `status = 'approved'` so a human's decision made concurrently is never overwritten.
+    // There is NO DELETE and NO cascade here — not of this application row, and nothing at
+    // all against `users` or `saved_grants`. An org whose IRS status changed keeps its
+    // account, its login and every saved grant while a human reviews it; it loses only the
+    // VERIFIED entitlement (it drops to the pending tier — see nonprofitSearchPolicy in
+    // nonprofit.server.ts). Suspension is a status change on this one row, never a delete.
+    //
     // The row keeps its history: `evidence` is MERGED (never replaced), so the original
     // auto-approve record and this refresh-driven review both survive; the previous BMF
     // values also live inside the new audit block.

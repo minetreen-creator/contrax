@@ -101,6 +101,14 @@ jobs:
           echo "bundle validation OK"
       - name: Bundled request-context integration test (assembled render function)
         run: bun test tests/request-context.bundled.test.ts
+      # Homepage cache policy (owner-approved F1, 2026-09-21). Deterministic,
+      # zero network, no DATABASE_URL: it asserts the public SSR edge-cache
+      # allowlist never contains `/` (the session-dependent front door that was
+      # serving cached signed-out HTML to signed-in visitors), that the other
+      # cookie-agnostic marketing routes stay cached, and that the launcher
+      # delegates to the policy module instead of re-inlining a `/` rule.
+      - name: Homepage cache policy tests (unit, deterministic, zero network)
+        run: bun test src/lib/ssr-cache-policy.test.ts
       # Nonprofit Free (owner green-lit 2026-09-21, six-point spec). The phase-1 unit
       # suite is DETERMINISTIC and network-free by construction: every IRS byte it reads is
       # a verbatim fixture committed to src/lib/fixtures/irs/, and the store is injected —

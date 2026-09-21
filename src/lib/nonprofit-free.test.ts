@@ -49,19 +49,35 @@ import {
   NONPROFIT_REASON_CLASSES,
   NONPROFIT_SAVE_LIMIT,
   NONPROFIT_SUBSECTION_POLICY,
+  NONPROFIT_VERIFICATION_WORDING_TEMPLATE,
   computeReverifyDueAt,
   evaluateNonprofitEinClaim,
   evaluateNonprofitEntitlement,
   isEligibleSubsection,
   isNonprofitReasonClass,
+  monthNameOf,
   nonprofitFullDetailAllowance,
   nonprofitSearchAllowance,
   nonprofitSearchPolicy,
   subsectionLabel,
+  verificationWording,
+  verificationWordingForIrsRecordsAsOf,
   type NonprofitApplicationRow,
   type NonprofitEntitlement,
   type NonprofitSearchPolicy,
 } from "~/lib/nonprofit.server";
+import {
+  NONPROFIT_REVERIFY_FLAG,
+  NONPROFIT_REVERIFY_REASONS,
+  NONPROFIT_REVERIFY_REASON_CLASS,
+  decideApprovedOrgRereverification,
+  emptyReverifySummary,
+  runNonprofitPostRefreshReverify,
+  type ApprovedNonprofitApplication,
+  type NonprofitReverifyStore,
+  type ReverifyMirrorRecord,
+  type ReverifyRouteInput,
+} from "~/lib/nonprofit-reverify.server";
 import {
   IRS_BMF_LANDING_URL,
   IRS_PUB78_ZIP_MEMBER,
@@ -255,11 +271,19 @@ describe("decision table (research 2.5)", () => {
     expect(outcome.decision).toBe("auto_approve");
     expect(outcome.flags).toContain("group_exemption_subordinate");
   });
-  test("1 — a non-501(c)(3) subsection auto-approves under the shipped policy, labelled", () => {
-    expect(NONPROFIT_SUBSECTION_POLICY).toBe("any_bmf_record");
+  test("1 — a non-501(c)(3) subsection goes to a HUMAN under the shipped 501(c)(3)-only policy", () => {
+    // Owner decision (a), RESOLVED 2026-09-21: auto-approve requires SUBSECTION='03'. The
+    // 501(c)(6) business league, the 501(c)(4), the 501(c)(19) veterans' organization etc.
+    // are exempt but are NOT the "charitable nonprofit" this free tier is for — reviewed by
+    // a human, never auto-approved and never auto-rejected.
+    expect(NONPROFIT_SUBSECTION_POLICY).toBe("501c3_only");
     const outcome = decideNonprofitVerification({ ...autoSignals, bmfSubsection: "06" });
-    expect(outcome.decision).toBe("auto_approve");
+    expect(outcome.decision).toBe("manual_review");
+    expect(outcome.status).toBe("manual_review");
+    expect(outcome.reason).toBe("subsection_not_501c3");
+    expect(outcome.reasonClass).toBe("possible-match");
     expect(outcome.flags).toContain("subsection_not_501c3");
+    expect(outcome.status).not.toBe("denied");
   });
   test("2 — revoked AND in Pub 78 → MANUAL with the reinstatement hypothesis", () => {
     const outcome = decideNonprofitVerification({
@@ -463,6 +487,49 @@ describe("reason taxonomy + the deny lane (owner spec item 3)", () => {
     expect(outcome.decision).toBe("auto_approve");
     expect(outcome.reasonClass).toBe("clear-match");
   });
+  test("R1 — an UNKNOWN holder name is never the fraud lane (null einClaim.orgName → manual)", () => {
+    // `einClaim.orgName` is OPTIONAL: a caller may know only the holding user id. Comparing
+    // a submitted name against NULL/blank is Tier C by construction, and "differs from
+    // nothing" is not evidence of two organisations — so this is a duplicate to be REVIEWED,
+    // never the owner's fraud lane. The submitted name here is a different string, which is
+    // exactly the case that used to deny.
+    const outcome = decideNonprofitVerification({
+      ...autoSignals,
+      submittedNameNormalized: "SOME OTHER CHARITY",
+      einClaim: { userId: 7 }, // no orgName at all
+      applicantUserId: 9,
+    });
+    expect(outcome.decision).toBe("manual_review");
+    expect(outcome.status).toBe("manual_review");
+    expect(outcome.reason).toBe("ein_already_claimed");
+    expect(outcome.reasonClass).toBe("possible-match");
+    expect(outcome.flags).toContain("ein_claim_org_name_unknown");
+    expect(outcome.evidence).toMatchObject({
+      ein_claim: { claimed_by_user_id: 7, claimed_org_name: null },
+      ein_claim_org_name_known: false,
+      conflicts: [],
+    });
+    // A blank/whitespace name is the same UNKNOWN, not a difference.
+    const blank = decideNonprofitVerification({
+      ...autoSignals,
+      submittedNameNormalized: "SOME OTHER CHARITY",
+      einClaim: { userId: 7, orgName: "   " },
+      applicantUserId: 9,
+    });
+    expect(blank.status).toBe("manual_review");
+    expect(blank.reason).toBe("ein_already_claimed");
+    expect(blank.reasonClass).not.toBe("fraud-likely");
+    // …and the genuine conflict still denies: a NAMED, materially different org.
+    const conflict = decideNonprofitVerification({
+      ...autoSignals,
+      submittedNameNormalized: "SOME OTHER CHARITY",
+      einClaim: { userId: 7, orgName: "Maine Association of Nonprofits" },
+      applicantUserId: 9,
+    });
+    expect(conflict.decision).toBe("deny");
+    expect(conflict.reason).toBe("ein_conflict_different_org");
+    expect(conflict.reasonClass).toBe("fraud-likely");
+  });
   test("an ambiguous record NEVER denies — the deny lane needs a definite conflict", () => {
     // Everything uncertain still lands in manual review, whatever else looks odd.
     for (const patch of [
@@ -511,13 +578,20 @@ describe("verification end to end on the real IRS fixtures", () => {
     expect(outcome.signals.bmfPostingDate).toBe("2026-09-08");
     expect(outcome.flags).toEqual([]);
   });
-  test("a 501(c)(6) business league auto-approves and is labelled", async () => {
+  test("a 501(c)(6) business league is REVIEWED, never auto-approved (501(c)(3) only)", async () => {
+    // Maine State Chamber of Commerce — SUBSECTION 06, STATUS 01, not revoked: every
+    // signal but the subsection passes. Under owner decision (a) that is a manual review.
     const outcome = await verifyNonprofitApplication(
       { ein: "010021545", orgName: "Maine State Chamber of Commerce" },
       store,
     );
-    expect(outcome.decision).toBe("auto_approve");
+    expect(outcome.decision).toBe("manual_review");
+    expect(outcome.status).toBe("manual_review");
+    expect(outcome.reason).toBe("subsection_not_501c3");
+    expect(outcome.reasonClass).toBe("possible-match");
     expect(outcome.flags).toContain("subsection_not_501c3");
+    expect(outcome.signals.bmfSubsection).toBe("06");
+    expect(outcome.signals.matchedBmfName).toBe("MAINE STATE CHAMBER OF COMMERCE");
   });
   test("a group-exemption subordinate auto-approves and is tagged", async () => {
     const outcome = await verifyNonprofitApplication(
@@ -580,6 +654,367 @@ describe("verification end to end on the real IRS fixtures", () => {
   });
 });
 
+// ── The verification-status wording (owner 09-21, RESOLVED) ──────────────────
+describe("the verification-status wording (owner decision, RESOLVED 2026-09-21)", () => {
+  test("the owner's sentence, exactly — as a template, not a literal", () => {
+    expect(NONPROFIT_VERIFICATION_WORDING_TEMPLATE).toBe(
+      "Verified against IRS tax-exempt records updated {Month Year}",
+    );
+    expect(verificationWording("September", 2026)).toBe(
+      "Verified against IRS tax-exempt records updated September 2026",
+    );
+    expect(verificationWording("January", "2027")).toBe(
+      "Verified against IRS tax-exempt records updated January 2027",
+    );
+  });
+  test("the mirror's posting date is the ONLY source of the month and the year", () => {
+    const expected = "Verified against IRS tax-exempt records updated September 2026";
+    // The three shapes a mirror posting date arrives in (DATE column, timestamp, Date).
+    expect(verificationWordingForIrsRecordsAsOf("2026-09-08")).toBe(expected);
+    expect(verificationWordingForIrsRecordsAsOf("2026-09-08T00:00:00.000Z")).toBe(expected);
+    expect(verificationWordingForIrsRecordsAsOf(new Date("2026-09-08T00:00:00Z"))).toBe(expected);
+    expect(verificationWordingForIrsRecordsAsOf("2026-12-31")).toBe(
+      "Verified against IRS tax-exempt records updated December 2026",
+    );
+    // NO mirror date, NO claim — and a month is never invented.
+    expect(verificationWordingForIrsRecordsAsOf(null)).toBeNull();
+    expect(verificationWordingForIrsRecordsAsOf(undefined)).toBeNull();
+    expect(verificationWordingForIrsRecordsAsOf("")).toBeNull();
+    expect(verificationWordingForIrsRecordsAsOf("not a date")).toBeNull();
+    expect(verificationWordingForIrsRecordsAsOf("2026-13-01")).toBeNull();
+    expect(monthNameOf(0)).toBeNull();
+    expect(monthNameOf(13)).toBeNull();
+    expect(monthNameOf(9)).toBe("September");
+    expect(monthNameOf(1.5)).toBeNull();
+  });
+});
+
+// ── The post-refresh reverify pass (owner 09-21, RESOLVED) ───────────────────
+describe("post-refresh reverify (owner decision, RESOLVED 2026-09-21)", () => {
+  const approvedRow = (
+    ein: string,
+    userId = 1,
+    extra: Partial<ApprovedNonprofitApplication> = {},
+  ): ApprovedNonprofitApplication => ({
+    user_id: userId,
+    ein,
+    org_name: "Approved Organization",
+    bmf_status: "01",
+    bmf_subsection: "03",
+    bmf_posting_date: "2026-09-08",
+    on_revocation_list: false,
+    ...extra,
+  });
+  /** A store over an explicit NEW mirror + an injected list of approved applications. */
+  function fakeReverifyStore(
+    approved: ApprovedNonprofitApplication[],
+    bmf: Record<string, ReverifyMirrorRecord | null>,
+    revoked: string[] = [],
+    options: { writes?: boolean } = {},
+  ) {
+    const routed: ReverifyRouteInput[] = [];
+    const store: NonprofitReverifyStore = {
+      mirror: {
+        findBmfByEin: async (ein) => bmf[ein] ?? null,
+        findPub78ByEin: async () => null,
+        findRevocationsByEin: async (ein) => (revoked.includes(ein) ? [{ ein }] : []),
+        bmfPostingDate: async () => null,
+      },
+      listApprovedApplications: async () => approved,
+      routeToReview: async (route) => {
+        routed.push(route);
+        return options.writes !== false;
+      },
+    };
+    return { store, routed };
+  }
+  const NEW_POSTING_DATE = "2026-10-08";
+
+  test("the four reasons — and only those — send an approved org back to a human", () => {
+    const base = {
+      ein: "010488538",
+      bmf: { ein: "010488538", status: "01", subsection: "03" },
+      onRevocationList: false,
+    };
+    expect(decideApprovedOrgRereverification(base)).toMatchObject({ action: "keep", reason: null });
+    expect(decideApprovedOrgRereverification({ ...base, onRevocationList: true })).toMatchObject({
+      action: "route_to_review",
+      reason: "refresh_revoked",
+    });
+    expect(decideApprovedOrgRereverification({ ...base, bmf: null }).reason).toBe(
+      "refresh_record_missing",
+    );
+    expect(
+      decideApprovedOrgRereverification({
+        ...base,
+        bmf: { ein: "010488538", status: "25", subsection: "03" },
+      }).reason,
+    ).toBe("refresh_status_not_active");
+    expect(
+      decideApprovedOrgRereverification({
+        ...base,
+        bmf: { ein: "010488538", status: "01", subsection: "06" },
+      }).reason,
+    ).toBe("refresh_subsection_not_501c3");
+    // ORDER: a revoked 501(c)(3) is labelled REVOKED, not "wrong subsection".
+    expect(
+      decideApprovedOrgRereverification({
+        ...base,
+        bmf: { ein: "010488538", status: "01", subsection: "06" },
+        onRevocationList: true,
+      }).reason,
+    ).toBe("refresh_revoked");
+    // Every reason is a possible-match: an uncertain record is NEVER the fraud lane, and
+    // the pass has no "deny"/"revoke" outcome at all.
+    expect(NONPROFIT_REVERIFY_REASON_CLASS).toBe("possible-match");
+    expect(NONPROFIT_REVERIFY_REASONS).toHaveLength(4);
+  });
+
+  test("a revocation that appears after approval routes the org to review", async () => {
+    const { store, routed } = fakeReverifyStore(
+      [approvedRow("010488538", 7)],
+      { "010488538": { ein: "010488538", status: "01", subsection: "03" } },
+      ["010488538"],
+    );
+    const summary = await runNonprofitPostRefreshReverify(
+      { postingDate: NEW_POSTING_DATE, now: new Date("2026-10-09T00:00:00Z") },
+      store,
+    );
+    expect(summary).toMatchObject({
+      postingDate: NEW_POSTING_DATE,
+      checked: 1,
+      routed: 1,
+      kept: 0,
+      skipped: 0,
+      failures: [],
+    });
+    expect(routed).toHaveLength(1);
+    expect(routed[0]).toMatchObject({ reason: "refresh_revoked", postingDate: NEW_POSTING_DATE });
+    const audit = (routed[0].evidence as { refresh_reverify: Record<string, unknown> }).refresh_reverify;
+    // The audit record NAMES the refresh that caused the review (the owner's requirement).
+    expect(audit).toMatchObject({
+      trigger: "post_refresh_reverify",
+      reason: "refresh_revoked",
+      reason_class: "possible-match",
+      posting_date: NEW_POSTING_DATE,
+      checked_at: "2026-10-09T00:00:00.000Z",
+      previous: { bmf_status: "01", bmf_subsection: "03", on_revocation_list: false },
+      current: { on_revocation_list: true },
+      flags: [NONPROFIT_REVERIFY_FLAG, "refresh_revoked"],
+    });
+    expect(routed[0].current).toMatchObject({ onRevocationList: true, bmfSubsection: "03" });
+    // The row keeps what it was approved on, for the human reading the queue.
+    expect(routed[0].application.org_name).toBe("Approved Organization");
+  });
+
+  test("a subsection that leaves 501(c)(3) routes the org to review", async () => {
+    // Approved BEFORE the owner narrowed the scope: the new extract says 501(c)(6).
+    const { store, routed } = fakeReverifyStore(
+      [approvedRow("010021545", 3, { org_name: "Maine State Chamber of Commerce" })],
+      { "010021545": { ein: "010021545", status: "01", subsection: "06" } },
+    );
+    const summary = await runNonprofitPostRefreshReverify({ postingDate: NEW_POSTING_DATE }, store);
+    expect(summary).toMatchObject({ checked: 1, routed: 1, kept: 0, failures: [] });
+    expect(routed[0].reason).toBe("refresh_subsection_not_501c3");
+    expect(routed[0].message).toContain("501(c)(6) business league");
+    expect(routed[0].current).toMatchObject({ bmfSubsection: "06" });
+    // A status that left 01/02 goes the same way, with that reason.
+    const status = fakeReverifyStore(
+      [approvedRow("010261396", 4)],
+      { "010261396": { ein: "010261396", status: "25", subsection: "03" } },
+    );
+    const statusSummary = await runNonprofitPostRefreshReverify(
+      { postingDate: NEW_POSTING_DATE },
+      status.store,
+    );
+    expect(statusSummary.routed).toBe(1);
+    expect(status.routed[0].reason).toBe("refresh_status_not_active");
+    expect(status.routed[0].message).toContain("terminated");
+  });
+
+  test("an unchanged org is left COMPLETELY alone — no write, no churn", async () => {
+    const { store, routed } = fakeReverifyStore(
+      [approvedRow("010488538", 1), approvedRow("010163098", 2)],
+      {
+        "010488538": { ein: "010488538", status: "01", subsection: "03" },
+        "010163098": { ein: "010163098", status: "01", subsection: "03" },
+      },
+    );
+    const summary = await runNonprofitPostRefreshReverify({ postingDate: NEW_POSTING_DATE }, store);
+    expect(summary).toMatchObject({ checked: 2, routed: 0, kept: 2, failures: [] });
+    // NOT ONE write: the row's updated_at must not move for an unchanged organization.
+    expect(routed).toEqual([]);
+    expect(summary.entries).toEqual([
+      { user_id: 1, ein: "010488538", action: "keep", reason: null },
+      { user_id: 2, ein: "010163098", action: "keep", reason: null },
+    ]);
+  });
+
+  test("never a silent cut: a route that finds the row already moved is SKIPPED, not forced", async () => {
+    const { store } = fakeReverifyStore(
+      [approvedRow("010488538", 5)],
+      { "010488538": null },
+      [],
+      { writes: false },
+    );
+    const summary = await runNonprofitPostRefreshReverify({ postingDate: NEW_POSTING_DATE }, store);
+    expect(summary).toMatchObject({ checked: 1, routed: 0, kept: 0, skipped: 1, failures: [] });
+  });
+
+  test("one unreadable record does not stop the pass, and is reported", async () => {
+    const approved = [approvedRow("010488538", 1), approvedRow("010116380", 2)];
+    const routed: ReverifyRouteInput[] = [];
+    const store: NonprofitReverifyStore = {
+      mirror: {
+        findBmfByEin: async (ein) => {
+          if (ein === "010488538") throw new Error("connection reset");
+          return { ein, status: "01", subsection: "03" };
+        },
+        findPub78ByEin: async () => null,
+        findRevocationsByEin: async () => [],
+        bmfPostingDate: async () => null,
+      },
+      listApprovedApplications: async () => approved,
+      routeToReview: async (route) => {
+        routed.push(route);
+        return true;
+      },
+    };
+    const summary = await runNonprofitPostRefreshReverify({ postingDate: NEW_POSTING_DATE }, store);
+    expect(summary.checked).toBe(2);
+    expect(summary.kept).toBe(1);
+    expect(summary.failures).toHaveLength(1);
+    expect(summary.failures[0]).toContain("connection reset");
+  });
+
+  test("on the committed fixtures: the revoked org is routed, the unchanged 501(c)(3) is not", async () => {
+    // The REAL fixture bytes: 010116380 (Masonic Trustees of Portland) is in the BMF AND on
+    // the auto-revocation list; 010488538 (Maine Association of Nonprofits) is a clean
+    // 501(c)(3)/STATUS 01 and must not be touched.
+    const routed: ReverifyRouteInput[] = [];
+    const store: NonprofitReverifyStore = {
+      mirror: mirrorVerificationStore(),
+      listApprovedApplications: async () => [
+        approvedRow("010116380", 1, { org_name: "Masonic Trustees of Portland" }),
+        approvedRow("010488538", 2, { org_name: "Maine Association of Nonprofits" }),
+      ],
+      routeToReview: async (route) => {
+        routed.push(route);
+        return true;
+      },
+    };
+    const summary = await runNonprofitPostRefreshReverify({ postingDate: NEW_POSTING_DATE }, store);
+    expect(summary).toMatchObject({ checked: 2, routed: 1, kept: 1, failures: [] });
+    expect(routed.map((route) => route.application.ein)).toEqual(["010116380"]);
+    expect(routed[0].reason).toBe("refresh_revoked");
+    expect(routed[0].current).toMatchObject({ onRevocationList: true });
+    expect(summary.entries).toEqual([
+      { user_id: 1, ein: "010116380", action: "route_to_review", reason: "refresh_revoked" },
+      { user_id: 2, ein: "010488538", action: "keep", reason: null },
+    ]);
+  });
+
+  test("a store that cannot list approved orgs reports the failure instead of throwing", async () => {
+    const store: NonprofitReverifyStore = {
+      mirror: mirrorVerificationStore(),
+      listApprovedApplications: async () => {
+        throw new Error("db is down");
+      },
+      routeToReview: async () => true,
+    };
+    const summary = await runNonprofitPostRefreshReverify({ postingDate: NEW_POSTING_DATE }, store);
+    expect(summary.checked).toBe(0);
+    expect(summary.failures[0]).toContain("db is down");
+  });
+
+  test("the pass runs ONLY after a committed BMF import — never on a failed or verify run", async () => {
+    const calls: (string | null)[] = [];
+    const reverify = async (context: { postingDate: string | null }) => {
+      calls.push(context.postingDate);
+      return emptyReverifySummary(context.postingDate);
+    };
+    // (a) a COMMITTED import: the pass runs once, with the NEW posting date.
+    const good = fakeMirrorStore();
+    const goodFetch = fakeFetch(bmfBodies({ recordCount: 8 }));
+    const committed = await refreshIrsSource(
+      "eo_bmf",
+      { mode: "import" },
+      { store: good, fetchFn: goodFetch.fn, reverify },
+    );
+    expect(committed.ok).toBe(true);
+    expect(good.events).toContain("commitStage:eo_bmf");
+    expect(calls).toEqual(["2026-09-08"]);
+    expect(committed.reverify?.postingDate).toBe("2026-09-08");
+    // (b) a FAILED import: nothing is swapped, nothing is re-checked — the OLD mirror keeps
+    // serving and no already-approved org is judged against data that never landed.
+    calls.length = 0;
+    const bad = fakeMirrorStore();
+    const badFetch = fakeFetch(bmfBodies({ recordCount: 1964958 }));
+    const failed = await refreshIrsSource(
+      "eo_bmf",
+      { mode: "import" },
+      { store: bad, fetchFn: badFetch.fn, reverify },
+    );
+    expect(failed.ok).toBe(false);
+    expect(failed.failures).toContain("published_record_count_mismatch");
+    expect(calls).toEqual([]);
+    expect(failed.reverify).toBeUndefined();
+    expect(bad.events).toContain("abortStage:eo_bmf");
+    expect(bad.events).not.toContain("commitStage:eo_bmf");
+    // Rows only ever reached the STAGING table; the abort is what leaves the LIVE mirror serving.
+    expect(bad.events).toContain("writeStage:eo_bmf");
+    // (c) --verify swaps nothing, so the pass never runs either.
+    calls.length = 0;
+    const verifyOnly = fakeMirrorStore();
+    const verifyFetch = fakeFetch(bmfBodies({ recordCount: 8 }));
+    await refreshIrsSource("eo_bmf", { mode: "verify" }, { store: verifyOnly, fetchFn: verifyFetch.fn, reverify });
+    expect(calls).toEqual([]);
+    // (d) another source's import does not trigger a BMF re-check.
+    calls.length = 0;
+    const pub78 = fakeMirrorStore();
+    const pub78Fetch = fakeFetch({
+      [payloadsForSource("pub78")[0].url]: buildZip(IRS_PUB78_ZIP_MEMBER, fixture("pub78.txt")),
+    });
+    await refreshIrsSource("pub78", { mode: "import" }, { store: pub78, fetchFn: pub78Fetch.fn, reverify });
+    expect(calls).toEqual([]);
+  });
+
+  test("a pass that throws never turns a completed import into a failed one", async () => {
+    const store = fakeMirrorStore();
+    const { fn } = fakeFetch(bmfBodies({ recordCount: 8 }));
+    const logs: string[] = [];
+    const summary = await refreshIrsSource(
+      "eo_bmf",
+      { mode: "import" },
+      {
+        store,
+        fetchFn: fn,
+        log: (message) => logs.push(message),
+        reverify: async () => {
+          throw new Error("reverify store unreachable");
+        },
+      },
+    );
+    expect(summary.ok).toBe(true);
+    expect(summary.failures).toEqual([]);
+    expect(store.events).toContain("commitStage:eo_bmf");
+    expect(summary.reverify?.failures[0]).toContain("reverify store unreachable");
+    expect(logs.join("\n")).toContain("reverify pass FAILED");
+  });
+
+  test("a BMF import with no runner wired SAYS SO in the log", async () => {
+    const store = fakeMirrorStore();
+    const { fn } = fakeFetch(bmfBodies({ recordCount: 8 }));
+    const logs: string[] = [];
+    const summary = await runIrsMirrorRefresh(
+      { mode: "import", sources: ["eo_bmf"] },
+      { store, fetchFn: fn, log: (message) => logs.push(message) },
+    );
+    expect(summary.ok).toBe(true);
+    expect(logs.join("\n")).toContain("no post-refresh reverify runner wired");
+  });
+});
+
 // ── Entitlement + search policy ──────────────────────────────────────────────
 describe("entitlement and search policy", () => {
   const row = (status: string | null, extra: Partial<NonprofitApplicationRow> = {}): NonprofitApplicationRow => ({
@@ -612,6 +1047,23 @@ describe("entitlement and search policy", () => {
       irsRecordsAsOf: "2026-09-08",
       reverifyDue: false,
     });
+  });
+  test("the exact owner wording rides on the entitlement, from the mirror date only", () => {
+    // Owner 2026-09-21, verbatim: "Verified against IRS tax-exempt records updated
+    // [Month Year]" — and the month/year comes from the MIRROR's posting date, never a
+    // literal typed into a page.
+    expect(evaluateNonprofitEntitlement(row("approved")).verificationWording).toBe(
+      "Verified against IRS tax-exempt records updated September 2026",
+    );
+    // No mirror date → no claim (the mirror-never-imported case).
+    expect(
+      evaluateNonprofitEntitlement(row("approved", { bmf_posting_date: null })).verificationWording,
+    ).toBeNull();
+    // Only a VERIFIED org carries the sentence.
+    for (const status of ["pending", "manual_review", "denied", "revoked"]) {
+      expect(evaluateNonprofitEntitlement(row(status)).verificationWording).toBeNull();
+    }
+    expect(evaluateNonprofitEntitlement(null).verificationWording).toBeNull();
   });
   test("the annual reverify is a queue flag — it NEVER removes the free access", () => {
     const overdue = evaluateNonprofitEntitlement(row("approved"), new Date("2028-01-01T00:00:00Z"));

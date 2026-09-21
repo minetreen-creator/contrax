@@ -42,6 +42,14 @@
  *   bun run src/lib/irs-mirror.server.ts --import        # the real refresh (swap)
  *   --source <bmf|pub78|revocations|all>   --source-dir <dir>   --max-rows <n>
  *
+ * AFTER A COMMITTED IMPORT of the BMF the job runs the owner's POST-REFRESH REVERIFY PASS
+ * (2026-09-21): every nonprofit already marked `approved` is re-checked against the extract
+ * that is now live, and one whose status left 01/02, whose subsection left 501(c)(3) or
+ * whose EIN appeared on the revocation list is routed back to MANUAL REVIEW with an audit
+ * record naming this refresh's posting date. It never revokes and never denies — see
+ * src/lib/nonprofit-reverify.server.ts. A failed import leaves the old mirror serving and
+ * runs no pass at all.
+ *
  * The 340 MB download + import is NOT part of this phase's work; this job exists and is
  * unit-testable with in-memory fixtures and a fake store (zero network in the default
  * test run, per the owner's test-determinism guardrail).
@@ -50,6 +58,13 @@ import { createHash } from "node:crypto";
 import { inflateRawSync } from "node:zlib";
 import { readFile } from "node:fs/promises";
 import { sql } from "~/db";
+import {
+  emptyReverifySummary,
+  neonNonprofitReverifyStore,
+  runNonprofitPostRefreshReverify,
+  type NonprofitReverifyRunner,
+  type NonprofitReverifySummary,
+} from "~/lib/nonprofit-reverify.server";
 
 // ── Sources (exact URLs, verified 2026-09-21) ────────────────────────────────
 export const IRS_BMF_REGION_URLS: readonly string[] = [
@@ -634,6 +649,16 @@ export interface IrsMirrorDeps {
   store?: IrsMirrorStore;
   log?: (message: string) => void;
   now?: () => Date;
+  /**
+   * THE POST-REFRESH REVERIFY PASS (owner 09-21: "refresh must detect status changes for
+   * already-verified orgs (revoked / subsection changed) and route them to review").
+   *
+   * Injected rather than imported-and-called so the unit tests drive it with a fixture
+   * store and zero network, and so `null` can say "no pass" out loud. `main()` wires the
+   * Neon one; a caller that forgets gets a WARNING in the log (never silence).
+   * It only ever runs after a COMMITTED `eo_bmf` swap.
+   */
+  reverify?: NonprofitReverifyRunner | null;
 }
 export interface SourceRunSummary {
   source: IrsMirrorSource;
@@ -644,6 +669,12 @@ export interface SourceRunSummary {
   failures: string[];
   stats: ParseStats;
   publication?: BmfPublication;
+  /**
+   * The post-swap reverify pass (owner 09-21), reported alongside the import: how many
+   * already-approved nonprofits were re-checked against the new extract and how many were
+   * routed back to a human. Present only on an `eo_bmf` import that actually committed.
+   */
+  reverify?: NonprofitReverifySummary;
 }
 export interface IrsMirrorRunSummary {
   mode: "verify" | "import";
@@ -919,9 +950,32 @@ export async function refreshIrsSource(
 
   // ── Swap (import) or stop cleanly (verify) ─────────────────────────────────
   const ok = failures.length === 0;
+  let reverify: NonprofitReverifySummary | undefined;
   if (importMode) {
-    if (ok) await store?.commitStage(source);
-    else await store?.abortStage(source);
+    if (ok) {
+      await store?.commitStage(source);
+      // ── THE POST-SWAP REVERIFY PASS (owner 09-21) ───────────────────────────
+      // Runs ONLY after a committed `eo_bmf` swap: the BMF is what the re-check reads,
+      // and a run that failed its completeness proof has just left the OLD mirror serving,
+      // so nobody may be re-checked against data that was never imported. The pass can
+      // only ever move an approved organization to `manual_review` — it never revokes and
+      // never denies (see nonprofit-reverify.server.ts).
+      if (source === "eo_bmf" && deps.reverify) {
+        try {
+          reverify = await deps.reverify({ postingDate, log });
+        } catch (error) {
+          // A broken review pass must not be reported as a failed import: the mirror is
+          // already swapped and correct. The failure is logged and the NEXT refresh
+          // re-detects the same change (the pass re-reads the live mirror, so it is
+          // idempotent) — silence would be the only unacceptable outcome.
+          const message = (error as Error)?.message ?? String(error);
+          log(`[irs-mirror] ${source}: reverify pass FAILED — ${message}`);
+          reverify = emptyReverifySummary(postingDate, `reverify_pass_failed:${message.slice(0, 300)}`);
+        }
+      }
+    } else {
+      await store?.abortStage(source);
+    }
   }
   const summary: SourceRunSummary = {
     source,
@@ -932,6 +986,7 @@ export async function refreshIrsSource(
     failures,
     stats,
     ...(publication ? { publication } : {}),
+    ...(reverify ? { reverify } : {}),
   };
   await store?.recordRun({
     source,
@@ -972,6 +1027,24 @@ export async function runIrsMirrorRefresh(
           `prune=${summary.diff.pruned} quarantined=${summary.diff.quarantined}` +
           `${summary.failures.length > 0 ? ` failures=${summary.failures.join(",")}` : ""}`,
       );
+      // The post-refresh reverify pass (owner 09-21) is reported on its own line, and its
+      // ABSENCE on a committed import is said out loud: an unreported silence here would
+      // mean approved nonprofits were quietly not re-checked.
+      if (options.mode === "import" && source === "eo_bmf" && summary.ok) {
+        const pass = summary.reverify;
+        if (pass) {
+          log(
+            `[irs-mirror] eo_bmf: reverify pass (refresh ${pass.postingDate ?? "date unknown"}) ` +
+              `checked=${pass.checked} routed=${pass.routed} kept=${pass.kept} skipped=${pass.skipped}` +
+              `${pass.failures.length > 0 ? ` failures=${pass.failures.join(",")}` : ""}`,
+          );
+        } else if (!deps.reverify) {
+          log(
+            "[irs-mirror] eo_bmf: WARNING no post-refresh reverify runner wired — " +
+              "approved nonprofits were NOT re-checked against this extract",
+          );
+        }
+      }
     } catch (error) {
       const message = (error as Error)?.message ?? String(error);
       log(`[irs-mirror] ${source}: ERROR ${message}`);
@@ -1224,7 +1297,14 @@ async function main(): Promise<void> {
       maxRows: args.maxRows,
       distinctCheck: args.distinctCheck,
     },
-    { store: neonIrsMirrorStore, log: (message) => console.log(message) },
+    {
+      store: neonIrsMirrorStore,
+      log: (message) => console.log(message),
+      // THE POST-REFRESH REVERIFY PASS, wired explicitly (owner 09-21). It runs once, after
+      // a committed `eo_bmf` swap, and re-checks every already-approved nonprofit against
+      // the extract that is now live. `--verify` never swaps, so it never runs there.
+      reverify: (context) => runNonprofitPostRefreshReverify(context, neonNonprofitReverifyStore),
+    },
   );
   console.log(`[irs-mirror] ${args.mode} ${summary.ok ? "COMPLETE" : "FAILED"}`);
   if (!summary.ok) process.exitCode = 1;

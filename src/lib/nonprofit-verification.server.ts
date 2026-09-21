@@ -529,7 +529,13 @@ export function nonprofitStatusForDecision(decision: NonprofitDecision): Nonprof
  *   5. on the revocation list AND in Pub 78   → MANUAL (reinstatement hypothesis)
  *   6. on the revocation list, not in Pub 78  → MANUAL, recommend "decline"
  *   7. STATUS not 01/02                       → MANUAL
- *   8. otherwise                              → AUTO-APPROVE
+ *   8. SUBSECTION not '03' (owner decision (a), RESOLVED: 501(c)(3) ONLY)
+ *                                             → MANUAL (never a rejection)
+ *   9. otherwise                              → AUTO-APPROVE
+ *
+ * Step 8 is live because the owner resolved decision (a) on 2026-09-21 — a 501(c)(6)
+ * business league, a 501(c)(4), a 501(c)(19) veterans' organization etc. is reviewed by a
+ * human and never auto-approved (nonprofit.server.ts, NONPROFIT_SUBSECTION_POLICY).
  *
  * EVERY branch carries its owner-taxonomy reason class (clear-match / possible-match /
  * no-match-request-docs / fraud-likely) — see `reasonClassFor`.
@@ -566,6 +572,13 @@ export function decideNonprofitVerification(
   // organisations are materially DIFFERENT. A second account for the SAME legal org is a
   // duplicate, not fraud: it is deflected at apply time (evaluateNonprofitEinClaim) and, if
   // it still reaches the engine, it is reviewed by a human — never denied as fraud.
+  //
+  // R1 — HARDENING THE DENY LANE. `einClaim.orgName` is OPTIONAL (a caller may know only the
+  // holding user id). Comparing the submitted name against a NULL/blank name is Tier C by
+  // construction, and "differs from nothing" is not evidence of two organisations — so an
+  // UNKNOWN claim name is an unknown, never a conflict. It falls through to the
+  // `ein_already_claimed` MANUAL branch below, which is the honest outcome: a human sees the
+  // duplicate and decides. Only a claim that NAMES a materially different org may deny.
   const einClaim = input.einClaim ?? null;
   const claimByAnotherAccount =
     einClaim != null &&
@@ -573,13 +586,17 @@ export function decideNonprofitVerification(
       input.applicantUserId == null ||
       einClaim.userId !== input.applicantUserId);
   let einClaimIsDifferentOrg = false;
+  let einClaimOrgNameKnown = false;
   if (claimByAnotherAccount && einClaim) {
-    const claimNameTier = compareLegalNames(input.submittedNameNormalized ?? "", [
-      einClaim.orgName ?? null,
-    ]).tier;
-    einClaimIsDifferentOrg = claimNameTier === "C";
-    if (einClaimIsDifferentOrg && !conflicts.includes("ein_claimed_by_different_org")) {
-      conflicts.push("ein_claimed_by_different_org");
+    einClaimOrgNameKnown = normalizeOrgName(einClaim.orgName ?? null).normalized.length > 0;
+    if (einClaimOrgNameKnown) {
+      const claimNameTier = compareLegalNames(input.submittedNameNormalized ?? "", [
+        einClaim.orgName ?? null,
+      ]).tier;
+      einClaimIsDifferentOrg = claimNameTier === "C";
+      if (einClaimIsDifferentOrg && !conflicts.includes("ein_claimed_by_different_org")) {
+        conflicts.push("ein_claimed_by_different_org");
+      }
     }
   }
   const flags: string[] = [];
@@ -604,7 +621,16 @@ export function decideNonprofitVerification(
     signals,
     evidence:
       extra.evidence ??
-      buildEvidence(signals, decision, reason, subsectionPolicy, now, conflicts, einClaim),
+      buildEvidence(
+        signals,
+        decision,
+        reason,
+        subsectionPolicy,
+        now,
+        conflicts,
+        einClaim,
+        claimByAnotherAccount ? einClaimOrgNameKnown : null,
+      ),
   });
 
   // ── 1. Form validation (§2.5 row 7) ────────────────────────────────────────
@@ -629,7 +655,16 @@ export function decideNonprofitVerification(
   if (claimByAnotherAccount) {
     return outcome("manual_review", "ein_already_claimed", {
       recommendation: null,
-      flags: ["one_free_org_account_per_ein", "deflect_to_existing_account"],
+      // R1: when the holder's legal name is unknown, the queue is told so explicitly —
+      // the reviewer has to identify the holding organization, and the engine refuses to
+      // infer a conflict it cannot see.
+      flags: einClaimOrgNameKnown
+        ? ["one_free_org_account_per_ein", "deflect_to_existing_account"]
+        : [
+            "one_free_org_account_per_ein",
+            "deflect_to_existing_account",
+            "ein_claim_org_name_unknown",
+          ],
     });
   }
 
@@ -684,10 +719,10 @@ export function decideNonprofitVerification(
     });
   }
 
-  // ── 7b. Owner decision (a): a narrowed "verified nonprofit" definition ─────
-  // Only reachable if the owner answers "501(c)(3) only" (nonprofit.server.ts flips one
-  // constant). The org may be perfectly exempt and still not qualify for THIS free tier,
-  // so the reviewer decides rather than the engine recommending.
+  // ── 7b. Owner decision (a): RESOLVED 2026-09-21 — 501(c)(3) only ────────────
+  // The shipped policy is `501c3_only` (nonprofit.server.ts), so this branch runs on every
+  // non-501(c)(3) record. The org may be perfectly exempt and still not qualify for THIS
+  // free tier, so the reviewer decides rather than the engine recommending.
   if (!isEligibleSubsection(signals.bmfSubsection, subsectionPolicy)) {
     return outcome("manual_review", "subsection_not_501c3", {
       flags: ["subsection_not_501c3"],
@@ -723,6 +758,8 @@ function buildEvidence(
   now: Date,
   conflicts: readonly NonprofitConflictKind[] = [],
   einClaim: NonprofitEinClaimSignal | null = null,
+  /** Was the holder's legal name known? NULL when no other account holds the EIN. */
+  einClaimOrgNameKnown: boolean | null = null,
 ): Record<string, unknown> {
   return {
     engine: NONPROFIT_VERIFICATION_ENGINE,
@@ -756,6 +793,10 @@ function buildEvidence(
     ein_claim: einClaim
       ? { claimed_by_user_id: einClaim.userId ?? null, claimed_org_name: einClaim.orgName ?? null }
       : null,
+    // R1: TRUE/FALSE when another account holds the EIN, NULL when none does. A FALSE here
+    // is what tells the reviewer the deny lane was NOT available (the holder's name was
+    // unknown), so the manual branch is a deliberate unknown, not a missed conflict.
+    ein_claim_org_name_known: einClaimOrgNameKnown,
     // decided_by is the SYSTEM for an automatic verdict; a manual branch has no decider
     // yet — a human writes reviewed_by/reviewed_at when they act on the queue.
     decided_by:

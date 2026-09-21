@@ -25,13 +25,81 @@ import { sql } from "~/db";
 /** The free tier's name. */
 export const NONPROFIT_FREE_TIER_NAME = "Nonprofit Free";
 /**
- * The landing promise. The staleness wording is the SECOND of the two owner decisions
- * still open (research §4/§7): the proposal is "verified against IRS records as of
- * <monthly posting date>", which is why every verify path carries `irsRecordsAsOf`
- * through to the UI instead of a bare "verified" badge.
+ * The landing promise (the owner's words, 2026-09-21).
+ *
+ * The STALENESS wording shown next to a verified badge is RESOLVED TOO (owner 09-21) —
+ * both of the two former "open decisions" are CLOSED and this comment is not a proposal
+ * any more. The owner's exact phrase is
+ * `"Verified against IRS tax-exempt records updated [Month Year]"`, built by
+ * `verificationWording()` below from the mirror's OWN posting date (never hand-typed),
+ * which is why every verify path carries `irsRecordsAsOf` through to the UI instead of a
+ * bare "verified" badge.
  */
 export const NONPROFIT_FREE_PROMISE =
   "Government grant search—free for verified nonprofit organizations. No credit card required.";
+
+// ── The verification-status wording (owner decision, RESOLVED 2026-09-21) ─────
+/**
+ * The owner's EXACT staleness phrase, as a template:
+ *   "Verified against IRS tax-exempt records updated September 2026"
+ * — i.e. "…records updated [Month Year]", where the month and the year are the POSTING
+ * DATE of the IRS extract we actually mirrored (`getIrsRecordsAsOf()`, or
+ * `entitlement.irsRecordsAsOf` on a single application).
+ *
+ * WHY IT IS A FUNCTION AND NOT A STRING. A hand-typed month drifts ahead of the data it
+ * describes, and a stale "updated" claim on a verification badge is exactly the kind of
+ * dishonesty this tier must not ship. The month/year can only ever come from the mirror.
+ *
+ * Phase 1 has no UI — this is the constant plus the tested function, so every later
+ * surface renders the same sentence and none of them improvises its own wording.
+ */
+export const NONPROFIT_VERIFICATION_WORDING_TEMPLATE =
+  "Verified against IRS tax-exempt records updated {Month Year}";
+/** Month names as they appear in the owner's wording ("September"). */
+export const NONPROFIT_MONTH_NAMES: readonly string[] = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+];
+/** 1–12 → "September". Out of range → null (a month is never invented). */
+export function monthNameOf(month: number): string | null {
+  if (!Number.isInteger(month) || month < 1 || month > 12) return null;
+  return NONPROFIT_MONTH_NAMES[month - 1] ?? null;
+}
+/**
+ * The owner's sentence for one month and year:
+ * `verificationWording("September", 2026)` →
+ * `"Verified against IRS tax-exempt records updated September 2026"`.
+ */
+export function verificationWording(monthName: string, year: number | string): string {
+  return `Verified against IRS tax-exempt records updated ${monthName} ${year}`;
+}
+/**
+ * The same sentence for an IRS mirror posting date ("2026-09-08", a timestamp, or a
+ * `Date`). NULL when the date is missing or unparseable — a surface with no mirror date
+ * shows NOTHING rather than a verification claim (the mirror-never-imported case: no
+ * application may be auto-approved at all, so no page may date a verification either).
+ */
+export function verificationWordingForIrsRecordsAsOf(
+  irsRecordsAsOf: string | Date | null | undefined,
+): string | null {
+  if (irsRecordsAsOf == null) return null;
+  const iso = (irsRecordsAsOf instanceof Date ? irsRecordsAsOf.toISOString() : String(irsRecordsAsOf)).trim();
+  const match = /^(\d{4})-(\d{1,2})(?:-(\d{1,2}))?(?:[T ].*)?$/.exec(iso);
+  if (!match) return null;
+  const month = monthNameOf(Number(match[2]));
+  if (!month) return null;
+  return verificationWording(month, match[1]);
+}
 /** The paid upgrades are roadmap, NOT this build (owner spec item 4). */
 export const NONPROFIT_PAID_UPGRADES: readonly string[] = [
   "AI grant matching and recommendations",
@@ -103,19 +171,26 @@ export function isNonprofitStatusGranted(status: string | null | undefined): boo
 
 // ── Owner decision (a): which IRS subsections count as "verified nonprofit" ───
 /**
- * **PENDING OWNER DECISION (a)** — research §4 item 9 / §7. The BMF covers every
- * 501(c)/(d) subsection; 1,642,105 of 1,964,958 rows are 501(c)(3), the rest are
- * 501(c)(4)/(6)/(8)/(19) etc., many of which are not "charities".
+ * **OWNER DECISION (a) — RESOLVED 2026-09-21: 501(c)(3) ORGANIZATIONS ONLY.**
  *
- * The shipped default is the research's recommendation: `any_bmf_record` — auto-approve
- * any BMF record whose STATUS is 01/02 and which is not revoked, LABEL the subsection
- * and flag `subsection_not_501c3` so the review queue can see it. If the owner answers
- * "501(c)(3) only", flipping this one constant makes the verification engine route
- * non-501(c)(3) applications to manual review instead of auto-approving them — one
- * line of policy, no extra data, no schema change.
+ * The BMF covers every 501(c)/(d) subsection; 1,642,105 of 1,964,958 rows are 501(c)(3),
+ * the rest are 501(c)(4)/(6)/(8)/(19) etc., many of which are not "charities". In the
+ * owner's words: "Start with verified 501(c)(3) organizations only. That matches what
+ * most people understand by 'charitable nonprofit' … and avoids giving free access to
+ * trade associations, lobbying organizations, and other tax-exempt entities that may have
+ * substantial commercial budgets. You can broaden eligibility later using real demand."
+ *
+ * So the SHIPPED policy is `501c3_only`: the auto-approve lane requires `SUBSECTION='03'`
+ * (on top of an active STATUS and no revocation match — see
+ * nonprofit-verification.server.ts §2.5). A non-501(c)(3) record is NEVER auto-approved and
+ * NEVER auto-rejected: it routes to MANUAL REVIEW with reason `subsection_not_501c3`, so a
+ * human applies the owner's policy to a trade association instead of the engine deciding.
+ *
+ * `any_bmf_record` remains in the union for the later broadening the owner described, but
+ * nothing ships it and no test may assert it as the live policy.
  */
 export type NonprofitSubsectionPolicy = "any_bmf_record" | "501c3_only";
-export const NONPROFIT_SUBSECTION_POLICY: NonprofitSubsectionPolicy = "any_bmf_record";
+export const NONPROFIT_SUBSECTION_POLICY: NonprofitSubsectionPolicy = "501c3_only";
 /** BMF `SUBSECTION` code for 501(c)(3) — 1,642,105 rows (research §1.a). */
 export const NONPROFIT_501C3_SUBSECTION = "03";
 /**
@@ -205,6 +280,13 @@ export interface NonprofitEntitlement {
   /** Whether the CURRENT subsection policy admits this org's subsection. */
   subsectionEligible: boolean;
   irsRecordsAsOf: string | null;
+  /**
+   * The owner's exact staleness sentence for a verified org — "Verified against IRS
+   * tax-exempt records updated September 2026" — derived from `irsRecordsAsOf`. NULL when
+   * the org is not verified or the mirror has no posting date, so a surface has nothing to
+   * render rather than a claim it cannot support.
+   */
+  verificationWording: string | null;
 }
 
 export const NO_NONPROFIT_ENTITLEMENT: NonprofitEntitlement = {
@@ -217,6 +299,7 @@ export const NO_NONPROFIT_ENTITLEMENT: NonprofitEntitlement = {
   subsectionLabel: null,
   subsectionEligible: false,
   irsRecordsAsOf: null,
+  verificationWording: null,
 };
 
 function isoOrNull(value: string | Date | null | undefined): string | null {
@@ -239,6 +322,7 @@ export function evaluateNonprofitEntitlement(
   const reverifyDueAt = isoOrNull(application.reverify_due_at);
   const subsection = application.bmf_subsection ?? null;
   const method = (application.verification_method ?? null) as NonprofitVerificationMethod | null;
+  const irsRecordsAsOf = verified ? isoOrNull(application.bmf_posting_date) : null;
   return {
     verified,
     status,
@@ -248,7 +332,9 @@ export function evaluateNonprofitEntitlement(
     subsection,
     subsectionLabel: subsectionLabel(subsection),
     subsectionEligible: verified ? isEligibleSubsection(subsection) : false,
-    irsRecordsAsOf: verified ? isoOrNull(application.bmf_posting_date) : null,
+    irsRecordsAsOf,
+    // The owner's exact wording, from the mirror's own posting date — never a literal.
+    verificationWording: verificationWordingForIrsRecordsAsOf(irsRecordsAsOf),
   };
 }
 
@@ -555,10 +641,12 @@ export async function getNonprofitEntitlement(
 }
 
 /**
- * The honest "IRS records as of <date>" label for the UI and the admin queue: the most
- * recent COMPLETE BMF mirror run's posting date. NULL means the mirror has never been
- * imported — in which case no application may be auto-approved at all (the verification
- * engine fails closed on an empty mirror), and no surface may claim a verification date.
+ * The most recent COMPLETE BMF mirror run's posting date — the value behind the owner's
+ * exact wording "Verified against IRS tax-exempt records updated [Month Year]" (pass it
+ * through `verificationWordingForIrsRecordsAsOf`) and the admin queue's audit line.
+ * NULL means the mirror has never been imported — in which case no application may be
+ * auto-approved at all (the verification engine fails closed on an empty mirror), and no
+ * surface may claim a verification date.
  */
 export async function getIrsRecordsAsOf(): Promise<string | null> {
   const rows = (await sql()`

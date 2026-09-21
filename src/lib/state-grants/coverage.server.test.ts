@@ -90,6 +90,11 @@ describe("the ladder", () => {
     // headline counts it out of the 50 and names it on its own. Today the
     // derived registry holds D.C. at a validated tier, so the suffix is present.
     expect(isDcValidated()).toBe(true);
+    // The exact merged wording (main's #409 copy rule + this branch's derived
+    // counts): 38 validated jurisdictions, one of which is D.C., so 37 STATES.
+    expect(headline).toBe(
+      "State grant coverage: 37 of 50 states validated, plus Washington, D.C. (0 connected, 0 curated, 38 limited)",
+    );
     expect(headline).toContain(
       `${counts.validated - 1} of 50 states validated, plus Washington, D.C.`,
     );

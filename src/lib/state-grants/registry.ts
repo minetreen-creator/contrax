@@ -1292,7 +1292,7 @@ export function isDcValidated(): boolean {
  * THE one coverage-headline generator, shared by the /state-grants page and the
  * coverage API so the two can never drift apart:
  *   "State grant coverage: 37 of 50 states validated, plus Washington, D.C.
- *    (0 connected, 0 curated, 37 limited)".
+ *    (0 connected, 0 curated, 38 limited)".
  * `statesValidated` excludes D.C. when — and only when — the DERIVED registry
  * currently holds D.C. at a validated tier; if it does not, the count is every
  * validated state and no D.C. suffix is printed.

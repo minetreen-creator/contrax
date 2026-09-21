@@ -912,3 +912,123 @@ CREATE TABLE IF NOT EXISTS state_grant_registry (
     connector_id TEXT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+-- ── NONPROFIT FREE (migration 045 mirror) ──
+-- Generated from db/migrations/045_nonprofit_free.sql (comments stripped, statements
+-- verbatim) so the mirror cannot drift from the migration. Nonprofit Free is a
+-- separate product line: nothing here is read by /grants, /api/grants/search or the
+-- Radar surface until a later phase wires it. See db/migrations/045_nonprofit_free.sql
+-- for the reviewed DDL, the audit columns and the reasoning behind each one.
+CREATE TABLE IF NOT EXISTS nonprofit_applications (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users (id),
+    org_name TEXT NOT NULL,
+    work_email TEXT NOT NULL,
+    website TEXT,
+    ein CHAR(9) NOT NULL,
+    state TEXT,
+    contact_name TEXT NOT NULL,
+    contact_role TEXT,
+    org_use_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'approved', 'manual_review', 'rejected', 'revoked')),
+    verification_method TEXT
+        CHECK (verification_method IS NULL OR verification_method IN ('irs_eo_bmf', 'manual_exception')),
+    submitted_name_normalized TEXT,
+    matched_bmf_name TEXT,
+    bmf_name_tier TEXT CHECK (bmf_name_tier IS NULL OR bmf_name_tier IN ('A', 'B', 'C')),
+    bmf_status TEXT,
+    bmf_subsection TEXT,
+    bmf_group_no TEXT,
+    bmf_posting_date DATE,
+    bmf_source_ref TEXT,
+    pub78 BOOLEAN,
+    pub78_deductibility_code TEXT,
+    on_revocation_list BOOLEAN,
+    revocation_date DATE,
+    revocation_posting_date DATE,
+    reinstatement_date DATE,
+    decision TEXT
+        CHECK (decision IS NULL OR decision IN ('auto_approve', 'manual_review', 'rejected', 'reentry_required')),
+    decision_reason TEXT,
+    decision_flags TEXT[] NOT NULL DEFAULT '{}'::text[],
+    evidence JSONB NOT NULL DEFAULT '{}'::jsonb,
+    reviewed_by TEXT,
+    reviewed_at TIMESTAMPTZ,
+    review_notes TEXT,
+    granted_at TIMESTAMPTZ,
+    reverify_due_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS nonprofit_applications_user_id_key ON nonprofit_applications (user_id);
+CREATE INDEX IF NOT EXISTS idx_nonprofit_applications_status_created ON nonprofit_applications (status, created_at);
+CREATE TABLE IF NOT EXISTS irs_eo_bmf (
+    ein CHAR(9) PRIMARY KEY,
+    name TEXT NOT NULL,
+    sort_name TEXT,
+    state TEXT,
+    subsection TEXT,
+    status TEXT,
+    group_no TEXT,
+    ruling_year TEXT,
+    ntee TEXT,
+    posting_date DATE,
+    content_hash TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_irs_eo_bmf_posting_date ON irs_eo_bmf (posting_date);
+CREATE TABLE IF NOT EXISTS irs_pub78 (
+    ein CHAR(9) PRIMARY KEY,
+    deductibility_code TEXT,
+    posting_date DATE,
+    content_hash TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_irs_pub78_posting_date ON irs_pub78 (posting_date);
+CREATE TABLE IF NOT EXISTS irs_revocations (
+    id BIGSERIAL PRIMARY KEY,
+    ein CHAR(9) NOT NULL,
+    revocation_date DATE,
+    revocation_posting_date DATE,
+    reinstatement_date DATE,
+    row_hash TEXT NOT NULL UNIQUE,
+    posting_date DATE,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_irs_revocations_ein ON irs_revocations (ein);
+CREATE INDEX IF NOT EXISTS idx_irs_revocations_posting_date ON irs_revocations (posting_date);
+CREATE TABLE IF NOT EXISTS irs_mirror_runs (
+    id SERIAL PRIMARY KEY,
+    source TEXT NOT NULL,
+    payload TEXT NOT NULL,
+    posting_date DATE,
+    row_count INTEGER NOT NULL DEFAULT 0,
+    distinct_ein_count INTEGER,
+    quarantined_count INTEGER NOT NULL DEFAULT 0,
+    inserted_count INTEGER NOT NULL DEFAULT 0,
+    updated_count INTEGER NOT NULL DEFAULT 0,
+    unchanged_count INTEGER NOT NULL DEFAULT 0,
+    pruned_count INTEGER NOT NULL DEFAULT 0,
+    mode TEXT NOT NULL CHECK (mode IN ('verify', 'import')),
+    status TEXT NOT NULL CHECK (status IN ('ok', 'error')),
+    error TEXT,
+    started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_irs_mirror_runs_source_started ON irs_mirror_runs (source, started_at DESC);
+CREATE TABLE IF NOT EXISTS saved_grants (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users (id),
+    opportunity_id TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'grants_gov',
+    title TEXT NOT NULL,
+    agency TEXT,
+    status TEXT,
+    closing_date DATE,
+    award_display TEXT,
+    official_url TEXT,
+    snapshot JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS saved_grants_user_opportunity_key ON saved_grants (user_id, opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_saved_grants_user_created ON saved_grants (user_id, created_at DESC);

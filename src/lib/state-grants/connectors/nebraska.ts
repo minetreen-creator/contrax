@@ -341,6 +341,23 @@ function blockBreaksToSpaces(text: string): string {
   return text.replace(new RegExp(BLOCK_BREAK, "g"), " ").replace(/\s+/g, " ").trim();
 }
 /**
+ * A string bound for a stored `raw` field: the private `BLOCK_BREAK` marker is an
+ * in-code splitting device and block content is NOT part of the source's words, so
+ * the marker never leaves the connector.
+ *
+ * WHY THIS IS NOT COSMETIC (found live on the production sync, 2026-09-21): the
+ * marker is a literal NUL, and Postgres `jsonb` REJECTS `\u0000` outright —
+ * `unsupported Unicode escape sequence`. Nebraska's whole per-state transaction
+ * (67 parsed records) rolled back on it, zero rows written, and the state appeared
+ * covered with nothing behind it. Every stored string that can span a block
+ * boundary (the window text, the rolling sentence, the closure sentence) is
+ * normalised through the SAME helper the reader-facing text uses, so `raw` carries
+ * the source's words and never the sentinel.
+ */
+function storedRawText(text: string | null): string | null {
+  return text === null ? null : blockBreaksToSpaces(text);
+}
+/**
  * The end of a labelled value: the next label, the source's own next block, or a
  * hard cap — whichever comes first. A value never runs into another block, so a
  * REFUSED label's date can never become part of this one.
@@ -626,8 +643,10 @@ export function parseNebraskaPages(raw: string): SourceGrantRecord[] {
           listedBy: NEBRASKA_SOURCE_URL,
           // The DED's own title for this window, verbatim from the module's h2.
           moduleTitle: module.title,
-          // The module's own window text, verbatim (invisible marks removed).
-          windowText: module.text,
+          // The module's own window text, verbatim (invisible marks removed) — in
+          // the reader-facing form, so the private block-boundary marker cannot
+          // reach the stored `raw` (jsonb rejects a NUL; see `storedRawText`).
+          windowText: module.windowText,
           openDateLabel: window.openLabel,
           openDateValue: window.openValue,
           closeDateLabel: window.closeLabel,
@@ -635,10 +654,10 @@ export function parseNebraskaPages(raw: string): SourceGrantRecord[] {
           closingText: window.closeValue,
           // The source's own open-ended wording, or null.
           rollingDeclaredBySource: window.rolling,
-          rollingSentence: window.rollingSentence,
+          rollingSentence: storedRawText(window.rollingSentence),
           // The source's own closure wording, or null.
           sourceClosedDeclaredBySource: window.closed,
-          closedSentence: window.closedSentence,
+          closedSentence: storedRawText(window.closedSentence),
           // A window block publishing more than two days: no date was taken.
           multiPeriodBlockRefused: window.multiPeriod,
           // Labels whose dates exist on this page and were refused.

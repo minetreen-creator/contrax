@@ -152,6 +152,39 @@ describe("Nebraska DED programme windows (fixtures)", () => {
       expect(pageText).toContain(key);
     }
   });
+  test("no stored `raw` field carries the private block-boundary marker", () => {
+    // FOUND ON THE LIVE PRODUCTION SYNC (2026-09-21): `raw.windowText` kept the
+    // connector's own block delimiter — a literal NUL — and Postgres `jsonb`
+    // REFUSES `\u0000` ("unsupported Unicode escape sequence"), so Nebraska's whole
+    // per-state transaction rolled back: 0 of 67 rows written. The marker is an
+    // in-code splitting device; it must never reach a stored string. Before the
+    // fix this fixture corpus carried 852 of them (windowText 795, rollingSentence
+    // 56, closedSentence 1) — asserted here so the class cannot regress.
+    const withNul: string[] = [];
+    const walk = (value: unknown, path: string): void => {
+      if (typeof value === "string") {
+        if (value.includes("\u0000")) withNul.push(path);
+        return;
+      }
+      if (Array.isArray(value)) {
+        value.forEach((v, i) => walk(v, `${path}[${i}]`));
+        return;
+      }
+      if (value !== null && typeof value === "object") {
+        for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+          walk(v, `${path}.${k}`);
+        }
+      }
+    };
+    const records = NE();
+    expect(records.length).toBe(67);
+    for (const o of records) walk(o.raw, `${o.externalId}.raw`);
+    expect(withNul).toEqual([]);
+    // The same bytes reaching Postgres must survive the round trip it refused.
+    for (const o of records) {
+      expect(JSON.stringify(o.raw)).not.toContain("\\u0000");
+    }
+  });
   test("a payload that is not this source fails the gate loudly", () => {
     let thrown: unknown = null;
     try {

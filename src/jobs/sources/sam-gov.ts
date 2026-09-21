@@ -9,7 +9,16 @@
  * - Query params: page, size, sort, mode, q, is_active
  * - Max 10,000 records accessible (page limit)
  * - Rate limit: add 500ms delay between pages
+ *
+ * OWNER PRESERVE RULE (PRIORITY 09-21, R2): every ingested row now also carries
+ * the PSC, the notice TYPE and SAM's own solicitation number. The first two were
+ * previously read to derive `category` and then DISCARDED; the third was used
+ * only as an external_id fallback. `mapSamItem` below is the single mapper shared
+ * with the trade-filter passes (sam-gov-trades.ts), so both passes preserve the
+ * same fields the same way.
  */
+
+import { mapCategory } from "~/lib/trade-classification";
 
 export interface RawBid {
   external_id: string;
@@ -23,8 +32,19 @@ export interface RawBid {
   source_url: string;
   set_aside?: string | null;
   naics_code?: string | null;
-  /** Identifies whether the bid came from the national or regional pass. */
-  source_label?: "sam_gov" | "sam_gov_regional";
+  /**
+   * OWNER PRESERVE RULE (09-21, R2): the Product Service Code and the notice
+   * TYPE are now carried on the row, from the source's own data (the detail
+   * endpoint's `classificationCode`, and the notice `type.value`). NULL means
+   * "the source did not supply it" — never guessed.
+   */
+  psc?: string | null;
+  notice_type?: string | null;
+  /** SAM's own solicitation number (the cross-source join key for R5). */
+  solicitation_number?: string | null;
+  /** Which pass produced the row (national/regional, or a trade-filter pass —
+   *  see sam-gov-trades.ts). Stored as the row's `source` value. */
+  source_label?: string;
 }
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
@@ -32,14 +52,14 @@ const PAGE_SIZE = 25;
 const MAX_PAGES = 4; // Fetch up to 100 bids per sync
 const DELAY_MS = 500;
 
-const HEADERS = {
+export const SAM_HEADERS = {
   "User-Agent":
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
   Accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
 };
 
-function stripHtml(html: string): string {
+export function stripHtml(html: string): string {
   return html
     .replace(/<[^>]*>/g, " ")
     .replace(/&amp;/g, "&")
@@ -51,7 +71,7 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-function extractLocation(orgHierarchy: any[], description: string): string {
+export function extractLocation(orgHierarchy: any[], description: string): string {
   // Try to extract state/city from the deepest org name (often includes location)
   const deepest = orgHierarchy?.[orgHierarchy.length - 1];
   if (deepest?.name) {
@@ -74,26 +94,6 @@ function extractLocation(orgHierarchy: any[], description: string): string {
 
   return "United States";
 }
-
-function mapCategory(typeValue: string, title: string, description: string): string {
-  const t = (typeValue || "").toLowerCase();
-  const full = (title + " " + description).toLowerCase();
-
-  if (full.includes("landscap") || full.includes("grounds main")) return "Landscaping";
-  if (full.includes("construction") || full.includes("renovation") || full.includes("demolition")) return "Construction";
-  if (full.includes("it ") && (full.includes("service") || full.includes("support") || full.includes("software") || full.includes("cloud"))) return "IT Services";
-  if (full.includes("janitor") || full.includes("custodial") || full.includes("cleaning")) return "Janitorial";
-  if (full.includes("security") || full.includes("guard ")) return "Security";
-  if (full.includes("hvac") || full.includes("heating") || full.includes("cooling")) return "HVAC";
-  if (full.includes("electrical") || full.includes("plumbing")) return "Plumbing & Electrical";
-
-  if (t.includes("solicitation") || t.includes("combined")) return "Construction";
-  if (t.includes("award")) return "Construction";
-  if (t.includes("special")) return "Construction";
-
-  return "Other";
-}
-
 
 const DETAIL_API = "https://sam.gov/api/prod/opps/v2/opportunities/";
 
@@ -146,7 +146,7 @@ export function normalizeSetAside(value: unknown): string | null {
  * setAsideType / data2.solicitation.setAside) and falls back to scanning the
  * opportunity text for "set aside" phrases.
  */
-function extractSetAsideFromItem(item: any, description: string): string | null {
+export function extractSetAsideFromItem(item: any, description: string): string | null {
   const candidates = [
     item?.setAside,
     item?.typeOfSetAside,
@@ -176,21 +176,58 @@ function extractSetAsideFromItem(item: any, description: string): string | null 
   return null;
 }
 
+/** The notice-type label from a v1 search item ({code, value}). */
+export function extractNoticeType(item: any): string | null {
+  const t = item?.type;
+  const value = typeof t === "object" && t !== null ? t?.value ?? t?.code : t;
+  const v = String(value ?? "").trim();
+  return v || null;
+}
+
+/** A PSC/classification code is 1 letter + 3 digits (S201, V112, R602, …). */
+export function normalizePsc(value: unknown): string | null {
+  const v = String(value ?? "").trim().toUpperCase();
+  return /^[A-Z][0-9]{3}$/.test(v) ? v : null;
+}
+
 /**
- * Fetches the authoritative set-aside designation AND primary NAICS code from
- * the SAM.gov opportunity detail endpoint:
+ * Fetches the authoritative set-aside designation, primary NAICS code AND the
+ * Product Service Code from the SAM.gov opportunity detail endpoint:
  *   - set-aside: data2.solicitation.setAside
  *   - NAICS:     data2.naics = [{ code: ["236220"], type: "primary" }]
+ *   - PSC:       data2.classificationCode   (owner 09-21, R2)
+ *   - notice type / solicitation number: data2.type / data2.solicitationNumber
  * Best-effort: any failure returns nulls so a detail fetch can never break
- * the sync. The search summary never includes either field, so this detail
- * call is the only source for both.
+ * the sync. The search summary never includes these fields, so this detail
+ * call is the only source for them.
  */
-async function fetchOpportunityDetail(noticeId: string): Promise<{ setAside: string | null; naicsCode: string | null }> {
+export interface OpportunityDetail {
+  setAside: string | null;
+  naicsCode: string | null;
+  psc: string | null;
+  noticeType: string | null;
+  solicitationNumber: string | null;
+}
+
+const EMPTY_DETAIL: OpportunityDetail = {
+  setAside: null,
+  naicsCode: null,
+  psc: null,
+  noticeType: null,
+  solicitationNumber: null,
+};
+
+export async function fetchOpportunityDetail(
+  noticeId: string,
+): Promise<OpportunityDetail> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {
-    const resp = await fetch(`${DETAIL_API}${noticeId}`, { headers: HEADERS, signal: controller.signal });
-    if (!resp.ok) return { setAside: null, naicsCode: null };
+    const resp = await fetch(`${DETAIL_API}${noticeId}`, {
+      headers: SAM_HEADERS,
+      signal: controller.signal,
+    });
+    if (!resp.ok) return { ...EMPTY_DETAIL };
     const data = await resp.json();
     const setAside = normalizeSetAside(data?.data2?.solicitation?.setAside);
     // data2.naics is an array of { code: string[], type: "primary" } objects.
@@ -205,15 +242,31 @@ async function fetchOpportunityDetail(noticeId: string): Promise<{ setAside: str
       const sol = data?.data2?.solicitation?.naicsCode ?? data?.data2?.solicitation?.naicsCodes?.[0];
       if (sol && /^\d{2,6}$/.test(String(sol).trim())) naicsCode = String(sol).trim();
     }
-    return { setAside, naicsCode };
+    // Owner PRESERVE rule (R2): the PSC lives ONLY here.
+    const psc = normalizePsc(data?.data2?.classificationCode);
+    const solNumRaw = data?.data2?.solicitationNumber;
+    const solicitationNumber =
+      solNumRaw == null || String(solNumRaw).trim() === ""
+        ? null
+        : String(solNumRaw).trim();
+    // The detail's own type field is a CODE ("o"), so it is only a fallback for
+    // the summary's human-readable label.
+    const detailType = data?.data2?.type;
+    const noticeType =
+      typeof detailType === "string"
+        ? String(detailType).trim() || null
+        : typeof detailType === "object" && detailType !== null
+          ? String(detailType?.value ?? detailType?.code ?? "").trim() || null
+          : null;
+    return { setAside, naicsCode, psc, noticeType, solicitationNumber };
   } catch {
-    return { setAside: null, naicsCode: null };
+    return { ...EMPTY_DETAIL };
   } finally {
     clearTimeout(timer);
   }
 }
 
-function extractNaicsCode(item: any): string | null {
+export function extractNaicsCode(item: any): string | null {
   const candidates = [item?.naicsCode, item?.naics_code, item?.data2?.solicitation?.naicsCode, item?.data2?.solicitation?.naicsCodes?.[0], item?.naics?.[0]?.code, item?.naics?.code];
   for (const value of candidates) {
     const code = typeof value === "object" && value !== null ? value.code ?? value.value : value;
@@ -222,9 +275,109 @@ function extractNaicsCode(item: any): string | null {
   return null;
 }
 
+export interface MapSamItemOptions {
+  /** Value stored as the row's `source` (national pass or trade pass). */
+  sourceLabel: string;
+  /**
+   * Values already known AUTHORITATIVELY from the pass's own structured filter
+   * (`naics=<code>` / `psc=<code>`): the source itself returned the notice FOR
+   * that code, so no detail call is needed to establish it. The trade passes
+   * (sam-gov-trades.ts) supply these; the national pass supplies neither.
+   */
+  filterNaics?: string | null;
+  filterPsc?: string | null;
+  /** 120ms politeness delay after a detail fetch (default true). */
+  detailDelay?: boolean;
+  /** Last-resort external_id suffix when the item carries no id (the national
+   *  pass passes `page<n>-<index>`, preserving its pre-existing behavior). */
+  fallbackId?: string;
+  /** Detail fetcher override (deterministic tests inject saved fixtures). */
+  detailFetcher?: (noticeId: string) => Promise<OpportunityDetail>;
+}
+
+/**
+ * Maps ONE SAM.gov v1 search item into a RawBid — the single mapping used by
+ * both the national/regional pass and the per-code trade passes, so provenance
+ * (source, notice type, eligibility, location, deadline, PSC, NAICS) is
+ * preserved identically everywhere.
+ *
+ * Best-effort per row: a malformed item throws only inside the caller's
+ * try/catch, exactly as before.
+ */
+export async function mapSamItem(
+  item: any,
+  opts: MapSamItemOptions,
+): Promise<RawBid> {
+  const descContent = item.descriptions?.[0]?.content || "";
+  const description = stripHtml(descContent).substring(0, 2000);
+
+  const orgs = item.organizationHierarchy || [];
+  const deepestOrg = orgs[orgs.length - 1];
+  const agency = deepestOrg?.name || "Federal Agency";
+
+  const location = extractLocation(orgs, description);
+  const category = mapCategory(item.type?.value || "", item.title, description);
+
+  const dueDate = item.responseDate || item.responseDateActual || null;
+
+  // Try to get value from award info
+  let estimatedValue = "Not specified";
+  if (item.award?.amount) {
+    estimatedValue = `$${Number(item.award.amount).toLocaleString()}`;
+  }
+
+  const noticeId = item.parentNoticeId || item._id || "";
+  const sourceUrl = noticeId
+    ? `https://sam.gov/opp/${noticeId}/view`
+    : "https://sam.gov/search/";
+
+  // Notice type + solicitation number come from the SUMMARY itself (the v1 item
+  // carries both — they simply were not stored before, R2).
+  let noticeType = extractNoticeType(item);
+  let solicitationNumber =
+    item.solicitationNumber == null || String(item.solicitationNumber).trim() === ""
+      ? null
+      : String(item.solicitationNumber).trim();
+
+  // Set-aside + NAICS + PSC: the search summary never includes them, so pull the
+  // opportunity detail when any one is missing. A trade pass already knows its
+  // own filtered code (authoritative), so that code is never guessed again.
+  let setAside = extractSetAsideFromItem(item, description);
+  let naicsCode = opts.filterNaics ?? extractNaicsCode(item);
+  let psc = opts.filterPsc ?? null;
+  if (noticeId && (!setAside || !naicsCode || !psc)) {
+    const fetchDetail = opts.detailFetcher ?? fetchOpportunityDetail;
+    const detail = await fetchDetail(noticeId);
+    if (!setAside) setAside = detail.setAside;
+    if (!naicsCode) naicsCode = detail.naicsCode;
+    if (!psc) psc = detail.psc;
+    if (!noticeType) noticeType = detail.noticeType;
+    if (!solicitationNumber) solicitationNumber = detail.solicitationNumber;
+    if (opts.detailDelay !== false) await new Promise((r) => setTimeout(r, 120));
+  }
+
+  return {
+    external_id: `sam-${item._id || item.solicitationNumber || opts.fallbackId || ""}`,
+    title: item.title || "Untitled Opportunity",
+    agency,
+    description,
+    location,
+    category,
+    due_date: dueDate,
+    estimated_value: estimatedValue,
+    source_url: sourceUrl,
+    set_aside: setAside,
+    naics_code: naicsCode,
+    psc,
+    notice_type: noticeType,
+    solicitation_number: solicitationNumber,
+    source_label: opts.sourceLabel,
+  };
+}
+
 export async function fetchBids(options: { states?: string[] } = {}): Promise<RawBid[]> {
   const states = options.states?.filter((state) => /^[A-Z]{2}$/.test(state)).join(",");
-  const sourceLabel = states ? "sam_gov_regional" as const : "sam_gov" as const;
+  const sourceLabel = states ? "sam_gov_regional" : "sam_gov";
   const results: RawBid[] = [];
 
   for (let page = 0; page < MAX_PAGES; page++) {
@@ -233,7 +386,7 @@ export async function fetchBids(options: { states?: string[] } = {}): Promise<Ra
       const url = `${SAM_API}?page=${page}&size=${PAGE_SIZE}&sort=-modifiedDate&mode=opportunities&q=&is_active=true${stateFilter}`;
       console.log(`  SAM.gov: fetching page ${page + 1}/${MAX_PAGES}...`);
 
-      const resp = await fetch(url, { headers: HEADERS });
+      const resp = await fetch(url, { headers: SAM_HEADERS });
       if (!resp.ok) {
         console.error(`  SAM.gov page ${page} returned ${resp.status}`);
         // If we get a non-200 on page > 0, we might have hit the end
@@ -245,57 +398,14 @@ export async function fetchBids(options: { states?: string[] } = {}): Promise<Ra
       const items = data?._embedded?.results;
       if (!items || items.length === 0) break;
 
-      for (const item of items) {
+      for (const [index, item] of items.entries()) {
         try {
-          const descContent =
-            item.descriptions?.[0]?.content || "";
-          const description = stripHtml(descContent).substring(0, 2000);
-
-          const orgs = item.organizationHierarchy || [];
-          const deepestOrg = orgs[orgs.length - 1];
-          const agency = deepestOrg?.name || "Federal Agency";
-
-          const location = extractLocation(orgs, description);
-          const category = mapCategory(item.type?.value || "", item.title, description);
-
-          const dueDate = item.responseDate || item.responseDateActual || null;
-
-          // Try to get value from award info
-          let estimatedValue = "Not specified";
-          if (item.award?.amount) {
-            estimatedValue = `$${Number(item.award.amount).toLocaleString()}`;
-          }
-
-          const noticeId = item.parentNoticeId || item._id || "";
-          const sourceUrl = noticeId
-            ? `https://sam.gov/opp/${noticeId}/view`
-            : "https://sam.gov/search/";
-
-          // Set-aside + NAICS: the search summary never includes either field,
-          // so pull the opportunity detail when either is missing.
-          let setAside = extractSetAsideFromItem(item, description);
-          let naicsCode = extractNaicsCode(item);
-          if (noticeId && (!setAside || !naicsCode)) {
-            const detail = await fetchOpportunityDetail(noticeId);
-            if (!setAside) setAside = detail.setAside;
-            if (!naicsCode) naicsCode = detail.naicsCode;
-            await new Promise((r) => setTimeout(r, 120));
-          }
-
-          results.push({
-            external_id: `sam-${item._id || item.solicitationNumber || `page${page}-${results.length}`}`,
-            title: item.title || "Untitled Opportunity",
-            agency,
-            description,
-            location,
-            category,
-            due_date: dueDate,
-            estimated_value: estimatedValue,
-            source_url: sourceUrl,
-            set_aside: setAside,
-            naics_code: naicsCode,
-            source_label: sourceLabel,
-          });
+          results.push(
+            await mapSamItem(item, {
+              sourceLabel,
+              fallbackId: `page${page}-${index}`,
+            }),
+          );
         } catch (e) {
           console.error(`  SAM.gov: error parsing item:`, (e as Error).message);
         }

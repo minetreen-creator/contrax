@@ -25,6 +25,7 @@
  */
 
 import { NAICS_NAMES } from "~/lib/naics-names";
+import { isJanitorialWork, isTransportationWork } from "~/lib/trade-classification";
 
 /** A NAICS code and the keywords that unmistakeably point at it. */
 export interface NaicsEntry {
@@ -96,7 +97,24 @@ const KEYWORD_OVERRIDES: Record<string, string[]> = {
   "561612": ["security guard", "guards", "patrol", "security personnel", "armed guard"],
   "561621": ["security system", "security systems", "access control", "cctv", "surveillance", "alarm system", "video surveillance"],
   "561710": ["pest control", "exterminat", "termite", "rodent control", "pest management"],
-  "561720": ["janitorial", "custodial", "cleaning", "janitor", "housekeeping", "floor cleaning", "office cleaning"],
+  "561720": [
+    // OWNER PRIORITY 09-21 (R4a): bare "cleaning" was REMOVED — it is the
+    // false-positive amplifier (a munitions rod, a cleaning-supply buy and a
+    // laser-cleaning *system* were all inferred 561720 through it). The
+    // multi-word SERVICE phrasings below replace it, so a cleaning service still
+    // classifies while a cleaning product or specialty cleaning job does not.
+    "janitorial",
+    "custodial",
+    "janitor",
+    "housekeeping",
+    "commercial cleaning",
+    "building cleaning",
+    "office cleaning",
+    "floor cleaning",
+    "janitorial services",
+    "custodial services",
+    "cleaning services",
+  ],
   "561730": ["landscaping", "lawn", "grounds maintenance", "grounds keeping", "snow removal", "landscape", "landscaper"],
   "561740": ["carpet cleaning", "upholstery", "upholstery cleaning"],
   "561790": ["building maintenance", "exterior cleaning", "power washing", "window cleaning", "pressure washing"],
@@ -212,6 +230,21 @@ function explicitNaics(text: string): string | null {
 }
 
 /**
+ * The trucking / courier service codes this module can infer. Inference for any
+ * of them is vetoed when the TITLE is a vehicle/product buy (purchased-service-
+ * only rule, owner 09-21).
+ */
+const TRUCKING_SERVICE_CODES = [
+  "484110",
+  "484121",
+  "484122",
+  "484210",
+  "484220",
+  "484230",
+  "492110",
+] as const;
+
+/**
  * Infer a single authoritative-looking 6-digit NAICS code for a bid, or return
  * null when no confident, unambiguous classification exists.
  *
@@ -230,8 +263,29 @@ export function inferNaics(
   if (explicit) return explicit;
 
   // 2. Keyword scoring across all representable codes.
+  //
+  //    PURCHASED-SERVICE-ONLY VETO (owner PRIORITY 09-21, R4): the owner's rule
+  //    is that a row is janitorial/trucking work only when the purchased service
+  //    IS that work. A TITLE that names a product/supply buy ("JANITORIAL
+  //    SUPPLIES - GROUP N", "Purchase of … Laser Cleaning System", "TRUCK
+  //    TIRES…") or a dump-truck/vehicle listing ("MORR PURCHASE NEW DUMP TRUCK")
+  //    is therefore removed from the candidate set outright: the row stays with
+  //    NO inferred code rather than being mislabelled as the trade. Title-only,
+  //    so a service solicitation is never vetoed by its own description.
+  const vetoedCodes = new Set<string>();
+  const fullTxt = `${titleTxt} ${descTxt}`;
+  // The SAME decisions the ingest category stamp uses, so inference and
+  // classification can never disagree about what is janitorial/trucking work: a
+  // row that is not janitorial work may not infer 561720; a row that is not
+  // transportation work may not infer any trucking/courier code.
+  if (!isJanitorialWork(titleTxt, fullTxt)) vetoedCodes.add("561720");
+  if (!isTransportationWork(titleTxt, fullTxt)) {
+    for (const code of TRUCKING_SERVICE_CODES) vetoedCodes.add(code);
+  }
+
   const scored = new Map<string, number>();
   for (const [code, entry] of Object.entries(NAICS_INFER_MAP)) {
+    if (vetoedCodes.has(code)) continue;
     let titleHits = 0;
     let descHits = 0;
     for (const kw of entry.keywords) {

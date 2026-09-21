@@ -41,6 +41,8 @@ import {
   runKeywordScanQuery,
   runRelatedScanQuery,
   logScanFailure,
+  collapseScanRows,
+  loadSolicitationNumbers,
 } from "~/lib/radar-scan-query";
 import {
   raceRadarScan,
@@ -355,6 +357,21 @@ export const runRadarScan = createServerFn({ method: "POST" })
       // on failure instead of letting it become a misleading 0 (owner v6) —
       // the forced-failure regression test drives this same function.
       rows = await runKeywordScanQuery(sql, { certFrag, tradeFrag }, LOW_CONTENT_SQL);
+      // R5 DEDUPE, WIRED (QA F2): collapse the SAME notice re-ingested under
+      // several source labels BEFORE scoring/ranking, so duplicate rows can no
+      // longer fill the ≤5 default-match cap. Key = solicitation number (R2 /
+      // migration 047) else (title, agency); the key read is FAIL-SOFT, so a
+      // not-yet-applied 047 degrades to the natural key instead of failing the
+      // scan. Never deletes anything — see ~/lib/notice-dedupe.
+      const collapsedScan = await collapseScanRows(rows, (ids) =>
+        loadSolicitationNumbers(sql, ids),
+      );
+      if (collapsedScan.collapsed > 0) {
+        console.log(
+          `[radar] dedupe: ${rows.length} rows → ${collapsedScan.rows.length} distinct notices (${collapsedScan.collapsed} collapsed; keyed by ${collapsedScan.solicitationNumbers ? "solicitation_number else (title,agency)" : "(title,agency) — solicitation numbers unavailable"})`,
+        );
+      }
+      rows = collapsedScan.rows;
       // RELATED opportunities (owner v6.1): adjacent-work terms, pulled only
       // when a state is requested. Same open/low-content guards, but NO cert
       // and NO strict trade filter — deliberately: the DoD related rows

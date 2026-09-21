@@ -11,6 +11,7 @@
  */
 
 import type { RawBid } from "./sam-gov";
+import { mapCategory as classifyCategory } from "~/lib/trade-classification";
 
 /** 2-letter state code → full state name (50 states + District of Columbia). */
 export const STATE_NAMES: Record<string, string> = {
@@ -162,15 +163,11 @@ export function extractLocation(
 }
 
 function mapCategory(title: string, description: string): string {
-  const full = (title + " " + description).toLowerCase();
-  if (full.includes("landscap") || full.includes("grounds main")) return "Landscaping";
-  if (full.includes("construction") || full.includes("renovation") || full.includes("demolition")) return "Construction";
-  if (full.includes("it ") && (full.includes("service") || full.includes("support") || full.includes("software") || full.includes("cloud"))) return "IT Services";
-  if (full.includes("janitor") || full.includes("custodial") || full.includes("cleaning")) return "Janitorial";
-  if (full.includes("security") || full.includes("guard ")) return "Security";
-  if (full.includes("hvac") || full.includes("heating") || full.includes("cooling")) return "HVAC";
-  if (full.includes("electrical") || full.includes("plumbing")) return "Plumbing & Electrical";
-  return "Other";
+  // OWNER PRIORITY 09-21 (R4): the single shared classifier — no bare "cleaning"
+  // janitorial branch, a real trucking/transportation branch, and the
+  // purchased-service-only guards (product buys / dump-truck listings never
+  // classify into these trades). This source has no notice type, so "" is passed.
+  return classifyCategory("", title, description);
 }
 
 /**

@@ -1,0 +1,195 @@
+{
+ "captured_at": "2026-09-21T20:47:47.400Z",
+ "source": "prod bids read-only SELECT (engineer 2026-09-21) \u2014 duplicate title groups across state-door source labels",
+ "rows": [
+  {
+   "source": "nc",
+   "external_id": "nc-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "nd",
+   "external_id": "nd-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "nh",
+   "external_id": "nh-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "nj",
+   "external_id": "nj-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "nm",
+   "external_id": "nm-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "ny",
+   "external_id": "ny-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "sam_gov",
+   "external_id": "sam-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "United States",
+   "category": "Janitorial",
+   "naics_code": "713990"
+  },
+  {
+   "source": "sc",
+   "external_id": "sc-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "sd",
+   "external_id": "sd-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "tx",
+   "external_id": "tx-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "wa",
+   "external_id": "wa-cc39412106d84a0ab2877c9e4041b1e6",
+   "title": "F108--Mobile Firing Range Cleaning",
+   "agency": "257-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Dallas, TX",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "il",
+   "external_id": "il-328d2b61d78d43a7905c48cd8193110d",
+   "title": "Midwest Janitorial MATOC",
+   "agency": "W072 ENDIST LOUISVILLE",
+   "location": "Illinois",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "il",
+   "external_id": "il-e8bbe0bec9e948158803ea5ef95b5cda",
+   "title": "Midwest Janitorial MATOC",
+   "agency": "W072 ENDIST LOUISVILLE",
+   "location": "Unknown",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "in",
+   "external_id": "in-e8bbe0bec9e948158803ea5ef95b5cda",
+   "title": "Midwest Janitorial MATOC",
+   "agency": "W072 ENDIST LOUISVILLE",
+   "location": "Unknown",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "ky",
+   "external_id": "ky-328d2b61d78d43a7905c48cd8193110d",
+   "title": "Midwest Janitorial MATOC",
+   "agency": "W072 ENDIST LOUISVILLE",
+   "location": "Unknown",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "ky",
+   "external_id": "ky-e8bbe0bec9e948158803ea5ef95b5cda",
+   "title": "Midwest Janitorial MATOC",
+   "agency": "W072 ENDIST LOUISVILLE",
+   "location": "Unknown",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "mi",
+   "external_id": "mi-328d2b61d78d43a7905c48cd8193110d",
+   "title": "Midwest Janitorial MATOC",
+   "agency": "W072 ENDIST LOUISVILLE",
+   "location": "Michigan",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "mi",
+   "external_id": "mi-e8bbe0bec9e948158803ea5ef95b5cda",
+   "title": "Midwest Janitorial MATOC",
+   "agency": "W072 ENDIST LOUISVILLE",
+   "location": "Unknown",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "oh",
+   "external_id": "oh-e8bbe0bec9e948158803ea5ef95b5cda",
+   "title": "Midwest Janitorial MATOC",
+   "agency": "W072 ENDIST LOUISVILLE",
+   "location": "Unknown",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "nc",
+   "external_id": "nc-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "title": "Janitorial Services for the Raleigh Federal Building",
+   "agency": "47-NETWORK CONTRACT OFFICE 17 (36C257)",
+   "location": "Raleigh, NC",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  },
+  {
+   "source": "va",
+   "external_id": "va-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "title": "Custodial Services - Roanoke VA Clinic",
+   "agency": null,
+   "location": "Roanoke, VA",
+   "category": "Janitorial",
+   "naics_code": "561720"
+  }
+ ]
+}

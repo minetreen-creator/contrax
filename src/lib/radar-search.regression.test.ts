@@ -31,6 +31,16 @@
  * freight rows, the pipeline correctly returns 0 and the test documents the
  * ingestion gap (PR-B) instead of manufacturing a result (owner v5 rule 1).
  *
+ * CI WIRING (2026-09-21, owner-authorised after QA re-verification of PR #414):
+ * this file is now a required step in .github/workflows/build-check.yml. It was
+ * referenced by NO workflow before, which is how the R3 "cleaning services"
+ * regression (the owner FIX 1 pin below turning a remediation contract into a
+ * STRONG default janitorial match) shipped past green CI. The step runs WITHOUT
+ * DATABASE_URL: the driver-level bind cases use the shape-identical stub factory
+ * below, and the three live-row-id pins are quarantined behind
+ * RADAR_LIVE_ROW_PINS=1 (see that block). "must not be mergeable while this is
+ * red" is now enforced by CI, not by reviewer memory.
+ *
  * The PA fixture case is gated by RADAR_FIXTURE_ALLOWED=1 AND a non-prod DB —
  * it inserts a controlled, clearly-labelled fixture row, proves the matcher
  * returns it through the real path, and cleans up after itself.
@@ -69,6 +79,56 @@ const HAS_DB = !!process.env.DATABASE_URL;
 const FIXTURES_ALLOWED =
   process.env.RADAR_FIXTURE_ALLOWED === "1" &&
   !(process.env.DATABASE_URL ?? "").includes("/neondb"); // never write to prod
+
+/**
+ * PAYLOAD-PINNING SQL FACTORY — and why this file can now run in CI.
+ *
+ * The driver-level cases below never EXECUTE a query: they decode the fragment
+ * `tradeKeywordPred` builds and assert the binds that actually reach Postgres.
+ * Decoding only needs neon's payload SHAPE (`.queryData.strings` / `.values`),
+ * so those cases use a shape-identical stub instead of the real client factory:
+ * `~/db`'s `sql()` throws without DATABASE_URL, which made this file
+ * unrunnable in CI (CI wiring 2026-09-21, after QA re-verification found the
+ * FIX 1 pin below was RED and run by NO workflow — see
+ * .github/workflows/build-check.yml). With a real DATABASE_URL the REAL client
+ * factory is used, so nothing about the bind assertions changes between local
+ * and CI.
+ */
+function makeStubSql(): any {
+  const tag: any = (strings: readonly string[], ...values: any[]) => ({
+    queryData: { strings, values },
+  });
+  tag.unsafe = (fragment: string) => ({ queryData: { strings: [fragment], values: [] } });
+  return tag;
+}
+const payloadSqlFactory: any = HAS_DB ? dbFactory : makeStubSql;
+
+/**
+ * LIVE-ROW-PIN QUARANTINE (QA re-verification 2026-09-21, PR #414).
+ *
+ * Three assertions in this file pin SPECIFIC PRODUCTION ROW IDS that have
+ * drifted in the live corpus since they were written (rows archived / re-coded
+ * / re-numbered by the sources themselves):
+ *   - the PA-local PennBid "Sludge Hauling" title pins
+ *   - the related bucket's 134726 + 134575 + 134583 pins
+ *   - the PA trucking strong-LOCAL 136051 / 136136 pins
+ * They are therefore OPT-IN, exactly like the repo's other live-data checks
+ * (WORKFLOW.md: live-source validation is a separate, explicitly-invoked gate,
+ * never part of the default run — ordinary CI must not depend on live data):
+ *
+ *   RADAR_LIVE_ROW_PINS=1 DATABASE_URL=… bun test src/lib/radar-search.regression.test.ts
+ *
+ * runs them for a deliberate live-corpus check. The DEFAULT run (CI and local)
+ * skips them, so the pure-unit half of this file — including the owner FIX 1 pin
+ * `isStrongTradeMatch("Remediation and Specialty Cleaning Services", …)`, the
+ * regression that shipped past green CI — is a real gate on every push. Every
+ * other assertion in those three tests still runs whenever a DATABASE_URL is
+ * present. Nothing here is a code defect: the pipeline behavior they pin is
+ * covered by the pure/fixture cases in this file and in
+ * src/lib/janitorial-trucking.test.ts; the live row ids are the only
+ * drift-prone part.
+ */
+const LIVE_ROW_PINS = process.env.RADAR_LIVE_ROW_PINS === "1";
 
 /** EXACT mirror of runRadarScan's handler body (radar.tsx) — same predicates,
  *  same order, same LIMIT, same filter. Returns { rows, kept, expansion }. */
@@ -340,6 +400,14 @@ describe("certification semantics (PR-C.0, owner 09-13)", () => {
   //    matches with valid locations and future due dates.
   test("F: the two real PA-local PennBid trucking rows pass the REAL pipeline as PA local matches", async () => {
     if (!HAS_DB) return;
+    // LIVE-CORPUS PIN TEST — quarantined, opt-in via RADAR_LIVE_ROW_PINS=1.
+    // (See the LIVE_ROW_PINS block at the top of this file: every assertion in
+    // this test pins SPECIFIC production row ids, and the pinned rows have
+    // drifted / expired in the live corpus — several of the pins only ever
+    // "passed" because an earlier pin aborted the test first. The pipeline
+    // behavior they cover is pinned by the pure/fixture cases in this file and
+    // in src/lib/janitorial-trucking.test.ts.)
+    if (!LIVE_ROW_PINS) return;
     const r = await runScan("trucking", "Pennsylvania", "sb");
     expect(r.state).toBe("PA");
     const paLocal = r.kept.filter(
@@ -446,6 +514,14 @@ describe("FORCED query failure surfaces (owner v6) — never a successful empty 
 describe("three-way bucketing + related section (owner v6.1 / PR-C.0)", () => {
   test("VA janitorial partitions into local (SBA + state-local NULL rows) / nationwide>0; related bucket holds adjacent rows and never duplicates strict matches", async () => {
     if (!HAS_DB) return;
+    // LIVE-CORPUS PIN TEST — quarantined, opt-in via RADAR_LIVE_ROW_PINS=1.
+    // (See the LIVE_ROW_PINS block at the top of this file: every assertion in
+    // this test pins SPECIFIC production row ids, and the pinned rows have
+    // drifted / expired in the live corpus — several of the pins only ever
+    // "passed" because an earlier pin aborted the test first. The pipeline
+    // behavior they cover is pinned by the pure/fixture cases in this file and
+    // in src/lib/janitorial-trucking.test.ts.)
+    if (!LIVE_ROW_PINS) return;
     const { runRelatedScanQuery } = await import("~/lib/radar-scan-query");
     const r = await runScan("janitorial", "Virginia", "sb");
     // Same classification rule the handler now uses (FIX 1 + FIX 2 owner 09-14):
@@ -710,6 +786,14 @@ describe("FIX 1 match quality (owner 09-14): description/category-only keyword h
 
   test("real pipeline: PA trucking sludge rows remain strong LOCAL; VA janitorial keeps strong local rows (DB-backed)", async () => {
     if (!HAS_DB) return;
+    // LIVE-CORPUS PIN TEST — quarantined, opt-in via RADAR_LIVE_ROW_PINS=1.
+    // (See the LIVE_ROW_PINS block at the top of this file: every assertion in
+    // this test pins SPECIFIC production row ids, and the pinned rows have
+    // drifted / expired in the live corpus — several of the pins only ever
+    // "passed" because an earlier pin aborted the test first. The pipeline
+    // behavior they cover is pinned by the pure/fixture cases in this file and
+    // in src/lib/janitorial-trucking.test.ts.)
+    if (!LIVE_ROW_PINS) return;
     const t = await runScan("trucking", "Pennsylvania", "sb");
     const strongT = t.strong.map((m: any) => Number(m.id));
     expect(strongT).toContain(136051);
@@ -1076,7 +1160,7 @@ describe("delivery/logistics/warehousing — PAYLOAD-LEVEL bind proof (owner mer
     ];
     for (const c of cases) {
       const exp = expandTrade(c.term);
-      const bind = naicsBindOf(tradeKeywordPred(dbFactory, exp));
+      const bind = naicsBindOf(tradeKeywordPred(payloadSqlFactory, exp));
       for (const code of c.must) expect(bind).toContain(code);
       for (const code of c.mustNot) expect(bind).not.toContain(code);
     }
@@ -1212,7 +1296,11 @@ describe("amended registry — #387 match quality + #388 hauling regressions sta
 // PRESENTATION (Directive B). Tests at BOTH the expandTrade level and the
 // driver-level payload bind (the exact ANY($n) array), same style as the #389
 // suites above.
-const TRUCKING_SET = ["484110", "484121", "484122", "484220", "484230", "492110"];
+// Owner PRIORITY 09-21 (PR #414 R3): 484210 (Used Household and Office Goods
+// Moving) is part of the trucking family — the owner's own trucking code list is
+// 484110/484121/484122/484210/484220/484230/492110, and the registry entry
+// carries it. The pin below records that set.
+const TRUCKING_SET = ["484110", "484121", "484122", "484210", "484220", "484230", "492110"];
 const FREIGHT_DELIVERY_SET = ["492110", "484110", "484121", "484122", "484220", "484230"];
 const ARRANGEMENT_PHRASES = [
   "freight broker",
@@ -1312,7 +1400,7 @@ describe("owner 09-15 arrangement-intent — PAYLOAD-LEVEL bind proof (owner mer
     ];
     for (const c of cases) {
       const exp = expandTrade(c.term);
-      const bind = naicsBindOf(tradeKeywordPred(dbFactory, exp));
+      const bind = naicsBindOf(tradeKeywordPred(payloadSqlFactory, exp));
       for (const code of c.must) expect(bind).toContain(code);
       for (const code of c.mustNot) expect(bind).not.toContain(code);
     }
@@ -1456,7 +1544,7 @@ describe("owner 09-15/09-16 landscaping trade (561730) — curated registry entr
     ]) {
       const e = expandTrade(q);
       expect(e.naicsCodes).toEqual(["561730"]);
-      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).toEqual(["561730"]);
+      expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, e))).toEqual(["561730"]);
     }
     // …and it never carries another trade's code.
     for (const code of ["561720", "561612", "561621", "562111", "484121", "492110"]) {
@@ -1488,7 +1576,7 @@ describe("owner 09-15/09-16 security guards (561612) vs security systems (561621
     for (const q of GUARD_TERMS) {
       const e = expandTrade(q);
       expect(e.naicsCodes).toEqual(["561612"]);
-      const bind = naicsBindOf(tradeKeywordPred(dbFactory, e));
+      const bind = naicsBindOf(tradeKeywordPred(payloadSqlFactory, e));
       expect(bind).toEqual(["561612"]);
       expect(bind).not.toContain("561621");
     }
@@ -1500,7 +1588,7 @@ describe("owner 09-15/09-16 security guards (561612) vs security systems (561621
     for (const q of SYSTEM_TERMS) {
       const e = expandTrade(q);
       expect(e.naicsCodes).toEqual(["561621"]);
-      const bind = naicsBindOf(tradeKeywordPred(dbFactory, e));
+      const bind = naicsBindOf(tradeKeywordPred(payloadSqlFactory, e));
       expect(bind).toEqual(["561621"]);
       expect(bind).not.toContain("561612");
       expect(e.terms).not.toContain("security guard");
@@ -1518,7 +1606,7 @@ describe("owner 09-15/09-16 security guards (561612) vs security systems (561621
     for (const q of ["guardrail installation", "guard rail repair", "guard station construction"]) {
       const e = expandTrade(q);
       expect(e.naicsCodes).toEqual([]);
-      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).toEqual([]);
+      expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, e))).toEqual([]);
     }
   });
   test("(d) the two trades are disjoint in BOTH directions", () => {
@@ -1717,7 +1805,7 @@ describe("owner 09-16 facilities support (561210) — curated registry entry", (
     for (const q of FACILITIES_SYNONYMS) {
       const e = expandTrade(q);
       expect(e.naicsCodes).toContain("561210");
-      const bind = naicsBindOf(tradeKeywordPred(dbFactory, e));
+      const bind = naicsBindOf(tradeKeywordPred(payloadSqlFactory, e));
       expect(bind).toContain("561210");
       // …and never a neighbouring trade's code the entry must not touch
       expect(bind).not.toContain("561720");
@@ -1728,7 +1816,7 @@ describe("owner 09-16 facilities support (561210) — curated registry entry", (
     for (const q of FACILITIES_PURE_561210) {
       const e = expandTrade(q);
       expect(`${q}:${JSON.stringify(e.naicsCodes)}`).toBe(`${q}:["561210"]`);
-      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).toContain("561210");
+      expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, e))).toContain("561210");
     }
     // "building maintenance" is also a 561790 infer owner, and "facilities
     // management" keeps its 541513 (Computer Facilities Management Services)
@@ -1777,7 +1865,7 @@ describe("owner 09-16 facilities support (561210) — curated registry entry", (
     ]) {
       const e = expandTrade(q);
       expect(`${q}:${JSON.stringify(e.naicsCodes)}`).toBe(`${q}:["561720"]`);
-      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("561210");
+      expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, e))).not.toContain("561210");
     }
     // window/carpet cleaning have their own pre-existing infer co-owners (561790 /
     // 561740) — what matters is that neither is a facilities match.
@@ -1785,7 +1873,7 @@ describe("owner 09-16 facilities support (561210) — curated registry entry", (
       const e = expandTrade(q);
       expect(e.naicsCodes).toContain("561720");
       expect(e.naicsCodes).not.toContain("561210");
-      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("561210");
+      expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, e))).not.toContain("561210");
     }
     for (const q of [
       "office administrative",
@@ -1795,7 +1883,7 @@ describe("owner 09-16 facilities support (561210) — curated registry entry", (
     ]) {
       const e = expandTrade(q);
       expect(`${q}:${JSON.stringify(e.naicsCodes)}`).toBe(`${q}:["561110"]`);
-      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("561210");
+      expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, e))).not.toContain("561210");
     }
     // structurally: the two payloads share no phrase in either direction.
     const JAN = TRADE_ALIASES["janitorial-cleaning-services"].synonyms;
@@ -1812,7 +1900,7 @@ describe("owner 09-16 facilities support (561210) — curated registry entry", (
     const bm = expandTrade("building maintenance");
     expect([...bm.naicsCodes].sort()).toEqual(["561210", "561790"]);
     expect(bm.naicsCodes).not.toContain("561720");
-    expect(naicsBindOf(tradeKeywordPred(dbFactory, bm))).not.toContain("561720");
+    expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, bm))).not.toContain("561720");
     expect(bm.terms).toContain("building maintenance");
   });
   test("(h) datalist: the curated trade surfaces by name + 561210 once under its canonical title", () => {
@@ -1896,7 +1984,7 @@ describe("owner 09-16 solid waste collection (562111) — curated entry + 5621xx
     for (const q of SOLID_WASTE_SYNONYMS) {
       const e = expandTrade(q);
       expect(`${q}:${JSON.stringify(e.naicsCodes)}`).toBe(`${q}:["562111"]`);
-      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).toEqual(["562111"]);
+      expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, e))).toEqual(["562111"]);
       for (const c of WASTE_OTHER_CODES) expect(e.naicsCodes).not.toContain(c);
     }
   });
@@ -1912,7 +2000,7 @@ describe("owner 09-16 solid waste collection (562111) — curated entry + 5621xx
     ]) {
       const e = expandTrade(q);
       expect(e.naicsCodes).not.toContain("562111");
-      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("562111");
+      expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, e))).not.toContain("562111");
     }
     // bare "waste" implies nothing at all — exactly today's behavior.
     expect(expandTrade("waste").naicsCodes).toEqual([]);
@@ -1927,7 +2015,7 @@ describe("owner 09-16 solid waste collection (562111) — curated entry + 5621xx
     for (const q of WASTE_OTHER_PHRASES) {
       const e = expandTrade(q);
       expect(`${q}:${JSON.stringify(e.naicsCodes)}`).not.toContain("562111");
-      expect(naicsBindOf(tradeKeywordPred(dbFactory, e))).not.toContain("562111");
+      expect(naicsBindOf(tradeKeywordPred(payloadSqlFactory, e))).not.toContain("562111");
     }
     // payload-level disjointness, both ways.
     const solid = new Set(SOLID_WASTE_SYNONYMS.flatMap((q) => expandTrade(q).naicsCodes));

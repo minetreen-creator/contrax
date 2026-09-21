@@ -361,7 +361,7 @@ export type NonprofitDecisionReason =
   | "revoked_reinstated_looking" // 2
   | "revoked_no_reinstatement" // 3
   | "status_not_active" // 4
-  | "subsection_not_501c3" // owner decision (a), if narrowed
+  | "subsection_not_501c3" // owner decision (a), RESOLVED 09-21: the scope IS 501(c)(3)-only
   | "auto_approved" // 1
   | "fraud_conflict" // owner spec item 3: obvious fraud/conflicting info → DENY
   | "ein_conflict_different_org" // one EIN, two different org names → DENY

@@ -101,6 +101,13 @@ jobs:
           echo "bundle validation OK"
       - name: Bundled request-context integration test (assembled render function)
         run: bun test tests/request-context.bundled.test.ts
+      # Nonprofit Free (owner green-lit 2026-09-21, six-point spec). The phase-1 unit
+      # suite is DETERMINISTIC and network-free by construction: every IRS byte it reads is
+      # a verbatim fixture committed to src/lib/fixtures/irs/, and the store is injected —
+      # so it needs no DATABASE_URL and is safe on every PR. Without this step the
+      # nonprofit code would have no test coverage in CI at all.
+      - name: Nonprofit Free tests (unit, deterministic, zero network)
+        run: bun test src/lib/nonprofit-free.test.ts
       # State grants (owner R3 order, 2026-09-19): the unit half (schema.sql
       # mirror assertions, parsers, search/coverage shaping) always runs; the
       # DB-backed half — including state-grants-bootstrap.test.ts, which builds a

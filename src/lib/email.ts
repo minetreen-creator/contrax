@@ -681,6 +681,101 @@ function bidDigestHtml(bids: NewBidSummary[]): string {
 </html>`;
 }
 
+// ── Nonprofit Free applicant emails (owner decision 4, phase 2) ────────────────
+/**
+ * ONE plain email on `approved`, ONE neutral email on `denied`. Nothing is sent on
+ * request-info in this unit.
+ *
+ * Both are transactional answers to an application the recipient submitted, both are
+ * fail-open (no RESEND_API_KEY → a warning and `false`, never a thrown error that would
+ * change the stored outcome), and both return `true` ONLY when Resend accepted the send
+ * — so a caller can log a real send rather than an attempt.
+ *
+ * The verification sentence is passed in, already built from the IRS mirror's posting
+ * date by `verificationWording()`. When it is null (the mirror has never been imported,
+ * which is also when nothing can be auto-approved) the line is omitted entirely — a
+ * verification badge with no date is never shown.
+ */
+export async function sendNonprofitApprovedEmail(
+  to: string,
+  input: { orgName: string; verificationWording: string | null },
+): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send nonprofit approval email — RESEND_API_KEY not set");
+      return false;
+    }
+    const wordingLine = input.verificationWording
+      ? `<p style="margin:0 0 16px;color:#6b7280;font-size:13px;">${escapeHtml(input.verificationWording)}</p>`
+      : "";
+    const html = `<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f3f4f6;padding:32px 0;"><tr><td align="center">
+<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
+  <tr><td style="padding:32px 32px 8px;"><h1 style="margin:0 0 12px;color:#111827;font-size:22px;">Nonprofit Free access is active</h1>
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">We verified ${escapeHtml(input.orgName)} against IRS tax-exempt records, and free government grant search is now active on your account.</p>
+    ${wordingLine}
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">You can search federal grants and the state grant sources Contrax covers, open the official application links, and save up to 10 grants. There is no card on file and nothing to renew — basic searching stays free for a verified nonprofit.</p>
+  </td></tr>
+  <tr><td style="padding:8px 32px 24px;text-align:center;">
+    <a href="https://www.contrax.company/grants" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;">Open Contrax Grants</a>
+  </td></tr>
+  <tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+    <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Questions? Write to hello@contrax.company.</p>
+    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax</p>
+  </td></tr>
+</table></td></tr></table></body>`;
+    const result = await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      to: [to],
+      subject: "Your Contrax nonprofit access is active",
+      html,
+    });
+    return !result.error;
+  } catch (error) {
+    console.error("Failed to send nonprofit approval email:", error);
+    return false;
+  }
+}
+
+/**
+ * The not-granted email. Neutral and non-accusatory by rule (build plan §6): it never
+ * uses the deny-lane vocabulary, never states the reason class, and always carries the
+ * appeal path.
+ */
+export async function sendNonprofitDeniedEmail(to: string, orgName: string): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send nonprofit decision email — RESEND_API_KEY not set");
+      return false;
+    }
+    const html = `<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f3f4f6;padding:32px 0;"><tr><td align="center">
+<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
+  <tr><td style="padding:32px 32px 24px;">
+    <h1 style="margin:0 0 12px;color:#111827;font-size:22px;">About your Nonprofit Free application</h1>
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">We reviewed the application for ${escapeHtml(orgName)} and could not verify it against IRS tax-exempt records, so free nonprofit access was not granted.</p>
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">If you believe this is a mistake, write to hello@contrax.company and we will take another look — many organizations are simply not in the IRS records yet, and we can review supporting documentation.</p>
+    <p style="margin:0;color:#6b7280;font-size:13px;">Your Contrax account is unchanged, and anything you had saved is still there.</p>
+  </td></tr>
+  <tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax</p>
+  </td></tr>
+</table></td></tr></table></body>`;
+    const result = await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      to: [to],
+      subject: "Your Contrax nonprofit application",
+      html,
+    });
+    return !result.error;
+  } catch (error) {
+    console.error("Failed to send nonprofit decision email:", error);
+    return false;
+  }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function escapeHtml(str: string): string {

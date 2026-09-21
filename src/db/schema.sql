@@ -961,12 +961,40 @@ CREATE TABLE IF NOT EXISTS nonprofit_applications (
     review_notes TEXT,
     granted_at TIMESTAMPTZ,
     reverify_due_at TIMESTAMPTZ,
+    -- Migration 046: the owner's admin EIN-release (never automatic — no cooldown), and
+    -- the weekly digest columns (written by a later unit; nothing reads them yet).
+    -- A released row is NEVER deleted: the org keeps its account and its saved data.
+    released_at TIMESTAMPTZ,
+    digest_opt_out_at TIMESTAMPTZ,
+    digest_unsubscribe_token_hash TEXT,
+    digest_last_sent_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS nonprofit_applications_user_id_key ON nonprofit_applications (user_id);
-CREATE UNIQUE INDEX IF NOT EXISTS nonprofit_applications_ein_key ON nonprofit_applications (ein);
+-- Migration 046: PARTIAL — "one free org account per EIN" applies to ATTACHED rows only,
+-- so an EIN an administrator has released (released_at set) is immediately claimable by a
+-- different applicant. Same index name as migration 045 on purpose (see 046's header).
+CREATE UNIQUE INDEX IF NOT EXISTS nonprofit_applications_ein_key ON nonprofit_applications (ein) WHERE released_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_nonprofit_applications_status_created ON nonprofit_applications (status, created_at);
+-- ── NONPROFIT FREE PHASE 2 (migration 046 mirror) ──
+-- The append-only admin audit trail (owner appendix decision 3): one row per action, the
+-- acting administrator's immutable id + email, an optional reason code and internal note,
+-- and the status before/after. Append-only by convention — no UPDATE/DELETE path exists.
+CREATE TABLE IF NOT EXISTS nonprofit_application_reviews (
+    id SERIAL PRIMARY KEY,
+    application_id INTEGER NOT NULL REFERENCES nonprofit_applications (id),
+    action TEXT NOT NULL CHECK (action IN ('approve', 'deny', 'suspend', 'release', 'transfer')),
+    actor_user_id INTEGER NOT NULL REFERENCES users (id),
+    actor_email TEXT NOT NULL,
+    reason_code TEXT,
+    internal_note TEXT,
+    prior_status TEXT NOT NULL,
+    new_status TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_nonprofit_application_reviews_application
+    ON nonprofit_application_reviews (application_id, created_at);
 CREATE TABLE IF NOT EXISTS irs_eo_bmf (
     ein CHAR(9) PRIMARY KEY,
     name TEXT NOT NULL,

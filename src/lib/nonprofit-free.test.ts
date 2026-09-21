@@ -1618,7 +1618,21 @@ describe("migration 045 and the schema.sql mirror", () => {
   test("every CREATE statement in the migration appears verbatim in the mirror", () => {
     const ddl = MIGRATION_045_SQL.split("\n").filter((line) => line.startsWith("CREATE "));
     expect(ddl.length).toBeGreaterThan(10);
-    for (const statement of ddl) expect(SCHEMA_SQL).toContain(statement);
+    for (const statement of ddl) {
+      // MIGRATION 046 SUPERSESSION (owner decision, 2026-09-21). The unconditional UNIQUE
+      // index on `ein` is replaced by the PARTIAL one (`WHERE released_at IS NULL`) so an
+      // EIN an administrator has released becomes claimable by a different applicant. That
+      // single statement is the only 045 DDL the mirror no longer carries verbatim, and the
+      // replacement keeps the SAME index name — so the per-EIN uniqueness assertion above
+      // still holds in both files, and 046's own suite asserts the partial definition.
+      if (statement.includes("nonprofit_applications_ein_key")) {
+        expect(SCHEMA_SQL).toContain(
+          "CREATE UNIQUE INDEX IF NOT EXISTS nonprofit_applications_ein_key ON nonprofit_applications (ein) WHERE released_at IS NULL",
+        );
+        continue;
+      }
+      expect(SCHEMA_SQL).toContain(statement);
+    }
   });
 });
 

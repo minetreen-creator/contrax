@@ -108,6 +108,28 @@ jobs:
       # nonprofit code would have no test coverage in CI at all.
       - name: Nonprofit Free tests (unit, deterministic, zero network)
         run: bun test src/lib/nonprofit-free.test.ts
+      # Nonprofit Free phase 2 (unit A, owner green-lit 2026-09-21). The always-on half is
+      # deterministic and database-free: migration 046 ↔ src/db/schema.sql mirror
+      # assertions, the apply flow's order of operations (a malformed EIN writes nothing, a
+      # duplicate EIN never reaches the engine), the released-EIN claim semantics, the
+      # writer's decision → audit-column mapping and the copy rules. The DB half is OPT-IN
+      # and runs only when the repo has a DATABASE_URL secret: it builds a throwaway
+      # database from src/db/schema.sql ALONE and drops it again — the same discipline as
+      # the state-grants bootstrap test — to prove the PARTIAL unique index on `ein` really
+      # makes a released EIN claimable. Migration 046's hand-run runner is never invoked
+      # here (deliberate: it must not be reachable from CI).
+      - name: Nonprofit Free phase 2 tests (unit + schema bootstrap when available)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NONPROFIT_TEST_PROVISION_SCHEMA: "1"
+        run: |
+          set -uo pipefail
+          if [ -n "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL present — the phase-2 schema bootstrap suite will build a throwaway database from src/db/schema.sql."
+          else
+            echo "DATABASE_URL secret NOT configured — the phase-2 bootstrap suite skips loudly (the unit half still must pass)."
+          fi
+          bun test src/lib/nonprofit-apply.test.ts src/lib/nonprofit-apply.integration.test.ts
       # State grants (owner R3 order, 2026-09-19): the unit half (schema.sql
       # mirror assertions, parsers, search/coverage shaping) always runs; the
       # DB-backed half — including state-grants-bootstrap.test.ts, which builds a

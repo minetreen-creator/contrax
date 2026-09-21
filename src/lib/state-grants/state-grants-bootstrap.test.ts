@@ -564,7 +564,11 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
       expect(body.countExact).toBe(true);
       // Every validated state (the landed batch set) is structurally included;
       // the rows in this throwaway DB are all VA fixtures, so only VA matches.
-      expect(body.statesIncluded).toEqual(validatedStates());
+      // The scope IS exactly the validated set. The API presents that set in its
+      // own (sorted) order, which stopped coinciding with the registry's
+      // STATE_CODES order once a batch landed states out of alphabetical order
+      // (batch 2: AR after AZ, ND after NM) — so compare the SET, not the order.
+      expect([...body.statesIncluded].sort()).toEqual([...validatedStates()].sort());
       expect(body.statesMatched).toEqual(["VA"]);
       expect(body.uncoveredStates).toEqual([]);
       // The freshness stamp comes from the ok run rows the sync wrote.
@@ -656,15 +660,15 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
   test("the registry gate refuses an uncovered state, without inventing a record", async () => {
     await onBootstrapDatabase(async () => {
       const asked = bodyOf(
-        await runStateGrantSearch({ stateCodes: ["MD"] }, FIXTURE_NOW, PRODUCTION_DEPS),
+        await runStateGrantSearch({ stateCodes: ["NC"] }, FIXTURE_NOW, PRODUCTION_DEPS),
       );
       expect(asked.totalCount).toBe(0);
       expect(asked.records.length).toBe(0);
       expect(asked.statesIncluded).toEqual([]);
       expect(asked.statesMatched).toEqual([]);
       expect(asked.filters.stateCodes).toEqual([]);
-      expect(asked.uncoveredStates).toEqual(["MD"]);
-      expect(asked.uncoveredNotice).toContain("Maryland (MD)");
+      expect(asked.uncoveredStates).toEqual(["NC"]);
+      expect(asked.uncoveredNotice).toContain("North Carolina (NC)");
       expect(asked.uncoveredNotice).toContain("no records are invented");
       expect(asked.asOf).toBeNull();
     });
@@ -688,12 +692,14 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
       if (outcome.status !== 200) throw new Error(`expected 200, got ${outcome.status}`);
       const payload = outcome.body;
       expect(payload.headline).toBe(
-        "State grant coverage: 6 of 50 states validated (0 connected, 0 curated, 6 limited)",
+        // 50 STATES plus D.C. (owner copy rule 2026-09-20): D.C. is a validated
+        // jurisdiction today, so it is counted out of the 50 and named apart.
+        "State grant coverage: 37 of 50 states validated, plus Washington, D.C. (0 connected, 0 curated, 38 limited)",
       );
-      expect(payload.counts).toEqual({ total: 51, validated: 6, connected: 0, curated: 0, limited: 6, unavailable: 45 });
+      expect(payload.counts).toEqual({ total: 51, validated: 38, connected: 0, curated: 0, limited: 38, unavailable: 13 });
       expect(payload.states.length).toBe(51);
-      expect(payload.counts.unavailable).toBe(45);
-      expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "DE", "HI", "PA", "RI", "VA"]);
+      expect(payload.counts.unavailable).toBe(13);
+      expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "ND", "OH", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WY"]);
       const virginia = payload.validated.find((v) => v.stateCode === "VA")!;
       expect(virginia.tier).toBe("limited");
       expect(virginia.note).toContain("not statewide coverage");

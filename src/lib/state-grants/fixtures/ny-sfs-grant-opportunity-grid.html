@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html class='   psc_dir-ltr psc_form-xlarge pt_classic_plus' dir='ltr' lang='en'>
+<!-- Copyright (c) 2000, 2024, Oracle and/or its affiliates.  -->
+<head>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<script language='JavaScript'>
+var  totalTimeoutMilliseconds = 2073600000; 
+var  warningTimeoutMilliseconds = 2073600000; 
+var timeOutURL = 'https://esupplier.sfs.ny.gov/psc/fscm/SUPPLIER/ERP/?cmd=expire';
+var timeoutWarningPageURL = 'https://esupplier.sfs.ny.gov/psc/fscm/SUPPLIER/ERP/s/WEBLIB_TIMEOUT.PT_TIMEOUTWARNING.FieldFormula.IScript_TIMEOUTWARNING';
+var sRCRequestURL = 'https://esupplier.sfs.ny.gov/psc/fscm/SUPPLIER/ERP/s/WEBLIB_PTRC.ISCRIPT1.FieldFormula.IScript_RC_REQUEST';
+</script> 
+
+<link id=PSSTYLEREQ_1_css rel='stylesheet' type='text/css' href='/cs/fscm/cache/pt86119/PSSTYLEREQ_1.css' />
+<link id=PSSTYLEDEF_TANGERINE_7_css rel='stylesheet' type='text/css' href='/cs/fscm/cache/pt86119/PSSTYLEDEF_TANGERINE_7.css' />
+<title>Response Bid Inquiry</title>
+<script LANGUAGE='JavaScript'>
+try {
+document.domain = "sfs.ny.gov";
+}
+catch(err) {;}
+</script>
+<script language='JavaScript'>
+var winName='win0';
+var winParent = null;
+var modalID = null;
+var modalZoomName = null;
+var baseKey_win0 = "\x1b\r\n";
+var altKey_win0 = "0J5678\xbc\xbe\xbf\xde";
+var ctrlKey_win0 = "JK";
+var saveWarningKeys_win0 = "";
+var firstFocusID = null;
+var bPTDrag = false;
+var isNewSaveWarn = true;
+var bAccessibility_win0 =false;
+var bFMode =false;
+var bDoModal_win0 = false;
+var bJSModal_win0 = false;
+var bPromptPage_win0 = false;
+var bTabOverTB_win0 = false;
+var bTabOverPg_win0 = false;
+var bTabOverNonPS_win0 = false;
+var strCurrUrl='https://esupplier.sfs.ny.gov/psc/fscm/SUPPLIER/ERP/c/NY_SUPPUB_FL.AUC_RESP_INQ_AUC.GBL?';
+var strReqURL='';
+var bIncInNavigation='T';
+var szPinCrefID='AUC_RESP_INQ_AUC_GBL';
+var szPinCrefReg='T';
+var szPinCrefLabel='Search for Grant Opportunities';
+var szCrefID='AUC_RESP_INQ_AUC_GBL';
+var szCrefReged='T';
+var szCrefVisible='T';
+var szCrefLabel='Search for Grant Opportunities';
+var szCrefUsageType='TARG';
+var localNodes = ['ERP', 'PFIN', 'PSFT_EP', 'PSFT_RTBL'];
+var remoteUrls = [];
+bGenDomInfo = false;
+var szCalendarType = 'G';
+var bMenuSrchPage = false;
+var bGuidedAG = false;
+var bWSRP=0;var szMenuSrchText = "-999999-";
+var disablePNSubscriptions=0;var modalCloseUrl = '/cs/fscm/cache/pt86119/PT_TRANS_16PIX_1.png';
+var modalCloseAlt = 'Close';
+var modalResizeUrl= '/cs/fscm/cache/pt86119/PT_RESIZE_IMG_1.svg';
+var modalResizeAlt = 'Drag to resize';
+var modalMoveAlt = 'Drag to move';
+</script>
+<script Language = "JavaScript">
+bPTActEnterKey = true;
+</script>
+<script language='JavaScript'>
+var gridList_win0 = [
+['RESP_DUMMY2_VW$0',0,0,0,0,1],['RESP_INQA_HD_VW_GR$0',0,22,0,0,1]
+];
+var gridHeaderList_win0 = [
+[],
+[['RESP_INQA_HD_VW_GR$0#0',1],
+['RESP_INQA_HD_VW_GR$0#1',1],
+['RESP_INQA_HD_VW_GR$0#2',1],
+['RESP_INQA_HD_VW_GR$0#3',1],
+['RESP_INQA_HD_VW_GR$0#4',1],
+['RESP_INQA_HD_VW_GR$0#6',1],
+['RESP_INQA_HD_VW_GR$0#7',1],
+['RESP_INQA_HD_VW_GR$0#8',1]]
+];
+var gridRowSelRgbColor_win0 ='rgb(238,238,238)';
+var gridFieldList_win0 = [
+[],
+['AUC_ID_COL$%c',
+'NY_AUC_INQ1_WRK_BUSINESS_UNIT$%c',
+'AUC_NAME_LNK$%c',
+'NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$%c',
+'NY_AUC_INQ1_WRK_FIELDLIST$%c',
+'RESP_INQA1_WK_AUC_DTTM_PREVIEW$%c',
+'RESP_INQA1_WK_AUC_DTTM_START$%c',
+'RESP_INQA1_WK_AUC_DTTM_FINISH$%c',
+'RESP_INQA_HD_VW_GR$new$%c$$0',
+'RESP_INQA_HD_VW_GR$delete$%c$$0']
+];
+</script>
+<script language='JavaScript'>
+var PFieldList_win0 = [['RESP_DUMMY0_VW_COUNTRY',1],['AUC_HDR_CAT_WRK_CATEGORY_CD',1]];
+</script>
+<script LANGUAGE='JavaScript'>
+try {
+document.domain = "sfs.ny.gov";
+}
+catch(err) {;}
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_COMMON_MIN_587.js'>
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_AJAX_NET_MIN_587.js'>
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_SAVEWARNINGSCRIPT_MIN_587.js'>
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_PAGESCRIPT_win0_MIN_587.js'>
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_EDITSCRIPT_win0_MIN_587.js'>
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_RC_JS_MIN_1.js'>
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_POPUPSCRIPT_win0_MIN_1.js'>
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_GRIDSCRIPT_win0_MIN_1.js'>
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_TYPEAHEAD_win0_MIN_587.js'>
+</script>
+<script language='JavaScript'>
+var nResubmit=0;
+var nLastAction=0;
+var loader=null;
+if (typeof(bCleanHtml) == 'undefined')
+	var bCleanHtml = false;
+setupTimeout2();
+var postUrl_win0='https://esupplier.sfs.ny.gov/psc/fscm/SUPPLIER/ERP/c/NY_SUPPUB_FL.AUC_RESP_INQ_AUC.GBL';
+function aAction_win0(form, id, params, bAjax, bPrompt, sAjaxTrfUrl, bWarning, sScriptAfter, nTrfURLType)
+{
+setupTimeout2();
+if ((id != '#ICSave'))
+processing_win0(1,3000);
+aAction0_win0(form, id, params, bAjax, bPrompt, sAjaxTrfUrl, bWarning, sScriptAfter, nTrfURLType);
+}
+function submitAction_win0(form, id, event, sAjaxTrfUrl, bWarning, sScriptAfter, nTrfURLType)
+{
+setupTimeout2();
+if (!ptCommonObj2.isICQryDownload(form, id))
+ { processing_win0(1,3000); }
+preSubmitProcess_win0(form, id);
+var spellcheckpos = id.indexOf('$spellcheck');
+if ((spellcheckpos != -1) && (id.indexOf('#KEYA5') != -1))
+	form.ICAction.value = id.substring(0,spellcheckpos);
+else 
+	form.ICAction.value=id;
+var actionName = form.ICAction.value;
+form.ICXPos.value=ptCommonObj2.getScrollX();
+form.ICYPos.value=ptCommonObj2.getScrollY();
+bcUpdater.storeBcDomData();
+if ((typeof(bAutoSave) != 'undefined') && bAutoSave)
+	form.ICAutoSave.value = '1';
+if (!ptCommonObj2.isAJAXReq(form, id) && !ptCommonObj2.isPromptReq(id)){
+if (nLastAction == 1 && nResubmit > 0) return;
+form.ICResubmit.value=nResubmit;
+form.submit();
+if (!ptCommonObj2.isICQryDownload(form, id))
+	nResubmit++;
+}
+else if (ptCommonObj2.isPromptReq(id))
+	pAction_win0(form, id, arguments[2]);
+else
+	aAction_win0(form, actionName, null, true, false, sAjaxTrfUrl, bWarning, sScriptAfter, nTrfURLType);
+cancelBubble(event);
+}
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_CALENDARSCRIPT1_MIN_587.js'>
+</script>
+<script language='JavaScript' type='text/javascript' src='/cs/fscm/cache/pt86119/PT_CALENDARSCRIPT_win0_MIN_1.js'>
+</script>
+<script language='javascript'>
+var pt_calHeadstyle=" class='PTCALHEAD' "
+var pt_calWeekHeadstyle=" class='PTCALWEEKHEAD' "
+function dateitemrefs()
+{
+this.pt_dateheader = "/cs/fscm/cache/pt86119/PT_PORTAL_IC_CLOSE_SD_CSS_1.gif";
+this.pt_datering = "/cs/fscm/cache/pt86119/PT_CURRENT_DATE_SD_CSS_1.gif";
+this.pt_datesel = "/cs/fscm/cache/pt86119/PT_SELECTED_DATE_SD_CSS_1.gif";
+this.pt_nextmonth = "/cs/fscm/cache/pt86119/PT_RIGHT_SCROLL_SD_CSS_1.gif";
+this.pt_prevmonth= "/cs/fscm/cache/pt86119/PT_LEFT_SCROLL_SD_CSS_1.gif";
+this.pt_daystitle_hijri = "/cs/fscm/cache/pt86119/PT_DATE_TITLE_S6_1.GIF";
+this.pt_daystitle_thai = "/cs/fscm/cache/pt86119/PT_DATE_TITLE_S0_1.GIF";
+this.pt_daystitle_s0 = "/cs/fscm/cache/pt86119/PT_DATE_TITLE_S0_1.GIF";
+this.pt_daystitle_m1 = "/cs/fscm/cache/pt86119/PT_DATE_TITLE_M1_1.GIF";
+this.pt_daystitle_t2 = "/cs/fscm/cache/pt86119/PT_DATE_TITLE_T2_1.GIF";
+this.pt_daystitle_w3 = "/cs/fscm/cache/pt86119/PT_DATE_TITLE_W3_1.GIF";
+this.pt_daystitle_t4 = "/cs/fscm/cache/pt86119/PT_DATE_TITLE_T4_1.GIF";
+this.pt_daystitle_f5 = "/cs/fscm/cache/pt86119/PT_DATE_TITLE_F5_1.gif";
+this.pt_daystitle_s6 = "/cs/fscm/cache/pt86119/PT_DATE_TITLE_S6_1.GIF";
+}
+ 
+function LoadCalendar()
+{
+var dateitems = new dateitemrefs();
+loadImages(dateitems);
+}
+function DatePrompt0_win0(dtfield,promptfield,yrfmt,bsubmit)
+{
+setupTimeout2();
+openDate_win0(dtfield, promptfield, "MDY/"+yrfmt,bsubmit,"G",0);
+}
+</script>
+<script language='JavaScript'  ptdefer='defer'>
+if (typeof ptStyleSheet == "undefined") {
+ptStyleSheet = 'PSSTYLEDEF_TANGERINE';
+}
+function onLoadExt_win0() {
+modalZoomName = null;
+var oWin=window;
+var oDoc=document;
+ptTAObj_win0.init(oWin,oDoc,oDoc.win0,'/cs/fscm/cache/pt86119/PT_SRT2UP_SEL_1.gif','/cs/fscm/cache/pt86119/PT_SRT2DN_SEL_1.gif','/cs/fscm/cache/pt86119/PT_PORTAL_IC_CLOSE_1.gif',500);
+
+ g_bAccessibilityMode=false;
+var actn='';
+if (!isCrossDomainTop()) top.document.title=document.title;
+setKeyEventHandler_win0();ptEvent.add(window,'scroll',positionWAIT_win0);
+ptCommonObj2.generateABNSearchResults(document.win0);
+getGblSrchPageNum(actn);
+if (gSrchRsltPageNum <= 5) getAllRelatedActions();
+
+ptCommonObj2.moveUnivSrchDiv();
+if (typeof(HelppopupObj_win0) != 'undefined' && HelppopupObj_win0 != null)
+ HelppopupObj_win0.StopPopup('win0');
+if (typeof(ptLongEditCounter) != 'undefined' && ptLongEditCounter != null)
+   ptLongEditCounter.onLoadLongEditCounter();
+ResetGlyph_win0();
+if (typeof ptGridObj_win0 != 'undefined' && ptGridObj_win0)
+ ptGridObj_win0.initGriddd854();
+objToBeFocus = null;
+if (bPTDrag) CancelDragAccessible();
+ bPTDrag = false;
+LoadCalendar();
+if (typeof oWin == 'undefined') setEventHandlers_win0('ICFirstAnchor_win0', 'ICLastAnchor_win0', false);
+ else
+ oWin.setEventHandlers_win0('ICFirstAnchor_win0', 'ICLastAnchor_win0', false);
+setFocus_win0('RESP_INQA_WK_BUSINESS_UNIT',-1);
+ptLoadingStatus_empty(0);
+setupTimeout2();
+processing_win0(0,3000);
+ptConsole2.enable();
+
+UpdateBreadCrumbs();
+GenerateABN();
+GenerateFakeBC();
+bcUpdateForPTF();if (typeof(myAppsWindowOpenJS) != 'undefined' && myAppsWindowOpenJS != null && myAppsWindowOpenJS != '')
+ {
+try {eval(myAppsWindowOpenJS);} catch(e) {}
+  myAppsWindowOpenJS=null;
+}
+ResetGlyph_win0();setPageletInfoInCtxmenu_win0("false");
+GetDomData(win0, "TargetContent", "#GetDomInfo");
+}
+try{ptEvent.load(onLoadExt_win0);}catch(e){}
+</script></head>
+<body tabindex='-1'  class='PSPAGE' >
+<form id='AUC_RESP_INQ_AUC' name='win0' method='post' action="https://esupplier.sfs.ny.gov/psc/fscm/SUPPLIER/ERP/c/NY_SUPPUB_FL.AUC_RESP_INQ_AUC.GBL"  autocomplete='off' class='PSForm'aria-label='' >
+<DIV class='ps_box-toolshiddens'  id='win0divPSTOOLSHIDDENS'><div class='ps_modalmask_cover psc_hidden' id='pt_modalMaskCover'>&nbsp;</div><div class='ps_modalmask psc_hidden' id='pt_modalMask'>&nbsp;</div><div id='pt_modals' class='PSMODAL'><div id='ptModalShadow' class='popupDragFrame' style='cursor:nw-resize'>&nbsp;</div></div>
+<div class='ps_ajax_console psc_hidden' id='pt_console'></div><div class='ps_typeahead psc_hidden' id='pt_typeahead0'><span id='pt_typeahead' class='spanTextDropdown'>&nbsp;</span></div><div id='WAIT_win0' class='PTCPWAITDIV' style='display:none;position:absolute;right:0;'><img id='processing' class='PTCPWAITDIVIMG' align='left' src='/cs/fscm/cache/pt86119/PT_PROCESSING_FMODE_1.gif' alt='Processing... please wait' title='Processing... please wait' /></div>
+ <div style='visibility:hidden; display:none; position:absolute;left:-10000px;top:auto; width:1px; height:1px;overflow:hidden;' aria-relevant='text additions'  aria-live='assertive' aria-atomic='true' class='psc_processing psc_hidden' id='Delayed_win0'>&nbsp;</div><div aria-relevant='text additions' aria-live='assertive' aria-atomic='true' id='SAVED_win0' class='PTCPSAVEDIV' style='display:none;position:absolute;right:0;'><table role='presentation' border='0' class='PTCPSAVETBL' cellpadding='0' cellspacing='0'><tr><td><img src='/cs/fscm/cache/pt86119/PTPORTAL_POPBOX_LEFT_1.gif' width='7' height='39' border='0' alt=''/></td><td id='saveWait_win0' width='35' align='center' valign='middle' background='/cs/fscm/cache/pt86119/PTPORTAL_POPBOX_CENTER_1.gif'><img src='/cs/fscm/cache/pt86119/PT_LOADER_1.gif' width='24' height='24' alt=''/></td><td nowrap='nowrap' background='/cs/fscm/cache/pt86119/PTPORTAL_POPBOX_CENTER_1.gif'><span aria-relevant='text additions' aria-live='assertive' aria-atomic='true' id='ptStatusText_win0' dir='ltr' class='PSPROCESSING'>&nbsp;</span></td><td><img src='/cs/fscm/cache/pt86119/PTPORTAL_POPBOX_RIGHT_1.gif' width='6' height='39' alt=''/></td><td>&nbsp;</td></tr></table></div><DIV class='x'  id='win0divPSHIDDENFIELDS' style='display:none'><input type='hidden' name='ICType' id='ICType' value='Panel' />
+<input type='hidden' name='ICElementNum' id='ICElementNum' value='0' />
+<input type='hidden' name='ICStateNum' id='ICStateNum' value='1' />
+<input type='hidden' name='ICAction' id='ICAction' value='None' />
+<input type='hidden' name='ICModelCancel' id='ICModelCancel' value='0' />
+<input type='hidden' name='ICXPos' id='ICXPos' value='0' />
+<input type='hidden' name='ICYPos' id='ICYPos' value='0' />
+<input type='hidden' name='ResponsetoDiffFrame' id='ResponsetoDiffFrame' value='-1' />
+<input type='hidden' name='TargetFrameName' id='TargetFrameName' value='None' />
+<input type='hidden' name='FacetPath' id='FacetPath' value='None' />
+<input type='hidden' name='PrmtTbl' id='PrmtTbl' value='' />
+<input type='hidden' name='PrmtTbl_fn' id='PrmtTbl_fn' value='' />
+<input type='hidden' name='PrmtTbl_fv' id='PrmtTbl_fv' value='' />
+<input type='hidden' name='TA_SkipFldNms' id='TA_SkipFldNms' value='' />
+<input type='hidden' name='ICFocus' id='ICFocus' value='' />
+<input type='hidden' name='ICSaveWarningFilter' id='ICSaveWarningFilter' value='0' />
+<input type='hidden' name='ICChanged' id='ICChanged' value='-1' />
+<input type='hidden' name='ICSkipPending' id='ICSkipPending' value='0' />
+<input type='hidden' name='ICAutoSave' id='ICAutoSave' value='0' />
+<input type='hidden' name='ICResubmit' id='ICResubmit' value='0' />
+<input type='hidden' name='ICSID' id='ICSID' value='p5KfCoxHHxILUfO7F6Gbygt+rjZ5sXe0PSW8J9zQB1g=' />
+<input type='hidden' name='ICActionPrompt' id='ICActionPrompt' value='false' />
+<input type='hidden' name='ICTypeAheadID' id='ICTypeAheadID' value='' />
+<input type='hidden' name='ICBcDomData' id='ICBcDomData' value='' />
+<input type='hidden' name='ICPanelName' id='ICPanelName' value='' />
+<input type='hidden' name='ICFind' id='ICFind' value='' />
+<input type='hidden' name='ICAddCount' id='ICAddCount' value='' />
+<input type='hidden' name='ICAppClsData' id='ICAppClsData' value='' />
+<input type='hidden' name='RESP_DUMMY2_VW$hnewpers$0' id='RESP_DUMMY2_VW$hnewpers$0' value='0|0|0|0|0|0|0#1|0|0|0|0|0|0#' />
+<input type='hidden' name='RESP_INQA_HD_VW_GR$hnewpers$0' id='RESP_INQA_HD_VW_GR$hnewpers$0' value='1|0|0|0|0|127|0#2|0|0|0|0|99|0#4|0|0|0|0|501|0#5|0|0|0|0|218|0#7|0|0|0|0|162|0#10|0|0|0|0|0|0#11|0|0|0|0|162|0#12|0|0|0|0|162|0#13|0|0|0|0|107|0#14|0|0|0|0|0|0#15|0|0|0|0|0|0#16|0|0|0|0|0|0#17|0|0|0|0|0|0#18|0|0|0|0|0|0#19|0|0|0|0|0|0#' />
+</DIV>
+</DIV>
+<a name='ICFirstAnchor_win0' id='ICFirstAnchor_win0'></a>
+<DIV class='ps_header_panel' id='PT_HEADER_PANEL'></DIV>
+<DIV class='' id='win0divPAGEBAR'></DIV>
+<DIV class='ps_box-pagetabs psc_hidden' id='win0divPSPANELTABS'></DIV>
+<DIV class='ps_pagecontainer' id='win0divPAGECONTAINER'><table class='PSPAGECONTAINER' role='main' aria-labelledby='app_label'><tr><td>
+<DIV class='ps_pspagecontainer' id='win0divPSPAGECONTAINER'><table role='presentation'  border='0' id='ACE_width' cellpadding='0' cellspacing='0' class='PSPAGECONTAINER' cols='5' width='2200'>
+<tr>
+<td width='5' height='0'></td>
+<td width='631'></td>
+<td width='319'></td>
+<td width='1085'></td>
+<td width='158'></td>
+</tr>
+<tr>
+<td height='58'></td>
+<td  valign='top' align='left'>
+<DIV    id='win0divGROUPBOX1'><table role='presentation'  border='0' id='ACE_GROUPBOX1' cellpadding='0' cellspacing='0' cols='6' width='630' class='PSGROUPBOX PTCPGROUPBOXNBO' style='border-style:none' >
+<tr>
+<td width='10' height='0'></td>
+<td width='2'></td>
+<td width='493'></td>
+<td width='81'></td>
+<td width='16'></td>
+<td width='26'></td>
+</tr>
+<tr>
+<td height='9'></td>
+<td colspan='2' rowspan='2'  valign='top' align='left'>
+<DIV    id='win0div$ICField216'><span role='heading' aria-level='1' id='app_label' class = 'PAPAGETITLE psaccesshidden'>Search for Grant Opportunities</span>
+</DIV></td>
+</tr>
+<tr>
+<td height='15'></td>
+<td></td>
+<td colspan='2'  valign='top' align='left'>
+<DIV    id='win0divRESP_DUMMY0_VW_COUNTRY'><span  class='PSEDITBOX_DISPONLY' id='RESP_DUMMY0_VW_COUNTRY' >&nbsp;</span>
+</DIV></td>
+</tr>
+<tr>
+<td height='28' colspan='2'></td>
+<td colspan='3'  valign='top' align='left'>
+<DIV    id='win0div$ICField217'><span  class='PSTEXT' >Enter the search criteria and click the Search button</span>
+</DIV></td>
+</tr>
+</table>
+</DIV></td>
+</tr>
+<tr>
+<td height='0' colspan='5'></td>
+</tr>
+<tr>
+<td height='312'></td>
+<td colspan='2'  valign='top' align='left'>
+<DIV    id='win0divRESP_INQA_WK_AUC_GROUP_BOX1'><table cellpadding='2' cellspacing='0' cols='1'  class='PSGROUPBOXWBO'  width='922'>
+<tr><td class='PSLEVEL1GRIDLABEL' onclick='javascript:if(event.target.id == this.firstElementChild.firstElementChild.id) { return true; } else return((this.firstElementChild &amp;&amp; this.firstElementChild.firstElementChild) != null ? this.firstElementChild.firstElementChild.click() : false);'  align='left'><DIV    id='win0divRESP_INQA_WK_AUC_GROUP_BOX1GP'><a class='PSHYPERLINK PTCOLLAPSE_ARROW' title='Collapse section Search Criteria' name='RESP_INQA_WK_AUC_GROUP_BOX1' id='RESP_INQA_WK_AUC_GROUP_BOX1' tabindex='45' href="javascript:submitAction_win0(document.win0,'RESP_INQA_WK_AUC_GROUP_BOX1');" aria-expanded='true' role='button'><img src='/cs/fscm/cache/pt86119/PT_TRANS_PIX_1.png' class='PTCOLLAPSE' alt='Search Criteria Collapsible section' border='0' /></a>&nbsp;Search Criteria&nbsp;</DIV></td></tr>
+<tr><td width='917'>
+<table role='presentation'  border='0' id='ACE_RESP_INQA_WK_AUC_GROUP_BOX1' cellpadding='0' cellspacing='0' cols='17' width='945' class='PSGROUPBOX PTCPGROUPBOXWBO' style='border-style:none' >
+<tr>
+<td width='0' height='14'></td>
+<td width='3'></td>
+<td width='5'></td>
+<td width='57'></td>
+<td width='123'></td>
+<td width='28'></td>
+<td width='5'></td>
+<td width='3'></td>
+<td width='8'></td>
+<td width='35'></td>
+<td width='2'></td>
+<td width='1'></td>
+<td width='2'></td>
+<td width='543'></td>
+<td width='62'></td>
+<td width='57'></td>
+<td width='3'></td>
+</tr>
+<tr>
+<td height='15' colspan='14'></td>
+<td  valign='top' align='left'>
+<DIV    id='win0div$ICField182'><div  style="width:65px; " >
+<!-- Begin HTML Area Name Undisclosed -->
+<script language='JavaScript'>
+   function HttpClient() { }
+   HttpClient.prototype = {
+   	requestType:'GET',
+   	isAsync:false,
+   	clientStatusName:'HttpClientStatus',
+   	xmlhttp:false,
+   	callback:false,
+   	onSend:function() {
+   		//document.getElementById(this.clientStatusName).style.display = 'block';
+   	},
+   	onLoad:function() {
+   		//document.getElementById(this.clientStatusName).style.display = 'none';
+   	},
+   	onError:function(error) {
+                                if (this.xmlhttp.status == 12002) {
+this.xmlhttp.abort();
+this.callback('error');
+} else {
+   		alert(error.message);
+   	} },
+   	init:function() {
+   		try {
+   		    // Mozilla / Safari
+   		    this.xmlhttp = new XMLHttpRequest();
+   		} catch (e) {
+   			// IE
+   			var XMLHTTP_IDS = new Array(
+   			'MSXML2.XMLHTTP.5.0',
+   			'MSXML2.XMLHTTP.4.0',
+   			'MSXML2.XMLHTTP.3.0',
+   			'MSXML2.XMLHTTP',
+   			'Microsoft.XMLHTTP' );
+   			var success = false;
+   			for (var i=0;i < XMLHTTP_IDS.length && !success; i++) {
+   				try {
+   					this.xmlhttp = new ActiveXObject(XMLHTTP_IDS[i]);
+   					success = true;
+   				} catch (e) {}
+   			}
+   			if (!success) {
+   				throw new Error('Unable to create XMLHttpRequest.');
+   			}
+   		}
+   	},
+   	makeRequest: function(url,payload) {
+   		if (!this.xmlhttp) {
+   			this.init();
+   		}
+   		this.xmlhttp.open(this.requestType,url,this.isAsync);
+          this.xmlhttp.setRequestHeader('Content-Type',  'application/x-www-form-urlencoded');
+   		// set onreadystatechange here since it will be reset after a completed call in Mozilla
+   		var self = this;
+   		this.xmlhttp.onreadystatechange = function() { self._readyStateChangeCallback(); }
+   		this.xmlhttp.send(payload);
+   		if (!this.isAsync) {
+   			return this.xmlhttp.responseText;
+   		}
+   	},
+   
+   	_readyStateChangeCallback:function() {
+   		switch(this.xmlhttp.readyState) {
+   			case 2:
+   				this.onSend();
+   				break;
+   			case 4:
+   				this.onLoad();
+   				if (this.xmlhttp.status == 200) {				this.callback(this.xmlhttp.responseText);
+   				}
+   				else {
+this.onError(new Error('HTTP Error Making Request: ['+this.xmlhttp.status+'] '+this.xmlhttp.statusText));
+   				}
+   			break;
+   		}
+   	}
+   }
+   </script>
+<!-- End HTML Area -->
+</div>
+</DIV></td>
+</tr>
+<tr>
+<td height='12' colspan='2'></td>
+<td colspan='14'  valign='top' align='left'>
+<hr width='100%' align='left'  class='PSHORIZONTALRULE' />
+</td>
+</tr>
+<tr>
+<td height='4' colspan='8'></td>
+<td colspan='9' rowspan='2' nowrap='nowrap'  valign='top' align='left'>
+<DIV    id='win0divRESP_INQA_WK_AUC_ID'><input type='text' name='RESP_INQA_WK_AUC_ID' id='RESP_INQA_WK_AUC_ID' tabindex='17' value=""  class='PSEDITBOX' style='width:161px; ' maxlength='10'  />
+</DIV></td>
+</tr>
+<tr>
+<td height='20'></td>
+<td colspan='5' rowspan='2'  valign='top' align='right'>
+<DIV  class=' PT_CP_DIV_LABEL' id='win0divRESP_INQA_WK_AUC_IDlbl'><label for='RESP_INQA_WK_AUC_ID' id='RESP_INQA_WK_AUC_ID_LBL' class='PSEDITBOXLABEL' >Event ID</label></DIV></td>
+</tr>
+<tr>
+<td height='3'></td>
+<td colspan='2'></td>
+<td colspan='9' rowspan='2' nowrap='nowrap'  valign='top' align='left'>
+<DIV    id='win0divRESP_INQA_WK_AUC_NAME'><input type='text' name='RESP_INQA_WK_AUC_NAME' id='RESP_INQA_WK_AUC_NAME' tabindex='18' value=""  class='PSEDITBOX' style='width:278px; ' maxlength='50'  />
+</DIV></td>
+</tr>
+<tr>
+<td height='23'></td>
+<td colspan='6' rowspan='3'  valign='top' align='right'>
+<DIV  class=' PT_CP_DIV_LABEL' id='win0divRESP_INQA_WK_AUC_NAMElbl'><label for='RESP_INQA_WK_AUC_NAME' id='RESP_INQA_WK_AUC_NAME_LBL' class='PSEDITBOXLABEL' >Search by Grant Opportunity</label></DIV></td>
+</tr>
+<tr>
+<td height='3'></td>
+<td colspan='6'></td>
+<td colspan='4' rowspan='3' nowrap='nowrap'  valign='top' align='left'>
+<DIV    id='win0divRESP_INQA_WK_AUC_FROM_END_DT'><input type='text' name='RESP_INQA_WK_AUC_FROM_END_DT' id='RESP_INQA_WK_AUC_FROM_END_DT' tabindex='30' value=""  class='PSEDITBOX PTCPEDITBOXWITHICON ' style='width:84px; ' maxlength='10' onkeyup="if (isPromptKey(event))DatePrompt_win0('RESP_INQA_WK_AUC_FROM_END_DT','RESP_INQA_WK_AUC_FROM_END_DT','450',false);return false;" /><a class='PSHYPERLINK PT_CLASSICPLUS_CALENDAR'  name='RESP_INQA_WK_AUC_FROM_END_DT$prompt' id='RESP_INQA_WK_AUC_FROM_END_DT$prompt' role='button'tabindex='31' onfocus='doFocus_win0(this,true,false);' href="javascript:DatePrompt_win0('RESP_INQA_WK_AUC_FROM_END_DT','RESP_INQA_WK_AUC_FROM_END_DT$prompt','450',false);" aria-label='Calendar From'><img src="/cs/fscm/cache/pt86119/PT_CALENDAR_PROMPT_NUI_585.SVG" alt='Calendar From' id='RESP_INQA_WK_AUC_FROM_END_DT$prompt$img' border='0' align='absmiddle' style='vertical-align:middle;' /></a>
+</DIV></td>
+</tr>
+<tr>
+<td height='7'></td>
+<td colspan='2'></td>
+<td colspan='2' rowspan='3'  valign='top' align='right'>
+<DIV  class=' PT_CP_DIV_LABEL' id='win0divRESP_INQA_WK_AUC_FROM_END_DTlbl'><label for='RESP_INQA_WK_AUC_FROM_END_DT' id='RESP_INQA_WK_AUC_FROM_END_DT_LBL' class='PSEDITBOXLABEL' >From</label></DIV></td>
+</tr>
+<tr>
+<td height='16' colspan='4'></td>
+<td colspan='5' rowspan='2'  valign='top' align='left'>
+<DIV  class=' PT_CP_DIV_LABEL' id='win0divRESP_INQA_WK_AUC_LBL2lbl'><span  class='PSEDITBOXLABEL' >Search by Due Date</span></DIV></td>
+</tr>
+<tr>
+<td height='3' colspan='4'></td>
+<td rowspan='2'></td>
+<td colspan='5' rowspan='2' nowrap='nowrap'  valign='top' align='left'>
+<DIV    id='win0divRESP_INQA_WK_AUC_TO_END_DT'><input type='text' name='RESP_INQA_WK_AUC_TO_END_DT' id='RESP_INQA_WK_AUC_TO_END_DT' tabindex='32' value=""  class='PSEDITBOX PTCPEDITBOXWITHICON ' style='width:86px; ' maxlength='10' onkeyup="if (isPromptKey(event))DatePrompt_win0('RESP_INQA_WK_AUC_TO_END_DT','RESP_INQA_WK_AUC_TO_END_DT','450',false);return false;" /><a class='PSHYPERLINK PT_CLASSICPLUS_CALENDAR'  name='RESP_INQA_WK_AUC_TO_END_DT$prompt' id='RESP_INQA_WK_AUC_TO_END_DT$prompt' role='button'tabindex='33' onfocus='doFocus_win0(this,true,false);' href="javascript:DatePrompt_win0('RESP_INQA_WK_AUC_TO_END_DT','RESP_INQA_WK_AUC_TO_END_DT$prompt','450',false);" aria-label='Calendar To'><img src="/cs/fscm/cache/pt86119/PT_CALENDAR_PROMPT_NUI_585.SVG" alt='Calendar To' id='RESP_INQA_WK_AUC_TO_END_DT$prompt$img' border='0' align='absmiddle' style='vertical-align:middle;' /></a>
+</DIV></td>
+</tr>
+<tr>
+<td height='19'></td>
+<td colspan='9'  valign='top' align='right'>
+<DIV  class=' PT_CP_DIV_LABEL' id='win0divRESP_INQA_WK_AUC_TO_END_DTlbl'><label for='RESP_INQA_WK_AUC_TO_END_DT' id='RESP_INQA_WK_AUC_TO_END_DT_LBL' class='PSEDITBOXLABEL' >To</label></DIV></td>
+</tr>
+<tr>
+<td height='4' colspan='8'></td>
+<td colspan='9' rowspan='2'  valign='top' align='left'>
+<DIV    id='win0divNY_AUC_INQ_WRK_NY_GG_PORT_STATUS'><select name='NY_AUC_INQ_WRK_NY_GG_PORT_STATUS' id='NY_AUC_INQ_WRK_NY_GG_PORT_STATUS' tabindex='36' size='1'  class='PSDROPDOWNLIST' style='width:158px; ' >
+<option value="">&nbsp; </option>
+<option value="A">Anticipated</option>
+<option value="D" selected='selected'>Anticipated and Available</option>
+<option value="B">Available</option>
+<option value="C">Closed</option>
+</select>
+</DIV></td>
+</tr>
+<tr>
+<td height='18'></td>
+<td colspan='6' rowspan='2'  valign='top' align='right'>
+<DIV  class=' PT_CP_DIV_LABEL' id='win0divNY_AUC_INQ_WRK_NY_GG_PORT_STATUSlbl'><label for='NY_AUC_INQ_WRK_NY_GG_PORT_STATUS' id='NY_AUC_INQ_WRK_NY_GG_PORT_STATUS_LBL' class='PSDROPDOWNLABEL' >Search by  Status</label></DIV></td>
+</tr>
+<tr>
+<td height='4'></td>
+<td rowspan='6'></td>
+<td colspan='9' rowspan='2'  valign='top' align='left'>
+<DIV    id='win0divNY_AUC_INQ_WRK_NY_ORGN_TYPE'><select name='NY_AUC_INQ_WRK_NY_ORGN_TYPE' id='NY_AUC_INQ_WRK_NY_ORGN_TYPE' tabindex='38' size='1'  class='PSDROPDOWNLIST' style='width:158px; ' >
+<option value="" selected='selected'>&nbsp; </option>
+<option value="FPFT">For Profit</option>
+<option value="GENT">Governmental Entity</option>
+<option value="INDI">Individual</option>
+<option value="NPFT">Not-For-Profit</option>
+<option value="TORG">Tribal Organization</option>
+</select>
+</DIV></td>
+</tr>
+<tr>
+<td height='24'></td>
+<td colspan='6' rowspan='2'  valign='top' align='right'>
+<DIV  class=' PT_CP_DIV_LABEL' id='win0divNY_AUC_INQ_WRK_NY_ORGN_TYPElbl'><label for='NY_AUC_INQ_WRK_NY_ORGN_TYPE' id='NY_AUC_INQ_WRK_NY_ORGN_TYPE_LBL' class='PSDROPDOWNLABEL' >Search by Eligibility</label></DIV></td>
+</tr>
+<tr>
+<td height='3'></td>
+<td colspan='9' rowspan='2' nowrap='nowrap'  valign='top' align='left'>
+<DIV    id='win0divRESP_INQA_WK_BUSINESS_UNIT'><input type='text' name='RESP_INQA_WK_BUSINESS_UNIT' id='RESP_INQA_WK_BUSINESS_UNIT' tabindex='16' value=""  class='PSEDITBOX' style='width:56px; ' maxlength='5'  />
+</DIV></td>
+</tr>
+<tr>
+<td height='19'></td>
+<td colspan='6' rowspan='2'  valign='top' align='right'>
+<DIV  class=' PT_CP_DIV_LABEL' id='win0divRESP_INQA_WK_BUSINESS_UNITlbl'><label for='RESP_INQA_WK_BUSINESS_UNIT' id='RESP_INQA_WK_BUSINESS_UNIT_LBL' class='PSEDITBOXLABEL' >Search by Funding Agency</label></DIV></td>
+</tr>
+<tr>
+<td height='4'></td>
+<td colspan='9' rowspan='2'  valign='top' align='left'>
+<DIV    id='win0divNY_AUC_INQ_WRK_NY_GG_SERV_AREA'><select name='NY_AUC_INQ_WRK_NY_GG_SERV_AREA' id='NY_AUC_INQ_WRK_NY_GG_SERV_AREA' tabindex='20' size='1'  class='PSDROPDOWNLIST' style='width:161px; ' >
+<option value="" selected='selected'>&nbsp; </option>
+<option value="AS">Agricultural Supports</option>
+<option value="ES">Education Supports</option>
+<option value="EV">Environmental Supports</option>
+<option value="FS">Family Supports</option>
+<option value="GS">Government Supports</option>
+<option value="HS">Health Services</option>
+<option value="HG">Housing and Shelter Services</option>
+<option value="JS">Justice Services</option>
+<option value="PS">Public Safety Supports</option>
+<option value="PT">Public Transportation Services</option>
+<option value="WD">Workforce Development</option>
+</select>
+</DIV></td>
+</tr>
+<tr>
+<td height='19'></td>
+<td colspan='6'  valign='top' align='right'>
+<DIV  class=' PT_CP_DIV_LABEL' id='win0divNY_AUC_INQ_WRK_NY_GG_SERV_AREAlbl'><label for='NY_AUC_INQ_WRK_NY_GG_SERV_AREA' id='NY_AUC_INQ_WRK_NY_GG_SERV_AREA_LBL' class='PSDROPDOWNLABEL' >Search by Service Area</label></DIV></td>
+</tr>
+<tr>
+<td height='15' colspan='2'></td>
+<td colspan='14'  valign='top' align='left'>
+<hr width='100%' align='left'  class='PSHORIZONTALRULE' />
+</td>
+</tr>
+<tr>
+<td height='12' colspan='2'></td>
+<td colspan='14'  valign='top' align='left'>
+<hr width='100%' align='left'  class='PSHORIZONTALRULE' />
+</td>
+</tr>
+<tr>
+<td height='32' colspan='3'></td>
+<td colspan='2' nowrap='nowrap'  valign='top' align='left'>
+<DIV    id='win0divRESP_INQA_WK_INQ_AUC_GO_PB'><a role='presentation' class='PSPUSHBUTTON Left PSPRIMARY' onclick='javascript:if(event.target.id == this.firstChild.firstChild.id) { return true; } else return((this.firstChild &amp;&amp; this.firstChild.firstChild) != null ? this.firstChild.firstChild.click() : false);'><span style='background-Color: transparent;'><input type='button' name='RESP_INQA_WK_INQ_AUC_GO_PB' id='RESP_INQA_WK_INQ_AUC_GO_PB' tabindex='40' value='Search'  class='PSPUSHBUTTON' style='width:168px; ' onclick="submitAction_win0(document.win0,this.id,event);" /></span></a></DIV></td>
+<td colspan='12' nowrap='nowrap'  valign='top' align='left'>
+<DIV    id='win0divAUC_PREF_WK_AUC_PREF_CLEAR_PB'><a role='presentation' class='PSPUSHBUTTON Left' onclick='javascript:if(event.target.id == this.firstChild.firstChild.id) { return true; } else return((this.firstChild &amp;&amp; this.firstChild.firstChild) != null ? this.firstChild.firstChild.click() : false);'><span style='background-Color: transparent;'><input type='button' name='AUC_PREF_WK_AUC_PREF_CLEAR_PB' id='AUC_PREF_WK_AUC_PREF_CLEAR_PB' tabindex='41' value='Clear Criteria'  class='PSPUSHBUTTON' style='width:168px; ' onclick="submitAction_win0(document.win0,this.id,event);" /></span></a></DIV></td>
+</tr>
+</table>
+</td></tr>
+</table>
+</DIV></td>
+</tr>
+<tr>
+<td height='10' colspan='5'></td>
+</tr>
+<tr>
+<td height='811'></td>
+<td colspan='3'  valign='top' align='left'>
+<DIV    id='win0divRESP_INQA_HD_VW_GR$0'><div class='PTCPGRIDTITLE' onclick='javascript:if(event.target.id == this.firstElementChild.firstElementChild.id) { return true; } else return((this.firstElementChild &amp;&amp; this.firstElementChild.firstElementChild) != null ? this.firstElementChild.firstElementChild.click() : false);'  align='left' > Search Results </div><table cellspacing='0' class='PSLEVEL1GRIDWBO'  id='RESP_INQA_HD_VW_GR$scroll$0' dir='ltr' cellpadding='0' cols='1' height='977' width='2057'><tr><td class='PTCPGRIDHDR' >
+<DIV    id='win0divRESP_INQA_HD_VW_GRGP$0'><table border='0' cellpadding='0' cellspacing='0' cols='2' class='PTCPGRIDHDRTBL' style='border-style:none'  width='100%'>
+<tr>
+</td>
+<td  align='left'  width='40%' class='PTCPGRIDHDRLEFTSEC'  ><div class='PTCPGRIDHDRACTIONSDIV'> <a  name='RESP_INQA_HD_VW_GR$gridActionIcon$0' id='RESP_INQA_HD_VW_GR$gridActionIcon$0' onclick='javascript:invokegridactionmenu(event);' onmouseout='javascript:gridactionmenumouseout(event);' onkeydown='gridactionmenukeydown(event);' class='gridactionicon' title='Grid Action Menu' role='button' aria-haspopup='true' tabindex='147'> </a> <div  name='RESP_INQA_HD_VW_GR$gridActionMenuContainer$0' id='RESP_INQA_HD_VW_GR$gridActionMenuContainer$0' class='gridactionmenucontainerclass'>  <div style='z-index: 200;visibility:hidden;' onmouseout='javascript:gridactionmenumouseout(event)'onmouseover='javascript:gridactionmenumouseover(event)'   name='RESP_INQA_HD_VW_GR$gridActionMenu$0' id='RESP_INQA_HD_VW_GR$gridActionMenu$0' onkeydown='gridmenukeypress(event);'  role='menu'  class='gridactionMenuSection gridActionMenu'> <div  name='RESP_INQA_HD_VW_GR$ptArrow$0' id='RESP_INQA_HD_VW_GR$ptArrow$0' class='gridActionMenuArrowIcon' style='display: block; left: 8px;'></div> <div  name='RESP_INQA_HD_VW_GR$gridActionHeader$0' id='RESP_INQA_HD_VW_GR$gridActionHeader$0'></div><a class='PSHYPERLINK PTMODALCNTRL_CONTRAST PTCPGRIDHDRZOOMDIVACN' onkeydown='gridmenuelementkeypress(event);' role='menuitem'  title='Zoom Search Results' name='RESP_INQA_HD_VW_GR$hmodal$0' id='RESP_INQA_HD_VW_GR$hmodal$0' tabindex='148' href="javascript:mAction_win0(document.win0,'RESP_INQA_HD_VW_GR$hmodal$0', null, null, 'Zoom Search Results', true);">Zoom Search Results</a></div></div></div><td class='PTCPGRIDHDRRIGHTSEC' align='right'> <div class='PTCPGRIDHDRFIRSTDIV'><span class='PSHEADERHYPERLINKD'>&nbsp;</span></div><div class='PTCPGRIDHDRPREVDIV'><img src="/cs/fscm/cache/pt86119/PTCP_GRID_LEFT_ARROW_1.svg" id='RESP_INQA_HD_VW_GR$hup$img$0' class='PTPREVROW_D' border='0' alt='Show previous row (inactive button)' /></div><div class='PTCPGRIDHDRPAGELISTDIV'><select name='RESP_INQA_HD_VW_GR$hpage$0' id='RESP_INQA_HD_VW_GR$hpage$0' tabindex='150'  title='Display Rows in the Range' onchange='addchg_win0(this); submitAction_win0(this.form,this.id);'class='PTCPGRIDHDRPAGELISTDIVACN PSDROPDOWNLIST_DISABLED' disabled='disabled'>
+<option value='0' selected>1-22 of 22</option></select></div><div class='PTCPGRIDHDRNEXTDIV'><img src="/cs/fscm/cache/pt86119/PTCP_GRID_RIGHT_ARROW_1.svg" id='RESP_INQA_HD_VW_GR$hdown$img$0' class='PTNEXTROW_D' border='0' alt='Show next row (inactive button)' /></div><div class='PTCPGRIDHDRLASTDIV'><span class='PSHEADERHYPERLINKD'>&nbsp;</span></div>&nbsp;</td>
+</tr>
+</table>
+</DIV></td></tr>
+<tr><td align='center' valign='top'><div id='divgcRESP_INQA_HD_VW_GR$0' style='width:2149px;height:977px;' class='psprintgrid'>
+<table id='l0RESP_INQA_HD_VW_GR$0' style='width:2149px;' cellSpacing=0 cellPadding=0><tbody><tr><td vAlign=top class='psprintRightTd'><div style='overflow-x: hidden;width:2149px;' class='psprintgrid'>
+<table id='l1RESP_INQA_HD_VW_GR$0' style='width:2149px;' class='psprintgrid' cellSpacing=0 cellPadding=0><tbody><tr><td><div id='divghRESP_INQA_HD_VW_GR$0' style='width:2149px;' onmouseover="javascript:ptGridObj_win0.initGrid('RESP_INQA_HD_VW_GR$0');"><table dir='ltr' border='0' cellpadding='0' cellspacing='0' cols='2' width='2149'><tr>
+<td id='divghrcRESP_INQA_HD_VW_GR$0' style='width:2149px;'><div id='divghrRESP_INQA_HD_VW_GR$0' style='width:2149px;overflow:hidden;' class='psprintgrid'><table border='0' style='width:2149px;' dir='ltr' cellpadding='2' cellspacing='0' cols='8' ><tr><th scope='col' id='thRESP_INQA_HD_VW_GR$0#0' width='165' align='left' height='40' class='PSLEVEL1GRIDCOLUMNHDR PSGRIDFIRSTCOLUMN' >
+<table style='table-layout: fixed;width:100%;' cellSpacing=0 cellPadding='0' border=0><tbody><tr><td scope='col' align='left' style='width:162px;'>
+<span id='RESP_INQA_HD_VW_GR$0#0' title='Click to sort ascending'  class='PSLEVEL1GRIDCOLUMNHDRTXT'  tabindex='160' onclick="javascript:submitAction_win0(document.win0,'RESP_INQA_HD_VW_GR$srt0$0');">Event ID</span></td><td>&nbsp;&nbsp;</td></tr></tbody></table>
+</th><th scope='col' id='thRESP_INQA_HD_VW_GR$0#1' width='130' align='left' class='PSLEVEL1GRIDCOLUMNHDR' >
+<table style='table-layout: fixed;width:100%;' cellSpacing=0 cellPadding='0' border=0><tbody><tr><td scope='col' align='left' style='width:127px;'>
+<span id='RESP_INQA_HD_VW_GR$0#1' title='Click to sort ascending'  class='PSLEVEL1GRIDCOLUMNHDRTXT'  tabindex='161' onclick="javascript:submitAction_win0(document.win0,'RESP_INQA_HD_VW_GR$srt1$0');">Funding Agency</span></td><td>&nbsp;&nbsp;</td></tr></tbody></table>
+</th><th scope='col' id='thRESP_INQA_HD_VW_GR$0#2' width='622' align='left' class='PSLEVEL1GRIDCOLUMNHDR' >
+<table style='table-layout: fixed;width:100%;' cellSpacing=0 cellPadding='0' border=0><tbody><tr><td scope='col' align='left' style='width:619px;'>
+<span id='RESP_INQA_HD_VW_GR$0#2' title='Click to sort ascending'  class='PSLEVEL1GRIDCOLUMNHDRTXT'  tabindex='162' onclick="javascript:submitAction_win0(document.win0,'RESP_INQA_HD_VW_GR$srt2$0');">Grant Opportunity</span></td><td>&nbsp;&nbsp;</td></tr></tbody></table>
+</th><th scope='col' id='thRESP_INQA_HD_VW_GR$0#3' width='276' align='left' class='PSLEVEL1GRIDCOLUMNHDR' >
+<table style='table-layout: fixed;width:100%;' cellSpacing=0 cellPadding='0' border=0><tbody><tr><td scope='col' align='left' style='width:273px;'>
+<span id='RESP_INQA_HD_VW_GR$0#3' title='Click to sort ascending'  class='PSLEVEL1GRIDCOLUMNHDRTXT'  tabindex='163' onclick="javascript:submitAction_win0(document.win0,'RESP_INQA_HD_VW_GR$srt3$0');">Status</span></td><td>&nbsp;&nbsp;</td></tr></tbody></table>
+</th><th scope='col' id='thRESP_INQA_HD_VW_GR$0#4' width='207' align='left' class='PSLEVEL1GRIDCOLUMNHDR' >
+<table style='table-layout: fixed;width:100%;' cellSpacing=0 cellPadding='0' border=0><tbody><tr><td scope='col' align='left' style='width:204px;'>
+<span id='RESP_INQA_HD_VW_GR$0#4' title='Click to sort ascending'  class='PSLEVEL1GRIDCOLUMNHDRTXT'  tabindex='164' onclick="javascript:submitAction_win0(document.win0,'RESP_INQA_HD_VW_GR$srt4$0');">Eligibility</span></td><td>&nbsp;&nbsp;</td></tr></tbody></table>
+</th><th scope='col' id='thRESP_INQA_HD_VW_GR$0#6' width='207' align='left' class='PSLEVEL1GRIDCOLUMNHDR' >
+<table style='table-layout: fixed;width:100%;' cellSpacing=0 cellPadding='0' border=0><tbody><tr><td scope='col' align='left' style='width:204px;'>
+<span id='RESP_INQA_HD_VW_GR$0#6' title='Click to sort ascending'  class='PSLEVEL1GRIDCOLUMNHDRTXT'  tabindex='166' onclick="javascript:submitAction_win0(document.win0,'RESP_INQA_HD_VW_GR$srt6$0');">Availability Date</span></td><td>&nbsp;&nbsp;</td></tr></tbody></table>
+</th><th scope='col' id='thRESP_INQA_HD_VW_GR$0#7' width='207' align='left' class='PSLEVEL1GRIDCOLUMNHDR' >
+<table style='table-layout: fixed;width:100%;' cellSpacing=0 cellPadding='0' border=0><tbody><tr><td scope='col' align='left' style='width:204px;'>
+<span id='RESP_INQA_HD_VW_GR$0#7' title='Click to sort ascending'  class='PSLEVEL1GRIDCOLUMNHDRTXT'  tabindex='167' onclick="javascript:submitAction_win0(document.win0,'RESP_INQA_HD_VW_GR$srt7$0');">Anticipated Release Date</span></td><td>&nbsp;&nbsp;</td></tr></tbody></table>
+</th><th scope='col' id='thRESP_INQA_HD_VW_GR$0#8' align='left' class='PSLEVEL1GRIDCOLUMNHDR' >
+<table style='table-layout: fixed;width:100%;' cellSpacing=0 cellPadding='0' border=0><tbody><tr><td scope='col' align='left'>
+<span id='RESP_INQA_HD_VW_GR$0#8' title='Click to sort ascending'  class='PSLEVEL1GRIDCOLUMNHDRTXT'  tabindex='168' onclick="javascript:submitAction_win0(document.win0,'RESP_INQA_HD_VW_GR$srt8$0');">Due Date</span></td><td>&nbsp;&nbsp;</td></tr></tbody></table>
+</th><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th></tr></table></div></td>
+</tr></table></div></td></tr></tbody></table></div></td></tr>
+<tr><td>
+<div id='divgbRESP_INQA_HD_VW_GR$0' style='width:2127px;height:921px; ' class='psprintgrid'><table id='gbRESP_INQA_HD_VW_GR$0' style='overflow:hidden;' class='psprintgrid' dir='ltr' border='0' cellpadding='0' cellspacing='0' width='2127'>
+<tr><td class='psprintRightTd' style='width:2149px;' valign='top'>
+<div id='divgbrRESP_INQA_HD_VW_GR$0' style='width:2149px;height:921px; overflow-x:hidden;overflow-y:auto;' class='psprintgrid' onscroll="ptGridObj_win0.doOnScroll('RESP_INQA_HD_VW_GR$0',1);"><table id='tdgbrRESP_INQA_HD_VW_GR$0' border='0' style='width:2149px;' dir='ltr' cellpadding='2' cellspacing='0'  cols='8' ><tr id='trRESP_INQA_HD_VW_GR$0_row1' bufnum='0' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row1');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row1');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row1');"><td align='left' width='165' id='tdRESP_INQA_HD_VW_GR$0#0' height='38'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$0'><span id='AUC_ID_COL$span$0'  class='PSHYPERLINKDISABLED'  title='Event ID' >EVT0000003</span></DIV>
+</td><td align='left' width='130' id='tdRESP_INQA_HD_VW_GR$0#1' class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$0' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$0' >AGM01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;' width='622' id='tdRESP_INQA_HD_VW_GR$0#2' class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$0'><span id='AUC_NAME_LNK$span$0'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$0' id='AUC_NAME_LNK$0'  ptlinktgt='pt_peoplecode' tabindex='187' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$0');"  class='PSHYPERLINK' >RFI0431</a></span></DIV>
+</td><td align='left' width='276' id='tdRESP_INQA_HD_VW_GR$0#3' class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$0' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$0' >Advertised Only - Not in SFS</span>
+</DIV>
+</td><td align='left' width='207' id='tdRESP_INQA_HD_VW_GR$0#4' class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$0'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$0' >Not-For-Profit</span>
+</DIV>
+</td><td align='left' width='207' id='tdRESP_INQA_HD_VW_GR$0#6' class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$0' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$0' >09/10/26&nbsp; 8:30AM</span>
+</DIV>
+</td><td align='left' width='207' id='tdRESP_INQA_HD_VW_GR$0#7' class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$0' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$0' >09/10/26&nbsp; 8:30AM</span>
+</DIV>
+</td><td align='left' id='tdRESP_INQA_HD_VW_GR$0#8' class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$0' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$0' >10/08/2026&nbsp; 4:30PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row2' bufnum='1' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row2');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row2');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row2');"><td align='left'  height='51'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$1'><span id='AUC_ID_COL$span$1'  class='PSHYPERLINKDISABLED'  title='Event ID' >FPIG20</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$1' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$1' >AGM01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$1'><span id='AUC_NAME_LNK$span$1'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$1' id='AUC_NAME_LNK$1'  ptlinktgt='pt_peoplecode' tabindex='197' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$1');"  class='PSHYPERLINK' >Round 20 Farmland Protection Implementation Grants</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$1' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$1' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$1'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$1' >Governmental Entity, Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$1' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$1' >12/18/25&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$1' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$1' >12/18/25&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$1' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$1' >06/01/2027&nbsp; 4:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row3' bufnum='2' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row3');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row3');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row3');"><td align='left'  height='71'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$2'><span id='AUC_ID_COL$span$2'  class='PSHYPERLINKDISABLED'  title='Event ID' >RSFI26</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$2' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$2' >AGM01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$2'><span id='AUC_NAME_LNK$span$2'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$2' id='AUC_NAME_LNK$2'  ptlinktgt='pt_peoplecode' tabindex='207' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$2');"  class='PSHYPERLINK' >Regional School Food Infrastructure Grant Program</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$2' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$2' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$2'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$2' >Governmental Entity, Not-For-Profit, Tribal Organization</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$2' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$2' >09/15/26&nbsp; 9:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$2' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$2' >09/15/26&nbsp; 9:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$2' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$2' >01/22/2027&nbsp; 3:00PM EST</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row4' bufnum='3' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row4');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row4');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row4');"><td align='left'  height='38'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$3'><span id='AUC_ID_COL$span$3'  class='PSHYPERLINKDISABLED'  title='Event ID' >SOI 1266</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$3' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$3' >CFS01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$3'><span id='AUC_NAME_LNK$span$3'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$3' id='AUC_NAME_LNK$3'  ptlinktgt='pt_peoplecode' tabindex='217' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$3');"  class='PSHYPERLINK' >SOI 1266 Dolly Parton&#039;s Imagination Library (1.2)</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$3' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$3' >Advertised Only - Not in SFS</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$3'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$3' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$3' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$3' >08/24/26&nbsp; 2:50PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$3' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$3' >08/24/26&nbsp; 2:50PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$3' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$3' >09/28/2026&nbsp; 4:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row5' bufnum='4' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row5');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row5');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row5');"><td align='left'  height='38'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$4'><span id='AUC_ID_COL$span$4'  class='PSHYPERLINKDISABLED'  title='Event ID' >SOI 1275</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$4' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$4' >CFS01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$4'><span id='AUC_NAME_LNK$span$4'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$4' id='AUC_NAME_LNK$4'  ptlinktgt='pt_peoplecode' tabindex='227' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$4');"  class='PSHYPERLINK' >SOI 1275 New York Statewide Fatherhood Engagement</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$4' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$4' >Advertised Only - Not in SFS</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$4'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$4' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$4' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$4' >08/20/26&nbsp; 1:56PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$4' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$4' >08/20/26&nbsp; 1:56PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$4' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$4' >09/25/2026&nbsp; 4:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row6' bufnum='5' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row6');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row6');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row6');"><td align='left'  height='38'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$5'><span id='AUC_ID_COL$span$5'  class='PSHYPERLINKDISABLED'  title='Event ID' >SOI 1276</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$5' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$5' >CFS01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$5'><span id='AUC_NAME_LNK$span$5'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$5' id='AUC_NAME_LNK$5'  ptlinktgt='pt_peoplecode' tabindex='237' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$5');"  class='PSHYPERLINK' >SOI 1276 Dolly Parton&#039;s Imagination Library in NYC</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$5' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$5' >Advertised Only - Not in SFS</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$5'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$5' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$5' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$5' >08/24/26&nbsp; 3:10PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$5' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$5' >08/24/26&nbsp; 3:10PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$5' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$5' >09/28/2026&nbsp; 4:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row7' bufnum='6' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row7');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row7');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row7');"><td align='left'  height='71'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$6'><span id='AUC_ID_COL$span$6'  class='PSHYPERLINKDISABLED'  title='Event ID' >CDD-AGC-26</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$6' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$6' >DDP01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$6'><span id='AUC_NAME_LNK$span$6'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$6' id='AUC_NAME_LNK$6'  ptlinktgt='pt_peoplecode' tabindex='247' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$6');"  class='PSHYPERLINK' >Supporting Aging Caregivers 2026</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$6' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$6' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$6'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$6' >Governmental Entity, Not-For-Profit, Tribal Organization</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$6' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$6' >09/01/26 12:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$6' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$6' >09/01/26 12:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$6' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$6' >10/02/2026 11:59PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row8' bufnum='7' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row8');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row8');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row8');"><td align='left'  height='71'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$7'><span id='AUC_ID_COL$span$7'  class='PSHYPERLINKDISABLED'  title='Event ID' >CORE 2026</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$7' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$7' >DEC01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$7'><span id='AUC_NAME_LNK$span$7'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$7' id='AUC_NAME_LNK$7'  ptlinktgt='pt_peoplecode' tabindex='257' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$7');"  class='PSHYPERLINK' >CoRe 2026</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$7' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$7' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$7'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$7' >Governmental Entity, Not-For-Profit, Tribal Organization</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$7' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$7' >08/06/26&nbsp; 8:30AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$7' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$7' >08/06/26&nbsp; 8:30AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$7' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$7' >11/04/2026&nbsp; 2:00PM EST</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row9' bufnum='8' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row9');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row9');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row9');"><td align='left'  height='51'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$8'><span id='AUC_ID_COL$span$8'  class='PSHYPERLINKDISABLED'  title='Event ID' >MWRC 2026</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$8' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$8' >DEC01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$8'><span id='AUC_NAME_LNK$span$8'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$8' id='AUC_NAME_LNK$8'  ptlinktgt='pt_peoplecode' tabindex='267' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$8');"  class='PSHYPERLINK' >Municipal Waste Reduction Recycling Coordination</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$8' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$8' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$8'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$8' >Governmental Entity, Tribal Organization</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$8' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$8' >08/03/26 12:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$8' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$8' >08/03/26 12:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$8' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$8' >10/30/2026&nbsp; 3:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row10' bufnum='9' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row10');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row10');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row10');"><td align='left'  height='71'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$9'><span id='AUC_ID_COL$span$9'  class='PSHYPERLINKDISABLED'  title='Event ID' >MWRR 2024</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$9' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$9' >DEC01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$9'><span id='AUC_NAME_LNK$span$9'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$9' id='AUC_NAME_LNK$9'  ptlinktgt='pt_peoplecode' tabindex='277' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$9');"  class='PSHYPERLINK' >Municipal Waste Reduction and Rcycling. Prgrm. 24</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$9' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$9' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$9'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$9' >Governmental Entity, Not-For-Profit, Tribal Organization</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$9' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$9' >11/01/24 12:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$9' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$9' >11/01/24 12:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$9' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$9' >11/01/2027&nbsp; 3:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row11' bufnum='10' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row11');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row11');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row11');"><td align='left'  height='38'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$10'><span id='AUC_ID_COL$span$10'  class='PSHYPERLINKDISABLED'  title='Event ID' >AICGP2027</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$10' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$10' >DOH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$10'><span id='AUC_NAME_LNK$span$10'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$10' id='AUC_NAME_LNK$10'  ptlinktgt='pt_peoplecode' tabindex='287' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$10');"  class='PSHYPERLINK' >RFA #20818 AIDS Institute Clinical Guidelines Prog</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$10' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$10' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$10'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$10' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$10' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$10' >09/03/26&nbsp; 9:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$10' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$10' >09/03/26&nbsp; 9:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$10' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$10' >10/22/2026&nbsp; 4:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row12' bufnum='11' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row12');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row12');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row12');"><td align='left'  height='51'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$11'><span id='AUC_ID_COL$span$11'  class='PSHYPERLINKDISABLED'  title='Event ID' >DWFRFA2028</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$11' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$11' >DOH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$11'><span id='AUC_NAME_LNK$span$11'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$11' id='AUC_NAME_LNK$11'  ptlinktgt='pt_peoplecode' tabindex='297' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$11');"  class='PSHYPERLINK' >Drinking Water Fluoridation RFA</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$11' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$11' >Advertised Only - Not in SFS</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$11'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$11' >For Profit, Governmental Entity, Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$11' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$11' >02/11/26&nbsp; 2:00PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$11' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$11' >02/11/26&nbsp; 5:00PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$11' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$11' >09/28/2028&nbsp; 4:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row13' bufnum='12' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row13');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row13');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row13');"><td align='left'  height='38'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$12'><span id='AUC_ID_COL$span$12'  class='PSHYPERLINKDISABLED'  title='Event ID' >PCSCRD8</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$12' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$12' >DOH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$12'><span id='AUC_NAME_LNK$span$12'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$12' id='AUC_NAME_LNK$12'  ptlinktgt='pt_peoplecode' tabindex='307' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$12');"  class='PSHYPERLINK' >Primary Care Services Corps - Rd 8</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$12' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$12' >Advertised Only - Not in SFS</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$12'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$12' >Individual</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$12' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$12' >08/27/26&nbsp; 2:16PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$12' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$12' >08/27/26&nbsp; 2:16PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$12' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$12' >10/27/2026&nbsp; 2:16PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row14' bufnum='13' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row14');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row14');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row14');"><td align='left'  height='38'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$13'><span id='AUC_ID_COL$span$13'  class='PSHYPERLINKDISABLED'  title='Event ID' >WICONE27</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$13' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$13' >DOH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$13'><span id='AUC_NAME_LNK$span$13'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$13' id='AUC_NAME_LNK$13'  ptlinktgt='pt_peoplecode' tabindex='317' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$13');"  class='PSHYPERLINK' >NYS WIC Online Nutrition Education</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$13' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$13' >Advertised Only - Not in SFS</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$13'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$13' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$13' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$13' >08/25/26&nbsp; 9:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$13' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$13' >08/25/26&nbsp; 9:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$13' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$13' >09/29/2026&nbsp; 4:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row15' bufnum='14' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row15');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row15');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row15');"><td align='left'  height='51'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$14'><span id='AUC_ID_COL$span$14'  class='PSHYPERLINKDISABLED'  title='Event ID' >GCEW-EV</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$14' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$14' >DOL01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$14'><span id='AUC_NAME_LNK$span$14'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$14' id='AUC_NAME_LNK$14'  ptlinktgt='pt_peoplecode' tabindex='327' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$14');"  class='PSHYPERLINK' >NYSDOL OJET GCEW-EV</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$14' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$14' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$14'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$14' >For Profit, Governmental Entity, Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$14' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$14' >04/10/26&nbsp; 9:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$14' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$14' >04/10/26&nbsp; 9:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$14' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$14' >12/03/2026&nbsp; 4:00PM EST</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row16' bufnum='15' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row16');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row16');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row16');"><td align='left'  height='38'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$15'><span id='AUC_ID_COL$span$15'  class='PSHYPERLINKDISABLED'  title='Event ID' >MH253023</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$15' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$15' >OMH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$15'><span id='AUC_NAME_LNK$span$15'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$15' id='AUC_NAME_LNK$15'  ptlinktgt='pt_peoplecode' tabindex='337' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$15');"  class='PSHYPERLINK' >Crisis Intervention Teams and System Programs</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$15' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$15' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$15'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$15' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$15' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$15' >08/12/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$15' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$15' >08/12/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$15' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$15' >10/14/2026&nbsp; 2:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row17' bufnum='16' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row17');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row17');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row17');"><td align='left'  height='38'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$16'><span id='AUC_ID_COL$span$16'  class='PSHYPERLINKDISABLED'  title='Event ID' >MH263034</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$16' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$16' >OMH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$16'><span id='AUC_NAME_LNK$span$16'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$16' id='AUC_NAME_LNK$16'  ptlinktgt='pt_peoplecode' tabindex='347' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$16');"  class='PSHYPERLINK' >Teams to Promote Aging in Place (TPAP)</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$16' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$16' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$16'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$16' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$16' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$16' >08/27/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$16' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$16' >08/27/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$16' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$16' >12/01/2026&nbsp; 2:00PM EST</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row18' bufnum='17' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row18');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row18');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row18');"><td align='left'  height='38'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$17'><span id='AUC_ID_COL$span$17'  class='PSHYPERLINKDISABLED'  title='Event ID' >MH263035</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$17' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$17' >OMH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$17'><span id='AUC_NAME_LNK$span$17'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$17' id='AUC_NAME_LNK$17'  ptlinktgt='pt_peoplecode' tabindex='357' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$17');"  class='PSHYPERLINK' >Older Adult Technical Assistance Center (OATAC)</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$17' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$17' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$17'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$17' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$17' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$17' >08/27/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$17' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$17' >08/27/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$17' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$17' >12/01/2026&nbsp; 2:00PM EST</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row19' bufnum='18' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row19');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row19');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row19');"><td align='left'  height='38'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$18'><span id='AUC_ID_COL$span$18'  class='PSHYPERLINKDISABLED'  title='Event ID' >MH263036</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$18' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$18' >OMH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$18'><span id='AUC_NAME_LNK$span$18'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$18' id='AUC_NAME_LNK$18'  ptlinktgt='pt_peoplecode' tabindex='367' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$18');"  class='PSHYPERLINK' >Delivering Sources of Strength</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$18' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$18' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$18'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$18' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$18' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$18' >08/26/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$18' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$18' >08/26/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$18' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$18' >10/28/2026&nbsp; 2:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row20' bufnum='19' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row20');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row20');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row20');"><td align='left'  height='38'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$19'><span id='AUC_ID_COL$span$19'  class='PSHYPERLINKDISABLED'  title='Event ID' >MH263037</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$19' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$19' >OMH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$19'><span id='AUC_NAME_LNK$span$19'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$19' id='AUC_NAME_LNK$19'  ptlinktgt='pt_peoplecode' tabindex='377' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$19');"  class='PSHYPERLINK' >Health-led Community Behavioral Health Crisis</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$19' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$19' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$19'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$19' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$19' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$19' >09/03/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$19' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$19' >09/03/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$19' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$19' >11/19/2026&nbsp; 2:00PM EST</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row21' bufnum='20' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row21');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row21');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row21');"><td align='left'  height='38'  class='PSLEVEL1GRIDODDROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$20'><span id='AUC_ID_COL$span$20'  class='PSHYPERLINKDISABLED'  title='Event ID' >MH263038</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$20' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$20' >OMH01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divAUC_NAME_LNK$20'><span id='AUC_NAME_LNK$span$20'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$20' id='AUC_NAME_LNK$20'  ptlinktgt='pt_peoplecode' tabindex='387' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$20');"  class='PSHYPERLINK' >LGBTQIA+ Youth and Young Adult Crisis Line</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$20' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$20' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$20'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$20' >Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$20' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$20' >09/10/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$20' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$20' >09/10/26&nbsp; 8:00AM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDODDROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$20' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$20' >11/12/2026&nbsp; 2:00PM EST</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr><tr id='trRESP_INQA_HD_VW_GR$0_row22' bufnum='21' onClick="HighLightTR('rgb(238,238,238)','','trRESP_INQA_HD_VW_GR$0_row22');" onMouseOver="hoverLightTR('rgb(253,255,200)','',0,'trRESP_INQA_HD_VW_GR$0_row22');" onmouseout="hoverLightTR('rgb(253,255,200)','',1,'trRESP_INQA_HD_VW_GR$0_row22');"><td align='left'  height='51'  class='PSLEVEL1GRIDEVENROW PSGRIDFIRSTCOLUMN' >
+<DIV    id='win0divAUC_ID_COL$21'><span id='AUC_ID_COL$span$21'  class='PSHYPERLINKDISABLED'  title='Event ID' >VENTURE_VI</span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_BUSINESS_UNIT$21' style='width:99px;'><span  class='PSEDITBOX_DISPONLY' id='NY_AUC_INQ1_WRK_BUSINESS_UNIT$21' >TDA01</span>
+</DIV>
+</td><td align='left'   style='white-space:nowrap;'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divAUC_NAME_LNK$21'><span id='AUC_NAME_LNK$span$21'  class='PSHYPERLINK'  title='Event Name' ><a name='AUC_NAME_LNK$21' id='AUC_NAME_LNK$21'  ptlinktgt='pt_peoplecode' tabindex='397' onclick='javascript:cancelBubble(event);' href="javascript:submitAction_win0(document.win0,'AUC_NAME_LNK$21');"  class='PSHYPERLINK' >Venture VI Program for SNAP Participants</a></span></DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$21' style='width:218px;'><span  class='PSDROPDOWNLIST_DISPONLY' id='NY_AUC_INQ1_WRK_NY_GG_PORT_STATUS$21' >Available</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divNY_AUC_INQ1_WRK_FIELDLIST$21'><span  class='PSLONGEDITBOX' id='NY_AUC_INQ1_WRK_FIELDLIST$21' >Governmental Entity, Not-For-Profit</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_PREVIEW$21' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_PREVIEW$21' >05/28/26&nbsp; 4:30PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_START$21' style='width:162px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_START$21' >05/28/26&nbsp; 4:30PM</span>
+</DIV>
+</td><td align='left'  class='PSLEVEL1GRIDEVENROW' >
+<DIV    id='win0divRESP_INQA1_WK_AUC_DTTM_FINISH$21' style='width:107px;'><span  class='PSEDITBOX_DISPONLY' id='RESP_INQA1_WK_AUC_DTTM_FINISH$21' >07/22/2030&nbsp; 5:00PM EDT</span>
+</DIV>
+</td><th scope='col'  class='PSLEVEL1GRIDCOLUMNHDR'  width='12'><span width='12' dir='ltr' style='white-space:nowrap;'><nobr>&nbsp;</nobr></span>
+</th>
+</tr></table>
+</DIV></td></tr></table></div></td></tr>
+</tbody></table></div></td></tr>
+</table>
+</DIV></td>
+</tr>
+<tr>
+<td height='8' colspan='5'></td>
+</tr>
+</table>
+</DIV>
+</td></tr>
+</table>
+<div id='pt_dragtxt' class='PSLEVEL1GRIDCOLUMNHDR'></div><div onmouseup='ptGridResizeObj_win0.TDselUp();' onmousemove='ptGridResizeObj_win0.TDselMove();' id='pt_dragResize' onmouseout='ptGridResizeObj_win0.dragTD=false;' onmbouseover='ptGridResizeObj_win0.dragTD=true;'></div></DIV>
+<DIV class='ps_box-pagetabs' id='win0divPSPANELTABLINKS'></DIV>
+<div id='DetachDiv' height=0 width=0 frameborder=0></div>
+<a name='ICLastAnchor_win0' id='ICLastAnchor_win0'></a>
+
+<!-- Embedded Help popup Begin -->
+<div id='HelppopupDiv_win0' style='display:none; position:absolute; top:0; left:0'>t</div>
+<div id='HelpDragFrame_win0' class='popupDragFrame'>&nbsp;</div><table id='HelppopupContainer_win0' width='20' border='0' cellpadding='0' cellspacing='0' style='opacity:1; display:none; position:absolute; top:0; left:0' >
+<tr>
+<td id='HelppopupInner_win0' class='HelppopupInner' align='left' valign='top' style='position:absolute;z-Index:302;'>
+<div id='HelppopupTitleBar_win0' class='PTPOPUP_HEADER HelppopupTitleBar' style='width:341px'><div id='HelppopupTitleBarLeftImage'></div><div id='HelppopupTitleBarMiddle_win0' style='width:333px' class='HelppopupTitleBarMiddle' dir='ltr'>
+<table>
+<td id='HelppopupTitle_win0' style='width:290px; cursor: move;'><span class='PTPOPUP_TITLE'>Help</span></td>
+<td style='width:45px'><a id='ptcphelppopupclosediv'><img id='#HELPPOPUPCLOSE' tabindex='0' class='PTCPHELPPOPUPCLOSEIMG' style='cursor:pointer' title='Close' alt='Close' onclick='HelppopupObj_win0.StopPopup("win0");' onKeyPress="var kC=keyPressHandler(event); if (kC==13 || kC==32) HelppopupObj_win0.StopPopup('win0');" align='right' src='/cs/fscm/cache/pt86119/PT_MODAL_CLOSE_NUI_585.SVG'/></a></td>
+</table>
+</div><div id='HelppopupTitleBarRightImage'></div></div><div id='HelpdivpopupFrame_win0' class='MOBGImage HelpdivpopupFrame' tabindex='-1' onclick='HelppopupObj_win0.SetFocusFlag(false);' style='border: 1px #bcbaba solid; padding:12px; overflow:auto;'>test</div><div id='HelppopupShadow' class='popupShadow' style='position:absolute;z-index:-1;'><div id='HelppopupShadowTopRightCorner' class='popupShadowTopRightCorner' style='height:10px;'>&nbsp;</div><div id='HelppopupShadowTop' class='popupShadowTop' >&nbsp;</div><div id='HelppopupShadowBottom' class='popupShadowBottom' style='height:10px'><div id='HelppopupShadowBottomLeftCorner' class='popupShadowBottomLeftCorner' style='height:10px;width:10px'>&nbsp;</div><div id='HelppopupShadowBottomMiddle' class='popupShadowBottomMiddle' style='height:10px;'>&nbsp;</div><div id='HelppopupShadowBottomRightCorner' class='popupShadowBottomRightCorner' style='height:10px;width:10px'>&nbsp;</div></div></div></td>
+</tr>
+</table>
+<!-- Embedded Help popup End  -->
+<div id='pt_fakeBC' style='display:none'><ul></ul></div></form>
+<div id='popupDragFrame' class='popupDragFrame'>&nbsp;</div>
+<!-- Mouse-over popup Begin -->
+<table id='win0MOpopupContainer' width='20' border='0' cellpadding='0' cellspacing='0' style='display:none; position:absolute; top:0; left:0;' onMouseOver="MOpopupObj_win0.StartPopup('win0MOpopupContainer', '');" onMouseOut="MOpopupObj_win0.StopPopup();"><tr>
+<td id='win0MOpopupInner' height='25' width='20' align='left' valign='top' class='MOBGImage'>
+<div id='win0MOdivpopupFrame' tabindex='-1' onclick='MOpopupObj_win0.SetFocusFlag(false);' style='overflow:auto; width:20px; height: 60px; padding:8px; box-shadow:0 0 5px #000000; background-color:white; border: 1px solid #666666;'>test</div></td>
+</tr>
+</table>
+<!-- Mouse-over popup End  -->
+</body>
+<script language='JavaScript'>
+var nMaxSavedStates=5;
+var sHistURL="https://esupplier.sfs.ny.gov/psc/fscm/SUPPLIER/ERP/c/NY_SUPPUB_FL.AUC_RESP_INQ_AUC.GBL?page=AUC_RESP_INQ_AUC&";
+var bCloseModal = false;
+var bICList = false;
+var bHtml5Doc = true;
+var bClearBackState=false;
+var bPageTransfered=false;
+var bTransferAnimate=false;
+var bCleanHtml = false;
+var bDefer = true;
+document.deferFldArr_win0 = new Array();
+document.hiddenFldArr_win0 =new Array('ICType','ICElementNum','ICStateNum','ICAction','ICModelCancel','ICXPos','ICYPos','ResponsetoDiffFrame','TargetFrameName','FacetPath','PrmtTbl','PrmtTbl_fn','PrmtTbl_fv','TA_SkipFldNms','ICFocus','ICSaveWarningFilter','ICChanged','ICSkipPending','ICAutoSave','ICResubmit','ICSID','ICActionPrompt','ICTypeAheadID','ICBcDomData','ICPanelName','ICFind','ICAddCount','ICAppClsData','RESP_DUMMY2_VW$hnewpers$0','RESP_INQA_HD_VW_GR$hnewpers$0');
+document.chgFldArr_win0 = new Array();
+AddToHistory('Supplier Search Events', '', 'returntolastpage@0', 'AUC_RESP_INQ_AUC', 1, 0, 1, 0,'', 0, '', 0);
+corsHistoryTansaction();
+var bCleanHtml = false;
+var bDefer = true;
+document.hiddenFldArr_win0 =new Array('ICType','ICElementNum','ICStateNum','ICAction','ICModelCancel','ICXPos','ICYPos','ResponsetoDiffFrame','TargetFrameName','FacetPath','PrmtTbl','PrmtTbl_fn','PrmtTbl_fv','TA_SkipFldNms','ICFocus','ICSaveWarningFilter','ICChanged','ICSkipPending','ICAutoSave','ICResubmit','ICSID','ICActionPrompt','ICTypeAheadID','ICBcDomData','ICPanelName','ICFind','ICAddCount','ICAppClsData','RESP_DUMMY2_VW$hnewpers$0','RESP_INQA_HD_VW_GR$hnewpers$0');
+document.chgFldArr_win0 = new Array();
+var bCDATA = false;
+var bAccessibleLayout = false;
+var bLoadCompleted = true;
+</script></html>

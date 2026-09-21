@@ -477,7 +477,7 @@ export function classifyStateGrant(
   //    cannot confirm the source is accepting applications.
   const reason =
     openDay !== null
-      ? "the source published an opening date but no closing date — we cannot confirm the cycle is accepting applications (never open, never a forecast)"
+      ? "the source published an opening date but no closing date — we cannot confirm the cycle is accepting applications (program status not published by source)"
       : "the source published no usable dates — unverified rather than guessed";
   return {
     status: "unverified",

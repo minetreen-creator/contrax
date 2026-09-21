@@ -1,0 +1,3258 @@
+odx-content__title' ).length > 0 ) {
+            selectorNext = '.odx-content__title';
+        } else if ( $( '.odx-main-content' ).length > 0 ) {
+            selectorNext = '.odx-main-content';
+        } else {
+            selectorNext = '.content';
+        }
+        if ( selectorNext && $( selectorNext ).length ) {
+            $( selectorNext ).attr('tabindex', 0);
+            $( selectorNext ).focus();
+        }
+    } else if ( keyBoardEventContent && keyBoardEventContent.which === 27 ) {
+        $( '#skip-to-main-content' ).blur();
+    }
+    return false;
+}
+$( document ).ready(function() {
+    $( 'body' ).prepend( '<div class="accessibility-overlay-cover"></div>' );
+    $( '#skip-to-main-content' ).appendTo( '.accessibility-overlay-cover' );
+    $( '#skip-to-main-nav' ).appendTo( '.accessibility-overlay-cover' );
+    $( '#skip-to-main-content, #skip-to-main-nav' ).focus(function () {
+        $( 'body' ).addClass( 'accessibility-overlay' );
+    });
+    $( '#skip-to-main-content, #skip-to-main-nav' ).blur(function () {
+        $( 'body' ).removeClass( 'accessibility-overlay' );
+    });
+    $( '#skip-to-main-nav' ).on('keyup', function ( Event ) {
+        handleSkipToNavContent( Event );
+    });
+    $( '#skip-to-main-nav' ).click(function ( Event ) {
+        handleSkipToNavContent( null );
+    });
+    $( '#skip-to-main-content' ).on('keyup', function ( Event ) {
+        handleSkipToMainContent( Event );
+    });
+    $( '#skip-to-main-content' ).click(function ( Event ) {
+        handleSkipToMainContent( null );
+    });
+
+});
+</script>
+
+<!-- END: Ohio Design > Components > Site Builder > Global Components > IOP Desktop > Header > Skip to Nav and Skip to Main Buttons -->
+
+<!-- END: Ohio Design > Components > Site Builder > Global Components > IOP Desktop > Header > Header Top Right Injector Desktop --><!--  END wcmHeaderTopRightInjectorID.jsp --></div>
+								</div>
+							</header>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="navigation">
+					<div class="container">
+						<div class="row">
+							<div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+								<div class="aw-header-bottom">
+								
+									<div id="aw-header-bottom-left">
+										<!--  genericLogo.jsp -->
+										
+
+<div class="odx-logo-wrapper">
+    <div class="odx-logo">
+       
+	        <a href="/wps/portal/gov/art/home">
+	             <span class="sr-only">Ohio Department</span>
+	             <img class="hidden-xs hidden-sm" src="/wps/wcm/connect/gov/721bbaac-1660-4d99-8801-4633838c0e45/ohio_arts_council_logo_Blank.png?MOD=AJPERES" alt="Ohio Department">
+	             <img class="hidden-md hidden-lg" src="/wps/wcm/connect/gov/721bbaac-1660-4d99-8801-4633838c0e45/ohio_arts_council_logo_Blank.png?MOD=AJPERES" alt="Ohio Department">
+	        </a>
+	    
+    </div>
+</div>
+<!--  START wcmHeaderBottomLeft.JSP --><!-- START: Ohio Design > Components > Site Builder > Global Components > IOP Desktop > Header > Header Bottom Left Injector Desktop -->
+
+<!-- END: Ohio Design > Components > Site Builder > Global Components > IOP Desktop > Header > Header Bottom Left Injector Desktop --><!--  END wcmHeaderBottomLeft.JSP --></div>
+									<div id="aw-header-navigation">
+										<!--  Main navigation -->
+										<!-- v1.3 -->
+										
+										<!--  START chooseNavigationDesktop.JSP --><!--  END chooseNavigationDesktop.JSP --><!-- ${requestScope.userLanguage --><!-- start level = 1   nelLevel =  1-->
+<!-- level = 1  -->
+	
+			<nav id="main-nav-container" class="">
+				
+					<div id="button-collapse-navigator"><span class="sr-only">Menu</span></div>
+				
+			
+			<ul class="awesome-navigator navList1">
+			
+					<li class=" hidden">
+						
+                        	<a href="/wps/portal/gov/art/home" >
+                        	Home<!-- useDescription true -->
+								
+									<div class="odx-page-description">
+										
+									</div>
+								
+								
+							</a>
+						<!-- node type STATICPAGE -->
+						
+					</li>
+				
+					<li class=" current ">
+						
+                        	<a href="/wps/portal/gov/art/grants" >
+                        	Grants<!-- useDescription true -->
+								
+									<div class="odx-page-description">
+										
+									</div>
+								
+								
+							</a>
+						<!-- node type STATICPAGE -->
+						
+					</li>
+				
+					<li class="">
+						
+                        	<a href="/wps/portal/gov/art/programs-and-services" >
+                        	Programs &amp; Services<!-- useDescription true -->
+								
+									<div class="odx-page-description">
+										
+									</div>
+								
+								
+							</a>
+						<!-- node type STATICPAGE -->
+						
+					</li>
+				
+					<li class="">
+						
+                        	<a href="/wps/portal/gov/art/community-engagement" >
+                        	Community Engagement<!-- useDescription true -->
+								
+									<div class="odx-page-description">
+										
+									</div>
+								
+								
+							</a>
+						<!-- node type STATICPAGE -->
+						
+					</li>
+				
+					<li class="">
+						
+                        	<a href="/wps/portal/gov/art/riffe-gallery" >
+                        	Riffe Gallery<!-- useDescription true -->
+								
+									<div class="odx-page-description">
+										
+									</div>
+								
+								
+							</a>
+						<!-- node type STATICPAGE -->
+						
+					</li>
+				
+					<li class="">
+						
+                        	<a href="/wps/portal/gov/art/about" >
+                        	About<!-- useDescription true -->
+								
+									<div class="odx-page-description">
+										
+									</div>
+								
+								
+							</a>
+						<!-- node type STATICPAGE -->
+						
+					</li>
+				
+					<li class=" hidden">
+						
+                        	<a href="/wps/portal/gov/art/help-center" >
+                        	Help<!-- useDescription true -->
+								
+									<div class="odx-page-description">
+										
+									</div>
+								
+								
+							</a>
+						<!-- node type STATICPAGE -->
+						
+					</li>
+				
+					<li class=" hidden">
+						
+                        	<a href="/wps/portal/gov/art/search" >
+                        	Search<!-- useDescription true -->
+								
+									<div class="odx-page-description">
+										
+									</div>
+								
+								
+							</a>
+						<!-- node type STATICPAGE -->
+						
+					</li>
+				
+			</ul>	
+			</nav>
+	<!-- Navigation second level -->
+										</div><!-- aw-header-navigation -->
+									<div id="aw-header-bottom-right">
+										<!--  START wcmHeaderBottomRight.JSP --><!-- START: Ohio Design > Components > Site Builder > Global Components > IOP Desktop > Header > Header Bottom Right Injector Desktop -->
+
+<div class="odx-header-bottom-right">
+    <div class="iop-utility-toolbar__list">
+         <!-- You can only add custom buttons here -->
+        <!-- START: Ohio Design > Components > Site Builder > Global Components > ODX Desktop > Header > Bottom Right Injector Standard Elements > Desktop Bottom Right Injector Standard Buttons -->
+
+<a id="js-helplink-desktop" class="iop-utility-toolbar__item iop-utility-toolbar__item--help" href=""  role="button" tabindex="0">
+    <i class="far fa-question-circle iop-utility-toolbar__item-icon" aria-hidden="true"></i>
+    <span class="iop-utility-toolbar__item-title">
+        <span class="multilingual" aria-hidden="true">top-help</span>
+        <span class="sr-only">
+            <span class="multilingual">odx-helplink-label</span>
+        </span>
+    </span>
+</a>
+
+<div id="js-search-button-desktop" class="iop-utility-toolbar__item iop-utility-toolbar__item--search" role="button" tabindex="0">
+    <i class="fas fa-search iop-utility-toolbar__item-icon" aria-hidden="true"></i>
+    <span class="iop-utility-toolbar__item-title">
+        <span class="multilingual" aria-hidden="true">top-search</span>
+        <span class="sr-only">
+            <span class="multilingual">odx-searchbox-label</span>
+        </span>
+    </span>
+</div>
+
+<!-- END: Ohio Design > Components > Site Builder > Global Components > ODX Desktop > Header > Bottom Right Injector Standard Elements > Desktop Bottom Right Injector Standard Buttons -->
+    </div>
+</div>
+<!-- START: Ohio Design > Components > Site Builder > Global Components > ODX Desktop > Header > Bottom Right Injector Standard Elements > Desktop Bottom Right Injector Standard Search Box -->
+
+<div id="js-searchbox" class="iop-searchbox__container hidden">
+    <form id="js-search-form-desktop" class="iop-searchbox__form" action="" method="get" role="search">
+        <label for="js-search-input-desktop" class="sr-only">Type in your search keywords and hit enter to submit or escape to close</label>
+        <div class="iop-searchbox__input-wrapper">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="text" id="js-search-input-desktop" class="iop-searchbox__input" name="search_query" tabindex="0" placeholder="Search" />
+        </div>
+        <div class="iop-searchbox__buttons">
+            <button class="iop-searchbox__button iop-searchbox__button--search" type="submit" tabindex="0" aria-label="Submit your search">
+                <span class="iop-searchbox__button-title">
+                    <span class="multilingual">top-search</span>
+                </span>
+            </button>
+            <div id="js-cancel-search-desktop" class="iop-searchbox__button iop-searchbox__button--close" role="button" tabindex="0" aria-label="Close search">
+                <span class="fas fa-times iop-searchbox__button-icon"></span>
+                <span class="iop-searchbox__button-title">
+                    <span class="multilingual">top-close</span>
+                </span>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script type="text/javascript">
+$( document ).ready(function () {
+    var $searchButton = $( "#js-search-button-desktop" ),
+        $searchBox = $( '#js-searchbox' ),
+        $searchForm = $( "#js-search-form-desktop" ),
+        $searchInput = $( '#js-search-input-desktop' ),
+        $cancelSearch = $( '#js-cancel-search-desktop' ),
+        $searchBoxLogo = $( '.iop-searchbox__logo' ),
+        $helpCenterLink = $( '#js-helplink-desktop' ),
+        $mainNavigationContainer = $( '#aw-main-wrapper .navigation' );
+    
+    $mainNavigationContainer.find( '.aw-header-bottom' ).after( $searchBox );
+    $searchForm.attr("action", searchUrl);
+    $helpCenterLink.attr("href", window.globalLinks.help);
+
+    $( document ).on("click", function ( event ) {
+        var $target = $( event.target ),
+            isClickInside = $target.closest( $searchForm ).length,
+            isSearchButtonClicked = $target.closest( $searchButton ).length;
+        if ( !isClickInside && !isSearchButtonClicked ) {
+            $mainNavigationContainer.removeClass( 'js-searchbox-is-enabled' );
+            $searchBox.addClass( 'hidden' );
+        }
+    });
+
+    $searchButton.on("click", function () {
+        $mainNavigationContainer.addClass( 'js-searchbox-is-enabled' );
+        $searchBox.removeClass( 'hidden' );
+        $searchInput.focus();
+    });
+
+    $searchButton.on("keypress", function ( event ) {
+        if ( event.key === "Enter" ) {
+            $searchButton.trigger( "click" );
+        }
+    });
+
+    $cancelSearch.on("click", function () {
+        $mainNavigationContainer.removeClass( 'js-searchbox-is-enabled' );
+        $searchBox.addClass( 'hidden' );
+        $searchButton.focus();
+    });
+
+    $cancelSearch.on("keypress", function ( event ) {
+        if ( event.key === "Enter" ) {
+            $cancelSearch.trigger( "click" );
+        }
+    });
+
+    $searchInput.on("keydown", function ( event ) {
+        event.stopPropagation();
+        if ( event.key === "Enter" ) {
+            $searchForm.submit();
+        }
+        if ( event.key === "Escape" ) {
+            $cancelSearch.trigger( "click" );
+        }
+    });
+
+    $searchForm.on("keydown", function ( event ) {
+        if ( event.key === "Escape" ) {
+            $cancelSearch.trigger( "click" );
+        }
+    });
+});
+</script>
+
+<!-- END: Ohio Design > Components > Site Builder > Global Components > ODX Desktop > Header > Bottom Right Injector Standard Elements > Desktop Bottom Right Injector Standard Search Box -->
+<!-- You can add extra JavaScript functionality here -->
+
+<!-- END: Ohio Design > Components > Site Builder > Global Components > IOP Desktop > Header > Header Bottom Right Injector Desktop --><!--  END wcmHeaderBottomLeft.JSP --></div>
+								</div>
+							</div>
+						</div>	
+					</div>
+				</div>
+	
+			<div class="content">
+				<header class="aw-main-header">
+					<base href="https://oac.ohio.gov/wps/portal/gov/art/grants/10-grant-opportunities/!ut/p/z1/04_Sj9CPykssy0xPLMnMz0vMAfIjo8zi_Q3MXA2dnQ0MA_zd3QzMgt3dgoKcXD3dnc31w1EVGDpbAhV4-xkZ-ob4mfl7m-lHEaPfAAdwNCCk34uQAqAPjIp8nX3T9aMKEksydDPz0vL1IwwNdNOLEvNKdPMLCvKLSkrzMksyU4uBrolCNQ-Lf8AK8Di4IDc0osonLdjTUVERAHs1JcU!/">
+
+
+<h1>Grant Opportunities</h1>
+
+</header>
+				
+					<div class="content-body">
+						<div class=""><!-- Removed container to match design -->
+							<div class="wpthemeMainContent" role="main" aria-label="IBM WebSphere Portal">
+								
+			
+								<!-- required - do not remove -->
+								<div style="display:none" id="portletState">{}</div><div id="layoutContainers" class="wpthemeLayoutContainers wpthemeLayoutContainersHidden" >	
+									<div class="wpthemeInner">					
+										<!-- START: ODXTheme/layout-templates/1Column1Row/layout.html v2 -->
+<!-- this layout has two columns with left column assigned a smaller fixed width -->
+<div id="singleColumn" class="wptheme1Col aw-page-body">
+
+	  	<div class='component-container wpthemeLeft wpthemePrimaryContainer wpthemeCol ibmDndColumn id-Z7_O06E1CC01POGF06SGFRRBEIGS1' name='ibmMainContainer' ><div class='component-control id-Z7_O06E1CC01POGF06SGFRRBEIGS3' ><!-- start base22 skin standard -->
+<div class="ibmPortalControl wpthemeControl wpthemeStandard a11yRegionTarget" role="region" >
+	
+	<!-- start header markup -->
+	<div class="wpthemeControlHeader">
+		<div class="wpthemeInner">
+			<div>
+				<img class="dndHandle" draggable="true" ondragstart="wpModules.dnd.util.portletDragStart(event, this, this.parentNode, 30, 0);"
+				ondragend="wpModules.dnd.util.portletDragEnd(event);" 
+				src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt=""/>
+				<!-- lm-dynamic-title node marks location for dynamic title support -->
+				<span class="lm-dynamic-title asa.portlet.title a11yRegionLabel"><span lang="en" dir="ltr">Web Content Viewer</span></span>
+			</div>
+			
+			<a aria-haspopup="true" aria-label="Display portlet menu" role="button" href="javascript:;" class="wpthemeIcon wpthemeActionDisabled wpthemeMenuFocus" tabindex="0"
+                onclick="if (typeof wptheme != 'undefined') wptheme.contextMenu.init({ 'node': this, menuId: 'skinAction', jsonQuery: {'navID':ibmCfg.portalConfig.currentPageOID,'windowID':wptheme.getWindowIDFromSkin(this)}, params: {'alignment':'right'}});"
+				onmousemove="javascript:if (typeof i$ != 'undefined' && typeof wptheme != 'undefined') { i$.removeClass(this,'wpthemeActionDisabled'); this.onmousemove = null; }"
+				onkeydown="javascript:if (typeof i$ != 'undefined' && typeof wptheme != 'undefined') {if (event.keyCode ==13 || event.keyCode ==32 || event.keyCode==38 || event.keyCode ==40) {wptheme.contextMenu.init(this, 'skinAction', {'navID':ibmCfg.portalConfig.currentPageOID,'windowID':wptheme.getWindowIDFromSkin(this)}); return false;}}">
+				<span title="Display portlet menu"><img aria-label="Display portlet menu" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></span>
+				<span class="wpthemeAltText">Actions</span>
+			</a>
+		</div>
+	</div>
+	
+	<div class="wpthemeControlBody wpthemeOverflowAuto wpthemeClear"> <!-- lm:control dynamic spot injects markup of layout control -->
+	<!-- asa.overlay marks the node that the AsaOverlayWidget will be placed in 
+		<div style="position:relative; z-index: 1;">
+			<div class="analytics.overlay"></div>
+		</div> -->
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+
+    
+    
+
+    
+    
+    
+
+
+
+
+
+    
+    
+        
+            
+            <!-- START: Ohio Design > Presentation Templates > Landing Page   -->
+
+<div id="odx-layout-landing-page" class="odx-layout-landing-page  layout-odx-single-column-with-bottom-sidebar-and-left-nav-current-context">
+
+
+
+
+
+    <div class="container">
+        
+        <div class="row">
+        
+            
+                <style>
+  .old-browser-msg {
+    position: relative;
+    z-index: 997;
+  }
+</style>
+
+<div id="old-browser-msg" class="alert alert-danger margin-right-sm margin-top-sm old-browser-msg" style="display: none">
+</div>
+<script id="old-browser-msg-template" type="text/plain">
+<p dir="ltr">Your browser appears to be&nbsp;out of date. For a better browsing experience, use the <strong>latest version</strong> of&nbsp;<a href="https://www.google.com/chrome/" target="_blank"  rel="noopener noreferrer">Google&nbsp;Chrome</a>,&nbsp;<a href="https://www.mozilla.org/en-US/firefox/new/" target="_blank"  rel="noopener noreferrer">Mozilla&nbsp;Firefox</a>,&nbsp;<a href="https://support.microsoft.com/en-us/help/17621/internet-explorer-downloads" target="_blank"  rel="noopener noreferrer">Microsoft&nbsp;Edge</a>, or&nbsp;<a href="https://www.apple.com/safari/" target="_blank"  rel="noopener noreferrer">Safari</a>.</p>
+
+</script>
+<script id="old-browser-msg-template-ohid" type="text/plain">
+<p dir="ltr">Your browser is not supported. To log in, update to the <strong>latest version</strong> of&nbsp;<a href="https://www.google.com/chrome/" target="_blank"  rel="noopener noreferrer">Google&nbsp;Chrome</a>,&nbsp;<a href="https://www.mozilla.org/en-US/firefox/new/" target="_blank"  rel="noopener noreferrer">Mozilla&nbsp;Firefox</a>,&nbsp;<a href="https://support.microsoft.com/en-us/help/17621/internet-explorer-downloads" target="_blank"  rel="noopener noreferrer">Microsoft&nbsp;Edge</a>, or&nbsp;<a href="https://www.apple.com/safari/" target="_blank"  rel="noopener noreferrer">Safari</a>.</p>
+
+</script>
+<script>
+
+if(document.location.hostname.indexOf("ohid") > -1 && !navigator.userAgent.match(/crawler/gi)){
+   if (navigator.userAgent.match(/Trident\/7\./)  || navigator.userAgent.indexOf('Edge/') > -1) {
+    document.getElementById('old-browser-msg').innerHTML = document.getElementById('old-browser-msg-template-ohid').innerHTML;
+    document.getElementById('old-browser-msg').style.display = 'block';
+  }
+}else{
+  if (navigator.userAgent.match(/Trident\/7\./) && !navigator.userAgent.match(/crawler/gi)) {
+    document.getElementById('old-browser-msg').innerHTML = document.getElementById('old-browser-msg-template').innerHTML;
+    document.getElementById('old-browser-msg').style.display = 'block';
+  }
+}
+</script>
+<script>
+    
+</script>
+<!-- START: Ohio Design > Components> Load label translations -->
+<script>
+(function($){
+var currentSiteTranslations = {},
+    menuComponentResult = {};
+    menuComponentResult = JSON.parse($('<div />').html(decodeURIComponent("{&quot;top-help&quot;:{&quot;index&quot;:0,&quot;value&quot;:&quot;Contact&quot;},&quot;odx-featured-content&quot;:{&quot;index&quot;:1,&quot;value&quot;:&quot;&quot;},&quot;odx-divisions&quot;:{&quot;index&quot;:2,&quot;value&quot;:&quot;Explore%20the%20OAC&quot;},&quot;odx-searchbox-label&quot;:{&quot;index&quot;:3,&quot;value&quot;:&quot;Search%20in%20%5BAgency%20name%5D%20website&quot;},&quot;odx-spotlight&quot;:{&quot;index&quot;:4,&quot;value&quot;:&quot;Spotlight&quot;},&quot;odx-social-media-title&quot;:{&quot;index&quot;:5,&quot;value&quot;:&quot;Social%20Media%20Feed&quot;},&quot;odx-subscribe-icon&quot;:{&quot;index&quot;:6,&quot;value&quot;:&quot;far%20fa-comment-dots&quot;},&quot;odx-keep-updated&quot;:{&quot;index&quot;:7,&quot;value&quot;:&quot;Stay%20updated,%20subscribe%20to%20our%20newsletter&quot;},&quot;odx-enter-email&quot;:{&quot;index&quot;:8,&quot;value&quot;:&quot;Enter%20your%20email%20or%20mobile%20number&quot;},&quot;odx-subscribe-tooltip&quot;:{&quot;index&quot;:9,&quot;value&quot;:&quot;Please%20enter%20a%20valid%20email%20address%20or%20phone%20number.&quot;}}")).text());
+    currentSiteTranslations = $.extend(currentSiteTranslations, menuComponentResult);
+
+var globalTranslations = JSON.parse($('<div />').html(decodeURIComponent("{&quot;top-menu&quot;:{&quot;index&quot;:0,&quot;value&quot;:&quot;Menu&quot;},&quot;top-close&quot;:{&quot;index&quot;:1,&quot;value&quot;:&quot;Close&quot;},&quot;top-auth&quot;:{&quot;index&quot;:2,&quot;value&quot;:&quot;Edit&quot;},&quot;top-help&quot;:{&quot;index&quot;:3,&quot;value&quot;:&quot;Help&quot;},&quot;top-search&quot;:{&quot;index&quot;:4,&quot;value&quot;:&quot;Search&quot;},&quot;top-search-help&quot;:{&quot;index&quot;:5,&quot;value&quot;:&quot;Search&quot;},&quot;odx-resource-information&quot;:{&quot;index&quot;:6,&quot;value&quot;:&quot;Resource%20Information&quot;},&quot;odx-related-agencies&quot;:{&quot;index&quot;:7,&quot;value&quot;:&quot;Related%20Agencies%20&amp;%20Programs&quot;},&quot;gov-visit-portal&quot;:{&quot;index&quot;:8,&quot;value&quot;:&quot;VISIT%20PORTAL&quot;},&quot;odx-upcoming-events&quot;:{&quot;index&quot;:9,&quot;value&quot;:&quot;Upcoming%20Events&quot;},&quot;odx-view-more&quot;:{&quot;index&quot;:10,&quot;value&quot;:&quot;VIEW%20MORE&quot;},&quot;odx-more-information&quot;:{&quot;index&quot;:11,&quot;value&quot;:&quot;For%20more%20information&quot;},&quot;odx-get-in-touch&quot;:{&quot;index&quot;:12,&quot;value&quot;:&quot;Get%20in%20touch&quot;},&quot;odx-download-campus-map&quot;:{&quot;index&quot;:13,&quot;value&quot;:&quot;Download%20Campus%20Map&quot;},&quot;odx-download-static-map&quot;:{&quot;index&quot;:14,&quot;value&quot;:&quot;Download%20a%20Static%20Map%20with%20Direction%20Instructions&quot;},&quot;odx-first-name&quot;:{&quot;index&quot;:15,&quot;value&quot;:&quot;First%20Name&quot;},&quot;odx-last-name&quot;:{&quot;index&quot;:16,&quot;value&quot;:&quot;Last%20Name&quot;},&quot;odx-name&quot;:{&quot;index&quot;:17,&quot;value&quot;:&quot;Name&quot;},&quot;odx-search&quot;:{&quot;index&quot;:18,&quot;value&quot;:&quot;SEARCH&quot;},&quot;odx-view-more-questions&quot;:{&quot;index&quot;:19,&quot;value&quot;:&quot;View%20more%20common%20questions&quot;},&quot;odx-past-events&quot;:{&quot;index&quot;:20,&quot;value&quot;:&quot;View%20Past%20Events&quot;},&quot;odx-video&quot;:{&quot;index&quot;:21,&quot;value&quot;:&quot;Video&quot;},&quot;odx-yes&quot;:{&quot;index&quot;:22,&quot;value&quot;:&quot;Yes&quot;},&quot;odx-no&quot;:{&quot;index&quot;:23,&quot;value&quot;:&quot;No&quot;},&quot;odx-cancel&quot;:{&quot;index&quot;:24,&quot;value&quot;:&quot;CANCEL&quot;},&quot;odx-reset&quot;:{&quot;index&quot;:25,&quot;value&quot;:&quot;RESET&quot;},&quot;odx-about-us&quot;:{&quot;index&quot;:26,&quot;value&quot;:&quot;About%20Us&quot;},&quot;odx-privacy-notice&quot;:{&quot;index&quot;:27,&quot;value&quot;:&quot;Privacy%20Notice%20and%20Policies&quot;},&quot;odx-sitemap&quot;:{&quot;index&quot;:28,&quot;value&quot;:&quot;Sitemap&quot;},&quot;odx-accessibility&quot;:{&quot;index&quot;:29,&quot;value&quot;:&quot;Accessibility&quot;},&quot;odx-downloads&quot;:{&quot;index&quot;:30,&quot;value&quot;:&quot;Downloads&quot;},&quot;odx-download-file&quot;:{&quot;index&quot;:31,&quot;value&quot;:&quot;Download%20File&quot;},&quot;odx-organizer-information&quot;:{&quot;index&quot;:32,&quot;value&quot;:&quot;Organizer%20Information&quot;},&quot;odx-meet-leadership&quot;:{&quot;index&quot;:33,&quot;value&quot;:&quot;Meet%20our%20leadership&quot;},&quot;odx-all-directors&quot;:{&quot;index&quot;:34,&quot;value&quot;:&quot;SEE%20ALL%20DIRECTORS&quot;},&quot;odx-external-resources&quot;:{&quot;index&quot;:35,&quot;value&quot;:&quot;External%20Resources&quot;},&quot;odx-share&quot;:{&quot;index&quot;:36,&quot;value&quot;:&quot;Share&quot;},&quot;odx-share-caps&quot;:{&quot;index&quot;:37,&quot;value&quot;:&quot;SHARE&quot;},&quot;odx-featured-video&quot;:{&quot;index&quot;:38,&quot;value&quot;:&quot;Featured%20Video&quot;},&quot;odx-read-more&quot;:{&quot;index&quot;:39,&quot;value&quot;:&quot;Read%20More&quot;},&quot;odx-news&quot;:{&quot;index&quot;:40,&quot;value&quot;:&quot;News&quot;},&quot;odx-in-touch&quot;:{&quot;index&quot;:41,&quot;value&quot;:&quot;Get%20in%20Touch&quot;},&quot;odx-attachment&quot;:{&quot;index&quot;:42,&quot;value&quot;:&quot;Attachment&quot;},&quot;odx-additional-downloads&quot;:{&quot;index&quot;:43,&quot;value&quot;:&quot;Additional%20Downloads&quot;},&quot;odx-search-published-on&quot;:{&quot;index&quot;:44,&quot;value&quot;:&quot;Published%20on&quot;},&quot;odx-search-results-title&quot;:{&quot;index&quot;:45,&quot;value&quot;:&quot;Search%20results%20for:&quot;},&quot;odx-search-results-found&quot;:{&quot;index&quot;:46,&quot;value&quot;:&quot;results%20found%20in%20this%20site.&quot;},&quot;odx-add-calendar&quot;:{&quot;index&quot;:47,&quot;value&quot;:&quot;Add%20to%20Calendar&quot;},&quot;odx-other-indicators&quot;:{&quot;index&quot;:48,&quot;value&quot;:&quot;See%20other%20indicators&quot;},&quot;odx-open&quot;:{&quot;index&quot;:49,&quot;value&quot;:&quot;Open&quot;},&quot;odx-page&quot;:{&quot;index&quot;:50,&quot;value&quot;:&quot;Page&quot;},&quot;odx-events-search-placeholder&quot;:{&quot;index&quot;:51,&quot;value&quot;:&quot;What%20is%20the%20name%20of%20the%20event%20you%20are%20looking%20for?&quot;},&quot;odx-topic&quot;:{&quot;index&quot;:52,&quot;value&quot;:&quot;Topic&quot;},&quot;odx-county&quot;:{&quot;index&quot;:53,&quot;value&quot;:&quot;County&quot;},&quot;odx-all-topics&quot;:{&quot;index&quot;:54,&quot;value&quot;:&quot;All%20Topics&quot;},&quot;odx-all-counties&quot;:{&quot;index&quot;:55,&quot;value&quot;:&quot;All%20Counties&quot;},&quot;odx-showing&quot;:{&quot;index&quot;:56,&quot;value&quot;:&quot;Showing&quot;},&quot;odx-of&quot;:{&quot;index&quot;:57,&quot;value&quot;:&quot;of&quot;},&quot;odx-events&quot;:{&quot;index&quot;:58,&quot;value&quot;:&quot;Events&quot;},&quot;odx-email&quot;:{&quot;index&quot;:59,&quot;value&quot;:&quot;Email&quot;},&quot;odx-contact-message-type&quot;:{&quot;index&quot;:60,&quot;value&quot;:&quot;Message%20type&quot;},&quot;odx-contact-url&quot;:{&quot;index&quot;:61,&quot;value&quot;:&quot;URL&quot;},&quot;odx-contact-message&quot;:{&quot;index&quot;:62,&quot;value&quot;:&quot;Message&quot;},&quot;odx-submit&quot;:{&quot;index&quot;:63,&quot;value&quot;:&quot;Submit&quot;},&quot;odx-contact-select-message&quot;:{&quot;index&quot;:64,&quot;value&quot;:&quot;SELECT%20MESSAGE%20TYPE&quot;},&quot;odx-find-need&quot;:{&quot;index&quot;:65,&quot;value&quot;:&quot;Did%20you%20find%20what%20you%20need?&quot;},&quot;odx-reason-visit&quot;:{&quot;index&quot;:66,&quot;value&quot;:&quot;What%20brought%20you%20to%20our%20site%20today?&quot;},&quot;odx-suggestions&quot;:{&quot;index&quot;:67,&quot;value&quot;:&quot;What%20comments%20or%20suggestions%20do%20you%20have%20to%20improve%20Agri.ohio.gov?&quot;},&quot;odx-succes-message&quot;:{&quot;index&quot;:68,&quot;value&quot;:&quot;Message%20successfully%20sent&quot;},&quot;odx-error-message&quot;:{&quot;index&quot;:69,&quot;value&quot;:&quot;Error:%20Message%20not%20sent.%20If%20problem%20persists,%20call%20administrator.&quot;},&quot;odx-required-field&quot;:{&quot;index&quot;:70,&quot;value&quot;:&quot;Required%20field&quot;},&quot;odx-answer-placeholder&quot;:{&quot;index&quot;:71,&quot;value&quot;:&quot;Please%20write%20your%20answer%20here...&quot;},&quot;odx-contact-broken-link&quot;:{&quot;index&quot;:72,&quot;value&quot;:&quot;Broken%20Link&quot;},&quot;odx-incomplete-content&quot;:{&quot;index&quot;:73,&quot;value&quot;:&quot;Incomplete%20or%20Incorrect%20Content&quot;},&quot;odx-content-not-found&quot;:{&quot;index&quot;:74,&quot;value&quot;:&quot;I%20could%20not%20find%20the%20Content%20I%20was%20looking%20for&quot;},&quot;odx-message-placeholder&quot;:{&quot;index&quot;:75,&quot;value&quot;:&quot;Type%20your%20message%20here...&quot;},&quot;odx-url-placeholder&quot;:{&quot;index&quot;:76,&quot;value&quot;:&quot;https://agri.ohio.gov/&quot;},&quot;odx-email-error&quot;:{&quot;index&quot;:77,&quot;value&quot;:&quot;Please%20enter%20a%20valid%20email%20address&quot;},&quot;odx-uri-error&quot;:{&quot;index&quot;:78,&quot;value&quot;:&quot;The%20website%20address%20is%20not%20valid&quot;},&quot;odx-name-placeholder&quot;:{&quot;index&quot;:79,&quot;value&quot;:&quot;Jane%20Doe&quot;},&quot;odx-email-placeholder&quot;:{&quot;index&quot;:80,&quot;value&quot;:&quot;e.g.%20jane.doe@ohio.gov&quot;},&quot;odx-contact-other&quot;:{&quot;index&quot;:81,&quot;value&quot;:&quot;Other&quot;},&quot;odx-download&quot;:{&quot;index&quot;:82,&quot;value&quot;:&quot;DOWNLOAD&quot;},&quot;odx-resource-details&quot;:{&quot;index&quot;:83,&quot;value&quot;:&quot;Resource%20Details&quot;},&quot;odx-published&quot;:{&quot;index&quot;:84,&quot;value&quot;:&quot;Published&quot;},&quot;odx-source&quot;:{&quot;index&quot;:85,&quot;value&quot;:&quot;Source&quot;},&quot;odx-tags&quot;:{&quot;index&quot;:86,&quot;value&quot;:&quot;Tags&quot;},&quot;odx-other-resources&quot;:{&quot;index&quot;:87,&quot;value&quot;:&quot;Other%20Resources&quot;},&quot;odx-additional-info&quot;:{&quot;index&quot;:88,&quot;value&quot;:&quot;Additional%20Information&quot;},&quot;odx-captcha-message&quot;:{&quot;index&quot;:89,&quot;value&quot;:&quot;Validate%20captcha%20before%20submitting&quot;},&quot;odx-no-events&quot;:{&quot;index&quot;:90,&quot;value&quot;:&quot;No%20events&quot;},&quot;odx-no-news&quot;:{&quot;index&quot;:91,&quot;value&quot;:&quot;No%20news&quot;},&quot;odx-get-directions&quot;:{&quot;index&quot;:92,&quot;value&quot;:&quot;Get%20Directions&quot;},&quot;odx-phone&quot;:{&quot;index&quot;:93,&quot;value&quot;:&quot;Phone&quot;},&quot;odx-fax&quot;:{&quot;index&quot;:94,&quot;value&quot;:&quot;Fax&quot;},&quot;odx-relay-service&quot;:{&quot;index&quot;:95,&quot;value&quot;:&quot;Ohio%20Relay%20Service&quot;},&quot;odx-search-results-cards-title&quot;:{&quot;index&quot;:96,&quot;value&quot;:&quot;Search%20results%20in:&quot;},&quot;odx-meet-our-divisions&quot;:{&quot;index&quot;:97,&quot;value&quot;:&quot;Meet%20Your%20Divisions&quot;},&quot;odx-search-found&quot;:{&quot;index&quot;:98,&quot;value&quot;:&quot;Found&quot;},&quot;odx-search-resources&quot;:{&quot;index&quot;:99,&quot;value&quot;:&quot;Resources&quot;},&quot;odx-view-more-results&quot;:{&quot;index&quot;:100,&quot;value&quot;:&quot;View%20more%20search%20results&quot;},&quot;odx-not-found-looking-for&quot;:{&quot;index&quot;:101,&quot;value&quot;:&quot;Didn&#39;t%20find%20what%20you%20were%20looking%20for?&quot;},&quot;odx-view-all-divisions&quot;:{&quot;index&quot;:102,&quot;value&quot;:&quot;VIEW%20ALL%20DIVISIONS&quot;},&quot;odx-view-more-events&quot;:{&quot;index&quot;:103,&quot;value&quot;:&quot;VIEW%20MORE%20EVENTS&quot;},&quot;odx-view-more-news&quot;:{&quot;index&quot;:104,&quot;value&quot;:&quot;View%20more%20news&quot;},&quot;odx-view-more-resources&quot;:{&quot;index&quot;:105,&quot;value&quot;:&quot;VIEW%20MORE%20RESOURCES&quot;},&quot;odx-phone-search&quot;:{&quot;index&quot;:106,&quot;value&quot;:&quot;State%20of%20Ohio%20Phone%20Search&quot;},&quot;odx-social-media&quot;:{&quot;index&quot;:107,&quot;value&quot;:&quot;Social%20Media&quot;},&quot;odx-search-for-data-sources-table&quot;:{&quot;index&quot;:108,&quot;value&quot;:&quot;Search%20for%20any%20keyword...&quot;},&quot;odx-see-other-common-questions&quot;:{&quot;index&quot;:109,&quot;value&quot;:&quot;See%20other%20common%20questions&quot;},&quot;odx-question-how&quot;:{&quot;index&quot;:110,&quot;value&quot;:&quot;How?&quot;},&quot;odx-question-what&quot;:{&quot;index&quot;:111,&quot;value&quot;:&quot;What?&quot;},&quot;odx-question-who&quot;:{&quot;index&quot;:112,&quot;value&quot;:&quot;Who?&quot;},&quot;odx-question-where&quot;:{&quot;index&quot;:113,&quot;value&quot;:&quot;Where?&quot;},&quot;odx-question-when&quot;:{&quot;index&quot;:114,&quot;value&quot;:&quot;When?&quot;},&quot;odx-question-why&quot;:{&quot;index&quot;:115,&quot;value&quot;:&quot;Why?&quot;},&quot;odx-agency&quot;:{&quot;index&quot;:116,&quot;value&quot;:&quot;State%20Agency&quot;},&quot;odx-all-agencies&quot;:{&quot;index&quot;:117,&quot;value&quot;:&quot;All%20Agencies&quot;},&quot;odx-no-results-image&quot;:{&quot;index&quot;:118,&quot;value&quot;:&quot;Your%20filter%20did%20not%20match%20any%20results&quot;},&quot;odx-share-this&quot;:{&quot;index&quot;:119,&quot;value&quot;:&quot;Share%20this&quot;},&quot;odx-filter-showing&quot;:{&quot;index&quot;:120,&quot;value&quot;:&quot;Your%20filter%20is%20showing&quot;},&quot;odx-results&quot;:{&quot;index&quot;:121,&quot;value&quot;:&quot;results&quot;},&quot;odx-filter-keywords&quot;:{&quot;index&quot;:122,&quot;value&quot;:&quot;Filter%20the%20resources%20below%20by%20keyword%20or%20topic.&quot;},&quot;odx-catalog-filter&quot;:{&quot;index&quot;:123,&quot;value&quot;:&quot;Search%20by%20keyword,%20domain%20of%20expertise,%20etc.&quot;},&quot;odx-login-username&quot;:{&quot;index&quot;:124,&quot;value&quot;:&quot;Username&quot;},&quot;odx-login-password&quot;:{&quot;index&quot;:125,&quot;value&quot;:&quot;Password&quot;},&quot;odx-login&quot;:{&quot;index&quot;:126,&quot;value&quot;:&quot;Log%20In&quot;},&quot;odx-swipe-navigation&quot;:{&quot;index&quot;:127,&quot;value&quot;:&quot;Swipe%20Up%20To%20See%20The%20Menu&quot;},&quot;odx-send&quot;:{&quot;index&quot;:128,&quot;value&quot;:&quot;send&quot;},&quot;odx-login-forgot&quot;:{&quot;index&quot;:129,&quot;value&quot;:&quot;Forgot%20username/password?&quot;},&quot;odx-register&quot;:{&quot;index&quot;:130,&quot;value&quot;:&quot;Register&quot;},&quot;odx-view-more-informative&quot;:{&quot;index&quot;:131,&quot;value&quot;:&quot;Click%20here%20for%20view%20more%20about%20it.&quot;},&quot;odx-looking-for&quot;:{&quot;index&quot;:132,&quot;value&quot;:&quot;Can&#39;t%20find%20what%20you%20are%20looking%20for?&quot;},&quot;odx-agencies-faqs&quot;:{&quot;index&quot;:133,&quot;value&quot;:&quot;Agencies&#39;%20FAQs&quot;},&quot;odx-faq&quot;:{&quot;index&quot;:134,&quot;value&quot;:&quot;Frequently%20Asked%20Questions&quot;},&quot;odx-live-help&quot;:{&quot;index&quot;:135,&quot;value&quot;:&quot;Ohio.gov%20Live%20Help&quot;},&quot;odx-live-operator&quot;:{&quot;index&quot;:136,&quot;value&quot;:&quot;A%20live%20operator%20will%20be%20able%20to%20aid%20you.&quot;},&quot;odx-jobs&quot;:{&quot;index&quot;:137,&quot;value&quot;:&quot;Jobs&quot;},&quot;odx-tourism&quot;:{&quot;index&quot;:138,&quot;value&quot;:&quot;Tourism&quot;},&quot;odx-search-box-help-text&quot;:{&quot;index&quot;:139,&quot;value&quot;:&quot;%20Not%20sure%20where%20to%20start?%20See%20answers%20to%20common%20questions.&quot;},&quot;odx-search-input-placeholder&quot;:{&quot;index&quot;:140,&quot;value&quot;:&quot;Search%20Services,%20Agencies%20and%20more.&quot;},&quot;odx-all-events&quot;:{&quot;index&quot;:141,&quot;value&quot;:&quot;All%20Events&quot;},&quot;odx-see-other-resources&quot;:{&quot;index&quot;:142,&quot;value&quot;:&quot;See%20other%20resources%20for%20&quot;},&quot;odx-see-all-chiefs&quot;:{&quot;index&quot;:143,&quot;value&quot;:&quot;SEE%20ALL%20CHIEFS&quot;},&quot;odx-gov-url-placeholder&quot;:{&quot;index&quot;:144,&quot;value&quot;:&quot;https://www.ohio.gov.&quot;},&quot;odx-suggestions-gov&quot;:{&quot;index&quot;:145,&quot;value&quot;:&quot;What%20comments%20or%20suggestions%20do%20you%20have%20to%20improve%20Ohio.gov?&quot;},&quot;odx-we-will-return&quot;:{&quot;index&quot;:146,&quot;value&quot;:&quot;we%20will%20return&quot;},&quot;odx-try-again&quot;:{&quot;index&quot;:147,&quot;value&quot;:&quot;Try%20Again&quot;},&quot;odx-locations-alpha-directory-header-title&quot;:{&quot;index&quot;:148,&quot;value&quot;:&quot;See%20All%20Locations&quot;},&quot;odx-locations-alpha-directory-header-list-title&quot;:{&quot;index&quot;:149,&quot;value&quot;:&quot;ALL%20LHD&quot;},&quot;odx-view-more-programs&quot;:{&quot;index&quot;:150,&quot;value&quot;:&quot;view%20more%20programs&quot;},&quot;odx-filter&quot;:{&quot;index&quot;:151,&quot;value&quot;:&quot;FILTER&quot;},&quot;odx-program&quot;:{&quot;index&quot;:152,&quot;value&quot;:&quot;Program&quot;},&quot;odx-all-programs&quot;:{&quot;index&quot;:153,&quot;value&quot;:&quot;All%20Programs&quot;},&quot;odx-show-all&quot;:{&quot;index&quot;:154,&quot;value&quot;:&quot;SHOW%20ALL&quot;},&quot;odx-how-to-find-this-health-district&quot;:{&quot;index&quot;:155,&quot;value&quot;:&quot;About%20this%20facility&quot;},&quot;odx-launch&quot;:{&quot;index&quot;:156,&quot;value&quot;:&quot;Launch&quot;},&quot;odx-licenses-and-permits&quot;:{&quot;index&quot;:157,&quot;value&quot;:&quot;Licenses%20&amp;%20Permits&quot;},&quot;odx-locations-all-topics&quot;:{&quot;index&quot;:158,&quot;value&quot;:&quot;All%20locations&quot;},&quot;odx-found-departments&quot;:{&quot;index&quot;:159,&quot;value&quot;:&quot;locations&quot;},&quot;odx-found&quot;:{&quot;index&quot;:160,&quot;value&quot;:&quot;Found&quot;},&quot;odx-view-all-initiatives-by-domain&quot;:{&quot;index&quot;:161,&quot;value&quot;:&quot;View%20all%20analytics%20by%20domain&quot;},&quot;odx-all-areas-of-domain-expertise&quot;:{&quot;index&quot;:162,&quot;value&quot;:&quot;All%20Areas&quot;},&quot;odx-all-project-phases&quot;:{&quot;index&quot;:163,&quot;value&quot;:&quot;All%20Phases&quot;},&quot;odx-abstract-max-chars-error&quot;:{&quot;index&quot;:164,&quot;value&quot;:&quot;Please%20add%20an%20abstract%20of%20your%20idea.%20You%20have%20500%20characters%20to%20describe%20it.Abstract%20must%20be%20less%20than%20500%20characters&quot;},&quot;odx-title-idea-placeholder&quot;:{&quot;index&quot;:165,&quot;value&quot;:&quot;e.g.%20Ohio%20Data%20Project&quot;},&quot;odx-contact-abstract-placeholder&quot;:{&quot;index&quot;:166,&quot;value&quot;:&quot;Please%20add%20an%20abstract%20of%20your%20idea.%20You%20have%20500%20characters%20to%20describe%20it.&quot;},&quot;odx-title-of-idea&quot;:{&quot;index&quot;:167,&quot;value&quot;:&quot;Title&quot;},&quot;odx-contact-abstract&quot;:{&quot;index&quot;:168,&quot;value&quot;:&quot;Abstract&quot;},&quot;odx-agency-name&quot;:{&quot;index&quot;:169,&quot;value&quot;:&quot;Organization%20Name&quot;},&quot;odx-agency-name-placeholder&quot;:{&quot;index&quot;:170,&quot;value&quot;:&quot;e.g.%20Office%20of%20Budget%20Management&quot;},&quot;odx-business-purpose&quot;:{&quot;index&quot;:171,&quot;value&quot;:&quot;Message&quot;},&quot;odx-business-purpose-placeholder&quot;:{&quot;index&quot;:172,&quot;value&quot;:&quot;Please%20describe%20the%20business%20purpose%20of%20this%20request%20or%20any%20questions%20that%20you%20may%20have%20for%20the%20Ohio%20Data%20Analytics%20team.&quot;},&quot;odx-suggestions-analytics&quot;:{&quot;index&quot;:173,&quot;value&quot;:&quot;What%20comments%20or%20suggestions%20do%20you%20have%20to%20improve%20odaanalitics.ohio.gov?&quot;},&quot;odx-suggestions-odh&quot;:{&quot;index&quot;:174,&quot;value&quot;:&quot;What%20comments%20or%20suggestions%20do%20you%20have%20to%20improve%20our%20site?&quot;},&quot;odx-view-all-forms&quot;:{&quot;index&quot;:175,&quot;value&quot;:&quot;VIEW%20ALL%20FORMS&quot;},&quot;odx-view-more-laws&quot;:{&quot;index&quot;:176,&quot;value&quot;:&quot;VIEW%20MORE%20LAWS&quot;},&quot;odx-az-index-alpha-directory-header-title&quot;:{&quot;index&quot;:177,&quot;value&quot;:&quot;Programs%20and%20Resources%20Directory&quot;},&quot;odx-az-index-all-topics&quot;:{&quot;index&quot;:178,&quot;value&quot;:&quot;All%20Items&quot;},&quot;odx-related-laws-and-forms&quot;:{&quot;index&quot;:179,&quot;value&quot;:&quot;Related%20Laws%20&amp;%20Forms&quot;},&quot;odx-view-more-laws-and-forms&quot;:{&quot;index&quot;:180,&quot;value&quot;:&quot;View%20Other%20Laws%20&amp;%20Forms&quot;},&quot;odx-faqs-alpha-directory-header-title&quot;:{&quot;index&quot;:181,&quot;value&quot;:&quot;Frequently%20Asked%20Questions&quot;},&quot;odx-faqs-all-topics&quot;:{&quot;index&quot;:182,&quot;value&quot;:&quot;All%20FAQs&quot;},&quot;odx-know-our-offerings&quot;:{&quot;index&quot;:183,&quot;value&quot;:&quot;Explore%20Offerings&quot;},&quot;odx-full-list-laws-and-forms&quot;:{&quot;index&quot;:184,&quot;value&quot;:&quot;See%20the%20full%20list%20or%20related%20documents&quot;},&quot;odx-oda-filter-keywords&quot;:{&quot;index&quot;:185,&quot;value&quot;:&quot;The%20list%20below%20shows%20all%20available%20analytics%20in%20our%20catalog.%20You%20can%20also%20filter%20by%20Domains%20of%20Expertise.&quot;},&quot;odx-oda-number-of-users&quot;:{&quot;index&quot;:186,&quot;value&quot;:&quot;Do%20you%20have%20an%20idea%20about%20the%20number%20of%20users%20that%20will%20take%20advantage%20of%20your%20application?&quot;},&quot;odx-oda-number-of-users-placeholder&quot;:{&quot;index&quot;:187,&quot;value&quot;:&quot;Please%20write%20the%20number%20of%20users&quot;},&quot;odx-search-view-our&quot;:{&quot;index&quot;:188,&quot;value&quot;:&quot;View%20our&quot;},&quot;oda-full-name&quot;:{&quot;index&quot;:189,&quot;value&quot;:&quot;Name&quot;},&quot;odx-odx-site-filter-keywords&quot;:{&quot;index&quot;:190,&quot;value&quot;:&quot;You%20can%20filter%20our%20list%20using%20specific%20keywords,%20or%20by%20selecting%20a%20topic%20from%20the%20list%20below.&quot;},&quot;odx-odx-site-catalog-filter&quot;:{&quot;index&quot;:191,&quot;value&quot;:&quot;Search%20by%20keyword,%20topic,%20etc.&quot;},&quot;odx-last-name-placeholder&quot;:{&quot;index&quot;:192,&quot;value&quot;:&quot;e.g.%20Smith&quot;},&quot;odx-mobile-phone-placeholder&quot;:{&quot;index&quot;:193,&quot;value&quot;:&quot;Phone%20number&quot;},&quot;odx-mobile-phone&quot;:{&quot;index&quot;:194,&quot;value&quot;:&quot;Mobile%20phone&quot;},&quot;odx-message&quot;:{&quot;index&quot;:195,&quot;value&quot;:&quot;Message&quot;},&quot;learn-more&quot;:{&quot;index&quot;:196,&quot;value&quot;:&quot;Learn%20More&quot;},&quot;zip-code&quot;:{&quot;index&quot;:197,&quot;value&quot;:&quot;Zip%20Code&quot;},&quot;zip-code-placeholder&quot;:{&quot;index&quot;:198,&quot;value&quot;:&quot;43215&quot;},&quot;name&quot;:{&quot;index&quot;:199,&quot;value&quot;:&quot;Name&quot;},&quot;your-linkedin-profile&quot;:{&quot;index&quot;:200,&quot;value&quot;:&quot;Your%20Linkedin%20Profile&quot;},&quot;tell-us-about-yourself&quot;:{&quot;index&quot;:201,&quot;value&quot;:&quot;Tell%20us%20about%20yourself&quot;},&quot;odx-phone-error&quot;:{&quot;index&quot;:202,&quot;value&quot;:&quot;The%20value%20is%20not%20a%20valid%20phone%20number.&quot;},&quot;linkedin-placeholder&quot;:{&quot;index&quot;:203,&quot;value&quot;:&quot;https://www.linkedin.com/in/username&quot;},&quot;govelect-join-the-team-to-email&quot;:{&quot;index&quot;:204,&quot;value&quot;:&quot;ODX-Support@das.ohio.gov&quot;},&quot;govelect-date-of-the-event&quot;:{&quot;index&quot;:205,&quot;value&quot;:&quot;Date%20of%20the%20Event&quot;},&quot;govelect-time-of-the-event&quot;:{&quot;index&quot;:206,&quot;value&quot;:&quot;Time%20of%20the%20Event&quot;},&quot;govelect-event-location&quot;:{&quot;index&quot;:207,&quot;value&quot;:&quot;Location%20of%20the%20Event&quot;},&quot;govelect-event-background&quot;:{&quot;index&quot;:208,&quot;value&quot;:&quot;Event%20Background&quot;},&quot;govelect-about-event&quot;:{&quot;index&quot;:209,&quot;value&quot;:&quot;About%20the%20Event&quot;},&quot;govelect-url-placeholder&quot;:{&quot;index&quot;:210,&quot;value&quot;:&quot;govelect.ohio.gov&quot;},&quot;odx-integer-error&quot;:{&quot;index&quot;:211,&quot;value&quot;:&quot;This%20field%20must%20be%20an%20integer%20number&quot;},&quot;odx-organization&quot;:{&quot;index&quot;:212,&quot;value&quot;:&quot;Organization&quot;},&quot;odx-organization-placeholder&quot;:{&quot;index&quot;:213,&quot;value&quot;:&quot;Type%20your%20organization&#39;s%20name&quot;},&quot;govelect-event-start-time&quot;:{&quot;index&quot;:214,&quot;value&quot;:&quot;Event%20Start%20Time&quot;},&quot;govelect-event-end-time&quot;:{&quot;index&quot;:215,&quot;value&quot;:&quot;Event%20End%20Time&quot;},&quot;odx-additional-notes&quot;:{&quot;index&quot;:216,&quot;value&quot;:&quot;Additional%20Notes&quot;},&quot;odx-number-of-attendees&quot;:{&quot;index&quot;:217,&quot;value&quot;:&quot;Number%20of%20Attendees&quot;},&quot;odx-event-requirements&quot;:{&quot;index&quot;:218,&quot;value&quot;:&quot;Event%20Requirements&quot;},&quot;odx-attend-event&quot;:{&quot;index&quot;:219,&quot;value&quot;:&quot;Attend%20Event&quot;},&quot;odx-deliver-remarks&quot;:{&quot;index&quot;:220,&quot;value&quot;:&quot;Deliver%20remarks&quot;},&quot;odx-meeting-request&quot;:{&quot;index&quot;:221,&quot;value&quot;:&quot;Meeting%20request&quot;},&quot;odx-open-press-event&quot;:{&quot;index&quot;:222,&quot;value&quot;:&quot;Open%20Press%20Event&quot;},&quot;odx-representative-acceptable&quot;:{&quot;index&quot;:223,&quot;value&quot;:&quot;Representative%20acceptable&quot;},&quot;odx-open-to-public&quot;:{&quot;index&quot;:224,&quot;value&quot;:&quot;Open%20to%20public&quot;},&quot;odx-county-of-event&quot;:{&quot;index&quot;:225,&quot;value&quot;:&quot;County%20of%20event&quot;},&quot;odx-county-of-event-placeholder&quot;:{&quot;index&quot;:226,&quot;value&quot;:&quot;Select%20County&quot;},&quot;odx-full-name&quot;:{&quot;index&quot;:227,&quot;value&quot;:&quot;Full%20Name&quot;},&quot;odx-requesting&quot;:{&quot;index&quot;:228,&quot;value&quot;:&quot;Requesting&quot;},&quot;govelect-mike-dewine&quot;:{&quot;index&quot;:229,&quot;value&quot;:&quot;Governor-elect%20Mike%20DeWine&quot;},&quot;govelect-lt-governor&quot;:{&quot;index&quot;:230,&quot;value&quot;:&quot;Lt.%20Governor-elect%20Jon%20Husted&quot;},&quot;govelect-representative&quot;:{&quot;index&quot;:231,&quot;value&quot;:&quot;A%20representative%20of%20the%20DeWine-Husted%20team&quot;},&quot;odx-to-for&quot;:{&quot;index&quot;:232,&quot;value&quot;:&quot;To/For&quot;},&quot;govelect-attend-event&quot;:{&quot;index&quot;:233,&quot;value&quot;:&quot;Attend%20Event&quot;},&quot;govelect-deliver-remarks&quot;:{&quot;index&quot;:234,&quot;value&quot;:&quot;Deliver%20remarks&quot;},&quot;govelect-meeting-request&quot;:{&quot;index&quot;:235,&quot;value&quot;:&quot;Meeting%20request&quot;},&quot;odx-event-is&quot;:{&quot;index&quot;:236,&quot;value&quot;:&quot;Event%20is&quot;},&quot;govelect-press-event&quot;:{&quot;index&quot;:237,&quot;value&quot;:&quot;Open%20Press%20Event&quot;},&quot;govelect-public-event&quot;:{&quot;index&quot;:238,&quot;value&quot;:&quot;Open%20to%20public&quot;},&quot;odx-find-us&quot;:{&quot;index&quot;:239,&quot;value&quot;:&quot;Find%20Us&quot;},&quot;odx-view-all-rules-in-effect&quot;:{&quot;index&quot;:240,&quot;value&quot;:&quot;VIEW%20ALL%20RULES%20IN%20EFFECT&quot;},&quot;odx-url-generic-placeholder&quot;:{&quot;index&quot;:241,&quot;value&quot;:&quot;Type%20a%20url%20here...&quot;},&quot;odx-view-all-rules-under-development&quot;:{&quot;index&quot;:242,&quot;value&quot;:&quot;VIEW%20ALL%20RULES%20UNDER%20DEVELOPMENT&quot;},&quot;odx-employee-login&quot;:{&quot;index&quot;:243,&quot;value&quot;:&quot;Employee%20Login%20&quot;},&quot;odx-meet-centers&quot;:{&quot;index&quot;:244,&quot;value&quot;:&quot;State%20Operated%20Developmental%20Centers&quot;},&quot;odx-see-all-centers&quot;:{&quot;index&quot;:245,&quot;value&quot;:&quot;See%20All%20Centers&quot;},&quot;odx-no-forms&quot;:{&quot;index&quot;:246,&quot;value&quot;:&quot;No%20forms&quot;},&quot;governor&quot;:{&quot;index&quot;:247,&quot;value&quot;:&quot;Governor&quot;},&quot;lt-governor&quot;:{&quot;index&quot;:248,&quot;value&quot;:&quot;Lt.%20Governor&quot;},&quot;state&quot;:{&quot;index&quot;:249,&quot;value&quot;:&quot;State&quot;},&quot;city&quot;:{&quot;index&quot;:250,&quot;value&quot;:&quot;City&quot;},&quot;street&quot;:{&quot;index&quot;:251,&quot;value&quot;:&quot;Street&quot;},&quot;odx-phone-number&quot;:{&quot;index&quot;:252,&quot;value&quot;:&quot;Phone%20Number&quot;},&quot;odx-subject&quot;:{&quot;index&quot;:253,&quot;value&quot;:&quot;Subject&quot;},&quot;odx-select-issue&quot;:{&quot;index&quot;:254,&quot;value&quot;:&quot;Select%20Issue&quot;},&quot;odx-privacy-notice-and-accessibility&quot;:{&quot;index&quot;:255,&quot;value&quot;:&quot;Privacy%20Notice%20and%20Accessibility&quot;},&quot;governor-action-url&quot;:{&quot;index&quot;:256,&quot;value&quot;:&quot;https://list.em.ohio.gov/subscribe/subscribe.tml&quot;},&quot;odx-search-local-county-board&quot;:{&quot;index&quot;:257,&quot;value&quot;:&quot;Search%20for%20Your%20Local%20County%20Board&quot;},&quot;odx-meet-our-executives&quot;:{&quot;index&quot;:258,&quot;value&quot;:&quot;Meet%20our%20Executives&quot;},&quot;odx-see-all-executives&quot;:{&quot;index&quot;:259,&quot;value&quot;:&quot;See%20all%20Executives&quot;},&quot;dodd-employee-login&quot;:{&quot;index&quot;:260,&quot;value&quot;:&quot;DODD%20Insider&quot;},&quot;odx-news-and-press-releases&quot;:{&quot;index&quot;:261,&quot;value&quot;:&quot;News%20&amp;%20Press%20Releases&quot;},&quot;odi-media-coverage&quot;:{&quot;index&quot;:262,&quot;value&quot;:&quot;ODI%20Media%20Coverage&quot;},&quot;odx-view-more-news-and-press-releases&quot;:{&quot;index&quot;:263,&quot;value&quot;:&quot;View%20More%20News%20&amp;%20Press%20Releases&quot;},&quot;odx-ooz-privacy-notice&quot;:{&quot;index&quot;:264,&quot;value&quot;:&quot;Privacy%20Policy&quot;},&quot;odx-terms-and-conditions&quot;:{&quot;index&quot;:265,&quot;value&quot;:&quot;Terms%20and%20Conditions%20of%20Use&quot;},&quot;odx-i-have-a-question&quot;:{&quot;index&quot;:266,&quot;value&quot;:&quot;I%20have%20a%20question&quot;},&quot;odx-i-want-to-schedule-a-presentation&quot;:{&quot;index&quot;:267,&quot;value&quot;:&quot;I%20want%20to%20schedule%20a%20presentation&quot;},&quot;odx-request-a-cyber-security-article&quot;:{&quot;index&quot;:268,&quot;value&quot;:&quot;Request%20a%20cyber%20security%20article%20for%20my%20publication&quot;},&quot;dodd-sugestion&quot;:{&quot;index&quot;:269,&quot;value&quot;:&quot;What%20comments%20or%20suggestions%20do%20you%20have%20to%20improve%20dodd.ohio.gov?&quot;},&quot;odx-contact-idea&quot;:{&quot;index&quot;:270,&quot;value&quot;:&quot;Idea&quot;},&quot;odx-contact-idea-placeholder&quot;:{&quot;index&quot;:271,&quot;value&quot;:&quot;Type%20your%20idea%20here...&quot;},&quot;odx-search-location-title-wic-clinics&quot;:{&quot;index&quot;:272,&quot;value&quot;:&quot;Search%20for%20WIC%20Clinics&quot;},&quot;odx-first-name-placeholder&quot;:{&quot;index&quot;:273,&quot;value&quot;:&quot;e.g.%20Charles&quot;},&quot;odx-company-placeholder&quot;:{&quot;index&quot;:274,&quot;value&quot;:&quot;e.g.%20Company%20Inc.&quot;},&quot;odx-company&quot;:{&quot;index&quot;:275,&quot;value&quot;:&quot;Company&quot;},&quot;odx-initiative-placeholder&quot;:{&quot;index&quot;:276,&quot;value&quot;:&quot;Select%20an%20initiative%20type&quot;},&quot;odx-initiative&quot;:{&quot;index&quot;:277,&quot;value&quot;:&quot;Initiative&quot;},&quot;odx-department-literal&quot;:{&quot;index&quot;:278,&quot;value&quot;:&quot;Department&quot;},&quot;odx-choose-agency&quot;:{&quot;index&quot;:279,&quot;value&quot;:&quot;Choose%20Department/Request&quot;},&quot;odx-sign-up&quot;:{&quot;index&quot;:280,&quot;value&quot;:&quot;Sign%20Up&quot;},&quot;odx-subscribe&quot;:{&quot;index&quot;:281,&quot;value&quot;:&quot;Subscribe&quot;},&quot;dodd-feedback&quot;:{&quot;index&quot;:282,&quot;value&quot;:&quot;Feedback&quot;},&quot;obm-all-areas-interest&quot;:{&quot;index&quot;:283,&quot;value&quot;:&quot;VIEW%20ALL%20AREAS%20OF%20INTEREST&quot;},&quot;obm-areas-of-interest-footer&quot;:{&quot;index&quot;:284,&quot;value&quot;:&quot;Areas%20of%20Interest&quot;},&quot;i-accept-terms-of-use&quot;:{&quot;index&quot;:285,&quot;value&quot;:&quot;I%20Accept%20Terms%20of%20Use&quot;},&quot;i-do-not-accept-terms-of-use&quot;:{&quot;index&quot;:286,&quot;value&quot;:&quot;I%20Do%20Not%20Accept&quot;},&quot;odx-agency-label&quot;:{&quot;index&quot;:287,&quot;value&quot;:&quot;Agency&quot;},&quot;odx-new-account-number&quot;:{&quot;index&quot;:288,&quot;value&quot;:&quot;New%20Account%20Number&quot;},&quot;odx-oaks-supplier&quot;:{&quot;index&quot;:289,&quot;value&quot;:&quot;OAKS%20Supplier&quot;},&quot;odx-origin-code&quot;:{&quot;index&quot;:290,&quot;value&quot;:&quot;Origin%20Code&quot;},&quot;odx-employee-number&quot;:{&quot;index&quot;:291,&quot;value&quot;:&quot;Employee%20Number&quot;},&quot;odx-employer&quot;:{&quot;index&quot;:292,&quot;value&quot;:&quot;Employer&quot;},&quot;odx-address&quot;:{&quot;index&quot;:293,&quot;value&quot;:&quot;Address&quot;},&quot;odx-occupation&quot;:{&quot;index&quot;:294,&quot;value&quot;:&quot;Occupation&quot;},&quot;iop-sign-up-for-alerts&quot;:{&quot;index&quot;:295,&quot;value&quot;:&quot;Sign%20up%20for%20alerts&quot;},&quot;iop-flag-status&quot;:{&quot;index&quot;:296,&quot;value&quot;:&quot;Flag%20Status&quot;},&quot;obm-footer-intro&quot;:{&quot;index&quot;:297,&quot;value&quot;:&quot;Visit%20the%20previous%20OBM%20website&quot;},&quot;odx-interests&quot;:{&quot;index&quot;:298,&quot;value&quot;:&quot;Interests&quot;},&quot;odx-full-name-placeholder&quot;:{&quot;index&quot;:299,&quot;value&quot;:&quot;e.g.%20Jane%20Doe&quot;},&quot;odx-view-more-forms&quot;:{&quot;index&quot;:300,&quot;value&quot;:&quot;View%20More%20Forms&quot;},&quot;odx-search-location-title&quot;:{&quot;index&quot;:301,&quot;value&quot;:&quot;Search%20for%20Locations&quot;},&quot;odx-how-to-find-this-location&quot;:{&quot;index&quot;:302,&quot;value&quot;:&quot;How%20to%20find%20this%20location?&quot;},&quot;odx-all-types&quot;:{&quot;index&quot;:303,&quot;value&quot;:&quot;All%20Types&quot;},&quot;odx-all-status&quot;:{&quot;index&quot;:304,&quot;value&quot;:&quot;All%20Status&quot;},&quot;filte&quot;:{&quot;index&quot;:305,&quot;value&quot;:&quot;What%20is%20the%20name%20of%20the%20article%20you%20are%20looking%20for?&quot;},&quot;odx-articles&quot;:{&quot;index&quot;:306,&quot;value&quot;:&quot;Articles&quot;},&quot;odx-filter-by-topic&quot;:{&quot;index&quot;:307,&quot;value&quot;:&quot;Filter%20by%20Topic&quot;},&quot;odx-all-news&quot;:{&quot;index&quot;:308,&quot;value&quot;:&quot;All%20News&quot;},&quot;odx-featured-content&quot;:{&quot;index&quot;:309,&quot;value&quot;:&quot;Featured%20Content&quot;},&quot;top-login&quot;:{&quot;index&quot;:310,&quot;value&quot;:&quot;Login&quot;},&quot;odx-contact-us&quot;:{&quot;index&quot;:311,&quot;value&quot;:&quot;Contact%20us&quot;},&quot;odx-searchbox-label&quot;:{&quot;index&quot;:312,&quot;value&quot;:&quot;Search%20in%20our%20portal&quot;},&quot;odx-account&quot;:{&quot;index&quot;:313,&quot;value&quot;:&quot;Account&quot;},&quot;odx-search-by-keyword&quot;:{&quot;index&quot;:314,&quot;value&quot;:&quot;Search%20by%20Keyword&quot;},&quot;odx-reset-filters&quot;:{&quot;index&quot;:315,&quot;value&quot;:&quot;Reset%20Filters&quot;},&quot;odx-filter-resources&quot;:{&quot;index&quot;:316,&quot;value&quot;:&quot;Resources%20Filter&quot;},&quot;odx-by-events&quot;:{&quot;index&quot;:317,&quot;value&quot;:&quot;By%20Events&quot;},&quot;odx-by-topic&quot;:{&quot;index&quot;:318,&quot;value&quot;:&quot;By%20Topic&quot;},&quot;odx-ribbon-subtitle&quot;:{&quot;index&quot;:319,&quot;value&quot;:&quot;This%20subtitle%20is%20predefined%20not%20content%20based&quot;},&quot;odx-statewide-label&quot;:{&quot;index&quot;:320,&quot;value&quot;:&quot;STATEWIDE&quot;},&quot;odx-skip-to-nav&quot;:{&quot;index&quot;:321,&quot;value&quot;:&quot;Skip%20to%20Navigation&quot;},&quot;odx-skip-to-main-content&quot;:{&quot;index&quot;:322,&quot;value&quot;:&quot;Skip%20to%20Main%20Content&quot;},&quot;odx-add&quot;:{&quot;index&quot;:323,&quot;value&quot;:&quot;Add&quot;},&quot;odx-to&quot;:{&quot;index&quot;:324,&quot;value&quot;:&quot;to&quot;},&quot;odx-keep-updated&quot;:{&quot;index&quot;:325,&quot;value&quot;:&quot;Stay%20updated,%20subscribe%20to%20our%20newsletter&quot;},&quot;odx-subscribe-tooltip&quot;:{&quot;index&quot;:326,&quot;value&quot;:&quot;Please%20enter%20a%20valid%20email%20address&quot;},&quot;odx-enter-email&quot;:{&quot;index&quot;:327,&quot;value&quot;:&quot;Enter%20your%20email%20address&quot;},&quot;iop-news-filter-by&quot;:{&quot;index&quot;:328,&quot;value&quot;:&quot;Filter%20by%20Topic&quot;},&quot;iop-news-start-date&quot;:{&quot;index&quot;:329,&quot;value&quot;:&quot;From%20Date&quot;},&quot;iop-news-end-date&quot;:{&quot;index&quot;:330,&quot;value&quot;:&quot;To%20Date&quot;},&quot;iop-news-search-by&quot;:{&quot;index&quot;:331,&quot;value&quot;:&quot;Search%20by%20Keyword&quot;},&quot;iop-filter-input-title&quot;:{&quot;index&quot;:332,&quot;value&quot;:&quot;Keyword&quot;},&quot;iop-filter-help-text&quot;:{&quot;index&quot;:333,&quot;value&quot;:&quot;Filter%20the%20content%20below%20by%20keyword%20or%20topic.&quot;},&quot;iop-filter-input-placeholder&quot;:{&quot;index&quot;:334,&quot;value&quot;:&quot;Type%20a%20Keyword%20here&quot;},&quot;iop-filter-button-filter&quot;:{&quot;index&quot;:335,&quot;value&quot;:&quot;Filter&quot;},&quot;odx-filter-button-reset&quot;:{&quot;index&quot;:336,&quot;value&quot;:&quot;Reset%20Filters&quot;},&quot;iop-filter-no-results-txt&quot;:{&quot;index&quot;:337,&quot;value&quot;:&quot;Your%20filter%20did%20not%20match%20any%20results.&quot;},&quot;iop-no-results-image-url&quot;:{&quot;index&quot;:338,&quot;value&quot;:&quot;/wps/wcm/connect/gov/5c5182ce-300b-47ed-b718-b28d27c5dd7f/Ooops.png?MOD=AJPERES&quot;},&quot;odx-follow-us-social-media&quot;:{&quot;index&quot;:339,&quot;value&quot;:&quot;Follow%20Us%20on%20Social%20Media&quot;},&quot;odx-type&quot;:{&quot;index&quot;:340,&quot;value&quot;:&quot;Type&quot;},&quot;odx-learn-more&quot;:{&quot;index&quot;:341,&quot;value&quot;:&quot;Learn%20More&quot;},&quot;odx-all-regions&quot;:{&quot;index&quot;:342,&quot;value&quot;:&quot;All%20Regions&quot;},&quot;odx-latest-news&quot;:{&quot;index&quot;:343,&quot;value&quot;:&quot;Latest%20News&quot;},&quot;odx-view-all-press-releases&quot;:{&quot;index&quot;:344,&quot;value&quot;:&quot;View%20All%20Press%20Releases&quot;},&quot;odx-related-resources&quot;:{&quot;index&quot;:345,&quot;value&quot;:&quot;Related%20Resources&quot;},&quot;iop-successful-signup&quot;:{&quot;index&quot;:346,&quot;value&quot;:&quot;Thanks%20for%20signing%20up!&quot;},&quot;iop-successful-signup-icon&quot;:{&quot;index&quot;:347,&quot;value&quot;:&quot;fa-check&quot;},&quot;iop-error-signup&quot;:{&quot;index&quot;:348,&quot;value&quot;:&quot;There%20is%20an%20issue%20with%20your%20account%20ID&quot;},&quot;iop-error-signup-icon&quot;:{&quot;index&quot;:349,&quot;value&quot;:&quot;fa-times&quot;},&quot;odx-helplink-label&quot;:{&quot;index&quot;:350,&quot;value&quot;:&quot;Go%20to%20the%20help%20page&quot;},&quot;odx-collapsible-section-links-header&quot;:{&quot;index&quot;:351,&quot;value&quot;:&quot;Common%20Questions&quot;},&quot;iop-sidebar-menu&quot;:{&quot;index&quot;:352,&quot;value&quot;:&quot;Sidebar%20Menu&quot;},&quot;iop-close&quot;:{&quot;index&quot;:353,&quot;value&quot;:&quot;close&quot;},&quot;iop-table-contents&quot;:{&quot;index&quot;:354,&quot;value&quot;:&quot;Table%20of%20Contents&quot;},&quot;odx-video-player-header&quot;:{&quot;index&quot;:355,&quot;value&quot;:&quot;Latest%20Videos&quot;},&quot;odx-see-all&quot;:{&quot;index&quot;:356,&quot;value&quot;:&quot;See%20All&quot;},&quot;odx-skip-to-chatbot&quot;:{&quot;index&quot;:357,&quot;value&quot;:&quot;Skip%20to%20Chatbot&quot;},&quot;odx-location-url&quot;:{&quot;index&quot;:358,&quot;value&quot;:&quot;Website&quot;},&quot;odx-opening-info&quot;:{&quot;index&quot;:359,&quot;value&quot;:&quot;Opening%20Info&quot;},&quot;odx-divisions&quot;:{&quot;index&quot;:360,&quot;value&quot;:&quot;Divisions,%20Programs%20or%20Initiatives&quot;}}")).text());
+
+var portalLocationsTranslations =JSON.parse($('<div />').html(decodeURIComponent("{&quot;gov-maps-traffic&quot;:{&quot;index&quot;:0,&quot;value&quot;:&quot;Maps%20&amp;%20Traffic&quot;},&quot;gov-socializer&quot;:{&quot;index&quot;:1,&quot;value&quot;:&quot;Socializer&quot;},&quot;gov-explorer&quot;:{&quot;index&quot;:2,&quot;value&quot;:&quot;Explorer&quot;}}")).text());
+
+window.currentSiteTranslations = $.extend(globalTranslations, portalLocationsTranslations, currentSiteTranslations);
+})(jQuery);
+</script>
+<!-- END: Ohio Design > Components > Load label translations -->
+
+
+
+            
+            
+            
+                <!-- Breadcrumb -->
+                
+                    <!-- START: Ohio Design > Components > Global > Utilities > Breadcrumb Navigation > Breadcrumbs -->
+<div class="b-breadcrumb__container" role="navigation" aria-label="breadcrumb">
+<div class="container hidden-xs">
+<ul class="b-breadcrumb" id="top-breadcrumbs">
+<li class="current"
+data-cssClass=""
+data-iconname="ART">
+
+
+     <a href='/wps/portal/gov/art/home'>ART</a>
+
+
+
+
+</li>
+
+<li class="current"
+data-cssClass=""
+data-iconname="Grants">
+
+
+
+     <a href='/wps/portal/gov/art/grants'>Grants</a>
+
+
+
+</li>
+
+<li class="current"
+data-cssClass=""
+data-iconname="Grant Opportunities">
+
+
+
+     <a href='/wps/portal/gov/art/grants/10-grant-opportunities'>Grant Opportunities</a>
+
+
+
+</li>
+</ul>
+</div>
+</div>
+<script type="text/javascript">
+(function($){
+$(document).ready(function(){
+
+        var titleCurrentContent = escape("Grant Opportunities");
+        var titleCurrentContentOrig = "Grant Opportunities";
+        var titleCurrentSiteArea = escape("Grant Opportunities");
+
+        if(titleCurrentContent != titleCurrentSiteArea && titleCurrentContent != escape("LP-List Children")){
+               $("ul.b-breadcrumb li").removeClass('current');
+$("ul.b-breadcrumb").append('<li class="current"><a href="/wps/portal/gov/art/grants/10-grant-opportunities/10-grant-opportunities">'+titleCurrentContentOrig+'</a></li>');
+
+        }else{
+               $("ul.b-breadcrumb li").removeClass('current');
+               $("ul.b-breadcrumb li").last().addClass('current');
+        }
+
+        // replace last link with span
+    $('#top-breadcrumbs li:last-child a').replaceWith(function(){
+        return $("<span>" + $(this).html() + "</span>");
+    });
+
+        // Hide labels after "Home" (it permits a different title of landing pages for home sections) 
+/*
+        $("ul.b-breadcrumb li a").each(function(){
+          if( $(this).html().indexOf("Home") !== -1 || $(this).html().indexOf("home") !== -1){
+            $(this).parent().addClass("current");
+            $(this).parent().nextAll().hide();
+          }
+        });
+*/
+});
+})(jQuery);
+</script>
+<!-- END: Ohio Design > Components > Global > Utilities > Breadcrumb Navigation > Breadcrumbs -->
+                
+            
+            
+            <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 margin-bottom-md">
+            
+                <main id="odx-main-content">
+                    <article class="odx-content odx-content--landing-page">
+                        
+
+                        
+
+                        
+
+                        
+
+                        
+                        <!-- START: Ohio Design > Components > Global > Utilities > ODX Landing Page Layouts > Layout ODX Single Column with Bottom Sidebar & Left Nav (Current Context) -->
+
+<div class="row">
+  <div class="col-xs-12 col-sm-12 col-md-2 col-lg-2">
+    
+
+
+
+
+
+
+<!-- START: Site Navigation -->
+
+<div class="aw-left-nav ">
+    
+    <div class="aw-left-nav__icon">
+        <div aria-hidden="false" class="odx-navigation odx-icon-wrapper">
+            <img class="img-responsive odx-navigation__icon odx-icon" src='/wps/wcm/connect/gov/4506c0c2-e4c6-4f25-bcd0-f2060543568a/oac-logo-single.png?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE.Z18_JQGCH4S04P41206HNUKVF31000-4506c0c2-e4c6-4f25-bcd0-f2060543568a-oWdSaJE' alt='' />
+        </div>
+        <div class="aw-left-nav__icon-text"></div>
+    </div>
+    
+    <nav class="odx-navigation odx-navigation--left">
+        <ul class="nav first-level">
+
+<li class="">
+
+
+    <div class="item">
+        <span class="pull-left">
+        
+         
+            <a class="left-navigation__link" href='/wps/portal/gov/art/grants/welcome'>
+                Welcome
+            </a>
+        
+        </span>
+    </div>
+</li>
+
+<li class="">
+
+
+    <div class="item">
+        <span class="pull-left">
+        
+         
+            <a class="left-navigation__link" href='/wps/portal/gov/art/grants/01-guidelines'>
+                Grants Info &amp; Guidelines
+            </a>
+        
+        </span>
+    </div>
+</li>
+
+<li class="active">
+
+
+    <div class="item">
+        <span class="pull-left">
+        
+         
+            <a class="left-navigation__link" href='/wps/portal/gov/art/grants/10-grant-opportunities'>
+                Grant Opportunities
+            </a>
+        
+        </span>
+    </div>
+</li>
+
+
+<li class="hidden">
+
+    <div class="item">
+        <span class="pull-left">
+        
+         
+            <a class="left-navigation__link" href='/wps/portal/gov/art/grants/grants-calendar'>
+                Grants Calendar
+            </a>
+        
+        </span>
+    </div>
+</li>
+
+<li class="">
+
+
+    <div class="item">
+        <span class="pull-left">
+        
+         
+            <a class="left-navigation__link" href='/wps/portal/gov/art/grants/grant-panelists'>
+                Grant Panelists
+            </a>
+        
+        </span>
+    </div>
+</li>
+
+
+<li class="hidden">
+
+    <div class="item">
+        <span class="pull-left">
+        
+         
+            <a class="left-navigation__link" href='/wps/portal/gov/art/grants/01-artie-login'>
+                ARTIE Login
+            </a>
+        
+        </span>
+    </div>
+</li>
+</ul>
+		</nav>
+</div>
+<!-- Footer Left Nav -->
+<!--START : Ohio Design / Global / Site Components / Site Navigation / ODX Left Navigation / ODX Ancestor Image / -->
+<script>
+      (function(window, $){
+          $(function(){
+// 1) Get all variables to support multilingual content
+var currentLanguage = OHIO.ODX.actions.getUserLanguageByCookie();
+
+var wcmLibrary = (typeof window.WCMLibraries !== "undefined") ? window.WCMLibraries[ currentLanguage ] : window.WCMLibraries[ 'en' ];
+var virtualPortal = (window.portalContext !== 'none') ? window.portalContext + '/' : 'gov';
+
+var currentPathArray = decodeURIComponent("/Ohio Content English/art/grants/10-grant-opportunities").split("/");
+var location = "";
+var length = currentPathArray.length;
+currentPathArray.forEach(function(element, index){
+     if(index > 1 && index < length - 1){
+        location += "/" + element;   
+   }
+});
+var params = {
+     source: 'library',
+     srv: 'cmpnt',
+     cmpntid: 'c5686057-4fc3-46db-a108-70889ba41add',
+     location: wcmLibrary + '/' + location,
+};
+
+var serviceURL = '/wps/wcm/connect/gov/odx%20common%20design/utility/context?' + $.param( params );
+
+          // 3) Run the AJAX call and do something with the response
+          OHIO.ODX.actions.getAjaxDataFromURL( serviceURL ).then( function( response ) {
+               window.ancestor_path = response;
+               if(ancestor_path !== ""){
+                    $(".js-leftnav-icon-url img").attr("src", ancestor_path);
+               }
+          });
+     });
+          
+     })(window, jQuery); 
+
+</script>
+
+<!-- END : Ohio Design / Global / Site Components / Site Navigation / ODX Left Navigation / ODX Ancestor Image / -->
+
+<script type="text/javascript">
+
+(function(){
+$(document).on('ready', function(){
+
+   var data_cssclass = $('.b-breadcrumb li[data-cssclass]');
+   var cssClass = 'oda-icon--department-of-agriculture';
+   var iconName = 'Department of Agriculture';
+   var divisionUrl = '#';
+
+   if(data_cssclass.length > 0){
+     cssClass = data_cssclass[data_cssclass.length-1].getAttribute('data-cssclass');
+     iconName = data_cssclass[data_cssclass.length-2].getAttribute('data-iconname');
+     divisionUrl = data_cssclass.find('a').last().attr('href');
+   }
+
+   $('.aw-left-nav__icon span').addClass(cssClass);
+   $('.aw-left-nav__icon div.aw-left-nav__icon-text').html(iconName);
+   $('.js-leftnav-icon-url').attr( "href", divisionUrl );
+
+ if($( window ).width() <= 991){
+   var container = '';
+   var indexOfCurrent = $('.aw-left-nav ul li.active').index();
+   var newPosition = 0;
+   if(indexOfCurrent == -1){
+     indexOfCurrent = 0;
+   }
+
+   $.each( $('.aw-left-nav ul li'), function() {
+       if($(this).index() == indexOfCurrent){
+          return false;
+        }
+        newPosition += $(this).width()+40;
+   });
+   $('.aw-left-nav ul').animate({scrollLeft: newPosition}, newPosition / 2, function () {});
+ }
+
+});
+})();
+
+</script>
+
+
+
+  </div>
+  <div class="col-xs-12 col-sm-12 col-md-10 col-lg-10">
+    <!-- Top Component -->
+    
+      <div class="odx-content__top-component">
+      <script>
+var IOPFilter = {};
+//IOPFilter.menuComponent = 'b0b25b1f-27b6-4655-8dd3-71d4fed414a6';
+IOPFilter.showKeyword = true;
+IOPFilter.showDropdown = true;
+IOPFilter. showDatePicker = false;
+//IOPFilter.elementsPerPage = 8;
+//IOPFilter.imageNoResults = '/wps/wcm/connect/gov/222eff35-ce11-4203-b24c-f8dc2e31e9d1/content-not-found_blue.png?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE.Z18_JQGCH4S04P41206HNUKVF31000-222eff35-ce11-4203-b24c-f8dc2e31e9d1-nFDz1TL';
+</script>
+      </div>
+    
+    <!-- ./Top Component -->
+
+    <!-- Landing Page Image -->
+
+
+<script>
+	(function($){
+		$(document).ready(function(){
+                    if($(".odx-content__image-caption > span").html()){
+			var captionText = $(".odx-content__image-caption > span").html().trim();
+			if(captionText.length > 32)
+				captionText = captionText.substring(0, 31)+"...";
+			$(".odx-content__image-caption > span").html(captionText);
+                    }
+		});
+	})(jQuery);
+</script>
+<!-- ./Landing Page Image -->
+
+    <!-- Landing Page Intro -->
+
+            
+            <section class="odx-content-section odx-content-section--landing-page-intro">
+                <header id="odx-content-header" class="odx-content__header">
+                    <div class="odx-title">
+                        <h1 class="odx-content__title">
+                            
+                            Grant Opportunities
+                            
+
+                            
+
+                            
+
+                            
+                                
+                            
+                        </h1>
+                    </div>
+                    <div class="odx-content__summary">
+                    
+                        
+                            View grant application details.
+                        
+                    
+                    </div>
+                </header>
+            </section>
+            
+            
+
+<!-- ./Landing Page Intro -->
+
+
+    <!-- Component 1 -->
+    
+    <!-- ./Component 1 -->
+
+    <!-- Component 2 -->
+    
+    <!-- ./Component 2 -->
+
+    <!-- Component 3 -->
+    
+    <!-- ./Component 3 -->
+
+    <!-- Body -->
+
+    <section id="js-odx-content__body" class="odx-content-section odx-content-section__body odx-content__body">
+      <hr dir="ltr" />
+<h3 dir="ltr">The Ohio Arts Council’s grant programs are grouped into four categories supporting organizations, arts learning, and individual artists:</h3>
+
+<div class="box-border" dir="ltr">
+<h4 dir="ltr" style="margin-left: 40px;"><strong>Operating Support</strong>&nbsp;| Awards to support an organization’s operations</h4>
+
+<ul dir="ltr">
+	<li style="margin-left: 40px;">Programs include: <a href="/wps/portal/gov/art/grants/10-grant-opportunities/01-sustainability" >Sustainability</a> and <a href="/wps/portal/gov/art/grants/10-grant-opportunities/65-statewide-arts-service-organizations" >Statewide Arts Services Organizations</a></li>
+</ul>
+
+<h4 dir="ltr" style="margin-left: 40px;"><strong>Project Support</strong>&nbsp;| Awards to support organizational projects</h4>
+
+<ul dir="ltr">
+	<li style="margin-left: 40px;">Programs include: <a href="/wps/portal/gov/art/grants/10-grant-opportunities/10-artstart" >ArtSTART</a>, <a href="/wps/portal/gov/art/grants/10-grant-opportunities/15-artsnext" >ArtsNEXT</a>, <a href="/wps/portal/gov/art/grants/10-grant-opportunities/35-artsrise" >ArtsRISE</a>, <a href="/wps/portal/gov/art/grants/10-grant-opportunities/45-capacity-building" >Capacity Building</a>, and <a href="/wps/portal/gov/art/grants/10-grant-opportunities/70-ohio-artists-on-tour" >Ohio Artists On Tour</a></li>
+</ul>
+
+<h4 dir="ltr" style="margin-left: 40px;"><strong>Arts Learning</strong>&nbsp;| Awards to support purpose-driven experiences for educators and learners of all ages</h4>
+
+<ul dir="ltr">
+	<li style="margin-left: 40px;">Programs include: <a href="/wps/portal/gov/art/grants/10-grant-opportunities/20-arts-partnership" >Arts Partnership</a>, <a href="/wps/portal/gov/art/grants/10-grant-opportunities/25-teachartsohio" >TeachArtsOhio</a>, and <a href="/wps/portal/gov/art/grants/10-grant-opportunities/55-big-yellow-school-bus" >Big Yellow School Bus</a></li>
+</ul>
+
+<h4 dir="ltr" style="margin-left: 40px;"><strong>Individual Artists</strong> | Awards that recognize excellence, preserve cultural traditions, and offer developmental support</h4>
+
+<ul dir="ltr">
+	<li style="margin-left: 40px;">Programs include: <a href="/wps/portal/gov/art/grants/10-grant-opportunities/05-individual-excellence-awards" >Individual Excellence Awards</a>, <a href="/wps/portal/gov/art/grants/10-grant-opportunities/40-artists-with-disabilities-access-program" >Artists with Disabilities Access Program</a>, <a href="/wps/portal/gov/art/grants/10-grant-opportunities/50-traditional-arts-apprenticeship" >Traditional Arts Apprenticeship</a>, and <a href="/wps/portal/gov/art/grants/10-grant-opportunities/30-artist-opportunities" >Artist Opportunities</a></li>
+</ul>
+</div>
+
+<h3 dir="ltr">Find a Grant Program</h3>
+
+<p dir="ltr">Below, you can: <strong>1)</strong> browse our complete catalog of grant opportunities; <strong>2)</strong>&nbsp;use&nbsp;the keyword search function to find a specific grant;&nbsp;or<strong>&nbsp;3)</strong> select a topic to display all grants available in that category.&nbsp;</p>
+
+<p dir="ltr">To view important grant dates and deadlines, visit our our <a href="https://oac.ohio.gov/home/news-and-events/all-events#topics=Deadlines,Panel%20Meeting&page=1" >online calendar</a>.&nbsp;</p>
+
+    </section>
+
+    <!-- ./Body -->
+
+    <div class="row">
+      <div class="col-xs-12 col-sm-12 col-md-7 col-lg-8">
+        <!-- Component 4 -->
+        
+        <!-- ./Component 4 -->
+      </div>
+      <div class="col-xs-12 col-sm-12 col-md-5 col-lg-4">
+        <!-- Component 5 -->
+        
+        <!-- ./Component 5 -->
+
+        <!-- Component 6 -->
+        
+        <!-- ./Component 6 -->
+
+        <!-- Related Laws & Forms -->
+        <section class="odx-content-section">
+         <!-- START: Ohio Design / Site Builder / ODX Shared Components / Components for Presentation Templates / Related Laws & Forms (Landing Pages) Main Component v1.01-->
+<div class="js-odx-related-laws-and-forms">
+</div>
+
+<script type="text/javascript">
+(function( $ ) {
+	$( document ).ready(function() {
+
+		// 1) Get all variables to support multilingual content
+		var currentLanguage = OHIO.ODX.actions.getUserLanguageByCookie();
+		// Get the library according to the user's language
+		var wcmLibrary = (typeof window.WCMLibraries !== "undefined") ? window.WCMLibraries[ currentLanguage ] : window.WCMLibraries[ 'en' ];
+		var virtualPortal = (window.portalContext !== 'none') ? window.portalContext + '/' : 'gov';
+
+		var location = [];
+		var locationPath = '';
+		var currentPathArray = decodeURIComponent("/Ohio Content English/art/grants/10-grant-opportunities").split("/");
+		var length = currentPathArray.length;
+		currentPathArray.forEach(function(element, index){
+			if(index > 1 ){
+				locationPath += "/" + element;   
+			}
+		});
+		location.push(wcmLibrary + locationPath + '/forms'); 
+
+		var lawsAndRules = '';
+		var urlToLawsAndRules = window.globalLinks.lawsAndRules[window.siteId] || false;
+		// If there is "Global Laws and Rules" page we display the link to see more...
+		if( urlToLawsAndRules ) {
+			var lawsAndRules = urlToLawsAndRules.split("gov");
+			lawsAndRules = lawsAndRules[1];
+			location.push(wcmLibrary + lawsAndRules); 
+		}
+
+		var currentPortalLocations = [];
+		var currentPortalLocationsArray = '/Taxonomy/portal-locations/all-portal-locations/common-locations/iop-site-components/odx-popular-topic'; //'/Taxonomy/portal-locations/all-portal-locations/common-locations/iop-site-components/odx-popular-topic';
+		currentPortalLocationsArray = currentPortalLocationsArray.split( ',' );
+		for( var i = 0; i < currentPortalLocationsArray.length; i ++ ) {
+    		//if( currentPortalLocationsArray[ i ].match('/programs/[A-Z0-9a-z]*/') != null){
+        		currentPortalLocations.push(currentPortalLocationsArray[ i ]);
+    		//} 
+		}
+
+		// 2) Configure parameters for AJAX call
+		var params = {
+			source: 'library',
+			srv: 'cmpnt',
+			cmpntid: 'c914254f-36b0-4401-b76c-29ab368c002c',
+			// location: wcmLibrary + '/' + location
+			categories: $.isArray(currentPortalLocations) ? currentPortalLocations.join(',') : currentPortalLocations,
+			location: $.isArray(location) ? location.join(',') : location 
+		};
+
+		var serviceURL = '/wps/wcm/connect/gov/odx%20common%20design/utility/context?' + $.param( params );
+		// 3) Run the AJAX call and do something with the response
+		OHIO.ODX.actions.getAjaxDataFromURL( serviceURL ).then( function( response ) {
+			var resources = JSON.parse( response );
+
+			if (resources.length > 0){
+                var component = new OhioToolkit.components.WebComponent( {
+				element: '.js-odx-related-laws-and-forms',
+				templateLocation: '/wps/wcm/connect/gov/f27fcbe8-153b-4e5f-9f7f-94f7f353183e/related-laws-and-forms.hbs.html?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE.Z18_JQGCH4S04P41206HNUKVF31000-f27fcbe8-153b-4e5f-9f7f-94f7f353183e-mh7NPKp',
+				data: {
+					items: resources,
+					relatedLawsAndForms: 'odx-related-laws-and-forms',
+					viewMoreLawsAndForms: 'odx-view-more-laws-and-forms',
+					fullListLawsAndForms: 'odx-full-list-laws-and-forms',
+				}
+			});
+
+			component.render().then( function() {
+				console.log( 'Rendered!' );
+				var linkToLawsAndRules = window.globalLinks.lawsAndRules[window.siteId] || false;
+				// If there is "Global Laws and Rules" page we display the link to see more...
+				if( linkToLawsAndRules ) {
+					$('.js-link-view-other-laws-container').removeClass('hidden');
+					$('.js-link-view-other-laws').attr('href', linkToLawsAndRules);
+				}
+				if($('#js-more-forms-container a').length > 0){
+					$('.js-more-forms-link').removeClass('hidden');
+				}
+
+				$(".js-more-forms-link").click(function(){
+        			if($(this).find("i").hasClass("fa-chevron-down")){
+           				$(this).find("i").removeClass("fa-chevron-down");
+           				$(this).find("i").addClass("fa-chevron-up");
+        			} else{
+           				$(this).find("i").removeClass("fa-chevron-up");
+           				$(this).find("i").addClass("fa-chevron-down");
+        			}
+    			});
+			});
+
+                        }
+		},
+		function( error ) {
+			console.error( error );
+		});
+	});
+
+	})( jQuery );
+</script>
+<!-- END: Ohio Design / Site Builder / ODX Shared Components / Components for Presentation Templates / Related Laws & Forms (Landing Pages) Main Component -->
+        </section>
+
+      </div>
+    </div>
+    <!-- ./Layout Line 1 -->
+    
+    <!-- START: Ohio Design > Components > Global > Utilities > ODX Landing Page Layouts > Landing Page Layout Line 2-->
+<!-- Layout Line 2 -->
+<section class="odx-content-section odx-content-section__dynamic-grid-line-2 odx-content__dynamic-grid">
+  
+  
+  
+  
+  <!-- START: Ohio Design > Components > Global > Utilities > ODX Landing Page Layouts > Layouts > Landing Page Layout 6-6 -->
+<!-- Layout Line 2 | 6-6 -->
+<div class="row">
+  <!-- Component 7 -->
+  
+  <!-- ./Component 7 -->
+
+  <!-- Component 8 -->
+  
+  <!-- ./Component 8 -->
+</div>
+<!-- ./Layout Line 2 | 6-6 -->
+<!-- END: Ohio Design > Components > Global > Utilities > ODX Landing Page Layouts > Layouts > Landing Page Layout 6-6 -->
+  
+</section>
+
+<!-- Component 9 -->
+
+<section class="odx-content-section odx-content-section--component-9">
+  <!-- START: Ohio Design / Site Builder / Site Components Core / Filter / Resources / MAIN - Configurable Resources Filter -->
+
+<link href='/wps/wcm/connect/gov/cd674567-ec13-4131-8f4d-d5f6b97c5000/bootstrap-datepicker3.min.css?MOD=AJPERES&amp;CONVERT_TO=url&amp;CACHEID=ROOTWORKSPACE.Z18_JQGCH4S04P41206HNUKVF31000-cd674567-ec13-4131-8f4d-d5f6b97c5000-nUMnorZ' rel="stylesheet" />
+<script src='/wps/wcm/connect/gov/b2f2f9ed-823e-4315-be9c-974ee86812e7/bootstrap-datepicker.min.js?MOD=AJPERES&amp;CONVERT_TO=url&amp;CACHEID=ROOTWORKSPACE.Z18_JQGCH4S04P41206HNUKVF31000-b2f2f9ed-823e-4315-be9c-974ee86812e7-nUMp13z'></script>
+
+<div class="iop-content-filter">
+    <div id="resources-filter" class="iop-filter__container odx-topic-hub-resources__container margin-bottom-md">
+        <span class="ohio-spinner ohio-spinner--centered"></span>
+        <div id="cards-generic-wrapper"></div>
+    </div>
+</div>
+
+<script>
+/* START: Ohio Design > Components > Site Builder > Site Components Core > Filter > Dependencies > JS - Content With Filters */
+(function(){
+    var DefaultOptions = {
+        Environment: {
+            wcmLibraryLanguage: 'en',
+            context: 'gov'
+        },
+        AjaxParameters: {
+            source: 'library',
+            srv: 'cmpnt',
+            cmpntid: 'aa7a4aa9-f871-4f6e-a646-3b6a162a51dd'
+        }
+    };
+
+    //Logic part from component, gets the data to fill the cards
+    window.MultipleFilters = function( wcmComponent ) {
+
+        //var LocalOptions = Options || DefaultOptions;
+        var LocalOptions = DefaultOptions;
+
+        if ( typeof wcmComponent === "object" && wcmComponent.id ) {
+            LocalOptions.AjaxParameters.cmpntid = wcmComponent.id;
+            if ( wcmComponent.location ) {
+                LocalOptions.AjaxParameters.location = wcmComponent.location;
+            }
+            if ( wcmComponent.category ) {
+                LocalOptions.AjaxParameters.category = wcmComponent.category;
+            }
+        }
+
+        var Utils = {
+            prepareLibrary: function(){
+                // 1) Get all variables to support multilingual content
+                var currentLanguage = OHIO.ODX.actions.getUserLanguageByCookie();
+                // Get the library according to the user's language
+                var wcmLibrary = (typeof window.WCMLibraries !== "undefined") ? window.WCMLibraries[currentLanguage] : window.WCMLibraries[ LocalOptions.Environment.wcmLibraryLanguage ];
+                var virtualPortal = (window.portalContext !== 'none') ? window.portalContext + '/' : LocalOptions.Environment.context;
+                var currentCluster = '';
+                var urlString = window.location.href;
+                var urlArray = urlString.split('/');
+                var index = urlArray.indexOf(window.siteId);
+                if (index > 0 && urlArray[index]) {
+                    currentCluster = urlArray[index + 1];
+                }
+
+                var currentPathArray = decodeURIComponent("/Ohio Content English/art/grants/10-grant-opportunities").split("/");
+                var location = "";
+                var length = currentPathArray.length;
+                currentPathArray.forEach(function (element, index) {
+                    if (index > 1) {
+                        location += "/" + element;
+                    }
+                });
+
+                var LibrarySettings = {
+                    virtualPortal: virtualPortal,
+                    wcmLibrary: wcmLibrary,
+                    location: location
+                };
+
+                return LibrarySettings;
+            },
+            configureAjaxParameters: function(){
+                var LibrarySettings = this.prepareLibrary();
+                // 2) Configure parameters for AJAX call
+                var Params = {
+                    source: LocalOptions.AjaxParameters.source,
+                    srv: LocalOptions.AjaxParameters.srv,
+                    cmpntid: LocalOptions.AjaxParameters.cmpntid,
+                    location: LocalOptions.AjaxParameters.location ? LocalOptions.AjaxParameters.location : LibrarySettings.wcmLibrary + '/' + LibrarySettings.location,
+                    category: LocalOptions.AjaxParameters.category ? LocalOptions.AjaxParameters.category : ''
+                };
+
+                var serviceURL = '/wps/wcm/connect/' + LibrarySettings.virtualPortal + LibrarySettings.wcmLibrary + '/' + window.siteId + '?' + $.param(Params);
+                return serviceURL;
+            },
+            generatePieceId: function(){
+                function s4() {
+                    return Math.floor( (1 + Math.random()) * 0x10000 ).toString( 16 ).substring( 1 );
+                }
+
+                return 'b' + s4() + s4() + "-" + s4() + "-" + s4() + "-" + s4() + "-" + s4() + s4() + s4();
+            },
+            removeDuplicated: function( array ) {
+                return array.filter( function( a, b ){
+                    return array.indexOf( a ) === b;
+                } );
+            },
+            removeDuplicatedIndex: function( items ){
+                var noRepeatedLetter = '';
+                if ( items.length > 1 ) {
+                    for (var i = 1; i < items.length; i++) {
+                        if ( items[i].hasOwnProperty('index') ) {
+                            var currItemIndex = items[i].index;
+                            if(items[i-1].hasOwnProperty('index')) {
+                                var prevItemIndex = items[i-1].index;
+                                if ( currItemIndex === prevItemIndex ) {
+                                    noRepeatedLetter = currItemIndex;
+                                    delete items[i].index;
+                                }
+                            } else {
+                                if ( noRepeatedLetter === currItemIndex )
+                                    delete items[i].index;
+                            }
+                        }
+                    }
+                    return items;
+                } else {
+                    return items;
+                }
+            }
+        };
+        return {
+            AllItems: undefined,
+            FilteredItems: undefined,
+            CacheItems: undefined,
+            hasItemAnyofTheseValues: function(itemValues, toSearchValues){
+                var categories = itemValues.split(",");
+
+                for( var i = 0; i < toSearchValues.length; i++ ) {
+                    if ( categories.indexOf( toSearchValues[i] ) > -1 ) {
+                        return true;
+                    }
+                }
+
+                return false;
+            },
+            filterAction: function( FilterSelected, otherFiltersClicked ){
+                /*
+                FilterSelected = [
+                    {
+                        name: "county",
+                        value: ["Orange", "Adams"]
+                    },
+                    {
+                        name: "topic",
+                        value: ["Aircraft, Allen"]
+                    }
+                ]
+                 */
+
+                var _this = this;
+                var FoundItems = [];
+
+                if ( otherFiltersClicked ) {
+                    if ( this.FilteredItems.length == 0 ) {
+                        this.FilteredItems = this.CacheItems;
+                    }
+                }
+
+                FoundItems = this.FilteredItems = this.AllItems.filter( function( Item ){
+                    for( var i=0; i < FilterSelected.length; i++) {
+                        var itemValues = Item[ FilterSelected[i].name];
+                        var toSearchValues = FilterSelected[i].value;
+                        var hasAvalidValue = _this.hasItemAnyofTheseValues( itemValues , toSearchValues );
+                        if ( !hasAvalidValue ) {/* Item did not approved first filter */
+                            break;
+                        }
+                        if ( i === FilterSelected.length - 1 )/*If item has approved all filters, then the Item was found*/
+                            return Item;
+                    }
+                } );
+
+                if ( FoundItems.length == 0 ) {
+                    this.CacheItems = this.FilteredItems.length == 0 ? this.AllItems : this.FilteredItems;
+                }
+
+                this.FilteredItems = this.AllItems.slice();
+                this.FilteredItems = FoundItems;
+
+                console.log( "Results from filter: ", this.FilteredItems );
+
+
+                return this.FilteredItems;
+            },
+            sortAction: function( Sorting, sortAllItems ){
+                var SortedItems = [];
+                if ( sortAllItems && sortAllItems === true ) {
+
+                    this.FilteredItems = this.AllItems.slice();
+
+                    var UnsortedItems = this.FilteredItems.slice();
+
+                    Sorting.forEach( function( SortObj ) {
+                        SortedItems = SortObj.sortInst( UnsortedItems );
+                        UnsortedItems = SortedItems;
+                    } );
+
+                    if ( SortedItems !== undefined )
+                        this.FilteredItems =  SortedItems.slice();
+
+                    if ( Sorting.length === 0 ) {
+                        this.FilteredItems = this.AllItems;
+                    }
+
+                } else {
+                    var UnsortedItems = this.FilteredItems.slice();
+
+                    Sorting.forEach( function( SortObj ) {
+                        SortedItems = SortObj.sortInst( UnsortedItems );
+                        UnsortedItems = SortedItems;
+                    } );
+
+                    if ( SortedItems !== undefined )
+                        this.FilteredItems =  SortedItems.slice();
+                }
+
+                console.log( "Results sorted: ", this.FilteredItems );
+
+                return this.FilteredItems;
+
+            },
+            filterByKeyword: function( keyword, Filters, noFiltersApplied ){
+                var FoundItems = [];
+
+                var categories = Filters.map( function( Filter ) {
+                    return Filter.propertyName;
+                } );
+
+                if ( noFiltersApplied ) {
+                    if ( this.FilteredItems.length == 0 ) {
+                        this.FilteredItems = this.CacheItems;
+                    }
+                }
+
+                if ( noFiltersApplied && noFiltersApplied === true ) {
+                    this.FilteredItems = this.AllItems.slice();
+                    FoundItems = this.FilteredItems = this.searchTerms( this.FilteredItems,  keyword.toLowerCase(), categories );
+                } else {
+                    FoundItems = this.FilteredItems = this.searchTerms( this.FilteredItems, keyword.toLowerCase(), categories );
+                }
+
+                if ( FoundItems.length == 0 ) {
+                    this.CacheItems = this.FilteredItems.length == 0 ? this.AllItems : this.FilteredItems;
+                }
+
+                this.FilteredItems = this.AllItems.slice();
+                this.FilteredItems = FoundItems;
+
+                console.log( "Results found by keyword: ", FoundItems );
+
+                return FoundItems;
+            },
+            searchTerms: function( Items, keyword, categories ){
+                var _this = this;
+
+                var FoundItems = Items.map(function( Item ){
+                    var title = Item.title.toLowerCase();
+                    var summary = Item.summary.toLowerCase();
+                    title = title + summary;
+                    if (title.indexOf(keyword)>=0)
+                        return Item;
+                }).filter(function( Item ){
+                    return Item !== undefined;
+                });
+
+                return FoundItems;
+            },
+            filterByDate: function( startTimeInput, endTimeInput, noFiltersApplied ){
+                var FoundItems = [];
+
+                if ( noFiltersApplied ) {
+                    if ( this.FilteredItems.length == 0 ) {
+                        this.FilteredItems = this.CacheItems;
+                    }
+                }
+
+                if ( noFiltersApplied ) {
+                    this.FilteredItems = this.AllItems.slice();
+                    FoundItems = this.FilteredItems = this.searchEventWithDate( this.FilteredItems,  startTimeInput, endTimeInput );
+                } else {
+                    FoundItems = this.FilteredItems = this.searchEventWithDate( this.FilteredItems, startTimeInput, endTimeInput );
+                }
+
+                if ( noFiltersApplied ) {
+                    if ( this.FilteredItems.length == 0 ) {
+                        this.FilteredItems = this.CacheItems;
+                        this.FilteredItems = this.AllItems.slice();
+                    }
+                }
+
+                this.FilteredItems = FoundItems;
+
+                console.log( "Results found by date: ", FoundItems );
+
+                return FoundItems;
+
+            },
+            searchEventWithDate: function( Events, startTimeInput, endTimeInput ) {
+                var FoundEvents = Events.map( function( Event ){
+                    var startTime = new Date ( Event.startTimeWCM ),
+                        endTime = new Date ( Event.endTimeWCM );
+                    //Event happens in between the Date Range
+                    if ( startTime >= startTimeInput && endTime <= endTimeInput ) {
+                        return Event;
+                    }
+                    //Event starts before Date Range Start but ends before Date Range End
+                    if ( endTime >= startTimeInput && endTime <= endTimeInput ) {
+                        return Event;
+                    }
+                    //Event starts after Date Start Range but ends after Date Range End
+                    if ( startTime >= startTimeInput && startTime <= endTimeInput ) {
+                        return Event;
+                    }
+                    //Event begins before Date Range Start and finishes after Date Range End
+                    if ( startTimeInput > startTime && endTimeInput < endTime ) {
+                        return Event;
+                    }
+
+                } ).filter(function( Item ){
+                    return Item !== undefined;
+                });
+
+                return FoundEvents;
+            },
+            filterCustom: function( filterFn ){
+                var FoundItems = filterFn( this.FilteredItems );
+                return FoundItems;
+            },
+            getCategoriesFromItem: function( Item, categories ){
+                var allCategoriesFromItem = "";
+
+                categories.forEach( function( category ) {
+                    allCategoriesFromItem = allCategoriesFromItem + Item[category];
+                } );
+
+                return allCategoriesFromItem.toLowerCase();
+            },
+            resetFilters: function(){
+                this.FilteredItems = this.CacheItems = this.AllItems;
+                return this.FilteredItems;
+            },
+            getOptionsFromContentToFillDropdown: function( propertyName ){
+
+                var dropdownOptions = this.AllItems.map( function( Item ){
+                    if( Item.hasOwnProperty(propertyName) ) {
+                        return Item[propertyName];
+                    }
+                } );
+                var items = dropdownOptions.map( function(item){
+                    return item.split(",");
+                } );
+
+                var preCategories = items.join();
+                var categories = preCategories.split(",");
+
+                var dropdownCleaned = Utils.removeDuplicated( categories ).filter( function( category ){ 
+                    return category !== "";
+                } );
+                return dropdownCleaned.sort();
+            },
+            preProcessFilters: function( Filters ){
+                var _this = this;
+
+                var numberOfFilters = Filters.length;
+                var numberOfColumns;
+
+                switch( numberOfFilters ) {
+                    case 3:
+                        numberOfColumns = 4;
+                        break;
+                    case 2:
+                        numberOfColumns = 6;
+                        break;
+                    default:
+                        numberOfColumns = 12;
+                }
+
+                var FiltersWithColumnsAndOptions = Filters.map(function( Item ){
+                    if ( Item.hasOwnProperty("options") ) {
+                        Item.id = Item.id.substr(0,1 ) === "#" ? Item.id.substr(1) : Item.id;
+                        Item.options = Item.options.sort();
+                        Item.numColumns = numberOfColumns;
+                        return Item;
+                    } else if (Item.hasOwnProperty("keywordOnly")) {
+                        Item.numColumns = numberOfColumns;
+                        return Item;
+                    } else {
+                        Item.id = Item.id.substr(0,1 ) === "#" ? Item.id.substr(1) : Item.id;
+                        Item.options = _this.getOptionsFromContentToFillDropdown( Item.propertyName );
+                        Item.numColumns = numberOfColumns;
+                        return Item;
+                    }
+                });
+
+                return FiltersWithColumnsAndOptions;
+            },
+            sortByDateForEventsTypeContentOnly: function( a, b ){
+                var aDate = new Date( a.startTimeWCM );
+                var bDate = new Date( b.startTimeWCM );
+                return ((aDate < bDate) ? -1 : ((aDate > bDate) ? 1 : 0));
+            },
+            removeCurrentContentPiece: function( ContentPieces ){
+                //Remove content piece from where the filter is being referenced
+
+                var indexOfItemToRemove;
+
+                for( var i = 0; i < ContentPieces.length; i++ ){
+                    if ( ContentPieces[i].uuid === 'c4d410dd-8e06-4d4e-81f1-91624debed5b' ){
+                        indexOfItemToRemove = i;
+                        break;
+                    }
+                }
+
+                if (  indexOfItemToRemove || indexOfItemToRemove === 0 ) {
+                    ContentPieces.splice( indexOfItemToRemove, 1 );
+                }
+            },
+            getContentPiecesData: function( mappingFunction, elasticSearchQuery, sortByDate ){
+                var _this = this;
+                var serviceURL = Utils.configureAjaxParameters();
+                if ( elasticSearchQuery ) {
+                    return elasticSearchUtils.findContent( elasticSearchQuery ).then(
+                        function( response ) {
+                            var ContentPieces = response.filter( function( Item ){
+                                if ( ! Item.hasOwnProperty('uuid') ) {
+                                    Item.uuid = Utils.generatePieceId();
+                                }
+                                return Item;
+                            } );
+        
+                            _this.removeCurrentContentPiece( ContentPieces );
+
+                            if(ContentPieces) {
+                              ContentPieces.forEach(function(dataElement) {
+                                if(dataElement.thumbnail) {
+                                  dataElement.thumbnail = dataElement.thumbnail.replace('myconnect', 'connect');
+                                }
+                              });
+                            }
+        
+                            if ( mappingFunction ) {
+                                ContentPieces = mappingFunction( ContentPieces );
+                            }
+        
+                            if ( sortByDate ) {
+                                ContentPieces = ContentPieces.sort(_this.sortByDateForEventsTypeContentOnly);
+                            }
+        
+                            return _this.AllItems = _this.FilteredItems = ContentPieces;
+                        },
+                        function( error ){
+                            console.log( error );
+                        }
+                    );
+                } else {
+                    return OHIO.ODX.actions.getAjaxDataFromURL(serviceURL).then(function( response ){
+                        var resources = JSON.parse(response);
+                        var ContentPieces = resources.filter( function( Item ){
+                            if ( ! Item.hasOwnProperty('uuid') ) {
+                                Item.uuid = Utils.generatePieceId();
+                            }
+                            return Item;
+                        } );
+    
+                        _this.removeCurrentContentPiece( ContentPieces );
+    
+                        if ( mappingFunction ) {
+                            ContentPieces = mappingFunction( ContentPieces );
+                        }
+    
+                        if ( sortByDate ) {
+                            ContentPieces = ContentPieces.sort(_this.sortByDateForEventsTypeContentOnly);
+                        }
+    
+                        return _this.AllItems = _this.FilteredItems = ContentPieces;
+                    },function( error ){
+                        console.error(error);
+                    });
+                }
+                
+            },
+            start: function(){
+                var _this = this;
+                return this.getContentPiecesData().then(function( response ){
+                    console.log(response);
+                    var filterOne = {
+                        name: "county",
+                        value: "Allen"
+                    };
+
+                    var filterTwo = {
+                        name: "topics",
+                        value: "Aircraft"
+                    };
+
+                    _this.filterAction( filterOne );
+                    _this.filterAction( filterTwo );
+                });
+            }
+        };
+    };
+
+    //UI part
+    window.FiltersWidget = function( componentID ){
+
+        var Utils  = {
+            inject: function( path, fallback ) {
+                try {
+                    return eval( 'window.' + path );
+                } catch( e ) {
+                    console.warn( 'Dependency not found: ', path );
+                    return fallback;
+                }
+            }
+        };
+
+        var OhioToolkitWebComponent = Utils.inject('OhioToolkit.components.WebComponent', console.log );
+        var MultipleFiltersDataLogic = Utils.inject('MultipleFilters(componentID)', console.log );
+        var FormioInstance = Utils.inject('Formio', console.log );
+
+        var Instance = {
+            elements: {},
+            FilterInitialSettings: undefined,
+            DropDownOptions: undefined,
+            WidgetSettings: undefined,
+            Filters: undefined,
+            OtherFiltersClicked: 0,
+            FiltersInDropdownClicked: [],
+            SortingClicked: [],
+            multipleLettersClicked: [],
+            totalResources: undefined,
+            setElements: function(){
+                var els = this.elements;
+                var idRoot = this.WidgetSettings.root;
+
+                els.$root = $( idRoot ) || $emptyDiv;//'#opd-filter'
+
+                els.input = els.$root.find('.js-iop-input');
+                els.searchButton = els.$root.find('.js-iop-filter-button');
+
+                var $cards = els.$root.find('.js-iop-items-container');
+                els.$cards = {
+                    root: $cards,
+                    headerIndexes: $cards.find('.js-iop-item-header'),
+                    groupHeaders: $cards.find('.js-iop-index-header'),
+                    items: $cards.find('.js-iop-item')
+                };
+
+                els.$collapsibleFirstSectionFiltersMobile = els.$root.find('.js-iop-hide-first-section-filters-mobile');
+                els.$collapsibleSecondSectionFiltersMobile  = els.$root.find('.js-iop-filter__second-section');
+                els.$collapseButton = els.$root.find('.js-iop-collapse-btn');
+
+                els.$calendarFields = els.$root.find('.js-iop-calendar');
+
+                els.resultsNumber = els.$root.find('.js-iop-results-number');
+                els.resetButton = els.$root.find('.js-iop-reset-button');
+
+                els.pagination = els.$root.find('.js-iop-filter-pagination');//odx-topic-hub-filter__pagination
+                els.anchorPagination = els.$root.find('.js-iop-filter-pagination a');
+                els.visibleItems = $cards.find('.js-iop-item--visible'); //.iop-filter__item--visible
+                els.visibleGroupHeaders = $cards.find('.js-iop-index-header--visible');
+                els.noResultsImage = els.$root.find('.js-iop-image-no-results');//odx-events__img-no-results
+
+            },
+            setPagination: function(){
+                var _this = this;
+                var els = this.elements;
+
+                var $allItems = els.$cards.items;
+                var $allHeaders = els.$cards.groupHeaders;
+                var $visibleItems = $('.js-iop-items-container .js-iop-item--visible');//els.visibleItems;
+                var visibleItemsNumber = $visibleItems.length;
+                var $pagination = els.pagination;
+
+                var elementsPerPage = this.WidgetSettings.elementsPerPage;
+
+                var samePage = 0;
+                var itemInSamePage = 1;
+                var resetVariable = 0;
+
+                $allHeaders.attr('data-page', '');
+                $allItems.attr('data-page', '');
+                $allItems.attr('data-column', '');
+
+                $visibleItems.each(function (index) {
+                    var $item = $(this);
+                    index++;
+                    var page = Math.ceil(index / elementsPerPage);
+                    $item.attr('data-page', page);
+
+                    if ( page !== samePage ) {
+                        $item.addClass( 'fist-item-in-page' );
+                        samePage = page;
+                    }
+
+                    if ( itemInSamePage == elementsPerPage || $item[0] === $visibleItems.last()[0] ) {
+                        $item.addClass( 'last-item-in-page' );
+                        itemInSamePage = resetVariable;
+                    }
+
+                    itemInSamePage++;
+
+                    if( $item.attr('data-first-item') ) {
+                        var keyHeader = $item.attr('data-first-item');
+                        var header = els.$cards.root.find('.' + keyHeader);//$("h3."+keyHeader);
+                        header.attr('data-page', page);
+
+                    }
+
+                });
+
+                $pagination.twbsPagination('destroy');
+
+                var $noResults = els.noResultsImage;
+                $noResults.hide();
+                if (visibleItemsNumber <= 0) {
+                    $noResults.show();
+                    $allHeaders.hide();
+                    return;
+                }
+
+                if ( $allItems.length <= elementsPerPage ) {
+                    $pagination.addClass( 'hidden' );
+                }
+
+                $pagination.twbsPagination({
+                    totalPages: Math.ceil(visibleItemsNumber / elementsPerPage),
+                    visiblePages: 7,
+                    first: null,
+                    prev: '<i class="fa fa-caret-left"></i>',
+                    next: '<i class="fa fa-caret-right"></i>',
+                    last: null,
+                    onPageClick: function (event, page) {
+                        _this.paginateResults(page);
+                    }
+                });
+
+                var $pages = $pagination.find('.page-link');
+                $pages.each(function(){
+                    var $page = $(this);
+                    var pageNumber = $page.text();
+                    $page.attr('aria-label',"Page Number "+pageNumber);
+                });
+
+                $pages.first().attr('aria-label',"Previous page");
+                $pages.last().attr('aria-label',"Next page");
+
+                var $anchorPagination = els.anchorPagination;
+                $anchorPagination.attr('aria-label', 'resources-search-pagination');
+                $anchorPagination.attr('href', '#top');
+            },
+            paginateResults: function(page) {
+                var _this = this;
+                var els = this.elements;
+                var cardsContainer = els.$cards.root;
+                var visibleItems = els.visibleItems;
+                var headers = els.visibleGroupHeaders;
+
+                visibleItems.hide();
+                headers.hide();
+
+                //Show card per page number assigned
+                var itemInPage = cardsContainer.find('.js-iop-item--visible[data-page="'+page+'"]');
+                itemInPage.show();
+
+                //Show index header per page number assigned
+                var headerInPage = cardsContainer.find('.js-iop-index-header[data-page="' + page + '"]');
+                headerInPage.show();
+
+                this.removeAriaAttributesFromItemsDisplayed();
+                this.focusFirstItemAfterPagination( itemInPage );
+
+                var $activePage = els.pagination.find('.page-item.active');
+                $activePage.on('click', function() {
+                    _this.focusFirstItemAfterPagination( itemInPage );
+                });
+
+            },
+            removeAriaAttributesFromItemsDisplayed: function(){
+                //Accessibility
+                var els = this.elements;
+                var $items = els.$cards.items;
+
+                $items.each( function() {
+                    this.removeAttribute('tabindex');
+                    this.removeAttribute('aria-hidden');
+                } );
+            },
+            focusFirstItemAfterPagination: function( $items ){
+                //Accessibility
+                if ( $items.length > 0 ) {
+                    $items[0].setAttribute('tabindex', '0');
+                    $items[0].setAttribute('aria-hidden', 'false');
+                    $items[0].focus();
+                }
+            },
+            updateOtherFiltersClicked: function( reset ){
+                if ( reset && reset === true ) {
+                    this.OtherFiltersClicked = 0;
+                } else  {
+                    this.OtherFiltersClicked++;
+                }
+            },
+            updateFiltersInDropdownClicked: function( category, values ){
+                var _this = this;
+                if ( this.FiltersInDropdownClicked.length === 0 ) {
+                    var valueFromDropdownSelected = {
+                        name: category,
+                        value: values
+                    };
+                    this.FiltersInDropdownClicked.push(valueFromDropdownSelected);
+                } else {
+                    for( var i = 0; i < this.FiltersInDropdownClicked.length; i++ ) {
+                        if ( this.FiltersInDropdownClicked[i].name === category ) {
+                            this.FiltersInDropdownClicked[i].value = values;
+                            break;
+                        }
+
+                        if ( this.FiltersInDropdownClicked[i].name !== category && i === this.FiltersInDropdownClicked.length - 1 ) {
+                            var valueFromDropdownSelected = {
+                                name: category,
+                                value: values
+                            };
+                            this.FiltersInDropdownClicked.push(valueFromDropdownSelected);
+                        }
+                    }
+                }
+            },
+            updateSortingOptionsSelected: function( SelectorId, SortItem, propertyName ){//Insert or remove to the array, the Sorting function clicked by the user
+
+                var sortingFunction;
+
+                if ( SortItem.hasOwnProperty('sortFn') && SortItem.sortFn !== undefined ) {
+                    sortingFunction = SortItem.sortFn;
+                } else if ( SortItem.hasOwnProperty('order') ) {
+                    //Add sorting methods
+                    sortingFunction = this.addDefaultSortingFunction( SortItem, propertyName );
+                }
+
+                //Search to include or remove SortingClicked
+
+                if ( this.SortingClicked.length === 0 ) {
+                    var SortMethod = {
+                        name: SelectorId,
+                        sortInst: sortingFunction
+                    };
+                    this.SortingClicked.push(SortMethod);
+                } else {
+                    for( var i = 0; i < this.SortingClicked.length; i++ ) {
+                        //If I've found the item then I remove it
+                        if ( this.SortingClicked[i].name === SelectorId ) {
+                            this.SortingClicked.splice( i, 1 );
+                            break;
+                        }
+
+                        //If last element and item was not found, then I add it
+                        if (  this.SortingClicked[i].name !== SelectorId && this.SortingClicked.length - 1 === i ) {
+
+                            var SortMethod = {
+                                name: SelectorId,
+                                sortInst: sortingFunction
+                            };
+
+                            this.SortingClicked.push( SortMethod );
+                        }
+                    }
+                }
+
+                // this.SortingClicked updated
+            },
+            addDefaultSortingFunction: function( SortItem, propertyName ){
+
+                var ascendingOrDescendigSortFunction;
+
+                if ( SortItem.order.toUpperCase() === "ASC" ) {
+
+                    ascendingOrDescendigSortFunction = function( ItemsToSort ) {
+                        ItemsToSort.sort( function( a, b ) {
+                            var propertyItemA = a[propertyName];
+                            var propertyItemB = b[propertyName];
+                            return propertyItemA.localeCompare( propertyItemB );
+                        } );
+
+                        return ItemsToSort;
+                    };
+                }
+
+                if ( SortItem.order.toUpperCase() === "DESC" ) {
+
+                    ascendingOrDescendigSortFunction = function( ItemsToSort ) {
+                        ItemsToSort.sort( function( a, b ) {
+                            var propertyItemA = a[propertyName];
+                            var propertyItemB = b[propertyName];
+                            return propertyItemB.localeCompare( propertyItemA );
+                        } );
+
+                        return ItemsToSort;
+                    };
+                }
+
+                return ascendingOrDescendigSortFunction;
+            },
+            allCategoriesFrom: function( taxonomy ){
+
+                var allOptions;
+
+                for ( var i = 0; i < this.Filters.length; i++ ) {
+                    if ( this.Filters[i].propertyName === taxonomy ) {
+                        allOptions = this.Filters[i].options;
+                    }
+                }
+
+                if ( allOptions[0] === "all" )
+                    allOptions.splice(0, 1);
+
+                return allOptions;
+            },
+            addPropertiesToFiltersForTemplate: function( Filters ){
+                //Infer number of columns for Bootstrap and get options from content if not specified in the FILTER
+                var ProcessedFilters = MultipleFiltersDataLogic.preProcessFilters( Filters );
+                return ProcessedFilters;
+            },
+            hideAllCards: function(){
+                var els = this.elements;
+                var $cards = els.$cards.items;
+
+                var numberOfCards = $cards.length;
+
+                for ( var i=0; i < numberOfCards; i++ ) {
+                    $( $cards[i] ).hide();
+                    $( $cards[i] ).removeClass('js-iop-item--visible');
+                }
+
+            },
+            hideGroupHeaders: function(){
+                var els = this.elements;
+                els.$cards.groupHeaders.each(function(){
+                    var $header = $(this);
+                    $header.hide();
+                });
+            },
+            showCards: function( uuidsToMap ){
+                var els = this.elements;
+                var $cards = els.$cards.items;
+
+                this.hideAllCards();
+                uuidsToMap.forEach( function( uuid ) {
+                    var numberOfCards = $cards.length;
+
+                    for ( var i=0; i < numberOfCards; i++ ) {
+                        if ( uuid === $cards[i].id ) {
+                            $( $cards[i] ).show();
+                            if ( ! $( $cards[i] ).hasClass('js-iop-item--visible') )
+                                $( $cards[i] ).addClass('js-iop-item--visible');
+                        }
+                    }
+                } );
+            },
+            showAllHeaders: function(){
+                var els = this.elements;
+                els.$cards.groupHeaders.each(function(){
+                    var $header = $(this);
+                    $header.show();
+                    $header.addClass('js-iop-index-header--visible');
+                });
+            },
+            renderShowResults: function( numberResults ) {
+                var els = this.elements;
+                var resultsParagraph = els.resultsNumber;
+                //var filterShowing = OHIO.Utils.actions.getMultilingualLabelByWCMKey('odx-filter-showing');
+                //var results = OHIO.Utils.actions.getMultilingualLabelByWCMKey('odx-results');
+
+                resultsParagraph.text(OHIO.Utils.actions.getMultilingualLabelByWCMKey('odx-found') + ' '  + numberResults + ' ' + OHIO.Utils.actions.getMultilingualLabelByWCMKey('odx-results'));
+                this.focusResults();
+            },
+            setListenerForDropdown: function( idFilter, taxonomy ){
+                var _this = this;
+
+                //validate if filter exist or keywordOnly
+                if (idFilter) {
+                    var id = idFilter.substr(0,1) === '#' ? idFilter : "#" + idFilter;
+
+                    $( id ).select2().on('change', function( event ) {
+                        event.preventDefault();
+                        var categoriesSelectedFromDropdown = $(this).val();
+                        var lastCategorySelected = $('span.select2-selection[aria-owns="select2-js-select-' + taxonomy + '-results"]');
+                        var numberOfSelectedCategories = 0;
+
+                        if (categoriesSelectedFromDropdown !== null) {
+                            numberOfSelectedCategories = categoriesSelectedFromDropdown.length;
+                        }
+
+                        if (lastCategorySelected.length > 0) {
+                            lastCategorySelected = lastCategorySelected[0].getAttribute('aria-activedescendant').split('-').pop();
+                        } else if (numberOfSelectedCategories === 0) {
+                            categoriesSelectedFromDropdown = [];
+                            categoriesSelectedFromDropdown[0] = 'all';
+                            lastCategorySelected = 'all';
+                        }
+
+                        if (lastCategorySelected === 'all') {
+                            categoriesSelectedFromDropdown = [];
+                            categoriesSelectedFromDropdown[0] = 'all';
+                            $( id ).val(categoriesSelectedFromDropdown).trigger('change.select2');
+                        } else {
+                            if (categoriesSelectedFromDropdown !== null && categoriesSelectedFromDropdown[0] === 'all' && ( numberOfSelectedCategories > 1 )) {
+                                categoriesSelectedFromDropdown.splice(0, 1);
+                                $( id ).val(categoriesSelectedFromDropdown).trigger('change.select2');
+                            }
+                        }
+
+                        var filterAll = false;
+
+                        //Fix when removing more than 2 box and input left empty
+                        if ( categoriesSelectedFromDropdown === null ) {
+                            categoriesSelectedFromDropdown = [];
+                            categoriesSelectedFromDropdown.push('all');
+                            $( id ).val(categoriesSelectedFromDropdown).trigger('change.select2');
+                        }
+
+                        for (var i=0; i<categoriesSelectedFromDropdown.length; i++){
+                            if (categoriesSelectedFromDropdown[i] === "all") {
+                                filterAll = true;
+                                break;
+                            }
+                        }
+
+                        if (filterAll) {
+                            categoriesSelectedFromDropdown =_this.allCategoriesFrom( taxonomy );
+                        }
+
+                        _this.updateFiltersInDropdownClicked( taxonomy, categoriesSelectedFromDropdown );
+
+                        var FilteredItems;
+
+                        var otherFiltersClicked = false;
+                        var isKeywordInputFilled = _this.getKeyword();
+                        if ( isKeywordInputFilled !== '' ) {
+                            _this.updateOtherFiltersClicked();
+                        }
+
+                        if ( _this.OtherFiltersClicked > 0 ) {
+                            otherFiltersClicked = true;
+                            FilteredItems = MultipleFiltersDataLogic.filterAction( _this.FiltersInDropdownClicked, otherFiltersClicked );
+                            FilteredItems = _this.applyOtherFilters( FilteredItems );
+
+                        } else  {
+                            //Return Items completed
+                            FilteredItems = MultipleFiltersDataLogic.filterAction( _this.FiltersInDropdownClicked );
+                        }
+
+
+                        var isAnySortingActive = _this.SortingClicked.length > 0;
+
+                        if ( isAnySortingActive ) {
+                            FilteredItems = MultipleFiltersDataLogic.sortAction( _this.SortingClicked );
+                        }
+
+                        var uuidsToMap = FilteredItems.map( function( Item ) {
+                            return Item.uuid;
+                        } );
+
+                        var numberOfResults = uuidsToMap.length;
+
+                        _this.showCards( uuidsToMap );
+                        _this.renderShowResults( numberOfResults );
+                        _this.setPagination();
+
+                        var hashParam = _this.getHashParameters();
+                        hashParam[ taxonomy ] = categoriesSelectedFromDropdown.join( ',' );
+                        _this.setHashParameters( hashParam );
+
+                        _this.updateOtherFiltersClicked();
+
+                        /*
+                        if ( removedAllCategoriesFromBox && isAnySortingActive ) {
+                            _this.renderCards( FilteredItems );
+                            _this.renderShowResults( numberOfResults );
+                        } else {
+                            _this.showCards( uuidsToMap );
+                            _this.renderShowResults( numberOfResults );
+                            _this.setPagination();
+                        }
+                        */
+                        _this.focusResults();
+                    });
+                } else {
+                    //for keywordOnly
+                    $('#iop-filter-taxonomies-container').hide();
+                }
+            },
+            setListenerForSorting: function( sortingSelector, propertyName, SortObject ){
+
+                var _this = this;
+                var SortedItems = [];
+                var FilteredItems = [];
+                var SortObj = SortObject;
+
+                $( sortingSelector ).on( "click", function(){
+                    _this.updateSortingOptionsSelected( sortingSelector, SortObj, propertyName );//Update sort function for filtering global variable
+                    var sortAllItems = true; //To render all and not just those from last filtered applied
+                    SortedItems = MultipleFiltersDataLogic.sortAction( _this.SortingClicked, sortAllItems );
+
+                    var filteredWasApplied = _this.FiltersInDropdownClicked.length > 0;
+
+                    var deferred = $.Deferred();
+                    _this.renderCards( SortedItems, deferred ).done( function(){
+
+                        var uuidsToMap = [];
+
+                        if ( filteredWasApplied ) {
+                            FilteredItems = MultipleFiltersDataLogic.filterAction( _this.FiltersInDropdownClicked );
+                            uuidsToMap = FilteredItems.map( function( el ) {
+                                return el.uuid;
+                            } );
+
+                            var numberOfResults = uuidsToMap.length;
+                            _this.showCards( uuidsToMap );
+                            _this.renderShowResults( numberOfResults );
+                            //_this.setPagination();
+
+                        }
+
+                    } );
+
+                    //_this.renderShowResults( numberOfResults );
+                    //_this.renderCards( FilteredItems );
+
+                } );
+
+            },
+            setListenerForInput: function(){
+
+                var els = this.elements;
+                var searchButton = els.searchButton;
+                var input = els.input;
+
+                input.on('keypress', function( event ){
+                    var keyCode = event.which;
+                    if (keyCode == 13) {
+                        searchButton.trigger('click');
+                    }
+                });
+
+            },
+            setListenerForDateFilter: function( EventFilter ){
+                var _this = this;
+
+                var startTimeSelector = EventFilter.startTimeSelector;
+                var endTimeSelector = EventFilter.endTimeSelector;
+
+                $('#' + startTimeSelector ).on('change', function(){
+                    _this.focusFieldDate( 'endField' );
+                    _this.updateOtherFiltersClicked();
+                });
+                $('#' + endTimeSelector ).on('change', function(){
+                    var valueStartDate = _this.getFromDate();
+                    var valueEndDate = _this.getToDate();
+                    if ( valueStartDate == undefined || valueStartDate == '' )
+                        _this.focusFieldDate( 'startField' );
+
+                    if ( valueStartDate > valueEndDate ) {
+                        _this.focusFieldDate( 'startField' );
+                    }
+                    _this.updateOtherFiltersClicked();
+                });
+
+            },
+            triggerFilterByDate: function( EventFilter, useBootstrapDatePicker ){
+
+                var _this = this;
+
+                var startTimeSelector = EventFilter.startTimeSelector;
+                var endTimeSelector = EventFilter.endTimeSelector;
+
+                var startTimeInput;
+                var endTimeInput;
+
+                if ( useBootstrapDatePicker  ) {
+                    /* get from Datepicker bootstrap inputs */
+                    startTimeInput = $( '#' + startTimeSelector + '.datepicker' ).val();
+                    endTimeInput = $( '#' + endTimeSelector + '.datepicker' ).val();
+                } else {
+                    /* get from formio inputs */
+                    startTimeInput = $( startTimeSelector + ' .flatpickr-input' ).val();
+                    endTimeInput = $( endTimeSelector + ' .flatpickr-input' ).val();
+                }
+
+                if ( startTimeInput != '') {
+                    startTimeInput = new Date ( startTimeInput + ' 00:00:00 AM' ) || '';
+                } else {
+                    startTimeInput = '';
+                }
+                if ( endTimeInput != '') {
+                    endTimeInput = new Date ( endTimeInput + ' 11:59:59 PM' ) || '';
+                } else {
+                    endTimeInput = '';
+                }
+
+                var hasAnyFilterBeingApplied = _this.FiltersInDropdownClicked.length;
+
+                var FilteredItems = [];
+
+                if ( startTimeInput != '' ) {
+                    if ( hasAnyFilterBeingApplied === 0 && _this.OtherFiltersClicked === 0 ) {
+                        var noFiltersApplied = true;
+                        FilteredItems = MultipleFiltersDataLogic.filterByDate( startTimeInput, endTimeInput, noFiltersApplied );
+
+                    } else {
+                        //MultipleFiltersDataLogic.filterAction( _this.FiltersInDropdownClicked );
+                        FilteredItems = MultipleFiltersDataLogic.filterByDate( startTimeInput, endTimeInput );
+                        FilteredItems = _this.applyOtherFilters( FilteredItems );
+                    }
+                }
+
+                return FilteredItems;
+            },
+            setListenerCustom: function( id, eventName, filterFn, urlParam ){
+                var _this = this;
+                $( id ).on( eventName, function( event ) {
+                    //event.preventDefault();
+
+                    console.log("Click custom");
+                    var FilteredItems;
+
+                    if ( _this.OtherFiltersClicked > 0 ) {
+                        FilteredItems = MultipleFiltersDataLogic.filterCustom( filterFn );
+                        FilteredItems = _this.applyOtherFilters( FilteredItems );
+
+                    } else  {
+                        //Return Items completed
+                        FilteredItems = MultipleFiltersDataLogic.filterCustom( filterFn );
+                    }
+
+
+                    var uuidsToMap = FilteredItems.map( function( el ) {
+                        return el.uuid;
+                    } );
+
+                    var numberOfResults = uuidsToMap.length;
+
+                    var deferred = $.Deferred();
+                    _this.renderCards( FilteredItems, deferred ).done( function() {
+                        _this.renderShowResults( numberOfResults );
+                        //_this.setPagination();
+                    } );
+
+                    //_this.renderShowResults( numberOfResults );
+                    //_this.showCards( uuidsToMap );
+                    //_this.setPagination();
+                    var hashParam = _this.getHashParameters();
+                    hashParam[ urlParam ] = 'value X';
+                    _this.setHashParameters( hashParam );
+                    _this.updateOtherFiltersClicked();
+
+                } );
+            },
+            setListenerSearchButton: function( EventFilter, useBootstrapDatePicker ){
+                var _this = this;
+
+                var els = this.elements;
+                var searchButton = els.searchButton;
+
+                var calendarFieldsEnabled = _this.FilterInitialSettings.events !== undefined ? true : false ;
+
+                searchButton.on('click', function(){
+                    var keyword = _this.getKeyword();
+
+                    var hasAnyFilterBeingApplied = _this.FiltersInDropdownClicked.length;
+
+                    var FilteredItems = [];
+                    var noFiltersApplied;
+                    var atLeastASingleTagFromDropdownClicked = _this.FiltersInDropdownClicked.length;
+
+                    if ( hasAnyFilterBeingApplied === 0 && _this.OtherFiltersClicked == 0 ) {
+                        noFiltersApplied = true;
+                        FilteredItems = MultipleFiltersDataLogic.filterByKeyword( keyword, _this.Filters, noFiltersApplied );
+                    } else {
+                        if ( atLeastASingleTagFromDropdownClicked > 0 )
+                            FilteredItems = MultipleFiltersDataLogic.filterAction( _this.FiltersInDropdownClicked );
+                        FilteredItems = MultipleFiltersDataLogic.filterByKeyword( keyword, _this.Filters );
+                    }
+
+
+
+                    if ( calendarFieldsEnabled && _this.calendarFieldsAreFilled() ) {
+                        if ( atLeastASingleTagFromDropdownClicked == 0 ) {
+                            var reset = true;
+                            _this.updateOtherFiltersClicked( reset )
+                        }
+                        FilteredItems = _this.triggerFilterByDate( EventFilter, useBootstrapDatePicker );
+                    }
+                    /* else {
+                        if ( keyword == '' || _this.OtherFiltersClicked > 0 ) {
+                            if ( keyword !== '' && ( _this.getFromDate() == '' || _this.getFromDate() == undefined ) ) {
+                                _this.focusFieldDate( 'startField' );
+                            }
+
+                            if ( keyword !== '' && ( _this.getToDate() == '' || _this.getToDate() == undefined ) ) {
+                                _this.focusFieldDate( 'endField' );
+                            }
+                        }
+                    }
+                */
+
+
+                    var uuidsToMap = FilteredItems.map( function( el ) {
+                        return el.uuid;
+                    } );
+
+                    var numberOfResults = uuidsToMap.length;
+
+                    _this.renderShowResults( numberOfResults );
+                    _this.showCards( uuidsToMap );
+                    _this.setPagination();
+
+                });
+
+            },
+            calendarFieldsAreFilled: function(){
+                var startTimeInput = this.getFromDate();
+                var endTimeInput = this.getToDate();
+
+                if ( startTimeInput !== undefined && endTimeInput !== undefined ) {
+                    if ( startTimeInput !== '' && endTimeInput !== '' )
+                        return true;
+                }
+
+                return false;
+            },
+            focusFieldDate: function( $field ){
+                var els = this.elements;
+                var datePickerWrapper = els.$calendarFields;
+                var $inputStartDate = datePickerWrapper.find('#js-start-time.datepicker');
+                var $inputEndDate = datePickerWrapper.find('#js-end-time.datepicker');
+
+                if ( $field == 'startField' ) {
+                    $inputStartDate.focus();
+                }
+
+                if ( $field == 'endField' ) {
+                    $inputEndDate.focus();
+                }
+            },
+            setListenerCollapseFiltersWhenMobile: function(){
+
+                var els = this.elements;
+                var $collapseButton = els.$collapseButton;
+                var $containerFiltersFirstSection = els.$collapsibleFirstSectionFiltersMobile;
+                var $containerFiltersSecondSection = els.$collapsibleSecondSectionFiltersMobile;
+
+                $collapseButton.on('click', function( event ){
+                    var $iconArrow = $collapseButton.find('i');
+                    if ( $containerFiltersFirstSection.css('display') !== 'none' ) {
+                        //If visible then Hide
+                        $iconArrow.toggleClass('fa-chevron-up');
+                        $iconArrow.toggleClass('fa-chevron-down');
+                        $containerFiltersFirstSection.hide();
+                        $containerFiltersSecondSection.hide();
+                    } else {
+                        //If hidden then show
+                        $iconArrow.toggleClass('fa-chevron-down');
+                        $iconArrow.toggleClass('fa-chevron-up');
+                        $containerFiltersFirstSection.show();
+                        $containerFiltersSecondSection.show();
+                    }
+                });
+
+            },
+            focusResults: function(){
+                var els = this.elements;
+                var $resultsParagraph = els.resultsNumber;
+                $resultsParagraph.focus();
+            },
+            getHashParameters: function(){
+                var hash = window.location.href.split( "#" );
+                hash = hash[ 1 ] ? hash[ 1 ] : "";
+                var hashParameters = '';
+                hashParameters = hash.split( '&' ).reduce( function( hashParameters, item ) {
+                    var parts = item.split( '=' );
+                    hashParameters[ parts[ 0 ] ] = decodeURI( parts[ 1 ] );
+                    return hashParameters;
+                }, {} );
+                return hashParameters;
+            },
+            setHashParameters: function( params ){
+                params = params || {};
+                params.page = params.page || 1;
+                var stringParameters = [];
+
+                for( var param in params ) {
+                    if( ! params.hasOwnProperty( param ) ) continue;
+                    if( param && params[ param ] ) stringParameters.push( param + "=" + params[ param ] );
+                }
+
+                stringParameters = stringParameters.length > 0 ? '#' + stringParameters.join( "&" ) : "";
+
+                window.location.href = window.location.href.split( '#' )[ 0 ] + stringParameters;
+            },
+            addingAriaLabels: function(){
+                $(".select2-search__field").attr("aria-label", function () {
+                    return $(this).closest("article").attr("id")
+                });
+            },
+            setResetActions: function(){
+
+                var _this = this;
+
+                var els = this.elements;
+                var resetButton = els.resetButton;
+
+                resetButton.on('click', function(){
+                    console.log("RESET button");
+                    _this.resetAll();
+                });
+            },
+            resetAll: function(){
+                var _this = this;
+                var els = this.elements;
+                var allResultsNumber;
+                var inputBox = els.input;
+
+                inputBox.val('');
+
+                var categoriesId = this.Filters.map( function( Filter ) {
+                    return Filter.id;
+                } );
+
+                //for keywordOnly
+                if (categoriesId[0] != undefined) {
+                    categoriesId.forEach( function( idFilter ) {
+                        var id = idFilter.substr(0,1) === '#' ? idFilter : "#" + idFilter;
+                        $( id ).val( ["all"] ).trigger( 'change.select2' );
+                    } );
+                }
+
+                if ( this.FilterInitialSettings.hasOwnProperty('sorting')  ) {
+                    this.FilterInitialSettings.sorting.forEach( function( Sort ) {
+                        _this.updateSortingOptionsSelected( Sort.id, Sort );
+                    } );
+                }
+
+                if ( this.FilterInitialSettings.hasOwnProperty('events')  ) {
+                    var $startTime;
+                    var $endTime;
+                    if ( this.FilterInitialSettings.events.startTimeSelector ) {
+                        $startTime = els.$root.find('#' + this.FilterInitialSettings.events.startTimeSelector );
+                        $startTime.val('');
+                    }
+
+                    if ( this.FilterInitialSettings.events.endTimeSelector ) {
+                        $endTime = els.$root.find('#' + this.FilterInitialSettings.events.endTimeSelector );
+                        $endTime.val('');
+                    }
+                }
+
+                //Return Items completed
+                //var FilteredItems = MultipleFiltersDataLogic.filterAction( this.FiltersInDropdownClicked );
+                var FilteredItems = MultipleFiltersDataLogic.resetFilters();
+                this.FiltersInDropdownClicked.splice(0);
+                this.SortingClicked.splice(0);
+
+                /*
+                if ( this.SortingClicked.length > 0 ) {
+                    FilteredItems = MultipleFiltersDataLogic.sortAction( this.SortingClicked );
+                }
+                 */
+
+                var uuidsToMap = FilteredItems.map( function( el ) {
+                    return el.uuid;
+                } );
+
+                //To render all cards and not just the few results from last sorting
+                if ( uuidsToMap.length === this.totalResources ) {
+                    var deferred = $.Deferred();
+                    this.renderCards( FilteredItems, deferred ).done( function(  ) {
+                        allResultsNumber = _this.totalResources;
+
+                        _this.renderShowResults( allResultsNumber );
+                        //_this.setPagination();
+                    } );
+                }
+
+                this.setHashParameters( {} );
+                var reset = true;
+                this.updateOtherFiltersClicked( reset );
+
+            },
+            buildFieldsForBootstrapDatePicker: function(){
+
+                $('.datepicker').datepicker( {
+                    autoclose: true,
+                    orientation: 'bottom',
+                    ignoreReadonly: true,
+                    disableTouchKeyboard: true
+                } ).on('changeDate', function (e) {
+                    if (e.target.name === 'date-range-from') {
+                        //eventsFilter.setFromDate(e.date);
+                    } else if (e.target.name === 'date-range-to') {
+                        //eventsFilter.setToDate(e.date);
+                    }
+
+                });
+            },
+            getFromDate: function(){
+                var els = this.elements,
+                    datePickerWrapper = els.$calendarFields,
+                    inputStartDate = datePickerWrapper.find( '#js-start-time.datepicker' ),
+                    startDateInputFormatted;
+                if ( inputStartDate && inputStartDate.val() !== undefined && inputStartDate.val() !== "" ) {
+                    startDateInputFormatted = new Date ( inputStartDate.val() ) || '';
+                    return startDateInputFormatted;
+                }
+                return undefined;
+            },
+            getToDate: function(){
+                var els = this.elements,
+                    datePickerWrapper = els.$calendarFields,
+                    inputEndDate = datePickerWrapper.find( '#js-end-time.datepicker' ),
+                    endDateInputFormatted;
+                if ( inputEndDate && inputEndDate.val() !== undefined && inputEndDate.val() !== "" ) {
+                    endDateInputFormatted = new Date ( inputEndDate.val() ) || '';
+                    return endDateInputFormatted;
+                }
+                return undefined;
+            },
+            getKeyword: function(){
+                var els = this.elements;
+                    input = els.input,
+                    keyword = input.val(),
+                    valueKeyword = keyword.trim().toLowerCase();
+                return valueKeyword;
+            },
+            applyOtherFilters: function( FilteredItems ){
+                var startDateInput = this.getFromDate();
+                var endDateInput = this.getToDate();
+
+                if ( startDateInput !== undefined || endDateInput !== undefined ) {
+                    FilteredItems= MultipleFiltersDataLogic.filterByDate( startDateInput, endDateInput );
+                }
+
+                var keywordInput = this.getKeyword();
+
+                if ( keywordInput ) {
+                    FilteredItems = MultipleFiltersDataLogic.filterByKeyword( keywordInput, this.Filters );
+                }
+
+                return FilteredItems;
+            },
+            buildFieldsForEventPicker: function( EventFilter ){
+                if ( EventFilter.hasOwnProperty('id') && EventFilter.id !== undefined ) {
+                    var id = EventFilter.id.substr(0,1) === '#' ? EventFilter.id.substr(1) : EventFilter.id;
+                    this.getForm( EventFilter.formName, id );
+                } else {
+                    this.getForm( EventFilter.formName, "calendar-field" );
+                }
+            },
+            getForm: function( formName, container ){
+                // 1) Render the instance of Formio
+
+                var formURL = global.formioBaseURL + '/' + global.formioProject + '/' + formName;
+
+                try {
+                    FormioInstance.createForm(document.getElementById(container), formURL, {
+                        hooks: {
+                            beforeSubmit: function(submission, next) {
+                                // Alter the submission
+                                // Only call next when we are ready to submit
+                                console.log(submission.data);
+                                next();
+                                console.log('Current State: Before Summit');
+                            }
+                        }
+                    }).then(function(form) {
+                        // Adding required structure to wrap the email validation control
+                        form.nosubmit = true;
+
+                        form.on('submit', function(submission) {
+                            console.log('Current State:  Sbmitted!');
+                            //console.log(submission.data);
+                        });
+                    });
+                } catch( e ) {
+                    console.error( "ID for event picker was not found in the template or div" );
+                    console.error( e );
+                }
+            },
+            renderComponent: function( deferredStart, elasticSearchQuery ){
+                var _this = this;
+
+                var mappingFunction;
+
+                if ( this.FilterInitialSettings.hasOwnProperty('itemsMapping') && typeof this.FilterInitialSettings.itemsMapping === "function" ) {
+                    mappingFunction = this.FilterInitialSettings.itemsMapping;
+                }
+
+                var EventFilter = _this.FilterInitialSettings.events;
+                var sortByDate = typeof _this.FilterInitialSettings.sortByDate !== "undefined" ? _this.FilterInitialSettings.sortByDate : false;
+
+                if ( EventFilter && typeof _this.FilterInitialSettings.sortByDate === "undefined") {
+                    sortByDate = true;
+                }
+
+                MultipleFiltersDataLogic.getContentPiecesData( mappingFunction, elasticSearchQuery, sortByDate ).then( function( response ){
+                    console.log("Data: ", response );
+
+                    var Filters = _this.FilterInitialSettings.filters;
+                    var container = _this.WidgetSettings.root;
+                    var template = _this.WidgetSettings.template;
+                    var Sorting = _this.FilterInitialSettings.sorting;
+                    var CustomFilters = _this.FilterInitialSettings.customFilter;
+
+                    var Labels = _this.WidgetSettings.Labels;
+                    if (Labels === undefined) {
+                        Labels = {};
+                        Labels.filterTitleFirstSection = undefined;
+                        Labels.filterHelpText = undefined;
+                        Labels.filterButton = undefined;
+                        Labels.inputPlaceholder = undefined;
+                        Labels.filterTitleSecondSection = undefined;
+                        Labels.allTypeIndexButton = undefined;
+                        Labels.resetFiltersButton = undefined;
+                        Labels.shareTitle = undefined;
+                        Labels.noResultsImageUrl = undefined;
+                    }
+
+                    _this.Filters = _this.addPropertiesToFiltersForTemplate( Filters );
+                    _this.totalResources = response.length;
+
+                    if ( Sorting ) {
+                        for( var i=0; i<Sorting.length; i++ ) {
+                            if ( Sorting[i].id.substr(0,1) === '#' ) {
+                                Sorting[i].id = Sorting[i].id.substr(1);
+                            }
+                        }
+                    }
+
+                    var FiltersComponent = new OhioToolkitWebComponent({
+                        element: container, //'#id-container',
+                        templateLocation: template,
+                        data: {
+                            Filters: _this.Filters,
+                            sorting: Sorting,
+                            eventFilter: EventFilter,
+                            CustomFilter: CustomFilters,
+                            filterTitleFirstSection: Labels.filterTitleFirstSection,
+                            filterHelpText: Labels.filterHelpText,
+                            filterButton: Labels.filterButton,
+                            inputPlaceholder: Labels.inputPlaceholder,
+                            filterTitleSecondSection: Labels.filterTitleSecondSection,
+                            allTypeIndexButton: Labels.allTypeIndexButton,
+                            resetFiltersButton: Labels.resetFiltersButton,
+                            noResultsImageUrl: Labels.noResultsImageUrl
+                        }
+                    });
+
+
+                    FiltersComponent.render().then(function() {
+                        console.log('Filters Rendered');
+
+                        //for keywordOnly
+                        if (!_this.FilterInitialSettings.keywordOnly) {
+                            _this.Filters.forEach( function( Filter ) {
+                                var categorySelector = Filter.id;
+                                var taxonomy = Filter.propertyName;
+                                _this.setListenerForDropdown( categorySelector, taxonomy );
+                            } );
+                        }
+
+                        //validate if defined
+                        if ( Sorting  ) {
+                            Sorting.forEach( function( SortObject ) {
+                                var sortSelector = SortObject.id.substr(0,1) === '#' ? SortObject.id : "#" + SortObject.id;
+                                var propertyName = SortObject.propertyName;
+                                _this.setListenerForSorting( sortSelector, propertyName, SortObject );
+                            } );
+                        }
+
+                        if ( CustomFilters ) {
+                            CustomFilters.forEach( function( CstmFilter ) {
+                                _this.setListenerCustom( CstmFilter.id, CstmFilter.eventName, CstmFilter.filterFn, CstmFilter.urlParam );
+                            } );
+                        }
+
+                        if ( EventFilter ) {//To render the events input at same time filters template do
+                            if ( EventFilter.hasOwnProperty('formName') && EventFilter.formName !== undefined ) {
+                                _this.buildFieldsForEventPicker( EventFilter );
+                            } else {
+                                _this.buildFieldsForBootstrapDatePicker();
+                            }
+                        }
+
+                        var deferred = $.Deferred();
+                        _this.renderCards( response, deferred ).done( function() {
+                            //_this.setElements();
+                            _this.setListenerForInput();
+                            if ( EventFilter ) {//To add listener to events input once elements are rendered
+                                if ( EventFilter.hasOwnProperty('formName') && EventFilter.formName !== undefined ) {
+                                    _this.setListenerForDateFilter( EventFilter );
+                                    _this.setListenerSearchButton(  EventFilter );
+                                } else {
+                                    var useBoostrapDatePicker = true;
+                                    _this.setListenerForDateFilter( EventFilter );
+                                    _this.setListenerSearchButton(  EventFilter, useBoostrapDatePicker  );
+                                }
+                            } else {
+                                _this.setListenerSearchButton ( undefined )
+                            }
+
+                            _this.setResetActions();
+                            //_this.setPagination();
+
+                            //If URL parameters, filter with these parameters
+                            var hashParameters = _this.getHashParameters();
+                            if ( !hashParameters.hasOwnProperty("") ) {
+                                _this.Filters.forEach( function( _Filter ){
+                                    var idForSelect2 = "#" + _Filter.id;
+                                    var taxonomy = _Filter.propertyName;
+                                    var urlQueryValue = hashParameters[ taxonomy ];
+
+                                    if ( urlQueryValue !== undefined ) {
+                                        var urlValues = urlQueryValue.split(",");
+                                        //trigger filter
+                                        $( idForSelect2 ).val( urlValues ).trigger('change');
+                                    }
+                                } );
+                            }
+
+                            if (deferredStart)
+                                deferredStart.resolve();
+
+                        } );
+
+                        _this.addingAriaLabels();
+
+                    });
+
+                    //_this.renderCards( response );
+
+                });
+
+                if (deferredStart)
+                    return deferredStart.promise();
+                return deferredStart;
+            },
+            renderCards: function( response, deferred ){
+                var _this = this;
+                var templateItems = _this.WidgetSettings.templateItems;
+                var imageNoResults = _this.WidgetSettings.imageNoResults;
+                var idTemplateItems = _this.WidgetSettings.idTemplateItems;
+                var noResultsText = _this.WidgetSettings.Labels.noResultsText;
+                var noResultsImageUrl = _this.WidgetSettings.Labels.noResultsImageUrl;
+                var shareTitle = _this.WidgetSettings.Labels.shareTitle;
+
+                var CardsComponent = new OhioToolkitWebComponent({
+                    element: idTemplateItems,
+                    templateLocation: templateItems,
+                    data: {
+                        items: response,
+                        noResultsImgPath: imageNoResults,
+                        noResultsText: noResultsText,
+                        shareTitle: shareTitle,
+                        noResultsImageUrl: noResultsImageUrl
+                    }
+                });
+
+                CardsComponent.render().then( function() {
+                    console.log("Results Rendered");
+
+                    _this.setElements();
+                    _this.setListenerCollapseFiltersWhenMobile();
+                    _this.setPagination();
+                    window.scrollTo(0, 0);
+                    _this.removeAriaAttributesFromItemsDisplayed();
+                    if (deferred)
+                        deferred.resolve();
+                } );
+
+                if (deferred)
+                    return deferred.promise();
+                return deferred;
+            },
+            start: function( Filters, WidgetSettings ) {
+                this.FilterInitialSettings = Filters;
+                this.WidgetSettings = WidgetSettings;
+                var deferred = $.Deferred();
+                return this.renderComponent( deferred, WidgetSettings.elasticSearchQuery ).done(function( response ) {
+                    var promiseDef = $.Deferred();
+                    deferred.resolve();
+                    return deferred.promise();
+                });
+            }
+        };
+
+        return Instance;
+    };
+
+})();
+/* END: Ohio Design > Components > Site Builder > Site Components Core > Filter > Dependencies > JS - Content With Filters */
+
+var DEFAULT_WIDGET_SETTINGS = {
+    root:               "#resources-filter",
+    menuComponent:      'aa7a4aa9-f871-4f6e-a646-3b6a162a51dd',
+    category:           '',
+    template:           '/wps/wcm/connect/gov/3c7f54c8-4f05-484f-9134-b5f5b43ce4dc/standard-filter.hbs.html?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE.Z18_JQGCH4S04P41206HNUKVF31000-3c7f54c8-4f05-484f-9134-b5f5b43ce4dc-oyciScn',
+    elementsPerPage:    12,
+    idTemplateItems:    "#cards-generic-wrapper",
+    imageNoResults:     '/wps/wcm/connect/gov/222eff35-ce11-4203-b24c-f8dc2e31e9d1/content-not-found_blue.png?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE.Z18_JQGCH4S04P41206HNUKVF31000-222eff35-ce11-4203-b24c-f8dc2e31e9d1-nFDz1TL',
+    templateItems:      '/wps/wcm/connect/gov/6d2aee6f-851e-4c73-8881-2168abb1479b/resource-cards.hbs.html?MOD=AJPERES&amp;CACHEID=ROOTWORKSPACE.Z18_JQGCH4S04P41206HNUKVF31000-6d2aee6f-851e-4c73-8881-2168abb1479b-phcwUju',
+    Labels: {
+        filterHelpText: 'iop-filter-help-text',
+        filterTitleFirstSection: 'iop-filter-input-title',
+        inputPlaceholder: 'iop-filter-input-placeholder',
+        filterButton: 'iop-filter-button-filter',
+        resetFiltersButton: 'odx-filter-button-reset',
+        noResultsText: 'iop-filter-no-results-txt'
+    }
+};
+
+document.addEventListener('DOMContentLoaded', function() {
+    //register handlebar helper by converting a string to an array and loop through
+    Handlebars.registerHelper('eachFromString', function(value, options) {
+        var data;
+        var result = [];
+        var arr = value.split(',');
+        for (var i = 0; i < arr.length; i++) {
+            if (data) {
+                data.index = i;
+            }
+            result.push(options.fn(arr[i]));
+        }
+        return result.join( '' );
+    });
+
+    //register handlebar helpber by checking summary length and add elipsis
+    Handlebars.registerHelper('ellipsis', function( value ) {
+        value = value.length >= 100 ? value + '...' : value;
+        return value;
+    });
+
+    var dropdownsFilters = [{
+        id:             "#js-select-categories", //Select2 Selector
+        propertyName:   'topics', //Property to filter
+        allLabel:       "odx-all-topics",
+        label:          "iop-news-filter-by"
+    }];
+
+    if ( window.IOPFilter == undefined ) {
+        window.IOPFilter = {};
+    }
+
+    if ( IOPFilter.hasOwnProperty( 'filters' ) ) {
+        if ( Array.isArray(IOPFilter.filters) ) {
+            dropdownsFilters = IOPFilter.filters;
+        } else if ( !Array.isArray(IOPFilter.filters) && IOPFilter.filters.hasOwnProperty( 'propertyName' ) ) {
+            dropdownsFilters = [{
+                id: "#js-select-categories", //Select2 Selector
+                propertyName: IOPFilter.filters.propertyName,
+                allLabel: "odx-all-topics",
+                label: "iop-news-filter-by" 
+            }];
+        }
+    }
+
+    //Default filters
+    var FILTERS = {
+        alpha: IOPFilter.alpha,
+        filters: dropdownsFilters,
+        sorting: IOPFilter.sorting,
+        sortByDate: IOPFilter.sortByDate || false,
+        events: {
+            startTimeSelector: "js-start-time",
+            endTimeSelector: "js-end-time",
+            labelStart: 'iop-news-start-date',
+            labelEnd: 'iop-news-end-date',
+        },
+        itemsMapping: IOPFilter.itemsMapping,
+        customFilter: IOPFilter.customFilter
+    };
+
+    /* Hide dropdowns if IOPFilter.filters = false */
+    if ( IOPFilter.hasOwnProperty( 'showDropdown' ) && IOPFilter.showDropdown == false ) {
+        FILTERS.filters = [];
+    }
+
+    /* Hide datepicker if IOPFilter.events = false */
+    if ( IOPFilter.hasOwnProperty( 'showDatePicker' ) && IOPFilter.showDatePicker == false ) {
+        delete FILTERS.events;
+    } else {
+        /* Overwrite datepicker if IOPFilter.events receives an object */
+        FILTERS.events = IOPFilter.hasOwnProperty( 'events' ) ? IOPFilter.events : FILTERS.events;
+    }
+
+    /* =========== START Remove undefined filters to avoid crash in the JS =========== */
+
+    if ( FILTERS.alpha == undefined ) {
+        delete FILTERS.alpha;
+    }
+
+    if ( FILTERS.sorting == undefined ) {
+        delete FILTERS.sorting;
+    }
+
+    if ( FILTERS.itemsMapping == undefined ) {
+        delete FILTERS.itemsMapping;
+    }
+
+    if ( FILTERS.customFilter == undefined ) {
+        delete FILTERS.customFilter;
+    }
+
+    /* =========== END Remove undefined filters to avoid crash in the JS =========== */
+
+    var WIDGET_SETTINGS = {
+        wcmComponent: {
+            id:         IOPFilter.menuComponent || DEFAULT_WIDGET_SETTINGS.menuComponent,
+            category:   IOPFilter.category || DEFAULT_WIDGET_SETTINGS.category
+        },
+        elasticSearchQuery: IOPFilter.elasticSearchQuery || false,
+        root:               IOPFilter.root || DEFAULT_WIDGET_SETTINGS.root,
+        template :          IOPFilter.template || DEFAULT_WIDGET_SETTINGS.template,
+        elementsPerPage:    IOPFilter.elementsPerPage || DEFAULT_WIDGET_SETTINGS.elementsPerPage,
+        idTemplateItems:    IOPFilter.idTemplateItems || DEFAULT_WIDGET_SETTINGS.idTemplateItems,
+        imageNoResults:     IOPFilter.imageNoResults || DEFAULT_WIDGET_SETTINGS.imageNoResults,
+        templateItems:      IOPFilter.templateItems || DEFAULT_WIDGET_SETTINGS.templateItems,
+        Labels:             IOPFilter.Labels || DEFAULT_WIDGET_SETTINGS.Labels
+    };
+
+    var multipleFiltersInstance = window.FiltersWidget( WIDGET_SETTINGS.wcmComponent );
+    multipleFiltersInstance.start(FILTERS, WIDGET_SETTINGS).done(function( response ) {
+
+        /* Hide input keyword if IOPFilter.keyword = false */
+        if ( IOPFilter.hasOwnProperty( 'showKeyword' ) ) {
+            if ( IOPFilter.hasOwnProperty( 'showKeyword' ) && IOPFilter.showKeyword == false ) {
+                var $inputKeyword = document.querySelector( '.js-iop-input' );
+                $inputKeyword.classList.add( "hidden" );
+                var $keywordContainer = $( '.js-iop-filter__first-section' );
+                $keywordContainer.hide();
+
+                var $secondSectionContainer = $( ".js-iop-filter__second-section" );
+                $secondSectionContainer.css('border-top', '1px solid #D8D8D8');
+                $secondSectionContainer.css('border-radius', '10px');
+            }
+        }
+
+        /* Hide filters border if all filters disabled */
+        if ( IOPFilter.showKeyword == false && IOPFilter.showDropdown == false && IOPFilter.showDatePicker == false ) {
+            var $secondSectionContainer = $( ".js-iop-filter__second-section" );
+            $secondSectionContainer.hide();
+        }
+
+        /* Run any function assigned to IOPFilter.executeAfterFilterRendered after widget has been rendered */
+        if ( IOPFilter.hasOwnProperty( 'executeAfterFilterRendered' ) ) {
+            IOPFilter.executeAfterFilterRendered();
+        }
+    
+    });
+
+});
+
+/* ========= How to enable the rest of filters ======== */
+/* Assign each of the following variables according to documentation:
+var IOPFilter.alpha;
+var IOPFilter.sorting;
+var IOPFilter.itemsMapping;
+var IOPFilter.customFilter;
+var IOPFilter.executeAfterFilterRendered;
+*/
+
+</script>
+
+<!-- END: Ohio Design / Site Builder / Site Components Core / Filter / Resources / MAIN - Configurable Resources Filter -->
+</section>
+
+<!-- ./Component 9 -->
+
+<!-- Bottom Component -->
+
+<!-- ./Bottom Component -->
+<!-- ./Layout Line 2 -->
+<!-- END: Ohio Design > Components > Global > Utilities > ODX Landing Page Layouts > Landing Page Layout Line 2-->
+  </div>
+</div>
+
+<!-- END: Ohio Design > Components > Global > Utilities > ODX Landing Page Layouts > Layout ODX Single Column with Bottom Sidebar & Left Nav (Current Context) -->
+                        
+                    </article>
+                </main>
+        
+            </div>
+        </div><!-- ./row -->
+        
+    </div>
+</div>
+
+<!-- START: Ohio Design > Components > Site Components > Apply Structured Story -->
+<!-- START: Ohio Design > Components > Global > Components for Presentation Templates > Expand Collapse All -->
+<div id="js-content-expand-collapse" class="odx-content__expand-collapse hidden">
+    <button class="btn" data-state="expand">Expand All Sections</button>
+</div>
+<script>
+$( document ).ready(function() {
+    $( '#js-content-expand-collapse button' ).on('click', function() {
+        var $contentBody = $( '#js-odx-content__body' ),
+            $btnExpandCollapse = $( this ),
+            state = $btnExpandCollapse.data( 'state' );
+        if ( state === 'expand') {
+            var closedTwisties = $contentBody.find( '.sectionHeader.closed' ),
+                closedTwistiesWithNextedSections = $contentBody.find( '.firstsectionHeader.closed' );
+            closedTwisties.each(function(){
+                $( this ).trigger('click');
+            });
+            closedTwistiesWithNextedSections.each(function(){
+                $( this ).trigger('click');
+            });
+            $btnExpandCollapse.data('state', 'collapse');
+            $btnExpandCollapse.text( 'Collapse All Sections' );
+        } else {
+            var opendTwisties = $contentBody.find( '.sectionHeader.opened' ),
+                opendTwistiesWithNextedSections = $contentBody.find( '.firstsectionHeader.opened' );
+            opendTwisties.each(function(){
+                $( this ).trigger('click');
+            });
+            opendTwistiesWithNextedSections.each(function(){
+                $( this ).trigger('click');
+            });
+            $btnExpandCollapse.data('state', 'expand');
+            $btnExpandCollapse.text( 'Expand All Sections' );
+        }
+        $contentBody.find( '.section.twisty' ).first().focus();
+    });
+});
+</script>
+<!-- END: Ohio Design > Components > Global > Components for Presentation Templates > Expand Collapse All -->
+<script type="text/javascript">
+(function( $ ) {
+    $( document ).ready(function() {
+        var $mainContainer = $( '#js-odx-content__body' ),
+            $headings = $mainContainer.find( 'h2' ),
+            $bodyOfContent = $( '#js-odx-content__body' ),
+            $containerExpandCollapse = $( '#js-content-expand-collapse' );
+        for (var i = 0, length = $headings.length; i < length; i++) {
+            var $currentHeading = $( $headings[i] );
+            var wrapperDiv = $currentHeading.parent( 'div' );
+            if ( wrapperDiv.length && $mainContainer != wrapperDiv ) {
+                $currentHeading.unwrap();
+            }
+        }
+        function selectDisplayFormat( unprocessedAuthorSelectedDisplayFormat ) {
+            var authorSelectedDisplayFormat = "asTyped";
+            switch ( unprocessedAuthorSelectedDisplayFormat ) {
+                case '':
+                    authorSelectedDisplayFormat = "asTyped";
+                    break;
+                case 'As Typed':
+                    authorSelectedDisplayFormat = "asTyped";
+                    break;
+                case 'Table of Contents':
+                    authorSelectedDisplayFormat = "toc";
+                    break;
+                case 'Collapsible Sections':
+                    authorSelectedDisplayFormat = "twisties";
+                    break;
+                case 'Horizontal Tabs':
+                    authorSelectedDisplayFormat = "horizontalTabs";
+                    break;
+                case 'Vertical Tabs':
+                    authorSelectedDisplayFormat = "verticalTabs";
+                    break;
+                case 'Horizontal Tabs with Collapsible Sections':
+                    authorSelectedDisplayFormat = "horizontalTabsWithCollapsibleSections";
+                    break;
+            }
+            return authorSelectedDisplayFormat;
+        }
+        var authorSelectedDisplayFormat = selectDisplayFormat( '' ),
+            innerCollapsibleSections = selectDisplayFormat( '' );
+        var story_transformContent_options = {
+            type            : authorSelectedDisplayFormat,
+            title           : "Contents",
+            initialState    : "closed"
+        };
+        if ( innerCollapsibleSections !== "asTyped" ) {
+            story_transformContent_options["sectionClass"] = 'firstLevelSection';
+            story_transformContent_options["haveSubSections"] = true;
+            story_transformContent_options["sectionClass"] = 'firstsection';
+            story_transformContent_options["headerClass"] = 'firstsectionHeader';
+            story_transformContent_options["bodyClass"] = 'firstsectionBody';
+            story_transformContent_options["subSectionsOptions"] = {
+                sectionClass    : "secondLevelSection",
+                headerSelector  : "h3",
+                type            : innerCollapsibleSections,
+                initialState    : "closed"
+            }
+        }
+        var transformQuery = "#js-odx-content__body";
+        if ( authorSelectedDisplayFormat !== "asTyped" || innerCollapsibleSections !== "asTyped" ) {
+            $bodyOfContent.story_transformContent( story_transformContent_options );
+            var $tableOfContentsContainer = $( '.js-structured-story-body .tableOfContents' );
+            if ( typeof $tableOfContentsContainer === 'object' && $tableOfContentsContainer.length === 0) {
+                $bodyOfContent.find( 'h2' ).first().addClass( 'firstHeader' );
+            }
+            if (authorSelectedDisplayFormat === 'twisties') {
+                $bodyOfContent.find( 'div.sectionHeader' ).first().trigger('click');
+                if ( innerCollapsibleSections === 'twisties' ) {
+                    $bodyOfContent.find( 'div.firstsectionHeader' ).first().trigger( 'click' );
+                }
+                $bodyOfContent.find( '.twisty' ).first().before( $containerExpandCollapse );
+                $containerExpandCollapse.removeClass( 'hidden' );
+            } else if ( innerCollapsibleSections === "twisties" ) {
+                $bodyOfContent.find( '.firstsection' ).first().before( $containerExpandCollapse );
+                $containerExpandCollapse.removeClass( 'hidden' );
+            }
+        }
+        $( '.section.twisty, .firstsection.twisty, .secondLevelSection.twisty' ).on('keypress', function( event ){
+            var key = event.which || event.keyCode;
+            if ( key === 32 ) {
+                var child = jQuery( this ).children()[0];
+                child.click();
+                event.preventDefault();
+            }
+        });
+        var customH2Style = '';
+        $bodyOfContent.find( 'h2' ).addClass( customH2Style );
+        
+        if( $('.firstsection.story').hasClass( 'twisty' ) ) {
+            $( '.firstsection > .firstsectionBody > .secondLevelSection' ).addClass( 'nested' );
+        };
+    });
+})( jQuery );
+</script>
+<!-- END: Ohio Design > Components > Site Components > Apply Structured Story -->
+<!-- END: Ohio Design > Presentation Templates > Landing Page -->
+        
+        
+    
+
+    
+        
+
+
+
+
+
+        
+
+
+
+
+
+
+
+    
+</div>
+</div> </div></div></div>
+<div class="wptheme1Col single-column-footer">
+	
+	  	<div class='component-container wpthemeLeft wpthemeSecondaryContainer ibmDndColumn id-Z7_O06E1CC01POGF06SGFRRBEIGS7' name='footer' ><div class='component-control id-Z7_O06E1CC01POGF06SGFRRBEIG24' ><!-- start base22 skin standard -->
+<div class="ibmPortalControl wpthemeControl wpthemeStandard a11yRegionTarget" role="region" >
+	
+	<!-- start header markup -->
+	<div class="wpthemeControlHeader">
+		<div class="wpthemeInner">
+			<div>
+				<img class="dndHandle" draggable="true" ondragstart="wpModules.dnd.util.portletDragStart(event, this, this.parentNode, 30, 0);"
+				ondragend="wpModules.dnd.util.portletDragEnd(event);" 
+				src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt=""/>
+				<!-- lm-dynamic-title node marks location for dynamic title support -->
+				<span class="lm-dynamic-title asa.portlet.title a11yRegionLabel"><span lang="en" dir="ltr">Web Content Viewer</span></span>
+			</div>
+			
+			<a aria-haspopup="true" aria-label="Display portlet menu" role="button" href="javascript:;" class="wpthemeIcon wpthemeActionDisabled wpthemeMenuFocus" tabindex="0"
+                onclick="if (typeof wptheme != 'undefined') wptheme.contextMenu.init({ 'node': this, menuId: 'skinAction', jsonQuery: {'navID':ibmCfg.portalConfig.currentPageOID,'windowID':wptheme.getWindowIDFromSkin(this)}, params: {'alignment':'right'}});"
+				onmousemove="javascript:if (typeof i$ != 'undefined' && typeof wptheme != 'undefined') { i$.removeClass(this,'wpthemeActionDisabled'); this.onmousemove = null; }"
+				onkeydown="javascript:if (typeof i$ != 'undefined' && typeof wptheme != 'undefined') {if (event.keyCode ==13 || event.keyCode ==32 || event.keyCode==38 || event.keyCode ==40) {wptheme.contextMenu.init(this, 'skinAction', {'navID':ibmCfg.portalConfig.currentPageOID,'windowID':wptheme.getWindowIDFromSkin(this)}); return false;}}">
+				<span title="Display portlet menu"><img aria-label="Display portlet menu" alt="" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"></span>
+				<span class="wpthemeAltText">Actions</span>
+			</a>
+		</div>
+	</div>
+	
+	<div class="wpthemeControlBody wpthemeOverflowAuto wpthemeClear"> <!-- lm:control dynamic spot injects markup of layout control -->
+	<!-- asa.overlay marks the node that the AsaOverlayWidget will be placed in 
+		<div style="position:relative; z-index: 1;">
+			<div class="analytics.overlay"></div>
+		</div> -->
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+    
+
+    
+    
+
+    
+    
+    
+
+
+
+
+
+    
+    
+        
+        
+            
+                
+                    
+                    
+                       
+                        
+                            <!-- START: Ohio Design > Components > Site Builder > Global Components > IOP Footer > IOP Footer -->
+<!-- NO RESULTS: Ohio Design > Components > Site Builder > Global Components > IOP Footer > MENU - Call to Action -->
+<nav aria-label="Footer">
+    
+    

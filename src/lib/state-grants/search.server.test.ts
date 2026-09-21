@@ -108,13 +108,13 @@ describe("body parsing", () => {
 describe("the registry gate", () => {
   test("a requested state with no validated source is answered empty, and the store is never queried", async () => {
     const { deps: d, calls } = deps();
-    const outcome = await runStateGrantSearch({ stateCodes: ["MD"] }, TODAY, d);
+    const outcome = await runStateGrantSearch({ stateCodes: ["NC"] }, TODAY, d);
     const body = bodyOf(outcome);
     expect(body.totalCount).toBe(0);
     expect(body.records).toEqual([]);
     expect(body.statesIncluded).toEqual([]);
-    expect(body.uncoveredStates).toEqual(["MD"]);
-    expect(body.uncoveredNotice).toContain("Maryland (MD)");
+    expect(body.uncoveredStates).toEqual(["NC"]);
+    expect(body.uncoveredNotice).toContain("North Carolina (NC)");
     expect(body.uncoveredNotice).toContain("no records are invented");
     expect(body.asOf).toBeNull();
     expect(calls.query).toEqual([]);
@@ -123,19 +123,19 @@ describe("the registry gate", () => {
 
   test("a mixed request serves only the covered state and names the uncovered one", async () => {
     const { deps: d, calls } = deps();
-    const body = bodyOf(await runStateGrantSearch({ stateCodes: ["VA", "MD"] }, TODAY, d));
+    const body = bodyOf(await runStateGrantSearch({ stateCodes: ["VA", "NC"] }, TODAY, d));
     expect(body.statesIncluded).toEqual(["VA"]);
-    expect(body.uncoveredStates).toEqual(["MD"]);
+    expect(body.uncoveredStates).toEqual(["NC"]);
     const query = calls.query[0] as { stateCodes: string[] };
     expect(query.stateCodes).toEqual(["VA"]);
   });
   test("statesIncluded can only ever hold validated states — repeats and uncovered codes never leak in", async () => {
     const { deps: d, calls } = deps([storedRow()], ["VA"]);
     const body = bodyOf(
-      await runStateGrantSearch({ stateCodes: ["MD", "VA", "MD", "CA"] }, TODAY, d),
+      await runStateGrantSearch({ stateCodes: ["NC", "VA", "NC", "CA"] }, TODAY, d),
     );
     expect(body.statesIncluded).toEqual(["VA"]);
-    expect(body.uncoveredStates).toEqual(["MD", "CA"]);
+    expect(body.uncoveredStates).toEqual(["NC", "CA"]);
     // The echoed scope is the narrowed one, so a client can never read an
     // uncovered state out of the applied filters either.
     expect(body.filters.stateCodes).toEqual(["VA"]);
@@ -175,9 +175,9 @@ describe("the registry gate", () => {
 
   test("the uncovered notice speaks about one or many states correctly", () => {
     expect(uncoveredStatesNotice([])).toBeNull();
-    expect(uncoveredStatesNotice(["MD"])).toContain("has no validated source yet");
-    expect(uncoveredStatesNotice(["MD", "CA"])).toContain("have no validated source yet");
-    expect(uncoveredStatesNotice(["MD", "CA"])).toContain("California (CA)");
+    expect(uncoveredStatesNotice(["NC"])).toContain("has no validated source yet");
+    expect(uncoveredStatesNotice(["NC", "CA"])).toContain("have no validated source yet");
+    expect(uncoveredStatesNotice(["NC", "CA"])).toContain("California (CA)");
   });
 });
 

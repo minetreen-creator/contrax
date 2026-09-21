@@ -47,6 +47,47 @@ export class StateSourceError extends Error {
   }
 }
 
+/**
+ * OPT-IN PUBLIC-SESSION HANDSHAKE — the ONE portal in this workstream whose
+ * listing is served only inside a session (New York's SFS Vendor Portal).
+ *
+ * WHY THIS IS ALLOWED AT ALL (owner decision, 2026-09-19, verbatim):
+ * "Allow normal, temporary public-session cookies only—no login, CAPTCHA bypass,
+ * or persistent credential storage. Fail closed if the public session cannot be
+ * established." New York's own Grants Management page says of this portal:
+ * "Anyone can access the Grant Opportunity Portal. A username and password are
+ * not necessary to view anticipated and available grant opportunities."
+ *
+ * WHAT IT IS: a GET of the portal's own PUBLIC guest/session page, and then the
+ * listing GET carrying — in memory, for this run only — the cookies THAT page's
+ * own response told us to send. It is exactly what a browser does before it can
+ * read the listing, and nothing more.
+ *
+ * WHAT IT IS NOT (each bar is structural, not a comment):
+ *   - NO credentials are sent: no POST, no form fields, no Authorization header
+ *     (we only ever set `accept`, `user-agent` and, when a handshake ran,
+ *     `cookie`), so no login can take place even if the page later asks;
+ *   - NO CAPTCHA or access control is solved or bypassed: a handshake that is not
+ *     completed by an ordinary 2xx response FAILS CLOSED below;
+ *   - NOTHING IS PERSISTED: the jar is a local Map inside the call. No file, no
+ *     env, no module state, no database, and the values are never logged;
+ *   - NO dormant capability: the option is read only when a connector declares
+ *     it, so every other state's single fail-closed GET is byte-identical.
+ */
+export interface PublicSessionOptions {
+  /** The portal's own public session page. GET only — never a login form post. */
+  sessionUrl: string;
+  /** Marker the session page must carry (fail-closed proof we hit the portal). */
+  sessionMarker: string;
+  /** A session page smaller than this is implausible. */
+  sessionMinBytes?: number;
+  /**
+   * Cookie name(s) that response must set, or the handshake fails closed. The
+   * caller names the ONE session cookie the portal's public pages depend on.
+   */
+  requiredCookies: readonly string[];
+}
+
 export interface FetchSourceOptions {
   url: string;
   /** HTML marker the page must contain, or the run fails as a PARSE failure. */
@@ -56,28 +97,60 @@ export interface FetchSourceOptions {
   /** Bodies smaller than this are implausible — never parsed as a corpus. */
   minBytes?: number;
   fetchImpl?: typeof fetch;
+  /**
+   * OPT-IN public-session handshake (see `PublicSessionOptions`). Absent for
+   * every state but New York, which is what keeps this change additive.
+   */
+  publicSession?: PublicSessionOptions;
+  /**
+   * Hosts the FINAL response URL may use once redirects have been followed (the
+   * connector's own approved-host allowlist).
+   *
+   * WHY (QA flag #5 on the batch-1 checklist): the gate used to check only the
+   * status, the body size and the content marker, so a listing fetch that
+   * redirected to a vendor portal or a parked domain could still be parsed as if
+   * it were the agency's own page — the record-level URLs are pinned, but the
+   * PAGE we read was not. A connector that passes this list now fails the fetch
+   * stage when the final host is not one of its official hosts. Optional and
+   * additive: a connector that does not pass it keeps its previous behaviour.
+   */
+  approvedHosts?: readonly string[];
 }
 
 /**
  * Fetches one official listing page. Throws on timeout, a non-2xx response, an
- * implausibly small body, or a body that no longer contains the source's marker
- * — fail-closed: a failed run writes NOTHING, rather than a half-parsed corpus.
+ * implausibly small body, a final URL that left the approved hosts, or a body
+ * that no longer contains the source's marker — fail-closed: a failed run writes
+ * NOTHING, rather than a half-parsed corpus.
  */
-export async function fetchStateGrantSource(options: FetchSourceOptions): Promise<string> {
-  const { url, marker, label, minBytes = 1000, fetchImpl = fetch } = options;
+async function requestOnce(options: {
+  url: string;
+  label: string;
+  fetchImpl: typeof fetch;
+  /** Present only after a completed public handshake — never user input. */
+  cookie?: string;
+}): Promise<{ status: number; body: string; finalUrl: string; res: Response }> {
+  const { url, label, fetchImpl, cookie } = options;
+  const headers: Record<string, string> = {
+    accept: "text/html,application/xhtml+xml",
+    "user-agent": STATE_SOURCE_USER_AGENT,
+  };
+  // The ONLY header a handshake ever adds. No cookie is user- or
+  // credential-derived: it is what the portal's own public page just set.
+  if (cookie) headers.cookie = cookie;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), STATE_SOURCE_TIMEOUT_MS);
-  let status: number;
-  let body: string;
   try {
     const res = await fetchImpl(url, {
       method: "GET",
-      headers: { accept: "text/html,application/xhtml+xml", "user-agent": STATE_SOURCE_USER_AGENT },
+      headers,
       signal: controller.signal,
       redirect: "follow",
     });
-    status = res.status;
-    body = await res.text();
+    const status = res.status;
+    const finalUrl = typeof res.url === "string" ? res.url : "";
+    const body = await res.text();
+    return { status, body, finalUrl, res };
   } catch (e) {
     const aborted = e instanceof Error && e.name === "AbortError";
     throw new StateSourceError(
@@ -89,8 +162,37 @@ export async function fetchStateGrantSource(options: FetchSourceOptions): Promis
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** The four fail-closed checks every fetched page must pass, unchanged. */
+function assertUsablePage(
+  page: { status: number; body: string; finalUrl: string },
+  options: {
+    url: string;
+    label: string;
+    marker: string;
+    minBytes: number;
+    approvedHosts?: readonly string[];
+  },
+): void {
+  const { url, label, marker, minBytes, approvedHosts } = options;
+  const { status, body, finalUrl } = page;
   if (status < 200 || status >= 300) {
     throw new StateSourceError("fetch", `${label} source responded ${status} (${url})`);
+  }
+  if (approvedHosts && approvedHosts.length > 0 && finalUrl.length > 0) {
+    let finalHost: string | null = null;
+    try {
+      finalHost = new URL(finalUrl).host;
+    } catch {
+      finalHost = null;
+    }
+    if (finalHost === null || !approvedHosts.includes(finalHost)) {
+      throw new StateSourceError(
+        "fetch",
+        `${label} source redirected off the approved hosts (${finalUrl}) — refusing to parse a listing served by a host that is not on the allowlist`,
+      );
+    }
   }
   if (!body || body.length < minBytes) {
     throw new StateSourceError(
@@ -104,7 +206,86 @@ export async function fetchStateGrantSource(options: FetchSourceOptions): Promis
       `${label} source no longer looks like the expected listing (marker ${JSON.stringify(marker)} missing)`,
     );
   }
-  return body;
+}
+
+/** Set-Cookie values of one response, however the runtime exposes them. */
+function readSetCookies(res: Response): string[] {
+  const headers = res.headers as Headers & { getSetCookie?: () => string[] };
+  if (typeof headers.getSetCookie === "function") {
+    try {
+      const all = headers.getSetCookie();
+      if (Array.isArray(all) && all.length > 0) return all;
+    } catch {
+      // Fall through to the single-header path below.
+    }
+  }
+  const combined = res.headers.get("set-cookie");
+  if (!combined) return [];
+  // Split only at a comma that is followed by `name=`, so an Expires date
+  // ("…, 01-Jan-1970 …") is never mistaken for a cookie boundary.
+  return combined.split(/,(?=\s*[A-Za-z0-9!#$%&'*+\-.^_`|~]+=)/);
+}
+
+/**
+ * The cookie header for THIS request only, built from the cookies the portal's
+ * own session page set. Never returned, never logged, never stored anywhere.
+ */
+function sessionCookieHeader(
+  res: Response,
+  options: PublicSessionOptions,
+  label: string,
+): string {
+  const jar = new Map<string, string>();
+  for (const raw of readSetCookies(res)) {
+    const pair = (raw.split(";")[0] ?? "").trim();
+    const eq = pair.indexOf("=");
+    if (eq <= 0) continue;
+    const name = pair.slice(0, eq).trim();
+    const value = pair.slice(eq + 1).trim();
+    if (name.length === 0) continue;
+    // A server clearing a cookie (empty value) is not a session we can use.
+    if (value.length === 0) {
+      jar.delete(name);
+      continue;
+    }
+    jar.set(name, value);
+  }
+  for (const required of options.requiredCookies) {
+    if (!jar.has(required)) {
+      throw new StateSourceError(
+        "fetch",
+        `${label} public session did not set the ${required} cookie — refusing to read a listing served outside a public session (fail closed)`,
+      );
+    }
+  }
+  return [...jar].map(([name, value]) => `${name}=${value}`).join("; ");
+}
+
+export async function fetchStateGrantSource(options: FetchSourceOptions): Promise<string> {
+  const { url, marker, label, minBytes = 1000, fetchImpl = fetch, approvedHosts, publicSession } =
+    options;
+  // 0. OPT-IN public-session handshake. Absent for every state but New York, so
+  //    every other source's single fail-closed GET is byte-identical to before.
+  let cookie: string | undefined;
+  if (publicSession) {
+    const sessionLabel = `${label} public session page`;
+    const sessionPage = await requestOnce({
+      url: publicSession.sessionUrl,
+      label: sessionLabel,
+      fetchImpl,
+    });
+    assertUsablePage(sessionPage, {
+      url: publicSession.sessionUrl,
+      label: sessionLabel,
+      marker: publicSession.sessionMarker,
+      minBytes: publicSession.sessionMinBytes ?? 1000,
+      approvedHosts,
+    });
+    cookie = sessionCookieHeader(sessionPage.res, publicSession, label);
+  }
+  const page = await requestOnce({ url, label, fetchImpl, cookie });
+  assertUsablePage(page, { url, label, marker, minBytes, approvedHosts });
+  return page.body;
 }
 
 // ── Text ────────────────────────────────────────────────────────────────────
@@ -116,6 +297,10 @@ export function decodeEntities(text: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
+    // Named dash entities (the California Grants Portal publishes its award
+    // ranges as "$100,000 &ndash; $600,000"): decoded like the numeric forms
+    // below, so a record never carries raw markup in a displayed field.
+    .replace(/&ndash;|&mdash;/g, "-")
     .replace(/&#0?39;|&apos;|&rsquo;|&#8217;/g, "'")
     .replace(/&hellip;/g, "…")
     .replace(/&#(\d+);/g, (_m, code: string) => {
@@ -212,6 +397,74 @@ export function singlePublishedDay(raw: string): string | null {
   if (days.length === 0) return null;
   const unique = [...new Set(days)];
   return unique.length === 1 ? unique[0] : null;
+}
+
+/**
+ * The ordered ends of a date RANGE the source published in ONE cell/value
+ * ("08/25/2026 - 03/25/2027", "04/03/2025 - No end date").
+ *
+ * WHY THIS EXISTS (QA flag #4 on the batch-1 checklist): `singlePublishedDay()`
+ * refuses a cell holding several distinct days, which is RIGHT for an ambiguous
+ * multi-deadline cell — but a source that publishes its application window as an
+ * ORDERED range ("Application Period: A - B", "Application Date Range: A - B")
+ * has told us exactly which end is the opening day and which is the closing day.
+ * Reading them in source order is not an inference: it is the source's own cell
+ * semantics, which is why this returns the two ends SEPARATELY and never picks,
+ * averages or interpolates anything.
+ *
+ * HONESTY RULES (each one is pinned by a test):
+ *   - exactly two ends, else both are null (a single day, or three-part text, is
+ *     not a range we can read — the record stays honestly undated);
+ *   - each end must parse as a single exact day (`singlePublishedDay`), so a
+ *     year-less or multi-day end yields null rather than a guessed date;
+ *   - the source's own "no end date" wording (and only that) is reported as
+ *     `openEnded: true` — the connector decides what to do with it (this module
+ *     never turns it into a status);
+ *   - the RAW ends are returned verbatim for `raw`, so a reviewer sees the text.
+ */
+export interface PublishedRange {
+  startDay: string | null;
+  endDay: string | null;
+  /** True only when the SECOND end is the source's own "no end date" wording. */
+  openEnded: boolean;
+  /** The source's own two ends, verbatim (empty when the cell is not a range). */
+  parts: string[];
+}
+
+/** The source's own wording that declares an application window has no end. */
+const NO_END_DATE_RE = /^(no end date|no closing date|no deadline|open[- ]ended|no end)$/i;
+
+export function publishedRangeEnds(raw: string): PublishedRange {
+  const text = stripTags(raw);
+  const parts = text
+    .split(/\s+[-\u2013\u2014]\s+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
+  if (parts.length !== 2) return { startDay: null, endDay: null, openEnded: false, parts };
+  const [start, end] = parts as [string, string];
+  const openEnded = NO_END_DATE_RE.test(end);
+  return {
+    startDay: singlePublishedDay(start),
+    endDay: openEnded ? null : singlePublishedDay(end),
+    openEnded,
+    parts,
+  };
+}
+
+/**
+ * The award amounts the source published, read off its own wording.
+ * One amount is the ceiling the source states ("Up to $5,000" ⇒ max only);
+ * two become the range it publishes ("$15000 - $75000" ⇒ min + max).
+ * No amount, or wording that states none, ⇒ both null (never invented).
+ */
+export function publishedAmountRange(raw: string): { min: number | null; max: number | null } {
+  const amounts = [...stripTags(raw).matchAll(/\$\s*([\d,]+(?:\.\d+)?)/g)]
+    .map((m) => Number((m[1] ?? "").replace(/,/g, "")))
+    .filter((n) => Number.isFinite(n));
+  if (amounts.length === 0) return { min: null, max: null };
+  return amounts.length === 1
+    ? { min: null, max: amounts[0]! }
+    : { min: Math.min(...amounts), max: Math.max(...amounts) };
 }
 
 /** True when the source's own words declare a program with no deadline. */

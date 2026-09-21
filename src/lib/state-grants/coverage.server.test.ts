@@ -3,10 +3,11 @@
  * corrected model; owner R1 2026-09-19).
  *
  * The registry half of the coverage payload is DERIVED (registry.ts), so these
- * tests assert the real ladder as the code derives it — Virginia plus the five
- * P3 batch-1 states (AZ, DE, HI, PA, RI) `limited`, and 45 states + D.C.
- * `unavailable` — while the store half is injected, so the payload shape and the
- * fail-closed 500 need no database:
+ * tests assert the real ladder as the code derives it — Virginia, the five P3
+ * batch-1 states (AZ, DE, HI, PA, RI) and the three NATIONWIDE batch-1 states
+ * (CA, KS, WA) and the five NATIONWIDE batch-2 states (AR, CO, MN, ND, NM)
+ * `limited`, and 19 states `unavailable` (every jurisdiction but D.C.) — while the store
+ * half is injected, so the payload shape and the fail-closed 500 need no database:
  *   * VA must NEVER be described as connected or statewide;
  *   * the payload must never claim nationwide coverage;
  *   * the ladder values are exactly the owner's four, in order;
@@ -20,7 +21,12 @@ import {
   coverageLadder,
   type StateGrantCoverageDeps,
 } from "~/lib/state-grants/coverage.server";
-import { STATE_CODES, coverageCounts } from "~/lib/state-grants/registry";
+import {
+  STATE_CODES,
+  coverageCounts,
+  coverageHeadlineFor,
+  isDcValidated,
+} from "~/lib/state-grants/registry";
 
 const NOW = new Date("2026-09-19T12:00:00Z");
 
@@ -77,12 +83,39 @@ describe("the ladder", () => {
     }
   });
 
-  test("the headline counts the validated states honestly and never says connected", () => {
-    const headline = coverageHeadline(coverageCounts());
-    expect(headline).toContain(`${coverageCounts().validated} of 50 states validated`);
-    expect(headline).toContain(`${coverageCounts().validated} limited`);
+  test("the headline counts 50 STATES plus D.C. and never says connected", () => {
+    const counts = coverageCounts();
+    const headline = coverageHeadline(counts);
+    // D.C. is a jurisdiction, not a state (owner copy rule 2026-09-20): the
+    // headline counts it out of the 50 and names it on its own. Today the
+    // derived registry holds D.C. at a validated tier, so the suffix is present.
+    expect(isDcValidated()).toBe(true);
+    // The exact merged wording (main's #409 copy rule + this branch's derived
+    // counts): 38 validated jurisdictions, one of which is D.C., so 37 STATES.
+    expect(headline).toBe(
+      "State grant coverage: 37 of 50 states validated, plus Washington, D.C. (0 connected, 0 curated, 38 limited)",
+    );
+    expect(headline).toContain(
+      `${counts.validated - 1} of 50 states validated, plus Washington, D.C.`,
+    );
+    expect(headline).toContain(`${counts.validated} limited`);
     expect(headline).toContain("0 connected");
+    // The owner's rule, stated as a copy guard: never "51 states".
+    expect(headline).not.toContain("51 states");
+    expect(headline).not.toContain("of 51");
     expect(headline.toLowerCase()).not.toContain("nationwide");
+  });
+  test("with no validated D.C. the count is every validated state and no suffix prints", () => {
+    // Deterministic branch check, independent of today's registry: the shared
+    // generator is the single source of the wording for both callers.
+    const counts = { ...coverageCounts(), total: 50, connected: 0, curated: 0, limited: 4, validated: 4, unavailable: 46 };
+    expect(coverageHeadlineFor(counts, false)).toBe(
+      "State grant coverage: 4 of 50 states validated (0 connected, 0 curated, 4 limited)",
+    );
+    expect(coverageHeadlineFor(counts, true)).toBe(
+      "State grant coverage: 3 of 50 states validated, plus Washington, D.C. (0 connected, 0 curated, 4 limited)",
+    );
+    expect(coverageHeadlineFor(counts, true)).not.toContain("51 states");
   });
 });
 
@@ -91,9 +124,9 @@ describe("the coverage payload", () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     expect(payload.states.length).toBe(STATE_CODES.length);
     expect(payload.states.length).toBe(51);
-    expect(payload.counts.validated).toBe(6);
-    expect(payload.counts.unavailable).toBe(45);
-    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AZ", "DE", "HI", "PA", "RI", "VA"]);
+    expect(payload.counts.validated).toBe(38);
+    expect(payload.counts.unavailable).toBe(13);
+    expect(payload.validated.map((v) => v.stateCode)).toEqual(["AL", "AZ", "AR", "CA", "CO", "DE", "DC", "FL", "HI", "IL", "IN", "IA", "KS", "KY", "ME", "MD", "MN", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "ND", "OH", "OK", "PA", "RI", "SC", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WY"]);
     for (const state of payload.validated) {
       // Each of these is ONE validated source — never statewide, never connected.
       expect(state.tier).toBe("limited");
@@ -138,7 +171,7 @@ describe("the coverage payload", () => {
   test("every uncovered state carries a machine-readable reason", async () => {
     const payload = payloadOf(await buildStateGrantCoverage(NOW, deps()));
     const unavailable = payload.states.filter((s) => s.status === "unavailable");
-    expect(unavailable.length).toBe(45);
+    expect(unavailable.length).toBe(13);
     for (const state of unavailable) {
       expect(state.reason.length).toBeGreaterThan(0);
       expect(state.sourceValidationTest).toBeNull();

@@ -29,7 +29,13 @@ import {
   type GrantOpportunity,
   type StateGrantConnector,
 } from "~/lib/state-grants/connector";
-import { getStateEntry, isStateValidated } from "~/lib/state-grants/registry";
+import {
+  CONNECTED_MIN_SOURCES,
+  DEFAULT_REGISTRY_INPUTS,
+  VALIDATED_REGISTRY_STATUSES,
+  getStateEntry,
+  isStateValidated,
+} from "~/lib/state-grants/registry";
 import { sourcesForState } from "~/lib/state-grants/sources";
 import { stripTags } from "~/lib/state-grants/connectors/source-support";
 
@@ -64,6 +70,23 @@ export interface LiveSourceValidationOptions {
    * state's own `expectLive` then carries the live structural check instead.
    */
   spotCheckTitles?: boolean;
+  /**
+   * The exact string this source expects to find on the live page as the
+   * publishing body's own name.
+   *
+   * WHY THIS IS AN OPTION AND NOT A DELETION (owner-approved 2026-09-20, QA
+   * MED-1): a connector's `agency` is sometimes a COMPOSED publishing-body
+   * label — "New York State — Statewide Financial System (SFS) Vendor Portal"
+   * names the publisher and its portal in one human-readable string, and no
+   * page ever prints that sentence. The check below is about honesty: the
+   * publishing body must name itself on the page we read, and `agency` must not
+   * be invented. So a source whose label is composed states the string it
+   * really does print here, and the gate asserts THAT string on the page —
+   * whitespace-collapsed, because the rendered page breaks lines. The fallback
+   * (option unset) is unchanged `toContain(connector.agency)`, so no other
+   * state's gate gets weaker, and nothing here allows skipping the check.
+   */
+  agencyTextOnPage?: string;
   /**
    * Source-specific live realities: what this listing is expected to show today
    * (a rolling program, a closed cycle, the source's own wording). Kept in the
@@ -126,10 +149,52 @@ export async function runLiveSourceValidation(
       expect(entry).not.toBeNull();
       expect(entry.sourceValidationTest).toBe(validationTestFile);
       expect(isStateValidated(connector.stateCode)).toBe(true);
-      // ONE source, so `limited` — never advertised as statewide.
-      expect(entry.status).toBe("limited");
-      expect(entry.sourceCount).toBe(sourcesForState(connector.stateCode).length);
-      expect(entry.sourceCount).toBe(1);
+
+      // MANIFEST-DRIVEN, NOT HARD-CODED (escalation-pass fix, 2026-09-19).
+      //
+      // This assertion used to hard-code `limited` + `sourceCount === 1`, which
+      // is only true for a ONE-source state. A `curated`/multi-source state, or
+      // any state wired with more than one connector, could never pass its own
+      // live gate without editing the shared harness — and an edit that WEAKENS a
+      // gate is exactly the mistake this harness exists to prevent. So the gate
+      // now compares the state's DERIVED registry entry against the state's OWN
+      // declared manifest, which still fails on every real dishonesty:
+      //   - sources.ts omitted a connector ⇒ `sourcesForState()` is 0 ⇒ the
+      //     derived `sourceCount` disagrees and this test fails (the silent-omission
+      //     trap the batch checklist calls out);
+      //   - a manifest that declares `connected` without the ladder's minimum
+      //     number of registered sources ⇒ `deriveStateRegistry()` demotes the
+      //     entry to `limited`, so the declared tier and the derived status
+      //     disagree and this test fails;
+      //   - a state that reached a validated tier with NO source at all ⇒ fails;
+      //   - a hand-set status that the derivation would never produce ⇒ fails.
+      // A one-source `limited` state passes exactly as it did before.
+      const manifest = DEFAULT_REGISTRY_INPUTS.validations[connector.stateCode];
+      expect(manifest).not.toBeUndefined();
+      expect(manifest!.connectorId).toBe(connector.id);
+      const declaredSources = sourcesForState(connector.stateCode).length;
+      expect(declaredSources).toBeGreaterThanOrEqual(1);
+      // The ladder's own promotion rule, applied to the DECLARED tier: a
+      // `connected` claim needs CONNECTED_MIN_SOURCES distinct registered sources.
+      const expectedStatus =
+        manifest!.tier === "connected" && declaredSources < CONNECTED_MIN_SOURCES
+          ? ("limited" as const)
+          : manifest!.tier;
+      expect(entry.status).toBe(expectedStatus);
+      expect(entry.sourceCount).toBe(declaredSources);
+      // The tier is always one the manifest may declare — never `unavailable`
+      // (this test file only runs for a validated state) and never a status the
+      // ladder does not define.
+      expect(VALIDATED_REGISTRY_STATUSES).toContain(entry.status);
+      // `connected` (statewide, multi-source) is only ever true at the minimum.
+      if (entry.status === "connected") {
+        expect(entry.sourceCount).toBeGreaterThanOrEqual(CONNECTED_MIN_SOURCES);
+      }
+      // Every source registered for the state is a real, distinct source with
+      // its own key — a duplicate key would be one source wearing two hats.
+      const keys = sourcesForState(connector.stateCode).map((s) => s.sourceKey);
+      expect(new Set(keys).size).toBe(keys.length);
+      expect(keys).toContain(connector.id);
     });
 
     test("the live source yields at least one real opportunity", () => {
@@ -225,13 +290,29 @@ export async function runLiveSourceValidation(
         expect(liveText.replace(/\s+/g, " ")).toContain(key);
       }
       // The publishing body names itself on the page (agency is not inferred).
-      expect(liveText).toContain(connector.agency);
+      // A COMPOSED label ("State — Portal") is asserted through
+      // `agencyTextOnPage` instead — still a verbatim on-page check, never a
+      // skipped one; see the option's comment in the interface above.
+      const foldedPage = liveText.replace(/\s+/g, " ");
+      if (options.agencyTextOnPage !== undefined) {
+        expect(foldedPage).toContain(options.agencyTextOnPage.replace(/\s+/g, " ").trim());
+      } else {
+        expect(liveText).toContain(connector.agency);
+      }
       const dateTexts = [
         ...opportunities.map((o) => o.raw.closingText),
         ...opportunities.map((o) => o.raw.applicationDeadline),
         ...opportunities.map((o) => o.raw.enrollmentDatesText),
         ...opportunities.map((o) => o.raw.deadlineValue),
         ...opportunities.map((o) => o.raw.applicationDueDateText),
+        // Generic: any connector that keeps the source's own close-date label
+        // under one of these two names still shows its date evidence to the
+        // gate instead of a "Received: 0". New Jersey and Ohio keep the label
+        // as `closeDateLabelText`; New York keeps the published Due Date cell
+        // verbatim as `closeDateCellText`. Both are the source's own words, so
+        // both are exactly the evidence this assertion asks for.
+        ...opportunities.map((o) => o.raw.closeDateLabelText),
+        ...opportunities.map((o) => o.raw.closeDateCellText),
       ].filter((v): v is string => typeof v === "string" && v.trim().length > 4);
       expect(dateTexts.length).toBeGreaterThanOrEqual(1);
     }, LIVE_TIMEOUT_MS);

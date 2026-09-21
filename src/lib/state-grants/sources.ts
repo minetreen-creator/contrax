@@ -18,6 +18,62 @@ import { delawareConnector } from "~/lib/state-grants/connectors/delaware";
 import { hawaiiConnector } from "~/lib/state-grants/connectors/hawaii";
 import { pennsylvaniaConnector } from "~/lib/state-grants/connectors/pennsylvania";
 import { rhodeIslandConnector } from "~/lib/state-grants/connectors/rhode-island";
+// NATIONWIDE workstream, batch 1 (owner order 2026-09-19): CA, KS, WA. A missing
+// entry here is SILENT — the state still syncs, but the coverage row reports
+// `sourceCount 0` — so every batch must add its connectors to this list.
+import { californiaConnector } from "~/lib/state-grants/connectors/california";
+import { kansasConnector } from "~/lib/state-grants/connectors/kansas";
+import { washingtonConnector } from "~/lib/state-grants/connectors/washington";
+// NATIONWIDE workstream, batch 2 (owner order 2026-09-19): AR, CO, MN, ND, NM.
+// A missing entry here is SILENT — the state still syncs, but the coverage row
+// reports `sourceCount 0` — so every batch must add its connectors to this list.
+import { arkansasConnector } from "~/lib/state-grants/connectors/arkansas";
+import { coloradoConnector } from "~/lib/state-grants/connectors/colorado";
+import { minnesotaConnector } from "~/lib/state-grants/connectors/minnesota";
+import { northDakotaConnector } from "~/lib/state-grants/connectors/north-dakota";
+import { newMexicoConnector } from "~/lib/state-grants/connectors/new-mexico";
+// ESCALATION PASS (owner escalation order 2026-09-19): TN, UT.
+// A missing entry here is SILENT — the state still syncs, but the coverage row
+// reports `sourceCount 0` — so every batch must add its connectors to this list.
+import { tennesseeConnector } from "~/lib/state-grants/connectors/tennessee";
+import { utahConnector } from "~/lib/state-grants/connectors/utah";
+import { districtOfColumbiaConnector } from "~/lib/state-grants/connectors/district-of-columbia";
+import { westVirginiaConnector } from "~/lib/state-grants/connectors/west-virginia";
+import { kentuckyConnector } from "~/lib/state-grants/connectors/kentucky";
+import { alabamaConnector } from "~/lib/state-grants/connectors/alabama";
+import { maineConnector } from "~/lib/state-grants/connectors/maine";
+import { nevadaConnector } from "~/lib/state-grants/connectors/nevada";
+import { oklahomaConnector } from "~/lib/state-grants/connectors/oklahoma";
+import { southCarolinaConnector } from "~/lib/state-grants/connectors/south-carolina";
+import { illinoisConnector } from "~/lib/state-grants/connectors/illinois";
+// NEXT-12 TRANCHE (owner 2026-09-19, one continuous workstream).
+import { newHampshireConnector } from "~/lib/state-grants/connectors/new-hampshire";
+import { montanaConnector } from "~/lib/state-grants/connectors/montana";
+import { indianaConnector } from "~/lib/state-grants/connectors/indiana";
+import { floridaConnector } from "~/lib/state-grants/connectors/florida";
+import { texasConnector } from "~/lib/state-grants/connectors/texas";
+// NEXT-12 TRANCHE (owner 2026-09-19): MD.
+import { marylandConnector } from "~/lib/state-grants/connectors/maryland";
+// NEXT-12 TRANCHE (owner 2026-09-19): VT.
+import { vermontConnector } from "~/lib/state-grants/connectors/vermont";
+import { nebraskaConnector } from "~/lib/state-grants/connectors/nebraska";
+// CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19): IA. A missing entry
+// here is SILENT — the state still syncs, but the coverage row reports
+// `sourceCount 0` — so every batch must add its connectors to this list.
+import { iowaConnector } from "~/lib/state-grants/connectors/iowa";
+// CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): WY. A missing entry here
+// is SILENT — the state still syncs, but the coverage row reports `sourceCount 0`
+// — so every state must add its connector to this list.
+import { wyomingConnector } from "~/lib/state-grants/connectors/wyoming";
+import { newJerseyConnector } from "~/lib/state-grants/connectors/new-jersey";
+// CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): OH. A missing entry here
+// is SILENT — the state still syncs, but the coverage row reports `sourceCount 0`
+// — so every state must add its connector to this list.
+import { ohioConnector } from "~/lib/state-grants/connectors/ohio";
+// CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-20): NY. A missing entry here
+// is SILENT — the state still syncs, but the coverage row reports `sourceCount 0`
+// — so every state must add its connector to this list.
+import { newYorkConnector } from "~/lib/state-grants/connectors/new-york";
 
 /** One official source: the `state_grant_sources` row a connector resolves to. */
 export interface StateGrantSource {
@@ -53,6 +109,62 @@ const CONNECTORS: readonly StateGrantConnector<never>[] = [
   hawaiiConnector as unknown as StateGrantConnector<never>,
   pennsylvaniaConnector as unknown as StateGrantConnector<never>,
   rhodeIslandConnector as unknown as StateGrantConnector<never>,
+  // NATIONWIDE batch 1 (2026-09-19): one validated source per state, so each of
+  // these states is `limited` — never advertised as statewide coverage.
+  californiaConnector as unknown as StateGrantConnector<never>,
+  kansasConnector as unknown as StateGrantConnector<never>,
+  washingtonConnector as unknown as StateGrantConnector<never>,
+  // NATIONWIDE batch 2 (2026-09-19): one validated source per state, so each of
+  // these states is `limited` — never advertised as statewide coverage.
+  arkansasConnector as unknown as StateGrantConnector<never>,
+  coloradoConnector as unknown as StateGrantConnector<never>,
+  minnesotaConnector as unknown as StateGrantConnector<never>,
+  northDakotaConnector as unknown as StateGrantConnector<never>,
+  newMexicoConnector as unknown as StateGrantConnector<never>,
+  // ESCALATION PASS (2026-09-19): one validated source per state, so each of
+  // these states is `limited` — never advertised as statewide coverage.
+  tennesseeConnector as unknown as StateGrantConnector<never>,
+  utahConnector as unknown as StateGrantConnector<never>,
+  // NATIONWIDE continuous tranche (owner 2026-09-19): one validated source per
+  // state, so each of these states is `limited` — never advertised as statewide
+  // coverage.
+  districtOfColumbiaConnector as unknown as StateGrantConnector<never>,
+  westVirginiaConnector as unknown as StateGrantConnector<never>,
+  kentuckyConnector as unknown as StateGrantConnector<never>,
+  alabamaConnector as unknown as StateGrantConnector<never>,
+  maineConnector as unknown as StateGrantConnector<never>,
+  // CONTINUOUS NATIONWIDE WORKSTREAM (owner 2026-09-19).
+  nevadaConnector as unknown as StateGrantConnector<never>,
+  oklahomaConnector as unknown as StateGrantConnector<never>,
+  southCarolinaConnector as unknown as StateGrantConnector<never>,
+  illinoisConnector as unknown as StateGrantConnector<never>,
+  // NEXT-12 TRANCHE (owner 2026-09-19): one validated source per state, so each
+  // of these states is `limited` — never advertised as statewide coverage.
+  newHampshireConnector as unknown as StateGrantConnector<never>,
+  montanaConnector as unknown as StateGrantConnector<never>,
+  // IN (next-12 tranche): one agency (Indiana Arts Commission), `limited`.
+  indianaConnector as unknown as StateGrantConnector<never>,
+  floridaConnector as unknown as StateGrantConnector<never>,
+  texasConnector as unknown as StateGrantConnector<never>,
+  marylandConnector as unknown as StateGrantConnector<never>,
+  vermontConnector as unknown as StateGrantConnector<never>,
+  // NE (nationwide workstream): one agency (Nebraska DED), `limited`.
+  nebraskaConnector as unknown as StateGrantConnector<never>,
+  // IA (continuous nationwide workstream): one agency (Iowa EDA / Iowa Arts
+  // Council), `limited`.
+  iowaConnector as unknown as StateGrantConnector<never>,
+  // WY (continuous nationwide workstream): one agency (Wyoming Business Council),
+  // `limited`.
+  wyomingConnector as unknown as StateGrantConnector<never>,
+  // NJ (continuous nationwide workstream): one department (NJDA), `limited`.
+  newJerseyConnector as unknown as StateGrantConnector<never>,
+  // OH (continuous nationwide workstream): one agency (Ohio Arts Council),
+  // `limited` — the statewide portal is not readable over verified TLS.
+  ohioConnector as unknown as StateGrantConnector<never>,
+  // NY (continuous nationwide workstream): the State's own Grant Opportunity
+  // Portal inside the SFS Vendor Portal — read through its public guest page.
+  // ONE source, so `limited`, never advertised as statewide coverage.
+  newYorkConnector as unknown as StateGrantConnector<never>,
 ];
 
 /** Every source the code knows about, in registry order. */

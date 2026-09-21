@@ -50,6 +50,11 @@ export const NONPROFIT_PAID_UPGRADES: readonly string[] = [
  * case (EIN not in the BMF, a name mismatch, a revoked EIN, a non-01/02 STATUS)
  * lands there and NONE of them is ever an auto-reject (research §2.5).
  *
+ * `denied` is the OWNER'S FRAUD LANE ONLY (spec item 3: "obvious fraud/conflicting
+ * info → deny"). Every other non-approved outcome stays in `manual_review` — an
+ * applicant is never auto-rejected because the record was unclear. (The owner's
+ * taxonomy is denied = fraud, NOT "denied" as a general-purpose rejection.)
+ *
  * `revoked` is the owner's right to revoke for misuse (spec item 5); it is never
  * written by an automated path.
  */
@@ -57,10 +62,31 @@ export const NONPROFIT_APPLICATION_STATUSES = [
   "pending",
   "approved",
   "manual_review",
-  "rejected",
+  "denied",
   "revoked",
 ] as const;
 export type NonprofitStatus = (typeof NONPROFIT_APPLICATION_STATUSES)[number];
+
+/**
+ * The owner's FOUR-CLASS reason taxonomy (spec item 3), emitted by the verification
+ * engine on EVERY decision and stored on the application row so the admin queue filters
+ * on one column: **clear-match** → auto-approve · **possible-match** → manual review ·
+ * **no-match-request-docs** → manual review whose first action is a supporting-document
+ * request · **fraud-likely** → deny.
+ *
+ * Mirrors the `reason_class` CHECK in migration 045 / src/db/schema.sql (a test asserts
+ * the two lists are identical, so the queue can never see a class the DB rejects).
+ */
+export const NONPROFIT_REASON_CLASSES = [
+  "clear-match",
+  "possible-match",
+  "no-match-request-docs",
+  "fraud-likely",
+] as const;
+export type NonprofitReasonClass = (typeof NONPROFIT_REASON_CLASSES)[number];
+export function isNonprofitReasonClass(value: unknown): value is NonprofitReasonClass {
+  return typeof value === "string" && (NONPROFIT_REASON_CLASSES as readonly string[]).includes(value);
+}
 
 /** How a decision was reached: the IRS mirror, or a human exception. */
 export const NONPROFIT_VERIFICATION_METHODS = ["irs_eo_bmf", "manual_exception"] as const;
@@ -69,7 +95,7 @@ export type NonprofitVerificationMethod = (typeof NONPROFIT_VERIFICATION_METHODS
 /**
  * THE ONLY status that grants the free tier. Fail-closed on NULL/unknown.
  * `pending` gets limited access (below), `manual_review` keeps that limited access
- * while a human looks, `rejected`/`revoked` get the anonymous default.
+ * while a human looks, `denied`/`revoked` get the anonymous default.
  */
 export function isNonprofitStatusGranted(status: string | null | undefined): boolean {
   return status === "approved";
@@ -226,23 +252,39 @@ export function evaluateNonprofitEntitlement(
   };
 }
 
-// ── The search policy (the owner's item 4, tier by tier) ─────────────────────
+// ── The search policy (the owner's spec item 2, tier by tier) ────────────────
 export type NonprofitSearchTier = "nonprofit_free" | "nonprofit_pending" | "anonymous";
 
 export interface NonprofitSearchPolicy {
   tier: NonprofitSearchTier;
   /** Federal /grants: searches allowed per rolling day. */
   searchesPerDay: number | "unlimited";
-  /** How many results come back unlocked (the anonymous preview cap is 3). */
+  /** How many results come back per search (rows in the response, preview rows included). */
   previewLimit: number | "unlimited";
+  /**
+   * RESULTS per rolling day that may be returned with FULL DETAIL — untruncated
+   * description, eligibility requirements, award amounts, deadlines.
+   *
+   * SEPARATE FROM `searchesPerDay` ON PURPOSE: the owner's pending tier is "3 grant
+   * searches/day · full details for five results per day", so three searches can unlock
+   * five full rows IN TOTAL, not five per search. A gate that only knew `previewLimit`
+   * could not express that; `nonprofitFullDetailAllowance()` below is the one place the
+   * two numbers are combined.
+   */
+  fullDetailsPerDay: number | "unlimited";
   /** Paging past the first page. */
   pagination: boolean;
-  /** Untruncated grant descriptions (the anonymous path hard-caps at 400 chars). */
+  /** Untruncated grant descriptions ON a full-detail row. */
   fullDescriptions: boolean;
-  /** Eligibility requirements, award amounts, deadlines. */
+  /** Eligibility requirements, award amounts, deadlines — ON a full-detail row. */
   eligibilityDetail: boolean;
-  /** Direct links to the official application. */
+  /** Direct links to the official application (every tier gets these). */
   officialLinks: boolean;
+  /**
+   * The owner's "basic filters" (spec item 2, verified tier). ADVANCED filters, exports
+   * and reports are NOT here — they are in NONPROFIT_PAID_UPGRADES.
+   */
+  basicFilters: boolean;
   canSave: boolean;
   saveLimit: number;
   /** State-grant results, for the jurisdictions Contrax actually covers. */
@@ -272,10 +314,14 @@ export const NONPROFIT_FREE_SEARCH_POLICY: NonprofitSearchPolicy = {
   tier: "nonprofit_free",
   searchesPerDay: "unlimited",
   previewLimit: "unlimited",
+  fullDetailsPerDay: "unlimited",
   pagination: true,
   fullDescriptions: true,
   eligibilityDetail: true,
   officialLinks: true,
+  // Owner spec item 2, verified tier: "basic filters". Advanced filters/exports/reports
+  // stay in the paid upgrades (NONPROFIT_PAID_UPGRADES above).
+  basicFilters: true,
   canSave: true,
   saveLimit: NONPROFIT_SAVE_LIMIT,
   includesStateGrants: true,
@@ -291,19 +337,30 @@ export const NONPROFIT_FREE_SEARCH_POLICY: NonprofitSearchPolicy = {
 };
 
 /**
- * Application submitted, verification not finished (pending or manual_review):
- * "Limited searches while verification pending" (owner spec item 2). The counts below
- * are the team's reading of "limited" — more than an anonymous visitor, nowhere near
- * the verified tier — and are the one number in this file the owner may want to set.
+ * Application submitted, verification not finished (pending or manual_review) — the
+ * owner's numbers VERBATIM (spec item 2): **3 grant searches/day · full details for 5
+ * results/day · official application links · no saved grants or alerts yet.**
+ *
+ * The three numbers are independent, which is why they are three fields:
+ *   searchesPerDay 3    — how many /grants searches the day allows;
+ *   fullDetailsPerDay 5 — how many RESULTS may be full detail across those searches
+ *                         (three searches can unlock five full rows in total);
+ *   previewLimit 5      — how many rows a single response may carry. Rows beyond the
+ *                         day's full-detail budget are truncated previews, the same
+ *                         shape an anonymous visitor already sees — never more data.
+ * `pagination: false` (no paging past the first page), no saves, no email digest.
  */
 export const NONPROFIT_PENDING_SEARCH_POLICY: NonprofitSearchPolicy = {
   tier: "nonprofit_pending",
   searchesPerDay: 3,
-  previewLimit: 3,
+  previewLimit: 5,
+  fullDetailsPerDay: 5,
   pagination: false,
-  fullDescriptions: false,
-  eligibilityDetail: false,
+  fullDescriptions: true,
+  eligibilityDetail: true,
   officialLinks: true,
+  // Basic filters belong to the VERIFIED tier in the owner's list, not to pending.
+  basicFilters: false,
   canSave: false,
   saveLimit: 0,
   includesStateGrants: true,
@@ -315,18 +372,22 @@ export const NONPROFIT_PENDING_SEARCH_POLICY: NonprofitSearchPolicy = {
 };
 
 /**
- * Nobody, or a rejected/revoked application: today's anonymous behaviour, unchanged.
+ * Nobody, or a denied/revoked application: today's anonymous behaviour, unchanged.
  * `PREVIEW_LIMIT`/the 1-search day in `grants-limits.server.ts` remain the source of
  * truth for the numbers — this object only names them so a caller has one place to look.
+ * `fullDetailsPerDay: 0` is that same fact made explicit: an anonymous visitor never gets
+ * a full-detail row (nothing to unlock, and no card to unlock it with).
  */
 export const NONPROFIT_ANONYMOUS_SEARCH_POLICY: NonprofitSearchPolicy = {
   tier: "anonymous",
   searchesPerDay: 1,
   previewLimit: 3,
+  fullDetailsPerDay: 0,
   pagination: false,
   fullDescriptions: false,
   eligibilityDetail: false,
   officialLinks: true,
+  basicFilters: false,
   canSave: false,
   saveLimit: 0,
   includesStateGrants: true,
@@ -352,6 +413,102 @@ export function nonprofitSearchPolicy(entitlement: NonprofitEntitlement): Nonpro
   return NONPROFIT_ANONYMOUS_SEARCH_POLICY;
 }
 
+// ── The two independent allowances (owner spec item 2) ───────────────────────
+/**
+ * How many searches the rolling day still allows. Pure, so the phase-3 gate cannot
+ * re-implement the count differently from the tests.
+ */
+export interface NonprofitSearchAllowance {
+  allowed: boolean;
+  /** Searches left today. `Infinity` for the verified tier (no paywall; abuse backstops apply separately). */
+  remaining: number;
+}
+export function nonprofitSearchAllowance(
+  policy: NonprofitSearchPolicy,
+  searchesUsedToday: number,
+): NonprofitSearchAllowance {
+  if (policy.searchesPerDay === "unlimited") return { allowed: true, remaining: Infinity };
+  const used = Number.isFinite(searchesUsedToday) ? Math.max(0, searchesUsedToday) : 0;
+  const remaining = Math.max(0, policy.searchesPerDay - used);
+  return { allowed: remaining > 0, remaining };
+}
+
+/**
+ * How the RESULTS of the next search may be presented, once the day's full-detail budget
+ * is known. This is the pair the owner's pending tier needs: 3 searches/day AND full
+ * details for 5 results/day — so `canUnlock` runs out after five FULL rows even though
+ * searches remain.
+ */
+export interface NonprofitFullDetailAllowance {
+  /** Full-detail rows still available today. `Infinity` for the verified tier. */
+  remaining: number;
+  /** True while at least one more result may be returned with full detail. */
+  canUnlock: boolean;
+  /** What happens to a result once the budget is gone (never silently full detail). */
+  fallback: "truncated_preview" | "not_returned";
+}
+export function nonprofitFullDetailAllowance(
+  policy: NonprofitSearchPolicy,
+  fullDetailResultsUsedToday: number,
+): NonprofitFullDetailAllowance {
+  const fallback: NonprofitFullDetailAllowance["fallback"] =
+    policy.previewLimit === 0 ? "not_returned" : "truncated_preview";
+  if (policy.fullDetailsPerDay === "unlimited") {
+    return { remaining: Infinity, canUnlock: true, fallback };
+  }
+  const used = Number.isFinite(fullDetailResultsUsedToday)
+    ? Math.max(0, fullDetailResultsUsedToday)
+    : 0;
+  const remaining = Math.max(0, policy.fullDetailsPerDay - used);
+  return { remaining, canUnlock: remaining > 0, fallback };
+}
+
+// ── ONE FREE ORG ACCOUNT PER EIN (owner spec item 6) ─────────────────────────
+/**
+ * The apply-time half of "one free org account per EIN": an EIN belongs to an
+ * ORGANIZATION, so a second account claiming the same EIN must be DEFLECTED — with a
+ * clear message and a route back to the account that holds it — never silently allowed a
+ * second free organisation. The database enforces the same rule
+ * (`nonprofit_applications_ein_key`, UNIQUE on `ein`); this check exists so the applicant
+ * sees why, instead of a raw constraint error.
+ *
+ * The SAME user re-applying (or correcting) its own application is not a claim: it
+ * updates the existing row, which is what keeps the audit trail from forking.
+ */
+export type NonprofitEinClaimOutcome =
+  | "available"
+  | "reapply_same_user"
+  | "ein_already_claimed";
+export interface NonprofitEinClaimDecision {
+  allowed: boolean;
+  outcome: NonprofitEinClaimOutcome;
+  /** Applicant-facing explanation, or null when the claim is available. */
+  message: string | null;
+  /** The account that already holds the EIN (audit/reviewer record only — never shown to the applicant). */
+  heldByUserId: number | null;
+}
+export const NONPROFIT_EIN_CLAIMED_MESSAGE =
+  "An account already exists for this EIN. Each organization gets one free Nonprofit Free account — " +
+  "sign in to that account, or contact us if the EIN was entered by mistake.";
+export function evaluateNonprofitEinClaim(input: {
+  userId: number | null | undefined;
+  existing: { user_id: number | null; status: string | null } | null | undefined;
+}): NonprofitEinClaimDecision {
+  const existing = input.existing ?? null;
+  if (!existing) {
+    return { allowed: true, outcome: "available", message: null, heldByUserId: null };
+  }
+  if (existing.user_id != null && input.userId != null && existing.user_id === input.userId) {
+    return { allowed: true, outcome: "reapply_same_user", message: null, heldByUserId: existing.user_id };
+  }
+  return {
+    allowed: false,
+    outcome: "ein_already_claimed",
+    message: NONPROFIT_EIN_CLAIMED_MESSAGE,
+    heldByUserId: existing.user_id ?? null,
+  };
+}
+
 // ── Read side (Neon; never a live call to irs.gov) ───────────────────────────
 /** The user's application row, or null. One row per user (UNIQUE user_id). */
 export async function getNonprofitApplication(
@@ -366,6 +523,25 @@ export async function getNonprofitApplication(
     WHERE user_id = ${userId}
     LIMIT 1
   `) as NonprofitApplicationRow[];
+  return rows[0] ?? null;
+}
+
+/**
+ * The application that already holds an EIN, or null. This is the read behind the
+ * one-free-org-account-per-EIN rule (owner spec item 6) — the apply route calls
+ * `evaluateNonprofitEinClaim` with its result BEFORE writing a new row, and the UNIQUE
+ * index on `ein` is the backstop if a future code path forgets to.
+ */
+export async function getNonprofitApplicationByEin(
+  ein: string | null | undefined,
+): Promise<{ user_id: number | null; status: string | null; org_name?: string | null } | null> {
+  if (!ein) return null;
+  const rows = (await sql()`
+    SELECT user_id, status, org_name
+    FROM nonprofit_applications
+    WHERE ein = ${ein}
+    LIMIT 1
+  `) as { user_id: number | null; status: string | null; org_name: string | null }[];
   return rows[0] ?? null;
 }
 

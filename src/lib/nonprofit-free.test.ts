@@ -27,6 +27,7 @@ import { deflateRawSync } from "node:zlib";
 import {
   BMF_STATUS_AUTO_APPROVE,
   IRS_SOURCE_LABEL,
+  NONPROFIT_CONFLICT_FLAGS,
   NONPROFIT_VERIFICATION_ENGINE,
   TIER_B_JACCARD_MIN,
   compareLegalNames,
@@ -34,27 +35,39 @@ import {
   domainCorrespondsToName,
   normalizeEin,
   normalizeOrgName,
+  reasonClassFor,
   verifyNonprofitApplication,
   type IrsMirrorStore as VerificationStore,
 } from "~/lib/nonprofit-verification.server";
 import {
   NONPROFIT_ANONYMOUS_SEARCH_POLICY,
+  NONPROFIT_APPLICATION_STATUSES,
+  NONPROFIT_EIN_CLAIMED_MESSAGE,
   NONPROFIT_FREE_PROMISE,
   NONPROFIT_FREE_SEARCH_POLICY,
   NONPROFIT_PENDING_SEARCH_POLICY,
+  NONPROFIT_REASON_CLASSES,
   NONPROFIT_SAVE_LIMIT,
   NONPROFIT_SUBSECTION_POLICY,
   computeReverifyDueAt,
+  evaluateNonprofitEinClaim,
   evaluateNonprofitEntitlement,
   isEligibleSubsection,
+  isNonprofitReasonClass,
+  nonprofitFullDetailAllowance,
+  nonprofitSearchAllowance,
   nonprofitSearchPolicy,
   subsectionLabel,
   type NonprofitApplicationRow,
   type NonprofitEntitlement,
+  type NonprofitSearchPolicy,
 } from "~/lib/nonprofit.server";
 import {
   IRS_BMF_LANDING_URL,
   IRS_PUB78_ZIP_MEMBER,
+  iterateLines,
+  iterateLinesOfText,
+  openPayloadStream,
   parseBmfCsvText,
   parseBmfHeader,
   parseBmfPublication,
@@ -62,6 +75,7 @@ import {
   parsePub78Text,
   parseRevocationText,
   payloadsForSource,
+  readResponseBytes,
   readZipCentralDirectory,
   readZipLocalHeader,
   readZipMember,
@@ -214,6 +228,8 @@ describe("decision table (research 2.5)", () => {
     expect(outcome.method).toBe("irs_eo_bmf");
     expect(outcome.reason).toBe("auto_approved");
     expect(outcome.flags).toEqual([]);
+    expect(outcome.reasonClass).toBe("clear-match");
+    expect(outcome.supportingDocsRequested).toBe(false);
     expect(outcome.evidence).toMatchObject({
       source: IRS_SOURCE_LABEL,
       bmf_posting_date: "2026-09-08",
@@ -270,7 +286,9 @@ describe("decision table (research 2.5)", () => {
     expect(outcome.decision).toBe("manual_review");
     expect(outcome.recommendation).toBe("decline");
     expect(outcome.flags).toContain("revoked_and_absent_from_pub78");
-    expect(outcome.status).not.toBe("rejected");
+    // The owner's `denied` status is the FRAUD lane only: a revoked org is reviewed.
+    expect(outcome.status).toBe("manual_review");
+    expect(outcome.status).not.toBe("denied");
   });
   test("4 — STATUS 12 / 25 / missing → MANUAL (a trust or a terminated org is not a charity)", () => {
     for (const status of ["12", "25", null, "09"]) {
@@ -297,11 +315,16 @@ describe("decision table (research 2.5)", () => {
     expect(corroborated.recommendation).toBe("approve");
     expect(corroborated.flags).toContain("domain_corresponds");
   });
-  test("6 — EIN not found → MANUAL (newly approved, church, government, fiscal sponsor)", () => {
+  test("6 — EIN not found → MANUAL + request supporting documentation, never a rejection", () => {
     const outcome = decideNonprofitVerification({ ...autoSignals, einFound: false, nameTier: null });
     expect(outcome.decision).toBe("manual_review");
     expect(outcome.reason).toBe("ein_not_found");
     expect(outcome.flags).toContain("ein_not_found_exception_class");
+    // Owner spec item 3, verbatim: "no match → request supporting documentation".
+    expect(outcome.supportingDocsRequested).toBe(true);
+    expect(outcome.flags).toContain("request_supporting_documentation");
+    expect(outcome.reasonClass).toBe("no-match-request-docs");
+    expect(outcome.evidence).toMatchObject({ supporting_docs_requested: true });
     expect(outcome.status).toBe("manual_review");
   });
   test("7 — a malformed EIN is a re-entry, not a review and not a rejection", () => {
@@ -309,6 +332,10 @@ describe("decision table (research 2.5)", () => {
     expect(outcome.decision).toBe("reentry_required");
     expect(outcome.status).toBe("pending");
     expect(outcome.reason).toBe("ein_format");
+    // Form validation is NOT a verification verdict, so it files no reason class — and it
+    // never asks for documents (the form just has to be corrected).
+    expect(outcome.reasonClass).toBeNull();
+    expect(outcome.supportingDocsRequested).toBe(false);
   });
   test("owner decision (a): flipping the subsection policy routes non-501(c)(3) to review", () => {
     expect(isEligibleSubsection("03", "501c3_only")).toBe(true);
@@ -321,6 +348,134 @@ describe("decision table (research 2.5)", () => {
     });
     expect(narrowed.decision).toBe("manual_review");
     expect(narrowed.reason).toBe("subsection_not_501c3");
+  });
+});
+
+// ── The owner's reason taxonomy + the deny lane (spec item 3) ────────────────
+describe("reason taxonomy + the deny lane (owner spec item 3)", () => {
+  const autoSignals = {
+    einFormat: "ok" as const,
+    ein: "010488538",
+    einFound: true,
+    nameTier: "A" as const,
+    submittedNameNormalized: "MAINE ASSOCIATION OF NONPROFITS",
+    matchedBmfName: "MAINE ASSOCIATION OF NONPROFITS",
+    bmfStatus: "01",
+    bmfSubsection: "03",
+    bmfGroupNo: "0000",
+    bmfPostingDate: "2026-09-08",
+    onRevocationList: false,
+    inPub78: true,
+    now: new Date("2026-09-21T15:00:00Z"),
+  };
+  test("every reason maps to one owner class, and only ein_format maps to none", () => {
+    const expected = {
+      auto_approved: "clear-match",
+      ein_not_found: "no-match-request-docs",
+      name_mismatch: "possible-match",
+      revoked_reinstated_looking: "possible-match",
+      revoked_no_reinstatement: "possible-match",
+      status_not_active: "possible-match",
+      subsection_not_501c3: "possible-match",
+      ein_already_claimed: "possible-match",
+      mirror_lookup_failed: "possible-match",
+      fraud_conflict: "fraud-likely",
+      ein_conflict_different_org: "fraud-likely",
+      ein_format: null,
+    } as const;
+    for (const [reason, expected_] of Object.entries(expected)) {
+      const actual = reasonClassFor(reason as keyof typeof expected);
+      expect(actual).toBe(expected_);
+      if (actual !== null) expect(NONPROFIT_REASON_CLASSES).toContain(actual);
+    }
+    expect(reasonClassFor("ein_format")).toBeNull();
+  });
+  test("every branch of the table carries a class; only form validation carries none", () => {
+    const branches = [
+      decideNonprofitVerification(autoSignals),
+      decideNonprofitVerification({ ...autoSignals, einFound: false, nameTier: null }),
+      decideNonprofitVerification({ ...autoSignals, nameTier: "C" }),
+      decideNonprofitVerification({ ...autoSignals, onRevocationList: true, inPub78: true }),
+      decideNonprofitVerification({ ...autoSignals, onRevocationList: true, inPub78: false }),
+      decideNonprofitVerification({ ...autoSignals, bmfStatus: "25" }),
+      decideNonprofitVerification({ ...autoSignals, conflicts: ["impersonation_reported"] }),
+      decideNonprofitVerification({ ...autoSignals, einFormat: "bad", ein: null }),
+    ];
+    for (const outcome of branches) {
+      const decided = outcome.decision !== "reentry_required";
+      expect(decided ? isNonprofitReasonClass(outcome.reasonClass) : outcome.reasonClass === null).toBe(true);
+      // …and whatever the class, the evidence records exactly the same value.
+      expect(outcome.evidence.reason_class).toBe(outcome.reasonClass);
+    }
+  });
+  test("a DEFINITE conflict DENIES (the owner's one automatic non-approval)", () => {
+    for (const conflict of ["identity_contradicts_application", "impersonation_reported"] as const) {
+      const outcome = decideNonprofitVerification({ ...autoSignals, conflicts: [conflict] });
+      expect(outcome.decision).toBe("deny");
+      expect(outcome.status).toBe("denied");
+      expect(outcome.reason).toBe("fraud_conflict");
+      expect(outcome.reasonClass).toBe("fraud-likely");
+      expect(outcome.flags).toContain(NONPROFIT_CONFLICT_FLAGS[conflict]);
+      expect(outcome.evidence).toMatchObject({
+        decision: "deny",
+        reason_class: "fraud-likely",
+        conflicts: [conflict],
+        decided_by: `system:${NONPROFIT_VERIFICATION_ENGINE}`,
+      });
+      // …and never asks for documents: a denied application is not "missing paperwork".
+      expect(outcome.supportingDocsRequested).toBe(false);
+    }
+  });
+  test("one EIN claimed by two materially DIFFERENT orgs denies as a conflict", () => {
+    const outcome = decideNonprofitVerification({
+      ...autoSignals,
+      submittedNameNormalized: "TOTALLY DIFFERENT CHARITY",
+      einClaim: { userId: 7, orgName: "MAINE ASSOCIATION OF NONPROFITS", status: "approved" },
+      applicantUserId: 9,
+    });
+    expect(outcome.decision).toBe("deny");
+    expect(outcome.status).toBe("denied");
+    expect(outcome.reason).toBe("ein_conflict_different_org");
+    expect(outcome.reasonClass).toBe("fraud-likely");
+    expect(outcome.evidence).toMatchObject({
+      ein_claim: { claimed_by_user_id: 7, claimed_org_name: "MAINE ASSOCIATION OF NONPROFITS" },
+    });
+  });
+  test("a second account for the SAME org is a duplicate, never fraud", () => {
+    const outcome = decideNonprofitVerification({
+      ...autoSignals,
+      einClaim: { userId: 7, orgName: "Maine Association of Nonprofits Inc", status: "approved" },
+      applicantUserId: 9,
+    });
+    expect(outcome.decision).toBe("manual_review");
+    expect(outcome.status).toBe("manual_review");
+    expect(outcome.reason).toBe("ein_already_claimed");
+    expect(outcome.reasonClass).toBe("possible-match");
+    expect(outcome.flags).toContain("one_free_org_account_per_ein");
+    expect(outcome.flags).toContain("deflect_to_existing_account");
+  });
+  test("the same user re-applying in its own EIN is not a claim at all", () => {
+    const outcome = decideNonprofitVerification({
+      ...autoSignals,
+      einClaim: { userId: 7, orgName: "Maine Association of Nonprofits", status: "approved" },
+      applicantUserId: 7,
+    });
+    expect(outcome.decision).toBe("auto_approve");
+    expect(outcome.reasonClass).toBe("clear-match");
+  });
+  test("an ambiguous record NEVER denies — the deny lane needs a definite conflict", () => {
+    // Everything uncertain still lands in manual review, whatever else looks odd.
+    for (const patch of [
+      { nameTier: "C" as const, websiteOrEmail: "gmail.com" },
+      { einFound: false, nameTier: null },
+      { onRevocationList: true, inPub78: false },
+      { bmfStatus: "12" },
+      { bmfStatus: null },
+    ]) {
+      const outcome = decideNonprofitVerification({ ...autoSignals, ...patch });
+      expect(outcome.decision).toBe("manual_review");
+      expect(outcome.status).not.toBe("denied");
+    }
   });
 });
 
@@ -439,7 +594,7 @@ describe("entitlement and search policy", () => {
   });
   test("no application, and every non-approved status", () => {
     expect(evaluateNonprofitEntitlement(null).verified).toBe(false);
-    for (const status of ["pending", "manual_review", "rejected", "revoked"]) {
+    for (const status of ["pending", "manual_review", "denied", "revoked"]) {
       const entitlement = evaluateNonprofitEntitlement(row(status));
       expect(entitlement.verified).toBe(false);
       expect(entitlement.status).toBe(status);
@@ -465,16 +620,20 @@ describe("entitlement and search policy", () => {
     expect(nonprofitSearchPolicy(overdue)).toEqual(NONPROFIT_FREE_SEARCH_POLICY);
     expect(computeReverifyDueAt("2026-09-21T00:00:00.000Z")).toBe("2027-09-21T00:00:00.000Z");
   });
-  test("verified → the owner's item-4 promise, exactly", () => {
+  test("verified → the owner's spec item 2 promise, exactly", () => {
     const policy = nonprofitSearchPolicy(evaluateNonprofitEntitlement(row("approved")));
     expect(policy).toEqual(NONPROFIT_FREE_SEARCH_POLICY);
     expect(policy).toMatchObject({
       tier: "nonprofit_free",
       searchesPerDay: "unlimited",
       previewLimit: "unlimited",
+      fullDetailsPerDay: "unlimited",
       fullDescriptions: true,
       eligibilityDetail: true,
       officialLinks: true,
+      // Owner spec item 2 lists BASIC filters for the verified tier; advanced filters stay
+      // in the paid upgrades.
+      basicFilters: true,
       canSave: true,
       saveLimit: 10,
       includesStateGrants: true,
@@ -487,28 +646,111 @@ describe("entitlement and search policy", () => {
     expect(policy.surfaces).not.toContain("radar");
     expect(NONPROFIT_FREE_PROMISE).toContain("No credit card required");
   });
-  test("pending and manual_review → limited access, not the anonymous wall", () => {
+  test("pending and manual_review → the owner's exact pending numbers", () => {
     for (const status of ["pending", "manual_review"]) {
       expect(nonprofitSearchPolicy(evaluateNonprofitEntitlement(row(status)))).toEqual(
         NONPROFIT_PENDING_SEARCH_POLICY,
       );
     }
+    // Owner spec item 2, verbatim: 3 grant searches/day · full details for 5 results/day ·
+    // official application links · no saved grants or alerts yet.
     expect(NONPROFIT_PENDING_SEARCH_POLICY).toMatchObject({
       tier: "nonprofit_pending",
       searchesPerDay: 3,
+      fullDetailsPerDay: 5,
+      previewLimit: 5,
+      officialLinks: true,
+      basicFilters: false,
       canSave: false,
       saveLimit: 0,
       weeklyDeadlineEmail: false,
       creditCardRequired: false,
     });
   });
-  test("no application, rejected or revoked → today's anonymous behaviour", () => {
+  test("the two allowances are INDEPENDENT: 3 searches can unlock 5 full results", () => {
+    const pending: NonprofitSearchPolicy = NONPROFIT_PENDING_SEARCH_POLICY;
+    // Search #1..#3 are allowed, #4 is not — and each one still carries rows.
+    expect(nonprofitSearchAllowance(pending, 0)).toEqual({ allowed: true, remaining: 3 });
+    expect(nonprofitSearchAllowance(pending, 2)).toEqual({ allowed: true, remaining: 1 });
+    expect(nonprofitSearchAllowance(pending, 3)).toEqual({ allowed: false, remaining: 0 });
+    // Full detail runs out after FIVE results across ALL of those searches — the number a
+    // policy with only `previewLimit` could not express.
+    expect(nonprofitFullDetailAllowance(pending, 0)).toEqual({
+      remaining: 5,
+      canUnlock: true,
+      fallback: "truncated_preview",
+    });
+    expect(nonprofitFullDetailAllowance(pending, 4)).toEqual({
+      remaining: 1,
+      canUnlock: true,
+      fallback: "truncated_preview",
+    });
+    expect(nonprofitFullDetailAllowance(pending, 5)).toEqual({
+      remaining: 0,
+      canUnlock: false,
+      fallback: "truncated_preview",
+    });
+    // A search is still allowed while the full-detail budget is spent: the two limits are
+    // separate promises, and neither silently becomes the other.
+    expect(nonprofitSearchAllowance(pending, 0).allowed).toBe(true);
+    expect(nonprofitFullDetailAllowance(pending, 5).canUnlock).toBe(false);
+  });
+  test("the verified tier has no allowance wall, and the anonymous tier has no full rows", () => {
+    expect(nonprofitSearchAllowance(NONPROFIT_FREE_SEARCH_POLICY, 10_000)).toEqual({
+      allowed: true,
+      remaining: Infinity,
+    });
+    expect(nonprofitFullDetailAllowance(NONPROFIT_FREE_SEARCH_POLICY, 10_000).canUnlock).toBe(true);
+    expect(nonprofitSearchAllowance(NONPROFIT_ANONYMOUS_SEARCH_POLICY, 0)).toEqual({
+      allowed: true,
+      remaining: 1,
+    });
+    expect(nonprofitSearchAllowance(NONPROFIT_ANONYMOUS_SEARCH_POLICY, 1)).toEqual({
+      allowed: false,
+      remaining: 0,
+    });
+    expect(nonprofitFullDetailAllowance(NONPROFIT_ANONYMOUS_SEARCH_POLICY, 0)).toEqual({
+      remaining: 0,
+      canUnlock: false,
+      fallback: "truncated_preview",
+    });
+  });
+  test("no application, denied or revoked → today's anonymous behaviour", () => {
     expect(nonprofitSearchPolicy(evaluateNonprofitEntitlement(null))).toEqual(NONPROFIT_ANONYMOUS_SEARCH_POLICY);
-    for (const status of ["rejected", "revoked"]) {
+    for (const status of ["denied", "revoked"]) {
       const entitlement: NonprofitEntitlement = evaluateNonprofitEntitlement(row(status));
       expect(nonprofitSearchPolicy(entitlement).tier).toBe("anonymous");
     }
     expect(NONPROFIT_ANONYMOUS_SEARCH_POLICY.searchesPerDay).toBe(1);
+  });
+  test("one free org account per EIN: the apply-time claim check (owner spec item 6)", () => {
+    // Nobody holds the EIN yet.
+    expect(evaluateNonprofitEinClaim({ userId: 42, existing: null })).toEqual({
+      allowed: true,
+      outcome: "available",
+      message: null,
+      heldByUserId: null,
+    });
+    // The SAME user re-applying updates its own row — never a second account.
+    expect(evaluateNonprofitEinClaim({ userId: 42, existing: { user_id: 42, status: "manual_review" } })).toEqual({
+      allowed: true,
+      outcome: "reapply_same_user",
+      message: null,
+      heldByUserId: 42,
+    });
+    // ANOTHER user, same EIN → deflected with a clear message, never silently allowed.
+    const claimed = evaluateNonprofitEinClaim({
+      userId: 43,
+      existing: { user_id: 42, status: "approved" },
+    });
+    expect(claimed.allowed).toBe(false);
+    expect(claimed.outcome).toBe("ein_already_claimed");
+    expect(claimed.message).toBe(NONPROFIT_EIN_CLAIMED_MESSAGE);
+    expect(claimed.heldByUserId).toBe(42);
+    // Fail closed: a row we cannot attribute to a user is still a claim.
+    expect(evaluateNonprofitEinClaim({ userId: 43, existing: { user_id: null, status: "pending" } }).allowed).toBe(
+      false,
+    );
   });
   test("subsection labels are the official ones, never invented", () => {
     expect(subsectionLabel("03")).toBe("501(c)(3) charitable organization");
@@ -822,15 +1064,18 @@ describe("mirror refresh orchestration", () => {
     expect(store.runs[0]).toMatchObject({ source: "pub78", mode: "import", status: "ok", insertedCount: 3, unchangedCount: 1 });
   });
   test("import: a row the source no longer publishes is counted as a prune", async () => {
+    // 9 rows live in the mirror, of which ONE is still republished (unchanged) — the other
+    // 8 are rows the source has dropped, and the 6 remaining payload rows are new.
+    const live = parseRevocationText(fixture("revocations.txt")).rows[0];
     const store = fakeMirrorStore({
-      existing: { revocations: new Map([["stale-row-hash", "stale-row-hash"]]) },
+      existing: { revocations: new Map([[live.row_hash, live.row_hash]]) },
       counts: { revocations: 9 },
     });
     const { fn } = fakeFetch({ [payloadsForSource("revocations")[0].url]: buildZip("data-download-revocation.txt", fixture("revocations.txt")) });
     const summary = await refreshIrsSource("revocations", { mode: "import" }, { store, fetchFn: fn });
     expect(summary.failures).toEqual([]);
-    expect(summary.diff.inserted).toBe(7);
-    expect(summary.diff.pruned).toBe(8); // 9 live - (0 updated + 1 unchanged)
+    expect(summary.rowCount).toBe(7);
+    expect(summary.diff).toMatchObject({ liveRowCount: 9, inserted: 6, unchanged: 1, pruned: 8 });
   });
   test("a bounded smoke run can never import and says so", async () => {
     const store = fakeMirrorStore();
@@ -852,5 +1097,75 @@ describe("mirror refresh orchestration", () => {
     expect(summary.sources[1].failures).toContain("fetch_or_parse_error");
     expect(summary.ok).toBe(false);
     expect(store.runs.map((run) => run.status)).toEqual(["ok", "error"]);
+  });
+});
+
+// ── Zip payloads over HTTP (regression: the ARCHIVE must never be parsed as text) ──
+describe("zip payloads over HTTP", () => {
+  test("a fetched zip is inflated to its member — the rows are the member's text", async () => {
+    const text = fixture("pub78.txt");
+    const payload = payloadsForSource("pub78")[0];
+    expect(payload.zipMember).toBe(IRS_PUB78_ZIP_MEMBER);
+    const { fn } = fakeFetch({ [payload.url]: buildZip(IRS_PUB78_ZIP_MEMBER, text) });
+    const stream = await openPayloadStream(payload, {}, { fetchFn: fn });
+    const lines: string[] = [];
+    for await (const line of iterateLines(stream)) lines.push(line);
+    // Exactly the member's non-empty lines (CRLF stripped), NOT a line of binary zip.
+    const expected = Array.from(iterateLinesOfText(text)).filter((line) => line.length > 0);
+    expect(lines.filter((line) => line.length > 0)).toEqual(expected);
+    expect(expected).toHaveLength(4); // the 2 blank leading lines in the fixture are blank
+    expect(lines.filter((line) => line.split("|").length === 6)).toHaveLength(4);
+  });
+  test("a body larger than the archive cap is refused instead of buffered", async () => {
+    const payload = payloadsForSource("pub78")[0];
+    await expect(readResponseBytes(new Response("x".repeat(100)), payload, 50)).rejects.toThrow(
+      /exceeds 50 bytes/,
+    );
+    expect((await readResponseBytes(new Response("abc"), payload, 50)).toString("utf8")).toBe("abc");
+  });
+});
+
+// ── Migration 045 ↔ src/db/schema.sql (the owner's spec, enforced on the DDL) ──
+describe("migration 045 and the schema.sql mirror", () => {
+  const MIGRATION_045_SQL = readFileSync(
+    new URL("../../db/migrations/045_nonprofit_free.sql", import.meta.url),
+    "utf8",
+  );
+  const SCHEMA_SQL = readFileSync(new URL("../db/schema.sql", import.meta.url), "utf8");
+  const FILES: [string, string][] = [
+    ["migration 045", MIGRATION_045_SQL],
+    ["schema.sql", SCHEMA_SQL],
+  ];
+  /** Every "file: what" pair that is MISSING — so a failure names the file and the rule. */
+  function missing(predicate: (sql: string) => boolean): string[] {
+    return FILES.filter(([, sql]) => !predicate(sql)).map(([name]) => name);
+  }
+  test("one free org account per EIN is a UNIQUE constraint in BOTH files", () => {
+    expect(missing((sql) => sql.includes("nonprofit_applications_ein_key ON nonprofit_applications (ein)"))).toEqual(
+      [],
+    );
+  });
+  test("the status list is the owner's taxonomy — 'rejected' is gone, 'denied' is in", () => {
+    const expected = `CHECK (status IN (${NONPROFIT_APPLICATION_STATUSES.map((s) => `'${s}'`).join(", ")}))`;
+    expect(missing((sql) => sql.includes(expected))).toEqual([]);
+    // The old value must not survive anywhere in either file.
+    expect(missing((sql) => sql.includes("'rejected'"))).toEqual(FILES.map(([name]) => name));
+    expect(NONPROFIT_APPLICATION_STATUSES).toContain("denied");
+  });
+  test("the decision list carries 'deny', and the four reason classes are all allowed", () => {
+    const decisionCheck =
+      "CHECK (decision IS NULL OR decision IN ('auto_approve', 'manual_review', 'deny', 'reentry_required'))";
+    expect(missing((sql) => sql.includes(decisionCheck))).toEqual([]);
+    for (const reasonClass of NONPROFIT_REASON_CLASSES) {
+      expect(missing((sql) => sql.includes(`'${reasonClass}'`))).toEqual([]);
+    }
+    expect(missing((sql) => sql.includes("supporting_docs_requested BOOLEAN NOT NULL DEFAULT FALSE"))).toEqual([]);
+    // The engine's reason-class union and the DDL's CHECK list are the same four strings.
+    expect(NONPROFIT_REASON_CLASSES).toHaveLength(4);
+  });
+  test("every CREATE statement in the migration appears verbatim in the mirror", () => {
+    const ddl = MIGRATION_045_SQL.split("\n").filter((line) => line.startsWith("CREATE "));
+    expect(ddl.length).toBeGreaterThan(10);
+    for (const statement of ddl) expect(SCHEMA_SQL).toContain(statement);
   });
 });

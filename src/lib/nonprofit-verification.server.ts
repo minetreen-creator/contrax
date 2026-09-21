@@ -30,6 +30,7 @@ import {
   NONPROFIT_SUBSECTION_POLICY,
   NONPROFIT_501C3_SUBSECTION,
   isEligibleSubsection,
+  type NonprofitReasonClass,
   type NonprofitStatus,
   type NonprofitSubsectionPolicy,
   type NonprofitVerificationMethod,
@@ -350,7 +351,7 @@ export function isGroupExemptionSubordinate(groupNo: string | null | undefined):
 export type NonprofitDecision =
   | "auto_approve"
   | "manual_review"
-  | "rejected"
+  | "deny"
   | "reentry_required";
 /** Machine-readable reason codes; the number in the comment is the §2.5 table row. */
 export type NonprofitDecisionReason =
@@ -362,7 +363,60 @@ export type NonprofitDecisionReason =
   | "status_not_active" // 4
   | "subsection_not_501c3" // owner decision (a), if narrowed
   | "auto_approved" // 1
+  | "fraud_conflict" // owner spec item 3: obvious fraud/conflicting info → DENY
+  | "ein_conflict_different_org" // one EIN, two different org names → DENY
+  | "ein_already_claimed" // one free account per EIN (never a silent second account)
   | "mirror_lookup_failed"; // fail-closed: unknown state is never an approval
+
+/**
+ * THE OWNER'S REASON CLASS, for every decision (spec item 3). This map is deliberately
+ * total over `NonprofitDecisionReason`, so a new reason cannot be added without deciding
+ * which class the admin queue files it under. `null` exists for exactly ONE reason:
+ * `ein_format` is form validation, not a verification verdict — nothing has been decided,
+ * so there is no class to file.
+ */
+const REASON_CLASS_BY_REASON: Readonly<Record<NonprofitDecisionReason, NonprofitReasonClass | null>> = {
+  auto_approved: "clear-match",
+  ein_not_found: "no-match-request-docs",
+  name_mismatch: "possible-match",
+  revoked_reinstated_looking: "possible-match",
+  revoked_no_reinstatement: "possible-match",
+  status_not_active: "possible-match",
+  subsection_not_501c3: "possible-match",
+  ein_already_claimed: "possible-match",
+  mirror_lookup_failed: "possible-match",
+  fraud_conflict: "fraud-likely",
+  ein_conflict_different_org: "fraud-likely",
+  ein_format: null,
+};
+export function reasonClassFor(reason: NonprofitDecisionReason): NonprofitReasonClass | null {
+  return REASON_CLASS_BY_REASON[reason];
+}
+
+/**
+ * THE DENY LANE (owner spec item 3: "obvious fraud/conflicting info → deny"). This is the
+ * only automatic path that ends without a human, so it may fire ONLY on a conflict that
+ * is definite. Anything merely unclear belongs in `manual_review` — never here.
+ */
+export type NonprofitConflictKind =
+  | "ein_claimed_by_different_org" // two different organisations claiming one EIN
+  | "identity_contradicts_application" // the submitted identity contradicts itself
+  | "impersonation_reported"; // the organisation says nobody there applied
+/** The one place the owner's flag wording for the deny lane lives. */
+export const NONPROFIT_CONFLICT_FLAGS: Readonly<Record<NonprofitConflictKind, string>> = {
+  ein_claimed_by_different_org: "ein_claimed_by_different_org",
+  identity_contradicts_application: "identity_contradicts_application",
+  impersonation_reported: "impersonation_reported",
+};
+/** The account that already holds an EIN, as the apply route found it. */
+export interface NonprofitEinClaimSignal {
+  /** The user that holds the EIN. Equal to `applicantUserId` ⇒ a re-apply, NOT a conflict. */
+  userId?: number | null;
+  /** The legal name on the account that holds the EIN. */
+  orgName?: string | null;
+  status?: string | null;
+}
+
 export interface BmfIdentity {
   ein: string;
   name: string;
@@ -411,8 +465,21 @@ export interface NonprofitVerificationOutcome {
   status: NonprofitStatus;
   method: NonprofitVerificationMethod | null;
   reason: NonprofitDecisionReason;
+  /**
+   * The owner's four-class taxonomy for this decision (spec item 3), written to
+   * `nonprofit_applications.reason_class` so the admin queue filters on one column.
+   * `null` ONLY for `reentry_required` — a malformed EIN is form validation, not a
+   * verification verdict, so no class is filed.
+   */
+  reasonClass: NonprofitReasonClass | null;
   /** What the reviewer is being asked to conclude (manual branches only). */
   recommendation: "approve" | "decline" | null;
+  /**
+   * The owner's "no match → request supporting documentation" action (spec item 3). TRUE
+   * on the EIN-not-found branch, whose first queue action is the docs request; every other
+   * branch is FALSE, and NO IRS letter is ever required unless the automatic check failed.
+   */
+  supportingDocsRequested: boolean;
   flags: string[];
   signals: NonprofitVerificationSignals;
   /** Written to `nonprofit_applications.evidence` (jsonb). */
@@ -423,6 +490,15 @@ export interface DecideNonprofitVerificationInput extends Partial<NonprofitVerif
   subsectionPolicy?: NonprofitSubsectionPolicy;
   /** Website or work email — corroboration for the REVIEWER only, never for auto-approve. */
   websiteOrEmail?: string | null;
+  /**
+   * DEFINITE conflicts only (see NonprofitConflictKind). Any entry here is the owner's
+   * deny lane; an ambiguous concern is NOT a conflict and must stay in manual review.
+   */
+  conflicts?: readonly NonprofitConflictKind[];
+  /** The account that already holds this EIN (one free org account per EIN). */
+  einClaim?: NonprofitEinClaimSignal | null;
+  /** The user applying now — what makes an `einClaim` a re-apply instead of a conflict. */
+  applicantUserId?: number | null;
   /** Injectable clock, so the evidence is deterministic under test. */
   now?: Date;
 }
@@ -433,23 +509,30 @@ export function nonprofitStatusForDecision(decision: NonprofitDecision): Nonprof
       return "approved";
     case "manual_review":
       return "manual_review";
-    case "rejected":
-      return "rejected";
+    case "deny":
+      // The owner's fraud lane. This is the ONLY automatic non-approval (spec item 3).
+      return "denied";
     case "reentry_required":
       // Nothing was decided: the form must be corrected, so the application stays pending.
       return "pending";
   }
 }
 /**
- * THE DECISION TABLE (research §2.5). Pure, total, and evaluated in this order:
+ * THE DECISION TABLE (research §2.5 + the owner's spec item 3). Pure, total, and
+ * evaluated in this order:
  *
  *   1. malformed EIN                          → re-entry (form validation, not a review)
- *   2. EIN not in the mirror                  → MANUAL (never auto-reject)
- *   3. name Tier C                            → MANUAL (never reject on name alone)
- *   4. on the revocation list AND in Pub 78   → MANUAL (reinstatement hypothesis)
- *   5. on the revocation list, not in Pub 78  → MANUAL, recommend "decline"
- *   6. STATUS not 01/02                       → MANUAL
- *   7. otherwise                              → AUTO-APPROVE
+ *   2. a DEFINITE conflict, or one EIN claimed by two different orgs
+ *                                             → DENY (the owner's only fraud lane)
+ *   3. EIN not in the mirror                  → MANUAL + request supporting documentation
+ *   4. name Tier C                            → MANUAL (never reject on name alone)
+ *   5. on the revocation list AND in Pub 78   → MANUAL (reinstatement hypothesis)
+ *   6. on the revocation list, not in Pub 78  → MANUAL, recommend "decline"
+ *   7. STATUS not 01/02                       → MANUAL
+ *   8. otherwise                              → AUTO-APPROVE
+ *
+ * EVERY branch carries its owner-taxonomy reason class (clear-match / possible-match /
+ * no-match-request-docs / fraud-likely) — see `reasonClassFor`.
  *
  * Secondary signals are never lost: they become `flags` on the outcome and are written
  * into `evidence`. A group-exemption subordinate (GROUP ≠ 0, 20.1 % of BMF rows)
@@ -478,22 +561,50 @@ export function decideNonprofitVerification(
     revocationPostingDate: input.revocationPostingDate ?? null,
     reinstatementDate: input.reinstatementDate ?? null,
   };
+  const conflicts: NonprofitConflictKind[] = [...(input.conflicts ?? [])];
+  // The one-EIN-one-org rule (owner spec item 6) turns into a CONFLICT only when the two
+  // organisations are materially DIFFERENT. A second account for the SAME legal org is a
+  // duplicate, not fraud: it is deflected at apply time (evaluateNonprofitEinClaim) and, if
+  // it still reaches the engine, it is reviewed by a human — never denied as fraud.
+  const einClaim = input.einClaim ?? null;
+  const claimByAnotherAccount =
+    einClaim != null &&
+    (einClaim.userId == null ||
+      input.applicantUserId == null ||
+      einClaim.userId !== input.applicantUserId);
+  let einClaimIsDifferentOrg = false;
+  if (claimByAnotherAccount && einClaim) {
+    const claimNameTier = compareLegalNames(input.submittedNameNormalized ?? "", [
+      einClaim.orgName ?? null,
+    ]).tier;
+    einClaimIsDifferentOrg = claimNameTier === "C";
+    if (einClaimIsDifferentOrg && !conflicts.includes("ein_claimed_by_different_org")) {
+      conflicts.push("ein_claimed_by_different_org");
+    }
+  }
   const flags: string[] = [];
   const outcome = (
     decision: NonprofitDecision,
     reason: NonprofitDecisionReason,
     extra: Partial<
-      Pick<NonprofitVerificationOutcome, "recommendation" | "method" | "flags" | "evidence">
+      Pick<
+        NonprofitVerificationOutcome,
+        "recommendation" | "method" | "flags" | "evidence" | "supportingDocsRequested"
+      >
     > = {},
   ): NonprofitVerificationOutcome => ({
     decision,
     status: nonprofitStatusForDecision(decision),
     method: extra.method ?? null,
     reason,
+    reasonClass: reasonClassFor(reason),
     recommendation: extra.recommendation ?? null,
+    supportingDocsRequested: extra.supportingDocsRequested ?? reason === "ein_not_found",
     flags: [...flags, ...(extra.flags ?? [])],
     signals,
-    evidence: extra.evidence ?? buildEvidence(signals, decision, reason, subsectionPolicy, now),
+    evidence:
+      extra.evidence ??
+      buildEvidence(signals, decision, reason, subsectionPolicy, now, conflicts, einClaim),
   });
 
   // ── 1. Form validation (§2.5 row 7) ────────────────────────────────────────
@@ -501,15 +612,41 @@ export function decideNonprofitVerification(
     return outcome("reentry_required", "ein_format");
   }
 
-  // ── 2. EIN not in the mirror (§2.5 row 6) ──────────────────────────────────
-  if (!signals.einFound) {
-    return outcome("manual_review", "ein_not_found", {
-      recommendation: "approve",
-      flags: ["ein_not_found_exception_class"],
+  // ── 2. THE DENY LANE (owner spec item 3: obvious fraud/conflicting info → deny) ──
+  // Deliberately narrow: it fires on a DEFINITE conflict, or on two materially different
+  // organisations claiming one EIN, and on nothing else. Every ambiguous case keeps
+  // falling through to the manual branches below — an unclear record is never a rejection.
+  if (conflicts.length > 0) {
+    const reason: NonprofitDecisionReason = conflicts.includes("ein_claimed_by_different_org")
+      ? "ein_conflict_different_org"
+      : "fraud_conflict";
+    return outcome("deny", reason, {
+      flags: conflicts.map((conflict) => NONPROFIT_CONFLICT_FLAGS[conflict]),
     });
   }
 
-  // ── 3. Name mismatch (§2.5 row 5) ──────────────────────────────────────────
+  // ── 2b. One free org account per EIN: the duplicate case (NOT fraud) ────────
+  if (claimByAnotherAccount) {
+    return outcome("manual_review", "ein_already_claimed", {
+      recommendation: null,
+      flags: ["one_free_org_account_per_ein", "deflect_to_existing_account"],
+    });
+  }
+
+  // ── 3. EIN not in the mirror (§2.5 row 6) ──────────────────────────────────
+  // NO-MATCH → the owner's "request supporting documentation": this is the branch where
+  // the automatic check failed, so (and only so) a document may be asked for. It is never
+  // a rejection — churches, government entities, fiscal sponsors and newly approved orgs
+  // are all legitimately absent from the BMF.
+  if (!signals.einFound) {
+    return outcome("manual_review", "ein_not_found", {
+      recommendation: "approve",
+      supportingDocsRequested: true,
+      flags: ["ein_not_found_exception_class", "request_supporting_documentation"],
+    });
+  }
+
+  // ── 4. Name mismatch (§2.5 row 5) ──────────────────────────────────────────
   if (signals.nameTier !== "A" && signals.nameTier !== "B") {
     const domainCorroborates = domainCorrespondsToName(
       input.websiteOrEmail ?? null,
@@ -523,7 +660,7 @@ export function decideNonprofitVerification(
     });
   }
 
-  // ── 4/5. The revocation list (§2.4, §2.5 rows 2 and 3) ─────────────────────
+  // ── 5/6. The revocation list (§2.4, §2.5 rows 2 and 3) ─────────────────────
   if (signals.onRevocationList) {
     if (signals.inPub78) {
       return outcome("manual_review", "revoked_reinstated_looking", {
@@ -537,7 +674,7 @@ export function decideNonprofitVerification(
     });
   }
 
-  // ── 6. STATUS must be 01/02 (§2.5 row 4) ───────────────────────────────────
+  // ── 7. STATUS must be 01/02 (§2.5 row 4) ───────────────────────────────────
   // No recommendation is invented here: the research states one only for the revoked
   // branch, and the reviewer decides with the official status wording in front of them
   // (`status_not_active` carries `bmfStatusMeaning` into the evidence).
@@ -547,7 +684,7 @@ export function decideNonprofitVerification(
     });
   }
 
-  // ── 6b. Owner decision (a): a narrowed "verified nonprofit" definition ─────
+  // ── 7b. Owner decision (a): a narrowed "verified nonprofit" definition ─────
   // Only reachable if the owner answers "501(c)(3) only" (nonprofit.server.ts flips one
   // constant). The org may be perfectly exempt and still not qualify for THIS free tier,
   // so the reviewer decides rather than the engine recommending.
@@ -557,7 +694,7 @@ export function decideNonprofitVerification(
     });
   }
 
-  // ── 7. Auto-approve (§2.5 row 1) ───────────────────────────────────────────
+  // ── 8. Auto-approve (§2.5 row 1) ───────────────────────────────────────────
   if (isGroupExemptionSubordinate(signals.bmfGroupNo)) {
     // Allowed to auto-approve, but tagged: the owner lists group-exemption
     // subordinates as an exception class, so the queue must be able to see them.
@@ -584,6 +721,8 @@ function buildEvidence(
   reason: NonprofitDecisionReason,
   subsectionPolicy: NonprofitSubsectionPolicy,
   now: Date,
+  conflicts: readonly NonprofitConflictKind[] = [],
+  einClaim: NonprofitEinClaimSignal | null = null,
 ): Record<string, unknown> {
   return {
     engine: NONPROFIT_VERIFICATION_ENGINE,
@@ -606,9 +745,23 @@ function buildEvidence(
     subsection_policy: subsectionPolicy,
     decision,
     reason,
+    // The owner's taxonomy class (spec item 3) is part of the audit record, not a UI
+    // derivation: the queue, the applicant status page and any later export all read the
+    // same value the engine wrote.
+    reason_class: reasonClassFor(reason),
+    supporting_docs_requested: reason === "ein_not_found",
+    // Only ever populated on the deny lane — an empty array on every other branch, so a
+    // reviewer can tell "no conflict was seen" from "no conflict was looked for".
+    conflicts,
+    ein_claim: einClaim
+      ? { claimed_by_user_id: einClaim.userId ?? null, claimed_org_name: einClaim.orgName ?? null }
+      : null,
     // decided_by is the SYSTEM for an automatic verdict; a manual branch has no decider
     // yet — a human writes reviewed_by/reviewed_at when they act on the queue.
-    decided_by: decision === "auto_approve" ? `system:${NONPROFIT_VERIFICATION_ENGINE}` : null,
+    decided_by:
+      decision === "auto_approve" || decision === "deny"
+        ? `system:${NONPROFIT_VERIFICATION_ENGINE}`
+        : null,
     decided_at: now.toISOString(),
   };
 }
@@ -687,12 +840,22 @@ export interface VerifyNonprofitApplicationInput {
   orgName: string | null | undefined;
   /** Corroboration for the reviewer only (never an auto-approve signal). */
   websiteOrEmail?: string | null;
+  /**
+   * The account that already holds this EIN, when the apply route found one (one free org
+   * account per EIN). Checked BEFORE the IRS lookup: a conflict that is definite is a
+   * deny whether or not the EIN is in the mirror.
+   */
+  einClaim?: NonprofitEinClaimSignal | null;
+  /** The user applying now — what distinguishes a re-apply from a conflicting claim. */
+  applicantUserId?: number | null;
+  /** DEFINITE conflicts only (see NonprofitConflictKind). */
+  conflicts?: readonly NonprofitConflictKind[];
   subsectionPolicy?: NonprofitSubsectionPolicy;
   now?: Date;
 }
 /**
- * The whole engine, end to end: normalise → look up the three IRS mirrors locally →
- * compare names → run the decision table.
+ * The whole engine, end to end: normalise → the conflict/deny lane → look up the three IRS
+ * mirrors locally → compare names → run the decision table.
  *
  * FAIL-CLOSED: if a mirror lookup throws, the outcome is MANUAL REVIEW with reason
  * `mirror_lookup_failed`. An unknown state is never an approval and never a rejection —
@@ -712,6 +875,9 @@ export async function verifyNonprofitApplication(
       ein: null,
       submittedNameNormalized: nameComparison.submittedNormalized,
       websiteOrEmail: input.websiteOrEmail ?? null,
+      einClaim: input.einClaim ?? null,
+      applicantUserId: input.applicantUserId ?? null,
+      conflicts: input.conflicts ?? [],
       subsectionPolicy: input.subsectionPolicy,
       now,
     });
@@ -739,16 +905,25 @@ export async function verifyNonprofitApplication(
       nameTier: null,
       submittedNameNormalized: nameComparison.submittedNormalized,
       websiteOrEmail: input.websiteOrEmail ?? null,
+      einClaim: input.einClaim ?? null,
+      applicantUserId: input.applicantUserId ?? null,
+      conflicts: input.conflicts ?? [],
       subsectionPolicy: input.subsectionPolicy,
       now,
     } satisfies DecideNonprofitVerificationInput);
     return {
       ...failed,
       reason: "mirror_lookup_failed",
+      // The class follows the reason that is actually returned, so the stored row can
+      // never claim `no-match-request-docs` for what is really an unreadable mirror.
+      reasonClass: reasonClassFor("mirror_lookup_failed"),
+      supportingDocsRequested: false,
       flags: [...failed.flags, "mirror_lookup_failed"],
       evidence: {
         ...failed.evidence,
         reason: "mirror_lookup_failed",
+        reason_class: reasonClassFor("mirror_lookup_failed"),
+        supporting_docs_requested: false,
         error: (error as Error)?.message?.slice(0, 300) ?? String(error),
       },
     };
@@ -776,6 +951,9 @@ export async function verifyNonprofitApplication(
     reinstatementDate:
       revocations.map((row) => row.reinstatement_date).find((value) => value != null) ?? null,
     websiteOrEmail: input.websiteOrEmail ?? null,
+    einClaim: input.einClaim ?? null,
+    applicantUserId: input.applicantUserId ?? null,
+    conflicts: input.conflicts ?? [],
     subsectionPolicy: input.subsectionPolicy,
     now,
   });

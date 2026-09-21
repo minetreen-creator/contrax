@@ -930,7 +930,7 @@ CREATE TABLE IF NOT EXISTS nonprofit_applications (
     contact_role TEXT,
     org_use_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
     status TEXT NOT NULL DEFAULT 'pending'
-        CHECK (status IN ('pending', 'approved', 'manual_review', 'rejected', 'revoked')),
+        CHECK (status IN ('pending', 'approved', 'manual_review', 'denied', 'revoked')),
     verification_method TEXT
         CHECK (verification_method IS NULL OR verification_method IN ('irs_eo_bmf', 'manual_exception')),
     submitted_name_normalized TEXT,
@@ -948,8 +948,12 @@ CREATE TABLE IF NOT EXISTS nonprofit_applications (
     revocation_posting_date DATE,
     reinstatement_date DATE,
     decision TEXT
-        CHECK (decision IS NULL OR decision IN ('auto_approve', 'manual_review', 'rejected', 'reentry_required')),
+        CHECK (decision IS NULL OR decision IN ('auto_approve', 'manual_review', 'deny', 'reentry_required')),
     decision_reason TEXT,
+    reason_class TEXT
+        CHECK (reason_class IS NULL OR reason_class IN
+            ('clear-match', 'possible-match', 'no-match-request-docs', 'fraud-likely')),
+    supporting_docs_requested BOOLEAN NOT NULL DEFAULT FALSE,
     decision_flags TEXT[] NOT NULL DEFAULT '{}'::text[],
     evidence JSONB NOT NULL DEFAULT '{}'::jsonb,
     reviewed_by TEXT,
@@ -961,6 +965,7 @@ CREATE TABLE IF NOT EXISTS nonprofit_applications (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS nonprofit_applications_user_id_key ON nonprofit_applications (user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS nonprofit_applications_ein_key ON nonprofit_applications (ein);
 CREATE INDEX IF NOT EXISTS idx_nonprofit_applications_status_created ON nonprofit_applications (status, created_at);
 CREATE TABLE IF NOT EXISTS irs_eo_bmf (
     ein CHAR(9) PRIMARY KEY,

@@ -691,6 +691,13 @@ export function payloadsForSource(source: IrsMirrorSource): IrsPayload[] {
  * Open a payload as a byte stream. Two paths only: the official URL, or a directory the
  * caller has already downloaded into (`--source-dir`, for a bounded/offline run). The
  * zip path is needed for the two pipe-delimited datasets, whose payloads are zip-only.
+ *
+ * ZIP PAYLOADS ARE UNZIPPED ON BOTH PATHS. A zip member cannot be located from a
+ * forward-only stream — its offset and size live in the central directory at the END of
+ * the archive — so an HTTP zip payload is buffered (bounded, see
+ * MAX_ZIP_ARCHIVE_BYTES), the member inflated out of it, and only then does the row
+ * stream begin. Without this the parser would read the raw archive and every line would
+ * be malformed, which is exactly what the import-mode tests caught.
  */
 export async function openPayloadStream(
   payload: IrsPayload,
@@ -722,7 +729,44 @@ export async function openPayloadStream(
   });
   if (!response.ok) throw new Error(`GET ${payload.url} → HTTP ${response.status}`);
   if (!response.body) throw new Error(`GET ${payload.url} → empty body`);
+  if (payload.zipMember) {
+    const archive = await readResponseBytes(response, payload, MAX_ZIP_ARCHIVE_BYTES);
+    return bytesStream(readZipMember(archive, payload.zipMember));
+  }
   return response.body;
+}
+/**
+ * Hard cap on the ARCHIVE held in memory to extract one zip member over HTTP. The IRS's
+ * two zip payloads are 29.9 MB / 47.6 MB compressed, so 128 MB leaves a wide margin over
+ * both real files while refusing a body that is not the file we asked for.
+ */
+export const MAX_ZIP_ARCHIVE_BYTES = 128 * 1024 * 1024;
+/** Read a response body into one Buffer, refusing anything larger than `maxBytes`. */
+export async function readResponseBytes(
+  response: Response,
+  payload: IrsPayload,
+  maxBytes: number,
+): Promise<Buffer> {
+  if (!response.body) throw new Error(`GET ${payload.url} → empty body`);
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (value) {
+        total += value.byteLength;
+        if (total > maxBytes) {
+          throw new Error(`GET ${payload.url} → payload exceeds ${maxBytes} bytes`);
+        }
+        chunks.push(value);
+      }
+      if (done) break;
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks, total);
 }
 function bytesStream(bytes: Buffer | Uint8Array): ReadableStream<Uint8Array> {
   return new Blob([new Uint8Array(bytes)]).stream() as unknown as ReadableStream<Uint8Array>;

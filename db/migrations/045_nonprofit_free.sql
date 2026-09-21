@@ -13,13 +13,14 @@
 -- The verification RULE itself lives in src/lib/nonprofit-verification.server.ts; this
 -- file only holds the data it reads and the audit trail it must leave behind.
 --
--- 1. nonprofit_applications — one row per user (UNIQUE), the owner's signup fields plus
---    the audit/evidence columns the research requires ON EVERY DECISION
---    (/home/team/shared/nonprofit-free-teos-research-2026-09-21.md §2.5, last paragraph):
---    which IRS file, which posting date and which matched names produced the verdict, so
---    the annual reverify and the owner's right to revoke are auditable. `ein` is CHAR(9)
---    and is ALWAYS a zero-padded string: 3.0 % of real IRS EINs begin with `0`, so a
---    numeric column would silently corrupt 010488538 into 10488538.
+-- 1. nonprofit_applications — one row per user (UNIQUE) and one row per ORGANIZATION
+--    (UNIQUE on `ein` — the owner's spec item 6: "one free org account per EIN"), the
+--    owner's signup fields plus the audit/evidence columns the research requires ON EVERY
+--    DECISION (/home/team/shared/nonprofit-free-teos-research-2026-09-21.md §2.5, last
+--    paragraph): which IRS file, which posting date and which matched names produced the
+--    verdict, so the annual reverify and the owner's right to revoke are auditable.
+--    `ein` is CHAR(9) and is ALWAYS a zero-padded string: 3.0 % of real IRS EINs begin
+--    with `0`, so a numeric column would silently corrupt 010488538 into 10488538.
 -- 2. irs_eo_bmf / irs_pub78 / irs_revocations — the LOCAL MIRROR of the three official
 --    IRS bulk datasets (research §1.d, §3). Verification is a local DB lookup; there is
 --    never a live call to irs.gov per request. `content_hash` is the no-op-write guard:
@@ -56,12 +57,14 @@ CREATE TABLE IF NOT EXISTS nonprofit_applications (
     contact_name TEXT NOT NULL,
     contact_role TEXT,
     org_use_confirmed BOOLEAN NOT NULL DEFAULT FALSE,
-    -- pending | approved | manual_review | rejected | revoked.
+    -- pending | approved | manual_review | denied | revoked.
     -- `manual_review` is a real terminal-for-now state, not an error: EIN-not-found,
     -- a name mismatch (DBAs are absent from the IRS file by design), a revoked EIN and a
     -- non-01/02 STATUS all land here and NONE of them is ever an auto-reject.
+    -- `denied` is the OWNER'S FRAUD LANE ONLY (spec item 3: "obvious fraud/conflicting
+    -- info → deny"). It is the ONE status an automatic path may write without a human.
     status TEXT NOT NULL DEFAULT 'pending'
-        CHECK (status IN ('pending', 'approved', 'manual_review', 'rejected', 'revoked')),
+        CHECK (status IN ('pending', 'approved', 'manual_review', 'denied', 'revoked')),
     -- How the decision was reached: the IRS mirror (auto) or a human exception
     -- (churches, government entities, fiscal-sponsorship projects, newly approved orgs,
     -- group-exemption subordinates). NULL while pending.
@@ -94,11 +97,27 @@ CREATE TABLE IF NOT EXISTS nonprofit_applications (
     -- date" (59.7 % of EINs carrying it are also in Pub 78, versus 1.9 % of those that
     -- are not). Stored, never used as an auto-approve signal.
     reinstatement_date DATE,
-    -- auto_approve | manual_review | rejected | reentry_required
-    -- (`reentry_required` is a form-validation outcome — a malformed EIN — never a review).
+    -- auto_approve | manual_review | deny | reentry_required
+    -- (`reentry_required` is a form-validation outcome — a malformed EIN — never a review;
+    --  `deny` is the fraud/conflicting-info verdict the owner allows, and it is the ONLY
+    --  automatic path that does not end in a human's hands.)
     decision TEXT
-        CHECK (decision IS NULL OR decision IN ('auto_approve', 'manual_review', 'rejected', 'reentry_required')),
+        CHECK (decision IS NULL OR decision IN ('auto_approve', 'manual_review', 'deny', 'reentry_required')),
     decision_reason TEXT,
+    -- The owner's FOUR-CLASS taxonomy (spec item 3), written by the verification engine on
+    -- every decision, so the admin queue filters on one column and never re-derives it:
+    --   clear-match              → auto-approve
+    --   possible-match           → manual review (the reviewer decides)
+    --   no-match-request-docs    → manual review, first action = request supporting docs
+    --   fraud-likely             → deny (obvious fraud or conflicting information)
+    -- NULL ONLY while no decision exists (pending) — a decided row always carries one.
+    reason_class TEXT
+        CHECK (reason_class IS NULL OR reason_class IN
+            ('clear-match', 'possible-match', 'no-match-request-docs', 'fraud-likely')),
+    -- The owner's "no match → request supporting documentation" action (spec item 3): the
+    -- queue's first move on a no-match application. FALSE everywhere else — and NO IRS
+    -- letter is ever uploaded unless the automatic check failed.
+    supporting_docs_requested BOOLEAN NOT NULL DEFAULT FALSE,
     -- Secondary signals kept for the reviewer: group_exemption_subordinate,
     -- revocation_reinstatement_hypothesis, status_inactive, subsection_not_501c3, ...
     decision_flags TEXT[] NOT NULL DEFAULT '{}'::text[],
@@ -119,6 +138,15 @@ CREATE TABLE IF NOT EXISTS nonprofit_applications (
 -- One application per user (the owner's form is submitted once per account; a re-apply
 -- updates the same row so the audit trail cannot fork).
 CREATE UNIQUE INDEX IF NOT EXISTS nonprofit_applications_user_id_key ON nonprofit_applications (user_id);
+-- ONE FREE ORG ACCOUNT PER EIN (owner spec item 6, enforced in the DATABASE so no code
+-- path can bypass it): an EIN identifies an ORGANIZATION, not a person, so a second signup
+-- with the same EIN must be deflected or denied — never silently allowed a second free
+-- account. The apply route ALSO checks this before writing (see
+-- evaluateNonprofitEinClaim in src/lib/nonprofit.server.ts) so the applicant gets a clear
+-- message instead of a constraint error; this index is the backstop that makes the rule
+-- true even if a future code path forgets. Re-applying for the SAME organization updates
+-- its existing row (keyed by user_id) — the EIN is then unchanged, so the index holds.
+CREATE UNIQUE INDEX IF NOT EXISTS nonprofit_applications_ein_key ON nonprofit_applications (ein);
 -- The manual-review queue read (agent-lead owns it).
 CREATE INDEX IF NOT EXISTS idx_nonprofit_applications_status_created ON nonprofit_applications (status, created_at);
 CREATE TABLE IF NOT EXISTS irs_eo_bmf (

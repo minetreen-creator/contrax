@@ -32,6 +32,10 @@ import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { US_STATES } from "../lib/states";
 import { deriveInsertLocationColumns } from "../lib/location-state";
 import { fetchBids as fetchSamGov } from "./sources/sam-gov";
+import {
+  createSamTradeSource,
+  SAM_TRADE_FILTERS,
+} from "./sources/sam-gov-trades";
 import { fetchBids as fetchCities } from "./sources/cities";
 import { nysSocrataSource } from "./sources/socrata";
 import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
@@ -118,6 +122,17 @@ const SAM_GOV_SOURCES: SyncSource[] = [
   // so their run-log/tier is stable and independently observable.
   { name: "pennbid", fetchFn: fetchPennBidOpen },
   { name: "va_evirginia", fetchFn: fetchVaEvirginia },
+  // OWNER PRIORITY 09-21 (R1 — janitorial + trucking ingestion): one
+  // structured-filter pass per code, each its OWN source so run logs /
+  // staleness / quality gates are per-category and independently observable.
+  // Janitorial: naics=561720 + psc=S201. Trucking/courier: the seven 484xxx /
+  // 492110 NAICS codes + psc=V112 + psc=R602. Serial like the other SAM.gov
+  // passes (SAM.gov politeness); the API filters are the ones measured to work
+  // (`naics=` / `psc=`) — see the module header for the corrected PSC mapping.
+  ...SAM_TRADE_FILTERS.map((filter) => ({
+    name: filter.name,
+    fetchFn: createSamTradeSource(filter),
+  })),
 ];
 
 /**
@@ -173,6 +188,14 @@ const BID_COLUMNS = [
   "raw_location",
   "normalized_state",
   "location_conflict",
+  // OWNER PRIORITY 09-21 (R2 — PRESERVE rule): the Product Service Code, the
+  // notice TYPE and SAM's own solicitation number. All three are stored
+  // additively (migration 047); a source that cannot supply one leaves it NULL
+  // (never guessed). APPENDED after the existing columns so every positional
+  // cast/index above stays valid.
+  "psc",
+  "notice_type",
+  "solicitation_number",
 ] as const;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -266,6 +289,11 @@ async function insertBidsBatch(
       // list otherwise yields text and Postgres refuses implicit text→boolean
       // in INSERT…SELECT.
       loc.location_conflict === null ? null : loc.location_conflict ? "true" : "false",
+      // OWNER 09-21 (R2): PSC / notice type / solicitation number, straight from
+      // the source's own data (NULL when the source has none).
+      bid.psc ?? null,
+      bid.notice_type ?? null,
+      bid.solicitation_number ?? null,
     ];
     // Index 6 is due_date (TIMESTAMPTZ) and index 16 is location_conflict
     // (BOOLEAN). The untyped VALUES list otherwise yields a text column, and
@@ -290,7 +318,8 @@ async function insertBidsBatch(
        AS v(title, agency, description, location, category, set_aside,
             due_date, estimated_value, source_url, source, external_id,
             naics_code, naics_code_source, source_jurisdiction, raw_location,
-            normalized_state, location_conflict)
+            normalized_state, location_conflict, psc, notice_type,
+            solicitation_number)
      -- Cross-source dedup guard: skip a row whose natural key (title, agency)
      -- already exists in bids. Multiple sync sources return the SAME national
      -- solicitation (e.g. state-keyword sources va and va_evirginia), so
@@ -323,6 +352,12 @@ async function insertBidsBatch(
        raw_location = EXCLUDED.raw_location,
        normalized_state = EXCLUDED.normalized_state,
        location_conflict = EXCLUDED.location_conflict,
+       -- OWNER 09-21 (R2): COALESCE so a source that cannot supply the PSC /
+       -- notice type / solicitation number never ERASES a value another pass
+       -- already stored for this row.
+       psc = COALESCE(EXCLUDED.psc, bids.psc),
+       notice_type = COALESCE(EXCLUDED.notice_type, bids.notice_type),
+       solicitation_number = COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number),
        -- Source-freshness: advance ONLY when the compute-saver guard below
        -- concludes a real change (the WHERE clause gates the whole UPDATE, so
        -- no-op re-syncs leave updated_at untouched). Feeds the AI Executive
@@ -348,14 +383,22 @@ async function insertBidsBatch(
             -- re-sync of a pre-PR-B.2 row populates its location columns;
             -- once populated (values equal), the no-op skip resumes.
             bids.source_jurisdiction, bids.raw_location, bids.normalized_state,
-            bids.location_conflict)
+            bids.location_conflict,
+            -- R2: plain equality (NOT COALESCE'd) on the three new provenance
+            -- columns, exactly like the PR-B.2 location columns above — the
+            -- first re-sync of a pre-047 row populates them (a real change),
+            -- and once populated the no-op skip resumes.
+            bids.psc, bids.notice_type, bids.solicitation_number)
            IS DISTINCT FROM
            (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date::timestamptz,
             EXCLUDED.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
             CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
                  ELSE bids.naics_code_source END,
             EXCLUDED.source_jurisdiction, EXCLUDED.raw_location,
-            EXCLUDED.normalized_state, EXCLUDED.location_conflict)
+            EXCLUDED.normalized_state, EXCLUDED.location_conflict,
+            COALESCE(EXCLUDED.psc, bids.psc),
+            COALESCE(EXCLUDED.notice_type, bids.notice_type),
+            COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number))
      RETURNING id, external_id, (xmax = 0) AS inserted`,
     params,
   )) as any[];
@@ -401,7 +444,7 @@ async function insertBid(
     sourceName: bid.source_label ?? source.name,
   });
   const result = (await sql`
-    INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code, naics_code_source, source_jurisdiction, raw_location, normalized_state, location_conflict)
+    INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code, naics_code_source, source_jurisdiction, raw_location, normalized_state, location_conflict, psc, notice_type, solicitation_number)
     SELECT
       ${bid.title},
       ${bid.agency},
@@ -419,7 +462,10 @@ async function insertBid(
       ${loc.source_jurisdiction},
       ${loc.raw_location},
       ${loc.normalized_state},
-      ${loc.location_conflict === null ? null : loc.location_conflict ? "true" : "false"}::boolean
+      ${loc.location_conflict === null ? null : loc.location_conflict ? "true" : "false"}::boolean,
+      ${bid.psc ?? null},
+      ${bid.notice_type ?? null},
+      ${bid.solicitation_number ?? null}
     -- Cross-source dedup guard (same natural-key check as the batch path).
     WHERE NOT EXISTS (
       SELECT 1 FROM bids b
@@ -443,6 +489,11 @@ async function insertBid(
       raw_location = EXCLUDED.raw_location,
       normalized_state = EXCLUDED.normalized_state,
       location_conflict = EXCLUDED.location_conflict,
+      -- R2: same COALESCE protection as the batch path (never erase a value
+      -- another pass stored).
+      psc = COALESCE(EXCLUDED.psc, bids.psc),
+      notice_type = COALESCE(EXCLUDED.notice_type, bids.notice_type),
+      solicitation_number = COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number),
       updated_at = NOW()
     -- Same compute saver as the batch path: skip no-op rewrites of unchanged
     -- bids (plain equality on the additive columns — a NULL-stored row whose
@@ -454,14 +505,18 @@ async function insertBid(
            CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
                 ELSE bids.naics_code_source END,
            bids.source_jurisdiction, bids.raw_location, bids.normalized_state,
-           bids.location_conflict)
+           bids.location_conflict, bids.psc, bids.notice_type,
+           bids.solicitation_number)
           IS DISTINCT FROM
           (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date,
            EXCLUDED.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
            CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
                 ELSE bids.naics_code_source END,
            EXCLUDED.source_jurisdiction, EXCLUDED.raw_location,
-           EXCLUDED.normalized_state, EXCLUDED.location_conflict)
+           EXCLUDED.normalized_state, EXCLUDED.location_conflict,
+           COALESCE(EXCLUDED.psc, bids.psc),
+           COALESCE(EXCLUDED.notice_type, bids.notice_type),
+           COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number))
     RETURNING id, (xmax = 0) AS inserted
   `) as any[];
   if (result.length === 0 || !result[0].inserted) return null;

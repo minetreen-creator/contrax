@@ -177,6 +177,18 @@ END $$;
 ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary JSONB;
 ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary_at TIMESTAMPTZ;
 
+-- Migration 047 (owner PRIORITY 09-21, R2 — PRESERVE rule): the Product Service
+-- Code, the notice TYPE and SAM's own solicitation number. Additive / nullable /
+-- no backfill; a source that cannot supply a value leaves it NULL.
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS psc text;
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS notice_type text;
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS solicitation_number text;
+-- Cross-source dedupe support (R5): sparse, non-unique by design — the same
+-- federal notice legitimately appears under more than one source label and this
+-- PR never deletes rows.
+CREATE INDEX IF NOT EXISTS idx_bids_solicitation_number
+  ON bids (solicitation_number) WHERE solicitation_number IS NOT NULL;
+
 -- Migration: bids.source default aligns with the canonical SAM.gov source
 -- (city procurement feeds are stored under their own source values, e.g.
 -- nyc_open_data). The ALTER is a no-op when the default is already set.

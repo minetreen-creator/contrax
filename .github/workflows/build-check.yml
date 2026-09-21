@@ -116,6 +116,13 @@ jobs:
       # nonprofit code would have no test coverage in CI at all.
       - name: Nonprofit Free tests (unit, deterministic, zero network)
         run: bun test src/lib/nonprofit-free.test.ts
+      # Janitorial + trucking ingestion (owner PRIORITY 09-21, R1–R4). DETERMINISTIC
+      # and network-free by construction: every SAM.gov byte these suites read is a
+      # committed fixture captured from the official API
+      # (src/jobs/sources/fixtures/sam-trades/), and the per-opportunity detail
+      # fetcher is INJECTED. No DATABASE_URL is required.
+      - name: Janitorial + trucking ingestion tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/sam-gov-trades.test.ts src/lib/janitorial-trucking.test.ts
       # State grants (owner R3 order, 2026-09-19): the unit half (schema.sql
       # mirror assertions, parsers, search/coverage shaping) always runs; the
       # DB-backed half — including state-grants-bootstrap.test.ts, which builds a

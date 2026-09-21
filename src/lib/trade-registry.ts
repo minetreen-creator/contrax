@@ -44,6 +44,7 @@
 
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { NAICS_INFER_MAP } from "~/lib/naics-infer";
+import { isSpecialtyCleaningOnly } from "~/lib/trade-classification";
 
 /** How long a radar `trade` input may be — ONE definition everywhere (owner
  *  09-07: the 64-vs-120 mismatch is fixed by this single constant; every
@@ -52,8 +53,17 @@ export const MAX_TRADE_LENGTH = 120;
 
 /** Cap on the number of expanded keyword terms applied per trade (defensive —
  *  a registry entry is small, but never let an accidental blow-up widen a
- *  query with dozens of OR branches). */
-export const MAX_EXPANDED_TERMS = 12;
+ *  query with dozens of OR branches).
+ *
+ *  RAISED 12 → 16 (owner PRIORITY 09-21, R3/R4). The janitorial entry's curated
+ *  phrases plus its NAICS code's infer keywords now total 15, and the trucking
+ *  entry's 15 synonyms plus "long haul" total 16. At the old cap of 12 the
+ *  matcher SILENTLY DROPPED trailing terms — measured on the pre-change
+ *  registry: a "trucking" scan lost "dry van", "flatbed" and "long haul", and a
+ *  "janitorial" scan lost "janitor", "floor cleaning" and "office cleaning".
+ *  Raising the cap therefore only ADDS match terms (recall can only grow); it
+ *  never removes one, and 16 still bounds the OR-branch count. */
+export const MAX_EXPANDED_TERMS = 16;
 
 /**
  * OWNER PRECISION CONSTRAINT (09-07) — structurally enforced.
@@ -99,6 +109,11 @@ export const GENERIC_TRADE_TERMS: Set<string> = new Set([
   "trucks",
   "logistics",
   "cleaning",
+  // OWNER 09-21 (R3, audit §2.2): bare "sanitation" stays OUT of every synonym
+  // set — it is generic to restroom/science/water contexts. Listing it here
+  // makes that structural: if a future entry adds it, expansion filters it out.
+  // The SPECIFIC phrase "restroom sanitation" is unaffected (whole-term match).
+  "sanitation",
   "service",
   "services",
   "support",
@@ -178,6 +193,11 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "equipment transport",
       "dry van",
       "flatbed",
+      // OWNER 09-21 (R3, audit §2.2): "drayage" resolved to NOTHING before this
+      // change, although it is literal motor-freight/port-haulage language (and
+      // a real PSC V112 notice we hold: "Justification & Approval for Drayage
+      // Services in Germany").
+      "drayage",
     ],
     // Owner 09-13 breadth expansion: full trucking-adjacent NAICS family. All
     // codes are present in NAICS_NAMES (module-load validation enforces it).
@@ -196,7 +216,7 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     // into the trucking code set) — the freight-trucking codes stay exactly as
     // they were. Key renamed trucking-hauling-logistics → trucking-hauling to
     // match what the entry now covers.
-    naics: ["484110", "484121", "484122", "484220", "484230", "492110"],
+    naics: ["484110", "484121", "484122", "484210", "484220", "484230", "492110"],
   },
   // Owner 09-13 (radar zero-results): janitorial vertical. The term set is the
   // owner's exact curated procurement language — deliberately NO bare
@@ -207,6 +227,13 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     label: "Janitorial/Cleaning",
     synonyms: [
       "janitorial",
+      // OWNER 09-21 (R3, audit §2.2): the three most natural buyer phrasings all
+      // resolved to NOTHING before this change ("cleaning services" was the
+      // worst gap — the phrasing a buyer actually types). They are placed early
+      // so they can never be pushed out of the expansion cap.
+      "janitorial services",
+      "custodial services",
+      "cleaning services",
       "custodial",
       "commercial cleaning",
       "building cleaning",
@@ -667,6 +694,16 @@ export function expandTrade(original: string): TradeExpansion {
     // inherit its "freight forwarding"/"freight broker" synonyms via the stem.
     if (!useStem || entry.exactOnly) continue;
     const firstWord = lower.split(/\s+/)[0] || "";
+    // OWNER 09-21 (R3, audit §2.2): a GENERIC first word must never act as a
+    // stem. Bare "cleaning" used to resolve into the janitorial entry (its
+    // synonym "cleaning services" starts with "cleaning"), which is exactly how
+    // a janitorial scan could imply NAICS 561720 for non-janitorial cleaning
+    // work (munitions rods, sewers, supplies). The owner's standing precision
+    // constraint already declares these words insufficient ALONE as a match
+    // term (GENERIC_TRADE_TERMS); this applies the same rule to the stem. The
+    // verbatim query form is untouched, and every specific first word
+    // ("janitorial", "landscaping", "freight", "security", …) still stems.
+    if (GENERIC_TRADE_TERMS.has(firstWord)) continue;
     const hitStem =
       firstWord.length >= 3 && synonyms.some((s) => s === firstWord || s.startsWith(firstWord));
     if (!hitStem) continue;
@@ -710,6 +747,29 @@ export function expandTrade(original: string): TradeExpansion {
   };
 }
 
+/**
+ * PURCHASED-SERVICE-ONLY VETO (owner PRIORITY 09-21, R4) — applied to the
+ * TEXT-MATCH branch of the two shared matchers only.
+ *
+ * The janitorial trade now carries the natural buyer phrasings
+ * ("cleaning services", "janitorial services", "custodial services"). As plain
+ * substrings, "cleaning services" also appears inside SPECIALTY cleaning work
+ * that must never satisfy a janitorial scan — "Kitchen Hood Cleaning Services"
+ * is 561790 work (a precision pin the registry already asserted before this
+ * change). So a text hit counts only when the text is not specialty-cleaning-ONLY
+ * (a row that says janitorial/custodial/housekeeping keeps its identity, because
+ * a hood-cleaning line item inside a custodial contract does not make the
+ * contract specialty work).
+ *
+ * Scope: ONLY expansions that imply 561720. Every other trade, and the
+ * implied-NAICS branch (a row whose stored naics_code IS in the expansion), is
+ * untouched — the veto can never remove a NAICS-corroborated match.
+ */
+function purchasedServiceVeto(text: string, expansion: TradeExpansion): boolean {
+  if (!expansion.naicsCodes.includes("561720")) return false;
+  return isSpecialtyCleaningOnly(text);
+}
+
 /** Pure text matcher: does the expanded keyword set hit the bid text?
  *  Substring semantics across the RAW expanded terms (mirrors today's 22pt
  *  path — `title.includes(trade)` — and the sender's `text.includes(trade)`).
@@ -717,7 +777,8 @@ export function expandTrade(original: string): TradeExpansion {
 export function tradeTextIncludes(text: string, expansion: TradeExpansion): boolean {
   if (!text || expansion.isNaics || expansion.terms.length === 0) return false;
   const t = text.toLowerCase();
-  return expansion.terms.some((term) => t.includes(term));
+  if (!expansion.terms.some((term) => t.includes(term))) return false;
+  return !purchasedServiceVeto(t, expansion);
 }
 
 /**
@@ -793,7 +854,13 @@ export function tradeProvenanceFor(
   const originalLower = expansion.original.toLowerCase();
 
   const longestFirst = [...expansion.terms].sort((a, b) => b.length - a.length);
-  const hit = longestFirst.find((term) => term.length >= 2 && t.includes(term));
+  // Purchased-service-only veto (owner 09-21, R4 — see purchasedServiceVeto): a
+  // specialty-cleaning-ONLY text must never CLAIM the janitorial trade through a
+  // text hit. A row whose stored naics_code IS 561720 still resolves below via
+  // the implied-NAICS branch, so no corroborated match is ever lost.
+  const hit = purchasedServiceVeto(t, expansion)
+    ? undefined
+    : longestFirst.find((term) => term.length >= 2 && t.includes(term));
 
   if (hit) {
     // Registry-sourced synonym → industry label (owner-exact "Trucking/Hauling").

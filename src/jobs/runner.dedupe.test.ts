@@ -24,7 +24,8 @@
  * is behind `import.meta.main`) and nothing here calls the Neon driver.
  */
 import { describe, expect, test } from "bun:test";
-import { batchInsertNaturalKey, dedupeBatchByNaturalKey } from "./runner";
+import { readFileSync } from "node:fs";
+import { batchInsertNaturalKey, dedupeBatchByNaturalKey, isNaturalKeyViolation } from "./runner";
 import type { RawBid } from "./sources/sam-gov";
 
 /** Minimal valid RawBid; override only the fields a case cares about. */
@@ -292,5 +293,203 @@ describe("dedupeBatchByNaturalKey — per-batch, not global", () => {
     // survivor is simply the LOWEST external_id ("oh-1" < "sam-1"). In the real
     // runner this cannot drop provenance, because a batch is one source's rows.
     expect(out[0].external_id).toBe("oh-1");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Migration 048 — the natural key as a DB-layer UNIQUE index (owner 2026-09-22,
+// run-level dedupe hardening for the concurrent Phase-2 sources).
+//
+// The index itself is rehearsed against a scratch PostgreSQL 18.6
+// (shared/dedupe-run-level-harden-2026-09-22/). These are the DB-free pins:
+// what the key is, why the DB layer is REQUIRED (the in-memory pass cannot see a
+// sibling source), what the SQL file must contain, and how the runner classifies
+// a 23505 that names the index.
+// ---------------------------------------------------------------------------
+describe("isNaturalKeyViolation — a 23505 on the 048 index is a DEDUPE, not a failure", () => {
+  test("recognizes the natural-key index violation", () => {
+    expect(
+      isNaturalKeyViolation(
+        new Error('duplicate key value violates unique constraint "idx_bids_natural_key_unique"'),
+      ),
+    ).toBe(true);
+  });
+  test("recognizes the real driver text (SQLSTATE + constraint name, as the scratch rehearsal produced)", () => {
+    // PostgreSQL 18.6: ERROR 23505 duplicate key value violates unique constraint
+    // "idx_bids_natural_key_unique" — the Neon HTTP driver surfaces it as an
+    // Error whose message carries the constraint name.
+    expect(
+      isNaturalKeyViolation(
+        new Error(
+          'PostgresError: duplicate key value violates unique constraint "idx_bids_natural_key_unique"',
+        ),
+      ),
+    ).toBe(true);
+  });
+  test("every OTHER failure still counts as failed (only the natural-key race is downgraded)", () => {
+    // The (source, external_id) arbiter — handled by ON CONFLICT, must never be
+    // swallowed as a dedupe.
+    expect(
+      isNaturalKeyViolation(
+        new Error('duplicate key value violates unique constraint "bids_source_external_id_key"'),
+      ),
+    ).toBe(false);
+    // Generic failures: a malformed row, a dropped connection, a timeout…
+    expect(isNaturalKeyViolation(new Error("boom"))).toBe(false);
+    expect(isNaturalKeyViolation(new Error("connection terminated"))).toBe(false);
+    expect(isNaturalKeyViolation(new Error('relation "bids" does not exist'))).toBe(false);
+    // A message that mentions the index name but is NOT a unique violation.
+    expect(
+      isNaturalKeyViolation(new Error('relation "idx_bids_natural_key_unique" does not exist')),
+    ).toBe(false);
+    // Non-Error throws and empty values.
+    expect(isNaturalKeyViolation("boom")).toBe(false);
+    expect(isNaturalKeyViolation(null)).toBe(false);
+    expect(isNaturalKeyViolation(undefined)).toBe(false);
+    expect(isNaturalKeyViolation("")).toBe(false);
+  });
+});
+
+describe("the DB layer is required — the same notice from two sources (separate chunks, separate passes, concurrent runs)", () => {
+  /** The shape a state-keyword collector emits: notice_type/psc are never set. */
+  function stateKeywordRow(over: Partial<RawBid>): RawBid {
+    return bid({
+      notice_type: null,
+      psc: null,
+      due_date: null,
+      solicitation_number: null,
+      ...over,
+    });
+  }
+  test("(e) the key has no `source` dimension: nc-abc and nj-abc are ONE key", () => {
+    const nc = stateKeywordRow({ external_id: "nc-abc", source_label: "nc" });
+    const nj = stateKeywordRow({ external_id: "nj-abc", source_label: "nj" });
+    expect(batchInsertNaturalKey(nc)).toBe(batchInsertNaturalKey(nj));
+  });
+  test("(e2) each source's own batch KEEPS its row — the in-memory pass cannot see the sibling source", () => {
+    // This is the executable statement of scope for migration 048: neither the
+    // (source, external_id) arbiter (different prefixes) nor the per-source
+    // in-memory pass can separate these two. ONLY the DB index can, which is why
+    // the index + the 23505 classification ship together.
+    const nc = stateKeywordRow({ external_id: "nc-abc", source_label: "nc" });
+    const nj = stateKeywordRow({ external_id: "nj-abc", source_label: "nj" });
+    expect(dedupeBatchByNaturalKey([nc]).length).toBe(1);
+    expect(dedupeBatchByNaturalKey([nj]).length).toBe(1);
+    // …and a Phase-2 batch of 5 keeps both, because they are in different
+    // sources' batches (or, when one source fetches the same notice twice, in
+    // different chunks of the same source — (e3)).
+    expect(dedupeBatchByNaturalKey([nc, nj])[0].external_id).toBe("nc-abc");
+  });
+  test("(e3) two SEPARATE chunks / passes of the same source are deduped independently", () => {
+    // dedupeBatchByNaturalKey is per-call: chunk 2's copy of a notice chunk 1
+    // stored is NOT collapsed by it. In the serial Phase-1 path the table-level
+    // WHERE NOT EXISTS catches that; between two CONCURRENT sources it cannot
+    // (each statement's snapshot predates the other's commit) — the DB index is
+    // the atomic closer for both.
+    const chunkOne = [stateKeywordRow({ external_id: "oh-1" })];
+    const chunkTwo = [stateKeywordRow({ external_id: "oh-2" })];
+    expect(dedupeBatchByNaturalKey(chunkOne).length).toBe(1);
+    expect(dedupeBatchByNaturalKey(chunkTwo).length).toBe(1);
+    expect(dedupeBatchByNaturalKey([...chunkOne, ...chunkTwo]).length).toBe(1);
+  });
+  test("(e4) a NULL notice_type/psc/due_date is ONE key value, never a wildcard", () => {
+    // The COALESCE(text,'') + NULLS NOT DISTINCT combination in the SQL index
+    // mirrors this: two NULL-psc rows with the same title/agency are the SAME
+    // key in TS and in SQL. Without either half, the two layers would disagree
+    // and a pair could slip both.
+    const a = stateKeywordRow({ external_id: "dc-1" });
+    const b = stateKeywordRow({ external_id: "dc-2" });
+    expect(batchInsertNaturalKey(a)).toBe(batchInsertNaturalKey(b));
+    // An empty-string value and a NULL are the SAME dimension value too (the
+    // in-memory key maps NULL -> "", and the index COALESCEs to '').
+    expect(batchInsertNaturalKey(stateKeywordRow({ external_id: "dc-3", psc: "" }))).toBe(
+      batchInsertNaturalKey(a),
+    );
+  });
+});
+
+describe("anti-collapse — the real near-miss pairs still survive the 5-dim key (5-dim census: neither is a duplicate group)", () => {
+  test("(f) 139010/139012 shape: same title+agency+solicitation, Award Notice vs Justification", () => {
+    const award = bid({
+      external_id: "sam-d809babd6e85466daf5355fe880d3c81",
+      title: "W--WA-LEAVENWORTH NFH-FISH TRANSPORTATION",
+      agency: "FWS, SAT TEAM 1",
+      notice_type: "Award Notice",
+      due_date: null,
+      psc: null,
+      solicitation_number: "140FS126P0240",
+    });
+    const justification = bid({
+      external_id: "sam-c14083bdd319407491d63352df7a8f8a",
+      title: "W--WA-LEAVENWORTH NFH-FISH TRANSPORTATION",
+      agency: "FWS, SAT TEAM 1",
+      notice_type: "Justification",
+      due_date: null,
+      psc: null,
+      solicitation_number: "140FS126P0240",
+    });
+    expect(batchInsertNaturalKey(award)).not.toBe(batchInsertNaturalKey(justification));
+    expect(dedupeBatchByNaturalKey([award, justification]).length).toBe(2);
+  });
+  test("(f2) 138961/138971 shape: same title+agency+solicitation, Combined Synopsis/Solicitation vs Sources Sought, different due_date", () => {
+    const combined = bid({
+      external_id: "sam-ad93118784c44410b6077c6431b0744e",
+      title: "JDMTA Custodial Services",
+      agency: "FA2521 45 CONS LGC",
+      notice_type: "Combined Synopsis/Solicitation",
+      due_date: "2026-09-24T17:00:00.000Z",
+      solicitation_number: "FA252126QB143",
+    });
+    const sourcesSought = bid({
+      external_id: "sam-18232c0be28c45e8904d15f2ffa14773",
+      title: "JDMTA Custodial Services",
+      agency: "FA2521 45 CONS LGC",
+      notice_type: "Sources Sought",
+      due_date: "2026-09-18T20:00:00.000Z",
+      solicitation_number: "FA252126QB143",
+    });
+    expect(batchInsertNaturalKey(combined)).not.toBe(batchInsertNaturalKey(sourcesSought));
+    expect(dedupeBatchByNaturalKey([combined, sourcesSought]).length).toBe(2);
+  });
+});
+
+describe("migration 048 — the SQL file is the contract (SQL and TS cannot drift)", () => {
+  const sqlText = readFileSync(
+    new URL("../../db/migrations/048_bids_natural_key_unique.sql", import.meta.url),
+    "utf8",
+  );
+  const schemaText = readFileSync(new URL("../../src/db/schema.sql", import.meta.url), "utf8");
+  test("index name, all five dimensions, NULLS NOT DISTINCT and the frozen grandfather predicate", () => {
+    expect(sqlText).toContain("CREATE UNIQUE INDEX IF NOT EXISTS idx_bids_natural_key_unique");
+    expect(sqlText).toContain("lower(btrim(title))");
+    expect(sqlText).toContain("lower(btrim(agency))");
+    expect(sqlText).toContain("COALESCE(notice_type, '')");
+    expect(sqlText).toContain("due_date");
+    expect(sqlText).toContain("COALESCE(psc, '')");
+    // Required: due_date is the one dimension that can still be NULL.
+    expect(sqlText).toContain("NULLS NOT DISTINCT");
+    // The grandfather predicate — a FROZEN cutoff (design §7 item 4): never
+    // edited by a later migration, because this statement is IF NOT EXISTS.
+    expect(sqlText).toContain("WHERE created_at >= TIMESTAMPTZ '2026-09-22 00:00:00+00'");
+    // One statement, splittable by the shared migration splitter (no `;` inside).
+    expect(sqlText.split(";").filter((s) => s.trim().replace(/^--.*$/gm, "").trim()).length).toBe(1);
+  });
+  test("the index name in the SQL is exactly the one isNaturalKeyViolation matches on", () => {
+    const match = /CREATE UNIQUE INDEX IF NOT EXISTS (\w+)/.exec(sqlText);
+    expect(match?.[1]).toBe("idx_bids_natural_key_unique");
+    expect(
+      isNaturalKeyViolation(
+        new Error(`duplicate key value violates unique constraint "${match?.[1]}"`),
+      ),
+    ).toBe(true);
+  });
+  test("src/db/schema.sql mirrors the same statement (a bootstrapped CI database carries the enforcement)", () => {
+    const schemaStmt = schemaText
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("--"))
+      .join("\n");
+    expect(schemaStmt).toContain("CREATE UNIQUE INDEX IF NOT EXISTS idx_bids_natural_key_unique");
+    expect(schemaStmt).toContain("NULLS NOT DISTINCT");
+    expect(schemaStmt).toContain("WHERE created_at >= TIMESTAMPTZ '2026-09-22 00:00:00+00'");
   });
 });

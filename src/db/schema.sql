@@ -188,6 +188,27 @@ ALTER TABLE bids ADD COLUMN IF NOT EXISTS solicitation_number text;
 -- PR never deletes rows.
 CREATE INDEX IF NOT EXISTS idx_bids_solicitation_number
   ON bids (solicitation_number) WHERE solicitation_number IS NOT NULL;
+-- Migration 048 (owner 2026-09-22, run-level dedupe hardening): the natural key
+-- (title, agency, notice_type, due_date, psc) became a UNIQUE index, so a race
+-- between two CONCURRENT Phase-2 sources can no longer store the same notice
+-- twice. GRANDFATHERED: the WHERE predicate limits enforcement to rows inserted
+-- from the frozen cutoff forward — the 4,059 pre-existing duplicate groups
+-- (14,690 rows) stay untouched, because deleting them is a separate,
+-- owner-gated reconciliation. NULLS NOT DISTINCT + COALESCE(text,'') keep this
+-- index dimension-for-dimension identical to the in-memory key in
+-- src/jobs/runner.ts (batchInsertNaturalKey). A bootstrap built from this file
+-- therefore carries the same enforcement as production. The runner classifies a
+-- 23505 naming this index as *deduped*, not *failed*.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bids_natural_key_unique
+  ON bids (
+    lower(btrim(title)),
+    lower(btrim(agency)),
+    COALESCE(notice_type, ''),
+    due_date,
+    COALESCE(psc, '')
+  )
+  NULLS NOT DISTINCT
+  WHERE created_at >= TIMESTAMPTZ '2026-09-22 00:00:00+00';
 
 -- Migration: bids.source default aligns with the canonical SAM.gov source
 -- (city procurement feeds are stored under their own source values, e.g.

@@ -280,6 +280,27 @@ export function dedupeBatchByNaturalKey(rows: readonly RawBid[]): RawBid[] {
   return out;
 }
 
+/**
+ * True when a failed statement was rejected by the natural-key UNIQUE INDEX
+ * (migration 048) — i.e. TWO SOURCES (or two chunks) raced to insert the SAME
+ * notice and this one lost. That is a DEDUPE, not an error: the batch's
+ * WHERE NOT EXISTS / the per-row guard cannot see a concurrent sibling's
+ * uncommitted row, so the index is the only atomic closer.
+ *
+ * Matched on the message, not just on code, because the Neon HTTP driver's error
+ * shape is not guaranteed to carry `code`; the index name is what identifies it.
+ * On a database WITHOUT the index (the current production schema until 048 is
+ * applied, and any environment bootstrapped from an older schema) this helper
+ * simply never fires — which is what makes shipping the code safe either way.
+ */
+export function isNaturalKeyViolation(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  return (
+    /duplicate key value violates unique constraint/i.test(message) &&
+    message.includes("idx_bids_natural_key_unique")
+  );
+}
+
 export interface SyncSourceResult {
   fetched: number;
   /** Genuinely NEW rows inserted (subset of accepted). */
@@ -672,6 +693,17 @@ export async function syncSource(
         // inserts so the bad row is isolated and logged without losing the
         // rest of the chunk. Single-statement atomicity means a failed batch
         // inserted nothing, so no rows are double-counted.
+        //
+        // Migration 048: a batch can also be rejected by the natural-key UNIQUE
+        // index when a CONCURRENT source committed the same notice first. That
+        // is a dedupe, not a failure — say so, and let the row-by-row retry
+        // below resolve it (by then the winner is committed, so the guard
+        // returns "existing/dup" for the overlapping rows).
+        if (isNaturalKeyViolation(e)) {
+          console.log(
+            `  ${source.name}: batch rejected by idx_bids_natural_key_unique — resolving row-by-row`,
+          );
+        }
         for (const bid of chunk) {
           try {
             const summary = await insertBid(sql, source, bid);
@@ -680,6 +712,14 @@ export async function syncSource(
               newBids.push(summary);
             }
           } catch (e2) {
+            if (isNaturalKeyViolation(e2)) {
+              // A concurrent source already stored this notice: DEDUPED, not
+              // failed. Accounting is unchanged — the row is neither new nor
+              // failed, so it is reported in "existing/dup" and the invariant
+              // fetched = accepted + skipped + failed still holds.
+              console.log(`  ${source.name}: deduped by natural key (${bid.external_id})`);
+              continue;
+            }
             failedCount++;
             const msg = `Insert error for ${bid.external_id}: ${(e2 as Error).message}`;
             errors.push(msg);

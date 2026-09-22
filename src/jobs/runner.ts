@@ -206,6 +206,80 @@ function toIsoDueDate(value: string | null | undefined): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
+/**
+ * IN-BATCH NATURAL-KEY DEDUPE (owner-authorized 2026-09-21, PR #414 follow-up).
+ *
+ * THE HOLE this closes: the batch INSERT below carries exactly two guards —
+ *   (a) `WHERE NOT EXISTS (… lower(btrim(b.title)) = lower(btrim(v.title)) AND
+ *       lower(btrim(b.agency)) = lower(btrim(v.agency)))`, which reads the table
+ *       as it was BEFORE the statement, so N byte-identical rows inside ONE
+ *       VALUES list all pass it; and
+ *   (b) `ON CONFLICT (source, external_id)`, where external_id is `sam-${_id}`
+ *       and SAM's `_id` VARIES for the same notice across results — so it never
+ *       fires for a same-batch duplicate.
+ * Measured in production on the first post-merge sync (run 35665413705): 76 rows
+ * landed in the 11 new trade passes but only 69 were distinct — 5 duplicate
+ * groups / 7 excess rows. The hole is generic: it affects EVERY source that
+ * batch-inserts, not just the SAM trade passes.
+ *
+ * THE KEY (owner-specified, byte-identical across all 5 measured groups):
+ *   lower(btrim(title)) + "\u0001" + lower(btrim(agency)) + "\u0001" +
+ *   (notice_type ?? "") + "\u0001" + (due_date ? ISO string : "") + "\u0001" +
+ *   (psc ?? "")
+ * notice_type / due_date / psc are REQUIRED dimensions, not decoration: on
+ * (title, agency) alone the key is too coarse — the live case 36C26126Q0795 has
+ * an "Award Notice" AND an "Amendment 0001 …" Combined Synopsis/Solicitation for
+ * the same solicitation/title/agency, and collapsing those would destroy a real,
+ * separately-actionable notice. `source` is deliberately NOT part of the key:
+ * a batch is already single-source, so the key mirrors the cross-source SQL
+ * guard's semantics (see the VALUES-list guard comment below).
+ *
+ * ORDER: the batch is sorted by external_id before deduping, so which row of a
+ * duplicate group is retained is deterministic (the LOWEST external_id — which
+ * for `sam-<_id>` is the lowest SAM id) and independent of fetch order.
+ */
+function btrimLower(value: string | null | undefined): string {
+  // Mirrors Postgres lower(btrim(x)): SAM's payloads pad with spaces, and this
+  // key is compared against what the SQL guard computes on the same fields.
+  return String(value ?? "")
+    .replace(/^\s+|\s+$/g, "")
+    .toLowerCase();
+}
+
+/** The in-batch natural key for one fetched row (see the block comment above). */
+export function batchInsertNaturalKey(bid: RawBid): string {
+  return [
+    btrimLower(bid.title),
+    btrimLower(bid.agency),
+    bid.notice_type ?? "",
+    toIsoDueDate(bid.due_date) ?? "",
+    bid.psc ?? "",
+  ].join("\u0001");
+}
+
+/**
+ * Drop same-batch natural-key duplicates BEFORE they are turned into the INSERT
+ * VALUES list. Pure and DB-free (unit-testable): given a batch of fetched rows
+ * it returns a NEW array holding one canonical row per natural key — the row
+ * with the LOWEST external_id, chosen deterministically by sorting first — and
+ * never mutates the input. Applied per batch (per chunk, inside one source), so
+ * two different sources/batches are deduped independently.
+ */
+export function dedupeBatchByNaturalKey(rows: readonly RawBid[]): RawBid[] {
+  const byExternalId = [...rows].sort((a, b) =>
+    a.external_id < b.external_id ? -1 : a.external_id > b.external_id ? 1 : 0,
+  );
+  const seen = new Set<string>();
+  const out: RawBid[] = [];
+  for (const bid of byExternalId) {
+    const key = batchInsertNaturalKey(bid);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(bid);
+  }
+  return out;
+}
+
 export interface SyncSourceResult {
   fetched: number;
   /** Genuinely NEW rows inserted (subset of accepted). */
@@ -242,15 +316,30 @@ export interface SyncResult {
  *
  * Uses sql.query() (not the tagged template) because the Neon driver rejects
  * array-of-objects fragment calls; placeholders are built manually.
+ *
+ * The chunk is FIRST collapsed by its natural key (dedupeBatchByNaturalKey) —
+ * see that helper's block comment: the SQL guard below cannot see rows of its
+ * own VALUES list, so a same-batch duplicate would otherwise insert every time.
  */
 async function insertBidsBatch(
   sql: Sql,
   source: SyncSource,
   chunk: RawBid[],
 ): Promise<{ newCount: number; newBids: NewBidSummary[] }> {
+  // In-batch natural-key dedupe (additive; the SQL guards below are unchanged).
+  // Cross-BATCH duplicates of one source are already handled by the table-level
+  // WHERE NOT EXISTS (each chunk is its own statement, so chunk N sees chunk
+  // N-1's rows); only same-statement duplicates need this.
+  const batch = dedupeBatchByNaturalKey(chunk);
+  const droppedInBatch = chunk.length - batch.length;
+  if (droppedInBatch > 0) {
+    console.log(
+      `  ${source.name}: in-batch dedupe dropped ${droppedInBatch} natural-key duplicate row(s) (${chunk.length} -> ${batch.length})`,
+    );
+  }
   const params: unknown[] = [];
   const valueRows: string[] = [];
-  for (const bid of chunk) {
+  for (const bid of batch) {
     // NAICS heuristic: fill ONLY when the source provided no authoritative
     // code. Render the provenance label alongside whichever code is stored
     // (authoritative from the source, or inferred from title/description).
@@ -325,6 +414,11 @@ async function insertBidsBatch(
      -- solicitation (e.g. state-keyword sources va and va_evirginia), so
      -- without this the table grows duplicate rows every sync. Existing rows
      -- are untouched (provenance); only NEW duplicates are prevented.
+     -- NOTE (PR #414 follow-up): this guard reads the table as it was BEFORE
+     -- this statement, so it cannot see duplicate rows inside this statement's
+     -- own VALUES list — that same-batch case is now closed IN MEMORY by
+     -- dedupeBatchByNaturalKey, which runs before the VALUES list is built.
+     -- This SQL guard is unchanged and still owns the cross-source case.
      WHERE NOT EXISTS (
        SELECT 1 FROM bids b
        WHERE lower(btrim(b.title)) = lower(btrim(v.title))
@@ -403,7 +497,7 @@ async function insertBidsBatch(
     params,
   )) as any[];
 
-  const bidByExternalId = new Map(chunk.map((bid) => [bid.external_id, bid]));
+  const bidByExternalId = new Map(batch.map((bid) => [bid.external_id, bid]));
   const newBids: NewBidSummary[] = [];
   let newCount = 0;
   for (const row of result) {

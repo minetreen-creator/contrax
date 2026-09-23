@@ -160,6 +160,28 @@ jobs:
       # the non-federal "City" badge) that nothing else in CI covers.
       - name: City of Dayton connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/oh-dayton.test.ts
+      # Nationwide correctness PR A — FIX ① (notice_type in Radar's solicitation
+      # dedupe key) + FIX ② (a dead collector is never FRESH) (owner-locked scope
+      # 2026-09-23). THREE new DETERMINISTIC, network-free suites, no DATABASE_URL —
+      # every byte they read is a literal in the file or a committed fixture, and
+      # `fetch` is stubbed where a source would otherwise call out:
+      #   * collector-freshness.test.ts — the FIX ② tier classifier (pure function,
+      #     injected `now`; the 48h/7d boundaries, never-run, unparsable, DEAD vs
+      #     EMPTY) PLUS the migration-049 view's branch/precedence/boundary pins, so
+      #     the SQL twin cannot drift from the TS rule;
+      #   * socrata.test.ts — FIX ②'s failure semantics: both `nys_socrata` datasets
+      #     unreadable ⇒ the run FAILS (DEAD) instead of reporting an honest-looking
+      #     zero (the live 43-runs-FRESH-while-404 case), while a dataset that
+      #     ANSWERS with zero rows stays an honest empty;
+      #   * notice-dedupe.test.ts — FIX ①'s key over the verbatim production
+      #     amendment pairs: the 139010 Award Notice and the 139012 Justification
+      #     share solicitation 140FS126P0240 and must stay TWO matches, not collapse
+      #     to one.
+      # Listed EXPLICITLY for the same reason as the oh-dayton step above: a new
+      # deterministic suite that no workflow names runs nowhere (runner.dedupe.test.ts
+      # is still in that state).
+      - name: Nationwide correctness A tests (unit, deterministic, zero network)
+        run: bun test src/lib/collector-freshness.test.ts src/jobs/sources/socrata.test.ts src/lib/notice-dedupe.test.ts
       # Radar search regression pins (owner 09-13/09-14 FIX 1 + FIX 2 match quality).
       # THIS FILE WAS REFERENCED BY NO WORKFLOW, which is how the R3 "cleaning
       # services" regression slipped past green CI: it turned the owner's FIX-1 pin

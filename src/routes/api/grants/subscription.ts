@@ -1,9 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
-import {
-  getGrantsPriceId,
-  getGrantsSubscription,
-} from "~/lib/grants-subscription.server";
+import { getGrantsSubscription } from "~/lib/grants-subscription.server";
 
 /**
  * GET /api/grants/subscription — the CURRENT visitor's Grants entitlement.
@@ -16,7 +13,6 @@ import {
  */
 async function handler({ request }: { request: Request }): Promise<Response> {
   try {
-    const upgradeEnabled = getGrantsPriceId() !== null;
     const user = await getUserFromRequest(request);
     if (!user) {
       return Response.json({
@@ -24,7 +20,6 @@ async function handler({ request }: { request: Request }): Promise<Response> {
         subscribed: false,
         status: null,
         currentPeriodEnd: null,
-        upgradeEnabled,
       });
     }
     const sub = await getGrantsSubscription(user.id);
@@ -33,7 +28,6 @@ async function handler({ request }: { request: Request }): Promise<Response> {
       subscribed: sub.subscribed,
       status: sub.status,
       currentPeriodEnd: sub.currentPeriodEnd,
-      upgradeEnabled,
     });
   } catch (err) {
     console.error("[grants-subscription] failed:", err);
@@ -43,7 +37,6 @@ async function handler({ request }: { request: Request }): Promise<Response> {
       subscribed: false,
       status: null,
       currentPeriodEnd: null,
-      upgradeEnabled: false,
     });
   }
 }

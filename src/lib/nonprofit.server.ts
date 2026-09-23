@@ -31,9 +31,9 @@ export const NONPROFIT_FREE_TIER_NAME = "Nonprofit Free";
  * both of the two former "open decisions" are CLOSED and this comment is not a proposal
  * any more. The owner's exact phrase is
  * `"Verified against IRS tax-exempt records updated [Month Year]"`, built by
- * `verificationWording()` below from the mirror's OWN posting date (never hand-typed),
- * which is why every verify path carries `irsRecordsAsOf` through to the UI instead of a
- * bare "verified" badge.
+ * `verificationWordingForIrsRecordsAsOf()` below from the mirror's OWN posting date (never
+ * hand-typed), which is why every verify path carries `irsRecordsAsOf` through to the UI
+ * instead of a bare "verified" badge.
  */
 export const NONPROFIT_FREE_PROMISE =
   "Government grant search—free for verified nonprofit organizations. No credit card required.";
@@ -77,10 +77,17 @@ export function monthNameOf(month: number): string | null {
 }
 /**
  * The owner's sentence for one month and year:
- * `verificationWording("September", 2026)` →
+ * `verificationWordingForMonth("September", 2026)` →
  * `"Verified against IRS tax-exempt records updated September 2026"`.
+ *
+ * NAMED FOR ITS INPUTS ON PURPOSE (QA finding §1.40). This module and
+ * `src/lib/nonprofit-copy.ts` both build the owner's sentence; the copy module's
+ * `verificationWording(isoDate)` takes an IRS posting DATE, this one a month NAME + year.
+ * Two exported functions with the same name and different signatures invited a
+ * mis-import that silently renders "…updated 2026-09-08 undefined", so the month/year
+ * form carries a name only it can mean.
  */
-export function verificationWording(monthName: string, year: number | string): string {
+export function verificationWordingForMonth(monthName: string, year: number | string): string {
   return `Verified against IRS tax-exempt records updated ${monthName} ${year}`;
 }
 /**
@@ -98,7 +105,7 @@ export function verificationWordingForIrsRecordsAsOf(
   if (!match) return null;
   const month = monthNameOf(Number(match[2]));
   if (!month) return null;
-  return verificationWording(month, match[1]);
+  return verificationWordingForMonth(month, match[1]);
 }
 /** The paid upgrades are roadmap, NOT this build (owner spec item 4). */
 export const NONPROFIT_PAID_UPGRADES: readonly string[] = [
@@ -257,6 +264,14 @@ export interface NonprofitApplicationRow {
   granted_at?: string | Date | null;
   reverify_due_at?: string | Date | null;
   reviewed_at?: string | Date | null;
+  /**
+   * Migration 046 (owner decision, 2026-09-21): set by an ADMIN release only — never
+   * automatically, and there is no cooldown. A released row is never deleted: it simply
+   * stops holding the EIN ("one free org account per EIN" applies to attached rows).
+   * The entitlement does NOT read this column — a release is a claim change, not a
+   * status change.
+   */
+  released_at?: string | Date | null;
   created_at?: string | Date | null;
   updated_at?: string | Date | null;
 }
@@ -564,13 +579,22 @@ export function nonprofitFullDetailAllowance(
 export type NonprofitEinClaimOutcome =
   | "available"
   | "reapply_same_user"
+  /**
+   * The EIN's previous holder was released by an administrator (migration 046,
+   * `released_at`), so the EIN counts as UNCLAIMED and this applicant may claim it.
+   * Distinct from `available` only so the audit trail can say why the claim succeeded.
+   */
+  | "released_claimable"
   | "ein_already_claimed";
 export interface NonprofitEinClaimDecision {
   allowed: boolean;
   outcome: NonprofitEinClaimOutcome;
   /** Applicant-facing explanation, or null when the claim is available. */
   message: string | null;
-  /** The account that already holds the EIN (audit/reviewer record only — never shown to the applicant). */
+  /**
+   * The account that already holds the EIN (audit/reviewer record only — NEVER shown to
+   * the applicant and NEVER serialized into a response body; see the apply route).
+   */
   heldByUserId: number | null;
 }
 export const NONPROFIT_EIN_CLAIMED_MESSAGE =
@@ -578,11 +602,22 @@ export const NONPROFIT_EIN_CLAIMED_MESSAGE =
   "sign in to that account, or contact us if the EIN was entered by mistake.";
 export function evaluateNonprofitEinClaim(input: {
   userId: number | null | undefined;
-  existing: { user_id: number | null; status: string | null } | null | undefined;
+  existing:
+    | { user_id: number | null; status: string | null; org_name?: string | null; released_at?: string | Date | null }
+    | null
+    | undefined;
 }): NonprofitEinClaimDecision {
   const existing = input.existing ?? null;
   if (!existing) {
     return { allowed: true, outcome: "available", message: null, heldByUserId: null };
+  }
+  // OWNER DECISION (2026-09-21, migration 046): a released EIN is UNCLAIMED. An
+  // administrator's release is the only way a denied/revoked EIN becomes claimable
+  // again — there is no cooldown and no automatic path — and the released row is never
+  // deleted, so its account and saved data are untouched. `heldByUserId` is null here:
+  // nobody holds it any more.
+  if (existing.released_at != null) {
+    return { allowed: true, outcome: "released_claimable", message: null, heldByUserId: null };
   }
   if (existing.user_id != null && input.userId != null && existing.user_id === input.userId) {
     return { allowed: true, outcome: "reapply_same_user", message: null, heldByUserId: existing.user_id };
@@ -615,19 +650,36 @@ export async function getNonprofitApplication(
 /**
  * The application that already holds an EIN, or null. This is the read behind the
  * one-free-org-account-per-EIN rule (owner spec item 6) — the apply route calls
- * `evaluateNonprofitEinClaim` with its result BEFORE writing a new row, and the UNIQUE
- * index on `ein` is the backstop if a future code path forgets to.
+ * `evaluateNonprofitEinClaim` with its result BEFORE writing a new row, and the partial
+ * UNIQUE index on `ein` (migration 046: `WHERE released_at IS NULL`) is the backstop if
+ * a future code path forgets to.
+ *
+ * THE ACTIVE CLAIM WINS. A released row keeps existing (nothing is ever deleted) but no
+ * longer holds the EIN, so it must never shadow a live claim: the ordering puts
+ * `released_at IS NULL` rows first. A released row is only returned when it is the only
+ * one for that EIN — and then `evaluateNonprofitEinClaim` reads it as unclaimed.
  */
 export async function getNonprofitApplicationByEin(
   ein: string | null | undefined,
-): Promise<{ user_id: number | null; status: string | null; org_name?: string | null } | null> {
+): Promise<{
+  user_id: number | null;
+  status: string | null;
+  org_name?: string | null;
+  released_at?: string | Date | null;
+} | null> {
   if (!ein) return null;
   const rows = (await sql()`
-    SELECT user_id, status, org_name
+    SELECT user_id, status, org_name, released_at
     FROM nonprofit_applications
     WHERE ein = ${ein}
+    ORDER BY (released_at IS NULL) DESC, created_at DESC
     LIMIT 1
-  `) as { user_id: number | null; status: string | null; org_name: string | null }[];
+  `) as {
+    user_id: number | null;
+    status: string | null;
+    org_name: string | null;
+    released_at: string | Date | null;
+  }[];
   return rows[0] ?? null;
 }
 

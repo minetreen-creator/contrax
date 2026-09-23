@@ -3,6 +3,10 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import { openGrantsPortal, redirectToGrantsCheckout } from "~/lib/checkout";
 import { GRANTS_EVENTS, trackGrantsEvent } from "~/lib/grants-analytics";
 import {
+  NONPROFIT_GRANTS_CTA_COPY,
+  NONPROFIT_GRANTS_CTA_LABEL,
+} from "~/lib/nonprofit-copy";
+import {
   APPLICANT_TYPES,
   AGENCIES,
   FUNDING_CATEGORIES,
@@ -427,6 +431,19 @@ function GrantsPage() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8">
+        {/* Nonprofit Free door (owner green-lit 2026-09-21). The CTA carries a return
+            path: a signed-in applicant goes straight to the application, and an anonymous
+            visitor is asked to sign in or create a free account first — the application is
+            always attached to an account. Copy comes from src/lib/nonprofit-copy.ts. */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4">
+          <p className="text-sm text-slate-700">{NONPROFIT_GRANTS_CTA_COPY}</p>
+          <a
+            href="/nonprofit/apply?next=%2Fgrants"
+            className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          >
+            {NONPROFIT_GRANTS_CTA_LABEL}
+          </a>
+        </div>
         {/* checkoutDone is only ever set when the server-written subscription
             status is granted (grantsCheckoutToastVisible) — a URL fiddler who
             never paid is never told a subscription is set up. */}

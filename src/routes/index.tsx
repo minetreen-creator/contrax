@@ -16,6 +16,17 @@ import {
   AUTOPSY_DRAFT_STORAGE_KEY,
   type AutopsyDraft,
 } from "~/lib/autopsy-funnel";
+// HOMEPAGE GRANTS PLUS FAIL-SAFE (owner directive rev 327, 2026-09-23).
+// The /grants page and this homepage tier row must ALWAYS agree about whether
+// Grants Plus is purchasable; a differing rule would advertise "Get Grants Plus"
+// directly above a "Coming soon" /grants page — the exact inconsistency the
+// directive forbids. So the homepage uses the SAME pure decision helper /grants'
+// own server surfaces use (isUpgradePromptEnabled reads GRANTS_UPGRADE_PROMPT_ENABLED;
+// absent / non-"true" / non-"1" ⇒ false), resolved ONCE per request in the loader.
+// `~/lib/grants` is a PURE module (no DB, no network, no builtins, and no env
+// read at import time), so importing it here is safe on both sides of the
+// render, and the value itself is only ever read server-side (see the loader).
+import { isUpgradePromptEnabled } from "~/lib/grants";
 // Real cached example AI Executive Brief — code-split so it never bloats
 // the homepage main bundle or blocks hero render. Same component + same
 // server fn as the standalone /example-brief page (single source of truth).
@@ -74,6 +85,36 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
   }
 };
 
+/**
+ * FAIL-SAFE decision for the homepage Grants Plus tier row (owner directive
+ * rev 327, 2026-09-23): "if the Stripe price configuration or the subscription
+ * availability signal becomes unavailable, surfaces must display 'Coming soon'
+ * — NEVER a broken payment button."
+ *
+ * The homepage's ONLY signal is the SAME flag /grants already gates on
+ * (`isUpgradePromptEnabled`), so the two pages can never disagree. This wrapper
+ * adds the one thing a public page needs: it can NEVER throw. A missing
+ * `process` object, an env absent from the runtime, or a hostile getter on the
+ * process environment all resolve to `false` ⇒ the row falls back to "Coming
+ * soon" instead of 500-ing the public homepage.
+ *
+ * PURE and exported so the fail-closed contract is unit-tested rather than
+ * asserted by reading the source (tests/homepage-grants-failsafe.test.tsx).
+ * Takes the env record as an ARGUMENT — it reads no global — so it stays
+ * trivially testable and can never become a build-time/inlined read.
+ */
+export function resolveGrantsUpgradeEnabled(
+  env: Record<string, string | undefined> | undefined | null,
+): boolean {
+  try {
+    if (!env) return false;
+    return isUpgradePromptEnabled(env);
+  } catch {
+    // Fail CLOSED: an unreadable signal is treated as "not available".
+    return false;
+  }
+}
+
 // Homepage loader (owner spec 2026-09-04 v2): the radar hero + the honest live
 // counts are all the data the page needs. The former recent-bids / today-bids /
 // live-opportunities / alert-count fetches backed sections REMOVED from the page
@@ -81,8 +122,12 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // render, no dead fields. contractMap is still fetched: the hero's live
 // "N open opportunities" counter renders from it (the compact homepage map that
 // also used it was removed by owner order 2026-09-23).
+// grantsUpgradeEnabled (owner directive rev 327) is an ENV READ ONLY — it adds
+// no DB query and no network call, and it is computed per request (the homepage
+// is not in the public SSR cache allowlist: ssr-cache-policy isPublicSsrCacheable("/")
+// === false), so a flag flip is reflected on the next render.
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, user, bidStats, contractMap] = await Promise.all([
+  const [businessName, user, bidStats, contractMap, grantsUpgradeEnabled] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -96,8 +141,14 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     getCurrentUser(),
     getBidStats(),
     getContractMapAggregate(),
+    // Server-only, per-request env read (the `typeof process` guard mirrors the
+    // /api/grants/search one). Never throws — see resolveGrantsUpgradeEnabled.
+    (async () =>
+      resolveGrantsUpgradeEnabled(
+        typeof process !== "undefined" ? process.env : undefined,
+      ))(),
   ]);
-  return { businessName, user, bidStats, contractMap };
+  return { businessName, user, bidStats, contractMap, grantsUpgradeEnabled };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -173,7 +224,7 @@ function PartnershipBanner() {
 
 function Home() {
 
-  const { user, bidStats, contractMap } = Route.useLoaderData();
+  const { user, bidStats, contractMap, grantsUpgradeEnabled } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -272,7 +323,7 @@ function Home() {
           Pure ADDITIVE callout: no state, no fetch, no analytics event, no new
           server fn — it links to the existing /grants page. Nothing above it
           changes, so the hero CTA stays above the fold at 1440×900. ── */}
-      <ContraxGrantsPromo />
+      <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />
       {/* ── AWARD AUTOPSY — homepage section #2, immediately below the Radar
           hero (owner spec 2026-09-05). The second front door: for visitors who
           already bid-and-lost. ── */}
@@ -510,6 +561,10 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
 // only, and it is gone from this file's import list entirely.
 const GRANTS_REPORT_PAYMENT_LINK = "https://buy.stripe.com/8x26oJcpV9fCcos7eEf7i0b";
 
+// FAIL-SAFE label (owner directive rev 327, 2026-09-23) — the exact words /grants
+// already shows when the upgrade signal is unavailable. Owner copy: do not alter.
+const GRANTS_COMING_SOON_LABEL = "Coming soon";
+
 type GrantsTier = {
   name: string;
   price: string;
@@ -519,6 +574,13 @@ type GrantsTier = {
   ctaLabel: string;
   ctaHref: string;
   external?: boolean;
+  /**
+   * FAIL-SAFE (owner directive rev 327): this tier's CTA is only live while the
+   * subscription-upgrade signal is available. When it is not, the CTA renders as
+   * plain non-interactive text — never a payment link and never a button that
+   * could break. Everything else about the row (name, price, copy) is unchanged.
+   */
+  gatedByUpgradeSignal?: boolean;
   /** Only the $49 report carries the required not-guaranteed / no-submission line. */
   disclaimer?: string;
 };
@@ -543,6 +605,7 @@ const GRANTS_TIERS: GrantsTier[] = [
       "Unlimited searches and full grant details, advanced filters, saved opportunities, deadline tracking, weekly matching alerts, and enhanced summaries.",
     ctaLabel: "Get Grants Plus →",
     ctaHref: "/grants",
+    gatedByUpgradeSignal: true,
   },
   {
     name: "Personalized Grant Opportunity Report",
@@ -559,7 +622,26 @@ const GRANTS_TIERS: GrantsTier[] = [
   },
 ];
 
-function ContraxGrantsPromo() {
+/**
+ * The homepage Contrax Grants tier table (owner order 2026-09-16; three-tier
+ * table + copy owner-locked 2026-09-23).
+ *
+ * FAIL-SAFE (owner directive rev 327, 2026-09-23): `grantsUpgradeEnabled` is the
+ * loader's server-side read of the SAME upgrade signal /grants gates on. When it
+ * is false/absent the gated tier ("Grants Plus") renders its CTA as plain,
+ * non-interactive text — never a payment link, never a button — so an
+ * unavailable Stripe configuration or subscription signal can never surface a
+ * broken payment affordance. When it is true the row renders exactly as it did
+ * before this directive (byte-identical markup; the <a> below keeps its original
+ * indentation so a diff shows it as untouched context). The other two rows are
+ * never gated. Optional with a FAIL-CLOSED default: a caller that forgets the
+ * prop gets the "Coming soon" fallback, never a live payment CTA.
+ */
+export function ContraxGrantsPromo({
+  grantsUpgradeEnabled = false,
+}: {
+  grantsUpgradeEnabled?: boolean;
+}) {
   return (
     <section
       aria-label="Contrax Grants"
@@ -581,7 +663,13 @@ function ContraxGrantsPromo() {
       </div>
 
       <div className="mt-12 grid gap-6 lg:grid-cols-3 lg:gap-8">
-        {GRANTS_TIERS.map((tier) => (
+        {GRANTS_TIERS.map((tier) => {
+          // FAIL-SAFE (owner directive rev 327): an unavailable upgrade signal
+          // turns the gated tier's CTA into plain non-interactive text. No href,
+          // no button, no payment link — nothing that can break.
+          const ctaGated =
+            tier.gatedByUpgradeSignal === true && !grantsUpgradeEnabled;
+          return (
           <div
             key={tier.name}
             className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg"
@@ -601,6 +689,20 @@ function ContraxGrantsPromo() {
                 {tier.disclaimer}
               </p>
             ) : null}
+            {/* FAIL-SAFE (owner directive rev 327, 2026-09-23): with the upgrade
+                signal unavailable the gated CTA becomes plain, non-interactive
+                text — text-only, so there is no href, no button and no payment
+                link to break. The <a> below is the pre-directive markup verbatim
+                at its original indentation, so when the signal IS available the
+                row renders byte-identically to the launched page. */}
+            {ctaGated ? (
+              <p
+                data-grants-cta="coming-soon"
+                className="mt-6 block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold text-gray-500"
+              >
+                {GRANTS_COMING_SOON_LABEL}
+              </p>
+            ) : (
             <a
               href={tier.ctaHref}
               target={tier.external ? "_blank" : undefined}
@@ -613,8 +715,10 @@ function ContraxGrantsPromo() {
             >
               {tier.ctaLabel}
             </a>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <p className="mt-6 text-center text-xs text-gray-500">

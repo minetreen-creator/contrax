@@ -59,6 +59,13 @@ import {
   DUPLICATE_NOTICE_REASON,
   type NoticeIdentityGuard,
 } from "./notice-identity";
+import {
+  classifyPassOutcome,
+  formatPassOutcomeLine,
+  PASS_OUTCOMES,
+  tallyOutcomes,
+  type PassOutcome,
+} from "./pass-outcome";
 
 /**
  * Run-record contract (owner 09-13): a source MAY return a FetchResult instead
@@ -327,6 +334,13 @@ export interface SyncSourceResult {
   skipped: Record<string, number>;
   /** 'fail' when missing-agency skips exceed MISSING_AGENCY_MAX_PCT of fetched. */
   qualityGate: "pass" | "fail";
+  /**
+   * The pass's OUTCOME for this run — the same value `classifyPassOutcome`
+   * derives from the persisted `collector_run_log` row (fix ④, PR B2). It is
+   * carried in-memory so the run summary can tally outcomes without re-reading
+   * the database; the record itself is what the after-run readout classifies.
+   */
+  outcome: PassOutcome;
 }
 
 export interface SyncResult {
@@ -832,6 +846,29 @@ export async function syncSource(
     console.error(`  Failed to log sync for ${source.name}:`, (e as Error).message);
   }
 
+  // PER-PASS OUTCOME ACCOUNTING (nationwide correctness FIX ④, PR B2): name what
+  // the numbers above MEAN, from exactly the fields just written to
+  // `collector_run_log` (no new column, no migration). This is the readout that
+  // stops the three zero-yield trucking passes from all looking like "ran fine,
+  // found nothing": 484110 is `all_skipped` (the purchased-service gate refused
+  // real notices), 484121 is `zero_empty` (SAM reports zero matches — honest),
+  // 484122 is `suppressed_duplicate` (the notice is stored under `sam_gov`), and
+  // an unreadable payload is `data_error` (never an honest zero). The
+  // `duplicate_notice` count is reported for EVERY pass, so a trade pass that
+  // lost its notices to the run-level guard is visible rather than misread.
+  const outcomeReading = classifyPassOutcome({
+    source: source.name,
+    rows_fetched: fetchedCount,
+    accepted_count: acceptedCount,
+    skipped_count: skippedCount,
+    failed_count: failedCount,
+    rows_new: newCount,
+    errors: errors.length,
+    ran_zero: fetchedCount === 0,
+    skip_reasons: skipReasons,
+  });
+  console.log(`  ${formatPassOutcomeLine(outcomeReading)}`);
+
   return {
     fetched: fetchedCount,
     new: newCount,
@@ -841,6 +878,7 @@ export async function syncSource(
     newBids,
     skipped: skipReasons,
     qualityGate,
+    outcome: outcomeReading.outcome,
   };
 }
 
@@ -982,6 +1020,37 @@ export async function runSync(): Promise<SyncResult> {
     console.error(
       `   ⛔ run-record invariant broken (fetched ${totalFetched} != accepted ${totalAccepted} + skipped ${totalSkipped} + failed ${totalFailed})`,
     );
+  }
+
+  // PER-PASS OUTCOME TALLY (nationwide correctness FIX ④, PR B2) — the run-level
+  // readout of what every pass actually did, derived from the SAME records that
+  // were just written to `collector_run_log` (classifyPassOutcome; no extra
+  // persistence, no migration). Two things are deliberately always spelled out:
+  // the 11 trade passes (the owner-priority janitorial/trucking lane, whose three
+  // zero-yield codes are the reason this exists) and every `data_error` pass
+  // (an unreadable source must never scroll past as a clean zero).
+  const outcomeReadings = Object.entries(results).map(([name, r]) =>
+    classifyPassOutcome({
+      source: name,
+      rows_fetched: r.fetched,
+      accepted_count: r.accepted,
+      skipped_count: Object.values(r.skipped).reduce((a, n) => a + n, 0),
+      failed_count: r.failed,
+      rows_new: r.new,
+      errors: r.errors.length,
+      ran_zero: r.fetched === 0,
+      skip_reasons: r.skipped,
+    }),
+  );
+  const outcomeTally = tallyOutcomes(outcomeReadings);
+  console.log(
+    `\n📊 Pass outcomes: ${PASS_OUTCOMES.map((o) => `${o} ${outcomeTally[o]}`).join(", ")}`,
+  );
+  const tradePassNames = new Set(SAM_TRADE_FILTERS.map((f) => f.name));
+  for (const reading of outcomeReadings) {
+    if (tradePassNames.has(reading.source) || reading.outcome === "data_error") {
+      console.log(`   ${formatPassOutcomeLine(reading)}`);
+    }
   }
 
   // COLLECTOR HEALTH (FIX ②, owner-locked nationwide correctness fix 2026-09-23):

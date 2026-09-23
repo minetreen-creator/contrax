@@ -759,11 +759,15 @@ describe("migration 046 and the src/db/schema.sql mirror", () => {
     }
   });
 
-  test("the review table is append-only, with the owner's five actions and both statuses", () => {
+  test("the review table is append-only, with the owner's actions and both statuses", () => {
     for (const [name, sql] of FILES) {
       expect(`${name}:${sql.includes("nonprofit_application_reviews")}`).toBe(`${name}:true`);
+      // Unit B amended this CHECK in place (migration 046 is unapplied, the table does not
+      // exist in production): `request_info` is the owner's sixth-point "no match → request
+      // documents" lane and must be a representable audit action. `transfer` stays in the
+      // CHECK (schema-ready) with no UI — lead rulings (i) and (ii).
       expect(sql).toContain(
-        "action TEXT NOT NULL CHECK (action IN ('approve', 'deny', 'suspend', 'release', 'transfer'))",
+        "action TEXT NOT NULL CHECK (action IN ('approve', 'deny', 'request_info', 'suspend', 'release', 'transfer'))",
       );
       expect(sql).toContain("actor_user_id INTEGER NOT NULL REFERENCES users (id)");
       expect(sql).toContain("actor_email TEXT NOT NULL");

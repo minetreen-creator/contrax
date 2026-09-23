@@ -16,8 +16,16 @@
 --    OVERWRITE the first. This table is APPEND-ONLY: one row per admin action, with the
 --    action, the acting administrator's immutable user id + email, an optional reason
 --    code and internal note, and the status BEFORE and AFTER. It is also the queue's
---    SLA trail. Because it is shaped for (approve|deny|suspend|release|transfer) from
---    the start, the phase-2 unit B admin API adds no DDL.
+--    SLA trail. Because it is shaped for (approve|deny|request_info|suspend|release|
+--    transfer) from the start, the phase-2 unit B admin API adds no DDL.
+--
+--    AMENDED IN PLACE BY UNIT B (2026-09-23, lead ruling (i)): the `action` CHECK gained
+--    `request_info` so a document request — the owner's sixth-point "no match → request
+--    documents" lane, which unit B dispatches — is an append-only action like the others.
+--    This is safe as an in-place edit of an UNAPPLIED migration: the table does not exist
+--    in any database (045 stopped at nonprofit_applications), so the blast radius is zero
+--    and no second migration is created. `transfer` remains in the CHECK, schema-ready,
+--    with no UI or route (lead ruling (ii)).
 --
 -- 2. nonprofit_applications.released_at — the owner's locked decision (2026-09-21):
 --    "Denied/revoked EIN — release/transfer ONLY via explicit admin action. No
@@ -49,8 +57,11 @@ CREATE TABLE IF NOT EXISTS nonprofit_application_reviews (
     -- owner's rule: a status change never destroys the account or its data), so the
     -- audit trail can never be orphaned by a cascade.
     application_id INTEGER NOT NULL REFERENCES nonprofit_applications (id),
-    -- The owner's action list (appendix decision 3).
-    action TEXT NOT NULL CHECK (action IN ('approve', 'deny', 'suspend', 'release', 'transfer')),
+    -- The owner's action list (appendix decision 3) plus `request_info`, the sixth-point
+    -- spec's "no match → request documents" lane: the audit row for a document request has
+    -- to be representable, or the queue's audit history would silently drop an action.
+    -- `transfer` stays here (schema-ready) with no UI/route — lead ruling (ii).
+    action TEXT NOT NULL CHECK (action IN ('approve', 'deny', 'request_info', 'suspend', 'release', 'transfer')),
     -- The acting administrator's IMMUTABLE user id (and email as displayed at the
     -- time), e.g. `user:18 <minetreen@gmail.com>` split across the two columns. Never a
     -- generic label like "agent-lead".

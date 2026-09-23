@@ -1017,7 +1017,7 @@ CREATE INDEX IF NOT EXISTS idx_nonprofit_applications_status_created ON nonprofi
 CREATE TABLE IF NOT EXISTS nonprofit_application_reviews (
     id SERIAL PRIMARY KEY,
     application_id INTEGER NOT NULL REFERENCES nonprofit_applications (id),
-    action TEXT NOT NULL CHECK (action IN ('approve', 'deny', 'suspend', 'release', 'transfer')),
+    action TEXT NOT NULL CHECK (action IN ('approve', 'deny', 'request_info', 'suspend', 'release', 'transfer')),
     actor_user_id INTEGER NOT NULL REFERENCES users (id),
     actor_email TEXT NOT NULL,
     reason_code TEXT,

@@ -14,7 +14,9 @@
  *
  * WHAT IT CREATES:
  *   1. nonprofit_application_reviews — the append-only admin audit trail (owner
- *      appendix decision 3), shaped for approve|deny|suspend|release|transfer.
+ *      appendix decision 3), shaped for
+ *      approve|deny|request_info|suspend|release|transfer (`request_info` was added in
+ *      place by unit B — lead ruling (i); `transfer` stays schema-ready, lead ruling (ii)).
  *   2. nonprofit_applications.released_at — the owner's EIN-release column; the EIN
  *      unique index becomes PARTIAL (WHERE released_at IS NULL) so a released EIN is
  *      claimable by a different applicant while an attached EIN still allows exactly

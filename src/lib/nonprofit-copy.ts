@@ -294,6 +294,66 @@ export const NONPROFIT_GRANTS_CTA_COPY =
   "Nonprofit organization? Government grant search is free for verified 501(c)(3) " +
   "organizations. No credit card required.";
 
+// ── Reviewer-surface copy (the admin review queue, unit B) ────────────────────
+/**
+ * The queue is an INTERNAL surface, but it lives in this module like every other
+ * nonprofit string for two reasons: (1) a reviewer string that named an applicant's
+ * verdict ("did not match IRS records") would be a second, unchallenged place to state
+ * the decision, and (2) `nonprofitCopyStrings()` feeds the forbidden-phrase wall, so
+ * reviewer copy is scanned by the same wall as applicant copy.
+ *
+ * The SLA is a WORDING, never a date: public holidays are not modelled, so the surface
+ * shows the elapsed count and the owner's commitment — never a computed due-by date
+ * (build plan §2 / owner confirmable #6, unit B brief §B9).
+ */
+export const NONPROFIT_REVIEW_QUEUE_HEADLINE = "Nonprofit Free — review queue";
+/** The owner's commitment, in the reviewer's own words. */
+export const NONPROFIT_REVIEW_SLA_WORDING = "within 3 business days";
+export const NONPROFIT_REVIEW_SLA_DETAIL =
+  "Every application gets a decision within 3 business days. The elapsed count below excludes " +
+  "weekends; public holidays are not modelled, so this is shown as elapsed time and never as a " +
+  "due-by date.";
+/** "2 business days elapsed" — an honest count of weekdays, never a countdown. */
+export function nonprofitReviewElapsedCopy(businessDays: number): string {
+  const safe = Number.isFinite(businessDays) && businessDays > 0 ? Math.floor(businessDays) : 0;
+  if (safe === 0) return "received today";
+  return `${safe} business day${safe === 1 ? "" : "s"} elapsed`;
+}
+/** What the owner's document-request lane does — the same lane the engine recommends. */
+export const NONPROFIT_REVIEW_REQUEST_INFO_NOTICE =
+  "Requesting a document keeps the application in review and asks the applicant for one " +
+  "supporting document. Nothing is granted or refused by this action.";
+export const NONPROFIT_REVIEW_APPROVE_NOTICE =
+  "Approving grants the free nonprofit access tier to this organization and starts the annual " +
+  "reverification clock. It does not change anything the applicant has saved.";
+export const NONPROFIT_REVIEW_DENY_NOTE_LABEL =
+  "Reason (required — internal only, never shown to the applicant)";
+export const NONPROFIT_REVIEW_DENY_NOTE_REQUIRED =
+  "A note is required when denying an application.";
+/** The owner's release lock: explicit admin action, no cooldown, nothing deleted. */
+export const NONPROFIT_REVIEW_RELEASE_NOTICE =
+  "Releasing frees the EIN so another organization can claim it. The account, its data and this " +
+  "audit history are kept exactly as they are — nothing is deleted and the status does not change.";
+export const NONPROFIT_REVIEW_RELEASE_CONFIRMATION =
+  "Released. The EIN is no longer held by this organization — the account and its data are untouched.";
+export const NONPROFIT_REVIEW_AUDIT_EMPTY_COPY =
+  "No reviewer action has been recorded for this application yet.";
+/** The label the reviewer surface must carry next to the domain comparison (brief §B3). */
+export const NONPROFIT_REVIEW_DOMAIN_LABEL = "secondary signal — never a verdict";
+/**
+ * The refresh-driven reverify flag, which `decision_flags` carries after an IRS refresh
+ * touched a row (mirrors NONPROFIT_REVERIFY_FLAG in nonprofit-reverify.server.ts — the
+ * reviewer PAGE is a client bundle and may not import that module, so the token is
+ * declared here and a unit test asserts the two agree).
+ */
+export const NONPROFIT_REVIEW_REFRESH_FLAG = "reverify_after_irs_refresh";
+export const NONPROFIT_REVIEW_DOMAIN_DETAIL =
+  "Recomputed on this request from the submitted website or work-email domain and the normalized " +
+  "organization name. It is shown to inform a human decision and never decides anything on its own.";
+export const NONPROFIT_REVIEW_QUEUE_EMPTY_COPY = "Nothing is waiting in this view.";
+export const NONPROFIT_REVIEW_QUEUE_SIGNED_OUT_COPY =
+  "Sign in with an administrator account to open the review queue.";
+
 // ── The forbidden-phrase wall (build plan §6) ─────────────────────────────────
 /**
  * Phrases that must NEVER appear on a nonprofit surface. Two families:
@@ -369,6 +429,21 @@ export function nonprofitCopyStrings(): string[] {
     NONPROFIT_SEARCHES_SPENT_COPY,
     NONPROFIT_GRANTS_CTA_LABEL,
     NONPROFIT_GRANTS_CTA_COPY,
+    // Unit B — the reviewer surface's strings are scanned by the same wall.
+    NONPROFIT_REVIEW_QUEUE_HEADLINE,
+    NONPROFIT_REVIEW_SLA_WORDING,
+    NONPROFIT_REVIEW_SLA_DETAIL,
+    NONPROFIT_REVIEW_REQUEST_INFO_NOTICE,
+    NONPROFIT_REVIEW_APPROVE_NOTICE,
+    NONPROFIT_REVIEW_DENY_NOTE_LABEL,
+    NONPROFIT_REVIEW_DENY_NOTE_REQUIRED,
+    NONPROFIT_REVIEW_RELEASE_NOTICE,
+    NONPROFIT_REVIEW_RELEASE_CONFIRMATION,
+    NONPROFIT_REVIEW_AUDIT_EMPTY_COPY,
+    NONPROFIT_REVIEW_DOMAIN_LABEL,
+    NONPROFIT_REVIEW_DOMAIN_DETAIL,
+    NONPROFIT_REVIEW_QUEUE_EMPTY_COPY,
+    NONPROFIT_REVIEW_QUEUE_SIGNED_OUT_COPY,
     NONPROFIT_APPLY_AUTHORIZATION_LABEL,
     ...Object.values(NONPROFIT_APPLY_FIELDS),
     ...Object.values(NONPROFIT_APPLY_VALIDATION),

@@ -19,6 +19,11 @@ import handler from "./dist/server/server.js";
 // them share one accessor slot). See src/lib/request-context.server.ts.
 import { runWithRequestContext } from "./src/lib/request-context.server";
 
+// Shared public edge-cache policy (which SSR routes may carry the 1h CDN cache).
+// `/` is deliberately excluded — it renders the session-dependent navbar. See
+// src/lib/ssr-cache-policy.ts for the full R1 rationale + the regression test.
+import { isPublicSsrCacheable } from "./src/lib/ssr-cache-policy";
+
 // ── Client asset references for the static SEO pages ─────────────────────────
 // The entry chunk / CSS / preload filenames come from vercel-entry.assets.json,
 // generated at BUILD time by scripts/generate-entry-assets.mjs (invoked from
@@ -936,23 +941,21 @@ export default async function vercelHandler(
     }
 
 
-    // 1-hour edge cache on public SSR marketing/SEO routes (home, map, radar,
-    // state pages, industry hub, cert-hub hubs, and the trades landing page).
-    // These pages are cookie/user-agnostic (no server-side auth/session reads;
-    // radar state is client-side localStorage), so a shared edge cache is safe —
-    // it collapses crawler/burst SSR renders without ever caching authenticated
-    // or user-specific routes (those flow through the generic SSR handler
-    // below, which does NOT set this header).
-    const cacheableSsrf =
-      req.method === "GET" &&
-      (url.pathname === "/" ||
-        /^\/(?:map|radar|contracts-by-industry|contracts-hvac-mechanical)\/?$/.test(
-          url.pathname,
-        ) ||
-        /^\/(?:8a|hubzone|sdvosb|set-aside|small-business|wosb)-contracts\/?$/.test(
-          url.pathname,
-        ) ||
-        /^\/contracts-in\/[a-z0-9-]+\/?$/.test(url.pathname));
+    // 1-hour edge cache on public SSR marketing/SEO routes (map, radar, state
+    // pages, industry hub, cert-hub hubs, and the trades landing page). Those
+    // pages are cookie/user-agnostic, so a shared edge cache is safe — it
+    // collapses crawler/burst SSR renders without ever caching authenticated or
+    // user-specific routes (those flow through the generic SSR handler below,
+    // which does NOT set this header).
+    //
+    // `/` is NOT in this set (root cause R1, fixed 2026-09-21): the front door's
+    // SSR render IS session-dependent — the landing loader awaits
+    // getCurrentUser() and renders <Navbar user={user} />, so the shared cache
+    // served a signed-in visitor the signed-out navbar ("it keeps signing me
+    // out"), and could serve an anonymous visitor the signed-in one. The policy
+    // lives in src/lib/ssr-cache-policy.ts (with a regression test that locks
+    // both `/`-is-not-cacheable and the landing loader's session read).
+    const cacheableSsrf = isPublicSsrCacheable(req.method || "GET", url.pathname);
 
     // AsyncLocalStorage request context: scoped to this request's async
     // execution chain, auto-cleaned when run() settles even on error (see

@@ -32,7 +32,6 @@ import {
   resolveBidState,
   locationConflict,
   geoRelevant as geoRelevantByState,
-  isNationalScope,
   matchGeographyBucket,
   STATE_NAME_TO_CODE,
   displayPlaceOfPerformance,
@@ -41,6 +40,8 @@ import {
   runKeywordScanQuery,
   runRelatedScanQuery,
   logScanFailure,
+  collapseScanRows,
+  loadSolicitationNumbers,
 } from "~/lib/radar-scan-query";
 import {
   raceRadarScan,
@@ -191,11 +192,14 @@ function computeMatch(
   // excluded earlier at scan time; the scorer never geocredits a conflict.
   let geo = 12;
   if (input.state) {
-    const bidState = resolveBidState(bid.location, bid.agency);
     // A NATIONAL-SCOPE location never earns the state-local geography credit
     // (owner 09-14): "United States"-located rows are eligible nationwide, not
-    // local to the buyer's state.
-    geo = !isNationalScope(bid.location) && bidState === input.state ? 20 : 12;
+    // local to the buyer's state. Routed through matchGeographyBucket — the ONE
+    // geography decision — so the score can never disagree with the bucket the
+    // card lands in; that also carries the narrow owner-ratified
+    // agency-jurisdiction rule (Ohio Phase 3: the OH-ARNG rows bucket LOCAL for
+    // Ohio even though their location is the "United States" placeholder).
+    geo = matchGeographyBucket(input.state, bid.location, bid.agency) === "local" ? 20 : 12;
   }
 
   // Size fit
@@ -355,6 +359,21 @@ export const runRadarScan = createServerFn({ method: "POST" })
       // on failure instead of letting it become a misleading 0 (owner v6) —
       // the forced-failure regression test drives this same function.
       rows = await runKeywordScanQuery(sql, { certFrag, tradeFrag }, LOW_CONTENT_SQL);
+      // R5 DEDUPE, WIRED (QA F2): collapse the SAME notice re-ingested under
+      // several source labels BEFORE scoring/ranking, so duplicate rows can no
+      // longer fill the ≤5 default-match cap. Key = solicitation number (R2 /
+      // migration 047) else (title, agency); the key read is FAIL-SOFT, so a
+      // not-yet-applied 047 degrades to the natural key instead of failing the
+      // scan. Never deletes anything — see ~/lib/notice-dedupe.
+      const collapsedScan = await collapseScanRows(rows, (ids) =>
+        loadSolicitationNumbers(sql, ids),
+      );
+      if (collapsedScan.collapsed > 0) {
+        console.log(
+          `[radar] dedupe: ${rows.length} rows → ${collapsedScan.rows.length} distinct notices (${collapsedScan.collapsed} collapsed; keyed by ${collapsedScan.solicitationNumbers ? "solicitation_number else (title,agency)" : "(title,agency) — solicitation numbers unavailable"})`,
+        );
+      }
+      rows = collapsedScan.rows;
       // RELATED opportunities (owner v6.1): adjacent-work terms, pulled only
       // when a state is requested. Same open/low-content guards, but NO cert
       // and NO strict trade filter — deliberately: the DoD related rows
@@ -788,13 +807,14 @@ function buildReasons(
     }
   }
   if (c.state) {
-    const bidState = resolveBidState(bid.location, bid.agency);
     // v6.2: "nationalwide" is the card's ELIGIBILITY tag; this reason bullet
     // states eligibility plainly — never a location claim (the card shows the
     // real place of performance separately). Owner 09-14: a national-scope
-    // location never borrows the buyer/agency state either.
+    // location never borrows the buyer/agency state either. Asked of the single
+    // geography decision (matchGeographyBucket) so the bullet cannot contradict
+    // the section the card is rendered in — incl. the agency-jurisdiction rule.
     reasons.push(
-      !isNationalScope(bid.location) && bidState === c.state
+      matchGeographyBucket(c.state, bid.location, bid.agency) === "local"
         ? `Located in ${STATE_CODE_TO_NAME[c.state] ?? c.state} (verified)`
         : "Eligible from any state — national set-aside row",
     );
@@ -1752,11 +1772,13 @@ export function RadarCard({
   const due = match.due_date ? new Date(match.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
   // v6.2: the REAL place of performance + whether this card is in the
   // nationwide-eligibility bucket (never a location claim — see the tag below).
-  const bidState = resolveBidState(match.location, match.agency);
   // Owner 09-14: a national-scope location is never state-local — the card's
   // "nationalwide" eligibility tag must show even when the buyer/agency field
-  // names the requested state.
-  const isStateLocal = state !== "" && !isNationalScope(match.location) && bidState === state;
+  // names the requested state. Same single source of truth as the bucketing that
+  // put this card in the local/nationwide section (matchGeographyBucket), so the
+  // tag, the section and the score can never disagree; the narrow
+  // agency-jurisdiction rule (Ohio Phase 3) flows through it.
+  const isStateLocal = matchGeographyBucket(state, match.location, match.agency) === "local";
   const place = displayPlaceOfPerformance(match.title, match.location, match.agency);
   const courierSubtype = isCourierFamilyNaics(match.naics_code) && !tradeExpresslyCourier(trade);
   const rawVal = (match.estimated_value || "").trim();

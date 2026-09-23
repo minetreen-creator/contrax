@@ -15,8 +15,11 @@
  *   homepage "Newest solicitations" window is a rolling 24h) and can be
  *   triggered manually via workflow_dispatch. The Vercel cron entry for
  *   /api/sync-bids was removed — Vercel Hobby's 10s serverless cap cannot
- *   fit a multi-minute sync across 61 sources (4 SAM.gov passes, 51
- *   state-keyword queries, 6 open-data tail). /api/sync-bids remains as an
+ *   fit a multi-minute sync across 73 sources (15 SAM.gov passes — 4 fixed +
+ *   11 trade-filter; 51 state-keyword queries; 7 open-data tail). Counts are
+ *   DERIVED from the arrays below (SAM_GOV_SOURCES / SAM_TRADE_FILTERS /
+ *   STATE_KEYWORD_SOURCES / TAIL_SOURCES) — do not hardcode a total here; the
+ *   run's own "Sources:" line lists every name. /api/sync-bids remains as an
  *   admin diagnostic that returns 202 and points at the workflow.
  *
  * Performance notes:
@@ -31,11 +34,17 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { US_STATES } from "../lib/states";
 import { deriveInsertLocationColumns } from "../lib/location-state";
+import { toIsoDueDate } from "../lib/date";
 import { fetchBids as fetchSamGov } from "./sources/sam-gov";
+import {
+  createSamTradeSource,
+  SAM_TRADE_FILTERS,
+} from "./sources/sam-gov-trades";
 import { fetchBids as fetchCities } from "./sources/cities";
 import { nysSocrataSource } from "./sources/socrata";
 import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
 import { fetchPennBidOpen } from "./sources/pennbid";
+import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
@@ -82,7 +91,7 @@ export type FetchFn = () => Promise<RawBid[] | FetchResult>;
  */
 export const MISSING_AGENCY_MAX_PCT = 25;
 
-interface SyncSource {
+export interface SyncSource {
   name: string;
   fetchFn: FetchFn;
 }
@@ -118,6 +127,17 @@ const SAM_GOV_SOURCES: SyncSource[] = [
   // so their run-log/tier is stable and independently observable.
   { name: "pennbid", fetchFn: fetchPennBidOpen },
   { name: "va_evirginia", fetchFn: fetchVaEvirginia },
+  // OWNER PRIORITY 09-21 (R1 — janitorial + trucking ingestion): one
+  // structured-filter pass per code, each its OWN source so run logs /
+  // staleness / quality gates are per-category and independently observable.
+  // Janitorial: naics=561720 + psc=S201. Trucking/courier: the seven 484xxx /
+  // 492110 NAICS codes + psc=V112 + psc=R602. Serial like the other SAM.gov
+  // passes (SAM.gov politeness); the API filters are the ones measured to work
+  // (`naics=` / `psc=`) — see the module header for the corrected PSC mapping.
+  ...SAM_TRADE_FILTERS.map((filter) => ({
+    name: filter.name,
+    fetchFn: createSamTradeSource(filter),
+  })),
 ];
 
 /**
@@ -139,8 +159,14 @@ const STATE_KEYWORD_SOURCES: SyncSource[] = US_STATES.map((code) => ({
  * different APIs, so they interleave one-at-a-time between state-keyword
  * batches — each is isolated so one failing never blocks the others.
  */
-const TAIL_SOURCES: SyncSource[] = [
+export const TAIL_SOURCES: SyncSource[] = [
   { name: "nys_socrata", fetchFn: nysSocrataSource },
+  // Ohio Phase 3 (owner-locked order step ②, plan rev 285): the City of Dayton's
+  // own CivicEngage bid board — the first non-federal OHIO-local bid source in the
+  // corpus. A tail source gets its OWN collector_run_log row while adding ZERO
+  // SAM.gov load (tail sources interleave one per state-keyword batch), so its
+  // freshness / ran_zero / quality_gate stay independently observable.
+  { name: "oh_dayton", fetchFn: fetchOhDaytonBids },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 
@@ -173,14 +199,111 @@ const BID_COLUMNS = [
   "raw_location",
   "normalized_state",
   "location_conflict",
+  // OWNER PRIORITY 09-21 (R2 — PRESERVE rule): the Product Service Code, the
+  // notice TYPE and SAM's own solicitation number. All three are stored
+  // additively (migration 047); a source that cannot supply one leaves it NULL
+  // (never guessed). APPENDED after the existing columns so every positional
+  // cast/index above stays valid.
+  "psc",
+  "notice_type",
+  "solicitation_number",
 ] as const;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-function toIsoDueDate(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+/**
+ * IN-BATCH NATURAL-KEY DEDUPE (owner-authorized 2026-09-21, PR #414 follow-up).
+ *
+ * THE HOLE this closes: the batch INSERT below carries exactly two guards —
+ *   (a) `WHERE NOT EXISTS (… lower(btrim(b.title)) = lower(btrim(v.title)) AND
+ *       lower(btrim(b.agency)) = lower(btrim(v.agency)))`, which reads the table
+ *       as it was BEFORE the statement, so N byte-identical rows inside ONE
+ *       VALUES list all pass it; and
+ *   (b) `ON CONFLICT (source, external_id)`, where external_id is `sam-${_id}`
+ *       and SAM's `_id` VARIES for the same notice across results — so it never
+ *       fires for a same-batch duplicate.
+ * Measured in production on the first post-merge sync (run 35665413705): 76 rows
+ * landed in the 11 new trade passes but only 69 were distinct — 5 duplicate
+ * groups / 7 excess rows. The hole is generic: it affects EVERY source that
+ * batch-inserts, not just the SAM trade passes.
+ *
+ * THE KEY (owner-specified, byte-identical across all 5 measured groups):
+ *   lower(btrim(title)) + "\u0001" + lower(btrim(agency)) + "\u0001" +
+ *   (notice_type ?? "") + "\u0001" + (due_date ? ISO string : "") + "\u0001" +
+ *   (psc ?? "")
+ * notice_type / due_date / psc are REQUIRED dimensions, not decoration: on
+ * (title, agency) alone the key is too coarse — the live case 36C26126Q0795 has
+ * an "Award Notice" AND an "Amendment 0001 …" Combined Synopsis/Solicitation for
+ * the same solicitation/title/agency, and collapsing those would destroy a real,
+ * separately-actionable notice. `source` is deliberately NOT part of the key:
+ * a batch is already single-source, so the key mirrors the cross-source SQL
+ * guard's semantics (see the VALUES-list guard comment below).
+ *
+ * ORDER: the batch is sorted by external_id before deduping, so which row of a
+ * duplicate group is retained is deterministic (the LOWEST external_id — which
+ * for `sam-<_id>` is the lowest SAM id) and independent of fetch order.
+ */
+function btrimLower(value: string | null | undefined): string {
+  // Mirrors Postgres lower(btrim(x)): SAM's payloads pad with spaces, and this
+  // key is compared against what the SQL guard computes on the same fields.
+  return String(value ?? "")
+    .replace(/^\s+|\s+$/g, "")
+    .toLowerCase();
+}
+
+/** The in-batch natural key for one fetched row (see the block comment above). */
+export function batchInsertNaturalKey(bid: RawBid): string {
+  return [
+    btrimLower(bid.title),
+    btrimLower(bid.agency),
+    bid.notice_type ?? "",
+    toIsoDueDate(bid.due_date) ?? "",
+    bid.psc ?? "",
+  ].join("\u0001");
+}
+
+/**
+ * Drop same-batch natural-key duplicates BEFORE they are turned into the INSERT
+ * VALUES list. Pure and DB-free (unit-testable): given a batch of fetched rows
+ * it returns a NEW array holding one canonical row per natural key — the row
+ * with the LOWEST external_id, chosen deterministically by sorting first — and
+ * never mutates the input. Applied per batch (per chunk, inside one source), so
+ * two different sources/batches are deduped independently.
+ */
+export function dedupeBatchByNaturalKey(rows: readonly RawBid[]): RawBid[] {
+  const byExternalId = [...rows].sort((a, b) =>
+    a.external_id < b.external_id ? -1 : a.external_id > b.external_id ? 1 : 0,
+  );
+  const seen = new Set<string>();
+  const out: RawBid[] = [];
+  for (const bid of byExternalId) {
+    const key = batchInsertNaturalKey(bid);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(bid);
+  }
+  return out;
+}
+
+/**
+ * True when a failed statement was rejected by the natural-key UNIQUE INDEX
+ * (migration 048) — i.e. TWO SOURCES (or two chunks) raced to insert the SAME
+ * notice and this one lost. That is a DEDUPE, not an error: the batch's
+ * WHERE NOT EXISTS / the per-row guard cannot see a concurrent sibling's
+ * uncommitted row, so the index is the only atomic closer.
+ *
+ * Matched on the message, not just on code, because the Neon HTTP driver's error
+ * shape is not guaranteed to carry `code`; the index name is what identifies it.
+ * On a database WITHOUT the index (the current production schema until 048 is
+ * applied, and any environment bootstrapped from an older schema) this helper
+ * simply never fires — which is what makes shipping the code safe either way.
+ */
+export function isNaturalKeyViolation(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  return (
+    /duplicate key value violates unique constraint/i.test(message) &&
+    message.includes("idx_bids_natural_key_unique")
+  );
 }
 
 export interface SyncSourceResult {
@@ -219,15 +342,30 @@ export interface SyncResult {
  *
  * Uses sql.query() (not the tagged template) because the Neon driver rejects
  * array-of-objects fragment calls; placeholders are built manually.
+ *
+ * The chunk is FIRST collapsed by its natural key (dedupeBatchByNaturalKey) —
+ * see that helper's block comment: the SQL guard below cannot see rows of its
+ * own VALUES list, so a same-batch duplicate would otherwise insert every time.
  */
 async function insertBidsBatch(
   sql: Sql,
   source: SyncSource,
   chunk: RawBid[],
 ): Promise<{ newCount: number; newBids: NewBidSummary[] }> {
+  // In-batch natural-key dedupe (additive; the SQL guards below are unchanged).
+  // Cross-BATCH duplicates of one source are already handled by the table-level
+  // WHERE NOT EXISTS (each chunk is its own statement, so chunk N sees chunk
+  // N-1's rows); only same-statement duplicates need this.
+  const batch = dedupeBatchByNaturalKey(chunk);
+  const droppedInBatch = chunk.length - batch.length;
+  if (droppedInBatch > 0) {
+    console.log(
+      `  ${source.name}: in-batch dedupe dropped ${droppedInBatch} natural-key duplicate row(s) (${chunk.length} -> ${batch.length})`,
+    );
+  }
   const params: unknown[] = [];
   const valueRows: string[] = [];
-  for (const bid of chunk) {
+  for (const bid of batch) {
     // NAICS heuristic: fill ONLY when the source provided no authoritative
     // code. Render the provenance label alongside whichever code is stored
     // (authoritative from the source, or inferred from title/description).
@@ -266,6 +404,11 @@ async function insertBidsBatch(
       // list otherwise yields text and Postgres refuses implicit text→boolean
       // in INSERT…SELECT.
       loc.location_conflict === null ? null : loc.location_conflict ? "true" : "false",
+      // OWNER 09-21 (R2): PSC / notice type / solicitation number, straight from
+      // the source's own data (NULL when the source has none).
+      bid.psc ?? null,
+      bid.notice_type ?? null,
+      bid.solicitation_number ?? null,
     ];
     // Index 6 is due_date (TIMESTAMPTZ) and index 16 is location_conflict
     // (BOOLEAN). The untyped VALUES list otherwise yields a text column, and
@@ -290,12 +433,18 @@ async function insertBidsBatch(
        AS v(title, agency, description, location, category, set_aside,
             due_date, estimated_value, source_url, source, external_id,
             naics_code, naics_code_source, source_jurisdiction, raw_location,
-            normalized_state, location_conflict)
+            normalized_state, location_conflict, psc, notice_type,
+            solicitation_number)
      -- Cross-source dedup guard: skip a row whose natural key (title, agency)
      -- already exists in bids. Multiple sync sources return the SAME national
      -- solicitation (e.g. state-keyword sources va and va_evirginia), so
      -- without this the table grows duplicate rows every sync. Existing rows
      -- are untouched (provenance); only NEW duplicates are prevented.
+     -- NOTE (PR #414 follow-up): this guard reads the table as it was BEFORE
+     -- this statement, so it cannot see duplicate rows inside this statement's
+     -- own VALUES list — that same-batch case is now closed IN MEMORY by
+     -- dedupeBatchByNaturalKey, which runs before the VALUES list is built.
+     -- This SQL guard is unchanged and still owns the cross-source case.
      WHERE NOT EXISTS (
        SELECT 1 FROM bids b
        WHERE lower(btrim(b.title)) = lower(btrim(v.title))
@@ -323,6 +472,12 @@ async function insertBidsBatch(
        raw_location = EXCLUDED.raw_location,
        normalized_state = EXCLUDED.normalized_state,
        location_conflict = EXCLUDED.location_conflict,
+       -- OWNER 09-21 (R2): COALESCE so a source that cannot supply the PSC /
+       -- notice type / solicitation number never ERASES a value another pass
+       -- already stored for this row.
+       psc = COALESCE(EXCLUDED.psc, bids.psc),
+       notice_type = COALESCE(EXCLUDED.notice_type, bids.notice_type),
+       solicitation_number = COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number),
        -- Source-freshness: advance ONLY when the compute-saver guard below
        -- concludes a real change (the WHERE clause gates the whole UPDATE, so
        -- no-op re-syncs leave updated_at untouched). Feeds the AI Executive
@@ -348,19 +503,27 @@ async function insertBidsBatch(
             -- re-sync of a pre-PR-B.2 row populates its location columns;
             -- once populated (values equal), the no-op skip resumes.
             bids.source_jurisdiction, bids.raw_location, bids.normalized_state,
-            bids.location_conflict)
+            bids.location_conflict,
+            -- R2: plain equality (NOT COALESCE'd) on the three new provenance
+            -- columns, exactly like the PR-B.2 location columns above — the
+            -- first re-sync of a pre-047 row populates them (a real change),
+            -- and once populated the no-op skip resumes.
+            bids.psc, bids.notice_type, bids.solicitation_number)
            IS DISTINCT FROM
            (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date::timestamptz,
             EXCLUDED.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
             CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
                  ELSE bids.naics_code_source END,
             EXCLUDED.source_jurisdiction, EXCLUDED.raw_location,
-            EXCLUDED.normalized_state, EXCLUDED.location_conflict)
+            EXCLUDED.normalized_state, EXCLUDED.location_conflict,
+            COALESCE(EXCLUDED.psc, bids.psc),
+            COALESCE(EXCLUDED.notice_type, bids.notice_type),
+            COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number))
      RETURNING id, external_id, (xmax = 0) AS inserted`,
     params,
   )) as any[];
 
-  const bidByExternalId = new Map(chunk.map((bid) => [bid.external_id, bid]));
+  const bidByExternalId = new Map(batch.map((bid) => [bid.external_id, bid]));
   const newBids: NewBidSummary[] = [];
   let newCount = 0;
   for (const row of result) {
@@ -401,7 +564,7 @@ async function insertBid(
     sourceName: bid.source_label ?? source.name,
   });
   const result = (await sql`
-    INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code, naics_code_source, source_jurisdiction, raw_location, normalized_state, location_conflict)
+    INSERT INTO bids (title, agency, description, location, category, set_aside, due_date, estimated_value, source_url, source, external_id, naics_code, naics_code_source, source_jurisdiction, raw_location, normalized_state, location_conflict, psc, notice_type, solicitation_number)
     SELECT
       ${bid.title},
       ${bid.agency},
@@ -419,7 +582,10 @@ async function insertBid(
       ${loc.source_jurisdiction},
       ${loc.raw_location},
       ${loc.normalized_state},
-      ${loc.location_conflict === null ? null : loc.location_conflict ? "true" : "false"}::boolean
+      ${loc.location_conflict === null ? null : loc.location_conflict ? "true" : "false"}::boolean,
+      ${bid.psc ?? null},
+      ${bid.notice_type ?? null},
+      ${bid.solicitation_number ?? null}
     -- Cross-source dedup guard (same natural-key check as the batch path).
     WHERE NOT EXISTS (
       SELECT 1 FROM bids b
@@ -443,6 +609,11 @@ async function insertBid(
       raw_location = EXCLUDED.raw_location,
       normalized_state = EXCLUDED.normalized_state,
       location_conflict = EXCLUDED.location_conflict,
+      -- R2: same COALESCE protection as the batch path (never erase a value
+      -- another pass stored).
+      psc = COALESCE(EXCLUDED.psc, bids.psc),
+      notice_type = COALESCE(EXCLUDED.notice_type, bids.notice_type),
+      solicitation_number = COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number),
       updated_at = NOW()
     -- Same compute saver as the batch path: skip no-op rewrites of unchanged
     -- bids (plain equality on the additive columns — a NULL-stored row whose
@@ -454,14 +625,18 @@ async function insertBid(
            CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
                 ELSE bids.naics_code_source END,
            bids.source_jurisdiction, bids.raw_location, bids.normalized_state,
-           bids.location_conflict)
+           bids.location_conflict, bids.psc, bids.notice_type,
+           bids.solicitation_number)
           IS DISTINCT FROM
           (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date,
            EXCLUDED.estimated_value, COALESCE(EXCLUDED.naics_code, bids.naics_code),
            CASE WHEN EXCLUDED.naics_code IS NOT NULL THEN EXCLUDED.naics_code_source
                 ELSE bids.naics_code_source END,
            EXCLUDED.source_jurisdiction, EXCLUDED.raw_location,
-           EXCLUDED.normalized_state, EXCLUDED.location_conflict)
+           EXCLUDED.normalized_state, EXCLUDED.location_conflict,
+           COALESCE(EXCLUDED.psc, bids.psc),
+           COALESCE(EXCLUDED.notice_type, bids.notice_type),
+           COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number))
     RETURNING id, (xmax = 0) AS inserted
   `) as any[];
   if (result.length === 0 || !result[0].inserted) return null;
@@ -523,6 +698,17 @@ export async function syncSource(
         // inserts so the bad row is isolated and logged without losing the
         // rest of the chunk. Single-statement atomicity means a failed batch
         // inserted nothing, so no rows are double-counted.
+        //
+        // Migration 048: a batch can also be rejected by the natural-key UNIQUE
+        // index when a CONCURRENT source committed the same notice first. That
+        // is a dedupe, not a failure — say so, and let the row-by-row retry
+        // below resolve it (by then the winner is committed, so the guard
+        // returns "existing/dup" for the overlapping rows).
+        if (isNaturalKeyViolation(e)) {
+          console.log(
+            `  ${source.name}: batch rejected by idx_bids_natural_key_unique — resolving row-by-row`,
+          );
+        }
         for (const bid of chunk) {
           try {
             const summary = await insertBid(sql, source, bid);
@@ -531,6 +717,14 @@ export async function syncSource(
               newBids.push(summary);
             }
           } catch (e2) {
+            if (isNaturalKeyViolation(e2)) {
+              // A concurrent source already stored this notice: DEDUPED, not
+              // failed. Accounting is unchanged — the row is neither new nor
+              // failed, so it is reported in "existing/dup" and the invariant
+              // fetched = accepted + skipped + failed still holds.
+              console.log(`  ${source.name}: deduped by natural key (${bid.external_id})`);
+              continue;
+            }
             failedCount++;
             const msg = `Insert error for ${bid.external_id}: ${(e2 as Error).message}`;
             errors.push(msg);

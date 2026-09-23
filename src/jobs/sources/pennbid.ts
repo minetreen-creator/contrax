@@ -41,6 +41,34 @@ export interface PennBidProject {
 }
 
 import type { FetchResult } from "../runner";
+import { isJanitorialWork, isTransportationWork } from "~/lib/trade-classification";
+
+/**
+ * PennBid's category stamp (QA F4a).
+ *
+ * The TRADE decisions are the SHARED classifier's (src/lib/trade-classification.ts),
+ * so the owner's purchased-service-only rule holds on this source exactly as it
+ * does on SAM.gov: this module previously carried its own bare
+ * `/(janitor|custodial|cleaning)/` branch (the false-positive amplifier the
+ * janitorial PR removed elsewhere — a "cleaning supplies" or "duct cleaning"
+ * project was stamped Janitorial) and a `/(haul|freight|truck|transport|deliver)/`
+ * branch that labelled TRUCK/vehicle-product projects Transportation.
+ *
+ * PennBid-specific, non-trade branches (Construction / Supplies & Equipment) are
+ * kept EXACTLY as they were — this source exposes only a project NAME and has no
+ * description, so its own coarse categories still apply where the shared
+ * classifier deliberately says nothing. Exporting this keeps it testable with
+ * zero network.
+ */
+export function pennBidCategory(title: string, description = ""): string {
+  const titleLc = (title || "").toLowerCase();
+  const full = `${titleLc} ${(description || "").toLowerCase()}`.trim();
+  if (isTransportationWork(titleLc, full)) return "Transportation";
+  if (isJanitorialWork(titleLc, full)) return "Janitorial";
+  if (/(construct|renovat|demolit|pav|road|bridge)/.test(full)) return "Construction";
+  if (/(supply|materiel|material|equipment)/.test(full)) return "Supplies & Equipment";
+  return "Other";
+}
 
 /** Record one deliberate pre-insert guard drop (reason-coded skip). */
 function recordSkip(
@@ -146,12 +174,9 @@ export async function fetchPennBidOpen(): Promise<FetchResult> {
       // JSON does not carry. The full solicitation lives at the source URL.
       const description = `Open PennBid solicitation issued by ${agency || "a Pennsylvania agency"}. Full details and documents are on the PennBid portal (see source link).`;
 
-      const full = `${title} ${description}`.toLowerCase();
-      let category = "Other";
-      if (/(haul|freight|truck|transport|deliver)/.test(full)) category = "Transportation";
-      else if (/(janitor|custodial|cleaning)/.test(full)) category = "Janitorial";
-      else if (/(construct|renovat|demolit|pav|road|bridge)/.test(full)) category = "Construction";
-      else if (/(supply|materiel|material|equipment)/.test(full)) category = "Supplies & Equipment";
+      // Shared purchased-service-only classification (QA F4a) — no local bare
+      // "cleaning"/"truck" branches any more.
+      const category = pennBidCategory(title, description);
 
       rows.push({
         external_id: `pennbid-${projectId}`,

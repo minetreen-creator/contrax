@@ -177,6 +177,39 @@ END $$;
 ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary JSONB;
 ALTER TABLE bids ADD COLUMN IF NOT EXISTS ai_summary_at TIMESTAMPTZ;
 
+-- Migration 047 (owner PRIORITY 09-21, R2 — PRESERVE rule): the Product Service
+-- Code, the notice TYPE and SAM's own solicitation number. Additive / nullable /
+-- no backfill; a source that cannot supply a value leaves it NULL.
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS psc text;
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS notice_type text;
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS solicitation_number text;
+-- Cross-source dedupe support (R5): sparse, non-unique by design — the same
+-- federal notice legitimately appears under more than one source label and this
+-- PR never deletes rows.
+CREATE INDEX IF NOT EXISTS idx_bids_solicitation_number
+  ON bids (solicitation_number) WHERE solicitation_number IS NOT NULL;
+-- Migration 048 (owner 2026-09-22, run-level dedupe hardening): the natural key
+-- (title, agency, notice_type, due_date, psc) became a UNIQUE index, so a race
+-- between two CONCURRENT Phase-2 sources can no longer store the same notice
+-- twice. GRANDFATHERED: the WHERE predicate limits enforcement to rows inserted
+-- from the frozen cutoff forward — the 4,059 pre-existing duplicate groups
+-- (14,690 rows) stay untouched, because deleting them is a separate,
+-- owner-gated reconciliation. NULLS NOT DISTINCT + COALESCE(text,'') keep this
+-- index dimension-for-dimension identical to the in-memory key in
+-- src/jobs/runner.ts (batchInsertNaturalKey). A bootstrap built from this file
+-- therefore carries the same enforcement as production. The runner classifies a
+-- 23505 naming this index as *deduped*, not *failed*.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bids_natural_key_unique
+  ON bids (
+    lower(btrim(title)),
+    lower(btrim(agency)),
+    COALESCE(notice_type, ''),
+    due_date,
+    COALESCE(psc, '')
+  )
+  NULLS NOT DISTINCT
+  WHERE created_at >= TIMESTAMPTZ '2026-09-22 00:00:00+00';
+
 -- Migration: bids.source default aligns with the canonical SAM.gov source
 -- (city procurement feeds are stored under their own source values, e.g.
 -- nyc_open_data). The ALTER is a no-op when the default is already set.

@@ -10,6 +10,7 @@
  */
 
 import type { RawBid } from "./sam-gov";
+import { mapCategory as classifyCategory } from "~/lib/trade-classification";
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
 const PAGE_SIZE = 25;
@@ -50,15 +51,9 @@ function extractLocation(orgHierarchy: any[], description: string): string {
 }
 
 function mapCategory(title: string, description: string): string {
-  const full = (title + " " + description).toLowerCase();
-  if (full.includes("landscap") || full.includes("grounds main")) return "Landscaping";
-  if (full.includes("construction") || full.includes("renovation") || full.includes("demolition")) return "Construction";
-  if (full.includes("it ") && (full.includes("service") || full.includes("support") || full.includes("software") || full.includes("cloud"))) return "IT Services";
-  if (full.includes("janitor") || full.includes("custodial") || full.includes("cleaning")) return "Janitorial";
-  if (full.includes("security") || full.includes("guard ")) return "Security";
-  if (full.includes("hvac") || full.includes("heating") || full.includes("cooling")) return "HVAC";
-  if (full.includes("electrical") || full.includes("plumbing")) return "Plumbing & Electrical";
-  return "Other";
+  // OWNER PRIORITY 09-21 (R4): the single shared classifier — see
+  // src/lib/trade-classification.ts. This source has no notice type.
+  return classifyCategory("", title, description);
 }
 
 async function fetchKeyword(keyword: string, prefix: string): Promise<RawBid[]> {

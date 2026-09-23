@@ -101,6 +101,14 @@ jobs:
           echo "bundle validation OK"
       - name: Bundled request-context integration test (assembled render function)
         run: bun test tests/request-context.bundled.test.ts
+      # Homepage cache policy (owner-approved F1, 2026-09-21). Deterministic,
+      # zero network, no DATABASE_URL: it asserts the public SSR edge-cache
+      # allowlist never contains `/` (the session-dependent front door that was
+      # serving cached signed-out HTML to signed-in visitors), that the other
+      # cookie-agnostic marketing routes stay cached, and that the launcher
+      # delegates to the policy module instead of re-inlining a `/` rule.
+      - name: Homepage cache policy tests (unit, deterministic, zero network)
+        run: bun test src/lib/ssr-cache-policy.test.ts
       # Nonprofit Free (owner green-lit 2026-09-21, six-point spec). The phase-1 unit
       # suite is DETERMINISTIC and network-free by construction: every IRS byte it reads is
       # a verbatim fixture committed to src/lib/fixtures/irs/, and the store is injected —
@@ -130,6 +138,40 @@ jobs:
             echo "DATABASE_URL secret NOT configured — the phase-2 bootstrap suite skips loudly (the unit half still must pass)."
           fi
           bun test src/lib/nonprofit-apply.test.ts src/lib/nonprofit-apply.integration.test.ts
+      # Janitorial + trucking ingestion (owner PRIORITY 09-21, R1–R4). DETERMINISTIC
+      # and network-free by construction: every SAM.gov byte these suites read is a
+      # committed fixture captured from the official API
+      # (src/jobs/sources/fixtures/sam-trades/), and the per-opportunity detail
+      # fetcher is INJECTED. No DATABASE_URL is required.
+      - name: Janitorial + trucking ingestion tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/sam-gov-trades.test.ts src/lib/janitorial-trucking.test.ts
+      # Ohio Phase 3 — City of Dayton connector (owner-locked order step ②, 2026-09-23).
+      # DETERMINISTIC and network-free by construction: every byte it reads is a
+      # VERBATIM full-page fixture captured from the official City of Dayton board on
+      # 2026-09-23 (src/jobs/sources/fixtures/dayton/, incl. the real
+      # `?showAllBids=true&Status=all` empty-list response), and the parse is a PURE
+      # function. No DATABASE_URL. This suite is listed EXPLICITLY because a new
+      # deterministic suite that no workflow names runs nowhere (the reason
+      # runner.dedupe.test.ts went unrun for weeks). It also pins the source
+      # registration (TAIL_SOURCES 6→7, SOURCE_HOME_JURISDICTIONS oh_dayton→OH,
+      # the non-federal "City" badge) that nothing else in CI covers.
+      - name: City of Dayton connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/oh-dayton.test.ts
+      # Radar search regression pins (owner 09-13/09-14 FIX 1 + FIX 2 match quality).
+      # THIS FILE WAS REFERENCED BY NO WORKFLOW, which is how the R3 "cleaning
+      # services" regression slipped past green CI: it turned the owner's FIX-1 pin
+      # ("Remediation and Specialty Cleaning Services") back into a STRONG default
+      # janitorial match, and its own pin for that was red while CI stayed green
+      # (QA re-verification of PR #414, N1, 2026-09-21).
+      # Runs with NO DATABASE_URL: the driver-level bind cases use this file's
+      # shape-identical stub factory, and the three tests whose assertions pin
+      # SPECIFIC production row ids are quarantined behind RADAR_LIVE_ROW_PINS=1
+      # (their pinned rows have expired in the live corpus — live-data checks are
+      # opt-in in this repo, never part of the default run). Without the stub the
+      # whole file was unrunnable here (`~/db`'s sql() throws with no
+      # DATABASE_URL), which is the second half of why it was unrun.
+      - name: Radar search regression tests (unit half; deterministic, zero network, no DATABASE_URL)
+        run: bun test src/lib/radar-search.regression.test.ts
       # State grants (owner R3 order, 2026-09-19): the unit half (schema.sql
       # mirror assertions, parsers, search/coverage shaping) always runs; the
       # DB-backed half — including state-grants-bootstrap.test.ts, which builds a

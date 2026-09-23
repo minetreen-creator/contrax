@@ -24,6 +24,7 @@
 
 import type { RawBid } from "./sam-gov";
 import type { FetchResult } from "../runner";
+import { isJanitorialWork, isTransportationWork } from "~/lib/trade-classification";
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
 const DETAIL_API = "https://sam.gov/api/prod/opps/v2/opportunities/";
@@ -104,10 +105,25 @@ function normalizeSetAside(raw: unknown): string | null {
   return s;
 }
 
-function mapCategory(title: string, description: string): string {
-  const full = (title + " " + description).toLowerCase();
-  if (full.includes("janitor") || full.includes("custodial") || full.includes("housekeeping")) return "Janitorial";
-  if (full.includes("clean") || full.includes("sanitat")) return "Cleaning";
+/**
+ * VA eVA's category stamp (QA F4a).
+ *
+ * The TRADE decisions are the SHARED classifier's (src/lib/trade-classification.ts),
+ * so the owner's purchased-service-only rule holds here exactly as on SAM.gov.
+ * This source previously had its own `full.includes("clean") || .includes("sanitat")
+ * → "Cleaning"` branch — the bare-substring amplifier (a "Gun Range Cleaning", a
+ * "sewer jetting", a "cleaning supplies" notice was both stamped Cleaning and
+ * unreachable by the Janitorial trade) — and NO trucking branch at all, so VA
+ * freight/moving work fell through to "Other".
+ *
+ * VA-specific non-trade branches (Construction) are kept EXACTLY as they were.
+ * Exported so it is testable with zero network.
+ */
+export function vaEvCategory(title: string, description = ""): string {
+  const titleLc = (title || "").toLowerCase();
+  const full = `${titleLc} ${(description || "").toLowerCase()}`.trim();
+  if (isTransportationWork(titleLc, full)) return "Transportation";
+  if (isJanitorialWork(titleLc, full)) return "Janitorial";
   if (full.includes("construct") || full.includes("renovat") || full.includes("demolit")) return "Construction";
   return "Other";
 }
@@ -178,7 +194,7 @@ async function queryPass(
           agency,
           description,
           location: popCityState(detail) ?? "Virginia",
-          category: mapCategory(item.title || "", description),
+          category: vaEvCategory(item.title || "", description),
           due_date: item.responseDate || item.responseDateActual || null,
           estimated_value: item.award?.amount ? `${Number(item.award.amount).toLocaleString()}` : "Not specified",
           source_url: noticeId ? `https://sam.gov/opp/${noticeId}/view` : "https://sam.gov/search/",

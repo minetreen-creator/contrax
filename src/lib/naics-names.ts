@@ -181,6 +181,11 @@ export const NAICS_NAMES: Record<string, string> = {
   "484110": "General Freight Trucking, Local",
   "484121": "General Freight Trucking, Long-Distance, Truckload",
   "484122": "General Freight Trucking, Long-Distance, Less Than Truckload",
+  // Owner PRIORITY 09-21 (janitorial + trucking ingestion, audit §1.2): + 484210
+  // Used Household & Office Goods Moving — the LARGEST trucking code in our own
+  // corpus (22 rows / 4 open) and the owner's "used household/office goods
+  // moving". It was absent here, so it could never be implied by any trade.
+  "484210": "Used Household and Office Goods Moving",
   "484220": "Specialized Freight (except Used Goods) Trucking, Local",
   "484230": "Specialized Freight Trucking, Long-Distance",
   // Owner 09-15 (delivery/logistics/warehousing trades): + 488510 Freight

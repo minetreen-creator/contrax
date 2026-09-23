@@ -15,8 +15,11 @@
  *   homepage "Newest solicitations" window is a rolling 24h) and can be
  *   triggered manually via workflow_dispatch. The Vercel cron entry for
  *   /api/sync-bids was removed — Vercel Hobby's 10s serverless cap cannot
- *   fit a multi-minute sync across 61 sources (4 SAM.gov passes, 51
- *   state-keyword queries, 6 open-data tail). /api/sync-bids remains as an
+ *   fit a multi-minute sync across 73 sources (15 SAM.gov passes — 4 fixed +
+ *   11 trade-filter; 51 state-keyword queries; 7 open-data tail). Counts are
+ *   DERIVED from the arrays below (SAM_GOV_SOURCES / SAM_TRADE_FILTERS /
+ *   STATE_KEYWORD_SOURCES / TAIL_SOURCES) — do not hardcode a total here; the
+ *   run's own "Sources:" line lists every name. /api/sync-bids remains as an
  *   admin diagnostic that returns 202 and points at the workflow.
  *
  * Performance notes:
@@ -31,6 +34,7 @@
 import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { US_STATES } from "../lib/states";
 import { deriveInsertLocationColumns } from "../lib/location-state";
+import { toIsoDueDate } from "../lib/date";
 import { fetchBids as fetchSamGov } from "./sources/sam-gov";
 import {
   createSamTradeSource,
@@ -40,6 +44,7 @@ import { fetchBids as fetchCities } from "./sources/cities";
 import { nysSocrataSource } from "./sources/socrata";
 import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
 import { fetchPennBidOpen } from "./sources/pennbid";
+import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
@@ -86,7 +91,7 @@ export type FetchFn = () => Promise<RawBid[] | FetchResult>;
  */
 export const MISSING_AGENCY_MAX_PCT = 25;
 
-interface SyncSource {
+export interface SyncSource {
   name: string;
   fetchFn: FetchFn;
 }
@@ -154,8 +159,14 @@ const STATE_KEYWORD_SOURCES: SyncSource[] = US_STATES.map((code) => ({
  * different APIs, so they interleave one-at-a-time between state-keyword
  * batches — each is isolated so one failing never blocks the others.
  */
-const TAIL_SOURCES: SyncSource[] = [
+export const TAIL_SOURCES: SyncSource[] = [
   { name: "nys_socrata", fetchFn: nysSocrataSource },
+  // Ohio Phase 3 (owner-locked order step ②, plan rev 285): the City of Dayton's
+  // own CivicEngage bid board — the first non-federal OHIO-local bid source in the
+  // corpus. A tail source gets its OWN collector_run_log row while adding ZERO
+  // SAM.gov load (tail sources interleave one per state-keyword batch), so its
+  // freshness / ran_zero / quality_gate stay independently observable.
+  { name: "oh_dayton", fetchFn: fetchOhDaytonBids },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 
@@ -199,12 +210,6 @@ const BID_COLUMNS = [
 ] as const;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-function toIsoDueDate(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? null : d.toISOString();
-}
 
 /**
  * IN-BATCH NATURAL-KEY DEDUPE (owner-authorized 2026-09-21, PR #414 follow-up).

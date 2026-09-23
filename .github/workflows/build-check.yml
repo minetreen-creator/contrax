@@ -123,6 +123,18 @@ jobs:
       # fetcher is INJECTED. No DATABASE_URL is required.
       - name: Janitorial + trucking ingestion tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/sam-gov-trades.test.ts src/lib/janitorial-trucking.test.ts
+      # Ohio Phase 3 — City of Dayton connector (owner-locked order step ②, 2026-09-23).
+      # DETERMINISTIC and network-free by construction: every byte it reads is a
+      # VERBATIM full-page fixture captured from the official City of Dayton board on
+      # 2026-09-23 (src/jobs/sources/fixtures/dayton/, incl. the real
+      # `?showAllBids=true&Status=all` empty-list response), and the parse is a PURE
+      # function. No DATABASE_URL. This suite is listed EXPLICITLY because a new
+      # deterministic suite that no workflow names runs nowhere (the reason
+      # runner.dedupe.test.ts went unrun for weeks). It also pins the source
+      # registration (TAIL_SOURCES 6→7, SOURCE_HOME_JURISDICTIONS oh_dayton→OH,
+      # the non-federal "City" badge) that nothing else in CI covers.
+      - name: City of Dayton connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/oh-dayton.test.ts
       # Radar search regression pins (owner 09-13/09-14 FIX 1 + FIX 2 match quality).
       # THIS FILE WAS REFERENCED BY NO WORKFLOW, which is how the R3 "cleaning
       # services" regression slipped past green CI: it turned the owner's FIX-1 pin

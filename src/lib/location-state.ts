@@ -183,13 +183,22 @@ export function resolveBidState(
 
 /** A row is geo-relevant to the selected state when it IS that state or
  * nationwide/unknown (no resolvable geography). Buyer/agency fallback applies
- * when the performance location carries no state. */
+ * when the performance location carries no state.
+ *
+ * AGENCY-JURISDICTION RULE first (owner-ratified 2026-09-23): a row whose BUYER
+ * is on the curated list is that state's LOCAL row — relevance is decided by the
+ * rule BEFORE the national-scope short-circuit, which is the entire point of the
+ * narrow discriminator. It can only fire for an agency on the explicit list, so
+ * every other "United States"-located federal row keeps today's semantics: kept
+ * (as nationwide) for every state. */
 export function geoRelevant(
   location: string | null | undefined,
   agency: string | null | undefined,
   stateCode: string,
 ): boolean {
   if (!stateCode) return true;
+  const rule = agencyJurisdictionState(agency);
+  if (rule) return rule.state === stateCode; // another state's LOCAL row → not relevant
   if (isNationalScope(location)) return true; // national-scope row → never state-local
   const bidState = resolveBidState(location, agency);
   if (!bidState) return true; // nationwide/unknown → kept (pre-existing semantics)
@@ -214,19 +223,91 @@ export function isNationalScope(location: string | null | undefined): boolean {
   if (!loc) return false; // absent → keep the buyer/agency fallback (breadth fix)
   return NATIONAL_SCOPE_LOCATIONS.test(loc);
 }
+/**
+ * AGENCY-JURISDICTION RULE — the owner-RATIFIED narrow discriminator (plan rev
+ * 282/284/285, 2026-09-23) for the Ohio Army National Guard rows whose `location`
+ * is the "United States" placeholder while their CONTRACTING OFFICE is a named
+ * Ohio installation (live rows 134001 / 135456 / 133853; 134001 closed 09-22).
+ *
+ * WHY NOT THE STORED GEOGRAPHY COLUMNS: the SELECT-only probe
+ * (shared/ohio-phase3-prep-2026-09-23/cjag-stored-geo-probe-2026-09-23.txt)
+ * proved those columns do NOT discriminate — the FIX 2 rows carry PA/NY through
+ * the very same agency-text fallback ("DLA AVIATION AT PHILADELPHIA, PA" →
+ * 'PA'). A broad stored-geography read would therefore turn those NATIONWIDE
+ * contracts into state-local matches and break FIX 2.
+ *
+ * WHY A LITERAL AGENCY LIST: it is narrow, auditable and exercisable as a pure
+ * function; both regression pins (OH-ARNG → local, DLA-Philadelphia → nationwide)
+ * sit side by side in radar-search.regression.test.ts. It deliberately does NOT
+ * key on `source` — those rows are `sam_gov`, a FEDERAL label, so a source-keyed
+ * map could never flip them — and it does NOT key on "a state code appears
+ * somewhere in the agency text" (that is precisely the broad read that breaks
+ * FIX 2). The matched phrase is a contracting-office code plus its own
+ * jurisdiction ("W7NU USPFO ACTIVITY OH ARNG"), so containment cannot capture
+ * an unrelated agency.
+ *
+ * NOT INCLUDED, deliberately: the 11 "MWR OHIO (64000)" rows. An agency whose
+ * NAME mentions a state is not evidence the work is performed there; they stay
+ * nationwide until a separate verification confirms Ohio relevance.
+ *
+ * PROVENANCE: the `bids` schema has NO geography_source column today, so nothing
+ * is persisted by this rule — provenance is carried by
+ * `AGENCY_JURISDICTION_PROVENANCE` ("agency_jurisdiction_rule") in the consumer's
+ * return value, by this comment, by the test names and by the PR description.
+ * Adding a column would need an owner-gated migration and is deliberately NOT
+ * done here.
+ */
+export const AGENCY_JURISDICTION_PROVENANCE = "agency_jurisdiction_rule";
+interface AgencyJurisdictionRule {
+  state: string;
+  match: RegExp;
+}
+const AGENCY_JURISDICTION_RULES: readonly AgencyJurisdictionRule[] = [
+  // Ohio Army National Guard — USPFO ACTIVITY OH ARNG (Wright-Patterson AFB /
+  // Springfield ANGB contracting office). Whitespace-tolerant + case-insensitive
+  // so an extra space in the source text cannot silently drop the rule.
+  { state: "OH", match: /W7NU\s+USPFO\s+ACTIVITY\s+OH\s+ARNG/i },
+];
+/**
+ * Resolve a row's jurisdiction from its AGENCY (contracting office) alone, via
+ * the curated narrow rules above. PURE. Returns null for every agency not on the
+ * list — i.e. every federal "United States"-located row (DLA, USACE districts,
+ * MWR offices, …) keeps today's nationwide semantics.
+ */
+export function agencyJurisdictionState(
+  agency: string | null | undefined,
+): { state: string; provenance: string } | null {
+  const a = String(agency ?? "").replace(/\s+/g, " ").trim();
+  if (!a) return null;
+  for (const rule of AGENCY_JURISDICTION_RULES) {
+    if (rule.match.test(a)) {
+      return { state: rule.state, provenance: AGENCY_JURISDICTION_PROVENANCE };
+    }
+  }
+  return null;
+}
 
 /** Radar bucket for one scanned match (owner 09-14). "local" ONLY when the
  *  requested state is set, the row is NOT national-scope, and its resolved
  *  geography (performance location, then buyer/agency) equals the requested
  *  state. Everything else — no state requested ("Any state (nationwide)"),
  *  national scope, or a different state — is "nationwide". Single source of
- *  truth for the handler's three-way bucketing and the regression tests. */
+ *  truth for the handler's three-way bucketing and the regression tests.
+ *
+ *  AGENCY-JURISDICTION RULE (owner-ratified narrow rule, 2026-09-23) is consulted
+ *  FIRST: an agency on the curated list is bucketed by the rule's state, so the
+ *  Ohio-ARNG rows bucket LOCAL for Ohio even though their location is the
+ *  "United States" placeholder. Every agency NOT on the list reaches the
+ *  unchanged national-scope branch below, which is what keeps the FIX 2 pin
+ *  (DLA Philadelphia → nationwide) exactly as it was. */
 export function matchGeographyBucket(
   stateCode: string,
   location: string | null | undefined,
   agency: string | null | undefined,
 ): "local" | "nationwide" {
   if (!stateCode) return "nationwide";
+  const rule = agencyJurisdictionState(agency);
+  if (rule) return rule.state === stateCode ? "local" : "nationwide";
   if (isNationalScope(location)) return "nationwide";
   return resolveBidState(location, agency) === stateCode ? "local" : "nationwide";
 }
@@ -496,11 +577,16 @@ export function displayPlaceOfPerformance(
  *  itself is a state program, so the code is never a guess:
  *    pennbid       → Pennsylvania local-government solicitation portal.
  *    va_evirginia  → eVA Virginia; keeps only VA place-of-performance items.
+ *    oh_dayton     → the City of Dayton's OWN bid board (Ohio Phase 3). The city
+ *                    names its own state; the entry makes source_jurisdiction
+ *                    provable-by-construction instead of text-derived.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
- *  where unprovable) — same conservative rule as normalized_state. */
-const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
+ *  where unprovable) — same conservative rule as normalized_state.
+ *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
+export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   pennbid: "PA",
   va_evirginia: "VA",
+  oh_dayton: "OH",
 };
 
 export interface InsertLocationColumns {

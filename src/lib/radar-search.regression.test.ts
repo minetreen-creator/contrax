@@ -72,6 +72,8 @@ import {
   locationConflict,
   isNationalScope,
   matchGeographyBucket,
+  agencyJurisdictionState,
+  AGENCY_JURISDICTION_PROVENANCE,
 } from "~/lib/location-state";
 import { runKeywordScanQuery, runRelatedScanQuery, RadarScanError } from "~/lib/radar-scan-query";
 
@@ -856,6 +858,66 @@ describe("FIX 2 local accuracy (owner 09-14): nationwide contracts NEVER count a
     expect(matchGeographyBucket("PA", "Pennsylvania", "East Vincent Township, Chester County")).toBe("local");
     expect(matchGeographyBucket("PA", null, "Pennsylvania Department of Environmental Protection")).toBe("local");
   });
+  // ═══ OHIO PHASE 3 (owner-ratified narrow rule, plan rev 282/284/285, 2026-09-23) ═══
+  // BOTH DIRECTIONS OF THE SAME RULE SIT IN THIS DESCRIBE, side by side, because
+  // they are the decision's two halves: the Ohio Army National Guard rows become
+  // Ohio-LOCAL, and every other federal "United States"-located row (DLA
+  // Philadelphia class above) stays NATIONWIDE. The discriminator is the AGENCY
+  // string only — never the stored normalized_state / source_jurisdiction columns
+  // (the SELECT-only probe shared/ohio-phase3-prep-2026-09-23/
+  // cjag-stored-geo-probe-2026-09-23.txt proved those carry PA/NY for the very
+  // FIX 2 rows too, so reading them would flip DLA into a "local" match and break
+  // the pin above).
+  test("agency-jurisdiction rule: the OH-ARNG rows are Ohio-LOCAL, and DLA/other 'United States' rows stay NATIONWIDE", () => {
+    const ARNG = "W7NU USPFO ACTIVITY OH ARNG"; // live rows 134001 / 135456 / 133853
+    // Provenance is explicit and honest: 'agency_jurisdiction_rule' (there is no
+    // geography_source column in the bids schema — nothing is persisted here; the
+    // rule is pure read-path logic and its provenance rides on this constant).
+    expect(AGENCY_JURISDICTION_PROVENANCE).toBe("agency_jurisdiction_rule");
+    expect(agencyJurisdictionState(ARNG)).toEqual({
+      state: "OH",
+      provenance: "agency_jurisdiction_rule",
+    });
+    // Whitespace/case tolerant, so a source-text wobble cannot silently drop it.
+    expect(agencyJurisdictionState("  w7nu   uspfo activity oh arng ")).toEqual({
+      state: "OH",
+      provenance: "agency_jurisdiction_rule",
+    });
+
+    // ── Ohio: LOCAL in the bucket AND kept by the search-side filter ──
+    // (geoRelevant is the EXACT predicate runRadarScan filters with, so this is
+    // the "search-side outcome matches the bucketed result" pin.)
+    expect(matchGeographyBucket("OH", "United States", ARNG)).toBe("local");
+    expect(geoRelevant("United States", ARNG, "OH")).toBe(true);
+    // The placeholder location no longer costs it the state-local geo credit…
+    expect(isNationalScope("United States")).toBe(true); // (the short-circuit itself is intact)
+
+    // ── …but it is Ohio's OWN row, not a nationwide-eligible one ──
+    // A row classified Ohio-local must not keep riding along in another state's
+    // "Open nationwide" bucket: the rule answers for OTHER states too.
+    expect(matchGeographyBucket("PA", "United States", ARNG)).toBe("nationwide");
+    expect(geoRelevant("United States", ARNG, "PA")).toBe(false);
+    // "Any state (nationwide)" browse is unchanged (no state requested).
+    expect(matchGeographyBucket("", "United States", ARNG)).toBe("nationwide");
+
+    // ── FIX 2 PRESERVED: the broad read this rule deliberately is NOT ──
+    for (const [st, agency] of [
+      ["PA", "DLA AVIATION AT PHILADELPHIA, PA"],
+      ["NY", "W2SD ENDIST NEW YORK"],
+      ["DC", "WASHINGTON DC OFFICE"],
+      ["OH", "MWR OHIO (64000)"], // 11 live rows — NOT Ohio-local (separate verification)
+      ["PA", "W7NU USPFO ACTIVITY PA ARNG"], // same office code, a DIFFERENT state
+      ["OH", "USPFO ACTIVITY OH ARNG"], // no office code → rule does not fire
+    ] as Array<[string, string]>) {
+      expect(agencyJurisdictionState(agency)).toBeNull();
+      expect(matchGeographyBucket(st, "United States", agency)).toBe("nationwide");
+      expect(geoRelevant("United States", agency, st)).toBe(true); // still nationwide-kept
+    }
+    // A state-named buyer is NOT a jurisdiction signal: the FIX 2 pin in full.
+    expect(matchGeographyBucket("PA", "United States", "DLA AVIATION AT PHILADELPHIA, PA")).toBe("nationwide");
+    expect(geoRelevant("United States", "DLA AVIATION AT PHILADELPHIA, PA", "OH")).toBe(true);
+  });
+
 
   test("real pipeline: 134321 is a strong trucking match but NATIONWIDE in every scanned state — never local (DB-backed)", async () => {
     if (!HAS_DB) return;

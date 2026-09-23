@@ -42,6 +42,7 @@ import {
 } from "./sources/sam-gov-trades";
 import { fetchBids as fetchCities } from "./sources/cities";
 import { nysSocrataSource } from "./sources/socrata";
+import { collectorHealthRows } from "../lib/collector-freshness";
 import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
 import { fetchPennBidOpen } from "./sources/pennbid";
 import { fetchOhDaytonBids } from "./sources/oh-dayton";
@@ -906,6 +907,61 @@ export async function runSync(): Promise<SyncResult> {
     if (r.qualityGate === "fail") {
       console.error(`   ⛔ [${source}] QUALITY GATE FAIL — latest collector_run_log row carries quality_gate='fail'`);
     }
+  }
+  // RUN-RECORD ACCOUNTING — the invariant QA reads as proof (nationwide PR-B
+  // brief §4 item 3): every persisted `collector_run_log` row must satisfy
+  // `fetched = accepted + skipped + failed`, so a reader can never be shown a run
+  // that claims rows it cannot account for. It is checked per source inside
+  // `syncSource` (and the counts written to the run row are those same numbers);
+  // asserted here ONCE at the run level, because the health tiers below are
+  // derived from exactly these counts. A source whose fetch threw contributes
+  // 0/0/0/0 and one error, so the invariant still holds for it.
+  const totalAccepted = Object.values(results).reduce((s, r) => s + r.accepted, 0);
+  const totalSkipped = Object.values(results).reduce(
+    (s, r) => s + Object.values(r.skipped).reduce((a, n) => a + n, 0),
+    0,
+  );
+  const totalFailed = Object.values(results).reduce((s, r) => s + r.failed, 0);
+  console.log(
+    `   Accounting: fetched ${totalFetched} = accepted ${totalAccepted} + skipped ${totalSkipped} + failed ${totalFailed}`,
+  );
+  if (totalFetched !== totalAccepted + totalSkipped + totalFailed) {
+    console.error(
+      `   ⛔ run-record invariant broken (fetched ${totalFetched} != accepted ${totalAccepted} + skipped ${totalSkipped} + failed ${totalFailed})`,
+    );
+  }
+
+  // COLLECTOR HEALTH (FIX ②, owner-locked nationwide correctness fix 2026-09-23):
+  // the run log must not present a dead collector as a fresh one. `nys_socrata`
+  // spent 43 consecutive runs reported FRESH while both of its datasets answered
+  // 404 and it fetched nothing. Same tier rule as the `collector_staleness` view
+  // (migration 049) — one definition, ~/lib/collector-freshness — reported here per
+  // SOURCE for the run that just finished, from the run record itself: a source
+  // that threw (errors > 0, zero rows) is DEAD, an honest zero is EMPTY, and
+  // neither is ever called fresh.
+  const healthNow = new Date();
+  const health = collectorHealthRows(
+    Object.entries(results).map(([source, r]) => ({
+      source,
+      last_run_at: healthNow,
+      rows_fetched: r.fetched,
+      ran_zero: r.fetched === 0,
+      errors: r.errors.length,
+    })),
+    healthNow,
+  );
+  const dead = health.filter((h) => h.tier === "DEAD");
+  const failed = health.filter((h) => h.tier === "FAILED");
+  const empty = health.filter((h) => h.tier === "EMPTY");
+  console.log(
+    `\n🩺 Collector health: ${health.length - dead.length - failed.length - empty.length} fresh, ` +
+      `${empty.length} empty (ran clean, zero rows), ${failed.length} failed (partial), ${dead.length} dead`,
+  );
+  for (const h of [...dead, ...failed]) {
+    console.error(`   ⛔ [${h.source}] ${h.tier} — ${h.reason}`);
+  }
+  for (const h of empty) {
+    console.log(`   ⚪ [${h.source}] EMPTY — ${h.reason}`);
   }
 
   // Generate durable in-app bid alerts for every matching profile.

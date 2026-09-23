@@ -233,7 +233,11 @@ export function createStateKeywordSource(
             const location = extractLocation(
               orgs,
               description,
-              detail.placeOfPerformance,
+              // The shared v2 mapper types placeOfPerformance as
+              // `PlaceOfPerformance | null`; this source's extractLocation takes
+              // it as optional (`| undefined`) and only ever reads it with `?.`,
+              // so null → undefined is exact no-op behavior at runtime.
+              detail.placeOfPerformance ?? undefined,
             );
             await new Promise((r) => setTimeout(r, detailDelayMs));
 

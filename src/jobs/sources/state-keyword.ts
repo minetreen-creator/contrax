@@ -8,9 +8,43 @@
  *
  * API: GET https://sam.gov/api/prod/sgs/v1/search/?q=<StateName>&...
  * Same headers/format as sam-gov.ts — see that file for field mappings.
+ *
+ * NATIONWIDE CORRECTNESS FIX ⑤ STEP A (owner-locked scope, PR B1)
+ * --------------------------------------------------------------
+ * A door row used to carry title/agency/description/location/category/due_date
+ * and NOTHING else, even though the v2 detail payload the door already fetched
+ * for place-of-performance ALSO carries the PSC, the notice type and SAM's own
+ * solicitation number. Two consequences, both measured:
+ *   - the stored row could not participate in the 5-dimension natural key
+ *     (notice_type/psc NULL ⇒ the key degenerated to (title, agency), which is
+ *     exactly how 4,059 duplicate groups / 14,690 rows accumulated); and
+ *   - the door's `external_id` was `<st>-<_id>`, i.e. SAM's notice VERSION id
+ *     behind a per-door prefix, so the same notice had a different id in every
+ *     door and identity was not stable across doors.
+ * This file now (a) keeps the SAME single detail request per notice and reads
+ * its classificationCode / type / solicitationNumber out of it (no extra network
+ * call, no extra load on SAM.gov), and (b) writes the canonical
+ * `sam-<parentNoticeId || _id>` external_id plus a `notice_key` for the
+ * run-level identity guard (src/jobs/notice-identity.ts).
+ *
+ * UNCHANGED, deliberately: the search URL shape (`q=<StateName>`, size 25,
+ * MAX_PAGES 1, is_active=true, no state=/psc=/naics= filter), the
+ * place-of-performance-first location with the honest "Unknown" fallback (never
+ * the query state), the category classifier, due_date, estimated_value, the
+ * `<StateName> Agency` fallback, and NAICS — a door never supplies a NAICS code,
+ * so the row's code stays inference-derived (`naics_code_source='inferred'`).
+ * set_aside is also untouched (the doors' NULL set-aside sits inside the
+ * owner-gated cert-matching decision, option E).
  */
 
-import type { RawBid } from "./sam-gov";
+import {
+  canonicalNoticeId,
+  extractNoticeType,
+  fetchOpportunityDetailFull,
+  type OpportunityDetailWithLocation,
+  type PlaceOfPerformance,
+  type RawBid,
+} from "./sam-gov";
 import { mapCategory as classifyCategory } from "~/lib/trade-classification";
 
 /** 2-letter state code → full state name (50 states + District of Columbia). */
@@ -69,12 +103,11 @@ export const STATE_NAMES: Record<string, string> = {
 };
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
-/** Per-opportunity detail endpoint — the only place SAM exposes
- * place-of-performance (the v1 search summary never includes location). */
-const DETAIL_API = "https://sam.gov/api/prod/opps/v2/opportunities/";
 const PAGE_SIZE = 25;
 const MAX_PAGES = 1;
 const DELAY_MS = 500;
+/** Politeness delay after each v2 detail request (same as the other passes). */
+const DETAIL_DELAY_MS = 120;
 
 const HEADERS = {
   "User-Agent":
@@ -98,39 +131,173 @@ function stripHtml(html: string): string {
     .trim();
 }
 
-/** Place-of-performance shape from the SAM.gov v2 detail endpoint
- * (data2.placeOfPerformance): { zip, city: {code, name}, state: {code, name},
- * country, streetAddress }. */
-type PlaceOfPerformance = {
-  city?: { name?: string };
-  state?: { code?: string; name?: string };
-} | null;
+/** The empty detail bundle (used when a notice carries no id at all). */
+const EMPTY_DETAIL: OpportunityDetailWithLocation = {
+  setAside: null,
+  naicsCode: null,
+  psc: null,
+  noticeType: null,
+  solicitationNumber: null,
+  placeOfPerformance: null,
+};
+
+/** Trimmed value or null — mirrors the mapper's normalization of SAM's own
+ * (space-padded) solicitation numbers. */
+function trimOrNull(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  const v = String(value).trim();
+  return v === "" ? null : v;
+}
+
+/** Deterministic test seam: the v1 page fetcher + the v2 detail fetcher. */
+export interface StateKeywordDeps {
+  /** v1 search page fetcher; injected in tests from saved fixtures (zero
+   *  network). Defaults to the real SAM.gov search call. */
+  fetchJson?: (url: string) => Promise<any>;
+  /** v2 detail fetcher; injected in tests from a saved payload (zero network).
+   *  Defaults to `fetchOpportunityDetailFull` — the SAME mapper the national
+   *  pass and the trade passes use. */
+  detailFetcher?: (noticeId: string) => Promise<OpportunityDetailWithLocation>;
+  /** Override the per-detail politeness delay (tests use 0). */
+  detailDelayMs?: number;
+}
+
+/** The real v1 page fetch: same headers/status handling as before. */
+async function defaultFetchJson(tag: string, page: number, url: string): Promise<any> {
+  const resp = await fetch(url, { headers: HEADERS });
+  if (!resp.ok) {
+    console.error(`  ${tag} page ${page} returned ${resp.status}`);
+    // A non-200 yields no items ⇒ the page loop ends (page 0 was the only page
+    // this source has ever asked for: MAX_PAGES = 1).
+    return null;
+  }
+  return resp.json();
+}
 
 /**
- * Fetches the authoritative place-of-performance for an opportunity. The v1
- * search summary never includes location fields, so a bid whose org name and
- * truncated description carry no location signal would otherwise be labeled
- * with the query state (wrong for out-of-state listings). Best-effort: any
- * failure returns null so a detail fetch can never break the sync.
+ * Creates a SAM.gov keyword source for a single state.
+ *
+ * @param stateName Full state name, e.g. "North Carolina" (used as the SAM.gov
+ *   q= query term and as the agency fallback label).
+ * @param stateAbbr 2-letter code, e.g. "NC" (used for the log labels).
+ * @param deps Optional deterministic test seam (saved fixtures); production
+ *   callers pass nothing and get the real SAM.gov calls.
+ * @returns A fetch function returning RawBid[] — same contract as the legacy
+ *   per-state source files.
  */
-async function fetchPlaceOfPerformance(
-  noticeId: string,
-): Promise<PlaceOfPerformance> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 10000);
-  try {
-    const resp = await fetch(`${DETAIL_API}${noticeId}`, {
-      headers: HEADERS,
-      signal: controller.signal,
-    });
-    if (!resp.ok) return null;
-    const data = await resp.json();
-    return data?.data2?.placeOfPerformance ?? null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+export function createStateKeywordSource(
+  stateName: string,
+  stateAbbr: string,
+  deps: StateKeywordDeps = {}
+): () => Promise<RawBid[]> {
+  const tag = stateAbbr.toUpperCase();
+  const fallbackAgency = `${stateName} Agency`;
+  const detailDelayMs = deps.detailDelayMs ?? DETAIL_DELAY_MS;
+  const fetchDetail = deps.detailFetcher ?? fetchOpportunityDetailFull;
+
+  return async (): Promise<RawBid[]> => {
+    const results: RawBid[] = [];
+
+    for (let page = 0; page < MAX_PAGES; page++) {
+      try {
+        const url = `${SAM_API}?page=${page}&size=${PAGE_SIZE}&sort=-modifiedDate&mode=opportunities&q=${encodeURIComponent(stateName)}&is_active=true`;
+        console.log(`  ${tag}: fetching page ${page + 1}/${MAX_PAGES}...`);
+
+        const data = deps.fetchJson
+          ? await deps.fetchJson(url)
+          : await defaultFetchJson(tag, page, url);
+        const items = data?._embedded?.results;
+        if (!items || items.length === 0) break;
+
+        for (const item of items) {
+          try {
+            const descContent = item.descriptions?.[0]?.content || "";
+            const description = stripHtml(descContent).substring(0, 2000);
+
+            const orgs = item.organizationHierarchy || [];
+            const deepestOrg = orgs[orgs.length - 1];
+            const agency = deepestOrg?.name || orgs[0]?.name || fallbackAgency;
+
+            // The canonical notice identity (`parentNoticeId || _id`): the SAME
+            // expression this source has always used for the notice URL, now
+            // also the row's external_id suffix and the run-level guard's key.
+            const noticeId = canonicalNoticeId(item);
+
+            // ONE detail request per notice (exactly as before): the v2 payload
+            // holds the authoritative place-of-performance AND the provenance
+            // fields this row previously discarded (PSC / notice type /
+            // solicitation number).
+            const detail = noticeId
+              ? await fetchDetail(noticeId)
+              : EMPTY_DETAIL;
+            const location = extractLocation(
+              orgs,
+              description,
+              // The shared v2 mapper types placeOfPerformance as
+              // `PlaceOfPerformance | null`; this source's extractLocation takes
+              // it as optional (`| undefined`) and only ever reads it with `?.`,
+              // so null → undefined is exact no-op behavior at runtime.
+              detail.placeOfPerformance ?? undefined,
+            );
+            await new Promise((r) => setTimeout(r, detailDelayMs));
+
+            const category = mapCategory(item.title || "", description);
+
+            const dueDate = item.responseDate || item.responseDateActual || null;
+
+            let estimatedValue = "Not specified";
+            if (item.award?.amount) {
+              estimatedValue = `${Number(item.award.amount).toLocaleString()}`;
+            }
+
+            const sourceUrl = noticeId
+              ? `https://sam.gov/opp/${noticeId}/view`
+              : "https://sam.gov/search/";
+
+            // Summary first (human-readable label + SAM's own number), detail as
+            // the fallback — the same precedence the shared mapper uses.
+            const solicitationNumber =
+              trimOrNull(item.solicitationNumber) ??
+              trimOrNull(detail.solicitationNumber);
+            const noticeType =
+              extractNoticeType(item) ?? trimOrNull(detail.noticeType);
+
+            results.push({
+              // Canonical SAM-family identity (FIX ⑤): stable across the doors,
+              // unlike the former per-door `<st>-<_id>` prefix.
+              external_id: `sam-${noticeId || solicitationNumber || `page${page}-${results.length}`}`,
+              title: item.title || "Untitled Opportunity",
+              agency,
+              description,
+              location,
+              category,
+              due_date: dueDate,
+              estimated_value: estimatedValue,
+              source_url: sourceUrl,
+              // FIX ⑤ step A: provenance the door already fetched. NAICS and
+              // set_aside are deliberately NOT populated (never invented; the
+              // NAICS stays inference-derived with source 'inferred').
+              psc: detail.psc,
+              notice_type: noticeType,
+              solicitation_number: solicitationNumber,
+              notice_key: noticeId,
+            });
+          } catch (e) {
+            console.error(`  ${tag}: error parsing item:`, (e as Error).message);
+          }
+        }
+
+        console.log(`  ${tag} page ${page + 1}: got ${items.length} items (total: ${results.length})`);
+
+        if (items.length < PAGE_SIZE) break;
+        await new Promise((r) => setTimeout(r, DELAY_MS));
+      } catch (e) {
+        console.error(`  ${tag} page ${page} error:`, (e as Error).message);
+      }
+    }
+
+    return results;
+  };
 }
 
 export function extractLocation(
@@ -166,108 +333,9 @@ function mapCategory(title: string, description: string): string {
   // OWNER PRIORITY 09-21 (R4): the single shared classifier — no bare "cleaning"
   // janitorial branch, a real trucking/transportation branch, and the
   // purchased-service-only guards (product buys / dump-truck listings never
-  // classify into these trades). This source has no notice type, so "" is passed.
+  // classify into these trades). The classifier contract is unchanged by FIX ⑤:
+  // the door still passes "" as the notice type, so `category` is derived from
+  // title/description only (a door row's stored notice_type is provenance —
+  // `trade-classification` order is NOT touched here).
   return classifyCategory("", title, description);
-}
-
-/**
- * Creates a SAM.gov keyword source for a single state.
- *
- * @param stateName Full state name, e.g. "North Carolina" (used as the SAM.gov
- *   q= query term and as the agency fallback label).
- * @param stateAbbr 2-letter code, e.g. "NC" (used for the external_id prefix
- *   and log labels).
- * @returns A fetch function returning RawBid[] — same contract as the legacy
- *   per-state source files.
- */
-export function createStateKeywordSource(
-  stateName: string,
-  stateAbbr: string
-): () => Promise<RawBid[]> {
-  const tag = stateAbbr.toUpperCase();
-  const prefix = stateAbbr.toLowerCase();
-  const fallbackAgency = `${stateName} Agency`;
-
-  return async (): Promise<RawBid[]> => {
-    const results: RawBid[] = [];
-
-    for (let page = 0; page < MAX_PAGES; page++) {
-      try {
-        const url = `${SAM_API}?page=${page}&size=${PAGE_SIZE}&sort=-modifiedDate&mode=opportunities&q=${encodeURIComponent(stateName)}&is_active=true`;
-        console.log(`  ${tag}: fetching page ${page + 1}/${MAX_PAGES}...`);
-
-        const resp = await fetch(url, { headers: HEADERS });
-        if (!resp.ok) {
-          console.error(`  ${tag} page ${page} returned ${resp.status}`);
-          if (page > 0) break;
-          continue;
-        }
-
-        const data = await resp.json();
-        const items = data?._embedded?.results;
-        if (!items || items.length === 0) break;
-
-        for (const item of items) {
-          try {
-            const descContent = item.descriptions?.[0]?.content || "";
-            const description = stripHtml(descContent).substring(0, 2000);
-
-            const orgs = item.organizationHierarchy || [];
-            const deepestOrg = orgs[orgs.length - 1];
-            const agency = deepestOrg?.name || orgs[0]?.name || fallbackAgency;
-
-            const noticeId = item.parentNoticeId || item._id || "";
-
-            // The v1 search summary never includes location, so pull the
-            // authoritative place-of-performance from the detail endpoint.
-            const placeOfPerformance = noticeId
-              ? await fetchPlaceOfPerformance(noticeId)
-              : null;
-            const location = extractLocation(
-              orgs,
-              description,
-              placeOfPerformance,
-            );
-            await new Promise((r) => setTimeout(r, 120));
-
-            const category = mapCategory(item.title || "", description);
-
-            const dueDate = item.responseDate || item.responseDateActual || null;
-
-            let estimatedValue = "Not specified";
-            if (item.award?.amount) {
-              estimatedValue = `${Number(item.award.amount).toLocaleString()}`;
-            }
-
-            const sourceUrl = noticeId
-              ? `https://sam.gov/opp/${noticeId}/view`
-              : "https://sam.gov/search/";
-
-            results.push({
-              external_id: `${prefix}-${item._id || item.solicitationNumber || `page${page}-${results.length}`}`,
-              title: item.title || "Untitled Opportunity",
-              agency,
-              description,
-              location,
-              category,
-              due_date: dueDate,
-              estimated_value: estimatedValue,
-              source_url: sourceUrl,
-            });
-          } catch (e) {
-            console.error(`  ${tag}: error parsing item:`, (e as Error).message);
-          }
-        }
-
-        console.log(`  ${tag} page ${page + 1}: got ${items.length} items (total: ${results.length})`);
-
-        if (items.length < PAGE_SIZE) break;
-        await new Promise((r) => setTimeout(r, DELAY_MS));
-      } catch (e) {
-        console.error(`  ${tag} page ${page} error:`, (e as Error).message);
-      }
-    }
-
-    return results;
-  };
 }

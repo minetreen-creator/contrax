@@ -45,6 +45,43 @@ export interface RawBid {
   /** Which pass produced the row (national/regional, or a trade-filter pass —
    *  see sam-gov-trades.ts). Stored as the row's `source` value. */
   source_label?: string;
+  /**
+   * NATIONWIDE CORRECTNESS FIX ⑤ (owner-locked scope, PR B1): the canonical
+   * SAM.gov NOTICE identity of the search item this row came from
+   * (`parentNoticeId || _id` — see `canonicalNoticeId()`).
+   *
+   * It is the key of the RUN-LEVEL notice-identity guard
+   * (src/jobs/notice-identity.ts): every SAM.gov-family pass in one run
+   * (sam_gov / sam_gov_regional, cities, the 51 state-keyword doors, the 11
+   * trade passes) claims its notice ids, so a notice returned by several
+   * queries is stored ONCE. Absent for rows from non-SAM sources (PennBid,
+   * oh_dayton, the city open-data portals) — those are never governed by the
+   * guard, and absence is never invented into an identity.
+   *
+   * Deliberately NOT a DB column: it only exists for the duration of a run.
+   */
+  notice_key?: string | null;
+}
+
+/**
+ * The canonical SAM.gov notice identity of a v1 search item.
+ *
+ * `parentNoticeId || _id` is the expression the state-keyword doors have always
+ * used to build the notice URL (state-keyword.ts) — SAM's `_id` is the notice
+ * VERSION id (it can change when a notice is amended), while `parentNoticeId`
+ * points at the stable parent notice. Two different passes that see the same
+ * notice therefore compute the SAME identity, which is exactly what the
+ * run-level identity guard needs (cross-door identity must be stable; the
+ * per-door `<st>-<_id>` external_id was not).
+ *
+ * Returns null when the item carries no id at all — an unknown identity is
+ * never guessed and never suppressed.
+ */
+export function canonicalNoticeId(item: any): string | null {
+  const raw = item?.parentNoticeId || item?._id;
+  if (raw === null || raw === undefined) return null;
+  const id = String(raw).trim();
+  return id === "" ? null : id;
 }
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
@@ -217,9 +254,91 @@ const EMPTY_DETAIL: OpportunityDetail = {
   solicitationNumber: null,
 };
 
-export async function fetchOpportunityDetail(
+/**
+ * Place-of-performance shape from the SAM.gov v2 detail endpoint
+ * (data2.placeOfPerformance): { zip, city: {code, name}, state: {code, name},
+ * country, streetAddress }.
+ */
+export interface PlaceOfPerformance {
+  zip?: string | null;
+  city?: { name?: string } | null;
+  state?: { code?: string; name?: string } | null;
+  country?: { code?: string; name?: string } | null;
+  streetAddress?: string | null;
+}
+
+/**
+ * The detail payload PLUS the authoritative place-of-performance — the shape the
+ * state-keyword doors need (they already fetched the SAME v2 payload for POP
+ * only; FIX ⑤ step A makes that one call also carry the PSC / notice type /
+ * solicitation number instead of discarding them).
+ */
+export interface OpportunityDetailWithLocation extends OpportunityDetail {
+  placeOfPerformance: PlaceOfPerformance | null;
+}
+
+const EMPTY_DETAIL_FULL: OpportunityDetailWithLocation = {
+  ...EMPTY_DETAIL,
+  placeOfPerformance: null,
+};
+
+/**
+ * PURE parse of a v2 opportunity payload (no network) — the single place the
+ * detail's set-aside / NAICS / PSC / notice type / solicitation number /
+ * place-of-performance are read out, so every caller sees them identically.
+ */
+export function parseOpportunityDetail(data: any): OpportunityDetailWithLocation {
+  const setAside = normalizeSetAside(data?.data2?.solicitation?.setAside);
+  // data2.naics is an array of { code: string[], type: "primary" } objects.
+  let naicsCode: string | null = null;
+  const naicsArr = Array.isArray(data?.data2?.naics) ? data.data2.naics : [];
+  const primary = naicsArr.find((n: any) => n?.type === "primary") ?? naicsArr[0];
+  const firstCode = Array.isArray(primary?.code) ? primary.code[0] : primary?.code;
+  if (firstCode && /^\d{2,6}$/.test(String(firstCode).trim())) {
+    naicsCode = String(firstCode).trim();
+  } else {
+    // Fall back to the solicitation-level field if the naics array is absent.
+    const sol = data?.data2?.solicitation?.naicsCode ?? data?.data2?.solicitation?.naicsCodes?.[0];
+    if (sol && /^\d{2,6}$/.test(String(sol).trim())) naicsCode = String(sol).trim();
+  }
+  // Owner PRESERVE rule (R2): the PSC lives ONLY here.
+  const psc = normalizePsc(data?.data2?.classificationCode);
+  const solNumRaw = data?.data2?.solicitationNumber;
+  const solicitationNumber =
+    solNumRaw == null || String(solNumRaw).trim() === ""
+      ? null
+      : String(solNumRaw).trim();
+  // The detail's own type field is a CODE ("o"), so it is only a fallback for
+  // the summary's human-readable label.
+  const detailType = data?.data2?.type;
+  const noticeType =
+    typeof detailType === "string"
+      ? String(detailType).trim() || null
+      : typeof detailType === "object" && detailType !== null
+        ? String(detailType?.value ?? detailType?.code ?? "").trim() || null
+        : null;
+  // Place of performance: the v1 search summary never carries it, so it is the
+  // one field the state-keyword doors need from this same payload.
+  const placeOfPerformance =
+    (data?.data2?.placeOfPerformance as PlaceOfPerformance | undefined) ?? null;
+  return {
+    setAside,
+    naicsCode,
+    psc,
+    noticeType,
+    solicitationNumber,
+    placeOfPerformance,
+  };
+}
+
+/**
+ * Fetches the v2 detail payload (set-aside, NAICS, PSC, notice type,
+ * solicitation number AND place-of-performance) in ONE request. Best-effort:
+ * any failure returns the empty shape, so a detail fetch can never break a sync.
+ */
+export async function fetchOpportunityDetailFull(
   noticeId: string,
-): Promise<OpportunityDetail> {
+): Promise<OpportunityDetailWithLocation> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {
@@ -227,43 +346,31 @@ export async function fetchOpportunityDetail(
       headers: SAM_HEADERS,
       signal: controller.signal,
     });
-    if (!resp.ok) return { ...EMPTY_DETAIL };
-    const data = await resp.json();
-    const setAside = normalizeSetAside(data?.data2?.solicitation?.setAside);
-    // data2.naics is an array of { code: string[], type: "primary" } objects.
-    let naicsCode: string | null = null;
-    const naicsArr = Array.isArray(data?.data2?.naics) ? data.data2.naics : [];
-    const primary = naicsArr.find((n: any) => n?.type === "primary") ?? naicsArr[0];
-    const firstCode = Array.isArray(primary?.code) ? primary.code[0] : primary?.code;
-    if (firstCode && /^\d{2,6}$/.test(String(firstCode).trim())) {
-      naicsCode = String(firstCode).trim();
-    } else {
-      // Fall back to the solicitation-level field if the naics array is absent.
-      const sol = data?.data2?.solicitation?.naicsCode ?? data?.data2?.solicitation?.naicsCodes?.[0];
-      if (sol && /^\d{2,6}$/.test(String(sol).trim())) naicsCode = String(sol).trim();
-    }
-    // Owner PRESERVE rule (R2): the PSC lives ONLY here.
-    const psc = normalizePsc(data?.data2?.classificationCode);
-    const solNumRaw = data?.data2?.solicitationNumber;
-    const solicitationNumber =
-      solNumRaw == null || String(solNumRaw).trim() === ""
-        ? null
-        : String(solNumRaw).trim();
-    // The detail's own type field is a CODE ("o"), so it is only a fallback for
-    // the summary's human-readable label.
-    const detailType = data?.data2?.type;
-    const noticeType =
-      typeof detailType === "string"
-        ? String(detailType).trim() || null
-        : typeof detailType === "object" && detailType !== null
-          ? String(detailType?.value ?? detailType?.code ?? "").trim() || null
-          : null;
-    return { setAside, naicsCode, psc, noticeType, solicitationNumber };
+    if (!resp.ok) return { ...EMPTY_DETAIL_FULL };
+    return parseOpportunityDetail(await resp.json());
   } catch {
-    return { ...EMPTY_DETAIL };
+    return { ...EMPTY_DETAIL_FULL };
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * The provenance half of the same payload — identical network behavior to
+ * `fetchOpportunityDetailFull` (one request, same endpoint/headers/timeout);
+ * callers that do not need place-of-performance keep this contract.
+ */
+export async function fetchOpportunityDetail(
+  noticeId: string,
+): Promise<OpportunityDetail> {
+  const full = await fetchOpportunityDetailFull(noticeId);
+  return {
+    setAside: full.setAside,
+    naicsCode: full.naicsCode,
+    psc: full.psc,
+    noticeType: full.noticeType,
+    solicitationNumber: full.solicitationNumber,
+  };
 }
 
 export function extractNaicsCode(item: any): string | null {
@@ -326,7 +433,7 @@ export async function mapSamItem(
     estimatedValue = `$${Number(item.award.amount).toLocaleString()}`;
   }
 
-  const noticeId = item.parentNoticeId || item._id || "";
+  const noticeId = canonicalNoticeId(item) ?? "";
   const sourceUrl = noticeId
     ? `https://sam.gov/opp/${noticeId}/view`
     : "https://sam.gov/search/";
@@ -372,6 +479,8 @@ export async function mapSamItem(
     notice_type: noticeType,
     solicitation_number: solicitationNumber,
     source_label: opts.sourceLabel,
+    // FIX ⑤: the run-level identity guard's key (null when the item has no id).
+    notice_key: noticeId || null,
   };
 }
 

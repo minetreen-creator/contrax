@@ -7,9 +7,25 @@
  * API: GET https://sam.gov/api/prod/sgs/v1/search/?q=City+of&...
  *      GET https://sam.gov/api/prod/sgs/v1/search/?q=County+of&...
  *      GET https://sam.gov/api/prod/sgs/v1/search/?q=Metropolitan&...
+ *
+ * NATIONWIDE CORRECTNESS FIX ⑤ STEP A (owner-locked scope, PR B1): these rows are
+ * part of the SAME federal SAM.gov pool as `sam_gov` and the 51 state doors (the
+ * census shows `cities` inside the door duplicate groups), so they now carry the
+ * provenance the v1 SUMMARY already gives us — the notice TYPE and SAM's own
+ * solicitation number (both are in the search item; they were simply discarded) —
+ * plus the canonical `sam-<parentNoticeId || _id>` external_id and the
+ * `notice_key` the run-level identity guard consumes
+ * (src/jobs/notice-identity.ts).
+ *
+ * Deliberately NOT added here: a PSC. The PSC lives only in the v2 detail
+ * payload, and this source makes NO detail request today — inventing a second
+ * network call just to fill a column would be new load on SAM.gov, so the PSC
+ * stays NULL ("the source did not supply it"). Same for NAICS (never invented;
+ * the row keeps the inference-derived code with `naics_code_source='inferred'`)
+ * and set_aside (owner-gated cert-matching decision, option E).
  */
 
-import type { RawBid } from "./sam-gov";
+import { canonicalNoticeId, extractNoticeType, type RawBid } from "./sam-gov";
 import { mapCategory as classifyCategory } from "~/lib/trade-classification";
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
@@ -56,7 +72,29 @@ function mapCategory(title: string, description: string): string {
   return classifyCategory("", title, description);
 }
 
-async function fetchKeyword(keyword: string, prefix: string): Promise<RawBid[]> {
+/** Deterministic test seam (saved fixtures) — production callers pass nothing. */
+export interface CitiesDeps {
+  /** v1 search page fetcher; injected in tests (zero network). */
+  fetchJson?: (url: string) => Promise<any>;
+  /** Override the inter-keyword politeness delay (tests use 0). */
+  delayMs?: number;
+}
+
+/** The real v1 page fetch (same headers/status handling as before). */
+async function defaultFetchJson(keyword: string, url: string): Promise<any> {
+  const resp = await fetch(url, { headers: HEADERS });
+  if (!resp.ok) {
+    console.error(`  Cities "${keyword}" returned ${resp.status}`);
+    return null;
+  }
+  return resp.json();
+}
+
+async function fetchKeyword(
+  keyword: string,
+  prefix: string,
+  deps: CitiesDeps = {},
+): Promise<RawBid[]> {
   const results: RawBid[] = [];
 
   try {
@@ -64,13 +102,9 @@ async function fetchKeyword(keyword: string, prefix: string): Promise<RawBid[]> 
     const url = `${SAM_API}?page=0&size=${PAGE_SIZE}&sort=-modifiedDate&mode=opportunities&q=${q}&is_active=true`;
     console.log(`  Cities: fetching "${keyword}"...`);
 
-    const resp = await fetch(url, { headers: HEADERS });
-    if (!resp.ok) {
-      console.error(`  Cities "${keyword}" returned ${resp.status}`);
-      return results;
-    }
-
-    const data = await resp.json();
+    const data = deps.fetchJson
+      ? await deps.fetchJson(url)
+      : await defaultFetchJson(keyword, url);
     const items = data?._embedded?.results;
     if (!items || items.length === 0) return results;
 
@@ -91,16 +125,24 @@ async function fetchKeyword(keyword: string, prefix: string): Promise<RawBid[]> 
 
         let estimatedValue = "Not specified";
         if (item.award?.amount) {
-          estimatedValue = `$${Number(item.award.amount).toLocaleString()}`;
+          estimatedValue = `${Number(item.award.amount).toLocaleString()}`;
         }
 
-        const noticeId = item.parentNoticeId || item._id || "";
+        // Canonical notice identity (FIX ⑤) — the same expression the state
+        // doors and the shared mapper use, so cross-source identity is stable.
+        const noticeId = canonicalNoticeId(item);
+        const solicitationNumber =
+          item.solicitationNumber == null ||
+          String(item.solicitationNumber).trim() === ""
+            ? null
+            : String(item.solicitationNumber).trim();
+
         const sourceUrl = noticeId
           ? `https://sam.gov/opp/${noticeId}/view`
           : "https://sam.gov/search/";
 
         results.push({
-          external_id: `cities-${prefix}-${item._id || item.solicitationNumber || `${results.length}`}`,
+          external_id: `sam-${noticeId || solicitationNumber || `${prefix}-${results.length}`}`,
           title: item.title || "Untitled Opportunity",
           agency,
           description,
@@ -109,6 +151,11 @@ async function fetchKeyword(keyword: string, prefix: string): Promise<RawBid[]> 
           due_date: dueDate,
           estimated_value: estimatedValue,
           source_url: sourceUrl,
+          // FIX ⑤ step A: both fields are already in the v1 summary.
+          // psc / naics_code / set_aside stay NULL here (see the header).
+          notice_type: extractNoticeType(item),
+          solicitation_number: solicitationNumber,
+          notice_key: noticeId,
         });
       } catch (e) {
         console.error(`  Cities: error parsing item:`, (e as Error).message);
@@ -123,12 +170,13 @@ async function fetchKeyword(keyword: string, prefix: string): Promise<RawBid[]> 
   return results;
 }
 
-export async function fetchBids(): Promise<RawBid[]> {
-  const cityBids = await fetchKeyword("City of", "city");
-  await new Promise((r) => setTimeout(r, DELAY_MS));
-  const countyBids = await fetchKeyword("County of", "county");
-  await new Promise((r) => setTimeout(r, DELAY_MS));
-  const metroBids = await fetchKeyword("Metropolitan", "metro");
+export async function fetchBids(deps: CitiesDeps = {}): Promise<RawBid[]> {
+  const delayMs = deps.delayMs ?? DELAY_MS;
+  const cityBids = await fetchKeyword("City of", "city", deps);
+  await new Promise((r) => setTimeout(r, delayMs));
+  const countyBids = await fetchKeyword("County of", "county", deps);
+  await new Promise((r) => setTimeout(r, delayMs));
+  const metroBids = await fetchKeyword("Metropolitan", "metro", deps);
 
   return [...cityBids, ...countyBids, ...metroBids];
 }

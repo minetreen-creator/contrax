@@ -53,6 +53,12 @@ import { sendBidDigest, type NewBidSummary } from "../lib/email";
 import { createNotification } from "../lib/notifications";
 import { generateBidAlerts } from "../lib/bid-alerts";
 import { inferNaics } from "../lib/naics-infer";
+import {
+  applyRunNoticeGuard,
+  createNoticeIdentityGuard,
+  DUPLICATE_NOTICE_REASON,
+  type NoticeIdentityGuard,
+} from "./notice-identity";
 
 /**
  * Run-record contract (owner 09-13): a source MAY return a FetchResult instead
@@ -662,6 +668,7 @@ function toFetchResult(raw: RawBid[] | FetchResult): FetchResult {
 export async function syncSource(
   sql: Sql,
   source: SyncSource,
+  noticeGuard?: NoticeIdentityGuard,
 ): Promise<SyncSourceResult> {
   const errors: string[] = [];
   const newBids: NewBidSummary[] = [];
@@ -677,14 +684,40 @@ export async function syncSource(
   try {
     console.log(`\n📡 Fetching from ${source.name}...`);
     const fr = toFetchResult(await source.fetchFn());
-    bids = fr.rows;
-    skippedCount = Object.values(fr.skipped).reduce((s, n) => s + n, 0);
-    fetchedCount = bids.length + skippedCount;
-    Object.assign(skipReasons, fr.skipped);
+
+    // RUN-LEVEL NOTICE-IDENTITY GUARD (nationwide correctness FIX ⑤, PR B1).
+    //
+    // ONE guard instance is shared by every SAM.gov-family source of the run
+    // (sam_gov / sam_gov_regional, cities, the 51 state-keyword doors and the 11
+    // trade passes): the first row that carries a canonical notice identity
+    // (`notice_key` = `parentNoticeId || _id`) claims it; every later row with the
+    // same identity is skipped HERE, before any INSERT, with the visible skip
+    // reason `duplicate_notice`. Phase 1 (the authoritative trade passes, then
+    // the national/regional + city passes) runs before the Phase-2 doors, so an
+    // authoritative row always wins its notice.
+    //
+    // Why in memory rather than in SQL: the table-level `WHERE NOT EXISTS
+    // (title, agency)` guard reads the table as it was BEFORE the statement (so
+    // it cannot see the four sibling doors inserting concurrently in one Phase-2
+    // wave), `ON CONFLICT (source, external_id)` is structurally blind across
+    // labels, and the migration-048 UNIQUE index only closes a same-wave race by
+    // rejecting the whole statement and forcing a row-by-row replay. This guard
+    // is DB-free, deterministic, and independent of all three.
+    //
+    // ACCOUNTING: applyRunNoticeGuard (src/jobs/notice-identity.ts) folds a
+    // suppressed row into this source's skip_reasons as `duplicate_notice` and
+    // into its skipped count, so the owner's run-record invariant
+    // fetched = accepted + skipped + failed still holds and the run log shows
+    // exactly how many rows were removed (never silently dropped).
+    const guarded = applyRunNoticeGuard(fr, noticeGuard);
+    bids = guarded.rows;
+    skippedCount = guarded.skippedCount;
+    fetchedCount = guarded.fetchedCount;
+    Object.assign(skipReasons, guarded.skipped);
     console.log(
       `  Fetched ${bids.length} bid(s) from ${source.name} (${fetchedCount} fetched incl. ${skippedCount} skipped)`,
     );
-    for (const s of fr.skippedRows) {
+    for (const s of guarded.skippedRows) {
       console.log(`  ${source.name} skip id=${s.id} reason=${s.reason}`);
     }
 
@@ -845,9 +878,19 @@ export async function runSync(): Promise<SyncResult> {
   const startTime = Date.now();
   const results: Record<string, SyncSourceResult> = {};
 
+  // NATIONWIDE CORRECTNESS FIX ⑤ (owner-locked scope, PR B1): ONE notice-identity
+  // guard for the WHOLE run, shared by every SAM.gov-family source (Phase 1's
+  // national/regional, city and 11 trade passes, then Phase 2's 51 doors). SAM's
+  // notices are returned by many different queries, so without it the same
+  // federal notice is stored once per matching source label — the 4,059-group /
+  // 14,690-row legacy duplication measured in the before-matrix. Phase 1 keeps
+  // running first (runner.ts:847-876), so the authoritative trade passes always
+  // claim their notices before the metadata-poor doors can.
+  const noticeGuard = createNoticeIdentityGuard();
+
   // Phase 1 — heavy SAM.gov passes, serial (national → regional → city keyword).
   for (const source of SAM_GOV_SOURCES) {
-    results[source.name] = await syncSource(sql, source);
+    results[source.name] = await syncSource(sql, source, noticeGuard);
     await sleep(INTER_SOURCE_DELAY_MS);
   }
 
@@ -858,11 +901,11 @@ export async function runSync(): Promise<SyncResult> {
   let tailIndex = 0;
   for (let i = 0; i < STATE_KEYWORD_SOURCES.length; i += PARALLEL_BATCH_SIZE) {
     const batch = STATE_KEYWORD_SOURCES.slice(i, i + PARALLEL_BATCH_SIZE);
-    const jobs = batch.map((source) => syncSource(sql, source));
+    const jobs = batch.map((source) => syncSource(sql, source, noticeGuard));
     let tailSource: SyncSource | null = null;
     if (tailIndex < TAIL_SOURCES.length) {
       tailSource = TAIL_SOURCES[tailIndex++];
-      jobs.push(syncSource(sql, tailSource));
+      jobs.push(syncSource(sql, tailSource, noticeGuard));
     }
     const batchResults = await Promise.all(jobs);
     batch.forEach((source, idx) => {
@@ -878,7 +921,7 @@ export async function runSync(): Promise<SyncResult> {
   // Safety net for any tail sources left after the final state batch.
   for (; tailIndex < TAIL_SOURCES.length; tailIndex++) {
     const source = TAIL_SOURCES[tailIndex];
-    results[source.name] = await syncSource(sql, source);
+    results[source.name] = await syncSource(sql, source, noticeGuard);
     await sleep(INTER_SOURCE_DELAY_MS);
   }
 
@@ -892,6 +935,16 @@ export async function runSync(): Promise<SyncResult> {
   console.log(`   Total fetched: ${totalFetched}`);
   console.log(`   New bids: ${totalNew}`);
   console.log(`   Errors: ${totalErrors}`);
+  // FIX ⑤ observability: how many rows the run-level notice-identity guard
+  // removed (each one is also counted in its source's skip_reasons as
+  // `duplicate_notice`, so the run record explains the number).
+  const totalDuplicateNotices = Object.values(results).reduce(
+    (s, r) => s + (r.skipped[DUPLICATE_NOTICE_REASON] ?? 0),
+    0,
+  );
+  console.log(
+    `   Duplicate federal notices suppressed (run-level identity guard): ${totalDuplicateNotices} across ${noticeGuard.acceptedCount} accepted notice identities`,
+  );
 
   if (totalErrors > 0) {
     console.log("\n⚠️  Errors encountered:");

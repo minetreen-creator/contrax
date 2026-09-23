@@ -138,46 +138,67 @@ export function logScanFailure(
  * database keeps every row; only the returned array is collapsed, and the
  * collapsed count is returned so a caller can report "N rows / M distinct".
  *
- * THE KEY (owner rule 4): SAM's own solicitation number when present
- * (`bids.solicitation_number`, migration 047 / R2), else the (title, agency)
- * natural key. The solicitation numbers are loaded in ONE extra read, FAIL-SOFT:
- * before migration 047 is applied the column does not exist, which must never
- * take the Radar scan down — the collapse then falls back to (title, agency),
- * exactly the key the ingest path already dedupes on.
+ * THE KEY (owner rule 4 + FIX ①): SAM's own solicitation number when present
+ * (`bids.solicitation_number`, migration 047 / R2) plus `notice_type`
+ * (migration 047) so an Award Notice and a Justification filed under one
+ * solicitation number stay separate; else the (title, agency, notice_type)
+ * natural key. Both key columns are loaded in ONE extra read, FAIL-SOFT: before
+ * migration 047 is applied the columns do not exist, which must never take the
+ * Radar scan down — the collapse then falls back to the natural key, exactly the
+ * key the ingest path already dedupes on.
  */
-export type SolicitationNumberLoader = (
+export type NoticeKeyLoader = (
   ids: number[],
-) => Promise<Map<number, string | null>>;
+) => Promise<Map<number, NoticeKeyRow>>;
+
+/** The two key columns read for a row: the solicitation number and the notice type. */
+export interface NoticeKeyRow {
+  solicitation_number: string | null;
+  notice_type: string | null;
+}
 
 export interface ScanCollapseResult<T> {
   rows: T[];
   /** How many duplicate rows were collapsed away. */
   collapsed: number;
-  /** True when the solicitation-number column was readable (migration 047 live). */
-  solicitationNumbers: boolean;
+  /**
+   * True when the notice-key columns were readable (migration 047 live). False
+   * means the natural-key fallback was used, so the ≤5 cap may hold more
+   * duplicates — a caller must not report "distinct notices" in that case.
+   */
+  noticeKeyColumns: boolean;
+}
+
+function nullableText(value: unknown): string | null {
+  if (value === null || value === undefined) return null;
+  const text = String(value).trim();
+  return text === "" ? null : text;
 }
 
 /**
- * Load the stored solicitation number for a batch of row ids. Throws when the
- * column is missing (047 unapplied) or the read fails — the caller decides.
+ * Load the stored solicitation number AND notice_type for a batch of row ids.
+ * Throws when the columns are missing (047 unapplied) or the read fails — the
+ * caller decides.
  */
-export async function loadSolicitationNumbers(
+export async function loadNoticeDedupeKeys(
   sqlFactory: unknown,
   ids: number[],
-): Promise<Map<number, string | null>> {
-  const out = new Map<number, string | null>();
+): Promise<Map<number, NoticeKeyRow>> {
+  const out = new Map<number, NoticeKeyRow>();
   if (ids.length === 0) return out;
   const s = (sqlFactory as any)?.unsafe
     ? (sqlFactory as any)
     : (sqlFactory as any)();
   const rows: any[] = await s`
-    SELECT id, solicitation_number FROM bids WHERE id = ANY(${ids})
+    SELECT id, solicitation_number, notice_type FROM bids WHERE id = ANY(${ids})
   `;
   for (const row of rows) {
     const id = Number(row?.id);
     if (!Number.isFinite(id)) continue;
-    const sol = row?.solicitation_number;
-    out.set(id, sol == null || String(sol).trim() === "" ? null : String(sol));
+    out.set(id, {
+      solicitation_number: nullableText(row?.solicitation_number),
+      notice_type: nullableText(row?.notice_type),
+    });
   }
   return out;
 }
@@ -188,28 +209,32 @@ export async function loadSolicitationNumbers(
  */
 export async function collapseScanRows<T extends { id: number }>(
   rows: readonly T[],
-  loadSolicitations: SolicitationNumberLoader,
+  loadNoticeKeys: NoticeKeyLoader,
 ): Promise<ScanCollapseResult<T>> {
   if (rows.length < 2) {
-    return { rows: [...rows], collapsed: 0, solicitationNumbers: false };
+    return { rows: [...rows], collapsed: 0, noticeKeyColumns: false };
   }
-  let solicitations = new Map<number, string | null>();
-  let keyedBySolicitation = false;
+  let keys = new Map<number, NoticeKeyRow>();
+  let keyedByNoticeColumns = false;
   try {
-    solicitations = await loadSolicitations(rows.map((r) => r.id));
-    keyedBySolicitation = true;
+    keys = await loadNoticeKeys(rows.map((r) => r.id));
+    keyedByNoticeColumns = true;
   } catch (e) {
     // Fail-soft: the natural-key fallback is the ingest path's own dedupe key,
     // so Radar still collapses cross-source duplicates without 047.
     console.error(
-      "[radar] dedupe: solicitation-number read unavailable — collapsing on (title, agency):",
+      "[radar] dedupe: notice-key read unavailable — collapsing on (title, agency, notice_type):",
       e instanceof Error ? e.message : e,
     );
   }
-  const withKeys = rows.map((row) => ({
-    ...row,
-    solicitation_number: keyedBySolicitation ? (solicitations.get(row.id) ?? null) : null,
-  }));
+  const withKeys = rows.map((row) => {
+    const key = keyedByNoticeColumns ? keys.get(row.id) : undefined;
+    return {
+      ...row,
+      solicitation_number: key?.solicitation_number ?? null,
+      notice_type: key?.notice_type ?? null,
+    };
+  });
   const { rows: kept, collapsed } = collapseDuplicateNotices(withKeys);
-  return { rows: kept, collapsed, solicitationNumbers: keyedBySolicitation };
+  return { rows: kept, collapsed, noticeKeyColumns: keyedByNoticeColumns };
 }

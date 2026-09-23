@@ -300,14 +300,14 @@ describe("R5 (QA F2) — the dedupe is WIRED into the Radar read path", () => {
   ];
 
   test("the scan's result set is collapsed before it is scored and capped", async () => {
-    const noSolicitations = async () => new Map<number, string | null>();
-    const out = await collapseScanRows(ROWS, noSolicitations);
+    const noNoticeKeys = async () => new Map<number, { solicitation_number: string | null; notice_type: string | null }>();
+    const out = await collapseScanRows(ROWS, noNoticeKeys);
     // 6 rows → 4 distinct notices: the 3-× duplicate collapses to one, so the
     // ≤5 default-match cap is spent on DISTINCT work.
     expect(out.rows.length).toBe(4);
     expect(out.collapsed).toBe(2);
     expect(out.rows.map((r) => r.id)).toEqual([1, 4, 5, 6]);
-    expect(out.solicitationNumbers).toBe(true);
+    expect(out.noticeKeyColumns).toBe(true);
     expect(ROWS.length).toBe(6); // the input array is never mutated
   });
 
@@ -318,11 +318,13 @@ describe("R5 (QA F2) — the dedupe is WIRED into the Radar read path", () => {
       { id: 13, title: "Janitorial Services", agency: "DLA Norfolk" },
     ];
     // Same solicitation number on two rows with DIFFERENT agency text → 1 notice.
+    // notice_type is identical (and absent → normalized "") on all three, so the
+    // FIX ① dimension does not change this collapse.
     const withSol = await collapseScanRows(rows, async () =>
-      new Map<number, string | null>([
-        [11, "W912C326BA003"],
-        [12, "w912c326ba003"],
-        [13, "W912C326BA004"],
+      new Map<number, { solicitation_number: string | null; notice_type: string | null }>([
+        [11, { solicitation_number: "W912C326BA003", notice_type: null }],
+        [12, { solicitation_number: "w912c326ba003", notice_type: null }],
+        [13, { solicitation_number: "W912C326BA004", notice_type: null }],
       ]),
     );
     expect(withSol.rows.length).toBe(2);
@@ -331,11 +333,11 @@ describe("R5 (QA F2) — the dedupe is WIRED into the Radar read path", () => {
     // Without the column (047 unapplied) the natural key is coarser: the two
     // agency spellings no longer collapse — proving the key really drives output.
     const withoutSol = await collapseScanRows(rows, async () => new Map());
-    expect(withoutSol.solicitationNumbers).toBe(true);
+    expect(withoutSol.noticeKeyColumns).toBe(true);
     const natural = await collapseScanRows(rows.filter((r) => r.id !== 13), async () => {
       throw new Error('column "solicitation_number" does not exist');
     });
-    expect(natural.solicitationNumbers).toBe(false);
+    expect(natural.noticeKeyColumns).toBe(false);
     expect(natural.rows.length).toBe(1);
     expect(natural.collapsed).toBe(1);
   });
@@ -344,7 +346,7 @@ describe("R5 (QA F2) — the dedupe is WIRED into the Radar read path", () => {
     const out = await collapseScanRows(ROWS, async () => {
       throw new Error('column "solicitation_number" does not exist');
     });
-    expect(out.solicitationNumbers).toBe(false);
+    expect(out.noticeKeyColumns).toBe(false);
     expect(out.rows.length).toBe(4);
     expect(out.collapsed).toBe(2);
   });
@@ -363,7 +365,7 @@ describe("R5 (QA F2) — the dedupe is WIRED into the Radar read path", () => {
     // production caller changes no observable behaviour.
     const src = readFileSync(new URL("../routes/radar.tsx", import.meta.url), "utf8");
     expect(src).toContain("collapseScanRows(rows");
-    expect(src).toContain("loadSolicitationNumbers(sql, ids)");
+    expect(src).toContain("loadNoticeDedupeKeys(sql, ids)");
     expect(readFileSync(new URL("./radar-scan-query.ts", import.meta.url), "utf8")).toContain(
       'from "~/lib/notice-dedupe"',
     );

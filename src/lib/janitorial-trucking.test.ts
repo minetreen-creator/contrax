@@ -547,10 +547,10 @@ describe("QA N2 — the 11 new federal trade labels are federal, not state/local
     expect(sourceBadgeLabel("sam_gov")).toBe("Federal");
     expect(sourceBadgeLabel("sam_gov_regional")).toBe("Federal");
     // the pre-existing state/local branch is byte-identical (no new claim)
-    expect(sourceBadgeLabel("pennbid")).toBe("City");
-    expect(sourceBadgeLabel("va_evirginia")).toBe("City");
-    expect(sourceBadgeLabel("oh")).toBe("City");
-    expect(sourceBadgeLabel(null)).toBe("City");
+    expect(sourceBadgeLabel("pennbid")).toBe("State (PA)"); // PR-1: a STATE portal is not a city
+    expect(sourceBadgeLabel("va_evirginia")).toBe("Federal"); // PR-1: a federal SAM.gov pass (VA scope flag only)
+    expect(sourceBadgeLabel("oh")).toBe("Federal"); // PR-1: the O H door is a SAM.gov keyword search, not Ohio
+    expect(sourceBadgeLabel(null)).toBe(""); // PR-1: an INTERNAL/unknown label renders NO badge at all
     // …and the route uses the shared predicate instead of a re-inlined literal
     const src = readFileSync(new URL("../routes/alerts.tsx", import.meta.url), "utf8");
     expect(src).toContain("sourceBadgeLabel(a.source)");

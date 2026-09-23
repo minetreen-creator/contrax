@@ -25,6 +25,7 @@ import { sql } from "~/db";
 import { loadUserTrialStatus, TRIAL_DAYS, type TrialStatus } from "~/lib/trial";
 import { TRIAL_CHECKLIST } from "~/lib/trial-usage";
 import { LIVE_SQL, ARCHIVED_STATUSES } from "~/lib/bid-status";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { locationMatchesStates, setAsidePredMulti, naicsPred } from "~/lib/open-bids";
 
@@ -154,6 +155,7 @@ export async function findTrialStartCandidates(
       FROM bids
       WHERE ${sql().unsafe(LIVE_SQL)}
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
+        AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         AND id NOT IN (
           SELECT bid_id FROM saved_matches
           WHERE user_id = ${userId} AND status = ANY(${ARCHIVED_STATUSES})

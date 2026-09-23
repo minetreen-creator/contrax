@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
   buildContractMap,
   deriveStateCode,
@@ -52,6 +53,7 @@ const getContractMap = createServerFn({ method: "GET" }).handler(
       FROM bids
       WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
+        AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
     `;
     return buildContractMap(rows as any);
   },
@@ -71,6 +73,7 @@ const getStateBids = createServerFn({ method: "GET" })
       FROM bids
       WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
+        AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
       ORDER BY due_date ASC NULLS LAST
     `;
     const bids = (rows as any[])

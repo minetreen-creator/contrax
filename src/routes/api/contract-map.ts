@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { buildContractMap } from "~/lib/contract-map";
 
 /**
@@ -29,6 +30,7 @@ async function handler({ request: _request }: { request: Request }) {
       FROM bids
       WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
+        AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
     `;
     return Response.json(buildContractMap(rows as any), {
       headers: { "Content-Type": "application/json; charset=utf-8" },

@@ -164,6 +164,21 @@ jobs:
       # runs nowhere (the reason runner.dedupe.test.ts went unrun for weeks).
       - name: Nationwide correctness B2 pass-outcome tests (unit, deterministic, zero network)
         run: bun test src/jobs/pass-outcome.test.ts
+      # PR-1 RESTRUCTURE — source-provenance class map (owner-APPROVED policy,
+      # plan rev 315). DETERMINISTIC and network-free by construction: every input
+      # is a literal or a registry constant imported from the repo, and there is
+      # no DATABASE_URL. Pins (a) the class map covers every registry label and
+      # the derived federal set is the policy's 66, (b) each owner ruling maps to
+      # exactly one class (va_evirginia federal + VA scope flag, pennbid STATE(PA),
+      # the 51 state-name doors federal, cities federal, chicago/sf/austin local +
+      # award, nys_socrata retired, INTERNAL renders no badge), (c) the
+      # certification rule-3 defect BEFORE/AFTER (a NULL federal set-aside must
+      # never enter the Small-Business pool while a genuine state/local one still
+      # does), and (d) the award-exclusion predicate + SQL fragment.
+      # Listed EXPLICITLY because a new deterministic suite that no workflow names
+      # runs nowhere (the reason runner.dedupe.test.ts went unrun for weeks).
+      - name: Source provenance class map tests (unit, deterministic, zero network)
+        run: bun test src/lib/source-class.test.ts
       # Ohio Phase 3 — City of Dayton connector (owner-locked order step ②, 2026-09-23).
       # DETERMINISTIC and network-free by construction: every byte it reads is a
       # VERBATIM full-page fixture captured from the official City of Dayton board on

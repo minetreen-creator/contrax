@@ -11,8 +11,10 @@
  *      (incl. the plain 'SBA' value on the Salem VA row).
  *   2. INCLUDE unrestricted / full-and-open rows.
  *   3. INCLUDE state/local rows whose set-aside is UNAVAILABLE (NULL): local
- *      portals (PennBid, city/state open-data feeds) publish no federal
- *      set-aside metadata, and a small business may pursue them.
+ *      portals (PennBid, city open-data feeds) publish no federal set-aside
+ *      metadata, and a small business may pursue them. ONLY genuine state/local
+ *      sources qualify — a FEDERAL feed's NULL set-aside is never read as a
+ *      state/local opportunity (PR-1, owner ruling f).
  *   4. EXCLUDE rows whose set-aside text names ONLY certifications the user
  *      does NOT hold (e.g. an 8(a)-only set-aside never appears under a plain
  *      Small Business selection). Rows naming the user's cert — or carrying
@@ -32,10 +34,26 @@
  * Non-`sb` certs (8a/sdvosb/wosb/hubzone/vosb) keep their current exact-match
  * behavior UNCHANGED (the same literal patterns as open-bids setAsidePred).
  *
+ * PR-1 RESTRUCTURE (owner-approved source-provenance policy, plan rev 315):
+ * WHICH sources count as "state/local" for rule 3 is no longer a deny-list
+ * maintained here — it is the class map in `source-class.ts`. The 51 state-name
+ * keyword doors and the `cities` pass are FEDERAL (they query SAM.gov; the
+ * state name is a search term), so their NULL set-asides now leave the
+ * Small-Business pool exactly like `sam_gov`'s always did, and `md_dc` (a
+ * retired federal label with 226 legacy rows) is INTERNAL rather than an
+ * implicit state/local portal. Measured against production before the change:
+ * 21,053 NULL-set-aside rows carried one of those 53 labels.
+ *
  * PURE module: no ~/db import, no server fns, no node:*, no process.env at
  * import time. The sb SQL fragment is built by CALLERS via sbCertFragment
  * (mirrors trade-registry's caller-passes-sql-factory convention).
  */
+import {
+  FEDERAL_LABELS,
+  FEDERAL_TRADE_LABELS,
+  INTERNAL_SOURCE_LABELS,
+  isStateLocalLabel,
+} from "./source-class";
 
 /** Exact honest label for cards whose set-aside is unavailable (rule 5). */
 export const SET_ASIDE_NOT_SPECIFIED_LABEL =
@@ -55,49 +73,50 @@ export type CertMatch = "include" | "exclude" | null;
  *
  * SINGLE SOURCE OF TRUTH: `sam-gov-trades.ts` (`SAM_TRADE_FILTERS[].name`) is
  * VALIDATED AGAINST THIS LIST AT MODULE LOAD — adding a 12th trade pass without
- * registering its label here is a hard failure, not a silent regression of
+ * registering its label is a hard failure, not a silent regression of
  * rule 3 (which is what this module's doc always claimed, but only by comment).
+ *
+ * PR-1 RESTRUCTURE (owner-approved source-provenance policy, plan rev 315): the
+ * literal list now lives in `source-class.ts` (`FEDERAL_TRADE_LABELS`), beside
+ * every other source label's class, and is re-exported here BY IDENTITY so all
+ * existing consumers keep the same import path and the same value.
  */
-export const FEDERAL_TRADE_SOURCE_LABELS: readonly string[] = [
-  "sam_naics_561720",
-  "sam_psc_s201",
-  "sam_naics_484110",
-  "sam_naics_484121",
-  "sam_naics_484122",
-  "sam_naics_484210",
-  "sam_naics_484220",
-  "sam_naics_484230",
-  "sam_naics_492110",
-  "sam_psc_v112",
-  "sam_psc_r602",
-];
+export const FEDERAL_TRADE_SOURCE_LABELS: readonly string[] = FEDERAL_TRADE_LABELS;
 
 /**
- * Every FEDERAL (or internal test) ingest `source` label: the national SAM.gov
- * feed, the regional SAM.gov feed, and the 11 structured-filter trade passes.
+ * Every FEDERAL ingest `source` label — 66 of them after the PR-1 restructure:
+ * the national SAM.gov feed, the additive regional pass
+ * (`sam_gov_regional`), the `cities` SAM.gov keyword pass, the
+ * VA-place-of-performance federal pass (`va_evirginia`), the 11 structured
+ * trade passes and the 51 state-name keyword doors. The doors and the two
+ * keyword passes ARE federal: their state name / "City of" is a SAM.gov search
+ * term, never a jurisdiction (approved policy rules R1–R3, conflict C1).
  * Consumers: the certification rule 3/5 decision below, the `sbCertFragment`
- * SQL window, and the Bid Alerts Federal/City badge (`sourceBadgeLabel`).
+ * SQL window, and the Bid Alerts provenance badge (`sourceBadgeLabel`).
  */
 export const FEDERAL_SOURCE_LABELS = new Set<string>([
-  "sam_gov",
-  "sam_gov_regional",
   ...FEDERAL_TRADE_SOURCE_LABELS,
+  ...FEDERAL_LABELS,
 ]);
 
 /**
- * Source codes that are NOT codified state/local procurement portals: the
- * federal SAM.gov feeds (incl. the 11 trade passes) and internal/demo/test
- * feeds. Every OTHER source is treated as a state/local portal whose NULL
- * set-asides are pursuable by a small business (rule 3). Adding a NEW STATE
- * SOURCE requires NO code change; adding a NEW FEDERAL source must be listed
- * here — ENFORCED (see FEDERAL_TRADE_SOURCE_LABELS above), so the 50-state
- * matrix cannot silently regress rule 3.
+ * Source codes that are NOT codified state/local procurement portals: the 66
+ * federal feeds above and every INTERNAL label (demo/seed/fixture feeds, the
+ * retired `md_dc` federal-sync label, the dead `nyc_socrata` export). It is the
+ * SQL window's deny-list — `sbCertFragment` below — so it must stay a SUPERSET
+ * of the labels the JS rule (`isStateLocalSource`) keeps out of the
+ * Small-Business pool; the JS rule is authoritative and simply drops anything
+ * the window lets through.
+ *
+ * CONVENTION SUPERSEDED (PR-1): this list used to document that "adding a NEW
+ * STATE SOURCE requires NO code change" — i.e. anything not on the deny-list
+ * was ASSUMED state/local. The approved policy reverses that default (conflict
+ * C7): an unclassified label is INTERNAL/unknown and is never treated as
+ * state/local until it is validated and added to `source-class.ts`.
  */
 export const NON_STATE_LOCAL_SOURCES = new Set<string>([
   ...FEDERAL_SOURCE_LABELS,
-  "contrax-demo",
-  "seed",
-  "fixture_test",
+  ...INTERNAL_SOURCE_LABELS,
 ]);
 
 /** Normalized-source form used by every predicate below (btrim + lowercase). */
@@ -105,32 +124,44 @@ function normalizeSource(source: string | null | undefined): string {
   return String(source ?? "").toLowerCase().trim();
 }
 
+/**
+ * Rule 3: does this row belong to a STATE's own system or one CITY's own board —
+ * i.e. a source whose NULL set-aside is a genuinely pursuable state/local
+ * posting rather than a federal feed that simply published no set-aside?
+ *
+ * PR-1 RESTRUCTURE: class-driven (`source-class.ts`), not deny-list-driven. A
+ * ROW IS INCLUDED when ANY of its persisted labels is state/local; an
+ * UNCLASSIFIED label is INTERNAL/unknown and NOT state/local (conflict C7),
+ * which is what makes the rule fail honest instead of pulling the 53
+ * SAM-derived labels' NULL set-asides into the Small-Business pool (owner
+ * ruling f: "a missing federal set-aside must never be interpreted as a
+ * state/local small-business opportunity").
+ */
 export function isStateLocalSource(sources: string[]): boolean {
-  return (sources ?? []).some((s) => !NON_STATE_LOCAL_SOURCES.has(normalizeSource(s)));
+  return (sources ?? []).some((s) => isStateLocalLabel(s));
 }
 
 /**
  * Is this stored `source` a FEDERAL feed? The Bid Alerts badge used to test
  * `source === "sam_gov"` literally, so every other federal label
- * (sam_gov_regional, and the 11 trade passes) rendered as "City" — a
- * provenance-honesty miss on a user-visible surface (QA N2).
- * Strictly the REAL federal feeds (FEDERAL_SOURCE_LABELS): the internal
- * demo/test feeds stay in the pre-existing branch below rather than being
- * relabelled "Federal".
+ * (sam_gov_regional, the 11 trade passes, the 51 doors, `cities`,
+ * `va_evirginia`) rendered as "City" — a provenance-honesty miss on a
+ * user-visible surface (QA N2) that the approved policy closes.
+ * Strictly the REAL federal feeds (FEDERAL_SOURCE_LABELS): internal
+ * demo/test feeds are NOT federal and render no badge at all.
  */
 export function isFederalSource(source: string | null | undefined): boolean {
   return FEDERAL_SOURCE_LABELS.has(normalizeSource(source));
 }
 
 /**
- * The Bid Alerts provenance badge text. "Federal" for a real federal feed (see
- * isFederalSource); "City" for everything else — the pre-existing state/local
- * branch, kept byte-identical for the sources it already covered (pennbid,
- * va_evirginia, oh, cities, internal test feeds) so this fix adds no new claim.
+ * The Bid Alerts provenance badge text — see `sourceBadgeLabel` in
+ * `source-class.ts` (class-driven: "Federal" / "State (PA)" / the city name /
+ * NO badge for an INTERNAL label). Re-exported here so the surface that has
+ * always imported it from this module keeps one import path.
  */
-export function sourceBadgeLabel(source: string | null | undefined): "Federal" | "City" {
-  return isFederalSource(source) ? "Federal" : "City";
-}
+export { NO_SOURCE_BADGE, sourceBadgeLabel, sourceBadgeTone } from "./source-class";
+export type { SourceBadgeTone } from "./source-class";
 
 /** Explicit SBA / small-business markers (rule 1). */
 const SB_NAMED_RE = /sba|small business/;

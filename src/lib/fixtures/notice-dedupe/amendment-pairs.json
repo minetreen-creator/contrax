@@ -1,0 +1,127 @@
+{
+  "capturedAt": "2026-09-23",
+  "source": "production Contrax `bids` table (Neon), SELECT-only read of the ids listed below during nationwide correctness PR A (FIX ①). The `source` field of each row is the collector label that stored it.",
+  "why": "Each group is a set of REAL stored rows that share one solicitation number (or one title+agency natural key) and differ ONLY in notice_type. SAM files an Award Notice and a Justification (or a Presolicitation and its Solicitation) under one solicitation number; Radar's read-time dedupe key used to omit notice_type and collapsed each pair into a single match.",
+  "pairs": [
+    {
+      "label": "139010 / 139012 — Award Notice vs Justification (the pair cited by the nationwide audit)",
+      "solicitation_number": "140FS126P0240",
+      "title": "W--WA-LEAVENWORTH NFH-FISH TRANSPORTATION",
+      "agency": "FWS, SAT TEAM 1",
+      "psc": "W025",
+      "due_date": null,
+      "rows": [
+        {
+          "id": 139010,
+          "source": "sam_naics_484220",
+          "title": "W--WA-LEAVENWORTH NFH-FISH TRANSPORTATION",
+          "agency": "FWS, SAT TEAM 1",
+          "solicitation_number": "140FS126P0240",
+          "notice_type": "Award Notice",
+          "psc": "W025",
+          "due_date": null
+        },
+        {
+          "id": 139012,
+          "source": "sam_naics_484220",
+          "title": "W--WA-LEAVENWORTH NFH-FISH TRANSPORTATION",
+          "agency": "FWS, SAT TEAM 1",
+          "solicitation_number": "140FS126P0240",
+          "notice_type": "Justification",
+          "psc": "W025",
+          "due_date": null
+        }
+      ]
+    },
+    {
+      "label": "139684 / 139706 — Presolicitation vs Solicitation (OPEN; found by the PR A read-only probe)",
+      "solicitation_number": "N0010425QNE53",
+      "title": "49--TEST SET SUBASSEMBL, IN REPAIR/MODIFICATION OF",
+      "agency": "NAVSUP WEAPON SYSTEMS SUPPORT MECH",
+      "psc": null,
+      "due_date": "2026-10-22T20:30:00.000Z",
+      "rows": [
+        {
+          "id": 139684,
+          "source": "sam_gov",
+          "title": "49--TEST SET SUBASSEMBL, IN REPAIR/MODIFICATION OF",
+          "agency": "NAVSUP WEAPON SYSTEMS SUPPORT MECH",
+          "solicitation_number": "N0010425QNE53",
+          "notice_type": "Presolicitation",
+          "psc": null,
+          "due_date": "2026-10-22T20:30:00.000Z"
+        },
+        {
+          "id": 139706,
+          "source": "sam_gov",
+          "title": "49--TEST SET SUBASSEMBL, IN REPAIR/MODIFICATION OF",
+          "agency": "NAVSUP WEAPON SYSTEMS SUPPORT MECH",
+          "solicitation_number": "N0010425QNE53",
+          "notice_type": "Solicitation",
+          "psc": null,
+          "due_date": "2026-10-22T20:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "label": "139691 / 139704 — Presolicitation vs Solicitation (OPEN)",
+      "solicitation_number": "N0010426QBF90",
+      "title": "VALVE, CONTROL",
+      "agency": "NAVSUP WEAPON SYSTEMS SUPPORT MECH",
+      "psc": null,
+      "due_date": "2026-09-30T20:30:00.000Z",
+      "rows": [
+        {
+          "id": 139691,
+          "source": "sam_gov",
+          "title": "VALVE, CONTROL",
+          "agency": "NAVSUP WEAPON SYSTEMS SUPPORT MECH",
+          "solicitation_number": "N0010426QBF90",
+          "notice_type": "Presolicitation",
+          "psc": null,
+          "due_date": "2026-09-30T20:30:00.000Z"
+        },
+        {
+          "id": 139704,
+          "source": "sam_gov",
+          "title": "VALVE, CONTROL",
+          "agency": "NAVSUP WEAPON SYSTEMS SUPPORT MECH",
+          "solicitation_number": "N0010426QBF90",
+          "notice_type": "Solicitation",
+          "psc": null,
+          "due_date": "2026-09-30T20:30:00.000Z"
+        }
+      ]
+    },
+    {
+      "label": "139206 / 139229 — Solicitation vs Presolicitation (OPEN)",
+      "solicitation_number": "N0010426RUC01",
+      "title": "61--REGULATOR,VOLTAGE, IN REPAIR/MODIFICATION OF",
+      "agency": "NAVSUP WEAPON SYSTEMS SUPPORT MECH",
+      "psc": null,
+      "due_date": "2026-09-30T18:00:00.000Z",
+      "rows": [
+        {
+          "id": 139206,
+          "source": "sam_gov",
+          "title": "61--REGULATOR,VOLTAGE, IN REPAIR/MODIFICATION OF",
+          "agency": "NAVSUP WEAPON SYSTEMS SUPPORT MECH",
+          "solicitation_number": "N0010426RUC01",
+          "notice_type": "Solicitation",
+          "psc": null,
+          "due_date": "2026-09-30T18:00:00.000Z"
+        },
+        {
+          "id": 139229,
+          "source": "sam_gov",
+          "title": "61--REGULATOR,VOLTAGE, IN REPAIR/MODIFICATION OF",
+          "agency": "NAVSUP WEAPON SYSTEMS SUPPORT MECH",
+          "solicitation_number": "N0010426RUC01",
+          "notice_type": "Presolicitation",
+          "psc": null,
+          "due_date": "2026-09-30T18:00:00.000Z"
+        }
+      ]
+    }
+  ]
+}

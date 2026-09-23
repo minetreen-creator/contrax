@@ -41,7 +41,7 @@ import {
   runRelatedScanQuery,
   logScanFailure,
   collapseScanRows,
-  loadSolicitationNumbers,
+  loadNoticeDedupeKeys,
 } from "~/lib/radar-scan-query";
 import {
   raceRadarScan,
@@ -362,15 +362,19 @@ export const runRadarScan = createServerFn({ method: "POST" })
       // R5 DEDUPE, WIRED (QA F2): collapse the SAME notice re-ingested under
       // several source labels BEFORE scoring/ranking, so duplicate rows can no
       // longer fill the ≤5 default-match cap. Key = solicitation number (R2 /
-      // migration 047) else (title, agency); the key read is FAIL-SOFT, so a
-      // not-yet-applied 047 degrades to the natural key instead of failing the
-      // scan. Never deletes anything — see ~/lib/notice-dedupe.
+      // migration 047) PLUS notice_type (FIX ①, owner-locked nationwide
+      // correctness fix 2026-09-23: an Award Notice and a Justification share a
+      // solicitation number and must stay two matches, matching the stored
+      // 5-dim natural key of migration 048) else (title, agency, notice_type);
+      // the key read is FAIL-SOFT, so a not-yet-applied 047 degrades to the
+      // natural key instead of failing the scan. Never deletes anything — see
+      // ~/lib/notice-dedupe.
       const collapsedScan = await collapseScanRows(rows, (ids) =>
-        loadSolicitationNumbers(sql, ids),
+        loadNoticeDedupeKeys(sql, ids),
       );
       if (collapsedScan.collapsed > 0) {
         console.log(
-          `[radar] dedupe: ${rows.length} rows → ${collapsedScan.rows.length} distinct notices (${collapsedScan.collapsed} collapsed; keyed by ${collapsedScan.solicitationNumbers ? "solicitation_number else (title,agency)" : "(title,agency) — solicitation numbers unavailable"})`,
+          `[radar] dedupe: ${rows.length} rows → ${collapsedScan.rows.length} distinct notices (${collapsedScan.collapsed} collapsed; keyed by ${collapsedScan.noticeKeyColumns ? "solicitation_number + notice_type else (title,agency,notice_type)" : "(title,agency,notice_type) — notice-key columns unavailable"})`,
         );
       }
       rows = collapsedScan.rows;

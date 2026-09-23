@@ -15,9 +15,6 @@ import {
   AUTOPSY_DRAFT_STORAGE_KEY,
   type AutopsyDraft,
 } from "~/lib/autopsy-funnel";
-// Contrax Grants price label — single source of truth shared with /grants
-// (owner-mandated "$19/month"). Pure module, no server-only imports.
-import { GRANTS_PRICE_LABEL } from "~/lib/grants";
 // Real cached example AI Executive Brief — code-split so it never bloats
 // the homepage main bundle or blocks hero render. Same component + same
 // server fn as the standalone /example-brief page (single source of truth).
@@ -487,45 +484,141 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
   );
 }
 
-// ── Contrax Grants — homepage section (owner order 2026-09-16) ───────────────
+// ── Contrax Grants — homepage section (owner order 2026-09-16; three-tier
+//    pricing table owner-locked 2026-09-23, business plan revs 305/306) ───────
 // The third product line on the homepage, slotted between the Radar hero (and
 // its Bid Scout callout) and the Award Autopsy front door. Presentational only:
 // no data fetch, no server fn, no analytics event, no DB — it renders instantly
-// in the server HTML and just links to the existing /grants page. The price
-// label is IMPORTED from the grants module so the homepage and /grants can
-// never disagree on the number (owner-mandated "$19/month").
+// in the server HTML and links out to the existing /grants page.
+//
+// The tier names, prices, "best for" lines and "Included" text below are the
+// owner's verbatim wording (rev 306) — do NOT reword them. The three boundaries
+// the presentation must respect: (1) Nonprofit Free is genuinely useful, not a
+// disguised trial; (2) Grants Plus sells convenience, monitoring and deeper
+// tools — not access to something nonprofits were promised free; (3) the $49
+// report is OPTIONAL human assistance, never required, and its row states that
+// matches and funding are NOT guaranteed and that it does NOT include writing
+// or submitting the grant application.
+//
+// The $49 CTA points at the LIVE Stripe payment link for the Personalized Grant
+// Opportunity Report (product prod_VJT6jJs5GSmzjH / price price_1UIqApR…), as an
+// external link in a new tab. The shared grants price-label constant still lives
+// in ~/lib/grants and is still imported by /grants (both untouched) — this
+// homepage block no longer renders that label, so its import was dropped here
+// only, and it is gone from this file's import list entirely.
+const GRANTS_REPORT_PAYMENT_LINK = "https://buy.stripe.com/8x26oJcpV9fCcos7eEf7i0b";
+
+type GrantsTier = {
+  name: string;
+  price: string;
+  period: string;
+  bestFor: string;
+  included: string;
+  ctaLabel: string;
+  ctaHref: string;
+  external?: boolean;
+  /** Only the $49 report carries the required not-guaranteed / no-submission line. */
+  disclaimer?: string;
+};
+
+const GRANTS_TIERS: GrantsTier[] = [
+  {
+    name: "Nonprofit Free",
+    price: "$0",
+    period: "forever",
+    bestFor: "Verified 501(c)(3) organizations",
+    included:
+      "Basic grant search, standard filters, grant previews and official application links. No credit card, trial, or expiration.",
+    ctaLabel: "Search grants →",
+    ctaHref: "/grants",
+  },
+  {
+    name: "Grants Plus",
+    price: "$19",
+    period: "/month",
+    bestFor: "Businesses and nonprofits wanting ongoing tools",
+    included:
+      "Unlimited searches and full grant details, advanced filters, saved opportunities, deadline tracking, weekly matching alerts, and enhanced summaries.",
+    ctaLabel: "Explore Grants Plus →",
+    ctaHref: "/grants",
+  },
+  {
+    name: "Personalized Grant Opportunity Report",
+    price: "$49",
+    period: "one-time",
+    bestFor: "Organizations wanting hands-on research",
+    included:
+      "Founder-researched report identifying the strongest opportunities, eligibility observations, deadlines, official links, reasons each grant may fit, and recommended next steps. Delivered within three business days.",
+    ctaLabel: "Get the $49 Report →",
+    ctaHref: GRANTS_REPORT_PAYMENT_LINK,
+    external: true,
+    disclaimer:
+      "Optional — free grant search remains available to verified nonprofits. Matches and funding are not guaranteed, and this report does not include writing or submitting the grant application.",
+  },
+];
+
 function ContraxGrantsPromo() {
   return (
     <section
       aria-label="Contrax Grants"
       className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8 lg:pb-16"
     >
-      <div className="overflow-hidden rounded-3xl border border-amber-900/10 bg-gradient-to-b from-amber-50 to-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">
-            Contrax Grants
-          </p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Find grants your organization actually qualifies for.
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
-            Contrax Grants searches federal grant opportunities on Grants.gov by keyword,
-            applicant type, funding category, agency, and status — source-verbatim details,
-            nothing invented.
-          </p>
-        </div>
-        <div className="mt-8 text-center">
-          <a
-            href="/grants"
-            className="inline-block rounded-xl bg-amber-500 px-8 py-3.5 text-base font-bold text-slate-950 shadow-sm transition-all hover:bg-amber-400 hover:shadow-md active:scale-[0.98]"
-          >
-            Search grants →
-          </a>
-          <p className="mt-3 text-sm font-semibold text-slate-700">
-            Contrax Grants — {GRANTS_PRICE_LABEL}
-          </p>
-        </div>
+      <div className="mx-auto max-w-3xl text-center">
+        <p className="text-sm font-semibold uppercase tracking-widest text-amber-600">
+          Contrax Grants
+        </p>
+        <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          Find grants your organization actually qualifies for.
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
+          Contrax Grants searches federal grant opportunities on Grants.gov by keyword,
+          applicant type, funding category, agency, and status — source-verbatim details,
+          nothing invented. Basic grant search is free for verified nonprofits, and it stays
+          free.
+        </p>
       </div>
+
+      <div className="mt-12 grid gap-6 lg:grid-cols-3 lg:gap-8">
+        {GRANTS_TIERS.map((tier) => (
+          <div
+            key={tier.name}
+            className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg"
+          >
+            <h3 className="text-xl font-bold text-slate-900">{tier.name}</h3>
+            <p className="mt-1 text-sm text-gray-500">{tier.bestFor}</p>
+            <p className="mt-5">
+              <span className="text-4xl font-extrabold text-slate-900">{tier.price}</span>{" "}
+              <span className="text-gray-500">{tier.period}</span>
+            </p>
+            <p className="mt-5 flex-1 text-sm leading-relaxed text-gray-700">
+              <span className="font-semibold text-slate-900">Included: </span>
+              {tier.included}
+            </p>
+            {tier.disclaimer ? (
+              <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-gray-600">
+                {tier.disclaimer}
+              </p>
+            ) : null}
+            <a
+              href={tier.ctaHref}
+              target={tier.external ? "_blank" : undefined}
+              rel={tier.external ? "noopener noreferrer" : undefined}
+              className={`mt-6 block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
+                tier.external
+                  ? "bg-amber-500 text-white hover:bg-amber-400"
+                  : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
+              }`}
+            >
+              {tier.ctaLabel}
+            </a>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-6 text-center text-xs text-gray-500">
+        Prices in US dollars. Verified nonprofits keep free grant search with no credit card, no
+        trial, and no expiration.
+      </p>
     </section>
   );
 }

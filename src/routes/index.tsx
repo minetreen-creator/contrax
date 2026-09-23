@@ -519,13 +519,6 @@ type GrantsTier = {
   ctaLabel: string;
   ctaHref: string;
   external?: boolean;
-  /**
-   * Availability note rendered right after the price (owner order 2026-09-23):
-   * the Grants Plus price stays visible to establish positioning, but the row
-   * must make availability unmistakable while recurring checkout is not live.
-   * DELETE this one field to remove the note once recurring checkout ships.
-   */
-  availability?: string;
   /** Only the $49 report carries the required not-guaranteed / no-submission line. */
   disclaimer?: string;
 };
@@ -548,10 +541,8 @@ const GRANTS_TIERS: GrantsTier[] = [
     bestFor: "Businesses and nonprofits wanting ongoing tools",
     included:
       "Unlimited searches and full grant details, advanced filters, saved opportunities, deadline tracking, weekly matching alerts, and enhanced summaries.",
-    ctaLabel: "Explore Grants Plus →",
+    ctaLabel: "Get Grants Plus →",
     ctaHref: "/grants",
-    // Owner order 2026-09-23: price stays visible, availability unmistakable.
-    availability: "Coming soon",
   },
   {
     name: "Personalized Grant Opportunity Report",
@@ -600,11 +591,6 @@ function ContraxGrantsPromo() {
             <p className="mt-5">
               <span className="text-4xl font-extrabold text-slate-900">{tier.price}</span>{" "}
               <span className="text-gray-500">{tier.period}</span>
-              {tier.availability ? (
-                <span className="text-sm font-semibold text-amber-600">
-                  {` · ${tier.availability}`}
-                </span>
-              ) : null}
             </p>
             <p className="mt-5 flex-1 text-sm leading-relaxed text-gray-700">
               <span className="font-semibold text-slate-900">Included: </span>

@@ -5,6 +5,9 @@ import { countRoleMatches } from "~/lib/healthcare";
 import { ARCHIVED_STATUSES, DEAD_SQL } from "~/lib/bid-status";
 import { locationMatchesStates, naicsPred, setAsidePredMulti } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+// S2 NOTICE IDENTITY (owner-approved 2026-09-23): canonical read-side notice key
+// (`sol + notice_type`, else `title + agency + notice_type`) — same key as Radar.
+import { noticeKeySql } from "~/lib/notice-dedupe";
 
 // Mirrors the Bid shape from /api/dashboard-data, plus `status` (the user's
 // saved_matches.status, or null when the bid was never saved/dismissed) so the
@@ -48,7 +51,7 @@ async function handler({ request }: { request: Request }) {
     const setAsideFrag = setAsidePredMulti(certifications, sql);
     const naicsFrag = naicsPred(naicsCodes, sql);
     const rows = await sql()`SELECT * FROM (
-      SELECT DISTINCT ON (b.title, b.agency)
+      SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("b"))})
         b.id, b.title, b.agency, b.description, b.location, b.category, b.set_aside,
         b.due_date, b.estimated_value, b.source_url, b.naics_code, b.created_at, sm.status
       FROM bids b
@@ -57,7 +60,7 @@ async function handler({ request }: { request: Request }) {
          OR sm.status = ANY(${ARCHIVED_STATUSES}))
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         ${setAsideFrag} ${naicsFrag}
-      ORDER BY b.title, b.agency
+      ORDER BY ${sql().unsafe(noticeKeySql("b"))}
     ) a
     ORDER BY due_date DESC NULLS LAST`;
 

@@ -2,6 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { setAsidePred } from "~/lib/open-bids";
+// S2 NOTICE IDENTITY + D15/Q8 AWARD-EXCLUSION SWEEP (owner-approved 2026-09-23):
+// /trades collapses and counts with the canonical notice key Radar uses, and no
+// award row (chicago/sf/austin historical intel) can be counted or listed here.
+import { noticeKeySql } from "~/lib/notice-dedupe";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -62,10 +67,11 @@ const getTradesData = createServerFn({ method: "GET" }).handler(async () => {
       CERT_IDS.map(async (cert) => {
         const rows = await sql()`
           SELECT COUNT(*)::int AS n FROM (
-            SELECT DISTINCT ON (title, agency) id
+            SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))}) id
             FROM bids
             WHERE ${sql().unsafe(MONTH_WINDOW_SQL)} ${certPred(cert, sql)}
-            ORDER BY title, agency
+              AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+            ORDER BY ${sql().unsafe(noticeKeySql("bids"))}
           ) d
         `;
         counts[cert] = Number((rows as any)[0]?.n ?? 0);
@@ -96,11 +102,12 @@ const getCertClosingBids = createServerFn({ method: "POST" })
       const rows = await sql()`
         SELECT id, title, agency, due_date, source_url, set_aside
         FROM (
-          SELECT DISTINCT ON (title, agency)
+          SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
                  id, title, agency, due_date, source_url, set_aside, created_at
           FROM bids
           WHERE ${sql().unsafe(MONTH_WINDOW_SQL)} ${certPred(cert, sql)}
-          ORDER BY title, agency, created_at DESC NULLS LAST
+            AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+          ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
         ) t
         ORDER BY t.due_date ASC NULLS LAST
         LIMIT 50

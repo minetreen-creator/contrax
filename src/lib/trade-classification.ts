@@ -78,14 +78,24 @@ export const JANITORIAL_SERVICE_PATTERNS: RegExp[] = [
 export const SPECIALTY_CLEANING_PATTERNS: RegExp[] = [
   /\blaundry\b/,
   /\bdry[ -]clean/,
-  /\btank/,
+  // S6 CLASSIFIER ORDER (owner-approved 2026-09-23, D6): the blanket
+  // /\btank/, /\bsewer/, /\bpipe/ and /\bstreet sweep/ vetoes were REMOVED. They
+  // match ordinary custodial prose and infrastructure that the owner's own
+  // janitorial term list counts as janitorial work (sewer/septic, street
+  // cleaning) — "sewer cleaning services", "pipe cleaning", "street sweeping"
+  // are custodial contracts, and a custodial contract was being vetoed out of
+  // its own trade. The genuinely NON-custodial specialities below (laundry,
+  // duct/hood/exhaust, septic tank, wet well, interceptor, hydro/jetting,
+  // CCTV/video inspection, hull/u-wild, laser/gun-range, catch basin,
+  // degreasing, parts washer, chimney/gutter, CBRNE mobility gear, rod
+  // cleaning, remediation/"specialty cleaning") are unchanged: the module's
+  // intended scope — cleaning of equipment/structures/infrastructure — is
+  // preserved, it is only the over-broad vocabulary that is narrowed.
   /\bduct/,
   /\bhood\b/,
-  /\bsewer/,
   /\bseptic\b/,
   /\bwet ?well/,
   /\binterceptor\b/,
-  /\bpipe/,
   /\bline clean/,
   /\bhydro/,
   /\bjetting\b/,
@@ -98,7 +108,6 @@ export const SPECIALTY_CLEANING_PATTERNS: RegExp[] = [
   /\blaser clean/,
   /\bgun range/,
   /\bcatch basin/,
-  /\bstreet sweep/,
   /\bdegreas/,
   /\bparts washer/,
   /\bchimney\b/,
@@ -190,6 +199,13 @@ export const TRANSPORTATION_SERVICE_PATTERNS: RegExp[] = [
   /\bhhg\b/,
   /\brelocation\b/,
   /\bbackhaul\b/,
+  // S6 CLASSIFIER ORDER (owner-approved 2026-09-23, D5): "transport(ation)"
+  // and "towing" are trucking/hauling SERVICE signals, not generic words, and
+  // their absence lost real work ("Transportation of Vehicles, Parts and
+  // Supplies", "Vehicle Towing & Transport"). Bare "truck"/"delivery"/"moving"
+  // stay excluded exactly as before.
+  /\btransport/,
+  /\btowing\b/,
 ];
 
 function anyMatch(patterns: RegExp[], text: string): boolean {
@@ -249,6 +265,18 @@ const TRANSPORTATION_EXPLICIT_PHRASES: RegExp[] = [
   /\bhousehold goods\b/,
   /\bhhg\b/,
   /\brelocation services?\b/,
+  // S6 (D5): the escape that lets a title naming a PRODUCT still be a transport
+  // SERVICE contract. "Transportation of Vehicles, Parts and Supplies" and
+  // "Vehicle Towing & Transport" are service contracts whose titles also carry
+  // product nouns ("vehicles", "parts", "supplies"); without these two phrasings
+  // the product veto suppressed genuine hauling/towing work.
+  //
+  // DELIBERATELY still WITHOUT a bare /\bhauling\b/: that is exactly the word a
+  // product title re-uses ("39--CART, GENERAL HAULING", "HAULING EQUIPMENT
+  // PARTS"), and the QA F4b/F3 pins require those to stay vetoed. "towing" and
+  // "transport(ation)" are NOT re-used as product nouns.
+  /\btransport/,
+  /\btowing\b/,
 ];
 
 /** Does the text spell out a transportation SERVICE phrase (not just the trade word)? */
@@ -334,12 +362,32 @@ export function isTransportationWork(title: string, _full: string): boolean {
 /**
  * The shared ingest `category` stamp (was duplicated, with a bare-"cleaning"
  * janitorial branch and no trucking branch, in sam-gov.ts / state-keyword.ts /
- * cities.ts). Order matters: specific service trades are tested BEFORE the
- * construction/type fallbacks so freight/moving work is no longer stamped
- * "Construction" (the audit found 39 trucking rows mislabelled that way), and
- * a product/dump-truck listing can never enter a service trade.
+ * cities.ts).
  *
- * The other branches keep their existing behavior EXACTLY.
+ * S5 CLASSIFIER ORDER (owner-approved 2026-09-23, D3/D4). Two things changed,
+ * and they are the WHOLE of this function's change:
+ *
+ *   1. ORDER — a service-specific trade is now decided BEFORE the
+ *      construction/type fallbacks for janitorial too, not only for
+ *      landscaping/transportation. Before this, a custodial contract whose
+ *      boilerplate mentioned "construction" (or whose notice type was a
+ *      Solicitation) was stamped `Construction` and never reached
+ *      `isJanitorialWork`. Landscaping → Transportation → Janitorial now all
+ *      precede the construction/it/security/hvac/plumbing text branches.
+ *   2. NOTICE TYPE — an `Award` / `Justification` / `Special` notice is NEVER
+ *      stamped `Construction` any more (D4). The legacy
+ *      `award|special → Construction` mapping is gone; those types fall through
+ *      to the honest `Other`. `solicitation`/`combined` keep their existing
+ *      `Construction` stamp (unchanged behavior). Callers now feed the row's
+ *      REAL notice type (cities.ts / state-keyword.ts no longer pass "").
+ *
+ * A product/dump-truck listing still can never enter a service trade, and the
+ * purchased-service gate is the SAME function the trade passes skip on (D7):
+ * see `tradePassExclusion` and the invariant pinned in
+ * `src/lib/classifier-order.test.ts` — a row this function stamps
+ * `Transportation`/`Janitorial` can never be one the corresponding trade pass
+ * would refuse, so the same notice is classified identically whichever pass
+ * (or door) picked it up.
  */
 export function mapCategory(typeValue: string, title: string, description: string): string {
   const t = (typeValue || "").toLowerCase();
@@ -348,18 +396,18 @@ export function mapCategory(typeValue: string, title: string, description: strin
 
   if (full.includes("landscap") || full.includes("grounds main")) return "Landscaping";
   if (isTransportationWork(titleLc, full)) return "Transportation";
+  // Owner 09-21: janitorial = custodial service work only (no bare "cleaning").
+  // S5: moved AHEAD of the construction/type fallbacks (D3).
+  if (isJanitorialWork(titleLc, full)) return "Janitorial";
   if (full.includes("construction") || full.includes("renovation") || full.includes("demolition")) return "Construction";
   if (full.includes("it ") && (full.includes("service") || full.includes("support") || full.includes("software") || full.includes("cloud"))) return "IT Services";
-  // Owner 09-21: janitorial = custodial service work only (no bare "cleaning").
-  if (isJanitorialWork(titleLc, full)) return "Janitorial";
   if (full.includes("security") || full.includes("guard ")) return "Security";
   if (full.includes("hvac") || full.includes("heating") || full.includes("cooling")) return "HVAC";
   if (full.includes("electrical") || full.includes("plumbing")) return "Plumbing & Electrical";
 
   if (t.includes("solicitation") || t.includes("combined")) return "Construction";
-  if (t.includes("award")) return "Construction";
-  if (t.includes("special")) return "Construction";
-
+  // S5/D4: `award` / `justification` / `special` deliberately fall through to the
+  // honest "Other" (never "Construction").
   return "Other";
 }
 
@@ -367,7 +415,64 @@ export function mapCategory(typeValue: string, title: string, description: strin
 export type TradeGateReason = "product_buy" | "dump_truck" | "specialty_cleaning_only";
 
 /**
- * TRADE-PASS ELIGIBILITY (owner PRIORITY 09-21, R3/R4 — QA F4b).
+ * D7 — THE GATE IS PER-NOTICE, NOT PER-CALL (owner-approved 2026-09-23).
+ *
+ * Before this, the purchased-service gate existed only inside the 11 structured
+ * trade passes (`tradePassExclusion` called from sam-gov-trades.ts), while every
+ * other SAM.gov-family source (the national/regional pass, `cities`, the 51
+ * doors) applied only LABEL-level gating. The SAME federal notice was therefore
+ * refused as a product buy when it arrived through `naics=484110` and stored
+ * unchanged when it arrived through `sam_gov` — one notice, two outcomes,
+ * decided by which query happened to return it.
+ *
+ * This function is the single decision for one NOTICE (title + description), for
+ * BOTH trades at once, independent of the pass that fetched it. Everything that
+ * gates a notice routes through it:
+ *   - the 11 trade passes (`tradePassExclusion` below is a thin wrapper, so the
+ *     pass skip reason and the classifier can never disagree);
+ *   - `mapCategory`'s trade branches (`isJanitorialWork` / `isTransportationWork`
+ *     consult the same negative guards), so a notice is stamped the same trade
+ *     whichever source stored it.
+ *
+ * Deliberately an EXCLUSION gate, not a positive requirement: a genuine trucking
+ * notice may carry no service phrase at all ("Office Move", 484210) and must
+ * never be lost, whereas the negative guards (a product/supply/equipment buy, a
+ * dump-truck listing, specialty-only cleaning) are exactly the owner's
+ * exclusions. `title` drives the product veto; `description` carries the
+ * specialty-cleaning signal, matching isJanitorialWork / isTransportationWork.
+ */
+export interface TradeGateDecision {
+  janitorial: TradeGateReason | null;
+  trucking: TradeGateReason | null;
+  /** The trade labels on NEGATIVE evidence — identical for every caller. */
+  refused: Array<"janitorial" | "trucking">;
+}
+
+export function tradeGateForNotice(title: string, description: string): TradeGateDecision {
+  const titleLc = (title || "").toLowerCase();
+  const full = `${titleLc} ${(description || "").toLowerCase()}`.trim();
+  const dumpTruck = isDumpTruckLike(titleLc);
+  const productBuy = isProductBuy(titleLc);
+  const janitorial: TradeGateReason | null = dumpTruck
+    ? "dump_truck"
+    : productBuy && !hasExplicitJanitorialServicePhrase(titleLc)
+      ? "product_buy"
+      : isSpecialtyCleaningOnly(full)
+        ? "specialty_cleaning_only"
+        : null;
+  const trucking: TradeGateReason | null = dumpTruck
+    ? "dump_truck"
+    : productBuy && !hasExplicitTransportationServicePhrase(titleLc)
+      ? "product_buy"
+      : null;
+  const refused: Array<"janitorial" | "trucking"> = [];
+  if (janitorial) refused.push("janitorial");
+  if (trucking) refused.push("trucking");
+  return { janitorial, trucking, refused };
+}
+
+/**
+ * TRADE-PASS ELIGIBILITY (owner PRIORITY 09-21, R3/R4 — QA F4b; unified by D7).
  *
  * A structured-filter pass (`naics=484110`, `psc=S201`, …) asks SAM for every
  * notice SAM has coded with that code — and SAM's codes include PRODUCT
@@ -376,12 +481,8 @@ export type TradeGateReason = "product_buy" | "dump_truck" | "specialty_cleaning
  * This gate runs per notice BEFORE mapping, so such a row can never enter the
  * pass's output and can never be stamped with the trade's code.
  *
- * Deliberately an EXCLUSION gate, not a positive requirement: a genuine trucking
- * notice may carry no service phrase at all ("Office Move", 484210) and must
- * never be lost, whereas the negative guards below (a product/supply/equipment
- * buy, a dump-truck listing, specialty-only cleaning) are exactly the owner's
- * exclusions. `title` drives the product veto; `description` carries the
- * specialty-cleaning signal, matching isJanitorialWork / isTransportationWork.
+ * D7: this is now only a projection of `tradeGateForNotice` — one decision for
+ * one notice, identical no matter which pass (or door) fetched it.
  *
  * Returns the skip reason, or null when the notice may enter the trade's set.
  */
@@ -390,14 +491,5 @@ export function tradePassExclusion(
   title: string,
   description: string,
 ): TradeGateReason | null {
-  const titleLc = (title || "").toLowerCase();
-  const full = `${titleLc} ${(description || "").toLowerCase()}`.trim();
-  if (isDumpTruckLike(titleLc)) return "dump_truck";
-  if (trade === "janitorial") {
-    if (isProductBuy(titleLc) && !hasExplicitJanitorialServicePhrase(titleLc)) return "product_buy";
-    if (isSpecialtyCleaningOnly(full)) return "specialty_cleaning_only";
-    return null;
-  }
-  if (isProductBuy(titleLc) && !hasExplicitTransportationServicePhrase(titleLc)) return "product_buy";
-  return null;
+  return tradeGateForNotice(title, description)[trade];
 }

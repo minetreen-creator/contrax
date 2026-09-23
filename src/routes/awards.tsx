@@ -10,6 +10,9 @@ import { getCurrentUser } from "~/lib/auth";
 import { getSavedBidIds } from "~/lib/saved-matches";
 import { trackEvent } from "~/lib/track";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+// D15/Q8 AWARD-EXCLUSION SWEEP (owner-approved 2026-09-23): no award row may
+// reach an opportunity surface — see AWARD_EXCLUSION_SQL in ~/lib/source-class.
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { checkTrial, hasProfessionalAccess, type TrialStatus } from "~/lib/trial";
 import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
 
@@ -117,6 +120,7 @@ const getAwardsData = createServerFn({ method: "GET" })
         )
         AND due_date > NOW()
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
+        AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
         LIMIT 100
       `
@@ -128,6 +132,7 @@ const getAwardsData = createServerFn({ method: "GET" })
           WHERE (title ILIKE ${"%" + search + "%"} OR description ILIKE ${"%" + search + "%"})
             AND due_date > NOW()
             AND ${sql().unsafe(LOW_CONTENT_SQL)}
+            AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
           ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
           LIMIT 100
         `
@@ -136,6 +141,7 @@ const getAwardsData = createServerFn({ method: "GET" })
                  estimated_value, source_url, created_at, naics_code
           FROM bids
           WHERE ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW()
+            AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
           ORDER BY created_at DESC NULLS LAST, due_date ASC NULLS LAST
           LIMIT 100
         `;
@@ -164,8 +170,8 @@ const getAwardsData = createServerFn({ method: "GET" })
     if (!cat) { similarBids[award.id] = []; continue; }
     const parts = loc ? loc.split(",")[0].trim() : "";
     const bidRows = parts
-      ? await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT 5`
-      : await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
+      ? await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT 5`
+      : await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
     similarBids[award.id] = (bidRows as any[]).map((b) => ({
       id: Number(b.id), title: b.title, agency: b.agency,
       due_date: b.due_date ? (toISODate(b.due_date) || "Not specified") : "Not specified",

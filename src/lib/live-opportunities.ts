@@ -34,6 +34,11 @@
  * renders.
  */
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+// S2 NOTICE IDENTITY + D15/Q8 AWARD-EXCLUSION SWEEP (owner-approved 2026-09-23):
+// the strip collapses with the canonical notice key (`sol + notice_type`, else
+// `title + agency + notice_type`) and excludes award rows.
+import { noticeKeySql } from "~/lib/notice-dedupe";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 
 export type LiveOpportunity = {
   id: number;
@@ -51,13 +56,14 @@ export async function getLiveOpportunities(): Promise<LiveOpportunity[]> {
     const rows = await sql()`
       SELECT id, title, agency, location, category, set_aside, due_date
       FROM (
-        SELECT DISTINCT ON (title, agency)
+        SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
                id, title, agency, location, category, set_aside, due_date, created_at
         FROM bids
         WHERE due_date > NOW()
           AND set_aside IN ('8(a)', 'SDVOSB', 'WOSB', 'HUBZone')
           AND ${sql().unsafe(LOW_CONTENT_SQL)}
-        ORDER BY title, agency, created_at DESC NULLS LAST
+          AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+        ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
       ) t
       ORDER BY t.created_at DESC NULLS LAST
       LIMIT 5

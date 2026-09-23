@@ -203,12 +203,88 @@ export function geoRelevant(
   stateCode: string,
 ): boolean {
   if (!stateCode) return true;
+  const geo = resolveRowGeography({ location, agency });
+  if (geo.agencyRule) return geo.agencyRule.state === stateCode; // another state's LOCAL row → not relevant
+  if (geo.nationalScope) return true; // national-scope row → never state-local
+  if (!geo.state) return true; // nationwide/unknown → kept (pre-existing semantics)
+  return geo.state === stateCode;
+}
+
+/**
+ * S3 GEOGRAPHY — THE ONE SHARED RESOLVER (owner-approved 2026-09-23, D9/D10).
+ *
+ * Read path AND write path decide a row's geography here; nothing else may
+ * re-implement the order. The order, with provenance recorded at every step:
+ *
+ *   1. the row's OWN place of performance (`location` text) — the only evidence
+ *      that can name a state outright;
+ *   2. a foreign place of performance ⇒ NO US state from agency text (the owner
+ *      order of 2026-09-23; live row 139639, "Busan, South Korea" + a
+ *      contracting-office string that happens to carry a "CO" token);
+ *   3. the curated state-body AGENCY rule (OH-ARNG — `agencyJurisdictionState`),
+ *      which outranks the national-scope placeholder exactly as the read path
+ *      always did;
+ *   4. `isNationalScope(location)` ⇒ NO state, ever (a "United States"/"RC"/…
+ *      row never borrows a state from its buyer). This is the step the WRITE
+ *      path used to skip, which is what made the stored overview an optimistic
+ *      shadow of Radar (D9);
+ *   5. the buyer/agency TEXT fallback (unchanged pre-existing semantics for
+ *      rows whose location carries no state at all);
+ *   6. none of the above ⇒ NULL (honest "no US state"), never invented.
+ *
+ * PURE — no DB, no server fns. `provenance` is for the metric/readout, not for
+ * product display. Deliberately does NOT read the stored columns (normalized_state
+ * / source_jurisdiction), so a write followed by a read is idempotent.
+ */
+export type GeographyProvenance =
+  | "place_of_performance"
+  | "foreign_place_of_performance"
+  | "agency_jurisdiction_rule"
+  | "national_scope"
+  | "agency_fallback"
+  | "unprovable";
+
+export interface RowGeography {
+  /** The USPS state the row's own evidence proves, or NULL (nationwide/unknown). */
+  state: string | null;
+  provenance: GeographyProvenance;
+  /** The location declared national scope ("United States", "RC", …). */
+  nationalScope: boolean;
+  /** Set when the buyer is on the curated state-body agency list. */
+  agencyRule: { state: string; provenance: string } | null;
+}
+
+export function resolveRowGeography(args: {
+  location?: string | null;
+  agency?: string | null;
+}): RowGeography {
+  const location = args.location;
+  const agency = args.agency;
+  const nationalScope = isNationalScope(location);
+  const fromLocation = resolveStateFromText(location);
+  if (fromLocation) {
+    return { state: fromLocation, provenance: "place_of_performance", nationalScope, agencyRule: null };
+  }
+  if (isForeignPlaceField(location)) {
+    return {
+      state: null,
+      provenance: "foreign_place_of_performance",
+      nationalScope,
+      agencyRule: null,
+    };
+  }
   const rule = agencyJurisdictionState(agency);
-  if (rule) return rule.state === stateCode; // another state's LOCAL row → not relevant
-  if (isNationalScope(location)) return true; // national-scope row → never state-local
-  const bidState = resolveBidState(location, agency);
-  if (!bidState) return true; // nationwide/unknown → kept (pre-existing semantics)
-  return bidState === stateCode;
+  if (rule) {
+    return { state: rule.state, provenance: "agency_jurisdiction_rule", nationalScope, agencyRule: rule };
+  }
+  if (nationalScope) {
+    return { state: null, provenance: "national_scope", nationalScope: true, agencyRule: null };
+  }
+  const fromAgency = resolveStateFromText(agency);
+  if (fromAgency) {
+    return { state: fromAgency, provenance: "agency_fallback", nationalScope, agencyRule: null };
+  }
+  return { state: null, provenance: "unprovable", nationalScope, agencyRule: null };
 }
 
 /** NATIONAL-SCOPE LOCATIONS (owner 09-14 local-accuracy PR). A bid whose own
@@ -576,10 +652,10 @@ export function matchGeographyBucket(
   agency: string | null | undefined,
 ): "local" | "nationwide" {
   if (!stateCode) return "nationwide";
-  const rule = agencyJurisdictionState(agency);
-  if (rule) return rule.state === stateCode ? "local" : "nationwide";
-  if (isNationalScope(location)) return "nationwide";
-  return resolveBidState(location, agency) === stateCode ? "local" : "nationwide";
+  const geo = resolveRowGeography({ location, agency });
+  if (geo.agencyRule) return geo.agencyRule.state === stateCode ? "local" : "nationwide";
+  if (geo.nationalScope) return "nationwide";
+  return geo.state === stateCode ? "local" : "nationwide";
 }
 
 /**
@@ -876,8 +952,12 @@ export interface InsertLocationColumns {
  *   raw_location        — the verbatim pre-normalization location value (the
  *       value stored in bids.location; mirrors the 039 backfill's
  *       `raw_location = b.location`).
- *   normalized_state    — resolveBidState(location, agency): performance
- *       location first, then buyer/agency; NULL when neither proves one.
+ *   normalized_state    — `resolveRowGeography(location, agency).state` (the
+ *       SHARED resolver the read path buckets with): performance location
+ *       first, then the curated state-body agency rule, then buyer/agency text
+ *       for a location that names no state; a NATIONAL-SCOPE location
+ *       ("United States"/"RC"/…) never takes a state. NULL when nothing proves
+ *       one.
  *   location_conflict   — true only when the row's OWN title/description names
  *       a DIFFERENT state than the derived one (read-path locationConflict);
  *       false when a state is derived and nothing contradicts it; NULL when no
@@ -906,9 +986,23 @@ export function deriveInsertLocationColumns(args: {
     args.location,
     args.title,
   );
-  const normalized_state = foreignPop
-    ? resolveStateFromText(args.location)
-    : resolveBidState(args.location, args.agency);
+  // S3 WRITE-PATH MIRROR (owner-approved 2026-09-23, Q2 = YES, D9/D10): the
+  // stored geography now comes from the SAME shared resolver the read path's
+  // bucket uses (`matchGeographyBucket` / `geoRelevant`), so the stored
+  // snapshot can no longer diverge from Radar. Two concrete consequences:
+  //   * a NATIONAL-SCOPE location ("United States", "RC", "Multiple locations",
+  //     …) no longer borrows a state from the buyer/agency string — the write
+  //     path refuses exactly what `isNationalScope` refuses on read. This is
+  //     what removes the 45-to-59-cell stored-local-only divergence class;
+  //   * the curated state-body agency rule (OH-ARNG) still resolves, and the
+  //     curated SOURCE_HOME_JURISDICTIONS pins (pennbid PA / va_evirginia VA /
+  //     oh_dayton OH) still override `source_jurisdiction` — both unchanged.
+  // The foreign-POP guard stays as an OUTER, deliberately-stricter step (it can
+  // only SUPPRESS a state the resolver would derive from the agency TEXT, never
+  // from the row's own place of performance), so the write path can never store
+  // a state the read path then refuses. NEW ROWS ONLY — no legacy relabel.
+  const geo = resolveRowGeography({ location: args.location, agency: args.agency });
+  const normalized_state = foreignPop ? resolveStateFromText(args.location) : geo.state;
   const curated = SOURCE_HOME_JURISDICTIONS[args.sourceName];
   const source_jurisdiction = curated ?? normalized_state;
   const location_conflict = normalized_state

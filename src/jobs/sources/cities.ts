@@ -72,10 +72,13 @@ function extractLocation(orgHierarchy: any[], description: string): string {
   return "United States";
 }
 
-function mapCategory(title: string, description: string): string {
+function mapCategory(noticeType: string | null, title: string, description: string): string {
   // OWNER PRIORITY 09-21 (R4): the single shared classifier — see
-  // src/lib/trade-classification.ts. This source has no notice type.
-  return classifyCategory("", title, description);
+  // src/lib/trade-classification.ts.
+  // S5 CLASSIFIER ORDER (owner-approved 2026-09-23, D4): the notice type IS now
+  // fed to the classifier (it used to pass ""), because the v1 summary carries
+  // it and an Award/Justification notice must never be stamped "Construction".
+  return classifyCategory(noticeType ?? "", title, description);
 }
 
 /** Deterministic test seam (saved fixtures) — production callers pass nothing. */
@@ -133,7 +136,7 @@ async function fetchKeyword(
           deepestOrg?.name || orgs[0]?.name || "Municipal Agency";
 
         const location = extractLocation(orgs, description);
-        const category = mapCategory(item.title || "", description);
+        const category = mapCategory(extractNoticeType(item), item.title || "", description);
 
         const dueDate = item.responseDate || item.responseDateActual || null;
 

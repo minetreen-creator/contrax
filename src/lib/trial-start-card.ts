@@ -26,6 +26,8 @@ import { loadUserTrialStatus, TRIAL_DAYS, type TrialStatus } from "~/lib/trial";
 import { TRIAL_CHECKLIST } from "~/lib/trial-usage";
 import { LIVE_SQL, ARCHIVED_STATUSES } from "~/lib/bid-status";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+// S2 NOTICE IDENTITY (owner-approved 2026-09-23): canonical read-side notice key.
+import { noticeKeySql } from "~/lib/notice-dedupe";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { locationMatchesStates, setAsidePredMulti, naicsPred } from "~/lib/open-bids";
 
@@ -149,7 +151,7 @@ export async function findTrialStartCandidates(
   try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS naics_code TEXT`; } catch {}
   const rows = (await sql()`
     SELECT * FROM (
-      SELECT DISTINCT ON (title, agency)
+      SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
         id, title, agency, location, due_date, estimated_value,
         (ai_summary IS NOT NULL) AS has_fresh_summary
       FROM bids
@@ -161,7 +163,7 @@ export async function findTrialStartCandidates(
           WHERE user_id = ${userId} AND status = ANY(${ARCHIVED_STATUSES})
         )
         ${setAsideFrag} ${naicsFrag}
-      ORDER BY title, agency
+      ORDER BY ${sql().unsafe(noticeKeySql("bids"))}
     ) matched
     ORDER BY (has_fresh_summary) ASC, due_date ASC NULLS LAST
     LIMIT 20

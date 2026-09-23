@@ -2,6 +2,17 @@
  * Socrata SODA procurement source adapter.
  * SODA exposes datasets as JSON at /resource/{dataset-id}.json and supports
  * $limit/$offset pagination without an API key for public datasets.
+ *
+ * FIX ② (owner-locked nationwide correctness fix, 2026-09-23): a page request
+ * that FAILS is reported, not swallowed into an empty array. Before this, a
+ * source whose datasets no longer exist (HTTP 404) "fetched 0 rows with 0
+ * errors" — byte-for-byte the run record of an honest empty source — so the dead
+ * collector `nys_socrata` sat in `collector_staleness` as FRESH for 43
+ * consecutive runs while both of its data.ny.gov datasets answered 404 (verified
+ * live 2026-09-23: `e5pk-us93` and `hf3r-utnq` — and the fallback id is in fact the LA
+ * RAMP dataset id — see `city-procurement.ts`). A source that cannot be reached
+ * must fail its run, because only a run that reached the source can honestly
+ * report "zero rows".
  */
 import type { RawBid } from "./sam-gov";
 import { nycCityRecordNoticeUrl } from "../../lib/city-procurement";
@@ -16,6 +27,23 @@ const HEADERS = {
 
 type SocrataRecord = Record<string, unknown>;
 type SourceName = "nyc_socrata" | "nys_socrata" | string;
+
+/**
+ * Why a Socrata fetch produced no rows. `reached` is the honest signal the
+ * collector run log needs: TRUE means at least one page answered 200 with a JSON
+ * array (so an empty result list is an HONEST zero), FALSE with a `failure` set
+ * means the dataset could not be read at all (dead source — FIX ②).
+ */
+export interface SocrataFetchReport {
+  /** First connection/HTTP/parse failure seen, or null when every page answered. */
+  failure: string | null;
+  /** True once at least one page answered 200 with a JSON array. */
+  reached: boolean;
+}
+
+export function newSocrataFetchReport(): SocrataFetchReport {
+  return { failure: null, reached: false };
+}
 
 function text(value: unknown, fallback = ""): string {
   if (value === null || value === undefined) return fallback;
@@ -47,11 +75,19 @@ function value(record: SocrataRecord, ...keys: string[]): unknown {
   return undefined;
 }
 
-/** Fetch up to three pages from any Socrata SODA dataset. */
+/**
+ * Fetch up to three pages from any Socrata SODA dataset.
+ *
+ * `report` is OPTIONAL and additive: callers that omit it keep the previous
+ * behaviour exactly. Callers that pass one get the honest reach/failure signal
+ * back (used by `nysSocrataSource` to fail its run instead of reporting an
+ * unreadable dataset as an honest zero — FIX ②).
+ */
 export async function fetchSocrataBids(
   baseUrl: string,
   datasetId: string,
   sourceName: SourceName,
+  report?: SocrataFetchReport,
 ): Promise<RawBid[]> {
   const results: RawBid[] = [];
   const endpoint = `${baseUrl.replace(/\/$/, "")}/resource/${encodeURIComponent(datasetId)}.json`;
@@ -62,10 +98,21 @@ export async function fetchSocrataBids(
       const response = await fetch(`${endpoint}?${params}`, { headers: HEADERS });
       if (!response.ok) {
         console.error(`  Socrata ${sourceName} page ${page + 1} returned ${response.status}`);
+        if (report && report.failure === null) {
+          report.failure = `HTTP ${response.status} for ${endpoint}`;
+        }
         break;
       }
       const records = (await response.json()) as SocrataRecord[];
-      if (!Array.isArray(records) || records.length === 0) break;
+      if (!Array.isArray(records)) {
+        console.error(`  Socrata ${sourceName} page ${page + 1} returned a non-array body`);
+        if (report && report.failure === null) {
+          report.failure = `malformed (non-array) JSON body from ${endpoint}`;
+        }
+        break;
+      }
+      if (report) report.reached = true;
+      if (records.length === 0) break;
 
       for (const record of records) {
         const id = text(value(record, "request_id", "solicitation_number", "event_id", "id"));
@@ -102,6 +149,9 @@ export async function fetchSocrataBids(
       if (page < MAX_PAGES - 1) await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
     } catch (error) {
       console.error(`  Socrata ${sourceName} page ${page + 1} error:`, (error as Error).message);
+      if (report && report.failure === null) {
+        report.failure = `${(error as Error).message} for ${endpoint}`;
+      }
       break;
     }
   }
@@ -112,9 +162,31 @@ export function nycSocrataSource(): Promise<RawBid[]> {
   return fetchSocrataBids("https://data.cityofnewyork.us", "3khw-qi8f", "nyc_socrata");
 }
 
-/** NYS primary catalog dataset, with the RAMP dataset as a fallback on 404. */
+/**
+ * NYS primary catalog dataset, with a fallback dataset id that answered 404 in
+ * production; the fallback id is in fact the LA RAMP dataset id, so it is not a
+ * real NYS fallback (audit A-3 — the id is left UNCHANGED here on purpose: this
+ * fix is about honest health reporting, not about re-pointing the source).
+ *
+ * FIX ②: when NEITHER dataset can be read (both requests failed — HTTP 404 or a
+ * connection/parse error, verified live for both ids on 2026-09-23), this THROWS.
+ * The run then records an error instead of `rows_fetched = 0, errors = 0`, so
+ * `collector_staleness` reports the source as DEAD rather than FRESH, and the
+ * sync log names the unreachable dataset. A dataset that ANSWERS with zero rows
+ * is still an honest empty (returns []) — the distinction the audit asked for.
+ */
 export async function nysSocrataSource(): Promise<RawBid[]> {
-  const primary = await fetchSocrataBids("https://data.ny.gov", "e5pk-us93", "nys_socrata");
+  const primaryReport = newSocrataFetchReport();
+  const primary = await fetchSocrataBids("https://data.ny.gov", "e5pk-us93", "nys_socrata", primaryReport);
   if (primary.length > 0) return primary;
-  return fetchSocrataBids("https://data.ny.gov", "hf3r-utnq", "nys_socrata");
+  const fallbackReport = newSocrataFetchReport();
+  const fallback = await fetchSocrataBids("https://data.ny.gov", "hf3r-utnq", "nys_socrata", fallbackReport);
+  if (fallback.length > 0) return fallback;
+  if (!primaryReport.reached && !fallbackReport.reached) {
+    throw new Error(
+      `nys_socrata unreachable: no dataset answered (primary e5pk-us93: ${primaryReport.failure ?? "no rows"}; ` +
+        `fallback hf3r-utnq: ${fallbackReport.failure ?? "no rows"}) — a dead source must not be reported as fresh`,
+    );
+  }
+  return [];
 }

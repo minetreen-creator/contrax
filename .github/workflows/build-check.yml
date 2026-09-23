@@ -182,6 +182,22 @@ jobs:
       # is still in that state).
       - name: Nationwide correctness A tests (unit, deterministic, zero network)
         run: bun test src/lib/collector-freshness.test.ts src/jobs/sources/socrata.test.ts src/lib/notice-dedupe.test.ts
+      # Nationwide correctness FIX ⑤ (owner-locked scope, PR B1). The 51
+      # state-keyword doors + the `cities` keyword source now keep the provenance
+      # they already fetched (PSC / notice type / solicitation number) plus the
+      # canonical `sam-<parentNoticeId || _id>` identity, and ONE run-level
+      # in-memory notice-identity guard (src/jobs/notice-identity.ts) stops the
+      # same federal notice being stored once per matching source label.
+      # DETERMINISTIC and network-free by construction: every SAM.gov byte these
+      # suites read is a committed fixture
+      # (src/jobs/sources/fixtures/state-keyword/, plus the already-committed
+      # verbatim fixtures/sam-trades/detail-561720.json + psc-r602-page0.json),
+      # and BOTH the page fetcher and the per-notice detail fetcher are INJECTED.
+      # No DATABASE_URL. Listed EXPLICITLY because a new deterministic suite that
+      # no workflow names runs nowhere (the reason runner.dedupe.test.ts went
+      # unrun for weeks).
+      - name: State-door metadata + run-level notice-identity guard tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/state-keyword.test.ts src/jobs/notice-identity.test.ts
       # Radar search regression pins (owner 09-13/09-14 FIX 1 + FIX 2 match quality).
       # THIS FILE WAS REFERENCED BY NO WORKFLOW, which is how the R3 "cleaning
       # services" regression slipped past green CI: it turned the owner's FIX-1 pin

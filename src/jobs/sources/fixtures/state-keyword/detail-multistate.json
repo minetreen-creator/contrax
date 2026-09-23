@@ -1,0 +1,135 @@
+{
+  "data2": {
+    "type": "k",
+    "award": {},
+    "naics": [
+      {
+        "code": [
+          "238220"
+        ],
+        "type": "primary"
+      }
+    ],
+    "title": "N4008526R0219, Design Bid Build - Decentralize Steam - Provide Redundant Steam Distribution",
+    "archive": {
+      "date": "2026-10-24",
+      "type": "auto15"
+    },
+    "version": "2",
+    "permissions": {
+      "IVL": {
+        "read": true,
+        "create": true,
+        "delete": true,
+        "update": true
+      }
+    },
+    "solicitation": {
+      "setAside": "SBA",
+      "deadlines": {
+        "response": "2026-10-20T14:00:00-04:00",
+        "responseTz": "America/New_York"
+      },
+      "naicsCode": "238220"
+    },
+    "organizationId": "500047667",
+    "pointOfContact": [
+      {
+        "fax": null,
+        "type": "primary",
+        "email": "hansrote@fnal.gov",
+        "phone": null,
+        "title": null,
+        "fullName": "Dustin Hansrote"
+      }
+    ],
+    "classificationCode": "Z111",
+    "placeOfPerformance": {
+      "zip": "21402",
+      "city": {
+        "code": "1",
+        "name": "Annapolis"
+      },
+      "state": {
+        "code": "MD",
+        "name": "Maryland"
+      },
+      "country": {
+        "code": "USA",
+        "name": "UNITED STATES"
+      },
+      "streetAddress": "10 BLAKE RD",
+      "streetAddress2": null
+    },
+    "solicitationNumber": "N4008526R0219",
+    "additionalReporting": [
+      "none"
+    ]
+  },
+  "additionalInfo": {
+    "sections": [
+      {
+        "id": "header",
+        "status": "updated"
+      },
+      {
+        "id": "general",
+        "status": "updated"
+      },
+      {
+        "id": "classification",
+        "status": "updated"
+      },
+      {
+        "id": "description",
+        "status": "updated"
+      },
+      {
+        "id": "attachments-links",
+        "status": "updated"
+      },
+      {
+        "id": "contact",
+        "status": "updated"
+      }
+    ]
+  },
+  "parent": {
+    "opportunityId": "7a176367f4944d2a91f948411bba07c1"
+  },
+  "related": {},
+  "status": {
+    "code": "published",
+    "value": "Published"
+  },
+  "archived": false,
+  "cancelled": false,
+  "latest": true,
+  "deleted": false,
+  "postedDate": "2026-09-23T12:05:00.000+00:00",
+  "modifiedDate": "2026-09-23T14:41:00.000+00:00",
+  "createdDate": "2026-08-14T09:00:00.000+00:00",
+  "modifiedBy": "hansrote@fnal.gov",
+  "createdBy": "hansrote@fnal.gov",
+  "description": [
+    {
+      "id": "5c1e0f7a2d8b4a1e9f3c6b0d847a2e51",
+      "content": "<p>Design-bid-build construction to decentralize steam and provide redundant steam distribution at Naval Air Station Jacksonville, Florida and at Naval Medical Center Portsmouth, Virginia.</p>",
+      "lastModifiedDate": "2026-09-23T12:05:00.000+00:00"
+    }
+  ],
+  "totalCount": 1,
+  "_links": {
+    "self": {
+      "href": "/opps/v2/opportunities/18011fdf88c84e35a15ee186f0b5c29f"
+    },
+    "opportunity:publish:latest": {
+      "href": "/opps/v2/opportunities/18011fdf88c84e35a15ee186f0b5c29f"
+    },
+    "opportunity:previous": {
+      "href": "/opps/v2/opportunities/f5f9871e147e43f5a28bfbd2633e6326"
+    }
+  },
+  "opportunityId": "5c1e0f7a2d8b4a1e9f3c6b0d847a2e51",
+  "id": "5c1e0f7a2d8b4a1e9f3c6b0d847a2e51"
+}

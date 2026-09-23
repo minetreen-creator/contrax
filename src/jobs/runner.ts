@@ -48,7 +48,7 @@ import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
-import { isAwardTypeSource } from "../lib/source-class";
+import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
 import { createNotification } from "../lib/notifications";
 import { generateBidAlerts } from "../lib/bid-alerts";
@@ -325,6 +325,71 @@ export function isNaturalKeyViolation(err: unknown): boolean {
   return (
     /duplicate key value violates unique constraint/i.test(message) &&
     message.includes("idx_bids_natural_key_unique")
+  );
+}
+
+/** One `bids.source` label with its corpus row count (D14 alarm input). */
+export interface CorpusLabelCount {
+  /** The stored `bids.source` label; NULL if a row somehow carries no source. */
+  source: string | null;
+  rows: number;
+}
+
+/**
+ * D14 corpus-label alarm — the missing alarm behind the fail-open default.
+ *
+ * Pre-PR-1 the classification default was fail-OPEN: a label nobody had listed
+ * was ASSUMED state/local (`cert-matching.ts` deny-list convention), so a new
+ * collector's rows silently entered the Small-Business pool and coverage counts.
+ * The approved source-provenance policy reverses that (conflict C7): an
+ * UNCLASSIFIED label now resolves to INTERNAL (`resolveSourceClass`) and is
+ * never a jurisdiction or a coverage row. The reversal has no alarm anywhere —
+ * so a future label could quietly become INTERNAL and vanish from the SB pool
+ * and coverage with nobody notified.
+ *
+ * This pure helper answers exactly that question over a corpus label census
+ * (`SELECT source, count(*) FROM bids GROUP BY 1`): every label that resolves to
+ * INTERNAL, with the number of rows it affects. INTERNAL is the honest verdict
+ * for the legacy/demo labels (`md_dc`, `contrax-demo`, `seed`, `fixture_test`,
+ * `nyc_socrata`) AND for anything unclassified — both are reported, because both
+ * mean "these rows can never enter a jurisdiction class".
+ *
+ * LOG-ONLY / READ-ONLY: the caller prints the result; it never fails the run and
+ * writes nothing. Deterministic and side-effect-free, so it can be unit-tested
+ * without a database (see src/jobs/runner-label-alarm.test.ts).
+ */
+export function internalCorpusLabels(
+  counts: readonly CorpusLabelCount[],
+): { label: string; rows: number }[] {
+  return (counts ?? [])
+    .filter((c) => resolveSourceClass(c.source) === "internal")
+    .map((c) => ({
+      label: c.source === null || c.source === undefined ? "(null)" : String(c.source),
+      rows: Number(c.rows) || 0,
+    }))
+    .sort((a, b) => b.rows - a.rows || a.label.localeCompare(b.label));
+}
+
+/**
+ * The one-line D14 alarm message. Returns the success form when nothing is
+ * INTERNAL; pure, so a test can pin both shapes without touching the runner's
+ * console.
+ */
+export function formatInternalCorpusAlarm(
+  counts: readonly CorpusLabelCount[],
+): string {
+  const internal = internalCorpusLabels(counts);
+  if (internal.length === 0) {
+    return (
+      `   ✅ D14 corpus-label alarm: all ${(counts ?? []).length} corpus source label(s) ` +
+      `resolve to a non-INTERNAL class`
+    );
+  }
+  const affected = internal.reduce((s, l) => s + l.rows, 0);
+  return (
+    `   ⛔ D14 corpus-label alarm: ${internal.length} source label(s) resolve to INTERNAL ` +
+    `(${affected} row(s) that can never enter a jurisdiction/Small-Business class): ` +
+    internal.map((l) => `${l.label}=${l.rows}`).join(", ")
   );
 }
 
@@ -1102,6 +1167,40 @@ export async function runSync(): Promise<SyncResult> {
   }
   for (const h of empty) {
     console.log(`   ⚪ [${h.source}] EMPTY — ${h.reason}`);
+  }
+
+  // ── D14 CORPUS-LABEL ALARM (post-PR-1 always-on; METRIC, LOG-ONLY) ─────────
+  // PR-1 reversed the old fail-OPEN classification default (source-class.ts
+  // conflict C7): an UNCLASSIFIED label now resolves to INTERNAL and can never
+  // enter a jurisdiction / Small-Business class. The reversal shipped without an
+  // alarm, so a future collector label could quietly become INTERNAL — the rows
+  // would vanish from the SB pool and coverage counts with nobody notified. This
+  // makes that visible on EVERY run: count the corpus rows grouped by
+  // `bids.source`, resolve each label's class, and report every label that
+  // resolves to INTERNAL with the row count it affects.
+  //
+  // HARD PROPERTIES: it is a READ ONLY census (one SELECT), it NEVER fails the
+  // run, and it writes nothing — the run's ingest accounting and the per-run
+  // `fetched = accepted + skipped + failed` invariant above are untouched. The
+  // legacy/demo labels it is expected to name today (`md_dc`, `contrax-demo`,
+  // `seed`) are honest INTERNAL rows, not a regression; a label the owner did
+  // not expect is the signal.
+  try {
+    const corpusLabels = (await sql`
+      SELECT source, count(*)::int AS rows
+      FROM bids
+      GROUP BY source
+      ORDER BY 2 DESC
+    `) as CorpusLabelCount[];
+    const alarm = formatInternalCorpusAlarm(corpusLabels);
+    if (internalCorpusLabels(corpusLabels).length > 0) console.error(alarm);
+    else console.log(alarm);
+  } catch (err) {
+    // A metrics readout must never break a sync; report and continue.
+    console.error(
+      "   D14 corpus-label alarm could not be computed:",
+      (err as Error).message,
+    );
   }
 
   // ── AWARD-TYPE SEPARATION (PR-1 restructure, owner ruling d / policy R6+C6) ─

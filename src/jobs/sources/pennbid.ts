@@ -41,6 +41,11 @@ export interface PennBidProject {
 }
 
 import type { FetchResult } from "../runner";
+import {
+  httpFailureDetail,
+  requestFailureDetail,
+  SourceUnreachableError,
+} from "../fetch-failure";
 import { isJanitorialWork, isTransportationWork } from "~/lib/trade-classification";
 
 /**
@@ -108,14 +113,20 @@ export async function fetchPennBidOpen(): Promise<FetchResult> {
   try {
     resp = await fetch(ENDPOINT, { headers: HEADERS, signal: controller.signal });
   } catch (e) {
-    console.error(`  pennbid: fetch failed:`, (e as Error).message);
-    return { rows: [], skipped: {}, skippedRows: [] };
+    // DEAD-COLLECTOR CLASSIFICATION (owner 09-23, item ③): an unreachable portal
+    // is an ERROR, not an empty result. `syncSource` catches this per source, so
+    // it still cannot abort the run — it only stops the endpoint from being
+    // reported as an honest EMPTY zero.
+    const detail = requestFailureDetail(e);
+    console.error(`  pennbid: ${detail}`);
+    throw new SourceUnreachableError("pennbid", [detail]);
   } finally {
     clearTimeout(timer);
   }
   if (!resp.ok) {
-    console.error(`  pennbid: HTTP ${resp.status}`);
-    return { rows: [], skipped: {}, skippedRows: [] };
+    const detail = httpFailureDetail(resp.status, ENDPOINT);
+    console.error(`  pennbid: ${detail}`);
+    throw new SourceUnreachableError("pennbid", [detail]);
   }
 
   const data = await resp.json();

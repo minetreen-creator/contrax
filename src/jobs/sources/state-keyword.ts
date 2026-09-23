@@ -45,6 +45,12 @@ import {
   type PlaceOfPerformance,
   type RawBid,
 } from "./sam-gov";
+import {
+  failureDetail,
+  FetchFailures,
+  FetchRequestError,
+  httpFailureDetail,
+} from "../fetch-failure";
 import { mapCategory as classifyCategory } from "~/lib/trade-classification";
 
 /** 2-letter state code → full state name (50 states + District of Columbia). */
@@ -162,14 +168,17 @@ export interface StateKeywordDeps {
   detailDelayMs?: number;
 }
 
-/** The real v1 page fetch: same headers/status handling as before. */
+/** The real page fetch. A failed request THROWS (see fetch-failure.ts): the old
+ *  `return null` collapsed "SAM.gov refused the request" into "the page had no
+ *  items", which is how a dead door could read as an honest EMPTY zero. */
 async function defaultFetchJson(tag: string, page: number, url: string): Promise<any> {
   const resp = await fetch(url, { headers: HEADERS });
   if (!resp.ok) {
     console.error(`  ${tag} page ${page} returned ${resp.status}`);
-    // A non-200 yields no items ⇒ the page loop ends (page 0 was the only page
-    // this source has ever asked for: MAX_PAGES = 1).
-    return null;
+    throw new FetchRequestError(httpFailureDetail(resp.status, url), {
+      status: resp.status,
+      url,
+    });
   }
   return resp.json();
 }
@@ -197,6 +206,12 @@ export function createStateKeywordSource(
 
   return async (): Promise<RawBid[]> => {
     const results: RawBid[] = [];
+    // DEAD-COLLECTOR CLASSIFICATION (owner 09-23, item ③): the door records every
+    // failed page request and, if the whole door read NOTHING, throws
+    // `SourceUnreachableError` (see fetch-failure.ts). `syncSource` catches that
+    // per source, so one dead door can never abort the 51-door wave — it just
+    // stops reading as an honest EMPTY.
+    const failures = new FetchFailures();
 
     for (let page = 0; page < MAX_PAGES; page++) {
       try {
@@ -206,6 +221,9 @@ export function createStateKeywordSource(
         const data = deps.fetchJson
           ? await deps.fetchJson(url)
           : await defaultFetchJson(tag, page, url);
+        // The door ANSWERED (a 200 body was parsed): it is reachable even if the
+        // page holds no items — that case is the honest EMPTY, not DEAD.
+        if (data && typeof data === "object") failures.markReadable();
         const items = data?._embedded?.results;
         if (!items || items.length === 0) break;
 
@@ -292,10 +310,15 @@ export function createStateKeywordSource(
         if (items.length < PAGE_SIZE) break;
         await new Promise((r) => setTimeout(r, DELAY_MS));
       } catch (e) {
-        console.error(`  ${tag} page ${page} error:`, (e as Error).message);
+        const detail = failureDetail(e);
+        console.error(`  ${tag} page ${page} error:`, detail);
+        failures.record(detail);
       }
     }
 
+    // Nothing readable at all ⇒ the door is DEAD, not empty. Any page that DID
+    // return items keeps the source reportable as reachable (rows > 0).
+    failures.assertReached(tag, results.length);
     return results;
   };
 }

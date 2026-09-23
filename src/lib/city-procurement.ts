@@ -16,12 +16,18 @@
  *  - Every city is an isolated source: a network error, dataset move, or rate
  *    limit on one city never blocks the others (each is wrapped in its own
  *    try/catch and the runner treats sources independently).
+ *  - A city whose dataset cannot be READ AT ALL (HTTP 4xx/5xx, transport, or an
+ *    unreadable body) reports an error instead of an empty list, so the run
+ *    record reads it as DEAD rather than as an honest EMPTY (owner 09-23, item
+ *    ③ — see src/jobs/fetch-failure.ts). A dataset that answers 200 with zero
+ *    records is still the honest empty it always was.
  *  - Each city is exposed as a standalone `fetch` function so the sync runner
  *    persists records under distinct `source` values (`nyc_open_data`,
  *    `chicago_open_data`, ...) which the UI uses to badge Federal vs City bids.
  *  - Pagination is capped (2 pages × 100 rows) so the daily cron stays light.
  */
 import type { RawBid } from "../jobs/sources/sam-gov";
+import { failureDetail, FetchFailures, httpFailureDetail } from "../jobs/fetch-failure";
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 2; // up to 200 rows per city per sync
@@ -275,6 +281,12 @@ type RecordMapper = (record: SocrataRecord, source: Omit<CitySourceConfig, "fetc
 async function fetchSocrataBids(source: Omit<CitySourceConfig, "fetch">, mapRecord: RecordMapper): Promise<RawBid[]> {
   const results: RawBid[] = [];
   const endpoint = `${source.baseUrl.replace(/\/$/, "")}/resource/${encodeURIComponent(source.datasetId)}.json`;
+  // DEAD-COLLECTOR CLASSIFICATION (owner 09-23, item ③): the page loop used to
+  // `break` out of a failed request and return `[]`, so a dataset that moved or
+  // 404ed read exactly like an honest empty. Failures are recorded here and the
+  // fetch throws when NOTHING was readable (never when rows were obtained — a
+  // partial failure must not throw away readable data).
+  const failures = new FetchFailures();
 
   for (let page = 0; page < MAX_PAGES; page++) {
     try {
@@ -282,13 +294,23 @@ async function fetchSocrataBids(source: Omit<CitySourceConfig, "fetch">, mapReco
         $limit: String(PAGE_SIZE),
         $offset: String(page * PAGE_SIZE),
       });
-      const response = await fetch(`${endpoint}?${params}`, { headers: HEADERS });
+      const url = `${endpoint}?${params}`;
+      const response = await fetch(url, { headers: HEADERS });
       if (!response.ok) {
         console.error(`  [${source.name}] page ${page + 1} returned ${response.status}`);
+        failures.record(httpFailureDetail(response.status, url));
         break;
       }
       const payload = (await response.json()) as SocrataRecord[] | { error?: unknown };
-      if (!Array.isArray(payload) || payload.length === 0) break;
+      if (!Array.isArray(payload)) {
+        // A 200 whose body is not a record list (e.g. a Socrata error envelope) is
+        // unreadable — recorded so it can never be reported as an honest empty.
+        console.error(`  [${source.name}] page ${page + 1} returned a non-array body`);
+        failures.record(`malformed (non-array) JSON body from ${url}`);
+        break;
+      }
+      failures.markReadable();
+      if (payload.length === 0) break;
       for (const record of payload) {
         try {
           const bid = mapRecord(record, source, results.length);
@@ -301,10 +323,15 @@ async function fetchSocrataBids(source: Omit<CitySourceConfig, "fetch">, mapReco
       if (payload.length < PAGE_SIZE) break;
       if (page < MAX_PAGES - 1) await new Promise((resolve) => setTimeout(resolve, DELAY_MS));
     } catch (e) {
-      console.error(`  [${source.name}] page ${page + 1} error:`, (e as Error).message);
+      const detail = failureDetail(e);
+      console.error(`  [${source.name}] page ${page + 1} error:`, detail);
+      failures.record(detail);
       break;
     }
   }
+  // Nothing readable at all for THIS city ⇒ that city's source is DEAD (it is its
+  // own run-log row), while the other four cities are unaffected.
+  failures.assertReached(source.name, results.length);
   return results;
 }
 

@@ -24,6 +24,7 @@
 
 import type { RawBid } from "./sam-gov";
 import type { FetchResult } from "../runner";
+import { FetchFailures, httpFailureDetail } from "../fetch-failure";
 import { isJanitorialWork, isTransportationWork } from "~/lib/trade-classification";
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
@@ -140,6 +141,13 @@ interface PassCtx {
   kept: Map<string, RawBid>;
   skipped: Record<string, number>;
   skippedRows: { id: string; reason: string }[];
+  /**
+   * DEAD-COLLECTOR CLASSIFICATION (owner 09-23, item ③): every failed request
+   * (HTTP non-200 / transport) is recorded here. A pass set that read NOTHING
+   * throws `SourceUnreachableError`, so the run record carries `errors > 0,
+   * rows_fetched = 0` (DEAD) instead of an honest-looking EMPTY zero.
+   */
+  failures: FetchFailures;
 }
 
 async function queryPass(
@@ -152,10 +160,13 @@ async function queryPass(
     const resp = await fetch(url, { headers: HEADERS });
     if (!resp.ok) {
       console.error(`  va_evirginia: ${q} page ${page} -> HTTP ${resp.status}`);
+      ctx.failures.record(httpFailureDetail(resp.status, url));
       if (page > 0) break;
       continue;
     }
     const data = await resp.json();
+    // The pass ANSWERED: reachable even when it holds no items (honest EMPTY).
+    if (data && typeof data === "object") ctx.failures.markReadable();
     const items: any[] = data?._embedded?.results ?? [];
     if (items.length === 0) break;
 
@@ -222,6 +233,7 @@ export async function fetchVaEvirginia(): Promise<FetchResult> {
     kept: new Map(),
     skipped: {},
     skippedRows: [],
+    failures: new FetchFailures(),
   };
   // Pass 1: Virginia-keyword — genuine VA place-of-performance only.
   await queryPass("Virginia", (state) => state === "VA", ctx);
@@ -237,5 +249,9 @@ export async function fetchVaEvirginia(): Promise<FetchResult> {
       .map(([r, n]) => `${r}=${n}`)
       .join(", ") || "none"})`,
   );
+  // Both SAM.gov passes unreadable and nothing kept ⇒ DEAD, not EMPTY. A pass set
+  // that answered 200 with no matching work keeps the honest EMPTY (no failure
+  // recorded, `rows` empty, `zero_empty` outcome).
+  ctx.failures.assertReached("va_evirginia", rows.length);
   return { rows, skipped: ctx.skipped, skippedRows: ctx.skippedRows };
 }

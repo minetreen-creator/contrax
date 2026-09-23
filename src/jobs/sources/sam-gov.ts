@@ -19,6 +19,7 @@
  */
 
 import { mapCategory } from "~/lib/trade-classification";
+import { failureDetail, FetchFailures, httpFailureDetail } from "../fetch-failure";
 
 export interface RawBid {
   external_id: string;
@@ -488,6 +489,11 @@ export async function fetchBids(options: { states?: string[] } = {}): Promise<Ra
   const states = options.states?.filter((state) => /^[A-Z]{2}$/.test(state)).join(",");
   const sourceLabel = states ? "sam_gov_regional" : "sam_gov";
   const results: RawBid[] = [];
+  // DEAD-COLLECTOR CLASSIFICATION (owner 09-23, item ③): a failed page request is
+  // recorded, and if NO page yielded items the pass throws (errors > 0,
+  // rows_fetched = 0 ⇒ DEAD) instead of returning a silent empty. A 200 with no
+  // items records nothing and stays the honest EMPTY it is.
+  const failures = new FetchFailures();
 
   for (let page = 0; page < MAX_PAGES; page++) {
     try {
@@ -498,12 +504,16 @@ export async function fetchBids(options: { states?: string[] } = {}): Promise<Ra
       const resp = await fetch(url, { headers: SAM_HEADERS });
       if (!resp.ok) {
         console.error(`  SAM.gov page ${page} returned ${resp.status}`);
+        failures.record(httpFailureDetail(resp.status, url));
         // If we get a non-200 on page > 0, we might have hit the end
         if (page > 0) break;
         continue;
       }
 
       const data = await resp.json();
+      // The pass ANSWERED: reachable even when the page holds no items (honest
+      // EMPTY), so a zero-row page must never be reported as a dead source.
+      if (data && typeof data === "object") failures.markReadable();
       const items = data?._embedded?.results;
       if (!items || items.length === 0) break;
 
@@ -528,10 +538,15 @@ export async function fetchBids(options: { states?: string[] } = {}): Promise<Ra
       // Rate limit delay
       await new Promise((r) => setTimeout(r, DELAY_MS));
     } catch (e) {
-      console.error(`  SAM.gov page ${page} error:`, (e as Error).message);
+      const detail = failureDetail(e);
+      console.error(`  SAM.gov page ${page} error:`, detail);
+      failures.record(detail);
       // Continue to next page anyway
     }
   }
 
+  // No page readable at all ⇒ the pass could not read SAM.gov: fail it so the run
+  // record carries an error (DEAD) instead of an honest-looking zero.
+  failures.assertReached(sourceLabel, results.length);
   return results;
 }

@@ -599,8 +599,8 @@ function ContraxGrantsPromo() {
               <span className="text-4xl font-extrabold text-slate-900">{tier.price}</span>{" "}
               <span className="text-gray-500">{tier.period}</span>
               {tier.availability ? (
-                <span className="ml-2 text-sm font-semibold text-amber-600">
-                  · {tier.availability}
+                <span className="text-sm font-semibold text-amber-600">
+                  {` · ${tier.availability}`}
                 </span>
               ) : null}
             </p>

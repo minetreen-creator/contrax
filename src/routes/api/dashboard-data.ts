@@ -4,6 +4,11 @@ import { sql } from "~/db";
 import { countRoleMatches } from "~/lib/healthcare";
 import { ARCHIVED_STATUSES, LIVE_SQL, DEAD_SQL } from "~/lib/bid-status";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+// S2 NOTICE IDENTITY (owner-approved 2026-09-23): the canonical read-side key is
+// the SAME one Radar collapses with — `sol + notice_type`, else
+// `title + agency + notice_type` — so this surface can no longer collapse a
+// notice Radar splits (or vice versa). See src/lib/notice-dedupe.ts.
+import { noticeKeySql } from "~/lib/notice-dedupe";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
 import { locationMatchesStates, naicsPred, setAsidePredMulti } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -168,7 +173,7 @@ async function handler({ request }: { request: Request }) {
 
   const bidRows = await sql()`
     SELECT * FROM (
-      SELECT DISTINCT ON (title, agency)
+      SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
         id, title, agency, description, location, category, set_aside, due_date,
         estimated_value, source_url, naics_code, created_at
       FROM bids
@@ -179,7 +184,7 @@ async function handler({ request }: { request: Request }) {
           SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES})
         )
         ${setAsideFrag} ${naicsFrag}
-      ORDER BY title, agency
+      ORDER BY ${sql().unsafe(noticeKeySql("bids"))}
     ) matched
     ORDER BY due_date ASC NULLS LAST`;
   const userSpecialties = profile?.specialties || [];
@@ -283,13 +288,13 @@ async function handler({ request }: { request: Request }) {
   let archivedCount = 0;
   try {
     const archRows = await sql()`
-      SELECT DISTINCT ON (title, agency) title, agency, location
+      SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))}) title, agency, location
       FROM bids
       WHERE (${sql().unsafe(DEAD_SQL)}
          OR id IN (SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES})))
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         ${setAsideFrag} ${naicsFrag}
-      ORDER BY title, agency`;
+      ORDER BY ${sql().unsafe(noticeKeySql("bids"))}`;
     archivedCount = (archRows as any[]).filter((r) => locationMatchesStates(r.location, locations)).length;
   } catch {}
   let lossesCount = 0;

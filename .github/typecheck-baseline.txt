@@ -7,7 +7,7 @@ src/routes/api/dashboard-digest.ts(10,11): error TS6196: 'DigestResult' is decla
 src/routes/api/pricing-recommend.ts(72,11): error TS6133: 'query' is declared but its value is never read.
 src/routes/api/pricing-recommend.ts(83,11): error TS6133: 'sqlBuilder' is declared but its value is never read.
 src/routes/api/radar/opportunity-click.ts(43,7): error TS6133: 'PAGE' is declared but its value is never read.
-src/routes/awards.tsx(34,7): error TS6133: 'SEED_AWARDS' is declared but its value is never read.
+src/routes/awards.tsx(37,7): error TS6133: 'SEED_AWARDS' is declared but its value is never read.
 src/routes/compliance.tsx(279,7): error TS6133: 'severityBadge' is declared but its value is never read.
 src/routes/dashboard.tsx(2178,37): error TS6133: 'medPct' is declared but its value is never read.
 src/routes/learnings.tsx(4,31): error TS6133: 'AuthUser' is declared but its value is never read.
@@ -15,7 +15,7 @@ src/routes/learnings.tsx(41,10): error TS6133: 'LearningsPageGated' is declared 
 src/routes/learnings.tsx(67,9): error TS6133: 'navigate' is declared but its value is never read.
 src/routes/learnings.tsx(89,13): error TS6133: 'fresh' is declared but its value is never read.
 src/routes/learnings.tsx(89,27): error TS2554: Expected 1 arguments, but got 0.
-src/routes/radar.tsx(999,25): error TS2339: Property 'certLabel' does not exist on type 'ScanState'.
+src/routes/radar.tsx(1001,25): error TS2339: Property 'certLabel' does not exist on type 'ScanState'.
 src/routes/settings.tsx(49,11): error TS6196: 'BusinessProfileFull' is declared but never used.
 src/routes/tracking.tsx(160,7): error TS6133: 'getAmendments' is declared but its value is never read.
 src/routes/tracking.tsx(239,9): error TS6133: 'thisWeekStart' is declared but its value is never read.

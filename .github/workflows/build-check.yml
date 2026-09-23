@@ -177,8 +177,13 @@ jobs:
       # does), and (d) the award-exclusion predicate + SQL fragment.
       # Listed EXPLICITLY because a new deterministic suite that no workflow names
       # runs nowhere (the reason runner.dedupe.test.ts went unrun for weeks).
+      # PR #430 (classifier-order, the PR-1 successor) appends the S3 write-path-
+      # geography mirror pins (src/lib/location-foreign-pop.test.ts) to this step's
+      # file list. Same determinism posture: pure functions over literals, zero
+      # network, zero database, zero clock — and a new deterministic suite that no
+      # workflow names runs nowhere.
       - name: Source provenance class map tests (unit, deterministic, zero network)
-        run: bun test src/lib/source-class.test.ts
+        run: bun test src/lib/source-class.test.ts src/lib/location-foreign-pop.test.ts
       # D14 CORPUS-LABEL ALARM — the post-PR-1 metrics layer (owner-locked order
       # step "metrics"; measurement only, no classifier-order product change).
       # DETERMINISTIC and network-free by construction: the helper is PURE and reads

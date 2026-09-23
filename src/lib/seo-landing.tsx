@@ -16,6 +16,12 @@ import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import { setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+// S2 NOTICE IDENTITY + D15/Q8 AWARD-EXCLUSION SWEEP (owner-approved 2026-09-23):
+// every SEO surface collapses with the canonical notice key Radar uses, and the
+// state-landing aggregate — the one surface the metrics harness measured still
+// reaching all 706 award rows — now applies AWARD_EXCLUSION_SQL too.
+import { noticeKeySql } from "~/lib/notice-dedupe";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import {
   buildContractMap,
@@ -133,9 +139,10 @@ export const getCertHubData = createServerFn({ method: "GET" })
       try {
         const c = await sql()`
           SELECT COUNT(*)::int AS n FROM (
-            SELECT DISTINCT ON (title, agency) id
+            SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))}) id
             FROM bids
             WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)} ${certPred(def.slug, sql)}
+              AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
           ) d
         `;
         count = Number((c as any)[0]?.n ?? 0);
@@ -143,12 +150,13 @@ export const getCertHubData = createServerFn({ method: "GET" })
           SELECT id, title, agency, description, due_date, estimated_value,
                  naics_code, location, set_aside, source_url
           FROM (
-            SELECT DISTINCT ON (title, agency)
+            SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
                    id, title, agency, description, due_date, estimated_value,
                    naics_code, location, set_aside, source_url, created_at
             FROM bids
             WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)} ${certPred(def.slug, sql)}
-            ORDER BY title, agency, created_at DESC NULLS LAST
+              AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+            ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
           ) t
           ORDER BY t.due_date ASC NULLS LAST
           LIMIT 25
@@ -221,6 +229,7 @@ export const getRegionData = createServerFn({ method: "GET" })
           FROM bids
           WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
             AND ${sql().unsafe(LOW_CONTENT_SQL)}
+            AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         `;
         const map = buildContractMap(rows as any);
         agg = map.states[code] ?? null;
@@ -251,9 +260,10 @@ export const getSetAsideIndex = createServerFn({ method: "GET" }).handler(
         CERT_HUBS.map(async (def) => {
           const c = await sql()`
             SELECT COUNT(*)::int AS n FROM (
-              SELECT DISTINCT ON (title, agency) id
+              SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))}) id
               FROM bids
               WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)} ${certPred(def.slug, sql)}
+                AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
             ) d
           `;
           counts[def.slug] = Number((c as any)[0]?.n ?? 0);
@@ -308,6 +318,7 @@ export const getIndustryHubData = createServerFn({ method: "GET" }).handler(
         WHERE due_date > NOW()
           AND set_aside IS NOT NULL AND btrim(set_aside) <> ''
           AND ${sql().unsafe(LOW_CONTENT_SQL)}
+          AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
           AND naics_code IS NOT NULL AND btrim(naics_code) <> ''
         GROUP BY naics_code, set_aside
       `) as { naics_code: string; set_aside: string; n: number }[];

@@ -409,14 +409,16 @@ export const runRadarScan = createServerFn({ method: "POST" })
         // resolved geography is FLAGGED and excluded from state matching —
         // computed at match time from EXISTING fields only (PR-A; the stored
         // PR-B columns are NOT read). Raw values stay visible.
+        // D16 READ-PATH FILTER ORDER (owner-approved 2026-09-23, Q5 = INCLUDE):
+        // the authoritative certification decision (PR-C.0) is evaluated FIRST,
+        // so the geography stages below only ever run on rows the cert stage
+        // keeps. COMPUTE-ONLY REORDER — the same rows pass, in the same order,
+        // with the same values.
+        if (certMatches(r.set_aside, [r.source], certId) !== "include") return false;
         const resolved = resolveBidState(r.location, r.agency);
         const conflicted = locationConflict(r.title, r.description, resolved);
-        return (
-          !conflicted &&
-          // PR-C.0: authoritative certification decision (see cert-matching.ts).
-          certMatches(r.set_aside, [r.source], certId) === "include" &&
-          geoRelevantByState(r.location, r.agency, state)
-        );
+        if (conflicted) return false;
+        return geoRelevantByState(r.location, r.agency, state);
       })
       .map((r) => {
         const bid: RadarBidRow = {

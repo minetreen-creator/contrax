@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+// D15/Q8 AWARD-EXCLUSION SWEEP (owner-approved 2026-09-23): the collection feed is
+// an opportunity surface, so no award row may appear in it. (The `?id=` detail
+// lookup below is deliberately NOT filtered — it resolves the one row the caller
+// already holds, and dropping it would turn a real saved bid into a 404.)
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { createHash } from "node:crypto";
 
 async function auth(request: Request) {
@@ -41,8 +46,8 @@ async function handler({ request }: { request: Request }) {
     const limit = Math.min(100, Math.max(1, Number(url.searchParams.get("limit") || 20)));
     const status = url.searchParams.get("status");
     const rows = status
-      ? await sql()`SELECT b.id,b.title,b.agency,b.description,b.location,b.category,b.due_date,b.estimated_value,b.source_url,sm.status FROM bids b JOIN saved_matches sm ON sm.bid_id=b.id AND sm.user_id=${userId} WHERE sm.status=${status} AND ${sql().unsafe(LOW_CONTENT_SQL)} ORDER BY b.due_date ASC LIMIT ${limit}`
-      : await sql()`SELECT b.id,b.title,b.agency,b.description,b.location,b.category,b.due_date,b.estimated_value,b.source_url,sm.status FROM bids b JOIN saved_matches sm ON sm.bid_id=b.id AND sm.user_id=${userId} AND ${sql().unsafe(LOW_CONTENT_SQL)} ORDER BY b.due_date ASC LIMIT ${limit}`;
+      ? await sql()`SELECT b.id,b.title,b.agency,b.description,b.location,b.category,b.due_date,b.estimated_value,b.source_url,sm.status FROM bids b JOIN saved_matches sm ON sm.bid_id=b.id AND sm.user_id=${userId} WHERE sm.status=${status} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} ORDER BY b.due_date ASC LIMIT ${limit}`
+      : await sql()`SELECT b.id,b.title,b.agency,b.description,b.location,b.category,b.due_date,b.estimated_value,b.source_url,sm.status FROM bids b JOIN saved_matches sm ON sm.bid_id=b.id AND sm.user_id=${userId} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} ORDER BY b.due_date ASC LIMIT ${limit}`;
     return Response.json({ data: rows });
   } catch {
     return Response.json({ error: "API unavailable" }, { status: 500 });

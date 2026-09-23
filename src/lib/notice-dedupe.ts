@@ -96,3 +96,43 @@ export function collapseDuplicateNotices<T extends NoticeKeyRow>(
   }
   return { rows: out, collapsed: rows.length - out.length };
 }
+
+/**
+ * S2 NOTICE IDENTITY — the SQL twin of `noticeDedupeKey`, for the surfaces that
+ * collapse rows in SQL (`DISTINCT ON`) instead of in JS.
+ *
+ * Before this, the SQL surfaces collapsed on a 2-dim key, `(title, agency)`,
+ * while Radar collapsed on `sol + notice_type` / `title + agency + notice_type`
+ * (D11). The same notice could therefore be ONE match in Radar and TWICE on a
+ * listing surface, and an amendment pair (Award Notice + Justification under one
+ * solicitation number) was collapsed on one surface and split on another.
+ *
+ * This returns the canonical key's TWO dimensions as a comma-joined SQL
+ * expression list, so a caller writes BOTH clauses from ONE source of truth:
+ *
+ *   SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))}) …
+ *   FROM bids
+ *   ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
+ *
+ * Dimension 1 is the source's own solicitation number when present, else
+ * `title|agency`; dimension 2 is the notice type (NULL normalizes to the empty
+ * string — ONE key value, never a wildcard, exactly like the JS key). Postgres
+ * requires the ORDER BY prefix to be the same expressions, which is why both
+ * halves come from this one helper.
+ *
+ * `solicitation_number` is NULL on 98 % of the corpus, in which case this
+ * degenerates to the historical `(title, agency, notice_type)` key; it differs
+ * from today's SQL surfaces exactly where a solicitation number exists and the
+ * titles differ, which is precisely the amendment case Radar already splits.
+ *
+ * NOTE: the ingest-side keys (`batchInsertNaturalKey`, migration 048's partial
+ * UNIQUE index, the cross-source `WHERE NOT EXISTS` guard) are deliberately NOT
+ * touched — they answer a different question (is this row already stored?).
+ */
+export function noticeKeySql(alias: string = "bids"): string {
+  return (
+    `COALESCE(NULLIF(btrim(${alias}.solicitation_number), ''), ` +
+    `lower(btrim(${alias}.title)) || '|' || lower(btrim(${alias}.agency))), ` +
+    `COALESCE(lower(btrim(${alias}.notice_type)), '')`
+  );
+}

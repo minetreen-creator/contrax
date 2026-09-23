@@ -1,6 +1,9 @@
 import { sql } from "~/db";
 import { US_STATES } from "~/lib/states";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+// D15/Q8 AWARD-EXCLUSION SWEEP (owner-approved 2026-09-23): an award row is
+// historical intel, never an opportunity — it may not enter a lead alert scan.
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { sendRadarMatchAlertEmail, type NewBidSummary } from "~/lib/email";
 import { ensureRadarLeadsClickLog, buildOpportunityClickUrl, hashClickToken } from "~/lib/radar-lead-clicks";
 import { expandTrade, tradeProvenanceFor } from "~/lib/trade-registry";
@@ -436,6 +439,7 @@ async function sendForOneLead(
     FROM bids
     WHERE due_date > NOW()
       AND ${sql().unsafe(LOW_CONTENT_SQL)}
+      AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
       AND NOT (${JSON.stringify(sentArr)}::jsonb ? CAST(id AS text))
     ORDER BY due_date ASC NULLS LAST
   `) as unknown as BidRow[];

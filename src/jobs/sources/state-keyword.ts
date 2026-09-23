@@ -259,7 +259,11 @@ export function createStateKeywordSource(
             );
             await new Promise((r) => setTimeout(r, detailDelayMs));
 
-            const category = mapCategory(item.title || "", description);
+            const category = mapCategory(
+              extractNoticeType(item) ?? trimOrNull(detail.noticeType),
+              item.title || "",
+              description,
+            );
 
             const dueDate = item.responseDate || item.responseDateActual || null;
 
@@ -352,13 +356,15 @@ export function extractLocation(
   return "Unknown";
 }
 
-function mapCategory(title: string, description: string): string {
+function mapCategory(noticeType: string | null, title: string, description: string): string {
   // OWNER PRIORITY 09-21 (R4): the single shared classifier — no bare "cleaning"
   // janitorial branch, a real trucking/transportation branch, and the
   // purchased-service-only guards (product buys / dump-truck listings never
-  // classify into these trades). The classifier contract is unchanged by FIX ⑤:
-  // the door still passes "" as the notice type, so `category` is derived from
-  // title/description only (a door row's stored notice_type is provenance —
-  // `trade-classification` order is NOT touched here).
-  return classifyCategory("", title, description);
+  // classify into these trades).
+  //
+  // S5 CLASSIFIER ORDER (owner-approved 2026-09-23, D4): the door now feeds the
+  // REAL notice type (it used to pass "") — the same provenance field the write
+  // path already stores, so an Award/Justification notice is never stamped
+  // "Construction".
+  return classifyCategory(noticeType ?? "", title, description);
 }

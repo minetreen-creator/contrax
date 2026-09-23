@@ -120,10 +120,34 @@ type Sql = NeonQueryFunction<false, false>;
 
 /**
  * Heavy SAM.gov passes — run strictly serially to stay gentle on SAM.gov's
- * rate limits. sam_gov is the national + regional pass (with per-bid detail
- * fetches); "cities" is the SAM.gov keyword pass for municipal bids.
+ * rate limits. "cities" is the SAM.gov keyword pass for municipal bids.
+ *
+ * S2 CLAIM ORDER — AUTHORITATIVE-METADATA-FIRST (owner-approved 2026-09-23,
+ * Q1 = YES, D8). The 11 structured trade passes now come FIRST: each is a
+ * `naics=`/`psc=` query, so a notice it returns arrives with the trade's own
+ * code as AUTHORITATIVE provenance plus the detail-endpoint fields
+ * (set-aside / notice type / solicitation number) that the metadata-poor
+ * passes do not have. Because the run-level notice-identity guard is
+ * first-claimer-wins (fix ⑤, semantics deliberately UNCHANGED), the label that
+ * owns a notice — and therefore the psc/naics/notice_type stored on it — is now
+ * the metadata-RICHER pass instead of whichever broad query happened to run
+ * first. This relabels nothing (the guard's semantics and every stored row are
+ * untouched); it changes which FUTURE label claims a notice, which is visible in
+ * the per-pass `new` / `duplicate_notice` counts of the run log.
  */
 const SAM_GOV_SOURCES: SyncSource[] = [
+  // OWNER PRIORITY 09-21 (R1 — janitorial + trucking ingestion): one
+  // structured-filter pass per code, each its OWN source so run logs /
+  // staleness / quality gates are per-category and independently observable.
+  // Janitorial: naics=561720 + psc=S201. Trucking/courier: the seven 484xxx /
+  // 492110 NAICS codes + psc=V112 + psc=R602. Serial like the other SAM.gov
+  // passes (SAM.gov politeness); the API filters are the ones measured to work
+  // (`naics=` / `psc=`) — see the module header for the corrected PSC mapping.
+  // S2: FIRST in this list — the metadata-authoritative passes claim first.
+  ...SAM_TRADE_FILTERS.map((filter) => ({
+    name: filter.name,
+    fetchFn: createSamTradeSource(filter),
+  })),
   {
     name: "sam_gov",
     // The regional pass is additive. Keep national records first so a bid
@@ -141,17 +165,6 @@ const SAM_GOV_SOURCES: SyncSource[] = [
   // so their run-log/tier is stable and independently observable.
   { name: "pennbid", fetchFn: fetchPennBidOpen },
   { name: "va_evirginia", fetchFn: fetchVaEvirginia },
-  // OWNER PRIORITY 09-21 (R1 — janitorial + trucking ingestion): one
-  // structured-filter pass per code, each its OWN source so run logs /
-  // staleness / quality gates are per-category and independently observable.
-  // Janitorial: naics=561720 + psc=S201. Trucking/courier: the seven 484xxx /
-  // 492110 NAICS codes + psc=V112 + psc=R602. Serial like the other SAM.gov
-  // passes (SAM.gov politeness); the API filters are the ones measured to work
-  // (`naics=` / `psc=`) — see the module header for the corrected PSC mapping.
-  ...SAM_TRADE_FILTERS.map((filter) => ({
-    name: filter.name,
-    fetchFn: createSamTradeSource(filter),
-  })),
 ];
 
 /**
@@ -1000,16 +1013,19 @@ export async function runSync(): Promise<SyncResult> {
   const results: Record<string, SyncSourceResult> = {};
 
   // NATIONWIDE CORRECTNESS FIX ⑤ (owner-locked scope, PR B1): ONE notice-identity
-  // guard for the WHOLE run, shared by every SAM.gov-family source (Phase 1's
-  // national/regional, city and 11 trade passes, then Phase 2's 51 doors). SAM's
-  // notices are returned by many different queries, so without it the same
-  // federal notice is stored once per matching source label — the 4,059-group /
-  // 14,690-row legacy duplication measured in the before-matrix. Phase 1 keeps
-  // running first (runner.ts:847-876), so the authoritative trade passes always
-  // claim their notices before the metadata-poor doors can.
+  // guard for the WHOLE run, shared by every SAM.gov-family source (the 11 trade
+  // passes + Phase 1's national/regional and city passes, then Phase 2's 51
+  // doors). SAM's notices are returned by many different queries, so without it
+  // the same federal notice is stored once per matching source label — the
+  // 4,059-group / 14,690-row legacy duplication measured in the before-matrix.
+  // S2 CLAIM ORDER (owner-approved 2026-09-23): the 11 structured trade passes
+  // are FIRST inside Phase 1 (see SAM_GOV_SOURCES), so the metadata-authoritative
+  // pass claims a notice before the broader sam_gov/cities passes, and Phase 1
+  // still finishes before Phase 2's doors.
   const noticeGuard = createNoticeIdentityGuard();
 
-  // Phase 1 — heavy SAM.gov passes, serial (national → regional → city keyword).
+  // Phase 1 — heavy SAM.gov passes, serial (11 trade passes → national/regional
+  // → city keyword → the two repaired source portals).
   for (const source of SAM_GOV_SOURCES) {
     results[source.name] = await syncSource(sql, source, noticeGuard);
     await sleep(INTER_SOURCE_DELAY_MS);

@@ -77,7 +77,13 @@ describe("(a) live row 139639 — a Busan/Daegu (South Korea) notice never gets 
       ...LIVE_139639,
       title: "Trash Removal and Disposal, Fort Carson",
     });
-    expect(domestic.normalized_state).toBe("CO");
+    // S3 WRITE-PATH MIRROR (owner-approved 2026-09-23, Q2 = YES): the location
+    // is the "United States" placeholder, i.e. NATIONAL SCOPE — the write path
+    // now refuses the agency fallback exactly like the read path always did, so
+    // the stored value is an honest NULL (it used to store "CO" from the
+    // contracting-office token). A DOMESTIC title no longer re-enables the
+    // fallback: the refusal is about the location, not the title.
+    expect(domestic.normalized_state).toBeNull();
   });
 
   test("a passing country mention in a long DESCRIPTION never strips a correct state", () => {
@@ -94,7 +100,12 @@ describe("(a) live row 139639 — a Busan/Daegu (South Korea) notice never gets 
         "Sole source item; manufactured in Germany; offerors must be registered with DLA Aviation at Philadelphia, PA.",
       sourceName: "sam_gov",
     });
-    expect(dla.normalized_state).toBe("PA");
+    // S3 WRITE-PATH MIRROR (owner-approved 2026-09-23): with location "United
+    // States" the stored state is NULL (national scope never borrows the
+    // buyer's state). This is the write column ONLY — the read-path bucket is
+    // the unchanged NATIONWIDE verdict pinned in (b) below, and the description
+    // is still not a geography signal.
+    expect(dla.normalized_state).toBeNull();
 
     const reclamation = deriveInsertLocationColumns({
       location: "United States",
@@ -103,7 +114,7 @@ describe("(a) live row 139639 — a Busan/Daegu (South Korea) notice never gets 
       description: "Deliveries under the 1944 Water Treaty to Mexico; see the Colorado River basin report.",
       sourceName: "sam_gov",
     });
-    expect(reclamation.normalized_state).toBe("CO");
+    expect(reclamation.normalized_state).toBeNull();
   });
 
   test("a foreign-location row can never borrow a US state from the agency", () => {
@@ -142,7 +153,7 @@ describe("(a) live row 139639 — a Busan/Daegu (South Korea) notice never gets 
 });
 
 describe("(b) domestic notices stamp exactly as before", () => {
-  test("agency fallback on a placeholder location still resolves the buyer's state", () => {
+  test("S3: a placeholder (national-scope) location writes NO state; the agency text fallback survives only for a location that names none", () => {
     const loc = deriveInsertLocationColumns({
       location: "United States",
       agency: "Commonwealth of Pennsylvania",
@@ -150,9 +161,22 @@ describe("(b) domestic notices stamp exactly as before", () => {
       description: null,
       sourceName: "sam_gov",
     });
-    expect(loc.normalized_state).toBe("PA");
-    expect(loc.source_jurisdiction).toBe("PA");
+    // S3 WRITE-PATH MIRROR (owner-approved 2026-09-23, Q2 = YES): "United
+    // States" is national scope ⇒ the stored normalized_state is NULL, and the
+    // source_jurisdiction (curated map ?? normalized_state) is NULL too. The
+    // agency-TEXT fallback itself is untouched — it still applies to a row whose
+    // location names no state at all (pinned below).
+    expect(loc.normalized_state).toBeNull();
+    expect(loc.source_jurisdiction).toBeNull();
     expect(loc.raw_location).toBe("United States");
+    const noLocation = deriveInsertLocationColumns({
+      location: "",
+      agency: "Commonwealth of Pennsylvania",
+      title: "Janitorial and Custodial Services",
+      description: null,
+      sourceName: "sam_gov",
+    });
+    expect(noLocation.normalized_state).toBe("PA");
   });
 
   test("a state-named buyer on a national-scope row still writes as before (DLA Philadelphia class)", () => {
@@ -163,7 +187,10 @@ describe("(b) domestic notices stamp exactly as before", () => {
       description: null,
       sourceName: "sam_gov",
     });
-    expect(loc.normalized_state).toBe("PA"); // stored column: unchanged
+    // S3 WRITE-PATH MIRROR (owner-approved 2026-09-23): the STORED column is now
+    // NULL for this DLA-Philadelphia-class row (national-scope location), while
+    // the read path's FIX 2 verdict is untouched: NATIONWIDE.
+    expect(loc.normalized_state).toBeNull();
     // …and the read path's FIX 2 pin is untouched: national scope is NATIONWIDE.
     expect(isNationalScope("United States")).toBe(true);
     expect(matchGeographyBucket("PA", "United States", loc.agency!)).toBe("nationwide");
@@ -308,7 +335,12 @@ describe("(c) the ratified geography pins still hold (guard does not disturb the
       description: null,
       sourceName: "sam_gov",
     });
-    expect(fms.normalized_state).toBe("AL");
+    // S3 WRITE-PATH MIRROR (owner-approved 2026-09-23): location "United
+    // States" is national scope, so the STORED state is now NULL — the FMS
+    // point of this pin (a customer country is not a place of performance) is
+    // unchanged and still proved by the isForeignPlaceOfPerformance assertion
+    // above. The read-path bucket for this row stays NATIONWIDE.
+    expect(fms.normalized_state).toBeNull();
     // …while a country the title actually PLACES still counts (comma boundary
     // and place preposition), and a country in a place field always counts.
     expect(isForeignPlaceOfPerformance("Laundry Services, Kunsan Air Base, South Korea")).toBe(true);
@@ -327,6 +359,18 @@ describe("(c) the ratified geography pins still hold (guard does not disturb the
       description: null,
       sourceName: "mt",
     });
-    expect(malta.normalized_state).toBe("MT");
+    // S3 WRITE-PATH MIRROR (owner-approved 2026-09-23): "Unknown" is itself a
+    // national-scope placeholder in isNationalScope, so the STORED state is now
+    // NULL here too — the read path has always bucketed such a row nationwide.
+    expect(malta.normalized_state).toBeNull();
+    // The agency TEXT fallback is intact where the location names no state at all.
+    const noLoc = deriveInsertLocationColumns({
+      location: "",
+      agency: "MONTANA STATE OFFICE",
+      title: "23--MALTA FO UTV",
+      description: null,
+      sourceName: "mt",
+    });
+    expect(noLoc.normalized_state).toBe("MT");
   });
 });

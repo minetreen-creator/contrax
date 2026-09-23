@@ -164,6 +164,7 @@ function GrantsPage() {
   /** True only when the success toast may honestly be shown (subscribed). */
   const [checkoutDone, setCheckoutDone] = useState(false);
   const [billingBusy, setBillingBusy] = useState(false);
+  const [subscriptionCheckoutEnabled, setSubscriptionCheckoutEnabled] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const tickRef = useRef<number | null>(null);
   const requestSeq = useRef(0);
@@ -215,6 +216,7 @@ function GrantsPage() {
         if (cancelled) return;
         const isSubscribed = Boolean(d && d.subscribed);
         setSubscribed(isSubscribed);
+        setSubscriptionCheckoutEnabled(Boolean(d && d.upgradeEnabled));
         // Honest by construction: no subscription → no "you're set up" toast.
         setCheckoutDone(grantsCheckoutToastVisible({ checkoutParam, subscribed: isSubscribed }));
       })
@@ -384,7 +386,8 @@ function GrantsPage() {
   const needsSubscription = authenticated && !subscribed;
   const previewOnly = !subscribed;
   const showWall = phase === "wall" || (previewOnly && anonUsed && phase !== "results");
-  const upgradeEnabled = data?.upgradePromptEnabled === true;
+  const upgradeEnabled =
+    subscriptionCheckoutEnabled || data?.upgradePromptEnabled === true;
   const notice = data?.notice ?? GRANTS_ORG_NOTICE;
 
   return (

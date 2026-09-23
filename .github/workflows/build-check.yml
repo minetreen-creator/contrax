@@ -148,6 +148,22 @@ jobs:
       # fetcher is INJECTED. No DATABASE_URL is required.
       - name: Janitorial + trucking ingestion tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/sam-gov-trades.test.ts src/lib/janitorial-trucking.test.ts
+      # Nationwide correctness FIX ④ (owner-locked scope, PR B2) — per-pass
+      # outcome accounting + honest zero-yield trucking passes. DETERMINISTIC,
+      # network-free and DATABASE-FREE by construction:
+      #   * pass-outcome.test.ts — the outcome classifier (pure function over the
+      #     persisted `collector_run_log` counters; `all_skipped` / `zero_empty` /
+      #     `data_error` / `suppressed_duplicate` / `ok`, plus the CRITICAL
+      #     `duplicate_notice` count from PR B1's run-level guard). Every record it
+      #     asserts on is a real production run-log row quoted in the file.
+      #   * sam-gov-trades.test.ts already runs in the step above and now also
+      #     holds the fix-④ pins (the verbatim 484110/484121/484122 pages, SAM's
+      #     own `page.totalElements`, and the `TradeResponseShapeError` that stops
+      #     an unreadable payload from reading as a clean zero).
+      # Listed EXPLICITLY because a new deterministic suite that no workflow names
+      # runs nowhere (the reason runner.dedupe.test.ts went unrun for weeks).
+      - name: Nationwide correctness B2 pass-outcome tests (unit, deterministic, zero network)
+        run: bun test src/jobs/pass-outcome.test.ts
       # Ohio Phase 3 — City of Dayton connector (owner-locked order step ②, 2026-09-23).
       # DETERMINISTIC and network-free by construction: every byte it reads is a
       # VERBATIM full-page fixture captured from the official City of Dayton board on

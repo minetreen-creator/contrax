@@ -37,6 +37,20 @@
  * and is NOT janitorial/trucking-specific, so it is a separate PR. The
  * `oh_dayton` state/local connector (R7) belongs to the Ohio fix PR — two PRs
  * must not edit `runner.ts` + `src/jobs/sources/` concurrently.
+ *
+ * HONEST ZEROS (nationwide correctness FIX ④, PR B2)
+ * --------------------------------------------------
+ * A trade pass could yield nothing in three completely different ways and the
+ * run record could not tell them apart: a gate refusal on real notices (484110:
+ * SAM returns 3 notices; the purchased-service gate refuses all 3), a genuinely
+ * empty filter (484121: SAM reports `totalElements = 0` — verified live
+ * 2026-09-23) and an unreadable response (`_embedded.results` missing at HTTP
+ * 200). This module now (a) parses every page through `readSearchEnvelope`, so a
+ * malformed / error-shaped page-0 payload throws `TradeResponseShapeError`
+ * instead of being recorded as a clean zero, and (b) reports SAM's own
+ * `page.totalElements` per pass (`responseTotal`). The per-pass OUTCOME
+ * (`all_skipped` / `zero_empty` / `data_error` / `suppressed_duplicate` / `ok`)
+ * is derived from the run record by `~/jobs/pass-outcome`.
  */
 
 import {
@@ -172,6 +186,90 @@ export interface TradeFetchDeps {
 }
 
 /**
+ * HONEST-EMPTY vs UNREADABLE (nationwide correctness FIX ④, PR B2).
+ *
+ * Thrown when a page-0 SAM.gov response is HTTP 200 but is NOT a usable v1
+ * search envelope: no `page` block and no `_embedded.results` array, or a
+ * `page.totalElements > 0` with no results to go with it. Before this check the
+ * pass did `data?._embedded?.results ?? []` and then `break`, so a malformed /
+ * error-shaped payload was recorded as `rows_fetched = 0, errors = 0` — an
+ * HONEST-looking zero, indistinguishable from "SAM has nothing open for this
+ * code" (fix ②'s blindness, measured on `naics=484121`). Throwing makes it a
+ * recorded ERROR instead: the runner logs the source error, the run record
+ * carries `errors = 1`, the freshness tier is DEAD (never EMPTY), and
+ * `classifyPassOutcome` reports `data_error` (src/jobs/pass-outcome.ts).
+ *
+ * The message is deliberately diagnostic (the reason + the offending shape) —
+ * it is what a human reads in `sync_logs.errors` when a pass goes red.
+ */
+export class TradeResponseShapeError extends Error {
+  readonly code = "sam_trade_response_shape";
+  constructor(message: string) {
+    super(message);
+    this.name = "TradeResponseShapeError";
+  }
+}
+
+/** What one SAM.gov search page's envelope tells us (see `readSearchEnvelope`). */
+export interface SearchEnvelope {
+  /** The page's result items (`[]` for an honest empty page). */
+  items: any[];
+  /** `page.totalElements` when SAM published it, else null (never invented). */
+  totalElements: number | null;
+}
+
+/**
+ * Read ONE SAM.gov v1 search response honestly — pure, total, no network.
+ *
+ * An HONEST answer is `{ items, totalElements }`; an unusable one is a reason
+ * string (the caller decides: page 0 must fail loudly, a later page is the
+ * documented end-of-results). Rules, in order:
+ *   - the body must be a JSON object;
+ *   - it must carry EITHER `_embedded.results` (an array) OR `page.totalElements`
+ *     (a number) — a bare error envelope (`{"status":500,…}`) carries neither;
+ *   - `totalElements > 0` with no/empty `results` is a shape error: SAM says it
+ *     has matches and then hands over none — the exact case that must never be
+ *     recorded as an honest zero (an empty `_embedded.results` WITH
+ *     `totalElements = 0` is honest and stays `zero_empty`).
+ */
+export function readSearchEnvelope(
+  data: unknown,
+): { ok: true; envelope: SearchEnvelope } | { ok: false; reason: string } {
+  if (data === null || typeof data !== "object" || Array.isArray(data)) {
+    return { ok: false, reason: `response body is not a JSON object (${typeof data})` };
+  }
+  const raw = data as any;
+  const embedded = raw._embedded;
+  const rawItems = embedded && typeof embedded === "object" ? (embedded as any).results : undefined;
+  const items = Array.isArray(rawItems) ? rawItems : null;
+  const page = raw.page && typeof raw.page === "object" ? (raw.page as any) : null;
+  const totalElements = page && Number.isFinite(Number(page.totalElements))
+    ? Number(page.totalElements)
+    : null;
+
+  if (items === null && totalElements === null) {
+    return {
+      ok: false,
+      reason:
+        "no `_embedded.results` array and no `page.totalElements` — not a SAM.gov v1 search envelope",
+    };
+  }
+  if (items === null && totalElements !== null && totalElements > 0) {
+    return {
+      ok: false,
+      reason: `SAM reports ${totalElements} matching notice(s) but the payload carries no results array`,
+    };
+  }
+  if (items !== null && items.length === 0 && totalElements !== null && totalElements > 0) {
+    return {
+      ok: false,
+      reason: `SAM reports ${totalElements} matching notice(s) but returned an empty results array`,
+    };
+  }
+  return { ok: true, envelope: { items: items ?? [], totalElements } };
+}
+
+/**
  * One trade pass's rows PLUS its reason-coded skip accounting — the same shape
  * the runner's run-record contract consumes for every other source, so a
  * `fetched = accepted + skipped + failed` invariant holds per trade pass too.
@@ -182,6 +280,14 @@ export interface TradeFetchResult {
   skipped: Record<string, number>;
   /** One diagnostic per skipped notice (id = SAM notice id / fixture fallback). */
   skippedRows: { id: string; reason: string }[];
+  /**
+   * SAM's own `page.totalElements` for this filter on page 0 (null when the
+   * response did not publish it). This is the source's OWN count of matching
+   * notices — never a guess — and it is what makes "SAM has 3 matching notices
+   * and the pass refused all 3" (484110) distinguishable from "SAM has none"
+   * (484121) in the pass's diagnostics.
+   */
+  responseTotal: number | null;
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -222,20 +328,41 @@ export async function fetchTradeFilterDetailed(
   const results: RawBid[] = [];
   const skipped: Record<string, number> = {};
   const skippedRows: { id: string; reason: string }[] = [];
+  /** SAM's own match count for this filter (page 0). null = not published. */
+  let responseTotal: number | null = null;
 
   for (let page = 0; page < maxPages; page++) {
     const url = buildTradeSearchUrl(filter, page);
     let items: any[];
     try {
       const data = await fetchJson(url);
-      items = data?._embedded?.results ?? [];
+      const read = readSearchEnvelope(data);
+      if (!read.ok) {
+        // FIX ④: an HTTP 200 that is not a usable envelope is NOT an honest
+        // zero. Page 0 must fail loudly (the runner records the error, the
+        // outcome is `data_error`, the freshness tier is DEAD); a later page is
+        // the documented end-of-results, but it is logged, never silent.
+        const message = `${filter.name}: unreadable SAM.gov search response — ${read.reason}`;
+        if (page === 0) throw new TradeResponseShapeError(message);
+        console.error(`  ${message} (page ${page}) — treating as end of results`);
+        break;
+      }
+      if (page === 0) {
+        responseTotal = read.envelope.totalElements;
+        console.log(
+          `  ${filter.name}: SAM reports ${
+            responseTotal === null ? "an unknown number of" : responseTotal
+          } matching notice(s) for ${filter.kind}=${filter.code}`,
+        );
+      }
+      items = read.envelope.items;
     } catch (e) {
       // A non-200 on page > 0 means we walked past the end; page 0 must surface.
       if (page === 0) throw e;
       console.error(`  ${filter.name}: page ${page} error:`, (e as Error).message);
       break;
     }
-    if (!Array.isArray(items) || items.length === 0) break;
+    if (items.length === 0) break;
 
     for (const [index, item] of items.entries()) {
       const fallbackId = `${filter.name}-p${page}-${index}`;
@@ -273,7 +400,21 @@ export async function fetchTradeFilterDetailed(
     if (delayMs > 0) await sleep(delayMs);
   }
 
-  return { rows: results, skipped, skippedRows };
+  // FIX ④: report SAM's own match count for the pass alongside the rows. When
+  // the pass yields nothing this is what tells the two zero cases apart without
+  // guessing: `responseTotal 3` + all rows refused = a gate decision on real
+  // notices (484110), `responseTotal 0` = the filter genuinely matches nothing
+  // (484121). It is SAM's number, never a count we invent.
+  if (results.length === 0 && responseTotal !== null && responseTotal > 0) {
+    console.log(
+      `  ${filter.name}: SAM reports ${responseTotal} matching notice(s) but none entered this pass ` +
+        `(gated: ${
+          Object.keys(skipped).length > 0 ? JSON.stringify(skipped) : "none"
+        }) — see the pass outcome in the run log`,
+    );
+  }
+
+  return { rows: results, skipped, skippedRows, responseTotal };
 }
 
 /**

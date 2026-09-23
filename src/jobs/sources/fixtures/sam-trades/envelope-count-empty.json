@@ -1,0 +1,10 @@
+{
+  "_links": {
+    "self": {
+      "href": "https://sam.gov/api/prod/sgs/v1/search/?page=0&size=25&sort=-modifiedDate&mode=opportunities&q=&is_active=true&naics=484122{&qMode,exactMatch}",
+      "templated": true
+    }
+  },
+  "page": { "size": 25, "totalElements": 3, "totalPages": 1, "number": 0, "maxAllowedRecords": 10000 },
+  "_embedded": { "results": [] }
+}

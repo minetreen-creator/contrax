@@ -680,7 +680,6 @@ export async function getNonprofitReviewApplication(
     refreshReverify: evidence.refresh_reverify ?? null,
     domainSignal: {
       label: NONPROFIT_REVIEW_DOMAIN_LABEL,
-      detailLabel: NONPROFIT_REVIEW_DOMAIN_LABEL,
       corresponds: domainCorrespondsToName(domainChecked, full.submittedNameNormalized ?? full.orgName),
       checked: domainChecked,
       basis: full.website ? "website" : full.workEmail ? "work_email" : null,

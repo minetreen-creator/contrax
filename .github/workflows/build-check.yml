@@ -109,6 +109,20 @@ jobs:
       # delegates to the policy module instead of re-inlining a `/` rule.
       - name: Homepage cache policy tests (unit, deterministic, zero network)
         run: bun test src/lib/ssr-cache-policy.test.ts
+      # HOMEPAGE GRANTS PLUS FAIL-SAFE (owner directive rev 327, 2026-09-23).
+      # DETERMINISTIC and network-free by construction: every input is a literal,
+      # the tier table is rendered to static markup in-process (react-dom/server),
+      # and there is no DATABASE_URL, no clock, no fetch and no Stripe symbol. It
+      # pins the directive's three paths — normal (flag on ⇒ the launched
+      # "Get Grants Plus →" → /grants row, byte-for-byte, and zero "Coming soon"),
+      # fallback (flag off/absent ⇒ the row's CTA is plain non-interactive text
+      # with NO href/button/payment link), and fail-closed (absent/garbage/throwing
+      # env ⇒ disabled; the loader reads the flag once, server-side, and the other
+      # two tier rows are never gated). Listed EXPLICITLY because a new
+      # deterministic suite that no workflow names runs nowhere (the reason
+      # runner.dedupe.test.ts went unrun for weeks).
+      - name: Homepage grants fail-safe tests (unit, deterministic, zero network)
+        run: bun test tests/homepage-grants-failsafe.test.tsx
       # Nonprofit Free (owner green-lit 2026-09-21, six-point spec). The phase-1 unit
       # suite is DETERMINISTIC and network-free by construction: every IRS byte it reads is
       # a verbatim fixture committed to src/lib/fixtures/irs/, and the store is injected —

@@ -65,6 +65,11 @@
 import { isJanitorialWork, isTransportationWork } from "~/lib/trade-classification";
 import { toIsoDueDate } from "~/lib/date";
 import type { FetchResult } from "../runner";
+import {
+  httpFailureDetail,
+  requestFailureDetail,
+  SourceUnreachableError,
+} from "../fetch-failure";
 import { stripHtml, type RawBid } from "./sam-gov";
 
 export const DAYTON_ENDPOINT = "https://www.daytonohio.gov/bids.aspx";
@@ -360,8 +365,16 @@ export function parseDaytonBoard(html: string, now: number = Date.now()): Dayton
  *
  * ONE bare GET per sync (`?showAllBids=true&Status=all` returns an empty list,
  * not an error), 20 s AbortController timeout (a stalled list fetch would hold up
- * a whole sync), and any HTTP/network failure degrades to ZERO rows + a log —
- * never a throw that could abort the run.
+ * a whole sync), and any HTTP/network failure is reported as an unreachable
+ * source (DEAD) instead of degrading to zero rows.
+ *
+ * DEAD-COLLECTOR CLASSIFICATION (owner 09-23, item ③): a failed request used to
+ * `return { rows: [] }`, which the run record read exactly like an honest empty
+ * (`rows_fetched = 0, errors = 0`) — so a dead board was never DEAD. It now
+ * throws `SourceUnreachableError`, which `syncSource` catches PER SOURCE: the
+ * run is still never aborted by one bad collector, but the failure is recorded
+ * (`errors > 0, rows_fetched = 0`) and the tier reads DEAD. A 200 whose board
+ * genuinely lists nothing is unchanged — that is the honest EMPTY.
  */
 export async function fetchOhDaytonBids(): Promise<FetchResult> {
   const controller = new AbortController();
@@ -370,14 +383,16 @@ export async function fetchOhDaytonBids(): Promise<FetchResult> {
   try {
     resp = await fetch(DAYTON_ENDPOINT, { headers: DAYTON_HEADERS, signal: controller.signal });
   } catch (e) {
-    console.error(`  oh_dayton: fetch failed:`, (e as Error).message);
-    return { rows: [], skipped: {}, skippedRows: [] };
+    const detail = requestFailureDetail(e);
+    console.error(`  oh_dayton: ${detail}`);
+    throw new SourceUnreachableError("oh_dayton", [detail]);
   } finally {
     clearTimeout(timer);
   }
   if (!resp.ok) {
-    console.error(`  oh_dayton: HTTP ${resp.status}`);
-    return { rows: [], skipped: {}, skippedRows: [] };
+    const detail = httpFailureDetail(resp.status, DAYTON_ENDPOINT);
+    console.error(`  oh_dayton: ${detail}`);
+    throw new SourceUnreachableError("oh_dayton", [detail]);
   }
 
   const html = await resp.text();

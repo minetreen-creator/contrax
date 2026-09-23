@@ -26,6 +26,12 @@
  */
 
 import { canonicalNoticeId, extractNoticeType, type RawBid } from "./sam-gov";
+import {
+  failureDetail,
+  FetchFailures,
+  FetchRequestError,
+  httpFailureDetail,
+} from "../fetch-failure";
 import { mapCategory as classifyCategory } from "~/lib/trade-classification";
 
 const SAM_API = "https://sam.gov/api/prod/sgs/v1/search/";
@@ -80,12 +86,17 @@ export interface CitiesDeps {
   delayMs?: number;
 }
 
-/** The real v1 page fetch (same headers/status handling as before). */
+/** The real v1 page fetch. A failed request THROWS (see fetch-failure.ts):
+ *  returning `null` made "the request failed" indistinguishable from "the page
+ *  had no items", which is how a dead endpoint used to report an honest EMPTY. */
 async function defaultFetchJson(keyword: string, url: string): Promise<any> {
   const resp = await fetch(url, { headers: HEADERS });
   if (!resp.ok) {
     console.error(`  Cities "${keyword}" returned ${resp.status}`);
-    return null;
+    throw new FetchRequestError(httpFailureDetail(resp.status, url), {
+      status: resp.status,
+      url,
+    });
   }
   return resp.json();
 }
@@ -94,6 +105,7 @@ async function fetchKeyword(
   keyword: string,
   prefix: string,
   deps: CitiesDeps = {},
+  failures: FetchFailures = new FetchFailures(),
 ): Promise<RawBid[]> {
   const results: RawBid[] = [];
 
@@ -105,6 +117,8 @@ async function fetchKeyword(
     const data = deps.fetchJson
       ? await deps.fetchJson(url)
       : await defaultFetchJson(keyword, url);
+    // The keyword pass ANSWERED: reachable even when the page holds no items.
+    if (data && typeof data === "object") failures.markReadable();
     const items = data?._embedded?.results;
     if (!items || items.length === 0) return results;
 
@@ -164,7 +178,12 @@ async function fetchKeyword(
 
     console.log(`  Cities "${keyword}": got ${items.length} items`);
   } catch (e) {
-    console.error(`  Cities "${keyword}" error:`, (e as Error).message);
+    // Record the failure and keep going: the OTHER keyword passes still run, and
+    // the source is only declared unreachable when the whole pass set produced
+    // nothing (see fetchBids).
+    const detail = failureDetail(e);
+    console.error(`  Cities "${keyword}" error:`, detail);
+    failures.record(detail);
   }
 
   return results;
@@ -172,11 +191,19 @@ async function fetchKeyword(
 
 export async function fetchBids(deps: CitiesDeps = {}): Promise<RawBid[]> {
   const delayMs = deps.delayMs ?? DELAY_MS;
-  const cityBids = await fetchKeyword("City of", "city", deps);
+  const failures = new FetchFailures();
+  const cityBids = await fetchKeyword("City of", "city", deps, failures);
   await new Promise((r) => setTimeout(r, delayMs));
-  const countyBids = await fetchKeyword("County of", "county", deps);
+  const countyBids = await fetchKeyword("County of", "county", deps, failures);
   await new Promise((r) => setTimeout(r, delayMs));
-  const metroBids = await fetchKeyword("Metropolitan", "metro", deps);
+  const metroBids = await fetchKeyword("Metropolitan", "metro", deps, failures);
 
-  return [...cityBids, ...countyBids, ...metroBids];
+  const rows = [...cityBids, ...countyBids, ...metroBids];
+  // DEAD-COLLECTOR CLASSIFICATION (owner 09-23, item ③): every keyword request
+  // failed and nothing was read ⇒ this source is unreachable, so the run records
+  // an error and the tier reads DEAD instead of "ran clean, found nothing". A
+  // keyword set that answered 200 with zero items records NO failure and is
+  // returned as the honest empty it is.
+  failures.assertReached("cities", rows.length);
+  return rows;
 }

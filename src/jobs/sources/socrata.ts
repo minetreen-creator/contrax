@@ -16,6 +16,7 @@
  */
 import type { RawBid } from "./sam-gov";
 import { nycCityRecordNoticeUrl } from "../../lib/city-procurement";
+import { SourceUnreachableError } from "../fetch-failure";
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 3;
@@ -183,10 +184,13 @@ export async function nysSocrataSource(): Promise<RawBid[]> {
   const fallback = await fetchSocrataBids("https://data.ny.gov", "hf3r-utnq", "nys_socrata", fallbackReport);
   if (fallback.length > 0) return fallback;
   if (!primaryReport.reached && !fallbackReport.reached) {
-    throw new Error(
-      `nys_socrata unreachable: no dataset answered (primary e5pk-us93: ${primaryReport.failure ?? "no rows"}; ` +
+    // The SAME unreachable-source error every other connector raises (owner 09-23,
+    // item ③ — src/jobs/fetch-failure.ts), so the run log's error text and the
+    // DEAD classification have exactly one shape across all sources.
+    throw new SourceUnreachableError("nys_socrata", [
+      `no dataset answered (primary e5pk-us93: ${primaryReport.failure ?? "no rows"}; ` +
         `fallback hf3r-utnq: ${fallbackReport.failure ?? "no rows"}) — a dead source must not be reported as fresh`,
-    );
+    ]);
   }
   return [];
 }

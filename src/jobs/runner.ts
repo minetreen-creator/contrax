@@ -810,6 +810,14 @@ export async function syncSource(
       `  ${source.name}: ${newCount} new, ${acceptedCount - newCount} existing/dup, ${skippedCount} skipped, ${failedCount} failed`,
     );
   } catch (e) {
+    // DEAD-COLLECTOR CLASSIFICATION (owner 09-23, item ③): this catch IS the run
+    // record's error channel for a fetch that could not read its source. A
+    // connector that reached nothing throws `SourceUnreachableError`
+    // (src/jobs/fetch-failure.ts) — or any error — and lands here, so the run row
+    // is written with `rows_fetched = 0, errors = 1, ran_zero = true`. Migration
+    // 049 / `src/lib/collector-freshness.ts` read exactly that as DEAD, whereas a
+    // source that ANSWERS with zero rows keeps `errors = 0` and stays EMPTY. The
+    // throw is caught PER SOURCE: one dead collector never aborts the run.
     const msg = `Source error for ${source.name}: ${(e as Error).message}`;
     errors.push(msg);
     console.error(`  ${msg}`);

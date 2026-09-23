@@ -1,0 +1,78 @@
+{
+  "file": "raw-fetch3.html",
+  "rowCount": 5,
+  "fingerprint": [
+    "Engineering & Construction | 639 |  | Engineering & Construction Bid Postings Have Moved! | Open | Upon Contract",
+    "Procurement | 1306 | IFB 26057Z | IFB 26057Z Bomb Squad Equipment and Replacement Parts | Open | 10/6/2026 10:00 AM",
+    "Procurement | 1307 | IFB 26058JF | IFB 26058JF Public Safety Bomb Suit Accessories II | Open | 10/6/2026 3:00 PM",
+    "Procurement | 1309 | IFB 26060Z | IFB 26060Z Custom 5 Cubic Yard Dumpster Liners | Open | 10/6/2026 3:00 PM",
+    "Procurement | 1308 | IFB S27001 | IFB S27001 Evidence of Real Estate Ownership and Title Reporting Services | Open | 10/6/2026 3:00 PM"
+  ],
+  "rows": [
+    {
+      "group": "Engineering & Construction",
+      "groupCountText": "1 Bid",
+      "rowClass": "listItemsRow bid",
+      "bidID": "639",
+      "bidNo": null,
+      "title": "Engineering & Construction Bid Postings Have Moved!",
+      "description": "The City of Dayton Division of Civil Engineering has begun utilizing Quest Construction Data Network for the solicitation of bids for all Engineering and Construction... [Read on: Engineering & Construction Bid Postings Have Moved!",
+      "statusLabel": "Status:",
+      "statusValue": "Open",
+      "closesLabel": "Closes:",
+      "closesValue": "Upon Contract"
+    },
+    {
+      "group": "Procurement",
+      "groupCountText": "4 Bids",
+      "rowClass": "listItemsRow bid",
+      "bidID": "1306",
+      "bidNo": "IFB 26057Z",
+      "title": "IFB 26057Z Bomb Squad Equipment and Replacement Parts",
+      "description": "Electronic bids are due by October 6, 2026 no later than 10:00 AM (Dayton Local Time).",
+      "statusLabel": "Status:",
+      "statusValue": "Open",
+      "closesLabel": "Closes:",
+      "closesValue": "10/6/2026 10:00 AM"
+    },
+    {
+      "group": "Procurement",
+      "groupCountText": "4 Bids",
+      "rowClass": "listItemsRow bid alt",
+      "bidID": "1307",
+      "bidNo": "IFB 26058JF",
+      "title": "IFB 26058JF Public Safety Bomb Suit Accessories II",
+      "description": "Electronic bids are due by October 6, 2026 no later than 3:00 PM (Dayton Local Time).",
+      "statusLabel": "Status:",
+      "statusValue": "Open",
+      "closesLabel": "Closes:",
+      "closesValue": "10/6/2026 3:00 PM"
+    },
+    {
+      "group": "Procurement",
+      "groupCountText": "4 Bids",
+      "rowClass": "listItemsRow bid",
+      "bidID": "1309",
+      "bidNo": "IFB 26060Z",
+      "title": "IFB 26060Z Custom 5 Cubic Yard Dumpster Liners",
+      "description": "Electronic bids are due by October 6, 2026 no later than 3:00 PM (Dayton Local Time).",
+      "statusLabel": "Status:",
+      "statusValue": "Open",
+      "closesLabel": "Closes:",
+      "closesValue": "10/6/2026 3:00 PM"
+    },
+    {
+      "group": "Procurement",
+      "groupCountText": "4 Bids",
+      "rowClass": "listItemsRow bid alt",
+      "bidID": "1308",
+      "bidNo": "IFB S27001",
+      "title": "IFB S27001 Evidence of Real Estate Ownership and Title Reporting Services",
+      "description": "Electronic bids are due by October 6, 2026 no later than 3:00 PM (Dayton Local Time).",
+      "statusLabel": "Status:",
+      "statusValue": "Open",
+      "closesLabel": "Closes:",
+      "closesValue": "10/6/2026 3:00 PM"
+    }
+  ]
+}

@@ -41,7 +41,6 @@ import {
   SAM_TRADE_FILTERS,
 } from "./sources/sam-gov-trades";
 import { fetchBids as fetchCities } from "./sources/cities";
-import { nysSocrataSource } from "./sources/socrata";
 import { collectorHealthRows } from "../lib/collector-freshness";
 import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
 import { fetchPennBidOpen } from "./sources/pennbid";
@@ -49,6 +48,7 @@ import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
+import { isAwardTypeSource } from "../lib/source-class";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
 import { createNotification } from "../lib/notifications";
 import { generateBidAlerts } from "../lib/bid-alerts";
@@ -168,13 +168,21 @@ const STATE_KEYWORD_SOURCES: SyncSource[] = US_STATES.map((code) => ({
 }));
 
 /**
- * Everything else: NYS Socrata (state open-data portal) plus the city
- * open-data procurement portals (NYC, Chicago, LA, SF, Austin). These hit
+ * Everything else: the city open-data procurement portals (NYC, Chicago, LA,
+ * SF, Austin) plus the City of Dayton's own CivicEngage board. These hit
  * different APIs, so they interleave one-at-a-time between state-keyword
  * batches — each is isolated so one failing never blocks the others.
+ *
+ * PR-1 RESTRUCTURE (owner-approved source-provenance policy, plan rev 315,
+ * ruling c): `nys_socrata` was RETIRED from this registry. Both of its
+ * data.ny.gov dataset ids answer 404 and it fetched 0 rows for 43 consecutive
+ * runs, so the label is gone entirely — it is never run and never displayed as
+ * merely empty. Per the policy, a replacement NY source is NOT registered until
+ * one is independently verified with real records + freshness tests. The retired
+ * label keeps its class in `src/lib/source-class.ts` (RETIRED_SOURCES) for the
+ * legacy rows and for any future health surface.
  */
 export const TAIL_SOURCES: SyncSource[] = [
-  { name: "nys_socrata", fetchFn: nysSocrataSource },
   // Ohio Phase 3 (owner-locked order step ②, plan rev 285): the City of Dayton's
   // own CivicEngage bid board — the first non-federal OHIO-local bid source in the
   // corpus. A tail source gets its OWN collector_run_log row while adding ZERO
@@ -560,6 +568,7 @@ async function insertBidsBatch(
       location: bid.location,
       due_date: bid.due_date ?? null,
       set_aside: bid.set_aside ?? null,
+      source: bid.source_label ?? source.name,
     });
   }
   return { newCount, newBids };
@@ -669,6 +678,7 @@ async function insertBid(
     location: bid.location,
     due_date: bid.due_date ?? null,
     set_aside: bid.set_aside ?? null,
+    source: bid.source_label ?? source.name,
   };
 }
 
@@ -1094,18 +1104,33 @@ export async function runSync(): Promise<SyncResult> {
     console.log(`   ⚪ [${h.source}] EMPTY — ${h.reason}`);
   }
 
+  // ── AWARD-TYPE SEPARATION (PR-1 restructure, owner ruling d / policy R6+C6) ─
+  // Chicago/SF/Austin Open Data ingest AWARDED CONTRACTS (their mapper sets
+  // due_date = null), not open opportunities. The rows STAY in the corpus as
+  // award/incumbent intelligence, but they are EXCLUDED from every OPPORTUNITY
+  // surface: bid alerts, in-app notifications and this digest here, plus /map
+  // and the dashboard feeds (AWARD_EXCLUSION_SQL in src/lib/source-class.ts).
+  // The run's INGEST accounting (sync_logs / collector_run_log / totalNew) is
+  // deliberately untouched — the rows are still fetched, stored and counted.
+  const opportunityNewBids = allNewBids.filter((b) => !isAwardTypeSource(b.source));
+  if (opportunityNewBids.length !== allNewBids.length) {
+    console.log(
+      `   Award-type rows held out of the alert/notify/digest surfaces: ${allNewBids.length - opportunityNewBids.length} of ${allNewBids.length} new`,
+    );
+  }
+
   // Generate durable in-app bid alerts for every matching profile.
-  if (totalNew > 0) {
-    try { console.log(`🔔 Created ${await generateBidAlerts(allNewBids.map((b) => b.bid_id as number))} durable bid alert(s)`); }
+  if (opportunityNewBids.length > 0) {
+    try { console.log(`🔔 Created ${await generateBidAlerts(opportunityNewBids.map((b) => b.bid_id as number))} durable bid alert(s)`); }
     catch (err) { console.error("🔔 Failed to generate bid alerts:", (err as Error).message); }
   }
 
   // Notify matching profiles without allowing notification failures to break sync.
-  if (totalNew > 0) {
+  if (opportunityNewBids.length > 0) {
     try {
       const profiles = await sql`SELECT user_id, industry, locations, service_categories, certifications FROM business_profiles WHERE user_id IS NOT NULL` as any[];
       let notified = 0;
-      for (const bid of allNewBids) {
+      for (const bid of opportunityNewBids) {
         const text = `${bid.title} ${bid.agency} ${bid.location || ""}`.toLowerCase();
         for (const profile of profiles) {
           const locations = Array.isArray(profile.locations) ? profile.locations : [];
@@ -1136,13 +1161,13 @@ export async function runSync(): Promise<SyncResult> {
   }
 
   // ── Send bid digest email ────────────────────────────────────────────────
-  if (totalNew > 0) {
+  if (opportunityNewBids.length > 0) {
     try {
       const userRows = await sql`SELECT email FROM users` as { email: string }[];
       if (userRows.length > 0) {
         const userEmails = userRows.map((r) => r.email);
         console.log(`\n📧 Sending bid digest to ${userEmails.length} user(s)...`);
-        await sendBidDigest(userEmails, allNewBids);
+        await sendBidDigest(userEmails, opportunityNewBids);
       } else {
         console.log("\n📧 No users found in DB — skipping bid digest");
       }

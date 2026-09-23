@@ -408,13 +408,9 @@ describe("connector 404s now surface (and honest empties do not)", () => {
     expect(rows.length).toBe(100);
   });
 
-  test("nys_socrata raises the SHARED unreachable error (fix ② unified)", async () => {
-    const { nysSocrataSource } = await import("./sources/socrata");
-    stubFetchAlways(() => new Response("not found", { status: 404 }));
-    const err = await nysSocrataSource().catch((e: unknown) => e);
-    expect(err).toBeInstanceOf(SourceUnreachableError);
-    expect((err as SourceUnreachableError).source).toBe("nys_socrata");
-    expect((err as Error).message).toContain("e5pk-us93");
-    expect((err as Error).message).toContain("hf3r-utnq");
-  });
+  // PR-1 (plan rev 315, ruling c): the `nys_socrata` collector was RETIRED, so
+  // its "raises the SHARED unreachable error" pin went with it. The identical
+  // contract stays pinned above for every collector that still runs — the
+  // "city portals: a 404ed dataset ⇒ unreachable" case exercises the same
+  // FetchFailures.assertReached path the five city Socrata feeds use.
 });

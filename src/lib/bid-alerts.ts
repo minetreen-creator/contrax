@@ -2,6 +2,7 @@ import { sql } from "../db";
 import { fireBidMatchWebhooks, type BidMatchEvent } from "./webhooks";
 import { fireSlackBidMatchAlerts } from "./slack";
 import { expandTrade } from "./trade-registry";
+import { isAwardTypeSource } from "./source-class";
 
 export interface BidAlert {
   id: number; bid_id: number; title: string; agency: string;
@@ -29,6 +30,14 @@ export async function generateBidAlerts(bidIds: number[]): Promise<number> {
   for (const bidId of bidIds) {
     const rows = await sql()`SELECT id, title, agency, category, set_aside, description, source, location, due_date, source_url FROM bids WHERE id = ${bidId}`;
     const bid = rows[0] as any; if (!bid) continue;
+    // AWARD-TYPE SEPARATION (PR-1, owner ruling d / policy R6+C6): Chicago/SF/
+    // Austin Open Data ingest AWARDED CONTRACTS (due_date null), not open
+    // opportunities. They keep their ingest row but must never generate a bid
+    // alert, a notification, a webhook/Slack delivery or a funnel
+    // "alert_created" activation event — filtered HERE, off this SELECT, so
+    // every caller of generateBidAlerts observes the same rule (the runner
+    // filters its notify/digest lists too).
+    if (isAwardTypeSource(bid.source)) continue;
     const text = `${bid.title || ""} ${bid.agency || ""} ${bid.category || ""} ${bid.description || ""}`.toLowerCase();
     for (const p of profiles as any[]) {
       const naics = Array.isArray(p.naics_codes) ? p.naics_codes.map(String) : [];

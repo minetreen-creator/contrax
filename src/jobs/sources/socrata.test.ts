@@ -17,7 +17,6 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import {
   fetchSocrataBids,
   newSocrataFetchReport,
-  nysSocrataSource,
 } from "~/jobs/sources/socrata";
 import { classifyCollectorTier } from "~/lib/collector-freshness";
 
@@ -104,64 +103,50 @@ describe("FIX ② — the fetch report distinguishes 'unreachable' from 'honestl
   });
 });
 
-describe("FIX ② — nysSocrataSource fails the run when NEITHER dataset can be read", () => {
-  test("both datasets 404 (the live production state) ⇒ the source THROWS", async () => {
+/**
+ * PR-1 RESTRUCTURE (owner-approved source-provenance policy, plan rev 315,
+ * ruling c): the `nys_socrata` / `nyc_socrata` collector entry points were
+ * RETIRED and removed from this module, so FIX ② is now pinned at the level that
+ * survives — the SODA page reader's honest reach/failure report, which is what
+ * the persisted run record (and therefore the DEAD-vs-EMPTY tier) is derived
+ * from. The "a source that cannot be reached THROWS" half stays pinned for every
+ * collector that still runs by src/jobs/fetch-failure.test.ts.
+ */
+describe("FIX ② — an unreadable SODA dataset is never an honest empty", () => {
+  test("both datasets 404 (the retired source's live state) ⇒ not reached, tier DEAD not FRESH", async () => {
     stubFetch({
       "e5pk-us93": () => new Response("not found", { status: 404 }),
       "hf3r-utnq": () => new Response("not found", { status: 404 }),
     });
-    await expect(nysSocrataSource()).rejects.toThrow(/nys_socrata unreachable/);
-    // The message names both datasets and their failure, so the run log explains itself.
-    const error = await nysSocrataSource().catch((e: Error) => e);
-    expect((error as Error).message).toContain("e5pk-us93");
-    expect((error as Error).message).toContain("hf3r-utnq");
-    expect((error as Error).message).toContain("HTTP 404");
-    expect(calls.length).toBeGreaterThanOrEqual(4); // two attempts per call
-  });
-
-  test("both datasets answer 200 with zero rows ⇒ honest empty, NO throw", async () => {
-    stubFetch({ "e5pk-us93": () => jsonResponse([]), "hf3r-utnq": () => jsonResponse([]) });
-    await expect(nysSocrataSource()).resolves.toEqual([]);
-  });
-
-  test("the fallback still supplies rows when the primary is unreachable", async () => {
-    stubFetch({
-      "e5pk-us93": () => new Response("not found", { status: 404 }),
-      "hf3r-utnq": () =>
-        jsonResponse([{ request_id: "R9", short_title: "Custodial Services", agency_name: "NYS OGS" }]),
-    });
-    const rows = await nysSocrataSource();
-    expect(rows.length).toBe(1);
-    expect(rows[0]!.title).toBe("Custodial Services");
-  });
-
-  test("the thrown error is what the run log turns into a DEAD (not FRESH) tier", async () => {
-    // The runner catches a per-source throw into `errors` and persists it as
-    // `collector_run_log.errors` with `rows_fetched = 0`. A source that ANSWERS
-    // with zero rows persists `errors = 0` instead. Both halves of FIX ② are
-    // pinned together here so they cannot drift apart.
-    stubFetch({
-      "e5pk-us93": () => new Response("not found", { status: 404 }),
-      "hf3r-utnq": () => new Response("not found", { status: 404 }),
-    });
-    const unreachable = await nysSocrataSource().then(
-      () => 0,
-      () => 1,
-    );
-    expect(unreachable).toBe(1); // the run records one error …
+    const primary = newSocrataFetchReport();
+    const fallback = newSocrataFetchReport();
+    const rows = [
+      ...(await fetchSocrataBids("https://data.ny.gov", "e5pk-us93", "nys_socrata", primary)),
+      ...(await fetchSocrataBids("https://data.ny.gov", "hf3r-utnq", "nys_socrata", fallback)),
+    ];
+    expect(rows).toEqual([]);
+    expect(primary.reached).toBe(false);
+    expect(fallback.reached).toBe(false);
+    expect(primary.failure).toContain("HTTP 404");
+    expect(calls.length).toBeGreaterThanOrEqual(2);
     const now = new Date("2026-09-23T12:00:00.000Z");
     const dead = classifyCollectorTier(
-      { source: "nys_socrata", last_run_at: new Date(now.getTime() - 3_600_000).toISOString(), rows_fetched: 0, ran_zero: true, errors: unreachable },
+      { source: "nys_socrata", last_run_at: new Date(now.getTime() - 3_600_000).toISOString(), rows_fetched: 0, ran_zero: true, errors: 1 },
       now,
     );
     expect(dead.tier).toBe("DEAD");
+    expect(dead.tier).not.toBe("FRESH");
+  });
 
-    // …while a dataset that answers with zero rows stays an honest EMPTY.
-    globalThis.fetch = REAL_FETCH;
-    stubFetch({ "e5pk-us93": () => jsonResponse([]), "hf3r-utnq": () => jsonResponse([]) });
-    const honestZero = (await nysSocrataSource()).length;
+  test("a dataset that ANSWERS with zero rows stays an honest EMPTY", async () => {
+    stubFetch({ "e5pk-us93": () => jsonResponse([]) });
+    const report = newSocrataFetchReport();
+    await fetchSocrataBids("https://data.ny.gov", "e5pk-us93", "nys_socrata", report);
+    expect(report.reached).toBe(true);
+    expect(report.failure).toBe(null);
+    const now = new Date("2026-09-23T12:00:00.000Z");
     const empty = classifyCollectorTier(
-      { source: "nys_socrata", last_run_at: now.toISOString(), rows_fetched: honestZero, ran_zero: true, errors: 0 },
+      { source: "nys_socrata", last_run_at: now.toISOString(), rows_fetched: 0, ran_zero: true, errors: 0 },
       now,
     );
     expect(empty.tier).toBe("EMPTY");

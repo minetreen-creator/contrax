@@ -13,10 +13,24 @@
  * RAMP dataset id — see `city-procurement.ts`). A source that cannot be reached
  * must fail its run, because only a run that reached the source can honestly
  * report "zero rows".
+ *
+ * PR-1 RESTRUCTURE (owner-approved source-provenance policy, plan rev 315,
+ * ruling c — 2026-09-23): the two collector entry points that used this file are
+ * GONE. `nys_socrata` is RETIRED — it was removed from the runner's registry
+ * (both of its data.ny.gov dataset ids answer 404, and the "fallback" id
+ * `hf3r-utnq` is in fact LA's RAMP dataset id), and `nyc_socrata` was the dead
+ * NYC export nobody registered. What remains is the SODA page reader
+ * (`fetchSocrataBids`) and its optional honest reach/failure `report`, which the
+ * deterministic tests in this repository exercise directly.
+ *
+ * RETIRED ≠ FIXED: the fix-② behaviour that DEAD-classification depends on is
+ * unchanged and still active for every source that DOES run (the five city
+ * portals raise the same shared `SourceUnreachableError` via
+ * `city-procurement.ts` + `fetch-failure.ts`). Retiring `nys_socrata` only stops
+ * the dead collector from producing a run row at all — so an after-run readout
+ * that used to expect "nys_socrata ran_zero" now simply never sees the label.
  */
 import type { RawBid } from "./sam-gov";
-import { nycCityRecordNoticeUrl } from "../../lib/city-procurement";
-import { SourceUnreachableError } from "../fetch-failure";
 
 const PAGE_SIZE = 100;
 const MAX_PAGES = 3;
@@ -27,7 +41,7 @@ const HEADERS = {
 };
 
 type SocrataRecord = Record<string, unknown>;
-type SourceName = "nyc_socrata" | "nys_socrata" | string;
+type SourceName = string;
 
 /**
  * Why a Socrata fetch produced no rows. `reached` is the honest signal the
@@ -122,14 +136,14 @@ export async function fetchSocrataBids(
         const description = stripHtml(value(record, "additional_description_1", "description", "additional_description"));
         const category = text(value(record, "category_description", "category", "commodity"), "Other");
         const dueDate = text(value(record, "due_date", "response_due_date", "bid_due_date")) || null;
-        const location = sourceName === "nyc_socrata" ? "New York, NY" : text(value(record, "location", "county", "city"), "New York");
+        // No invented geography: the record's own location field, or nothing.
+        // (This line used to fall back to the literal "New York" for every
+        // nameless record — the PR-1 retirement removed that claim.)
+        const location = text(value(record, "location", "county", "city"));
         const fullText = `${title} ${description}`;
-        // NYC City Record notice ids only resolve under /RequestDetail/{id};
-        // the bare-id form redirects to the publisher's 200-answering error
-        // page (see nycCityRecordNoticeUrl). Verified 2026-09-18.
-        const sourceUrl = sourceName === "nyc_socrata"
-          ? nycCityRecordNoticeUrl(id)
-          : `${baseUrl.replace(/\/$/, "")}/resource/${datasetId}.json`;
+        // The dataset landing page is the honest link for a row with no notice
+        // page of its own.
+        const sourceUrl = `${baseUrl.replace(/\/$/, "")}/resource/${datasetId}.json`;
 
         results.push({
           external_id: `${sourceName}-${id || `page${page}-${results.length}`}`,
@@ -157,40 +171,4 @@ export async function fetchSocrataBids(
     }
   }
   return results;
-}
-
-export function nycSocrataSource(): Promise<RawBid[]> {
-  return fetchSocrataBids("https://data.cityofnewyork.us", "3khw-qi8f", "nyc_socrata");
-}
-
-/**
- * NYS primary catalog dataset, with a fallback dataset id that answered 404 in
- * production; the fallback id is in fact the LA RAMP dataset id, so it is not a
- * real NYS fallback (audit A-3 — the id is left UNCHANGED here on purpose: this
- * fix is about honest health reporting, not about re-pointing the source).
- *
- * FIX ②: when NEITHER dataset can be read (both requests failed — HTTP 404 or a
- * connection/parse error, verified live for both ids on 2026-09-23), this THROWS.
- * The run then records an error instead of `rows_fetched = 0, errors = 0`, so
- * `collector_staleness` reports the source as DEAD rather than FRESH, and the
- * sync log names the unreachable dataset. A dataset that ANSWERS with zero rows
- * is still an honest empty (returns []) — the distinction the audit asked for.
- */
-export async function nysSocrataSource(): Promise<RawBid[]> {
-  const primaryReport = newSocrataFetchReport();
-  const primary = await fetchSocrataBids("https://data.ny.gov", "e5pk-us93", "nys_socrata", primaryReport);
-  if (primary.length > 0) return primary;
-  const fallbackReport = newSocrataFetchReport();
-  const fallback = await fetchSocrataBids("https://data.ny.gov", "hf3r-utnq", "nys_socrata", fallbackReport);
-  if (fallback.length > 0) return fallback;
-  if (!primaryReport.reached && !fallbackReport.reached) {
-    // The SAME unreachable-source error every other connector raises (owner 09-23,
-    // item ③ — src/jobs/fetch-failure.ts), so the run log's error text and the
-    // DEAD classification have exactly one shape across all sources.
-    throw new SourceUnreachableError("nys_socrata", [
-      `no dataset answered (primary e5pk-us93: ${primaryReport.failure ?? "no rows"}; ` +
-        `fallback hf3r-utnq: ${fallbackReport.failure ?? "no rows"}) — a dead source must not be reported as fresh`,
-    ]);
-  }
-  return [];
 }

@@ -18,6 +18,14 @@ export interface NewBidSummary {
   set_aside?: string | null;
   bid_id?: number;
   /**
+   * The stored `bids.source` label for this row (PR-1 restructure, owner
+   * ruling d). Carried so the sync runner can keep AWARD-TYPE sources
+   * (Chicago/SF/Austin open-data awards) out of the opportunity surfaces —
+   * bid alerts, in-app notifications and this digest e-mail — without
+   * re-reading the database. The e-mail templates do not render it.
+   */
+  source?: string | null;
+  /**
    * Owner-exact "Why it matches: CERT · Category · Size" line (Radar match
    * alerts, 2026-09-07). Computed by the sender from the ACTUAL match flags
    * that fired for this bid (whyBidMatchesLeadProfile) — never invented.

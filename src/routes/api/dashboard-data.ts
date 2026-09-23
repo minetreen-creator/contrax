@@ -3,6 +3,7 @@ import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { countRoleMatches } from "~/lib/healthcare";
 import { ARCHIVED_STATUSES, LIVE_SQL, DEAD_SQL } from "~/lib/bid-status";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
 import { locationMatchesStates, naicsPred, setAsidePredMulti } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -173,6 +174,7 @@ async function handler({ request }: { request: Request }) {
       FROM bids
       WHERE ${sql().unsafe(LIVE_SQL)}
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
+        AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         AND id NOT IN (
           SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES})
         )

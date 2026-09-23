@@ -178,6 +178,12 @@ export function resolveBidState(
   // later normalized_state column (PR-B) is intentionally NOT read here.
   const fromLocation = resolveStateFromText(location);
   if (fromLocation) return fromLocation;
+  // FOREIGN PLACE OF PERFORMANCE GUARD (owner order 2026-09-23): when the
+  // performance location itself proves the work is abroad, the buyer/agency
+  // text must NOT stamp a US state on the row ("Busan, South Korea" plus a
+  // contracting office whose string happens to carry a "CO"/"PA" token). The
+  // row keeps the honest no-US-state value (null). Never invents a state.
+  if (isForeignPlaceField(location)) return null;
   return resolveStateFromText(agency);
 }
 
@@ -223,6 +229,270 @@ export function isNationalScope(location: string | null | undefined): boolean {
   if (!loc) return false; // absent → keep the buyer/agency fallback (breadth fix)
   return NATIONAL_SCOPE_LOCATIONS.test(loc);
 }
+// ── FOREIGN PLACE OF PERFORMANCE GUARD (owner order 2026-09-23) ─────────────
+// THE LEAK THIS CLOSES: the agency-name→US-state fallback (the second half of
+// resolveBidState) is a TEXT heuristic — it reads a US state out of the buyer /
+// contracting-office string when the performance location proves nothing. On a
+// notice whose work is performed ABROAD that heuristic is simply wrong. Live row
+// 139639 (sam_gov) — "Trash Removal and Disposal for Busan Area, USAG-Daegu"
+// (Republic of Korea), placeholder location "United States", contracting office
+// "0906 AQ CO     DET A CONTRACTI" — was stored with normalized_state = 'CO': a
+// US state read off the bare "CO" token of the office string for a South-Korea
+// trash contract (evidence: shared/nationwide-coverage-matrix-2026-09-23/
+// after-2026-09-23/divergence.md + probe2-moved-cells.txt).
+//
+// RULE (owner 2026-09-23): when the notice's own place-of-performance evidence
+// resolves OUTSIDE the United States, the agency-name→US-state fallback MUST
+// NOT apply. The row keeps an honest "no US state" (NULL / unknown) — never a
+// different invented state (standing hard rule) and never a guess.
+//
+// DIRECTION OF ERROR IS SAFE BY CONSTRUCTION: these signals only ever SUPPRESS a
+// derived state; they can never create one. An over-eager signal costs a state
+// stamp (the row keeps the pre-existing nationwide/unknown semantics for rows
+// with no resolvable geography); a missed signal can only leave the leak this
+// rule exists to close. The lists below are therefore narrow and evidence-shaped
+// (country names, non-colliding country codes, well-known foreign places where
+// US federal work is actually performed) — never a "looks foreign" guess.
+//
+// DELIBERATELY OMITTED (a bare name that is ALSO a US place/surname cannot be
+// disambiguated by a pure text rule; including it would silently strip stamps
+// from genuine domestic rows, and the cost of omission is only the leak):
+// georgia (a US state), panama (Panama City, FL — a federal contracting hub),
+// lebanon (Lebanon, PA/KY/OH — "Lebanon VA Medical Center"), cuba (Cuba, NM;
+// the real case "Guantanamo Bay" is listed as a place instead), peru (Peru, IN),
+// mali + chad + jordan (common personal names), malta (Malta, MT — a BLM field
+// office town; two live MT rows titled "MALTA FO UTV" proved the collision),
+// naples (Naples, FL), london, rota, moron (US-town/word collisions). "mexico"
+// IS matched — with a lookbehind that keeps "New Mexico" domestic. A Georgia
+// (country) or Panama notice still resolves through its city / country-code
+// signals (e.g. "Tbilisi, GE").
+const FOREIGN_COUNTRY_NAMES: readonly string[] = [
+  "afghanistan", "albania", "algeria", "angola", "argentina", "armenia",
+  "australia", "austria", "azerbaijan", "bahamas", "bahrain", "bangladesh",
+  "barbados", "belarus", "belgium", "belize", "benin", "bermuda", "bhutan",
+  "bolivia", "bosnia", "botswana", "brazil", "brunei", "bulgaria",
+  "burkina faso", "burundi", "cambodia", "cameroon", "canada", "cape verde",
+  "central african republic", "chile", "china", "colombia", "comoros", "congo",
+  "costa rica", "croatia", "cyprus", "czech republic", "czechia", "denmark",
+  "djibouti", "dominican republic", "ecuador", "egypt", "el salvador",
+  "equatorial guinea", "eritrea", "estonia", "eswatini", "ethiopia", "fiji",
+  "finland", "france", "gabon", "gambia", "germany", "ghana", "greece",
+  "greenland", "guatemala", "guinea", "guyana", "haiti", "honduras", "hungary",
+  "iceland", "india", "indonesia", "iraq", "ireland", "israel", "italy",
+  "ivory coast", "jamaica", "japan", "kazakhstan", "kenya", "kiribati",
+  "kosovo", "korea", "kuwait", "kyrgyzstan", "laos", "latvia", "lesotho", "liberia",
+  "libya", "lithuania", "luxembourg", "madagascar", "malawi", "malaysia",
+  "maldives", "marshall islands", "mauritania", "mauritius",
+  "micronesia", "moldova", "mongolia", "montenegro", "morocco", "mozambique",
+  "myanmar", "namibia", "nepal", "netherlands", "new zealand", "nicaragua",
+  "niger", "nigeria", "north macedonia", "norway", "oman", "pakistan", "palau",
+  "papua new guinea", "paraguay", "philippines", "poland", "portugal", "qatar",
+  "romania", "russia", "rwanda", "saudi arabia", "senegal", "serbia",
+  "seychelles", "sierra leone", "singapore", "slovakia", "slovenia",
+  "solomon islands", "somalia", "south africa", "south sudan", "spain",
+  "sri lanka", "sudan", "suriname", "sweden", "switzerland", "syria", "taiwan",
+  "tajikistan", "tanzania", "thailand", "timor-leste", "togo", "tonga",
+  "trinidad", "tunisia", "turkey", "turkiye", "turkmenistan", "uganda",
+  "ukraine", "united arab emirates", "united kingdom", "uruguay", "uzbekistan",
+  "vanuatu", "venezuela", "vietnam", "yemen", "zambia", "zimbabwe",
+  // Regions / constituent countries / territories named on their own.
+  "england", "scotland", "wales", "northern ireland", "great britain",
+  "britain", "gibraltar", "diego garcia", "azores", "crete", "sicily",
+  "sardinia", "okinawa", // (Okinawa is Japan — a prefecture, not a US state.)
+];
+
+/** Raw patterns (NOT escaped) for names needing word-context rules. Kept tiny
+ *  and explicit: "mexico" is a foreign country, but "New Mexico" is a state. */
+const FOREIGN_PLACE_PATTERNS: readonly string[] = ["(?<!new )mexico"];
+
+/**
+ * Two-letter country codes that mark a FOREIGN place of performance, filtered
+ * below so a code that is also a USPS state code (or a US territory / APO-FPO
+ * code) can NEVER be treated as foreign — "PA", "CA", "DE", "IN", "MO"… stay
+ * domestic no matter what. AE/AA/AP are the overseas military-mail codes
+ * ("APO, AE"): they are not states, and a row carrying one is abroad.
+ */
+const FOREIGN_COUNTRY_CODES: readonly string[] = [
+  "AF", "AE", "AL", "AM", "AO", "AR", "AT", "AU", "AW", "AZ", "BA", "BB", "BD",
+  "BE", "BF", "BG", "BH", "BI", "BJ", "BM", "BN", "BO", "BR", "BS", "BT", "BW",
+  "BY", "BZ", "CD", "CF", "CG", "CH", "CI", "CL", "CM", "CN", "CO", "CR", "CU",
+  "CV", "CW", "CY", "CZ", "DE", "DJ", "DK", "DM", "DO", "DZ", "EC", "EE", "EG",
+  "ER", "ES", "ET", "FI", "FJ", "FM", "FR", "GA", "GB", "GD", "GE", "GH", "GM",
+  "GN", "GQ", "GR", "GT", "GW", "GY", "HK", "HN", "HR", "HT", "HU", "ID", "IE",
+  "IL", "IN", "IQ", "IS", "IT", "JM", "JO", "JP", "KE", "KG", "KH", "KI", "KM",
+  "KN", "KR", "KW", "KZ", "LA", "LB", "LC", "LI", "LK", "LR", "LS", "LT", "LU",
+  "LV", "LY", "MA", "MC", "MD", "ME", "MG", "MH", "MK", "ML", "MM", "MN", "MO",
+  "MR", "MT", "MU", "MV", "MW", "MX", "MY", "MZ", "NA", "NE", "NG", "NI", "NL",
+  "NO", "NP", "NR", "NZ", "OM", "PA", "PE", "PG", "PH", "PK", "PL", "PS", "PT",
+  "PW", "PY", "QA", "RO", "RS", "RU", "RW", "SA", "SB", "SC", "SD", "SE", "SG",
+  "SI", "SK", "SL", "SM", "SN", "SO", "SR", "SS", "ST", "SV", "SY", "SZ", "TD",
+  "TG", "TH", "TJ", "TL", "TM", "TN", "TO", "TR", "TT", "TV", "TW", "TZ", "UA",
+  "UG", "UK", "US", "UY", "UZ", "VA", "VC", "VE", "VN", "VU", "WS", "YE", "ZA",
+  "ZM", "ZW", "AA", "AP",
+];
+/** US territory / freely-associated codes: US sovereign soil or US-affiliated,
+ *  so never "foreign" by themselves (Guam, Puerto Rico, USVI…). */
+const US_TERRITORY_CODES = ["PR", "GU", "VI", "AS", "MP", "UM", "US"];
+
+/**
+ * The codes that actually discriminate. Built from the raw list MINUS every
+ * USPS state code and every US territory code, so a bare "CO"/"CA"/"DE"/"IN"
+ * can never be read as foreign (that is what makes a bare-code check safe on a
+ * domestic row). Exported for the regression test that re-proves it.
+ */
+export const FOREIGN_PLACE_CODES: readonly string[] = FOREIGN_COUNTRY_CODES.filter(
+  (c) => !STATE_CODES.has(c) && !US_TERRITORY_CODES.includes(c),
+);
+
+/**
+ * Well-known foreign cities / US installations abroad that appear as the real
+ * place of performance in federal notices while `location` stays a placeholder.
+ * Curated constants (never user input), same spirit as KNOWN_CITY_STATE — but
+ * used ONLY to suppress a US-state stamp, never to derive one.
+ */
+const FOREIGN_PLACE_NAMES: readonly string[] = [
+  // Republic of Korea (the live 139639 case) — cities + garrisons.
+  "busan", "pusan", "daegu", "taegu", "seoul", "pyeongtaek", "pyongtaek",
+  "osan", "kunsan", "gunsan", "yongsan", "chinhae", "jinhae", "uijeongbu",
+  "dongducheon", "daejeon", "gimhae", "waegwan", "camp humphreys",
+  "camp carroll", "camp bonifas", "camp casey", "rok",
+  // Japan.
+  "tokyo", "yokota", "yokosuka", "misawa", "sasebo", "iwakuni", "kadena",
+  "naha", "atsugi", "sagamihara", "hiroshima",
+  // Germany / Italy / UK / Spain (US garrisons).
+  "ramstein", "grafenwoehr", "vilseck", "wiesbaden", "baumholder",
+  "spangdahlem", "ansbach", "hohenfels", "kaiserslautern", "stuttgart",
+  "aviano", "vicenza", "sigonella", "lakenheath", "mildenhall", "croughton",
+  // Middle East / Africa / Caribbean / Pacific (US facilities abroad).
+  "al udeid", "al udied", "al dhafra", "ali al salem", "camp arifjan",
+  "camp lemonnier", "manama", "jebel ali", "guantanamo", "soto cano",
+  "palmerola", "lajes", "thule", "souda bay",
+];
+
+/**
+ * TIER 1 — unambiguous foreign PLACE names (cities + US installations abroad).
+ * These are place words by construction, so they are evidence wherever they
+ * appear (a title that says "Camp Humphreys" or "Osan AB" IS stating the work
+ * site).
+ */
+const FOREIGN_PLACE_RE = new RegExp(
+  `(?:^|[^a-z])(?:${FOREIGN_PLACE_NAMES.map(escapeRegex).join("|")})(?=$|[^a-z])`,
+  "i",
+);
+
+/**
+ * TIER 2 — country / region names. Evidence EVERYWHERE in a place field (the
+ * performance-location column: "Korea, South", "Germany", "Qatar"), but in a
+ * TITLE only where the title actually PLACES the name: start of the string, a
+ * comma/semicolon/paren/slash boundary ("…Air Base, South Korea"), or a place
+ * preposition ("Fuel services at Osan, Korea" / "…to Vietnam").
+ *
+ * WHY: the dry-run found a DLA row whose title reads "Sole Source to Raytheon |
+ * Upgrades for the Qatar FMS (Foreign Military Sales) PATRIOT Program" — a
+ * country named as the CUSTOMER, with the work performed in the US (stored AL,
+ * correct). "for the Qatar FMS" is not a place statement; "…, Qatar" is.
+ */
+const PLACE_PREPOSITIONS =
+  "at|in|near|for|to|of|on|from|across|within|outside|into";
+const FOREIGN_COUNTRY_RE = new RegExp(
+  `(?:^|[,;(/]\\s*|\\s+(?:${PLACE_PREPOSITIONS})\\s+)(?:${[
+    ...FOREIGN_COUNTRY_NAMES.map(escapeRegex),
+    ...FOREIGN_PLACE_PATTERNS,
+  ].join("|")})(?=$|[^a-z])`,
+  "i",
+);
+
+/**
+ * The named signals (countries + places, not the codes), exported for the
+ * regression test and for audit tooling that must show WHICH signal fired on a
+ * row — the guard is only acceptable if a reviewer can see why a state was
+ * dropped. Data only; never used to derive a state.
+ */
+export const FOREIGN_PLACE_SIGNAL_NAMES: readonly string[] = [
+  ...FOREIGN_COUNTRY_NAMES,
+  ...FOREIGN_PLACE_NAMES,
+];
+/** Standalone UPPERCASE 2-letter tokens; membership decides (below). Only ever
+ *  used through `String.matchAll` (which iterates a clone, so the shared
+ *  `lastIndex` can never leak between calls). */
+const FOREIGN_CODE_TOKENS = new Set<string>(FOREIGN_PLACE_CODES);
+const STANDALONE_CODE_RE = /(?:^|[^A-Za-z])([A-Z]{2})(?=$|[^A-Za-z])/g;
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, (ch) => "\\" + ch);
+}
+
+/** Standalone UPPERCASE country-code token present? (see the note below). */
+function hasForeignCodeToken(text: string): boolean {
+  for (const m of text.matchAll(STANDALONE_CODE_RE)) {
+    if (FOREIGN_CODE_TOKENS.has(m[1])) return true;
+  }
+  return false;
+}
+
+/**
+ * A PLACE FIELD (the `location` column — literally the place of performance):
+ * country/region names anywhere, unambiguous foreign place names, and a
+ * non-colliding country code as a standalone uppercase token ("Busan, KR",
+ * "APO, AE", "KR"). Pure and evidence-only; it can never produce a state.
+ *
+ * Codes are matched case-SENSITIVELY and only here: procurement text writes ISO
+ * codes in caps, while ordinary English words that collide with a country code
+ * ("it", "is", "no", "me", "to") are lowercase — so no sentence can be mistaken
+ * for a country. In a TITLE a bare 2-letter token is a PART/office code
+ * ("…0735NZ" → NZ, "FY26 AE IDIQ" → AE): see isForeignPlaceOfPerformance.
+ */
+export function isForeignPlaceField(text: string | null | undefined): boolean {
+  const t = String(text ?? "");
+  if (!t.trim()) return false;
+  if (FOREIGN_COUNTRY_RE.test(t)) return true;
+  if (FOREIGN_PLACE_RE.test(t)) return true;
+  return hasForeignCodeToken(t);
+}
+
+/**
+ * FREE TEXT (a notice title): an unambiguous foreign PLACE name, or a country /
+ * region name the text itself places (tier 2 above). Deliberately narrower than
+ * isForeignPlaceField — no bare code tokens (part numbers), and no country name
+ * used as a customer. Pure and evidence-only; it can never produce a state.
+ */
+export function isForeignPlaceOfPerformance(
+  text: string | null | undefined,
+): boolean {
+  const t = String(text ?? "");
+  if (!t.trim()) return false;
+  return FOREIGN_PLACE_RE.test(t) || FOREIGN_COUNTRY_RE.test(t);
+}
+
+/**
+ * The row-level guard: does the notice's OWN place-of-performance evidence
+ * prove the work is outside the United States?
+ *
+ * FIELD POLICY — measurement-driven, and deliberately narrow:
+ *   • `location` — literally the place-of-performance field (isForeignPlaceField).
+ *   • `title`    — short and place-shaped ("… for Busan Area, USAG-Daegu"),
+ *     matched with the narrower free-text rule above.
+ *   • the AGENCY is NOT consulted: it names the BUYER, not the work site, and on
+ *     the live 139639 row the buyer string is exactly the untrustworthy field
+ *     that invented "CO".
+ *   • the DESCRIPTION is NOT consulted: it is long free text in which a country
+ *     is routinely mentioned only in passing (DLA part notices, USACE project
+ *     narratives, treaty/border boilerplate). The SELECT-only dry-run over the
+ *     17,557 rows that carry a stored state measured this: description evidence
+ *     ALONE fired the guard on 3,130 rows and would have stripped the state off
+ *     319 of them — overwhelmingly correct domestic stamps such as
+ *     "DLA AVIATION AT PHILADELPHIA, PA" → PA or "LOWER COLORADO REGIONAL
+ *     OFFICE" → CO. Title/location evidence keeps the guard on the work site.
+ */
+export function hasForeignPlaceOfPerformance(
+  location: string | null | undefined,
+  title: string | null | undefined,
+): boolean {
+  return (
+    isForeignPlaceField(location) || isForeignPlaceOfPerformance(title)
+  );
+}
+
 /**
  * AGENCY-JURISDICTION RULE — the owner-RATIFIED narrow discriminator (plan rev
  * 282/284/285, 2026-09-23) for the Ohio Army National Guard rows whose `location`
@@ -623,7 +893,22 @@ export function deriveInsertLocationColumns(args: {
 }): InsertLocationColumns {
   const raw = String(args.location ?? "");
   const raw_location = raw ? raw : null;
-  const normalized_state = resolveBidState(args.location, args.agency);
+  // FOREIGN PLACE OF PERFORMANCE GUARD (owner order 2026-09-23). The
+  // agency-name→US-state fallback is not available to a row whose own
+  // place-of-performance evidence proves the work is abroad: the only state
+  // that may survive is one the PERFORMANCE LOCATION itself names. Live row
+  // 139639 (sam_gov) — location "United States", title "Trash Removal and
+  // Disposal for Busan Area, USAG-Daegu", agency "0906 AQ CO     DET A
+  // CONTRACTI" — stored normalized_state NULL (was 'CO'): the bare "CO" token
+  // of the contracting-office string must never stamp a South-Korea contract
+  // Colorado. Never invents a state — an honest "no US state" instead.
+  const foreignPop = hasForeignPlaceOfPerformance(
+    args.location,
+    args.title,
+  );
+  const normalized_state = foreignPop
+    ? resolveStateFromText(args.location)
+    : resolveBidState(args.location, args.agency);
   const curated = SOURCE_HOME_JURISDICTIONS[args.sourceName];
   const source_jurisdiction = curated ?? normalized_state;
   const location_conflict = normalized_state

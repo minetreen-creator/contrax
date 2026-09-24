@@ -387,7 +387,12 @@ export async function createCheckoutSession(
       // so it is omitted for mode="payment".
       ...(mode === "subscription" ? { subscription_data: { metadata } } : {}),
       success_url: `${BASE_URL}/post-checkout?session_id={CHECKOUT_SESSION_ID}&plan=${planTier}`,
-      cancel_url: `${BASE_URL}/`,
+      // Send canceled buyers back to the offer they were considering.
+      cancel_url: isVad
+        ? `${BASE_URL}/vad`
+        : planTier === "savings_premium"
+          ? `${BASE_URL}/savings`
+          : `${BASE_URL}/upgrade?checkout=cancelled&plan=${planTier}`,
     });
 
     if (!session.url) {

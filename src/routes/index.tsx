@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 import { getCurrentUser } from "~/lib/auth";
@@ -12,10 +12,6 @@ import {
   buildContractMap,
   type ContractMapAggregate,
 } from "~/lib/contract-map";
-import {
-  AUTOPSY_DRAFT_STORAGE_KEY,
-  type AutopsyDraft,
-} from "~/lib/autopsy-funnel";
 // HOMEPAGE GRANTS PLUS FAIL-SAFE (owner directive rev 327, 2026-09-23).
 // The /grants page and this homepage tier row must ALWAYS agree about whether
 // Grants Plus is purchasable; a differing rule would advertise "Get Grants Plus"
@@ -27,10 +23,6 @@ import {
 // read at import time), so importing it here is safe on both sides of the
 // render, and the value itself is only ever read server-side (see the loader).
 import { isUpgradePromptEnabled } from "~/lib/grants";
-// Real cached example AI Executive Brief — code-split so it never bloats
-// the homepage main bundle or blocks hero render. Same component + same
-// server fn as the standalone /example-brief page (single source of truth).
-const ExampleBrief = lazy(() => import("~/components/ExampleBrief"));
 // Contract Radar — the homepage HERO (owner spec 2026-09-04 v2). Rendered
 // without its own heading (heading={false}); this page supplies the one <h1>.
 import { HeroRadar } from "~/components/HeroRadar";
@@ -246,65 +238,89 @@ function Home() {
       />
       <PartnershipBanner />
       <Navbar user={user} />
-      {/* ── 2. RADAR — the homepage hero (owner spec 2026-09-04 v2; hero copy
-          updated to owner 09-07 copy) ──
-          The interactive Contract Radar match-finder IS the hero. The heading
-          block below carries the page's single <h1>; HeroRadar renders with
-          heading={false} so the form sits under it with no competing h2.
-          Same walk as /radar: trade/state/cert/size → real scan, first-3-free,
-          full incumbent intel, anonymous locked-results card past the free cap,
-          save-your-matches. The primary CTA above the fold links to /radar and
-          fires homepage_radar_cta_clicked (owner 09-07). */}
-      <section id="radar" className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-16">
+      <HomepageHero bidStats={bidStats} contractMap={contractMap} />
+      <ProductPaths />
+      <section id="radar" className="bg-slate-50 px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">Contrax Radar</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
-            Find government contracts your business can actually win.
-          </h1>
-          <p className="mx-auto mt-4 max-w-3xl text-lg leading-relaxed text-gray-600">
-            Tell Contrax what your company does. We&apos;ll search thousands of federal, state, and local
-            opportunities and show you the best matches.
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-700">Contrax Radar</p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
+            Search live government contracts
+          </h2>
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
+            Answer four questions to find federal, state, and local opportunities matched to your business.
           </p>
-          {/* Primary CTA — owner 09-07 copy. Above the fold at 1440×900 (the
-              PartnershipBanner stays slim; the radar embed below is tall). */}
-          <div className="mt-8">
-            <a
-              href="/radar"
-              onClick={() => trackEvent("homepage_radar_cta_clicked", "hero_primary")}
-              className="inline-block rounded-xl bg-amber-500 px-10 py-4 text-lg font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 hover:shadow-md active:scale-[0.98]"
-            >
-              Find My Contracts →
-            </a>
-            <p className="mt-3 text-sm font-medium text-gray-700">
-              Free · No account required
-            </p>
-          </div>
         </div>
-        {/* The EXISTING radar embed — logic, analytics, and scan flow unchanged. */}
-        <div className="mx-auto mt-8 max-w-5xl">
-          <HeroRadar initialCert="all" heading={false} />
-        </div>
-        <div className="mx-auto mt-6 max-w-4xl text-center">
-          {/* Honest dynamic counts — both numbers are ALREADY fetched by the
-              loader (bidStats + contractMap); no new DB query is added. */}
-          <div className="inline-flex flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-3 text-sm text-slate-700 shadow-sm">
-            <span><strong className="text-slate-950">{contractMap.totals.totalOpen.toLocaleString("en-US")}</strong> open opportunities</span>
-            <span><strong className="text-slate-950">{bidStats.agencyCount.toLocaleString("en-US")}</strong> agencies</span>
-            <span>Updated every 4 hours</span>
-          </div>
+        <div className="mx-auto mt-8 max-w-6xl">
+          <HeroRadar initialCert="all" heading={false} compact />
         </div>
       </section>
-      <ProductPaths />
       <FeaturedServices />
       <HowItWorks />
       <Pricing />
       <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />
-      <AwardAutopsyHero />
-      <Suspense fallback={null}>
-        <ExampleBrief variant="embed" />
-      </Suspense>
+      <FeaturePreviews />
+      <FinalCta />
       <Footer />
     </div>
+  );
+}
+
+function HomepageHero({
+  bidStats,
+  contractMap,
+}: {
+  bidStats: { activeCount: number; agencyCount: number };
+  contractMap: ContractMapAggregate;
+}) {
+  return (
+    <header className="relative overflow-hidden border-b border-slate-200 bg-white">
+      <div className="absolute inset-x-0 top-0 -z-0 h-80 bg-gradient-to-b from-blue-50/70 to-transparent" />
+      <div className="relative mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 sm:py-20 lg:px-8">
+        <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-700">Government opportunity intelligence</p>
+        <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-bold tracking-[-0.035em] text-slate-950 sm:text-5xl lg:text-6xl">
+          Find the right government opportunity—without searching alone.
+        </h1>
+        <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-600">
+          Contrax helps businesses find contracts and organizations find grants, with source-linked details and practical next steps.
+        </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <a
+            href="#radar"
+            onClick={() => trackEvent("homepage_radar_cta_clicked", "hero_primary")}
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-blue-700 px-7 py-3 text-base font-bold text-white shadow-sm transition-colors hover:bg-blue-800 sm:w-auto"
+          >
+            Search contracts
+          </a>
+          <a
+            href="/grants"
+            className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-7 py-3 text-base font-bold text-slate-900 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50 sm:w-auto"
+          >
+            Search grants
+          </a>
+        </div>
+
+        <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:grid-cols-3">
+          <div className="px-5 py-4 sm:border-r sm:border-slate-200">
+            <p className="text-2xl font-bold text-slate-950">{contractMap.totals.totalOpen.toLocaleString("en-US")}</p>
+            <p className="mt-1 text-sm text-slate-600">open opportunities</p>
+          </div>
+          <div className="border-y border-slate-200 px-5 py-4 sm:border-y-0 sm:border-r">
+            <p className="text-2xl font-bold text-slate-950">{bidStats.agencyCount.toLocaleString("en-US")}</p>
+            <p className="mt-1 text-sm text-slate-600">agencies represented</p>
+          </div>
+          <div className="px-5 py-4">
+            <p className="text-2xl font-bold text-slate-950">Every 4 hours</p>
+            <p className="mt-1 text-sm text-slate-600">contract data refreshed</p>
+          </div>
+        </div>
+
+        <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-slate-600" aria-label="Contrax data standards">
+          <li>Federal, state and local sources</li>
+          <li>Source-linked details</li>
+          <li>No invented deadlines or eligibility</li>
+        </ul>
+      </div>
+    </header>
   );
 }
 
@@ -322,31 +338,18 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <a href="/" className="flex items-center" aria-label="Contrax home">
-          <img src="/logo.png" alt="Contrax" className="h-9 w-auto" />
+          <img src="/logo.png" alt="Contrax" className="h-11 w-auto" />
         </a>
 
-        <a
-          href="https://www.facebook.com/profile.php?id=61593835047770"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="ml-4 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-1.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
-          aria-label="Contrax on Facebook"
-        >
-          <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M22 12.06C22 6.51 17.52 2 12 2S2 6.51 2 12.06c0 5.01 3.66 9.18 8.44 9.94v-7.03H7.9v-2.9h2.54V9.85c0-2.52 1.5-3.91 3.78-3.91 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.78-1.63 1.57v1.88h2.78l-.45 2.9h-2.33V22c4.78-.76 8.44-4.93 8.44-9.94z"/>
-          </svg>
-          Facebook
-        </a>
-
-        {/* Desktop nav — unchanged, hidden below lg */}
         <div className="hidden items-center gap-3 lg:flex">
+          <a href="/radar" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-950">Contracts</a>
+          <a href="/grants" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-950">Grants</a>
+          <a href="/pricing" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-950">Pricing</a>
+          <a href="/learn" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-950">Resources</a>
           {user ? (
             <>
-              <a href="/competitors" className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900">Competitors</a>
-              <a href="/evaluate" className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900">🔴 Red Team</a>
-              <a href="/alerts" aria-label="Bid alerts" className="relative inline-flex items-center rounded-lg px-3 py-2 text-lg text-gray-600 hover:text-gray-900">🔔</a>
               <a
                 href="/dashboard"
                 className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800"
@@ -364,24 +367,6 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
           ) : (
             <>
               <a
-                href="/pricing"
-                className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900"
-              >
-                Pricing
-              </a>
-              <a
-                href="/example-brief"
-                className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900"
-              >
-                Example Brief
-              </a>
-              <a
-                href="/demo"
-                className="inline-flex items-center rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition-all hover:text-gray-900"
-              >
-                Request a demo
-              </a>
-              <a
                 href="/login"
                 className="inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
               >
@@ -392,7 +377,7 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
                 onClick={() => trackEvent("hero_cta_click", "nav")}
                 className="inline-flex items-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
               >
-                Find Opportunities
+                Get Started
               </a>
             </>
           )}
@@ -432,11 +417,12 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
       >
         <div className="min-h-0 overflow-hidden" inert={!menuOpen}>
           <div className="space-y-2 border-t border-gray-100 px-6 pb-6 pt-4">
+            <a href="/radar" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Contracts</a>
+            <a href="/grants" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Grants</a>
+            <a href="/pricing" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Pricing</a>
+            <a href="/learn" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Resources</a>
             {user ? (
               <>
-                <a href="/competitors" onClick={closeMenu} className="block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900">Competitors</a>
-                <a href="/alerts" onClick={closeMenu} className="block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900">🔔 Bid alerts</a>
-                <a href="/evaluate" onClick={closeMenu} className="block w-full rounded-lg px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900">🔴 Red Team</a>
                 <a
                   href="/dashboard"
                   onClick={closeMenu}
@@ -455,29 +441,8 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
                   {loggingOut ? "Signing out..." : "Sign out"}
                 </button>
               </>
-            ) : (
-              <>
-                <a
-                  href="/pricing"
-                  onClick={closeMenu}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
-                >
-                  Pricing
-                </a>
-                <a
-                  href="/example-brief"
-                  onClick={closeMenu}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
-                >
-                  Example Brief
-                </a>
-                <a
-                  href="/demo"
-                  onClick={closeMenu}
-                  className="block rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
-                >
-                  Request a demo
-                </a>
+          ) : (
+            <>
                 <a
                   href="/login"
                   onClick={closeMenu}
@@ -493,7 +458,7 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
                   }}
                   className="block w-full rounded-lg bg-amber-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
                 >
-                  Find Opportunities
+                  Get Started
                 </a>
               </>
             )}
@@ -531,10 +496,10 @@ function ProductPaths() {
   ];
 
   return (
-    <section aria-label="Choose your Contrax path" className="border-y border-slate-200 bg-slate-50 py-12 sm:py-16">
+    <section aria-label="Choose your Contrax path" className="border-b border-slate-200 bg-white py-12 sm:py-14">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-slate-500">Choose your path</p>
+          <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-500">Choose your path</p>
           <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">What are you looking for today?</h2>
         </div>
         <div className="mt-8 grid gap-5 md:grid-cols-2">
@@ -542,7 +507,7 @@ function ProductPaths() {
             <a
               key={path.title}
               href={path.href}
-              className={`group rounded-2xl border p-7 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${path.accent}`}
+              className={`group rounded-2xl border p-7 shadow-sm transition-colors hover:border-slate-400 ${path.accent}`}
             >
               <p className="text-sm font-bold uppercase tracking-wider text-slate-600">{path.eyebrow}</p>
               <h3 className="mt-2 text-2xl font-bold text-slate-950">{path.title}</h3>
@@ -550,6 +515,67 @@ function ProductPaths() {
               <span className={`mt-5 inline-flex text-sm font-bold ${path.ctaClass}`}>{path.cta}</span>
             </a>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FeaturePreviews() {
+  const features = [
+    {
+      eyebrow: "Award Autopsy",
+      title: "Understand why a bid was lost",
+      description: "Review available award information, winning price, incumbent history, and competitive signals.",
+      href: "/autopsy",
+      cta: "Analyze an award",
+    },
+    {
+      eyebrow: "AI Executive Brief",
+      title: "Understand an RFP before you bid",
+      description: "Turn a long solicitation into requirements, milestones, source citations, and practical red flags.",
+      href: "/example-brief",
+      cta: "View an example brief",
+    },
+  ];
+
+  return (
+    <section aria-label="More Contrax tools" className="border-t border-slate-200 bg-white py-14 sm:py-16">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="grid gap-5 md:grid-cols-2">
+          {features.map((feature) => (
+            <article key={feature.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-7">
+              <p className="text-sm font-bold uppercase tracking-[0.16em] text-blue-700">{feature.eyebrow}</p>
+              <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">{feature.title}</h2>
+              <p className="mt-3 text-base leading-7 text-slate-600">{feature.description}</p>
+              <a href={feature.href} className="mt-6 inline-flex font-bold text-blue-700 hover:text-blue-900">
+                {feature.cta} →
+              </a>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FinalCta() {
+  return (
+    <section className="bg-slate-950 py-14 text-white sm:py-16" aria-labelledby="final-cta-heading">
+      <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
+        <h2 id="final-cta-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Ready to find your next opportunity?
+        </h2>
+        <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-300">
+          Start with a free contract scan or search current federal grants.
+        </p>
+        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+          <a href="/radar" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-600 px-7 py-3 font-bold text-white hover:bg-blue-500">
+            Search contracts
+          </a>
+          <a href="/grants" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-600 px-7 py-3 font-bold text-white hover:border-slate-400 hover:bg-slate-900">
+            Search grants
+          </a>
         </div>
       </div>
     </section>
@@ -793,85 +819,6 @@ export function ContraxGrantsPromo({
 // owner-exact stage counts are unchanged; the visitor timeline renders it via
 // EVENT_LABELS in tracking-intake.ts. No parallel system, no lead-score
 // change, no DB change.
-function AwardAutopsyHero() {
-  const navigate = useNavigate();
-  const [solicitation, setSolicitation] = useState("");
-  const viewFired = useRef(false);
-
-  // Stage-0 entry: the visitor saw the homepage autopsy section.
-  useEffect(() => {
-    if (viewFired.current) return;
-    viewFired.current = true;
-    trackEvent("autopsy_home_cta", "autopsy_funnel", "/");
-  }, []);
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const value = solicitation.trim();
-    if (!value) return;
-    try {
-      const draft: AutopsyDraft = {
-        bidTitle: value,
-        agency: "",
-        naicsCode: "",
-        estimatedValue: "",
-      };
-      window.sessionStorage.setItem(AUTOPSY_DRAFT_STORAGE_KEY, JSON.stringify(draft));
-    } catch {
-      /* storage blocked — /autopsy starts empty; the visitor re-enters there */
-    }
-    trackEvent("autopsy_home_cta", "autopsy_funnel", "/");
-    navigate({ to: "/autopsy" });
-  };
-
-  return (
-    <section aria-label="Award Autopsy" className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8 lg:pb-16">
-      <div className="overflow-hidden rounded-3xl border border-emerald-900/10 bg-gradient-to-b from-emerald-50 to-white px-5 py-8 shadow-sm sm:px-8 sm:py-10">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">
-            Contrax Award Autopsy
-          </p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Lost a government bid? Find out what happened.
-          </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
-            Don&apos;t just move on. Contrax compares available award information, winning price,
-            incumbent history and competitive signals to help you understand the outcome.
-          </p>
-        </div>
-        <form onSubmit={submit} className="mx-auto mt-8 max-w-2xl">
-          <label htmlFor="home-autopsy-solicitation" className="block text-sm font-medium text-slate-700">
-            Enter solicitation number:
-          </label>
-          <div className="mt-2 flex flex-col gap-3 sm:flex-row">
-            <input
-              id="home-autopsy-solicitation"
-              value={solicitation}
-              onChange={(e) => setSolicitation(e.target.value)}
-              placeholder='e.g. "Janitorial Services, DHA Facilities, San Antonio"'
-              autoComplete="off"
-              className="w-full flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-            />
-            <button
-              type="submit"
-              className="inline-flex shrink-0 items-center justify-center rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-emerald-500 active:scale-[0.98]"
-            >
-              Analyze My Lost Bid &rarr;
-            </button>
-          </div>
-          <p className="mt-3 text-center text-sm font-medium text-slate-700">
-            First Award Autopsy FREE · No credit card
-          </p>
-          <p className="mt-2 text-center text-xs text-slate-500">
-            Award data comes from USAspending.gov (public federal contract data). Everything shown
-            is real — competition counts are shown only when a source provides them.
-          </p>
-        </form>
-      </div>
-    </section>
-  );
-}
-
 // ── U.S. Contract Map — homepage EMBED REMOVED (owner order 2026-09-23) ──────
 // The compact homepage map (one color scale, hover totals tooltip, click-to-
 // search per-state links, the "Explore the full map →" CTA) was removed from

@@ -391,7 +391,7 @@ export async function createCheckoutSession(
       cancel_url: isVad
         ? `${BASE_URL}/vad`
         : planTier === "savings_premium"
-          ? `${BASE_URL}/savings`
+          ? `${BASE_URL}/`
           : `${BASE_URL}/upgrade?checkout=cancelled&plan=${planTier}`,
     });
 

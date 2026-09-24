@@ -103,7 +103,7 @@ export function MrrScoreboard() {
 }
 
 // ── Tab bar ──────────────────────────────────────────────────────────────────
-export type AdminTab = "overview" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "bid-scout" | "nonprofits";
+export type AdminTab = "overview" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "bid-scout" | "bid-fit-reviews" | "nonprofits";
 
 export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: "Command" | "Growth" | "Operations" }[] = [
   { key: "overview", label: "Overview", href: "/admin", group: "Command" },
@@ -113,6 +113,7 @@ export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: "C
   { key: "signups", label: "Signups", href: "/admin/signups", group: "Growth" },
   { key: "customers", label: "Customers", href: "/admin/customers", group: "Growth" },
   { key: "bid-scout", label: "Bid Scout", href: "/admin/bid-scout", group: "Growth" },
+  { key: "bid-fit-reviews", label: "Bid Fit Reviews", href: "/admin/bid-fit-reviews", group: "Operations" },
   // Nonprofit Free phase 2 unit B — the human review queue. A review surface nobody can
   // navigate to is not a review surface (owner lock: manual reviews with a 3-business-day
   // SLA), so the queue is reachable from every admin page.

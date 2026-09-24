@@ -165,7 +165,7 @@ function SignupsPage() {
               <div className="mt-4 rounded-xl border border-slate-200 bg-white overflow-x-auto">
                 <div className="px-5 py-3 border-b border-slate-100">
                   <h3 className="font-bold text-slate-900">External account activity</h3>
-                  <p className="text-xs text-slate-500">Counts are recorded product actions, not proof of a paid-plan attempt. Searches are tracked only since search logging began.</p>
+                  <p className="text-xs text-slate-500">Searches count dashboard feed loads since logging began. Scores count stored AI results, including automatic digest generation; they are not user clicks. Saves count saved-match rows of any status.</p>
                 </div>
                 {activityError ? <p className="px-5 py-4 text-sm text-red-700" role="alert">{activityError}</p> : activity === null ? (
                   <p className="px-5 py-4 text-sm text-slate-500">Loading account activity…</p>
@@ -176,7 +176,7 @@ function SignupsPage() {
                     <thead><tr className="text-left text-xs text-slate-500 uppercase">
                       <th className="px-5 py-3">Account</th><th className="px-3 py-3">Plan</th>
                       <th className="px-3 py-3">Last login</th><th className="px-3 py-3">Searches</th>
-                      <th className="px-3 py-3">Scores</th><th className="px-3 py-3">Saves</th>
+                      <th className="px-3 py-3">Stored scores</th><th className="px-3 py-3">Saved-match rows</th>
                     </tr></thead>
                     <tbody>{activity.map((row) => (
                       <tr key={row.user_id} className="border-t border-slate-100">

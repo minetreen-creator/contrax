@@ -1315,6 +1315,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
       if (!res.ok) { const b = await res.json().catch(() => null); throw new Error(b?.error || "Failed to save bid"); }
       setSavedBids((p) => new Set(p).add(bidId));
       setDismissedBids((p) => { const n = new Set(p); n.delete(bidId); return n; });
+      trackEvent("save_success", String(bidId), "/dashboard");
     } catch {} finally { setActionLoading(null); }
   }, [savedBids, trial, user]);
 
@@ -1382,6 +1383,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
       setArchivedCount((c) => Math.max(0, c - 1));
       setDismissedBids((p) => { const n = new Set(p); n.delete(bidId); return n; });
       setSavedBids((p) => new Set(p).add(bidId));
+      trackEvent("save_success", String(bidId), "/dashboard");
     } catch {} finally { setActionLoading(null); }
   }, [savedBids, trial, user]);
 
@@ -1453,6 +1455,9 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
       if (res.error) throw new Error(res.error);
       const result = res;
       setScores((p) => ({ ...p, [bidId]: result })); setActiveTab((p) => ({ ...p, [bidId]: "score" }));
+      // Only this explicit user action counts as activation. The automatic
+      // dashboard digest also writes bid_scores rows without a user click.
+      trackEvent("score_result", String(bidId), "/dashboard");
       await new Promise((resolve) => setTimeout(resolve, 200));
       const bid = bids.find((b) => b.id === bidId);
       if (bid && profile) {

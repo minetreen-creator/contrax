@@ -47,7 +47,7 @@ function BidFitReview() {
         <section className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
           <h2 className="text-xl font-bold">Request a review</h2>
           <p className="mt-2 text-sm text-slate-600">We will check the documents, deadline, and our availability before offering a payment link. Sending this form does not charge you or reserve a delivery slot.</p>
-          {state === "sent" ? <p role="status" className="mt-6 rounded-lg bg-green-50 p-4 text-green-800">Request sent. We will reply by email after checking the solicitation and deadline.</p> :
+          {state === "sent" ? <p role="status" className="mt-6 rounded-lg bg-green-50 p-4 text-green-800">Request received. We will reply by email after checking the solicitation and deadline.</p> :
           <form onSubmit={submit} className="mt-5 space-y-4">
             <label className="block text-sm font-medium">Name<input name="name" required maxLength={100} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
             <label className="block text-sm font-medium">Business name<input name="business" required maxLength={150} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>

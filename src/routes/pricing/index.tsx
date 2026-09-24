@@ -252,7 +252,7 @@ function PricingPage() {
               { q: "Is there a free trial?", a: "Every plan includes a 14-day Professional trial with no credit card — it starts on your first premium action and auto-downgrades to free Basic afterward (your saved bids and progress stay). Basic itself is free forever — no trial, no card, nothing to cancel." },
               { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
               { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
-              { q: "Do you offer discounts for non-profits?", a: "We don't have a formal non-profit discount yet, but reach out to hello@contrax.company and we'll work with you." },
+              { q: "Do nonprofits receive free access?", a: "Yes. Verified 501(c)(3) nonprofits receive free basic government grant search with no credit card, trial expiration, or monthly subscription. Apply at /nonprofit/apply. Paid government-contracting plans remain separate." },
               { q: "Is my data secure?", a: "Yes. Data is encrypted in transit and at rest. We use Vercel, Neon PostgreSQL, and Stripe — all SOC 2 compliant. Read more on our security page." },
             ].map((faq) => (
               <div key={faq.q} className="rounded-xl bg-white border border-gray-200 p-5">

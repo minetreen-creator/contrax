@@ -650,6 +650,22 @@ CREATE TABLE IF NOT EXISTS visitors (
 );
 CREATE INDEX IF NOT EXISTS idx_visitors_last_seen_at ON visitors (last_seen_at);
 
+-- Privacy-safe Radar criteria for anonymous visitors who complete a scan.
+-- One current snapshot per first-party visitor id; deliberately excludes
+-- email, phone, IP address and user agent. Runtime creation in
+-- /api/radar/profile keeps older databases backward-compatible.
+CREATE TABLE IF NOT EXISTS anonymous_radar_profiles (
+    visitor_id TEXT PRIMARY KEY,
+    visit_id TEXT,
+    trade TEXT,
+    state TEXT,
+    cert TEXT NOT NULL,
+    size_pref TEXT NOT NULL,
+    matched_count INTEGER NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Bid Scout subscriptions (owner spec 2026-09-10) — Phase A purchase path.
 -- One row per Bid Scout checkout/intake submission. The row is created with
 -- status 'pending' BEFORE Stripe Checkout so a lost webhook can never lose a

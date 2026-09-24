@@ -354,7 +354,9 @@ export interface VisitorIntel {
     cert_label: string | null;
     size: string | null;
     size_label: string | null;
+    matched_count: number | null;
     email_captured: boolean; // via "Save your matches" (radar_saves)
+    source: "email_save" | "anonymous_scan";
   } | null;
   lead_score: LeadScore;
   conversion_signals: {
@@ -471,6 +473,18 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
     radarSave = rsRows[0] ?? null;
   } catch {
     radarSave = null;
+  }
+  let anonymousRadarProfile: any = null;
+  try {
+    const profileRows: any[] = await sql()`
+      SELECT trade, state, cert, size_pref, matched_count, updated_at AS created_at
+      FROM anonymous_radar_profiles
+      WHERE visitor_id = ${vid} LIMIT 1`;
+    anonymousRadarProfile = profileRows[0] ?? null;
+  } catch {
+    // The table is created lazily by /api/radar/profile. Older deployments and
+    // visitors who never completed a scan simply have no server-side profile.
+    anonymousRadarProfile = null;
   }
 
   // ── Known identity: live linked account, else detail-row email backfill ──
@@ -639,15 +653,18 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
     autopsyRadarUsed,
   });
 
-  const radar_profile = radarSave
+  const radarProfileRow = radarSave ?? anonymousRadarProfile;
+  const radar_profile = radarProfileRow
     ? {
-        trade: radarSave.trade ?? null,
-        state: radarSave.state || null,
-        cert: radarSave.cert ?? null,
-        cert_label: radarCertLabel(radarSave.cert ?? null),
-        size: radarSave.size_pref ?? null,
-        size_label: radarSizeLabel(radarSave.size_pref ?? null),
-        email_captured: true,
+        trade: radarProfileRow.trade ?? null,
+        state: radarProfileRow.state || null,
+        cert: radarProfileRow.cert ?? null,
+        cert_label: radarCertLabel(radarProfileRow.cert ?? null),
+        size: radarProfileRow.size_pref ?? null,
+        size_label: radarSizeLabel(radarProfileRow.size_pref ?? null),
+        matched_count: Number.isFinite(Number(radarProfileRow.matched_count)) ? Number(radarProfileRow.matched_count) : null,
+        email_captured: !!radarSave,
+        source: radarSave ? "email_save" as const : "anonymous_scan" as const,
       }
     : null;
 

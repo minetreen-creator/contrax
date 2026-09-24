@@ -20,6 +20,7 @@ import {
 import {
   getRadarAnswers,
   getRadarSeen,
+  freshRadarSeen,
   saveRadarSeen,
   saveRadarAnswers,
   type RadarCertId,
@@ -970,6 +971,7 @@ function RadarLanding() {
   const [cert, setCert] = useState<RadarCert | null>(urlCert);
   const [sizePref, setSizePref] = useState<SizeId | null>(urlSizePref);
   const [scan, setScan] = useState<ScanState>({ status: "idle" });
+  const [restoredResults, setRestoredResults] = useState(false);
   const [revealed, setRevealed] = useState(0);
   const [flashTimer, setFlashTimer] = useState<number | null>(null);
   // Soft, dismissible "keep these matches" nudge shown after the FIRST match is
@@ -992,13 +994,14 @@ function RadarLanding() {
   // first renders after a completed scan (guarded so a refresh/re-render cannot
   // double-fire; the server also collapses same-event+visitor+path within 1s).
   const resultsViewedFired = useRef(false);
+  const completedScanCertLabel = scan.status === "done" ? scan.certLabel : null;
   useEffect(() => {
     if (!isAnonymous) return;
     if (resultsViewedFired.current) return;
-    if (scan.status !== "done") return;
+    if (!completedScanCertLabel) return;
     resultsViewedFired.current = true;
-    trackEvent("radar_results_viewed", scan.certLabel);
-  }, [scan.status, scan.certLabel, isAnonymous]);
+    trackEvent("radar_results_viewed", completedScanCertLabel);
+  }, [completedScanCertLabel, isAnonymous]);
   // Guards against re-prefilling and against persisting the mount-time prefill.
   // Starts TRUE when a deep link carried params (their initial-state prefill is
   // not a visitor action and must not be written to localStorage), FALSE
@@ -1059,6 +1062,37 @@ function RadarLanding() {
       }
     }
   }, [cert, sizePref]);
+
+  // A returning anonymous visitor came back for the value they already found,
+  // not for another blank questionnaire. Restore only a timestamped, <=72h
+  // browser snapshot whose opportunity deadlines are still open. The snapshot
+  // is a convenience copy of real server results; stale/legacy copies fail
+  // closed to the normal form.
+  const restoreAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (restoreAttemptedRef.current || hasDeepLink || !isAnonymous) return;
+    restoreAttemptedRef.current = true;
+    const seen = freshRadarSeen(getRadarSeen());
+    if (!seen) return;
+    prefilledRef.current = true;
+    setTrade(seen.answers.trade);
+    setState(seen.answers.state);
+    setCert(seen.answers.cert as RadarCert);
+    setSizePref(seen.answers.sizePref as SizeId);
+    setScan({
+      status: "done",
+      matches: seen.matches as RadarMatch[],
+      certLabel: seen.certLabel,
+      sections: seen.sections as RadarSections,
+      // Entitlement tickets are short-lived server proofs and are deliberately
+      // never persisted in localStorage. Cards fail closed to "unavailable".
+      intelTicket: null,
+    });
+    setRevealed(seen.seenCount);
+    setStep(3);
+    setRestoredResults(true);
+    trackEvent("radar_answers_restored", seen.certLabel);
+  }, [hasDeepLink, isAnonymous]);
 
   // LAZY incumbent intel (owner 09-16): nothing is fetched during the scan; the
   // results screen pulls it per displayed opportunity once matches are on screen.
@@ -1131,20 +1165,31 @@ function RadarLanding() {
       // — /dashboard + /signup read this to show their matches.
       const seenCap = getTrackingUser() ? res.matches.length : Math.min(res.matches.length, FREE_ANONYMOUS_RADAR_RESULTS);
       saveRadarSeen({
+        savedAt: new Date().toISOString(),
         answers: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref },
         certLabel: res.certLabel,
         total: res.matches.length,
         seenCount: seenCap,
-        matches: res.matches.map((m) => ({
-          id: m.id,
-          title: m.title,
-          agency: m.agency,
-          score: m.score,
-          score_label: m.score_label,
-          due_date: m.due_date,
-          source_url: m.source_url,
-        })),
+        matches: res.matches,
+        sections: res.sections,
       });
+      // Server-side, non-PII profile snapshot for visitor intelligence. This is
+      // deliberately fail-open and never delays or changes the scan result.
+      const ids = trackingIds();
+      fetch("/api/radar/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          visitor_id: ids.visitor_id,
+          visit_id: ids.visit_id,
+          trade: input.trade,
+          state: input.state,
+          cert: input.cert,
+          sizePref: input.sizePref,
+          matchedCount: res.matches.length,
+        }),
+      }).catch(() => { /* analytics must never break Radar */ });
       setScan({
         status: "done",
         matches: res.matches,
@@ -1152,6 +1197,7 @@ function RadarLanding() {
         sections: res.sections,
         intelTicket: res.intelTicket ?? null,
       });
+      setRestoredResults(false);
       setStep(3);
     };
 
@@ -1380,9 +1426,24 @@ function RadarLanding() {
 
         {step === 3 && scan.status === "done" && (
           <section className="flex flex-1 flex-col py-6">
+            {restoredResults && isAnonymous && (
+              <div className="mb-5 rounded-2xl border border-blue-400/40 bg-blue-500/10 p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
+                <div>
+                  <p className="font-bold text-white">Welcome back — your matches are still open.</p>
+                  <p className="mt-1 text-sm text-blue-100/80">Create a free account to keep them and continue where you left off.</p>
+                </div>
+                <a
+                  href={radarSignupHref({ trade, state, cert, sizePref }, { cta: true })}
+                  onClick={() => trackEvent("radar_restored_signup_clicked", scan.certLabel)}
+                  className="mt-3 inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-500 px-4 py-3 text-sm font-bold text-white hover:bg-blue-400 sm:mt-0"
+                >
+                  Save these matches and get your next 3 free →
+                </a>
+              </div>
+            )}
             <button
               type="button"
-              onClick={() => { setStep(1); setScan({ status: "idle" }); setRevealed(0); setNudgeDismissed(false); }}
+              onClick={() => { setStep(1); setScan({ status: "idle" }); setRestoredResults(false); setRevealed(0); setNudgeDismissed(false); }}
               className="self-start text-sm text-slate-400 hover:text-slate-200"
             >
               ← Adjust my answers
@@ -1516,7 +1577,7 @@ function RadarLanding() {
                 </p>
                 <button
                   type="button"
-                  onClick={() => { setStep(1); setScan({ status: "idle" }); setRevealed(0); setNudgeDismissed(false); }}
+                  onClick={() => { setStep(1); setScan({ status: "idle" }); setRestoredResults(false); setRevealed(0); setNudgeDismissed(false); }}
                   className="mt-6 w-full rounded-2xl border border-slate-600 bg-slate-800 px-6 py-3 text-base font-bold text-white transition-all hover:bg-slate-700 active:scale-[0.98]"
                 >
                   Adjust Radar

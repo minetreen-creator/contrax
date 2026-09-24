@@ -46,11 +46,11 @@ function TermsPage() {
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Terms of Service</h1>
-        <p className="mt-2 text-sm text-slate-500">Last updated: July 31, 2026</p>
+        <p className="mt-2 text-sm text-slate-500">Last updated: September 24, 2026</p>
         <div className="mt-10 space-y-8 text-slate-700 leading-relaxed">
           <section>
             <h2 className="text-xl font-semibold text-slate-900">1. Acceptance of Terms</h2>
-            <p className="mt-3">By accessing or using Contrax ("the Service"), you agree to these Terms of Service. If you do not agree, do not use the Service. We may update these terms at any time; continued use after changes constitutes acceptance.</p>
+            <p className="mt-3">By accessing or using Contrax ("the Service"), you agree to these Terms of Service. The Service is provided by Contrax LLC, doing business as Contrax, a Virginia limited liability company. If you do not agree, do not use the Service. We may update these terms at any time; continued use after changes constitutes acceptance.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">2. Description of Service</h2>
@@ -70,7 +70,7 @@ function TermsPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">6. Intellectual Property</h2>
-            <p className="mt-3">The Contrax platform (code, design, logos) is owned by Contrax. You retain ownership of content you create using the Service. By using the Service, you grant us a limited license to process your content solely to provide the Service.</p>
+            <p className="mt-3">The Contrax platform (code, design, logos) is owned and operated by Contrax LLC. You retain ownership of content you create using the Service. By using the Service, you grant us a limited license to process your content solely to provide the Service.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">7. Third-Party Services</h2>
@@ -86,11 +86,11 @@ function TermsPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">10. Governing Law</h2>
-            <p className="mt-3">These terms are governed by United States law. Disputes shall be resolved through binding arbitration.</p>
+            <p className="mt-3">These terms are governed by the laws of the Commonwealth of Virginia, without regard to its conflict-of-laws principles. Disputes shall be resolved through binding arbitration.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">11. Contact</h2>
-            <p className="mt-3">For questions, contact <a href="mailto:legal@contrax.company" className="text-blue-600 hover:text-blue-500">legal@contrax.company</a>.</p>
+            <p className="mt-3">For questions, contact Contrax LLC at <a href="mailto:hello@contrax.company" className="text-blue-600 hover:text-blue-500">hello@contrax.company</a> or <a href="mailto:legal@contrax.company" className="text-blue-600 hover:text-blue-500">legal@contrax.company</a>. Website: <a href="https://www.contrax.company" className="text-blue-600 hover:text-blue-500">contrax.company</a>.</p>
           </section>
         </div>
       </div>

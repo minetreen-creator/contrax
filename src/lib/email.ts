@@ -278,8 +278,11 @@ function radarLeadConfirmationHtml(confirmUrl: string, unsubscribeUrl: string): 
               <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
                 Contrax — AI-powered government contract discovery
               </p>
+              <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
+                Contrax LLC · contrax.company
+              </p>
               <p style="margin:0;color:#9ca3af;font-size:12px;">
-                &copy; ${new Date().getFullYear()} Contrax. All rights reserved.
+                &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved.
               </p>
             </td>
           </tr>
@@ -499,8 +502,11 @@ function welcomeEmailHtml(email: string): string {
               <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
                 Contrax — AI-powered government contract discovery
               </p>
+              <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
+                Contrax LLC · contrax.company
+              </p>
               <p style="margin:0;color:#9ca3af;font-size:12px;">
-                &copy; ${new Date().getFullYear()} Contrax. All rights reserved.
+                &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved.
               </p>
             </td>
           </tr>
@@ -572,8 +578,11 @@ function passwordResetEmailHtml(token: string): string {
               <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
                 Contrax — AI-powered government contract discovery
               </p>
+              <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
+                Contrax LLC · contrax.company
+              </p>
               <p style="margin:0;color:#9ca3af;font-size:12px;">
-                &copy; ${new Date().getFullYear()} Contrax. All rights reserved.
+                &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved.
               </p>
             </td>
           </tr>
@@ -676,8 +685,11 @@ function bidDigestHtml(bids: NewBidSummary[]): string {
           <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
             Contrax — AI-powered government contract discovery
           </p>
+          <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">
+            Contrax LLC · contrax.company
+          </p>
           <p style="margin:0;color:#9ca3af;font-size:12px;">
-            &copy; ${new Date().getFullYear()} Contrax. All rights reserved.
+            &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved.
           </p>
         </td>
       </tr>
@@ -730,7 +742,8 @@ export async function sendNonprofitApprovedEmail(
   </td></tr>
   <tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
     <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Questions? Write to hello@contrax.company.</p>
-    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax</p>
+    <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Contrax LLC · contrax.company</p>
+    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax LLC</p>
   </td></tr>
 </table></td></tr></table></body>`;
     const result = await resend.emails.send({
@@ -768,7 +781,8 @@ export async function sendNonprofitDeniedEmail(to: string, orgName: string): Pro
     <p style="margin:0;color:#6b7280;font-size:13px;">Your Contrax account is unchanged, and anything you had saved is still there.</p>
   </td></tr>
   <tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax</p>
+    <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Contrax LLC · contrax.company</p>
+    <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax LLC</p>
   </td></tr>
 </table></td></tr></table></body>`;
     const result = await resend.emails.send({

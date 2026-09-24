@@ -452,7 +452,7 @@ export function SeoLanding(props: {
             <SeoFooterLinks />
           </nav>
           <p className="mt-6 text-xs text-gray-500">
-            &copy; {new Date().getFullYear()} Contrax. All rights reserved.
+            &copy; {new Date().getFullYear()} Contrax LLC. All rights reserved.
           </p>
         </div>
       </footer>

@@ -9,7 +9,7 @@ src/routes/api/pricing-recommend.ts(83,11): error TS6133: 'sqlBuilder' is declar
 src/routes/api/radar/opportunity-click.ts(43,7): error TS6133: 'PAGE' is declared but its value is never read.
 src/routes/awards.tsx(37,7): error TS6133: 'SEED_AWARDS' is declared but its value is never read.
 src/routes/compliance.tsx(279,7): error TS6133: 'severityBadge' is declared but its value is never read.
-src/routes/dashboard.tsx(2178,37): error TS6133: 'medPct' is declared but its value is never read.
+src/routes/dashboard.tsx(2183,37): error TS6133: 'medPct' is declared but its value is never read.
 src/routes/learnings.tsx(4,31): error TS6133: 'AuthUser' is declared but its value is never read.
 src/routes/learnings.tsx(41,10): error TS6133: 'LearningsPageGated' is declared but its value is never read.
 src/routes/learnings.tsx(67,9): error TS6133: 'navigate' is declared but its value is never read.

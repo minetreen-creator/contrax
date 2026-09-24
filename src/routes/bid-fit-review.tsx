@@ -5,7 +5,7 @@ export const Route = createFileRoute("/bid-fit-review")({
   head: () => ({ meta: [
     { title: "Bid Fit Review | Contrax" },
     { name: "description", content: "A $99 one-time, source-cited review of one government solicitation for your business." },
-    { name: "robots", content: "noindex, nofollow" },
+    { name: "robots", content: "index, follow" },
   ] }),
   component: BidFitReview,
 });

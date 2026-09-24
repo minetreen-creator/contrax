@@ -180,6 +180,8 @@ jobs:
         run: bun test src/jobs/pass-outcome.test.ts
       - name: Radar return-session tests (unit, deterministic, zero network)
         run: bun test src/lib/radar-session.test.ts
+      - name: Admin conversion-action tests (unit, deterministic, zero network)
+        run: bun test src/lib/conversion-opportunity.test.ts
       # PR-1 RESTRUCTURE — source-provenance class map (owner-APPROVED policy,
       # plan rev 315). DETERMINISTIC and network-free by construction: every input
       # is a literal or a registry constant imported from the repo, and there is

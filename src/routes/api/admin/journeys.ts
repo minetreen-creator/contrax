@@ -6,6 +6,7 @@ import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusio
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
 import { computeLeadScore, bidIdsFromPaths, getWatchedMap } from "~/lib/visitor-intel";
+import { buildConversionOpportunity, type ConversionOpportunity } from "~/lib/conversion-opportunity";
 
 /**
  * GET /api/admin/journeys?days=30
@@ -117,99 +118,6 @@ interface TimelineItem {
 interface JourneyBadge {
   key: "pricing" | "brief";
   label: string; // e.g. "💰 Pricing Evaluator"
-}
-
-/**
- * Operator guidance for a High/Very High-intent row (owner 2026-09-06). PURELY
- * READ-SIDE: a rule-based interpretation of the row's existing flags — no new
- * events, no writes, no changes to the lead-score computation itself.
- */
-interface ConversionOpportunity {
-  /** Why this visitor is hot — the lead-score reasons array (already computed). */
-  reasons: { points: number; reason: string }[];
-  /** The single best next step for THIS visitor (what they're missing). */
-  best_next: string;
-  /** What's standing between them and conversion. */
-  obstacle: string;
-  /** Concrete on-site CTA copy suggestion for the operator. */
-  cta: string;
-}
-
-/**
- * Rule-based "what to do next" for this visitor. Uses only the row's existing
- * flags (owner examples kept verbatim where given). Order matters:
- *
- *   1. Not signed up AND never started signup  → offer free account (save Radar)
- *   2. Started signup but never finished       → recover the abandoned signup
- *   3. Signed up as Basic, never converted     → activate product value
- *   4. Completed Radar but anonymous           → capture email via match alerts
- *   fallback                                   → re-engage with a value message
- *
- * A row carrying a live linked account (even pre-signup-success detail rows)
- * counts as signed up — the same "live account" check the Success guard uses.
- * Every branch also has one flag-driven refinement so the copy reflects what
- * was actually observed. No urgency/pressure language anywhere.
- */
-function buildConversionOpportunity(o: {
-  signedUp: boolean;
-  signupStarted: boolean;
-  radarCompleted: boolean;
-  pricingViewed: boolean;
-  savedBid: boolean;
-  incumbentViewed: boolean;
-  briefViewed: boolean;
-  autopsyAwardFound: boolean;
-  autopsyReportViewed: boolean;
-  emailKnown: boolean;
-  reasons: { points: number; reason: string }[];
-}): ConversionOpportunity {
-  let best_next: string;
-  let obstacle: string;
-  let cta: string;
-  if (!o.signedUp && !o.signupStarted) {
-    best_next = "Offer a free account so they can save Radar results.";
-    obstacle = "Hasn't started signup.";
-    cta = "Save these matches and get your next 3 →";
-  } else if (o.signupStarted && !o.signedUp) {
-    best_next = "Recover the abandoned signup — send one useful reminder.";
-    obstacle = "Abandoned signup.";
-    cta = "Continue your free account setup";
-  } else if (o.signedUp && !o.radarCompleted) {
-    best_next = "Activate product value: get them to complete a Radar scan / run an Award Autopsy.";
-    obstacle = "Free account, not yet activated.";
-    cta = "Run your first Executive Brief";
-  } else if (o.radarCompleted && !o.emailKnown) {
-    best_next = "Capture their email for match alerts (no account required).";
-    obstacle = "Anonymous — no email captured.";
-    cta = "Want new matches when we find them?";
-  } else {
-    best_next = "Re-engage with a relevant value message (new matching opportunities).";
-    obstacle = "Needs a genuine commercial event.";
-    cta = "Review your latest matches";
-  }
-  // Flag-driven refinement — the copy reflects what was actually observed.
-  if (o.autopsyAwardFound || o.autopsyReportViewed) {
-    best_next = "Activate product value: get them to run a full Award Autopsy.";
-    obstacle = "Autopsy interest, no account yet.";
-    cta = "Unlock your full free Award Autopsy";
-  } else if (o.savedBid && !o.signedUp) {
-    best_next = "Offer a free account so they can keep their saved matches.";
-    obstacle = "Saved a bid but no account to keep it.";
-    cta = "Save your matches so they don't expire";
-  } else if (o.incumbentViewed && !o.signedUp) {
-    best_next = "Offer a free account to save their matches and keep incumbent intel.";
-    obstacle = "Viewed incumbent intel, no account yet.";
-    cta = "Create a free account to keep your matches";
-  } else if (o.signedUp && (o.savedBid || o.briefViewed)) {
-    best_next = "Suggest a Professional trial — saved bids + briefs both point to drafting.";
-    obstacle = "Free account, seeing value but not yet upgraded.";
-    cta = "Try Professional free for 14 days";
-  } else if (o.pricingViewed && o.signedUp) {
-    best_next = "Suggest a Professional trial — they already compared plans.";
-    obstacle = "Free account, compared pricing, hasn't upgraded.";
-    cta = "Try Professional free for 14 days";
-  }
-  return { reasons: o.reasons, best_next, obstacle, cta };
 }
 
 interface Journey {

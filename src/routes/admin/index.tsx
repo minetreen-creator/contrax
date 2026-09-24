@@ -72,6 +72,7 @@ interface ActOnRow {
   best_next: string;
   obstacle: string;
   cta: string;
+  channel: "outreach" | "onsite";
 }
 interface JourneysShape {
   journeys: {
@@ -88,7 +89,7 @@ interface JourneysShape {
     radar_lead_stage?: RadarLeadStage | null;
     last_activity: string | null;
     lead_score?: { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: OppReason[] };
-    conversion_opportunity?: { best_next: string; obstacle: string; cta: string };
+    conversion_opportunity?: { best_next: string; obstacle: string; cta: string; channel: "outreach" | "onsite" };
   }[];
   watched_returned?: { visitor_id: string }[];
 }
@@ -214,6 +215,9 @@ function PeopleToActOn({ rows, loading, error }: { rows: ActOnRow[]; loading: bo
               </td>
               <td className="px-5 py-3 text-slate-600 whitespace-nowrap">{acquisitionPath(r.source, r.radar, r.signup)}</td>
               <td className="px-5 py-3">
+                <span className={`mb-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${r.channel === "outreach" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                  {r.channel === "outreach" ? "Direct outreach" : "On-site only"}
+                </span>
                 <p className="font-medium text-slate-800">{r.best_next}</p>
                 <p className="mt-0.5 inline-flex rounded-lg border border-rose-200 bg-rose-50/60 px-2 py-0.5 text-xs text-rose-800">
                   Try: “{r.cta}”
@@ -401,6 +405,7 @@ function AdminOverviewPage() {
             best_next: j.conversion_opportunity!.best_next,
             obstacle: j.conversion_opportunity!.obstacle,
             cta: j.conversion_opportunity!.cta,
+            channel: j.conversion_opportunity!.channel,
           }))
           .sort((a, b) => b.score - a.score || (b.last_activity ?? "").localeCompare(a.last_activity ?? ""))
           .slice(0, 10);

@@ -90,7 +90,9 @@ interface JourneysShape {
     lead_score?: { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: OppReason[] };
     conversion_opportunity?: { best_next: string; obstacle: string; cta: string };
   }[];
+  watched_returned?: { visitor_id: string }[];
 }
+interface NonprofitQueueShape { count: number; }
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -333,6 +335,8 @@ function AdminOverviewPage() {
   const [bidScoutFunnel, setBidScoutFunnel] = useState<BidScoutFunnelShape | null>(null);
   const [fin, setFin] = useState<FinanceShape | null>(null);
   const [actOn, setActOn] = useState<ActOnRow[]>([]);
+  const [watchedReturned, setWatchedReturned] = useState(0);
+  const [nonprofitQueue, setNonprofitQueue] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [actOnLoading, setActOnLoading] = useState(true);
   const [error, setError] = useState("");
@@ -347,8 +351,9 @@ function AdminOverviewPage() {
       getJson<RadarConversionFunnelResult>("/api/admin/radar-conversion-funnel?days=30"),
       getJson<BidScoutFunnelShape>("/api/admin/bid-scout-funnel"),
       getJson<FinanceShape>("/api/admin/finance"),
+      getJson<NonprofitQueueShape>("/api/admin/nonprofit-applications?filter=queue&limit=100"),
     ])
-      .then(([u, a, r, rc, bs, fn]) => {
+      .then(([u, a, r, rc, bs, fn, np]) => {
         if (cancelled) return;
         setUnified(u);
         setAutopsy(a);
@@ -356,6 +361,7 @@ function AdminOverviewPage() {
         setRadarConv(rc);
         setBidScoutFunnel(bs);
         setFin(fn);
+        setNonprofitQueue(np.count);
       })
       .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load overview");
@@ -399,6 +405,7 @@ function AdminOverviewPage() {
           .sort((a, b) => b.score - a.score || (b.last_activity ?? "").localeCompare(a.last_activity ?? ""))
           .slice(0, 10);
         setActOn(scored);
+        setWatchedReturned(d.watched_returned?.length ?? 0);
       })
       .catch((err) => {
         if (!cancelled) setActOnError(err instanceof Error ? err.message : "Failed to rank visitors");
@@ -435,14 +442,48 @@ function AdminOverviewPage() {
     <div className="min-h-screen bg-slate-50">
       <AdminHeader scoreboard={<MrrScoreboard />} />
       <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Owner workspace</p>
+            <h1 className="mt-1 text-3xl font-bold text-slate-950">Contrax Command Center</h1>
+            <p className="mt-1 text-sm text-slate-500">What needs attention, where revenue is blocked, and who to contact next.</p>
+          </div>
         </div>
         <AdminTabs active="overview" />
 
+        <section>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Needs attention</h2>
+              <p className="text-xs text-slate-500">The shortest path from today&rsquo;s activity to an owner action.</p>
+            </div>
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Live</span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { label: "High-intent visitors", value: actOnLoading ? "…" : actOn.length, detail: "Review and follow up", href: "/admin/journeys", tone: "border-rose-200 bg-rose-50/70 text-rose-800" },
+              { label: "Watched visitors returned", value: actOnLoading ? "…" : watchedReturned, detail: "See what changed", href: "/admin/journeys", tone: "border-amber-200 bg-amber-50/70 text-amber-800" },
+              { label: "Nonprofit reviews", value: nonprofitQueue ?? "…", detail: "Work the review queue", href: "/admin/nonprofits", tone: "border-violet-200 bg-violet-50/70 text-violet-800" },
+              { label: "Paying customers", value: fin?.customerCount ?? "…", detail: fin ? `${moneyWhole(fin.mrrCents)} MRR` : "Loading revenue", href: "/admin/customers", tone: "border-emerald-200 bg-emerald-50/70 text-emerald-800" },
+            ].map((item) => (
+              <a key={item.label} href={item.href} className={`rounded-2xl border p-4 shadow-sm transition-transform hover:-translate-y-0.5 ${item.tone}`}>
+                <p className="text-xs font-semibold uppercase tracking-wide opacity-75">{item.label}</p>
+                <p className="mt-1 text-3xl font-bold">{item.value}</p>
+                <p className="mt-1 text-xs font-medium">{item.detail} →</p>
+              </a>
+            ))}
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-slate-800 mb-1">🔥 People to act on</h2>
+          <p className="mb-3 text-xs text-slate-500">Highest-intent visitors, ranked with the next practical conversion step.</p>
+          <PeopleToActOn rows={actOn} loading={actOnLoading} error={actOnError} />
+        </section>
+
         {/* CONTRAX TODAY — owner-exact 8-card scoreboard */}
         <section>
-          <h2 className="text-lg font-semibold text-slate-800 mb-1">Contrax Today</h2>
+          <h2 className="text-lg font-semibold text-slate-800 mb-1">Business pulse (30 days)</h2>
           <p className="mb-3 text-xs text-slate-500">
             Qualified Visitors · Radar Completed · Radar Leads · Autopsy Started · Signups · Activated · Customers · MRR
             — live from the same endpoints as the tabs (30d). QA/admin/bot/test excluded.
@@ -571,16 +612,6 @@ function AdminOverviewPage() {
               </p>
             </div>
           )}
-        </section>
-
-        {/* 🔥 PEOPLE TO ACT ON — HIGH-VALUE ONLY */}
-        <section>
-          <h2 className="text-lg font-semibold text-slate-800 mb-1">🔥 People to act on</h2>
-          <p className="mb-3 text-xs text-slate-500">
-            High / Very High-intent visitors only (existing lead-score heuristic) — with the recommended next step from
-            the Conversion Opportunity mapping. Newest activity breaks ties.
-          </p>
-          <PeopleToActOn rows={actOn} loading={actOnLoading} error={actOnError} />
         </section>
 
         {/* Jump links to the deep surfaces */}

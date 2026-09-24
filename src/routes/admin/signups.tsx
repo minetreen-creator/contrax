@@ -24,6 +24,20 @@ import {
  */
 
 interface RecentSignup { id: number; email: string; created_at: string; }
+interface SignupActivity {
+  user_id: number;
+  email: string;
+  plan_tier: string | null;
+  created_at: string | null;
+  last_login: string | null;
+  search_count: number;
+  last_search: string | null;
+  score_count: number;
+  last_score: string | null;
+  save_count: number;
+  last_save: string | null;
+}
+
 interface MetricsShape {
   totalSignups: number;
   recentSignups: RecentSignup[];
@@ -51,6 +65,8 @@ function SignupsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [fin, setFin] = useState<FinanceResult | null>(null);
+  const [activity, setActivity] = useState<SignupActivity[] | null>(null);
+  const [activityError, setActivityError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -64,6 +80,18 @@ function SignupsPage() {
   useEffect(() => {
     let cancelled = false;
     fetchFinance().then((d) => { if (!cancelled) setFin(d); }).catch(() => { /* fail-open */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/admin/user-activity")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Account activity is unavailable");
+        return res.json() as Promise<SignupActivity[]>;
+      })
+      .then((rows) => { if (!cancelled) setActivity(rows); })
+      .catch((err) => { if (!cancelled) setActivityError(err instanceof Error ? err.message : "Account activity is unavailable"); });
     return () => { cancelled = true; };
   }, []);
 
@@ -131,6 +159,36 @@ function SignupsPage() {
                       </tbody>
                     </table>
                   </div>
+                )}
+              </div>
+
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white overflow-x-auto">
+                <div className="px-5 py-3 border-b border-slate-100">
+                  <h3 className="font-bold text-slate-900">External account activity</h3>
+                  <p className="text-xs text-slate-500">Counts are recorded product actions, not proof of a paid-plan attempt. Searches are tracked only since search logging began.</p>
+                </div>
+                {activityError ? <p className="px-5 py-4 text-sm text-red-700" role="alert">{activityError}</p> : activity === null ? (
+                  <p className="px-5 py-4 text-sm text-slate-500">Loading account activity…</p>
+                ) : activity.length === 0 ? (
+                  <p className="px-5 py-4 text-sm text-slate-500">No external account activity found.</p>
+                ) : (
+                  <table className="w-full min-w-[800px] text-sm">
+                    <thead><tr className="text-left text-xs text-slate-500 uppercase">
+                      <th className="px-5 py-3">Account</th><th className="px-3 py-3">Plan</th>
+                      <th className="px-3 py-3">Last login</th><th className="px-3 py-3">Searches</th>
+                      <th className="px-3 py-3">Scores</th><th className="px-3 py-3">Saves</th>
+                    </tr></thead>
+                    <tbody>{activity.map((row) => (
+                      <tr key={row.user_id} className="border-t border-slate-100">
+                        <td className="px-5 py-3 font-medium text-slate-800">{row.email}</td>
+                        <td className="px-3 py-3 capitalize">{row.plan_tier ?? "—"}</td>
+                        <td className="px-3 py-3">{row.last_login ? dayFmt(row.last_login) : "—"}</td>
+                        <td className="px-3 py-3" title={row.last_search ?? undefined}>{row.search_count}</td>
+                        <td className="px-3 py-3" title={row.last_score ?? undefined}>{row.score_count}</td>
+                        <td className="px-3 py-3" title={row.last_save ?? undefined}>{row.save_count}</td>
+                      </tr>
+                    ))}</tbody>
+                  </table>
                 )}
               </div>
 

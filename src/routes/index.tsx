@@ -540,11 +540,11 @@ function FeaturePreviews() {
   ];
 
   return (
-    <section aria-label="More Contrax tools" className="border-t border-slate-200 bg-white py-14 sm:py-16">
+    <section aria-label="More Contrax tools" className="border-t border-slate-200 bg-slate-50 py-14 sm:py-16">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid gap-5 md:grid-cols-2">
           {features.map((feature) => (
-            <article key={feature.title} className="rounded-2xl border border-slate-200 bg-slate-50 p-7">
+            <article key={feature.title} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
               <p className="text-sm font-bold uppercase tracking-[0.16em] text-blue-700">{feature.eyebrow}</p>
               <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">{feature.title}</h2>
               <p className="mt-3 text-base leading-7 text-slate-600">{feature.description}</p>
@@ -718,7 +718,7 @@ export function ContraxGrantsPromo({
   return (
     <section
       aria-label="Contrax Grants"
-      className="border-y border-slate-200 bg-slate-50 py-14 sm:py-16"
+      className="border-y border-amber-100 bg-amber-50/50 py-14 sm:py-16"
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl text-center">
@@ -880,7 +880,7 @@ function HowItWorks() {
   ];
 
   return (
-    <section id="how-it-works" className="bg-gray-50 py-20 sm:py-28">
+    <section id="how-it-works" className="bg-blue-50/50 py-20 sm:py-28">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">

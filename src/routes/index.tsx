@@ -587,6 +587,14 @@ function FeaturedServices() {
     <section aria-label="Founder-assisted services" className="py-12 sm:py-16">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="grid gap-5 lg:grid-cols-2">
+          <div className="flex flex-col rounded-2xl border border-blue-200 bg-blue-50/60 p-7 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:col-span-2">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Bid Fit Review · $99 once</p>
+              <h2 className="mt-2 text-xl font-bold text-slate-950">Decide whether one government bid is worth pursuing</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">Get a one-page review of eligibility, deadlines, required forms, and deal breakers. We confirm your request before payment.</p>
+            </div>
+            <a href="/bid-fit-review" className="mt-5 shrink-0 rounded-xl bg-blue-700 px-5 py-3 text-center text-sm font-bold text-white hover:bg-blue-800 sm:mt-0">Request a review</a>
+          </div>
           <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6">
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Bid Scout · $99/month</p>

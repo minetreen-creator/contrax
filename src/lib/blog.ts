@@ -15,7 +15,7 @@ import beginnersGuide from "../content/blog/government-contracting-beginners.md?
 import samGovVsContrax from "../content/blog/sam-gov-vs-contrax.md?raw";
 import contractTeardown from "../content/blog/contract-teardown-set-aside-rfp.md?raw";
 import hubzoneWorthIt from "../content/blog/hubzone-certification-worth-it.md?raw";
-import governmentTruckingContracts from "../content/blog/government-trucking-contracts.md?raw";
+import governmentJanitorialContracts from "../content/blog/government-janitorial-contracts.md?raw";
 
 export type BlogPost = {
   slug: string;
@@ -147,7 +147,7 @@ const RAW_POSTS: { slug: string; raw: string }[] = [
   { slug: "sam-gov-vs-contrax", raw: samGovVsContrax },
   { slug: "contract-teardown-set-aside-rfp", raw: contractTeardown },
   { slug: "hubzone-certification-worth-it", raw: hubzoneWorthIt },
-  { slug: "government-trucking-contracts", raw: governmentTruckingContracts },
+  { slug: "government-janitorial-contracts", raw: governmentJanitorialContracts },
 ];
 
 export const BLOG_POSTS: BlogPost[] = RAW_POSTS.map(({ slug, raw }) => {

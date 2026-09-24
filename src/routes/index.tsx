@@ -230,6 +230,7 @@ function Home() {
     "@context": "https://schema.org",
     "@type": "Organization",
     name: "Contrax",
+    legalName: "Contrax LLC",
     description:
       "Tell Contrax what your business does. Radar finds government opportunities that match — live set-asides for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses, with bid documents explained and proposals drafted so certified firms can compete and win.",
     url: "https://www.contrax.company",
@@ -1140,7 +1141,7 @@ function Footer() {
           <span className="text-lg font-bold text-white">Contrax</span>
         </div>
         <p className="text-sm text-gray-400">
-          &copy; {new Date().getFullYear()} Contrax. All rights reserved.
+          &copy; {new Date().getFullYear()} Contrax LLC. All rights reserved.
         </p>
         <div className="flex flex-wrap items-center gap-5">
           <a href="/compare" className="text-sm text-gray-400 transition-colors hover:text-white">

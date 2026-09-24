@@ -425,7 +425,7 @@ function PostCheckoutPage() {
 
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-gray-400">
-          &copy; {new Date().getFullYear()} Contrax. All rights reserved.
+          &copy; {new Date().getFullYear()} Contrax LLC. All rights reserved.
         </p>
       </div>
     </div>

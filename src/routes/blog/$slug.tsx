@@ -61,11 +61,13 @@ function BlogPostPage() {
         author: {
           "@type": "Organization",
           name: "Contrax",
+          legalName: "Contrax LLC",
           url: PROD_URL,
         },
         publisher: {
           "@type": "Organization",
           name: "Contrax",
+          legalName: "Contrax LLC",
           url: PROD_URL,
           logo: {
             "@type": "ImageObject",
@@ -179,7 +181,7 @@ function BlogPostPage() {
           <div className="flex items-center gap-2">
             <img src="/logo.png" alt="Contrax" className="h-7 w-auto" />
           </div>
-          <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Contrax. All rights reserved.</p>
+          <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Contrax LLC. All rights reserved.</p>
           <div className="flex items-center gap-5">
             <a href="/" className="text-sm text-gray-400 transition-colors hover:text-white">Home</a>
             <a href="/blog" className="text-sm text-gray-400 transition-colors hover:text-white">Blog</a>

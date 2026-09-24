@@ -689,7 +689,7 @@ function CompliancePage() {
       {/* Footer */}
       <footer className="border-t border-slate-200 bg-slate-50 mt-16">
         <div className="mx-auto max-w-7xl px-6 py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-slate-500">© 2026 Contrax. All rights reserved.</p>
+          <p className="text-sm text-slate-500">© 2026 Contrax LLC. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <a href="/clauses" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">FAR Clause Library</a>
             <a href="/privacy" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Privacy Policy</a>

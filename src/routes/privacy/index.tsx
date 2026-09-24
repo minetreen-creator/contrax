@@ -46,9 +46,9 @@ function PrivacyPage() {
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-slate-500">Last updated: August 31, 2026</p>
+        <p className="mt-2 text-sm text-slate-500">Last updated: September 24, 2026</p>
         <div className="mt-10 space-y-8 text-slate-700 leading-relaxed">
-          <p>Contrax respects your privacy. This Privacy Policy explains what information we collect when you visit or use Contrax, how we use that information, and the choices available to you.</p>
+          <p>Contrax LLC, doing business as Contrax, is responsible for the personal information described in this Policy. Contrax respects your privacy. This Privacy Policy explains what information we collect when you visit or use Contrax, how we use that information, and the choices available to you.</p>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">1. Information We Collect</h2>
             <h3 className="mt-4 text-base font-semibold text-slate-900">Information You Provide</h3>
@@ -189,7 +189,7 @@ function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-slate-900">15. Contact</h2>
             <p className="mt-3">Questions or privacy requests may be directed to:</p>
-            <p className="mt-3">Contrax<br /><a href="mailto:privacy@contrax.company" className="text-blue-600 hover:text-blue-500">privacy@contrax.company</a><br /><a href="https://www.contrax.company" className="text-blue-600 hover:text-blue-500">contrax.company</a></p>
+            <p className="mt-3">Contrax LLC<br /><a href="mailto:privacy@contrax.company" className="text-blue-600 hover:text-blue-500">privacy@contrax.company</a><br /><a href="https://www.contrax.company" className="text-blue-600 hover:text-blue-500">contrax.company</a></p>
           </section>
         </div>
       </div>

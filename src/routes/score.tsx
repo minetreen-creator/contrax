@@ -568,7 +568,7 @@ function ScorePage() {
             applicationCategory: "BusinessApplication",
             operatingSystem: "Any",
             offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-            publisher: { "@type": "Organization", name: "Contrax", url: "https://www.contrax.company" },
+            publisher: { "@type": "Organization", name: "Contrax", legalName: "Contrax LLC", url: "https://www.contrax.company" },
           }),
         }}
       />

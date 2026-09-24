@@ -38,6 +38,7 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "Contrax",
+  legalName: "Contrax LLC",
   description:
     "Founded by Nathaniel Minetree, Contrax helps 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses find government contracts: tell Contrax what your business does and Radar finds the opportunities that match — real-time discovery across 50 states and federal portals, with an AI-driven workspace for incumbent research and grounded proposal drafting.",
   url: PROD_URL,
@@ -137,6 +138,7 @@ function AboutPage() {
                 automate the administrative "tax" of contracting, you could give
                 these businesses their most valuable resource back: Time.
               </p>
+              <p className="mt-6 text-sm font-medium text-slate-500">Contrax is operated by Contrax LLC, a Virginia limited liability company.</p>
             </div>
           </div>
         </div>

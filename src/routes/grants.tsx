@@ -957,6 +957,9 @@ function GrantsPage() {
                   Your subscription renews automatically — update payment details, invoices, or cancel in the
                   Stripe billing portal.
                 </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  Your subscription with Contrax LLC. Billing support: hello@contrax.company.
+                </p>
                 <button
                   type="button"
                   onClick={onManageClick}

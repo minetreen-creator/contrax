@@ -73,6 +73,8 @@ export const EVENT_LABELS: Record<string, string> = {
   homepage_radar_cta_clicked: "Homepage Radar CTA clicked",
   radar_scan_start: "Radar scan started",
   radar_scan_complete: "Radar scan completed",
+  radar_answers_restored: "Radar answers and results restored",
+  radar_restored_signup_clicked: "Radar restored-results signup CTA clicked",
   radar_results_viewed: "Radar results viewed (anonymous)",
   radar_results_unlock_shown: "Radar locked-results card shown (anonymous)",
   radar_results_unlock_clicked: "Radar locked-results CTA clicked",

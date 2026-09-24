@@ -100,6 +100,7 @@ function toRadarCert(raw: unknown): RadarCert | null {
 export function HeroRadar({
   initialCert,
   heading = true,
+  compact = false,
 }: {
   /** The homepage "I am a:" selection (shared cert state) — preselects the cert question. */
   initialCert: string;
@@ -107,6 +108,8 @@ export function HeroRadar({
    *  embedding page (e.g. the homepage radar hero) can supply the one true
    *  <h1> and its own heading block. Form/scan/matches flow is identical. */
   heading?: boolean;
+  /** Uses a two-column desktop form without changing Radar behavior. */
+  compact?: boolean;
 }) {
   const preselected = toRadarCert(initialCert);
   const [trade, setTrade] = useState("");
@@ -246,9 +249,9 @@ export function HeroRadar({
     <section
       id="hero-radar"
       aria-label="Contract Radar — find your set-aside matches"
-      className="border-b border-slate-800 bg-slate-950"
+      className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-950 shadow-xl"
     >
-      <div className="mx-auto w-full max-w-xl px-5 py-10 sm:py-12">
+      <div className={`mx-auto w-full px-5 py-8 sm:px-8 sm:py-10 ${compact ? "max-w-6xl" : "max-w-xl"}`}>
         {/* heading={false} renders the form/scan only — the embedding page owns
             the page-level <h1> and its own eyebrow/subhead block. */}
         {heading && (
@@ -266,7 +269,7 @@ export function HeroRadar({
         )}
 
         {scan.status !== "done" && scan.status !== "error" && (
-          <div className="mt-8 flex flex-col gap-6">
+          <div className={`mt-8 grid gap-6 ${compact ? "lg:grid-cols-2" : "grid-cols-1"}`}>
             <div>
               <label htmlFor="hero-radar-trade" className="text-sm font-semibold text-slate-200">
                 1. Your trade or NAICS code
@@ -366,12 +369,12 @@ export function HeroRadar({
               type="button"
               disabled={!ready}
               onClick={startScan}
-              className="mt-2 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+              className={`mt-2 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${compact ? "lg:col-span-2" : ""}`}
             >
               Scan the market for my matches →
             </button>
             {scan.status === "loading" ? (
-              <div className="rounded-2xl border-2 border-amber-500 bg-amber-500/10 px-6 py-8 text-center" aria-live="polite">
+              <div className={`rounded-2xl border-2 border-amber-500 bg-amber-500/10 px-6 py-8 text-center ${compact ? "lg:col-span-2" : ""}`} aria-live="polite">
                 <p className="text-xl font-extrabold tracking-tight text-amber-400">
                   Contract Radar is scanning the market…
                 </p>
@@ -382,7 +385,7 @@ export function HeroRadar({
                 </p>
               </div>
             ) : (
-              <p className="text-center text-xs text-slate-500">
+              <p className={`text-center text-xs text-slate-500 ${compact ? "lg:col-span-2" : ""}`}>
                 Scans live federal, state and local solicitations.
               </p>
             )}

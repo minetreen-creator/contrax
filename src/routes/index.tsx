@@ -287,56 +287,22 @@ function Home() {
         <div className="mx-auto mt-6 max-w-4xl text-center">
           {/* Honest dynamic counts — both numbers are ALREADY fetched by the
               loader (bidStats + contractMap); no new DB query is added. */}
-          <p className="mt-2 text-xs font-medium text-gray-500">
-            <strong>{contractMap.totals.totalOpen.toLocaleString("en-US")}</strong> open
-            opportunities · <strong>{bidStats.agencyCount.toLocaleString("en-US")}</strong>{" "}
-            agencies · Updated every 4 hours
-          </p>
-        </div>
-        {/* Bid Scout secondary CTA (owner 2026-09-11, Phase B) — BELOW the hero
-            and the Radar embed; the hero CTA + its homepage_radar_cta_clicked
-            event are untouched. Label and destination are owner-exact. */}
-        <div className="mx-auto mt-10 max-w-3xl text-center">
-          <a
-            href="/bid-scout?source=homepage"
-            className="inline-flex items-center gap-2 rounded-xl border-2 border-slate-900 bg-white px-8 py-3.5 text-base font-bold text-slate-900 shadow-sm transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98]"
-          >
-            Have Contrax find opportunities for me
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5-5 5M6 12h12" />
-            </svg>
-          </a>
-          <p className="mt-2.5 text-xs font-medium text-gray-500">
-            $99/month — five handpicked federal opportunities matched to your business, every Friday
-          </p>
+          <div className="inline-flex flex-wrap items-center justify-center gap-x-5 gap-y-2 rounded-2xl border border-slate-200 bg-slate-50 px-6 py-3 text-sm text-slate-700 shadow-sm">
+            <span><strong className="text-slate-950">{contractMap.totals.totalOpen.toLocaleString("en-US")}</strong> open opportunities</span>
+            <span><strong className="text-slate-950">{bidStats.agencyCount.toLocaleString("en-US")}</strong> agencies</span>
+            <span>Updated every 4 hours</span>
+          </div>
         </div>
       </section>
-      {/* ── CONTRAX GRANTS — homepage section (owner order 2026-09-16) ──
-          Slotted DIRECTLY between the Bid Scout callout (the last block inside
-          the Radar section above) and the Award Autopsy section below, per the
-          owner's exact home order:
-          Radar hero → Bid Scout → Contrax Grants → Award Autopsy →
-          Example AI Brief → Pricing.
-          The compact Opportunity Map that used to sit between Award Autopsy and
-          the Example AI Brief was REMOVED (owner order 2026-09-23). The full
-          /map page + /map?state=<CODE> drill-down are untouched — the homepage
-          simply no longer embeds them.
-          Pure ADDITIVE callout: no state, no fetch, no analytics event, no new
-          server fn — it links to the existing /grants page. Nothing above it
-          changes, so the hero CTA stays above the fold at 1440×900. ── */}
+      <ProductPaths />
+      <FeaturedServices />
+      <HowItWorks />
+      <Pricing />
       <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />
-      {/* ── AWARD AUTOPSY — homepage section #2, immediately below the Radar
-          hero (owner spec 2026-09-05). The second front door: for visitors who
-          already bid-and-lost. ── */}
       <AwardAutopsyHero />
-      {/* Real example AI Executive Brief — real bids, summarized. */}
       <Suspense fallback={null}>
         <ExampleBrief variant="embed" />
       </Suspense>
-      <HowItWorks />
-      {/* ── 6. Pricing (kept) ── */}
-      <Pricing />
-      {/* ── 8. Footer ── */}
       <Footer />
     </div>
   );
@@ -538,6 +504,86 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
   );
 }
 
+// ── Choose a path ────────────────────────────────────────────────────────────
+
+function ProductPaths() {
+  const paths = [
+    {
+      eyebrow: "Government contracts",
+      title: "Find work your business can pursue",
+      description:
+        "Search live federal, state, and local solicitations by trade, location, certification, and contract size.",
+      href: "/radar",
+      cta: "Search contracts →",
+      accent: "border-blue-200 bg-blue-50/60",
+      ctaClass: "text-blue-700",
+    },
+    {
+      eyebrow: "Government grants",
+      title: "Find funding that fits your organization",
+      description:
+        "Search federal grants, use Grants Plus for ongoing tracking, or order hands-on research from the founder.",
+      href: "/grants",
+      cta: "Search grants →",
+      accent: "border-amber-200 bg-amber-50/60",
+      ctaClass: "text-amber-700",
+    },
+  ];
+
+  return (
+    <section aria-label="Choose your Contrax path" className="border-y border-slate-200 bg-slate-50 py-12 sm:py-16">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-widest text-slate-500">Choose your path</p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">What are you looking for today?</h2>
+        </div>
+        <div className="mt-8 grid gap-5 md:grid-cols-2">
+          {paths.map((path) => (
+            <a
+              key={path.title}
+              href={path.href}
+              className={`group rounded-2xl border p-7 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md ${path.accent}`}
+            >
+              <p className="text-sm font-bold uppercase tracking-wider text-slate-600">{path.eyebrow}</p>
+              <h3 className="mt-2 text-2xl font-bold text-slate-950">{path.title}</h3>
+              <p className="mt-3 text-base leading-relaxed text-slate-600">{path.description}</p>
+              <span className={`mt-5 inline-flex text-sm font-bold ${path.ctaClass}`}>{path.cta}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FeaturedServices() {
+  return (
+    <section aria-label="Founder-assisted services" className="py-12 sm:py-16">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <div className="grid gap-5 lg:grid-cols-2">
+          <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Bid Scout · $99/month</p>
+              <h2 className="mt-2 text-xl font-bold text-slate-950">Five handpicked federal opportunities every Friday</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">Founder-assisted matching for businesses that want qualified opportunities brought to them.</p>
+            </div>
+            <a href="/bid-scout?source=homepage" className="mt-5 shrink-0 rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-bold text-white hover:bg-slate-800 sm:mt-0">Explore Bid Scout</a>
+          </div>
+          <div className="flex flex-col rounded-2xl border border-amber-200 bg-amber-50/50 p-7 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Personalized grant report · $49 once</p>
+              <h2 className="mt-2 text-xl font-bold text-slate-950">Get a focused grant-opportunity report</h2>
+              <p className="mt-2 text-sm leading-relaxed text-slate-600">Founder-researched matches, eligibility observations, deadlines, official links, and recommended next steps.</p>
+            </div>
+            <a href={GRANTS_REPORT_PAYMENT_LINK} target="_blank" rel="noopener noreferrer" className="mt-5 shrink-0 rounded-xl bg-amber-500 px-5 py-3 text-center text-sm font-bold text-slate-950 hover:bg-amber-400 sm:mt-0">Get the $49 report</a>
+          </div>
+        </div>
+        <p className="mt-4 text-center text-xs text-slate-500">Matches and funding are not guaranteed. Grant writing and submission are not included.</p>
+      </div>
+    </section>
+  );
+}
+
 // ── Contrax Grants — homepage section (owner order 2026-09-16; three-tier
 //    pricing table owner-locked 2026-09-23, business plan revs 305/306) ───────
 // The third product line on the homepage, slotted between the Radar hero (and
@@ -646,24 +692,25 @@ export function ContraxGrantsPromo({
   return (
     <section
       aria-label="Contrax Grants"
-      className="mx-auto w-full max-w-7xl px-4 pb-10 sm:px-6 lg:px-8 lg:pb-16"
+      className="border-y border-slate-200 bg-slate-50 py-14 sm:py-16"
     >
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="text-sm font-semibold uppercase tracking-widest text-amber-600">
-          Contrax Grants
-        </p>
-        <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-          Find grants your organization actually qualifies for.
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
-          Contrax Grants searches federal grant opportunities on Grants.gov by keyword,
-          applicant type, funding category, agency, and status — source-verbatim details,
-          nothing invented. Basic grant search is free for verified nonprofits, and it stays
-          free.
-        </p>
-      </div>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-widest text-amber-600">
+            Contrax Grants
+          </p>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+            Find grants your organization actually qualifies for.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
+            Contrax Grants searches federal grant opportunities on Grants.gov by keyword,
+            applicant type, funding category, agency, and status — source-verbatim details,
+            nothing invented. Basic grant search is free for verified nonprofits, and it stays
+            free.
+          </p>
+        </div>
 
-      <div className="mt-12 grid gap-6 lg:grid-cols-3 lg:gap-8">
+        <div className="mt-9 grid gap-5 lg:grid-cols-3">
         {GRANTS_TIERS.map((tier) => {
           // FAIL-SAFE (owner directive rev 327): an unavailable upgrade signal
           // turns the gated tier's CTA into plain non-interactive text. No href,
@@ -673,7 +720,7 @@ export function ContraxGrantsPromo({
           return (
           <div
             key={tier.name}
-            className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg"
+            className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md"
           >
             <h3 className="text-xl font-bold text-slate-900">{tier.name}</h3>
             <p className="mt-1 text-sm text-gray-500">{tier.bestFor}</p>
@@ -720,12 +767,13 @@ export function ContraxGrantsPromo({
           </div>
           );
         })}
-      </div>
+        </div>
 
-      <p className="mt-6 text-center text-xs text-gray-500">
-        Prices in US dollars. Verified nonprofits keep free grant search with no credit card, no
-        trial, and no expiration.
-      </p>
+        <p className="mt-6 text-center text-xs text-gray-500">
+          Prices in US dollars. Verified nonprofits keep free grant search with no credit card, no
+          trial, and no expiration.
+        </p>
+      </div>
     </section>
   );
 }
@@ -993,29 +1041,8 @@ function Pricing() {
     },
   ];
 
-  // Agency ($199/mo) is NOT part of the primary 3-tier matrix — kept separately
-  // (Proposal Evaluator Red Team + team roles). Listed below the main grid.
-  const agencyPlan = {
-    name: "Agency",
-    price: "199",
-    period: "/month",
-    description: "For firms managing multiple clients or large contract portfolios.",
-    features: [
-      "Everything in Professional",
-      "200 AI Executive Briefs monthly",
-      "100 Award Autopsies monthly",
-      "Proposal Evaluator Red Team",
-      "Team roles & permissions",
-      "Integration connectors",
-      "Win/loss bid tracking",
-      "Team collaboration tools",
-    ],
-    cta: "Find Opportunities for My Company",
-    slug: "agency",
-  };
-
   return (
-    <section id="pricing" className="pricing-section py-20 sm:py-28">
+    <section id="pricing" className="pricing-section py-16 sm:py-20">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-600">
@@ -1031,11 +1058,11 @@ function Pricing() {
           <p className="mt-3 text-sm font-medium text-slate-500">Start free on Basic — no card required. Your 14-day Professional trial starts on your first premium action. Cancel anytime.</p>
         </div>
 
-        <div className="mt-14 grid gap-8 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 lg:grid-cols-3">
           {plans.map((plan) => (
             <div
               key={plan.name}
-              className={`relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm transition-all hover:shadow-lg ${
+              className={`relative flex flex-col rounded-2xl border bg-white p-7 shadow-sm transition-all hover:shadow-lg ${
                 plan.featured
                   ? "border-blue-500 ring-2 ring-blue-500/20 scale-[1.02] lg:scale-105"
                   : "border-gray-200"
@@ -1075,52 +1102,16 @@ function Pricing() {
           ))}
         </div>
 
-        {/* Agency — kept separate from the primary 3-tier matrix */}
-        <div className="mt-10">
-          <div className="relative flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-            <div className="flex-1">
-              <div className="flex items-center gap-3">
-                <h3 className="text-xl font-bold text-slate-900">{agencyPlan.name}</h3>
-              </div>
-              <p className="mt-1 text-sm text-gray-500">{agencyPlan.description}</p>
-              <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-1.5 text-sm text-gray-600">
-                {agencyPlan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-1.5">
-                    <svg className="h-4 w-4 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="mt-6 sm:mt-0 sm:text-right">
-              <p className="text-3xl font-extrabold text-slate-900">
-                ${agencyPlan.price}<span className="text-base font-normal text-gray-500">{agencyPlan.period}</span>
-              </p>
-              <a
-                href={`/signup?plan=${agencyPlan.slug}`}
-                onClick={() => trackEvent("hero_cta_click", "pricing")}
-                className="mt-3 inline-block w-full rounded-xl border-2 border-slate-900 px-6 py-3 text-center text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98] sm:w-auto"
-              >
-                {agencyPlan.cta}
-              </a>
-            </div>
-          </div>
-          <p className="mt-3 text-center text-xs text-gray-500">
-            Agency includes the Proposal Evaluator "Red Team" and team roles — available separately from the core tiers.
-          </p>
-        </div>
-
         {/* Billing note */}
         <p className="mt-8 text-center text-sm text-gray-500">
           Plans are billed monthly. Cancel anytime.
         </p>
-        <p className="mt-3 text-center">
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-center">
           <a href="/signup" onClick={() => trackEvent("hero_cta_click", "pricing")} className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
             Or start your 14-day Professional trial →
           </a>
-        </p>
+          <a href="/pricing" className="text-sm font-semibold text-blue-700 hover:text-blue-800">See all plans, including Agency →</a>
+        </div>
       </div>
     </section>
   );

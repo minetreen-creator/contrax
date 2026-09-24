@@ -44,6 +44,7 @@ interface ConversionOpportunity {
   best_next: string;
   obstacle: string;
   cta: string;
+  channel: "outreach" | "onsite";
 }
 interface Journey {
   visitor_id: string;
@@ -243,6 +244,9 @@ function OpportunityPanel({ opp, score, level }: { opp: ConversionOpportunity; s
       <p className="mt-0.5 text-[11px] text-rose-600/80">
         Rule-based guidance from this visitor's observed actions — what to do next, what's in the way, and a CTA to try.
       </p>
+      <span className={`mt-2 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${opp.channel === "outreach" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+        {opp.channel === "outreach" ? "Direct outreach available" : "On-site action only"}
+      </span>
 
       <div className="mt-3 space-y-3">
         <div>

@@ -14,8 +14,9 @@ import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusio
  *     "inferred" in the UI),
  *   - the 0–100 heuristic lead score with transparent per-reason breakdown.
  *
- * PII RULES (owner): no full emails (local-part@… only when known), no raw IPs
- * (never selected here), geo is always "approximate / IP-derived" in the UI.
+ * PII RULES (owner): no full emails (local-part@… only when known). Raw IPs are
+ * returned only through this admin-gated detail path and must never reach a
+ * public route. Geo is always "approximate / IP-derived" in the UI.
  * No third-party enrichment — everything derives from first-party
  * funnel_events / page_views / radar_saves / visitors rows.
  */
@@ -333,6 +334,12 @@ export interface VisitorIntel {
     region: string | null;
     approximate: true; // UI must render the "approximate / IP-derived" label
   };
+  network: {
+    first_ip: string | null;
+    last_ip: string | null;
+    changed: boolean;
+    retention_days: 90;
+  };
   device: { device_type: string | null; browser_label: string | null };
   engagement: {
     steps: number;
@@ -410,8 +417,8 @@ function sameUtcDay(a: string, b: string): boolean {
  * table, still bounded by a WHERE). Applies the SAME bot/QA/admin exclusions as
  * the journeys board so a row always agrees with its panel.
  *
- * PII: no ip / user_agent / referrer-url columns are selected anywhere; the
- * only email-shaped value is masked to local-part@….
+ * PII: raw IPs are limited to this admin-only payload. User-agent and raw
+ * referrer URLs are not returned; the only email-shaped value is masked.
  */
 export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel | null> {
   const vid = visitorId.trim();
@@ -428,6 +435,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
   try {
     const vRows: any[] = await sql()`
       SELECT visitor_id, first_seen_at, last_seen_at, first_path, last_path, city, region,
+             first_ip, last_ip,
              device_type, browser_label, source, radar, signup, activated, steps, sessions,
              last_action, last_action_at, converted_user_id, saw_pricing, saw_brief
       FROM visitors WHERE visitor_id = ${vid}`;
@@ -693,6 +701,12 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
       city: v?.city ?? null,
       region: v?.region ?? null,
       approximate: true,
+    },
+    network: {
+      first_ip: v?.first_ip ?? null,
+      last_ip: v?.last_ip ?? null,
+      changed: Boolean(v?.first_ip && v?.last_ip && v.first_ip !== v.last_ip),
+      retention_days: 90,
     },
     device: {
       device_type: v?.device_type ?? null,

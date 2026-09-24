@@ -220,6 +220,8 @@ interface Journey {
   landing_page: string | null;
   city: string | null;
   region: string | null;
+  first_ip?: string | null;
+  last_ip?: string | null;
   device_type: string | null;
   browser_label: string | null;
   radar: boolean;
@@ -937,6 +939,8 @@ async function handler({ request }: { request: Request }) {
         landing_page: landing,
         city: v.city ?? null,
         region: v.region ?? null,
+        first_ip: v.first_ip ?? null,
+        last_ip: v.last_ip ?? null,
         device_type: v.device_type ?? null,
         browser_label: v.browser_label ?? null,
         radar: !!v.radar,
@@ -1084,6 +1088,19 @@ async function handler({ request }: { request: Request }) {
     const radarLeadStages: Record<string, "captured" | "confirmed" | "alerted" | "clicked"> = {};
     for (const [vid, stage] of radarLeadStagesMap) radarLeadStages[vid] = stage;
 
+    // The board includes raw IPs by owner direction. Treat the entire board read
+    // as one audited access event rather than writing one audit row per visitor.
+    await sql()`CREATE TABLE IF NOT EXISTS admin_network_access_audit (
+      id BIGSERIAL PRIMARY KEY,
+      admin_user_id INTEGER NOT NULL,
+      admin_email TEXT NOT NULL,
+      visitor_id TEXT NOT NULL,
+      accessed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )`;
+    await sql()`INSERT INTO admin_network_access_audit
+      (admin_user_id, admin_email, visitor_id)
+      VALUES (${user.id}, ${user.email}, ${"*journeys-board*"})`;
+
     return Response.json({
       rangeDays,
       from: fromIso,
@@ -1092,7 +1109,7 @@ async function handler({ request }: { request: Request }) {
       radarLeadStages,
       journeys: all.map((j) => ({ ...j, radar_lead_stage: radarLeadStagesMap.get(j.visitor_id) ?? null })),
       watched_returned: watchedReturned,
-    });
+    }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (err) {
     console.error("[api/admin/journeys] error:", err);
     return Response.json(EMPTY);

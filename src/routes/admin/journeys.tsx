@@ -30,9 +30,10 @@ import {
  * PII: unauthenticated visitors → geo/behavioral display name ("Dallas, TX ·
  * Desktop", "Direct Lead · /pricing") with a muted #hash badge; linked users →
  * "local-part@…". Location is always labeled "approximate / IP-derived";
- * interests are always labeled "inferred". No raw IPs, full emails, or raw
- * user-agent strings anywhere. QA/admin/bot/test traffic is excluded
- * server-side.
+ * interests are always labeled "inferred". Full IPs appear only inside this
+ * authenticated admin panel; every detail access is audited server-side. Full
+ * emails and raw user-agent strings are never shown. QA/admin/bot/test traffic
+ * is excluded server-side.
  */
 
 interface TimelineItem { t: string; label: string; kind: "page" | "event"; }
@@ -52,6 +53,8 @@ interface Journey {
   landing_page: string | null;
   city: string | null;
   region: string | null;
+  first_ip?: string | null;
+  last_ip?: string | null;
   device_type: string | null;
   browser_label: string | null;
   radar: boolean;
@@ -113,6 +116,7 @@ interface VisitorIntel {
     sessions: number; visits_distinct: number;
   };
   location: { city: string | null; region: string | null; approximate: true };
+  network: { first_ip: string | null; last_ip: string | null; changed: boolean; retention_days: 90 };
   device: { device_type: string | null; browser_label: string | null };
   engagement: {
     steps: number; sessions: number; returning: boolean;
@@ -408,7 +412,7 @@ function IntelPanel({
     );
   }
 
-  const { known_identity, acquisition, location, device, engagement, interests, contracts_viewed, radar_profile, lead_score, conversion_signals } = intel;
+  const { known_identity, acquisition, location, network, device, engagement, interests, contracts_viewed, radar_profile, lead_score, conversion_signals } = intel;
   const geoLine = [location.city, location.region].filter(Boolean).join(", ");
 
   return (
@@ -477,9 +481,15 @@ function IntelPanel({
               ⚠️ Approximate / IP-derived — a coarse city-level estimate, not an exact address.
             </p>
             <div className="mt-2">
+              <KV k="First IP" v={network.first_ip ?? "Unavailable"} mono />
+              <KV k="Latest IP" v={network.last_ip ?? "Unavailable"} mono />
+              <KV k="IP changed" v={network.changed ? "Yes" : "No"} />
               <KV k="Device" v={device.device_type ? <span className="capitalize">{device.device_type}</span> : "—"} />
               <KV k="Browser" v={device.browser_label ?? "—"} />
             </div>
+            <p className="mt-2 text-[10px] text-slate-400">
+              Admin-only · access logged · raw network identifiers retained up to {network.retention_days} days.
+            </p>
           </PanelSection>
           <PanelSection title="Conversion signals" hint="Derived from real tracked rows.">
             <div className="flex flex-wrap gap-1.5">
@@ -683,6 +693,9 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
               {j.browser_label ? ` · ${j.browser_label}` : ` · ${j.device_type}`}
             </p>
           )}
+          <p className="mt-1 font-mono text-[10px] text-slate-500" title="Admin-only raw network identifier">
+            IP {j.last_ip ?? j.first_ip ?? "unavailable"}
+          </p>
         </td>
         <td className="px-5 py-3 text-slate-600">{j.source ? <span className="capitalize">{j.source}</span> : "—"}</td>
         <td className="px-5 py-3 text-slate-500 max-w-[180px] truncate font-mono">{j.landing_page ?? "—"}</td>

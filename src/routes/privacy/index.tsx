@@ -101,6 +101,7 @@ function PrivacyPage() {
             <p className="mt-3">Contrax may collect and retain IP addresses and related network information when visitors access the service.</p>
             <p className="mt-3">We may use this information for security, fraud and abuse prevention, troubleshooting, analytics, approximate geographic attribution, service improvement, and understanding traffic and usage patterns.</p>
             <p className="mt-3">An IP address does not necessarily identify a particular individual. IP addresses may represent households, businesses, mobile networks, Internet service providers, VPNs, proxies, shared networks, or other infrastructure. Contrax therefore does not treat an IP address alone as definitive proof of a person&rsquo;s identity.</p>
+            <p className="mt-3">Access to raw IP addresses is restricted to authenticated administrators. Administrative access is logged and is intended for security, troubleshooting, analytics, and customer-support purposes.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">4. Cookies, Local Storage, and Similar Technologies</h2>
@@ -143,6 +144,7 @@ function PrivacyPage() {
             <h2 className="text-xl font-semibold text-slate-900">8. Data Retention</h2>
             <p className="mt-3">Contrax retains information for as long as reasonably necessary for the purposes described in this Policy, including providing the service, maintaining security, analyzing service performance, complying with legal obligations, resolving disputes, and enforcing agreements.</p>
             <p className="mt-3">Different categories of information may be retained for different periods depending on their purpose and legal requirements.</p>
+            <p className="mt-3">Raw IP addresses used for first-party visitor analytics are retained for up to 90 days. After that period, Contrax removes the raw network identifier while retaining non-identifying event and aggregate analytics, except where a longer period is reasonably necessary for security, fraud or abuse investigation, legal compliance, or dispute resolution.</p>
             <p className="mt-3">Contrax may retain aggregated or de-identified information that can no longer reasonably be associated with an identifiable individual.</p>
           </section>
           <section>

@@ -51,6 +51,9 @@ jobs:
       - name: Run bid sync
         run: bun run sync-bids
 
+      - name: Enforce 90-day raw-IP retention
+        run: bun run purge-network-identifiers
+
       - name: Send radar match alerts
         # Periodic match-alert sender (owner 2026-09-06): emails confirmed,
         # not-unsubscribed radar leads about NEW bid matches discovered by the

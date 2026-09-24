@@ -620,8 +620,9 @@ CREATE INDEX IF NOT EXISTS idx_far_clauses_source ON far_clauses (source);
 -- Enrichment, owner 2026-08-31). Upserted at intake by the single beacon
 -- endpoint /api/track-visitor (src/lib/tracking-intake.ts) for fast admin
 -- display; funnel_events + page_views remain the detailed history. Idempotent;
--- mirrored by db/migrations/021_visitors.sql. PII hygiene: first_ip/last_ip are
--- raw-edge diagnostics only and are never surfaced on admin pages.
+-- mirrored by db/migrations/021_visitors.sql. first_ip/last_ip are available
+-- only on authenticated admin pages and are automatically cleared after the
+-- disclosed retention window.
 CREATE TABLE IF NOT EXISTS visitors (
     visitor_id TEXT PRIMARY KEY,
     first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -649,6 +650,19 @@ CREATE TABLE IF NOT EXISTS visitors (
     saw_brief BOOLEAN NOT NULL DEFAULT FALSE
 );
 CREATE INDEX IF NOT EXISTS idx_visitors_last_seen_at ON visitors (last_seen_at);
+
+-- Append-only record of authenticated admin access to raw visitor network
+-- identifiers. Runtime creation in /api/admin/visitor-intel keeps older
+-- deployments fail-closed until this canonical schema is applied.
+CREATE TABLE IF NOT EXISTS admin_network_access_audit (
+    id BIGSERIAL PRIMARY KEY,
+    admin_user_id INTEGER NOT NULL,
+    admin_email TEXT NOT NULL,
+    visitor_id TEXT NOT NULL,
+    accessed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_admin_network_access_audit_time
+    ON admin_network_access_audit (accessed_at DESC);
 
 -- Privacy-safe Radar criteria for anonymous visitors who complete a scan.
 -- One current snapshot per first-party visitor id; deliberately excludes

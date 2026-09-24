@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { getVisitorIntel, updateWatchedViewedAt } from "~/lib/visitor-intel";
+import { sql } from "~/db";
 
 /**
  * GET /api/admin/visitor-intel?visitor_id=<id>
@@ -31,7 +32,9 @@ import { getVisitorIntel, updateWatchedViewedAt } from "~/lib/visitor-intel";
  *
  * The SAME bot / @test.contrax / ADMIN_EMAILS exclusions as the journeys board
  * are applied to the detail queries, so a panel always agrees with its row.
- * Never returns raw IPs, full emails, or raw user-agent / referrer URLs.
+ * Returns raw first/latest IPs only to authenticated admins. Each successful
+ * detail access is recorded in an append-only audit table. Never returns full
+ * emails or raw user-agent / referrer URLs.
  */
 async function handler({ request }: { request: Request }) {
   const user = await getUserFromRequest(request);
@@ -47,13 +50,28 @@ async function handler({ request }: { request: Request }) {
   try {
     const intel = await getVisitorIntel(visitorId);
     if (!intel) return Response.json({ error: "Visitor not found" }, { status: 404 });
+    try {
+      await sql()`CREATE TABLE IF NOT EXISTS admin_network_access_audit (
+        id BIGSERIAL PRIMARY KEY,
+        admin_user_id INTEGER NOT NULL,
+        admin_email TEXT NOT NULL,
+        visitor_id TEXT NOT NULL,
+        accessed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )`;
+      await sql()`INSERT INTO admin_network_access_audit
+        (admin_user_id, admin_email, visitor_id)
+        VALUES (${user.id}, ${user.email}, ${visitorId})`;
+    } catch (auditError) {
+      console.error("[api/admin/visitor-intel] network audit unavailable", auditError);
+      return Response.json({ error: "Network access audit unavailable" }, { status: 503 });
+    }
     // An expanded row counts as having been reviewed by an admin.
     try {
       await updateWatchedViewedAt(visitorId);
     } catch {
       // fail-open — the panel still renders
     }
-    return Response.json(intel);
+    return Response.json(intel, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (err) {
     console.error("[api/admin/visitor-intel] error:", err);
     return Response.json({ error: "Failed to load visitor intel" }, { status: 500 });

@@ -104,7 +104,7 @@ async function handler({ request }: { request: Request }) {
       // Real external signups = users excluding the owner (is_admin), the demo
       // account, and QA/test accounts (@test.contrax).
       sql()`SELECT COUNT(*) as count FROM users WHERE ${sql().unsafe(qaExternalUserSQL())}`,
-      sql()`SELECT id, email, created_at FROM users WHERE ${sql().unsafe(qaExternalUserSQL())} ORDER BY created_at DESC`,
+      sql()`SELECT id, email, plan_tier, subscription_status, created_at FROM users WHERE ${sql().unsafe(qaExternalUserSQL())} ORDER BY created_at DESC`,
       sql()`SELECT COUNT(*) as count FROM waitlist`,
       sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC LIMIT 10`,
       sql()`SELECT COUNT(*) as count FROM savings_diagnoses`,
@@ -131,6 +131,8 @@ async function handler({ request }: { request: Request }) {
       recentSignups: (signupRows as any[]).map((r) => ({
         id: Number(r.id),
         email: r.email,
+        plan_tier: r.plan_tier,
+        subscription_status: r.subscription_status,
         created_at: String(r.created_at),
       })),
       totalWaitlist: Number(waitlistCount[0].count),

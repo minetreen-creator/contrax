@@ -139,10 +139,18 @@ export function paragraphsOf(html: string): string {
     .join("\n");
 }
 
-/** The value of a `<div class="… fieldClass …">…</div>` field, minus its label. */
+/**
+ * The value of a `<div class="… fieldClass …">…</div>` field, minus its label.
+ *
+ * The class boundary is `(?<![\w-])…(?![\w-])`, NOT `\b`: a `\b` matches before the
+ * hyphen in `sba-subnet__poc-phone`, so `fieldValue(section, "sba-subnet__poc")` would
+ * happily return the PHONE field whenever it appears first. The contact section nests
+ * exactly those three classes (`__poc`, `__poc-phone`, `__poc-email`), so the strict
+ * boundary is what makes each one addressable (verified against the live page).
+ */
 function fieldValue(html: string, fieldClass: string): string | null {
   const re = new RegExp(
-    `class="[^"]*\\b${fieldClass}\\b[^"]*"[^>]*>([\\s\\S]*?)</div>`,
+    `class="[^"]*(?<![\\w-])${fieldClass}(?![\\w-])[^"]*"[^>]*>([\\s\\S]*?)</div>`,
   );
   const m = re.exec(html);
   if (!m) return null;
@@ -151,10 +159,14 @@ function fieldValue(html: string, fieldClass: string): string | null {
   return value.length > 0 ? value : null;
 }
 
-/** The `href` of the first anchor inside a named field div. */
+/**
+ * The `href` of the first anchor inside a named field div. Same strict class
+ * boundary as fieldValue() — see the comment there (`…__poc` must not read the
+ * `…__poc-phone` div).
+ */
 function fieldHref(html: string, fieldClass: string, scheme: string): string | null {
   const re = new RegExp(
-    `class="[^"]*\\b${fieldClass}\\b[^"]*"[^>]*>([\\s\\S]*?)</div>`,
+    `class="[^"]*(?<![\\w-])${fieldClass}(?![\\w-])[^"]*"[^>]*>([\\s\\S]*?)</div>`,
   );
   const m = re.exec(html);
   if (!m) return null;
@@ -315,6 +327,14 @@ export function parseSubnetDetailPage(html: string): SubnetDetail {
   }
   const sections = sectionBodies(html);
   const detailsRegion = html.slice(detailsIndex, html.indexOf("sba-subnet__section", detailsIndex));
+  // THE POINT OF CONTACT IS NOT IN THE DETAILS REGION. The live page renders it in its
+  // own sibling section (`sba-subnet__section__contact`, headed "Point of Contact",
+  // holding `__poc` / `__poc-phone` / `__poc-email`), which sits AFTER the details
+  // region has already ended — so reading the POC out of `detailsRegion` returned null
+  // on a page that plainly publishes Name/Phone/Email (live 2026-09-25, fixture
+  // verified byte-identical). The details region stays as the fallback so a page that
+  // ever inlines the POC beside the closing date is still read.
+  const contactRegion = sections.get("contact") ?? detailsRegion;
 
   const naicsBodies = sections.get("naics") ?? "";
   const naicsCode = /<span class="code">([\s\S]*?)<\/span>/.exec(naicsBodies)?.[1];
@@ -351,9 +371,9 @@ export function parseSubnetDetailPage(html: string): SubnetDetail {
     certsSolicited: businessTypes,
     naicsCode: naicsCode ? textOf(naicsCode) || null : null,
     naicsTitle: naicsTitle ? textOf(naicsTitle) || null : null,
-    contactName: fieldValue(detailsRegion, "sba-subnet__poc"),
-    contactPhone: fieldHref(detailsRegion, "sba-subnet__poc-phone", "tel"),
-    contactEmail: fieldHref(detailsRegion, "sba-subnet__poc-email", "mailto"),
+    contactName: fieldValue(contactRegion, "sba-subnet__poc"),
+    contactPhone: fieldHref(contactRegion, "sba-subnet__poc-phone", "tel"),
+    contactEmail: fieldHref(contactRegion, "sba-subnet__poc-email", "mailto"),
     attachments,
   };
 }

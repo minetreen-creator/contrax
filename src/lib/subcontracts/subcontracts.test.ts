@@ -6,6 +6,15 @@
  * INJECTED. Listed explicitly in .github/workflows/build-check.yml because a new
  * deterministic suite that no workflow names runs nowhere.
  *
+ * FIXTURE PROVENANCE (re-verified, do not guess): both fixtures were re-fetched from
+ * the live board on 2026-09-25T16:22:17Z — the detail page came back 36,605 bytes,
+ * BYTE-IDENTICAL to the committed snapshot, and the live index page 0's
+ * `<table class="usa-table cols-6">…</table>` region is BYTE-IDENTICAL to the committed
+ * index fixture (10 rows). So the three expectations that were red were stale
+ * EXPECTATIONS, not fixture drift, except the point of contact, which was a real
+ * parser gap (the POC lives in its own `…__section__contact` sibling, not inside the
+ * `…__details` region) — fixed in subnet.ts and pinned below.
+ *
  * What it pins, in the order the honesty contract cares about:
  *   1. PARSER — the index page (10 real rows), the single-digit-date form the recon
  *      probe's two-digit regex silently dropped (the "91 notices have no closing
@@ -158,18 +167,30 @@ describe("SUBNet detail parser", () => {
   test("reads the business fields the index cannot publish", () => {
     expect(detail.division).toBe("Atterbury Job Corps");
     expect(detail.identifier).toBe("Dorm and Common Area Landscaping");
-    expect(detail.website).toBe("https://www.adamsaai.com");
+    // VERBATIM, and deliberately NOT normalized: the live page's `sba-subnet__website`
+    // anchor is exactly `href="https://adamsaai.com"` (re-fetched 2026-09-25T16:22:17Z,
+    // byte-identical to this fixture). The earlier expectation of
+    // "https://www.adamsaai.com" was WRONG — it invented a `www.` the source never
+    // published, which is exactly what the honesty contract forbids. We never add,
+    // strip or rewrite a host: whatever the notice published is what we store and show.
+    expect(detail.website).toBe("https://adamsaai.com");
     expect(detail.placeOfPerformance).toBe("Indiana");
     expect(detail.performanceStartRaw).toBe("10/15/2026");
     expect(detail.closingRaw).toBe("10/12/2026");
   });
 
   test("reads the certifications the notice itself solicits", () => {
+    // The live page's "Type of Businesses Being Solicited" list has SIX entries and
+    // includes VOSB (a SEPARATE line from the SDVOSB one) — re-fetched
+    // 2026-09-25T16:22:17Z, byte-identical to this fixture, and the source is the
+    // ground truth for what a notice solicits. The earlier five-item expectation was
+    // stale; the parser was right.
     expect(detail.certsSolicited).toEqual([
       "Small Business (SB)",
       "Small Disadvantaged Business (SDB)",
       "Women-Owned Small Business (WOSB)",
       "SBA-certified HUBZone Small Business (HUBZone SB)",
+      "Veteran-Owned Small Business (VOSB)",
       "SBA-certified Service-Disabled Veteran-Owned Small Business (SDVOSB)",
     ]);
   });
@@ -186,6 +207,26 @@ describe("SUBNet detail parser", () => {
     // Attachments are recorded by name and size ONLY — their files live under the
     // robots-disallowed /sites/default/files/* path, so nothing links to them.
     expect(JSON.stringify(detail.attachments)).not.toContain("/sites/default/files");
+
+    // REGRESSION (the POC parser gap found 2026-09-25, fixed in subnet.ts). The contact
+    // block is its own `sba-subnet__section__contact` SIBLING of the details region, and
+    // its three field classes nest (`__poc`, `__poc-phone`, `__poc-email`). Pin both
+    // halves of the fix here so neither can silently regress:
+    //   * the three values are three DIFFERENT fields (a `\b` class boundary would let
+    //     `__poc` read the phone div, which is how a "fixed" POC could come back wrong);
+    //   * with the contact section renamed away the fields are NULL — the POC is never
+    //     inferred from somewhere else on the page (the details region still parses).
+    expect(new Set([detail.contactName, detail.contactPhone, detail.contactEmail]).size).toBe(3);
+    const withoutContact = DETAIL_PAGE.replace(
+      /sba-subnet__section__contact/g,
+      "sba-subnet__section__contact-gone",
+    );
+    expect(withoutContact).not.toBe(DETAIL_PAGE);
+    const stripped = parseSubnetDetailPage(withoutContact);
+    expect(stripped.division).toBe("Atterbury Job Corps");
+    expect(stripped.contactName).toBeNull();
+    expect(stripped.contactPhone).toBeNull();
+    expect(stripped.contactEmail).toBeNull();
   });
 
   test("keeps the description and the notice's own Project Summary separate", () => {
@@ -320,7 +361,11 @@ describe("dedupe + the crawl stop rules", () => {
     const merged = notices[0]!;
     expect(merged.sourceKey).toBe("sba-subnet");
     expect(merged.primeDivision).toBe("Atterbury Job Corps");
-    expect(merged.certsSolicited).toHaveLength(5);
+    // Six: the notice's own list includes the separate VOSB line (see the detail-parser
+    // test above). The merge carries the DETAIL page's list verbatim.
+    expect(merged.certsSolicited).toHaveLength(6);
+    expect(merged.certsSolicited).toContain("Veteran-Owned Small Business (VOSB)");
+    expect(merged.contactName).toBe("Tammy Swallows");
     expect(merged.trades).toEqual(["Landscaping Services"]);
     expect(merged.naics).toBe("561730: Landscaping Services");
     expect(merged.stateCode).toBe("IN");

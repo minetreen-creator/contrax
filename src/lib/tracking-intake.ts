@@ -144,6 +144,20 @@ export const EVENT_LABELS: Record<string, string> = {
   bid_scout_form_started: "Bid Scout intake form started",
   bid_scout_checkout_started: "Bid Scout checkout started",
   bid_scout_purchased: "Bid Scout purchased",
+  // Subcontracting preview (owner decision 5, 2026-09-25) — FIVE display-only
+  // names, registered here so the admin journey boards can label them. Same
+  // isolation contract as the grants_* / bid_scout_* families: none of them is a
+  // member of ANY funnel-stage set, so viewing a subcontracting notice can never
+  // synthesize a radar/signup/activation/paid stage (asserted in
+  // src/lib/subcontracts/subcontracts-analytics.test.ts).
+  // `subcontracts_checkout_started` is registered but INERT: there is no
+  // subcontracting checkout surface, so nothing fires it (see
+  // src/lib/subcontracts/subcontracts-analytics.ts).
+  subcontracts_page_viewed: "Subcontracts page viewed",
+  subcontracts_notice_viewed: "Subcontracting notice viewed",
+  subcontract_source_open: "Subcontracting notice source opened",
+  subcontract_contact_click: "Subcontracting prime contact clicked",
+  subcontracts_checkout_started: "Subcontracts checkout started (inert — no checkout exists)",
 };
 
 function getClientIp(request: Request): string | null {

@@ -23,7 +23,13 @@ import {
  * visitor/lead surfaces.
  */
 
-interface RecentSignup { id: number; email: string; created_at: string; }
+interface RecentSignup {
+  id: number;
+  email: string;
+  plan_tier: string | null;
+  subscription_status: string | null;
+  created_at: string;
+}
 interface SignupActivity {
   user_id: number;
   email: string;
@@ -134,16 +140,19 @@ function SignupsPage() {
 
               <div className="mt-4 rounded-xl border border-slate-200 bg-white overflow-hidden">
                 <div className="px-5 py-3 border-b border-slate-100">
-                  <h3 className="font-bold text-slate-900">Recent signups</h3>
+                  <h3 className="font-bold text-slate-900">Signup emails and plans</h3>
+                  <p className="text-xs text-slate-500">Current account plan and billing status; a selected plan does not mean a payment was made.</p>
                 </div>
                 {metrics.recentSignups.length === 0 ? (
                   <p className="px-5 py-4 text-sm text-slate-400">No signups yet</p>
                 ) : (
-                  <div className="-mx-1 max-h-96 overflow-y-auto">
-                    <table className="w-full text-sm">
+                  <div className="max-h-96 overflow-auto">
+                    <table className="w-full min-w-[620px] text-sm">
                       <thead>
                         <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
                           <th className="px-5 py-3 font-medium">Email</th>
+                          <th className="px-5 py-3 font-medium">Plan</th>
+                          <th className="px-5 py-3 font-medium">Subscription</th>
                           <th className="px-5 py-3 font-medium">Date</th>
                         </tr>
                       </thead>
@@ -153,6 +162,8 @@ function SignupsPage() {
                             <td className="px-5 py-2.5">
                               <a href={`mailto:${s.email}`} className="text-blue-600 hover:text-blue-700 hover:underline">{s.email}</a>
                             </td>
+                            <td className="px-5 py-2.5 text-slate-700 capitalize">{s.plan_tier ?? "No plan"}</td>
+                            <td className="px-5 py-2.5 text-slate-700 capitalize">{s.subscription_status?.replaceAll("_", " ") ?? "—"}</td>
                             <td className="px-5 py-2.5 text-slate-400 whitespace-nowrap">{dayFmt(s.created_at)}</td>
                           </tr>
                         ))}

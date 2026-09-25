@@ -59,6 +59,10 @@ import { easternDayStart } from "~/lib/grants";
 //   * contentFingerprint — the four-lane FNV-1a content hash used for change
 //     detection (never for uniqueness).
 import { contentFingerprint, parseStateDay } from "~/lib/state-grants/connector";
+// The repo's ONE NAICS code → standard-title table. Imported (never re-typed) so a
+// notice that published a bare code resolves to the same official name this repo
+// already shows everywhere else, and so a new code is added in exactly one place.
+import { NAICS_NAMES } from "~/lib/naics-names";
 
 /** The status model. `unverified` is a real bucket, not an error state. */
 export type SubcontractStatus = "open" | "closed" | "unverified";
@@ -277,6 +281,89 @@ export function stateCodeForPlace(place: string | null | undefined): string | nu
   return STATE_NAMES[key] ?? null;
 }
 
+/** A NAICS code on its own — the form the source uses when it publishes no title. */
+const NAICS_CODE_ONLY = /^\d{2,6}$/;
+/** The source's own section headings that can be left at the head of a section body. */
+const SOURCE_HEADING_WORDS = "description|scope of work|project description|work description|scope";
+/** A NAICS cell that carries ONLY a code — with or without its separator. */
+const NAICS_CELL_ONLY = /^(\d{2,6})\s*[:\-–]?$/;
+/** A line that is nothing but the section splitter's leftover tag punctuation. */
+const TAG_PUNCTUATION_LINE = /^>+$/;
+/** A line that is nothing but one of the source's own section headings. */
+const SOURCE_HEADING_LINE = new RegExp("[>]?\\s*(?:" + SOURCE_HEADING_WORDS + ")\\s*:?\\s*$", "i");
+/** That same heading written inline at the very start ("Scope of work: ..."). */
+const SOURCE_HEADING_PREFIX = new RegExp("[>]?\\s*(?:" + SOURCE_HEADING_WORDS + ")\\s*:\\s*", "i");
+
+/** The source's NAICS description, title-cased the way the option labels expect. */
+function titleCaseNaicsText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\b[a-z]/g, (c) => c.toUpperCase())
+    .replace(/\bAnd\b/g, "and");
+}
+
+/**
+ * The label for a NAICS code whose TITLE the source did not publish.
+ *
+ * Human-readable ALWAYS, never the bare code (live finding O3, 2026-09-25: the trade
+ * menu offered 236210 as if it were a trade name). The repo's single NAICS name table
+ * answers for a code it knows; a code it does not know is labelled as exactly what it
+ * is rather than dressed up as a title. Neither branch invents a trade family — the
+ * notice itself published this code.
+ */
+export function unmappedScopeLabel(code: string): string {
+  const name = NAICS_NAMES[code];
+  return name ? titleCaseNaicsText(name) : "NAICS " + code + " (title not stated)";
+}
+
+/**
+ * One STORED scope value → the label the surface shows.
+ *
+ * A bare code can ALSO already be in `trades` (the write path stored digits for the
+ * three 236210 notices), and a stored row is NOT refetched while its index row is
+ * unchanged — so the read layer resolves it with the SAME resolver the parser uses.
+ * A value that is already a title passes through untouched (byte-stable: the other 138
+ * labels must not move). It feeds a row's own `trades` AND the census/option buckets,
+ * so the filter's value and the option's label can never disagree.
+ */
+export function storedScopeLabel(value: string): string {
+  const text = value.trim();
+  const bare = NAICS_CELL_ONLY.exec(text)?.[1] ?? null;
+  return bare ? unmappedScopeLabel(bare) : text;
+}
+
+/**
+ * Strips the SOURCE'S OWN section heading and the section splitter's leftover tag
+ * punctuation from the head of a section body.
+ *
+ * Why: the section splitter cuts on the <div class="sba-subnet__section ..."> TAG,
+ * which left its closing ">" at the head of every body, and the body then opens with
+ * the source's own <h2>Description</h2>. Left alone, both ride into the text: all 141
+ * live notices stored a scope beginning "> Description ..." (live finding O2,
+ * 2026-09-25). The residue is markup, not content, so it is dropped — the description
+ * itself is never re-wrapped, truncated or rewritten.
+ */
+export function stripSourceHeadingResidue(value: string): string {
+  if (typeof value !== "string") return "";
+  const lines = value.split("\n");
+  let start = 0;
+  while (start < lines.length) {
+    const line = (lines[start] ?? "").trim();
+    if (!line) {
+      start += 1;
+      continue;
+    }
+    if (TAG_PUNCTUATION_LINE.test(line) || SOURCE_HEADING_LINE.test(line)) {
+      start += 1;
+      continue;
+    }
+    break;
+  }
+  const kept = lines.slice(start);
+  if (kept.length > 0) kept[0] = (kept[0] ?? "").replace(SOURCE_HEADING_PREFIX, "").trim();
+  return kept.join("\n").trim();
+}
+
 /**
  * "Listed scopes" for a notice: the source's OWN NAICS description, title-cased.
  *
@@ -285,15 +372,15 @@ export function stateCodeForPlace(place: string | null | undefined): string | nu
  * eligibility or fit determination" — so mapping NAICS families onto invented trade
  * names ("Janitorial") would be an inference the notice did not make.
  */
-export function listedScopes(naicsTitle: string | null | undefined): string[] {
-  if (typeof naicsTitle !== "string") return [];
-  const text = naicsTitle.trim();
-  if (!text) return [];
-  const label = text
-    .toLowerCase()
-    .replace(/\b[a-z]/g, (c) => c.toUpperCase())
-    .replace(/\bAnd\b/g, "and");
-  return [label];
+export function listedScopes(
+  naicsTitle: string | null | undefined,
+  naicsCode?: string | null,
+): string[] {
+  const text = typeof naicsTitle === "string" ? naicsTitle.trim() : "";
+  const bare = NAICS_CELL_ONLY.exec(text)?.[1] ?? null;
+  if (text && !bare) return [titleCaseNaicsText(text)];
+  const code = bare ?? (naicsCode ?? "").trim();
+  return NAICS_CODE_ONLY.test(code) ? [unmappedScopeLabel(code)] : [];
 }
 
 /** "561730: Landscaping Services" → the source's code and title, or nulls. */
@@ -306,6 +393,11 @@ export function splitNaics(naics: string | null | undefined): {
   if (!text) return { code: null, title: null };
   const m = /^(\d{2,6})\s*[:\-–]\s*(.+)$/.exec(text);
   if (m) return { code: m[1]!, title: m[2]!.trim() };
+  // A cell carrying ONLY the code (with or without its separator) is a CODE, not a
+  // title: 236210 and "236210:" both mean "the source published no title". Reading
+  // those digits as a title is what put 236210 into `trades` and left naics_code NULL.
+  const codeOnly = /^(\d{2,6})\s*[:\-–]?$/.exec(text);
+  if (codeOnly) return { code: codeOnly[1]!, title: null };
   return { code: null, title: text };
 }
 

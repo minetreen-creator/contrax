@@ -1128,3 +1128,106 @@ CREATE TABLE IF NOT EXISTS saved_grants (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS saved_grants_user_opportunity_key ON saved_grants (user_id, opportunity_id);
 CREATE INDEX IF NOT EXISTS idx_saved_grants_user_created ON saved_grants (user_id, created_at DESC);
+
+-- Migration 050 — SUBCONTRACTING PREVIEW data layer (owner directive 2026-09-25,
+-- BUILD-PLAN.md §6.2). MIRROR of db/migrations/050_subcontracts.sql: the bootstrap
+-- tests build a database from THIS file alone, so a missing mirror entry is a
+-- latent CI failure. Additive: four new tables, nothing existing is touched.
+-- Identity is (source_id, external_id); status is open | closed | unverified, where
+-- `unverified` is the honest home of a notice with no published closing date.
+CREATE TABLE IF NOT EXISTS subcontract_sources (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_key TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    agency TEXT NOT NULL,
+    official_url TEXT NOT NULL,
+    official_host TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('subnet', 'prime_directory')),
+    cadence TEXT NOT NULL,
+    coverage_tier TEXT NOT NULL CHECK (coverage_tier IN ('unavailable', 'limited', 'curated', 'connected')),
+    note TEXT,
+    approved_at TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS subcontract_opportunities (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_id UUID NOT NULL REFERENCES subcontract_sources (id),
+    external_id TEXT NOT NULL,
+    natural_key TEXT NOT NULL,
+    title TEXT NOT NULL,
+    prime TEXT NOT NULL,
+    prime_uei TEXT,
+    prime_division TEXT,
+    website TEXT,
+    scope TEXT,
+    summary TEXT,
+    trades TEXT[] NOT NULL DEFAULT '{}',
+    certs_solicited TEXT[] NOT NULL DEFAULT '{}',
+    naics TEXT,
+    naics_code TEXT,
+    naics_title TEXT,
+    place_of_performance TEXT,
+    state_code TEXT,
+    closing_date DATE,
+    performance_start_date DATE,
+    contact_name TEXT,
+    contact_email TEXT,
+    contact_phone TEXT,
+    source_url TEXT NOT NULL,
+    detail_url TEXT NOT NULL,
+    attachments JSONB NOT NULL DEFAULT '[]'::jsonb,
+    status TEXT NOT NULL CHECK (status IN ('open', 'closed', 'unverified')),
+    status_reason TEXT,
+    source_updated_at TIMESTAMPTZ,
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_verified_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    fingerprint TEXT NOT NULL,
+    raw JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (source_id, external_id)
+);
+CREATE INDEX IF NOT EXISTS idx_subcontract_opportunities_open
+    ON subcontract_opportunities (status, closing_date, state_code);
+CREATE INDEX IF NOT EXISTS idx_subcontract_opportunities_source_status
+    ON subcontract_opportunities (source_id, status, last_seen_at DESC);
+CREATE INDEX IF NOT EXISTS idx_subcontract_opportunities_natural_key
+    ON subcontract_opportunities (natural_key);
+CREATE INDEX IF NOT EXISTS idx_subcontract_opportunities_trades
+    ON subcontract_opportunities USING GIN (trades);
+CREATE TABLE IF NOT EXISTS subcontract_sync_runs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_key TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('ok', 'error')),
+    stage TEXT,
+    counts JSONB NOT NULL DEFAULT '{}'::jsonb,
+    message TEXT,
+    started_at TIMESTAMPTZ NOT NULL,
+    finished_at TIMESTAMPTZ NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_subcontract_sync_runs_source_started
+    ON subcontract_sync_runs (source_key, started_at DESC);
+CREATE TABLE IF NOT EXISTS subcontract_primes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    source_id UUID NOT NULL REFERENCES subcontract_sources (id),
+    uei TEXT NOT NULL,
+    legal_name TEXT NOT NULL,
+    ultimate_parent_name TEXT,
+    ultimate_parent_uei TEXT,
+    naics TEXT[] NOT NULL DEFAULT '{}',
+    industries TEXT[] NOT NULL DEFAULT '{}',
+    vendor_state TEXT,
+    pop_states TEXT[] NOT NULL DEFAULT '{}',
+    agencies TEXT[] NOT NULL DEFAULT '{}',
+    award_rows INTEGER NOT NULL DEFAULT 0,
+    value NUMERIC,
+    latest_pop_start DATE,
+    subcontract_plan_type TEXT,
+    fy TEXT NOT NULL,
+    source_url TEXT,
+    fetched_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (source_id, uei)
+);
+CREATE INDEX IF NOT EXISTS idx_subcontract_primes_state
+    ON subcontract_primes (vendor_state, fy);

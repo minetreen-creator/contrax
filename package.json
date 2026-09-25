@@ -22,7 +22,8 @@
     "test": "bun test",
     "format": "prettier --write .",
     "backfill-naics": "bun run src/jobs/backfill-naics.ts",
-    "sync:state": "bun run src/jobs/state-grants-sync.ts"
+    "sync:state": "bun run src/jobs/state-grants-sync.ts",
+    "sync-subcontracts": "bun run src/jobs/subcontract-sync.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

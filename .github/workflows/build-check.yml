@@ -301,3 +301,20 @@ jobs:
             echo "DATABASE_URL secret NOT configured — the DB-backed state grants suites skip loudly (the unit half still runs and must pass)."
           fi
           bun test src/lib/state-grants
+      # Subcontracting preview, DATA LAYER (owner directive 2026-09-25; go-live
+      # approved once built, NO UI in this PR). DETERMINISTIC, network-free AND
+      # database-free by construction: every byte comes from a committed fixture
+      # captured from the live SBA SUBNet board
+      # (src/lib/subcontracts/fixtures/, re-verified byte-identical to the live board
+      # on 2026-09-25T16:22:17Z), the crawler's HTTP fetcher is INJECTED, the store is
+      # injected, and there is no DATABASE_URL. It pins the parser (index page, the
+      # single-digit closing-date trap, the source's own no-results marker, the detail
+      # page incl. the POC that lives in its own contact section), the fail-closed
+      # paths (a reshape never reads as an empty board; a zero-notice crawl errors), the
+      # dedupe identity + both real pager stop shapes, and the US-Eastern expiry rules
+      # (closing day inclusive; no date ⇒ unverified, never open).
+      # Listed EXPLICITLY because a new deterministic suite that no workflow names runs
+      # nowhere (the reason runner.dedupe.test.ts went unrun for weeks): `bun test
+      # src/lib/subcontracts` is what makes this suite visible in the CI step list.
+      - name: Subcontracting preview data layer tests (unit, deterministic, zero network)
+        run: bun test src/lib/subcontracts

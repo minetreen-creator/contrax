@@ -1263,6 +1263,9 @@ function RadarLanding() {
         >
           ⬢ CONTRAX — Contract Radar
         </a>
+        <a href="/subcontracts" className="mt-3 self-start text-sm font-semibold text-sky-300 hover:text-white">
+          Browse verified subcontracting opportunities →
+        </a>
 
         {step === 1 && (
           <section className="flex flex-1 flex-col justify-center py-8">

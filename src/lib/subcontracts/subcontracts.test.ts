@@ -321,14 +321,14 @@ describe("dedupe + the crawl stop rules", () => {
     ).toBe(true);
   });
 
-  test("the crawler fetches a detail page ONLY for a notice no earlier sweep stored", async () => {
+  test("the crawler skips a detail fetch only for an index row that matches the stored snapshot", async () => {
     const requested: string[] = [];
     const fetchText = async (url: string) => {
       requested.push(url);
       if (url.includes("/opportunity/")) return DETAIL_PAGE;
       return INDEX_PAGE;
     };
-    const crawl = await crawlSubnet({ fetchText, skipDetailFor: new Set(), pageCap: 40 });
+    const crawl = await crawlSubnet({ fetchText, storedIndex: new Map(), pageCap: 40 });
     // page 0 contributes rows; page 1+ of the real fixture keeps re-yielding the same
     // slugs, so the crawl must stop on the repeated-slug rule rather than the cap.
     expect(crawl.stats.pagesFetched).toBeLessThan(40);
@@ -336,19 +336,25 @@ describe("dedupe + the crawl stop rules", () => {
     expect(crawl.rows).toHaveLength(10);
     expect(requested.filter((u) => u.includes("/opportunity/"))).toHaveLength(10);
     expect(crawl.stats.detailsFetched).toBe(10);
+    expect(crawl.unchangedIndexIds.size).toBe(0);
 
-    // Second pass: every slug is already stored, so ZERO detail requests are spent.
+    // Second pass: every slug is stored WITH the index snapshot this crawl just parsed,
+    // so ZERO detail requests are spent.
     const again: string[] = [];
+    const storedIndex = new Map(
+      crawl.rows.map((r) => [r.externalId, JSON.parse(JSON.stringify(r)) as unknown]),
+    );
     const crawl2 = await crawlSubnet({
       fetchText: async (url) => {
         again.push(url);
         if (url.includes("/opportunity/")) throw new Error("detail fetch must not happen");
         return INDEX_PAGE;
       },
-      skipDetailFor: new Set(crawl.rows.map((r) => r.externalId)),
+      storedIndex,
     });
     expect(crawl2.stats.detailsFetched).toBe(0);
     expect(crawl2.stats.detailsSkipped).toBe(10);
+    expect(crawl2.unchangedIndexIds.size).toBe(10);
     expect(again.filter((u) => u.includes("/opportunity/"))).toHaveLength(0);
   });
 

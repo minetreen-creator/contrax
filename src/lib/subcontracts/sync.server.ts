@@ -4,12 +4,18 @@
  *
  * What one sweep does, in order:
  *   1. READ-ONLY pre-read: which slugs does this source already store, with which
- *      fingerprints? (No write. A source that does not exist yet is simply "nothing
- *      stored" — the crawl then fetches a detail page for every notice, which is the
- *      honest cost of the first sweep.)
+ *      fingerprints AND which stored index snapshot (`raw->'index'`)? (No write. A
+ *      source that does not exist yet is simply "nothing stored" — the crawl then
+ *      fetches a detail page for every notice, which is the honest cost of the first
+ *      sweep.)
  *   2. Crawl the SUBNet index (fetch → parse → stop on the pager's own signals) and
- *      fetch the detail page of every notice that is NOT already stored.
- *   3. classify() → dedupe() → split changed/unchanged by fingerprint.
+ *      fetch the detail page of every notice whose freshly parsed INDEX ROW is not
+ *      content-identical to the stored snapshot. Slug existence is NOT the test: SBA
+ *      amends notices in place (same slug, changed date), so skipping on the slug alone
+ *      would write the amendment from index-only data and NULL out detail-only columns.
+ *   3. classify() → dedupe() → split changed/unchanged: a notice whose index row was
+ *      unchanged (no detail fetch) or whose full fingerprint is unchanged is NOT
+ *      written; only new or genuinely changed content reaches the store.
  *   4. Resolve the source row, then commit ONE statement: the new/changed notices,
  *      the `last_seen_at`/`last_verified_at` refresh for the unchanged ones, the
  *      stale sweep for everything this COMPLETE sweep did not see, and the `ok` run
@@ -38,10 +44,18 @@ import type {
 } from "~/lib/subcontracts/store.server";
 import type { SubnetCrawlStats } from "~/lib/subcontracts/subnet";
 
+/** What a previous complete sweep stored for one notice — the amendment pre-read. */
+export interface StoredNoticeSnapshot {
+  /** The fingerprint of the row as stored (detail-inclusive). */
+  fingerprint: string;
+  /** The stored `raw->'index'` snapshot, compared per-notice to decide the detail fetch. */
+  index: unknown;
+}
+
 /** The store surface the runner needs, injectable for tests. */
 export interface SubcontractSyncStore {
   ensureSource(source: typeof SUBNET_SOURCE): Promise<string>;
-  readFingerprints(sourceKey: string): Promise<Map<string, string>>;
+  readStoredNotices(sourceKey: string): Promise<Map<string, StoredNoticeSnapshot>>;
   commitSync(entry: SubcontractSyncWrite): Promise<SubcontractSyncWriteResult>;
   recordFailedSync(opts: {
     sourceKey: string;
@@ -55,9 +69,20 @@ export interface SubcontractSyncStore {
 
 /** The source reader (crawl + parse + dedupe), injectable for tests. */
 export type SubcontractSourceReader = (options: {
-  skipDetailFor: ReadonlySet<string>;
+  /** slug → stored `raw->'index'`; the detail page is fetched unless it matches. */
+  storedIndex: ReadonlyMap<string, unknown>;
   now: Date;
-}) => Promise<{ notices: SubcontractNotice[]; stats: SubnetCrawlStats; collisions: string[] }>;
+}) => Promise<{
+  notices: SubcontractNotice[];
+  stats: SubnetCrawlStats;
+  collisions: string[];
+  /**
+   * The ids whose detail page the crawl skipped because the fresh index row is
+   * content-identical to the stored snapshot. Optional so an injected test reader can
+   * simply omit it (the split then falls back to fingerprint equality).
+   */
+  unchangedIndexIds?: ReadonlySet<string>;
+}>;
 
 export interface SubcontractSyncOptions {
   store?: SubcontractSyncStore;
@@ -93,20 +118,30 @@ async function defaultStore(): Promise<SubcontractSyncStore> {
   const mod = await import("~/lib/subcontracts/store.server");
   return {
     ensureSource: mod.ensureSubcontractSource,
-    readFingerprints: mod.readNoticeFingerprints,
+    readStoredNotices: mod.readNoticeSnapshots,
     commitSync: mod.commitSubcontractSync,
     recordFailedSync: mod.recordFailedSubcontractSync,
   };
 }
 
 async function defaultReader(options: {
-  skipDetailFor: ReadonlySet<string>;
+  storedIndex: ReadonlyMap<string, unknown>;
   now: Date;
-}): Promise<{ notices: SubcontractNotice[]; stats: SubnetCrawlStats; collisions: string[] }> {
+}): Promise<{
+  notices: SubcontractNotice[];
+  stats: SubnetCrawlStats;
+  collisions: string[];
+  unchangedIndexIds: Set<string>;
+}> {
   const { crawlSubnet, noticesFromCrawl } = await import("~/lib/subcontracts/subnet");
-  const crawl = await crawlSubnet({ skipDetailFor: options.skipDetailFor, now: options.now });
+  const crawl = await crawlSubnet({ storedIndex: options.storedIndex, now: options.now });
   const { notices, collisions } = noticesFromCrawl(crawl.rows, crawl.details);
-  return { notices, stats: crawl.stats, collisions };
+  return {
+    notices,
+    stats: crawl.stats,
+    collisions,
+    unchangedIndexIds: crawl.unchangedIndexIds,
+  };
 }
 
 const EMPTY_COUNTS: SubcontractSyncCounts = {
@@ -181,35 +216,59 @@ export async function runSubcontractSync(
     return result;
   };
 
-  // 1. READ-ONLY pre-read of what this source already stores.
-  let existing: Map<string, string>;
+  // 1. READ-ONLY pre-read: what does this source already store, with which fingerprint
+  //    AND which index snapshot? (A source that does not exist yet is simply "nothing
+  //    stored" — the crawl then fetches a detail page for every notice, which is the
+  //    honest cost of the first sweep.)
+  let existing: Map<string, StoredNoticeSnapshot>;
   try {
-    existing = await store.readFingerprints(SUBNET_SOURCE.sourceKey);
+    existing = await store.readStoredNotices(SUBNET_SOURCE.sourceKey);
   } catch (e) {
     return fail("read", e);
   }
 
-  // 2. Crawl (index + the detail pages of notices we have never stored).
+  // 2. Crawl (index + the detail pages of notices whose index row is new or amended).
   let notices: SubcontractNotice[];
   let stats: SubnetCrawlStats;
   let collisions: string[];
+  let unchangedIndexIds: ReadonlySet<string>;
   try {
-    const read = await readSource({ skipDetailFor: new Set(existing.keys()), now });
+    const storedIndex = new Map<string, unknown>();
+    for (const [externalId, snapshot] of existing) storedIndex.set(externalId, snapshot.index);
+    const read = await readSource({ storedIndex, now });
     notices = read.notices;
     stats = read.stats;
     collisions = read.collisions;
+    unchangedIndexIds = read.unchangedIndexIds ?? new Set<string>();
   } catch (e) {
     const explicit = (e as { stage?: unknown }).stage;
     const stage = explicit === "fetch" || explicit === "parse" ? explicit : "crawl";
     return fail(stage, e);
   }
 
-  // 3. Classify + split changed/unchanged by fingerprint.
+  // 3. Classify + split changed/unchanged.
+  //
+  //    UNCHANGED has two honest routes:
+  //      a) the index row was content-identical to the stored snapshot, so no detail
+  //         page was fetched (the fingerprint of such a row CANNOT be recomputed — it
+  //         would be missing the detail-only fields and would therefore differ, which
+  //         is exactly the bug this split exists to prevent); or
+  //      b) the detail page was fetched and the full fingerprint is unchanged.
+  //    Either way the row is NOT written, so its stored detail-only columns survive.
   const rows: SubcontractNoticeRow[] = notices.map((notice) => toNoticeRow(notice, now));
   const changed: SubcontractNoticeRow[] = [];
   const unchangedExternalIds: string[] = [];
   for (const row of rows) {
-    if (existing.get(row.externalId) === row.fingerprint) unchangedExternalIds.push(row.externalId);
+    const stored = existing.get(row.externalId);
+    if (stored === undefined) {
+      changed.push(row);
+      continue;
+    }
+    if (unchangedIndexIds.has(row.externalId)) {
+      unchangedExternalIds.push(row.externalId);
+      continue;
+    }
+    if (stored.fingerprint === row.fingerprint) unchangedExternalIds.push(row.externalId);
     else changed.push(row);
   }
   const inserted = changed.filter((row) => !existing.has(row.externalId)).length;

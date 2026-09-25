@@ -37,6 +37,18 @@ import type {
 
 // ── Write surface ────────────────────────────────────────────────────────────
 
+/**
+ * WHY THERE IS NO `detail_fetched` COLUMN. The notice object carries a `detailFetched`
+ * boolean, but it is a PARSE-TIME fact about the row being built, not a stored one: the
+ * table records it by construction as `raw->'detail'` — JSON null when the sweep built
+ * the row without a detail page, an object when it fetched and merged one. A column
+ * would be a second source of truth for the same fact (and would need a NOT NULL default
+ * that lies about rows written before it existed). The runner reads the index snapshot
+ * (`raw->'index'`) to decide whether to fetch a detail page at all, and the merged
+ * result is what lands in `raw`; so `raw->'detail' IS NULL` is the one honest answer to
+ * "did this row come from a detail page", kept next to the evidence itself.
+ */
+
 /** One notice, flattened for the JSON payload the CTE consumes. */
 function payloadRow(row: SubcontractNoticeRow, finishedAt: string) {
   return {
@@ -341,16 +353,40 @@ export async function recordFailedSubcontractSync(opts: {
   return String(rows[0]?.id ?? "");
 }
 
-/** external_id → fingerprint for one SOURCE. The amendment pre-read. Read-only. */
-export async function readNoticeFingerprints(sourceKey: string): Promise<Map<string, string>> {
+/** What one stored notice looks like to a sweep's read-only pre-read. */
+export interface StoredNoticeSnapshot {
+  /** The fingerprint of the stored row (detail-inclusive). */
+  fingerprint: string;
+  /**
+   * The stored `raw->'index'` snapshot: the index row a previous complete sweep parsed,
+   * verbatim. This is what the detail-fetch decision compares against, because it is the
+   * only thing that can tell an UNCHANGED notice from one SBA amended in place.
+   */
+  index: unknown;
+}
+
+/**
+ * external_id → { fingerprint, index snapshot } for one SOURCE. The amendment pre-read.
+ * READ-ONLY. `raw->'index'` is NULL for a row written before the index snapshot existed
+ * (or by hand); such a row simply fails the content comparison and its detail page is
+ * refetched — fetch-safe, never data-losing.
+ */
+export async function readNoticeSnapshots(
+  sourceKey: string,
+): Promise<Map<string, StoredNoticeSnapshot>> {
   const db = sql();
   const rows = (await db`
-    SELECT o.external_id, o.fingerprint
+    SELECT o.external_id, o.fingerprint, o.raw->'index' AS index_snapshot
     FROM subcontract_opportunities o
     JOIN subcontract_sources s ON s.id = o.source_id
     WHERE s.source_key = ${sourceKey}
-  `) as { external_id: string; fingerprint: string }[];
-  return new Map(rows.map((r) => [r.external_id, r.fingerprint]));
+  `) as { external_id: string; fingerprint: string; index_snapshot: unknown }[];
+  return new Map(
+    rows.map((r) => [
+      r.external_id,
+      { fingerprint: r.fingerprint, index: r.index_snapshot ?? null },
+    ]),
+  );
 }
 
 /**

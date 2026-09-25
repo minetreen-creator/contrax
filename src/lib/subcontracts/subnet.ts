@@ -18,7 +18,8 @@
  * therefore never requests a `/sites/default/files/*` path: attachments are recorded
  * as name + size only, never mirrored or linked-through. Requests are serialised at
  * one per second (SUBNET_REQUEST_INTERVAL_MS) with a descriptive UA, so a full sweep
- * is ~15 index requests plus one detail request per NEW notice.
+ * is ~15 index requests plus one detail request per notice whose index row is NEW or
+ * AMENDED (never merely because its slug is already stored — see indexRowMatchesStored).
  *
  * THE DATE TRAP THIS FILE EXISTS TO NOT REPEAT. The recon probe behind BUILD-PLAN.md
  * matched closing dates with /(\d{2})\/(\d{2})\/(\d{4})/ — TWO-DIGIT-ONLY — so every
@@ -486,15 +487,60 @@ export interface SubnetCrawlStats {
 export interface SubnetCrawlResult {
   rows: SubnetIndexRow[];
   details: Map<string, SubnetDetail>;
+  /**
+   * The ids whose detail page this crawl did NOT fetch because the freshly parsed
+   * index row is content-identical to the stored index snapshot — i.e. the notice is
+   * unchanged as far as the INDEX can tell. The runner treats exactly these as
+   * "unchanged" and writes nothing for them, so their stored detail-only columns
+   * survive.
+   */
+  unchangedIndexIds: Set<string>;
   collisions: string[];
   stats: SubnetCrawlStats;
 }
 
 /**
- * Crawls the index, then fetches the detail page of every notice that is NOT in
- * `skipDetailFor` (the ids a previous complete run already stored) — a re-run of an
- * unchanged board therefore costs ~15 requests and zero detail requests, which is the
- * CU/bandwidth discipline the plan asks for.
+ * Is the freshly parsed INDEX row byte-for-byte the same notice as the index snapshot a
+ * previous complete sweep stored (`subcontract_opportunities.raw->'index'`)?
+ *
+ * This is the whole skip-detail decision, and it is deliberately CONTENT equality, not
+ * slug existence. SBA amends notices IN PLACE: the slug (and therefore the identity)
+ * stays, the closing date or the place of performance changes. Skipping on the slug
+ * alone means the amendment is never read, the row is rewritten from index-only data,
+ * and the detail-only columns (division, website, summary, attachments, the detail
+ * POC) are overwritten with NULL — the row silently loses fields the source still
+ * publishes. Comparing the index CONTENT instead refetches every amended notice and
+ * only ever skips a notice whose index row is provably identical.
+ *
+ * FAIL-SAFE: every shape this function cannot prove equal — a missing snapshot, a
+ * non-object, a different key set (a parser version that added a field), a value that
+ * is not the identical string/null (jsonb round-trips these losslessly, so a number or
+ * a nested object here means the snapshot is not what we wrote) — returns false, i.e.
+ * FETCH the detail page. A wrong "false" costs one polite request; a wrong "true"
+ * loses published data.
+ */
+export function indexRowMatchesStored(fresh: SubnetIndexRow, stored: unknown): boolean {
+  if (stored === null || typeof stored !== "object" || Array.isArray(stored)) return false;
+  const record = stored as Record<string, unknown>;
+  const freshEntries = Object.entries(fresh as unknown as Record<string, unknown>).sort(([a], [b]) =>
+    a < b ? -1 : a > b ? 1 : 0,
+  );
+  const storedKeys = Object.keys(record).sort();
+  if (freshEntries.length !== storedKeys.length) return false;
+  for (let i = 0; i < freshEntries.length; i += 1) {
+    const entry = freshEntries[i]!;
+    if (entry[0] !== storedKeys[i]) return false;
+    if (!Object.is(entry[1], record[entry[0]!])) return false;
+  }
+  return true;
+}
+
+/**
+ * Crawls the index, then fetches the detail page of every notice whose index row is NOT
+ * provably identical to the stored snapshot (`storedIndex`) — a re-run of an unchanged
+ * board therefore costs ~15 requests and zero detail requests, which is the CU/bandwidth
+ * discipline the plan asks for, while an AMENDED notice (same slug, changed index
+ * content) is refetched and merged properly.
  *
  * Fail-closed at three points: an unreadable index page (SubnetParseError), a failed
  * detail request after every retry (SubnetFetchError), and a crawl that parses zero
@@ -502,12 +548,16 @@ export interface SubnetCrawlResult {
  */
 export async function crawlSubnet(options: {
   fetchText?: SubnetFetcher;
-  skipDetailFor?: ReadonlySet<string>;
+  /**
+   * slug → the stored `raw->'index'` snapshot. A slug absent from this map (or whose
+   * snapshot cannot be compared) gets its detail page fetched.
+   */
+  storedIndex?: ReadonlyMap<string, unknown>;
   pageCap?: number;
   now?: Date;
 } = {}): Promise<SubnetCrawlResult> {
   const fetchText = options.fetchText ?? createSubnetFetcher();
-  const skipDetailFor = options.skipDetailFor ?? new Set<string>();
+  const storedIndex = options.storedIndex ?? new Map<string, unknown>();
   const pageCap = options.pageCap ?? SUBNET_PAGE_CAP;
   const startedAt = Date.now();
 
@@ -563,12 +613,15 @@ export async function crawlSubnet(options: {
     );
   }
 
-  // Detail pages: only for notices a previous complete run has never stored.
+  // Detail pages: only for a notice whose INDEX row is not provably identical to the
+  // stored snapshot (never merely because its slug is already stored).
   const details = new Map<string, SubnetDetail>();
+  const unchangedIndexIds = new Set<string>();
   let detailsSkipped = 0;
   for (const row of rows) {
-    if (skipDetailFor.has(row.externalId)) {
+    if (indexRowMatchesStored(row, storedIndex.get(row.externalId))) {
       detailsSkipped += 1;
+      unchangedIndexIds.add(row.externalId);
       continue;
     }
     const html = await fetchText(row.detailUrl);
@@ -583,7 +636,7 @@ export async function crawlSubnet(options: {
     stoppedBecause,
     durationMs: Date.now() - startedAt,
   };
-  return { rows, details, collisions: [], stats };
+  return { rows, details, unchangedIndexIds, collisions: [], stats };
 }
 
 /**

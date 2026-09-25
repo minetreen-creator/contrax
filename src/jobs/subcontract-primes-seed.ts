@@ -18,7 +18,6 @@
  * HONEST LOG LINE: rows read, rows skipped (no UEI / no name), companies, awards collapsed,
  * inserts vs updates actually written, and the plan-type split read back FROM THE TABLE.
  */
-import { PRIME_DIRECTORY_SOURCE } from "~/lib/subcontracts/connector";
 import { PrimeSeedError, seedSubcontractPrimes } from "~/lib/subcontracts/prime-seed.server";
 import { PrimeDirectoryError } from "~/lib/subcontracts/prime-directory";
 import { XlsxReadError } from "~/lib/subcontracts/xlsx";

@@ -29,6 +29,8 @@
 import {
   PRIME_DIRECTORY_SOURCE,
   SUBNET_SOURCE,
+  storedScopeLabel,
+  stripSourceHeadingResidue,
   type SubcontractStatus,
 } from "~/lib/subcontracts/connector";
 
@@ -103,6 +105,46 @@ export const UNAVAILABLE_NEVER_SYNCED_REASON =
 /** Shown with every unavailable state, so "nothing here" is never read as "none exist". */
 export const UNAVAILABLE_EXPLANATION =
   "Contrax shows nothing rather than an empty or unverified list.";
+
+// ── Source-markup normalization (live findings O2/O3, 2026-09-25) ─────────────
+//
+// Two kinds of SOURCE MARKUP used to ride into the rendered text. Neither is data,
+// so both are removed at this ONE boundary (and in the parser, via the same functions)
+// rather than being papered over per surface:
+//
+//   O2 — every stored scope began "> Description ...": the section splitter left the
+//        div tag's closing ">" at the head of the body, and the source's own
+//        <h2>Description</h2> heading followed it. `storedScopeText` drops that
+//        residue and keeps the description itself byte-for-byte.
+//   O3 — three notices published a bare NAICS code and no title, so `trades` held
+//        "236210" and the trade menu offered digits as a trade name. `scopeValues`
+//        resolves a bare code to its standard NAICS name (never to the raw code), on
+//        the row's own values AND on the census buckets, so a filter value and its
+//        option label can never disagree.
+
+/** A stored scope with the source's own heading residue removed; null when empty. */
+export function storedScopeText(stored: string | null | undefined): string | null {
+  if (typeof stored !== "string") return null;
+  const text = stripSourceHeadingResidue(stored);
+  return text.length > 0 ? text : null;
+}
+
+/**
+ * A row's listed scopes as the surface shows them: trimmed, de-duplicated, and with a
+ * bare NAICS code resolved to a readable label (see O3 above). A stored row is not
+ * refetched while its index row is unchanged, so this read-side resolution is what
+ * makes the value ALREADY in the database render honestly.
+ */
+export function scopeValues(trades: readonly string[] | null | undefined): string[] {
+  const labels: string[] = [];
+  for (const value of trades ?? []) {
+    const text = typeof value === "string" ? value.trim() : "";
+    if (!text) continue;
+    const label = storedScopeLabel(text);
+    if (label && !labels.includes(label)) labels.push(label);
+  }
+  return labels;
+}
 
 // ── Stored shapes ────────────────────────────────────────────────────────────
 
@@ -279,9 +321,9 @@ export function toNoticeView(row: StoredNoticeRow): SubcontractNoticeView {
     closingDateText: dayText(closingDate),
     performanceStartDate: performanceStart,
     performanceStartText: dayText(performanceStart),
-    scope: row.scope?.trim() || null,
+    scope: storedScopeText(row.scope),
     summary: row.summary?.trim() || null,
-    trades: (row.trades ?? []).filter((value) => Boolean(value?.trim())),
+    trades: scopeValues(row.trades),
     certsSolicited: (row.certs_solicited ?? []).filter((value) => Boolean(value?.trim())),
     naicsCode: row.naics_code?.trim() || null,
     naicsTitle: row.naics_title?.trim() || null,
@@ -312,10 +354,10 @@ export function tallyByState(rows: readonly StoredNoticeRow[]): CountBucket[] {
 export function tallyByTrade(rows: readonly StoredNoticeRow[]): CountBucket[] {
   const counts = new Map<string, number>();
   for (const row of rows) {
-    for (const trade of row.trades ?? []) {
-      const key = trade?.trim();
-      if (!key) continue;
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+    // `scopeValues` (not the raw column): the census tile and the trade menu must show
+    // the SAME label the row's own card shows, and neither may be a bare NAICS code.
+    for (const trade of scopeValues(row.trades)) {
+      counts.set(trade, (counts.get(trade) ?? 0) + 1);
     }
   }
   return sortBuckets([...counts].map(([key, count]) => ({ key, count })));
@@ -336,10 +378,7 @@ export function stateOptions(rows: readonly StoredNoticeRow[]): string[] {
 export function tradeOptions(rows: readonly StoredNoticeRow[]): string[] {
   const values = new Set<string>();
   for (const row of rows) {
-    for (const trade of row.trades ?? []) {
-      const key = trade?.trim();
-      if (key) values.add(key);
-    }
+    for (const trade of scopeValues(row.trades)) values.add(trade);
   }
   return [...values].sort();
 }
@@ -474,12 +513,45 @@ export function parsePrimesQuery(searchParams: URLSearchParams): Parsed<PrimesQu
   const rawPage = (searchParams.get("page") ?? "").trim();
   const rawLimit = (searchParams.get("limit") ?? "").trim();
 
+  // A PRESENT value that is not a whole number fails HERE with the parser's own
+  // wording ("must be a positive integer", not a range complaint); every other rule is
+  // decided once, by validatePrimesQuery below, so a typed query and a parsed one can
+  // never be judged by two different rule sets.
+  if (rawPage && !/^\d+$/.test(rawPage)) {
+    return { ok: false, error: "page must be a positive integer" };
+  }
+  if (rawLimit && !/^\d+$/.test(rawLimit)) {
+    return { ok: false, error: "limit must be a positive integer" };
+  }
+
+  return validatePrimesQuery({
+    naics: rawNaics ? rawNaics.split(":")[0]!.trim() : null,
+    state: rawState || null,
+    page: rawPage ? Number(rawPage) : 1,
+    limit: rawLimit ? Number(rawLimit) : PRIMES_DEFAULT_LIMIT,
+  });
+}
+
+/**
+ * Validates a PRIMES QUERY that is already typed: the SAME rules, applied to the
+ * values themselves rather than to raw strings.
+ *
+ * WHY THIS SECOND GATE EXISTS. The HTTP route parses first — but the READ layer must
+ * not assume its caller did. Handed an unvalidated query, `readPrimesPayload` bound
+ * `NaN` to LIMIT/OFFSET, Postgres raised `invalid input syntax for type bigint:
+ * "NaN"`, and the catch-all reported that as "the store is unreachable" — a bad
+ * REQUEST blamed on the STORE, whose only fault was being asked an impossible
+ * question (QA side finding, 2026-09-25). This function is what the read layer calls
+ * BEFORE it builds any SQL, so an invalid query returns the documented 400 body and
+ * no statement is ever sent.
+ */
+export function validatePrimesQuery(query: PrimesQuery): Parsed<PrimesQuery> {
   let naics: string | null = null;
-  if (rawNaics) {
-    // The UI sends the code; a full "code: TITLE" value is accepted too and
-    // reduced to its code, so a caller cannot accidentally ask for an exact array
-    // element that the filter would then silently fail to match.
-    const code = rawNaics.split(":")[0]!.trim();
+  if (typeof query?.naics === "string" && query.naics.trim()) {
+    // The UI sends the code; a full "code: TITLE" value is accepted too and reduced
+    // to its code, so a caller cannot accidentally ask for an exact array element
+    // that the filter would then silently fail to match.
+    const code = query.naics.trim().split(":")[0]!.trim();
     if (!NAICS_CODE.test(code)) {
       return { ok: false, error: "naics must be a 2–6 digit NAICS code" };
     }
@@ -487,29 +559,24 @@ export function parsePrimesQuery(searchParams: URLSearchParams): Parsed<PrimesQu
   }
 
   let state: string | null = null;
-  if (rawState) {
-    if (!STATE_VALUE.test(rawState) || rawState.length > 40) {
+  if (typeof query?.state === "string" && query.state.trim()) {
+    const value = query.state.trim();
+    if (!STATE_VALUE.test(value) || value.length > 40) {
       return { ok: false, error: "state must be a state name as the SBA directory writes it" };
     }
-    state = rawState.toUpperCase();
+    state = value.toUpperCase();
   }
 
-  let page = 1;
-  if (rawPage) {
-    if (!/^\d+$/.test(rawPage)) return { ok: false, error: "page must be a positive integer" };
-    page = Number(rawPage);
-    if (page < 1 || page > PRIMES_MAX_PAGE) {
-      return { ok: false, error: `page must be between 1 and ${PRIMES_MAX_PAGE}` };
-    }
+  const page = query?.page;
+  if (!Number.isInteger(page)) return { ok: false, error: "page must be a positive integer" };
+  if (page < 1 || page > PRIMES_MAX_PAGE) {
+    return { ok: false, error: "page must be between 1 and " + PRIMES_MAX_PAGE };
   }
 
-  let limit = PRIMES_DEFAULT_LIMIT;
-  if (rawLimit) {
-    if (!/^\d+$/.test(rawLimit)) return { ok: false, error: "limit must be a positive integer" };
-    limit = Number(rawLimit);
-    if (limit < 1 || limit > PRIMES_MAX_LIMIT) {
-      return { ok: false, error: `limit must be between 1 and ${PRIMES_MAX_LIMIT}` };
-    }
+  const limit = query?.limit;
+  if (!Number.isInteger(limit)) return { ok: false, error: "limit must be a positive integer" };
+  if (limit < 1 || limit > PRIMES_MAX_LIMIT) {
+    return { ok: false, error: "limit must be between 1 and " + PRIMES_MAX_LIMIT };
   }
 
   return { ok: true, value: { naics, state, page, limit } };
@@ -530,6 +597,29 @@ export interface PrimesPayload {
 }
 
 export type PrimesResponse = PrimesPayload | SubcontractsUnavailable;
+
+/**
+ * The documented error body for a PRESENT-but-invalid primes parameter — the shape the
+ * HTTP route answers with status 400. It is returned by the READ layer too, so an
+ * invalid query can never reach SQL (and so can never be reported as a store failure).
+ */
+export interface PrimesQueryError {
+  ok: false;
+  error: string;
+}
+
+/** What `/api/subcontracts/primes` can return: a payload, a fail-closed state, or 400. */
+export type PrimesReadResponse = PrimesResponse | PrimesQueryError;
+
+/** `true` only for the invalid-query body above (a payload never carries `ok: false`). */
+export function isPrimesQueryError(value: unknown): value is PrimesQueryError {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "ok" in value &&
+    (value as { ok?: unknown }).ok === false
+  );
+}
 
 /** The NAICS option list is capped so a page load cannot ship the whole file. */
 export const PRIMES_NAICS_OPTION_CAP = 60;

@@ -43,10 +43,11 @@ import {
   tallyByTrade,
   toNoticeView,
   toPrimeView,
+  validatePrimesQuery,
   type CountBucket,
   type PrimesPayload,
   type PrimesQuery,
-  type PrimesResponse,
+  type PrimesReadResponse,
   type StoredNoticeRow,
   type StoredPrimeRow,
   type SubcontractsCoverage,
@@ -275,7 +276,15 @@ export async function readSubcontractsPayload(now: Date = new Date()): Promise<S
 export async function readPrimesPayload(
   query: PrimesQuery,
   now: Date = new Date(),
-): Promise<PrimesResponse> {
+): Promise<PrimesReadResponse> {
+  // PARSE/VALIDATE FIRST — before the table check, before any SQL. A NaN/absent/out-of-
+  // range parameter used to bind straight into LIMIT/OFFSET, where Postgres rejects it
+  // and the catch below reported the store as unreachable: a bad REQUEST answered with a
+  // claim about the DATABASE. Invalid input now returns the documented 400 body and the
+  // store is never touched (see validatePrimesQuery).
+  const validated = validatePrimesQuery(query);
+  if (!validated.ok) return { ok: false, error: validated.error };
+  const parsed = validated.value;
   let presence: TablePresence;
   try {
     presence = await subcontractTablesPresent();
@@ -290,7 +299,7 @@ export async function readPrimesPayload(
 
   try {
     const db = sql();
-    const offset = (query.page - 1) * query.limit;
+    const offset = (parsed.page - 1) * parsed.limit;
     const [rawRows, rawTotals, options] = await Promise.all([
       db`
         SELECT
@@ -299,25 +308,25 @@ export async function readPrimesPayload(
         FROM subcontract_primes p
         JOIN subcontract_sources s ON s.id = p.source_id
         WHERE s.source_key = ${PRIME_DIRECTORY_SOURCE.sourceKey}
-          AND (${query.state}::text IS NULL OR upper(p.vendor_state) = ${query.state}::text)
+          AND (${parsed.state}::text IS NULL OR upper(p.vendor_state) = ${parsed.state}::text)
           AND (
-            ${query.naics}::text IS NULL
+            ${parsed.naics}::text IS NULL
             OR EXISTS (
-              SELECT 1 FROM unnest(p.naics) AS n WHERE split_part(n, ':', 1) = ${query.naics}::text
+              SELECT 1 FROM unnest(p.naics) AS n WHERE split_part(n, ':', 1) = ${parsed.naics}::text
             )
           )
         ORDER BY p.legal_name ASC
-        LIMIT ${query.limit} OFFSET ${offset}
+        LIMIT ${parsed.limit} OFFSET ${offset}
       `,
       db`
         SELECT
           count(*)::int AS directory_total,
           count(*) FILTER (
-            WHERE (${query.state}::text IS NULL OR upper(p.vendor_state) = ${query.state}::text)
+            WHERE (${parsed.state}::text IS NULL OR upper(p.vendor_state) = ${parsed.state}::text)
               AND (
-                ${query.naics}::text IS NULL
+                ${parsed.naics}::text IS NULL
                 OR EXISTS (
-                  SELECT 1 FROM unnest(p.naics) AS n WHERE split_part(n, ':', 1) = ${query.naics}::text
+                  SELECT 1 FROM unnest(p.naics) AS n WHERE split_part(n, ':', 1) = ${parsed.naics}::text
                 )
               )
           )::int AS matched
@@ -339,8 +348,8 @@ export async function readPrimesPayload(
       counts: { filtered, directoryTotal: Number(total?.directory_total ?? 0) },
       fy: rows[0]?.fy?.trim() || PRIME_DIRECTORY_FY,
       sourceUrl: PRIME_DIRECTORY_SOURCE_URL,
-      page: query.page,
-      limit: query.limit,
+      page: parsed.page,
+      limit: parsed.limit,
       hasMore: offset + rows.length < filtered,
       options,
       generatedAt: now.toISOString(),

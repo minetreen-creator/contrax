@@ -42,6 +42,7 @@ import {
   listedScopes,
   splitNaics,
   stateCodeForPlace,
+  stripSourceHeadingResidue,
   type SubcontractAttachment,
   type SubcontractNotice,
 } from "~/lib/subcontracts/connector";
@@ -177,7 +178,11 @@ function fieldHref(html: string, fieldClass: string, scheme: string): string | n
 
 /** `<div class="sba-subnet__section sba-subnet__section__x">…` → name → inner HTML. */
 function sectionBodies(html: string): Map<string, string> {
-  const parts = html.split(/<div class="sba-subnet__section\s+([^"]*)"/);
+  // The split consumes the whole opening TAG, closing ">" included. Stopping at the
+  // class attribute's quote left that ">" at the head of every body, which rode into
+  // the extracted text (every live notice stored a scope starting "> / Description";
+  // live finding O2, 2026-09-25).
+  const parts = html.split(/<div class="sba-subnet__section\s+([^"]*)"\s*>/);
   const bodies = new Map<string, string>();
   for (let i = 1; i < parts.length; i += 2) {
     const classes = parts[i] ?? "";
@@ -351,7 +356,11 @@ export function parseSubnetDetailPage(html: string): SubnetDetail {
     ),
   ].map((m) => ({ name: textOf(m[1]!), size: textOf(m[2]!) || null }));
 
-  const description = paragraphsOf(sections.get("desc") ?? "");
+  // The source's own "Description" heading sits INSIDE the section body, so the
+  // extracted text would otherwise open with it; stripSourceHeadingResidue drops that
+  // heading (and any tag punctuation left by the section split) without touching a
+  // word of the description itself.
+  const description = stripSourceHeadingResidue(paragraphsOf(sections.get("desc") ?? ""));
   const summaryIndex = description.search(/project summary\s*:?/i);
   // The notice's own description is one field; when it breaks out a "Project Summary"
   // block we keep the two parts SEPARATE (scope before the block, summary as the
@@ -674,7 +683,9 @@ export function noticesFromCrawl(
       website: detail?.website ?? null,
       scope: detail?.description ?? row.description,
       summary: detail?.projectSummary ?? null,
-      trades: listedScopes(naicsTitle),
+      // The code rides along ONLY so a notice that published a bare code (no NAICS
+      // title at all) still gets a readable listed scope instead of digits.
+      trades: listedScopes(naicsTitle, naicsCode),
       certsSolicited: detail?.certsSolicited ?? [],
       naics: naicsRaw,
       naicsCode,

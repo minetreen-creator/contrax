@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { parsePrimesQuery } from "~/lib/subcontracts/read";
+import { isPrimesQueryError, parsePrimesQuery } from "~/lib/subcontracts/read";
 import { readPrimesPayload } from "~/lib/subcontracts/read.server";
 
 /**
@@ -42,6 +42,9 @@ async function handler({ request }: { request: Request }): Promise<Response> {
   const parsed = parsePrimesQuery(new URL(request.url).searchParams);
   if (!parsed.ok) return json({ ok: false, error: parsed.error }, 400);
   const payload = await readPrimesPayload(parsed.value, new Date());
+  // The read layer re-validates before it reads (see readPrimesPayload): a query that
+  // reaches it invalid answers 400 here rather than being mistaken for a store failure.
+  if (isPrimesQueryError(payload)) return json(payload, 400);
   return json(payload, 200);
 }
 

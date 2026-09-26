@@ -145,6 +145,10 @@ const KEYS = {
   answers: RADAR_ANSWERS_KEY,
   prefill: "contrax_radar_prefill",
   seen: "contrax_radar_seen",
+  // First-run guidance banner (owner rework 2026-09-26, PR-A): once the visitor
+  // has run a scan or dismissed the banner, it must not come back. Stored with
+  // the SAME fail-open localStorage helpers as the rest of the radar session.
+  guidanceDone: "contrax_radar_guidance_done",
 } as const;
 
 function safeGet<T>(key: string): T | null {
@@ -216,4 +220,13 @@ export function clearRadarSeen(): void {
   try {
     if (typeof window !== "undefined") window.localStorage.removeItem(KEYS.seen);
   } catch { /* noop */ }
+}
+// ── First-run guidance (owner rework 2026-09-26, PR-A) ────────────────────────
+/** True once the visitor has run a real scan OR dismissed the guidance banner. */
+export function getRadarGuidanceDone(): boolean {
+  return safeGet<boolean>(KEYS.guidanceDone) === true;
+}
+/** Sticky (localStorage, fail-open) — the banner never returns after this. */
+export function saveRadarGuidanceDone(): void {
+  safeSet(KEYS.guidanceDone, true);
 }

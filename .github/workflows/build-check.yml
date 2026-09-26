@@ -318,3 +318,13 @@ jobs:
       # src/lib/subcontracts` is what makes this suite visible in the CI step list.
       - name: Subcontracting preview data layer tests (unit, deterministic, zero network)
         run: bun test src/lib/subcontracts
+      # Funnel UX — post-signup -> Radar first run (owner rework 2026-09-26, PR-A).
+      # DETERMINISTIC, network-free, database-free AND router-free by construction.
+      # The rules suite is pure functions over literals (its only file reads are of
+      # the repo's own source, and it asserts non-vacuously that the funnel sources
+      # were really read); the component suite renders the REAL Radar components
+      # with react-dom/server. NEITHER file calls mock.module anywhere — bun's mock
+      # registry is process-global and leaks across files in one run (skill
+      # contrax-bun-mock-module-leak), so the injection-free render path is the point.
+      - name: Funnel UX post-signup to Radar tests (unit + component render, zero network)
+        run: bun test src/lib/funnel-ux.test.ts tests/funnel-ux-radar-render.test.tsx

@@ -159,7 +159,9 @@ async function handler({ request }: { request: Request }) {
     // agency) gets that plan_tier. The single form, single DB flow stays intact.
     // The submitted `plan` is intentionally not applied here: every signup lands
     // on free Basic (plan_tier='basic', trial_started_at=NULL) and the 14-day
-    // Professional trial starts lazily on the user's first premium use.
+    // Professional trial starts when the user upgrades (the hard Pro gate in
+    // /api/bids/{id}/analyze returns GATE_REQUIRED on gated attempts, so they
+    // no longer start the trial lazily).
 
     // ── Rate limiting (before any insert). IP + account caps; fail-open.
     const ipLimit = await checkIpLimit(request, "signup_ip", SIGNUP_IP_LIMIT, SIGNUP_IP_WINDOW);
@@ -198,8 +200,9 @@ async function handler({ request }: { request: Request }) {
     // LAZY TRIAL START (owner): every signup provisions on free Basic — no plan
     // tier is granted and trial_started_at stays NULL, so no user is "in trial"
     // at signup and the 14-day PROFESSIONAL trial clock is NOT running. The
-    // trial begins (and trial_started_at is set) on the user's FIRST premium
-    // action via ensureTrialStarted (src/lib/trial.ts). No credit card.
+    // trial begins when the user upgrades to a paid plan — the hard Pro gate
+    // returns GATE_REQUIRED on gated attempts, so they no longer start the
+    // trial (see /api/bids/{id}/analyze). No card is collected at signup.
     const inserted = await sql()`
       INSERT INTO users (email, password_hash, plan_tier, trial_started_at, company_name)
       VALUES (${email}, ${passwordHash}, 'basic', NULL, ${company})

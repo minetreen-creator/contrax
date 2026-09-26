@@ -17,8 +17,10 @@
  *   (c) NO REAPPEAR — once the trial is active the card's server predicate
  *       returns show=false (reason 'trial-active').
  *
- *   (d) NO CARD — no card/billing/subscription side effect anywhere; copy says
- *       "No credit card required" and never "unlimited"/"billing"/"card number".
+ *   (d) NO SIDE EFFECT — the card's click only routes to the gated brief path;
+ *       copy states the honest offer ("trial starts when you upgrade",
+ *       "cancel anytime") and never claims no card is collected, never
+ *       "unlimited"/"billing"/"card number".
  *
  *   (e) EXISTING SURFACES INTACT — TrialChecklist + SavedRadarMatches component
  *       exports and their dashboard render sites are untouched; radar free
@@ -167,8 +169,8 @@ try {
   check("loadTrialStartCardData => show:false after start (surface hidden)",
     ctxPost.show === false, ctxPost.reason);
 
-  /* ═══════ (d) NO-CARD + (f) HONESTY / COPY ═══════ */
-  section("(d) No credit card anywhere; (f) honest copy");
+  /* ═══════ (d) NO SIDE EFFECT + (f) HONESTY / COPY ═══════ */
+  section("(d) No side effect + (f) honest copy");
   const allCopy = [
     TRIAL_START_COPY.heading, TRIAL_START_COPY.badge, TRIAL_START_COPY.noCard,
     TRIAL_START_COPY.body, TRIAL_START_COPY.primary, TRIAL_START_COPY.primaryHint,
@@ -178,14 +180,18 @@ try {
     TRIAL_START_COPY.rateLimited,
   ].join(" ");
   const lower = allCopy.toLowerCase();
-  check("copy promises no credit card required", TRIAL_START_COPY.noCard === "No credit card required.");
+  check(
+    "copy says the trial starts when you upgrade",
+    TRIAL_START_COPY.noCard === `Start your ${TRIAL_DAYS}-day trial when you upgrade.`,
+  );
+  check("copy says you can cancel anytime during the trial", TRIAL_START_COPY.body === "Cancel anytime during your trial.");
   check("copy truthfully states the 14-day window", allCopy.includes("14-day") && allCopy.includes("Professional trial"));
   check("what-you-get is derived from the TRIAL_CHECKLIST ledger (capped, not invented)",
     TRIAL_START_COPY.whatYouGet === TRIAL_CHECKLIST.map((c) => `${c.label} (${c.limit})`).join(" · "));
   check("copy never claims 'unlimited'", !lower.includes("unlimited"));
   check("copy has no billing / card-number language", !lower.includes("billing") && !lower.includes("card number"));
-  check("copy truthfully says the clock starts on first Professional action (lazy-start)",
-    lower.includes("starts the first time you use a professional feature"));
+  check("copy truthfully says the trial starts when the user upgrades (gated attempts no longer start it)",
+    lower.includes("trial when you upgrade") && lower.includes("cancel anytime"));
   check("TRIAL_DAYS single source of truth = 14", TRIAL_DAYS === 14, String(TRIAL_DAYS));
 
   /* ═══════ (e) EXISTING SURFACES INTACT ═══════ */

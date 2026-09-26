@@ -5,7 +5,7 @@ export const Route = createFileRoute("/pricing/")({
   head: () => ({
     meta: [
       { title: "Pricing | Contrax" },
-      { name: "description", content: "Contrax plans for every stage of growth. Basic free forever, Starter $19/mo, Professional $79/mo. Every plan includes a 14-day Professional trial." },
+      { name: "description", content: "Contrax plans for every stage of growth. Basic is free forever. Paid upgrades include a 14-day Professional trial that starts when you upgrade." },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: "Pricing | Contrax" },
       { property: "og:description", content: "Contrax plans for every stage of growth. Basic free forever, Starter $19/mo, Professional $79/mo. Every plan includes a 14-day Professional trial." },
@@ -224,7 +224,7 @@ function PricingPage() {
           {/* Footer notes */}
           <p className="mt-8 text-center text-sm text-gray-500">Plans are billed monthly. Cancel anytime.</p>
           <p className="mt-3 text-center">
-            <a href="/signup" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
+            <a href="/signup?plan=professional" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
               Or start your 14-day Professional trial &rarr;
             </a>
           </p>

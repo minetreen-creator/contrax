@@ -114,8 +114,8 @@ export function HeroRadar({
   const preselected = toRadarCert(initialCert);
   const [trade, setTrade] = useState("");
   const [state, setState] = useState("");
-  const [cert, setCert] = useState<RadarCert | null>(preselected);
-  const [sizePref, setSizePref] = useState<SizeId | null>(null);
+  const [cert, setCert] = useState<RadarCert | null>(preselected ?? "sb");
+  const [sizePref, setSizePref] = useState<SizeId | null>("any");
   const [scan, setScan] = useState<ScanState>({ status: "idle" });
   const [revealed, setRevealed] = useState(0);
   const [flashTimer, setFlashTimer] = useState<number | null>(null);
@@ -261,9 +261,7 @@ export function HeroRadar({
               Which contracts fit my company?
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-300">
-              Answer four quick questions and we&apos;ll reveal your strongest live
-              set-aside matches — one at a time, with a real match score and full
-              Incumbent Intelligence (previous winner &amp; award price).
+              Tell us what your company does and where you work. We&apos;ll show live government contracts first; you can refine the search after you see results.
             </p>
           </>
         )}
@@ -312,57 +310,9 @@ export function HeroRadar({
               </select>
             </div>
 
-            <div>
-              <p className="text-sm font-semibold text-slate-200">3. Your set-aside certification</p>
-              <div role="list" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {RADAR_CERTS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    role="listitem"
-                    onClick={() => {
-                      didInteract.current = true;
-                      setCert(c);
-                      trackEvent("hero_radar_cert_selected", c);
-                    }}
-                    aria-pressed={cert === c}
-                    className={`rounded-xl border-2 px-4 py-3 text-left text-sm font-semibold transition-all active:scale-[0.98] ${
-                      cert === c
-                        ? "border-amber-500 bg-amber-500/15 text-amber-300"
-                        : "border-slate-700 bg-slate-900 text-slate-200 hover:border-slate-500"
-                    }`}
-                  >
-                    {CERT_LABEL[c]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold text-slate-200">4. Preferred contract size</p>
-              <div role="list" className="mt-2 grid grid-cols-2 gap-2">
-                {SIZE_OPTS.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    role="listitem"
-                    onClick={() => {
-                      didInteract.current = true;
-                      setSizePref(s.id);
-                      trackEvent("hero_radar_size_selected", s.id);
-                    }}
-                    aria-pressed={sizePref === s.id}
-                    className={`rounded-xl border-2 px-4 py-3 text-left transition-all active:scale-[0.98] ${
-                      sizePref === s.id
-                        ? "border-amber-500 bg-amber-500/15"
-                        : "border-slate-700 bg-slate-900 hover:border-slate-500"
-                    }`}
-                  >
-                    <span className="block text-sm font-semibold text-white">{s.label}</span>
-                    <span className="block text-xs text-slate-400">{s.hint}</span>
-                  </button>
-                ))}
-              </div>
+            <div className={`rounded-2xl border border-slate-700 bg-slate-900/70 px-5 py-4 text-sm text-slate-300 ${compact ? "lg:col-span-2" : ""}`}>
+              <span className="font-semibold text-white">Start broad.</span>{" "}
+              We&apos;ll search Small Business opportunities of any contract size. You can refine certification and size after you see results.
             </div>
 
             <button
@@ -371,7 +321,7 @@ export function HeroRadar({
               onClick={startScan}
               className={`mt-2 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 ${compact ? "lg:col-span-2" : ""}`}
             >
-              Scan the market for my matches →
+              See contracts →
             </button>
             {scan.status === "loading" ? (
               <div className={`rounded-2xl border-2 border-amber-500 bg-amber-500/10 px-6 py-8 text-center ${compact ? "lg:col-span-2" : ""}`} aria-live="polite">

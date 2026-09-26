@@ -118,7 +118,7 @@ function PricingPage() {
               Plans for every stage of growth
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Start free on Basic, then scale up as your contracting pipeline grows. No long-term contracts required. Every plan includes a 14-day Professional trial — no credit card, starting on your first premium action.
+              Start free on Basic, then scale up as your contracting pipeline grows. No long-term contracts required. Start free on Basic with no card. Start your 14-day Professional trial when you upgrade. Cancel anytime during your trial.
             </p>
           </div>
 
@@ -178,7 +178,7 @@ function PricingPage() {
                     Basic card only. */}
                 {plan.free && (
                   <p className="mt-3 text-center text-xs text-gray-500">
-                    Basic is free forever, limited to up to 3 saved bids plus 1 free AI Executive Brief monthly. Full brief allowances, Incumbent Intelligence, AI Match Scoring &amp; Draft Tools are on Professional.
+                    Basic is free forever, limited to up to 3 saved bids. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
                   </p>
                 )}
               </div>
@@ -245,7 +245,7 @@ function PricingPage() {
             {[
               { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
               { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes basic solicitations search, standard set-aside filters, and up to 3 saved bids. Upgrade to Starter ($19/mo) for unlimited saved bids and daily NAICS email alerts. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
-              { q: "Is there a free trial?", a: "Every plan includes a 14-day Professional trial with no credit card — it starts on your first premium action and auto-downgrades to free Basic afterward (your saved bids and progress stay). Basic itself is free forever — no trial, no card, nothing to cancel." },
+              { q: "Is there a free trial?", a: "Start your 14-day Professional trial when you upgrade. Cancel anytime during your trial. Basic itself is free forever — no trial and no card." },
               { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
               { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },
               { q: "Do nonprofits receive free access?", a: "Yes. Verified 501(c)(3) nonprofits receive free basic government grant search with no credit card, trial expiration, or monthly subscription. Apply at /nonprofit/apply. Paid government-contracting plans remain separate." },

@@ -1016,7 +1016,7 @@ function Pricing() {
             Start small and scale up as your contracting pipeline grows. No long-term contracts
             required.
           </p>
-          <p className="mt-3 text-sm font-medium text-slate-500">Start free on Basic — no card required. Your 14-day Professional trial starts on your first premium action. Cancel anytime.</p>
+          <p className="mt-3 text-sm font-medium text-slate-500">Start free on Basic — no card required. Start your 14-day Professional trial when you upgrade. Cancel anytime during your trial.</p>
         </div>
 
         <div className="mt-12 grid gap-6 lg:grid-cols-3">

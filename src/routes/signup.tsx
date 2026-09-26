@@ -1257,7 +1257,7 @@ function SignupPage() {
               : contextualHeader || "Your government-contracting workflow starts here."}
           </h1>
           <p className="mt-1.5 text-sm text-gray-500">
-            Start free on Basic — no credit card required. Your 14-day Professional trial begins on your first premium use.
+            Start free on Basic — no credit card required. Start your 14-day trial when you upgrade. Cancel anytime during your trial.
           </p>
 
           {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
@@ -1367,7 +1367,7 @@ function SignupPage() {
               <div className="mt-1.5 rounded-lg border border-emerald-300 bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white shadow-sm">
                 {selectedPlan === "basic"
                   ? "🔒 100% Free Forever • Zero Credit Card Required"
-                  : "🔒 Start your 14-day Professional trial • No card required"}
+                  : "🔒 Start your 14-day trial when you upgrade • Cancel anytime"}
               </div>
               {/* Honest scope on the free forever claim — Basic is free and never
                   expires, but it is LIMITED: capped at 3 saved bids, with Incumbent
@@ -1487,7 +1487,7 @@ function SignupPage() {
             <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
               <span>No credit card required</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
-              {selectedPlan === "basic" ? <span>Free forever</span> : <span>Trial starts on first premium use</span>}
+              {selectedPlan === "basic" ? <span>Free forever</span> : <span>Trial starts when you upgrade</span>}
               <span aria-hidden="true" className="text-gray-300">·</span>
               <span>Takes under 30 seconds</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
@@ -1501,7 +1501,7 @@ function SignupPage() {
           <div className="mt-6 border-t border-gray-100 pt-5">
             <p className="text-sm font-semibold text-slate-900">Select your plan</p>
             <p className="mt-0.5 text-xs text-gray-500">
-              Start free on Basic — no credit card required. Your 14-day Professional trial begins on your first premium use.
+              Start free on Basic — no credit card required. Start your 14-day trial when you upgrade. Cancel anytime during your trial.
             </p>
             <div className="mt-2.5 space-y-2" role="radiogroup" aria-label="Plan">
               {PLAN_OPTIONS.map((opt) => {

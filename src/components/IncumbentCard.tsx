@@ -219,7 +219,7 @@ export function IncumbentCard({
         >
           Unlock full name &amp; pricing history
         </a>
-        <p className="text-xs text-slate-400">Free 14-day Professional trial · No credit card required</p>
+        <p className="text-xs text-slate-400">14-day Professional trial starts when you upgrade · Cancel anytime</p>
       </div>
     )
   ) : null;

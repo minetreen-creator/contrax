@@ -58,16 +58,18 @@ export interface TrialStartCardData {
 /**
  * Card copy — the EXACT strings the dashboard card renders. Kept here (a plain
  * server-safe lib, no React) so the R1 dry-run can assert HONESTY against the
- * actual rendered copy rather than a file scan: no credit card, no "unlimited",
- * no billing language; every figure (14 days, per-trial caps) is derived from
- * the live ledgers (TRIAL_DAYS / TRIAL_CHECKLIST), never invented; and the copy
- * truthfully says the clock starts on the user's first Professional action.
+ * actual rendered copy rather than a file scan: no "unlimited", no claim that
+ * no card is collected, no billing language beyond the true offer; every figure
+ * (14 days, per-trial caps) is derived from the live ledgers (TRIAL_DAYS /
+ * TRIAL_CHECKLIST), never invented; and the copy truthfully says the trial
+ * starts when the user upgrades (the hard Pro gate ends lazy-start) and that
+ * the user can cancel anytime during the trial.
  */
 export const TRIAL_START_COPY = {
   heading: "Your 14-day Professional trial is ready",
   badge: `${TRIAL_DAYS}-day free trial`,
-  noCard: "No credit card required.",
-  body: `Your free ${TRIAL_DAYS}-day Professional trial starts the first time you use a Professional feature — not at signup — so nothing expires until you're ready.`,
+  noCard: `Start your ${TRIAL_DAYS}-day trial when you upgrade.`,
+  body: "Cancel anytime during your trial.",
   primary: "Run my first Executive Brief",
   // HONESTY FIX (owner gating map, 2026-09-26): the Executive Brief is a Radar
   // Pro feature behind a HARD Pro gate, and that gate deliberately does NOT

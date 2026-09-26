@@ -432,8 +432,7 @@ function ContractsHvacMechanical() {
             </a>
           </div>
           <p className="mt-3 text-xs font-medium text-blue-200/60">
-            No credit card required · Full Professional features on your first
-            use · Auto-downgrades to free Basic after 14 days
+            Start your 14-day trial when you upgrade · Cancel anytime during your trial
           </p>
         </section>
 

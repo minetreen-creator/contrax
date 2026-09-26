@@ -501,3 +501,183 @@ export async function subcontractStatusCounts(
   `) as { status: SubcontractStatus; count: number }[];
   return rows.map((r) => ({ status: r.status, count: Number(r.count) }));
 }
+
+// ── The GSA prime directory (S3, owner-approved 2026-09-26) ───────────────────
+//
+// A SECOND directory in the SAME table, in the SAME shape, told apart by its source row:
+// `UNIQUE (source_id, uei)` means a UEI present in BOTH directories is TWO legitimate
+// rows and is NEVER collapsed across sources. Everything GSA does not publish stays at
+// its column default (award_rows 0, value NULL, agencies/pop_states/industries empty) and
+// the /subcontracts GSA section renders none of those columns, so a default can never be
+// read as a fact about awards or obligations.
+
+/** Rows per statement (same batching discipline as the FY24 seed). */
+export const GSA_PRIME_BATCH_SIZE = 500;
+
+/** One GSA company, exactly the fields this source publishes. */
+export interface GsaPrimeWriteRow {
+  uei: string;
+  legalName: string;
+  naics: string[];
+  vendorState: string | null;
+  vendorAddress: string | null;
+  productsServices: string | null;
+  fy: string;
+  sourceUrl: string;
+  sourceFileDate: string | null;
+}
+
+/**
+ * `subcontract_primes` upsert for one batch of GSA rows. `RETURNING (xmax = 0) AS inserted`
+ * reports inserts vs updates without a second query, and the `WHERE` guard makes a re-run
+ * with unchanged bytes write NOTHING (so `unchanged` is a measured number, not a claim).
+ */
+async function upsertGsaPrimeBatch(
+  sourceId: string,
+  rows: readonly GsaPrimeWriteRow[],
+  fetchedAt: string,
+): Promise<{ inserted: number; updated: number }> {
+  const db = sql();
+  const payload = JSON.stringify(
+    rows.map((row) => ({
+      uei: row.uei,
+      legal_name: row.legalName,
+      naics: row.naics,
+      vendor_state: row.vendorState,
+      vendor_address: row.vendorAddress,
+      products_services: row.productsServices,
+      fy: row.fy,
+      source_url: row.sourceUrl,
+      source_file_date: row.sourceFileDate,
+    })),
+  );
+  const result = (await db`
+    WITH input AS (
+      SELECT * FROM jsonb_to_recordset(${payload}::jsonb) AS x(
+        uei text, legal_name text, naics jsonb, vendor_state text, vendor_address text,
+        products_services text, fy text, source_url text, source_file_date text
+      )
+    ), written AS (
+      INSERT INTO subcontract_primes AS t (
+        source_id, uei, legal_name, naics, vendor_state, vendor_address,
+        products_services, fy, source_url, source_file_date, fetched_at
+      )
+      SELECT
+        ${sourceId}::uuid, uei, legal_name,
+        COALESCE(ARRAY(SELECT jsonb_array_elements_text(naics)), '{}'::text[]),
+        vendor_state, vendor_address, products_services, fy, source_url,
+        NULLIF(source_file_date, '')::date, ${fetchedAt}::timestamptz
+      FROM input
+      ON CONFLICT (source_id, uei) DO UPDATE SET
+        legal_name = EXCLUDED.legal_name,
+        naics = EXCLUDED.naics,
+        vendor_state = EXCLUDED.vendor_state,
+        vendor_address = EXCLUDED.vendor_address,
+        products_services = EXCLUDED.products_services,
+        fy = EXCLUDED.fy,
+        source_url = EXCLUDED.source_url,
+        source_file_date = EXCLUDED.source_file_date,
+        fetched_at = EXCLUDED.fetched_at
+      WHERE t.legal_name IS DISTINCT FROM EXCLUDED.legal_name
+         OR t.naics IS DISTINCT FROM EXCLUDED.naics
+         OR t.vendor_state IS DISTINCT FROM EXCLUDED.vendor_state
+         OR t.vendor_address IS DISTINCT FROM EXCLUDED.vendor_address
+         OR t.products_services IS DISTINCT FROM EXCLUDED.products_services
+         OR t.fy IS DISTINCT FROM EXCLUDED.fy
+         OR t.source_url IS DISTINCT FROM EXCLUDED.source_url
+         OR t.source_file_date IS DISTINCT FROM EXCLUDED.source_file_date
+      RETURNING (xmax = 0) AS inserted
+    )
+    SELECT
+      (SELECT count(*)::int FROM written WHERE inserted) AS inserted,
+      (SELECT count(*)::int FROM written WHERE NOT inserted) AS updated
+  `) as { inserted: number; updated: number }[];
+  const row = result[0];
+  return { inserted: Number(row?.inserted ?? 0), updated: Number(row?.updated ?? 0) };
+}
+
+/** Batched GSA upsert. Returns what the database actually wrote. */
+export async function upsertGsaPrimeRows(
+  sourceId: string,
+  rows: readonly GsaPrimeWriteRow[],
+  fetchedAt: string,
+): Promise<{ inserted: number; updated: number }> {
+  let inserted = 0;
+  let updated = 0;
+  for (let i = 0; i < rows.length; i += GSA_PRIME_BATCH_SIZE) {
+    const written = await upsertGsaPrimeBatch(
+      sourceId,
+      rows.slice(i, i + GSA_PRIME_BATCH_SIZE),
+      fetchedAt,
+    );
+    inserted += written.inserted;
+    updated += written.updated;
+  }
+  return { inserted, updated };
+}
+
+/** Every UEI this source currently stores (the "what vanished" comparison set). */
+export async function readStoredPrimeUeis(sourceId: string): Promise<Set<string>> {
+  const db = sql();
+  const rows = (await db`
+    SELECT uei FROM subcontract_primes WHERE source_id = ${sourceId}::uuid
+  `) as { uei: string }[];
+  return new Set(rows.map((row) => row.uei));
+}
+
+/** How many rows this source stores right now — what the page is actually serving. */
+export async function countStoredPrimes(sourceId: string): Promise<number> {
+  const db = sql();
+  const rows = (await db`
+    SELECT count(*)::int AS count FROM subcontract_primes WHERE source_id = ${sourceId}::uuid
+  `) as { count: number }[];
+  return Number(rows[0]?.count ?? 0);
+}
+
+/**
+ * The counts of the latest SUCCESSFUL run for a source — the ONLY place the GSA sweep
+ * reads its change-detection state (`lastModified`, `contentSha256`, `fileUrl`) from.
+ * An `error` run carries no usable state, so it is skipped deliberately.
+ */
+export async function latestSubcontractRunCounts(
+  sourceKey: string,
+): Promise<Record<string, unknown> | null> {
+  const db = sql();
+  const rows = (await db`
+    SELECT counts
+    FROM subcontract_sync_runs
+    WHERE source_key = ${sourceKey} AND status = 'ok'
+    ORDER BY finished_at DESC
+    LIMIT 1
+  `) as { counts: Record<string, unknown> }[];
+  return rows[0]?.counts ?? null;
+}
+
+/**
+ * Records ANY run (ok or error) in the shared `subcontract_sync_runs` table, so
+ * "last checked by Contrax" is truthful even for a run that downloaded nothing (a 304
+ * still counts as a check) and so a failed resolution leaves a visible error row.
+ */
+export async function recordSubcontractSyncRun(opts: {
+  sourceKey: string;
+  status: "ok" | "error";
+  stage: string;
+  counts: Record<string, unknown>;
+  message: string | null;
+  startedAt: string;
+  finishedAt: string;
+}): Promise<string> {
+  const db = sql();
+  const rows = (await db`
+    INSERT INTO subcontract_sync_runs (
+      source_key, status, stage, counts, message, started_at, finished_at
+    ) VALUES (
+      ${opts.sourceKey}, ${opts.status}, ${opts.stage},
+      ${JSON.stringify(opts.counts)}::jsonb, ${opts.message},
+      ${opts.startedAt}::timestamptz, ${opts.finishedAt}::timestamptz
+    )
+    RETURNING id::text AS id
+  `) as { id: string }[];
+  return String(rows[0]?.id ?? "");
+}
+

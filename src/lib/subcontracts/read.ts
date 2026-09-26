@@ -27,15 +27,20 @@
  *     property of the board (BUILD-PLAN §6.4 #3, §6.6 #9).
  */
 import {
+  GSA_PRIME_DIRECTORY_SOURCE,
   PRIME_DIRECTORY_SOURCE,
   SUBNET_SOURCE,
   storedScopeLabel,
   stripSourceHeadingResidue,
+  unmappedScopeLabel,
   type SubcontractStatus,
 } from "~/lib/subcontracts/connector";
+import { GSA_FY_LABEL, gsaAddressLine } from "~/lib/subcontracts/gsa-directory";
 
 /** The official SBA page the annual prime file is published on (never the raw XLSX). */
 export const PRIME_DIRECTORY_SOURCE_URL = PRIME_DIRECTORY_SOURCE.officialUrl;
+/** The official GSA page the directory CSV is published from (never the raw CSV). */
+export const GSA_PRIME_DIRECTORY_SOURCE_URL = GSA_PRIME_DIRECTORY_SOURCE.officialUrl;
 /** The official SBA SUBNet board, linked from the honest unavailable state. */
 export const SUBNET_SOURCE_URL = SUBNET_SOURCE.officialUrl;
 
@@ -83,6 +88,86 @@ export const PRIME_DIRECTORY_HEADING = "Subcontracting leads — SBA FY24 direct
 export const PRIME_DIRECTORY_CONTEXT =
   "The SBA FY24 directory is an annual file (fiscal year 2024) of federal prime contractors that reported a subcontracting plan. It is a historical snapshot — these are companies to approach, not open opportunities.";
 
+// ── The GSA directory (S3) labels — owner-verbatim where marked ──────────────
+
+/**
+ * The fiscal-year value stored on every GSA row and echoed by the read path.
+ *
+ * This source publishes NO fiscal year, so `fy` holds the literal 'past fiscal year'
+ * (the same string the owner's heading uses). 'FY25' or any year would be an inference
+ * from the file name, which is exactly what the owner's wording avoids.
+ */
+export const GSA_PRIME_DIRECTORY_FY = GSA_FY_LABEL;
+
+/** Owner-verbatim (2026-09-26), byte for byte — middot separators, no year, no em dash. */
+export const GSA_PRIME_DIRECTORY_HEADING =
+  "GSA prime contractor directory · past fiscal year · last checked by Contrax";
+
+/**
+ * Why this list is historical and what it is not. Mirrors the SBA section's framing
+ * because the honesty rules are identical: a directory of companies to approach.
+ */
+export const GSA_PRIME_DIRECTORY_CONTEXT =
+  "The GSA directory lists companies that hold GSA contracts carrying a subcontracting plan. It is an annual file — these are companies to approach, not open opportunities.";
+
+/** The fallback for a row the source published no valid NAICS code for. */
+export const GSA_NAICS_NOT_STATED = "NAICS not stated";
+
+/** The source's own wording for a company outside the United States. */
+export const GSA_NON_US_STATE = "Non-US";
+/** How that value is labelled — it is a source value, not a US state. */
+export const GSA_NON_US_LABEL = "Non-US (as the source states)";
+
+/**
+ * How a stored state value is shown. Verbatim, EXCEPT the source's own `Non-US`, which
+ * is explicitly labelled as the source's wording: it is not a state and must never be
+ * read as one. Nothing is mapped to a 2-letter code here — the directory publishes full
+ * names, and inventing a code would put a company in a filter it never stated.
+ */
+export function gsaStateLabel(state: string | null | undefined): string {
+  const value = (state ?? "").trim();
+  if (!value) return STATE_NOT_STATED;
+  return value.toUpperCase() === GSA_NON_US_STATE.toUpperCase() ? GSA_NON_US_LABEL : value;
+}
+
+/**
+ * The honesty line for rows the source published no valid 6-digit NAICS code for.
+ * Mirrors the page's existing excluded-count pattern ("N excluded — no closing date
+ * stated"): the count is real, the consequence is stated, and nothing is implied about
+ * the companies themselves.
+ */
+export function gsaNonNaicsText(count: number): string {
+  return `${count} rows without a valid NAICS code — no trade label stated, so the NAICS filter cannot match them`;
+}
+
+/**
+ * One stored NAICS entry → the label the surface shows, never a bare code.
+ *
+ * SBA rows store `"541330: ENGINEERING SERVICES"` (the source's own title) and keep it.
+ * GSA rows store the CODE ONLY (the source publishes no title), so the code is resolved
+ * through the repo's single NAICS name table by the same resolver the SUBNet notices use
+ * (#449): a known code becomes its name, an unknown one becomes
+ * "NAICS <code> (title not stated)". A bare code is therefore never rendered as a trade.
+ */
+export function naicsDisplayLabels(stored: readonly string[]): string[] {
+  const labels: string[] = [];
+  for (const entry of stored) {
+    const text = (entry ?? "").trim();
+    if (!text) continue;
+    const withTitle = /^(\d{2,6})\s*[:\-–]\s*(.+)$/.exec(text);
+    if (withTitle) {
+      labels.push(withTitle[2]!.trim());
+      continue;
+    }
+    if (/^\d{2,6}$/.test(text)) {
+      labels.push(unmappedScopeLabel(text));
+      continue;
+    }
+    labels.push(text);
+  }
+  return labels;
+}
+
 // ── Fail-closed reasons (BUILD-PLAN §6.3) ────────────────────────────────────
 //
 // Every one of these is a REASON STRING for an explicit `unavailable` state. The
@@ -101,6 +186,17 @@ export const UNAVAILABLE_STORE_REASON =
 /** No completed sweep is recorded, so there is no honest open set to show. */
 export const UNAVAILABLE_NEVER_SYNCED_REASON =
   "No completed SBA SUBNet check is recorded for this deployment yet, so there is no checked set of notices to show.";
+
+/**
+ * The GSA directory has never been checked by this deployment.
+ *
+ * The GSA section prints "last checked by Contrax" + a real timestamp, so with no recorded
+ * check there is no honest line to print — and no rows to date. It is `unavailable`, not
+ * an empty list, for the same reason the notice list is: "we have not looked" and "there is
+ * nothing to show" are different statements.
+ */
+export const UNAVAILABLE_GSA_NEVER_SYNCED_REASON =
+  "No completed GSA directory check is recorded for this deployment yet, so there is no checked set of companies to show.";
 
 /** Shown with every unavailable state, so "nothing here" is never read as "none exist". */
 export const UNAVAILABLE_EXPLANATION =
@@ -443,7 +539,12 @@ export interface PrimeRowView {
   legalName: string;
   uei: string;
   vendorState: string | null;
+  /** Verbatim, except the source's own `Non-US`, which is labelled as the source's wording. */
+  vendorStateLabel: string;
+  /** Stored NAICS entries, exactly as stored (SBA: `"code: TITLE"`; GSA: the code only). */
   naics: string[];
+  /** The NAICS labels the surface shows — never a bare code (see naicsDisplayLabels). */
+  naicsLabels: string[];
   industries: string[];
   agencies: string[];
   awardRows: number;
@@ -451,6 +552,15 @@ export interface PrimeRowView {
   subcontractPlanType: string | null;
   fy: string;
   sourceUrl: string | null;
+  /**
+   * GSA-only, migration 051. The source's full physical address with the source's own
+   * `<br>` line breaks already turned into ", " — null for every SBA row.
+   */
+  vendorAddress: string | null;
+  /** GSA-only: the source's own "Major products or service lines" text. Null for SBA rows. */
+  productsServices: string | null;
+  /** GSA-only: the source's own file date (evidence). Never rendered as a date. */
+  sourceFileDate: string | null;
 }
 
 export interface StoredPrimeRow {
@@ -465,14 +575,21 @@ export interface StoredPrimeRow {
   subcontract_plan_type: string | null;
   fy: string;
   source_url: string | null;
+  /** Migration 051 — absent (undefined) on a database that has not applied it. */
+  vendor_address?: string | null;
+  products_services?: string | null;
+  source_file_date?: StoredDay;
 }
 
 export function toPrimeView(row: StoredPrimeRow): PrimeRowView {
+  const naics = (row.naics ?? []).filter((value) => Boolean(value?.trim()));
   return {
     legalName: row.legal_name,
     uei: row.uei,
     vendorState: row.vendor_state?.trim() || null,
-    naics: (row.naics ?? []).filter((value) => Boolean(value?.trim())),
+    vendorStateLabel: gsaStateLabel(row.vendor_state),
+    naics,
+    naicsLabels: naicsDisplayLabels(naics),
     industries: (row.industries ?? []).filter((value) => Boolean(value?.trim())),
     agencies: (row.agencies ?? []).filter((value) => Boolean(value?.trim())),
     awardRows: Number(row.award_rows ?? 0),
@@ -480,6 +597,10 @@ export function toPrimeView(row: StoredPrimeRow): PrimeRowView {
     subcontractPlanType: row.subcontract_plan_type?.trim() || null,
     fy: row.fy,
     sourceUrl: row.source_url?.trim() || null,
+    // The stored address keeps the source's line breaks; a card shows it on ONE line.
+    vendorAddress: gsaAddressLine(row.vendor_address),
+    productsServices: row.products_services?.trim() || null,
+    sourceFileDate: normalizeDay(row.source_file_date),
   };
 }
 
@@ -493,6 +614,40 @@ export interface PrimesQuery {
 export const PRIMES_DEFAULT_LIMIT = 25;
 export const PRIMES_MAX_LIMIT = 100;
 export const PRIMES_MAX_PAGE = 500;
+
+/**
+ * Which directory a primes read is about. `sba` is the DEFAULT and keeps the existing
+ * behaviour byte-for-byte; `gsa` is the second directory (migration 051).
+ */
+export type PrimesSourceId = "sba" | "gsa";
+export const PRIMES_SOURCE_IDS: readonly PrimesSourceId[] = ["sba", "gsa"] as const;
+export const PRIMES_DEFAULT_SOURCE: PrimesSourceId = "sba";
+
+/** The error text for a present-but-invalid `source` value (the 400 body). */
+export const PRIMES_SOURCE_ERROR = "source must be sba or gsa";
+
+export function isPrimesSourceId(value: unknown): value is PrimesSourceId {
+  return value === "sba" || value === "gsa";
+}
+
+/**
+ * The `?source=` parameter. An ABSENT value is the default (`sba` — the existing
+ * behaviour); a PRESENT but unknown value is a hard 400, exactly like every other
+ * parameter, because a silently-coerced source would answer about a different directory
+ * than the one that was asked for. Case is folded (a URL is not a case-sensitive API).
+ */
+export function validatePrimesSource(value: unknown): Parsed<PrimesSourceId> {
+  if (value === null || value === undefined) return { ok: true, value: PRIMES_DEFAULT_SOURCE };
+  const text = String(value).trim().toLowerCase();
+  if (text === "") return { ok: true, value: PRIMES_DEFAULT_SOURCE };
+  if (!isPrimesSourceId(text)) return { ok: false, error: PRIMES_SOURCE_ERROR };
+  return { ok: true, value: text };
+}
+
+/** The `?source=` half of the HTTP route's parsing. */
+export function parsePrimesSource(searchParams: URLSearchParams): Parsed<PrimesSourceId> {
+  return validatePrimesSource(searchParams.get("source"));
+}
 
 export type Parsed<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -594,6 +749,29 @@ export interface PrimesPayload {
   /** Filter options, read from the stored file (capped, with a truncation flag). */
   options: { naics: CountBucket[]; states: CountBucket[]; naicsTruncated: boolean };
   generatedAt: string;
+  /**
+   * Which directory this payload describes. Always present; `sba` is the default and is
+   * what the section that shipped on 2026-09-25 reads.
+   */
+  source: PrimesSourceId;
+  /**
+   * The GSA-only block (absent for `sba`, so the SBA response is unchanged). Everything
+   * here is either a REAL recorded timestamp or a REAL stored count — never a date claim:
+   * this source publishes no posted/closing/deadline field, and the section renders no
+   * date of its own.
+   */
+  gsa?: {
+    /** The latest COMPLETED check's finish time (ISO) — what "last checked" prints. */
+    lastCheckedAt: string | null;
+    /** The source's own file date from its dated URL. Evidence; never rendered as a date. */
+    sourceFileDate: string | null;
+    /** The source's own file name from the last completed check. Evidence for QA. */
+    sourceFile: string | null;
+    /** Stored rows whose NAICS cell is not a valid 6-digit code (live count). */
+    nonNaicsRows: number;
+    /** The pre-rendered honesty line, so it cannot drift per surface. */
+    nonNaicsText: string;
+  };
 }
 
 export type PrimesResponse = PrimesPayload | SubcontractsUnavailable;

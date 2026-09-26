@@ -134,9 +134,33 @@ export const PRIME_DIRECTORY_SOURCE: SubcontractSource = {
     "Annual FPDS-derived snapshot of companies with a federal subcontracting plan — companies to approach, NOT open opportunities, and it carries no contact information. The XLSX lives under /sites/default/files/*, which legacy.sba.gov/robots.txt disallows, so it is loaded by hand rather than crawled (BUILD-PLAN §6.1 S2).",
 };
 
+/**
+ * The GSA subcontracting directory (S3, owner-approved 2026-09-26). A SECOND directory,
+ * crawled rather than hand-loaded: the page hardcodes one CSV path (`/media/170283`,
+ * discovered in the page's own JS) that redirects to a dated file. `kind` stays
+ * `prime_directory` — the registry's CHECK already covers it, and these are companies to
+ * approach, not open opportunities.
+ *
+ * `cadence` is the owner-verbatim wording for the weekly conditional-GET check; the
+ * source itself publishes no interval, so nothing here claims one.
+ */
+export const GSA_PRIME_DIRECTORY_SOURCE: SubcontractSource = {
+  sourceKey: "gsa-find-opportunities",
+  name: "GSA subcontracting directory (prime contractors with subcontracting plans)",
+  agency: "GSA",
+  officialUrl: "https://www.gsa.gov/small-business/find-opportunities",
+  officialHost: "www.gsa.gov",
+  kind: "prime_directory",
+  cadence: "annual file; refetched weekly with conditional-GET gate",
+  coverageTier: "curated",
+  note:
+    "One CSV the page hardcodes (/media/170283 → /system/files/subcontractor_directory_*.csv), parsed in the browser by the page itself. No API, no feed, no pagination endpoint. Companies that hold GSA contracts carrying a subcontracting plan — a directory to approach, never open opportunities; the source publishes no posted/closing/deadline field. Refetched weekly behind an If-Modified-Since gate on the dated file (no ETag; the CDN restamps Last-Modified, so the bytes are hashed before anything is written).",
+};
+
 export const SUBCONTRACT_SOURCES: readonly SubcontractSource[] = [
   SUBNET_SOURCE,
   PRIME_DIRECTORY_SOURCE,
+  GSA_PRIME_DIRECTORY_SOURCE,
 ];
 
 // ── Records ──────────────────────────────────────────────────────────────────

@@ -9,6 +9,20 @@ import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
 import { getTrackingUser } from "~/lib/identity";
+import { getCurrentUser, type AuthUser } from "~/lib/auth";
+import { SaveToPipeline } from "~/components/SaveToPipeline";
+import {
+  BEST_MATCH_BADGE,
+  FIRST_RUN_EYEBROW,
+  FIRST_RUN_FREE_NOTE,
+  FIRST_RUN_INPUTS,
+  FIRST_RUN_SENTENCE,
+  FUNNEL_UX_EVENTS,
+  SAVE_OPPORTUNITY_LABEL,
+  SAVE_TRACKING_PROMPT,
+  buildRadarFirstRunHref,
+  isFirstRunSearch,
+} from "~/lib/funnel-ux";
 import { SHOW_FREE_INCUMBENT, FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
 import type { FPDSIntel } from "~/lib/fpds";
 import {
@@ -20,9 +34,11 @@ import {
 import {
   getRadarAnswers,
   getRadarSeen,
+  getRadarGuidanceDone,
   freshRadarSeen,
   saveRadarSeen,
   saveRadarAnswers,
+  saveRadarGuidanceDone,
   type RadarCertId,
 } from "~/lib/radar-session";
 import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
@@ -101,9 +117,14 @@ export type SizeId = (typeof SIZE_OPTS)[number]["id"];
 
 /**
  * R2: Contract Radar → signup CTA builder — carries the visitor's radar
- * criteria into /signup AND latches `/dashboard?brief=1` as the post-signup
- * return path so the new user lands on the dashboard with the "Run my first
- * Executive Brief" trial-start card surfaced (see src/lib/brief-mode.ts).
+ * criteria into /signup AND latches the post-signup return path.
+ *
+ * POST-SIGNUP LANDING (owner rework 2026-09-26, PR-A, item 1): the `next` return
+ * path is now `/radar?first_run=1&trade=&cert=&state=&size=` — the SAME Radar
+ * landing with the visitor's criteria pre-filled — so completing signup sends
+ * the new account straight back to Radar and into their first real search. This
+ * RETIRES the old `/dashboard?brief=1` "Run my first Executive Brief" return
+ * path (intended: the brief gating changes are a later PR).
  *
  * The criteria ride as URL search params in the SAME `?source=radar&trade=&
  * cert=&state=&size=` shape /signup already parses (it runs a REAL server scan
@@ -123,7 +144,16 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   // handles IDENTICALLY to radar_results_unlock (same restore + attribution).
   // Every other caller keeps source=radar — no behavior change there.
   const source = opts?.unlock ? "radar_results_unlock" : opts?.cta ? "radar_results_cta" : "radar";
-  const p = new URLSearchParams({ plan: "basic", source, next: "/dashboard?brief=1" });
+  const p = new URLSearchParams({
+    plan: "basic",
+    source,
+    next: buildRadarFirstRunHref({
+      trade: (answers.trade || "").trim(),
+      state: normalizeStateInput(answers.state),
+      cert: answers.cert ?? "",
+      size: answers.sizePref ?? "",
+    }),
+  });
   const trade = (answers.trade || "").trim();
   if (trade) p.set("trade", trade.slice(0, 120));
   const st = normalizeStateInput(answers.state);
@@ -985,6 +1015,57 @@ function RadarLanding() {
   // the locked card (with the REAL locked count) renders only when real matches
   // exceed the cap.
   const isAnonymous = !getTrackingUser();
+  // OWNER REWORK 2026-09-26 (PR-A) — the signed-in viewer, resolved CLIENT-side
+  // for the new Radar card actions (Save Opportunity + the tracking prompt).
+  // Deliberately SEPARATE from `isAnonymous` above: the anonymous gates (free
+  // <=3 reveal, locked card, email capture) keep reading exactly the value they
+  // read before this PR. SSR renders null and hydration agrees (no mismatch).
+  const [viewer, setViewer] = useState<AuthUser | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getCurrentUser()
+      .then((u) => { if (alive) setViewer(u ?? null); })
+      .catch(() => { /* anonymous — the card keeps its today behaviour */ });
+    return () => { alive = false; };
+  }, []);
+
+  // FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2): shown above
+  // the scan form when the visitor landed with ?first_run=1 (post-signup) or is
+  // a fresh signed-in visitor with no saved radar answers yet. It disappears
+  // after the first successful scan AND after an explicit dismissal — both
+  // remembered through the existing radar-session storage.
+  const firstRunFlag = isFirstRunSearch(searchParams);
+  const [guidanceVisible, setGuidanceVisible] = useState(firstRunFlag);
+  const guidanceShownRef = useRef(false);
+  const firstSearchTrackedRef = useRef(false);
+  useEffect(() => {
+    // localStorage is client-only: the URL flag already opened the banner for
+    // the first paint; this effect only closes it for a returning browser.
+    if (getRadarGuidanceDone()) { setGuidanceVisible(false); return; }
+    if (!firstRunFlag && viewer && !getRadarAnswers()) setGuidanceVisible(true);
+  }, [firstRunFlag, viewer]);
+  useEffect(() => {
+    if (!guidanceVisible || guidanceShownRef.current) return;
+    guidanceShownRef.current = true;
+    trackEvent(FUNNEL_UX_EVENTS.radarFirstRunShown, firstRunFlag ? "first_run" : "signed_in_fresh");
+  }, [guidanceVisible, firstRunFlag]);
+  const dismissGuidance = () => {
+    saveRadarGuidanceDone();
+    setGuidanceVisible(false);
+  };
+
+  // BEST MATCH (owner rework 2026-09-26, PR-A, item 3): the matches are already
+  // score-sorted by the server (see the scan handler), so the top-ranked card is
+  // matches[0]. The badge is presentation-only on THAT card — the order is never
+  // changed and the score% display is untouched.
+  const bestMatchId = scan.status === "done" && scan.matches.length > 0 ? scan.matches[0].id : null;
+  const bestMatchFiredRef = useRef(false);
+  useEffect(() => {
+    if (bestMatchId == null || bestMatchFiredRef.current) return;
+    bestMatchFiredRef.current = true;
+    trackEvent(FUNNEL_UX_EVENTS.radarBestMatchHighlighted, String(bestMatchId));
+  }, [bestMatchId]);
+
   const totalMatches = scan.status === "done" ? scan.matches.length : 0;
   const visibleCount = Math.min(totalMatches, FREE_ANONYMOUS_RADAR_RESULTS);
   /** Real locked count — ONLY non-zero when genuine matches exceed the free cap. */
@@ -1129,6 +1210,12 @@ function RadarLanding() {
     // may persist the criteria (and runScan itself persists the SEEN matches).
     didInteract.current = true;
     trackEvent("radar_scan_start", input.cert);
+    // Funnel (owner rework 2026-09-26, PR-A, item 9): the post-signup FIRST
+    // search — once per mount, and only on a first-run landing this session.
+    if ((firstRunFlag || guidanceShownRef.current) && !firstSearchTrackedRef.current) {
+      firstSearchTrackedRef.current = true;
+      trackEvent(FUNNEL_UX_EVENTS.radarFirstSearchStarted, input.cert);
+    }
     setScan({ status: "loading" });
     setRevealed(0);
 
@@ -1199,6 +1286,10 @@ function RadarLanding() {
       });
       setRestoredResults(false);
       setStep(3);
+      // First-run guidance (owner rework 2026-09-26, PR-A, item 2): a real scan
+      // just ran, so the banner is done for this browser — for good.
+      saveRadarGuidanceDone();
+      setGuidanceVisible(false);
     };
 
     const handleFailedScan = (error: unknown) => {
@@ -1278,6 +1369,42 @@ function RadarLanding() {
               set-aside matches — one at a time, with a real match score and full
               Incumbent Intelligence (previous winner &amp; award price).
             </p>
+
+            {/* FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2):
+                ONE clear sentence + the four inputs the scan asks for + the note
+                that search is free. Sits ABOVE the unchanged scan form; gone
+                after the first successful scan or an explicit dismissal. */}
+            {guidanceVisible && (
+              <div className="mt-6 rounded-2xl border border-amber-500/40 bg-amber-500/10 px-5 py-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+                      {FIRST_RUN_EYEBROW}
+                    </p>
+                    <p className="mt-1.5 text-sm font-semibold leading-relaxed text-white">
+                      {FIRST_RUN_SENTENCE}
+                    </p>
+                    <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium text-slate-200">
+                      {FIRST_RUN_INPUTS.map((input) => (
+                        <li key={input} className="flex items-center gap-1.5">
+                          <span className="text-amber-400" aria-hidden="true">•</span>
+                          {input}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-2 text-xs text-amber-200/90">{FIRST_RUN_FREE_NOTE}</p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Dismiss"
+                    onClick={dismissGuidance}
+                    className="-mt-0.5 px-1 text-slate-400 transition-colors hover:text-slate-100"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
 
             <div className="mt-8 flex flex-col gap-6">
               {/* Trade / NAICS */}
@@ -1502,6 +1629,8 @@ function RadarLanding() {
                         state={state}
                         cert={cert}
                         sizePref={sizePref}
+                        user={viewer}
+                        bestMatch={m.id === bestMatchId}
                       />
                     ))}
                   </div>
@@ -1605,6 +1734,8 @@ function RadarLanding() {
                     state={state}
                     cert={cert}
                     sizePref={sizePref}
+                    user={viewer}
+                    bestMatch={m.id === bestMatchId}
                   />
                 ))}
                 {locked > 0 && (
@@ -1649,6 +1780,8 @@ function RadarLanding() {
                   state={state}
                   cert={cert}
                   sizePref={sizePref}
+                  user={viewer}
+                  bestMatch={scan.matches[revealed].id === bestMatchId}
                 />
                 {revealed < scan.matches.length - 1 ? (
                   <button
@@ -1823,6 +1956,8 @@ export function RadarCard({
   cert,
   sizePref,
   intel,
+  user = null,
+  bestMatch = false,
 }: {
   match: RadarMatch;
   certLabel: string;
@@ -1838,7 +1973,23 @@ export function RadarCard({
   state: string;
   cert: RadarCertId | null;
   sizePref: SizeId | null;
+  /**
+   * OWNER REWORK 2026-09-26 (PR-A) — the signed-in viewer, resolved client-side
+   * by RadarLanding. NON-NULL ⇒ this card's primary action is "Save Opportunity"
+   * (the existing SaveToPipeline, compact + labelled) and a successful save
+   * shows the owner-verbatim tracking prompt. NULL/absent (every anonymous card,
+   * and any other caller) ⇒ the card renders exactly as before.
+   */
+  user?: AuthUser | null;
+  /**
+   * Item 3 — the top-ranked match (matches[0], the server's score order):
+   * badge + a subtle accent on THIS card only. Never reorders anything.
+   */
+  bestMatch?: boolean;
 }) {
+  // Item 5 — the post-save tracking confirmation for THIS card (set by the
+  // SaveToPipeline success hook below).
+  const [trackedPrompt, setTrackedPrompt] = useState(false);
   const due = match.due_date ? new Date(match.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
   // v6.2: the REAL place of performance + whether this card is in the
   // nationwide-eligibility bucket (never a location claim — see the tag below).
@@ -1860,10 +2011,24 @@ export function RadarCard({
         ? rawVal
         : null;
 
+  // Item 3: presentation-only accent on the best-match card. The NON-best-match
+  // class string is byte-for-byte the one this card has always rendered, so
+  // every anonymous card is untouched.
+  const cardClass = bestMatch
+    ? "overflow-hidden rounded-2xl border border-amber-400/70 bg-slate-900 ring-1 ring-inset ring-amber-400/30"
+    : "overflow-hidden rounded-2xl border border-slate-700 bg-slate-900";
+
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900" aria-label={`Match ${index} — ${match.title}`}>
+    <article className={cardClass} aria-label={`Match ${index} — ${match.title}`}>
       <div className="flex items-center justify-between gap-3 border-b border-slate-800 bg-gradient-to-r from-amber-500/15 to-transparent px-5 py-4">
         <div>
+          {bestMatch && (
+            <p className="mb-1">
+              <span className="inline-flex items-center rounded-full border border-amber-400/60 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">
+                {BEST_MATCH_BADGE}
+              </span>
+            </p>
+          )}
           <p className="text-xs font-semibold uppercase tracking-wide text-amber-400">Match {index} of {total}</p>
           <p className={`mt-0.5 text-lg font-extrabold text-white ${match.score >= 80 ? "text-emerald-300" : match.score >= 65 ? "text-amber-300" : "text-blue-300"}`}>
             {match.score_label} — {match.score}%
@@ -1932,15 +2097,44 @@ export function RadarCard({
           )}
         </p>
 
-        {/* AI RFP Executive Summary — deep-link to the per-bid detail page that
-            hosts RfpSummaryCard (logged-in users generate the brief there). */}
-        <a
-          href={`/bid/${match.id}`}
-          onClick={() => trackEvent("radar_brief_cta", String(match.id))}
-          className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/20"
-        >
-          ✦ Get the AI Executive Brief <span aria-hidden="true">→</span>
-        </a>
+        {/* CARD ACTIONS (owner rework 2026-09-26, PR-A, item 4). On a SIGNED-IN
+            card the PRIMARY action is "Save Opportunity" — the EXISTING
+            SaveToPipeline component, so the save_limit paywall, the logged-out
+            signup wall and the save_success path are all unchanged — and the AI
+            Executive Brief link (deep-link to the per-bid detail page that hosts
+            RfpSummaryCard) stays on the card as the SECONDARY action. The
+            ANONYMOUS card keeps exactly the one action it has today, markup and
+            all. NO entitlement/pricing change here (items 7-8 are a later PR). */}
+        {user ? (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <SaveToPipeline
+              bidId={match.id}
+              user={user}
+              compact
+              label={SAVE_OPPORTUNITY_LABEL}
+              onSaved={() => setTrackedPrompt(true)}
+            />
+            <a
+              href={`/bid/${match.id}`}
+              onClick={() => trackEvent("radar_brief_cta", String(match.id))}
+              className="inline-flex items-center justify-center gap-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-700"
+            >
+              ✦ Get the AI Executive Brief <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        ) : (
+          <a
+            href={`/bid/${match.id}`}
+            onClick={() => trackEvent("radar_brief_cta", String(match.id))}
+            className="mt-4 inline-flex w-full items-center justify-center gap-1 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-2.5 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/20"
+          >
+            ✦ Get the AI Executive Brief <span aria-hidden="true">→</span>
+          </a>
+        )}
+
+        {/* Item 5 — the owner-verbatim tracking confirmation, inline on the card
+            immediately after a successful save. Dismissible. */}
+        {trackedPrompt && <SaveTrackingPrompt onDismiss={() => setTrackedPrompt(false)} />}
 
         {/* Why the business qualifies */}
         {match.qualifications.length > 0 && (
@@ -2026,6 +2220,40 @@ export function RadarCard({
         </div>
       </div>
     </article>
+  );
+}
+
+/**
+ * POST-SAVE TRACKING PROMPT (owner rework 2026-09-26, PR-A, item 5).
+ *
+ * The owner-verbatim sentence, and nothing else: no second sentence, no CTA, no
+ * upsell. Rendered inline on the Radar card the moment the save succeeded (the
+ * SaveToPipeline `onSaved` hook, i.e. the same path that fires `save_success`).
+ * Dismissible; the dismissal is presentation-only (the opportunity stays saved).
+ * Fires `save_opportunity_prompt_shown` exactly once per mount.
+ */
+export function SaveTrackingPrompt({ onDismiss }: { onDismiss: () => void }) {
+  const shownRef = useRef(false);
+  useEffect(() => {
+    if (shownRef.current) return;
+    shownRef.current = true;
+    trackEvent(FUNNEL_UX_EVENTS.saveOpportunityPromptShown);
+  }, []);
+  return (
+    <div
+      role="status"
+      className="mt-3 flex items-start justify-between gap-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3"
+    >
+      <p className="text-sm font-semibold text-emerald-200">{SAVE_TRACKING_PROMPT}</p>
+      <button
+        type="button"
+        aria-label="Dismiss"
+        onClick={onDismiss}
+        className="px-1 text-emerald-300/70 transition-colors hover:text-white"
+      >
+        ✕
+      </button>
+    </div>
   );
 }
 

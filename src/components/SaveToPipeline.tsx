@@ -16,6 +16,7 @@
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { trackEvent } from "~/lib/track";
+import { resolveSaveButtonLabel } from "~/lib/funnel-ux";
 import type { AuthUser } from "~/lib/auth";
 import { checkTrial, hasUnlimitedSaves, FREE_SAVE_LIMIT, type TrialStatus } from "~/lib/trial";
 import {
@@ -38,6 +39,19 @@ interface SaveToPipelineProps {
   compact?: boolean;
   /** Return path for the signup wall; defaults to the current location. */
   returnPath?: string;
+  /**
+   * Optional explicit label (Radar's primary CTA passes "Save Opportunity").
+   * ABSENT ⇒ the historical labels, byte for byte: "Save to My Pipeline", or
+   * "Save" when compact. See ~/lib/funnel-ux.resolveSaveButtonLabel.
+   */
+  label?: string;
+  /**
+   * Optional success hook (Radar shows the owner-verbatim "We'll track this
+   * opportunity for you." confirmation). Fired ONCE after the server accepted
+   * the save, on the same path that fires `save_success`. ABSENT ⇒ no behaviour
+   * change for any existing caller.
+   */
+  onSaved?: () => void;
 }
 export function SaveToPipeline({
   bidId,
@@ -46,6 +60,8 @@ export function SaveToPipeline({
   savedCount,
   compact = false,
   returnPath,
+  label,
+  onSaved,
 }: SaveToPipelineProps) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -102,6 +118,15 @@ export function SaveToPipeline({
       if (!res.ok) throw new Error("save failed");
       setSaved(true);
       trackEvent("save_success", String(bidId), next);
+      // Optional, additive: the caller's success hook (Radar's tracking prompt).
+      // Wrapped so a hook failure can never be mistaken for a save failure.
+      if (onSaved) {
+        try {
+          onSaved();
+        } catch {
+          /* never let a caller's hook break the save UI */
+        }
+      }
     } catch {
       // Leave the button in its unsaved state; a card button is not the place
       // for an error modal. The pipeline page surfaces real failures.
@@ -138,7 +163,7 @@ export function SaveToPipeline({
           }`}
         >
           <span aria-hidden="true">⭐</span>
-          {busy ? "Saving…" : compact ? "Save" : "Save to My Pipeline"}
+          {busy ? "Saving…" : resolveSaveButtonLabel({ compact, label })}
         </button>
       )}
       <PremiumUpgradeModal

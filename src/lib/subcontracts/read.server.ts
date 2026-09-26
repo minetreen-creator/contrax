@@ -30,24 +30,32 @@ import { sql } from "~/db";
 import {
   PRIME_DIRECTORY_FY,
   PRIME_DIRECTORY_SOURCE_URL,
+  GSA_PRIME_DIRECTORY_FY,
+  GSA_PRIME_DIRECTORY_SOURCE_URL,
+  PRIMES_DEFAULT_SOURCE,
   PRIMES_NAICS_OPTION_CAP,
   SUBNET_SOURCE_LABEL,
   SUBNET_SOURCE_URL,
+  UNAVAILABLE_GSA_NEVER_SYNCED_REASON,
   UNAVAILABLE_NEVER_SYNCED_REASON,
   UNAVAILABLE_STORE_REASON,
   UNAVAILABLE_TABLES_REASON,
   UNAVAILABLE_EXPLANATION,
   excludedNoClosingDateText,
+  gsaNonNaicsText,
+  normalizeDay,
   normalizeStamp,
   tallyByState,
   tallyByTrade,
   toNoticeView,
   toPrimeView,
   validatePrimesQuery,
+  validatePrimesSource,
   type CountBucket,
   type PrimesPayload,
   type PrimesQuery,
   type PrimesReadResponse,
+  type PrimesSourceId,
   type StoredNoticeRow,
   type StoredPrimeRow,
   type SubcontractsCoverage,
@@ -55,7 +63,11 @@ import {
   type SubcontractsResponse,
   type SubcontractsUnavailable,
 } from "~/lib/subcontracts/read";
-import { SUBNET_SOURCE, PRIME_DIRECTORY_SOURCE } from "~/lib/subcontracts/connector";
+import {
+  SUBNET_SOURCE,
+  PRIME_DIRECTORY_SOURCE,
+  GSA_PRIME_DIRECTORY_SOURCE,
+} from "~/lib/subcontracts/connector";
 
 type CoverageTier = SubcontractsCoverage["tier"];
 
@@ -165,8 +177,8 @@ export async function readPrimeDirectoryTotals(): Promise<{ total: number; fy: s
   };
 }
 
-/** The filter option lists, read from the stored FY24 file (never invented). */
-async function readPrimeOptions(): Promise<{
+/** The filter option lists, read from the stored file for ONE source (never invented). */
+async function readPrimeOptions(sourceKey: string): Promise<{
   naics: CountBucket[];
   states: CountBucket[];
   naicsTruncated: boolean;
@@ -177,7 +189,7 @@ async function readPrimeOptions(): Promise<{
     FROM subcontract_primes p
     JOIN subcontract_sources s ON s.id = p.source_id,
     unnest(p.naics) AS n
-    WHERE s.source_key = ${PRIME_DIRECTORY_SOURCE.sourceKey}
+    WHERE s.source_key = ${sourceKey}
     GROUP BY n
     ORDER BY count DESC, key ASC
     LIMIT ${PRIMES_NAICS_OPTION_CAP + 1}
@@ -186,7 +198,7 @@ async function readPrimeOptions(): Promise<{
     SELECT p.vendor_state AS key, count(*)::int AS count
     FROM subcontract_primes p
     JOIN subcontract_sources s ON s.id = p.source_id
-    WHERE s.source_key = ${PRIME_DIRECTORY_SOURCE.sourceKey} AND p.vendor_state IS NOT NULL
+    WHERE s.source_key = ${sourceKey} AND p.vendor_state IS NOT NULL
     GROUP BY p.vendor_state
     ORDER BY count DESC, key ASC
   `) as CountBucket[];
@@ -267,14 +279,30 @@ export async function readSubcontractsPayload(now: Date = new Date()): Promise<S
 }
 
 /**
- * GET /api/subcontracts/primes — server-side filtered + paged read of the annual
- * FY24 directory. `naics` matches the CODE half of the stored `"541330: …"` values;
- * `state` matches the stored uppercase state name. Both filters bind as `NULL` when
- * absent (one statement, no fragment composition — see the note in the SQL), so a
- * missing filter can never be mistaken for a filter value.
+ * GET /api/subcontracts/primes — server-side filtered + paged read of a prime DIRECTORY.
+ *
+ * `source` selects WHICH directory: `sba` (default — the annual FY24 file, whose SQL and
+ * response are unchanged) or `gsa` (the GSA contractor directory, migration 051). The
+ * filters are identical for both: `naics` matches the CODE half of a stored NAICS value
+ * (`"541330: TITLE"` for SBA, a bare `"541330"` for GSA), `state` matches the stored
+ * uppercase state name. Both filters bind as `NULL` when absent (one statement, no
+ * fragment composition), so a missing filter can never be mistaken for a filter value.
+ *
+ * THE TWO READS USE DIFFERENT STATEMENTS ON PURPOSE. The SBA statement is the shipped
+ * one, untouched, and never references a migration-051 column: a deployment whose database
+ * has 050 but not yet 051 keeps serving the SBA directory exactly as before. The GSA
+ * statement reads the four new columns (including `naics_raw`, the verbatim cell of a row
+ * whose code is NOT a valid six-digit code — evidence, never displayed), so before 051 it
+ * fails into the SAME fail-closed unavailable state rather than reporting a wrong or
+ * partial list.
+ *
+ * THE GSA SOURCE ALSO REQUIRES A RECORDED CHECK. Its section prints "last checked by
+ * Contrax" plus a REAL timestamp, so with no completed run recorded there is no honest
+ * line to print — the read returns `unavailable` (never an empty list).
  */
 export async function readPrimesPayload(
   query: PrimesQuery,
+  sourceId: PrimesSourceId = PRIMES_DEFAULT_SOURCE,
   now: Date = new Date(),
 ): Promise<PrimesReadResponse> {
   // PARSE/VALIDATE FIRST — before the table check, before any SQL. A NaN/absent/out-of-
@@ -284,7 +312,11 @@ export async function readPrimesPayload(
   // store is never touched (see validatePrimesQuery).
   const validated = validatePrimesQuery(query);
   if (!validated.ok) return { ok: false, error: validated.error };
+  const validatedSource = validatePrimesSource(sourceId);
+  if (!validatedSource.ok) return { ok: false, error: validatedSource.error };
+  const source = validatedSource.value;
   const parsed = validated.value;
+
   let presence: TablePresence;
   try {
     presence = await subcontractTablesPresent();
@@ -297,27 +329,63 @@ export async function readPrimesPayload(
     return unavailable(UNAVAILABLE_TABLES_REASON);
   }
 
+  const sourceKey =
+    source === "gsa" ? GSA_PRIME_DIRECTORY_SOURCE.sourceKey : PRIME_DIRECTORY_SOURCE.sourceKey;
+  const sourceUrl =
+    source === "gsa" ? GSA_PRIME_DIRECTORY_SOURCE_URL : PRIME_DIRECTORY_SOURCE_URL;
+
   try {
+    let lastCheckedAt: string | null = null;
+    let sourceFile: string | null = null;
+    if (source === "gsa") {
+      // The honest freshness: only a COMPLETED check counts, and without one there is no
+      // timestamp to print and no row set that was ever verified.
+      const latest = await latestCompletedRun(sourceKey);
+      if (!latest) return unavailable(UNAVAILABLE_GSA_NEVER_SYNCED_REASON);
+      lastCheckedAt = latest.finishedAt;
+      sourceFile = latest.fileName;
+    }
+
     const db = sql();
     const offset = (parsed.page - 1) * parsed.limit;
+    const optionsPromise = readPrimeOptions(sourceKey);
     const [rawRows, rawTotals, options] = await Promise.all([
-      db`
-        SELECT
-          p.legal_name, p.uei, p.vendor_state, p.naics, p.industries, p.agencies,
-          p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url
-        FROM subcontract_primes p
-        JOIN subcontract_sources s ON s.id = p.source_id
-        WHERE s.source_key = ${PRIME_DIRECTORY_SOURCE.sourceKey}
-          AND (${parsed.state}::text IS NULL OR upper(p.vendor_state) = ${parsed.state}::text)
-          AND (
-            ${parsed.naics}::text IS NULL
-            OR EXISTS (
-              SELECT 1 FROM unnest(p.naics) AS n WHERE split_part(n, ':', 1) = ${parsed.naics}::text
-            )
-          )
-        ORDER BY p.legal_name ASC
-        LIMIT ${parsed.limit} OFFSET ${offset}
-      `,
+      source === "gsa"
+        ? db`
+            SELECT
+              p.legal_name, p.uei, p.vendor_state, p.naics, p.industries, p.agencies,
+              p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url,
+              p.vendor_address, p.products_services, p.source_file_date, p.naics_raw
+            FROM subcontract_primes p
+            JOIN subcontract_sources s ON s.id = p.source_id
+            WHERE s.source_key = ${sourceKey}
+              AND (${parsed.state}::text IS NULL OR upper(p.vendor_state) = ${parsed.state}::text)
+              AND (
+                ${parsed.naics}::text IS NULL
+                OR EXISTS (
+                  SELECT 1 FROM unnest(p.naics) AS n WHERE split_part(n, ':', 1) = ${parsed.naics}::text
+                )
+              )
+            ORDER BY p.legal_name ASC
+            LIMIT ${parsed.limit} OFFSET ${offset}
+          `
+        : db`
+            SELECT
+              p.legal_name, p.uei, p.vendor_state, p.naics, p.industries, p.agencies,
+              p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url
+            FROM subcontract_primes p
+            JOIN subcontract_sources s ON s.id = p.source_id
+            WHERE s.source_key = ${sourceKey}
+              AND (${parsed.state}::text IS NULL OR upper(p.vendor_state) = ${parsed.state}::text)
+              AND (
+                ${parsed.naics}::text IS NULL
+                OR EXISTS (
+                  SELECT 1 FROM unnest(p.naics) AS n WHERE split_part(n, ':', 1) = ${parsed.naics}::text
+                )
+              )
+            ORDER BY p.legal_name ASC
+            LIMIT ${parsed.limit} OFFSET ${offset}
+          `,
       db`
         SELECT
           count(*)::int AS directory_total,
@@ -332,9 +400,9 @@ export async function readPrimesPayload(
           )::int AS matched
         FROM subcontract_primes p
         JOIN subcontract_sources s ON s.id = p.source_id
-        WHERE s.source_key = ${PRIME_DIRECTORY_SOURCE.sourceKey}
+        WHERE s.source_key = ${sourceKey}
       `,
-      readPrimeOptions(),
+      optionsPromise,
     ]);
 
     const rows = (rawRows ?? []) as StoredPrimeRow[];
@@ -343,20 +411,77 @@ export async function readPrimesPayload(
     const total = ((rawTotals ?? []) as { directory_total: number; matched: number }[])[0];
     const filtered = Number(total?.matched ?? 0);
 
+    // The GSA block: a REAL recorded check timestamp, the source's own file evidence, and
+    // a LIVE count of the stored rows whose NAICS cell was not a valid code. The honesty
+    // line is built from that same number, so the count and the sentence cannot disagree.
+    let gsa: PrimesPayload["gsa"];
+    if (source === "gsa") {
+      const nonNaicsRows = await countNonNaicsRows(sourceKey);
+      gsa = {
+        lastCheckedAt,
+        sourceFileDate: storedSourceFileDate(rows),
+        sourceFile,
+        nonNaicsRows,
+        nonNaicsText: gsaNonNaicsText(nonNaicsRows),
+      };
+    }
+
     const payload: PrimesPayload = {
       rows: rows.map(toPrimeView),
       counts: { filtered, directoryTotal: Number(total?.directory_total ?? 0) },
-      fy: rows[0]?.fy?.trim() || PRIME_DIRECTORY_FY,
-      sourceUrl: PRIME_DIRECTORY_SOURCE_URL,
+      fy: rows[0]?.fy?.trim() || (source === "gsa" ? GSA_PRIME_DIRECTORY_FY : PRIME_DIRECTORY_FY),
+      sourceUrl,
       page: parsed.page,
       limit: parsed.limit,
       hasMore: offset + rows.length < filtered,
       options,
       generatedAt: now.toISOString(),
+      source,
+      ...(gsa ? { gsa } : {}),
     };
     return payload;
   } catch (err) {
     console.error("[subcontracts-primes] read failed:", err);
     return unavailable(UNAVAILABLE_STORE_REASON);
   }
+}
+
+/** The latest COMPLETED run for a source: its finish time and the file it checked. */
+async function latestCompletedRun(
+  sourceKey: string,
+): Promise<{ finishedAt: string; fileName: string | null } | null> {
+  const db = sql();
+  const rows = (await db`
+    SELECT finished_at, counts->>'fileName' AS file_name
+    FROM subcontract_sync_runs
+    WHERE source_key = ${sourceKey} AND status = 'ok'
+    ORDER BY finished_at DESC
+    LIMIT 1
+  `) as { finished_at: string | Date; file_name: string | null }[];
+  const row = rows[0];
+  if (!row) return null;
+  const finishedAt = normalizeStamp(row.finished_at);
+  if (!finishedAt) return null;
+  return { finishedAt, fileName: row.file_name?.trim() || null };
+}
+
+/** Stored GSA rows whose NAICS cell was not a valid 6-digit code (a LIVE count). */
+async function countNonNaicsRows(sourceKey: string): Promise<number> {
+  const db = sql();
+  const rows = (await db`
+    SELECT count(*)::int AS count
+    FROM subcontract_primes p
+    JOIN subcontract_sources s ON s.id = p.source_id
+    WHERE s.source_key = ${sourceKey} AND COALESCE(array_length(p.naics, 1), 0) = 0
+  `) as { count: number }[];
+  return Number(rows[0]?.count ?? 0);
+}
+
+/** The GSA source's own file date as STORED on the rows (evidence, never a claim). */
+function storedSourceFileDate(rows: readonly StoredPrimeRow[]): string | null {
+  const days = rows
+    .map((row) => normalizeDay(row.source_file_date))
+    .filter((day): day is string => Boolean(day))
+    .sort();
+  return days.at(-1) ?? null;
 }

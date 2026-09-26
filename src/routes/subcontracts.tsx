@@ -1,6 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  GSA_NAICS_NOT_STATED,
+  GSA_PRIME_DIRECTORY_CONTEXT,
+  GSA_PRIME_DIRECTORY_HEADING,
+  GSA_PRIME_DIRECTORY_SOURCE_URL,
   LAST_CHECKED_LABEL,
   LISTED_SCOPES_NOTE,
   NO_CLOSING_DATE_LISTED,
@@ -14,7 +18,9 @@ import {
   STATE_BUCKET_UNKNOWN,
   checkedAtText,
   companyCountText,
+  gsaStateLabel,
   isUnavailable,
+  naicsDisplayLabels,
   noticeCountText,
   type CountBucket,
   type PrimesPayload,
@@ -368,6 +374,192 @@ function PrimeDirectory({
   );
 }
 
+/**
+ * THE SECOND DIRECTORY — the GSA prime contractor directory (owner-approved expansion
+ * 2026-09-26; owner-verbatim heading below).
+ *
+ * A SIBLING of `PrimeDirectory`, never merged with it and never mixed into the open
+ * SUBNet notices: this source is one ANNUAL file of companies that hold GSA contracts
+ * carrying a subcontracting plan. What it publishes is a company, its UEI, its own
+ * address words, its state words, its NAICS cell and its own products/services line —
+ * and NOTHING ELSE. So this section renders none of the fields the source does not
+ * publish: no posted/closing date, no deadline and no deadline sort, no award or value
+ * figure, no subcontracting plan type, no agencies, no coverage claim.
+ *
+ * FRESHNESS is ONLY "last checked by Contrax" + the REAL recorded check time (the
+ * payload's `gsa.lastCheckedAt`): the file's own date is evidence in the payload and is
+ * deliberately never rendered, because the source's date is not when we looked.
+ *
+ * HONESTY LINE: the payload's own pre-rendered sentence, built from a LIVE count of the
+ * stored rows whose NAICS cell is not a valid six-digit code — the count and the sentence
+ * come from the same number, so they cannot disagree. Those rows are kept and shown; only
+ * a validated six-digit code is ever labelled as a trade (never a bare code: a row with no
+ * valid code states "NAICS not stated" instead).
+ */
+function GsaPrimeDirectory({
+  payload,
+  unavailableReason,
+  loading,
+  naics,
+  state,
+  page,
+  onFilter,
+  onPage,
+}: {
+  payload: PrimesPayload | null;
+  unavailableReason: string | null;
+  loading: boolean;
+  naics: string;
+  state: string;
+  page: number;
+  onFilter: (next: { naics?: string; state?: string }) => void;
+  onPage: (next: number) => void;
+}) {
+  const rows = payload?.rows ?? [];
+  const limit = payload?.limit ?? PRIMES_DEFAULT_LIMIT;
+  const from = rows.length === 0 ? 0 : (page - 1) * limit + 1;
+  const to = (page - 1) * limit + rows.length;
+  const lastCheckedAt = payload?.gsa?.lastCheckedAt ?? null;
+  return (
+    <section id="gsa-primes" className="mt-14 rounded-3xl border border-slate-200 bg-slate-50 p-6">
+      <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+        A second directory · separate from the notices above and from the SBA file · annual, not live
+      </p>
+      <h2 className="mt-2 text-2xl font-bold" data-testid="gsa-primes-heading">
+        {GSA_PRIME_DIRECTORY_HEADING}
+      </h2>
+      <p className="mt-3 max-w-3xl text-sm text-slate-600">{GSA_PRIME_DIRECTORY_CONTEXT}</p>
+      {unavailableReason ? (
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          The GSA prime directory is not available on this page right now. {unavailableReason}
+        </p>
+      ) : (
+        <>
+          {lastCheckedAt ? (
+            <p className="mt-4 text-sm text-slate-500" data-testid="gsa-primes-freshness">
+              {LAST_CHECKED_LABEL} {checkedAtText(lastCheckedAt)}
+            </p>
+          ) : null}
+          {payload?.gsa ? (
+            <p className="mt-1 text-sm font-semibold text-slate-700" data-testid="gsa-primes-non-naics">
+              {payload.gsa.nonNaicsText}
+            </p>
+          ) : null}
+          <div className="mt-5 flex flex-wrap gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+            <label className={LABEL_CLASS} htmlFor="gsa-prime-naics">
+              NAICS
+              <select
+                id="gsa-prime-naics"
+                value={naics}
+                onChange={(event) => onFilter({ naics: event.target.value })}
+                className={SELECT_CLASS}
+              >
+                <option value="">All listed NAICS</option>
+                {(payload?.options.naics ?? []).map((option) => (
+                  // The stored value is the bare code (this source publishes no title), so the
+                  // LABEL goes through the repo's one NAICS name resolver — a bare code is never
+                  // offered as a trade. The option's VALUE stays the code, which is what the
+                  // server-side filter matches.
+                  <option key={option.key} value={option.key}>
+                    {(naicsDisplayLabels([option.key])[0] ?? option.key) + " (" + option.count + ")"}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={LABEL_CLASS} htmlFor="gsa-prime-state">
+              State
+              <select
+                id="gsa-prime-state"
+                value={state}
+                onChange={(event) => onFilter({ state: event.target.value })}
+                className={SELECT_CLASS}
+              >
+                <option value="">All listed states</option>
+                {(payload?.options.states ?? []).map((option) => (
+                  <option key={option.key} value={option.key}>
+                    {(gsaStateLabel(option.key) ?? option.key) + " (" + option.count + ")"}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="mt-4 text-sm text-slate-700">
+            {payload
+              ? companyCountText(payload.counts.filtered) +
+                (payload.counts.filtered === 1 ? " matches" : " match") +
+                " this filter, of " +
+                payload.counts.directoryTotal +
+                " companies stored from the GSA directory."
+              : "Reading the GSA directory\u2026"}
+          </p>
+          {payload?.options.naicsTruncated ? (
+            <p className="mt-1 text-xs text-slate-500">
+              The NAICS menu shows the {payload.options.naics.length} most common codes in the file; a code that is not
+              listed is still in the data.
+            </p>
+          ) : null}
+          <ul className="mt-4 grid gap-3">
+            {rows.map((row) => (
+              <li key={row.uei} className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="font-semibold">{row.legalName}</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  UEI {row.uei} &middot; {row.vendorStateLabel}
+                </p>
+                {row.vendorAddress ? <p className="mt-1 text-sm text-slate-600">{row.vendorAddress}</p> : null}
+                {row.productsServices ? (
+                  <p className="mt-1 text-sm text-slate-600">
+                    Products or services (as the source states): {row.productsServices}
+                  </p>
+                ) : null}
+                <p className="mt-1 text-sm text-slate-600">
+                  {row.naicsLabels.length > 0
+                    ? "NAICS: " + row.naicsLabels.slice(0, 3).join(" \u00b7 ")
+                    : GSA_NAICS_NOT_STATED}
+                </p>
+                <a
+                  href={row.sourceUrl ?? payload?.sourceUrl ?? GSA_PRIME_DIRECTORY_SOURCE_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-block text-sm font-semibold text-blue-700 hover:underline"
+                >
+                  Read the GSA directory on gsa.gov &rarr;
+                </a>
+              </li>
+            ))}
+          </ul>
+          {loading ? <p className="mt-3 text-sm text-slate-500">Loading the directory&hellip;</p> : null}
+          {rows.length === 0 && !loading ? (
+            <p className="mt-3 text-sm text-slate-600">
+              No company in the stored GSA directory matches these filters.
+            </p>
+          ) : null}
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className={GHOST_BUTTON_CLASS}
+              disabled={page <= 1 || loading}
+              onClick={() => onPage(page - 1)}
+            >
+              &larr; Previous
+            </button>
+            <button
+              type="button"
+              className={GHOST_BUTTON_CLASS}
+              disabled={!payload?.hasMore || loading}
+              onClick={() => onPage(page + 1)}
+            >
+              Next &rarr;
+            </button>
+            <span className="text-sm text-slate-600">
+              {rows.length > 0 ? `Showing ${from}\u2013${to} of ${payload?.counts.filtered ?? 0}` : ""}
+            </span>
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
+
 function SubcontractsPage() {
   const [data, setData] = useState<SubcontractsResponse | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -380,6 +572,15 @@ function SubcontractsPage() {
   const [primeNaics, setPrimeNaics] = useState("");
   const [primeState, setPrimeState] = useState("");
   const [primePage, setPrimePage] = useState(1);
+
+  // The GSA directory is a SECOND, independent read of the same endpoint with
+  // `source=gsa`: its own filters, its own page, its own fail-closed state.
+  const [gsaPrimes, setGsaPrimes] = useState<PrimesPayload | null>(null);
+  const [gsaUnavailable, setGsaUnavailable] = useState<string | null>(null);
+  const [gsaLoading, setGsaLoading] = useState(true);
+  const [gsaNaics, setGsaNaics] = useState("");
+  const [gsaState, setGsaState] = useState("");
+  const [gsaPage, setGsaPage] = useState(1);
 
   const seenNotices = useRef<Set<string>>(new Set());
 
@@ -437,6 +638,47 @@ function SubcontractsPage() {
       cancelled = true;
     };
   }, [primeNaics, primeState, primePage]);
+
+  // The GSA directory read — `source=gsa` on the SAME primes endpoint. It fails closed on
+  // its own: an unreachable store or a deployment with no completed GSA check shows the
+  // API's own reason, never an empty-looking list.
+  useEffect(() => {
+    let cancelled = false;
+    setGsaLoading(true);
+    const params = new URLSearchParams({
+      source: "gsa",
+      page: String(gsaPage),
+      limit: String(PRIMES_DEFAULT_LIMIT),
+    });
+    if (gsaNaics) params.set("naics", gsaNaics);
+    if (gsaState) params.set("state", gsaState);
+    fetch(`/api/subcontracts/primes?${params.toString()}`, { headers: { accept: "application/json" } })
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(String(response.status)))))
+      .then((payload: PrimesResponse) => {
+        if (cancelled) return;
+        if (isUnavailable(payload)) {
+          setGsaPrimes(null);
+          setGsaUnavailable(payload.unavailable.reason);
+        } else {
+          setGsaPrimes(payload);
+          setGsaUnavailable(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setGsaPrimes(null);
+          setGsaUnavailable(
+            "Contrax could not read the stored GSA directory (the request failed). Nothing is shown rather than a partial list.",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setGsaLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [gsaNaics, gsaState, gsaPage]);
 
   const onNoticeSeen = useCallback((externalId: string) => {
     if (shouldFireNoticeView(seenNotices.current, externalId)) {
@@ -639,6 +881,21 @@ function SubcontractsPage() {
             setPrimePage(1);
           }}
           onPage={(next) => setPrimePage(next)}
+        />
+
+        <GsaPrimeDirectory
+          payload={gsaPrimes}
+          unavailableReason={gsaUnavailable}
+          loading={gsaLoading}
+          naics={gsaNaics}
+          state={gsaState}
+          page={gsaPage}
+          onFilter={(next) => {
+            if (next.naics !== undefined) setGsaNaics(next.naics);
+            if (next.state !== undefined) setGsaState(next.state);
+            setGsaPage(1);
+          }}
+          onPage={(next) => setGsaPage(next)}
         />
 
         <section className="mt-10 max-w-3xl">

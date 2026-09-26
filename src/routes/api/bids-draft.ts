@@ -4,6 +4,11 @@ import { sql } from "~/db";
 import { generateProposalDraft } from "~/lib/proposal-draft";
 import { extractCitations } from "~/lib/far-grounding";
 import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
+// PLAN GATE (owner decision 2, 2026-09-26): proposal drafting is part of Bid
+// Scout ($99/mo) — a hard gate on the STORED entitlement, evaluated before the
+// cache read so neither a cached nor a fresh draft is served to a non-customer.
+import { gateErrorCode, gateLockedPayload } from "~/lib/plan-gates";
+import { hasBidScoutAccess } from "~/lib/plan-gates.server";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
 async function handler({ request }: { request: Request }) {
@@ -15,6 +20,19 @@ async function handler({ request }: { request: Request }) {
     }
     const user = await getUserFromRequest(request);
     if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
+
+    // ── HARD BID SCOUT GATE (owner decision 2, 2026-09-26) ──────────────────
+    // Proposal drafting is part of Bid Scout ($99/mo). An attempt by a user
+    // without an `active` Bid Scout subscription (and without the internal
+    // admin/demo/grant bypass) is rejected HERE, at the attempt — the client
+    // opens the Bid Scout prompt and fires `draft_attempted`/"gated". Runs
+    // before the cached-draft read: a paid draft is never served ungated.
+    if (!(await hasBidScoutAccess(user.id, user))) {
+      return Response.json(
+        { ...gateLockedPayload("draft"), error: gateErrorCode("draft") },
+        { status: 402 },
+      );
+    }
 
     // Lazy migration for FAR-grounded drafting citations (same pattern as the
     // business_profiles ALTERs below).
@@ -62,16 +80,13 @@ async function handler({ request }: { request: Request }) {
     // PER-TRIAL DRAFT CAP (owner): an ACTIVE Professional-trial user gets 1
     // proposal draft for the whole trial (cached drafts returned above never
     // consume). If they've used it, reject with a clear upgrade prompt.
-    const trialDraft = await checkTrialCap(user.id, "drafts");
-    if (trialDraft.trialActive && !trialDraft.allowed) {
-      return Response.json(
-        {
-          error:
-            "You've used your 1 trial proposal draft. Upgrade to Professional to keep drafting proposals.",
-        },
-        { status: 403 },
-      );
-    }
+    // The old PER-TRIAL DRAFT CAP (1 draft for the whole 14-day Professional
+    // trial) is SUPERSEDED by the hard Bid Scout gate above: every caller that
+    // reaches this point owns the drafting product (an active Bid Scout
+    // subscription, or an internal admin/demo/grant account), so re-applying a
+    // trial cap here could only ever block a PAYING customer. The trial ledger
+    // is still debited below on success (`consumeTrial`), which is a no-op
+    // outside an active trial — no bookkeeping is lost.
     const { draftText, citations } = await generateProposalDraft(bid, profile);
 
     // Store in DB

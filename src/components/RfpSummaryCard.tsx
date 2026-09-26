@@ -84,9 +84,20 @@ type CardState =
       status: "locked";
       rawDescription: string;
       allowance: RfpAllowance;
+      /** True when the lock is the Radar Pro gate (a gated ATTEMPT), not a
+       *  used-up monthly allowance. Suppresses the allowance indicator. */
+      gated?: boolean;
     }
   | { status: "error"; message: string };
 
+// PLAN GATE (owner gating map, 2026-09-26): the AI Executive Brief is a Radar
+// Pro ($79/mo) feature. The gate fires AT THE ATTEMPT (the generate click) and
+// is logged as the standalone `ai_brief_attempted`/"gated" event.
+import {
+  ATTEMPT_EVENT_FOR_ACTION,
+  GATE_ATTEMPT_LABEL,
+  isGateLockedPayload,
+} from "~/lib/plan-gates";
 /** Exact owner-specified locked-preview copy (2026-08-29) — do not change. */
 const LOCKED_PREVIEW_COPY =
   "Understand this RFP in minutes, not hours. Upgrade to Professional to reveal its mandatory requirements, critical deadlines and potential red flags.";
@@ -282,11 +293,20 @@ export function RfpSummaryCard({
         return;
       }
       const json = (await res.json()) as RfpBriefResponse;
-      // Over-limit lower-tier user: show the raw description + locked preview.
+      // ATTEMPT-ONLY gate (owner rule 8): a user who just ATTEMPTED to
+      // generate a brief without Radar Pro gets the gate payload — the Pro
+      // prompt renders here (owner-locked upgrade copy) and the standalone
+      // gated-attempt event is fired with it. An ordinary over-allowance lock
+      // keeps the existing rfp_brief_locked event.
       if (json.locked) {
-        trackEvent("rfp_brief_locked", String(bidId));
+        const gatedBrief = isGateLockedPayload(json);
+        trackEvent(
+          gatedBrief ? ATTEMPT_EVENT_FOR_ACTION.ai_brief : "rfp_brief_locked",
+          gatedBrief ? GATE_ATTEMPT_LABEL : String(bidId),
+        );
         setState({
           status: "locked",
+          gated: gatedBrief,
           rawDescription: json.raw_description ?? "",
           allowance:
             json.allowance ?? {
@@ -365,8 +385,8 @@ export function RfpSummaryCard({
               Generate Instant Brief →
             </button>
             <p className="mt-3 text-xs text-slate-500">
-              Included with your plan — Basic 1 brief/mo · Starter 3/mo ·
-              Professional 50/mo · Agency 200/mo.
+              AI Executive Briefs are a Radar Pro feature (Professional, $79/mo) —
+              50 briefs/mo, and 200/mo on Agency.
             </p>
           </div>
         )}
@@ -428,9 +448,11 @@ function LockedBody({ state }: { state: Extract<CardState, { status: "locked" }>
           {LOCKED_PREVIEW_COPY}
         </p>
         <p className="mt-3 text-xs leading-relaxed text-slate-400">{BRIEF_PROMISE_COPY}</p>
-        <div className="mt-3">
-          <AllowanceIndicator allowance={allowance} className="justify-center" />
-        </div>
+        {!state.gated && (
+          <div className="mt-3">
+            <AllowanceIndicator allowance={allowance} className="justify-center" />
+          </div>
+        )}
         <a
           href="/upgrade"
           className="mt-4 inline-flex rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition hover:bg-amber-400"

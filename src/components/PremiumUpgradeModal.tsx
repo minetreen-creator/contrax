@@ -41,6 +41,7 @@ export function PremiumUpgradeModal({
   checkoutPlan = "professional",
   ctaLabel = "Upgrade to Professional →",
   priceNote = "$79/mo · 14-day Professional trial · Cancel anytime",
+  ctaHref,
 }: {
   open: boolean;
   onClose: () => void;
@@ -49,6 +50,13 @@ export function PremiumUpgradeModal({
   checkoutPlan?: CheckoutPlan;
   ctaLabel?: string;
   priceNote?: string;
+  /**
+   * When set, the CTA becomes a plain LINK to this path instead of a Stripe
+   * Checkout redirect. Used by the Bid Scout gate (owner gating map 2026-09-26):
+   * Bid Scout has no tier price to redirect to — its ONE purchase path is the
+   * intake page at /bid-scout.
+   */
+  ctaHref?: string;
 }) {
   // Close on Escape for accessibility. No early returns before hooks.
   useEffect(() => {
@@ -91,13 +99,22 @@ export function PremiumUpgradeModal({
         </span>
         <h2 className="mt-4 text-center text-xl font-bold text-slate-900">{title}</h2>
         <p className="mt-3 text-center text-sm text-slate-600">{message}</p>
-        <button
-          type="button"
-          onClick={() => redirectToCheckout(checkoutPlan)}
-          className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700"
-        >
-          {ctaLabel}
-        </button>
+        {ctaHref ? (
+          <a
+            href={ctaHref}
+            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+          >
+            {ctaLabel}
+          </a>
+        ) : (
+          <button
+            type="button"
+            onClick={() => redirectToCheckout(checkoutPlan)}
+            className="mt-6 inline-flex w-full items-center justify-center rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+          >
+            {ctaLabel}
+          </button>
+        )}
         <p className="mt-3 text-center text-xs text-slate-400">{priceNote}</p>
         <button
           type="button"

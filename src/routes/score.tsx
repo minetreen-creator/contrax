@@ -9,6 +9,19 @@ import { storePendingDraft } from "~/lib/pending-draft";
 import { buildProfileContext } from "~/lib/profile-context";
 import { getRelevantContext } from "~/lib/knowledge";
 import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
+// PLAN GATES (owner gating map, 2026-09-26): bid scoring is a Radar Pro ($79/mo)
+// feature and the post-results "draft my Technical Approach" attempt belongs to
+// Bid Scout ($99/mo). BOTH prompts fire AT THE ATTEMPT only — never on view.
+import {
+  ATTEMPT_EVENT_FOR_ACTION,
+  GATE_ATTEMPT_LABEL,
+  gateErrorCode,
+  gateFromError,
+  gatePrompt,
+  type PlanGate,
+} from "~/lib/plan-gates";
+import { hasRadarProAccess, loadGateEntitlements } from "~/lib/plan-gates.server";
+import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
 import {
@@ -63,7 +76,7 @@ const scoreFaqs = [
   },
   {
     q: "Do I need to sign up?",
-    a: "Your first 3 scores are free with no account — paste a solicitation and get your score, no login or credit card required. Creating a free account unlocks unlimited scoring plus bid tracking, deadline alerts, proposal drafting, compliance checks, and the rest of the platform.",
+    a: "No — your first 3 scores are free with no account: paste a solicitation and get your score, no login or credit card required. Bid scoring itself is part of the Radar Pro plan ($79/month, the Professional tier), so once your free scores are used you upgrade to Radar Pro to keep scoring. A free account still covers opportunity search, set-aside filters, and up to 3 saved bids.",
   },
   {
     q: "What do GO, CAUTIOUS, and NO-GO mean?",
@@ -94,6 +107,12 @@ interface ScoreCredits {
   limit: number;
   limited: boolean;
   unlimited: boolean;
+  /** True for a signed-in caller — the anonymous 3-credit counter never applies. */
+  signedIn: boolean;
+  /** Radar Pro entitlement (drives the ATTEMPT-only Pro prompt on /score). */
+  radarPro: boolean;
+  /** Bid Scout entitlement (drives the ATTEMPT-only prompt on the draft CTA). */
+  bidScout: boolean;
 }
 
 /**
@@ -183,6 +202,15 @@ const scoreSolicitation = createServerFn({ method: "POST" })
         // generic error.
         throw new Error(FREE_LIMIT_REACHED_MESSAGE);
       }
+    }
+    // ── HARD RADAR PRO GATE (owner decision 1, 2026-09-26) ───────────────────
+    // Bid scoring is a Radar Pro ($79/mo) feature. A signed-in user without
+    // Professional+ access gets the gate sentinel AT THE ATTEMPT — the client
+    // opens the Radar Pro prompt and fires `score_attempted`/"gated". The
+    // ANONYMOUS free-credit path above is untouched (owner: keep the anonymous
+    // Radar gates exactly as they are).
+    if (user && !(await hasRadarProAccess(user.id, user))) {
+      throw new Error(gateErrorCode("score"));
     }
     // PER-TRIAL SCORE CAP (owner): an authenticated user inside an ACTIVE
     // Professional trial gets 3 complete scores for the whole trial (never the
@@ -325,13 +353,33 @@ const getScoreCredits = createServerFn({ method: "GET" }).handler(
       user = await getCurrentUser();
     } catch { /* treat as anonymous */ }
     if (user) {
-      // Logged-in users (any tier) are never limited — the account is the unlock.
-      return { used: 0, limit: Infinity, limited: false, unlimited: true };
+      // Signed-in callers: the anonymous 3-credit counter never applies, so it
+      // stays hidden (signedIn=true). Scoring itself is a Radar Pro feature —
+      // the entitlement flags let the page open the Radar Pro / Bid Scout
+      // prompt AT THE ATTEMPT (owner rule 8), never on page view.
+      const entitlements = await loadGateEntitlements(user.id, user);
+      return {
+        used: 0,
+        limit: FREE_SCORE_LIMIT,
+        limited: false,
+        unlimited: false,
+        signedIn: true,
+        radarPro: entitlements.radarPro,
+        bidScout: entitlements.bidScout,
+      };
     }
     const ip = getStashedClientIp();
     if (!ip) {
       // No IP available (non-Vercel runtime) — show no limit, hide the counter.
-      return { used: 0, limit: FREE_SCORE_LIMIT, limited: false, unlimited: false };
+      return {
+        used: 0,
+        limit: FREE_SCORE_LIMIT,
+        limited: false,
+        unlimited: false,
+        signedIn: false,
+        radarPro: false,
+        bidScout: false,
+      };
     }
     const used = await getUsedCredits(ip);
     return {
@@ -339,6 +387,9 @@ const getScoreCredits = createServerFn({ method: "GET" }).handler(
       limit: FREE_SCORE_LIMIT,
       limited: used >= FREE_SCORE_LIMIT,
       unlimited: false,
+      signedIn: false,
+      radarPro: false,
+      bidScout: false,
     };
   }
 );
@@ -466,6 +517,9 @@ function ScorePage() {
   const [credits, setCredits] = useState<ScoreCredits | null>(null);
   const [limitReached, setLimitReached] = useState(false);
   const [trialScoreReached, setTrialScoreReached] = useState(false);
+  // The gate whose prompt is currently open. Set ONLY when the user attempts a
+  // gated paid action (owner rule 8 — never on page view).
+  const [activeGate, setActiveGate] = useState<PlanGate | null>(null);
 
   // Fetch the anonymous free-score balance: shows the honest counter and, for a
   // returning visitor whose IP already exhausted the limit, renders the signup
@@ -514,9 +568,20 @@ function ScorePage() {
         setLimitReached(true);
         setError("");
         void refreshCredits();
+      } else if (gateFromError(message)) {
+        // ATTEMPT-ONLY PROMPT (owner rule 8): the caller just ATTEMPTED the
+        // gated paid action (scoring → Radar Pro), so this is the one moment the
+        // prompt is allowed to fire. The standalone event records the gated
+        // attempt (label "gated").
+        trackEvent(ATTEMPT_EVENT_FOR_ACTION.score, GATE_ATTEMPT_LABEL, "/score");
+        setActiveGate(gateFromError(message));
+        setError("");
       } else if (message === TRIAL_SCORE_LIMIT_REACHED_MESSAGE) {
         // Per-trial score cap (3) hit for an ACTIVE Professional-trial user —
-        // render an upgrade-to-Professional prompt instead of a generic error.
+        // render the Radar Pro prompt instead of a generic error. Same
+        // attempt-only rule: the prompt answers THIS attempt, and it is logged
+        // as a gated attempt.
+        trackEvent(ATTEMPT_EVENT_FOR_ACTION.score, GATE_ATTEMPT_LABEL, "/score");
         setTrialScoreReached(true);
         setError("");
       } else {
@@ -549,6 +614,29 @@ function ScorePage() {
     setError("");
     setValidationError("");
   };
+
+  /**
+   * ATTEMPT-ONLY drafting CTA (owner decision 2 + rule 8). Proposal drafting is
+   * a Bid Scout ($99/mo) feature, so clicking this CTA IS the attempt: a user
+   * without Bid Scout gets the Bid Scout prompt HERE and nowhere else, plus the
+   * standalone `draft_attempted`/"gated" event. A Bid Scout customer (or an
+   * internal account) goes straight to their draft.
+   */
+  const attemptDraft = () => {
+    trackEvent(ATTEMPT_EVENT_FOR_ACTION.draft, "attempt", "/score");
+    // Carry the pasted solicitation to the draft flow (sessionStorage — the URL
+    // must never carry the full text).
+    storePendingDraft(solicitation);
+    if (credits?.bidScout) {
+      trackEvent(ATTEMPT_EVENT_FOR_ACTION.draft, "allowed", "/score");
+      window.location.assign("/draft/pending");
+      return;
+    }
+    trackEvent(ATTEMPT_EVENT_FOR_ACTION.draft, GATE_ATTEMPT_LABEL, "/score");
+    setActiveGate("bid_scout");
+  };
+
+  const activePrompt = activeGate ? gatePrompt(activeGate) : null;
 
   const rec = result ? recStyle(result.recommendation) : null;
   const tone = result ? scoreTone(result.overallFit) : null;
@@ -631,8 +719,8 @@ function ScorePage() {
               You&rsquo;ve used your 3 trial scores
             </h2>
             <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600">
-              Your 14-day Professional trial includes 3 complete bid scores. Upgrade to
-              Professional for unlimited scoring and the full suite of premium tools.
+              Your 14-day Professional trial includes 3 complete bid scores. Upgrade to Radar Pro
+              (Professional, $79/mo) to keep scoring every opportunity you're tracking.
             </p>
             <a
               href="/upgrade"
@@ -648,8 +736,9 @@ function ScorePage() {
               You&rsquo;ve used your 3 free scores
             </h2>
             <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600">
-              Create a free account for unlimited scoring — no credit card required for the
-              14-day Professional trial.
+              Create a free account to search opportunities, filter by set-aside, and save up to
+              3 bids. Bid scoring runs on the Radar Pro plan ($79/month) — upgrade any time to
+              score the bids you're chasing.
             </p>
             <a
               href="/signup?plan=professional"
@@ -737,7 +826,7 @@ function ScorePage() {
             )}
           </button>
 
-          {credits && !credits.unlimited && !limitReached && (
+          {credits && !credits.unlimited && !credits.signedIn && !limitReached && (
             <p className="mt-3 text-[13px] font-medium text-slate-500">
               You&rsquo;ve used {credits.used} of {credits.limit} free scores
             </p>
@@ -800,7 +889,7 @@ function ScorePage() {
               </div>
             </div>
 
-            {/* Score → signup conversion CTA */}
+            {/* Next steps — ACTIONS ONLY (owner rule 8) */}
             <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-center shadow-sm lg:p-8">
               <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-white px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-amber-700">
                 <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
@@ -817,34 +906,18 @@ function ScorePage() {
                     : "Tough call — but the next bid is out there."}
               </h3>
               <div className="mt-5 flex flex-col items-center gap-3">
-                <a
-                  href={`/signup?plan=professional&score_rec=${result.recommendation}`}
-                  onClick={() => {
-                    // Part B: carry the pasted solicitation to /signup via
-                    // sessionStorage (URL params must not carry the full text).
-                    // The draft intent lives on THIS CTA; the "Start free
-                    // trial" link below stays the generic trial path.
-                    storePendingDraft(solicitation);
-                    trackEvent("score_cta_click", result.recommendation);
-                  }}
+                <button
+                  type="button"
+                  onClick={attemptDraft}
                   className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
                 >
                   <FileText className="h-4 w-4" />
                   Draft my Technical Approach for this bid
-                </a>
-                <a
-                  href={`/signup?plan=professional&score_rec=${result.recommendation}`}
-                  onClick={() => trackEvent("score_cta_click", result.recommendation)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-blue-200 bg-white px-4 py-2 text-[13px] font-semibold text-blue-700 shadow-sm transition-colors hover:bg-blue-50 active:scale-[0.99]"
-                >
-                  Start free trial
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </a>
+                </button>
+                <p className="text-[13px] font-medium text-slate-500">
+                  Proposal drafting is part of Bid Scout — $99/month.
+                </p>
               </div>
-              <p className="mt-3 text-[13.5px] leading-relaxed text-slate-600">
-                Save this bid, get deadline alerts, and see the full compliance breakdown — 14-day
-                free trial, no credit card required.
-              </p>
               <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[13px] text-slate-500">
                 <a
                   href="/awards"
@@ -854,13 +927,13 @@ function ScorePage() {
                   Find me a GO instead →
                 </a>
                 <span aria-hidden="true" className="text-slate-400">·</span>
-                <a
-                  href="/score"
-                  onClick={() => trackEvent("score_cta_click", "score_another")}
+                <button
+                  type="button"
+                  onClick={reset}
                   className="underline-offset-2 transition-colors hover:text-slate-700 hover:underline"
                 >
                   Score another bid →
-                </a>
+                </button>
               </div>
             </div>
 
@@ -974,15 +1047,16 @@ function ScorePage() {
                 Want the full picture — and help winning this one?
               </h3>
               <p className="mx-auto mt-2 max-w-xl text-[15px] leading-relaxed text-slate-600">
-                Sign up to track this bid, get deadline alerts, a full AI proposal draft, compliance
-                checks, and pricing recommendations — all powered by the same engine.
+                Sign up to save this bid, get deadline alerts, compliance checks, and pricing
+                recommendations — all powered by the same engine. Proposal drafting and pipeline
+                export are part of Bid Scout.
               </p>
               <div className="mt-5 flex flex-col items-center justify-center gap-3 sm:flex-row">
                 <Link
                   to="/signup"
                   className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-[15px] font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 active:scale-[0.99]"
                 >
-                  Sign up to track this bid &amp; get proposal help
+                  Sign up to track this bid
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <button
@@ -1086,6 +1160,22 @@ function ScorePage() {
             </Link>
           </div>
         </section>
+      {/* ATTEMPT-ONLY gate prompt (owner rule 8) — `activeGate` is set ONLY by a
+          gated attempt (a scoring attempt → Radar Pro, or the drafting CTA →
+          Bid Scout). Nothing here can render on page view. */}
+      {activePrompt && (
+        <PremiumUpgradeModal
+          open
+          onClose={() => setActiveGate(null)}
+          title={activePrompt.title}
+          message={activePrompt.body}
+          ctaLabel={activePrompt.ctaLabel}
+          priceNote={activePrompt.priceNote}
+          {...(activePrompt.checkout
+            ? { checkoutPlan: activePrompt.checkoutPlan }
+            : { ctaHref: activePrompt.href })}
+        />
+      )}
       </main>
     </div>
   );

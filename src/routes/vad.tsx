@@ -51,9 +51,7 @@ const vadPlans: {
     description: "For businesses ready to build and track a real government-contracting pipeline.",
     features: [
       "Unlimited Saved Bids",
-      "3 AI Executive Briefs monthly",
       "Daily NAICS Email Alerts",
-      "CSV Pipeline Export",
     ],
     cta: "Get Started",
     tier: "starter",
@@ -64,12 +62,11 @@ const vadPlans: {
     price: "59",
     was: "79",
     period: "/mo",
-    description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and draft tools.",
+    description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and AI match scoring.",
     features: [
       "50 AI Executive Briefs a month — requirements, milestones & red flags",
       "Full Incumbent Intelligence & Past Pricing",
       "AI Match Scoring",
-      "Draft Tools",
     ],
     cta: "Get Started",
     tier: "professional",

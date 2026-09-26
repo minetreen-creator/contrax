@@ -158,6 +158,19 @@ export const EVENT_LABELS: Record<string, string> = {
   subcontract_source_open: "Subcontracting notice source opened",
   subcontract_contact_click: "Subcontracting prime contact clicked",
   subcontracts_checkout_started: "Subcontracts checkout started (inert — no checkout exists)",
+  // PLAN-GATE ATTEMPT EVENTS (owner gating map, 2026-09-26) — FIVE standalone
+  // display labels, one per gated paid action. Each is fired at the moment its
+  // upgrade prompt is shown, i.e. ONLY on an ATTEMPT of the gated action (rule
+  // 8: never on page view), always with the label "gated". Same isolation
+  // contract as the grants_* / bid_scout_* / subcontracts_* families: NOT a
+  // member of ACTIVATION_EVENTS, the signup sets, RADAR_COMPLETE_EVENT, or any
+  // other funnel-stage set — a gated attempt can never synthesize a
+  // signup/activation/paid stage (asserted in src/lib/plan-gates.test.ts).
+  ai_brief_attempted: "AI Brief attempt gated (Radar Pro)",
+  score_attempted: "Bid-score attempt gated (Radar Pro)",
+  incumbent_attempted: "Incumbent reveal attempt gated (Radar Pro)",
+  draft_attempted: "Proposal draft attempt gated (Bid Scout)",
+  export_attempted: "Pipeline export attempt gated (Bid Scout)",
 };
 
 function getClientIp(request: Request): string | null {

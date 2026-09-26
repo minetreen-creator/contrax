@@ -29,6 +29,10 @@ import { useState, type FormEvent } from "react";
 import type { FPDSIntel } from "~/lib/fpds";
 import type { AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+// ATTEMPT-ONLY gate (owner rule 8): the incumbent reveal is a Radar Pro
+// ($79/mo) feature, so the prompt fires when the user CLICKS to reveal — never
+// on the teaser's page view.
+import { ATTEMPT_EVENT_FOR_ACTION, GATE_ATTEMPT_LABEL } from "~/lib/plan-gates";
 import {
   PremiumUpgradeModal,
   INCUMBENT_PAYWALL_BODY,
@@ -186,7 +190,17 @@ export function IncumbentCard({
         <p className="text-sm font-semibold text-slate-800">Full 5-year pricing history</p>
         <button
           type="button"
-          onClick={() => setShowPaywall(true)}
+          onClick={() => {
+            // ATTEMPT-ONLY prompt (owner rule 8): the reveal click IS the
+            // attempt, so the Pro prompt opens here and only here, and the
+            // standalone gated-attempt event is recorded with it.
+            trackEvent(
+              ATTEMPT_EVENT_FOR_ACTION.incumbent,
+              GATE_ATTEMPT_LABEL,
+              "/awards",
+            );
+            setShowPaywall(true);
+          }}
           className="inline-flex w-full max-w-sm items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
         >
           Reveal Incumbent &amp; Past Pricing

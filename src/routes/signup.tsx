@@ -198,7 +198,7 @@ const PLAN_OPTIONS: {
     slug: "professional",
     name: "Professional",
     price: 79,
-    bullets: ["50 AI Executive Briefs monthly", "Full incumbent intelligence & past pricing", "AI match scoring", "Draft tools"],
+    bullets: ["50 AI Executive Briefs monthly", "Full incumbent intelligence & past pricing", "AI match scoring"],
     featured: true,
   },
   {
@@ -1376,7 +1376,7 @@ function SignupPage() {
                   the badge is never read as "everything is free". */}
               {selectedPlan === "basic" && (
                 <p className="mt-1.5 text-xs text-gray-500">
-                  Free forever — up to 3 saved bids. Incumbent Intelligence &amp; Draft Tools are on Professional.
+                  Free forever — up to 3 saved bids. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
                 </p>
               )}
               <input
@@ -1485,7 +1485,7 @@ function SignupPage() {
                 (takes under 30 seconds). Paid plans keep honest 14-day-trial
                 framing instead of the "free forever" claim. */}
             <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
-              <span>No credit card required</span>
+              {selectedPlan === "basic" ? <span>No credit card required</span> : <span>Card required at checkout</span>}
               <span aria-hidden="true" className="text-gray-300">·</span>
               {selectedPlan === "basic" ? <span>Free forever</span> : <span>Trial starts when you upgrade</span>}
               <span aria-hidden="true" className="text-gray-300">·</span>
@@ -1593,7 +1593,7 @@ function SignupPage() {
               <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
               </svg>
-              AI bid summaries and win scores for every match
+              AI bid summaries and win scores on Professional
             </li>
             <li className="flex items-start gap-2 text-sm text-slate-700">
               <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

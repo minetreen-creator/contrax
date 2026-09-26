@@ -3,6 +3,9 @@ import {
   isPrimesQueryError,
   parsePrimesQuery,
   parsePrimesSource,
+  type PrimesQuery,
+  type PrimesReadResponse,
+  type PrimesSourceId,
 } from "~/lib/subcontracts/read";
 import { readPrimesPayload } from "~/lib/subcontracts/read.server";
 
@@ -46,24 +49,48 @@ function json(body: unknown, status: number): Response {
 }
 
 /**
+ * The read layer this handler calls: `(query, source, now) => payload`.
+ *
+ * INJECTABLE ON PURPOSE — and the default is the real layer, so this file's behaviour is
+ * exactly what it was. A unit test that needs to prove the ROUTE's wiring ("?source=gsa
+ * reaches the read layer as gsa", "a bad request never reaches it") must not have to
+ * register a process-global module mock to do it: bun's `mock.module` registry is never
+ * un-registered, so a suite that mocked `read.server` here made every LATER test file in the
+ * same `bun test` run read the fake instead of the real layer — which is how CI job
+ * 108393585184 turned 4 real assertions about the read layer into false failures. Handing
+ * the read function in keeps the wiring pinnable with no global mock at all.
+ */
+export type PrimesReader = (
+  query: PrimesQuery,
+  source: PrimesSourceId,
+  now: Date,
+) => Promise<PrimesReadResponse>;
+
+/**
  * Exported so the route's own parsing can be pinned by a unit test (the read layer is
  * exercised separately): both the query AND the `source` selection are validated HERE,
- * before `readPrimesPayload` is called, so a bad request never reaches SQL and can never
+ * before the read layer is called, so a bad request never reaches SQL and can never
  * be reported as a store failure.
  */
-export async function handler({ request }: { request: Request }): Promise<Response> {
-  const searchParams = new URL(request.url).searchParams;
-  const parsed = parsePrimesQuery(searchParams);
-  if (!parsed.ok) return json({ ok: false, error: parsed.error }, 400);
-  // The directory selection. Absent ⇒ sba (the shipped behaviour, byte-unchanged).
-  const source = parsePrimesSource(searchParams);
-  if (!source.ok) return json({ ok: false, error: source.error }, 400);
-  const payload = await readPrimesPayload(parsed.value, source.value, new Date());
-  // The read layer re-validates before it reads (see readPrimesPayload): a query that
-  // reaches it invalid answers 400 here rather than being mistaken for a store failure.
-  if (isPrimesQueryError(payload)) return json(payload, 400);
-  return json(payload, 200);
+export function primesHandler(
+  readPrimes: PrimesReader = readPrimesPayload,
+): (input: { request: Request }) => Promise<Response> {
+  return async function handler({ request }: { request: Request }): Promise<Response> {
+    const searchParams = new URL(request.url).searchParams;
+    const parsed = parsePrimesQuery(searchParams);
+    if (!parsed.ok) return json({ ok: false, error: parsed.error }, 400);
+    // The directory selection. Absent ⇒ sba (the shipped behaviour, byte-unchanged).
+    const source = parsePrimesSource(searchParams);
+    if (!source.ok) return json({ ok: false, error: source.error }, 400);
+    const payload = await readPrimes(parsed.value, source.value, new Date());
+    // The read layer re-validates before it reads (see readPrimesPayload): a query that
+    // reaches it invalid answers 400 here rather than being mistaken for a store failure.
+    if (isPrimesQueryError(payload)) return json(payload, 400);
+    return json(payload, 200);
+  };
 }
+
+export const handler = primesHandler();
 
 export const Route = createFileRoute("/api/subcontracts/primes")({
   server: { handlers: { GET: handler } },

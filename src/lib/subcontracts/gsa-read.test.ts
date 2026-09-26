@@ -19,7 +19,7 @@
  *   7. An invalid query/source answers 400 BEFORE the store is touched.
  */
 import { describe, expect, mock, test } from "bun:test";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import {
   GSA_NAICS_NOT_STATED,
   GSA_NON_US_LABEL,
@@ -45,7 +45,15 @@ import {
 // ── Fake DB ──────────────────────────────────────────────────────────────────
 // A statement recorder that REFUSES to behave like a database: any query is recorded and
 // throws, so the fail-closed assertions below can never silently pass by reading a store.
+//
+// This is the ONLY module mock in this directory, and it is deliberately the LOWEST level
+// one. bun's `mock.module` registry is process-global and is never un-registered, so mocking
+// `~/lib/subcontracts/read.server` (the layer this suite and `polish-fixes` must exercise
+// FOR REAL) would silently replace it for every later file in the same `bun test` run — the
+// cause of the 4 failures in CI job 108393585184. The route's own wiring test injects its
+// reader instead (`primesHandler(read)` in src/routes/api/subcontracts/primes.ts).
 const statements: string[] = [];
+
 mock.module("~/db", () => ({
   sql: () => async (strings: TemplateStringsArray, ...values: unknown[]) => {
     statements.push(strings.join(" ? ").replace(/\s+/g, " ").trim());
@@ -269,6 +277,24 @@ describe("gsa read: the SBA half is unchanged (structural pins)", () => {
       "The SBA FY24 directory is an annual file (fiscal year 2024) of federal prime contractors that reported a subcontracting plan. It is a historical snapshot — these are companies to approach, not open opportunities.",
     );
     expect(PRIMES_DEFAULT_SOURCE).toBe("sba");
+  });
+
+  test("NO test file in this directory mocks the read layer (bun's registry is process-global)", () => {
+    // WHY THIS PIN EXISTS. bun's `mock.module` registry is process-global and is never
+    // un-registered, so a file that mocks `~/lib/subcontracts/read.server` also replaces it
+    // for every LATER file in the same `bun test` run — and the file order within a run is
+    // not ours to control. CI job 108393585184 lost 4 real assertions to exactly that: the
+    // route suite's canned `readPrimesPayload` was what this file and `polish-fixes` were
+    // comparing against. A mock must sit at the LOWEST level (this file's `~/db`, whose
+    // checks above are about the guard rejecting a bad request) or be injected (the route's
+    // `primesHandler(read)`), so that no suite can ever silently test a fake read layer.
+    const dir = new URL("./", import.meta.url);
+    const offenders = readdirSync(dir)
+      .filter((name) => name.endsWith(".test.ts"))
+      .filter((name) =>
+        /mock\.module\(\s*["'][^"']*read\.server["']/.test(readFileSync(new URL(name, dir), "utf8")),
+      );
+    expect(offenders).toEqual([]);
   });
 });
 

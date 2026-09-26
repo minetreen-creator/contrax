@@ -69,8 +69,10 @@ import { ensureTrialStarted } from "~/lib/trial";
 // Pro ($79/mo) feature. The entitlement is read from the STORED user state
 // BEFORE the lazy Professional trial is started, so an attempt by a non-Pro
 // user returns the gate (prompt AT THE ATTEMPT) instead of silently granting
-// trial access. The client fires `ai_brief_attempted` (label "gated").
-import { gateLockedPayload } from "~/lib/plan-gates";
+// trial access. The client fires `ai_brief_attempted` (label "gated"). The
+// response carries the canonical `GATE_REQUIRED:radar_pro` sentinel (`error`)
+// alongside the locked payload, exactly like /api/bids-draft's Bid Scout gate.
+import { gateErrorCode, gateLockedPayload } from "~/lib/plan-gates";
 import { hasRadarProAccess } from "~/lib/plan-gates.server";
 
 // Cache identity (AI_MODEL / AI_SCHEMA_VERSION), the source fingerprint, the
@@ -194,6 +196,11 @@ async function handler({
     if (!(await hasRadarProAccess(user.id, user))) {
       return Response.json({
         ...gateLockedPayload("ai_brief", AI_BRIEF_LOCKED_PREVIEW),
+        // The sentinel the client matches exactly (same contract as
+        // /api/bids-draft): `error` is the canonical gate code for the action
+        // that was ATTEMPTED. `locked` + `upgrade_required` above keep the
+        // existing brief surface's shape working unchanged.
+        error: gateErrorCode("ai_brief"),
         raw_description: String(bid.description ?? ""),
       });
     }

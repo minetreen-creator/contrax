@@ -34,36 +34,32 @@ export interface GateUser {
 }
 
 /**
- * True when the user holds Radar Pro (Professional+) access. Mirrors the
- * incumbent-reveal gate exactly: admin bypass first, then the shared
- * hasProfessionalAccess predicate over the user's stored trial/tier state.
- *
- * NOTE (owner decision 1, hard Pro gate): the lazy 14-day Professional trial is
- * NOT started here. A gated attempt therefore never silently upgrades a free
- * account into trial access — the user gets the Pro prompt at the attempt.
+ * Storage seams. Both entitlement reads go through injectable stores so the
+ * gate LOGIC is unit-tested with literal state and no database (no
+ * `mock.module` — bun's mock registry is process-global and leaks across test
+ * files in one run; see the PR notes). Production always uses the Neon-backed
+ * defaults below.
  */
-export async function hasRadarProAccess(
-  userId: number | null | undefined,
-  user?: { is_admin?: boolean } | null,
-): Promise<boolean> {
-  if (user?.is_admin) return true;
-  if (userId == null) return false;
-  try {
-    return hasProfessionalAccess(await loadUserTrialStatus(userId), user);
-  } catch (err) {
-    console.error(
-      "[plan-gates] Radar Pro entitlement lookup failed (treated as not entitled):",
-      (err as Error).message,
-    );
-    return false;
-  }
+export interface TrialStatusStore {
+  /** The user's stored trial/tier row, exactly as the trial module reads it. */
+  load(userId: number): Promise<TrialStatus>;
 }
 
-/** Storage seam so the entitlement logic is unit-testable without a database. */
 export interface BidScoutEntitlementStore {
   /** True when the user has an `active` Bid Scout subscription row. */
   hasActiveSubscription(userId: number): Promise<boolean>;
 }
+
+export interface GateStores {
+  trialStatus: TrialStatusStore;
+  bidScout: BidScoutEntitlementStore;
+}
+
+export const neonTrialStatusStore: TrialStatusStore = {
+  async load(userId) {
+    return loadUserTrialStatus(userId);
+  },
+};
 
 export const neonBidScoutStore: BidScoutEntitlementStore = {
   async hasActiveSubscription(userId) {
@@ -76,6 +72,38 @@ export const neonBidScoutStore: BidScoutEntitlementStore = {
   },
 };
 
+export const neonGateStores: GateStores = {
+  trialStatus: neonTrialStatusStore,
+  bidScout: neonBidScoutStore,
+};
+
+/**
+ * True when the user holds Radar Pro (Professional+) access. Mirrors the
+ * incumbent-reveal gate exactly: admin bypass first, then the shared
+ * hasProfessionalAccess predicate over the user's stored trial/tier state.
+ *
+ * NOTE (owner decision 1, hard Pro gate): the lazy 14-day Professional trial is
+ * NOT started here. A gated attempt therefore never silently upgrades a free
+ * account into trial access — the user gets the Pro prompt at the attempt.
+ */
+export async function hasRadarProAccess(
+  userId: number | null | undefined,
+  user?: { is_admin?: boolean } | null,
+  stores: Pick<GateStores, "trialStatus"> = neonGateStores,
+): Promise<boolean> {
+  if (user?.is_admin) return true;
+  if (userId == null) return false;
+  try {
+    return hasProfessionalAccess(await stores.trialStatus.load(userId), user);
+  } catch (err) {
+    console.error(
+      "[plan-gates] Radar Pro entitlement lookup failed (treated as not entitled):",
+      (err as Error).message,
+    );
+    return false;
+  }
+}
+
 /**
  * True when the user may use the Bid Scout product line (drafting + export).
  *
@@ -87,15 +115,15 @@ export const neonBidScoutStore: BidScoutEntitlementStore = {
 export async function hasBidScoutAccess(
   userId: number | null | undefined,
   user?: { is_admin?: boolean } | null,
-  store: BidScoutEntitlementStore = neonBidScoutStore,
+  stores: GateStores = neonGateStores,
 ): Promise<boolean> {
   if (user?.is_admin) return true;
   if (userId == null) return false;
   try {
-    const trial: TrialStatus = await loadUserTrialStatus(userId);
+    const trial: TrialStatus = await stores.trialStatus.load(userId);
     if (trial.fullAccess) return true;
     if (trial.planTier === "demo" && !trial.expired) return true;
-    return await store.hasActiveSubscription(userId);
+    return await stores.bidScout.hasActiveSubscription(userId);
   } catch (err) {
     console.error(
       "[plan-gates] Bid Scout entitlement lookup failed (treated as not entitled):",
@@ -114,12 +142,13 @@ export interface GateEntitlements {
 export async function loadGateEntitlements(
   userId: number | null | undefined,
   user?: { id: number; is_admin?: boolean } | null,
-  deps: { bidScoutStore?: BidScoutEntitlementStore } = {},
+  deps: { stores?: Partial<GateStores> } = {},
 ): Promise<GateEntitlements> {
   if (userId == null) return { radarPro: false, bidScout: false };
+  const stores: GateStores = { ...neonGateStores, ...deps.stores };
   const [radarPro, bidScout] = await Promise.all([
-    hasRadarProAccess(userId, user ?? undefined),
-    hasBidScoutAccess(userId, user ?? undefined, deps.bidScoutStore ?? neonBidScoutStore),
+    hasRadarProAccess(userId, user ?? undefined, stores),
+    hasBidScoutAccess(userId, user ?? undefined, stores),
   ]);
   return { radarPro, bidScout };
 }

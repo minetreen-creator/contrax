@@ -69,7 +69,13 @@ export const TRIAL_START_COPY = {
   noCard: "No credit card required.",
   body: `Your free ${TRIAL_DAYS}-day Professional trial starts the first time you use a Professional feature — not at signup — so nothing expires until you're ready.`,
   primary: "Run my first Executive Brief",
-  primaryHint: "Generate your #1 matched bid's brief and your trial begins.",
+  // HONESTY FIX (owner gating map, 2026-09-26): the Executive Brief is a Radar
+  // Pro feature behind a HARD Pro gate, and that gate deliberately does NOT
+  // start the lazy Professional trial (a gated attempt must never silently
+  // grant trial access). So the brief path can no longer start the clock and
+  // this hint must not claim it does — it states the real offer instead.
+  primaryHint:
+    "Executive Briefs are a Radar Pro feature — your 14-day Professional trial starts when you upgrade.",
   whatYouGet: TRIAL_CHECKLIST.map((c) => `${c.label} (${c.limit})`).join(" · "),
   endNote:
     "When your trial ends you keep your saved bids and progress — only the premium tools lock.",

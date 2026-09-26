@@ -3,7 +3,7 @@ import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { generateProposalDraft } from "~/lib/proposal-draft";
 import { extractCitations } from "~/lib/far-grounding";
-import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
+import { consumeTrial } from "~/lib/trial-usage";
 // PLAN GATE (owner decision 2, 2026-09-26): proposal drafting is part of Bid
 // Scout ($99/mo) — a hard gate on the STORED entitlement, evaluated before the
 // cache read so neither a cached nor a fresh draft is served to a non-customer.

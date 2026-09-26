@@ -964,7 +964,6 @@ function Pricing() {
       features: [
         "Basic Solicitations Search",
         "Up to 3 Saved Bids",
-        "1 AI Executive Brief monthly",
         "1 Award Autopsy monthly — full analysis",
         "Standard Set-Aside Filters",
       ],
@@ -979,10 +978,8 @@ function Pricing() {
       description: "For businesses ready to build and track a real government-contracting pipeline.",
       features: [
         "Unlimited Saved Bids",
-        "3 AI Executive Briefs monthly",
         "5 Award Autopsies monthly",
         "Daily NAICS Email Alerts",
-        "CSV Pipeline Export",
       ],
       cta: "Find Opportunities for My Company",
       slug: "starter",
@@ -992,12 +989,11 @@ function Pricing() {
       name: "Professional",
       price: "79",
       period: "/month",
-      description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and draft tools.",
+      description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and AI match scoring.",
       features: [
         "50 AI Executive Briefs a month — requirements, milestones & red flags",
         "Full Incumbent Intelligence & Past Pricing",
         "AI Match Scoring",
-        "Draft Tools",
         "25 Award Autopsies monthly",
       ],
       cta: "Find Opportunities for My Company",

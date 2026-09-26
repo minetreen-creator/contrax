@@ -182,7 +182,6 @@ const PLAN_OPTIONS: {
     bullets: [
       "Basic Solicitations Search",
       "Up to 3 saved bids",
-      "1 AI Executive Brief monthly",
       "Standard set-aside filters",
     ],
   },
@@ -192,9 +191,7 @@ const PLAN_OPTIONS: {
     price: 19,
     bullets: [
       "Unlimited saved bids",
-      "3 AI Executive Briefs monthly",
       "Daily NAICS email alerts",
-      "CSV pipeline export",
     ],
   },
   {

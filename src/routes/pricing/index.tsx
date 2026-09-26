@@ -31,7 +31,6 @@ const plans = [
     features: [
       "Basic Solicitations Search",
       "Up to 3 Saved Bids",
-      "1 AI Executive Brief monthly",
       "Standard Set-Aside Filters",
     ],
     cta: "Start Free",
@@ -46,9 +45,7 @@ const plans = [
     description: "For businesses ready to build and track a real government-contracting pipeline.",
     features: [
       "Unlimited Saved Bids",
-      "3 AI Executive Briefs monthly",
       "Daily NAICS Email Alerts",
-      "CSV Pipeline Export",
     ],
     cta: "Get Started",
     slug: "starter",
@@ -58,12 +55,11 @@ const plans = [
     name: "Professional",
     price: "79",
     period: "/month",
-    description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and draft tools.",
+    description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and AI match scoring.",
     features: [
       "50 AI Executive Briefs a month — requirements, milestones & red flags",
       "Full Incumbent Intelligence & Past Pricing",
       "AI Match Scoring",
-      "Draft Tools",
     ],
     cta: "Get Started",
     slug: "professional",
@@ -248,7 +244,7 @@ function PricingPage() {
           <div className="mt-10 space-y-6">
             {[
               { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
-              { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes basic solicitations search, standard set-aside filters, and up to 3 saved bids. Upgrade to Starter ($19/mo) for unlimited saved bids, daily NAICS email alerts, and CSV export." },
+              { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes basic solicitations search, standard set-aside filters, and up to 3 saved bids. Upgrade to Starter ($19/mo) for unlimited saved bids and daily NAICS email alerts. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
               { q: "Is there a free trial?", a: "Every plan includes a 14-day Professional trial with no credit card — it starts on your first premium action and auto-downgrades to free Basic afterward (your saved bids and progress stay). Basic itself is free forever — no trial, no card, nothing to cancel." },
               { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
               { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },

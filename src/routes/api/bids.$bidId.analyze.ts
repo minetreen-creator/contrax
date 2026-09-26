@@ -65,6 +65,15 @@ import {
 } from "~/lib/ai-brief-allowance";
 import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
 import { ensureTrialStarted } from "~/lib/trial";
+// PLAN GATE (owner gating map, 2026-09-26): the AI Executive Brief is a Radar
+// Pro ($79/mo) feature. The entitlement is read from the STORED user state
+// BEFORE the lazy Professional trial is started, so an attempt by a non-Pro
+// user returns the gate (prompt AT THE ATTEMPT) instead of silently granting
+// trial access. The client fires `ai_brief_attempted` (label "gated"). The
+// response carries the canonical `GATE_REQUIRED:radar_pro` sentinel (`error`)
+// alongside the locked payload, exactly like /api/bids-draft's Bid Scout gate.
+import { gateErrorCode, gateLockedPayload } from "~/lib/plan-gates";
+import { hasRadarProAccess } from "~/lib/plan-gates.server";
 
 // Cache identity (AI_MODEL / AI_SCHEMA_VERSION), the source fingerprint, the
 // strict Zod schema, the system prompt and the fallback builder all live in the
@@ -177,6 +186,24 @@ async function handler({
     `) as Array<BidRow>;
     if (!rows.length) return Response.json({ error: "Bid not found" }, { status: 404 });
     const bid = rows[0];
+
+    // ── HARD RADAR PRO GATE (owner decision 1, 2026-09-26) ───────────────────
+    // The AI Executive Brief is a Radar Pro ($79/mo) feature: an attempt by a
+    // user without Professional+ access returns the gate payload (the client
+    // renders the Pro prompt and fires `ai_brief_attempted`/"gated"). This runs
+    // BEFORE the cache check and BEFORE ensureTrialStarted — a hard gate must
+    // neither serve the paid brief nor start a trial it was never granted.
+    if (!(await hasRadarProAccess(user.id, user))) {
+      return Response.json({
+        ...gateLockedPayload("ai_brief", AI_BRIEF_LOCKED_PREVIEW),
+        // The sentinel the client matches exactly (same contract as
+        // /api/bids-draft): `error` is the canonical gate code for the action
+        // that was ATTEMPTED. `locked` + `upgrade_required` above keep the
+        // existing brief surface's shape working unchanged.
+        error: gateErrorCode("ai_brief"),
+        raw_description: String(bid.description ?? ""),
+      });
+    }
 
     // Build the untrusted source input once — reused for hashing and the LLM.
     const input = buildInput(bid);

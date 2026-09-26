@@ -15,6 +15,12 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { checkTrial, hasProfessionalAccess, type TrialStatus } from "~/lib/trial";
 import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
+// PLAN GATE (owner gating map, 2026-09-26): incumbent intelligence is a Radar
+// Pro ($79/mo) feature, so the per-trial cap prompt is an ATTEMPT-only prompt
+// (owner rule 8) — it opens when the user CLICKS to reveal while the cap is
+// exhausted, never merely because the detail panel expanded.
+import { ATTEMPT_EVENT_FOR_ACTION, GATE_ATTEMPT_LABEL, gatePrompt } from "~/lib/plan-gates";
+import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
 
 // Milestone Grant — logged-out visitors accumulate a cross-tab counter of
 // teased incumbent-intel card views (localStorage); when the counter reaches
@@ -288,9 +294,13 @@ function AwardsPage() {
   useEffect(() => { checkTrial().then(setTrial).catch(() => {}); }, []);
   // Per-trial incumbent looks remaining (only meaningful while trial.active).
   // null = still loading / not a trial user. When the trial cap (3) is
-  // exhausted, further reveals are blocked with an upgrade prompt.
+  // exhausted, a further reveal ATTEMPT is answered by the attempt-only Radar
+  // Pro prompt (owner rule 8) and the panel shows a passive cap status.
   const [trialIncumbentLeft, setTrialIncumbentLeft] = useState<number | null>(null);
   const [trialIncumbentBlockedId, setTrialIncumbentBlockedId] = useState<number | null>(null);
+  // ATTEMPT-ONLY trial-cap prompt (owner rule 8): opened by the blocked reveal
+  // CLICK in loadIntel — a mere expansion of the detail panel never opens it.
+  const [incumbentGateOpen, setIncumbentGateOpen] = useState(false);
   useEffect(() => {
     if (!trial?.active) { setTrialIncumbentLeft(null); return; }
     getTrialIncumbentStatus().then((s) => setTrialIncumbentLeft(s.remaining)).catch(() => {});
@@ -357,12 +367,19 @@ function AwardsPage() {
     if (intel[award.id] !== undefined) { setExpandedId(award.id); return; }
     // PER-TRIAL INCUMBENT CAP: a logged-in user inside an ACTIVE Professional
     // trial may reveal incumbent intel on up to 3 opportunities. Once
-    // exhausted, further reveals are blocked with an upgrade prompt (the card
-    // is NOT shown as full data — nothing is fabricated).
+    // exhausted, a further reveal ATTEMPT opens the attempt-only Radar Pro
+    // prompt (the card is NOT shown as full data — nothing is fabricated).
     if (trial?.active && trialIncumbentLeft === 0) {
+      // ATTEMPT-ONLY PROMPT (owner rule 8): THIS CLICK is the attempt, so the
+      // Radar Pro prompt opens here and only here, with the standalone
+      // `incumbent_attempted`/"gated" event recorded at the same moment. The
+      // panel keeps a passive cap status below — no upgrade affordance renders
+      // just because the panel expanded.
       setTrialIncumbentBlockedId(award.id);
       setExpandedId(award.id);
       trackEvent("incumbent_trial_cap_view", String(award.id), "/awards");
+      trackEvent(ATTEMPT_EVENT_FOR_ACTION.incumbent, GATE_ATTEMPT_LABEL, "/awards");
+      setIncumbentGateOpen(true);
       return;
     }
     setLoadingIntel(award.id); setExpandedId(award.id);
@@ -615,16 +632,12 @@ function AwardsPage() {
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 space-y-5">
                     {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No matching award history found for this agency and opportunity title.</p>}
                     {trialIncumbentBlockedId === award.id && (
-                      <div className="rounded-xl border border-blue-200 bg-blue-50 p-5 text-center">
+                      <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-center">
                         <p className="text-sm font-semibold text-slate-800">You&rsquo;ve used your 3 trial incumbent looks</p>
                         <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">
-                          Your 14-day Professional trial includes incumbent intelligence on 3 opportunities.
-                          Upgrade to Professional for unlimited incumbent intel &amp; past pricing.
+                          Your 14-day Professional trial includes incumbent intelligence on 3 opportunities, and
+                          you&rsquo;ve used all 3. No further incumbent looks are included.
                         </p>
-                        <a href="/upgrade" onClick={() => trackEvent("incumbent_trial_cap_upgrade", String(award.id), "/awards")}
-                          className="mt-3 inline-flex items-center justify-center rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700">
-                          Upgrade to Professional →
-                        </a>
                       </div>
                     )}
                     {intel[award.id] && trialIncumbentBlockedId !== award.id && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} title={award.title} agency={award.agency}
@@ -730,6 +743,18 @@ function AwardsPage() {
           })}
         </div>
       </main>
+      {/* ATTEMPT-ONLY trial-cap prompt (owner rule 8) — `incumbentGateOpen` is
+          set ONLY by the blocked reveal click in loadIntel, so nothing here can
+          render on a page view or a panel expansion. */}
+      <PremiumUpgradeModal
+        open={incumbentGateOpen}
+        onClose={() => setIncumbentGateOpen(false)}
+        title={gatePrompt("radar_pro").title}
+        message="Your 14-day Professional trial includes incumbent intelligence on 3 opportunities, and you've used all 3. Upgrade to Radar Pro (Professional, $79/mo) for unlimited incumbent intel & past pricing."
+        ctaLabel={gatePrompt("radar_pro").ctaLabel}
+        priceNote={gatePrompt("radar_pro").priceNote}
+        checkoutPlan="professional"
+      />
     </div>
   );
 }

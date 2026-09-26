@@ -2,6 +2,12 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+// PIPELINE CSV EXPORT gate (owner decision 2, 2026-09-26): export is a Bid
+// Scout ($99/mo) feature. The click IS the attempt — the prompt opens only for a
+// gated attempt (never on the page view), paired with the standalone
+// `export_attempted`/"gated" event.
+import { ATTEMPT_EVENT_FOR_ACTION, GATE_ATTEMPT_LABEL, gatePrompt } from "~/lib/plan-gates";
+import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
 
 /**
  * /pipeline — "My Pipeline"
@@ -68,6 +74,8 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
   const [removing, setRemoving] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [exportGate, setExportGate] = useState(false);
+  const [exportBusy, setExportBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,6 +120,44 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
     }
   }
 
+  /**
+   * ATTEMPT-ONLY CSV export (owner decision 2 + rule 8). Pipeline export is a
+   * Bid Scout ($99/mo) feature: the click IS the attempt, so a non-customer gets
+   * the Bid Scout prompt HERE (with the standalone gated-attempt event) and a
+   * customer gets a real download of their own saved rows.
+   */
+  async function handleExport() {
+    if (exportBusy) return;
+    trackEvent(ATTEMPT_EVENT_FOR_ACTION.export, "attempt", "/pipeline");
+    setExportBusy(true);
+    try {
+      const res = await fetch("/api/pipeline-export");
+      if (res.status === 402) {
+        trackEvent(ATTEMPT_EVENT_FOR_ACTION.export, GATE_ATTEMPT_LABEL, "/pipeline");
+        setExportGate(true);
+        return;
+      }
+      if (!res.ok) throw new Error("export failed");
+      // The server names the file (date-stamped, the user's own data only).
+      const disposition = res.headers.get("content-disposition") ?? "";
+      const named = disposition.match(/filename="([^"]+)"/)?.[1];
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = named ?? "contrax-pipeline.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      trackEvent(ATTEMPT_EVENT_FOR_ACTION.export, "exported", "/pipeline");
+    } catch {
+      setError("Could not export your pipeline. Please try again.");
+    } finally {
+      setExportBusy(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
@@ -151,12 +197,22 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
               Bids you've saved to track and pursue.
             </p>
           </div>
-          <a
-            href="/awards"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
-          >
-            ⭐ Find more bids to save
-          </a>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExport}
+              disabled={exportBusy}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:bg-slate-100 disabled:cursor-wait disabled:opacity-60"
+            >
+              {exportBusy ? "Preparing CSV…" : "⤓ Export pipeline (CSV)"}
+            </button>
+            <a
+              href="/awards"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+            >
+              ⭐ Find more bids to save
+            </a>
+          </div>
         </div>
 
         {error && (
@@ -230,6 +286,17 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
           </div>
         )}
       </main>
+      {/* ATTEMPT-ONLY Bid Scout prompt (owner rule 8) — opened solely by the
+          gated export attempt above, never by the page view. */}
+      <PremiumUpgradeModal
+        open={exportGate}
+        onClose={() => setExportGate(false)}
+        title={gatePrompt("bid_scout").title}
+        message={gatePrompt("bid_scout").body}
+        ctaLabel={gatePrompt("bid_scout").ctaLabel}
+        priceNote={gatePrompt("bid_scout").priceNote}
+        ctaHref={gatePrompt("bid_scout").href}
+      />
     </div>
   );
 }

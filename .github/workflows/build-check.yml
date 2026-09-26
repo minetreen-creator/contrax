@@ -318,6 +318,14 @@ jobs:
       # src/lib/subcontracts` is what makes this suite visible in the CI step list.
       - name: Subcontracting preview data layer tests (unit, deterministic, zero network)
         run: bun test src/lib/subcontracts
+      # PLAN GATES (owner gating map 2026-09-26, funnel PR-B): the attempt-only
+      # gate contract — the map/copy/predicates, the five standalone gated-attempt
+      # events, the CSV export engine, the render-level ATTEMPT-only proofs and
+      # the API-boundary sentinels. DETERMINISTIC and database-free: injectable
+      # stores + literals + committed source text + in-process react-dom/server
+      # renders (no DATABASE_URL, no network, no clock).
+      - name: Plan gates + attempt-only prompt tests (unit, deterministic, zero network)
+        run: bun test src/lib/plan-gates.test.ts tests/plan-gate-attempts.test.tsx
       # Funnel UX — post-signup -> Radar first run (owner rework 2026-09-26, PR-A).
       # DETERMINISTIC, network-free, database-free AND router-free by construction.
       # The rules suite is pure functions over literals (its only file reads are of

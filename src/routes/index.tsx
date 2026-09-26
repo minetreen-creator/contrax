@@ -484,6 +484,16 @@ function ProductPaths() {
       ctaClass: "text-blue-700",
     },
     {
+      eyebrow: "Subcontracting",
+      title: "Find work with prime contractors",
+      description:
+        "Explore current SBA SUBNet notices and browse the annual SBA prime contractor directory for companies to approach.",
+      href: "/subcontracts",
+      cta: "Explore subcontracts →",
+      accent: "border-teal-200 bg-teal-50/60",
+      ctaClass: "text-teal-700",
+    },
+    {
       eyebrow: "Government grants",
       title: "Find funding that fits your organization",
       description:
@@ -502,7 +512,7 @@ function ProductPaths() {
           <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-500">Choose your path</p>
           <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">What are you looking for today?</h2>
         </div>
-        <div className="mt-8 grid gap-5 md:grid-cols-2">
+        <div className="mt-8 grid gap-5 md:grid-cols-3">
           {paths.map((path) => (
             <a
               key={path.title}

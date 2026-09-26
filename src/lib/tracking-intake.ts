@@ -82,6 +82,18 @@ export const EVENT_LABELS: Record<string, string> = {
   // funnel map) — display labels only.
   radar_results_cta_shown: "Radar free-results signup CTA shown (anonymous)",
   radar_results_cta_clicked: "Radar free-results signup CTA clicked",
+  // Funnel UX — post-signup → Radar first run (owner rework 2026-09-26, PR-A).
+  // FIVE standalone display labels, the same isolation contract as the
+  // grants_* / bid_scout_* / subcontracts_* families: NONE of them is a member of
+  // any funnel-stage set (the frozen 9-stage admin map, the radar conversion
+  // funnel, the radar leads funnel, the autopsy funnel, or ACTIVATION_EVENTS), so
+  // seeing first-run guidance can never synthesize a signup/radar/activation/paid
+  // stage. Asserted in src/lib/funnel-ux.test.ts.
+  signup_landed_radar: "Signup landed on Radar",
+  radar_first_run_shown: "Radar first-run guidance shown",
+  radar_first_search_started: "Radar first search started (post-signup)",
+  radar_best_match_highlighted: "Radar best match highlighted",
+  save_opportunity_prompt_shown: "Tracking prompt shown after save",
   radar_save: "Saved radar match",
   radar_lead_captured: "Radar match-alert lead captured",
   radar_alert_sent: "Radar match-alert sent",

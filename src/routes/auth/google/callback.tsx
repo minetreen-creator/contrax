@@ -4,6 +4,7 @@ import { setCookie, getRequest } from "@tanstack/react-start/server";
 import { SESSION_COOKIE } from "~/lib/auth";
 import { GOOGLE_REDIRECT_URI } from "~/lib/google-oauth";
 import { safeNext, saveMatch } from "~/lib/saved-matches";
+import { resolveGoogleCallbackDestination } from "~/lib/funnel-ux";
 import { isBlockedIp } from "~/lib/request-ip";
 
 /**
@@ -418,15 +419,14 @@ export const Route = createFileRoute("/auth/google/callback")({
       }
     }
 
-    // New users (no save-to-pipeline intent) land on /onboarding — that is
-    // where value actually starts (profile setup → matched bids). Returning
-    // users and save-to-pipeline intents keep their existing destinations.
-    const dest =
-      saveBid !== null
-        ? safeNext(next) ?? "/dashboard"
-        : isNewUser
-          ? "/onboarding"
-          : safeNext(next) ?? "/dashboard";
+    // OWNER REWORK 2026-09-26 (PR-A, item 1) — the SAME new default as the
+    // email/password signup flow: a NEW user with NO intent lands on
+    // /radar?first_run=1 (where value starts: run your first real search) instead
+    // of /onboarding. Every other destination is unchanged — save-to-pipeline
+    // intents and returning users keep `next` ?? /dashboard, and a new user who
+    // carries an explicit `next` keeps /onboarding. Single source of truth:
+    // resolveGoogleCallbackDestination (src/lib/funnel-ux.ts), unit-tested.
+    const dest = resolveGoogleCallbackDestination({ isNewUser, saveBid, next }, safeNext);
     throw redirect({ href: dest });
   },
   component: () => null, // Never rendered — the loader always redirects.

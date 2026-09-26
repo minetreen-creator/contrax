@@ -38,6 +38,11 @@ import { getGoogleAuthUrl } from "~/lib/google-oauth";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 import { safeNext } from "~/lib/saved-matches";
 import {
+  mergeRadarCriteria,
+  resolvePostSignupDestination,
+  type RadarCriteria,
+} from "~/lib/funnel-ux";
+import {
   getRadarAnswers,
   getRadarSeen,
   saveRadarPrefill,
@@ -117,6 +122,46 @@ type Plan = (typeof validPlans)[number];
 // Radar cert ids — mirrors RADAR_CERTS in src/routes/radar.tsx. Used to gate
 // the onboarding prefill on a known cert value (fail-open otherwise).
 const RADAR_CERTS = ["sdvosb", "8a", "wosb", "hubzone", "sb"] as const;
+
+/**
+ * The criteria the post-signup Radar landing carries (owner rework 2026-09-26,
+ * PR-A). Directive order is the SAME one /signup already uses everywhere:
+ * URL search params (an explicit deep link) > the VERIFIED locked-results
+ * handoff > the visitor's saved radar session, per field.
+ *
+ * Values are validated against the known cert/size sets, so a malformed or
+ * unknown param can never ride the landing URL (fail-open ⇒ the field is simply
+ * omitted and /radar uses its own defaults). Exported for its unit test.
+ */
+export function resolveSignupRadarCriteria(input: {
+  trade?: string | null;
+  state?: string | null;
+  cert?: string | null;
+  size?: string | null;
+  handoff?: { trade: string; state: string; cert: string; sizePref: string } | null;
+}): RadarCriteria {
+  const saved = getRadarAnswers();
+  const merged = mergeRadarCriteria(
+    { trade: input.trade, state: input.state, cert: input.cert, size: input.size },
+    input.handoff
+      ? {
+          trade: input.handoff.trade,
+          state: input.handoff.state,
+          cert: input.handoff.cert,
+          size: input.handoff.sizePref,
+        }
+      : null,
+    saved ? { trade: saved.trade, state: saved.state, cert: saved.cert, size: saved.sizePref } : null,
+  );
+  return {
+    trade: merged.trade ?? "",
+    state: merged.state ?? "",
+    cert: (RADAR_CERTS as readonly string[]).includes(String(merged.cert)) ? merged.cert : "",
+    size: Object.prototype.hasOwnProperty.call(RADAR_SIZE_LABELS, String(merged.size))
+      ? merged.size
+      : "",
+  };
+}
 
 // Plan facts mirror src/routes/pricing/index.tsx. Basic ($0) is the free
 // default tier (plan_tier='basic'); Starter/Professional/Agency are the paid
@@ -1104,26 +1149,37 @@ function SignupPage() {
         window.location.assign(safeNext(next) ?? "/dashboard");
         return;
       }
-      // New user, no save_bid intent. A radar-sourced signup lands DIRECTLY on
-      // their saved matches: /dashboard surfaces the radar_seen matches via the
-      // "your radar matches are ready to save" banner (RadarLoginNotify) — the
-      // natural return-to-matches surface, not a blank onboarding. Any other
-      // source goes to /onboarding, where profile setup → bid matches starts.
-      // If a same-site `next` return path was provided (e.g. /awards or
-      // /#closing-soon), latch it now so onboarding can route the user there
-      // after they complete profile setup — mirroring how Google OAuth carries
-      // `next` through state, and using the same sessionStorage pattern as the
-      // pending-draft promise. Fail-open: a storage failure must never block
-      // the redirect.
+      // New user, no save_bid intent. If a same-site `next` return path was
+      // provided (e.g. /awards or /#closing-soon), latch it now so onboarding
+      // can route the user there after they complete profile setup — mirroring
+      // how Google OAuth carries `next` through state, and using the same
+      // sessionStorage pattern as the pending-draft promise. Fail-open: a
+      // storage failure must never block the redirect.
       storeRememberedNext(next);
-      if (source === "radar" || source === "radar_results_unlock" || source === "radar_results_cta") {
-        navigate({ to: "/dashboard" });
-      } else if (source === "autopsy") {
+      // OWNER REWORK 2026-09-26 (PR-A, item 1) — THE ONE LANDING RULE:
+      // a radar-family signup and a cold signup both land DIRECTLY on /radar
+      // with `first_run=1` + the visitor's criteria pre-filled (was /dashboard
+      // for radar-family and /onboarding for cold). save_bid (handled above),
+      // source=autopsy and every other explicit `next` keep their exact
+      // previous destinations — see resolvePostSignupDestination.
+      const destination = resolvePostSignupDestination(
+        { saveBid: save_bid, next, source },
+        resolveSignupRadarCriteria({ trade, state, cert, size, handoff: unlockHandoff }),
+        safeNext,
+      );
+      if (destination.kind === "radar") {
+        // Funnel: the new account's landing is Radar (item 9 — every step is
+        // tracked). Label = the signup source that produced the landing.
+        trackEvent("signup_landed_radar", source ?? "direct");
+        navigate({ to: "/radar", search: destination.search });
+      } else if (destination.kind === "autopsy") {
         // Free-First-Autopsy funnel (owner 2026-09-05): the new account lands
         // DIRECTLY on /autopsy where the stored draft delivers their gifted
         // COMPLETE first autopsy — the acquisition gift. No onboarding detour.
         navigate({ to: "/autopsy" });
       } else {
+        // destination.kind === "onboarding" — reached only for a non-radar,
+        // non-autopsy source that carried an explicit `next` (unchanged).
         navigate({ to: "/onboarding" });
       }
     } catch (err) {

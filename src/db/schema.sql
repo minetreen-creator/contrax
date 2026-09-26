@@ -1232,13 +1232,17 @@ CREATE TABLE IF NOT EXISTS subcontract_primes (
 -- Migration 051 — GSA PRIME CONTRACTOR DIRECTORY, schema delta (owner-approved expansion
 -- 2026-09-26). MIRROR of db/migrations/051_gsa_prime_directory.sql: the bootstrap tests
 -- build a database from THIS file alone, so a missing mirror entry is a latent CI failure.
--- Three NULLABLE columns; the SBA FY24 rows keep NULL in all three. `vendor_address` and
+-- Four NULLABLE columns; the SBA FY24 rows keep NULL in all four. `vendor_address` and
 -- `products_services` are what the GSA file publishes and the SBA file did not;
 -- `source_file_date` is the GSA file's OWN date from its dated URL (evidence, never
--- inferred from Last-Modified). No CHECK change: 'prime_directory' already covers the GSA
--- source row, and `fy` stays NOT NULL with the literal 'past fiscal year' on GSA rows.
+-- inferred from Last-Modified); `naics_raw` is the NAICS cell VERBATIM for rows whose code
+-- is not a valid six-digit code (NULL for a valid one), so the invalid values stay
+-- identifiable in the data while only validated codes are ever displayed. No CHECK change:
+-- 'prime_directory' already covers the GSA source row, and `fy` stays NOT NULL with the
+-- literal 'past fiscal year' on GSA rows.
 ALTER TABLE subcontract_primes ADD COLUMN IF NOT EXISTS vendor_address TEXT;
 ALTER TABLE subcontract_primes ADD COLUMN IF NOT EXISTS products_services TEXT;
 ALTER TABLE subcontract_primes ADD COLUMN IF NOT EXISTS source_file_date DATE;
+ALTER TABLE subcontract_primes ADD COLUMN IF NOT EXISTS naics_raw TEXT;
 CREATE INDEX IF NOT EXISTS idx_subcontract_primes_state
     ON subcontract_primes (vendor_state, fy);

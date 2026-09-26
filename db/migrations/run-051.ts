@@ -10,7 +10,7 @@
  * database plus the row counts of the touched surfaces (users / bids /
  * state_grant_opportunities / the four subcontract tables). Three NULLABLE columns are
  * added to subcontract_primes and NOTHING else may change — the AFTER block fails the run
- * if any table's row count moved, if the public table count moved, or if the three columns
+ * if any table's row count moved, if the public table count moved, or if the four columns
  * are not present with the right shape.
  *
  * IDEMPOTENT BY CONSTRUCTION: every statement is `ALTER TABLE … ADD COLUMN IF NOT EXISTS`,
@@ -37,7 +37,7 @@ if (!url) {
 const sql = neon(url);
 try {
   console.warn(
-    `[run-051] target database host: ${new URL(url).hostname} — 3 nullable columns on subcontract_primes, no data rows written`,
+    `[run-051] target database host: ${new URL(url).hostname} — 4 nullable columns on subcontract_primes, no data rows written`,
   );
 } catch {
   console.warn("[run-051] target database host: (unparseable DATABASE_URL)");
@@ -55,11 +55,19 @@ const COUNTED_TABLES = [
   "subcontract_sync_runs",
 ] as const;
 
-/** The three columns this migration adds, with the type each must have. */
+/**
+ * The four columns this migration adds, with the type each must have.
+ *
+ * `naics_raw` is the owner's 2026-09-26 refinement: the NAICS cell VERBATIM for the rows whose
+ * code failed /^\d{6}$/ (NULL for a valid code), so the invalid values stay identifiable in
+ * the data — SELECT count(*) … WHERE naics_raw IS NOT NULL — while only validated six-digit
+ * codes are ever displayed.
+ */
 const NEW_COLUMNS: Record<string, string> = {
   vendor_address: "text",
   products_services: "text",
   source_file_date: "date",
+  naics_raw: "text",
 };
 
 async function snapshot(): Promise<{
@@ -143,7 +151,7 @@ for (const [column, expectedType] of Object.entries(NEW_COLUMNS)) {
   else if (!type.startsWith(`${expectedType}:`)) {
     shapeProblems.push(`${column} is ${type}, expected ${expectedType}`);
   } else if (!type.endsWith(":YES")) {
-    // The three columns are additive and NULLABLE: an existing SBA row keeps NULL.
+    // The four columns are additive and NULLABLE: an existing SBA row keeps NULL.
     shapeProblems.push(`${column} is NOT nullable (${type})`);
   }
 }
@@ -172,6 +180,6 @@ if (failed > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    `[run-051] OK — 3/3 nullable columns present on subcontract_primes, additive (no row count moved, no new table)`,
+    `[run-051] OK — 4/4 nullable columns present on subcontract_primes, additive (no row count moved, no new table)`,
   );
 }

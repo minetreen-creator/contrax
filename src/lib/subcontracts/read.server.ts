@@ -291,8 +291,10 @@ export async function readSubcontractsPayload(now: Date = new Date()): Promise<S
  * THE TWO READS USE DIFFERENT STATEMENTS ON PURPOSE. The SBA statement is the shipped
  * one, untouched, and never references a migration-051 column: a deployment whose database
  * has 050 but not yet 051 keeps serving the SBA directory exactly as before. The GSA
- * statement reads the three new columns, so before 051 it fails into the SAME fail-closed
- * unavailable state rather than reporting a wrong or partial list.
+ * statement reads the four new columns (including `naics_raw`, the verbatim cell of a row
+ * whose code is NOT a valid six-digit code — evidence, never displayed), so before 051 it
+ * fails into the SAME fail-closed unavailable state rather than reporting a wrong or
+ * partial list.
  *
  * THE GSA SOURCE ALSO REQUIRES A RECORDED CHECK. Its section prints "last checked by
  * Contrax" plus a REAL timestamp, so with no completed run recorded there is no honest
@@ -353,7 +355,7 @@ export async function readPrimesPayload(
             SELECT
               p.legal_name, p.uei, p.vendor_state, p.naics, p.industries, p.agencies,
               p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url,
-              p.vendor_address, p.products_services, p.source_file_date
+              p.vendor_address, p.products_services, p.source_file_date, p.naics_raw
             FROM subcontract_primes p
             JOIN subcontract_sources s ON s.id = p.source_id
             WHERE s.source_key = ${sourceKey}

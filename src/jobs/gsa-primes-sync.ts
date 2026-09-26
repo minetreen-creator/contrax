@@ -14,9 +14,11 @@
  * failed run writes NO directory row at all — the previously stored rows keep being served.
  *
  * HONEST LOG LINE: rows seen / inserted / updated / unchanged, rows that vanished from the
- * latest file (counted, never deleted), rows whose NAICS cell is not a valid code, the
- * source's own file name + file date, the Last-Modified, the content sha256, which
- * resolution path found the CSV, and the requests spent.
+ * latest file (counted, never deleted), rows whose NAICS cell is not a valid code (kept,
+ * counted, and stored verbatim in `naics_raw`), the rows whose state reads "Non-US"
+ * (counted distinctly, kept verbatim in `vendor_state`), the source's own file name + file
+ * date, the Last-Modified, the content sha256, which resolution path found the CSV, and the
+ * requests spent.
  */
 import { runGsaPrimesSync } from "~/lib/subcontracts/gsa-sync.server";
 
@@ -45,7 +47,9 @@ if (result.status === "ok") {
     );
     console.log(
       `[gsa-primes] rows without a valid 6-digit NAICS code: ${c.nonNaicsDropped} (the code is dropped, ` +
-        `the company is kept and listed — see the section's honesty line) · rows with a valid NAICS ${c.validNaicsRows} · ` +
+        `the company is kept and listed, and the raw value is stored in naics_raw — see the section's honesty line) · ` +
+        `rows with a valid NAICS ${c.validNaicsRows} · ` +
+        `rows whose state reads "Non-US" ${c.nonUsRows} (kept verbatim, counted here, never mapped to a state) · ` +
         `rows stored for this source ${c.storedRows}`,
     );
   }

@@ -11,13 +11,21 @@
  *   4. 304 (or identical sha256) ⇒ NOTHING is written to the directory; the run row is
  *      still written, so "last checked by Contrax" stays truthful.
  *   5. new bytes ⇒ parse → upsert by (source_id, uei) → report exactly what changed:
- *      inserted / updated / unchanged / missingFromLatestFile / nonNaicsDropped.
+ *      inserted / updated / unchanged / missingFromLatestFile / nonNaicsDropped /
+ *      nonUsRows.
  *   6. rows that VANISH from a newer file are counted and NEVER deleted (additive by
  *      design — an owner decision, not this job's).
  *
  * `rowsSeen` is the number of data rows this run READ FROM THE FILE. On a 304 nothing
  * was read, so it is 0 and `notModified: true` says why; `storedRows` carries how many
  * rows are being served. These counts go into `subcontract_sync_runs.counts` verbatim.
+ *
+ * THE INVALID VALUES STAY IDENTIFIABLE. The 105 rows whose NAICS cell is not a valid
+ * six-digit code are counted (`nonNaicsDropped`) AND stored verbatim (`naics_raw`), so
+ *   SELECT count(*) FROM subcontract_primes WHERE source_id = … AND naics_raw IS NOT NULL
+ * answers the same number the run reported; the 17 `Non-US` rows are counted separately
+ * (`nonUsRows`) and stay identifiable through their verbatim `vendor_state`. Owner
+ * refinement 2026-09-26.
  *
  * NO NETWORK IN TESTS: the fetcher and the store are both injectable, and the pure
  * parser is a separate module.
@@ -42,6 +50,12 @@ export interface GsaSyncCounts {
   missingFromLatestFile: number;
   /** Rows whose NAICS cell is present but is not a 6-digit code (the CODE is dropped). */
   nonNaicsDropped: number;
+  /**
+   * Rows whose `State` reads exactly `Non-US` — kept VERBATIM in the data (the column is
+   * what makes them identifiable) and labelled "Non-US (as the source states)" on the page.
+   * Counted distinctly from `nonNaicsDropped`: a row can be one, both or neither.
+   */
+  nonUsRows: number;
   /** `YYYY-MM-DD` from the source's own dated file name, or null. Never inferred. */
   fileDate: string | null;
   /** The CSV's `Last-Modified` (the CDN may restamp it). */
@@ -113,6 +127,7 @@ export const EMPTY_GSA_COUNTS: GsaSyncCounts = {
   unchanged: 0,
   missingFromLatestFile: 0,
   nonNaicsDropped: 0,
+  nonUsRows: 0,
   fileDate: null,
   lastModified: null,
   contentSha256: null,
@@ -221,6 +236,9 @@ export async function runGsaPrimesSync(options: GsaSyncOptions = {}): Promise<Gs
           fileUrl: str(previous.fileUrl),
         };
         result.counts.nonNaicsDropped = Number(previous.nonNaicsDropped ?? 0) || 0;
+        // A 304 read no file rows, so the only honest Non-US count is the one the last
+        // completed check measured (the stored rows are what is being served).
+        result.counts.nonUsRows = Number(previous.nonUsRows ?? 0) || 0;
       }
     }
 
@@ -245,6 +263,7 @@ export async function runGsaPrimesSync(options: GsaSyncOptions = {}): Promise<Gs
       result.counts.rowsSeen = 0;
       result.counts.unchanged = storedRows;
       result.counts.nonNaicsDropped = Number(result.counts.nonNaicsDropped ?? 0) || 0;
+      result.counts.nonUsRows = Number(result.counts.nonUsRows ?? 0) || 0;
       result.counts.durationMs = Date.now() - startedMs;
       if (!options.dryRun && store) {
         result.runId = await store.recordRun({
@@ -270,6 +289,7 @@ export async function runGsaPrimesSync(options: GsaSyncOptions = {}): Promise<Gs
     result.accounting = accounting;
     result.counts.rowsSeen = rows.length;
     result.counts.nonNaicsDropped = accounting.nonNaicsCodesDropped;
+    result.counts.nonUsRows = accounting.nonUsRows;
     result.counts.validNaicsRows = rows.length - accounting.nonNaicsCodesDropped - accounting.rowsWithoutNaicsCell;
     if (rows.length === 0) {
       throw new GsaDirectoryError(

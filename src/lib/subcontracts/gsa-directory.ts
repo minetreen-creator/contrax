@@ -24,8 +24,10 @@
  *   c. The `NAICS code` column is DIRTY: only /^\d{6}$/ is a NAICS code. 105 of 2,072
  *      rows publish something else (`0000`, `006`, `1`, `132`, `2211`, 7- and 10-digit
  *      concatenations, PSC-looking values). The invalid CODE is dropped — the ROW is
- *      kept, is counted, and shows an explicit "NAICS not stated" fallback. A bare
- *      non-NAICS code is never rendered as a trade label (the #449 rule).
+ *      kept, is counted, and shows an explicit "NAICS not stated" fallback — and the RAW
+ *      CELL is stored verbatim in `naics_raw` so those 105 values stay identifiable in the
+ *      data (owner refinement 2026-09-26; NULL for every valid code). A bare non-NAICS
+ *      code is never rendered as a trade label (the #449 rule).
  *   d. The source publishes NO NAICS title. Titles are resolved at READ time through
  *      the repo's single NAICS name table (`unmappedScopeLabel`) — never invented here.
  *   e. `State` is a full name (53 distinct values) including `Non-US` (17 rows),
@@ -251,7 +253,14 @@ export interface GsaDirectoryRow {
   vendorState: string | null;
   /** The 6-digit code only, as a one-element array; `[]` when the source published none. */
   naics: string[];
-  /** The RAW NAICS cell, kept for the run log so a dropped code is auditable. */
+  /**
+   * The NAICS cell VERBATIM — but ONLY for a row whose cell is present and is NOT a valid
+   * six-digit code (`0000`, `006`, `1`, `132`, `2211`, a 7- or 10-digit concatenation, a
+   * PSC-looking value). NULL for a valid code (the validated code is in `naics`) and NULL
+   * for a blank cell. This is the stored audit trail that keeps the invalid values
+   * IDENTIFIABLE IN THE DATA (owner refinement 2026-09-26) while only validated six-digit
+   * codes are ever DISPLAYED — the raw value is never rendered as a trade label.
+   */
   naicsRaw: string | null;
   productsServices: string | null;
   /** The source's own file date (from the dated URL), or null. Never inferred. */
@@ -397,7 +406,9 @@ export function parseGsaDirectory(text: string, fileUrl: string | null = null): 
       vendorAddress: address.text === "" ? null : address.text,
       vendorState: state,
       naics: naicsCode === null ? [] : [naicsCode],
-      naicsRaw: naicsRaw === "" ? null : naicsRaw,
+      // The raw cell is stored ONLY when it failed validation (owner refinement): a valid
+      // code already lives in `naics`, and a blank cell has nothing to audit.
+      naicsRaw: naicsCode === null && naicsRaw !== "" ? naicsRaw : null,
       productsServices: clean(cell("Major products or service lines")),
       sourceFileDate,
       fy: GSA_FY_LABEL,
@@ -422,7 +433,7 @@ export function gsaContentFingerprint(rows: readonly GsaDirectoryRow[]): string 
         row.legalName,
         row.vendorAddress ?? "",
         row.vendorState ?? "",
-        row.naics[0] ?? "",
+        row.naics[0] ?? row.naicsRaw ?? "",
         row.productsServices ?? "",
       ].join("\u0001"),
     )

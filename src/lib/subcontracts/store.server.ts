@@ -514,11 +514,19 @@ export async function subcontractStatusCounts(
 /** Rows per statement (same batching discipline as the FY24 seed). */
 export const GSA_PRIME_BATCH_SIZE = 500;
 
-/** One GSA company, exactly the fields this source publishes. */
+/**
+ * One GSA company, exactly the fields this source publishes.
+ *
+ * `naicsRaw` (migration 051) is the source's NAICS cell VERBATIM for a row whose code is NOT
+ * a valid six-digit code, and NULL otherwise — see `GsaDirectoryRow`. It is what keeps the
+ * invalid values identifiable in the data (owner refinement 2026-09-26) without ever being
+ * displayed.
+ */
 export interface GsaPrimeWriteRow {
   uei: string;
   legalName: string;
   naics: string[];
+  naicsRaw: string | null;
   vendorState: string | null;
   vendorAddress: string | null;
   productsServices: string | null;
@@ -543,6 +551,7 @@ async function upsertGsaPrimeBatch(
       uei: row.uei,
       legal_name: row.legalName,
       naics: row.naics,
+      naics_raw: row.naicsRaw,
       vendor_state: row.vendorState,
       vendor_address: row.vendorAddress,
       products_services: row.productsServices,
@@ -554,23 +563,25 @@ async function upsertGsaPrimeBatch(
   const result = (await db`
     WITH input AS (
       SELECT * FROM jsonb_to_recordset(${payload}::jsonb) AS x(
-        uei text, legal_name text, naics jsonb, vendor_state text, vendor_address text,
-        products_services text, fy text, source_url text, source_file_date text
+        uei text, legal_name text, naics jsonb, naics_raw text, vendor_state text,
+        vendor_address text, products_services text, fy text, source_url text,
+        source_file_date text
       )
     ), written AS (
       INSERT INTO subcontract_primes AS t (
-        source_id, uei, legal_name, naics, vendor_state, vendor_address,
+        source_id, uei, legal_name, naics, naics_raw, vendor_state, vendor_address,
         products_services, fy, source_url, source_file_date, fetched_at
       )
       SELECT
         ${sourceId}::uuid, uei, legal_name,
         COALESCE(ARRAY(SELECT jsonb_array_elements_text(naics)), '{}'::text[]),
-        vendor_state, vendor_address, products_services, fy, source_url,
+        naics_raw, vendor_state, vendor_address, products_services, fy, source_url,
         NULLIF(source_file_date, '')::date, ${fetchedAt}::timestamptz
       FROM input
       ON CONFLICT (source_id, uei) DO UPDATE SET
         legal_name = EXCLUDED.legal_name,
         naics = EXCLUDED.naics,
+        naics_raw = EXCLUDED.naics_raw,
         vendor_state = EXCLUDED.vendor_state,
         vendor_address = EXCLUDED.vendor_address,
         products_services = EXCLUDED.products_services,
@@ -580,6 +591,7 @@ async function upsertGsaPrimeBatch(
         fetched_at = EXCLUDED.fetched_at
       WHERE t.legal_name IS DISTINCT FROM EXCLUDED.legal_name
          OR t.naics IS DISTINCT FROM EXCLUDED.naics
+         OR t.naics_raw IS DISTINCT FROM EXCLUDED.naics_raw
          OR t.vendor_state IS DISTINCT FROM EXCLUDED.vendor_state
          OR t.vendor_address IS DISTINCT FROM EXCLUDED.vendor_address
          OR t.products_services IS DISTINCT FROM EXCLUDED.products_services

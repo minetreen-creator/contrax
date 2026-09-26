@@ -545,6 +545,14 @@ export interface PrimeRowView {
   naics: string[];
   /** The NAICS labels the surface shows — never a bare code (see naicsDisplayLabels). */
   naicsLabels: string[];
+  /**
+   * GSA-only evidence: the source's NAICS cell VERBATIM for a row whose code failed
+   * /^\d{6}$/ (NULL for a valid code and for every SBA row — the key is ABSENT there, so the
+   * SBA response stays byte-identical). It is carried so the invalid values are verifiable
+   * through the read surface, and it is NEVER rendered as a trade label: every surface shows
+   * `naicsLabels`, and a row with no valid code shows GSA_NAICS_NOT_STATED instead.
+   */
+  naicsRaw?: string | null;
   industries: string[];
   agencies: string[];
   awardRows: number;
@@ -579,6 +587,8 @@ export interface StoredPrimeRow {
   vendor_address?: string | null;
   products_services?: string | null;
   source_file_date?: StoredDay;
+  /** Migration 051 — the raw NAICS cell for an INVALID code only (NULL for a valid one). */
+  naics_raw?: string | null;
 }
 
 export function toPrimeView(row: StoredPrimeRow): PrimeRowView {
@@ -590,6 +600,9 @@ export function toPrimeView(row: StoredPrimeRow): PrimeRowView {
     vendorStateLabel: gsaStateLabel(row.vendor_state),
     naics,
     naicsLabels: naicsDisplayLabels(naics),
+    // Present ONLY when the caller read the migration-051 column: the SBA branch never
+    // selects it, so an SBA row keeps exactly the keys it shipped with (byte-identical).
+    ...(row.naics_raw === undefined ? {} : { naicsRaw: row.naics_raw?.trim() || null }),
     industries: (row.industries ?? []).filter((value) => Boolean(value?.trim())),
     agencies: (row.agencies ?? []).filter((value) => Boolean(value?.trim())),
     awardRows: Number(row.award_rows ?? 0),

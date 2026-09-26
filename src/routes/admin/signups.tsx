@@ -183,20 +183,20 @@ function SignupsPage() {
                 ) : activity.length === 0 ? (
                   <p className="px-5 py-4 text-sm text-slate-500">No external account activity found.</p>
                 ) : (
-                  <table className="w-full min-w-[800px] text-sm">
-                    <thead><tr className="text-left text-xs text-slate-500 uppercase">
-                      <th className="px-5 py-3">Account</th><th className="px-3 py-3">Plan</th>
-                      <th className="px-3 py-3">Last login</th><th className="px-3 py-3">Searches</th>
-                      <th className="px-3 py-3">Stored scores</th><th className="px-3 py-3">Saved-match rows</th>
+                  <table className="w-full min-w-[800px] text-sm text-slate-700">
+                    <thead><tr className="text-left text-xs text-slate-600 uppercase">
+                      <th className="px-5 py-2">Account</th><th className="px-3 py-2">Plan</th>
+                      <th className="px-3 py-2">Last login</th><th className="px-3 py-2 text-right">Searches</th>
+                      <th className="px-3 py-2 text-right">Stored scores</th><th className="px-5 py-2 text-right">Saved-match rows</th>
                     </tr></thead>
                     <tbody>{activity.map((row) => (
                       <tr key={row.user_id} className="border-t border-slate-100">
-                        <td className="px-5 py-3 font-medium text-slate-800">{row.email}</td>
-                        <td className="px-3 py-3 capitalize">{row.plan_tier ?? "—"}</td>
-                        <td className="px-3 py-3">{row.last_login ? dayFmt(row.last_login) : "—"}</td>
-                        <td className="px-3 py-3" title={row.last_search ?? undefined}>{row.search_count}</td>
-                        <td className="px-3 py-3" title={row.last_score ?? undefined}>{row.score_count}</td>
-                        <td className="px-3 py-3" title={row.last_save ?? undefined}>{row.save_count}</td>
+                        <td className="px-5 py-2 font-medium text-slate-900">{row.email}</td>
+                        <td className="px-3 py-2 capitalize">{row.plan_tier ?? "—"}</td>
+                        <td className="px-3 py-2 whitespace-nowrap">{row.last_login ? dayFmt(row.last_login) : "—"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums" title={row.last_search ?? undefined}>{row.search_count}</td>
+                        <td className="px-3 py-2 text-right tabular-nums" title={row.last_score ?? undefined}>{row.score_count}</td>
+                        <td className="px-5 py-2 text-right tabular-nums" title={row.last_save ?? undefined}>{row.save_count}</td>
                       </tr>
                     ))}</tbody>
                   </table>

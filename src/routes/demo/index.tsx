@@ -103,7 +103,7 @@ const faqs = [
   },
   {
     q: "Is there a free trial?",
-    a: "Yes — every plan includes a 14-day free trial. No credit card required to start, and you can cancel anytime.",
+    a: "Yes — start your 14-day trial when you upgrade. Cancel anytime during your trial.",
   },
   {
     q: "What happens after I sign up?",
@@ -309,7 +309,7 @@ function DemoPage() {
             Start your 14-day free trial
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-lg text-blue-100/80">
-            No credit card required. Set up your profile in minutes and start
+            Start your 14-day trial when you upgrade. Set up your profile in minutes and start
             seeing set-aside opportunities matched to your certifications.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">

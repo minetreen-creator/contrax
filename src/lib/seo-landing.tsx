@@ -416,8 +416,7 @@ export function SeoLanding(props: {
               🚀 Start your 14-day FREE Professional trial →
             </a>
             <p className="mt-2 text-xs font-medium text-blue-200/60">
-              No credit card required · Full Professional features on your first
-              use · Auto-downgrades to free Basic after 14 days
+              Start your 14-day trial when you upgrade · Cancel anytime during your trial
             </p>
             {/* SECONDARY Radar CTA */}
             <a
@@ -740,8 +739,7 @@ export function RegionView({ data }: { data: RegionData }) {
           🚀 Start your 14-day FREE Professional trial →
         </a>
         <p className="mt-2 text-xs text-blue-200/60">
-          No credit card required · Full Professional features on your first use ·
-          Auto-downgrades to free Basic after 14 days
+          Start your 14-day trial when you upgrade · Cancel anytime during your trial
         </p>
       </div>
     </div>

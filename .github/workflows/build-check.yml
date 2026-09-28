@@ -336,3 +336,13 @@ jobs:
       # contrax-bun-mock-module-leak), so the injection-free render path is the point.
       - name: Funnel UX post-signup to Radar tests (unit + component render, zero network)
         run: bun test src/lib/funnel-ux.test.ts tests/funnel-ux-radar-render.test.tsx
+      # RADAR SCAN DIAGNOSTICS (owner spec 2026-09-28): the four scan cohorts
+      # (signed-in vs anonymous × matches vs zero) plus the results-screen
+      # counters the admin panel now shows. DETERMINISTIC, network-free and
+      # database-free: the cohort decision is lifted OUT OF the shipped
+      # radar.tsx expression and evaluated for all four combinations, and the
+      # remaining pins are literal assertions over the repo's own source.
+      # No mock.module anywhere (process-global registry — see the skill noted
+      # above), so running it beside the Funnel UX suites is safe.
+      - name: Radar scan diagnostics tests (unit, deterministic, zero network)
+        run: bun test src/lib/radar-scan-diagnostics.test.ts

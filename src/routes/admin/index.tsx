@@ -45,6 +45,15 @@ import {
 interface UnifiedStage { stage: string; label: string; count: number; stepConversionPct: number | null; }
 interface UnifiedResult { rangeDays: number; stages: UnifiedStage[]; }
 interface SimpleFunnel { rangeDays: number; funnel: { stage: string; label: string; count: number; dropOffPct: number | null }[]; }
+
+/** Radar scan diagnostics (owner 2026-09-28) — the four scan cohorts, in the
+ *  owner's order, keyed by the short keys of RADAR_DIAGNOSTIC_EVENTS. */
+const RADAR_SCAN_COHORTS: { key: string; label: string }[] = [
+  { key: "anonymousMatches", label: "Anonymous · matches" },
+  { key: "anonymousZero", label: "Anonymous · zero matches" },
+  { key: "signedInMatches", label: "Signed in · matches" },
+  { key: "signedInZero", label: "Signed in · zero matches" },
+];
 interface FinanceShape { mrrCents: number; customerCount: number; source: "stripe-live" | "app-db"; }
 interface BidScoutFunnelStageShape { key: "viewed" | "checkout_started" | "purchased"; label: string; count: number; }
 interface BidScoutFunnelShape { range: "30d"; stages: BidScoutFunnelStageShape[]; }
@@ -569,6 +578,47 @@ function AdminOverviewPage() {
               <p className="mt-2 text-[11px] text-slate-500">
                 Small sample — post-tracking baseline of 6 organic signup-page visitors, 0 signups; not statistically
                 conclusive.
+              </p>
+            </div>
+          )}
+        </section>
+
+        {/* RADAR SCAN DIAGNOSTICS (owner 2026-09-28) — below the funnel: WHY it
+            leaks between Radar Completed and Signup. The four scan cohorts plus
+            the three results-screen surfaces, same window + exclusions. */}
+        <section>
+          <h2 className="text-lg font-semibold text-slate-800 mb-1">Radar scan diagnostics · 30 days</h2>
+          {error ? (
+            <SectionError message={error} />
+          ) : loading || !radarConv ? (
+            <SectionLoading message="Loading radar scan diagnostics…" />
+          ) : (
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                {RADAR_SCAN_COHORTS.map((c) => (
+                  <div key={c.key} className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2">
+                    <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">{c.label}</p>
+                    <p className="text-xl font-bold text-slate-900">{radarConv.diagnostics?.[c.key] ?? 0}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 space-y-1 border-t border-slate-100 pt-2 text-[11px] text-slate-500">
+                <p>
+                  Anonymous results viewed: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.anonymousResultsViewed ?? 0}</span>
+                </p>
+                <p>
+                  More than 3 matches · free signup card: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.lockedShown ?? 0}</span> shown ·{" "}
+                  <span className="font-semibold text-slate-700">{radarConv.diagnostics?.lockedClicked ?? 0}</span> clicked
+                </p>
+                <p>
+                  1–3 matches · free signup CTA: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.smallCtaShown ?? 0}</span> shown ·{" "}
+                  <span className="font-semibold text-slate-700">{radarConv.diagnostics?.smallCtaClicked ?? 0}</span> clicked
+                </p>
+              </div>
+              <p className="mt-2 text-[10px] text-slate-400">
+                The four scan cohorts begin collecting with this release — they read 0 until the first completed scan
+                arrives. Counts are distinct visitors per event and may overlap (one visitor can complete more than one
+                scan, or one with matches and one without). The five results-screen counters are pre-existing events.
               </p>
             </div>
           )}

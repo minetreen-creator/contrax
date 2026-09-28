@@ -14,6 +14,7 @@ import {
   RADAR_CONVERSION_SIGNUP_EVENT,
   RADAR_CONVERSION_ACTIVATION_EVENTS,
   RADAR_CONVERSION_INVOLVED_EVENTS,
+  RADAR_DIAGNOSTIC_EVENTS,
   conversionDropOff,
   emptyRadarConversionFunnel,
 } from "~/lib/radar-conversion-funnel";
@@ -149,6 +150,34 @@ async function handler({ request }: { request: Request }) {
       }
     }
     counts.paid = paidCount;
+    // ── Radar scan diagnostics (owner 2026-09-28) ──────────────────────────
+    // An INDEPENDENT query, deliberately NOT part of the stage maths above: it
+    // answers "why does the funnel leak between radar_completed and signup" by
+    // splitting completed scans into the four cohorts (signed-in vs anonymous ×
+    // matches vs ZERO matches) and counting the three results-screen surfaces.
+    // SAME filters as the stage counts (same window, same bot/QA/admin
+    // exclusions) so the numbers are comparable; DISTINCT visitors per event.
+    // Fail-soft: a failure here leaves every diagnostic at 0 and never blocks
+    // the funnel the owner already relies on.
+    const diagnosticEvents = Object.values(RADAR_DIAGNOSTIC_EVENTS);
+    try {
+      const rows: any[] = await sql()`
+        SELECT event_name, COUNT(DISTINCT visitor_id) AS n FROM funnel_events
+        WHERE visitor_id IS NOT NULL AND visitor_id <> ''
+          AND created_at >= ${fromIso}
+          AND event_name = ANY(${diagnosticEvents})
+          AND ${sql().unsafe(HUMAN_FILTER)}
+          AND ${sql().unsafe(qaFilter)} AND ${sql().unsafe(adminFilter)}
+        GROUP BY event_name`;
+      for (const row of rows ?? []) {
+        const key = String(row.event_name);
+        // Only keys the admin panel knows about; anything else is ignored
+        // rather than silently added to the payload.
+        if (key in result.diagnostics) result.diagnostics[key] = Number(row.n ?? 0);
+      }
+    } catch (err) {
+      console.error("[api/admin/radar-conversion-funnel] diagnostics failed (continuing):", err);
+    }
     // ── Consecutive drop-off (count vs previous stage; 0 when prior = 0) ────
     result.funnel = RADAR_CONVERSION_FUNNEL_STAGES.map((s, i) => {
       const prev = i === 0 ? null : counts[RADAR_CONVERSION_FUNNEL_STAGES[i - 1].stage];
@@ -159,6 +188,7 @@ async function handler({ request }: { request: Request }) {
       from: fromIso,
       to: now.toISOString(),
       funnel: result.funnel,
+      diagnostics: result.diagnostics,
     });
   } catch (err) {
     console.error("[api/admin/radar-conversion-funnel] error:", err);

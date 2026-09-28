@@ -22,6 +22,14 @@ interface PipelineItem {
   id: number;
   bid_id: number;
   status: string;
+  pursuit_status: string;
+  notes: string;
+  next_action: string;
+  follow_up_date: string | null;
+  contact_name: string;
+  contact_organization: string;
+  contact_role: string;
+  contact_email: string;
   created_at: string | null;
   title: string;
   agency: string;
@@ -64,6 +72,70 @@ function PipelineRoute() {
     return null;
   }
   return <PipelinePage user={user} />;
+}
+
+const pursuitStatuses = ["evaluating", "preparing", "submitted", "won", "lost"] as const;
+type WorkspaceKey = "pursuit_status" | "notes" | "next_action" | "follow_up_date" | "contact_name" | "contact_organization" | "contact_role" | "contact_email";
+
+function BidWorkspace({ item, onSaved }: { item: PipelineItem; onSaved: (updated: Partial<PipelineItem>) => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(item);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  function update(key: WorkspaceKey, value: string) { setDraft((old) => ({ ...old, [key]: value })); }
+  async function save() {
+    setSaving(true);
+    setSaveError("");
+    try {
+      const res = await fetch("/api/pipeline-workspace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bid_id: item.bid_id, pursuit_status: draft.pursuit_status,
+          notes: draft.notes, next_action: draft.next_action,
+          follow_up_date: draft.follow_up_date || null,
+          contact_name: draft.contact_name, contact_organization: draft.contact_organization,
+          contact_role: draft.contact_role, contact_email: draft.contact_email,
+        }),
+      });
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null);
+        throw new Error(payload?.error || "Could not save bid details");
+      }
+      const payload = await res.json();
+      onSaved(payload.data);
+      setDraft((old) => ({ ...old, ...payload.data }));
+      setEditing(false);
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save bid details");
+    } finally { setSaving(false); }
+  }
+  const input = "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900";
+  return (
+    <div className="mt-4 border-t border-slate-100 pt-4 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="space-y-1 text-slate-600">
+          <p><span className="font-semibold text-slate-800">Pursuit:</span> {item.pursuit_status}</p>
+          {item.next_action && <p><span className="font-semibold text-slate-800">Next action:</span> {item.next_action}{item.follow_up_date ? ` · ${item.follow_up_date}` : ""}</p>}
+          {item.contact_name && <p><span className="font-semibold text-slate-800">Contact:</span> {item.contact_name}{item.contact_organization ? ` · ${item.contact_organization}` : ""}</p>}
+          {item.notes && <p className="whitespace-pre-wrap"><span className="font-semibold text-slate-800">Notes:</span> {item.notes}</p>}
+        </div>
+        <button type="button" className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50" onClick={() => { if (editing) setDraft(item); setSaveError(""); setEditing(!editing); }}>{editing ? "Cancel" : "Manage bid"}</button>
+      </div>
+      {editing && <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2">
+        <label className="space-y-1">Pursuit status<select className={input} value={draft.pursuit_status} onChange={(e) => update("pursuit_status", e.target.value)}>{pursuitStatuses.map((status) => <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}</select></label>
+        <label className="space-y-1">Follow-up date<input className={input} type="date" value={draft.follow_up_date ?? ""} onChange={(e) => update("follow_up_date", e.target.value)} /></label>
+        <label className="space-y-1 sm:col-span-2">Next action<input className={input} maxLength={300} value={draft.next_action} onChange={(e) => update("next_action", e.target.value)} placeholder="Email the procurement contact" /></label>
+        <label className="space-y-1">Contact name<input className={input} maxLength={300} value={draft.contact_name} onChange={(e) => update("contact_name", e.target.value)} /></label>
+        <label className="space-y-1">Organization<input className={input} maxLength={300} value={draft.contact_organization} onChange={(e) => update("contact_organization", e.target.value)} /></label>
+        <label className="space-y-1">Contact role<input className={input} maxLength={300} value={draft.contact_role} onChange={(e) => update("contact_role", e.target.value)} /></label>
+        <label className="space-y-1">Contact email<input className={input} type="email" maxLength={300} value={draft.contact_email} onChange={(e) => update("contact_email", e.target.value)} /></label>
+        <label className="space-y-1 sm:col-span-2">Notes<textarea className={input} rows={3} maxLength={5000} value={draft.notes} onChange={(e) => update("notes", e.target.value)} /></label>
+        {saveError && <p role="alert" className="text-red-700 sm:col-span-2">{saveError}</p>}
+        <div className="sm:col-span-2"><button type="button" disabled={saving} onClick={save} className="rounded-lg bg-amber-500 px-4 py-2 font-semibold text-white hover:bg-amber-600 disabled:opacity-50">{saving ? "Saving…" : "Save bid details"}</button></div>
+      </div>}
+    </div>
+  );
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -281,6 +353,7 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
                     {removing === item.bid_id ? "Removing…" : "Remove"}
                   </button>
                 </div>
+                <BidWorkspace item={item} onSaved={(updated) => setItems((previous) => previous?.map((entry) => entry.bid_id === item.bid_id ? { ...entry, ...updated } : entry) ?? null)} />
               </div>
             ))}
           </div>

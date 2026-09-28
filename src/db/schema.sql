@@ -121,6 +121,13 @@ CREATE TABLE IF NOT EXISTS saved_matches (
     bid_id INTEGER REFERENCES bids(id),
     status TEXT DEFAULT 'new',
     notes TEXT,
+    pursuit_status TEXT NOT NULL DEFAULT 'evaluating',
+    next_action TEXT,
+    follow_up_date DATE,
+    contact_name TEXT,
+    contact_organization TEXT,
+    contact_role TEXT,
+    contact_email TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_id, bid_id)
 );

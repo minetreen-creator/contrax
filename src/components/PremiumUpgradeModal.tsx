@@ -17,10 +17,10 @@ import { useEffect } from "react";
 import { redirectToCheckout } from "~/lib/checkout";
 // ── Exact copy strings (shared/ratified) ─────────────────────────────────────
 /** Heading for the Incumbent Intelligence upgrade prompt. */
-export const INCUMBENT_PAYWALL_TITLE = "Upgrade to Professional";
+export const INCUMBENT_PAYWALL_TITLE = "Upgrade to Radar Pro";
 /** Body for the Incumbent Intelligence upgrade prompt. */
 export const INCUMBENT_PAYWALL_BODY =
-  "Upgrade to Professional to unlock past contract awardees and pricing history.";
+  "Upgrade to Radar Pro to unlock past contract awardees and pricing history.";
 /** Message shown when a Basic (free) user hits the free saved-bid limit. */
 export const SAVE_LIMIT_PAYWALL_MESSAGE =
   "You've reached your free limit. Upgrade to track unlimited opportunities.";
@@ -39,7 +39,7 @@ export function PremiumUpgradeModal({
   title = INCUMBENT_PAYWALL_TITLE,
   message = SAVE_LIMIT_PAYWALL_MESSAGE,
   checkoutPlan = "professional",
-  ctaLabel = "Upgrade to Professional →",
+  ctaLabel = "Upgrade to Radar Pro →",
   priceNote = "$79/mo · 14-day Professional trial · Cancel anytime",
   ctaHref,
 }: {

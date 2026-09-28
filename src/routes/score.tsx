@@ -727,7 +727,7 @@ function ScorePage() {
               onClick={() => trackEvent("score_cta_click", "trial_limit")}
               className="mt-6 inline-flex items-center gap-2 rounded-xl bg-blue-600 px-7 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 hover:shadow-xl active:scale-[0.98]"
             >
-              Upgrade to Professional →
+              Upgrade to Radar Pro →
             </a>
           </div>
         ) : limitReached ? (

@@ -26,6 +26,11 @@
  *       rendering the raw sentinel, the signed-in first-run results screen never
  *       asks a user who just signed up to "Create free account", and no surface
  *       still sells proposal drafting on Professional.
+ *   (g) THE THREE FUNNEL-QA COPY RESIDUES (owner green-lit 2026-09-28): the
+ *       /awards incumbent reveal renders the ratified Radar Pro gate copy (not
+ *       this card's legacy Professional paywall), the dashboard trial card no
+ *       longer lists proposal drafting as a Professional-trial inclusion, and
+ *       the /radar requirements CTA is anonymous-only.
  *
  * DETERMINISTIC, zero network, zero database: literals + committed source text
  * on one side, in-process react-dom/server renders on the other. No
@@ -58,6 +63,8 @@ import {
   type PipelineExportRow,
   type PipelineExportStore,
 } from "~/lib/pipeline-export";
+import { TRIAL_CAPS, TRIAL_CHECKLIST } from "~/lib/trial-usage";
+import { TRIAL_START_COPY } from "~/lib/trial-start-card";
 
 const ROOT = join(import.meta.dir, "..");
 const SRC = join(ROOT, "src");
@@ -628,5 +635,102 @@ describe("F3: no surface still sells proposal drafting on Professional", () => {
       );
     });
     expect(offenders).toEqual([]);
+  });
+});
+
+// ── (g) THE THREE FUNNEL-QA COPY RESIDUES (owner green-lit 2026-09-28) ───────
+
+describe("(g1) the /awards incumbent reveal shows the ratified Radar Pro gate", () => {
+  const card = read("components", "IncumbentCard.tsx");
+  const RADAR_PRO = gatePrompt("radar_pro");
+
+  test('the reveal prompt is built from gatePrompt("radar_pro") — title, body, CTA, price note, checkout tier', () => {
+    for (const field of ["title", "body", "ctaLabel", "priceNote", "checkoutPlan"]) {
+      expect(card).toContain(`gatePrompt("radar_pro").${field}`);
+    }
+    // The legacy IncumbentCard paywall strings are no longer wired into the reveal.
+    expect(card).not.toContain("INCUMBENT_PAYWALL_TITLE");
+    expect(card).not.toContain("INCUMBENT_PAYWALL_BODY");
+    expect(card).not.toContain("Upgrade to Professional");
+    // …and the attempt-only wiring is untouched: one door, opened by the click.
+    expect(count(card, "setShowPaywall(true)")).toBe(1);
+    expect(card).toContain("ATTEMPT_EVENT_FOR_ACTION.incumbent");
+    expect(card).toContain("GATE_ATTEMPT_LABEL");
+  });
+
+  test("the rendered prompt is the Radar Pro offer — never the legacy paywall, never a raw sentinel", () => {
+    const html = renderToStaticMarkup(
+      <PremiumUpgradeModal
+        open
+        onClose={noop}
+        title={RADAR_PRO.title}
+        message={RADAR_PRO.body}
+        ctaLabel={RADAR_PRO.ctaLabel}
+        priceNote={RADAR_PRO.priceNote}
+        checkoutPlan={RADAR_PRO.checkoutPlan}
+      />,
+    );
+    expect(html).toContain("Radar Pro feature");
+    expect(html).toContain("Upgrade to Radar Pro →");
+    expect(html).toContain("$79/mo · 14-day Professional trial · Cancel anytime");
+    expect(html).not.toContain("Upgrade to Professional");
+    expect(html).not.toContain("past contract awardees and pricing history");
+    expect(html).not.toContain("GATE_REQUIRED");
+    expect(html).toContain("Maybe later"); // still dismissible — never a trap
+    // The checkout destination is unchanged by this copy fix.
+    expect(RADAR_PRO.checkoutPlan).toBe("professional");
+  });
+
+  test("the VIEW is still prompt-free: nothing upgrade-shaped renders before the click", () => {
+    const html = renderToStaticMarkup(
+      <IncumbentCard intel={INTEL} user={USER} proAccess={false} bidId={1} title="Barracks Renovation" />,
+    );
+    expect(html).toContain("Reveal Incumbent &amp; Past Pricing");
+    expect(html).not.toContain("Upgrade to Radar Pro"); // the prompt IS the attempt
+    expect(html).not.toContain("Upgrade to Professional");
+    expect(html).not.toContain("GATE_REQUIRED");
+  });
+});
+
+describe("(g2) the dashboard trial card never sells proposal drafting on Professional", () => {
+  const usage = read("lib", "trial-usage.ts");
+  const startCard = read("lib", "trial-start-card.ts");
+  const checklist = read("components", "TrialChecklist.tsx");
+
+  test("no trial surface still lists a drafting item — and no app file can re-sell it", () => {
+    for (const text of [usage, startCard, checklist]) {
+      expect(text).not.toContain("Start a proposal draft");
+    }
+    expect(TRIAL_CHECKLIST.some((c) => /draft/i.test(c.label))).toBe(false);
+    const files = [
+      ...walkFiles(join(SRC, "routes")),
+      ...walkFiles(join(SRC, "components")),
+      ...walkFiles(join(SRC, "lib")),
+    ].filter((path) => /\.(ts|tsx)$/.test(path) && !/\.test\.(ts|tsx)$/.test(path));
+    expect(files.length).toBeGreaterThan(100); // non-vacuous
+    expect(
+      files.filter((path) => readFileSync(path, "utf8").includes("Start a proposal draft")),
+    ).toEqual([]);
+  });
+
+  test("what-you-get is the real inclusion list — ledger-derived, drafting free, rest byte-identical", () => {
+    // Still derived from the trial ledger (capped, never invented).
+    expect(TRIAL_START_COPY.whatYouGet).toBe(
+      TRIAL_CHECKLIST.map((c) => `${c.label} (${c.limit})`).join(" · "),
+    );
+    expect(TRIAL_START_COPY.whatYouGet).not.toMatch(/draft/i);
+    // The three genuine Professional-trial inclusions, byte for byte.
+    expect(TRIAL_START_COPY.whatYouGet).toBe(
+      "Generate an Executive Brief (5) · Review incumbent pricing (3) · Score an opportunity (3)",
+    );
+    // The #456 owner-ratified honest-copy sentences are untouched.
+    expect(TRIAL_START_COPY.noCard).toBe("Start your 14-day trial when you upgrade.");
+    expect(TRIAL_START_COPY.body).toBe("Cancel anytime during your trial.");
+    // The ledger's server-side caps are untouched: drafting is simply no longer
+    // SOLD as a trial inclusion (no gate changed).
+    expect(TRIAL_CAPS.drafts).toBe(1);
+    expect(TRIAL_CAPS.briefs).toBe(5);
+    expect(TRIAL_CAPS.scores).toBe(3);
+    expect(TRIAL_CAPS.incumbent).toBe(3);
   });
 });

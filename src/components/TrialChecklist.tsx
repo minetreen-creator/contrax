@@ -1,12 +1,15 @@
 /**
  * TrialChecklist — user-visible 14-day PROFESSIONAL trial checklist.
  *
- * Shows the 4 owner-specified trial items with live remaining counts, derived
+ * Shows the trial's user-visible items with live remaining counts, derived
  * from the per-trial `trial_usage` ledger (src/lib/trial-usage.ts):
  *   ✅ / ⬜ Generate an Executive Brief   (5 left)
  *   ✅ / ⬜ Review incumbent pricing      (3 left)
  *   ✅ / ⬜ Score an opportunity          (3 left)
- *   ✅ / ⬜ Start a proposal draft        (1 left)
+ *
+ * Proposal drafting is NOT listed: it is gated on Bid Scout ($99/mo), not on
+ * the 14-day Professional trial (owner gate map 2026-09-26; funnel-QA copy fix
+ * 2026-09-28 removed the stale item from TRIAL_CHECKLIST).
  *
  * An item is complete once its corresponding usage counter is > 0. The card
  * only renders for a user inside an ACTIVE Professional trial (expired / paid /

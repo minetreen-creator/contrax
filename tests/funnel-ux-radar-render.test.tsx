@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { RadarCard, SaveTrackingPrompt, type RadarMatch } from "~/routes/radar";
+import { RadarCard, RequirementsFallback, SaveTrackingPrompt, type RadarMatch } from "~/routes/radar";
 import { BEST_MATCH_BADGE, SAVE_TRACKING_PROMPT } from "~/lib/funnel-ux";
 
 const REPO_SRC = join(import.meta.dir, "..", "src");
@@ -169,5 +169,68 @@ describe("the Radar screen wires the new UI (no reorder, no gate change)", () =>
     expect(src).toContain("bestMatch={m.id === bestMatchId}");
     expect(src).toContain("bestMatch={scan.matches[revealed].id === bestMatchId}");
     expect(src).not.toContain("matches.sort(");
+  });
+});
+
+// ── The Important-requirements signup CTA is ANONYMOUS-ONLY ──────────────────
+// Funnel-QA fix (owner green-lit 2026-09-28): a signed-in visitor on the results
+// screen was still told to "sign up free to analyze the complete document". The
+// guard is the file's own anonymous detector — the same `!getTrackingUser()`
+// signal as the F2 first-run nudge — AND-ed with the card's resolved `user`
+// prop. The card's real actions are untouched for everyone.
+//
+// The signed-in branch is asserted on the extracted `RequirementsFallback`
+// component (a full signed-in RadarCard needs a router provider — it renders
+// SaveToPipeline — which this harness deliberately does not bring up), plus a
+// source proof that the card is wired to the guard.
+
+const SIGNUP_HREF = "/signup?plan=basic&source=radar&trade=janitorial";
+
+describe("RadarCard — the requirements signup CTA is anonymous-only (F2 family)", () => {
+  const requirementsSrc = () =>
+    readFileSync(join(REPO_SRC, "routes", "radar.tsx"), "utf8");
+
+  test("an ANONYMOUS card with no stated requirements still renders the signup CTA", () => {
+    const html = card({ match: match({ requirements: [] }) });
+    expect(html).toContain("Full requirements are listed in the original solicitation");
+    expect(html).toContain("sign up free to analyze the complete document");
+    expect(html).toContain('href="/signup?');
+  });
+
+  test("a SIGNED-IN viewer's requirements block renders the pointer with NO create-account CTA", () => {
+    const signedIn = renderToStaticMarkup(
+      <RequirementsFallback anonymous={false} signupHref={SIGNUP_HREF} bidId={4242} />,
+    );
+    expect(signedIn).toContain("Full requirements are listed in the original solicitation");
+    expect(signedIn).not.toContain("sign up free");
+    expect(signedIn).not.toContain('href="/signup');
+    expect(signedIn).not.toContain("Create free account");
+    expect(signedIn).not.toContain("<a ");
+    // The anonymous branch is byte-for-byte the block that shipped before.
+    const anon = renderToStaticMarkup(
+      <RequirementsFallback anonymous signupHref={SIGNUP_HREF} bidId={4242} />,
+    );
+    expect(anon).toContain("Full requirements are listed in the original solicitation");
+    expect(anon).toContain("sign up free to analyze the complete document");
+    expect(anon).toContain('href="/signup?plan=basic&amp;source=radar&amp;trade=janitorial"');
+    expect(anon).toContain("<a "); // the CTA really is a link for anonymous viewers
+  });
+
+  test("the card wires the guard — the file's own detector AND the resolved viewer", () => {
+    const src = requirementsSrc();
+    expect(src).toContain("const isAnonymousViewer = !user && !getTrackingUser();");
+    expect(src).toContain("anonymous={isAnonymousViewer}");
+    expect(src).toContain("signupHref={radarSignupHref({ trade, state, cert, sizePref })}");
+    // One CTA, one event: the copy and its tracking call live in the anonymous
+    // branch only.
+    expect(src.split("sign up free to analyze the complete document").length - 1).toBe(1);
+    expect(src.split("radar_requirements_cta").length - 1).toBe(1);
+  });
+
+  test("a STATED requirements list renders for everyone, with no CTA either way", () => {
+    const html = card({ match: match() });
+    expect(html).toContain("See the original solicitation");
+    expect(html).not.toContain("sign up free");
+    expect(html).not.toContain('href="/signup');
   });
 });

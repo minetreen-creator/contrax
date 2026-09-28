@@ -156,7 +156,9 @@ try {
     JSON.stringify(cap1));
 
   // TrialChecklist integrity — the checklist that mounts once active.
-  check("TRIAL_CHECKLIST has the 4 owner items", TRIAL_CHECKLIST.length === 4, String(TRIAL_CHECKLIST.length));
+  check("TRIAL_CHECKLIST has the 3 user-visible trial items (drafting moved to Bid Scout)", TRIAL_CHECKLIST.length === 3, String(TRIAL_CHECKLIST.length));
+  check("no trial item sells proposal drafting (Bid Scout feature, owner gate map)",
+    !TRIAL_CHECKLIST.some((c) => /draft/i.test(c.label)), TRIAL_CHECKLIST.map((c) => c.label).join(" | "));
   check("per-trial caps are 5/3/1/3 (briefs/scores/drafts/incumbent)",
     TRIAL_CAPS.briefs === 5 && TRIAL_CAPS.scores === 3 && TRIAL_CAPS.drafts === 1 && TRIAL_CAPS.incumbent === 3,
     JSON.stringify(TRIAL_CAPS));

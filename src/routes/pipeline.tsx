@@ -60,7 +60,11 @@ function fmtDate(d: string | null | undefined): string {
   const date = new Date(d);
   return Number.isNaN(date.getTime())
     ? "Not specified"
-    : date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    : date.toLocaleDateString("en-US", {
+        month: "short", day: "numeric", year: "numeric",
+        // Date-only strings are calendar days, not midnight in the viewer's zone.
+        timeZone: /^\d{4}-\d{2}-\d{2}$/.test(d) ? "UTC" : undefined,
+      });
 }
 
 // ── Route wrapper (auth guard — hooks stay unconditional) ────────────────────

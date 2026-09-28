@@ -116,7 +116,7 @@ function BidWorkspace({ item, onSaved }: { item: PipelineItem; onSaved: (updated
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="space-y-1 text-slate-600">
           <p><span className="font-semibold text-slate-800">Pursuit:</span> {item.pursuit_status}</p>
-          {item.next_action && <p><span className="font-semibold text-slate-800">Next action:</span> {item.next_action}{item.follow_up_date ? ` · ${fmtDate(item.follow_up_date)}` : ""}</p>}
+          {item.next_action && <p><span className="font-semibold text-slate-800">Next action:</span> {item.next_action}{item.follow_up_date ? ` · ${item.follow_up_date}` : ""}</p>}
           {item.contact_name && <p><span className="font-semibold text-slate-800">Contact:</span> {item.contact_name}{item.contact_organization ? ` · ${item.contact_organization}` : ""}</p>}
           {item.notes && <p className="whitespace-pre-wrap"><span className="font-semibold text-slate-800">Notes:</span> {item.notes}</p>}
         </div>

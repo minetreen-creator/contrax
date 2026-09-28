@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
+import { dateOnly } from "~/lib/brief-source";
 import { sql } from "~/db";
 
 const statuses = ["evaluating", "preparing", "submitted", "won", "lost"] as const;
@@ -39,7 +40,7 @@ async function handler({ request }: { request: Request }) {
     `;
     if (!rows.length) return Response.json({ error: "Saved bid not found" }, { status: 404 });
     const row = rows[0];
-    return Response.json({ data: { ...row, bid_id: Number(row.bid_id), follow_up_date: row.follow_up_date ? String(row.follow_up_date).slice(0, 10) : null } });
+    return Response.json({ data: { ...row, bid_id: Number(row.bid_id), follow_up_date: dateOnly(row.follow_up_date) } });
   } catch (error) {
     console.error("[api/pipeline-workspace] update failed", error);
     return Response.json({ error: "Could not save bid details" }, { status: 500 });

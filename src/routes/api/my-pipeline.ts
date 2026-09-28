@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
+import { dateOnly } from "~/lib/brief-source";
 import { sql } from "~/db";
 
 /**
@@ -35,7 +36,7 @@ async function handler({ request }: { request: Request }) {
       pursuit_status: r.pursuit_status ?? "evaluating",
       notes: r.notes ?? "",
       next_action: r.next_action ?? "",
-      follow_up_date: r.follow_up_date ? String(r.follow_up_date).slice(0, 10) : null,
+      follow_up_date: dateOnly(r.follow_up_date),
       contact_name: r.contact_name ?? "",
       contact_organization: r.contact_organization ?? "",
       contact_role: r.contact_role ?? "",

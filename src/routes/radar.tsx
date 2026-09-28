@@ -92,7 +92,8 @@ import {
  * normal entitlement — they are never gated. The unlock CTA routes to the
  * EXISTING /signup for now (PR1; PR2 adds the server/session restore).
  * Consistent with the existing Professional paywalls: Basic is free forever
- * (up to 3 saved bids); AI scoring + draft tools are on Professional.
+ * (up to 3 saved bids); AI match scoring is on Professional, and proposal
+ * drafting is on Bid Scout.
  */
 
 export const RADAR_CERTS = ["sdvosb", "8a", "wosb", "hubzone", "sb"] as const;
@@ -1673,8 +1674,12 @@ function RadarLanding() {
 
             {/* Soft, NON-BLOCKING nudge — appears after the FIRST match is revealed.
                 Dismissible; never a hard gate. The full locked-results card still
-                only appears past the free cap (anonymous, real matches > cap). */}
-            {scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (
+                only appears past the free cap (anonymous, real matches > cap).
+                F2 (funnel QA 2026-09-26): ANONYMOUS ONLY — a just-signed-up user
+                landed on /radar?first_run=1 by definition already has an account,
+                so asking them to "Create free account" above the Save Opportunity
+                primary was both confusing and wrong. Signed-in users never see it. */}
+            {isAnonymous && scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (
               <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
                 <p className="text-sm leading-relaxed text-slate-200">
                   <span className="font-semibold text-amber-400">Keep these matches.</span>{" "}

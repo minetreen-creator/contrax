@@ -21,6 +21,11 @@
  *       with the `GATE_REQUIRED:radar_pro` sentinel BEFORE any lazy trial start,
  *       and /api/bids-draft answers an attempted draft with 402 + the Bid Scout
  *       sentinel.
+ *   (f) THE THREE FUNNEL-QA FOLLOW-UPS (owner green-lit 2026-09-26): the
+ *       /dashboard drafting attempt opens the Bid Scout prompt instead of
+ *       rendering the raw sentinel, the signed-in first-run results screen never
+ *       asks a user who just signed up to "Create free account", and no surface
+ *       still sells proposal drafting on Professional.
  *
  * DETERMINISTIC, zero network, zero database: literals + committed source text
  * on one side, in-process react-dom/server renders on the other. No
@@ -38,6 +43,7 @@ import {
   GATE_ATTEMPT_EVENTS,
   GATE_ATTEMPT_LABEL,
   gateErrorCode,
+  gateFromError,
   gateLockedPayload,
   gatePrompt,
   isGateError,
@@ -423,5 +429,204 @@ describe("API gates: the attempt is answered with the sentinel, and no trial sta
     expect(src).toContain("{ status: 402 }");
     expect(src).toContain('"content-type": "text/csv; charset=utf-8"');
     expect(src).toContain('"cache-control": "no-store"');
+  });
+});
+
+// ── (f) THE THREE FUNNEL-QA FOLLOW-UPS (owner green-lit 2026-09-26) ───────────
+
+/** Every file path under `dir`, recursively. */
+function walkFiles(dir: string): string[] {
+  const out: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) out.push(...walkFiles(path));
+    else out.push(path);
+  }
+  return out;
+}
+
+const DRAFTING_GATE_HANDLER = "const gate = res.status === 402 ? gateFromError(b?.error) : null;";
+
+describe("F1: a gated DRAFTING attempt on /dashboard opens the Bid Scout prompt", () => {
+  const dashboard = read("routes", "dashboard.tsx");
+
+  /** The EXACT 402 body /api/bids-draft answers a gated attempt with. */
+  const gatedDraftResponse = { ...gateLockedPayload("draft"), error: gateErrorCode("draft") };
+
+  test("the real 402 sentinel resolves to the Bid Scout gate — and to nothing else", () => {
+    expect(gatedDraftResponse.error).toBe("GATE_REQUIRED:bid_scout");
+    // The dashboard's own decision, verbatim: a 402 whose body carries a gate
+    // sentinel opens the prompt.
+    expect(gateFromError(gatedDraftResponse.error)).toBe("bid_scout");
+    // Everything that is NOT that pair keeps the ordinary error path (a prompt is
+    // never faked for a real failure).
+    expect(gateFromError("Proposal generation failed")).toBeNull();
+    expect(gateFromError(undefined)).toBeNull();
+    expect(gateFromError(null)).toBeNull();
+    expect(gateFromError("GATE_REQUIRED:")).toBeNull();
+    expect(gateFromError("GATE_REQUIRED:radar_pro")).toBe("radar_pro");
+  });
+
+  test("the prompt rendered for that 402 is the Bid Scout offer, never the sentinel", () => {
+    const gate = gateFromError(gatedDraftResponse.error)!;
+    const p = gatePrompt(gate);
+    const html = renderToStaticMarkup(
+      <PremiumUpgradeModal
+        open
+        onClose={noop}
+        title={p.title}
+        message={p.body}
+        ctaLabel={p.ctaLabel}
+        priceNote={p.priceNote}
+        ctaHref={p.href}
+      />,
+    );
+    expect(html).toContain("Bid Scout feature");
+    expect(html).toContain("Proposal drafting and pipeline CSV export are part of Bid Scout");
+    expect(html).toContain("$99/mo · Cancel anytime");
+    expect(html).toContain('href="/bid-scout"');
+    expect(html).toContain("Maybe later");
+    // THE DEFECT: the raw sentinel must not reach the user. Non-vacuous — the
+    // string really is what the server sent.
+    expect(html).not.toContain("GATE_REQUIRED");
+    expect(JSON.stringify(gatedDraftResponse)).toContain("GATE_REQUIRED:bid_scout");
+  });
+
+  test("dashboard.tsx intercepts the gate BEFORE the error box, and stores the prompt", () => {
+    expect(count(dashboard, DRAFTING_GATE_HANDLER)).toBe(1);
+    const gateAt = dashboard.indexOf(DRAFTING_GATE_HANDLER);
+    const throwAt = dashboard.indexOf('throw new Error(b?.error || "Proposal generation failed")');
+    expect(throwAt).toBeGreaterThan(gateAt);
+    const branch = dashboard.slice(gateAt, throwAt);
+    // The gated attempt fires the standalone `draft_attempted`/"gated" event…
+    expect(branch).toContain('trackEvent(ATTEMPT_EVENT_FOR_ACTION.draft, GATE_ATTEMPT_LABEL, "/dashboard")');
+    // …opens the prompt…
+    expect(branch).toContain("setDraftGate(gate)");
+    // …and returns BEFORE the red error box: the sentinel never reaches aiError,
+    // and no (paid) draft is stored from a gated response.
+    expect(branch).toContain("return;");
+    expect(branch).not.toContain("setAiError");
+    expect(branch).not.toContain("setDrafts");
+    // The ONLY door to the gate state is that attempt handler.
+    expect(count(dashboard, "setDraftGate(gate)")).toBe(1);
+    expect(count(dashboard, "setDraftGate(")).toBe(2); // the attempt + the modal close
+    // The prompt is rendered from an ATTEMPT-set state, never on view.
+    const promptAt = dashboard.indexOf("{draftGate && (");
+    expect(promptAt).toBeGreaterThan(-1);
+    const promptBlock = dashboard.slice(promptAt, promptAt + 900);
+    expect(promptBlock).toContain("<PremiumUpgradeModal");
+    expect(promptBlock).toContain("open");
+    expect(promptBlock).toContain("gatePrompt(draftGate).title");
+    expect(promptBlock).toContain("gatePrompt(draftGate).href"); // Bid Scout links out
+    expect(promptBlock).toContain("setDraftGate(null)");
+    // dashboard.tsx renders exactly two modals: the existing save-limit paywall
+    // and this drafting gate (no third surface crept in).
+    expect(count(dashboard, "<PremiumUpgradeModal")).toBe(2);
+  });
+
+  test("no client rendering file hardcodes the sentinel (so it is always consumed)", () => {
+    const offenders = [
+      ...walkFiles(join(SRC, "routes")),
+      ...walkFiles(join(SRC, "components")),
+    ]
+      .filter((path) => /\.tsx$/.test(path) && !/\.test\.tsx$/.test(path))
+      .filter((path) => readFileSync(path, "utf8").includes("GATE_REQUIRED:"));
+    // Nothing renders the literal: every sentinel arrives as server DATA and is
+    // mapped through gateFromError by the surface that attempted the action.
+    expect(offenders).toEqual([]);
+  });
+});
+
+describe("F2: the signed-in first-run results screen never asks for a new account", () => {
+  const radar = read("routes", "radar.tsx");
+  const NUDGE_COPY = "Create a free account to save them and get deadline alerts.";
+  const GUARDED_NUDGE =
+    "{isAnonymous && scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (";
+
+  test("the create-account nudge is rendered ONLY for anonymous visitors", () => {
+    // Still there for anonymous visitors (the anon path is unchanged)…
+    expect(radar).toContain(NUDGE_COPY);
+    expect(count(radar, GUARDED_NUDGE)).toBe(1);
+    // …and the unguarded condition that shipped the defect is gone.
+    expect(radar).not.toContain("{scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (");
+    // The copy sits INSIDE the guarded block: a signed-in first-run user
+    // (isAnonymous === false) therefore renders nothing at all here.
+    const at = radar.indexOf(GUARDED_NUDGE);
+    const end = radar.indexOf("\n            )}", at);
+    expect(end).toBeGreaterThan(at);
+    const block = radar.slice(at, end);
+    expect(block).toContain(NUDGE_COPY);
+    expect(block).toContain("Create free account");
+    expect(block).toContain("radarSignupHref(");
+    // The signal is the file's own anonymous detector — the same one used by the
+    // other anonymous-only results sections.
+    expect(radar).toContain("const isAnonymous = !getTrackingUser();");
+    expect(count(radar, "{isAnonymous && scan.matches.length > 0 && (")).toBeGreaterThan(1);
+  });
+
+  test("a signed-in user cannot even fire the anonymous nudge's tracking events", () => {
+    const at = radar.indexOf(GUARDED_NUDGE);
+    const end = radar.indexOf("\n            )}", at);
+    const ctaAt = radar.indexOf("radar_nudge_cta");
+    const dismissAt = radar.indexOf("radar_nudge_dismiss");
+    expect(ctaAt).toBeGreaterThan(at);
+    expect(ctaAt).toBeLessThan(end);
+    expect(dismissAt).toBeGreaterThan(at);
+    expect(dismissAt).toBeLessThan(end);
+    expect(count(radar, "radar_nudge_cta")).toBe(1);
+    expect(count(radar, "radar_nudge_dismiss")).toBe(1);
+    // The dismiss control only ever re-hides the nudge (it can never reveal it).
+    expect(radar.slice(at, end)).toContain("setNudgeDismissed(true)");
+    expect(radar.slice(at, end)).not.toContain("setNudgeDismissed(false)");
+  });
+});
+
+describe("F3: no surface still sells proposal drafting on Professional", () => {
+  const signup = read("routes", "signup.tsx");
+  const trades = read("routes", "trades.tsx");
+
+  test("signup's Professional bullets and trust line match the shipped gate map", () => {
+    const profAt = signup.indexOf('slug: "professional",');
+    expect(profAt).toBeGreaterThan(-1);
+    const bullets = signup.slice(profAt, signup.indexOf("},", profAt));
+    // THE DEFECT: Professional no longer lists drafting tools.
+    expect(bullets).not.toMatch(/draft/i);
+    expect(bullets).toContain("50 AI Executive Briefs monthly");
+    expect(bullets).toContain("AI match scoring");
+    // …and the drafting/export promise is assigned to Bid Scout (the same
+    // sentence /pricing already ships).
+    expect(signup).toContain(
+      "AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional.",
+    );
+    expect(signup).toContain("Proposal drafting and pipeline CSV export are on Bid Scout.");
+    // The #456 OWNER-RATIFIED trial copy is untouched (byte-identical, both sites).
+    expect(
+      count(signup, "Start your 14-day trial when you upgrade. Cancel anytime during your trial."),
+    ).toBe(2);
+    expect(signup).toContain("🔒 Start your 14-day trial when you upgrade • Cancel anytime");
+  });
+
+  test("the signed-out CTA line that sold drafting now points at Bid Scout", () => {
+    expect(trades).toContain(
+      "AI match scoring is on Professional. Proposal drafting is on Bid Scout.",
+    );
+    expect(trades).not.toMatch(/draft(ing)? tools?[^.\n]{0,40}Professional/i);
+  });
+
+  test("no file in the app still claims drafting tools are on Professional", () => {
+    const files = [
+      ...walkFiles(join(SRC, "routes")),
+      ...walkFiles(join(SRC, "components")),
+      ...walkFiles(join(SRC, "lib")),
+    ].filter((path) => /\.(ts|tsx)$/.test(path) && !/\.test\.(ts|tsx)$/.test(path));
+    expect(files.length).toBeGreaterThan(100); // non-vacuous
+    const offenders = files.filter((path) => {
+      const text = readFileSync(path, "utf8");
+      return (
+        /draft(ing)? tools?[^.\n]{0,60}professional/i.test(text) ||
+        /draft(ing)?[^.\n]{0,20}on professional/i.test(text)
+      );
+    });
+    expect(offenders).toEqual([]);
   });
 });

@@ -1370,10 +1370,12 @@ function SignupPage() {
                   : "🔒 Start your 14-day trial when you upgrade • Cancel anytime"}
               </div>
               {/* Honest scope on the free forever claim — Basic is free and never
-                  expires, but it is LIMITED: capped at 3 saved bids, with Incumbent
-                  Intelligence / AI Match Scoring / Draft Tools paywalled behind
-                  Professional. Kept small (text-xs) and only on the Basic branch so
-                  the badge is never read as "everything is free". */}
+                  expires, but it is LIMITED: capped at 3 saved bids, with AI
+                  Executive Briefs / Incumbent Intelligence / AI Match Scoring gated
+                  on Professional and drafting / pipeline CSV export gated on Bid
+                  Scout (the ratified gate map, src/lib/plan-gates.ts). Kept small
+                  (text-xs) and only on the Basic branch so the badge is never read
+                  as "everything is free". */}
               {selectedPlan === "basic" && (
                 <p className="mt-1.5 text-xs text-gray-500">
                   Free forever — up to 3 saved bids. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.

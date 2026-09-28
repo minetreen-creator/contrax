@@ -1956,6 +1956,49 @@ export function useRadarIntel(
   return intel;
 }
 
+/**
+ * The Important-requirements body for a match that states no requirements.
+ *
+ * ANONYMOUS-ONLY signup CTA (funnel-QA copy fix, owner green-lit 2026-09-28):
+ * an anonymous visitor keeps the exact signup line this block has always
+ * rendered; a SIGNED-IN viewer gets the same honest pointer with NO
+ * create-account link (they already have an account). The guard is computed by
+ * the card (`isAnonymousViewer`, below) and passed in, so the rule is testable
+ * without a router — this component renders nothing else, and the card's own
+ * actions are untouched.
+ */
+export function RequirementsFallback({
+  anonymous,
+  signupHref,
+  bidId,
+}: {
+  /** True only for a viewer with no account (see RadarCard's isAnonymousViewer). */
+  anonymous: boolean;
+  /** The /signup handoff built by radarSignupHref (anonymous branch only). */
+  signupHref: string;
+  bidId: number;
+}) {
+  if (!anonymous) {
+    return (
+      <p className="text-sm text-slate-300">
+        Full requirements are listed in the original solicitation.
+      </p>
+    );
+  }
+  return (
+    <p className="text-sm text-slate-300">
+      Full requirements are listed in the original solicitation —{" "}
+      <a
+        href={signupHref}
+        onClick={() => trackEvent("radar_requirements_cta", String(bidId))}
+        className="font-semibold text-amber-400 hover:text-amber-300"
+      >
+        sign up free to analyze the complete document
+      </a>
+      .
+    </p>
+  );
+}
 export function RadarCard({
   match,
   certLabel,
@@ -2021,6 +2064,16 @@ export function RadarCard({
         ? rawVal
         : null;
 
+  // SIGNED-IN vs ANONYMOUS (funnel-QA fix 2026-09-28): the "sign up free to
+  // analyze the complete document" CTA in the Important requirements block must
+  // never be shown to a viewer who already has an account. Same anonymous
+  // detector as the F2 first-run nudge (`!getTrackingUser()`), AND-ed with this
+  // card's own server/client-resolved `user` prop so a signed-in viewer can
+  // never see a create-account CTA (even if the tracking identity has not
+  // resolved yet). A signed-in viewer keeps the honest pointer to the original
+  // solicitation; the action itself (the full bid page + the notice link) stays
+  // available to everyone.
+  const isAnonymousViewer = !user && !getTrackingUser();
   // Item 3: presentation-only accent on the best-match card. The NON-best-match
   // class string is byte-for-byte the one this card has always rendered, so
   // every anonymous card is untouched.
@@ -2198,17 +2251,11 @@ export function RadarCard({
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-slate-300">
-              Full requirements are listed in the original solicitation —{" "}
-              <a
-                href={radarSignupHref({ trade, state, cert, sizePref })}
-                onClick={() => trackEvent("radar_requirements_cta", String(match.id))}
-                className="font-semibold text-amber-400 hover:text-amber-300"
-              >
-                sign up free to analyze the complete document
-              </a>
-              .
-            </p>
+            <RequirementsFallback
+              anonymous={isAnonymousViewer}
+              signupHref={radarSignupHref({ trade, state, cert, sizePref })}
+              bidId={match.id}
+            />
           )}
         </RadarSection>
 

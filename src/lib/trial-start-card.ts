@@ -78,6 +78,10 @@ export const TRIAL_START_COPY = {
   // this hint must not claim it does — it states the real offer instead.
   primaryHint:
     "Executive Briefs are a Radar Pro feature — your 14-day Professional trial starts when you upgrade.",
+  // FIX (funnel QA 2026-09-28): this line lists the trial's REAL inclusions
+  // only. Proposal drafting is a Bid Scout ($99/mo) feature, so it was removed
+  // from TRIAL_CHECKLIST and can never appear here as a Professional-trial
+  // inclusion again (owner gate map 2026-09-26).
   whatYouGet: TRIAL_CHECKLIST.map((c) => `${c.label} (${c.limit})`).join(" · "),
   endNote:
     "When your trial ends you keep your saved bids and progress — only the premium tools lock.",

@@ -32,12 +32,15 @@ import { trackEvent } from "~/lib/track";
 // ATTEMPT-ONLY gate (owner rule 8): the incumbent reveal is a Radar Pro
 // ($79/mo) feature, so the prompt fires when the user CLICKS to reveal — never
 // on the teaser's page view.
-import { ATTEMPT_EVENT_FOR_ACTION, GATE_ATTEMPT_LABEL } from "~/lib/plan-gates";
-import {
-  PremiumUpgradeModal,
-  INCUMBENT_PAYWALL_BODY,
-  INCUMBENT_PAYWALL_TITLE,
-} from "~/components/PremiumUpgradeModal";
+//
+// COPY (owner gate map 2026-09-26; funnel-QA fix 2026-09-28): the prompt renders
+// the RATIFIED Radar Pro gate copy (`gatePrompt("radar_pro")`) — the same
+// title / body / CTA / price note / checkout tier the /score, /pipeline and
+// /awards trial-cap prompts already use — instead of this card's own legacy
+// Professional-tier paywall strings (which are no longer imported here). One
+// gate, one copy; the price and the checkout destination are unchanged.
+import { ATTEMPT_EVENT_FOR_ACTION, GATE_ATTEMPT_LABEL, gatePrompt } from "~/lib/plan-gates";
+import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
 
 // Mask the first word of a real incumbent name, preserving its length:
 // "General Dynamics" → "G****** Dynamics". Derived from real data only —
@@ -247,8 +250,11 @@ export function IncumbentCard({
     {showPaywall && (
       <PremiumUpgradeModal
         open
-        title={INCUMBENT_PAYWALL_TITLE}
-        message={INCUMBENT_PAYWALL_BODY}
+        title={gatePrompt("radar_pro").title}
+        message={gatePrompt("radar_pro").body}
+        ctaLabel={gatePrompt("radar_pro").ctaLabel}
+        priceNote={gatePrompt("radar_pro").priceNote}
+        checkoutPlan={gatePrompt("radar_pro").checkoutPlan}
         onClose={() => setShowPaywall(false)}
       />
     )}

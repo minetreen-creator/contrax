@@ -19,6 +19,10 @@
  *    1  proposal draft
  *    3  incumbent-intelligence looks
  *
+ * NOTE (owner gate map 2026-09-26): the `drafts` cap/column is retained for
+ * ledger compatibility, but proposal drafting is gated on Bid Scout — it is NOT
+ * surfaced as a Professional-trial inclusion (see TRIAL_CHECKLIST below).
+ *
  * THIS IS SEPARATE from the MONTHLY `ai_brief_allowance` ledger (which governs
  * the AI Executive Brief per billing month for real paid plans). For an active
  * Professional-trial user the MONTHLY Professional allowance (50/mo) still
@@ -37,12 +41,18 @@ export const TRIAL_CAPS = {
 } as const;
 export type TrialUsageKey = keyof typeof TRIAL_CAPS;
 
-/** The 4-item user-visible trial checklist (owner-specified items). */
+/** The user-visible trial checklist items (the ledger below is the source of
+ *  truth for the CAPS). FIX (owner gate map, 2026-09-26; funnel-QA copy fix
+ *  2026-09-28): proposal drafting is gated on Bid Scout ($99/mo), NOT on the
+ *  14-day Professional trial — so the drafting item is GONE from every trial
+ *  surface (the dashboard trial-start card and the active-trial checklist). The
+ *  `drafts` counter/column stays in the ledger for compatibility
+ *  (~/routes/api/bids-draft.ts still consumes it) — it is simply no longer sold
+ *  as part of the Professional trial. */
 export const TRIAL_CHECKLIST: ReadonlyArray<{ key: TrialUsageKey; label: string; limit: number }> = [
   { key: "briefs", label: "Generate an Executive Brief", limit: TRIAL_CAPS.briefs },
   { key: "incumbent", label: "Review incumbent pricing", limit: TRIAL_CAPS.incumbent },
   { key: "scores", label: "Score an opportunity", limit: TRIAL_CAPS.scores },
-  { key: "drafts", label: "Start a proposal draft", limit: TRIAL_CAPS.drafts },
 ];
 
 /** SQL column name for a usage key — a CLOSED map, never user input. */

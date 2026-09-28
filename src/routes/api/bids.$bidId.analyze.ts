@@ -94,7 +94,7 @@ const DAILY_GENERATION_WINDOW = 24 * 60 * 60; // 24h
 /**
  * Over-limit response for a lower-tier (Basic/Starter) user who has exhausted
  * their monthly allowance (owner 2026-08-29). They still get the RAW
- * description, plus a locked preview with the exact owner-specified copy. The
+ * description, plus a locked preview with the Radar Pro-consistent copy. The
  * full structured summary (requirements / milestones / red flags / trade) is
  * gated behind Professional+ / within-allowance. Nothing is fabricated and no
  * partial requirements leak.

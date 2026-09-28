@@ -26,11 +26,13 @@
  *       rendering the raw sentinel, the signed-in first-run results screen never
  *       asks a user who just signed up to "Create free account", and no surface
  *       still sells proposal drafting on Professional.
- *   (g) THE THREE FUNNEL-QA COPY RESIDUES (owner green-lit 2026-09-28): the
- *       /awards incumbent reveal renders the ratified Radar Pro gate copy (not
- *       this card's legacy Professional paywall), the dashboard trial card no
- *       longer lists proposal drafting as a Professional-trial inclusion, and
- *       the /radar requirements CTA is anonymous-only.
+ *   (g) THE FUNNEL-QA COPY RESIDUES (owner green-lit 2026-09-28): the /awards
+ *       incumbent reveal renders the ratified Radar Pro gate copy (not this
+ *       card's legacy Professional paywall), the dashboard trial card no longer
+ *       lists proposal drafting as a Professional-trial inclusion, the /radar
+ *       requirements CTA is anonymous-only, and (g4) the AI-brief locked preview
+ *       carries the Radar Pro positioning + price note instead of the legacy
+ *       "Upgrade to Professional" pitch.
  *
  * DETERMINISTIC, zero network, zero database: literals + committed source text
  * on one side, in-process react-dom/server renders on the other. No
@@ -43,6 +45,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import { IncumbentCard } from "~/components/IncumbentCard";
 import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
+import { RfpSummaryCard } from "~/components/RfpSummaryCard";
 import {
   ATTEMPT_EVENT_FOR_ACTION,
   GATE_ATTEMPT_EVENTS,
@@ -692,6 +695,47 @@ describe("(g1) the /awards incumbent reveal shows the ratified Radar Pro gate", 
   });
 });
 
+describe("(g4) the AI-brief locked preview shows the ratified Radar Pro offer", () => {
+  const card = read("components", "RfpSummaryCard.tsx");
+  const allowance = read("lib", "ai-brief-allowance.ts");
+  const RADAR_PRO = gatePrompt("radar_pro");
+  test("the locked copy names the Radar Pro feature + its price note — the legacy Professional pitch is gone", () => {
+    for (const src of [card, allowance]) {
+      expect(src).toContain("Radar Pro feature");
+      expect(src).toContain("$79/mo · 14-day Professional trial · Cancel anytime");
+      // The legacy locked-preview sentences are gone from every locked-brief source.
+      expect(src).not.toContain("Understand this RFP in minutes");
+      expect(src).not.toContain("Upgrade to Professional to reveal");
+      expect(src).not.toContain("Find the right contract");
+    }
+    // The CTA names the product, in exact agreement with the ratified gate offer.
+    expect(card).toContain("Upgrade to Radar Pro →");
+    expect(card).not.toContain("Upgrade to Professional");
+    expect(RADAR_PRO.ctaLabel).toBe("Upgrade to Radar Pro →");
+    // The DESTINATION is unchanged by this copy fix: still the /upgrade surface.
+    expect(card).toContain('href="/upgrade"');
+    expect(RADAR_PRO.href).toBe("/upgrade");
+  });
+  test("the lock MECHANISM is untouched: one attempt-only door, the same payload guard, one price", () => {
+    // The locked body renders on the locked state alone — opened by the attempt.
+    expect(count(card, '{state.status === "locked" && <LockedBody state={state} />}')).toBe(1);
+    // …its payload type-guard and the gated-attempt event are unchanged…
+    expect(card).toContain("isGateLockedPayload(json)");
+    expect(card).toContain("ATTEMPT_EVENT_FOR_ACTION.ai_brief");
+    // …and the only price the locked surface shows is the Radar Pro one.
+    expect(card).not.toContain("$19/mo");
+    expect(card).not.toContain("$99/mo");
+  });
+  test("the card's VIEW is still the idle ask — the new copy never leaks before the attempt", () => {
+    const html = renderToStaticMarkup(
+      <RfpSummaryCard bidId={1} description="Roof replacement, 12 buildings" />,
+    );
+    expect(html).toContain("Generate Instant Brief");
+    expect(html).not.toContain("Understand this RFP in minutes");
+    expect(html).not.toContain("Upgrade to Professional");
+    expect(html).not.toContain("Upgrade to Radar Pro"); // the locked CTA belongs to the attempt
+  });
+});
 describe("(g2) the dashboard trial card never sells proposal drafting on Professional", () => {
   const usage = read("lib", "trial-usage.ts");
   const startCard = read("lib", "trial-start-card.ts");

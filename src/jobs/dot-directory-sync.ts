@@ -15,11 +15,12 @@ if (process.argv.includes("--parse-only")) {
 }
 const db = sql();
 const primes = await db`
-  SELECT p.id, p.uei, p.legal_name AS name, p.vendor_state AS state, p.naics
+  SELECT p.id, p.uei, p.legal_name AS name, p.vendor_state AS state,
+    p.naics, p.vendor_address AS address
   FROM subcontract_primes p
   JOIN subcontract_sources s ON s.id = p.source_id
-  WHERE s.source_key IN ('sba-prime-directory', 'gsa-find-opportunities')
-  ORDER BY CASE WHEN s.source_key = 'gsa-find-opportunities' THEN 0 ELSE 1 END, p.id
+  WHERE s.source_key = 'gsa-find-opportunities'
+  ORDER BY p.id
 ` as MatchablePrime[];
 const decisions = matchDotListings(listings, primes);
 const matched = decisions.filter((item) => item.kind === "matched");

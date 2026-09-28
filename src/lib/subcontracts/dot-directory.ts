@@ -18,6 +18,7 @@ export interface MatchablePrime {
   name: string;
   state: string | null;
   naics: string[];
+  address: string | null;
 }
 
 export type DotDecision =
@@ -64,19 +65,28 @@ export function parseDotDirectory(html: string): DotListing[] {
 
 const canonicalName = (name: string) => name.toUpperCase().replace(/[^A-Z0-9]/g, "");
 const canonicalNaics = (entry: string) => /^\d{6}/.exec(entry.trim())?.[0] ?? "";
+function streetAndZip(address: string | null): string | null {
+  if (!address) return null;
+  const normalized = address.toUpperCase().replace(/[^A-Z0-9]/g, " ").replace(/\s+/g, " ").trim();
+  const street = /^(\d+[A-Z]?)\s+([A-Z0-9]+)/.exec(normalized);
+  const zip = /\b(\d{5})(?:\s+\d{4})?\b(?!.*\d{5})/.exec(normalized);
+  return street && zip ? `${street[1]}:${street[2]}:${zip[1]}` : null;
+}
 
-/** Exact company + state + six-digit NAICS, mapping to exactly one distinct UEI. */
+/** Exact company + state + NAICS + street number/name + ZIP, one distinct UEI. */
 export function matchDotListings(
   listings: readonly DotListing[],
   primes: readonly MatchablePrime[],
 ): DotDecision[] {
   const decisions: DotDecision[] = listings.map((listing) => {
-    if (!listing.state || !/^\d{6}$/.test(listing.naics)) {
-      return { kind: "review", listing, reason: "state or NAICS unavailable" };
+    const addressKey = streetAndZip(listing.address);
+    if (!listing.state || !/^\d{6}$/.test(listing.naics) || !addressKey) {
+      return { kind: "review", listing, reason: "state, NAICS or address unavailable" };
     }
     const candidates = primes.filter((prime) =>
       canonicalName(prime.name) === canonicalName(listing.name) &&
       normalizeStateInput(prime.state) === listing.state &&
+      streetAndZip(prime.address) === addressKey &&
       prime.naics.some((code) => canonicalNaics(code) === listing.naics));
     const ueis = new Set(candidates.map((candidate) => candidate.uei));
     if (ueis.size !== 1) {

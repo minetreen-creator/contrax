@@ -19,11 +19,14 @@ describe("DOT publication boundary", () => {
   test("keeps missing, ambiguous and duplicate identities private", () => {
     const listing = parseDotDirectory(source)[0]!;
     const primes = [
-      { id: "1", uei: "ABC", name: "ACME & SONS INC", state: "Virginia", naics: ["237310: Roads"] },
+      { id: "1", uei: "ABC", name: "ACME & SONS INC", state: "Virginia",
+        naics: ["237310: Roads"], address: "1 Main Street, VA 23834" },
     ];
     expect(matchDotListings([listing], primes)[0]).toMatchObject({ kind: "matched", primeId: "1" });
     expect(matchDotListings([listing], [{ ...primes[0]!, state: "Maryland" }])[0]).toMatchObject({ kind: "review" });
     expect(matchDotListings([listing], [{ ...primes[0]!, naics: ["561720"] }])[0]).toMatchObject({ kind: "review" });
+    expect(matchDotListings([listing], [{ ...primes[0]!, address: "4 Main Street, VA 23834" }])[0])
+      .toMatchObject({ kind: "review" });
     expect(matchDotListings([listing], [...primes, { ...primes[0]!, id: "2", uei: "DIFFERENT" }])[0])
       .toMatchObject({ kind: "review", reason: "ambiguous identity" });
     expect(matchDotListings([listing, listing], primes).every((item) => item.kind === "review")).toBe(true);
@@ -32,6 +35,6 @@ describe("DOT publication boundary", () => {
   test("unreadable state or NAICS can never match", () => {
     const listing: DotListing = { ...parseDotDirectory(source)[0]!, state: "", naics: "237310" };
     expect(matchDotListings([listing], [{ id: "1", uei: "ABC", name: listing.name,
-      state: "VA", naics: [listing.naics] }])[0]).toMatchObject({ kind: "review" });
+      state: "VA", naics: [listing.naics], address: listing.address }])[0]).toMatchObject({ kind: "review" });
   });
 });

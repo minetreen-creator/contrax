@@ -11,6 +11,7 @@ import {
   rateLimitedResponse,
 } from "~/lib/rate-limit";
 import { isBot, ensureFunnelEventsTable } from "~/lib/tracking-intake";
+import { normalizeSignupSource } from "~/lib/signup-source";
 import {
   extractAttemptTokenFromBody,
   resolveDedupeSecret,
@@ -137,6 +138,7 @@ async function handler({ request }: { request: Request }) {
       visit_id?: string;
       company?: string;
       attempt_token?: unknown;
+      signup_source?: unknown;
     };
 
     const email = (body.email || "").trim().toLowerCase();
@@ -145,6 +147,20 @@ async function handler({ request }: { request: Request }) {
     // Optional company name, trimmed, capped at 120 chars; empty → NULL (kept
     // nullable on the account. Never required — adds zero signup friction).
     const company = (body.company || "").trim().slice(0, 120) || null;
+    // Signup-source marker (owner-directed tracking fix 2026-09-28): the
+    // allowlisted ?source= value the signup arrived through, recorded ON the
+    // account (users.signup_source, migration 053). The SERVER is the authority:
+    // the value is normalised through the shared allowlist in
+    // src/lib/signup-source.ts, so an unknown, hand-typed or forged value is
+    // stored as NULL — never echoed back — and a NONPROFIT-FREE application can
+    // never be forged by posting this field.
+    //
+    // ATTRIBUTION ONLY: `signupSource` is written to one nullable column and is
+    // read by the admin signups list and nothing else. It grants no tier, opens
+    // no gate, and no billing/checkout/trial/nonprofit-approval path reads it —
+    // the Nonprofit Free entitlement still comes ONLY from
+    // nonprofit_applications.status.
+    const signupSource = normalizeSignupSource(body.signup_source);
     // Persistent per-visitor id (contrax_vid) rides in the body so the identity
     // backfill can tie this visitor's ENTIRE anonymous funnel to the new account.
     visitorId = (body.visitor_id || "").trim().slice(0, 64) || null;
@@ -204,8 +220,8 @@ async function handler({ request }: { request: Request }) {
     // returns GATE_REQUIRED on gated attempts, so they no longer start the
     // trial (see /api/bids/{id}/analyze). No card is collected at signup.
     const inserted = await sql()`
-      INSERT INTO users (email, password_hash, plan_tier, trial_started_at, company_name)
-      VALUES (${email}, ${passwordHash}, 'basic', NULL, ${company})
+      INSERT INTO users (email, password_hash, plan_tier, trial_started_at, company_name, signup_source)
+      VALUES (${email}, ${passwordHash}, 'basic', NULL, ${company}, ${signupSource})
       RETURNING id, email, created_at
     `;
     const user = inserted[0] as { id: number; email: string; created_at: Date };

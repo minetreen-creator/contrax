@@ -15,6 +15,7 @@ import {
   NONPROFIT_STATUS_HEADLINE,
   NONPROFIT_STATUS_NONE_COPY,
 } from "~/lib/nonprofit-copy";
+import { SIGNUP_SOURCE_NONPROFIT_APPLY } from "~/lib/signup-source";
 
 const TITLE = "Your Nonprofit Free status — Contrax";
 const DESC = "Your Nonprofit Free application state and what it unlocks.";
@@ -119,7 +120,7 @@ function NonprofitStatusPage() {
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-slate-700">{NONPROFIT_STATUS_NONE_COPY}</p>
             <a
-              href="/nonprofit/apply"
+              href={`/nonprofit/apply?source=${SIGNUP_SOURCE_NONPROFIT_APPLY}`}
               className="mt-4 inline-block rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
             >
               {NONPROFIT_STATUS_APPLY_LINK_LABEL}

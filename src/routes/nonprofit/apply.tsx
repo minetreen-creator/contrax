@@ -25,6 +25,7 @@ import {
   NONPROFIT_STATUS_PAGE_LINK_LABEL,
   safeNonprofitReturnPath,
 } from "~/lib/nonprofit-copy";
+import { SIGNUP_SOURCE_NONPROFIT_APPLY } from "~/lib/signup-source";
 import { US_STATES } from "~/lib/states";
 
 const TITLE = "Apply for Nonprofit Free — Contrax";
@@ -180,8 +181,17 @@ function NonprofitApplyPage() {
           <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
             <p className="text-slate-700">{NONPROFIT_APPLY_SIGNED_OUT_COPY}</p>
             <div className="mt-4 flex flex-wrap gap-3">
+              {/* Signup-source marker (owner-directed 09-28): the account created from
+                  THIS door carries ?source=nonprofit_apply, so /signup records
+                  users.signup_source='nonprofit_apply' and the admin signups list can
+                  tell a nonprofit-apply account apart from every other flow. The value
+                  is a constant of this page — an applicant who reached /nonprofit/apply
+                  directly came through the same door — and /signup re-validates it
+                  against the shared allowlist, so nothing can be forged from here.
+                  Attribution ONLY: the marker grants no access; the Nonprofit Free
+                  entitlement still comes solely from the application's review status. */}
               <a
-                href={`/signup?next=${encodeURIComponent(APPLY_PATH)}`}
+                href={`/signup?next=${encodeURIComponent(APPLY_PATH)}&source=${SIGNUP_SOURCE_NONPROFIT_APPLY}`}
                 className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
               >
                 {NONPROFIT_APPLY_SIGNED_OUT_SIGNUP_LABEL}

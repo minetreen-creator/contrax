@@ -6,6 +6,7 @@ import {
   NONPROFIT_GRANTS_CTA_COPY,
   NONPROFIT_GRANTS_CTA_LABEL,
 } from "~/lib/nonprofit-copy";
+import { SIGNUP_SOURCE_NONPROFIT_APPLY } from "~/lib/signup-source";
 import {
   APPLICANT_TYPES,
   AGENCIES,
@@ -441,7 +442,7 @@ function GrantsPage() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4">
           <p className="text-sm text-slate-700">{NONPROFIT_GRANTS_CTA_COPY}</p>
           <a
-            href="/nonprofit/apply?next=%2Fgrants"
+            href={`/nonprofit/apply?next=%2Fgrants&source=${SIGNUP_SOURCE_NONPROFIT_APPLY}`}
             className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
           >
             {NONPROFIT_GRANTS_CTA_LABEL}

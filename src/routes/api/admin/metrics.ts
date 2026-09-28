@@ -105,8 +105,9 @@ async function handler({ request }: { request: Request }) {
       // account, and QA/test accounts (@test.contrax).
       sql()`SELECT COUNT(*) as count FROM users WHERE ${sql().unsafe(qaExternalUserSQL())}`,
       sql()`SELECT u.id, u.email, u.plan_tier, u.subscription_status, u.created_at,
+                    u.signup_source AS signup_source,
                     n.org_name AS nonprofit_org_name, n.status AS nonprofit_status
-             FROM (SELECT id, email, plan_tier, subscription_status, created_at
+             FROM (SELECT id, email, plan_tier, subscription_status, created_at, signup_source
                    FROM users WHERE ${sql().unsafe(qaExternalUserSQL())}) u
              LEFT JOIN nonprofit_applications n ON n.user_id = u.id
              ORDER BY u.created_at DESC`,
@@ -139,6 +140,9 @@ async function handler({ request }: { request: Request }) {
         plan_tier: r.plan_tier,
         subscription_status: r.subscription_status,
         created_at: String(r.created_at),
+        // Migration 053 (owner-directed 09-28): the signup-source marker. NULL for an
+        // account created before the marker existed — never inferred or backfilled.
+        signup_source: r.signup_source ?? null,
         nonprofit_org_name: r.nonprofit_org_name ?? null,
         nonprofit_status: r.nonprofit_status ?? null,
       })),

@@ -2,6 +2,12 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
+// Signup-source marker (migration 053, owner-directed 09-28): the ONE place the nonprofit
+// label and the "is this the nonprofit door" test are spelled. Pure/client-safe module.
+import {
+  SIGNUP_SOURCE_NONPROFIT_APPLY_LABEL,
+  isNonprofitApplySource,
+} from "~/lib/signup-source";
 import {
   AdminHeader,
   AdminTabs,
@@ -29,6 +35,11 @@ interface RecentSignup {
   plan_tier: string | null;
   subscription_status: string | null;
   created_at: string;
+  // Migration 053 (owner-directed 09-28): the signup-source marker — the allowlisted
+  // ?source= signup param the account was created through ('nonprofit_apply' is the
+  // Nonprofit Free door added by that change). NULL = created before the marker existed
+  // (never inferred).
+  signup_source: string | null;
   nonprofit_org_name: string | null;
   nonprofit_status: string | null;
 }
@@ -163,10 +174,11 @@ function SignupsPage() {
                   <p className="px-5 py-4 text-sm text-slate-500">{nonprofitOnly ? "No nonprofit applications from external accounts." : "No signups yet"}</p>
                 ) : (
                   <div className="max-h-96 overflow-auto">
-                    <table className="w-full min-w-[820px] text-sm">
+                    <table className="w-full min-w-[920px] text-sm">
                       <thead>
                         <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
                           <th className="px-5 py-3 font-medium">Email</th>
+                          <th className="px-5 py-3 font-medium">Signup source</th>
                           <th className="px-5 py-3 font-medium">Plan</th>
                           <th className="px-5 py-3 font-medium">Subscription</th>
                           <th className="px-5 py-3 font-medium">Nonprofit Free application</th>
@@ -178,6 +190,22 @@ function SignupsPage() {
                           <tr key={s.id} className="border-t border-slate-50">
                             <td className="px-5 py-2.5">
                               <a href={`mailto:${s.email}`} className="text-blue-600 hover:text-blue-700 hover:underline">{s.email}</a>
+                            </td>
+                            <td className="px-5 py-2.5 whitespace-nowrap">
+                              {/* Signup-source marker (migration 053, owner-directed 09-28).
+                                  A nonprofit-apply account is labelled DISTINCTLY; any other
+                                  recorded family member (radar/autopsy/…) shows its raw value,
+                                  and an account created before the marker existed shows "—"
+                                  (never guessed). Attribution only — not a plan or a status. */}
+                              {isNonprofitApplySource(s.signup_source) ? (
+                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-800">
+                                  {SIGNUP_SOURCE_NONPROFIT_APPLY_LABEL}
+                                </span>
+                              ) : s.signup_source ? (
+                                <span className="text-slate-700">{s.signup_source.replaceAll("_", " ")}</span>
+                              ) : (
+                                <span className="text-slate-400">—</span>
+                              )}
                             </td>
                             <td className="px-5 py-2.5 text-slate-700 capitalize">{s.plan_tier ?? "No plan"}</td>
                             <td className="px-5 py-2.5 text-slate-700 capitalize">{s.subscription_status?.replaceAll("_", " ") ?? "—"}</td>

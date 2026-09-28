@@ -1,0 +1,31 @@
+-- Migration 053 — NONPROFIT SIGNUP-SOURCE MARKER, schema delta
+-- (owner-directed tracking fix 2026-09-28, business plan rev 344).
+--
+-- ADDITIVE ONLY and idempotent: ONE NULLABLE column on the EXISTING users table.
+-- Nothing is dropped, renamed, defaulted or back-filled — every pre-existing row
+-- keeps NULL, which is the honest value: the ?source= signup param was never
+-- recorded for accounts created before this migration, and it is NOT guessed
+-- from any other signal (the migration-046 comment's rule: the signal that could
+-- not supply a value leaves NULL rather than an inference).
+--
+--   signup_source   TEXT, NULLABLE. The allowlisted ?source= signup param the
+--                   account was created through, normalised in ONE place
+--                   (src/lib/signup-source.ts, shared by the client param
+--                   validator and the /api/signup write path). Today the
+--                   NONPROFIT member is the new one this exists for:
+--                     'nonprofit_apply' — the account was created from the
+--                                        "Apply for Nonprofit Free" door
+--                                        (/grants → /nonprofit/apply → /signup).
+--                   The six pre-existing family members ('radar',
+--                   'radar_results_unlock', 'radar_results_cta', 'autopsy',
+--                   'closing_soon', 'incumbent') are stored verbatim when they
+--                   arrive on the signup URL.
+--
+-- WHAT THIS COLUMN IS NOT. It is attribution ONLY. It grants no tier, unlocks
+-- nothing, and is not read by any entitlement, billing, checkout or approval
+-- path: the Nonprofit Free entitlement continues to come ONLY from
+-- nonprofit_applications.status (the existing review flow, untouched).
+--
+-- ROLLBACK: ALTER TABLE users DROP COLUMN signup_source; — the column is new and
+-- nothing depends on it.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS signup_source TEXT;

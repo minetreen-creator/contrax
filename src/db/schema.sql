@@ -16,6 +16,14 @@ CREATE TABLE IF NOT EXISTS users (
     -- verified Stripe webhook is the only writer; NULL when Stripe did not
     -- report a period end (never guessed).
     subscription_current_period_end TIMESTAMPTZ,
+    -- Migration 053 (nonprofit signup-source marker, owner-directed 2026-09-28):
+    -- the allowlisted ?source= signup param the account was created through,
+    -- normalised in ONE place (src/lib/signup-source.ts). NULLABLE with NO
+    -- default and NO backfill — an account created before this column existed
+    -- genuinely has no recorded source, and it is never inferred from another
+    -- signal. Attribution only: it grants no tier and no entitlement path reads
+    -- it (Nonprofit Free still comes ONLY from nonprofit_applications.status).
+    signup_source TEXT,
     active_profile_id INTEGER,
     is_admin BOOLEAN NOT NULL DEFAULT FALSE
 );

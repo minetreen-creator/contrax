@@ -27,6 +27,10 @@ import {
   storeAttemptToken,
   type AcquisitionBucket,
 } from "~/lib/signup-telemetry";
+import {
+  normalizeSignupSource,
+  type SignupSource,
+} from "~/lib/signup-source";
 import { FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
 import { getOrCreateVisitorId, getOrCreateVisitId } from "~/lib/visitor";
 import { setTrackingUser, getTrackingUser } from "~/lib/identity";
@@ -94,7 +98,7 @@ type SignupSearch = {
   // gate's bid/opportunity DB id; `title`/`agency` carry its context so the
   // incumbent banner can name the bid. `radar` continues a Contract Radar scan
   // (criteria read from localStorage — no email capture).
-  source?: "closing_soon" | "incumbent" | "radar" | "radar_results_unlock" | "radar_results_cta" | "autopsy";
+  source?: SignupSource;
   opportunity_id?: string;
   title?: string;
   agency?: string;
@@ -365,16 +369,20 @@ export const Route = createFileRoute("/signup")({
     next: typeof search.next === "string" ? search.next.slice(0, 500) : undefined,
     bid: typeof search.bid === "string" && /^\d{1,10}$/.test(search.bid) ? search.bid : undefined,
     closes: typeof search.closes === "string" ? search.closes.slice(0, 120) : undefined,
-    source:
     // PR2 (owner 2026-09-07): the anonymous locked-results card carries
     // source=radar_results_unlock so the unlock handoff (signed cookie restore
     // + signup_viewed_from_radar) is attributed distinctly from generic
     // source=radar CTAs. Owner 09-09: source=radar_results_cta (the ≤3-match
     // results CTA) is handled IDENTICALLY to radar_results_unlock — same
     // restore + attribution. Both are radar-family sources everywhere below.
-      search.source === "closing_soon" || search.source === "incumbent" || search.source === "radar" || search.source === "radar_results_unlock" || search.source === "radar_results_cta" || search.source === "autopsy"
-        ? search.source
-        : undefined,
+    //
+    // The allowlist now lives in src/lib/signup-source.ts (ONE normaliser shared
+    // with /api/signup) and gained the nonprofit-apply member (owner 09-28), so
+    // this page and the write path can never disagree about what a source is.
+    // Values that were accepted before are accepted identically; an unknown
+    // value is still dropped (undefined) — and the new member maps to NO new
+    // acquisition bucket, so every funnel number is unchanged.
+    source: normalizeSignupSource(search.source) ?? undefined,
     opportunity_id:
       typeof search.opportunity_id === "string" && /^\d{1,10}$/.test(search.opportunity_id)
         ? search.opportunity_id
@@ -1077,6 +1085,15 @@ function SignupPage() {
           confirmPassword: password,
           plan: selectedPlan,
           company: company || undefined,
+          // Signup-source marker (owner 09-28): the allowlisted ?source= value
+          // this signup arrived through, so the ACCOUNT itself records which
+          // door created it (users.signup_source) — the family's new
+          // 'nonprofit_apply' member is the reason it exists, and the six
+          // pre-existing members are recorded verbatim when they are present.
+          // Attribution ONLY: no tier, entitlement, billing or approval path
+          // reads it. The search validator above already normalised the param
+          // against the shared allowlist; the server re-normalises (authority).
+          signup_source: source ?? undefined,
           // Persistent per-visitor id — lets the server backfill this visitor's
           // anonymous funnel rows to the new account. Optional; never required.
           visitor_id: getOrCreateVisitorId(),

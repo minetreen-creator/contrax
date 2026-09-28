@@ -1240,6 +1240,11 @@ function RadarLanding() {
       if (scanCancelledRef.current) return;
       if (flashTimer) window.clearTimeout(flashTimer);
       trackEvent("radar_scan_complete", input.cert);
+      // Radar scan diagnostics (owner 2026-09-28): the scan cohort — signed-in
+      // vs anonymous × matches-found vs ZERO matches. Recorded on the same
+      // success path as radar_scan_complete so the two can never disagree;
+      // the four names are NEW with this release (no historical rows).
+      trackEvent(getTrackingUser() ? (res.matches.length ? "radar_scan_signed_in_matches" : "radar_scan_signed_in_zero") : (res.matches.length ? "radar_scan_anonymous_matches" : "radar_scan_anonymous_zero"), input.cert);
       // The soft nudge is visible the moment the FIRST match is revealed
       // (revealed stays 0 on completion), so attribute its impression here.
       if (res.matches.length > 0) trackEvent("radar_nudge_shown", res.certLabel);

@@ -65,6 +65,36 @@ export const RADAR_CONVERSION_UNLOCK_CLICKED_EVENT = "radar_results_unlock_click
 export const RADAR_CONVERSION_SIGNUP_EVENT = "signup_success";
 export const RADAR_CONVERSION_ACTIVATION_EVENTS: readonly string[] = [...ACTIVATION_EVENTS];
 
+/**
+ * RADAR SCAN DIAGNOSTICS (owner 2026-09-28) — the two cohort dimensions that
+ * explain WHY the funnel leaks between "radar_completed" and "signup":
+ *
+ *   anonymousMatches / anonymousZero / signedInMatches / signedInZero
+ *     — the scan cohort (signed-in vs anonymous × matches-found vs zero
+ *       matches). These FOUR begin collecting only when this change ships, so
+ *       a fresh deploy reads 0 until the first completed scan arrives.
+ *
+ *   anonymousResultsViewed, lockedShown, lockedClicked, smallCtaShown,
+ *   smallCtaClicked — the results-screen surface counters. These are
+ *   PRE-EXISTING events (already tracked in radar.tsx); this table only starts
+ *   counting them in one place.
+ *
+ * The keys here are the SHORT diagnostic keys the admin payload is keyed by;
+ * the values are the exact wire event names. Never rename an existing value —
+ * an event already written to `funnel_events` would stop being counted.
+ */
+export const RADAR_DIAGNOSTIC_EVENTS = {
+  anonymousMatches: "radar_scan_anonymous_matches",
+  anonymousZero: "radar_scan_anonymous_zero",
+  signedInMatches: "radar_scan_signed_in_matches",
+  signedInZero: "radar_scan_signed_in_zero",
+  anonymousResultsViewed: "radar_results_viewed",
+  lockedShown: "radar_results_unlock_shown",
+  lockedClicked: "radar_results_unlock_clicked",
+  smallCtaShown: "radar_results_cta_shown",
+  smallCtaClicked: "radar_results_cta_clicked",
+} as const;
+
 /** Every event that makes a visitor "funnel-involved" (attribution key). */
 export const RADAR_CONVERSION_INVOLVED_EVENTS: readonly string[] = [
   ...RADAR_CONVERSION_QUALIFYING_EVENTS,
@@ -85,6 +115,14 @@ export interface RadarConversionFunnelResult {
   from: string;
   to: string;
   funnel: RadarConversionFunnelStage[];
+  /**
+   * Radar scan diagnostics (owner 2026-09-28) — DISTINCT visitors per
+   * RADAR_DIAGNOSTIC_EVENTS key. Always zero-filled for every key so a reader
+   * never has to distinguish "event absent" from "not yet collected".
+   * Counts are per-event and MAY overlap (one visitor can appear in more than
+   * one cohort, e.g. a scan with matches that is later repeated with none).
+   */
+  diagnostics: Record<string, number>;
 }
 
 /** Consecutive drop-off: lost vs the previous stage; 0 when prior = 0. */
@@ -108,5 +146,8 @@ export function emptyRadarConversionFunnel(days: number): RadarConversionFunnelR
       count: 0,
       dropOffPct: i === 0 ? null : 0,
     })),
+    // Every diagnostic key exists and reads 0 — a caller (or the admin panel)
+    // never has to distinguish "no such diagnostic" from "not yet collected".
+    diagnostics: Object.fromEntries(Object.keys(RADAR_DIAGNOSTIC_EVENTS).map((key) => [key, 0])),
   };
 }

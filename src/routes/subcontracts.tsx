@@ -330,6 +330,13 @@ function PrimeDirectory({
                 {row.naics.length > 0 ? (
                   <p className="mt-1 text-sm text-slate-600">NAICS: {row.naics.slice(0, 3).join(" · ")}</p>
                 ) : null}
+                {row.dot ? (
+                  <p className="mt-2 text-sm text-slate-600">
+                    <a href={row.dot.sourceUrl} target="_blank" rel="noreferrer"
+                      className="font-semibold text-blue-700 hover:underline">DOT-published; unverified</a>
+                    {row.dot.services ? ` · ${row.dot.services}` : ""} · Directory listing, not an open bid
+                  </p>
+                ) : null}
                 <a
                   href={row.sourceUrl ?? payload?.sourceUrl ?? SUBNET_SOURCE_URL}
                   target="_blank"
@@ -524,6 +531,13 @@ function GsaPrimeDirectory({
                 >
                   Read the GSA directory on gsa.gov &rarr;
                 </a>
+                {row.dot ? (
+                  <p className="mt-2 text-sm text-slate-600">
+                    <a href={row.dot.sourceUrl} target="_blank" rel="noreferrer"
+                      className="font-semibold text-blue-700 hover:underline">DOT-published; unverified</a>
+                    {row.dot.services ? ` · ${row.dot.services}` : ""} · Directory listing, not an open bid
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>

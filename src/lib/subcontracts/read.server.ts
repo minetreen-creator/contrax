@@ -355,9 +355,19 @@ export async function readPrimesPayload(
             SELECT
               p.legal_name, p.uei, p.vendor_state, p.naics, p.industries, p.agencies,
               p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url,
-              p.vendor_address, p.products_services, p.source_file_date, p.naics_raw
+              p.vendor_address, p.products_services, p.source_file_date, p.naics_raw,
+              dot.services AS dot_services, dot.source_url AS dot_source_url,
+              dot.source_label AS dot_label
             FROM subcontract_primes p
             JOIN subcontract_sources s ON s.id = p.source_id
+            LEFT JOIN LATERAL (
+              SELECT d.services, r.source_url, r.source_label
+              FROM dot_directory_runs r JOIN dot_directory_records d ON d.run_id = r.id
+              WHERE r.status = 'complete' AND d.prime_id = p.id
+                AND r.id = (SELECT id FROM dot_directory_runs
+                            WHERE status = 'complete' ORDER BY completed_at DESC, id DESC LIMIT 1)
+              ORDER BY d.row_number LIMIT 1
+            ) dot ON TRUE
             WHERE s.source_key = ${sourceKey}
               AND (${parsed.state}::text IS NULL OR upper(p.vendor_state) = ${parsed.state}::text)
               AND (
@@ -372,9 +382,19 @@ export async function readPrimesPayload(
         : db`
             SELECT
               p.legal_name, p.uei, p.vendor_state, p.naics, p.industries, p.agencies,
-              p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url
+              p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url,
+              dot.services AS dot_services, dot.source_url AS dot_source_url,
+              dot.source_label AS dot_label
             FROM subcontract_primes p
             JOIN subcontract_sources s ON s.id = p.source_id
+            LEFT JOIN LATERAL (
+              SELECT d.services, r.source_url, r.source_label
+              FROM dot_directory_runs r JOIN dot_directory_records d ON d.run_id = r.id
+              WHERE r.status = 'complete' AND d.prime_id = p.id
+                AND r.id = (SELECT id FROM dot_directory_runs
+                            WHERE status = 'complete' ORDER BY completed_at DESC, id DESC LIMIT 1)
+              ORDER BY d.row_number LIMIT 1
+            ) dot ON TRUE
             WHERE s.source_key = ${sourceKey}
               AND (${parsed.state}::text IS NULL OR upper(p.vendor_state) = ${parsed.state}::text)
               AND (

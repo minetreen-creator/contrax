@@ -133,7 +133,7 @@ function trialBriefLockedResponse(
       trial_remaining: Math.max(0, limit - used),
       raw_description: String(bid.description ?? ""),
       preview:
-        "You've used all 5 of your trial's AI Executive Briefs. Upgrade to Professional to keep generating briefs with mandatory requirements, milestones and red flags.",
+        "You've used all 5 of your trial's AI Executive Briefs. Upgrade to Radar Pro (Professional, $79/mo) to keep generating briefs with mandatory requirements, milestones and red flags.",
     },
     { status: 200 },
   );

@@ -14,7 +14,7 @@
  * An item is complete once its corresponding usage counter is > 0. The card
  * only renders for a user inside an ACTIVE Professional trial (expired / paid /
  * never-started users see nothing). It carries a single "Upgrade to
- * Professional" CTA — no "unlimited" claims (the trial is capped).
+ * Radar Pro" CTA — no "unlimited" claims (the trial is capped).
  */
 import { useEffect, useState } from "react";
 import { createServerFn } from "@tanstack/react-start";
@@ -82,7 +82,7 @@ export function TrialChecklist() {
         href="/upgrade"
         className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
       >
-        Upgrade to Professional →
+        Upgrade to Radar Pro →
       </a>
     </div>
   );

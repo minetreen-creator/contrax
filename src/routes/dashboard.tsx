@@ -24,6 +24,13 @@ import {
   SAVE_LIMIT_PAYWALL_CTA,
   SAVE_LIMIT_PAYWALL_PRICE,
 } from "~/components/PremiumUpgradeModal";
+import {
+  ATTEMPT_EVENT_FOR_ACTION,
+  GATE_ATTEMPT_LABEL,
+  gateFromError,
+  gatePrompt,
+  type PlanGate,
+} from "~/lib/plan-gates";
 import { checkTrial, hasUnlimitedSaves, FREE_SAVE_LIMIT, type TrialStatus } from "~/lib/trial";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
 import {
@@ -1171,6 +1178,12 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
   const [generatingProposal, setGeneratingProposal] = useState<Set<number>>(new Set());
   const [downloadingPdf, setDownloadingPdf] = useState<Set<number>>(new Set());
   const [aiError, setAiError] = useState<Record<number, string>>({});
+  // F1 (funnel QA 2026-09-26): the gate whose prompt is currently open on a
+  // DRAFTING attempt. A 402 gate sentinel from /api/bids-draft opens the Bid
+  // Scout prompt (owner rule 8: attempt-only) instead of leaking the raw
+  // `GATE_REQUIRED` text into the red error box. Set ONLY by
+  // doGenerateProposal; never on view.
+  const [draftGate, setDraftGate] = useState<PlanGate | null>(null);
   // Hydrate the seeded collections once the client-side dashboard data arrives.
   useEffect(() => {
     if (!data) return;
@@ -1420,7 +1433,20 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
     setAiError((p) => { const n = { ...p }; delete n[bidId]; return n; });
     try {
       const res = await fetch("/api/bids-draft", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bidId }) });
-      if (!res.ok) { const b = await res.json().catch(() => null); throw new Error(b?.error || "Proposal generation failed"); }
+      if (!res.ok) {
+        const b = await res.json().catch(() => null);
+        // GATED ATTEMPT (F1): the drafting gate is a PROMPT, never an error
+        // string. The 402 + sentinel pair opens the Bid Scout prompt here and
+        // records the standalone `draft_attempted`/"gated" event; the raw
+        // gate sentinel text is never shown to the user.
+        const gate = res.status === 402 ? gateFromError(b?.error) : null;
+        if (gate) {
+          trackEvent(ATTEMPT_EVENT_FOR_ACTION.draft, GATE_ATTEMPT_LABEL, "/dashboard");
+          setDraftGate(gate);
+          return;
+        }
+        throw new Error(b?.error || "Proposal generation failed");
+      }
       const result = await res.json();
       setDrafts((p) => ({ ...p, [bidId]: result }));
       setActiveTab((p) => ({ ...p, [bidId]: "draft" }));
@@ -1570,6 +1596,21 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
         ctaLabel={SAVE_LIMIT_PAYWALL_CTA}
         priceNote={SAVE_LIMIT_PAYWALL_PRICE}
       />
+      {/* ATTEMPT-ONLY drafting gate prompt (F1, owner rule 8) — `draftGate` is
+          set ONLY by a gated drafting attempt above, so nothing renders on view. */}
+      {draftGate && (
+        <PremiumUpgradeModal
+          open
+          onClose={() => setDraftGate(null)}
+          title={gatePrompt(draftGate).title}
+          message={gatePrompt(draftGate).body}
+          ctaLabel={gatePrompt(draftGate).ctaLabel}
+          priceNote={gatePrompt(draftGate).priceNote}
+          {...(gatePrompt(draftGate).checkout
+            ? { checkoutPlan: gatePrompt(draftGate).checkoutPlan }
+            : { ctaHref: gatePrompt(draftGate).href })}
+        />
+      )}
       {user.email === "demo@contrax.company" && <div className="border-b border-blue-200 bg-blue-50 px-4 py-3 text-center text-sm text-blue-900">🔍 You're exploring a demo account with sample data. When you're ready, <a href="/signup" className="font-bold underline">create your free account</a> to track real bids.</div>}
       {(location.search as Record<string, unknown>).notice === "admin-only" && (
         <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-medium text-amber-900">

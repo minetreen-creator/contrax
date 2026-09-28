@@ -72,8 +72,9 @@ export function hasProfessionalAccess(
  * Because the limit now maps to Starter+ (not Professional+), a Basic (free,
  * plan_tier='basic') user is capped at FREE_SAVE_LIMIT, while Starter AND
  * Professional (and Agency) users get unlimited saves. Incumbent Intelligence
- * / AI Match Scoring / Draft Tools remain gated on hasProfessionalAccess
- * (Professional+) — this predicate does NOT grant those.
+ * / AI Match Scoring remain gated on hasProfessionalAccess (Professional+),
+ * while proposal drafting and pipeline CSV export are gated on Bid Scout —
+ * this predicate does NOT grant any of those.
  */
 export function hasUnlimitedSaves(
   trial: Pick<TrialStatus, "fullAccess" | "planTier" | "expired"> | null | undefined,

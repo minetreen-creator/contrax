@@ -1,0 +1,35 @@
+name: DOT directory one-time import
+on:
+  pull_request:
+    paths:
+      - .github/workflows/dot-directory-import-once.yml
+permissions:
+  contents: read
+jobs:
+  import:
+    if: github.event.pull_request.head.ref == 'ops/dot-directory-import-2026-09-28' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout reviewed code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Require database secret
+        run: test -n "$DATABASE_URL"
+      - name: Apply migration 054 and prove idempotency
+        run: |
+          bun run db/migrations/run-054.ts
+          bun run db/migrations/run-054.ts
+      - name: Inspect DOT match counts
+        run: bun run src/jobs/dot-directory-sync.ts
+      - name: Import exact matches and private review rows
+        run: bun run src/jobs/dot-directory-sync.ts --apply

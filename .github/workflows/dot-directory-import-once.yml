@@ -12,6 +12,7 @@ jobs:
     timeout-minutes: 15
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DOT_SNAPSHOT_PATH: ops/dot-directory-fy2026.snapshot.html
     steps:
       - name: Checkout reviewed code
         uses: actions/checkout@v4

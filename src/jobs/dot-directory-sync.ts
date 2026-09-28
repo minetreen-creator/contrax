@@ -1,11 +1,28 @@
 /** Operator-run DOT import. Dry-run by default; --apply requires migration 054. */
 import { sql } from "~/db";
+import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { DOT_DIRECTORY_URL, matchDotListings, parseDotDirectory } from "~/lib/subcontracts/dot-directory";
 import type { MatchablePrime } from "~/lib/subcontracts/dot-directory";
 
-const response = await fetch(DOT_DIRECTORY_URL, { signal: AbortSignal.timeout(30_000) });
-if (!response.ok) throw new Error(`DOT returned HTTP ${response.status}`);
-const listings = parseDotDirectory(await response.text());
+// This one-time run uses a direct DOT HTTPS snapshot: DOT returns 403 from GH runners.
+// The pinned hash prevents substituting a different page without review.
+const snapshotPath = process.env.DOT_SNAPSHOT_PATH;
+let html: string;
+if (snapshotPath) {
+  const bytes = readFileSync(snapshotPath);
+  const sha = createHash("sha256").update(bytes).digest("hex");
+  if (sha !== "1609f7f8a28ea6fd534b2cb6ce2fead56d68b2dd1e5d789203b8df82087e377b") {
+    throw new Error("DOT snapshot hash mismatch");
+  }
+  html = bytes.toString("utf8");
+  console.log(`DOT official-page table snapshot sha256 ${sha}`);
+} else {
+  const response = await fetch(DOT_DIRECTORY_URL, { signal: AbortSignal.timeout(30_000) });
+  if (!response.ok) throw new Error(`DOT returned HTTP ${response.status}`);
+  html = await response.text();
+}
+const listings = parseDotDirectory(html);
 // An unexpectedly short document must never replace a previous complete check.
 if (listings.length < 100) throw new Error(`DOT only returned ${listings.length} rows`);
 if (process.argv.includes("--parse-only")) {

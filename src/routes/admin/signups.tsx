@@ -29,6 +29,8 @@ interface RecentSignup {
   plan_tier: string | null;
   subscription_status: string | null;
   created_at: string;
+  nonprofit_org_name: string | null;
+  nonprofit_status: string | null;
 }
 interface SignupActivity {
   user_id: number;
@@ -73,6 +75,9 @@ function SignupsPage() {
   const [fin, setFin] = useState<FinanceResult | null>(null);
   const [activity, setActivity] = useState<SignupActivity[] | null>(null);
   const [activityError, setActivityError] = useState("");
+  const [nonprofitOnly, setNonprofitOnly] = useState(false);
+  const nonprofitApplicants = metrics?.recentSignups.filter((s) => s.nonprofit_status) ?? [];
+  const displayedSignups = nonprofitOnly ? nonprofitApplicants : metrics?.recentSignups ?? [];
 
   useEffect(() => {
     let cancelled = false;
@@ -118,7 +123,7 @@ function SignupsPage() {
             <SectionLoading message="Loading signups…" />
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                   <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Total Signups</p>
                   <p className="mt-2 text-4xl font-bold text-slate-900">{metrics.totalSignups}</p>
@@ -130,6 +135,11 @@ function SignupsPage() {
                   <p className="mt-1 text-xs text-slate-400">All non-QA accounts</p>
                 </div>
                 <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+                  <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Nonprofit applicants</p>
+                  <p className="mt-2 text-4xl font-bold text-slate-900">{nonprofitApplicants.length}</p>
+                  <p className="mt-1 text-xs text-slate-500">{nonprofitApplicants.filter((s) => s.nonprofit_status === "approved").length} approved for Nonprofit Free</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                   <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">MRR (live)</p>
                   <p className="mt-2 text-4xl font-bold text-slate-900">{fin ? moneyWhole(fin.mrrCents) : "—"}</p>
                   <p className="mt-1 text-xs text-slate-400">
@@ -139,31 +149,45 @@ function SignupsPage() {
               </div>
 
               <div className="mt-4 rounded-xl border border-slate-200 bg-white overflow-hidden">
-                <div className="px-5 py-3 border-b border-slate-100">
-                  <h3 className="font-bold text-slate-900">Signup emails and plans</h3>
-                  <p className="text-xs text-slate-500">Current account plan and billing status; a selected plan does not mean a payment was made.</p>
+                <div className="px-5 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-bold text-slate-900">Signup emails and plans</h3>
+                    <p className="text-xs text-slate-500">Nonprofit status reflects an application, not the billing plan. A selected plan does not mean a payment was made.</p>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm text-slate-700">
+                    <input type="checkbox" checked={nonprofitOnly} onChange={(e) => setNonprofitOnly(e.target.checked)} />
+                    Show nonprofit applicants only
+                  </label>
                 </div>
-                {metrics.recentSignups.length === 0 ? (
-                  <p className="px-5 py-4 text-sm text-slate-400">No signups yet</p>
+                {displayedSignups.length === 0 ? (
+                  <p className="px-5 py-4 text-sm text-slate-500">{nonprofitOnly ? "No nonprofit applications from external accounts." : "No signups yet"}</p>
                 ) : (
                   <div className="max-h-96 overflow-auto">
-                    <table className="w-full min-w-[620px] text-sm">
+                    <table className="w-full min-w-[820px] text-sm">
                       <thead>
                         <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
                           <th className="px-5 py-3 font-medium">Email</th>
                           <th className="px-5 py-3 font-medium">Plan</th>
                           <th className="px-5 py-3 font-medium">Subscription</th>
+                          <th className="px-5 py-3 font-medium">Nonprofit Free application</th>
                           <th className="px-5 py-3 font-medium">Date</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {metrics.recentSignups.map((s) => (
+                        {displayedSignups.map((s) => (
                           <tr key={s.id} className="border-t border-slate-50">
                             <td className="px-5 py-2.5">
                               <a href={`mailto:${s.email}`} className="text-blue-600 hover:text-blue-700 hover:underline">{s.email}</a>
                             </td>
                             <td className="px-5 py-2.5 text-slate-700 capitalize">{s.plan_tier ?? "No plan"}</td>
                             <td className="px-5 py-2.5 text-slate-700 capitalize">{s.subscription_status?.replaceAll("_", " ") ?? "—"}</td>
+                            <td className="px-5 py-2.5 text-slate-700">
+                              {s.nonprofit_status ? (
+                                <a href="/admin/nonprofits" className="text-blue-700 hover:underline">
+                                  {s.nonprofit_org_name || "Organization not provided"} · <span className="capitalize">{s.nonprofit_status.replaceAll("_", " ")}</span>
+                                </a>
+                              ) : "—"}
+                            </td>
                             <td className="px-5 py-2.5 text-slate-400 whitespace-nowrap">{dayFmt(s.created_at)}</td>
                           </tr>
                         ))}

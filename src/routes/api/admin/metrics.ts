@@ -104,7 +104,12 @@ async function handler({ request }: { request: Request }) {
       // Real external signups = users excluding the owner (is_admin), the demo
       // account, and QA/test accounts (@test.contrax).
       sql()`SELECT COUNT(*) as count FROM users WHERE ${sql().unsafe(qaExternalUserSQL())}`,
-      sql()`SELECT id, email, plan_tier, subscription_status, created_at FROM users WHERE ${sql().unsafe(qaExternalUserSQL())} ORDER BY created_at DESC`,
+      sql()`SELECT u.id, u.email, u.plan_tier, u.subscription_status, u.created_at,
+                    n.org_name AS nonprofit_org_name, n.status AS nonprofit_status
+             FROM (SELECT id, email, plan_tier, subscription_status, created_at
+                   FROM users WHERE ${sql().unsafe(qaExternalUserSQL())}) u
+             LEFT JOIN nonprofit_applications n ON n.user_id = u.id
+             ORDER BY u.created_at DESC`,
       sql()`SELECT COUNT(*) as count FROM waitlist`,
       sql()`SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC LIMIT 10`,
       sql()`SELECT COUNT(*) as count FROM savings_diagnoses`,
@@ -134,6 +139,8 @@ async function handler({ request }: { request: Request }) {
         plan_tier: r.plan_tier,
         subscription_status: r.subscription_status,
         created_at: String(r.created_at),
+        nonprofit_org_name: r.nonprofit_org_name ?? null,
+        nonprofit_status: r.nonprofit_status ?? null,
       })),
       totalWaitlist: Number(waitlistCount[0].count),
       recentWaitlist: (recentWaitlist as any[]).map((r) => ({

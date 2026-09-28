@@ -569,6 +569,8 @@ export interface PrimeRowView {
   productsServices: string | null;
   /** GSA-only: the source's own file date (evidence). Never rendered as a date. */
   sourceFileDate: string | null;
+  /** Only populated for an exact, unique DOT match in the latest complete run. */
+  dot?: { services: string | null; sourceUrl: string; label: string };
 }
 
 export interface StoredPrimeRow {
@@ -589,6 +591,9 @@ export interface StoredPrimeRow {
   source_file_date?: StoredDay;
   /** Migration 051 — the raw NAICS cell for an INVALID code only (NULL for a valid one). */
   naics_raw?: string | null;
+  dot_services?: string | null;
+  dot_source_url?: string | null;
+  dot_label?: string | null;
 }
 
 export function toPrimeView(row: StoredPrimeRow): PrimeRowView {
@@ -614,6 +619,10 @@ export function toPrimeView(row: StoredPrimeRow): PrimeRowView {
     vendorAddress: gsaAddressLine(row.vendor_address),
     productsServices: row.products_services?.trim() || null,
     sourceFileDate: normalizeDay(row.source_file_date),
+    ...(row.dot_source_url && row.dot_label
+      ? { dot: { services: row.dot_services?.trim() || null,
+          sourceUrl: row.dot_source_url, label: row.dot_label } }
+      : {}),
   };
 }
 

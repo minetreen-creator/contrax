@@ -45,7 +45,7 @@ async function handler({ request }: { request: Request }) {
       title: r.title || "Untitled opportunity",
       agency: r.agency || "Unknown agency",
       estimated_value: r.estimated_value || "Not specified",
-      due_date: r.due_date ? String(r.due_date).slice(0, 10) : null,
+      due_date: dateOnly(r.due_date),
       location: r.location ?? null,
       category: r.category ?? null,
       source_url: r.source_url ?? null,

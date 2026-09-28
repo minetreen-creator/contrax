@@ -102,7 +102,7 @@ async function handler({ request }: { request: Request }) {
       return Response.json(
         {
           error:
-            "You've used your 1 trial proposal draft. Upgrade to Professional to keep drafting proposals.",
+            "You've used your 1 trial proposal draft. Proposal drafting is on Bid Scout.",
         },
         { status: 403 },
       );

@@ -20,7 +20,7 @@
  *    limit` so concurrent requests can never overshoot the cap (consumeAllowance).
  *
  * Honesty: NEVER advertise "unlimited". We surface "You've used N of M AI briefs
- * this month" and the core Professional promise (AI_BRIEF_PROMISE).
+ * this month" and the Radar Pro price note (AI_BRIEF_PROMISE).
  */
 import { sql } from "~/db";
 import { loadUserTrialStatus } from "~/lib/trial";
@@ -35,13 +35,16 @@ export const AI_BRIEF_ALLOWANCE: Record<string, number> = {
 /** A covered tier = Professional or Agency (full evidence + workflow connectors). */
 export const AI_BRIEF_COVERED = new Set(["professional", "agency"]);
 
-/** Exact owner-specified locked-preview copy — do not change. */
+/** Locked-preview copy carried on the locked payload — Radar Pro-consistent
+ *  (owner green-lit 2026-09-28; the AI Executive Brief is a Radar Pro feature).
+ *  Copy only: no gate, entitlement or billing behaviour lives here. */
 export const AI_BRIEF_LOCKED_PREVIEW =
-  "Understand this RFP in minutes, not hours. Upgrade to Professional to reveal its mandatory requirements, critical deadlines and potential red flags.";
+  "Radar Pro feature — the AI Executive Brief reveals this RFP's mandatory requirements, critical deadlines and potential red flags in minutes, not hours.";
 
-/** The core Professional promise shown near the upgrade / locked surface. */
+/** The price + trial path shown with the locked preview — the same price note
+ *  the ratified Radar Pro gate renders (no pricing change). */
 export const AI_BRIEF_PROMISE =
-  "Find the right contract, understand every requirement, evaluate your odds and begin your response—all inside Contrax.";
+  "Included with Radar Pro on the Professional plan — $79/mo · 14-day Professional trial · Cancel anytime.";
 
 const CREATE_TABLE = `
   CREATE TABLE IF NOT EXISTS ai_brief_allowance (

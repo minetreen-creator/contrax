@@ -20,7 +20,7 @@
  * TIERED MONTHLY ALLOWANCE (owner 2026-08-29, supersedes the free-tier call):
  *   - Basic 1 / Starter 3 / Pro 50 / Agency 200 briefs per month.
  *   - Over-limit Basic/Starter users see the RAW description + a locked preview
- *     (exact owner copy) + the core Professional promise; the full structured
+ *     (Radar Pro-consistent copy) + the Radar Pro price note; the full structured
  *     summary stays gated. Never advertises "unlimited" — instead an honest
  *     "You've used N of M this month".
  *   - Professional / Agency (covered) users get workflow connectors to existing
@@ -98,12 +98,16 @@ import {
   GATE_ATTEMPT_LABEL,
   isGateLockedPayload,
 } from "~/lib/plan-gates";
-/** Exact owner-specified locked-preview copy (2026-08-29) — do not change. */
+/** Locked-preview copy — Radar Pro-consistent (owner green-lit 2026-09-28;
+ *  the AI Executive Brief is a Radar Pro feature). COPY ONLY: the lock
+ *  mechanism (attempt-only render, allow/deny, the /upgrade destination) is
+ *  unchanged. */
 const LOCKED_PREVIEW_COPY =
-  "Understand this RFP in minutes, not hours. Upgrade to Professional to reveal its mandatory requirements, critical deadlines and potential red flags.";
-/** The core Professional promise shown near the upgrade / locked surface. */
+  "Radar Pro feature — the AI Executive Brief reveals this RFP's mandatory requirements, critical deadlines and potential red flags in minutes, not hours.";
+/** The price + trial path for the locked surface (the same price note the
+ *  ratified Radar Pro gate renders — no pricing change). */
 const BRIEF_PROMISE_COPY =
-  "Find the right contract, understand every requirement, evaluate your odds and begin your response—all inside Contrax.";
+  "Included with Radar Pro on the Professional plan — $79/mo · 14-day Professional trial · Cancel anytime.";
 
 /** Days from today until a date; negative = past. Returns null when unparseable. */
 function daysUntil(dateStr: string | null): number | null {
@@ -443,7 +447,7 @@ function LockedBody({ state }: { state: Extract<CardState, { status: "locked" }>
         </div>
       )}
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-6 text-center">
-        {/* Exact owner copy — do not change. */}
+        {/* Radar Pro-consistent locked-preview copy (owner green-lit 2026-09-28). */}
         <p className="text-base font-semibold leading-relaxed text-amber-300">
           {LOCKED_PREVIEW_COPY}
         </p>
@@ -457,7 +461,7 @@ function LockedBody({ state }: { state: Extract<CardState, { status: "locked" }>
           href="/upgrade"
           className="mt-4 inline-flex rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition hover:bg-amber-400"
         >
-          Upgrade to Professional →
+          Upgrade to Radar Pro →
         </a>
       </div>
     </div>

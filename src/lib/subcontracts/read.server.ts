@@ -355,19 +355,9 @@ export async function readPrimesPayload(
             SELECT
               p.legal_name, p.uei, p.vendor_state, p.naics, p.industries, p.agencies,
               p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url,
-              p.vendor_address, p.products_services, p.source_file_date, p.naics_raw,
-              dot.services AS dot_services, dot.source_url AS dot_source_url,
-              dot.source_label AS dot_label
+              p.vendor_address, p.products_services, p.source_file_date, p.naics_raw
             FROM subcontract_primes p
             JOIN subcontract_sources s ON s.id = p.source_id
-            LEFT JOIN LATERAL (
-              SELECT d.services, r.source_url, r.source_label
-              FROM dot_directory_runs r JOIN dot_directory_records d ON d.run_id = r.id
-              WHERE r.status = 'complete' AND d.prime_id = p.id
-                AND r.id = (SELECT id FROM dot_directory_runs
-                            WHERE status = 'complete' ORDER BY completed_at DESC, id DESC LIMIT 1)
-              ORDER BY d.row_number LIMIT 1
-            ) dot ON TRUE
             WHERE s.source_key = ${sourceKey}
               AND (${parsed.state}::text IS NULL OR upper(p.vendor_state) = ${parsed.state}::text)
               AND (
@@ -382,19 +372,9 @@ export async function readPrimesPayload(
         : db`
             SELECT
               p.legal_name, p.uei, p.vendor_state, p.naics, p.industries, p.agencies,
-              p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url,
-              dot.services AS dot_services, dot.source_url AS dot_source_url,
-              dot.source_label AS dot_label
+              p.award_rows, p.latest_pop_start, p.subcontract_plan_type, p.fy, p.source_url
             FROM subcontract_primes p
             JOIN subcontract_sources s ON s.id = p.source_id
-            LEFT JOIN LATERAL (
-              SELECT d.services, r.source_url, r.source_label
-              FROM dot_directory_runs r JOIN dot_directory_records d ON d.run_id = r.id
-              WHERE r.status = 'complete' AND d.prime_id = p.id
-                AND r.id = (SELECT id FROM dot_directory_runs
-                            WHERE status = 'complete' ORDER BY completed_at DESC, id DESC LIMIT 1)
-              ORDER BY d.row_number LIMIT 1
-            ) dot ON TRUE
             WHERE s.source_key = ${sourceKey}
               AND (${parsed.state}::text IS NULL OR upper(p.vendor_state) = ${parsed.state}::text)
               AND (
@@ -426,6 +406,36 @@ export async function readPrimesPayload(
     ]);
 
     const rows = (rawRows ?? []) as StoredPrimeRow[];
+    // Migration 054 may not have run yet. Existing prime reads must stay healthy;
+    // DOT provenance is an optional supplement to the GSA cards only.
+    if (source === "gsa" && rows.length) {
+      try {
+        const presence = await db`
+          SELECT to_regclass('public.dot_directory_runs') IS NOT NULL AS runs,
+                 to_regclass('public.dot_directory_records') IS NOT NULL AS records
+        ` as { runs: boolean; records: boolean }[];
+        if (presence[0]?.runs && presence[0]?.records) {
+          const ueis = JSON.stringify(rows.map((row) => row.uei));
+          const dotRows = await db`
+            SELECT DISTINCT ON (p.uei) p.uei, d.services AS dot_services,
+              r.source_url AS dot_source_url, r.source_label AS dot_label
+            FROM dot_directory_runs r
+            JOIN dot_directory_records d ON d.run_id = r.id AND d.prime_id IS NOT NULL
+            JOIN subcontract_primes p ON p.id = d.prime_id
+            JOIN subcontract_sources s ON s.id = p.source_id
+            WHERE s.source_key = ${sourceKey} AND r.status = 'complete'
+              AND r.id = (SELECT id FROM dot_directory_runs WHERE status = 'complete'
+                          ORDER BY completed_at DESC, id DESC LIMIT 1)
+              AND p.uei IN (SELECT jsonb_array_elements_text(${ueis}::jsonb))
+            ORDER BY p.uei, d.row_number
+          ` as { uei: string; dot_services: string | null; dot_source_url: string; dot_label: string }[];
+          const byUei = new Map(dotRows.map((row) => [row.uei, row]));
+          for (const row of rows) Object.assign(row, byUei.get(row.uei));
+        }
+      } catch (err) {
+        console.error("[subcontracts-primes] DOT supplement unavailable:", err);
+      }
+    }
     // `matched` applies the SAME predicate as the row query (absent filter ⇒ no
     // restriction), so the label above the list and the list itself cannot disagree.
     const total = ((rawTotals ?? []) as { directory_total: number; matched: number }[])[0];

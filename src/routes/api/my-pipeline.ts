@@ -18,7 +18,9 @@ async function handler({ request }: { request: Request }) {
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
   try {
     const rows = await sql()`
-      SELECT sm.id, sm.bid_id, sm.status, sm.created_at,
+      SELECT sm.id, sm.bid_id, sm.status, sm.created_at, sm.notes,
+             sm.pursuit_status, sm.next_action, sm.follow_up_date,
+             sm.contact_name, sm.contact_organization, sm.contact_role, sm.contact_email,
              b.title, b.agency, b.estimated_value, b.due_date, b.location,
              b.category, b.source_url, b.set_aside
       FROM saved_matches sm
@@ -30,6 +32,14 @@ async function handler({ request }: { request: Request }) {
       id: Number(r.id),
       bid_id: Number(r.bid_id),
       status: r.status ?? "saved",
+      pursuit_status: r.pursuit_status ?? "evaluating",
+      notes: r.notes ?? "",
+      next_action: r.next_action ?? "",
+      follow_up_date: r.follow_up_date ? String(r.follow_up_date).slice(0, 10) : null,
+      contact_name: r.contact_name ?? "",
+      contact_organization: r.contact_organization ?? "",
+      contact_role: r.contact_role ?? "",
+      contact_email: r.contact_email ?? "",
       created_at: r.created_at ? String(r.created_at) : null,
       title: r.title || "Untitled opportunity",
       agency: r.agency || "Unknown agency",

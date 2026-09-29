@@ -12,7 +12,7 @@ const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2
 export const Route = createFileRoute("/contract-labor")({
   loader: async (): Promise<{ user: AuthUser | null }> => ({ user: await getCurrentUser() }),
   component: Guard,
-  head: () => ({ meta: [{ title: "Labor Review | Contrax" }, { name: "robots", content: "noindex, nofollow" }] }),
+  head: () => ({ meta: [{ title: "Contrax Payments — Labor Review" }, { name: "robots", content: "noindex, nofollow" }] }),
 });
 
 function Guard() {
@@ -68,7 +68,7 @@ function LaborPage() {
   const gross = items.reduce((sum, x) => sum + x.hours_hundredths * x.hourly_rate_cents / 100, 0);
   return <div className="min-h-screen bg-slate-50"><main className="mx-auto max-w-5xl px-4 py-10 text-slate-900">
     <nav className="mb-8 text-sm"><a className="text-blue-700 hover:underline" href="/contract-payments">← Payment follow-up</a></nav>
-    <div className="flex flex-wrap justify-between gap-4"><div><p className="text-sm font-semibold uppercase text-blue-700">Pilot workspace</p>
+    <div className="flex flex-wrap justify-between gap-4"><div><p className="text-sm font-semibold uppercase text-blue-700">Contrax Payments</p>
       <h1 className="mt-1 text-3xl font-bold">Labor review</h1>
       <p className="mt-2 max-w-2xl text-slate-600">Record hours by worker and job before handing them to your payroll provider. Estimated gross is regular hours × entered rate. Review overtime, classification, taxes, and deductions in your payroll system.</p></div>
       <button className="rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white" onClick={() => edit(blank)}>Add hours</button></div>

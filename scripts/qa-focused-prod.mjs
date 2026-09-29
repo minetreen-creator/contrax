@@ -81,7 +81,8 @@ if (process.argv.includes("--cleanup")) {
       domain: "www.contrax.company", path: "/", httpOnly: true, secure: true }]);
     const adminPage = await adminContext.newPage();
     await adminPage.goto(`${base}/admin/signups`, { waitUntil: "domcontentloaded" });
-    const row = adminPage.locator("tr").filter({ hasText: customerEmail });
+    const row = adminPage.locator("tr").filter({ hasText: customerEmail })
+      .filter({ hasText: "Nonprofit apply" }).first();
     await row.waitFor({ timeout: 20000 });
     await row.getByText("Nonprofit apply", { exact: true }).waitFor({ timeout: 10000 });
     console.log("PASS Admin → Signups displays nonprofit source badge for a new account");

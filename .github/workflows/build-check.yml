@@ -280,6 +280,15 @@ jobs:
       # DATABASE_URL), which is the second half of why it was unrun.
       - name: Radar search regression tests (unit half; deterministic, zero network, no DATABASE_URL)
         run: bun test src/lib/radar-search.regression.test.ts
+      - name: Issue 483 freight Radar corpus diagnosis (read-only)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -n "${DATABASE_URL:-}" ]; then
+            bun run scripts/diagnose-freight-radar.ts
+          else
+            echo "Issue 483 diagnosis skipped: DATABASE_URL secret unavailable"
+          fi
       # State grants (owner R3 order, 2026-09-19): the unit half (schema.sql
       # mirror assertions, parsers, search/coverage shaping) always runs; the
       # DB-backed half — including state-grants-bootstrap.test.ts, which builds a

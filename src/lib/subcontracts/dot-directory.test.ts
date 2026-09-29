@@ -27,9 +27,25 @@ describe("DOT publication boundary", () => {
     expect(matchDotListings([listing], [{ ...primes[0]!, naics: ["561720"] }])[0]).toMatchObject({ kind: "review" });
     expect(matchDotListings([listing], [{ ...primes[0]!, address: "4 Main Street, VA 23834" }])[0])
       .toMatchObject({ kind: "review" });
+    expect(matchDotListings([listing], [{ ...primes[0]!, address: "1 Main Avenue, VA 23834" }])[0])
+      .toMatchObject({ kind: "review" });
+    expect(matchDotListings([listing], [{ ...primes[0]!, address: "1 Main Street STE 200, VA 23834" }])[0])
+      .toMatchObject({ kind: "review" });
     expect(matchDotListings([listing], [...primes, { ...primes[0]!, id: "2", uei: "DIFFERENT" }])[0])
       .toMatchObject({ kind: "review", reason: "ambiguous identity" });
     expect(matchDotListings([listing, listing], primes).every((item) => item.kind === "review")).toBe(true);
+  });
+
+  test("requires the whole street name and unit while accepting ZIP+4", () => {
+    const listing: DotListing = { ...parseDotDirectory(source)[0]!,
+      address: "123 OLD MAIN ST STE 300, VA. 23834", naics: "237310" };
+    const prime = { id: "1", uei: "ABC", name: listing.name, state: "VA",
+      naics: [listing.naics], address: "123 OLD MAIN STREET SUITE 300, VA 238341234" };
+    expect(matchDotListings([listing], [prime])[0]).toMatchObject({ kind: "matched" });
+    expect(matchDotListings([listing], [{ ...prime, address: "123 OLD MAPLE ST STE 300, VA 23834" }])[0])
+      .toMatchObject({ kind: "review" });
+    expect(matchDotListings([listing], [{ ...prime, address: "123 OLD MAIN ST STE 400, VA 23834" }])[0])
+      .toMatchObject({ kind: "review" });
   });
 
   test("unreadable state or NAICS can never match", () => {

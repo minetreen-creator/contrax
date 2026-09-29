@@ -1,3 +1,4 @@
+import { searchGrantsSnapshot } from "~/lib/grants-snapshot.server";
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { rateLimitedResponse } from "~/lib/rate-limit";
@@ -41,7 +42,7 @@ import {
  *
  * SERVER-SIDE ONLY. The browser never talks to Grants.gov and never sees any
  * key: this handler is the only place the upstream search + per-opportunity
- * detail calls happen. Grants are NOT persisted anywhere — no insert into
+ * detail calls happen. The selected CSV snapshot is bundled server-side; no insert into
  * bids/solicitations/contracts and no result cache; the only trace a search
  * leaves is the isolated grants_* analytics event the PAGE fires.
  *
@@ -111,6 +112,7 @@ interface GrantsSearchPayload {
   source: string;
   /** The status filter this response answers (echoed so the page can label it). */
   status: GrantsStatus;
+  dataset?: "snapshot" | "live";
   authenticated: boolean;
   /** True only when the caller has a granted ($19/month) Grants subscription. */
   subscribed: boolean;
@@ -159,6 +161,7 @@ function buildPayload(opts: {
    */
   pagingTotal?: number;
   asOf?: string;
+  dataset?: "snapshot" | "live";
   excluded?: ExcludedCounts;
   page: number;
   requiresAuth?: boolean;
@@ -181,7 +184,8 @@ function buildPayload(opts: {
     opts.page < MAX_PAGE;
   return {
     ok: true,
-    source: GRANTS_SOURCE_LABEL,
+    source: opts.dataset === "snapshot" ? "Simpler.Grants.gov" : GRANTS_SOURCE_LABEL,
+    dataset: opts.dataset ?? "live",
     status: opts.status,
     authenticated: opts.authenticated,
     subscribed: opts.subscribed,
@@ -223,6 +227,8 @@ type ScanPair = [Awaited<ReturnType<typeof scanGrantsUpstream>> | null, number |
 
 async function handler({ request }: { request: Request }): Promise<Response> {
   const url = new URL(request.url);
+  const dataset = url.searchParams.get("dataset") ?? "live";
+  if (dataset !== "live" && dataset !== "snapshot") return json({ok:false,error:"Invalid grant dataset"},400);
   const parsed = parseGrantsSearchParams(url.searchParams);
   if (!parsed.ok) {
     return json({ ok: false, error: parsed.error }, 400);
@@ -285,6 +291,14 @@ async function handler({ request }: { request: Request }): Promise<Response> {
       );
     }
     countsAgainstAnonymousCredit = true;
+  }
+
+  if (dataset === "snapshot") {
+    const snapshot = searchGrantsSnapshot(params);
+    return json(buildPayload({
+      status:params.status, authenticated, granted, subscribed:subscription.subscribed,
+      ...snapshot, dataset:"snapshot", countExact:true, page:params.page, upgradePromptEnabled,
+    }));
   }
 
   // Cap the upstream rows we ask for: a preview needs only PREVIEW_LIMIT cards.

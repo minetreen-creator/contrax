@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - .github/workflows/focused-prod-qa-once.yml
+      - scripts/qa-focused-prod.mjs
 permissions:
   contents: read
 jobs:

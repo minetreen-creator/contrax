@@ -7,7 +7,7 @@ type Entry = { id: number | null; worker_name: string; job_name: string; work_da
 const blank: Entry = { id: null, worker_name: "", job_name: "", work_date: "", hours_hundredths: 0,
   hourly_rate_cents: 0, reviewed: false, notes: "", archived: false };
 const money = (cents: number) => (cents / 100).toLocaleString("en-US", { style: "currency", currency: "USD" });
-const inputClass = "w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900";
+const inputClass = "w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900";
 
 export const Route = createFileRoute("/contract-labor")({
   loader: async (): Promise<{ user: AuthUser | null }> => ({ user: await getCurrentUser() }),
@@ -66,14 +66,14 @@ function LaborPage() {
     finally { setBusy(false); }
   }
   const gross = items.reduce((sum, x) => sum + x.hours_hundredths * x.hourly_rate_cents / 100, 0);
-  return <main className="mx-auto max-w-5xl px-4 py-10 text-slate-900">
+  return <div className="min-h-screen bg-slate-50"><main className="mx-auto max-w-5xl px-4 py-10 text-slate-900">
     <nav className="mb-8 text-sm"><a className="text-blue-700 hover:underline" href="/contract-payments">← Payment follow-up</a></nav>
     <div className="flex flex-wrap justify-between gap-4"><div><p className="text-sm font-semibold uppercase text-blue-700">Pilot workspace</p>
       <h1 className="mt-1 text-3xl font-bold">Labor review</h1>
       <p className="mt-2 max-w-2xl text-slate-600">Record hours by worker and job before handing them to your payroll provider. Estimated gross is regular hours × entered rate. Review overtime, classification, taxes, and deductions in your payroll system.</p></div>
       <button className="rounded-lg bg-blue-700 px-4 py-2 font-semibold text-white" onClick={() => edit(blank)}>Add hours</button></div>
-    <div className="mt-7 grid gap-4 sm:grid-cols-2"><div className="rounded-xl border p-5">Entries to review: <strong>{items.filter((x) => !x.reviewed).length}</strong></div>
-      <div className="rounded-xl border p-5">Estimated gross for displayed entries: <strong>{money(gross)}</strong></div></div>
+    <div className="mt-7 grid gap-4 sm:grid-cols-2"><div className="rounded-xl border border-slate-200 bg-white p-5">Entries to review: <strong>{items.filter((x) => !x.reviewed).length}</strong></div>
+      <div className="rounded-xl border border-slate-200 bg-white p-5">Estimated gross for displayed entries: <strong>{money(gross)}</strong></div></div>
     {error && <p role="alert" className="mt-5 rounded-lg bg-red-50 p-3 text-red-800">{error}</p>}
     {draft && <form className="mt-8 rounded-xl border bg-slate-50 p-5" onSubmit={(e) => { e.preventDefault(); void save(); }}>
       <h2 className="mb-4 text-xl font-bold">{draft.id ? "Edit hours" : "Record hours"}</h2>
@@ -91,13 +91,13 @@ function LaborPage() {
         {draft.id && <button type="button" disabled={busy} className="ml-auto underline" onClick={() => void save(true)}>Archive</button>}</div>
     </form>}
     <section className="mt-8"><h2 className="mb-4 text-xl font-bold">Time entries</h2>
-      {loading ? <p>Loading…</p> : items.length === 0 ? <p className="rounded-xl border border-dashed p-6">No hours recorded yet.</p> :
-        <div className="space-y-3">{items.map((x) => <article key={x.id} className="rounded-xl border p-5">
+      {loading ? <p>Loading…</p> : items.length === 0 ? <p className="rounded-xl border border-dashed border-slate-300 bg-white p-6">No hours recorded yet.</p> :
+        <div className="space-y-3">{items.map((x) => <article key={x.id} className="rounded-xl border border-slate-200 bg-white p-5">
           <div className="flex justify-between gap-3"><div><strong>{x.worker_name}</strong><p>{x.job_name} · {x.work_date}</p></div><strong>{money(x.hours_hundredths * x.hourly_rate_cents / 100)}</strong></div>
           <p className="mt-2 text-sm text-slate-600">{(x.hours_hundredths / 100).toFixed(2)} hours × {money(x.hourly_rate_cents)}/hour · {x.reviewed ? "Reviewed" : "Needs review"}</p>
           <button className="mt-2 text-sm font-semibold text-blue-700 underline" onClick={() => edit(x)}>Edit entry</button>
         </article>)}</div>}
     </section>
     <p className="mt-8 text-xs text-slate-500">Planning tool only. No paychecks, tax withholding, filings, or wage statements are generated.</p>
-  </main>;
+  </main></div>;
 }

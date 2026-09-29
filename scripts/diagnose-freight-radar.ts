@@ -14,6 +14,10 @@ const counts = await db`
          COUNT(*) FILTER (WHERE ${db.unsafe(LOW_CONTENT_SQL)})::int AS content_rows,
          COUNT(*) FILTER (WHERE ${db.unsafe(LOW_CONTENT_SQL)} AND ${db.unsafe(AWARD_EXCLUSION_SQL)})::int AS nonaward_rows
   FROM bids WHERE due_date > NOW() AND naics_code = ANY(${codes})`;
+const codeRows = await db`
+  SELECT id, title, naics_code, source, set_aside, due_date, location
+  FROM bids WHERE due_date > NOW() AND naics_code = ANY(${codes})
+  ORDER BY due_date ASC`;
 
 const candidates = await runKeywordScanQuery(sql, {
   certFrag: sbCertFragment(sql),
@@ -33,4 +37,8 @@ console.log(JSON.stringify({
   afterCert: included.length,
   strongBeforeOtherFilters: strong.length,
   strongCodes: [...new Set(strong.map((r) => r.naics_code).filter(Boolean))],
+  codeRows: codeRows.map((r) => ({ id: r.id, title: r.title, code: r.naics_code,
+    source: r.source, setAside: r.set_aside, due: r.due_date,
+    inCandidateWindow: candidates.some((c) => c.id === r.id),
+    certDecision: certMatches(r.set_aside, [r.source], "sb") })),
 }));

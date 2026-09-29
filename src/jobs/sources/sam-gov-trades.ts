@@ -65,12 +65,14 @@ import { FEDERAL_TRADE_SOURCE_LABELS } from "~/lib/cert-matching";
 
 /** Same page size as the national pass (SAM.gov's documented practical max). */
 export const TRADE_PAGE_SIZE = 25;
-/**
- * Per-filter page cap (100 rows/pass), identical to the national pass. Deeper
- * backfill of a 253-notice code is a separate volume/rate-limit decision, so this
- * PR keeps the polite bound and says so instead of pretending the set is complete.
- */
+/** Default cap for janitorial passes (100 notices). */
 export const TRADE_MAX_PAGES = 4;
+/** Nationwide trucking backfill: up to 500 notices per filter, fetched serially. */
+export const TRUCKING_MAX_PAGES = 20;
+
+export function tradePageLimit(filter: SamTradeFilter): number {
+  return filter.trade === "trucking" ? TRUCKING_MAX_PAGES : TRADE_MAX_PAGES;
+}
 /** Inter-page politeness delay (same as the national pass). */
 export const TRADE_DELAY_MS = 500;
 
@@ -323,7 +325,7 @@ export async function fetchTradeFilterDetailed(
   deps: TradeFetchDeps = {},
 ): Promise<TradeFetchResult> {
   const fetchJson = deps.fetchJson ?? defaultFetchJson;
-  const maxPages = deps.maxPages ?? TRADE_MAX_PAGES;
+  const maxPages = deps.maxPages ?? tradePageLimit(filter);
   const delayMs = deps.delayMs ?? TRADE_DELAY_MS;
   const results: RawBid[] = [];
   const skipped: Record<string, number> = {};

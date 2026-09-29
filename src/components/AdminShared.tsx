@@ -103,7 +103,7 @@ export function MrrScoreboard() {
 }
 
 // ── Tab bar ──────────────────────────────────────────────────────────────────
-export type AdminTab = "overview" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "bid-scout" | "bid-fit-reviews" | "nonprofits";
+export type AdminTab = "overview" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "payments" | "bid-scout" | "bid-fit-reviews" | "nonprofits";
 
 export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: "Command" | "Growth" | "Operations" }[] = [
   { key: "overview", label: "Overview", href: "/admin", group: "Command" },
@@ -112,6 +112,7 @@ export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: "C
   { key: "autopsy", label: "Autopsy", href: "/admin/autopsy", group: "Growth" },
   { key: "signups", label: "Signups", href: "/admin/signups", group: "Growth" },
   { key: "customers", label: "Customers", href: "/admin/customers", group: "Growth" },
+  { key: "payments", label: "Contrax Payments", href: "/admin/payments", group: "Growth" },
   { key: "bid-scout", label: "Bid Scout", href: "/admin/bid-scout", group: "Growth" },
   { key: "bid-fit-reviews", label: "Bid Fit Reviews", href: "/admin/bid-fit-reviews", group: "Operations" },
   // Nonprofit Free phase 2 unit B — the human review queue. A review surface nobody can

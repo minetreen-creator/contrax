@@ -525,7 +525,9 @@ export async function recordBidScoutCheckoutStarted(
         user_email: opts.userEmail,
       }),
     });
-    await handleIntake(trackReq, "event");
+    // This is an internal recording call, not a browser beacon carrying a
+    // BotID challenge; the initiating checkout request is handled separately.
+    await handleIntake(trackReq, "event", true);
   } catch (trackErr) {
     // Tracking is fire-and-forget by design — a beacon hiccup must never
     // block checkout.

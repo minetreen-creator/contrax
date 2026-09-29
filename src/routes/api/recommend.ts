@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { getLearningContext } from "~/lib/learning";
 import { sql } from "~/db";
+import { fetchOpenAIWithRetry } from "~/lib/ai";
 
 interface RecommendationInput {
   bid_title: string;
@@ -43,7 +44,7 @@ async function handler({ request }: { request: Request }) {
     await sql()`CREATE TABLE IF NOT EXISTS bid_recommendations (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, win_probability INTEGER, effort_level TEXT DEFAULT 'medium', competition_level TEXT DEFAULT 'medium', strategic_fit TEXT DEFAULT 'moderate', recommendation TEXT DEFAULT 'CAUTIOUS', summary TEXT DEFAULT '', factors JSONB DEFAULT '[]'::jsonb, created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
     const learningCtx = await getLearningContext(user.email, body.bid_title, body.agency, body.naics_codes?.[0] || "", body.estimated_value || "");
     const prompt = `You are an expert government contracting bid/no-bid advisor. Return ONLY JSON. Evaluate effort (RFP complexity/page count/specialized requirements), competition (agency type, contract size, set-aside hints), and strategic fit (NAICS, past awards, capabilities). Use exact enums: effort_level low|medium|high|extreme; competition_level low|medium|high; strategic_fit strong|moderate|weak; recommendation GO|NO_GO|CAUTIOUS. Return {recommendation, effort_level, competition_level, strategic_fit, summary, factors:[{factor,impact}]}.\nOpportunity: ${JSON.stringify(body)}\nProfile: ${JSON.stringify(body.user_profile || {})}\n\nLearned patterns from past wins/losses (use this to refine your recommendation):\n${learningCtx}`;
-    const response = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 700, temperature: 0.2 }) });
+    const response = await fetchOpenAIWithRetry("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` }, body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 700, temperature: 0.2 }) });
     if (!response.ok) throw new Error(`OpenAI API error (${response.status})`);
     const content = (await response.json() as any).choices?.[0]?.message?.content || ""; const match = content.match(/\{[\s\S]*\}/); if (!match) throw new Error("Could not parse recommendation");
     const p = JSON.parse(match[0]); const recommendation = ["GO", "NO_GO", "CAUTIOUS"].includes(p.recommendation) ? p.recommendation : "CAUTIOUS";

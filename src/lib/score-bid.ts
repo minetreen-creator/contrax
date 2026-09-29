@@ -7,6 +7,7 @@
  * has been retired (RPCs silently fail on production Vercel).
  */
 import { sql } from "~/db";
+import { fetchOpenAIWithRetry } from "~/lib/ai";
 import { getLearningContext } from "~/lib/learning";
 import { getRelevantContext } from "~/lib/knowledge";
 import { buildProfileContext, buildScoringWeights } from "~/lib/profile-context";
@@ -102,7 +103,7 @@ Learned patterns from the user's win/loss history:\n${learningCtxScore}\n\n${kno
 Business profile:\n${buildProfileContext(profile)}\n\nScoring emphasis — prioritize these factors for THIS business (higher = more weight):\n${JSON.stringify(buildScoringWeights(profile))}`;
   try {
     const apiKey = process.env.OPENAI_API_KEY; if (!apiKey) throw new Error("OpenAI API key not configured");
-    const response = await fetch("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 900, temperature: 0.2 }) });
+    const response = await fetchOpenAIWithRetry("https://api.openai.com/v1/chat/completions", { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }], max_tokens: 900, temperature: 0.2 }) });
     if (!response.ok) throw new Error(`OpenAI API error (${response.status})`);
     const json = await response.json() as any, content = json.choices?.[0]?.message?.content;
     const match = content?.match(/\{[\s\S]*\}/); if (!match) throw new Error("Could not parse AI response");

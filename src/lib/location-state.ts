@@ -931,6 +931,8 @@ export function displayPlaceOfPerformance(
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
 export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   pennbid: "PA",
+  pa_emarketplace: "PA",
+  ohiobuys: "OH",
   va_evirginia: "VA",
   oh_dayton: "OH",
 };

@@ -195,6 +195,8 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // not one city's board, so its municipal/school-district buyers do not make it
   // LOCAL.
   pennbid: { class: "state", scopeState: "PA", searchScope: "state-portal", recordType: "opportunity" },
+  pa_emarketplace: { class: "state", scopeState: "PA", searchScope: "state-portal", recordType: "opportunity" },
+  ohiobuys: { class: "state", scopeState: "OH", searchScope: "state-portal", recordType: "opportunity" },
   // RETIRED (owner ruling c): the collector was removed from the registry
   // (both data.ny.gov datasets answer 404 and the "fallback" id was actually
   // LA's dataset), so it can produce no row. The class is retained for the

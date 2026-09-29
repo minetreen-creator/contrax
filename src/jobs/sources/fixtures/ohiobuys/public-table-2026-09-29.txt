@@ -1,0 +1,1176 @@
+Keywords
+Commodities
+Multiple selections are possible
+Contracting Entity
+Multiple selections are possible
+Begin Date(M/d/yyyy)
+
+Select a date
+Min value
+
+Select a date
+Max value
+MBE Set Aside
+No
+Delete the value.
+Solicitation Type
+End Date(M/d/yyyy)
+
+Select a date
+Min value
+
+Select a date
+Max value
+Solicitation Status
+Solicitation ID
+Awarded
+FiltersMBE Set Aside:NoDelete No
+Editing column	
+Solicitation ID
+
+Solicitation Name
+
+Original Begin Date (ET.)
+
+Begin Date (ET.)
+
+End Date (ET.)
+
+Inquiry End Date(ET.)
+
+Commodity
+
+MBE Set Aside
+Agency	
+Solicitation Status
+
+Awarded
+
+Solicitation Type
+Edit D05 - AED - 2139	SRC0000042212	D05 - AED - 2139	9/29/2026 4:30:00 AM	9/29/2026 4:30:00 AM	10/15/2026 10:30:00 AM	10/9/2026 4:00:00 PM	Mobile medical services automated external defibrillators AED or hard paddles	
+
+MBE Set Aside
+DOT052310 Facilities DOTD5
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit IRJCF 9/29/2026 Classroom Material and Books for Teacher Moreland	SRC0000042214	IRJCF 9/29/2026 Classroom Material and Books for Teacher Moreland	9/29/2026 3:00:57 PM	9/29/2026 3:00:57 PM	10/9/2026 8:30:00 AM	10/9/2026 8:30:00 AM	Leisure reading books	
+
+MBE Set Aside
+DYS352300 IRJCF - Academic Education IRJV	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Ice Machine Baffle	SRC0000042203	Ice Machine Baffle	9/29/2026 1:15:23 PM	9/29/2026 1:15:23 PM	10/20/2026 10:00:00 AM	10/15/2026 12:00:00 PM	Baffle	
+
+MBE Set Aside
+DRC230700 Lebanon Correctional Inst LECI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit GRANT - A2/B6 FIREPLACE	SRC0000042201	GRANT - A2/B6 FIREPLACE	9/29/2026 1:00:50 PM	9/29/2026 1:00:50 PM	10/16/2026 12:00:00 AM	10/15/2026 12:00:00 AM	Space heaters	
+
+MBE Set Aside
+DRC210300 Grafton Correctional Inst GRCI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit IRJCF 9/29/26 SCHOOL PENCILS	SRC0000042200	IRJCF 9/29/26 SCHOOL PENCILS	9/29/2026 1:10:23 PM	9/29/2026 1:10:23 PM	10/21/2026 8:00:00 AM	10/21/2026 8:00:00 AM	Wooden pencils	
+
+MBE Set Aside
+DYS352300 IRJCF - Academic Education IRJV	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit CHJCF_UM	SRC0000042199	CHJCF_UM	9/29/2026 12:25:21 PM	9/29/2026 12:25:21 PM	10/14/2026 12:00:00 AM	10/12/2026 12:00:00 AM	Action games	
+
+MBE Set Aside
+DYS253000 CHJCF - Unit Management CUJV	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit D21 - Annual Maintenance of the Teledyne Optech Aerial LiDAR mapping system with integrated PhaseOne camera | RFQ2135	SRC0000041865	D21 - Annual Maintenance of the Teledyne Optech Aerial LiDAR mapping system with integrated PhaseOne camera | RFQ2135	9/14/2026 3:55:45 PM	9/29/2026 9:20:02 AM	10/19/2026 4:30:00 PM	10/15/2026 4:30:00 PM	Surveying systems	
+
+MBE Set Aside
+DOT214130 OFFICE GEOSPATIAL & ENG. TECH. ODOT
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit 288DD09292026 Maintenance Project	SRC0000042193	288DD09292026 Maintenance Project	9/29/2026 9:05:51 AM	9/29/2026 9:05:51 AM	10/2/2026 12:00:00 PM	10/2/2026 12:00:00 PM	Pallet trucks	
+
+MBE Set Aside
+DMH911120 TOL MAINTENANCE NOPH	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit 405-27 Anton Paar Diana 700 Atmospheric Distillation Analyzer	SRC0000042188	405-27 Anton Paar Diana 700 Atmospheric Distillation Analyzer	9/29/2026 7:29:40 AM	9/29/2026 7:29:40 AM	10/20/2026 1:00:00 PM	10/15/2026 1:00:00 PM	Laboratory and scientific equipment	
+
+MBE Set Aside
+DOT-Dept of Transportation	Open for Bidding	
+
+Awarded
+Invitation To Bid (ITB)
+Edit Dropbox Licenses	SRC0000042187	Dropbox Licenses	9/29/2026 12:00:00 AM	9/29/2026 12:00:00 AM	10/15/2026 2:00:00 PM	10/7/2026 12:00:00 AM	Administration software	
+
+MBE Set Aside
+DDD106010 ITS DDS OFFICE FRAN1
+DDD-Developmental Disabilities
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Scotsman Counter-top Ice machine AUnit	SRC0000042182	Scotsman Counter-top Ice machine AUnit	9/28/2026 2:49:06 PM	9/28/2026 2:49:06 PM	10/14/2026 3:00:00 PM	10/14/2026 3:00:00 PM	Ice making machines	
+
+MBE Set Aside
+DVS103400 DIETARY OVHS
+DVS-Department of Veterans Service
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Aluminum Fish distribution tank	SRC0000042181	Aluminum Fish distribution tank	9/28/2026 2:05:04 PM	9/28/2026 2:05:04 PM	10/19/2026 2:30:00 PM	10/15/2026 11:15:00 AM	Vehicle frame	
+
+MBE Set Aside
+DNR750784 Castalia State Fish Hatchery DNRERI	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit DBH - HVAC Software Server Move	SRC0000041541	DBH - HVAC Software Server Move	8/27/2026 8:33:35 AM	9/28/2026 1:56:04 PM	10/5/2026 2:30:00 PM	10/22/2026 2:30:00 PM	System management software maintenance	
+
+MBE Set Aside
+DMH104200 FINANCIAL MANAGEMENT JRST11
+DMH711090 CIN Information Svcs Office SUBH
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit ODNR, Division of Oil &amp; Gas – OWP – Federal Project –Lorain 13F - 4 Wells AMENDMENT	SRC0000041826	ODNR, Division of Oil & Gas – OWP – Federal Project –Lorain 13F - 4 Wells AMENDMENT	9/11/2026 3:16:29 PM	9/28/2026 2:00:37 PM	10/8/2026 12:00:00 PM	10/6/2026 12:00:00 PM	Well plugging services	
+
+MBE Set Aside
+DNR900200 OIL AND GAS DNRFRA	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit ODNR, Division of Oil &amp; Gas – OWP – Federal Project –Cuyahoga 39F - 2 Wells AMENDMENT	SRC0000041828	ODNR, Division of Oil & Gas – OWP – Federal Project –Cuyahoga 39F - 2 Wells AMENDMENT	9/11/2026 4:14:29 PM	9/28/2026 1:43:36 PM	10/8/2026 12:00:00 PM	10/6/2026 12:00:00 PM	Well plugging services	
+
+MBE Set Aside
+DNR900200 OIL AND GAS DNRFRA	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit MVDC - 2 Commercial Washing Machines and 1 Commercial Dryer	SRC0000042173	MVDC - 2 Commercial Washing Machines and 1 Commercial Dryer	9/29/2026 12:00:00 AM	9/29/2026 12:00:00 AM	10/15/2026 3:00:00 PM	10/7/2026 3:00:00 PM	Industrial laundry and dry cleaning equipment	
+
+MBE Set Aside
+DDD200000 - DEVELOPMENTAL CENTERS
+DDD206000 MT. VERNON DC MVDC
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Ohio Department of Health-Rural Health Transformation (RHT)-Rural Hospital Training and Technical Assistance Center (RHTAC)-DOH59719	SRC0000042172	Ohio Department of Health-Rural Health Transformation (RHT)-Rural Hospital Training and Technical Assistance Center (RHTAC)-DOH59719	9/28/2026 12:00:00 AM	9/28/2026 12:00:00 AM	10/20/2026 3:00:00 PM	10/13/2026 3:00:00 PM	Public health administration	
+
+MBE Set Aside
+DOH-Dept of Health	Open for Bidding	
+
+Awarded
+Request For Proposal (RFP) (Double Envelope)
+Edit UPS PM and Service Contract - FY2027	SRC0000042171	UPS PM and Service Contract - FY2027	9/28/2026 12:14:36 PM	9/28/2026 12:14:36 PM	10/13/2026 12:30:00 PM	10/6/2026 12:15:00 PM	Software maintenance and support	
+
+MBE Set Aside
+AGO472000 General Services BCIIHQ
+AGO-Attorney General
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit UPS PM and Service Contract - FY2027	SRC0000042087	UPS PM and Service Contract - FY2027	9/23/2026 3:33:50 PM	9/28/2026 11:55:30 AM	9/28/2026 12:15:00 PM	9/28/2026 12:15:00 PM	Software maintenance and support	
+
+MBE Set Aside
+AGO472000 General Services BCIIHQ
+AGO-Attorney General
+Open for Bidding	
+
+Awarded
+Cancellation
+Edit PWC Dredge Scout suction hose with protective skid FY27	SRC0000042170	PWC Dredge Scout suction hose with protective skid FY27	9/28/2026 11:41:15 AM	9/28/2026 11:41:15 AM	10/13/2026 10:00:00 AM	10/12/2026 4:00:00 PM	Dredgers	
+
+MBE Set Aside
+DNR352402 Statewide Dredge DNRFAI	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit NODC Roll-Up Counter Shutter Replacement	SRC0000042163	NODC Roll-Up Counter Shutter Replacement	9/28/2026 10:52:46 AM	9/28/2026 10:52:46 AM	10/16/2026 2:00:00 PM	10/13/2026 2:00:00 PM	Rolling doors	
+
+MBE Set Aside
+DDD200000 - DEVELOPMENTAL CENTERS
+DDD207000 NORTHWEST OHIO DC NWDC
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Figma for Government FY27 Renewal	SRC0000042159	Figma for Government FY27 Renewal	9/29/2026 8:31:56 AM	9/29/2026 8:31:56 AM	10/15/2026 1:00:00 PM	10/7/2026 1:00:00 PM	Development environment software	
+
+MBE Set Aside
+DPS760000 Information Technology CDSB	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit OPS PAPER BAG WAX COATED 30 GALLON	SRC0000042158	OPS PAPER BAG WAX COATED 30 GALLON	9/28/2026 8:43:34 AM	9/28/2026 8:43:34 AM	10/15/2026 1:00:00 PM	10/13/2026 12:00:00 AM	Paper bags	
+
+MBE Set Aside
+DMH202209 PSC Admin - HCM ONLY DMHOPS	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit CJCF HVAC Systems FY27 MRO	SRC0000042147	CJCF HVAC Systems FY27 MRO	9/25/2026 12:00:00 AM	9/25/2026 12:00:00 AM	10/14/2026 12:00:00 PM	10/9/2026 12:00:00 PM	Building maintenance service	
+
+MBE Set Aside
+DYS200000 - Institutions	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Freshservice Enterprise SFY27 Renewal 27-527-	SRC0000042156	Freshservice Enterprise SFY27 Renewal 27-527-	9/25/2026 2:42:34 PM	9/25/2026 2:42:34 PM	10/9/2026 5:00:00 PM	10/7/2026 5:00:00 PM	Helpdesk or call center software	
+
+MBE Set Aside
+AGE924000 Information Systems Division JRST22	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Camp James A. Garfield-MT-100 Mini Track Loader	SRC0000042148	Camp James A. Garfield-MT-100 Mini Track Loader	9/28/2026 2:40:09 PM	9/28/2026 2:40:09 PM	9/29/2026 2:00:00 PM	9/29/2026 9:00:00 AM	Heavy construction machinery and equipment	
+
+MBE Set Aside
+ADJ211010 Armory Maint Mgmt ADJRAV	Under Evaluation	
+
+Awarded
+Quick Quote
+Edit Camp James A. Garfield Limestone Project	SRC0000042143	Camp James A. Garfield Limestone Project	9/28/2026 2:36:11 PM	9/28/2026 2:36:11 PM	9/29/2026 2:30:00 PM	9/29/2026 9:00:00 AM	Aggregates	
+
+MBE Set Aside
+ADJ211010 Armory Maint Mgmt ADJRAV	Under Evaluation	
+
+Awarded
+Quick Quote
+Edit Greenhouse Structure	SRC0000042142	Greenhouse Structure	9/25/2026 10:23:41 AM	9/25/2026 10:23:41 AM	10/13/2026 10:30:00 AM	10/9/2026 12:00:00 PM	Greenhouse	
+
+MBE Set Aside
+DNR-Dept of Natural Resources	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Soilless media for Ellepot machine	SRC0000042140	Soilless media for Ellepot machine	9/25/2026 10:00:00 AM	9/25/2026 10:00:00 AM	10/13/2026 10:00:00 AM	10/9/2026 12:00:00 PM	Soil	
+
+MBE Set Aside
+DNR-Dept of Natural Resources	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit D06 - Crane Services Mansfield OH - RFQ-2134	SRC0000041668	D06 - Crane Services Mansfield OH - RFQ-2134	9/2/2026 12:00:00 AM	9/25/2026 12:00:00 AM	9/28/2026 12:00:00 AM	9/25/2026 12:00:00 AM	Crane rental service	
+
+MBE Set Aside
+DOT065000 Highway Management Admin DOTD6
+DOT-Dept of Transportation
+Closed	
+
+Awarded
+Request for Quote (RFQ)
+Edit ODOC-FY27-SFM - Globe SUPREME 14&quot; Fire Boots - New Investigators Lindamood &amp; Mcclain Eskey, Stitt	SRC0000042135	ODOC-FY27-SFM - Globe SUPREME 14" Fire Boots - New Investigators Lindamood & Mcclain Eskey, Stitt	9/25/2026 8:52:08 AM	9/25/2026 8:52:08 AM	10/12/2026 8:00:00 AM	10/9/2026 12:00:00 AM	Mens boots	
+
+MBE Set Aside
+COM650000 State Fire Marshal COMSFM	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit OSSB Laminator	SRC0000042132	OSSB Laminator	9/25/2026 8:38:30 AM	9/25/2026 8:38:30 AM	10/1/2026 5:00:00 PM	9/30/2026 12:00:00 PM	Laminators	
+
+MBE Set Aside
+OSB300000 - STATE SCHOOL FOR THE BLIND	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Beightler Readiness Center – JFHQ – Remanufactured Herman Miller AO2 Collaboration Walls, Cubicle Decommission, Relocation, and Reassembly	SRC0000042092	Beightler Readiness Center – JFHQ – Remanufactured Herman Miller AO2 Collaboration Walls, Cubicle Decommission, Relocation, and Reassembly	9/23/2026 12:00:00 AM	9/24/2026 6:17:16 PM	9/24/2026 6:30:00 PM	9/25/2026 8:00:00 AM	Office furniture	
+
+MBE Set Aside
+ADJ112020 Finance BEAR	Cancelled	
+
+Awarded
+Cancellation
+Edit OIS-FY27- Rocket Enterprise Renewal PoP: 11/18/26-11/17/27 (1296026)	SRC0000042123	OIS-FY27- Rocket Enterprise Renewal PoP: 11/18/26-11/17/27 (1296026)	9/28/2026 7:57:44 AM	9/28/2026 7:57:44 AM	10/5/2026 8:30:00 AM	10/1/2026 12:00:00 PM	Software maintenance and support	
+
+MBE Set Aside
+JFS192001 CONTRACTS & ACQUISITIONS JRST31
+JFS450002 INFORMATION SERVICES JRST32
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Beightler Readiness Center – G3 – KI Office Furniture, Remanufactured Herman Miller AO2 Systems Furniture and Installation.	SRC0000042090	Beightler Readiness Center – G3 – KI Office Furniture, Remanufactured Herman Miller AO2 Systems Furniture and Installation.	9/23/2026 3:17:36 PM	9/24/2026 3:08:40 PM	9/24/2026 3:15:00 PM	9/25/2026 12:00:00 AM	Office furniture	
+
+MBE Set Aside
+ADJ112020 Finance BEAR	Cancelled	
+
+Awarded
+Cancellation
+Edit 708-662JGM27119	SRC0000041626	708-662JGM27119	9/1/2026 8:58:02 AM	9/24/2026 2:28:14 PM	9/28/2026 12:00:00 AM	9/28/2026 12:00:00 AM	Utility service vehicles	
+
+MBE Set Aside
+DRC211300 Richland Correctional Inst RICI	Closed	
+
+Awarded
+Quick Quote
+Edit WCI-CATHOLIC RELIGIOUS SERVICES- RP	SRC0000042115	WCI-CATHOLIC RELIGIOUS SERVICES- RP	9/24/2026 1:41:26 PM	9/24/2026 1:41:26 PM	10/12/2026 8:00:00 AM	10/12/2026 7:00:00 AM	Religious orders services	
+
+MBE Set Aside
+DRC231700 Warren Correctional Inst WACI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit HVCA KBPC3506 Bridge Rectifier, Single Phase, 600V, 35A, Through Hole, KBPC Series MFR Part #: KBPC3506	SRC0000042113	HVCA KBPC3506 Bridge Rectifier, Single Phase, 600V, 35A, Through Hole, KBPC Series MFR Part #: KBPC3506	9/24/2026 1:06:25 PM	9/24/2026 1:06:25 PM	10/9/2026 1:30:00 PM	10/2/2026 1:30:00 PM	Rectifiers	
+
+MBE Set Aside
+DRC210200 Belmont Correctional Inst BECI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Southern Folger Door Equipment	SRC0000042103	Southern Folger Door Equipment	9/24/2026 12:31:07 PM	9/24/2026 12:31:07 PM	10/9/2026 1:00:00 PM	10/1/2026 1:00:00 PM	Lock sets	
+
+MBE Set Aside
+DRC210200 Belmont Correctional Inst BECI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit 1 Skydio X10-VT300Z Drone for Natural Resources Division of Parks and Watercraft	SRC0000041657	1 Skydio X10-VT300Z Drone for Natural Resources Division of Parks and Watercraft	9/2/2026 9:04:50 AM	9/24/2026 12:22:47 PM	10/1/2026 10:00:00 AM	9/29/2026 10:00:00 AM	Law enforcement drone	
+
+MBE Set Aside
+DNR-Dept of Natural Resources	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Actuarial Service Mine Reclamation	SRC0000041682	Actuarial Service Mine Reclamation	9/3/2026 12:00:00 AM	9/24/2026 12:00:00 AM	10/23/2026 10:00:00 AM	10/13/2026 10:00:00 AM	Actuarial consulting services	
+
+MBE Set Aside
+DNR850000 - DNR-Div of Mineral Rsrcs Mgmt
+DNR850100 MRM Administration DNRFRA
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Franklin Covey ALL ACCESS PASS OCSS 714 OSC RJL	SRC0000042104	Franklin Covey ALL ACCESS PASS OCSS 714 OSC RJL	9/24/2026 12:51:46 PM	9/24/2026 12:51:46 PM	10/8/2026 3:00:00 PM	10/7/2026 12:00:00 AM	Materials teaching aids or materials	
+
+MBE Set Aside
+DRC100000 OPERATION SUPPORT CENTER DRCFRA	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit NBH Winter Groundskeeping Equipment	SRC0000042099	NBH Winter Groundskeeping Equipment	9/25/2026 9:09:16 AM	9/25/2026 9:09:16 AM	10/13/2026 2:00:00 PM	10/9/2026 2:00:00 PM	Snow removal services	
+
+MBE Set Aside
+DMH621049 NOR Bus Off - HCM ONLY NCBH	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit 016A-27 Pollinator Habitat Spot Spraying Contract	SRC0000041867	016A-27 Pollinator Habitat Spot Spraying Contract	9/15/2026 7:00:00 AM	9/24/2026 7:15:00 AM	9/29/2026 1:00:00 PM	9/24/2026 1:00:00 PM	Animal habitat and enclosure construction and maintenance services	
+
+MBE Set Aside
+DOT-Dept of Transportation	Under Evaluation	
+
+Awarded
+Invitation To Bid (ITB)
+Edit PWC Mosquito ADA Kayak Launch	SRC0000042091	PWC Mosquito ADA Kayak Launch	9/23/2026 4:54:50 PM	9/23/2026 4:54:50 PM	10/21/2026 10:00:00 AM	10/20/2026 4:00:00 PM	Dock	
+
+MBE Set Aside
+DNR353411 Mosquito Lake State Park DNRTRU	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit PWC Mosquito Camp Store Exterior Renovation	SRC0000042089	PWC Mosquito Camp Store Exterior Renovation	9/23/2026 3:03:25 PM	9/23/2026 3:03:25 PM	10/21/2026 10:00:00 AM	10/20/2026 4:00:00 PM	Building maintenance service	
+
+MBE Set Aside
+DNR353411 Mosquito Lake State Park DNRTRU	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit PWC Mosquito ADA Kayak Launch	SRC0000042085	PWC Mosquito ADA Kayak Launch	9/23/2026 2:46:18 PM	9/23/2026 2:46:18 PM	9/23/2026 4:54:19 PM	10/20/2026 4:00:00 PM	Dock	
+
+MBE Set Aside
+DNR353411 Mosquito Lake State Park DNRTRU	Closed	
+
+Awarded
+Request for Quote (RFQ)
+Edit PWC Mosquito Raptor Mew Build	SRC0000042082	PWC Mosquito Raptor Mew Build	9/23/2026 2:19:48 PM	9/23/2026 2:19:48 PM	9/24/2026 9:11:06 AM	10/20/2026 4:00:00 PM	Building maintenance service	
+
+MBE Set Aside
+DNR353411 Mosquito Lake State Park DNRTRU	Closed	
+
+Awarded
+Request for Quote (RFQ)
+Edit RAIN BARRELS	SRC0000042081	RAIN BARRELS	9/23/2026 1:57:23 PM	9/23/2026 1:57:23 PM	10/8/2026 2:00:00 PM	9/30/2026 12:00:00 AM	Water trough	
+
+MBE Set Aside
+DRC210200 Belmont Correctional Inst BECI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Remanufactured Herman Miller AO2 Systems Furniture: Office Cubicles	SRC0000042079	Remanufactured Herman Miller AO2 Systems Furniture: Office Cubicles	9/23/2026 1:25:55 PM	9/23/2026 1:25:55 PM	9/28/2026 12:30:00 PM	9/28/2026 9:30:00 AM	Office furniture	
+
+MBE Set Aside
+ADJ112020 Finance BEAR	Under Evaluation	
+
+Awarded
+Quick Quote
+Edit OSHA 10 Testing Seat Licenses OCSS RJL OSC 714	SRC0000042078	OSHA 10 Testing Seat Licenses OCSS RJL OSC 714	9/28/2026 9:05:51 AM	9/28/2026 9:05:51 AM	10/14/2026 12:00:00 PM	10/14/2026 12:00:00 AM	Electronic educational or vocational texts	
+
+MBE Set Aside
+DRC100000 OPERATION SUPPORT CENTER DRCFRA	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit NOBH - Snow Removal	SRC0000042076	NOBH - Snow Removal	9/28/2026 10:03:12 AM	9/28/2026 10:03:12 AM	10/14/2026 2:00:00 PM	10/9/2026 2:00:00 PM	Snow removal services	
+
+MBE Set Aside
+DMH-Dept of Behavioral Health	Open for Bidding	
+
+Awarded
+Request For Proposal (RFP) (Double Envelope)
+Edit WCI- ISLAMIC SERVICES - RP 2551	SRC0000042070	WCI- ISLAMIC SERVICES - RP 2551	9/23/2026 10:53:55 AM	9/23/2026 10:53:55 AM	10/9/2026 11:00:00 AM	9/30/2026 11:00:00 AM	Religious orders services	
+
+MBE Set Aside
+DRC231700 Warren Correctional Inst WACI
+DRC-Dept of Rehab & Corrections
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit SFM - Non-IT Goods &amp; Equipment - OFA Catalog &amp; Calendar	SRC0000042063	SFM - Non-IT Goods & Equipment - OFA Catalog & Calendar	9/23/2026 8:44:32 AM	9/23/2026 8:44:32 AM	10/13/2026 8:00:00 AM	10/12/2026 12:00:00 AM	Printed media	
+
+MBE Set Aside
+COM650000 State Fire Marshal COMSFM	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit CO - ACS - CHJCF - Bed Replacement	SRC0000042062	CO - ACS - CHJCF - Bed Replacement	9/23/2026 12:00:00 AM	9/23/2026 12:00:00 AM	10/7/2026 12:00:00 PM	10/1/2026 12:00:00 PM	Classroom and instructional and institutional furniture and fixtures	
+
+MBE Set Aside
+DYS200000 - Institutions	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit DBH - Milestone Server Software Installation Services	SRC0000041699	DBH - Milestone Server Software Installation Services	9/3/2026 2:17:46 PM	9/23/2026 7:57:13 AM	10/7/2026 2:00:00 PM	10/5/2026 2:00:00 PM	Software patches or upgrades	
+
+MBE Set Aside
+DMH104200 FINANCIAL MANAGEMENT JRST11
+DMH711090 CIN Information Svcs Office SUBH
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit GPS Alcohol and Drug Monitoring - DRC270020 - APA	SRC0000042057	GPS Alcohol and Drug Monitoring - DRC270020 - APA	9/23/2026 10:00:00 AM	9/23/2026 10:00:00 AM	10/7/2026 1:30:00 PM	9/25/2026 4:00:00 PM	Information Technology Broadcasting and Telecommunications	
+
+MBE Set Aside
+DRC-Dept of Rehab & Corrections	Open for Bidding	
+
+Awarded
+Request For Proposal (RFP) (Double Envelope)
+Edit St. Marys Fish Hatchery residence basement repair	SRC0000042054	St. Marys Fish Hatchery residence basement repair	9/22/2026 1:06:57 PM	9/22/2026 1:06:57 PM	10/13/2026 12:00:00 PM	10/9/2026 12:00:00 PM	Building maintenance service	
+
+MBE Set Aside
+DNR750792 StMarys State Fish Hatchery DNRAUG	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Punderson State Park Lodge Clay Roof Tiles	SRC0000042052	Punderson State Park Lodge Clay Roof Tiles	9/24/2026 3:04:18 PM	9/24/2026 3:04:18 PM	10/14/2026 10:00:00 AM	10/7/2026 10:00:00 AM	Ceramic roof tile	
+
+MBE Set Aside
+DNR-Dept of Natural Resources	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit 2345 PUC27SMED003 Twenty iPads with cases and pens	SRC0000042051	2345 PUC27SMED003 Twenty iPads with cases and pens	9/22/2026 12:40:54 PM	9/22/2026 12:40:54 PM	10/7/2026 12:00:00 AM	10/5/2026 12:00:00 AM	Tablet computers	
+
+MBE Set Aside
+PUC300000 Administration PUC4
+PUC-Public Utilities Commission
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Tenprint Card Conversion	SRC0000042047	Tenprint Card Conversion	9/22/2026 1:29:05 PM	9/22/2026 1:29:05 PM	10/6/2026 2:15:00 PM	9/30/2026 1:30:00 PM	Document scanning service	
+
+MBE Set Aside
+AGO400001 - Attorney General
+AGO461200 BCI Identification BCIIHQ
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Chicago-Soft QuickRef Software and Support	SRC0000042043	Chicago-Soft QuickRef Software and Support	9/24/2026 4:15:00 PM	9/24/2026 4:15:00 PM	10/9/2026 9:00:00 AM	10/2/2026 12:00:00 PM	Maintenance or support fees	
+
+MBE Set Aside
+DAS500000 Office of Information Technlgy SOCC03	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit 420-27 D5 Force Feed Loader	SRC0000042044	420-27 D5 Force Feed Loader	9/22/2026 11:00:00 AM	9/22/2026 11:00:00 AM	10/8/2026 1:00:00 PM	10/1/2026 1:00:00 PM	Paving equipment	
+
+MBE Set Aside
+DOT050000 - ODOT-District 5
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Invitation To Bid (ITB)
+Edit 534-27 DBE Certification	SRC0000041292	534-27 DBE Certification	8/17/2026 12:07:43 PM	9/22/2026 1:45:29 PM	10/6/2026 1:00:00 PM	10/1/2026 1:00:00 PM	Education and Training Services	
+
+MBE Set Aside
+DOT-Dept of Transportation	Open for Bidding	
+
+Awarded
+Request For Proposal (RFP) (Double Envelope)
+Edit ODOC New Instructional Use TVs and Wall Reinforcement (Bbldg)	SRC0000042039	ODOC New Instructional Use TVs and Wall Reinforcement (Bbldg)	9/28/2026 12:01:49 PM	9/28/2026 12:01:49 PM	10/16/2026 5:00:00 PM	10/9/2026 5:00:00 PM	Televisions	
+
+MBE Set Aside
+COM650000 State Fire Marshal COMSFM	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit 689DCI-Apex Ramon Spectrometer	SRC0000041501	689DCI-Apex Ramon Spectrometer	8/25/2026 12:00:00 AM	9/22/2026 8:09:55 AM	10/9/2026 12:00:00 AM	10/7/2026 12:00:00 AM	Materials testing	
+
+MBE Set Aside
+DRC230400 Dayton Correctional Inst DACI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Cooler 2 Evap Fan	SRC0000042036	Cooler 2 Evap Fan	9/22/2026 7:46:59 AM	9/22/2026 7:46:59 AM	9/25/2026 12:00:00 AM	9/25/2026 12:00:00 AM	Evaporative coolers	
+
+MBE Set Aside
+DRC210700 Marion Correctional Inst MRCI	Closed	
+
+Awarded
+Quick Quote
+Edit Side Saddle Shotgun Shell Holders	SRC0000042033	Side Saddle Shotgun Shell Holders	9/21/2026 2:48:00 PM	9/21/2026 2:57:09 PM	10/5/2026 12:00:00 PM	9/30/2026 12:00:00 PM	Cartridge belt	
+
+MBE Set Aside
+DRC230700 Lebanon Correctional Inst LECI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit 711-MLG-GENERATORSERVICE/MOORE	SRC0000042031	711-MLG-GENERATORSERVICE/MOORE	9/21/2026 1:46:03 PM	9/21/2026 1:46:03 PM	10/6/2026 7:00:00 AM	10/5/2026 11:00:00 AM	Generator test set	
+
+MBE Set Aside
+DRC211500 Trumbull Correctional Inst TRCI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit DRC-Sod Installation Service - DRC270082-OPI Administration Building-LoCI	SRC0000041815	DRC-Sod Installation Service - DRC270082-OPI Administration Building-LoCI	9/22/2026 7:31:35 AM	9/22/2026 7:31:35 AM	10/7/2026 12:00:00 PM	10/1/2026 12:00:00 PM	Grass seeds or seedlings	
+
+MBE Set Aside
+DRC100000 OPERATION SUPPORT CENTER DRCMAD
+DRC-Dept of Rehab & Corrections
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit SFC-270531 - Bethel Local SD - AE	SRC0000042025	SFC-270531 - Bethel Local SD - AE	9/21/2026 11:54:41 AM	9/21/2026 11:54:41 AM	10/9/2026 12:00:00 PM	10/7/2026 1:00:00 PM	Professional engineering services	
+
+MBE Set Aside
+SFC-OH Facilities Construction Com	Open for Bidding	
+
+Awarded
+Request for Qualifications (RFQ) (Qualifications Based Selection)
+Edit Wildland Fire Shelters	SRC0000042010	Wildland Fire Shelters	9/21/2026 10:29:36 AM	9/21/2026 10:29:36 AM	10/12/2026 12:00:00 PM	10/7/2026 12:00:00 PM	Fire protection	
+
+MBE Set Aside
+DNR150000 DNR-Division of Forestry DNRFRA	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Movin Cool Climate Pro K36 Parts	SRC0000042022	Movin Cool Climate Pro K36 Parts	9/21/2026 9:53:31 AM	9/21/2026 9:53:31 AM	9/24/2026 12:00:00 AM	9/24/2026 12:00:00 AM	Domestic portable air conditioners	
+
+MBE Set Aside
+DRC210700 Marion Correctional Inst MRCI	Closed	
+
+Awarded
+Quick Quote
+Edit D06 - 2310 - Flooring Services - Precision Industrial Services	SRC0000042017	D06 - 2310 - Flooring Services - Precision Industrial Services	9/21/2026 8:33:53 AM	9/21/2026 8:33:53 AM	9/24/2026 12:00:00 AM	9/23/2026 12:00:00 AM	Flooring	
+
+MBE Set Aside
+DOT062310 Facilities DOTD6	Closed	
+
+Awarded
+Quick Quote
+Edit 005A-27 Tree &amp; Brush Power Shearing, Trimming, Mulching &amp; Removal Services	SRC0000042015	005A-27 Tree & Brush Power Shearing, Trimming, Mulching & Removal Services	9/21/2026 8:03:07 AM	9/21/2026 8:03:07 AM	10/15/2026 1:00:00 PM	10/8/2026 1:00:00 PM	Plants and ornamental trees	
+
+MBE Set Aside
+DOT-Dept of Transportation	Open for Bidding	
+
+Awarded
+Invitation To Bid (ITB)
+Edit RFP # 2026-11-16 Durable Medical Equipment - Franklin County	SRC0000042009	RFP # 2026-11-16 Durable Medical Equipment - Franklin County	9/16/2026 8:00:00 AM	9/16/2026 8:00:00 AM	10/28/2026 2:00:00 PM	10/7/2026 5:00:00 PM	Medical Equipment and Accessories and Supplies	
+
+MBE Set Aside
+FRANKLIN COUNTY
+FRCTY000000 - FRANKLIN COUNTY
+Open for Bidding	
+
+Awarded
+Public Notice
+Edit Mount It Sit Stands - ADA	SRC0000042008	Mount It Sit Stands - ADA	9/18/2026 4:25:26 PM	9/18/2026 4:25:26 PM	9/22/2026 11:30:00 PM	9/22/2026 11:30:00 PM	Monitor arms or stands	
+
+MBE Set Aside
+MCD140001 Legal Counsel MCDLZ5100	Under Evaluation	
+
+Awarded
+Quick Quote
+Edit Early Intervention for the Blind/Visually Impaired	SRC0000042006	Early Intervention for the Blind/Visually Impaired	9/23/2026 2:15:32 PM	9/23/2026 2:15:32 PM	10/7/2026 12:00:00 PM	10/6/2026 3:00:00 PM	Educational evaluation service	
+
+MBE Set Aside
+OSB500000 - EARLY LEARNING
+OSB-Ohio Deaf & Blind Edu Services
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Early Intervention for the Deaf/Hard of Hearing	SRC0000042005	Early Intervention for the Deaf/Hard of Hearing	9/23/2026 2:17:14 PM	9/23/2026 2:17:14 PM	10/7/2026 12:00:00 PM	10/6/2026 3:00:00 PM	Educational evaluation service	
+
+MBE Set Aside
+OSB500000 - EARLY LEARNING
+OSB-Ohio Deaf & Blind Edu Services
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit ITRFQ0004419 ELB Learning Authoring Suite Gold	SRC0000042001	ITRFQ0004419 ELB Learning Authoring Suite Gold	9/18/2026 1:12:48 PM	9/18/2026 1:12:48 PM	10/5/2026 12:00:00 PM	9/30/2026 12:00:00 PM	Software	
+
+MBE Set Aside
+DOT282470 RESOURCE MANAGEMENT ODOT
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit RFP 2026-10-19 JFS Video Conference Room	SRC0000041998	RFP 2026-10-19 JFS Video Conference Room	9/18/2026 12:00:00 AM	9/18/2026 12:00:00 AM	12/31/2026 12:00:00 AM	9/25/2026 12:00:00 PM	Audio and visual equipment	
+
+MBE Set Aside
+FRANKLIN COUNTY
+FRCTY000000 - FRANKLIN COUNTY
+FRCTY000000 - FRANKLIN COUNTY
+Open for Bidding	
+
+Awarded
+Public Notice
+Edit R&amp;D IP ID CARDS	SRC0000041996	R&D IP ID CARDS	9/18/2026 11:12:46 AM	9/18/2026 11:12:46 AM	10/6/2026 12:00:00 AM	10/5/2026 12:00:00 AM	Identification ID press machines	
+
+MBE Set Aside
+DRC210300 Grafton Correctional Inst GRCI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Emergency Preparedness Course Development	SRC0000036562	Emergency Preparedness Course Development	3/31/2026 2:50:57 PM	9/17/2026 6:25:12 PM	10/16/2026 1:00:00 PM	10/9/2026 4:00:00 PM	Curriculum development service	
+
+MBE Set Aside
+AGE-Dept of Aging	Open for Bidding	
+
+Awarded
+Cancellation
+Edit DNAP Scenic Rivers Interpretive Displays	SRC0000041984	DNAP Scenic Rivers Interpretive Displays	9/17/2026 4:47:14 PM	9/17/2026 4:47:14 PM	10/7/2026 10:00:00 AM	10/2/2026 10:00:00 AM	Ecosystem displays	
+
+MBE Set Aside
+DNR-Dept of Natural Resources	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit ODRC-SCI- 5 -year Structural Fire Escape Inspection- J. Spergin	SRC0000041982	ODRC-SCI- 5 -year Structural Fire Escape Inspection- J. Spergin	9/28/2026 12:00:00 PM	9/28/2026 12:00:00 PM	10/14/2026 2:00:00 PM	10/9/2026 4:00:00 PM	Structural engineering	
+
+MBE Set Aside
+DRC231500 SOUTHEASTERN CORRECTIONAL INST SECI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit DRC-27F117 - Warren Correctional Project - AE RFQ	SRC0000041980	DRC-27F117 - Warren Correctional Project - AE RFQ	9/17/2026 3:09:32 PM	9/17/2026 3:09:32 PM	10/2/2026 1:00:00 PM	9/30/2026 5:00:00 PM	Professional engineering services	
+
+MBE Set Aside
+SFC-OH Facilities Construction Com	Open for Bidding	
+
+Awarded
+Request for Qualifications (RFQ) (Qualifications Based Selection)
+Edit MANCI-806 Series Gate Locks	SRC0000041979	MANCI-806 Series Gate Locks	9/17/2026 2:47:52 PM	9/17/2026 2:47:52 PM	10/16/2026 3:00:00 PM	10/2/2026 3:00:00 PM	Locks and security hardware and accessories	
+
+MBE Set Aside
+DRC210600 Mansfield Correctional Inst MACI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit GRANT - A2/B6 RECREATION EQUIPMENT	SRC0000041978	GRANT - A2/B6 RECREATION EQUIPMENT	9/17/2026 2:35:50 PM	9/17/2026 2:35:50 PM	10/5/2026 12:00:00 AM	10/2/2026 12:00:00 AM	Treadmills	
+
+MBE Set Aside
+DRC210300 Grafton Correctional Inst GRCI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit MANCI-Repair Shaker Fence Zones 9/10/11/37	SRC0000041977	MANCI-Repair Shaker Fence Zones 9/10/11/37	9/17/2026 2:36:18 PM	9/17/2026 2:36:18 PM	10/16/2026 3:30:00 PM	10/2/2026 3:00:00 PM	Adjustable fence	
+
+MBE Set Aside
+DRC210600 Mansfield Correctional Inst MACI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit INS - Media Buying and Campaign Development Services	SRC0000039303	INS - Media Buying and Campaign Development Services	9/3/2026 11:41:30 AM	9/17/2026 3:31:24 PM	10/2/2026 1:00:00 PM	9/25/2026 12:00:00 AM	Broadcast advertising	
+
+MBE Set Aside
+DAS-Administrative Services
+INS-Insurance
+Open for Bidding	
+
+Awarded
+Invitation To Bid (ITB)
+Edit DBH - FY27 Kronos Maintenance Renewal	SRC0000041970	DBH - FY27 Kronos Maintenance Renewal	9/17/2026 12:29:40 PM	9/17/2026 12:29:40 PM	9/22/2026 2:00:00 PM	9/21/2026 2:00:00 PM	Software	
+
+MBE Set Aside
+DMH104209 FINANCIAL MGMT - HCM ONLY JRST11	Closed	
+
+Awarded
+Quick Quote
+Edit RCI Control Door Controls	SRC0000039175	RCI Control Door Controls	5/26/2026 12:00:00 AM	9/17/2026 12:00:00 AM	10/2/2026 8:00:00 AM	9/29/2026 12:00:00 AM	Door openers	
+
+MBE Set Aside
+DRC231400 Ross Correctional Inst ROCI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit ITS - FY27 - Grammarly - Subscription Renewal	SRC0000041969	ITS - FY27 - Grammarly - Subscription Renewal	9/17/2026 12:30:00 PM	9/17/2026 12:30:00 PM	10/2/2026 4:00:00 PM	10/1/2026 5:00:00 PM	Compliance dictionaries as a service	
+
+MBE Set Aside
+EPA932000 PM-ITS Info Tech Service LZRS
+EPA950000 PM-Fiscal Administration LZRS
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit SFC-260530-Delphos CSD - Middle School	SRC0000041963	SFC-260530-Delphos CSD - Middle School	9/17/2026 1:29:07 PM	9/17/2026 1:29:07 PM	10/5/2026 3:00:00 PM	10/1/2026 12:00:00 PM	Building and Facility Construction and Maintenance Services	
+
+MBE Set Aside
+SFC-OH Facilities Construction Com	Open for Bidding	
+
+Awarded
+Request for Qualifications (RFQ) (Best Value Selection)
+Edit Ohio Dept of Health-Midwest Conference- Conference Space 2027	SRC0000041961	Ohio Dept of Health-Midwest Conference- Conference Space 2027	9/17/2026 11:33:41 AM	9/17/2026 11:33:41 AM	10/1/2026 11:00:00 AM	9/28/2026 3:00:00 PM	Audio visual technology	
+
+MBE Set Aside
+DOH300200 BUR OF ENV HLTH AND RAD PRO HDBL
+DOH-Dept of Health
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Criminal Livescan Vendor Certification	SRC0000041580	Criminal Livescan Vendor Certification	8/31/2026 2:57:32 PM	9/18/2026 9:40:19 AM	10/2/2026 3:30:00 PM	9/25/2026 10:00:00 AM	Fingerprint equipment	
+
+MBE Set Aside
+AGO400001 - Attorney General
+AGO461200 BCI Identification BCIIBG
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit MANCI-GreenHouse	SRC0000041958	MANCI-GreenHouse	9/17/2026 10:25:17 AM	9/17/2026 10:25:17 AM	10/9/2026 4:00:00 PM	10/2/2026 4:00:00 PM	Greenhouse	
+
+MBE Set Aside
+DRC210600 Mansfield Correctional Inst MACI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit CHJCF_Plants and Seeds_ Horticulture Dept_Edu Dept_08/26/2026	SRC0000041532	CHJCF_Plants and Seeds_ Horticulture Dept_Edu Dept_08/26/2026	8/26/2026 2:05:42 PM	9/17/2026 12:00:00 AM	10/7/2026 12:00:00 AM	10/7/2026 12:00:00 AM	Tulip seeds or bulbs or seedlings or cuttings	
+
+MBE Set Aside
+DYS252300 CHJCF - Academic Education CUJV	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit D12 - (1) Electric Man Lift	SRC0000041955	D12 - (1) Electric Man Lift	9/17/2026 9:23:57 AM	9/17/2026 9:23:57 AM	10/2/2026 1:00:00 PM	9/30/2026 1:00:00 PM	Lifting equipment and accessories	
+
+MBE Set Aside
+DOT120000 - ODOT-District 12
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit GRANT - A2/B6 KITCHENETTE APPLIANCES	SRC0000041953	GRANT - A2/B6 KITCHENETTE APPLIANCES	9/17/2026 8:46:44 AM	9/17/2026 8:46:44 AM	10/5/2026 12:00:00 AM	10/2/2026 12:00:00 AM	Commercial use grills	
+
+MBE Set Aside
+DRC210300 Grafton Correctional Inst GRCI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit OPS PAPER BAG WAX COATED 30 GALLON	SRC0000041952	OPS PAPER BAG WAX COATED 30 GALLON	9/17/2026 8:48:42 AM	9/17/2026 8:48:42 AM	9/25/2026 11:56:57 AM	10/1/2026 12:00:00 AM	Paper bags	
+
+MBE Set Aside
+DMH202209 PSC Admin - HCM ONLY DMHOPS	Closed	
+
+Awarded
+Quick Quote
+Edit D09 - (1) Tow Behind Broom	SRC0000041951	D09 - (1) Tow Behind Broom	9/17/2026 8:33:58 AM	9/17/2026 8:33:58 AM	10/2/2026 1:00:00 PM	9/30/2026 1:00:00 PM	Road sweeper	
+
+MBE Set Aside
+DOT090000 - ODOT-District 9
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit 404-27 Anton Paar electric DMA 5002 Modular Benchtop Density Meter	SRC0000041948	404-27 Anton Paar electric DMA 5002 Modular Benchtop Density Meter	9/17/2026 7:51:59 AM	9/17/2026 7:51:59 AM	10/8/2026 1:00:00 PM	10/1/2026 1:00:00 PM	Laboratory and scientific equipment	
+
+MBE Set Aside
+DOT-Dept of Transportation	Open for Bidding	
+
+Awarded
+Invitation To Bid (ITB)
+Edit Parking Lot Patching, Sealing, and Striping	SRC0000041949	Parking Lot Patching, Sealing, and Striping	9/17/2026 7:44:46 AM	9/17/2026 7:44:46 AM	9/30/2026 2:00:00 PM	9/28/2026 2:00:00 PM	Parking lot	
+
+MBE Set Aside
+DMH711065 CIN Centrl Stores/Med Supplies SUBH	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Court Reporting Services	SRC0000041946	Court Reporting Services	9/16/2026 12:00:00 AM	9/16/2026 12:00:00 AM	10/2/2026 6:00:00 AM	9/29/2026 12:00:00 PM	Court reporting services	
+
+MBE Set Aside
+NUR Board of Nursing ABGB	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Smart TV, Camera &amp; Speaker	SRC0000041945	Smart TV, Camera & Speaker	9/23/2026 12:01:56 PM	9/23/2026 12:01:56 PM	10/1/2026 1:00:00 PM	9/30/2026 12:00:00 PM	Web cameras	
+
+MBE Set Aside
+CAC-Casino Control Commission	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit 305 - TRUE - Gravity Elliptical with Unite LED Console	SRC0000041941	305 - TRUE - Gravity Elliptical with Unite LED Console	9/16/2026 2:43:44 PM	9/16/2026 2:43:44 PM	9/24/2026 2:00:00 PM	9/23/2026 2:00:00 PM	Cross trainers	
+
+MBE Set Aside
+DMH711065 CIN Centrl Stores/Med Supplies SUBH	Closed	
+
+Awarded
+Quick Quote
+Edit PUC27IT010 - MS Visual Studio Enterprise MSDN &amp; Windows Remote Desktop Services Renewal	SRC0000041940	PUC27IT010 - MS Visual Studio Enterprise MSDN & Windows Remote Desktop Services Renewal	9/16/2026 3:00:00 PM	9/16/2026 3:00:00 PM	9/21/2026 2:00:00 PM	9/21/2026 10:00:00 AM	Software	
+
+MBE Set Aside
+PUC300000 Administration PUC4	Under Evaluation	
+
+Awarded
+Quick Quote
+Edit DSC CSMS Underfloor Radiant Heat System repair	SRC0000041937	DSC CSMS Underfloor Radiant Heat System repair	9/16/2026 2:11:52 PM	9/16/2026 2:11:52 PM	10/15/2026 1:15:00 PM	10/13/2026 1:30:00 PM	Hydronics heating system maintenance and repair service	
+
+MBE Set Aside
+ADJ112020 Finance BEAR	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit D22 - Dura-Line Futurepath Microducts (Rebid)	SRC0000041936	D22 - Dura-Line Futurepath Microducts (Rebid)	9/17/2026 11:14:22 AM	9/17/2026 11:14:22 AM	10/2/2026 4:30:00 PM	9/29/2026 4:30:00 PM	Wire Raceways Conduit and Busways	
+
+MBE Set Aside
+DOT225160 OFFICE OF TSMO ODOT
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Titan Beds Bunkable Panel Base (Ebony &amp; Wild Cherry)	SRC0000041931	Titan Beds Bunkable Panel Base (Ebony & Wild Cherry)	9/16/2026 10:40:54 AM	9/16/2026 10:40:54 AM	9/16/2026 2:46:04 PM	9/29/2026 12:00:00 AM	Beds	
+
+MBE Set Aside
+DYS-Dept of Youth Services	Closed	
+
+Awarded
+Quick Quote
+Edit Alteryx - FY26	SRC0000038173	Alteryx - FY26	7/28/2026 12:00:00 AM	9/16/2026 12:00:00 AM	9/16/2026 4:00:00 PM	9/16/2026 3:00:00 PM	Database management system software maintenance	
+
+MBE Set Aside
+MCD000001 Medicaid Director MCDLZ5	Cancelled	
+
+Awarded
+Cancellation
+Edit TERM CONTRACT SPR 4 OAKS CHECKS	SRC0000041918	TERM CONTRACT SPR 4 OAKS CHECKS	9/16/2026 9:00:00 AM	9/16/2026 9:00:00 AM	9/23/2026 11:00:00 AM	9/23/2026 11:00:00 AM	Printed media	
+
+MBE Set Aside
+DAS-Administrative Services	Closed	
+
+Awarded
+Invitation To Bid (ITB)
+Edit ODOC Unmanned Ground Vehicle System - ANDROS SR1	SRC0000041919	ODOC Unmanned Ground Vehicle System - ANDROS SR1	9/16/2026 8:19:39 AM	9/16/2026 8:19:39 AM	10/2/2026 8:00:00 AM	9/30/2026 8:00:00 AM	Robot machines	
+
+MBE Set Aside
+COM650000 State Fire Marshal COMSFM	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Maintenance supplies	SRC0000041917	Maintenance supplies	9/16/2026 7:53:41 AM	9/16/2026 7:53:41 AM	9/25/2026 12:58:25 PM	10/1/2026 8:00:00 AM	Planer, woodworking	
+
+MBE Set Aside
+DRC210300 Grafton Correctional Inst GRCI	Closed	
+
+Awarded
+Quick Quote
+Edit D20 - Aquaveo 2D Hydraulic Modeling Software Training RFQ2137	SRC0000041911	D20 - Aquaveo 2D Hydraulic Modeling Software Training RFQ2137	9/15/2026 4:20:52 PM	9/15/2026 4:20:52 PM	9/30/2026 4:30:00 PM	9/25/2026 4:30:00 PM	Training workshop service	
+
+MBE Set Aside
+DOT-Dept of Transportation	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit ODNR - O&amp;G - OWP NEW HIRE EQUIPMENT	SRC0000041910	ODNR - O&G - OWP NEW HIRE EQUIPMENT	9/15/2026 3:07:50 PM	9/15/2026 3:07:50 PM	10/2/2026 4:00:00 PM	9/25/2026 4:00:00 PM	Metal detectors	
+
+MBE Set Aside
+DNR900200 OIL AND GAS DNRFRA	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Quickbooks - Subscription Renewal	SRC0000041908	Quickbooks - Subscription Renewal	9/16/2026 8:11:03 AM	9/16/2026 8:11:03 AM	10/1/2026 4:00:00 PM	9/28/2026 4:00:00 PM	Maintenance or support fees	
+
+MBE Set Aside
+DDD106010 ITS DDS OFFICE FRAN1	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit D09 - (1) Light Duty Pickup Truck Hopper Spreader	SRC0000041900	D09 - (1) Light Duty Pickup Truck Hopper Spreader	9/15/2026 2:04:43 PM	9/15/2026 2:04:43 PM	9/30/2026 1:00:00 PM	9/28/2026 1:00:00 PM	Specialized and recreational vehicles	
+
+MBE Set Aside
+DOT090000 - ODOT-District 9
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit ITRFQ0004365 TransCAD, TransModeler, TransDNA	SRC0000041903	ITRFQ0004365 TransCAD, TransModeler, TransDNA	9/15/2026 2:16:08 PM	9/15/2026 2:16:08 PM	9/30/2026 12:00:00 PM	9/25/2026 12:00:00 PM	Software	
+
+MBE Set Aside
+DOT282470 RESOURCE MANAGEMENT ODOT
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit PWC WWW Weekend Holiday Operations W.Branch,Wingfoot,Pymatuning,Punderson	SRC0000041902	PWC WWW Weekend Holiday Operations W.Branch,Wingfoot,Pymatuning,Punderson	9/18/2026 12:00:00 AM	9/18/2026 12:00:00 AM	10/8/2026 10:00:00 AM	10/7/2026 4:00:00 PM	Water treatment services	
+
+MBE Set Aside
+DNR352101 Water and Waste Water DNRLOG	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Ohio Department of Health DOH61906 : Bureau of Public Health Laboratory SFY27 -MiSeq i100 Plus System or equivalent and MiSeq i100 Plus Silver Support Plan or equivalent RFP	SRC0000041150	Ohio Department of Health DOH61906 : Bureau of Public Health Laboratory SFY27 -MiSeq i100 Plus System or equivalent and MiSeq i100 Plus Silver Support Plan or equivalent RFP	9/15/2026 12:00:00 AM	9/15/2026 1:45:00 PM	10/7/2026 12:00:00 AM	10/2/2026 3:00:00 PM	Analytical or scientific software	
+
+MBE Set Aside
+DOH100200 BUR OF PUBLIC HEALTH LAB DOHLAB
+DOH-Dept of Health
+Open for Bidding	
+
+Awarded
+Request For Proposal (RFP) (Double Envelope)
+Edit D27 - Liquid Lab Equipment Calibration FY27	SRC0000041898	D27 - Liquid Lab Equipment Calibration FY27	9/15/2026 1:32:52 PM	9/15/2026 1:32:52 PM	9/30/2026 2:00:00 PM	9/25/2026 2:00:00 PM	Laboratory and scientific equipment	
+
+MBE Set Aside
+DOT270000 - Construction Management
+DOT-Dept of Transportation
+Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit 712JSF27TOCI00001	SRC0000041896	712JSF27TOCI00001	9/15/2026 12:59:53 PM	9/15/2026 12:59:53 PM	9/18/2026 12:00:00 AM	9/18/2026 12:00:00 AM	Electrical cable and accessories	
+
+MBE Set Aside
+DRC211400 Toledo Correctional Inst TOCI	Under Evaluation	
+
+Awarded
+Quick Quote
+Edit FY27 Sayari Graph Negative News	SRC0000041895	FY27 Sayari Graph Negative News	9/16/2026 11:00:00 AM	9/16/2026 11:00:00 AM	10/1/2026 1:00:00 PM	9/25/2026 1:00:00 PM	Network application engine	
+
+MBE Set Aside
+DPS800000 Homeland Security CDSB	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Army Aviation Support Facility 2 Paving Project	SRC0000041887	Army Aviation Support Facility 2 Paving Project	9/15/2026 12:00:00 AM	9/15/2026 12:00:00 AM	9/30/2026 1:00:00 PM	9/28/2026 1:00:00 PM	Parking facility construction and equipment installation and maintenance and repair services	
+
+MBE Set Aside
+ADJ112020 Finance BEAR	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit 716 - OPI - FLAG MATERIAL	SRC0000041406	716 - OPI - FLAG MATERIAL	8/20/2026 2:54:27 PM	9/15/2026 12:36:46 PM	9/29/2026 1:00:00 PM	9/24/2026 12:00:00 PM	Specialty fabrics or cloth	
+
+MBE Set Aside
+DRC100000 OPERATION SUPPORT CENTER DRCUNI	Under Evaluation	
+
+Awarded
+Quick Quote
+Edit PWC WWW Weekend Treatment Plant Operations S. Bass, Kelly, Findley FY27	SRC0000041893	PWC WWW Weekend Treatment Plant Operations S. Bass, Kelly, Findley FY27	9/16/2026 12:22:58 PM	9/16/2026 12:22:58 PM	10/8/2026 10:00:00 AM	10/7/2026 4:00:00 PM	Water treatment services	
+
+MBE Set Aside
+DNR352101 Water and Waste Water DNRLOG	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Operator Certification Tracking System	SRC0000041892	Operator Certification Tracking System	9/15/2026 11:48:28 AM	9/15/2026 11:48:28 AM	10/1/2026 4:00:00 PM	9/30/2026 5:00:00 PM	Application implementation services	
+
+MBE Set Aside
+EPA932000 PM-ITS Info Tech Service LZRS
+EPA950000 PM-Fiscal Administration LZRS
+Open for Bidding	
+
+Awarded
+Quick Quote
+Edit OEPA ITS-FY27-015 - APC UPS replacements NEDO, CO	SRC0000041891	OEPA ITS-FY27-015 - APC UPS replacements NEDO, CO	9/15/2026 11:27:31 AM	9/15/2026 11:27:31 AM	9/30/2026 12:00:00 AM	9/28/2026 12:00:00 AM	Uninterruptible power supply UPS	
+
+MBE Set Aside
+EPA932000 PM-ITS Info Tech Service LZRS	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit I&amp;E Washer and dryer parts	SRC0000041890	I&E Washer and dryer parts	9/15/2026 11:25:36 AM	9/15/2026 11:25:36 AM	10/1/2026 7:00:00 AM	9/24/2026 12:00:00 AM	Vehicle parts washing machine	
+
+MBE Set Aside
+DRC231400 Ross Correctional Inst ROCI	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit ODNR, Division of Oil &amp; Gas – OWP – Federal Project –Lorain 22F - 7 Wells	SRC0000041888	ODNR, Division of Oil & Gas – OWP – Federal Project –Lorain 22F - 7 Wells	9/17/2026 2:32:42 PM	9/17/2026 2:32:42 PM	10/8/2026 12:00:00 PM	10/6/2026 12:00:00 PM	Well plugging services	
+
+MBE Set Aside
+DNR900200 OIL AND GAS DNRFRA	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Installation of Flush-Mounted In-Ground Traffic Control Spikes	SRC0000041875	Installation of Flush-Mounted In-Ground Traffic Control Spikes	9/15/2026 10:41:37 AM	9/15/2026 10:49:21 AM	9/29/2026 2:00:00 PM	9/28/2026 12:00:00 AM	Traffic signals	
+
+MBE Set Aside
+ADJ-Adjutant General	Under Evaluation	
+
+Awarded
+Quick Quote
+Edit DYS Connecting Loved Ones Sooner Than Expected (CLOSE) Transportation	SRC0000037187	DYS Connecting Loved Ones Sooner Than Expected (CLOSE) Transportation	2/24/2026 12:00:00 AM	9/15/2026 12:00:00 PM	9/28/2026 12:00:00 AM	9/25/2026 12:00:00 PM	Transport services	
+
+MBE Set Aside
+DYS-Dept of Youth Services	Closed	
+
+Awarded
+Request For Proposal (RFP) (Double Envelope)
+Edit DOT-270001-Miamitown Full Service Maintenance - AE RFQ	SRC0000041869	DOT-270001-Miamitown Full Service Maintenance - AE RFQ	9/15/2026 10:55:29 AM	9/15/2026 10:55:29 AM	9/30/2026 2:00:00 PM	9/25/2026 12:00:00 PM	Professional engineering services	
+
+MBE Set Aside
+SFC-OH Facilities Construction Com	Open for Bidding	
+
+Awarded
+Request for Qualifications (RFQ) (Qualifications Based Selection)
+Edit FFY26 REPLACE TRENCH DRAIN AND CONCRETE	SRC0000041881	FFY26 REPLACE TRENCH DRAIN AND CONCRETE	9/15/2026 2:53:23 PM	9/15/2026 2:53:23 PM	9/30/2026 7:00:00 AM	9/28/2026 3:30:00 PM	Concrete slab	
+
+MBE Set Aside
+ADJ334200 MANSFIELD - FOMA SRM ADJMAB	Open for Bidding	
+
+Awarded
+Request for Quote (RFQ)
+Edit Water Filters I+E	SRC0000041885	Water Filters I+E	9/15/2026 9:50:59 AM	9/15/2026 9:50:59 AM	9/16/2026 12:00:00 AM	9/16/2026 12:00:00 AM	Water filters	
+
+MBE Set Aside
+DRC210700 Marion Correctional Inst MRCI	Closed	
+
+Awarded
+Quick Quote
+Edit 427882rv OSP MB8X Cable RG8X with NMO mount Central Install	SRC0000041884	427882rv OSP MB8X Cable RG8X with NMO mount Central Install	9/15/2026 10:00:00 AM	9/15/2026 10:00:00 AM	9/30/2026 11:00:00 AM	9/29/2026 11:00:00 AM	Cable protectors	
+
+MBE Set Aside
+DPS225400 Electronic Technicians ALUM	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Mohican State Park One Salt Dogg Electric Replacement Tailgate Salt Spreader.	SRC0000041882	Mohican State Park One Salt Dogg Electric Replacement Tailgate Salt Spreader.	9/15/2026 12:00:00 AM	9/15/2026 12:00:00 AM	9/29/2026 10:00:00 AM	9/28/2026 12:00:00 AM	Salt spreader truck	
+
+MBE Set Aside
+DNR353116 Mohican State Park DNRASH	Closed	
+
+Awarded
+Quick Quote
+Edit 414274 -mkj PSI: Truck Wrap Installation	SRC0000041879	414274 -mkj PSI: Truck Wrap Installation	9/15/2026 10:45:00 AM	9/15/2026 10:45:00 AM	9/21/2026 1:00:00 PM	9/18/2026 1:00:00 PM	Vendor management services	
+
+MBE Set Aside
+DPS100000 Directors Office CDSB	Under Evaluation	
+
+Awarded
+Request for Quote (RFQ)
+Edit Installation of Flush-Mounted In-Ground Traffic Control Spikes	SRC0000041875	Installation of Flush-Mounted In-Ground Traffic Control Spikes	9/15/2026 10:41:37 AM	9/15/2026 10:41:37 AM	9/15/2026 10:42:30 AM	9/29/2026 12:00:00 AM	Traffic signals	
+
+MBE Set Aside
+ADJ-Adjutant General	Closed	
+
+Awarded
+Quick Quote
+Edit OSS Industrial Dry Storage Cabinet | BWC270341 | FY27 | JD	SRC0000041874	OSS Industrial Dry Storage Cabinet | BWC270341 | FY27 | JD	9/16/2026 1:30:00 PM	9/16/2026 1:30:00 PM	10/2/2026 3:00:00 PM	9/30/2026 12:00:00 AM	Medical facility products	
+
+MBE Set Aside
+BWC-Bur of Workers' Compensation	Open for Bidding	
+
+Awarded
+Quick Quote
+Edit Bulk Fuel for Caesar Creek State Park	SRC0000040782	Bulk Fuel for Caesar Creek State Park	8/19/2026 12:00:00 AM	9/15/2026 12:00:00 AM	9/24/2026 10:00:00 AM	9/23/2026 12:00:00 AM	Gasoline or Petrol	
+
+MBE Set Aside
+DNR-Dept of Natural Resources	Under Evaluation	
+
+Awarded
+Request for Quote (RFQ)
+Edit RENAL PRODUCTS - Theranova Dialyzer	SRC0000040798	RENAL PRODUCTS - Theranova Dialyzer	7/27/2026 3:28:50 PM	9/15/2026 7:39:22 AM	9/21/2026 11:00:00 AM	9/18/2026 12:00:00 AM	Laboratory dialysis supplies	
+
+MBE Set Aside
+DMH202209 PSC Admin - HCM ONLY DMHOPS	Closed	
+
+Awarded
+Quick Quote
+Edit State of Ohio Computer Center Steady-State Operations (SOCC-SS) RFP	SRC0000040051	State of Ohio Computer Center Steady-State Operations (SOCC-SS) RFP	8/5/2026 12:00:00 AM	9/16/2026 10:05:54 AM	9/30/2026 1:00:00 PM	9/16/2026 8:00:00 AM	Computer services	
+
+MBE Set Aside
+DAS-Administrative Services	Open for Bidding	
+
+Awarded
+Request For Proposal (RFP) (Double Envelope)
+Edit DBH - 55&quot; Samsung TV and Mount	SRC0000041861	DBH - 55" Samsung TV and Mount	9/14/2026 3:16:37 PM	9/14/2026 3:16:37 PM	9/18/2026 3:30:00 PM	9/17/2026 3:30:00 PM	Information Technology Broadcasting and Telecommunications	
+
+MBE Set Aside
+DMH104200 FINANCIAL MANAGEMENT JRST11
+DMH521090 COL Information Svcs Office TVBH
+Closed	
+
+Awarded
+Quick Quote
+Edit ITRFQ0004403 OKTA Human Identity API	SRC0000041858	ITRFQ0004403 OKTA Human Identity API	9/14/2026 3:08:00 PM	9/14/2026 3:08:00 PM	9/29/2026 12:00:00 PM	9/24/2026 12:00:00 PM	Software	
+
+MBE Set Aside
+DOT282470 RESOURCE MANAGEMENT ODOT
+DOT-Dept of Transportation
+Under Evaluation	
+
+Awarded
+Request for Quote (RFQ)
+Edit Citrix Universal Hybrid Multi-Cloud license	SRC0000041856	Citrix Universal Hybrid Multi-Cloud license	9/14/2026 2:45:30 PM	9/14/2026 2:45:30 PM	9/29/2026 8:00:00 AM	9/22/2026 8:00:00 AM	Software	
+
+MBE Set Aside
+DRC100000 OPERATION SUPPORT CENTER DRCFRA	Closed	
+
+Awarded
+Quick Quote
+Edit FY27 VRF Annual Support	SRC0000041854	FY27 VRF Annual Support	9/14/2026 2:08:21 PM	9/14/2026 2:08:21 PM	9/28/2026 1:00:00 PM	9/25/2026 1:00:00 PM	Software maintenance and support	
+
+MBE Set Aside
+EDU150000 DATA QUALITY AND GOVERNANCE ODOE	Under Evaluation	
+
+Awarded
+Quick Quote
+Edit MARCS TV Wall Mounts	SRC0000041850	MARCS TV Wall Mounts	9/28/2026 11:58:38 AM	9/28/2026 11:58:38 AM	10/6/2026 2:00:00 PM	10/1/2026 2:00:00 PM	Mounting kits	
+
+MBE Set Aside
+DAS500000 Office of Information Technlgy GSVC	Open for Bidding	
+
+Awarded
+Quick Quote
+3038 Record(s)
+OhioBuys v4.0 ©

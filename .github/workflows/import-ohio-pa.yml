@@ -1,0 +1,28 @@
+name: Import Ohio and Pennsylvania reviewed exports
+on:
+  push:
+    branches: [import/ohio-pa-20260929]
+    paths: [.github/workflows/import-ohio-pa.yml]
+permissions:
+  contents: read
+concurrency:
+  group: sync-bids
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Validate import filters and timezones
+        run: bun test src/jobs/sources/pa-emarketplace-csv.test.ts src/jobs/sources/ohiobuys-text.test.ts
+      - name: Import Pennsylvania
+        run: bun scripts/import-pa-emarketplace.ts src/jobs/sources/fixtures/pa-emarketplace/solicitations-2026-09-29.csv --apply
+      - name: Import Ohio
+        run: bun scripts/import-ohiobuys.ts src/jobs/sources/fixtures/ohiobuys/public-table-2026-09-29.txt --apply

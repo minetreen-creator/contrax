@@ -502,6 +502,7 @@ function GrantsPage() {
               onChange={(e) => {
                 abortRef.current?.abort();
                 requestSeq.current += 1;
+                clearTimers();
                 setFilters((f) => ({...f, dataset:e.target.value as "snapshot" | "live"}));
                 setResults([]); setData(null); setPhase("initial"); setLoadingMore(false);
               }}>

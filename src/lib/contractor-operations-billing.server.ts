@@ -15,6 +15,19 @@ export function grantsOperationsAccess(status: string | null | undefined): boole
   return status === "active" || status === "trialing";
 }
 
+/** Prevent an accidental price-id swap from charging a different amount or cadence. */
+export function matchesOperationsPrice(
+  price: Pick<Stripe.Price, "active" | "currency" | "unit_amount" | "recurring">,
+  interval: BillingInterval,
+): boolean {
+  return price.active && price.currency === "usd" &&
+    price.unit_amount === (interval === "month" ? 900 : 9000) &&
+    (interval === "month"
+      ? price.recurring?.interval === "month" && price.recurring?.interval_count === 1
+      : (price.recurring?.interval === "year" && price.recurring?.interval_count === 1) ||
+        (price.recurring?.interval === "month" && price.recurring?.interval_count === 12));
+}
+
 type State = { subscribed: boolean; status: string | null; customerId: string | null; interval: BillingInterval | null };
 export async function getOperationsSubscription(userId: number): Promise<State> {
   try {
@@ -38,6 +51,10 @@ export async function createOperationsCheckout(userId: number, interval: Billing
   const state = await getOperationsSubscription(userId);
   if (state.subscribed) throw new Error("Already subscribed; manage your plan in billing");
   const stripe = getStripe();
+  const configuredPrice = await stripe.prices.retrieve(price);
+  if (!matchesOperationsPrice(configuredPrice, interval)) {
+    throw new Error("Contrax Payments price configuration mismatch");
+  }
   const users = await sql()`SELECT email, stripe_customer_id FROM users WHERE id = ${userId} LIMIT 1`;
   if (!users.length) throw new Error("Account not found");
   let customerId = users[0].stripe_customer_id as string | null;

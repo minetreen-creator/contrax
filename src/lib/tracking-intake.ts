@@ -467,7 +467,9 @@ async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
  * lands. `kindOverride` pins the kind (used by the legacy forwarders); when it
  * is undefined the kind is read from the body's `kind`/`type` field.
  */
-export async function handleIntake(request: Request, kindOverride?: IntakeKind): Promise<Response> {
+let botIdWarningLogged = false;
+
+export async function handleIntake(request: Request, kindOverride?: IntakeKind, skipBotId = false): Promise<Response> {
   // Declared outside the try so failure logs can include context even when
   // parsing or the DB write itself throws.
   let kind: IntakeKind = kindOverride ?? "event";
@@ -487,6 +489,25 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind):
     const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
     if (isBot(userAgent)) {
       return Response.json({ ok: true, bot: true });
+    }
+
+    // Vercel BotID checks browser challenges on tracking beacons. A failed or
+    // unavailable check remains unclassified: never silently drop a real visit.
+    if (!skipBotId && process.env.VERCEL === "1") {
+      try {
+        const { checkBotId } = await import("botid/server");
+        const result = await checkBotId({
+          advancedOptions: { headers: Object.fromEntries(request.headers), checkLevel: "basic" },
+        });
+        if (result.isBot) {
+          return Response.json({ ok: true, bot: true });
+        }
+      } catch (error) {
+        if (!botIdWarningLogged) {
+          botIdWarningLogged = true;
+          console.error("[track-visitor] BotID unavailable; tracking remains unclassified:", error);
+        }
+      }
     }
 
     // Parse the body defensively — a malformed payload must not 500.

@@ -6,6 +6,7 @@ import {
   useLocation,
 } from "@tanstack/react-router";
 import { useEffect, useRef, type ReactNode } from "react";
+import { initBotId } from "botid/client/core";
 
 import { ChatWidget } from "~/components/ChatWidget";
 import {
@@ -82,6 +83,16 @@ export const Route = createRootRoute({
 // itself swallows failures too. /api/page-view stays as a thin forwarder for
 // legacy beacons.
 const PAGE_VIEW_DEDUPE_MS = 5 * 60 * 1000;
+
+// Initialize before React effects (including landing-page events) send a
+// tracking beacon. SSR does not execute this browser-only branch.
+if (typeof window !== "undefined") {
+  initBotId({ protect: [
+    { path: "/api/track-visitor", method: "POST", advancedOptions: { checkLevel: "basic" } },
+    { path: "/api/page-view", method: "POST", advancedOptions: { checkLevel: "basic" } },
+    { path: "/api/event", method: "POST", advancedOptions: { checkLevel: "basic" } },
+  ] });
+}
 
 function recordPageView(path: string) {
   if (typeof window === "undefined") return;

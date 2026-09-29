@@ -1632,6 +1632,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
               )}
             </a>
             <a href="/pipeline" className="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors">⭐ Pipeline</a>
+            <a href="/contract-payments" className="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors">Payments</a>
             <a href="/workspace" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Team</a>
             <a href="/awards" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Awards</a>
             <a href="/trends" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">📊 Trends</a>

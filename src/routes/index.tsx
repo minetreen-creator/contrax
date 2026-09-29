@@ -644,7 +644,7 @@ function ContractorOperations() {
           <a href="/contract-payments" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-800">Track payments</a>
           <a href="/contract-labor" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-50">Review labor hours</a>
         </div>
-        <p className="mt-4 text-xs text-slate-500">Planned price: $9/month or $90/year. Checkout is not active yet. This tool does not collect customer payments or process payroll.</p>
+        <p className="mt-4 text-xs text-slate-500">$9/month or $90/year. Separate subscription. This tool does not collect customer payments or process payroll.</p>
       </div>
     </section>
   );

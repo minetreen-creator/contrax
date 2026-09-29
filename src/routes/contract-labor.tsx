@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
+import { ContractorOperationsAccess } from "~/components/ContractorOperationsAccess";
 
 type Entry = { id: number | null; worker_name: string; job_name: string; work_date: string;
   hours_hundredths: number; hourly_rate_cents: number; reviewed: boolean; notes: string; archived: boolean };
@@ -19,7 +20,7 @@ function Guard() {
   const { user } = Route.useLoaderData();
   const navigate = useNavigate();
   useEffect(() => { if (!user) navigate({ to: "/login" }); }, [user, navigate]);
-  return user ? <LaborPage /> : null;
+  return user ? <ContractorOperationsAccess><LaborPage /></ContractorOperationsAccess> : null;
 }
 
 function LaborPage() {

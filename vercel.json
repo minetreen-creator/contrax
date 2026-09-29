@@ -2,6 +2,8 @@
   "buildCommand": "bash build-vercel.sh",
   "installCommand": "bash scripts/setup-bun.sh && export PATH=\"$HOME/.bun/bin:$PATH\" && bun install --frozen-lockfile",
   "env": {
-    "STRIPE_GRANTS_PRICE_ID": "price_1UGmwtGdL43e7acFVAPNtBOQ"
+    "STRIPE_GRANTS_PRICE_ID": "price_1UGmwtGdL43e7acFVAPNtBOQ",
+    "STRIPE_CONTRAX_PAYMENTS_MONTHLY_PRICE_ID": "price_1UL3noGdL43e7acF6AxfeCGQ",
+    "STRIPE_CONTRAX_PAYMENTS_ANNUAL_PRICE_ID": "price_1UL3oXGdL43e7acFcVllOURE"
   }
 }

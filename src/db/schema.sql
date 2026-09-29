@@ -804,6 +804,19 @@ CREATE INDEX IF NOT EXISTS idx_grants_subscriptions_customer_id
 CREATE INDEX IF NOT EXISTS idx_grants_subscriptions_status
     ON grants_subscriptions (status);
 
+-- Contractor Operations is its own paid product, independent of Radar and Bid Scout.
+CREATE TABLE IF NOT EXISTS contractor_operations_subscriptions (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id),
+    status TEXT NOT NULL DEFAULT 'incomplete',
+    stripe_customer_id TEXT,
+    stripe_subscription_id TEXT UNIQUE,
+    price_id TEXT,
+    current_period_end TIMESTAMPTZ,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_contractor_operations_subscription_customer
+    ON contractor_operations_subscriptions (stripe_customer_id);
+
 -- ── State Grants (migrations 043 + 044; owner ROLLOUT order 2026-09-18, plus the
 --    owner's 2026-09-19 P1 corrections in 044) ──
 -- Mirrors BOTH db/migrations/043_state_grants.sql AND

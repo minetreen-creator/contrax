@@ -3,6 +3,7 @@ import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { dateOnly } from "~/lib/brief-source";
 import { parsePaymentInput } from "~/lib/contract-payments";
+import { getOperationsSubscription } from "~/lib/contractor-operations-billing.server";
 
 function serialize(row: any) {
   return {
@@ -18,6 +19,7 @@ function serialize(row: any) {
 async function get({ request }: { request: Request }) {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
+  if (!(await getOperationsSubscription(user.id)).subscribed) return Response.json({ error: "Contrax Payments subscription required" }, { status: 403 });
   try {
     const rows = await sql()`
       SELECT id, customer_name, job_name, invoice_number, amount_cents,
@@ -37,6 +39,7 @@ async function get({ request }: { request: Request }) {
 async function post({ request }: { request: Request }) {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
+  if (!(await getOperationsSubscription(user.id)).subscribed) return Response.json({ error: "Contrax Payments subscription required" }, { status: 403 });
   const input = parsePaymentInput(await request.json().catch(() => null));
   if (!input) return Response.json({ error: "Invalid payment details" }, { status: 400 });
   if (input.archived && input.id === null) return Response.json({ error: "Payment record not found" }, { status: 404 });

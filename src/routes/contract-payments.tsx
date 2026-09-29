@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { PAYMENT_STATUSES, type PaymentInput } from "~/lib/contract-payments";
+import { ContractorOperationsAccess } from "~/components/ContractorOperationsAccess";
 
 type RecordItem = PaymentInput & { id: number; created_at: string; updated_at: string };
 const empty: PaymentInput = {
@@ -24,7 +25,7 @@ function Guard() {
   const { user } = Route.useLoaderData();
   const navigate = useNavigate();
   useEffect(() => { if (!user) navigate({ to: "/login" }); }, [user, navigate]);
-  return user ? <PaymentPage /> : null;
+  return user ? <ContractorOperationsAccess><PaymentPage /></ContractorOperationsAccess> : null;
 }
 
 function PaymentPage() {
@@ -126,6 +127,6 @@ function PaymentPage() {
           <button className="mt-3 text-sm font-semibold text-blue-700 hover:underline" onClick={() => edit(item)}>Edit details</button>
         </article>)}</div>}
     </section>
-    <p className="mt-8 text-xs text-slate-500">Contrax Payments: planned price $9/month or $90/year. Checkout is not active yet; no subscription or payment method is collected here.</p>
+    <p className="mt-8 text-xs text-slate-500">Contrax Payments is $9/month or $90/year. This tool does not collect customer payments or process payroll.</p>
   </main></div>;
 }

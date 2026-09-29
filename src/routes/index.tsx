@@ -254,8 +254,8 @@ function Home() {
           <HeroRadar initialCert="all" heading={false} compact />
         </div>
       </section>
-      <FeaturedServices />
       <ContractorOperations />
+      <FeaturedServices />
       <HowItWorks />
       <Pricing />
       <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />

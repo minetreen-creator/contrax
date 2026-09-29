@@ -82,6 +82,7 @@ interface SearchResponse {
   ok?: boolean;
   error?: string;
   source?: string;
+  dataset?: "snapshot" | "live";
   /** Which status filter this response answers (server echo). */
   status?: GrantsStatus;
   authenticated?: boolean;
@@ -110,6 +111,7 @@ interface SearchResponse {
 }
 
 interface Filters {
+  dataset: "snapshot" | "live";
   keyword: string;
   applicantType: string;
   fundingCategory: string;
@@ -144,6 +146,7 @@ type Phase = "initial" | "loading" | "results" | "empty" | "error" | "wall";
 
 function GrantsPage() {
   const [filters, setFilters] = useState<Filters>({
+    dataset: "snapshot",
     keyword: "",
     applicantType: "",
     fundingCategory: "",
@@ -273,6 +276,7 @@ function GrantsPage() {
       if (filters.applicantType) qs.set("applicantType", filters.applicantType);
       if (filters.fundingCategory) qs.set("fundingCategory", filters.fundingCategory);
       if (filters.agency) qs.set("agency", filters.agency);
+      qs.set("dataset", filters.dataset);
       qs.set("status", filters.status);
       qs.set("page", String(page));
 
@@ -492,6 +496,23 @@ function GrantsPage() {
           onSubmit={onSubmit}
           className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
         >
+          <div className="mb-4">
+            <label htmlFor="grants-dataset" className={LABEL_CLASS}>Grant source</label>
+            <select id="grants-dataset" className={INPUT_CLASS} value={filters.dataset}
+              onChange={(e) => {
+                abortRef.current?.abort();
+                requestSeq.current += 1;
+                clearTimers();
+                setFilters((f) => ({...f, dataset:e.target.value as "snapshot" | "live"}));
+                setResults([]); setData(null); setPhase("initial"); setLoadingMore(false);
+              }}>
+              <option value="snapshot">Simpler.Grants.gov — September 29, 2026 snapshot (1,518 records)</option>
+              <option value="live">Grants.gov — live search</option>
+            </select>
+            {filters.dataset === "snapshot" && <p className="mt-2 text-sm text-slate-600">
+              Downloaded September 29, 2026. Deadlines are checked against today; status and amendments may have changed. Confirm details in the official notice.
+            </p>}
+          </div>
           <div>
             <label htmlFor="grants-keyword" className={LABEL_CLASS}>
               Keyword
@@ -606,7 +627,7 @@ function GrantsPage() {
         {/* ── States ── */}
         {phase === "initial" && (
           <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
-            <p className="font-semibold text-slate-900">Search live federal grants.</p>
+            <p className="font-semibold text-slate-900">Search federal grants.</p>
             <p className="mt-1">
               Every result comes straight from {GRANTS_SOURCE_LABEL}: real titles, real agencies, real posted and
               closing dates. Where the source publishes no funding amount or eligibility list, we say{" "}
@@ -725,7 +746,7 @@ function GrantsPage() {
             {asOfText(data?.asOf) && (
               <p className="mt-1 text-xs text-slate-500">
                 Data as of <span className="font-medium text-slate-700">{asOfText(data?.asOf)}</span> —{" "}
-                {GRANTS_SOURCE_LABEL} was searched for this result set.
+                {data?.dataset === "snapshot" ? "Simpler.Grants.gov snapshot; confirm current status in the official notice." : `${GRANTS_SOURCE_LABEL} was searched for this result set.`}
               </p>
             )}
             <p className="mt-1 text-xs text-slate-500">

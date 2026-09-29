@@ -7,6 +7,23 @@ const MODEL = "gpt-4o-mini";
 const EMBEDDINGS_URL = "https://api.openai.com/v1/embeddings";
 const EMBEDDING_MODEL = "text-embedding-3-small";
 
+
+/** OpenAI request with bounded retry for transient throttling/service failures. */
+export async function fetchOpenAIWithRetry(url: string, init: RequestInit, maxAttempts = 3): Promise<Response> {
+  let response: Response | undefined;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    response = await fetch(url, init);
+    if (response.ok || (response.status !== 429 && response.status < 500)) return response;
+    if (attempt === maxAttempts) return response;
+    const retryAfter = Number(response.headers.get("retry-after"));
+    const delayMs = Number.isFinite(retryAfter) && retryAfter > 0
+      ? Math.min(retryAfter * 1000, 5000)
+      : 250 * 2 ** (attempt - 1);
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return response!;
+}
+
 export interface AIMessage {
   role: string;
   content: string;
@@ -77,7 +94,7 @@ export async function callAIWithUsage(messages: AIMessage[], opts: AIOptions = {
   if (opts.jsonMode) body.response_format = { type: "json_object" };
   let response: Response;
   try {
-    response = await fetch(OPENAI_URL, {
+    response = await fetchOpenAIWithRetry(OPENAI_URL, {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` }, body: JSON.stringify(body),
     });
   } catch (err) {

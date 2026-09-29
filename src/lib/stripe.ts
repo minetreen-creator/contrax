@@ -457,6 +457,11 @@ export async function handleStripeWebhook(
     return { success: true };
   }
 
+  // Standalone Contractor Operations subscription. Its webhook-owned status is
+  // the only authority for payment and labor workspace access.
+  const { handleOperationsEvent } = await import("~/lib/contractor-operations-billing.server");
+  if (await handleOperationsEvent(event)) return { success: true };
+
   // The plan TIERS (Starter/Professional/Agency) keep their subscription state
   // on the `users` row (plan_tier / subscription_status / subscription_current_
   // period_end) — the same row the checkout flow below writes. Their LIFECYCLE

@@ -48,6 +48,13 @@ echo "[1/5] vite build (light — safe under the sandbox memory cap)"
 # placeholder copy); no-op once node_modules is current.
 bun install
 
+# Add the paid entitlement table before a production build becomes deployable.
+# Fail the build if the production database cannot be reached; never serve a
+# paid gate backed by a missing table. The SQL is additive and repeatable.
+if [[ "${VERCEL_ENV:-}" == "production" ]]; then
+  bun db/migrations/run-056.ts
+fi
+
 echo "[2/5] generate sitemap.xml from far_clauses (clause library SEO; FAILS OPEN — keeps last-known sitemap if the DB is unreachable)"
 # Must run BEFORE `bun run build` so Vite copies the fresh public/sitemap.xml
 # into dist/client. The script exits 0 even when the DB is unreachable (see its

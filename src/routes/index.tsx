@@ -633,7 +633,7 @@ function ContractorOperations() {
   return (
     <section aria-labelledby="contractor-operations-heading" className="border-y border-slate-200 bg-slate-50 px-4 py-12 sm:px-6 sm:py-16">
       <div className="mx-auto max-w-6xl rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
-        <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Separate tool · Free pilot</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Separate contractor tool</p>
         <h2 id="contractor-operations-heading" className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
           Keep your contractor operations moving
         </h2>
@@ -644,7 +644,7 @@ function ContractorOperations() {
           <a href="/contract-payments" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-800">Track payments</a>
           <a href="/contract-labor" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-50">Review labor hours</a>
         </div>
-        <p className="mt-4 text-xs text-slate-500">Pilot access is free. This tool does not collect payments or process payroll.</p>
+        <p className="mt-4 text-xs text-slate-500">Planned price: $9/month or $90/year. Checkout is not active yet. This tool does not collect customer payments or process payroll.</p>
       </div>
     </section>
   );

@@ -126,6 +126,6 @@ function PaymentPage() {
           <button className="mt-3 text-sm font-semibold text-blue-700 hover:underline" onClick={() => edit(item)}>Edit details</button>
         </article>)}</div>}
     </section>
-    <p className="mt-8 text-xs text-slate-500">Pilot access is free while this workflow is evaluated. Planned price: $9/month or $90/year. No payment method is collected here.</p>
+    <p className="mt-8 text-xs text-slate-500">Planned price: $9/month or $90/year. Checkout is not active yet; no subscription or payment method is collected here.</p>
   </main></div>;
 }

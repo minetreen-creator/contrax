@@ -26,3 +26,5 @@ jobs:
         run: bun scripts/import-pa-emarketplace.ts src/jobs/sources/fixtures/pa-emarketplace/solicitations-2026-09-29.csv --apply
       - name: Import Ohio
         run: bun scripts/import-ohiobuys.ts src/jobs/sources/fixtures/ohiobuys/public-table-2026-09-29.txt --apply
+
+# Full 21-page Ohio public-table sweep verified: 3038 records, 154 open.

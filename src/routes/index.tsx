@@ -631,20 +631,28 @@ function FeaturedServices() {
 
 function ContractorOperations() {
   return (
-    <section aria-labelledby="contractor-operations-heading" className="border-y border-slate-200 bg-slate-50 px-4 py-12 sm:px-6 sm:py-16">
-      <div className="mx-auto max-w-6xl rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
-        <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Standalone contractor tool</p>
-        <h2 id="contractor-operations-heading" className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-          Contrax Payments
-        </h2>
-        <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-600">
-          Track customer invoices, missing paperwork, payment follow-ups, and labor hours by job. Use it for any contract, whether or not you found the work on Contrax.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <a href="/contract-payments" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-800">Track payments</a>
-          <a href="/contract-labor" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-50">Review labor hours</a>
+    <section aria-labelledby="contractor-operations-heading" className="border-y border-blue-200 bg-blue-50 px-4 py-16 sm:px-6 sm:py-20">
+      <div className="mx-auto grid max-w-6xl gap-8 rounded-3xl border-2 border-blue-300 bg-white p-7 shadow-xl shadow-blue-900/10 sm:p-10 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center">
+        <div>
+          <p className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-800">Standalone contractor tool · Now available</p>
+          <h2 id="contractor-operations-heading" className="mt-4 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
+            Contrax Payments
+          </h2>
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-700">
+            Stay on top of invoices and labor hours for every job. Track missing paperwork and payment follow-ups in one place, whether or not you found the contract on Contrax.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <a href="/contract-payments" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-700 px-6 py-3 text-base font-bold text-white shadow-md shadow-blue-700/20 hover:bg-blue-800">Explore Contrax Payments →</a>
+            <a href="/contract-labor" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-blue-300 bg-white px-5 py-3 text-base font-bold text-blue-800 hover:bg-blue-50">Review labor hours</a>
+          </div>
+          <p className="mt-5 text-sm text-slate-600">Separate from Radar and Bid Scout. Does not collect customer payments or process payroll.</p>
         </div>
-        <p className="mt-4 text-xs text-slate-500">$9/month or $90/year. Separate subscription. This tool does not collect customer payments or process payroll.</p>
+        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-slate-950">
+          <p className="text-sm font-bold uppercase tracking-wide text-blue-800">Simple pricing</p>
+          <p className="mt-3 text-4xl font-extrabold">$9<span className="text-base font-semibold text-slate-600">/month</span></p>
+          <p className="mt-2 text-base font-semibold text-slate-700">or $90/year <span className="text-sm font-normal">(save $18)</span></p>
+          <div className="mt-5 border-t border-blue-200 pt-4 text-sm leading-relaxed text-slate-700">Invoice follow-ups · Paperwork checklist · Labor hours by job</div>
+        </div>
       </div>
     </section>
   );

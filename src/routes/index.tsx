@@ -254,6 +254,7 @@ function Home() {
           <HeroRadar initialCert="all" heading={false} compact />
         </div>
       </section>
+      <ContractorOperations />
       <FeaturedServices />
       <HowItWorks />
       <Pricing />
@@ -623,6 +624,27 @@ function FeaturedServices() {
           </div>
         </div>
         <p className="mt-4 text-center text-xs text-slate-500">Matches and funding are not guaranteed. Grant writing and submission are not included.</p>
+      </div>
+    </section>
+  );
+}
+
+function ContractorOperations() {
+  return (
+    <section aria-labelledby="contractor-operations-heading" className="border-y border-slate-200 bg-slate-50 px-4 py-12 sm:px-6 sm:py-16">
+      <div className="mx-auto max-w-6xl rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
+        <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Separate tool · Free pilot</p>
+        <h2 id="contractor-operations-heading" className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+          Keep your contractor operations moving
+        </h2>
+        <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-600">
+          Track customer invoices, missing paperwork, payment follow-ups, and labor hours by job. Use it for any contract, whether or not you found the work on Contrax.
+        </p>
+        <div className="mt-6 flex flex-wrap gap-3">
+          <a href="/contract-payments" className="inline-flex min-h-11 items-center justify-center rounded-xl bg-blue-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-800">Track payments</a>
+          <a href="/contract-labor" className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-900 hover:bg-slate-50">Review labor hours</a>
+        </div>
+        <p className="mt-4 text-xs text-slate-500">Pilot access is free. This tool does not collect payments or process payroll.</p>
       </div>
     </section>
   );

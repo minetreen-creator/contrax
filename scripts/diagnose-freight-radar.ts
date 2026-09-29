@@ -16,7 +16,7 @@ const counts = await db`
   FROM bids WHERE due_date > NOW() AND naics_code = ANY(${codes})`;
 
 const candidates = await runKeywordScanQuery(sql, {
-  certFrag: sbCertFragment(db),
+  certFrag: sbCertFragment(sql),
   tradeFrag: tradeKeywordPred(db, expansion),
 }, LOW_CONTENT_SQL);
 const included = candidates.filter((r) => certMatches(r.set_aside, [r.source], "sb") === "include");

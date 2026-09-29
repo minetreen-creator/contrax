@@ -1,5 +1,9 @@
 /** Official CSV snapshot; deliberately imported only by the server search route. */
+import { gunzipSync } from 'node:zlib';
 import snapshot from '~/data/grants-snapshot.json';
+type SnapshotRow = Record<'opportunity_id'|'opportunity_number'|'opportunity_title'|'opportunity_status'|'agency_code'|'agency_name'|'post_date'|'close_date'|'forecasted_close_date'|'updated_at'|'estimated_total_program_funding'|'award_floor'|'award_ceiling'|'applicant_types'|'applicant_eligibility_description'|'funding_categories'|'summary_description'|'url', string>;
+export const GRANTS_SNAPSHOT_RECORDS: SnapshotRow[] = JSON.parse(gunzipSync(Buffer.from(snapshot.recordsGzipBase64, 'base64')).toString('utf8'));
+if (GRANTS_SNAPSHOT_RECORDS.length !== snapshot.recordCount) throw new Error('Incomplete grants snapshot');
 import { APPLICANT_TYPES, PAGE_SIZE, classifyGrantStatus, mapGrantResult, filterResultsForStatus, tallyGrantStatuses, type GrantsSearchParams } from '~/lib/grants';
 
 const applicantEnums: Record<string, string> = {
@@ -27,12 +31,12 @@ function sourceDay(raw: string): string | null {
 }
 const labels = new Map(APPLICANT_TYPES.map(o => [applicantEnums[o.value], o.label]));
 export const GRANTS_SNAPSHOT_AS_OF = snapshot.downloadedAt;
-export const GRANTS_SNAPSHOT_SIZE = snapshot.records.length;
+export const GRANTS_SNAPSHOT_SIZE = GRANTS_SNAPSHOT_RECORDS.length;
 
 export function searchGrantsSnapshot(params: GrantsSearchParams, now: Date = new Date()) {
  const words = params.keyword.toLowerCase().split(/\s+/).filter(Boolean);
  const agency = params.agency === 'USDOJ' ? 'DOJ' : params.agency;
- const rows = snapshot.records.filter(r => {
+ const rows = GRANTS_SNAPSHOT_RECORDS.filter(r => {
    const text = [r.opportunity_title,r.opportunity_number,r.summary_description,r.agency_name].join(' ').toLowerCase();
    return words.every(w => text.includes(w)) &&
      (!agency || r.agency_code === agency || r.agency_code.startsWith(agency + '-')) &&

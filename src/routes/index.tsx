@@ -633,9 +633,9 @@ function ContractorOperations() {
   return (
     <section aria-labelledby="contractor-operations-heading" className="border-y border-slate-200 bg-slate-50 px-4 py-12 sm:px-6 sm:py-16">
       <div className="mx-auto max-w-6xl rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-9">
-        <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Separate contractor tool</p>
+        <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Standalone contractor tool</p>
         <h2 id="contractor-operations-heading" className="mt-2 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
-          Keep your contractor operations moving
+          Contrax Payments
         </h2>
         <p className="mt-3 max-w-3xl text-base leading-relaxed text-slate-600">
           Track customer invoices, missing paperwork, payment follow-ups, and labor hours by job. Use it for any contract, whether or not you found the work on Contrax.

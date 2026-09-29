@@ -1,0 +1,22 @@
+name: Apply migration 055 (temporary)
+on:
+  push:
+    branches:
+      - feat/contract-payments-mvp
+    paths:
+      - .github/workflows/apply-055-temporary.yml
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Apply additive migration twice and verify shape
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          test -n "$DATABASE_URL"
+          bun db/migrations/run-055.ts
+          bun db/migrations/run-055.ts

@@ -68,9 +68,21 @@ const canonicalNaics = (entry: string) => /^\d{6}/.exec(entry.trim())?.[0] ?? ""
 function streetAndZip(address: string | null): string | null {
   if (!address) return null;
   const normalized = address.toUpperCase().replace(/[^A-Z0-9]/g, " ").replace(/\s+/g, " ").trim();
-  const street = /^(\d+[A-Z]?)\s+([A-Z0-9]+)/.exec(normalized);
-  const zip = /\b(\d{5})(?:\s+\d{4})?\b(?!.*\d{5})/.exec(normalized);
-  return street && zip ? `${street[1]}:${street[2]}:${zip[1]}` : null;
+  // GSA often prints ZIP+4 without a hyphen. Require the entire street name
+  // and type, not just the first word (MAIN ST and MAIN AVE are different).
+  const zip = /\b(\d{5})(?:\s?\d{4})?\b(?!.*\d{5})/.exec(normalized);
+  const street = /^(\d+[A-Z]?\s+(?:(?:[A-Z0-9]+)\s+){0,8})(STREET|ST|AVENUE|AVE|ROAD|RD|DRIVE|DR|BOULEVARD|BLVD|PARKWAY|PKWY|PLACE|PL|COURT|CT|WAY|LANE|LN|CIRCLE|CIR|HIGHWAY|HWY|PLAZA|PLZ|TERRACE|TER|PIKE)\b/.exec(normalized);
+  if (!street || !zip) return null;
+  const types: Record<string, string> = {
+    STREET: "ST", AVENUE: "AVE", ROAD: "RD", DRIVE: "DR", BOULEVARD: "BLVD",
+    PARKWAY: "PKWY", PLACE: "PL", COURT: "CT", LANE: "LN", CIRCLE: "CIR",
+    HIGHWAY: "HWY", PLAZA: "PLZ", TERRACE: "TER",
+  };
+  const streetKey = `${street[1]}${types[street[2]!] ?? street[2]}`.replace(/\s+/g, "");
+  // A suite or floor named in either record must corroborate. A missing unit
+  // is insufficient evidence when the other source distinguishes one.
+  const unit = /\b(?:STE|SUITE|UNIT|FL|FLOOR|APT)\s*#?\s*([A-Z0-9]+)\b/.exec(normalized)?.[1] ?? "";
+  return `${streetKey}:${unit}:${zip[1]}`;
 }
 
 /** Exact company + state + NAICS + street number/name + ZIP, one distinct UEI. */

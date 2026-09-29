@@ -77,7 +77,7 @@ function PaymentPage() {
   const update = <K extends keyof PaymentInput>(key: K, value: PaymentInput[K]) =>
     setDraft((old) => old ? { ...old, [key]: value } : old);
 
-  return <main className="mx-auto max-w-5xl px-4 py-10 text-slate-900">
+  return <div className="min-h-screen bg-slate-50"><main className="mx-auto max-w-5xl px-4 py-10 text-slate-900">
     <nav className="mb-8 flex gap-6 text-sm"><a className="text-blue-700 hover:underline" href="/dashboard">← Dashboard</a><a className="text-blue-700 hover:underline" href="/contract-labor">Labor review →</a></nav>
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><p className="text-sm font-semibold uppercase tracking-wide text-blue-700">Pilot workspace</p>
@@ -116,7 +116,7 @@ function PaymentPage() {
       </div>
     </form>}
     <section className="mt-8"><h2 className="mb-4 text-xl font-bold">Invoices</h2>
-      {loading ? <p>Loading…</p> : items.length === 0 ? <p className="rounded-xl border border-dashed border-slate-300 p-7 text-slate-600">No invoices tracked yet. Add one to record the next action and follow-up date.</p> :
+      {loading ? <p>Loading…</p> : items.length === 0 ? <p className="rounded-xl border border-dashed border-slate-300 bg-white p-7 text-slate-600">No invoices tracked yet. Add one to record the next action and follow-up date.</p> :
         <div className="space-y-3">{items.map((item) => <article key={item.id} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap justify-between gap-3"><div><h3 className="font-semibold">{item.job_name} · {item.customer_name}</h3><p className="text-sm text-slate-600">Invoice {item.invoice_number}{item.purchase_order_number ? ` · PO ${item.purchase_order_number}` : ''}</p></div>
             <div className="text-right"><p className="font-bold">{money(item.amount_cents)}</p><p className="text-sm capitalize text-slate-600">{item.status}</p></div></div>
@@ -127,5 +127,5 @@ function PaymentPage() {
         </article>)}</div>}
     </section>
     <p className="mt-8 text-xs text-slate-500">Pilot access is free while this workflow is evaluated. Planned price: $9/month or $90/year. No payment method is collected here.</p>
-  </main>;
+  </main></div>;
 }

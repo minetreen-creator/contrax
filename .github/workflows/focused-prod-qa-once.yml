@@ -1,0 +1,31 @@
+name: Focused production browser QA once
+on:
+  pull_request:
+    paths:
+      - .github/workflows/focused-prod-qa-once.yml
+permissions:
+  contents: read
+jobs:
+  focused-qa:
+    if: github.event.pull_request.head.ref == 'qa/focused-prod-2026' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Install one-time browser dependency
+        run: |
+          npm install --no-save --ignore-scripts playwright
+          npx playwright install --with-deps chromium
+      - name: Run browser QA with scoped teardown
+        run: node scripts/qa-focused-prod.mjs
+      - name: Ensure scoped teardown after failures
+        if: always()
+        run: node scripts/qa-focused-prod.mjs --cleanup

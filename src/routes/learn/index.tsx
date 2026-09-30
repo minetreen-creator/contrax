@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { listDocuments, searchDocuments, getDocument, seedLearnContent, type KnowledgeListItem, type KnowledgeDocument } from "~/lib/knowledge";
 import { CERT_GUIDES } from "~/components/CertGuideLayout";
+import { SiteHeader } from "~/components/SiteHeader";
 
 const TITLE = "Free Government Contracting Resources & Guides | Contrax";
 const DESC = "Free government contracting guides for small businesses — including 8(a), WOSB/EDWOSB, SDVOSB, and HUBZone certification guides, proposal templates, capability statement examples, compliance checklists, and more.";
@@ -25,10 +26,15 @@ export const Route = createFileRoute("/learn/")({
   }),
   loader: async () => {
     try { await seedLearnContent(); } catch {}
-    try { return listDocuments({ data: { isPublic: true, page: 1, query: "", docType: "" } }); }
+    try { return await listDocuments({ data: { isPublic: true, page: 1, query: "", docType: "" } }); }
     catch { return { docs: [], total: 0, hasMore: false }; }
   },
-  component: LearnPage,
+  component: () => (
+    <>
+      <SiteHeader />
+      <LearnPage />
+    </>
+  ),
 });
 
 function LearnPage() {

@@ -38,17 +38,24 @@ import { US_STATES } from "~/lib/states";
 // NOTE (owner order 2026-09-23): the compact homepage map EMBED was removed;
 // this aggregation stays because the homepage counter reads totals.totalOpen
 // from it. /map keeps using the same aggregation on its own.
+// Returns null when the query fails (DB unreachable, bids table missing) so a
+// database blip hides the stats row instead of 500-ing the public homepage.
+// Never substitute a zero or made-up count: the row is simply omitted.
 const getContractMapAggregate = createServerFn({ method: "GET" }).handler(
-  async (): Promise<ContractMapAggregate> => {
-    const { sql } = await import("~/db");
-    const rows = await sql()`
-      SELECT location, set_aside, estimated_value, agency, category, due_date
-      FROM bids
-      WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
-        AND ${sql().unsafe(LOW_CONTENT_SQL)}
-        AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
-    `;
-    return buildContractMap(rows as any);
+  async (): Promise<ContractMapAggregate | null> => {
+    try {
+      const { sql } = await import("~/db");
+      const rows = await sql()`
+        SELECT location, set_aside, estimated_value, agency, category, due_date
+        FROM bids
+        WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
+          AND ${sql().unsafe(LOW_CONTENT_SQL)}
+          AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+      `;
+      return buildContractMap(rows as any);
+    } catch {
+      return null;
+    }
   },
 );
 
@@ -437,8 +444,9 @@ function Stats({
   contractMap,
 }: {
   bidStats: { activeCount: number; agencyCount: number };
-  contractMap: ContractMapAggregate;
+  contractMap: ContractMapAggregate | null;
 }) {
+  if (!contractMap) return null;
   const stats = [
     { value: contractMap.totals.totalOpen.toLocaleString("en-US"), label: "open opportunities" },
     { value: bidStats.agencyCount.toLocaleString("en-US"), label: "agencies represented" },

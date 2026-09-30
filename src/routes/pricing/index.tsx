@@ -88,6 +88,40 @@ const agencyPlan = {
   slug: "agency",
 };
 
+// "Which is right for me?" — one row per common need, pointing at the single
+// product that fits. Prices mirror the cards below, /bid-scout,
+// /bid-fit-review, /grants and ContractorOperationsAccess.
+const PLAN_GUIDE = [
+  { need: "I'm just starting to look at set-asides", pick: "Basic", price: "Free", href: "/signup?plan=basic" },
+  { need: "I want daily email alerts for my NAICS codes", pick: "Starter", price: "$19/month", href: "/signup?plan=starter" },
+  { need: "I want AI briefs, incumbent pricing and match scores", pick: "Professional", price: "$79/month", href: "/signup?plan=professional" },
+  { need: "I want someone to find the bids for me", pick: "Bid Scout", price: "$99/month", href: "/bid-scout?source=pricing_guide" },
+  { need: "I'm deciding on one specific bid", pick: "Bid Fit Review", price: "$99 once", href: "/bid-fit-review" },
+  { need: "I manage a team or several clients", pick: "Agency", price: "$199/month", href: "/signup?plan=agency" },
+  { need: "I'm looking for grants, not contracts", pick: "Contrax Grants", price: "Free for verified nonprofits", href: "/grants" },
+  { need: "I need to track invoices and labor hours", pick: "Contrax Payments", price: "$9/month", href: "/contract-payments" },
+];
+
+function WhichPlan() {
+  return (
+    <section aria-labelledby="which-plan-heading" className="mx-auto mt-10 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
+      <h3 id="which-plan-heading" className="text-xl font-bold text-slate-900">Which is right for me?</h3>
+      <ul className="mt-4 divide-y divide-slate-100">
+        {PLAN_GUIDE.map((row) => (
+          <li key={row.pick}>
+            <a href={row.href} className="flex flex-col gap-1 py-3 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+              <span className="text-sm text-slate-600">{row.need}</span>
+              <span className="shrink-0 text-sm font-semibold text-slate-900">
+                {row.pick} <span className="font-normal text-slate-500">· {row.price}</span> <span aria-hidden="true" className="text-blue-700">→</span>
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
 function PricingPage() {
   return (
     <div className="min-h-screen bg-white">
@@ -105,6 +139,8 @@ function PricingPage() {
               Start free on Basic with no card, then scale up as your contracting pipeline grows. No long-term contracts required. Your 14-day Professional trial starts when you upgrade, and you can cancel anytime during it.
             </p>
           </div>
+
+          <WhichPlan />
 
           {/* Plan cards */}
           <div className="mt-14 grid gap-8 lg:grid-cols-3">

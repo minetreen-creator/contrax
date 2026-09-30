@@ -66,6 +66,7 @@ import {
   RADAR_SCAN_TIMEOUT_ERROR,
   type RadarScanRace,
 } from "~/lib/radar-scan-runner";
+import { SiteHeader } from "~/components/SiteHeader";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -897,7 +898,12 @@ function buildNextAction(bid: RadarBidRow): string {
 
 // ── Route ────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/radar")({
-  component: RadarLanding,
+  component: () => (
+    <>
+      <SiteHeader />
+      <RadarLanding />
+    </>
+  ),
   head: () => ({
     meta: [
       { title: "Contract Radar — Live Match Scores for Set-Aside Contracts | Contrax" },

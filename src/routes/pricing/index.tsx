@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SiteHeader } from "~/components/SiteHeader";
 
 export const Route = createFileRoute("/pricing/")({
   component: PricingPage,
@@ -90,24 +91,7 @@ const agencyPlan = {
 function PricingPage() {
   return (
     <div className="min-h-screen bg-white">
-      {/* Nav */}
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
-          <a href="/" className="inline-flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900">
-              <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </span>
-            <span className="text-xl font-bold tracking-tight text-slate-900">Contrax</span>
-          </a>
-          <nav className="flex items-center gap-4 text-sm">
-            <a href="/#features" className="text-slate-500 hover:text-slate-900">Features</a>
-            <a href="/pricing" className="font-bold text-slate-900">Pricing</a>
-            <a href="/login" className="text-slate-500 hover:text-slate-900">Sign in</a>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Hero */}
       <section className="pricing-section py-16 sm:py-20">
@@ -118,7 +102,7 @@ function PricingPage() {
               Plans for every stage of growth
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Start free on Basic, then scale up as your contracting pipeline grows. No long-term contracts required. Start free on Basic with no card. Start your 14-day Professional trial when you upgrade. Cancel anytime during your trial.
+              Start free on Basic with no card, then scale up as your contracting pipeline grows. No long-term contracts required. Your 14-day Professional trial starts when you upgrade, and you can cancel anytime during it.
             </p>
           </div>
 
@@ -219,6 +203,47 @@ function PricingPage() {
             <p className="mt-3 text-center text-xs text-gray-500">
               Agency includes the Proposal Evaluator "Red Team" and team roles — available separately from the core tiers.
             </p>
+          </div>
+
+          {/* Done-for-you services (priced separately from the software plans; same
+              prices as /bid-scout and /bid-fit-review, features per lib/plan-gates). */}
+          <div className="mt-10 grid gap-6 md:grid-cols-2">
+            <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+              <h3 className="text-xl font-bold text-slate-900">Bid Scout</h3>
+              <p className="mt-1 text-sm text-gray-500">Five handpicked federal opportunities that fit your business, every Friday.</p>
+              <p className="mt-5 text-3xl font-extrabold text-slate-900">
+                $99<span className="text-base font-normal text-gray-500">/month</span>
+              </p>
+              <ul className="mt-5 flex-1 space-y-2 text-sm text-gray-700">
+                <li>Five matched opportunities with deadlines, requirements and risks</li>
+                <li>Proposal drafting</li>
+                <li>Pipeline CSV export</li>
+              </ul>
+              <a
+                href="/bid-scout?source=pricing"
+                className="mt-6 block w-full rounded-xl border-2 border-slate-900 px-6 py-3 text-center text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98]"
+              >
+                Start Bid Scout
+              </a>
+            </div>
+            <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+              <h3 className="text-xl font-bold text-slate-900">Bid Fit Review</h3>
+              <p className="mt-1 text-sm text-gray-500">A one-page pursue/pass review of a single solicitation.</p>
+              <p className="mt-5 text-3xl font-extrabold text-slate-900">
+                $99<span className="text-base font-normal text-gray-500"> once</span>
+              </p>
+              <ul className="mt-5 flex-1 space-y-2 text-sm text-gray-700">
+                <li>Eligibility and fit against the stated requirements</li>
+                <li>Key deadlines, required forms and deal breakers</li>
+                <li>We confirm your request before you pay</li>
+              </ul>
+              <a
+                href="/bid-fit-review"
+                className="mt-6 block w-full rounded-xl border-2 border-slate-900 px-6 py-3 text-center text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98]"
+              >
+                Request a review
+              </a>
+            </div>
           </div>
 
           {/* Footer notes */}

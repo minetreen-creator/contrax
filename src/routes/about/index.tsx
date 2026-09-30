@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SiteHeader } from "~/components/SiteHeader";
 
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "About Contrax";
@@ -6,7 +7,12 @@ const DESC =
   "Contrax was founded by Nathaniel Minetree to help 8(a), SDVOSB, WOSB, and HUBZone small businesses find government contracts: tell Contrax what your business does and Radar finds the opportunities that match.";
 
 export const Route = createFileRoute("/about/")({
-  component: AboutPage,
+  component: () => (
+    <>
+      <SiteHeader />
+      <AboutPage />
+    </>
+  ),
   head: () => ({
     meta: [
       { title: TITLE },

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
+import { SiteHeader } from "~/components/SiteHeader";
 
 export const Route = createFileRoute("/bid-fit-review")({
   head: () => ({ meta: [
@@ -7,7 +8,12 @@ export const Route = createFileRoute("/bid-fit-review")({
     { name: "description", content: "A $99 one-time, source-cited review of one government solicitation for your business." },
     { name: "robots", content: "index, follow" },
   ] }),
-  component: BidFitReview,
+  component: () => (
+    <>
+      <SiteHeader />
+      <BidFitReview />
+    </>
+  ),
 });
 
 function BidFitReview() {
@@ -28,8 +34,7 @@ function BidFitReview() {
   }
   return <main className="min-h-screen bg-slate-50 text-slate-900">
     <div className="mx-auto max-w-4xl px-5 py-12 sm:py-20">
-      <a href="/" className="text-sm font-semibold text-blue-700">← Contrax</a>
-      <p className="mt-12 text-sm font-bold uppercase tracking-widest text-blue-700">One-time service · $99 introductory price</p>
+      <p className="text-sm font-bold uppercase tracking-widest text-blue-700">One-time service · $99 introductory price</p>
       <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Know whether this bid is worth your time.</h1>
       <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">Send us one government solicitation and your business details. Get a one-page, source-cited pursue/pass assessment before you invest hours in a response.</p>
       <div className="mt-10 grid gap-6 md:grid-cols-2">

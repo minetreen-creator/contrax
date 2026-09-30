@@ -11,7 +11,7 @@ for (const r of records) {
   const url = new URL(r.url);
   if (url.origin !== "https://emma.maryland.gov" || !/^\/page.aspx\/en\/bpm\/process_manage_extranet\/\d+$/.test(url.pathname)) throw new Error("Invalid source link");
 }
-const eligible = records.filter((r: any) => Date.parse(r.due_iso) > Date.now());
+const eligible = records.filter((r: any) => Date.parse(r.due_iso) > Date.now() && /^\d{1,2}\/\d{1,2}\/2026\b/.test(r.cells[5]));
 const rows: RawBid[] = eligible.map((r: any) => ({
   external_id: "md-emma:" + r.cells[1],
   title: r.cells[2], agency: r.cells[8], description: "Main category: " + r.cells[6],

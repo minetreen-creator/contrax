@@ -39,8 +39,8 @@ function Forecasts() {
     <div className="mx-auto max-w-5xl px-4 py-10">
       <a href="/radar" className="font-semibold text-blue-700">← Contract Radar</a>
       <h1 className="mt-6 text-3xl font-bold">Upcoming procurement forecasts</h1>
-      <p className="mt-3 max-w-3xl text-slate-600">Explore planned Department of Commerce purchases. Forecasts may change and are not open solicitations. Estimated quarters are not bid deadlines.</p>
-      <p className="mt-3 text-sm text-slate-600">Source snapshot: September 30, 2026. Includes fiscal years 2027–2028; fiscal year 2027 begins October 1, 2026.</p>
+      <p className="mt-3 max-w-3xl text-slate-600">Explore planned Commerce and Homeland Security purchases. Forecasts may change and are not open solicitations. Estimated quarters are not bid deadlines.</p>
+      <p className="mt-3 text-sm text-slate-600">Source snapshot: September 30, 2026. Includes fiscal years 2027–2029; fiscal year 2027 begins October 1, 2026.</p>
       <a href="https://www.commerce.gov/oam/industry/procurement-forecasts" target="_blank" rel="noreferrer" className="mt-2 inline-block text-sm font-semibold text-blue-700">View Commerce's current forecast report →</a>
       <div className="mt-6 grid gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-3">
         <label className="text-sm font-semibold">Keyword or NAICS
@@ -76,7 +76,7 @@ function Forecasts() {
           <p className="mt-2 text-sm">Anticipated set-aside / awardee: {row.setAside || "Not stated"}</p>
           {row.strategy ? <p className="mt-2 text-sm">Competition strategy: {row.strategy}</p> : null}
           <details className="mt-4"><summary className="cursor-pointer font-semibold text-blue-700">Read planned scope</summary><p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-slate-600">{row.description}</p></details>
-          {row.dateFlags.length ? <p className="mt-3 text-xs text-amber-800">The source contains a creation or modification date after the snapshot date. Verify this entry with Commerce.</p> : null}
+          {row.dateFlags.length ? <p className="mt-3 text-xs text-amber-800">The source contains a creation or modification date after the snapshot date. Verify this entry with the issuing agency.</p> : null}
         </article>)}
       </div>
       {data && matches.length > 20 ? <nav aria-label="Forecast pages" className="mt-6 flex items-center gap-4">

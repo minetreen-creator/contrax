@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
   AllRegionLinks,
   getRegionData,
+  OtherTradeLinks,
   RegionView,
   SeoLanding,
   seoHead,
@@ -43,6 +44,9 @@ function ContractsInState() {
       }
     >
       <RegionView data={data} />
+      {data.code && data.name && (
+        <OtherTradeLinks stateName={data.name} />
+      )}
       <AllRegionLinks />
     </SeoLanding>
   );

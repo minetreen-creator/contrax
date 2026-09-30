@@ -31,6 +31,10 @@ import {
   type StateAggregate,
 } from "~/lib/contract-map";
 import { trackEvent } from "~/lib/track";
+import { expandTrade, tradeKeywordPred } from "~/lib/trade-registry";
+import { resolveBidState } from "~/lib/location-state";
+import { SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
+import { SiteHeader } from "~/components/SiteHeader";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Set-aside cert hub taxonomy (canonical slugs reused everywhere: trades.tsx
@@ -250,6 +254,73 @@ export const getRegionData = createServerFn({ method: "GET" })
     };
   });
 
+// ─── Server fn: /contracts-in/{state}/{trade} (live open bids for one trade) ──
+// Trade matching is Radar's own (expandTrade + tradeKeywordPred), and the state
+// comes from resolveBidState (performance location, falling back to the buyer)
+// — the same geography Radar uses. Count and list are real rows only; a DB
+// failure returns honest zeros rather than 500-ing the page.
+export interface RegionTradeData {
+  code: string | null;
+  name: string | null;
+  stateSlug: string;
+  trade: { slug: string; label: string; radarTerm: string } | null;
+  count: number;
+  bids: SeoBid[];
+  generatedAt: string;
+}
+
+/** Keep only rows performed in (or bought by) `code`, soonest deadline first. */
+export function filterBidsToState(rows: SeoBid[], code: string): SeoBid[] {
+  return rows
+    .filter((b) => resolveBidState(b.location, b.agency) === code)
+    .sort((a, b) => String(a.due_date ?? "9999").localeCompare(String(b.due_date ?? "9999")));
+}
+
+export const getRegionTradeData = createServerFn({ method: "GET" })
+  .validator((d: unknown) => ({
+    state: String((d as any)?.state ?? "").toLowerCase(),
+    trade: String((d as any)?.trade ?? "").toLowerCase(),
+  }))
+  .handler(async ({ data }): Promise<RegionTradeData> => {
+    const code = STATE_SLUG_TO_CODE[data.state] ?? null;
+    const trade = SEO_TRADE_BY_SLUG[data.trade] ?? null;
+    const valid = !!code && REGION_SET.has(code) && !!trade;
+    let bids: SeoBid[] = [];
+    if (valid) {
+      const { sql } = await import("~/db");
+      try {
+        const rows = await sql()`
+          SELECT id, title, agency, description, due_date, estimated_value,
+                 naics_code, location, set_aside, source_url
+          FROM (
+            SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
+                   id, title, agency, description, due_date, estimated_value,
+                   naics_code, location, set_aside, source_url, created_at
+            FROM bids
+            WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)}
+              AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+              ${tradeKeywordPred(sql, expandTrade(trade!.radarTerm))}
+            ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
+          ) t
+          LIMIT 5000
+        `;
+        bids = filterBidsToState((rows as any[]).map(mapSeoBid), code!);
+      } catch (e) {
+        console.error("[seo-landing] region-trade query failed:", e);
+        bids = [];
+      }
+    }
+    return {
+      code: valid ? code : null,
+      name: valid ? (STATE_NAMES[code!] ?? null) : null,
+      stateSlug: data.state,
+      trade: valid ? { slug: trade!.slug, label: trade!.label, radarTerm: trade!.radarTerm } : null,
+      count: bids.length,
+      bids: bids.slice(0, 25),
+      generatedAt: new Date().toISOString(),
+    };
+  });
+
 // ─── Server fn: /set-aside-contracts index (live count per cert hub) ────────
 export const getSetAsideIndex = createServerFn({ method: "GET" }).handler(
   async () => {
@@ -393,6 +464,7 @@ export function SeoLanding(props: {
 }) {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
+      <SiteHeader />
       {/* Hero */}
       <section className="relative overflow-hidden bg-slate-950 text-white">
         <div className="mx-auto max-w-6xl px-6 py-16 sm:py-20">
@@ -809,6 +881,74 @@ export function AllRegionLinks() {
           Browse contracts by industry (NAICS) →
         </a>
       </p>
+    </section>
+  );
+}
+
+/** /contracts-in/{state}/{trade} body — the real open bids, or an honest empty state. */
+export function RegionTradeView({ data, radarHref }: { data: RegionTradeData; radarHref: string }) {
+  const name = data.name ?? "this state";
+  const label = data.trade?.label ?? "Matching";
+  if (data.count === 0) {
+    return (
+      <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
+        <h2 className="text-xl font-bold text-slate-900">
+          No open {label.toLowerCase()} solicitations in {name} right now
+        </h2>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-slate-600">
+          New notices arrive every 4 hours. Search nationwide in Radar, or check back soon.
+        </p>
+        <a href={radarHref} className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">
+          Search {label.toLowerCase()} contracts in Radar
+        </a>
+      </section>
+    );
+  }
+  return (
+    <section>
+      <h2 className="text-2xl font-bold text-slate-900">
+        {data.count.toLocaleString("en-US")} open {label.toLowerCase()} solicitation{data.count === 1 ? "" : "s"} in {name}
+      </h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Soonest deadline first{data.count > data.bids.length ? ` · showing ${data.bids.length}` : ""}. Each links to its official notice.
+      </p>
+      <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+        {data.bids.map((b) => (
+          <BidCard key={b.id} b={b} />
+        ))}
+      </ul>
+      <p className="mt-6">
+        <a href={radarHref} className="inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">
+          See your best matches in Radar →
+        </a>
+      </p>
+    </section>
+  );
+}
+
+/** Internal links: the same state's other trades + the state overview page. */
+export function OtherTradeLinks({ stateName, currentTrade }: { stateName: string; currentTrade?: string }) {
+  // Always link the canonical full-name slug, even when the visitor arrived via a code (/contracts-in/va).
+  const stateSlug = stateName.toLowerCase().replace(/\s+/g, "-");
+  return (
+    <section className="mt-10">
+      <h3 className="text-lg font-bold text-slate-900">
+        {currentTrade ? "Other trades" : "Contracts by trade"} in {stateName}
+      </h3>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {SEO_TRADES.filter((t) => t.slug !== currentTrade).map((t) => (
+          <a key={t.slug} href={`/contracts-in/${stateSlug}/${t.slug}`} className={chipCls}>
+            {t.label}
+          </a>
+        ))}
+      </div>
+      {currentTrade && (
+        <p className="mt-4 text-sm">
+          <a href={`/contracts-in/${stateSlug}`} className="font-semibold text-blue-600 hover:text-blue-800">
+            All government contracts in {stateName} →
+          </a>
+        </p>
+      )}
     </section>
   );
 }

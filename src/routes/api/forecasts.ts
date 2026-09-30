@@ -21,7 +21,8 @@ async function handler() {
       };
     });
     return Response.json({ forecasts, total: forecasts.length, snapshotDate: "2026-09-30" });
-  } catch {
+  } catch (error) {
+    console.error("[forecasts] database read failed", { code: (error as { code?: string }).code, name: (error as Error).name });
     return Response.json({ error: "Procurement forecasts are temporarily unavailable." }, { status: 503 });
   }
 }

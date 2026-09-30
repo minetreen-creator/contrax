@@ -1,0 +1,31 @@
+name: Import Maryland eMMA bids
+on:
+  pull_request:
+    branches: [main]
+    paths: [data/md-open-solicitations-2026-09-30.json, scripts/import-md-emma.ts, .github/workflows/import-md-emma.yml]
+  push:
+    branches: [main]
+    paths: [data/md-open-solicitations-2026-09-30.json, scripts/import-md-emma.ts, .github/workflows/import-md-emma.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: import-md-emma
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Validate snapshot
+        run: bun run scripts/import-md-emma.ts
+      - name: Import and verify production records
+        if: github.event_name != 'pull_request'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun run scripts/import-md-emma.ts --apply

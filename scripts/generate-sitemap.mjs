@@ -26,6 +26,13 @@
 import { neon } from "@neondatabase/serverless";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+// Same trade matching + geography as Radar and the /contracts-in/{state}/{trade}
+// pages (bun runs this script, so it can import the TS modules directly).
+import { expandTrade, tradeKeywordPred } from "../src/lib/trade-registry.ts";
+import { resolveBidState } from "../src/lib/location-state.ts";
+import { SEO_TRADES } from "../src/lib/seo-trades.ts";
+import { LOW_CONTENT_SQL } from "../src/lib/low-content.ts";
+import { AWARD_EXCLUSION_SQL } from "../src/lib/source-class.ts";
 
 const root = process.cwd();
 const SITEMAP_PATH = join(root, "public", "sitemap.xml");
@@ -50,6 +57,23 @@ const SEO_LANDING_PATHS = [
   "/hubzone-contracts",
   "/small-business-contracts",
   "/contracts-by-industry",
+];
+/**
+ * Product pages people actually buy from or search from. Emitted fresh on every
+ * run (and dropped from the preserved static set) so they can never go missing
+ * from the sitemap again.
+ */
+const PRODUCT_PATHS = [
+  ["/radar", "daily", "0.9"],
+  ["/bid-scout", "weekly", "0.9"],
+  ["/bid-fit-review", "monthly", "0.8"],
+  ["/grants", "daily", "0.8"],
+  ["/state-grants", "weekly", "0.7"],
+  ["/trades", "weekly", "0.7"],
+  ["/subcontracts", "daily", "0.7"],
+  ["/forecasts", "weekly", "0.6"],
+  ["/map", "daily", "0.6"],
+  ["/example-brief", "monthly", "0.6"],
 ];
 /** Full state name -> region URL slug ("New Jersey" -> "new-jersey"). */
 const STATE_SLUGS = {
@@ -103,7 +127,8 @@ function readStaticUrlBlocks() {
       loc.includes("/clauses/") ||
       loc === `${PROD_URL}/clauses` ||
       loc.includes("/contracts-in/") ||
-      SEO_LANDING_PATHS.some((p) => loc === `${PROD_URL}${p}`)
+      SEO_LANDING_PATHS.some((p) => loc === `${PROD_URL}${p}`) ||
+      PRODUCT_PATHS.some(([p]) => loc === `${PROD_URL}${p}`)
     ) continue;
     blocks.push(block);
   }
@@ -186,6 +211,43 @@ async function main() {
     );
   }
 
+  // State + trade pages (/contracts-in/{state}/{trade}) — only combos with at
+  // least one real open, matching bid right now (empty pages are noindex, so
+  // listing them would waste crawl budget). Isolated try/catch: a failure here
+  // keeps every other URL.
+  const tradeCombos = [];
+  try {
+    const sqlFactory = () => neon(process.env.DATABASE_URL);
+    for (const trade of SEO_TRADES) {
+      const db = sqlFactory();
+      const rows = await db`
+        SELECT location, agency FROM bids
+        WHERE due_date > NOW()
+          AND ${db.unsafe(LOW_CONTENT_SQL)}
+          AND ${db.unsafe(AWARD_EXCLUSION_SQL)}
+          ${tradeKeywordPred(sqlFactory, expandTrade(trade.radarTerm))}
+        LIMIT 5000
+      `;
+      const states = new Set();
+      for (const r of rows) {
+        const code = resolveBidState(r.location, r.agency);
+        if (code && STATE_SLUGS[code]) states.add(code);
+      }
+      for (const code of Array.from(states).sort()) tradeCombos.push([code, trade.slug]);
+    }
+  } catch (err) {
+    console.warn(`[generate-sitemap] state+trade query failed (${err?.message ?? err}) — skipping those URLs`);
+    tradeCombos.length = 0;
+  }
+  const tradeBlocks = tradeCombos.map(
+    ([code, slug]) =>
+      `  <url>\n    <loc>${PROD_URL}/contracts-in/${STATE_SLUGS[code]}/${slug}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>daily</changefreq>\n    <priority>0.7</priority>\n  </url>`,
+  );
+  const productBlocks = PRODUCT_PATHS.map(
+    ([p, freq, prio]) =>
+      `  <url>\n    <loc>${PROD_URL}${p}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>${freq}</changefreq>\n    <priority>${prio}</priority>\n  </url>`,
+  );
+
   const partBlocks = partNumbers.map(
     (p) =>
       `  <url>\n    <loc>${PROD_URL}/clauses/${escapeXml(p)}</loc>\n    <lastmod>${TODAY}</lastmod>\n    <changefreq>monthly</changefreq>\n    <priority>0.6</priority>\n  </url>`,
@@ -214,9 +276,11 @@ async function main() {
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
     ...staticBlocks.map((b) => `  ${b}`),
+    ...productBlocks,
     indexBlock,
     ...landBlocks,
     ...regionBlocks,
+    ...tradeBlocks,
     ...partBlocks,
     ...clauseBlocks,
     "</urlset>",
@@ -224,7 +288,7 @@ async function main() {
   ].join("\n");
   writeFileSync(SITEMAP_PATH, xml);
   console.log(
-    `[generate-sitemap] wrote ${SITEMAP_PATH}: ${staticBlocks.length} static + 1 clauses index + ${landBlocks.length} landing + ${regionBlocks.length} region + ${partBlocks.length} part + ${clauseBlocks.length} clause URLs = ${staticBlocks.length + 1 + landBlocks.length + regionBlocks.length + partBlocks.length + clauseBlocks.length} total`,
+    `[generate-sitemap] wrote ${SITEMAP_PATH}: ${staticBlocks.length} static + ${productBlocks.length} product + 1 clauses index + ${landBlocks.length} landing + ${regionBlocks.length} region + ${tradeBlocks.length} state+trade + ${partBlocks.length} part + ${clauseBlocks.length} clause URLs = ${staticBlocks.length + productBlocks.length + 1 + landBlocks.length + regionBlocks.length + tradeBlocks.length + partBlocks.length + clauseBlocks.length} total`,
   );
 }
 

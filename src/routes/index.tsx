@@ -295,7 +295,7 @@ function Home() {
 // ── Navbar ────────────────────────────────────────────────────────────────────
 // Always white (both themes) so the white-background logo blends in.
 
-function Navbar({ user }: { user: { id: number; email: string } | null }) {
+function Navbar({ user }: { user: { id: number; email: string; is_admin?: boolean } | null }) {
   const link = "text-[#56647a] no-underline hover:text-[#0f1f38]";
   return (
     <header className="border-b border-[#dde3ec] bg-white text-[#0f1f38]">
@@ -305,7 +305,13 @@ function Navbar({ user }: { user: { id: number; email: string } | null }) {
         </a>
         <nav className="flex items-center gap-4 text-sm sm:gap-[26px] sm:text-[15px]">
           <a href="/radar" className={link}>Contracts</a>
-          <a href="/pricing" className={link}>Pricing</a>
+          {/* Admins get an extra link; drop Pricing on phones so the row still fits. */}
+          <a href="/pricing" className={user?.is_admin ? `${link} hidden sm:inline` : link}>Pricing</a>
+          {user?.is_admin && (
+            <a href="/admin" className="rounded-md bg-amber-50 px-2.5 py-1 font-semibold text-amber-600 no-underline hover:text-amber-500">
+              Admin
+            </a>
+          )}
           {user ? (
             <a href="/dashboard" className="rounded-md border border-[#dde3ec] px-4 py-2 text-[#0f1f38] no-underline">
               Dashboard

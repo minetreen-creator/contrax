@@ -3,13 +3,13 @@ import { sql } from "~/db";
 
 async function handler() {
   try {
-    const rows = await sql()`SELECT external_id, title, description, fiscal_year, fiscal_quarter, payload
-      FROM procurement_forecasts WHERE source = 'commerce_faaps'
+    const rows = await sql()`SELECT source, external_id, title, description, fiscal_year, fiscal_quarter, payload
+      FROM procurement_forecasts WHERE source IN ('commerce_faaps', 'dhs_apfs')
       ORDER BY fiscal_year, fiscal_quarter, title`;
     const forecasts = rows.map((row: any) => {
       const p = row.payload ?? {};
       return {
-        id: String(row.external_id), title: String(row.title), description: String(row.description),
+        id: `${row.source}:${row.external_id}`, title: String(row.title), description: String(row.description),
         fiscalYear: Number(row.fiscal_year), fiscalQuarter: String(row.fiscal_quarter ?? ""),
         agency: String(p.Organization ?? ""), naics: String(p["Naics Code"] ?? ""),
         city: String(p["Place Of Performance City"] ?? ""), state: String(p["Place Of Performance State"] ?? ""),

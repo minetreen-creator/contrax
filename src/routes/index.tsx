@@ -292,7 +292,7 @@ function Home() {
       <Steps />
       <BidScoutCallout />
       {/* Kept light in both themes: the grants table is owner-locked light markup. */}
-      <div className="mt-18 bg-white text-slate-900">
+      <div className="mt-10 bg-[#f5f7fa] py-8 text-slate-900">
         <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />
       </div>
       <Footer />
@@ -406,10 +406,10 @@ function Hero({ sample }: { sample: SampleBid[] }) {
           <aside className={`${CARD} overflow-hidden`} aria-label="Open SDVOSB set-asides">
             <div className="border-b border-[#dde3ec] px-[22px] py-[18px] dark:border-[#24334f]">
               <h2 className={`${SERIF} text-xl leading-[1.15] font-bold`}>
-                {sample.length === 5 ? "Five" : sample.length} open SDVOSB set-asides
+                Open SDVOSB set-asides, closing soon
               </h2>
               <div className="mt-1 text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
-                From today's data, closing soonest
+                Live from today's data · free to search
                 <span className="ml-1.5 inline-block rounded-full bg-[#f6eed9] px-2 py-0.5 text-xs font-semibold text-[#8a6a1d] dark:bg-[#2b2413] dark:text-[#e0c078]">
                   SDVOSB set-aside
                 </span>
@@ -524,7 +524,10 @@ function BidScoutCallout() {
       <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
         <div className="grid items-center gap-9 rounded-[14px] bg-[#0f2747] p-7 text-white md:grid-cols-[1.15fr_.85fr] md:gap-10 md:p-11 dark:bg-[#0a1930]">
           <div>
-            <h2 className={`${SERIF} text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold`}>
+            <p className="text-sm font-semibold uppercase tracking-widest text-[#e0c078]">
+              Bid Scout · done for you
+            </p>
+            <h2 className={`${SERIF} mt-3 text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold`}>
               Five handpicked federal bids, every Friday
             </h2>
             <p className="mt-4 max-w-[32em] text-[#b9c7dc]">
@@ -685,19 +688,16 @@ export function ContraxGrantsPromo({
   grantsUpgradeEnabled?: boolean;
 }) {
   return (
-    <section
-      aria-label="Contrax Grants"
-      className="border-y border-amber-100 bg-amber-50/50 py-14 sm:py-16"
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-widest text-amber-600">
+    <section aria-label="Contrax Grants" className="py-2">
+      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <div className="max-w-3xl">
+          <p className="text-sm font-semibold uppercase tracking-widest text-[#8a6a1d]">
             Contrax Grants
           </p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+          <h2 className={`${SERIF} mt-3 text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold text-[#0f1f38]`}>
             Find grants your organization actually qualifies for.
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-lg leading-relaxed text-gray-600">
+          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#56647a]">
             Contrax Grants searches federal grant opportunities on Grants.gov by keyword,
             applicant type, funding category, agency, and status — source-verbatim details,
             nothing invented. Basic grant search is free for verified nonprofits, and it stays
@@ -764,7 +764,7 @@ export function ContraxGrantsPromo({
         })}
         </div>
 
-        <p className="mt-6 text-center text-xs text-gray-500">
+        <p className="mt-6 text-xs text-gray-500">
           Prices in US dollars. Verified nonprofits keep free grant search with no credit card, no
           trial, and no expiration.
         </p>

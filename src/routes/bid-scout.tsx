@@ -16,6 +16,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
+import { getSdvosbSample, type SampleBid } from "~/lib/sample-bids";
 
 export const Route = createFileRoute("/bid-scout")({
   head: () => ({
@@ -31,6 +32,9 @@ export const Route = createFileRoute("/bid-scout")({
       },
     ],
   }),
+  // One real open SDVOSB bid for the "what a Friday list looks like" example.
+  // Fails soft: an empty result just hides that section.
+  loader: () => getSdvosbSample(),
   component: () => (
     <>
       <SiteHeader />
@@ -65,6 +69,7 @@ interface FoundersOfferState {
 }
 
 function BidScoutPage() {
+  const sampleBids = Route.useLoaderData();
   // Query params are client-only (SSR renders the page without them).
   const [params] = useState(() => {
     const sp = new URLSearchParams(
@@ -425,6 +430,81 @@ function BidScoutPage() {
           ))}
         </div>
       </section>
+
+      <SampleFridayEntry bid={sampleBids[0] ?? null} />
     </div>
+  );
+}
+// ── "What a Friday list looks like" ───────────────────────────────────────────
+// The notice details are a REAL open SDVOSB set-aside from the live data. The
+// analysis sections are what we write for each subscriber by hand, so they are
+// described here rather than invented for this example.
+const REPORT_SECTIONS = [
+  {
+    label: "Why it fits you",
+    text: "How the work, location and set-aside match the capabilities, NAICS codes and certifications you gave us.",
+  },
+  {
+    label: "What's required",
+    text: "The requirements that matter, in plain English: licenses, insurance, bonding, past performance and site visits.",
+  },
+  {
+    label: "Risks",
+    text: "Deal breakers and red flags to check before you spend time on a response.",
+  },
+  {
+    label: "Next steps",
+    text: "What to do this week: questions to ask the buyer, forms to prepare, and key dates.",
+  },
+];
+
+function formatSampleDue(due: string | null): string | null {
+  if (!due) return null;
+  const d = new Date(due);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric", timeZone: "UTC" });
+}
+
+function SampleFridayEntry({ bid }: { bid: SampleBid | null }) {
+  if (!bid) return null;
+  const due = formatSampleDue(bid.due_date);
+  return (
+    <section aria-labelledby="sample-entry-heading" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+      <h2 id="sample-entry-heading" className="text-2xl font-extrabold tracking-tight text-slate-900">
+        What a Friday list looks like
+      </h2>
+      <p className="mt-2 max-w-3xl text-sm text-slate-600">
+        Each list has five entries like this one. The notice below is a real, currently open SDVOSB set-aside. The
+        written sections are prepared for your business each week, so here we show what each one covers.
+      </p>
+      <article className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 bg-slate-50 px-6 py-5">
+          <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Entry 1 of 5 · example</p>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">{bid.title}</h3>
+          <p className="mt-1 text-sm text-slate-600">
+            {[bid.agency, bid.location].filter(Boolean).join(" · ")}
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            {due && <span className="font-semibold text-red-700">Due {due}</span>}
+            {bid.set_aside && (
+              <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">{bid.set_aside}</span>
+            )}
+            {bid.source_url && (
+              <a href={bid.source_url} target="_blank" rel="noopener noreferrer" className="font-semibold text-blue-700 hover:text-blue-900">
+                Official notice ↗
+              </a>
+            )}
+          </div>
+        </div>
+        <dl className="grid gap-px bg-slate-200 sm:grid-cols-2">
+          {REPORT_SECTIONS.map((s) => (
+            <div key={s.label} className="bg-white px-6 py-5">
+              <dt className="text-sm font-bold text-slate-900">{s.label}</dt>
+              <dd className="mt-1 text-sm text-slate-500">{s.text}</dd>
+            </div>
+          ))}
+        </dl>
+      </article>
+    </section>
   );
 }

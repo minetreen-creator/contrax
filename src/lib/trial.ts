@@ -224,10 +224,23 @@ export async function loadUserTrialStatus(userId: number): Promise<TrialStatus> 
  * signups (starter/professional/agency) see the 14-day trial countdown, while
  * free Basic users (trial_started_at NULL) are never in trial and never expire.
  */
+/**
+ * Admin/internal accounts bypass every premium gate (see hasProfessionalAccess),
+ * so they must never be reported as trial-expired: /dashboard's trial gate and
+ * <TrialGate> read `expired` directly and would otherwise lock an admin whose
+ * old 14-day trial ran out out of the dashboard (and its Admin link).
+ */
+export function applyAdminTrialBypass(
+  status: TrialStatus,
+  user: { is_admin?: boolean } | null | undefined,
+): TrialStatus {
+  return user?.is_admin ? { ...status, expired: false } : status;
+}
+
 export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Promise<TrialStatus> => {
   const user = await getCurrentUser();
   if (!user) return { active: false, daysLeft: 0, expired: false, endsAt: null, planTier: null, fullAccess: false };
-  return loadUserTrialStatus(user.id);
+  return applyAdminTrialBypass(await loadUserTrialStatus(user.id), user);
 });
 
 /**

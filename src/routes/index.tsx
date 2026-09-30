@@ -24,7 +24,7 @@ import {
 // read at import time), so importing it here is safe on both sides of the
 // render, and the value itself is only ever read server-side (see the loader).
 import { isUpgradePromptEnabled } from "~/lib/grants";
-import { setAsidePred } from "~/lib/open-bids";
+import { getSdvosbSample, type SampleBid } from "~/lib/sample-bids";
 import { US_STATES } from "~/lib/states";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
@@ -149,46 +149,6 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   ]);
   return { businessName, user, bidStats, contractMap, grantsUpgradeEnabled };
 });
-
-// Homepage sample (2026 redesign): five REAL open SDVOSB set-asides, closing
-// soonest but at least two days out so each one is still actionable. Every row
-// links to its /bid/<id> page (which carries the source link). The heading says
-// exactly what this is — live data, not a hand-picked Bid Scout digest. Never
-// throws: a failed query returns [] and the hero drops the sample card.
-type SampleBid = {
-  id: number;
-  title: string;
-  agency: string | null;
-  location: string | null;
-  due_date: string | null;
-};
-
-const getSdvosbSample = createServerFn({ method: "GET" }).handler(
-  async (): Promise<SampleBid[]> => {
-    try {
-      const { sql } = await import("~/db");
-      const rows = (await sql()`
-        SELECT DISTINCT ON (due_date, title, agency) id, title, agency, location, due_date
-        FROM bids
-        WHERE due_date::date >= (NOW() + INTERVAL '2 days')::date
-          ${setAsidePred("sdvosb", sql)}
-          AND ${sql().unsafe(LOW_CONTENT_SQL)}
-          AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
-        ORDER BY due_date ASC, title, agency, id
-        LIMIT 5
-      `) as any[];
-      return rows.map((r) => ({
-        id: Number(r.id),
-        title: String(r.title ?? ""),
-        agency: r.agency ? String(r.agency) : null,
-        location: r.location ? String(r.location) : null,
-        due_date: r.due_date ? String(r.due_date) : null,
-      }));
-    } catch {
-      return [];
-    }
-  },
-);
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 

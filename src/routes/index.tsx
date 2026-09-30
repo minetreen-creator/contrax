@@ -339,7 +339,10 @@ function Hero({ sample }: { sample: SampleBid[] }) {
 
   const onSearch = () => {
     trackEvent("homepage_radar_cta_clicked", "hero_primary");
-    const search: Record<string, string> = { cert: "sdvosb" };
+    // size=any: Radar's Scan needs a contract size and the homepage doesn't ask
+    // for one, so preselect "Any size" (the visitor can still change it and
+    // still clicks Scan themselves).
+    const search: Record<string, string> = { cert: "sdvosb", size: "any" };
     if (trade) search.trade = trade;
     if (state) search.state = state;
     navigate({ to: "/radar", search: search as never });

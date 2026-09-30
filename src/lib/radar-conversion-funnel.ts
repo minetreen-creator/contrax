@@ -55,6 +55,9 @@ export const RADAR_CONVERSION_QUALIFYING_EVENTS: readonly string[] = [
   "signup_abandon",
   "signup_success",
   "hero_cta_click",
+  // The redesigned homepage's primary CTA ("See my matches"); it replaced the
+  // old homepage buttons that fired hero_cta_click.
+  "homepage_radar_cta_clicked",
   "radar_scan_start",
 ];
 export const RADAR_CONVERSION_START_EVENT = "radar_scan_start";

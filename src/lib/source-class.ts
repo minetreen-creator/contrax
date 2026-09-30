@@ -159,6 +159,9 @@ function stateNameKeywordDoors(): Record<string, SourceClassRecord> {
  * 79 entries: 73 registry labels + `sam_gov_regional` + 5 legacy/internal.
  */
 export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
+  nc_evp: { class: "state", scopeState: "NC", searchScope: "state-portal", recordType: "opportunity" },
+  md_emma: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "opportunity" },
+  md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's
   // rows under the label `sam_gov_regional` (sam-gov.ts), which is therefore a
@@ -279,6 +282,7 @@ export const AWARD_TYPE_SOURCES: ReadonlySet<string> = new Set([
   "chicago_open_data",
   "sf_open_data",
   "austin_open_data",
+  "md_emma_awards",
 ]);
 
 /** Labels whose collector has been retired (health/coverage surfaces filter these). */

@@ -44,6 +44,7 @@ import {
 import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
 import { expandTrade, tradeKeywordPred, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
 import { TRADE_SUGGESTIONS } from "~/lib/trade-suggestions";
+import { STATE_NAMES } from "~/lib/contract-map";
 import {
   normalizeStateInput,
   resolveBidState,
@@ -107,6 +108,43 @@ const CERT_LABEL: Record<string, string> = {
   hubzone: "HUBZone",
   sb: "Small Business",
 };
+
+/**
+ * Step-1 headline + intro. SDVOSB-first by default (the homepage's audience),
+ * while the form still offers every certification. When the visitor arrives
+ * from a deep link (the homepage search sends ?cert=&trade=&state=), the copy
+ * picks up where the homepage left off and names what was pre-filled.
+ * Pure (inputs are the already-validated URL params) so it is unit-tested.
+ */
+export function radarOpening({
+  trade,
+  stateCode,
+  cert,
+}: {
+  trade: string;
+  stateCode: string;
+  cert: string | null;
+}): { headline: string; intro: string } {
+  const certLabel = cert ? CERT_LABEL[cert] ?? "set-aside" : "SDVOSB";
+  const stateName = stateCode ? STATE_NAMES[stateCode] ?? stateCode : "";
+  // URL-supplied text: React escapes it; cap the length so a crafted link
+  // cannot blow up the headline.
+  const tradeText = trade.trim().slice(0, 60);
+  if (tradeText || stateName) {
+    const forTrade = tradeText ? ` for ${tradeText} work` : "";
+    const inState = stateName ? ` in ${stateName}` : "";
+    return {
+      headline: `Your ${certLabel} matches${forTrade}${inState}`,
+      intro:
+        "We've filled in what you picked on the homepage. Check your certification and contract size, then scan — your first 3 matches are free, each with a real match score and full Incumbent Intelligence (previous winner & award price).",
+    };
+  }
+  return {
+    headline: "Find the set-asides your SDVOSB can actually win. Your first 3 matches are free.",
+    intro:
+      "Answer four quick questions and we'll reveal your strongest live set-aside matches — one at a time, with a real match score and full Incumbent Intelligence (previous winner & award price). Works for 8(a), WOSB and HUBZone firms too.",
+  };
+}
 
 export const SIZE_OPTS = [
   { id: "under250k", label: "< $250K", hint: "under $250,000" },
@@ -906,7 +944,7 @@ export const Route = createFileRoute("/radar")({
   ),
   head: () => ({
     meta: [
-      { title: "Contract Radar — Live Match Scores for Set-Aside Contracts | Contrax" },
+      { title: "Contract Radar — Live SDVOSB & Set-Aside Contract Matches | Contrax" },
       {
         name: "description",
         content:
@@ -1003,6 +1041,7 @@ function RadarLanding() {
     ? (uSize as SizeId)
     : null;
   const hasDeepLink = !!(urlTrade || urlState || urlCert || urlSizePref);
+  const opening = radarOpening({ trade: urlTrade, stateCode: urlState, cert: urlCert });
   const [trade, setTrade] = useState(urlTrade);
   const [state, setState] = useState(urlState);
   const [cert, setCert] = useState<RadarCert | null>(urlCert);
@@ -1377,13 +1416,9 @@ function RadarLanding() {
           <section className="flex flex-1 flex-col justify-center py-8">
             <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Contract Radar</p>
             <h1 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
-              Wondering which set-asides you actually qualify for? Your first 3 matches are free.
+              {opening.headline}
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-slate-300">
-              Answer four quick questions and we'll reveal your strongest live
-              set-aside matches — one at a time, with a real match score and full
-              Incumbent Intelligence (previous winner &amp; award price).
-            </p>
+            <p className="mt-3 text-sm leading-relaxed text-slate-300">{opening.intro}</p>
 
             {/* FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2):
                 ONE clear sentence + the four inputs the scan asks for + the note

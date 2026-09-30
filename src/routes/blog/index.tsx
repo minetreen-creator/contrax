@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { BLOG_POSTS, formatBlogDate } from "~/lib/blog";
+import { SiteHeader } from "~/components/SiteHeader";
 
 const PROD_URL = "https://www.contrax.company";
 const TITLE = "Contrax Blog — Government Contracting Insights";
@@ -36,24 +37,7 @@ export const Route = createFileRoute("/blog/")({
 function BlogIndexPage() {
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-800 bg-slate-900">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <a href="/">
-            <img src="/logo.png" alt="Contrax" className="h-9 w-auto" />
-          </a>
-          <nav className="flex items-center gap-5 text-sm">
-            <a href="/" className="text-gray-400 transition-colors hover:text-white">Home</a>
-            <a href="/learn" className="text-gray-400 transition-colors hover:text-white">Guides</a>
-            <a href="/pricing" className="text-gray-400 transition-colors hover:text-white">Pricing</a>
-            <a
-              href="/signup"
-              className="rounded-lg bg-amber-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-amber-400"
-            >
-              Start Free Trial
-            </a>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <section className="bg-slate-900 pb-16 pt-14 sm:pt-20">
         <div className="mx-auto max-w-7xl px-6">
@@ -118,7 +102,7 @@ function BlogIndexPage() {
             <img src="/logo.png" alt="Contrax" className="h-7 w-auto" />
           </div>
           <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Contrax LLC. All rights reserved.</p>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <a href="/" className="text-sm text-gray-400 transition-colors hover:text-white">Home</a>
             <a href="/blog" className="text-sm text-gray-400 transition-colors hover:text-white">Blog</a>
             <a href="/clauses" className="text-sm text-gray-400 transition-colors hover:text-white">FAR Clause Library</a>

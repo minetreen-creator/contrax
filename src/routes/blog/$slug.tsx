@@ -1,5 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { getBlogPost, formatBlogDate, type BlogPost } from "~/lib/blog";
+import { SiteHeader } from "~/components/SiteHeader";
 
 const PROD_URL = "https://www.contrax.company";
 
@@ -88,23 +89,7 @@ function BlogPostPage() {
   return (
     <div className="min-h-screen bg-white">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <header className="border-b border-slate-800 bg-slate-900">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <a href="/">
-            <img src="/logo.png" alt="Contrax" className="h-9 w-auto" />
-          </a>
-          <nav className="flex items-center gap-5 text-sm">
-            <a href="/" className="text-gray-400 transition-colors hover:text-white">Home</a>
-            <a href="/blog" className="text-gray-400 transition-colors hover:text-white">Blog</a>
-            <a
-              href="/signup"
-              className="rounded-lg bg-amber-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-amber-400"
-            >
-              Start Free Trial
-            </a>
-          </nav>
-        </div>
-      </header>
+      <SiteHeader />
 
       <main className="mx-auto max-w-3xl px-6 py-12 sm:py-16">
         <a
@@ -182,7 +167,7 @@ function BlogPostPage() {
             <img src="/logo.png" alt="Contrax" className="h-7 w-auto" />
           </div>
           <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Contrax LLC. All rights reserved.</p>
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
             <a href="/" className="text-sm text-gray-400 transition-colors hover:text-white">Home</a>
             <a href="/blog" className="text-sm text-gray-400 transition-colors hover:text-white">Blog</a>
             <a href="/clauses" className="text-sm text-gray-400 transition-colors hover:text-white">FAR Clause Library</a>

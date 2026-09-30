@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useState } from "react";
-import { Menu, X } from "lucide-react";
 
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
@@ -10,6 +9,7 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
   buildContractMap,
+  STATE_NAMES,
   type ContractMapAggregate,
 } from "~/lib/contract-map";
 // HOMEPAGE GRANTS PLUS FAIL-SAFE (owner directive rev 327, 2026-09-23).
@@ -23,9 +23,8 @@ import {
 // read at import time), so importing it here is safe on both sides of the
 // render, and the value itself is only ever read server-side (see the loader).
 import { isUpgradePromptEnabled } from "~/lib/grants";
-// Contract Radar — the homepage HERO (owner spec 2026-09-04 v2). Rendered
-// without its own heading (heading={false}); this page supplies the one <h1>.
-import { HeroRadar } from "~/components/HeroRadar";
+import { setAsidePred } from "~/lib/open-bids";
+import { US_STATES } from "~/lib/states";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
@@ -143,45 +142,80 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
   return { businessName, user, bidStats, contractMap, grantsUpgradeEnabled };
 });
 
+// Homepage sample (2026 redesign): five REAL open SDVOSB set-asides, closing
+// soonest but at least two days out so each one is still actionable. Every row
+// links to its /bid/<id> page (which carries the source link). The heading says
+// exactly what this is — live data, not a hand-picked Bid Scout digest. Never
+// throws: a failed query returns [] and the hero drops the sample card.
+type SampleBid = {
+  id: number;
+  title: string;
+  agency: string | null;
+  location: string | null;
+  due_date: string | null;
+};
+
+const getSdvosbSample = createServerFn({ method: "GET" }).handler(
+  async (): Promise<SampleBid[]> => {
+    try {
+      const { sql } = await import("~/db");
+      const rows = (await sql()`
+        SELECT DISTINCT ON (due_date, title, agency) id, title, agency, location, due_date
+        FROM bids
+        WHERE due_date::date >= (NOW() + INTERVAL '2 days')::date
+          ${setAsidePred("sdvosb", sql)}
+          AND ${sql().unsafe(LOW_CONTENT_SQL)}
+          AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+        ORDER BY due_date ASC, title, agency, id
+        LIMIT 5
+      `) as any[];
+      return rows.map((r) => ({
+        id: Number(r.id),
+        title: String(r.title ?? ""),
+        agency: r.agency ? String(r.agency) : null,
+        location: r.location ? String(r.location) : null,
+        due_date: r.due_date ? String(r.due_date) : null,
+      }));
+    } catch {
+      return [];
+    }
+  },
+);
+
 // ── Route ─────────────────────────────────────────────────────────────────────
 
+const PAGE_TITLE = "Contrax | Find federal bids your SDVOSB can actually win";
+const PAGE_DESCRIPTION =
+  "Tell us your trade and state. Contrax searches federal, state, and local solicitations and shows you the ones that fit, with source links and real deadlines. Free to search, no account required.";
+
 export const Route = createFileRoute("/")({
-  loader: () => getLandingData(),
+  loader: async () => {
+    const [landing, sample] = await Promise.all([getLandingData(), getSdvosbSample()]);
+    return { ...landing, sample };
+  },
   component: Home,
   head: () => ({
     meta: [
-      { title: "Contrax — Find Government Contracts Your Business Can Actually Win" },
-      {
-        name: "description",
-        content:
-          "Tell Contrax what your company does. We'll search thousands of federal, state, and local opportunities and show you the best matches — free, no account required, for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses.",
-      },
+      { title: PAGE_TITLE },
+      { name: "description", content: PAGE_DESCRIPTION },
       { name: "robots", content: "index, follow" },
       // Open Graph
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company" },
-      { property: "og:title", content: "Contrax — Find Government Contracts Your Business Can Actually Win" },
-      {
-        property: "og:description",
-        content:
-          "Tell Contrax what your company does. We'll search thousands of federal, state, and local opportunities and show you the best matches — free, no account required, for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses.",
-      },
+      { property: "og:title", content: PAGE_TITLE },
+      { property: "og:description", content: PAGE_DESCRIPTION },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
-      { property: "og:image:alt", content: "Contrax — Find Government Contracts Your Business Can Actually Win" },
+      { property: "og:image:alt", content: PAGE_TITLE },
       { property: "og:image:width", content: "1200" },
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       // Twitter Card
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Contrax — Find Government Contracts Your Business Can Actually Win" },
-      {
-        name: "twitter:description",
-        content:
-          "Tell Contrax what your company does. We'll search thousands of federal, state, and local opportunities and show you the best matches — free, no account required, for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses.",
-      },
+      { name: "twitter:title", content: PAGE_TITLE },
+      { name: "twitter:description", content: PAGE_DESCRIPTION },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
-      { name: "twitter:image:alt", content: "Contrax — Find Government Contracts Your Business Can Actually Win" },
+      { name: "twitter:image:alt", content: PAGE_TITLE },
     ],
     links: [{ rel: "canonical", href: "https://www.contrax.company" }],
   }),
@@ -190,8 +224,7 @@ export const Route = createFileRoute("/")({
 // ── Official Partnership Announcement (Veterans Against Diabetes) ──────────────
 // Static, self-contained announcement band rendered at the very top of the
 // homepage (above the Navbar). Pure presentational copy — no buttons, no
-// checkout wiring, no pricing/gating changes. Rendered as part of the Home
-// component tree so it is included in the server-rendered HTML on first load.
+// checkout wiring, no pricing/gating changes.
 function PartnershipBanner() {
   return (
     <section className="border-b border-amber-500/20 bg-slate-900">
@@ -214,9 +247,17 @@ function PartnershipBanner() {
 
 // ── Page Component ────────────────────────────────────────────────────────────
 
+// Shared page tokens (2026 redesign). Light values first, dark via `dark:`.
+const SERIF = "[font-family:Charter,'Iowan_Old_Style',Georgia,serif]";
+const CARD =
+  "rounded-xl bg-white text-[#0f1f38] shadow-[0_1px_2px_rgba(15,39,71,.08),0_8px_24px_rgba(15,39,71,.10)] dark:bg-[#131f35] dark:text-[#e7edf7] dark:shadow-[0_1px_2px_rgba(0,0,0,.4),0_8px_24px_rgba(0,0,0,.35)]";
+const BTN =
+  "mt-3.5 block w-full cursor-pointer rounded-lg border-0 bg-[#1c5fbf] px-5 py-3.5 text-center font-semibold text-white hover:brightness-110 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#8fbaf5] dark:bg-[#6aa3f0] dark:text-[#08172e]";
+
 function Home() {
 
   const { user, bidStats, contractMap, grantsUpgradeEnabled } = Route.useLoaderData();
+  const { sample } = Route.useLoaderData();
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -231,299 +272,255 @@ function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#f5f7fa] text-[#0f1f38] dark:bg-[#0b1424] dark:text-[#e7edf7]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <PartnershipBanner />
       <Navbar user={user} />
-      <HomepageHero bidStats={bidStats} contractMap={contractMap} />
-      <ProductPaths />
-      <section id="radar" className="bg-slate-50 px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
-        <div className="mx-auto max-w-4xl text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-700">Contrax Radar</p>
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-            Search live government contracts
-          </h2>
-          <p className="mx-auto mt-3 max-w-2xl text-base leading-relaxed text-slate-600 sm:text-lg">
-            Answer four questions to find federal, state, and local opportunities matched to your business.
-          </p>
-        </div>
-        <div className="mx-auto mt-8 max-w-6xl">
-          <HeroRadar initialCert="all" heading={false} compact />
-        </div>
-      </section>
-      <ContractorOperations />
-      <FeaturedServices />
-      <HowItWorks />
-      <Pricing />
-      <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />
-      <FeaturePreviews />
-      <FinalCta />
+      <Hero sample={sample} />
+      <Stats bidStats={bidStats} contractMap={contractMap} />
+      <Steps />
+      <BidScoutCallout />
+      {/* Kept light in both themes: the grants table is owner-locked light markup. */}
+      <div className="mt-18 bg-white text-slate-900">
+        <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />
+      </div>
       <Footer />
     </div>
   );
 }
 
-function HomepageHero({
+// ── Navbar ────────────────────────────────────────────────────────────────────
+// Always white (both themes) so the white-background logo blends in.
+
+function Navbar({ user }: { user: { id: number; email: string } | null }) {
+  const link = "text-[#56647a] no-underline hover:text-[#0f1f38]";
+  return (
+    <header className="border-b border-[#dde3ec] bg-white text-[#0f1f38]">
+      <div className="mx-auto flex h-[68px] max-w-[1120px] items-center justify-between gap-4 px-4 sm:px-6">
+        <a href="/" className="block shrink-0" aria-label="Contrax home">
+          <img src="/logo.png" alt="Contrax" height={36} className="block h-11 w-auto" />
+        </a>
+        <nav className="flex items-center gap-4 text-sm sm:gap-[26px] sm:text-[15px]">
+          <a href="/radar" className={link}>Contracts</a>
+          <a href="/pricing" className={link}>Pricing</a>
+          {user ? (
+            <a href="/dashboard" className="rounded-md border border-[#dde3ec] px-4 py-2 text-[#0f1f38] no-underline">
+              Dashboard
+            </a>
+          ) : (
+            <a href="/login" className="rounded-md border border-[#dde3ec] px-4 py-2 text-[#0f1f38] no-underline">
+              Sign in
+            </a>
+          )}
+        </nav>
+      </div>
+    </header>
+  );
+}
+
+// ── Hero: search form + live SDVOSB sample ────────────────────────────────────
+
+// Each option's `q` is what /radar's trade box receives (?trade=); /radar
+// expands it to NAICS codes. "Other" sends no trade so Radar asks for a NAICS.
+const TRADES = [
+  { label: "Janitorial", q: "janitorial" },
+  { label: "Landscaping", q: "landscaping" },
+  { label: "Trucking and hauling", q: "trucking" },
+  { label: "Construction", q: "construction" },
+  { label: "Security guards", q: "security guard" },
+  { label: "IT services", q: "IT services" },
+  { label: "Other (enter NAICS on the next step)", q: "" },
+];
+
+const SORTED_STATES = [...US_STATES].sort((a, b) =>
+  (STATE_NAMES[a] ?? a).localeCompare(STATE_NAMES[b] ?? b),
+);
+
+function formatDue(due: string | null): string {
+  if (!due) return "";
+  const d = new Date(due);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+function Hero({ sample }: { sample: SampleBid[] }) {
+  const navigate = useNavigate();
+  const [trade, setTrade] = useState(TRADES[0].q);
+  const [state, setState] = useState("");
+
+  const onSearch = () => {
+    trackEvent("homepage_radar_cta_clicked", "hero_primary");
+    const search: Record<string, string> = { cert: "sdvosb" };
+    if (trade) search.trade = trade;
+    if (state) search.state = state;
+    navigate({ to: "/radar", search: search as never });
+  };
+
+  const select =
+    "w-full rounded-lg border border-[#dde3ec] bg-[#f5f7fa] px-2.5 py-3 text-base text-[#0f1f38] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#8fbaf5] dark:border-[#24334f] dark:bg-[#0b1424] dark:text-[#e7edf7]";
+
+  return (
+    <section className="bg-gradient-to-b from-[#0f2747] to-[#173763] pt-11 pb-20 text-white md:pt-16 md:pb-22 dark:from-[#0a1930] dark:to-[#10264a]">
+      <div
+        className={`mx-auto grid max-w-[1120px] items-center gap-9 px-4 sm:px-6 ${
+          sample.length ? "md:grid-cols-[1.05fr_.95fr] md:gap-14" : ""
+        }`}
+      >
+        <div>
+          <h1 className={`${SERIF} text-[clamp(34px,4.6vw,52px)] leading-[1.15] font-bold tracking-[-.015em]`}>
+            Find federal bids your SDVOSB can actually win
+          </h1>
+          <p className="mt-5 mb-7 max-w-[31em] text-lg text-[#b9c7dc]">
+            Tell us your trade and state. We search federal, state, and local solicitations and show
+            you the ones that fit, with source links and real deadlines.
+          </p>
+          <form
+            className={`${CARD} max-w-[500px] p-[22px]`}
+            aria-label="Contract search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              onSearch();
+            }}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="home-trade" className="mb-1.5 block text-[13px] font-semibold">Your trade</label>
+                <select id="home-trade" className={select} value={trade} onChange={(e) => setTrade(e.target.value)}>
+                  {TRADES.map((t) => (
+                    <option key={t.label} value={t.q}>{t.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="home-state" className="mb-1.5 block text-[13px] font-semibold">Your state</label>
+                <select id="home-state" className={select} value={state} onChange={(e) => setState(e.target.value)}>
+                  <option value="">Any state</option>
+                  {SORTED_STATES.map((code) => (
+                    <option key={code} value={code}>{STATE_NAMES[code] ?? code}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <button type="submit" className={BTN}>See my matches</button>
+            <small className="mt-3 block text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
+              Sources linked on every result. No invented deadlines or eligibility. Free to search, no
+              account required.
+            </small>
+          </form>
+          <p className="mt-4 text-[15px] text-[#b9c7dc]">
+            Prefer it delivered?{" "}
+            <a href="#scout" className="text-white underline">Get Friday picks</a>
+          </p>
+        </div>
+
+        {sample.length > 0 && (
+          <aside className={`${CARD} overflow-hidden`} aria-label="Open SDVOSB set-asides">
+            <div className="border-b border-[#dde3ec] px-[22px] py-[18px] dark:border-[#24334f]">
+              <h2 className={`${SERIF} text-xl leading-[1.15] font-bold`}>
+                {sample.length === 5 ? "Five" : sample.length} open SDVOSB set-asides
+              </h2>
+              <div className="mt-1 text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
+                From today's data, closing soonest
+                <span className="ml-1.5 inline-block rounded-full bg-[#f6eed9] px-2 py-0.5 text-xs font-semibold text-[#8a6a1d] dark:bg-[#2b2413] dark:text-[#e0c078]">
+                  SDVOSB set-aside
+                </span>
+              </div>
+            </div>
+            {sample.map((bid) => (
+              <a
+                key={bid.id}
+                href={`/bid/${bid.id}`}
+                className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 border-b border-[#dde3ec] px-[22px] py-3.5 no-underline last:border-b-0 hover:bg-[#f5f7fa] dark:border-[#24334f] dark:hover:bg-[#0b1424]"
+              >
+                <b className="line-clamp-2 font-semibold">{bid.title}</b>
+                <span className="text-sm font-semibold whitespace-nowrap text-[#b4321f] dark:text-[#f08a76]">
+                  {formatDue(bid.due_date) && `Due ${formatDue(bid.due_date)}`}
+                </span>
+                <span className="col-span-2 text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
+                  {[bid.agency, bid.location].filter(Boolean).join(" · ")}
+                </span>
+              </a>
+            ))}
+          </aside>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// ── Live stats (same aggregation as /map; see getLandingData) ─────────────────
+
+function Stats({
   bidStats,
   contractMap,
 }: {
   bidStats: { activeCount: number; agencyCount: number };
   contractMap: ContractMapAggregate;
 }) {
+  const stats = [
+    { value: contractMap.totals.totalOpen.toLocaleString("en-US"), label: "open opportunities" },
+    { value: bidStats.agencyCount.toLocaleString("en-US"), label: "agencies represented" },
+    { value: "Every 4 hours", label: "contract data refreshed" },
+  ];
   return (
-    <header className="relative overflow-hidden border-b border-slate-200 bg-white">
-      <div className="absolute inset-x-0 top-0 -z-0 h-80 bg-gradient-to-b from-blue-50/70 to-transparent" />
-      <div className="relative mx-auto max-w-7xl px-4 py-14 text-center sm:px-6 sm:py-20 lg:px-8">
-        <p className="text-sm font-bold uppercase tracking-[0.2em] text-blue-700">Government opportunity intelligence</p>
-        <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-bold tracking-[-0.035em] text-slate-950 sm:text-5xl lg:text-6xl">
-          Find the right government opportunity—without searching alone.
-        </h1>
-        <p className="mx-auto mt-5 max-w-2xl text-lg leading-8 text-slate-600">
-          Contrax helps businesses find contracts and organizations find grants, with source-linked details and practical next steps.
-        </p>
-        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <a
-            href="#radar"
-            onClick={() => trackEvent("homepage_radar_cta_clicked", "hero_primary")}
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-xl bg-blue-700 px-7 py-3 text-base font-bold text-white shadow-sm transition-colors hover:bg-blue-800 sm:w-auto"
-          >
-            Search contracts
-          </a>
-          <a
-            href="/grants"
-            className="inline-flex min-h-12 w-full items-center justify-center rounded-xl border border-slate-300 bg-white px-7 py-3 text-base font-bold text-slate-900 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50 sm:w-auto"
-          >
-            Search grants
-          </a>
+    <div className="-mt-11">
+      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <div className={`${CARD} grid border border-[#dde3ec] md:grid-cols-3 dark:border-[#24334f]`}>
+          {stats.map((s, i) => (
+            <div
+              key={s.label}
+              className={`px-[26px] py-[22px] ${
+                i > 0 ? "border-t border-[#dde3ec] md:border-t-0 md:border-l dark:border-[#24334f]" : ""
+              }`}
+            >
+              <b className="block font-[Georgia,serif] text-[30px]">{s.value}</b>
+              <span className="text-sm text-[#56647a] dark:text-[#9fb0c8]">{s.label}</span>
+            </div>
+          ))}
         </div>
-
-        <div className="mx-auto mt-10 grid max-w-4xl grid-cols-1 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm sm:grid-cols-3">
-          <div className="px-5 py-4 sm:border-r sm:border-slate-200">
-            <p className="text-2xl font-bold text-slate-950">{contractMap.totals.totalOpen.toLocaleString("en-US")}</p>
-            <p className="mt-1 text-sm text-slate-600">open opportunities</p>
-          </div>
-          <div className="border-y border-slate-200 px-5 py-4 sm:border-y-0 sm:border-r">
-            <p className="text-2xl font-bold text-slate-950">{bidStats.agencyCount.toLocaleString("en-US")}</p>
-            <p className="mt-1 text-sm text-slate-600">agencies represented</p>
-          </div>
-          <div className="px-5 py-4">
-            <p className="text-2xl font-bold text-slate-950">Every 4 hours</p>
-            <p className="mt-1 text-sm text-slate-600">contract data refreshed</p>
-          </div>
-        </div>
-
-        <ul className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm font-medium text-slate-600" aria-label="Contrax data standards">
-          <li>Federal, state and local sources</li>
-          <li>Source-linked details</li>
-          <li>No invented deadlines or eligibility</li>
-        </ul>
       </div>
-    </header>
+    </div>
   );
 }
 
-// ── Navbar ────────────────────────────────────────────────────────────────────
+// ── How it works ──────────────────────────────────────────────────────────────
 
-function Navbar({ user }: { user: { id: number; email: string } | null }) {
-  const [loggingOut, setLoggingOut] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const handleLogout = async () => {
-    setLoggingOut(true);
-    window.location.href = "/";
-  };
-  const closeMenu = () => setMenuOpen(false);
-
-  return (
-    <nav className="sticky top-0 z-50 border-b border-gray-100 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <a href="/" className="flex items-center" aria-label="Contrax home">
-          <img src="/logo.png" alt="Contrax" className="h-11 w-auto" />
-        </a>
-
-        <div className="hidden items-center gap-3 lg:flex">
-          <a href="/radar" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-950">Contracts</a>
-          <a href="/grants" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-950">Grants</a>
-          <a href="/pricing" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-950">Pricing</a>
-          <a href="/learn" className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-950">Resources</a>
-          {user ? (
-            <>
-              <a
-                href="/dashboard"
-                className="inline-flex items-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800"
-              >
-                Dashboard
-              </a>
-              <button
-                onClick={handleLogout}
-                disabled={loggingOut}
-                className="inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50"
-              >
-                {loggingOut ? "Signing out..." : "Sign out"}
-              </button>
-            </>
-          ) : (
-            <>
-              <a
-                href="/login"
-                className="inline-flex items-center rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
-              >
-                Sign In
-              </a>
-              <a
-                href="/signup"
-                onClick={() => trackEvent("hero_cta_click", "nav")}
-                className="inline-flex items-center rounded-lg bg-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
-              >
-                Get Started
-              </a>
-            </>
-          )}
-        </div>
-
-        {/* Mobile hamburger — visible below lg */}
-        <button
-          type="button"
-          onClick={() => setMenuOpen((open) => !open)}
-          aria-expanded={menuOpen}
-          aria-controls="mobile-nav"
-          aria-label={menuOpen ? "Close menu" : "Open menu"}
-          className="inline-flex items-center justify-center rounded-lg border border-gray-200 p-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 lg:hidden"
-        >
-          <span className="relative inline-flex h-5 w-5">
-            <X
-              className={`absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out ${
-                menuOpen ? "rotate-0 opacity-100" : "rotate-90 opacity-0"
-              }`}
-            />
-            <Menu
-              className={`absolute inset-0 h-5 w-5 transition-all duration-300 ease-in-out ${
-                menuOpen ? "-rotate-90 opacity-0" : "rotate-0 opacity-100"
-              }`}
-            />
-          </span>
-        </button>
-      </div>
-
-      {/* Mobile slide-down panel — same links as desktop */}
-      <div
-        id="mobile-nav"
-        aria-hidden={!menuOpen}
-        className={`grid overflow-hidden transition-[grid-template-rows,opacity] duration-300 ease-in-out lg:hidden ${
-          menuOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
-        }`}
-      >
-        <div className="min-h-0 overflow-hidden" inert={!menuOpen}>
-          <div className="space-y-2 border-t border-gray-100 px-6 pb-6 pt-4">
-            <a href="/radar" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Contracts</a>
-            <a href="/grants" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Grants</a>
-            <a href="/pricing" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Pricing</a>
-            <a href="/learn" onClick={closeMenu} className="block rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50">Resources</a>
-            {user ? (
-              <>
-                <a
-                  href="/dashboard"
-                  onClick={closeMenu}
-                  className="block w-full rounded-lg bg-slate-900 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800"
-                >
-                  Dashboard
-                </a>
-                <button
-                  onClick={() => {
-                    closeMenu();
-                    handleLogout();
-                  }}
-                  disabled={loggingOut}
-                  className="block w-full rounded-lg border border-gray-200 px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50"
-                >
-                  {loggingOut ? "Signing out..." : "Sign out"}
-                </button>
-              </>
-          ) : (
-            <>
-                <a
-                  href="/login"
-                  onClick={closeMenu}
-                  className="block w-full rounded-lg border border-gray-200 px-4 py-2.5 text-center text-sm font-medium text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-900"
-                >
-                  Sign In
-                </a>
-                <a
-                  href="/signup"
-                  onClick={() => {
-                    closeMenu();
-                    trackEvent("hero_cta_click", "nav");
-                  }}
-                  className="block w-full rounded-lg bg-amber-500 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-sm transition-all hover:bg-amber-400 hover:shadow-md"
-                >
-                  Get Started
-                </a>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-// ── Choose a path ────────────────────────────────────────────────────────────
-
-function ProductPaths() {
-  const paths = [
+function Steps() {
+  const steps = [
     {
-      eyebrow: "Government contracts",
-      title: "Find work your business can pursue",
-      description:
-        "Search live federal, state, and local solicitations by trade, location, certification, and contract size.",
+      title: "Search your trade",
+      body: "Enter your trade and state to see live set-aside solicitations matched to your certification.",
       href: "/radar",
-      cta: "Search contracts →",
-      accent: "border-blue-200 bg-blue-50/60",
-      ctaClass: "text-blue-700",
     },
     {
-      eyebrow: "Subcontracting",
-      title: "Find work with prime contractors",
-      description:
-        "Explore current SBA SUBNet notices and browse the annual SBA prime contractor directory for companies to approach.",
-      href: "/subcontracts",
-      cta: "Explore subcontracts →",
-      accent: "border-teal-200 bg-teal-50/60",
-      ctaClass: "text-teal-700",
+      title: "Read the AI brief",
+      body: "Get the mandatory requirements, milestones, and red flags, with citations to the solicitation text.",
+      href: "/example-brief",
     },
     {
-      eyebrow: "Government grants",
-      title: "Find funding that fits your organization",
-      description:
-        "Search federal grants, use Grants Plus for ongoing tracking, or order hands-on research from the founder.",
-      href: "/grants",
-      cta: "Search grants →",
-      accent: "border-amber-200 bg-amber-50/60",
-      ctaClass: "text-amber-700",
+      title: "Decide before you bid",
+      body: "Check the job against your capacity, licensing, and bonding before spending hours on a proposal.",
+      href: "/bid-fit-review",
     },
   ];
-
   return (
-    <section aria-label="Choose your Contrax path" className="border-b border-slate-200 bg-white py-12 sm:py-14">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.18em] text-slate-500">Choose your path</p>
-          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">What are you looking for today?</h2>
-        </div>
-        <div className="mt-8 grid gap-5 md:grid-cols-3">
-          {paths.map((path) => (
+    <section className="pt-18">
+      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <h2 className={`${SERIF} max-w-[20em] text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold`}>
+          From search to bid decision in three steps
+        </h2>
+        <div className="mt-7 grid gap-5 md:grid-cols-3">
+          {steps.map((s) => (
             <a
-              key={path.title}
-              href={path.href}
-              className={`group rounded-2xl border p-7 shadow-sm transition-colors hover:border-slate-400 ${path.accent}`}
+              key={s.title}
+              href={s.href}
+              className="block rounded-xl border border-[#dde3ec] bg-white p-6 no-underline hover:border-[#1c5fbf] dark:border-[#24334f] dark:bg-[#131f35] dark:hover:border-[#6aa3f0]"
             >
-              <p className="text-sm font-bold uppercase tracking-wider text-slate-600">{path.eyebrow}</p>
-              <h3 className="mt-2 text-2xl font-bold text-slate-950">{path.title}</h3>
-              <p className="mt-3 text-base leading-relaxed text-slate-600">{path.description}</p>
-              <span className={`mt-5 inline-flex text-sm font-bold ${path.ctaClass}`}>{path.cta}</span>
+              <h3 className={`${SERIF} mb-2 text-[19px] leading-[1.15] font-bold`}>{s.title}</h3>
+              <p className="m-0 text-[15px] text-[#56647a] dark:text-[#9fb0c8]">{s.body}</p>
             </a>
           ))}
         </div>
@@ -532,129 +529,66 @@ function ProductPaths() {
   );
 }
 
-function FeaturePreviews() {
-  const features = [
-    {
-      eyebrow: "Award Autopsy",
-      title: "Understand why a bid was lost",
-      description: "Review available award information, winning price, incumbent history, and competitive signals.",
-      href: "/autopsy",
-      cta: "Analyze an award",
-    },
-    {
-      eyebrow: "AI Executive Brief",
-      title: "Understand an RFP before you bid",
-      description: "Turn a long solicitation into requirements, milestones, source citations, and practical red flags.",
-      href: "/example-brief",
-      cta: "View an example brief",
-    },
+// ── Bid Scout callout ($99/month, same price as /bid-scout) ───────────────────
+
+function BidScoutCallout() {
+  return (
+    <section id="scout" className="scroll-mt-4 pt-18">
+      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <div className="grid items-center gap-9 rounded-[14px] bg-[#0f2747] p-7 text-white md:grid-cols-[1.15fr_.85fr] md:gap-10 md:p-11 dark:bg-[#0a1930]">
+          <div>
+            <h2 className={`${SERIF} text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold`}>
+              Five handpicked federal bids, every Friday
+            </h2>
+            <p className="mt-4 max-w-[32em] text-[#b9c7dc]">
+              Skip the searching. Each Friday we send five open federal opportunities that fit your
+              trade, with the deadline, what's required, and why it's a match.
+            </p>
+          </div>
+          <div className={`${CARD} p-6`}>
+            <div className="font-[Georgia,serif] text-[40px] font-bold">
+              $99<small className="text-base font-normal text-[#56647a] dark:text-[#9fb0c8]"> / month</small>
+            </div>
+            <div>Cancel anytime.</div>
+            <a href="/bid-scout?source=homepage" className={`${BTN} no-underline`}>
+              See a sample
+            </a>
+            <div className="mt-3.5 text-sm text-[#56647a] dark:text-[#9fb0c8]">
+              Want a second opinion on one bid? A one-page{" "}
+              <a href="/bid-fit-review" className="underline">Bid Fit Review</a> is $99 once.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Footer ────────────────────────────────────────────────────────────────────
+
+function Footer() {
+  const links = [
+    { href: "/grants", label: "Grants" },
+    { href: "/contract-payments", label: "Payments tracker" },
+    { href: "/blog", label: "Blog" },
+    { href: "/about", label: "About" },
+    { href: "/vad", label: "Veterans Against Diabetes Pricing" },
+    { href: "/security", label: "Security" },
+    { href: "/privacy", label: "Privacy" },
+    { href: "/terms", label: "Terms" },
+    { href: "mailto:hello@contrax.company", label: "hello@contrax.company" },
   ];
-
   return (
-    <section aria-label="More Contrax tools" className="border-t border-slate-200 bg-slate-50 py-14 sm:py-16">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="grid gap-5 md:grid-cols-2">
-          {features.map((feature) => (
-            <article key={feature.title} className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-              <p className="text-sm font-bold uppercase tracking-[0.16em] text-blue-700">{feature.eyebrow}</p>
-              <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-950">{feature.title}</h2>
-              <p className="mt-3 text-base leading-7 text-slate-600">{feature.description}</p>
-              <a href={feature.href} className="mt-6 inline-flex font-bold text-blue-700 hover:text-blue-900">
-                {feature.cta} →
-              </a>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FinalCta() {
-  return (
-    <section className="bg-slate-950 py-14 text-white sm:py-16" aria-labelledby="final-cta-heading">
-      <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-        <h2 id="final-cta-heading" className="text-3xl font-bold tracking-tight sm:text-4xl">
-          Ready to find your next opportunity?
-        </h2>
-        <p className="mx-auto mt-4 max-w-2xl text-lg leading-8 text-slate-300">
-          Start with a free contract scan or search current federal grants.
-        </p>
-        <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-          <a href="/radar" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-600 px-7 py-3 font-bold text-white hover:bg-blue-500">
-            Search contracts
+    <footer className="pt-14 pb-9 text-sm text-[#56647a] dark:text-[#9fb0c8]">
+      <div className="mx-auto flex max-w-[1120px] flex-wrap gap-x-6 gap-y-2 border-t border-[#dde3ec] px-4 pt-6 sm:px-6 dark:border-[#24334f]">
+        <span>&copy; {new Date().getFullYear()} Contrax LLC</span>
+        {links.map((l) => (
+          <a key={l.href} href={l.href} className="hover:text-[#0f1f38] dark:hover:text-white">
+            {l.label}
           </a>
-          <a href="/grants" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-600 px-7 py-3 font-bold text-white hover:border-slate-400 hover:bg-slate-900">
-            Search grants
-          </a>
-        </div>
+        ))}
       </div>
-    </section>
-  );
-}
-
-function FeaturedServices() {
-  return (
-    <section aria-label="Founder-assisted services" className="py-12 sm:py-16">
-      <div className="mx-auto max-w-6xl px-4 sm:px-6">
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="flex flex-col rounded-2xl border border-blue-200 bg-blue-50/60 p-7 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6 lg:col-span-2">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Bid Fit Review · $99 once</p>
-              <h2 className="mt-2 text-xl font-bold text-slate-950">Decide whether one government bid is worth pursuing</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">Get a one-page review of eligibility, deadlines, required forms, and deal breakers. We confirm your request before payment.</p>
-            </div>
-            <a href="/bid-fit-review" className="mt-5 shrink-0 rounded-xl bg-blue-700 px-5 py-3 text-center text-sm font-bold text-white hover:bg-blue-800 sm:mt-0">Request a review</a>
-          </div>
-          <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Bid Scout · $99/month</p>
-              <h2 className="mt-2 text-xl font-bold text-slate-950">Five handpicked federal opportunities every Friday</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">Founder-assisted matching for businesses that want qualified opportunities brought to them.</p>
-            </div>
-            <a href="/bid-scout?source=homepage" className="mt-5 shrink-0 rounded-xl bg-slate-900 px-5 py-3 text-center text-sm font-bold text-white hover:bg-slate-800 sm:mt-0">Explore Bid Scout</a>
-          </div>
-          <div className="flex flex-col rounded-2xl border border-amber-200 bg-amber-50/50 p-7 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:gap-6">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-amber-700">Personalized grant report · $49 once</p>
-              <h2 className="mt-2 text-xl font-bold text-slate-950">Get a focused grant-opportunity report</h2>
-              <p className="mt-2 text-sm leading-relaxed text-slate-600">Founder-researched matches, eligibility observations, deadlines, official links, and recommended next steps.</p>
-            </div>
-            <a href={GRANTS_REPORT_PAYMENT_LINK} target="_blank" rel="noopener noreferrer" className="mt-5 shrink-0 rounded-xl bg-amber-500 px-5 py-3 text-center text-sm font-bold text-slate-950 hover:bg-amber-400 sm:mt-0">Get the $49 report</a>
-          </div>
-        </div>
-        <p className="mt-4 text-center text-xs text-slate-500">Matches and funding are not guaranteed. Grant writing and submission are not included.</p>
-      </div>
-    </section>
-  );
-}
-
-function ContractorOperations() {
-  return (
-    <section aria-labelledby="contractor-operations-heading" className="border-y border-blue-200 bg-blue-50 px-4 py-16 sm:px-6 sm:py-20">
-      <div className="mx-auto grid max-w-6xl gap-8 rounded-3xl border-2 border-blue-300 bg-white p-7 shadow-xl shadow-blue-900/10 sm:p-10 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center">
-        <div>
-          <p className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-800">Standalone contractor tool · Now available</p>
-          <h2 id="contractor-operations-heading" className="mt-4 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
-            Contrax Payments
-          </h2>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-700">
-            Stay on top of invoices and labor hours for every job. Track missing paperwork and payment follow-ups in one place, whether or not you found the contract on Contrax.
-          </p>
-          <div className="mt-7 flex flex-wrap gap-3">
-            <a href="/contract-payments" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-700 px-6 py-3 text-base font-bold text-white shadow-md shadow-blue-700/20 hover:bg-blue-800">Explore Contrax Payments →</a>
-            <a href="/contract-labor" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-blue-300 bg-white px-5 py-3 text-base font-bold text-blue-800 hover:bg-blue-50">Review labor hours</a>
-          </div>
-          <p className="mt-5 text-sm text-slate-600">Separate from Radar and Bid Scout. Does not collect customer payments or process payroll.</p>
-        </div>
-        <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-slate-950">
-          <p className="text-sm font-bold uppercase tracking-wide text-blue-800">Simple pricing</p>
-          <p className="mt-3 text-4xl font-extrabold">$9<span className="text-base font-semibold text-slate-600">/month</span></p>
-          <p className="mt-2 text-base font-semibold text-slate-700">or $90/year <span className="text-sm font-normal">(save $18)</span></p>
-          <div className="mt-5 border-t border-blue-200 pt-4 text-sm leading-relaxed text-slate-700">Invoice follow-ups · Paperwork checklist · Labor hours by job</div>
-        </div>
-      </div>
-    </section>
+    </footer>
   );
 }
 
@@ -849,321 +783,5 @@ export function ContraxGrantsPromo({
         </p>
       </div>
     </section>
-  );
-}
-
-// ── Award Autopsy — homepage section #2 (owner spec 2026-09-05) ───────────────
-// The second front door, for visitors who already bid-and-lost. Single-field
-// form writes a minimal draft to the SAME sessionStorage key the /autopsy
-// funnel owns (AUTOPSY_DRAFT_STORAGE_KEY) and navigates there via the app
-// router, so the funnel picks it up: /autopsy prefills its first field from
-// the draft and the visitor completes agency + the rest there. The draft
-// contract is honored exactly (same key, same shape); /autopsy's own funnel,
-// events, and gift logic are untouched.
-//
-// Analytics: ONE new event (autopsy_home_cta, label autopsy_funnel, path /)
-// fired once on section view (stage-0 entry) and again on submit-click. The
-// admin autopsy-funnel view ignores it (not in AUTOPSY_EVENTS) so the 9
-// owner-exact stage counts are unchanged; the visitor timeline renders it via
-// EVENT_LABELS in tracking-intake.ts. No parallel system, no lead-score
-// change, no DB change.
-// ── U.S. Contract Map — homepage EMBED REMOVED (owner order 2026-09-23) ──────
-// The compact homepage map (one color scale, hover totals tooltip, click-to-
-// search per-state links, the "Explore the full map →" CTA) was removed from
-// the homepage at the owner's request. This file therefore no longer imports
-// US_MAP_VIEWBOX / US_STATE_PATHS, STATE_NAMES, MAP_BUCKETS / mapFillFor,
-// mapCompactValueLabel or formatCompactMoney — all of them were map-only.
-// What STAYS: the hero's live counter above, which still renders
-// contractMap.totals.totalOpen from the SAME buildContractMap aggregation the
-// loader runs (getContractMapAggregate — untouched). /map and its
-// /map?state=<CODE> drill-down are a separate route and are untouched: they
-// keep the full map, the color scale and the per-state totals.
-
-// ── How It Works ──────────────────────────────────────────────────────────────
-
-function HowItWorks() {
-  const steps = [
-    {
-      number: "01",
-      title: "Search Your Trade",
-      tagline: "Find the set-asides you qualify for",
-      description:
-        "Enter your trade or NAICS to see live set-aside solicitations matched to your 8(a), SDVOSB, WOSB, or HUBZone certification.",
-      href: "/radar",
-      cta: "Search the market",
-      icon: (
-        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-        </svg>
-      ),
-    },
-    {
-      number: "02",
-      title: 'Click "Get AI Executive Brief"',
-      tagline: "AI extracts requirements with citations",
-      description:
-        "Our model extracts the mandatory requirements, milestones, and red flags from the solicitation description, citing the relevant text.",
-      href: "/example-brief",
-      cta: "See an example brief",
-      icon: (
-        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
-        </svg>
-      ),
-    },
-    {
-      number: "03",
-      title: "Bid With Confidence",
-      tagline: "Know your odds in seconds",
-      description:
-        "Understand in seconds whether the job matches your capacity, licensing, and bonding before spending hours on a proposal.",
-      href: "/signup?plan=basic",
-      cta: "Start free",
-      icon: (
-        <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
-        </svg>
-      ),
-    },
-  ];
-
-  return (
-    <section id="how-it-works" className="bg-blue-50/50 py-20 sm:py-28">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">
-            How it works
-          </h2>
-          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Search. Brief. Bid.
-          </h3>
-          <p className="mt-4 text-lg text-gray-600">
-            Find the RFPs in your industry, understand every requirement in seconds, and
-            bid with confidence — all on Contrax.
-          </p>
-        </div>
-
-        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-          {steps.map((step) => (
-            <div
-              key={step.number}
-              className="group relative flex flex-col rounded-2xl border border-gray-200/60 bg-white p-8 shadow-sm transition-all hover:shadow-md"
-            >
-              <div className="mb-5 flex items-center justify-between">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 transition-colors group-hover:bg-blue-600 group-hover:text-white">
-                  {step.icon}
-                </div>
-                <span className="text-sm font-bold text-blue-600/60">{step.number}</span>
-              </div>
-              <h3 className="text-xl font-semibold text-slate-900">{step.title}</h3>
-              <p className="mt-1 text-sm font-semibold text-amber-600">{step.tagline}</p>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-gray-600">{step.description}</p>
-              <a
-                href={step.href}
-                className="mt-5 inline-flex items-center text-sm font-semibold text-blue-600 transition-colors hover:text-blue-700"
-              >
-                {step.cta}
-                <svg
-                  className="ml-1.5 h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </a>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-
-// ── Pricing ───────────────────────────────────────────────────────────────────
-
-function Pricing() {
-  const plans = [
-    {
-      name: "Basic",
-      price: "0",
-      period: "/month",
-      description: "Free forever. For small businesses scouting their first set-aside opportunities.",
-      features: [
-        "Basic Solicitations Search",
-        "Up to 3 Saved Bids",
-        "1 Award Autopsy monthly — full analysis",
-        "Standard Set-Aside Filters",
-      ],
-      cta: "Start Free",
-      slug: "basic",
-      featured: false,
-    },
-    {
-      name: "Starter",
-      price: "19",
-      period: "/month",
-      description: "For businesses ready to build and track a real government-contracting pipeline.",
-      features: [
-        "Unlimited Saved Bids",
-        "5 Award Autopsies monthly",
-        "Daily NAICS Email Alerts",
-      ],
-      cta: "Find Opportunities for My Company",
-      slug: "starter",
-      featured: false,
-    },
-    {
-      name: "Professional",
-      price: "79",
-      period: "/month",
-      description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and AI match scoring.",
-      features: [
-        "50 AI Executive Briefs a month — requirements, milestones & red flags",
-        "Full Incumbent Intelligence & Past Pricing",
-        "AI Match Scoring",
-        "25 Award Autopsies monthly",
-      ],
-      cta: "Find Opportunities for My Company",
-      slug: "professional",
-      featured: true,
-    },
-  ];
-
-  return (
-    <section id="pricing" className="pricing-section py-16 sm:py-20">
-      <div className="mx-auto max-w-7xl px-6">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-amber-600">
-            Pricing
-          </h2>
-          <h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-            Plans for every stage of growth
-          </h3>
-          <p className="mt-4 text-lg text-gray-600">
-            Start small and scale up as your contracting pipeline grows. No long-term contracts
-            required.
-          </p>
-          <p className="mt-3 text-sm font-medium text-slate-500">Start free on Basic — no card required. Start your 14-day Professional trial when you upgrade. Cancel anytime during your trial.</p>
-        </div>
-
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              className={`relative flex flex-col rounded-2xl border bg-white p-7 shadow-sm transition-all hover:shadow-lg ${
-                plan.featured
-                  ? "border-blue-500 ring-2 ring-blue-500/20 scale-[1.02] lg:scale-105"
-                  : "border-gray-200"
-              }`}
-            >
-              {plan.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-white shadow-md">
-                  Recommended
-                </div>
-              )}
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
-                <p className="mt-1 text-sm text-gray-500">{plan.description}</p>
-              </div>
-              <div className="mb-6">
-                <span className="text-4xl font-extrabold text-slate-900">${plan.price}</span>
-                <span className="text-gray-500">{plan.period}</span>
-              </div>
-              <ul className="mb-8 flex-1 space-y-3">
-                {plan.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-3">
-                    <svg
-                      className={`mt-0.5 h-5 w-5 flex-shrink-0 ${plan.featured ? "text-blue-600" : "text-green-500"}`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={2}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span className="text-sm text-gray-700">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-              <a href={`/signup?plan=${plan.slug}`} onClick={() => trackEvent("hero_cta_click", "pricing")} className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${plan.featured ? "bg-amber-500 text-white" : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"}`}>{plan.cta}</a>
-            </div>
-          ))}
-        </div>
-
-        {/* Billing note */}
-        <p className="mt-8 text-center text-sm text-gray-500">
-          Plans are billed monthly. Cancel anytime.
-        </p>
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-center">
-          <a href="/signup" onClick={() => trackEvent("hero_cta_click", "pricing")} className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
-            Or start your 14-day Professional trial →
-          </a>
-          <a href="/pricing" className="text-sm font-semibold text-blue-700 hover:text-blue-800">See all plans, including Agency →</a>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ── Footer ────────────────────────────────────────────────────────────────────
-
-function Footer() {
-  return (
-    <footer className="border-t border-gray-800 bg-slate-900 py-10">
-      <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
-        <div className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-700">
-            <svg className="h-4 w-4 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </span>
-          <span className="text-lg font-bold text-white">Contrax</span>
-        </div>
-        <p className="text-sm text-gray-400">
-          &copy; {new Date().getFullYear()} Contrax LLC. All rights reserved.
-        </p>
-        <div className="flex flex-wrap items-center gap-5">
-          <a href="/compare" className="text-sm text-gray-400 transition-colors hover:text-white">
-            Compare
-          </a>
-          <a href="/clauses" className="text-sm text-gray-400 transition-colors hover:text-white">
-            FAR Clause Library
-          </a>
-          <a href="/blog" className="text-sm text-gray-400 transition-colors hover:text-white">
-            Blog
-          </a>
-          <a href="/about" className="text-sm text-gray-400 transition-colors hover:text-white">
-            About
-          </a>
-          <a href="/set-aside-contracts" className="text-sm text-gray-400 transition-colors hover:text-white">
-            Set-Aside Contracts
-          </a>
-          <a href="/contracts-by-industry" className="text-sm text-gray-400 transition-colors hover:text-white">
-            Contracts by Industry
-          </a>
-          <a href="/vad" className="text-sm text-gray-400 transition-colors hover:text-white">
-            Veterans Against Diabetes Pricing
-          </a>
-          <a href="/security" className="text-sm text-gray-400 transition-colors hover:text-white">
-            Security
-          </a>
-          <a href="/privacy" className="text-sm text-gray-400 transition-colors hover:text-white">
-            Privacy Policy
-          </a>
-          <a href="/terms" className="text-sm text-gray-400 transition-colors hover:text-white">
-            Terms of Service
-          </a>
-          <a
-            href="mailto:hello@contrax.company"
-            className="text-sm text-gray-400 transition-colors hover:text-white"
-          >
-            hello@contrax.company
-          </a>
-        </div>
-      </div>
-    </footer>
   );
 }

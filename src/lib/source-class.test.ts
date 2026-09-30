@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("79 entries: 73 registry labels + sam_gov_regional + 5 legacy/internal", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(79);
+  test("82 entries: original 79 plus NC and Maryland portal classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(82);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -152,9 +152,10 @@ describe("the owner's per-item rulings (exceptions a–e)", () => {
     expect([...AWARD_TYPE_SOURCES].sort()).toEqual([
       "austin_open_data",
       "chicago_open_data",
+      "md_emma_awards",
       "sf_open_data",
     ]);
-    for (const s of AWARD_TYPE_SOURCES) {
+    for (const s of ["austin_open_data", "chicago_open_data", "sf_open_data"]) {
       expect(`${s}=${resolveSourceClass(s)}`).toBe(`${s}=local`);
       expect(SOURCE_CLASSES[s]!.recordType).toBe("award");
       expect(isAwardTypeSource(s)).toBe(true);
@@ -262,3 +263,13 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
     expect(sourceBadgeLabel(undefined)).toBe("");
   });
 });
+
+ test("NC and Maryland public imports retain state provenance and separate awards", () => {
+ for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"]]) {
+ expect(resolveSourceClass(source)).toBe("state");
+ expect(SOURCE_CLASSES[source]!.scopeState).toBe(state);
+ }
+ expect(isAwardTypeSource("md_emma")).toBe(false);
+ expect(isAwardTypeSource("md_emma_awards")).toBe(true);
+ expect(SOURCE_CLASSES["md_emma_awards"]!.recordType).toBe("award");
+ });

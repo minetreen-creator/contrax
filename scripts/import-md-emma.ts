@@ -15,7 +15,8 @@ const eligible = records.filter((r: any) => Date.parse(r.due_iso) > Date.now() &
 const seenSolicitations = new Set<string>();
 // Source rows are ordered by publication date descending: retain the latest published round.
 const latest = eligible.filter((r: any) => { if (seenSolicitations.has(r.cells[1])) return false; seenSolicitations.add(r.cells[1]); return true; });
-const rows: RawBid[] = latest.map((r: any) => ({
+const openLatest = latest.filter((r: any) => !/^(notice of award|award notice)\b/i.test(r.cells[2]));
+const rows: RawBid[] = openLatest.map((r: any) => ({
   external_id: "md-emma:" + r.cells[1],
   title: r.cells[2], agency: r.cells[8], description: "Main category: " + r.cells[6],
   location: "Maryland", category: mapCategory("", r.cells[2], r.cells[6]),
@@ -26,6 +27,8 @@ console.log(JSON.stringify({validated: records.length, eligible: rows.length, ex
 if (process.argv.includes("--apply")) {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL required");
   const sql = neon(process.env.DATABASE_URL);
+  // Reclassify two explicit award notices accidentally marked Open by the public board.
+  await sql`UPDATE bids SET source = 'md_emma_awards', due_date = NULL, notice_type = 'Award Notice' WHERE source = 'md_emma' AND solicitation_number IN ('BPM058904', 'BPM057588')`;
   const existing = await sql`SELECT solicitation_number, agency, source_url, title FROM bids WHERE normalized_state = 'MD'`;
   const keys = new Set(existing.map((r: any) => String(r.agency).trim().toLowerCase() + "|" + String(r.solicitation_number ?? "").trim().toLowerCase()));
   const urls = new Set(existing.map((r: any) => r.source_url));

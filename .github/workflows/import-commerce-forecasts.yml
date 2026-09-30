@@ -1,0 +1,27 @@
+name: Import Commerce forecasts
+on:
+  push:
+    branches: [main]
+    paths:
+      - data/commerce-forecasts-2026-09-30.json
+      - scripts/import-commerce-forecasts.ts
+      - .github/workflows/import-commerce-forecasts.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: import-commerce-forecasts
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - run: bun run scripts/import-commerce-forecasts.ts --apply

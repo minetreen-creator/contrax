@@ -44,3 +44,7 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Check route files parse
         run: bun run check:routes
+      - name: Validate procurement forecast snapshots
+        run: |
+          bun run scripts/import-commerce-forecasts.ts
+          bun run scripts/import-dhs-forecasts.ts

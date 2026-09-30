@@ -15,6 +15,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { trackEvent } from "~/lib/track";
+import { SiteHeader } from "~/components/SiteHeader";
 
 export const Route = createFileRoute("/bid-scout")({
   head: () => ({
@@ -30,7 +31,12 @@ export const Route = createFileRoute("/bid-scout")({
       },
     ],
   }),
-  component: BidScoutPage,
+  component: () => (
+    <>
+      <SiteHeader />
+      <BidScoutPage />
+    </>
+  ),
 });
 
 const BULLETS = [

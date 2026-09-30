@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { SiteHeader } from "~/components/SiteHeader";
 
 const columns = ["Contrax", "GovWin / Deltek", "BidNet / Bonfire", "GovSpend", "Manual Bidding (SAM.gov)", "Consultant / Gov't Contract Specialist"];
 const rows = [
@@ -37,7 +38,12 @@ export const Route = createFileRoute("/compare/")({
     ],
     links: [{ rel: "canonical", href: "https://www.contrax.company/compare" }],
   }),
-  component: ComparePage,
+  component: () => (
+    <>
+      <SiteHeader />
+      <ComparePage />
+    </>
+  ),
 });
 
 function Mark({ value }: { value: string }) {

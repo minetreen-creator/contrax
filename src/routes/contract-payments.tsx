@@ -1,8 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { PAYMENT_STATUSES, type PaymentInput } from "~/lib/contract-payments";
 import { ContractorOperationsAccess } from "~/components/ContractorOperationsAccess";
+import { SiteHeader } from "~/components/SiteHeader";
 
 type RecordItem = PaymentInput & { id: number; created_at: string; updated_at: string };
 const empty: PaymentInput = {
@@ -23,9 +24,40 @@ export const Route = createFileRoute("/contract-payments")({
 
 function Guard() {
   const { user } = Route.useLoaderData();
-  const navigate = useNavigate();
-  useEffect(() => { if (!user) navigate({ to: "/login" }); }, [user, navigate]);
-  return user ? <ContractorOperationsAccess><PaymentPage /></ContractorOperationsAccess> : null;
+  return user ? <ContractorOperationsAccess><PaymentPage /></ContractorOperationsAccess> : <PaymentsIntro />;
+}
+
+// Signed-out visitors (e.g. from the homepage footer) get a short explanation
+// instead of a bare redirect to /login. Copy is the former homepage Payments
+// section; pricing matches ContractorOperationsAccess.
+function PaymentsIntro() {
+  return (
+    <>
+      <SiteHeader user={null} />
+      <main className="min-h-screen bg-slate-50 px-4 py-16 sm:px-6 sm:py-20">
+        <div className="mx-auto grid max-w-5xl gap-8 rounded-3xl border border-blue-200 bg-white p-7 shadow-sm sm:p-10 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-center">
+          <div>
+            <p className="inline-flex rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-800">Standalone contractor tool</p>
+            <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">Contrax Payments</h1>
+            <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-700">
+              Stay on top of invoices and labor hours for every job. Track missing paperwork and payment follow-ups in one place, whether or not you found the contract on Contrax.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <a href="/signup?next=/contract-payments" className="inline-flex min-h-12 items-center justify-center rounded-xl bg-blue-700 px-6 py-3 text-base font-bold text-white hover:bg-blue-800">Create an account</a>
+              <a href="/login" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-blue-300 bg-white px-5 py-3 text-base font-bold text-blue-800 hover:bg-blue-50">Sign in</a>
+            </div>
+            <p className="mt-5 text-sm text-slate-600">Separate from Radar and Bid Scout. Does not collect customer payments or process payroll.</p>
+          </div>
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-6 text-slate-950">
+            <p className="text-sm font-bold uppercase tracking-wide text-blue-800">Simple pricing</p>
+            <p className="mt-3 text-4xl font-extrabold">$9<span className="text-base font-semibold text-slate-600">/month</span></p>
+            <p className="mt-2 text-base font-semibold text-slate-700">or $90/year <span className="text-sm font-normal">(save $18)</span></p>
+            <div className="mt-5 border-t border-blue-200 pt-4 text-sm leading-relaxed text-slate-700">Invoice follow-ups · Paperwork checklist · Labor hours by job</div>
+          </div>
+        </div>
+      </main>
+    </>
+  );
 }
 
 function PaymentPage() {

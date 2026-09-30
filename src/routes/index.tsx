@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
+import { SiteHeader } from "~/components/SiteHeader";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
@@ -293,38 +294,10 @@ function Home() {
 }
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
-// Always white (both themes) so the white-background logo blends in.
+// The shared public header; the loader already resolved the session, so pass it.
 
 function Navbar({ user }: { user: { id: number; email: string; is_admin?: boolean } | null }) {
-  const link = "text-[#56647a] no-underline hover:text-[#0f1f38]";
-  return (
-    <header className="border-b border-[#dde3ec] bg-white text-[#0f1f38]">
-      <div className="mx-auto flex h-[68px] max-w-[1120px] items-center justify-between gap-4 px-4 sm:px-6">
-        <a href="/" className="block shrink-0" aria-label="Contrax home">
-          <img src="/logo.png" alt="Contrax" height={36} className="block h-11 w-auto" />
-        </a>
-        <nav className="flex items-center gap-4 text-sm sm:gap-[26px] sm:text-[15px]">
-          <a href="/radar" className={link}>Contracts</a>
-          {/* Admins get an extra link; drop Pricing on phones so the row still fits. */}
-          <a href="/pricing" className={user?.is_admin ? `${link} hidden sm:inline` : link}>Pricing</a>
-          {user?.is_admin && (
-            <a href="/admin" className="rounded-md bg-amber-50 px-2.5 py-1 font-semibold text-amber-600 no-underline hover:text-amber-500">
-              Admin
-            </a>
-          )}
-          {user ? (
-            <a href="/dashboard" className="rounded-md border border-[#dde3ec] px-4 py-2 text-[#0f1f38] no-underline">
-              Dashboard
-            </a>
-          ) : (
-            <a href="/login" className="rounded-md border border-[#dde3ec] px-4 py-2 text-[#0f1f38] no-underline">
-              Sign in
-            </a>
-          )}
-        </nav>
-      </div>
-    </header>
-  );
+  return <SiteHeader user={user} />;
 }
 
 // ── Hero: search form + live SDVOSB sample ────────────────────────────────────
@@ -557,7 +530,7 @@ function BidScoutCallout() {
             </div>
             <div>Cancel anytime.</div>
             <a href="/bid-scout?source=homepage" className={`${BTN} no-underline`}>
-              See a sample
+              Start Bid Scout
             </a>
             <div className="mt-3.5 text-sm text-[#56647a] dark:text-[#9fb0c8]">
               Want a second opinion on one bid? A one-page{" "}

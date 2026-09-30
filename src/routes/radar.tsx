@@ -1398,19 +1398,6 @@ function RadarLanding() {
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-8">
-        <a
-          href="/"
-          onClick={() => trackEvent("hero_cta_click", "radar_logo")}
-          className="self-start text-sm font-bold tracking-tight text-amber-400 hover:text-amber-300"
-        >
-          ⬢ CONTRAX — Contract Radar
-        </a>
-        <a href="/subcontracts" className="mt-3 self-start text-sm font-semibold text-sky-300 hover:text-white">
-          Browse verified subcontracting opportunities →
-        </a>
-        <a href="/forecasts" className="mt-3 self-start text-sm font-semibold text-sky-300 hover:text-white">
-          Explore upcoming procurement forecasts →
-        </a>
 
         {step === 1 && (
           <section className="flex flex-1 flex-col justify-center py-8">
@@ -1940,6 +1927,17 @@ function RadarLanding() {
             )}
           </section>
         )}
+
+        {/* Secondary paths, below the scan so the form is the first thing on the
+            page (the shared SiteHeader above already links home). */}
+        <nav aria-label="Other ways to find work" className="mt-auto flex flex-col gap-3 border-t border-slate-800 pt-6">
+          <a href="/subcontracts" className="self-start text-sm font-semibold text-sky-300 hover:text-white">
+            Browse verified subcontracting opportunities →
+          </a>
+          <a href="/forecasts" className="self-start text-sm font-semibold text-sky-300 hover:text-white">
+            Explore upcoming procurement forecasts →
+          </a>
+        </nav>
       </div>
     </main>
   );

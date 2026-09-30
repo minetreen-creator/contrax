@@ -1,0 +1,31 @@
+name: Import NC eVP bids
+on:
+  pull_request:
+    branches: [main]
+    paths: [data/nc-open-solicitations-2026-09-30.json, scripts/import-nc-evp.ts, .github/workflows/import-nc-evp.yml]
+  push:
+    branches: [main]
+    paths: [data/nc-open-solicitations-2026-09-30.json, scripts/import-nc-evp.ts, .github/workflows/import-nc-evp.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: import-nc-evp
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Validate snapshot
+        run: bun run scripts/import-nc-evp.ts
+      - name: Import and verify production records
+        if: github.event_name != 'pull_request'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun run scripts/import-nc-evp.ts --apply

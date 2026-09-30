@@ -33,6 +33,8 @@ if (process.argv.includes("--apply")) {
   if (result.failed || result.errors.length) throw new Error("NC import failed");
   const stored = await sql`SELECT source_url FROM bids WHERE source_url LIKE 'https://evp.nc.gov/solicitations/details/%'`;
   const saved = new Set(stored.map((r: any) => r.source_url));
+  const snapshotVerifiedSourceLinks = rows.filter(r => saved.has(r.source_url)).length;
+  if (snapshotVerifiedSourceLinks < 245) throw new Error("Snapshot stored count verification failed");
   if (candidates.some(r => !saved.has(r.source_url))) throw new Error("Saved link verification failed");
-  console.log(JSON.stringify({newlyInserted: result.new, candidates: candidates.length, existingIdentityMatches: rows.length - candidates.length, verifiedSourceLinks: candidates.filter(r => saved.has(r.source_url)).length, result}));
+  console.log(JSON.stringify({snapshotVerifiedSourceLinks, newlyInserted: result.new, candidates: candidates.length, existingIdentityMatches: rows.length - candidates.length, verifiedSourceLinks: candidates.filter(r => saved.has(r.source_url)).length, result}));
 }

@@ -54,6 +54,7 @@ import { fetchPaEmarketplaceBids } from "./sources/pa-emarketplace";
 import { fetchCoVssBids } from "./sources/co-vss";
 import { fetchOhOdotBids } from "./sources/oh-odot";
 import { fetchNyNyscrBids } from "./sources/ny-nyscr";
+import { fetchMiSigmaBids } from "./sources/mi-sigma";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -230,6 +231,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "oh_odot", fetchFn: () => fetchOhOdotBids() },
   // New York State Contract Reporter: open state and local ads.
   { name: "ny_nyscr", fetchFn: () => fetchNyNyscrBids() },
+  // Michigan SIGMA Vendor Self Service: open state and local solicitations.
+  { name: "mi_sigma", fetchFn: () => fetchMiSigmaBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

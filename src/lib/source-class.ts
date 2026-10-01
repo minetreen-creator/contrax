@@ -175,6 +175,8 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   co_vss: { class: "state", scopeState: "CO", searchScope: "state-portal", recordType: "opportunity" },
   // Ohio DOT construction lettings (src/jobs/sources/oh-odot.ts).
   oh_odot: { class: "state", scopeState: "OH", searchScope: "state-portal", recordType: "opportunity" },
+  // New York State Contract Reporter (src/jobs/sources/ny-nyscr.ts).
+  ny_nyscr: { class: "state", scopeState: "NY", searchScope: "state-portal", recordType: "opportunity" },
   md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's

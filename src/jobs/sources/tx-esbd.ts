@@ -208,7 +208,9 @@ export function parseEsbdLines(lines: readonly EsbdLine[], now: number = Date.no
       .filter(Boolean);
     const posted = clean(line.postingDate);
     const description = [
-      `Open solicitation ${solicitationId} posted by ${agency} on the Texas Electronic State Business Daily${posted ? ` on ${posted}` : ""}.`,
+      // The buyer is not repeated here (trade matching reads the description and
+      // agency names contain trade words, e.g. "Department of Public Safety").
+      `Open solicitation ${solicitationId} posted on the Texas Electronic State Business Daily${posted ? ` on ${posted}` : ""}.`,
       codes.length ? `Commodity codes (NIGP): ${codes.join("; ")}.` : "",
       "Full documents are on the ESBD notice (see source link).",
     ]

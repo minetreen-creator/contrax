@@ -49,6 +49,7 @@ import { fetchVaEvirginia } from "./sources/va-ev";
 import { fetchVaEvaBids } from "./sources/va-eva";
 import { fetchTxEsbdBids } from "./sources/tx-esbd";
 import { fetchFlMfmpBids } from "./sources/fl-mfmp";
+import { fetchCaEprocureBids } from "./sources/ca-eprocure";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -215,6 +216,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "tx_esbd", fetchFn: () => fetchTxEsbdBids() },
   // Florida MyFloridaMarketPlace Vendor Bid System: open state-agency bids.
   { name: "fl_mfmp", fetchFn: () => fetchFlMfmpBids() },
+  // California Cal eProcure: posted state-department bid events.
+  { name: "ca_eprocure", fetchFn: () => fetchCaEprocureBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

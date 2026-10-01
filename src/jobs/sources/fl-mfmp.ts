@@ -29,8 +29,8 @@
  *                             entity.
  *   - `due_date`            = `closeDate` (an absolute UTC timestamp).
  *   - `solicitation_number` = `agencyAdNumber`; `notice_type` = `type`.
- *   - `description`         = the advertisement's type, number, buyer and
- *                             publish date (the list has no summary; the full
+ *   - `description`         = the advertisement's type, number and publish
+ *                             date (not the buyer: trade matching reads it) (the list has no summary; the full
  *                             text and documents are on the linked page).
  *   - `source_url`          = https://vendor.myfloridamarketplace.com/search/bids/detail/<advertisementId>
  *   - `naics_code` / `psc` / `set_aside` stay NULL.
@@ -146,7 +146,9 @@ export function parseMfmpAds(ads: readonly MfmpAd[], now: number = Date.now()): 
     const number = clean(ad.agencyAdNumber);
     const published = isoOrNull(ad.publishDate);
     const description = [
-      `${type}${number ? ` ${number}` : ""} advertised by ${agency} on the MyFloridaMarketPlace Vendor Bid System${
+      // The buyer is not repeated here (trade matching reads the description and
+      // agency names contain trade words, e.g. "Florida Highway Patrol").
+      `${type}${number ? ` ${number}` : ""} advertised on the MyFloridaMarketPlace Vendor Bid System${
         published ? ` on ${published.slice(0, 10)}` : ""
       }.`,
       "The full advertisement and documents are on the MFMP notice (see source link).",

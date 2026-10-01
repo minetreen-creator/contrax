@@ -218,3 +218,26 @@ describe("fail closed", () => {
     }
   });
 });
+
+describe("mapWithConcurrency — the coverage reads run in parallel, in order", () => {
+  test("keeps input order and never exceeds the limit", async () => {
+    const { mapWithConcurrency } = await import("./coverage.server");
+    let inFlight = 0;
+    let peak = 0;
+    const out = await mapWithConcurrency([5, 1, 4, 2, 3, 0, 6, 7, 8, 9], 3, async (n) => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((r) => setTimeout(r, n));
+      inFlight--;
+      return n * 10;
+    });
+    expect(out).toEqual([50, 10, 40, 20, 30, 0, 60, 70, 80, 90]);
+    expect(peak).toBe(3);
+  });
+
+  test("a failing read rejects, so coverage reports the store as unavailable", async () => {
+    const { mapWithConcurrency } = await import("./coverage.server");
+    await expect(mapWithConcurrency([1, 2], 2, async (n) => { if (n === 2) throw new Error("db down"); return n; })).rejects.toThrow("db down");
+    expect(await mapWithConcurrency([], 8, async (n: number) => n)).toEqual([]);
+  });
+});

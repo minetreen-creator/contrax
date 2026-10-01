@@ -159,6 +159,23 @@ export function coverageHeadline(counts: CoverageCounts): string {
   return coverageHeadlineFor(counts, isDcValidated());
 }
 
+/** How many states' coverage reads run at once. */
+export const COVERAGE_CONCURRENCY = 8;
+
+/** Map with at most `limit` calls in flight; results keep the input order. */
+export async function mapWithConcurrency<T, R>(items: readonly T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      results[i] = await fn(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(Math.max(1, limit), items.length) }, worker));
+  return results;
+}
+
 /** Builds the coverage payload. Never throws: a store failure is a 500 body. */
 export async function buildStateGrantCoverage(
   now: Date = new Date(),
@@ -168,15 +185,17 @@ export async function buildStateGrantCoverage(
   const states = listStates();
   try {
     const validatedStates = states.filter((s) => isValidatedStatus(s.status));
-    const validated: ValidatedStateCoverage[] = [];
-    for (const entry of validatedStates) {
-      const statusCounts = await deps.stateGrantEffectiveStatusCounts(entry.stateCode, now);
-      const [lastSyncedAt, runs] = await Promise.all([
+    // Each state needs three independent reads. Running the 38 states one
+    // after another took ~76 sequential round trips (≈5 s from CI), so they run
+    // COVERAGE_CONCURRENCY at a time; the result keeps the registry order.
+    const validated = await mapWithConcurrency(validatedStates, COVERAGE_CONCURRENCY, async (entry): Promise<ValidatedStateCoverage> => {
+      const [statusCounts, lastSyncedAt, runs] = await Promise.all([
+        deps.stateGrantEffectiveStatusCounts(entry.stateCode, now),
         deps.latestSuccessfulStateSync([entry.stateCode]),
         deps.listStateSyncRuns(entry.stateCode, 1),
       ]);
       const run = runs[0] ?? null;
-      validated.push({
+      return {
         stateCode: entry.stateCode,
         name: entry.name,
         tier: entry.status,
@@ -201,8 +220,8 @@ export async function buildStateGrantCoverage(
               error: run.error,
             }
           : null,
-      });
-    }
+      };
+    });
     const asOf = await deps.latestSuccessfulStateSync(validatedStates.map((s) => s.stateCode));
     return {
       status: 200,

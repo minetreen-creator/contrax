@@ -62,6 +62,7 @@ import { fetchKyVssBids } from "./sources/ky-vss";
 import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchDeMmpBids } from "./sources/de-mmp";
 import { fetchScScboBids } from "./sources/sc-scbo";
+import { fetchIaDasBids } from "./sources/ia-das";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -255,6 +256,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "de_mmp", fetchFn: () => fetchDeMmpBids() },
   // South Carolina Business Opportunities: state and local public bids.
   { name: "sc_scbo", fetchFn: () => fetchScScboBids() },
+  // Iowa Bid Opportunities: open state agency solicitations.
+  { name: "ia_das", fetchFn: () => fetchIaDasBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

@@ -401,7 +401,7 @@ describe("oh_dayton — trade classification goes through the SHARED classifier"
 
 describe("oh_dayton — registration (runner tail source + jurisdiction + non-federal badge)", () => {
   test("TAIL_SOURCES carries oh_dayton as its 7th… of 7 (6 → 7 with this connector)", () => {
-    expect(TAIL_SOURCES.length).toBe(6) // PR-1: nys_socrata retired;
+    expect(TAIL_SOURCES.length).toBe(7) // PR-1: nys_socrata retired; va_eva (eVA) added;
     expect(TAIL_SOURCES.map((s) => s.name)).toContain("oh_dayton");
     expect(TAIL_SOURCES.find((s) => s.name === "oh_dayton")!.fetchFn).toBe(fetchOhDaytonBids);
     expect(new Set(TAIL_SOURCES.map((s) => s.name)).size).toBe(TAIL_SOURCES.length);

@@ -55,6 +55,7 @@ import { fetchCoVssBids } from "./sources/co-vss";
 import { fetchOhOdotBids } from "./sources/oh-odot";
 import { fetchNyNyscrBids } from "./sources/ny-nyscr";
 import { fetchMiSigmaBids } from "./sources/mi-sigma";
+import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -233,6 +234,9 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "ny_nyscr", fetchFn: () => fetchNyNyscrBids() },
   // Michigan SIGMA Vendor Self Service: open state and local solicitations.
   { name: "mi_sigma", fetchFn: () => fetchMiSigmaBids() },
+  // Periscope S2G state marketplaces: MA COMMBUYS, NJ NJSTART, IL BidBuy,
+  // OregonBuys, NevadaEPro, ARBuy (src/jobs/sources/periscope-states.ts).
+  ...PERISCOPE_TAIL_SOURCES,
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

@@ -1,0 +1,74 @@
+name: Daily Emails
+
+# Owner 2026-10-01: "people shouldn't get emails every 4 hours, just once a day
+# in the morning". Every user-facing email that used to follow each 4-hourly
+# bid sync now goes out once a day from here:
+#   - the bid digest (paying users, trials, Bid Scout, admins): every open bid
+#     added since the previous digest (src/jobs/send-bid-digest.ts);
+#   - free Radar match alerts: at most one per lead per week
+#     (src/lib/radar-lead-alerts.ts, LEAD_ALERT_INTERVAL_DAYS).
+#
+# Sent at 6 AM Eastern (owner 2026-10-01). GitHub cron is UTC-only, and 6 AM
+# Eastern is 10:00 UTC in summer (EDT) but 11:00 UTC in winter (EST), so the
+# workflow is scheduled at both and the "Check it is 6 AM Eastern" step lets
+# only the run that falls in the 6 o'clock hour in America/New_York send.
+# A manual "Run workflow" always sends.
+#
+# Required secrets: DATABASE_URL, RESEND_API_KEY (emails are skipped with a
+# warning when the key is absent).
+
+on:
+  schedule:
+    - cron: "0 10 * * *"
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: daily-emails
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    name: Send morning emails
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+    steps:
+      - name: Check it is 6 AM Eastern
+        id: gate
+        run: |
+          hour=$(TZ=America/New_York date +%H)
+          if [ "${{ github.event_name }}" != "schedule" ] || [ "$hour" = "06" ]; then
+            echo "send=true" >> "$GITHUB_OUTPUT"
+            echo "Sending (event=${{ github.event_name }}, New York hour=$hour)"
+          else
+            echo "send=false" >> "$GITHUB_OUTPUT"
+            echo "Not 6 AM in New York (hour=$hour); the other scheduled run sends today."
+          fi
+
+      - name: Checkout repository
+        if: steps.gate.outputs.send == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        if: steps.gate.outputs.send == 'true'
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        if: steps.gate.outputs.send == 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Send morning bid digest
+        if: steps.gate.outputs.send == 'true'
+        run: bun run bid-digest
+
+      - name: Send Radar match alerts (weekly per lead)
+        if: always() && steps.gate.outputs.send == 'true'
+        run: bun run radar-alerts

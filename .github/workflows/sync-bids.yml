@@ -7,8 +7,7 @@ name: Sync Bids
 # Required secrets (owner must set in GitHub repo settings → Secrets):
 #   DATABASE_URL   — Neon Postgres connection string (same value as the Vercel
 #                    project env var). REQUIRED; the run fails without it.
-#   RESEND_API_KEY — optional; enables the bid digest email (skipped with a
-#                    warning when absent).
+#   (Emails are sent by daily-emails.yml, not by this workflow.)
 
 on:
   schedule:
@@ -54,10 +53,5 @@ jobs:
       - name: Enforce 90-day raw-IP retention
         run: bun run purge-network-identifiers
 
-      - name: Send radar match alerts
-        # Periodic match-alert sender (owner 2026-09-06): emails confirmed,
-        # not-unsubscribed radar leads about NEW bid matches discovered by the
-        # sync above (deduped per lead). Fail-open per lead — a send failure
-        # never aborts the run or blocks other leads. Requires RESEND_API_KEY
-        # (already in env); skipped with a warning when absent.
-        run: bun run radar-alerts
+      # Emails (the bid digest and Radar match alerts) are no longer sent after
+      # each sync. They go out once each morning from daily-emails.yml.

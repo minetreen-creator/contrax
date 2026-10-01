@@ -2906,8 +2906,8 @@ export function MatchAlertsCard({
         <div>
           <h3 className="text-base font-bold text-white">Want new matches by email instead?</h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-300">
-            Leave your email and we&apos;ll send you matching opportunities as
-            they open. No account required.
+            Leave your email and we&apos;ll send you a weekly email of new
+            matching opportunities. No account required.
           </p>
         </div>
         <button
@@ -2936,7 +2936,7 @@ export function MatchAlertsCard({
           />
         </div>
         <p className="text-xs leading-relaxed text-slate-500">
-          No account required. We&apos;ll email you matching opportunities —
+          No account required. One email a week with your new matches —
           unsubscribe anytime.
         </p>
         {status === "error" && error && (

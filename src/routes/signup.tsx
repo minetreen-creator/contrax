@@ -195,7 +195,7 @@ const PLAN_OPTIONS: {
     price: 19,
     bullets: [
       "Unlimited saved bids",
-      "Email alerts when new bids post",
+      "A morning email of every new bid",
     ],
   },
   {

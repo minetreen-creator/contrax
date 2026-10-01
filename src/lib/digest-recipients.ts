@@ -97,3 +97,20 @@ export function digestBidsToList<T extends { due_date: string | null }>(bids: re
   };
   return [...bids].sort((a, b) => due(a) - due(b)).slice(0, max);
 }
+
+const HOUR_MS = 60 * 60 * 1000;
+/** Longest catch-up window if a morning run was missed (e.g. GitHub outage). */
+export const DIGEST_MAX_LOOKBACK_HOURS = 48;
+
+/**
+ * Start of the window the morning digest covers: everything added since the
+ * last digest that was actually sent, so nothing is skipped or repeated. With
+ * no previous send it covers the last 24 hours; it never reaches back more
+ * than DIGEST_MAX_LOOKBACK_HOURS.
+ */
+export function digestWindowStart(lastSentAt: string | Date | null | undefined, now: number = Date.now()): Date {
+  const floor = now - DIGEST_MAX_LOOKBACK_HOURS * HOUR_MS;
+  const last = lastSentAt ? new Date(lastSentAt).getTime() : NaN;
+  if (Number.isNaN(last)) return new Date(now - 24 * HOUR_MS);
+  return new Date(Math.max(last, floor));
+}

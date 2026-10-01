@@ -112,6 +112,14 @@ const SIZE_CAPS: Record<string, number> = {
 
 /** Bids per email (the rest ride as a truncation note). */
 const MAX_MATCHES_PER_EMAIL = 10;
+
+/**
+ * FREE ALERTS ARE WEEKLY (owner 2026-10-01). These anonymous Radar alerts are
+ * free, so a lead gets at most one email every LEAD_ALERT_INTERVAL_DAYS. Same-day
+ * alerts are the paid Starter feature. Matches are not lost in between: the
+ * dedupe is per bid, so anything still open goes out in the next weekly email.
+ */
+export const LEAD_ALERT_INTERVAL_DAYS = 7;
 /** Cap on the per-lead sent_bid_ids JSONB array (oldest half rotated when past). */
 const SENT_LIST_CAP = 512;
 
@@ -378,12 +386,14 @@ export async function sendRadarLeadMatchAlerts(): Promise<RadarAlertRunResult> {
     WHERE confirmed_at IS NOT NULL
       AND unsubscribed_at IS NULL
       AND consent = TRUE
+      AND (last_alerted_at IS NULL
+           OR last_alerted_at < NOW() - (${LEAD_ALERT_INTERVAL_DAYS} * INTERVAL '1 day'))
     ORDER BY id ASC
   `) as unknown as RadarLeadRow[];
   result.leadsChecked = leadRows.length;
 
   if (leadRows.length === 0) {
-    console.log("[radar-lead-alerts] no confirmed leads to alert (0)");
+    console.log("[radar-lead-alerts] no confirmed leads due for their weekly alert (0)");
     return result;
   }
 

@@ -137,30 +137,32 @@ export async function sendPasswordResetEmail(
 export async function sendBidDigest(
   recipients: string[],
   newBids: NewBidSummary[],
-): Promise<void> {
-  if (recipients.length === 0) return;
+): Promise<boolean> {
+  if (recipients.length === 0) return false;
 
   try {
     const resend = getResend();
     if (!resend) {
       console.warn("Cannot send bid digest — RESEND_API_KEY not set");
-      return;
+      return false;
     }
 
     await resend.emails.send({
       from: "Contrax <hello@contrax.company>",
       to: ["hello@contrax.company"],
       bcc: recipients,
-      subject: `🆕 ${newBids.length} new government bids found — Contrax`,
+      subject: `Your morning bid digest: ${newBids.length} new government bid${newBids.length === 1 ? "" : "s"} — Contrax`,
       html: bidDigestHtml(digestBidsToList(newBids), newBids.length),
     });
 
     console.log(
       `Bid digest sent to ${recipients.length} recipient(s) with ${newBids.length} new bid(s)`,
     );
+    return true;
   } catch (err) {
     console.error(`Failed to send bid digest:`, (err as Error).message);
     // Never throw — this is non-blocking
+    return false;
   }
 }
 
@@ -237,8 +239,8 @@ function radarLeadConfirmationHtml(confirmUrl: string, unsubscribeUrl: string): 
             <td style="padding:32px;">
               <h2 style="margin:0 0 12px;color:#111827;font-size:20px;font-weight:600;">Please confirm your subscription</h2>
               <p style="margin:0 0 16px;color:#4b5563;font-size:15px;line-height:1.6;">
-                You asked us to email you when new government contract matches open
-                up for your business — no account required. Tap the button below to
+                You asked us to email you once a week with new government contract
+                matches for your business — no account required. Tap the button below to
                 confirm your address. Until you confirm, we won't send match alerts
                 to this inbox.
               </p>
@@ -414,6 +416,10 @@ function radarMatchAlertHtml(bids: NewBidSummary[], truncatedCount: number, unsu
              style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-align:center;">
             See all my matches →
           </a>
+          <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
+            Free match alerts arrive once a week. Want every new bid each morning?
+            <a href="https://www.contrax.company/pricing" style="color:#2563eb;">Starter is $19/month</a>.
+          </p>
         </td>
       </tr>
       <!-- Footer -->
@@ -660,7 +666,7 @@ function bidDigestHtml(bids: NewBidSummary[], totalNew: number = bids.length): s
       <tr>
         <td style="padding:24px 32px 8px;">
           <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">
-            Contrax discovered <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> in your latest sync. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
+            Contrax found <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> since your last digest. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
           </p>
         </td>
       </tr>

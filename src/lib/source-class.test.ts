@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("88 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace and Colorado VSS portal classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(88);
+  test("89 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS and Ohio DOT portal classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(89);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -86,8 +86,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // registry is 72 collectors = 73 labels minus the retired one. va_eva
     // (Virginia's eVA portal), tx_esbd (Texas ESBD), fl_mfmp (Florida MFMP) and
     // ca_eprocure (California Cal eProcure), pa_dgs_emarketplace
-    // (Pennsylvania eMarketplace) and co_vss (Colorado VSS) were added as tail sources.
-    expect(TAIL_SOURCES.length).toBe(12);
+    // (Pennsylvania eMarketplace), co_vss (Colorado VSS) and oh_odot (Ohio DOT
+    // lettings) were added as tail sources.
+    expect(TAIL_SOURCES.length).toBe(13);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {
@@ -268,7 +269,7 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
 });
 
  test("NC and Maryland public imports retain state provenance and separate awards", () => {
- for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"]]) {
+ for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"]]) {
  expect(resolveSourceClass(source)).toBe("state");
  expect(SOURCE_CLASSES[source]!.scopeState).toBe(state);
  }

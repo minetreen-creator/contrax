@@ -237,8 +237,8 @@ function radarLeadConfirmationHtml(confirmUrl: string, unsubscribeUrl: string): 
             <td style="padding:32px;">
               <h2 style="margin:0 0 12px;color:#111827;font-size:20px;font-weight:600;">Please confirm your subscription</h2>
               <p style="margin:0 0 16px;color:#4b5563;font-size:15px;line-height:1.6;">
-                You asked us to email you when new government contract matches open
-                up for your business — no account required. Tap the button below to
+                You asked us to email you once a week with new government contract
+                matches for your business — no account required. Tap the button below to
                 confirm your address. Until you confirm, we won't send match alerts
                 to this inbox.
               </p>
@@ -414,6 +414,10 @@ function radarMatchAlertHtml(bids: NewBidSummary[], truncatedCount: number, unsu
              style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-align:center;">
             See all my matches →
           </a>
+          <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
+            Free match alerts arrive once a week. Want new bids the day they post?
+            <a href="https://www.contrax.company/pricing" style="color:#2563eb;">Starter is $19/month</a>.
+          </p>
         </td>
       </tr>
       <!-- Footer -->

@@ -82,9 +82,32 @@ import {
 const HAS_DB = !!process.env.DATABASE_URL;
 const ADMIN_URL = process.env.DATABASE_URL ?? "";
 
-/** The two throwaway databases. The prefix makes them obvious in a listing. */
-const SCHEMA_DB = "contrax_r3_bootstrap_schema";
-const MIGRATION_DB = "contrax_r3_bootstrap_migrations";
+/**
+ * The two throwaway databases. The prefix makes them obvious in a listing.
+ *
+ * Each run gets its OWN names (`…_<epoch seconds>_<random>`). With one fixed
+ * name, CI runs a few minutes apart dropped and re-created the same database,
+ * and Neon's connection pooler then kept answering with a cached
+ * "server login has been failing … database does not exist" for that name
+ * (2026-10-01), failing the suite on unrelated PRs. A fresh name per run has
+ * no cached failure. Leftovers from crashed runs older than an hour are
+ * dropped at start (the epoch in the name says how old they are), so a
+ * concurrent run's databases are never touched.
+ */
+const BOOTSTRAP_PREFIX = "contrax_r3_bootstrap_";
+const RUN_SUFFIX = `${Math.floor(Date.now() / 1000)}_${Math.random().toString(36).slice(2, 8)}`;
+const SCHEMA_DB = `${BOOTSTRAP_PREFIX}schema_${RUN_SUFFIX}`;
+const MIGRATION_DB = `${BOOTSTRAP_PREFIX}migrations_${RUN_SUFFIX}`;
+/** Leftover bootstrap databases older than this are dropped before a run. */
+const STALE_BOOTSTRAP_SECONDS = 60 * 60;
+
+/** True for a bootstrap database name that a crashed run left behind long ago (or the old fixed names). */
+function isStaleBootstrapDatabase(name: string, nowSeconds: number): boolean {
+  if (!name.startsWith(BOOTSTRAP_PREFIX)) return false;
+  if (name === `${BOOTSTRAP_PREFIX}schema` || name === `${BOOTSTRAP_PREFIX}migrations`) return true;
+  const m = name.match(/_(\d{9,})_[a-z0-9]+$/);
+  return !!m && nowSeconds - Number(m[1]) > STALE_BOOTSTRAP_SECONDS;
+}
 
 const SCHEMA_FILE = "../../../src/db/schema.sql";
 const MIGRATION_FILES = [
@@ -134,8 +157,18 @@ let READY = false;
 
 if (HAS_DB) {
   const admin = neon(ADMIN_URL);
-  await admin`DROP DATABASE IF EXISTS ${admin.unsafe(SCHEMA_DB)} WITH (FORCE)`;
-  await admin`DROP DATABASE IF EXISTS ${admin.unsafe(MIGRATION_DB)} WITH (FORCE)`;
+  const existing = (await admin`
+    SELECT datname FROM pg_database WHERE datname LIKE ${`${BOOTSTRAP_PREFIX}%`}
+  `) as { datname: string }[];
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  for (const { datname } of existing) {
+    if (!isStaleBootstrapDatabase(datname, nowSeconds)) continue;
+    try {
+      await admin`DROP DATABASE IF EXISTS ${admin.unsafe(`"${datname.replace(/"/g, "")}"`)} WITH (FORCE)`;
+    } catch (e) {
+      console.warn(`[state-grants bootstrap] could not drop leftover ${datname}: ${(e as Error).message}`);
+    }
+  }
   await admin`CREATE DATABASE ${admin.unsafe(SCHEMA_DB)}`;
   await admin`CREATE DATABASE ${admin.unsafe(MIGRATION_DB)}`;
   SCHEMA_URL = urlForDatabase(ADMIN_URL, SCHEMA_DB);
@@ -719,5 +752,19 @@ describe.skipIf(!READY)("state grants — fresh database built from src/db/schem
         "unavailable",
       ]);
     });
+  });
+});
+
+describe("bootstrap database names (no database needed)", () => {
+  test("each run has its own names; only old leftovers and the retired fixed names count as stale", () => {
+    expect(SCHEMA_DB.startsWith(BOOTSTRAP_PREFIX)).toBe(true);
+    expect(SCHEMA_DB).not.toBe(`${BOOTSTRAP_PREFIX}schema`);
+    expect(SCHEMA_DB.length).toBeLessThanOrEqual(63); // Postgres identifier limit
+    const now = Math.floor(Date.now() / 1000);
+    expect(isStaleBootstrapDatabase(SCHEMA_DB, now)).toBe(false);
+    expect(isStaleBootstrapDatabase(`${BOOTSTRAP_PREFIX}schema_${now - 2 * 3600}_abc123`, now)).toBe(true);
+    expect(isStaleBootstrapDatabase(`${BOOTSTRAP_PREFIX}migrations_${now - 60}_abc123`, now)).toBe(false);
+    expect(isStaleBootstrapDatabase(`${BOOTSTRAP_PREFIX}schema`, now)).toBe(true);
+    expect(isStaleBootstrapDatabase("contrax", now)).toBe(false);
   });
 });

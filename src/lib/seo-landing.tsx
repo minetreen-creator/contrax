@@ -12,6 +12,7 @@
  * /signup?plan=professional and fires `start_trial` (same event names as the
  * verified live homepage hero). No "unlimited" claims anywhere.
  */
+import { bidFitReviewHref } from "~/lib/bid-fit-review-link";
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import { setAsidePred } from "~/lib/open-bids";
@@ -578,6 +579,7 @@ export { formatCompactMoney };
 /** One real bid card. Links the real SAM.gov source_url; never fabricates a match %. */
 export function BidCard({ b }: { b: SeoBid }) {
   const due = fmtDue(b.due_date);
+  const reviewHref = bidFitReviewHref(b);
   const title = (
     <span className="line-clamp-2 text-base font-semibold text-slate-900">
       {b.title || "Solicitation"}
@@ -630,8 +632,13 @@ export function BidCard({ b }: { b: SeoBid }) {
       )}
       {b.source_url && (
         <span className="mt-2 inline-block text-xs font-medium text-blue-700">
-          Open original notice on SAM.gov ↗
+          Open original notice ↗
         </span>
+      )}
+      {reviewHref && (
+        <a href={reviewHref} className="mt-2 block text-xs font-medium text-amber-700 hover:text-amber-600">
+          Not sure it fits? Get a $99 Bid Fit Review →
+        </a>
       )}
     </li>
   );

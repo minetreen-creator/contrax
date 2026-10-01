@@ -46,6 +46,7 @@ import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
 import { fetchPennBidOpen } from "./sources/pennbid";
 import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaEvirginia } from "./sources/va-ev";
+import { fetchVaEvaBids } from "./sources/va-eva";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -202,6 +203,11 @@ export const TAIL_SOURCES: SyncSource[] = [
   // SAM.gov load (tail sources interleave one per state-keyword batch), so its
   // freshness / ran_zero / quality_gate stay independently observable.
   { name: "oh_dayton", fetchFn: fetchOhDaytonBids },
+  // eVA, Virginia's OWN procurement portal: every Virginia state agency,
+  // university, locality and authority (e.g. Norfolk Airport Authority, the
+  // Virginia Port Authority) posts here. The only state/local VA feed —
+  // `va_evirginia` above is a federal SAM.gov pass.
+  { name: "va_eva", fetchFn: () => fetchVaEvaBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

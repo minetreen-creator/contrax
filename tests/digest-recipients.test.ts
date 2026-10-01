@@ -6,6 +6,7 @@ import {
   DIGEST_TRIAL_DAYS,
   digestBidsToList,
   digestRecipients,
+  digestWindowStart,
   isDigestEligible,
   type DigestUserRow,
 } from "~/lib/digest-recipients";
@@ -98,10 +99,36 @@ describe("digest bid list", () => {
   });
 });
 
-describe("the sync uses the rule", () => {
-  test("runner.ts no longer mails every user", () => {
-    const runner = readFileSync(new URL("../src/jobs/runner.ts", import.meta.url), "utf8");
+describe("emails go out once a day, in the morning", () => {
+  const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
+
+  test("the 4-hourly sync sends no email", () => {
+    const runner = read("src/jobs/runner.ts");
     expect(runner).not.toContain("SELECT email FROM users`");
-    expect(runner).toContain("digestRecipients(");
+    expect(runner).not.toContain("sendBidDigest(");
+    const sync = read(".github/workflows/sync-bids.yml");
+    expect(sync).not.toContain("run: bun run radar-alerts");
+  });
+
+  test("the daily workflow sends the digest and the Radar alerts each morning", () => {
+    const daily = read(".github/workflows/daily-emails.yml");
+    expect(daily).toContain('cron: "50 11 * * *"');
+    expect(daily).toContain("run: bun run bid-digest");
+    expect(daily).toContain("run: bun run radar-alerts");
+    expect(read("package.json")).toContain('"bid-digest": "bun run src/jobs/send-bid-digest.ts"');
+  });
+
+  test("the morning digest uses the paid-recipient rule and logs only real sends", () => {
+    const job = read("src/jobs/send-bid-digest.ts");
+    expect(job).toContain("digestRecipients(users)");
+    expect(job).toContain("digestWindowStart(");
+    expect(job).toMatch(/if \(sent\) \{\s*await sql\(\)`\s*INSERT INTO bid_digest_log/);
+  });
+
+  test("the window starts at the last real send, 24h with none, at most 48h back", () => {
+    const now = Date.parse("2026-10-02T11:50:00Z");
+    expect(digestWindowStart(null, now).toISOString()).toBe("2026-10-01T11:50:00.000Z");
+    expect(digestWindowStart("2026-10-01T11:52:00Z", now).toISOString()).toBe("2026-10-01T11:52:00.000Z");
+    expect(digestWindowStart("2026-09-20T11:50:00Z", now).toISOString()).toBe("2026-09-30T11:50:00.000Z");
   });
 });

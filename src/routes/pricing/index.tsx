@@ -43,9 +43,9 @@ const plans = [
     name: "Starter",
     price: "19",
     period: "/month",
-    description: "Hear about new bids the day they post, instead of finding them when the deadline is close.",
+    description: "Every new bid in your inbox each morning, instead of finding it when the deadline is close.",
     features: [
-      "Email alerts when new bids post",
+      "A morning email of every new bid",
       "Unlimited Saved Bids",
     ],
     cta: "Get Started",
@@ -76,7 +76,7 @@ const plans = [
 // /bid-fit-review. Agency, Grants and Payments are linked once at the bottom.
 const PLAN_GUIDE = [
   { need: "I'm just starting to look at set-asides", pick: "Basic", price: "Free", href: "/signup?plan=basic" },
-  { need: "I want an email when new bids post", pick: "Starter", price: "$19/month", href: "/signup?plan=starter" },
+  { need: "I want new bids emailed to me each morning", pick: "Starter", price: "$19/month", href: "/signup?plan=starter" },
   { need: "I want AI briefs, incumbent pricing and match scores", pick: "Professional", price: "$79/month", href: "/signup?plan=professional" },
   { need: "I want someone to find the bids for me", pick: "Bid Scout", price: "$99/month", href: "/bid-scout?source=pricing_guide" },
   { need: "I'm deciding on one specific bid", pick: "Bid Fit Review", price: "$99 once", href: "/bid-fit-review" },
@@ -255,7 +255,7 @@ function PricingPage() {
           <div className="mt-10 space-y-6">
             {[
               { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
-              { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes basic solicitations search, standard set-aside filters, and up to 3 saved bids. Upgrade to Starter ($19/mo) for email alerts when new bids post and unlimited saved bids. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
+              { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes basic solicitations search, standard set-aside filters, and up to 3 saved bids. Upgrade to Starter ($19/mo) for a morning email of every new bid and unlimited saved bids. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
               { q: "Is there a free trial?", a: "Start your 14-day Professional trial when you upgrade. Cancel anytime during your trial. Basic itself is free forever — no trial and no card." },
               { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
               { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },

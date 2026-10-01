@@ -51,7 +51,7 @@ const vadPlans: {
     description: "For businesses ready to build and track a real government-contracting pipeline.",
     features: [
       "Unlimited Saved Bids",
-      "Email Alerts When New Bids Post",
+      "A Morning Email of Every New Bid",
     ],
     cta: "Get Started",
     tier: "starter",

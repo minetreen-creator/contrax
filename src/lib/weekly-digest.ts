@@ -14,6 +14,7 @@
  * PURE (no DB, no server imports); unit-tested in weekly-digest.test.ts.
  */
 import { DIGEST_TIER_ORDER, isDigestEligible, type DigestUserRow } from "./digest-recipients";
+import { HEAD_START_HOURS } from "./head-start";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** The weekly email goes out on this New York weekday. */
@@ -77,6 +78,20 @@ export function weeklyWindowStart(lastSentAt: string | Date | null | undefined, 
   const last = lastSentAt ? new Date(lastSentAt).getTime() : NaN;
   if (Number.isNaN(last)) return new Date(now - 7 * DAY_MS);
   return new Date(Math.max(last, floor));
+}
+
+/**
+ * The window the free weekly email lists, shifted back by the paid head start
+ * (head-start.ts) so it never includes a bid still inside its first 72 hours:
+ * [weeklyWindowStart − 72h, now − 72h]. Consecutive Mondays tile without gaps
+ * or repeats, because each window starts where the previous one ended.
+ */
+export function weeklyWindowBounds(
+  lastSentAt: string | Date | null | undefined,
+  now: number = Date.now(),
+): { start: Date; end: Date } {
+  const shift = HEAD_START_HOURS * 60 * 60 * 1000;
+  return { start: new Date(weeklyWindowStart(lastSentAt, now).getTime() - shift), end: new Date(now - shift) };
 }
 
 export function weeklyUnsubscribeUrl(token: string): string {

@@ -13,6 +13,9 @@ import {
   stateLandingPath,
 } from "~/lib/bid-seo";
 import { getCurrentUser } from "~/lib/auth";
+import { applyHeadStart } from "~/lib/head-start";
+import { hasPaidBidAccess } from "~/lib/head-start.server";
+import { HeadStartLock } from "~/components/HeadStartLock";
 import {
   effectiveAutopsyTier,
   LEARNING_TIERS,
@@ -38,6 +41,8 @@ interface BidDetail {
   due_date: string | null;
   estimated_value: string | null;
   source_url: string | null;
+  /** Set while the bid is in its paid head start and this viewer is not paid (src/lib/head-start.ts). */
+  head_start_until: string | null;
   /** Contrax Learning ⚡ memory (PAID-ONLY, Professional+ — never Basic/Starter). */
   learned: PriorLossBadge | null;
 }
@@ -51,6 +56,8 @@ interface PublicBid extends Omit<BidDetail, "learned"> {
  * Server-rendered page data (route loader). Public fields only: the paid
  * "learned from your loss" banner is per-user, so it is still fetched in the
  * browser by getBid below and never rendered into the HTML a crawler sees.
+ * The public render is always the FREE view, so a bid in its paid head start
+ * has no source link here; getBid unlocks it for paying members.
  */
 const getPublicBid = createServerFn({ method: "GET" })
   .validator((d: unknown) => {
@@ -62,7 +69,7 @@ const getPublicBid = createServerFn({ method: "GET" })
     try {
       const rows = (await sql()`
         SELECT id, title, agency, description, location, set_aside,
-               due_date, estimated_value, source_url
+               due_date, estimated_value, source_url, created_at
         FROM bids
         WHERE id = ${id}
         LIMIT 1
@@ -72,6 +79,10 @@ const getPublicBid = createServerFn({ method: "GET" })
       const location = r.location ? String(r.location) : null;
       const agency = r.agency ? String(r.agency) : null;
       const code = resolveBidState(location, agency);
+      const { source_url, head_start_until } = applyHeadStart(
+        { source_url: r.source_url ? String(r.source_url) : null, created_at: r.created_at ?? null },
+        false,
+      );
       return {
         id: Number(r.id),
         title: String(r.title ?? ""),
@@ -81,7 +92,8 @@ const getPublicBid = createServerFn({ method: "GET" })
         set_aside: r.set_aside ? String(r.set_aside) : null,
         due_date: r.due_date ? new Date(r.due_date).toISOString() : null,
         estimated_value: r.estimated_value ? String(r.estimated_value) : null,
-        source_url: r.source_url ? String(r.source_url) : null,
+        source_url,
+        head_start_until,
         state_name: code ? (STATE_CODE_TO_NAME[code] ?? null) : null,
       };
     } catch (e) {
@@ -100,7 +112,7 @@ const getBid = createServerFn({ method: "GET" })
     try {
       const rows = (await sql()`
         SELECT id, title, agency, description, location, set_aside,
-               due_date, estimated_value, source_url, naics_code
+               due_date, estimated_value, source_url, naics_code, created_at
         FROM bids
         WHERE id = ${id}
         LIMIT 1
@@ -111,8 +123,10 @@ const getBid = createServerFn({ method: "GET" })
       // autopsied losses ever surface, and only on a paid tier. Anonymous
       // visitors and Basic users get no banner. Failure → no banner.
       let learned: PriorLossBadge | null = null;
+      let paid = false;
       try {
         const user = await getCurrentUser();
+        paid = await hasPaidBidAccess(user);
         if (user) {
           const tier = await effectiveAutopsyTier(user.id, user);
           if (LEARNING_TIERS.has(tier)) {
@@ -123,6 +137,10 @@ const getBid = createServerFn({ method: "GET" })
         console.error("[bid/$id] learning banner failed (no banner):", e);
         learned = null;
       }
+      const { source_url, head_start_until } = applyHeadStart(
+        { source_url: r.source_url ? String(r.source_url) : null, created_at: r.created_at ?? null },
+        paid,
+      );
       return {
         id: Number(r.id),
         title: String(r.title ?? ""),
@@ -132,7 +150,8 @@ const getBid = createServerFn({ method: "GET" })
         set_aside: r.set_aside ? String(r.set_aside) : null,
         due_date: r.due_date ? String(r.due_date) : null,
         estimated_value: r.estimated_value ? String(r.estimated_value) : null,
-        source_url: r.source_url ? String(r.source_url) : null,
+        source_url,
+        head_start_until,
         learned,
       };
     } catch (e) {
@@ -146,13 +165,19 @@ function BidDetailPage() {
   const bidId = bid?.id ?? 0;
   // The per-user "learned from your loss" banner loads in the browser only.
   const [learned, setLearned] = useState<PriorLossBadge | null>(null);
+  // A paying member's own view of the bid unlocks a head-start link the
+  // public render withheld.
+  const [unlockedUrl, setUnlockedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     setLearned(null);
+    setUnlockedUrl(null);
     if (bidId > 0) {
       getBid({ data: { id: bidId } }).then((b) => {
-        if (active) setLearned(b?.learned ?? null);
+        if (!active) return;
+        setLearned(b?.learned ?? null);
+        setUnlockedUrl(b?.source_url ?? null);
       });
     }
     return () => {
@@ -160,6 +185,8 @@ function BidDetailPage() {
     };
   }, [bidId]);
   const stateHref = stateLandingPath(bid?.state_name);
+  const sourceUrl = bid?.source_url ?? unlockedUrl;
+  const locked = !!bid?.head_start_until && !sourceUrl;
 
   const due = bid?.due_date
     ? new Date(bid.due_date).toLocaleDateString("en-US", {
@@ -229,19 +256,24 @@ function BidDetailPage() {
                   )}
                 </p>
               </div>
-              {bid.source_url && (
+              {locked && (
+                <div className="px-5 py-3">
+                  <HeadStartLock until={bid.head_start_until!} />
+                </div>
+              )}
+              {sourceUrl && (
                 <div className="px-5 py-3">
                   <a
-                    href={bid.source_url}
+                    href={sourceUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-semibold text-amber-400 hover:text-amber-300"
                   >
                     Open original notice ↗
                   </a>
-                  {bidFitReviewHref(bid) && (
+                  {bidFitReviewHref({ ...bid, source_url: sourceUrl }) && (
                     <a
-                      href={bidFitReviewHref(bid)!}
+                      href={bidFitReviewHref({ ...bid, source_url: sourceUrl })!}
                       className="ml-4 text-sm font-semibold text-slate-200 hover:text-white"
                     >
                       Not sure it fits? Get a $99 Bid Fit Review →

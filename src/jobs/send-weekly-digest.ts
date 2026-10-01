@@ -20,7 +20,7 @@ import {
   shouldSendWeeklyDigest,
   weeklyDigestRecipients,
   weeklyUnsubscribeUrl,
-  weeklyWindowStart,
+  weeklyWindowBounds,
 } from "~/lib/weekly-digest";
 
 export async function ensureWeeklyDigestTables(): Promise<void> {
@@ -53,13 +53,15 @@ export async function sendWeeklyDigest(
   if (!shouldSendWeeklyDigest(lastSent, now.getTime(), force)) {
     return { bids: 0, recipients: 0, sent: false, reason: "not the weekly send day (or sent within the last 6 days)" };
   }
-  const since = weeklyWindowStart(lastSent, now.getTime());
+  // The window ends 72 hours ago: newer bids are in their paid head start
+  // (src/lib/head-start.ts) and are only counted, never listed.
+  const { start: since, end: until } = weeklyWindowBounds(lastSent, now.getTime());
 
   const bids = (await sql()`
     SELECT id AS bid_id, title, agency, source_url, location, due_date, set_aside, source
     FROM bids
     WHERE created_at > ${since.toISOString()}
-      AND created_at <= ${now.toISOString()}
+      AND created_at <= ${until.toISOString()}
       AND due_date > NOW()
       AND ${sql().unsafe(LOW_CONTENT_SQL)}
       AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
@@ -74,7 +76,15 @@ export async function sendWeeklyDigest(
     set_aside: b.set_aside ?? null,
     source: b.source ?? undefined,
   }));
-  console.log(`📧 Weekly digest window ${since.toISOString()} → ${now.toISOString()}: ${newBids.length} new open bid(s)`);
+  const headStart = (await sql()`
+    SELECT COUNT(*)::int AS n FROM bids
+    WHERE created_at > ${until.toISOString()}
+      AND due_date > NOW()
+      AND ${sql().unsafe(LOW_CONTENT_SQL)}
+      AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+  `) as { n: number }[];
+  const headStartCount = Number(headStart[0]?.n ?? 0);
+  console.log(`📧 Weekly digest window ${since.toISOString()} → ${until.toISOString()}: ${newBids.length} open bid(s); ${headStartCount} newer in head start`);
   if (newBids.length === 0) return { bids: 0, recipients: 0, sent: false, reason: "no new bids" };
 
   const users = (await sql()`
@@ -106,7 +116,7 @@ export async function sendWeeklyDigest(
     .filter((e) => tokenOf.has(e.toLowerCase()))
     .map((e) => ({ email: e, unsubscribeUrl: weeklyUnsubscribeUrl(tokenOf.get(e.toLowerCase())!) }));
 
-  const accepted = await sendWeeklyBidDigest(addressed, newBids);
+  const accepted = await sendWeeklyBidDigest(addressed, newBids, headStartCount);
   if (accepted > 0) {
     await sql()`
       INSERT INTO weekly_digest_log (sent_at, window_start, bids, recipients)

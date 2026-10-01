@@ -12,6 +12,8 @@ import { noticeKeySql } from "~/lib/notice-dedupe";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
 import { locationMatchesStates, naicsPred, setAsidePredMulti } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { applyHeadStart } from "~/lib/head-start";
+import { hasPaidBidAccess } from "~/lib/head-start.server";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
 // Interfaces mirror src/routes/dashboard.tsx (kept local so this route is
@@ -21,6 +23,8 @@ interface Bid {
   location: string; category: string; set_aside: string | null; due_date: string; estimated_value: string;
   source_url: string | null; role_matches: number;
   naics_code: string | null; created_at: string;
+  /** Set while the bid is in its paid head start and this user is not paid. */
+  head_start_until: string | null;
 }
 interface BidSummary {
   bid_id: number; summary_text: string; key_requirements: string[];
@@ -188,11 +192,14 @@ async function handler({ request }: { request: Request }) {
     ) matched
     ORDER BY due_date ASC NULLS LAST`;
   const userSpecialties = profile?.specialties || [];
+  // Paid head start (src/lib/head-start.ts): without paid access, a bid's
+  // first 72 hours on Contrax show without its source link.
+  const paid = await hasPaidBidAccess(user);
   // Geography filter applied POST-dedup (same `locationMatchesStates` the
   // onboarding count uses — nationwide = no-op, specific states = targeted).
   const bids: Bid[] = (bidRows as any[])
     .filter((b) => locationMatchesStates(b.location, locations))
-    .map((b) => ({
+    .map((b) => applyHeadStart({
       id: b.id, title: b.title, agency: b.agency, description: b.description,
       location: b.location, category: b.category, set_aside: b.set_aside ?? null,
       due_date: String(b.due_date),
@@ -200,7 +207,7 @@ async function handler({ request }: { request: Request }) {
       naics_code: b.naics_code ?? null,
       created_at: b.created_at ? String(b.created_at) : "",
       role_matches: countRoleMatches(b as any, userSpecialties),
-    }));
+    }, paid));
 
   const matchRows = await sql()`SELECT bid_id, status FROM saved_matches WHERE user_id = ${user.id}`;
   const savedMatches: SavedMatch[] = (matchRows as any[]).map((m) => ({

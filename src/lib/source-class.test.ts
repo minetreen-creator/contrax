@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("98 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope and Georgia GPR portal classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(98);
+  test("99 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR and West Virginia wvOASIS portal classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(99);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -89,8 +89,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // (Pennsylvania eMarketplace), co_vss (Colorado VSS), oh_odot (Ohio DOT
     // lettings), ny_nyscr (NYS Contract Reporter) and mi_sigma (Michigan SIGMA)
     // were added as tail sources, then the six Periscope marketplaces (MA, NJ,
-    // IL, OR, NV, AR) and ga_gpr (Georgia Procurement Registry).
-    expect(TAIL_SOURCES.length).toBe(22);
+    // IL, OR, NV, AR), ga_gpr (Georgia Procurement Registry) and wv_oasis
+    // (West Virginia wvOASIS).
+    expect(TAIL_SOURCES.length).toBe(23);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {
@@ -271,7 +272,7 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
 });
 
  test("NC and Maryland public imports retain state provenance and separate awards", () => {
- for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"]]) {
+ for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"],["wv_oasis","WV"]]) {
  expect(resolveSourceClass(source)).toBe("state");
  expect(SOURCE_CLASSES[source]!.scopeState).toBe(state);
  }

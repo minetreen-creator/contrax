@@ -185,6 +185,7 @@ const PLAN_OPTIONS: {
     free: true,
     bullets: [
       "Basic Solicitations Search",
+      "A weekly email of new bids (Mondays)",
       "Up to 3 saved bids",
       "Standard set-aside filters",
     ],
@@ -194,15 +195,16 @@ const PLAN_OPTIONS: {
     name: "Starter",
     price: 19,
     bullets: [
+      "Everything in Basic",
+      "A 6 AM email of every new bid, every day",
       "Unlimited saved bids",
-      "A morning email of every new bid",
     ],
   },
   {
     slug: "professional",
     name: "Professional",
     price: 79,
-    bullets: ["50 AI Executive Briefs monthly", "Full incumbent intelligence & past pricing", "AI match scoring"],
+    bullets: ["Everything in Starter", "50 AI Executive Briefs monthly", "Full incumbent intelligence & past pricing", "AI match scoring"],
     featured: true,
   },
   {

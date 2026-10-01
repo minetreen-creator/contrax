@@ -166,6 +166,56 @@ export async function sendBidDigest(
   }
 }
 
+/**
+ * The free Basic plan's weekly email (src/lib/weekly-digest.ts). Unlike the
+ * daily digest it is addressed to each person separately, because each copy
+ * carries that person's own unsubscribe link (also sent as List-Unsubscribe).
+ * Sent through Resend's batch API, up to 100 per call. Returns how many were
+ * accepted; never throws.
+ */
+export const WEEKLY_DIGEST_BATCH_SIZE = 100;
+
+export async function sendWeeklyBidDigest(
+  recipients: { email: string; unsubscribeUrl: string }[],
+  newBids: NewBidSummary[],
+): Promise<number> {
+  if (recipients.length === 0 || newBids.length === 0) return 0;
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Cannot send weekly bid digest — RESEND_API_KEY not set");
+    return 0;
+  }
+  const listed = digestBidsToList(newBids);
+  const subject = `Your weekly bid digest: ${newBids.length} new government bid${newBids.length === 1 ? "" : "s"} — Contrax`;
+  let accepted = 0;
+  for (let i = 0; i < recipients.length; i += WEEKLY_DIGEST_BATCH_SIZE) {
+    const chunk = recipients.slice(i, i + WEEKLY_DIGEST_BATCH_SIZE);
+    try {
+      const { error } = await resend.batch.send(
+        chunk.map((r) => ({
+          from: "Contrax <hello@contrax.company>",
+          to: [r.email],
+          subject,
+          html: bidDigestHtml(listed, newBids.length, { unsubscribeUrl: r.unsubscribeUrl }),
+          headers: {
+            "List-Unsubscribe": `<${r.unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        })),
+      );
+      if (error) {
+        console.error(`Weekly digest batch ${i / WEEKLY_DIGEST_BATCH_SIZE + 1} rejected:`, error.message);
+        continue;
+      }
+      accepted += chunk.length;
+    } catch (err) {
+      console.error(`Weekly digest batch ${i / WEEKLY_DIGEST_BATCH_SIZE + 1} failed:`, (err as Error).message);
+    }
+  }
+  console.log(`Weekly bid digest accepted for ${accepted} of ${recipients.length} recipient(s), ${newBids.length} new bid(s)`);
+  return accepted;
+}
+
 // ── Radar Match-Alert Confirmation Email ──────────────────────────────────────
 
 /**
@@ -603,7 +653,16 @@ function passwordResetEmailHtml(token: string): string {
 
 // ── Bid Digest HTML Template ───────────────────────────────────────────────────
 
-function bidDigestHtml(bids: NewBidSummary[], totalNew: number = bids.length): string {
+/** The free Basic plan's weekly variant: weekly wording, a Starter line and an unsubscribe link. */
+export interface WeeklyDigestHtmlOptions {
+  unsubscribeUrl: string;
+}
+
+export function bidDigestHtml(
+  bids: NewBidSummary[],
+  totalNew: number = bids.length,
+  weekly: WeeklyDigestHtmlOptions | null = null,
+): string {
   const moreCount = Math.max(0, totalNew - bids.length);
   const now = new Date().toLocaleDateString("en-US", {
     weekday: "long",
@@ -666,7 +725,7 @@ function bidDigestHtml(bids: NewBidSummary[], totalNew: number = bids.length): s
       <tr>
         <td style="padding:24px 32px 8px;">
           <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">
-            Contrax found <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> since your last digest. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
+            Contrax found <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> ${weekly ? "this past week" : "since your last digest"}. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
           </p>
         </td>
       </tr>
@@ -688,6 +747,15 @@ function bidDigestHtml(bids: NewBidSummary[], totalNew: number = bids.length): s
           </a>
         </td>
       </tr>
+      ${weekly ? `<!-- Starter -->
+      <tr>
+        <td style="padding:0 32px 24px;text-align:center;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
+            You get this once a week on the free Basic plan. <strong>Starter</strong> sends every new bid at 6 AM Eastern, every morning, for $19/month.
+            <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;text-decoration:none;">See Starter →</a>
+          </p>
+        </td>
+      </tr>` : ""}
       <!-- Footer -->
       <tr>
         <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
@@ -700,6 +768,9 @@ function bidDigestHtml(bids: NewBidSummary[], totalNew: number = bids.length): s
           <p style="margin:0;color:#9ca3af;font-size:12px;">
             &copy; ${new Date().getFullYear()} Contrax LLC. All rights reserved.
           </p>
+          ${weekly ? `<p style="margin:8px 0 0;color:#9ca3af;font-size:12px;">
+            <a href="${escapeHtml(weekly.unsubscribeUrl)}" style="color:#6b7280;">Unsubscribe from the weekly bid email</a>
+          </p>` : ""}
         </td>
       </tr>
     </table>

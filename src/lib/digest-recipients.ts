@@ -14,7 +14,9 @@
  *     using the same rules as computeTrialStatus (src/lib/trial.ts): a paying
  *     subscription is never expired, and a 14-day trial counts while it runs.
  *
- * Free Basic users, expired trials and the internal demo/seed tiers do not.
+ * Free Basic users, expired trials and the internal demo/seed tiers do not;
+ * Basic users and expired trials get the free weekly email instead
+ * (src/lib/weekly-digest.ts, owner 2026-10-01).
  *
  * PURE (no DB, no server imports) so the sync runner can use it and the rule is
  * unit-tested; tests/digest-recipients.test.ts pins it against computeTrialStatus.

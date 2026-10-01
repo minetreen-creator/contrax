@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-import { SEO_TRADES, SEO_TRADE_BY_SLUG, radarHrefFor } from "~/lib/seo-trades";
+import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG, radarHrefFor } from "~/lib/seo-trades";
 import { expandTrade } from "~/lib/trade-registry";
 import { filterBidsToState, type SeoBid } from "~/lib/seo-landing";
 
@@ -25,6 +25,23 @@ describe("state + trade SEO pages", () => {
       expect(t.slug).toMatch(/^[a-z-]+$/);
       expect(SEO_TRADE_BY_SLUG[t.slug]).toBe(t);
       expect(expandTrade(t.radarTerm).terms.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("waste hauling has its own pages on the existing 562111 trade, linked both ways with trucking", () => {
+    const waste = SEO_TRADE_BY_SLUG["waste-hauling"];
+    expect(waste.label).toBe("Waste and trash hauling");
+    const e = expandTrade(waste.radarTerm);
+    expect(e.naicsCodes).toEqual(["562111"]);
+    for (const t of ["waste collection", "trash", "garbage", "refuse"]) expect(e.terms).toContain(t);
+    // trucking itself stays freight-only
+    const truck = expandTrade(SEO_TRADE_BY_SLUG["trucking"].radarTerm);
+    for (const t of ["waste", "trash", "garbage", "debris", "moving services"]) expect(truck.terms).not.toContain(t);
+    expect(RELATED_SEO_TRADES["trucking"]).toBe("waste-hauling");
+    expect(RELATED_SEO_TRADES["waste-hauling"]).toBe("trucking");
+    for (const [a, b] of Object.entries(RELATED_SEO_TRADES)) {
+      expect(SEO_TRADE_BY_SLUG[a]).toBeDefined();
+      expect(SEO_TRADE_BY_SLUG[b]).toBeDefined();
     }
   });
 

@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("90 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT and NYS Contract Reporter portal classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(90);
+  test("91 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter and Michigan SIGMA portal classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(91);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -87,8 +87,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // (Virginia's eVA portal), tx_esbd (Texas ESBD), fl_mfmp (Florida MFMP) and
     // ca_eprocure (California Cal eProcure), pa_dgs_emarketplace
     // (Pennsylvania eMarketplace), co_vss (Colorado VSS), oh_odot (Ohio DOT
-    // lettings) and ny_nyscr (NYS Contract Reporter) were added as tail sources.
-    expect(TAIL_SOURCES.length).toBe(14);
+    // lettings), ny_nyscr (NYS Contract Reporter) and mi_sigma (Michigan SIGMA)
+    // were added as tail sources.
+    expect(TAIL_SOURCES.length).toBe(15);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {
@@ -269,7 +270,7 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
 });
 
  test("NC and Maryland public imports retain state provenance and separate awards", () => {
- for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"]]) {
+ for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"]]) {
  expect(resolveSourceClass(source)).toBe("state");
  expect(SOURCE_CLASSES[source]!.scopeState).toBe(state);
  }

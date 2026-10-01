@@ -941,6 +941,8 @@ export function displayPlaceOfPerformance(
  *                    ODOT itself.
  *    ny_nyscr      → NYS Contract Reporter; every advertiser is a New York
  *                    state or local public body.
+ *    mi_sigma      → Michigan SIGMA VSS; every buyer is a Michigan state or
+ *                    local public body.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -956,6 +958,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   co_vss: "CO",
   oh_odot: "OH",
   ny_nyscr: "NY",
+  mi_sigma: "MI",
 };
 
 export interface InsertLocationColumns {

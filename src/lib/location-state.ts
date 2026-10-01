@@ -943,6 +943,9 @@ export function displayPlaceOfPerformance(
  *                    state or local public body.
  *    mi_sigma      → Michigan SIGMA VSS; every buyer is a Michigan state or
  *                    local public body.
+ *    ma_commbuys / nj_njstart / il_bidbuy / or_oregonbuys / nv_nevadaepro /
+ *    ar_arbuy      → Periscope state marketplaces; every buyer is a public body
+ *                    of that state.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -959,6 +962,12 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   oh_odot: "OH",
   ny_nyscr: "NY",
   mi_sigma: "MI",
+  ma_commbuys: "MA",
+  nj_njstart: "NJ",
+  il_bidbuy: "IL",
+  or_oregonbuys: "OR",
+  nv_nevadaepro: "NV",
+  ar_arbuy: "AR",
 };
 
 export interface InsertLocationColumns {

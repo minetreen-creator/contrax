@@ -179,6 +179,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   ny_nyscr: { class: "state", scopeState: "NY", searchScope: "state-portal", recordType: "opportunity" },
   // Michigan SIGMA Vendor Self Service (src/jobs/sources/mi-sigma.ts).
   mi_sigma: { class: "state", scopeState: "MI", searchScope: "state-portal", recordType: "opportunity" },
+  // Periscope S2G state marketplaces (src/jobs/sources/periscope-states.ts).
+  ma_commbuys: { class: "state", scopeState: "MA", searchScope: "state-portal", recordType: "opportunity" },
+  nj_njstart: { class: "state", scopeState: "NJ", searchScope: "state-portal", recordType: "opportunity" },
+  il_bidbuy: { class: "state", scopeState: "IL", searchScope: "state-portal", recordType: "opportunity" },
+  or_oregonbuys: { class: "state", scopeState: "OR", searchScope: "state-portal", recordType: "opportunity" },
+  nv_nevadaepro: { class: "state", scopeState: "NV", searchScope: "state-portal", recordType: "opportunity" },
+  ar_arbuy: { class: "state", scopeState: "AR", searchScope: "state-portal", recordType: "opportunity" },
   md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's

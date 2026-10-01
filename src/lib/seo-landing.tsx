@@ -635,6 +635,9 @@ export function BidCard({ b }: { b: SeoBid }) {
           Open original notice ↗
         </span>
       )}
+      <a href={`/bid/${b.id}`} className="mt-2 ml-4 inline-block text-xs font-medium text-slate-700 hover:text-slate-900">
+        Details on Contrax →
+      </a>
       {reviewHref && (
         <a href={reviewHref} className="mt-2 block text-xs font-medium text-amber-700 hover:text-amber-600">
           Not sure it fits? Get a $99 Bid Fit Review →

@@ -60,6 +60,7 @@ import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
 import { fetchAlAldotBids } from "./sources/al-aldot";
+import { fetchDeMmpBids } from "./sources/de-mmp";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -249,6 +250,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "ky_vss", fetchFn: () => fetchKyVssBids() },
   // Alabama DOT road and bridge lettings (Alabama Buys is behind a reCAPTCHA).
   { name: "al_aldot", fetchFn: () => fetchAlAldotBids() },
+  // Delaware Bid Solicitation Directory: open state and school solicitations.
+  { name: "de_mmp", fetchFn: () => fetchDeMmpBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

@@ -935,6 +935,8 @@ export function displayPlaceOfPerformance(
  *                    department.
  *    pa_dgs_emarketplace → Pennsylvania eMarketplace; every buyer is a
  *                    Commonwealth of Pennsylvania entity.
+ *    co_vss        → Colorado Vendor Self Service; every buyer is a Colorado
+ *                    state entity.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -947,6 +949,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   fl_mfmp: "FL",
   ca_eprocure: "CA",
   pa_dgs_emarketplace: "PA",
+  co_vss: "CO",
 };
 
 export interface InsertLocationColumns {

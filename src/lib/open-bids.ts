@@ -128,6 +128,17 @@ export function setAsidePred(cert: string, sql: any) {
  * does NOT over-restrict — matching single-cert semantics.
  */
 export function setAsidePredMulti(certs: string[], sql: any) {
+  const orClauses = setAsideLikeClauses(certs);
+  if (orClauses.length === 0) return sql()``;
+  return sql()`AND (${sql().unsafe(orClauses.join(" OR "))})`;
+}
+
+/**
+ * The literal `set_aside LIKE` clauses the certifications map to (hardcoded
+ * constants, injection-safe) — shared by setAsidePredMulti and
+ * profile-match.ts profileSetAsidePred. Empty when no cert has a set-aside.
+ */
+export function setAsideLikeClauses(certs: readonly string[]): string[] {
   const ASCII_CODE_TO_SET_ASIDE: Record<string, string[]> = {
     "8a": ["8(a)", "8AN"],
     sdvosb: ["SDVOSB"],
@@ -143,8 +154,7 @@ export function setAsidePredMulti(certs: string[], sql: any) {
       orClauses.push(`LOWER(COALESCE(set_aside,'')) LIKE '%${p.toLowerCase()}%'`);
     }
   }
-  if (orClauses.length === 0) return sql()``;
-  return sql()`AND (${sql().unsafe(orClauses.join(" OR "))})`;
+  return orClauses;
 }
 
 /**

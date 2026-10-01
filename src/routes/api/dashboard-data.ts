@@ -10,8 +10,7 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 // notice Radar splits (or vice versa). See src/lib/notice-dedupe.ts.
 import { noticeKeySql } from "~/lib/notice-dedupe";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
-import { setAsidePredMulti } from "~/lib/open-bids";
-import { bidInStates, profileTradePred } from "~/lib/profile-match";
+import { bidInStates, profileSetAsidePred, profileTradePred } from "~/lib/profile-match";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
@@ -173,7 +172,9 @@ async function handler({ request }: { request: Request }) {
   // src/db/schema.sql — the old per-request `ALTER TABLE ... ADD COLUMN IF NOT
   // EXISTS` lazy-migration guards are removed (migration-only concern now).
   const locations = (profile?.locations ?? []).map((s) => String(s));
-  const setAsideFrag = setAsidePredMulti(profile?.certifications ?? [], sql);
+  // Certifications: matching federal set-asides, plus open state/local bids
+  // (no set-aside) — src/lib/profile-match.ts profileSetAsidePred.
+  const setAsideFrag = profileSetAsidePred(profile?.certifications ?? [], sql);
   // Trade: profile NAICS codes, plus trade-word matches for bids that carry
   // no NAICS code (every state portal) — src/lib/profile-match.ts.
   const naicsFrag = profileTradePred(profile, sql);

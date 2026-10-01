@@ -7,6 +7,8 @@ import { describe, expect, test } from "bun:test";
 import {
   bidInStates,
   profileNaicsCodes,
+  profileSetAsidePred,
+  STATE_LOCAL_SOURCE_LABELS,
   profileStateCodes,
   profileTradeExpansions,
   profileTradePred,
@@ -82,5 +84,28 @@ describe("trade — state bids without NAICS match by trade words", () => {
     const { text, values } = flatten(profileTradePred({ industry: "janitorial" }, stubSql));
     expect(text).toBe("");
     expect(values).toEqual([]);
+  });
+});
+
+describe("certifications — open state/local bids for certified profiles", () => {
+  test("a certified profile gets its set-asides OR state/local bids with no set-aside", () => {
+    const { text } = flatten(profileSetAsidePred(["sdvosb"], stubSql));
+    expect(text).toContain("LOWER(COALESCE(set_aside,'')) LIKE '%sdvosb%'");
+    expect(text).toContain("COALESCE(set_aside,'') = ''");
+    expect(text).toContain("'tx_esbd'");
+    expect(text).toContain("'ny_nyscr'");
+    expect(text).toContain("'ma_commbuys'");
+    expect(text).not.toContain("'sam_gov'"); // a federal bid with no set-aside stays out
+  });
+
+  test("only registered state/local sources count as open", () => {
+    expect(STATE_LOCAL_SOURCE_LABELS).toContain("pa_dgs_emarketplace");
+    expect(STATE_LOCAL_SOURCE_LABELS).toContain("oh_dayton");
+    expect(STATE_LOCAL_SOURCE_LABELS).not.toContain("sam_gov");
+  });
+
+  test("no certification (or plain small business) means no set-aside filter", () => {
+    expect(flatten(profileSetAsidePred([], stubSql)).text).toBe("");
+    expect(flatten(profileSetAsidePred(["sb"], stubSql)).text).toBe("");
   });
 });

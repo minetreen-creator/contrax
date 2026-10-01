@@ -596,8 +596,9 @@ function setAsideMatchesCertifications(bidSetAside: string | null | undefined, c
 // set-aside and — for a NAICS-onboarded profile whose `industry` is an empty
 // string — auto-matched EVERY bid via `cat.includes("")` === true) has been
 // REMOVED. Dashboard live-feed relevance now comes from the authoritative SQL
-// matcher server-side in /api/dashboard-data (setAsidePredMulti + naicsPred +
-// locationMatchesStates + LOW_CONTENT_SQL + DISTINCT ON), the same predicates
+// matcher server-side in /api/dashboard-data (src/lib/profile-match.ts:
+// profileSetAsidePred + profileTradePred + bidInStates, LOW_CONTENT_SQL +
+// DISTINCT ON), the same predicates
 // the onboarding "We found N" count uses. `setAsideMatchesCertifications`
 // remains for display/boost purposes.
 

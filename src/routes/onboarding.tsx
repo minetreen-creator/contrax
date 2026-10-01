@@ -5,8 +5,8 @@ import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { persistPendingDraft } from "~/lib/pending-draft";
 import { readRememberedNext, clearRememberedNext } from "~/lib/remember-next";
-import { keywordPred, setAsidePred } from "~/lib/open-bids";
-import { bidInStates, profileTradePred } from "~/lib/profile-match";
+import { keywordPred } from "~/lib/open-bids";
+import { bidInStates, profileSetAsidePred, profileTradePred } from "~/lib/profile-match";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { NaicsTypeahead, searchNaics } from "~/components/NaicsTypeahead";
 import {
@@ -97,7 +97,7 @@ export function parseEstimatedValue(v: string | null | undefined): number | null
 // business". It reuses the SAME open-opportunity population the rest of the
 // site counts (post-#185): DISTINCT ON (title, agency) with `due_date > NOW()`
 // + the shared LOW_CONTENT_SQL, plus the SAME keyword predicate (keywordPred)
-// and the shared set-aside predicate (setAsidePred) — no parallel bespoke
+// and the shared set-aside predicate (profile-match.ts profileSetAsidePred) — no parallel bespoke
 // query. State + contract-range are the two genuinely new filters (no
 // site-wide equivalent exists), applied in JS on the already-deduped rows using
 // the same state regex the /awards page uses. The count is therefore truthful
@@ -137,7 +137,9 @@ const countMatchOpportunities = createServerFn({ method: "GET" })
       .filter((c) => /^\d{6}$/.test(c));
     const q = query.trim().toLowerCase();
 
-    const certPred = setAsidePred(certification, sql);
+    // Matching federal set-asides plus open state/local bids (no set-aside),
+    // same rule as the dashboard feed (src/lib/profile-match.ts).
+    const certPred = profileSetAsidePred([certification], sql);
     let kwPred;
     if (codes.length > 0) {
       // Selected codes, plus — for bids that carry no NAICS code (every state

@@ -29,8 +29,7 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 // S2 NOTICE IDENTITY (owner-approved 2026-09-23): canonical read-side notice key.
 import { noticeKeySql } from "~/lib/notice-dedupe";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { setAsidePredMulti } from "~/lib/open-bids";
-import { bidInStates, profileTradePred } from "~/lib/profile-match";
+import { bidInStates, profileSetAsidePred, profileTradePred } from "~/lib/profile-match";
 
 /** One candidate match the card could analyze first (top-5, uncached-first). */
 export interface TrialStartCandidate {
@@ -160,7 +159,7 @@ export async function findTrialStartCandidates(
   } catch {
     // Non-blocking: fall back to nationwide matching (same as dashboard-data).
   }
-  const setAsideFrag = setAsidePredMulti(certs, sql);
+  const setAsideFrag = profileSetAsidePred(certs, sql);
   const naicsFrag = profileTradePred({ naics_codes: naics, industry, service_categories: serviceCategories }, sql);
   // Lazy migration guards (idempotent) — mirror dashboard-data so the
   // predicates can run on older databases.

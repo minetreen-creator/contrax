@@ -21,9 +21,16 @@
  *     as before.
  *   - STATES (`bidInStates`): the old "City, ST" rule OR the full state
  *     resolver (resolveBidState), which reads state names too.
+ *   - CERTIFICATIONS (`profileSetAsidePred`, owner 2026-10-01 "yes"): a
+ *     certified profile (SDVOSB, 8(a), WOSB, HUBZone, VOSB) still sees its
+ *     matching federal set-asides, AND now also state/local portal bids that
+ *     publish no set-aside — open to every business, so a certified one can
+ *     bid. Only sources registered as state or local count (an unknown or
+ *     federal source with no set-aside stays excluded, as before).
  */
 import { resolveBidState, STATE_NAME_TO_CODE } from "./location-state";
-import { locationMatchesStates, shouldApplyStateFilter } from "./open-bids";
+import { locationMatchesStates, setAsideLikeClauses, shouldApplyStateFilter } from "./open-bids";
+import { isStateLocalLabel, SOURCE_CLASSES } from "./source-class";
 import { US_STATES } from "./states";
 import { expandTrade, TRADE_ALIASES, type TradeExpansion } from "./trade-registry";
 
@@ -106,4 +113,24 @@ export function profileTradePred(profile: MatchProfile | null | undefined, sql: 
     text = text ? s`${text} OR ${clause}` : clause;
   }
   return s`AND (naics_code = ANY(${codes}) OR (COALESCE(naics_code,'') = '' AND (${text})))`;
+}
+
+/** Every source label registered as a state portal or a city board. */
+export const STATE_LOCAL_SOURCE_LABELS: readonly string[] = Object.keys(SOURCE_CLASSES).filter((l) => isStateLocalLabel(l));
+
+/**
+ * SQL set-aside predicate for a profile's certifications (an `AND (...)`
+ * fragment, or empty when no cert maps to a set-aside): a matching federal
+ * set-aside, OR a state/local bid with no set-aside at all. Labels and
+ * patterns are hardcoded constants (never user input), so inlining is safe.
+ */
+export function profileSetAsidePred(certs: readonly string[] | null | undefined, sql: any): any {
+  const s = typeof sql?.unsafe === "function" ? sql : sql();
+  const clauses = setAsideLikeClauses(certs ?? []);
+  if (clauses.length === 0) return s``;
+  const labels = STATE_LOCAL_SOURCE_LABELS.map((l) => `'${l.replace(/'/g, "")}'`).join(", ");
+  const open = labels
+    ? ` OR (COALESCE(set_aside,'') = '' AND LOWER(BTRIM(COALESCE(source,''))) IN (${labels}))`
+    : "";
+  return s`AND (${s.unsafe(`(${clauses.join(" OR ")})${open}`)})`;
 }

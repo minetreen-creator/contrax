@@ -50,6 +50,7 @@ import { fetchVaEvaBids } from "./sources/va-eva";
 import { fetchTxEsbdBids } from "./sources/tx-esbd";
 import { fetchFlMfmpBids } from "./sources/fl-mfmp";
 import { fetchCaEprocureBids } from "./sources/ca-eprocure";
+import { fetchPaEmarketplaceBids } from "./sources/pa-emarketplace";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -218,6 +219,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "fl_mfmp", fetchFn: () => fetchFlMfmpBids() },
   // California Cal eProcure: posted state-department bid events.
   { name: "ca_eprocure", fetchFn: () => fetchCaEprocureBids() },
+  // Pennsylvania eMarketplace: current Commonwealth agency solicitations.
+  { name: "pa_dgs_emarketplace", fetchFn: () => fetchPaEmarketplaceBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

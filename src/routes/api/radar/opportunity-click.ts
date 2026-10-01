@@ -8,6 +8,7 @@ import {
   CLICK_IP_WINDOW,
 } from "~/lib/radar-lead-clicks";
 import { checkIpLimit } from "~/lib/rate-limit";
+import { headStartUntil } from "~/lib/head-start";
 
 /**
  * GET /api/radar/opportunity-click?bid=<id>&token=<unsubscribe_token>
@@ -25,7 +26,9 @@ import { checkIpLimit } from "~/lib/rate-limit";
  *   3. record an `opportunity_clicked` funnel event (stage 4 of the admin
  *      radar-leads funnel),
  *   4. 302 to the bid's REAL source_url — fail-open, ALWAYS, even when every
- *      write above failed.
+ *      write above failed. Exception: a bid still in its paid head start
+ *      (src/lib/head-start.ts) goes to its Contrax bid page instead, which
+ *      shows when it opens; this link is anonymous and never paid.
  *
  * PII-SAFE / FAIL-OPEN CONTRACT (owner-exact, non-negotiable):
  *   - Unknown token, unsubscribed lead, or unconfirmed lead → plain 302 to the
@@ -83,9 +86,10 @@ async function handler({ request }: { request: Request }) {
     let sourceUrl: string | null = null;
     try {
       const bid = (await sql()`
-        SELECT source_url FROM bids WHERE id = ${bidId} LIMIT 1
-      `) as Array<{ source_url: string | null }>;
+        SELECT source_url, created_at FROM bids WHERE id = ${bidId} LIMIT 1
+      `) as Array<{ source_url: string | null; created_at: string | null }>;
       sourceUrl = bid[0]?.source_url ?? null;
+      if (bid[0] && headStartUntil(bid[0].created_at)) sourceUrl = `https://www.contrax.company/bid/${bidId}`;
     } catch (e) {
       console.error("[api/radar/opportunity-click] bid lookup failed (redirecting anyway):", (e as Error).message);
     }

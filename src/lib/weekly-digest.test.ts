@@ -6,6 +6,7 @@ import {
   shouldSendWeeklyDigest,
   weeklyDigestRecipients,
   weeklyUnsubscribeUrl,
+  weeklyWindowBounds,
   weeklyWindowStart,
 } from "./weekly-digest";
 
@@ -64,6 +65,24 @@ describe("weekly digest — when", () => {
     expect(weeklyWindowStart(null, MONDAY_6AM).getTime()).toBe(MONDAY_6AM - 7 * DAY);
     expect(weeklyWindowStart(new Date(MONDAY_6AM - 7 * DAY), MONDAY_6AM).getTime()).toBe(MONDAY_6AM - 7 * DAY);
     expect(weeklyWindowStart(new Date(MONDAY_6AM - 30 * DAY), MONDAY_6AM).getTime()).toBe(MONDAY_6AM - 8 * DAY);
+  });
+});
+
+describe("weekly digest — paid head start", () => {
+  test("the listed window ends 72 hours ago, and consecutive Mondays tile", () => {
+    const first = weeklyWindowBounds(null, MONDAY_6AM);
+    expect(first.end.getTime()).toBe(MONDAY_6AM - 3 * DAY);
+    expect(first.start.getTime()).toBe(MONDAY_6AM - 10 * DAY);
+    const next = weeklyWindowBounds(new Date(MONDAY_6AM), MONDAY_6AM + 7 * DAY);
+    expect(next.start.getTime()).toBe(first.end.getTime());
+    expect(next.end.getTime()).toBe(MONDAY_6AM + 4 * DAY);
+  });
+
+  test("the email counts the bids still in their head start", () => {
+    const bid = { bid_id: 1, title: "Snow plowing", agency: "City", source_url: "https://x", location: "Ohio", due_date: null };
+    const html = bidDigestHtml([bid], 1, { unsubscribeUrl: weeklyUnsubscribeUrl("t"), headStartCount: 12 });
+    expect(html).toContain("+ 12 newer bids were posted in the last 3 days.");
+    expect(bidDigestHtml([bid], 1, { unsubscribeUrl: weeklyUnsubscribeUrl("t") })).not.toContain("newer bid");
   });
 });
 

@@ -10,8 +10,10 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 // notice Radar splits (or vice versa). See src/lib/notice-dedupe.ts.
 import { noticeKeySql } from "~/lib/notice-dedupe";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
-import { locationMatchesStates, naicsPred, setAsidePredMulti } from "~/lib/open-bids";
+import { bidInStates, profileSetAsidePred, profileTradePred } from "~/lib/profile-match";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { applyHeadStart } from "~/lib/head-start";
+import { hasPaidBidAccess } from "~/lib/head-start.server";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 
 // Interfaces mirror src/routes/dashboard.tsx (kept local so this route is
@@ -21,6 +23,8 @@ interface Bid {
   location: string; category: string; set_aside: string | null; due_date: string; estimated_value: string;
   source_url: string | null; role_matches: number;
   naics_code: string | null; created_at: string;
+  /** Set while the bid is in its paid head start and this user is not paid. */
+  head_start_until: string | null;
 }
 interface BidSummary {
   bid_id: number; summary_text: string; key_requirements: string[];
@@ -168,8 +172,12 @@ async function handler({ request }: { request: Request }) {
   // src/db/schema.sql — the old per-request `ALTER TABLE ... ADD COLUMN IF NOT
   // EXISTS` lazy-migration guards are removed (migration-only concern now).
   const locations = (profile?.locations ?? []).map((s) => String(s));
-  const setAsideFrag = setAsidePredMulti(profile?.certifications ?? [], sql);
-  const naicsFrag = naicsPred(profile?.naics_codes ?? [], sql);
+  // Certifications: matching federal set-asides, plus open state/local bids
+  // (no set-aside) — src/lib/profile-match.ts profileSetAsidePred.
+  const setAsideFrag = profileSetAsidePred(profile?.certifications ?? [], sql);
+  // Trade: profile NAICS codes, plus trade-word matches for bids that carry
+  // no NAICS code (every state portal) — src/lib/profile-match.ts.
+  const naicsFrag = profileTradePred(profile, sql);
 
   const bidRows = await sql()`
     SELECT * FROM (
@@ -188,11 +196,14 @@ async function handler({ request }: { request: Request }) {
     ) matched
     ORDER BY due_date ASC NULLS LAST`;
   const userSpecialties = profile?.specialties || [];
+  // Paid head start (src/lib/head-start.ts): without paid access, a bid's
+  // first 72 hours on Contrax show without its source link.
+  const paid = await hasPaidBidAccess(user);
   // Geography filter applied POST-dedup (same `locationMatchesStates` the
   // onboarding count uses — nationwide = no-op, specific states = targeted).
   const bids: Bid[] = (bidRows as any[])
-    .filter((b) => locationMatchesStates(b.location, locations))
-    .map((b) => ({
+    .filter((b) => bidInStates(b.location, b.agency, locations))
+    .map((b) => applyHeadStart({
       id: b.id, title: b.title, agency: b.agency, description: b.description,
       location: b.location, category: b.category, set_aside: b.set_aside ?? null,
       due_date: String(b.due_date),
@@ -200,7 +211,7 @@ async function handler({ request }: { request: Request }) {
       naics_code: b.naics_code ?? null,
       created_at: b.created_at ? String(b.created_at) : "",
       role_matches: countRoleMatches(b as any, userSpecialties),
-    }));
+    }, paid));
 
   const matchRows = await sql()`SELECT bid_id, status FROM saved_matches WHERE user_id = ${user.id}`;
   const savedMatches: SavedMatch[] = (matchRows as any[]).map((m) => ({
@@ -295,7 +306,7 @@ async function handler({ request }: { request: Request }) {
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         ${setAsideFrag} ${naicsFrag}
       ORDER BY ${sql().unsafe(noticeKeySql("bids"))}`;
-    archivedCount = (archRows as any[]).filter((r) => locationMatchesStates(r.location, locations)).length;
+    archivedCount = (archRows as any[]).filter((r) => bidInStates(r.location, r.agency, locations)).length;
   } catch {}
   let lossesCount = 0;
   try { const lossRows = await sql()`SELECT COUNT(*) as count FROM bid_losses WHERE user_email = ${user.email}`; lossesCount = Number(lossRows[0]?.count || 0); } catch {}

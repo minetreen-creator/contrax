@@ -3,7 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
-import { locationMatchesStates, shouldApplyStateFilter } from "~/lib/open-bids";
+import { shouldApplyStateFilter } from "~/lib/open-bids";
+import { bidInStates } from "~/lib/profile-match";
 import type { PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
 import { isHealthcareBid } from "~/lib/healthcare";
@@ -44,6 +45,7 @@ import {
 } from "~/lib/review-context";
 import { StickyFilterBar } from "~/components/StickyFilterBar";
 import { ReviewPager } from "~/components/ReviewPager";
+import { HeadStartLock } from "~/components/HeadStartLock";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Bid {
@@ -51,6 +53,8 @@ interface Bid {
   location: string; category: string; set_aside: string | null; due_date: string; estimated_value: string;
   source_url: string | null; role_matches: number;
   naics_code: string | null; created_at: string;
+  /** Paid head start (src/lib/head-start.ts): set when the link is withheld. */
+  head_start_until?: string | null;
 }
 interface BidSummary {
   bid_id: number; summary_text: string; key_requirements: string[];
@@ -592,8 +596,9 @@ function setAsideMatchesCertifications(bidSetAside: string | null | undefined, c
 // set-aside and — for a NAICS-onboarded profile whose `industry` is an empty
 // string — auto-matched EVERY bid via `cat.includes("")` === true) has been
 // REMOVED. Dashboard live-feed relevance now comes from the authoritative SQL
-// matcher server-side in /api/dashboard-data (setAsidePredMulti + naicsPred +
-// locationMatchesStates + LOW_CONTENT_SQL + DISTINCT ON), the same predicates
+// matcher server-side in /api/dashboard-data (src/lib/profile-match.ts:
+// profileSetAsidePred + profileTradePred + bidInStates, LOW_CONTENT_SQL +
+// DISTINCT ON), the same predicates
 // the onboarding "We found N" count uses. `setAsideMatchesCertifications`
 // remains for display/boost purposes.
 
@@ -669,7 +674,7 @@ function evalGeographyDimension(bid: Bid, profile: BusinessProfile | null): Elig
   if (!shouldApplyStateFilter(locs)) {
     return { status: "MATCH", label: "Geography", reason: "Nationwide — you target all states, so location is no restriction." };
   }
-  const viaStates = locationMatchesStates(bid.location, locs);
+  const viaStates = bidInStates(bid.location, bid.agency, locs);
   const viaName = locs.some((l) => bid.location?.toLowerCase().includes(String(l).toLowerCase()));
   if (viaStates || viaName) {
     return { status: "MATCH", label: "Geography", reason: `Solicitation location (${bid.location}) is in your target states.` };
@@ -2198,6 +2203,9 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
                               <div><p className="font-medium text-slate-500">Est. Value</p><p className="text-slate-800">{bid.estimated_value}</p></div>
                               <div><p className="font-medium text-slate-500">Category</p><p className="text-slate-800">{bid.category}</p></div>
                             </div>
+                            {!bid.source_url && bid.head_start_until && (
+                              <div><HeadStartLock until={bid.head_start_until} compact /></div>
+                            )}
                             {bid.source_url && (
                               <div><a href={bid.source_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-500">View source posting<svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg></a></div>
                             )}

@@ -29,7 +29,7 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 // S2 NOTICE IDENTITY (owner-approved 2026-09-23): canonical read-side notice key.
 import { noticeKeySql } from "~/lib/notice-dedupe";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { locationMatchesStates, setAsidePredMulti, naicsPred } from "~/lib/open-bids";
+import { bidInStates, profileSetAsidePred, profileTradePred } from "~/lib/profile-match";
 
 /** One candidate match the card could analyze first (top-5, uncached-first). */
 export interface TrialStartCandidate {
@@ -138,25 +138,29 @@ export async function findTrialStartCandidates(
   let certs: string[] = [];
   let naics: string[] = [];
   let locations: string[] = [];
+  let industry = "";
+  let serviceCategories: string[] = [];
   try {
     const profRows = (await sql()`
-      SELECT certifications, naics_codes, locations
+      SELECT certifications, naics_codes, locations, industry, service_categories
       FROM business_profiles
       WHERE user_id = ${userId}
       ORDER BY id DESC
       LIMIT 1
-    `) as Array<{ certifications?: unknown; naics_codes?: unknown; locations?: unknown }>;
+    `) as Array<{ certifications?: unknown; naics_codes?: unknown; locations?: unknown; industry?: unknown; service_categories?: unknown }>;
     if (profRows.length > 0) {
       const p = profRows[0];
       certs = Array.isArray(p.certifications) ? p.certifications.map(String) : [];
       naics = Array.isArray(p.naics_codes) ? p.naics_codes.map(String) : [];
       locations = Array.isArray(p.locations) ? p.locations.map(String) : [];
+      industry = p.industry ? String(p.industry) : "";
+      serviceCategories = Array.isArray(p.service_categories) ? p.service_categories.map(String) : [];
     }
   } catch {
     // Non-blocking: fall back to nationwide matching (same as dashboard-data).
   }
-  const setAsideFrag = setAsidePredMulti(certs, sql);
-  const naicsFrag = naicsPred(naics, sql);
+  const setAsideFrag = profileSetAsidePred(certs, sql);
+  const naicsFrag = profileTradePred({ naics_codes: naics, industry, service_categories: serviceCategories }, sql);
   // Lazy migration guards (idempotent) — mirror dashboard-data so the
   // predicates can run on older databases.
   try { await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS set_aside TEXT`; } catch {}
@@ -188,7 +192,7 @@ export async function findTrialStartCandidates(
     estimated_value: string | null;
     has_fresh_summary: boolean;
   }>;
-  const all = rows.filter((b) => locationMatchesStates(b.location, locations));
+  const all = rows.filter((b) => bidInStates(b.location, b.agency, locations));
   const totalMatches = all.length;
   const candidates: TrialStartCandidate[] = all.slice(0, 5).map((b) => ({
     id: Number(b.id),

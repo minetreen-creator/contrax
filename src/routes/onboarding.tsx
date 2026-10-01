@@ -5,7 +5,8 @@ import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { persistPendingDraft } from "~/lib/pending-draft";
 import { readRememberedNext, clearRememberedNext } from "~/lib/remember-next";
-import { locationMatchesStates, keywordPred, setAsidePred } from "~/lib/open-bids";
+import { keywordPred } from "~/lib/open-bids";
+import { bidInStates, profileSetAsidePred, profileTradePred } from "~/lib/profile-match";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { NaicsTypeahead, searchNaics } from "~/components/NaicsTypeahead";
 import {
@@ -96,7 +97,7 @@ export function parseEstimatedValue(v: string | null | undefined): number | null
 // business". It reuses the SAME open-opportunity population the rest of the
 // site counts (post-#185): DISTINCT ON (title, agency) with `due_date > NOW()`
 // + the shared LOW_CONTENT_SQL, plus the SAME keyword predicate (keywordPred)
-// and the shared set-aside predicate (setAsidePred) — no parallel bespoke
+// and the shared set-aside predicate (profile-match.ts profileSetAsidePred) — no parallel bespoke
 // query. State + contract-range are the two genuinely new filters (no
 // site-wide equivalent exists), applied in JS on the already-deduped rows using
 // the same state regex the /awards page uses. The count is therefore truthful
@@ -136,16 +137,15 @@ const countMatchOpportunities = createServerFn({ method: "GET" })
       .filter((c) => /^\d{6}$/.test(c));
     const q = query.trim().toLowerCase();
 
-    const certPred = setAsidePred(certification, sql);
+    // Matching federal set-asides plus open state/local bids (no set-aside),
+    // same rule as the dashboard feed (src/lib/profile-match.ts).
+    const certPred = profileSetAsidePred([certification], sql);
     let kwPred;
     if (codes.length > 0) {
-      const codeAny = sql()`naics_code = ANY(${codes})`;
-      if (q && !/^\d{6}$/.test(q)) {
-        // Selected codes OR a complementary keyword-phrase match.
-        kwPred = sql()`AND (${codeAny} ${sql().unsafe("OR")} LOWER(COALESCE(naics_code,'')) LIKE ${"%" + q + "%"})`;
-      } else {
-        kwPred = sql()`AND ${codeAny}`;
-      }
+      // Selected codes, plus — for bids that carry no NAICS code (every state
+      // portal) — the trade words of those codes and of any typed phrase.
+      // Same rule as the dashboard feed (src/lib/profile-match.ts).
+      kwPred = profileTradePred({ naics_codes: codes, industry: q && !/^\d{6}$/.test(q) ? q : "" }, sql);
     } else {
       kwPred = keywordPred(query, sql);
     }
@@ -166,7 +166,7 @@ const countMatchOpportunities = createServerFn({ method: "GET" })
       // "Select all states" / no states → no-op (nationwide): EVERY location
       // matches, so national/unspecified-location bids are NOT under-counted.
       // Specific states → targeted 2-letter state filter, unchanged.
-      if (!locationMatchesStates(r.location, states)) continue;
+      if (!bidInStates(r.location, r.agency, states)) continue;
       // Contract-range filter. Unspecified value → cannot be ruled out → counts
       // as matching (documented, honest; disclosed in the UI note).
       const v = parseEstimatedValue(r.estimated_value);

@@ -68,6 +68,8 @@ import {
   type RadarScanRace,
 } from "~/lib/radar-scan-runner";
 import { SiteHeader } from "~/components/SiteHeader";
+import { HeadStartLock } from "~/components/HeadStartLock";
+import { headStartUntil } from "~/lib/head-start";
 
 /**
  * /radar — "Contract Radar" interactive lead-generation experience.
@@ -347,6 +349,9 @@ export type RadarMatch = {
   incumbent: FPDSIntel | null;
   /** Contrax Learning ⚡ memory (PAID-ONLY, Professional+ — never Basic/Starter). */
   learned: PriorLossBadge | null;
+  /** Paid head start (src/lib/head-start.ts): set when this viewer is not paid
+   *  and the bid is in its first 72 hours, in which case source_url is null. */
+  head_start_until?: string | null;
 };
 
 export const runRadarScan = createServerFn({ method: "POST" })
@@ -706,6 +711,32 @@ export const runRadarScan = createServerFn({ method: "POST" })
         ? new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
         : a.due_date ? -1 : b.due_date ? 1 : 0,
     );
+    // Paid head start (src/lib/head-start.ts): for a viewer without paid
+    // access, every returned card whose bid is in its first 72 hours loses its
+    // source link here, on the server. `local`/`nationwide` hold the same
+    // objects as `matches`, so one pass covers every section. A lookup failure
+    // leaves the cards as they are (the scan must never fail on this).
+    try {
+      const { hasPaidBidAccess } = await import("~/lib/head-start.server");
+      const { getCurrentUser } = await import("~/lib/auth");
+      if (!(await hasPaidBidAccess(await getCurrentUser()))) {
+        const cards = [...matches, ...related];
+        const ids = [...new Set(cards.map((m) => m.id))];
+        if (ids.length > 0) {
+          const created = (await sql()`SELECT id, created_at FROM bids WHERE id = ANY(${ids})`) as Array<{ id: number; created_at: string | null }>;
+          const createdById = new Map(created.map((r) => [Number(r.id), r.created_at]));
+          for (const card of cards) {
+            const until = headStartUntil(createdById.get(card.id));
+            if (until) {
+              card.source_url = null;
+              card.head_start_until = until;
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[radar] head-start lookup failed (cards unchanged):", e);
+    }
     return { matches, certLabel: CERT_LABEL[certId], sections: { local, nationwide, related }, intelTicket };
   });
 
@@ -2305,6 +2336,11 @@ export function RadarCard({
         <div className="mt-4 rounded-xl bg-slate-800 px-4 py-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Recommended next action</p>
           <p className="mt-1 text-sm leading-relaxed text-slate-200">{match.next_action}</p>
+          {!match.source_url && match.head_start_until && (
+            <div className="mt-2">
+              <HeadStartLock until={match.head_start_until} compact />
+            </div>
+          )}
           {match.source_url && (
             <a
               href={match.source_url}

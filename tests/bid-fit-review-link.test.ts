@@ -43,6 +43,8 @@ describe("Bid Fit Review link next to a bid", () => {
     expect(cards).toContain("bidFitReviewHref(b)");
     expect(cards).not.toContain("Open original notice on SAM.gov");
     const detail = readFileSync(new URL("../src/routes/bid.$bidId.tsx", import.meta.url), "utf8");
-    expect(detail).toContain("bidFitReviewHref(bid)");
+    // the detail page passes the link it shows (a head-start link is unlocked
+    // for paying members in the browser — src/lib/head-start.ts)
+    expect(detail).toContain("bidFitReviewHref({ ...bid, source_url: sourceUrl })");
   });
 });

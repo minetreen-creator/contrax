@@ -122,11 +122,12 @@ describe("emails go out once a day, in the morning", () => {
     expect(read("package.json")).toContain('"bid-digest": "bun run src/jobs/send-bid-digest.ts"');
   });
 
-  test("the morning digest uses the paid-recipient rule and logs only real sends", () => {
+  test("the morning digest uses the paid-recipient rule, personal matching, and logs only real sends", () => {
     const job = read("src/jobs/send-bid-digest.ts");
-    expect(job).toContain("digestRecipients(users)");
+    expect(job).toContain("if (!isDigestEligible(u)) continue;");
+    expect(job).toContain("buildDigestMatcher(u)");
     expect(job).toContain("digestWindowStart(");
-    expect(job).toMatch(/if \(sent\) \{\s*await sql\(\)`\s*INSERT INTO bid_digest_log/);
+    expect(job).toMatch(/if \(accepted > 0\) \{\s*await sql\(\)`\s*INSERT INTO bid_digest_log/);
   });
 
   test("the window starts at the last real send, 24h with none, at most 48h back", () => {

@@ -128,43 +128,6 @@ export async function sendPasswordResetEmail(
 
 // ── Bid Digest Email ───────────────────────────────────────────────────────────
 
-/**
- * Send a digest email to all registered users with summaries of newly discovered
- * government bids. Uses BCC so recipients don't see each other's addresses.
- *
- * Fire-and-forget — errors are logged but never thrown.
- */
-export async function sendBidDigest(
-  recipients: string[],
-  newBids: NewBidSummary[],
-): Promise<boolean> {
-  if (recipients.length === 0) return false;
-
-  try {
-    const resend = getResend();
-    if (!resend) {
-      console.warn("Cannot send bid digest — RESEND_API_KEY not set");
-      return false;
-    }
-
-    await resend.emails.send({
-      from: "Contrax <hello@contrax.company>",
-      to: ["hello@contrax.company"],
-      bcc: recipients,
-      subject: `Your morning bid digest: ${newBids.length} new government bid${newBids.length === 1 ? "" : "s"} — Contrax`,
-      html: bidDigestHtml(digestBidsToList(newBids), newBids.length),
-    });
-
-    console.log(
-      `Bid digest sent to ${recipients.length} recipient(s) with ${newBids.length} new bid(s)`,
-    );
-    return true;
-  } catch (err) {
-    console.error(`Failed to send bid digest:`, (err as Error).message);
-    // Never throw — this is non-blocking
-    return false;
-  }
-}
 
 /**
  * The free Basic plan's weekly email (src/lib/weekly-digest.ts). Unlike the
@@ -178,6 +141,7 @@ export const WEEKLY_DIGEST_BATCH_SIZE = 100;
 export async function sendWeeklyBidDigest(
   recipients: { email: string; unsubscribeUrl: string }[],
   newBids: NewBidSummary[],
+  headStartCount = 0,
 ): Promise<number> {
   if (recipients.length === 0 || newBids.length === 0) return 0;
   const resend = getResend();
@@ -196,7 +160,7 @@ export async function sendWeeklyBidDigest(
           from: "Contrax <hello@contrax.company>",
           to: [r.email],
           subject,
-          html: bidDigestHtml(listed, newBids.length, { unsubscribeUrl: r.unsubscribeUrl }),
+          html: bidDigestHtml(listed, newBids.length, { unsubscribeUrl: r.unsubscribeUrl, headStartCount }),
           headers: {
             "List-Unsubscribe": `<${r.unsubscribeUrl}>`,
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -213,6 +177,47 @@ export async function sendWeeklyBidDigest(
     }
   }
   console.log(`Weekly bid digest accepted for ${accepted} of ${recipients.length} recipient(s), ${newBids.length} new bid(s)`);
+  return accepted;
+}
+
+/**
+ * The paying members' personal 6 AM emails (src/jobs/send-bid-digest.ts):
+ * one email per member, listing the new bids that match their profile.
+ * Sent through Resend's batch API, up to 100 per call. Returns how many were
+ * accepted; never throws.
+ */
+export async function sendPersonalBidDigests(
+  emails: { to: string; bids: NewBidSummary[]; options: DailyDigestHtmlOptions }[],
+): Promise<number> {
+  const ready = emails.filter((e) => e.bids.length > 0);
+  if (ready.length === 0) return 0;
+  const resend = getResend();
+  if (!resend) {
+    console.warn("Cannot send bid digest — RESEND_API_KEY not set");
+    return 0;
+  }
+  let accepted = 0;
+  for (let i = 0; i < ready.length; i += WEEKLY_DIGEST_BATCH_SIZE) {
+    const chunk = ready.slice(i, i + WEEKLY_DIGEST_BATCH_SIZE);
+    try {
+      const { error } = await resend.batch.send(
+        chunk.map((e) => ({
+          from: "Contrax <hello@contrax.company>",
+          to: [e.to],
+          subject: `Your morning bid digest: ${e.bids.length} new ${e.options.matchLabel ? "matching " : ""}government bid${e.bids.length === 1 ? "" : "s"} — Contrax`,
+          html: bidDigestHtml(digestBidsToList(e.bids), e.bids.length, null, e.options),
+        })),
+      );
+      if (error) {
+        console.error(`Daily digest batch ${i / WEEKLY_DIGEST_BATCH_SIZE + 1} rejected:`, error.message);
+        continue;
+      }
+      accepted += chunk.length;
+    } catch (err) {
+      console.error(`Daily digest batch ${i / WEEKLY_DIGEST_BATCH_SIZE + 1} failed:`, (err as Error).message);
+    }
+  }
+  console.log(`Personal bid digests accepted for ${accepted} of ${ready.length} member(s)`);
   return accepted;
 }
 
@@ -656,12 +661,23 @@ function passwordResetEmailHtml(token: string): string {
 /** The free Basic plan's weekly variant: weekly wording, a Starter line and an unsubscribe link. */
 export interface WeeklyDigestHtmlOptions {
   unsubscribeUrl: string;
+  /** Open bids added in the last 72 hours, still in their paid head start (not listed). */
+  headStartCount?: number;
+}
+
+/** The paying member's personal daily variant (src/lib/digest-match.ts). */
+export interface DailyDigestHtmlOptions {
+  /** "janitorial in VA, MD": the profile the list was filtered to. */
+  matchLabel?: string;
+  /** True when the member has no trade/states set: suggest setting them. */
+  setupHint?: boolean;
 }
 
 export function bidDigestHtml(
   bids: NewBidSummary[],
   totalNew: number = bids.length,
   weekly: WeeklyDigestHtmlOptions | null = null,
+  daily: DailyDigestHtmlOptions | null = null,
 ): string {
   const moreCount = Math.max(0, totalNew - bids.length);
   const now = new Date().toLocaleDateString("en-US", {
@@ -725,7 +741,7 @@ export function bidDigestHtml(
       <tr>
         <td style="padding:24px 32px 8px;">
           <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">
-            Contrax found <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> ${weekly ? "this past week" : "since your last digest"}. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
+            Contrax found <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> ${weekly ? "this past week" : "since your last digest"}${daily?.matchLabel ? ` that match your profile (${escapeHtml(daily.matchLabel)})` : ""}. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
           </p>
         </td>
       </tr>
@@ -747,10 +763,20 @@ export function bidDigestHtml(
           </a>
         </td>
       </tr>
+      ${daily?.setupHint ? `<!-- Profile hint -->
+      <tr>
+        <td style="padding:0 32px 24px;text-align:center;">
+          <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
+            This is every new bid nationwide. Add your trade and states and this email will list only the bids that fit you.
+            <a href="https://www.contrax.company/settings" style="color:#2563eb;font-weight:600;text-decoration:none;">Set your trade and states →</a>
+          </p>
+        </td>
+      </tr>` : ""}
       ${weekly ? `<!-- Starter -->
       <tr>
         <td style="padding:0 32px 24px;text-align:center;">
           <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
+            ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last 3 days.</strong> Starter members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a 3-day head start.<br>` : ""}
             You get this once a week on the free Basic plan. <strong>Starter</strong> sends every new bid at 6 AM Eastern, every morning, for $19/month.
             <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;text-decoration:none;">See Starter →</a>
           </p>

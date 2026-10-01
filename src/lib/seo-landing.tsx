@@ -36,6 +36,8 @@ import { expandTrade, tradeKeywordPred } from "~/lib/trade-registry";
 import { resolveBidState } from "~/lib/location-state";
 import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { SiteHeader } from "~/components/SiteHeader";
+import { HeadStartLock } from "~/components/HeadStartLock";
+import { applyHeadStart } from "~/lib/head-start";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Set-aside cert hub taxonomy (canonical slugs reused everywhere: trades.tsx
@@ -108,10 +110,13 @@ export interface SeoBid {
   location: string | null;
   set_aside: string | null;
   source_url: string | null;
+  /** Paid head start (src/lib/head-start.ts): these public pages always show
+   *  the free view, so a bid's first 72 hours appear without its source link. */
+  head_start_until: string | null;
 }
 
 function mapSeoBid(r: any): SeoBid {
-  return {
+  return applyHeadStart({
     id: Number(r.id),
     title: String(r.title ?? ""),
     agency: r.agency ? String(r.agency) : null,
@@ -122,7 +127,8 @@ function mapSeoBid(r: any): SeoBid {
     location: r.location ? String(r.location) : null,
     set_aside: r.set_aside ? String(r.set_aside) : null,
     source_url: r.source_url ? String(r.source_url) : null,
-  };
+    created_at: r.created_at ?? null,
+  }, false);
 }
 
 /** "sb" = every set-aside row (mirrors /trades + /radar); else cert's patterns. */
@@ -153,7 +159,7 @@ export const getCertHubData = createServerFn({ method: "GET" })
         count = Number((c as any)[0]?.n ?? 0);
         const rows = await sql()`
           SELECT id, title, agency, description, due_date, estimated_value,
-                 naics_code, location, set_aside, source_url
+                 naics_code, location, set_aside, source_url, created_at
           FROM (
             SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
                    id, title, agency, description, due_date, estimated_value,
@@ -292,7 +298,7 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
       try {
         const rows = await sql()`
           SELECT id, title, agency, description, due_date, estimated_value,
-                 naics_code, location, set_aside, source_url
+                 naics_code, location, set_aside, source_url, created_at
           FROM (
             SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
                    id, title, agency, description, due_date, estimated_value,
@@ -633,6 +639,11 @@ export function BidCard({ b }: { b: SeoBid }) {
       {b.source_url && (
         <span className="mt-2 inline-block text-xs font-medium text-blue-700">
           Open original notice ↗
+        </span>
+      )}
+      {!b.source_url && b.head_start_until && (
+        <span className="mt-2 inline-block text-xs">
+          <HeadStartLock until={b.head_start_until} compact />
         </span>
       )}
       <a href={`/bid/${b.id}`} className="mt-2 ml-4 inline-block text-xs font-medium text-slate-700 hover:text-slate-900">

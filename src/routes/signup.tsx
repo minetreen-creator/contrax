@@ -184,7 +184,7 @@ const PLAN_OPTIONS: {
     price: 0,
     free: true,
     bullets: [
-      "Basic Solicitations Search",
+      "Basic Solicitations Search (new bids after 3 days)",
       "A weekly email of new bids (Mondays)",
       "Up to 3 saved bids",
       "Standard set-aside filters",
@@ -196,7 +196,8 @@ const PLAN_OPTIONS: {
     price: 19,
     bullets: [
       "Everything in Basic",
-      "A 6 AM email of every new bid, every day",
+      "New bids the day they post, 3 days before free accounts",
+      "A 6 AM email of new bids in your trade and states",
       "Unlimited saved bids",
     ],
   },

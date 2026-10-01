@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { bidFitReviewHref } from "~/lib/bid-fit-review-link";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
@@ -181,6 +182,14 @@ function BidDetailPage() {
                   >
                     Open original notice ↗
                   </a>
+                  {bidFitReviewHref(bid) && (
+                    <a
+                      href={bidFitReviewHref(bid)!}
+                      className="ml-4 text-sm font-semibold text-slate-200 hover:text-white"
+                    >
+                      Not sure it fits? Get a $99 Bid Fit Review →
+                    </a>
+                  )}
                 </div>
               )}
             </article>

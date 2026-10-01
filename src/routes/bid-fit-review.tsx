@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
+import { isHttpUrl } from "~/lib/bid-fit-review-link";
 
 export const Route = createFileRoute("/bid-fit-review")({
   head: () => ({ meta: [
@@ -8,6 +9,11 @@ export const Route = createFileRoute("/bid-fit-review")({
     { name: "description", content: "A $99 one-time, source-cited review of one government solicitation for your business." },
     { name: "robots", content: "index, follow" },
   ] }),
+  // Optional pre-fill from a bid's "Get a $99 Bid Fit Review" link.
+  validateSearch: (search: Record<string, unknown>): { url?: string; deadline?: string } => ({
+    url: typeof search.url === "string" && isHttpUrl(search.url) ? search.url.slice(0, 2000) : undefined,
+    deadline: typeof search.deadline === "string" ? search.deadline.slice(0, 100) : undefined,
+  }),
   component: () => (
     <>
       <SiteHeader />
@@ -17,6 +23,7 @@ export const Route = createFileRoute("/bid-fit-review")({
 });
 
 function BidFitReview() {
+  const prefill = Route.useSearch();
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -57,9 +64,9 @@ function BidFitReview() {
             <label className="block text-sm font-medium">Name<input name="name" required maxLength={100} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
             <label className="block text-sm font-medium">Business name<input name="business" required maxLength={150} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
             <label className="block text-sm font-medium">Email<input name="email" type="email" required maxLength={254} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
-            <label className="block text-sm font-medium">Solicitation link<input name="solicitationUrl" type="url" required maxLength={2000} placeholder="https://…" className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
+            <label className="block text-sm font-medium">Solicitation link<input name="solicitationUrl" type="url" required maxLength={2000} placeholder="https://…" defaultValue={prefill.url ?? ""} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
             <label className="block text-sm font-medium">Your services and relevant experience<textarea name="capabilities" required maxLength={2000} rows={3} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
-            <label className="block text-sm font-medium">Bid deadline and time zone<input name="deadline" required maxLength={100} placeholder="October 22, 3 PM Eastern" className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
+            <label className="block text-sm font-medium">Bid deadline and time zone<input name="deadline" required maxLength={100} placeholder="October 22, 3 PM Eastern" defaultValue={prefill.deadline ?? ""} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
             <label className="block text-sm font-medium">Full documents accessible? <select name="documentsAvailable" required className="mt-1 w-full rounded-lg border border-slate-300 p-3"><option value="">Select one</option><option value="yes">Yes, through the link</option><option value="login">Account or login required</option><option value="unsure">Not sure</option></select></label>
             <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
             {state === "error" && <p role="alert" className="text-sm text-red-700">Could not send your request. Please email minetreen@gmail.com.</p>}

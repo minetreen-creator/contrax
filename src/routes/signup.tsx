@@ -195,7 +195,7 @@ const PLAN_OPTIONS: {
     price: 19,
     bullets: [
       "Unlimited saved bids",
-      "Daily NAICS email alerts",
+      "Email alerts when new bids post",
     ],
   },
   {

@@ -11,6 +11,12 @@ const getStatus = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createFileRoute("/upgrade")({
   head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
+  validateSearch: (search: Record<string, unknown>) => ({
+    checkout: search.checkout === "cancelled" ? "cancelled" : undefined,
+    plan: ["starter", "professional", "agency"].includes(String(search.plan))
+      ? String(search.plan)
+      : undefined,
+  }),
   loader: () => getStatus(),
   component: Upgrade,
 });
@@ -23,6 +29,7 @@ const plans = [
 
 function Upgrade() {
   const status = Route.useLoaderData();
+  const { checkout, plan } = Route.useSearch();
   const endsLabel =
     status?.active && status.endsAt
       ? new Date(status.endsAt).toLocaleDateString("en-US", {
@@ -48,9 +55,15 @@ function Upgrade() {
               }. Choose a plan to keep going.`
             : "Choose a plan to keep going."}
         </p>
+        {checkout === "cancelled" && (
+          <p role="status" className="mt-6 rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-center text-sm text-amber-900">
+            Checkout was canceled. No payment was made. You can choose a plan below whenever you’re ready.
+          </p>
+        )}
         <div className="mt-10 grid gap-6 md:grid-cols-3">
           {plans.map((p) => {
             const isCurrent = status?.planTier === p.id;
+            const wasSelected = checkout === "cancelled" && plan === p.id;
             return (
               <div
                 key={p.id}
@@ -60,6 +73,9 @@ function Upgrade() {
                     : "border-slate-200"
                 }`}
               >
+                {wasSelected && (
+                  <div className="mb-3 text-sm font-semibold text-amber-700">Your previous selection</div>
+                )}
                 {isCurrent && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white shadow-sm">
                     Your plan

@@ -61,6 +61,7 @@ import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
 import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchDeMmpBids } from "./sources/de-mmp";
+import { fetchScScboBids } from "./sources/sc-scbo";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -252,6 +253,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "al_aldot", fetchFn: () => fetchAlAldotBids() },
   // Delaware Bid Solicitation Directory: open state and school solicitations.
   { name: "de_mmp", fetchFn: () => fetchDeMmpBids() },
+  // South Carolina Business Opportunities: state and local public bids.
+  { name: "sc_scbo", fetchFn: () => fetchScScboBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

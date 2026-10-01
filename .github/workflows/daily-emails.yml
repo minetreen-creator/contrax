@@ -5,6 +5,8 @@ name: Daily Emails
 # bid sync now goes out once a day from here:
 #   - the bid digest (paying users, trials, Bid Scout, admins): every open bid
 #     added since the previous digest (src/jobs/send-bid-digest.ts);
+#   - the free Basic plan's weekly bid email: Mondays only, the past week's
+#     new bids (src/jobs/send-weekly-digest.ts; it skips the other days);
 #   - free Radar match alerts: at most one per lead per week
 #     (src/lib/radar-lead-alerts.ts, LEAD_ALERT_INTERVAL_DAYS).
 #
@@ -68,6 +70,10 @@ jobs:
       - name: Send morning bid digest
         if: steps.gate.outputs.send == 'true'
         run: bun run bid-digest
+
+      - name: Send weekly bid email to Basic users (Mondays)
+        if: always() && steps.gate.outputs.send == 'true'
+        run: bun run weekly-digest
 
       - name: Send Radar match alerts (weekly per lead)
         if: always() && steps.gate.outputs.send == 'true'

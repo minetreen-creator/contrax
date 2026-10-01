@@ -1,7 +1,8 @@
 /**
  * CGI Advantage 4 Vendor Self Service (VSS) — the shared reader behind the
- * state portals that run it: Colorado VSS (`co_vss`, co-vss.ts) and Michigan
- * SIGMA VSS (`mi_sigma`, mi-sigma.ts). Each state is a `VssConfig`.
+ * state portals that run it: Colorado VSS (`co_vss`, co-vss.ts), Michigan
+ * SIGMA VSS (`mi_sigma`, mi-sigma.ts) and West Virginia wvOASIS VSS
+ * (`wv_oasis`, wv-oasis.ts). Each state is a `VssConfig`.
  *
  * SOURCE (verified live 2026-10-01 on both portals, no login): the VSS home
  * page (<origin>/PRDVSS1X1/Advantage4) embeds a `session_info` object
@@ -51,6 +52,8 @@ export interface VssConfig {
   source: string;
   /** Portal origin (e.g. "https://prd.co.cgiadvantage.com"). */
   origin: string;
+  /** App path under the origin; defaults to "/PRDVSS1X1/Advantage4" (WV uses "/PRDVSS1X1ERP/Advantage4"). */
+  path?: string;
   /** external_id prefix (e.g. "covss"). */
   idPrefix: string;
   /** The state's name, used as `location` and in the fallback agency. */
@@ -73,8 +76,8 @@ export const VSS_USER_AGENT =
 /** Open (O), Amended (M), Reopened (R). */
 const OPEN_STATUSES = new Set(["O", "M", "R"]);
 
-export function vssUrl(config: Pick<VssConfig, "origin">): string {
-  return `${config.origin}/PRDVSS1X1/Advantage4`;
+export function vssUrl(config: Pick<VssConfig, "origin" | "path">): string {
+  return `${config.origin}${config.path ?? "/PRDVSS1X1/Advantage4"}`;
 }
 
 export interface VssRow {

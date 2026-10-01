@@ -948,6 +948,8 @@ export function displayPlaceOfPerformance(
  *                    of that state.
  *    ga_gpr        → Georgia Procurement Registry; every buyer is a Georgia
  *                    state or local public body.
+ *    wv_oasis      → West Virginia wvOASIS VSS; every buyer is a West Virginia
+ *                    state agency.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -971,6 +973,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   nv_nevadaepro: "NV",
   ar_arbuy: "AR",
   ga_gpr: "GA",
+  wv_oasis: "WV",
 };
 
 export interface InsertLocationColumns {

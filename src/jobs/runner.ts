@@ -57,6 +57,7 @@ import { fetchNyNyscrBids } from "./sources/ny-nyscr";
 import { fetchMiSigmaBids } from "./sources/mi-sigma";
 import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
 import { fetchGaGprBids } from "./sources/ga-gpr";
+import { fetchWvOasisBids } from "./sources/wv-oasis";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -240,6 +241,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   ...PERISCOPE_TAIL_SOURCES,
   // Georgia Procurement Registry: open state and local bidding events.
   { name: "ga_gpr", fetchFn: () => fetchGaGprBids() },
+  // West Virginia wvOASIS Vendor Self Service: open state solicitations.
+  { name: "wv_oasis", fetchFn: () => fetchWvOasisBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

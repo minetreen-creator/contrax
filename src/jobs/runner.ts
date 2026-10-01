@@ -47,6 +47,7 @@ import { fetchPennBidOpen } from "./sources/pennbid";
 import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import { fetchVaEvaBids } from "./sources/va-eva";
+import { fetchTxEsbdBids } from "./sources/tx-esbd";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -208,6 +209,9 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Virginia Port Authority) posts here. The only state/local VA feed —
   // `va_evirginia` above is a federal SAM.gov pass.
   { name: "va_eva", fetchFn: () => fetchVaEvaBids() },
+  // Texas ESBD (Electronic State Business Daily): open solicitations from
+  // Texas state agencies, universities, ISDs, counties and cities.
+  { name: "tx_esbd", fetchFn: () => fetchTxEsbdBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

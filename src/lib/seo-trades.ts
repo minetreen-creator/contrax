@@ -28,7 +28,18 @@ export const SEO_TRADES: readonly SeoTrade[] = [
   { slug: "hvac", label: "HVAC and plumbing", radarTerm: "hvac" },
   { slug: "electrical", label: "Electrical", radarTerm: "electrical" },
   { slug: "it-services", label: "IT services", radarTerm: "IT services" },
+  // Owner 2026-10-01: trucking companies also do waste and trash hauling, but
+  // the trucking trade stays freight-only (waste collection is its own NAICS
+  // 562111 trade in the registry). This gives that existing trade its own
+  // pages, cross-linked from trucking via RELATED_SEO_TRADES.
+  { slug: "waste-hauling", label: "Waste and trash hauling", radarTerm: "waste hauling" },
 ];
+
+/** Trades whose pages link to each other ("Also see …"). */
+export const RELATED_SEO_TRADES: Readonly<Record<string, string>> = {
+  trucking: "waste-hauling",
+  "waste-hauling": "trucking",
+};
 
 export const SEO_TRADE_BY_SLUG: Readonly<Record<string, SeoTrade>> = Object.fromEntries(
   SEO_TRADES.map((t) => [t.slug, t]),

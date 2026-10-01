@@ -34,7 +34,7 @@ import {
 import { trackEvent } from "~/lib/track";
 import { expandTrade, tradeKeywordPred } from "~/lib/trade-registry";
 import { resolveBidState } from "~/lib/location-state";
-import { SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
+import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { SiteHeader } from "~/components/SiteHeader";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -896,6 +896,20 @@ export function AllRegionLinks() {
 }
 
 /** /contracts-in/{state}/{trade} body — the real open bids, or an honest empty state. */
+/** "Also see: Waste and trash hauling contracts in Texas →" for related trades. */
+function RelatedTradeLink({ data }: { data: RegionTradeData }) {
+  const related = data.trade ? SEO_TRADE_BY_SLUG[RELATED_SEO_TRADES[data.trade.slug] ?? ""] : undefined;
+  if (!related || !data.name) return null;
+  return (
+    <p className="mt-4 text-sm text-slate-600">
+      Also see:{" "}
+      <a href={`/contracts-in/${data.stateSlug}/${related.slug}`} className="font-semibold text-blue-700 hover:text-blue-800">
+        {related.label} contracts in {data.name} →
+      </a>
+    </p>
+  );
+}
+
 export function RegionTradeView({ data, radarHref }: { data: RegionTradeData; radarHref: string }) {
   const name = data.name ?? "this state";
   const label = data.trade?.label ?? "Matching";
@@ -911,6 +925,7 @@ export function RegionTradeView({ data, radarHref }: { data: RegionTradeData; ra
         <a href={radarHref} className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">
           Search {label.toLowerCase()} contracts in Radar
         </a>
+        <RelatedTradeLink data={data} />
       </section>
     );
   }
@@ -922,6 +937,7 @@ export function RegionTradeView({ data, radarHref }: { data: RegionTradeData; ra
       <p className="mt-1 text-sm text-slate-500">
         Soonest deadline first{data.count > data.bids.length ? ` · showing ${data.bids.length}` : ""}. Each links to its official notice.
       </p>
+      <RelatedTradeLink data={data} />
       <ul className="mt-5 grid gap-4 sm:grid-cols-2">
         {data.bids.map((b) => (
           <BidCard key={b.id} b={b} />

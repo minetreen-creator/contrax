@@ -946,6 +946,8 @@ export function displayPlaceOfPerformance(
  *    ma_commbuys / nj_njstart / il_bidbuy / or_oregonbuys / nv_nevadaepro /
  *    ar_arbuy      → Periscope state marketplaces; every buyer is a public body
  *                    of that state.
+ *    ga_gpr        → Georgia Procurement Registry; every buyer is a Georgia
+ *                    state or local public body.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -968,6 +970,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   or_oregonbuys: "OR",
   nv_nevadaepro: "NV",
   ar_arbuy: "AR",
+  ga_gpr: "GA",
 };
 
 export interface InsertLocationColumns {

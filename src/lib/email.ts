@@ -5,6 +5,7 @@
  * and bid-digest emails after each sync run.
  */
 
+import { digestBidsToList } from "./digest-recipients";
 import { Resend } from "resend";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -151,7 +152,7 @@ export async function sendBidDigest(
       to: ["hello@contrax.company"],
       bcc: recipients,
       subject: `🆕 ${newBids.length} new government bids found — Contrax`,
-      html: bidDigestHtml(newBids),
+      html: bidDigestHtml(digestBidsToList(newBids), newBids.length),
     });
 
     console.log(
@@ -596,7 +597,8 @@ function passwordResetEmailHtml(token: string): string {
 
 // ── Bid Digest HTML Template ───────────────────────────────────────────────────
 
-function bidDigestHtml(bids: NewBidSummary[]): string {
+function bidDigestHtml(bids: NewBidSummary[], totalNew: number = bids.length): string {
+  const moreCount = Math.max(0, totalNew - bids.length);
   const now = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -647,7 +649,7 @@ function bidDigestHtml(bids: NewBidSummary[]): string {
       <tr>
         <td style="background:linear-gradient(135deg,#2563eb,#1d4ed8);padding:32px 32px 24px;text-align:center;">
           <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">
-            🆕 ${bids.length} New Bid${bids.length === 1 ? "" : "s"} Found
+            🆕 ${totalNew} New Bid${totalNew === 1 ? "" : "s"} Found
           </h1>
           <p style="margin:8px 0 0;color:rgba(255,255,255,0.85);font-size:14px;">
             ${now}
@@ -658,7 +660,7 @@ function bidDigestHtml(bids: NewBidSummary[]): string {
       <tr>
         <td style="padding:24px 32px 8px;">
           <p style="margin:0;color:#374151;font-size:15px;line-height:1.6;">
-            Contrax discovered <strong>${bids.length} new government contract${bids.length === 1 ? "" : "s"}</strong> in your latest sync. Here's what's new:
+            Contrax discovered <strong>${totalNew} new government contract${totalNew === 1 ? "" : "s"}</strong> in your latest sync. ${moreCount > 0 ? `Here are the ${bids.length} closing soonest:` : "Here's what's new:"}
           </p>
         </td>
       </tr>
@@ -668,6 +670,7 @@ function bidDigestHtml(bids: NewBidSummary[]): string {
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             ${bidRows}
           </table>
+          ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.</p>` : ""}
         </td>
       </tr>
       <!-- CTA -->

@@ -28,9 +28,9 @@ const plans = [
     name: "Basic",
     price: "0",
     period: "/month",
-    description: "Free forever. For small businesses scouting their first set-aside opportunities.",
+    description: "Free forever. Search every open bid yourself, whenever you like.",
     features: [
-      "Basic Solicitations Search",
+      "Search every open solicitation",
       "Up to 3 Saved Bids",
       "Standard Set-Aside Filters",
     ],
@@ -43,10 +43,10 @@ const plans = [
     name: "Starter",
     price: "19",
     period: "/month",
-    description: "For businesses ready to build and track a real government-contracting pipeline.",
+    description: "Hear about new bids the day they post, instead of finding them when the deadline is close.",
     features: [
+      "Email alerts when new bids post",
       "Unlimited Saved Bids",
-      "Daily NAICS Email Alerts",
     ],
     cta: "Get Started",
     slug: "starter",
@@ -68,38 +68,18 @@ const plans = [
   },
 ];
 
-// Agency ($199/mo) is NOT part of the primary 3-tier matrix — kept separately
-// (Proposal Evaluator Red Team + team roles). Listed below the main grid.
-const agencyPlan = {
-  name: "Agency",
-  price: "199",
-  period: "/month",
-  description: "For firms managing multiple clients or large contract portfolios.",
-  features: [
-    "Everything in Professional",
-    "200 AI Executive Briefs monthly",
-    "Proposal Evaluator Red Team",
-    "Team roles & permissions",
-    "Integration connectors",
-    "Win/loss bid tracking",
-    "Team collaboration tools",
-  ],
-  cta: "Get Started",
-  slug: "agency",
-};
+// Agency ($199/mo) is NOT on the main grid: the page leads with three plans and
+// the done-for-you services, and Agency is a one-line link below them.
 
 // "Which is right for me?" — one row per common need, pointing at the single
-// product that fits. Prices mirror the cards below, /bid-scout,
-// /bid-fit-review, /grants and ContractorOperationsAccess.
+// product that fits. Prices mirror the cards below, /bid-scout and
+// /bid-fit-review. Agency, Grants and Payments are linked once at the bottom.
 const PLAN_GUIDE = [
   { need: "I'm just starting to look at set-asides", pick: "Basic", price: "Free", href: "/signup?plan=basic" },
-  { need: "I want daily email alerts for my NAICS codes", pick: "Starter", price: "$19/month", href: "/signup?plan=starter" },
+  { need: "I want an email when new bids post", pick: "Starter", price: "$19/month", href: "/signup?plan=starter" },
   { need: "I want AI briefs, incumbent pricing and match scores", pick: "Professional", price: "$79/month", href: "/signup?plan=professional" },
   { need: "I want someone to find the bids for me", pick: "Bid Scout", price: "$99/month", href: "/bid-scout?source=pricing_guide" },
   { need: "I'm deciding on one specific bid", pick: "Bid Fit Review", price: "$99 once", href: "/bid-fit-review" },
-  { need: "I manage a team or several clients", pick: "Agency", price: "$199/month", href: "/signup?plan=agency" },
-  { need: "I'm looking for grants, not contracts", pick: "Contrax Grants", price: "Free for verified nonprofits", href: "/grants" },
-  { need: "I need to track invoices and labor hours", pick: "Contrax Payments", price: "$9/month", href: "/contract-payments" },
 ];
 
 function WhichPlan() {
@@ -205,42 +185,6 @@ function PricingPage() {
             ))}
           </div>
 
-          {/* Agency — kept separate from the primary 3-tier matrix */}
-          <div className="mt-10">
-            <div className="relative flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm transition-all hover:shadow-lg sm:flex-row sm:items-center sm:justify-between sm:gap-8">
-              <div className="flex-1">
-                <div className="flex items-center gap-3">
-                  <h3 className="text-xl font-bold text-slate-900">{agencyPlan.name}</h3>
-                </div>
-                <p className="mt-1 text-sm text-gray-500">{agencyPlan.description}</p>
-                <ul className="mt-4 flex flex-wrap gap-x-6 gap-y-1.5 text-sm text-gray-600">
-                  {agencyPlan.features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-1.5">
-                      <svg className="h-4 w-4 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="mt-6 sm:mt-0 sm:text-right">
-                <p className="text-3xl font-extrabold text-slate-900">
-                  ${agencyPlan.price}<span className="text-base font-normal text-gray-500">{agencyPlan.period}</span>
-                </p>
-                <a
-                  href={`/signup?plan=${agencyPlan.slug}`}
-                  className="mt-3 inline-block w-full rounded-xl border-2 border-slate-900 px-6 py-3 text-center text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98] sm:w-auto"
-                >
-                  {agencyPlan.cta}
-                </a>
-              </div>
-            </div>
-            <p className="mt-3 text-center text-xs text-gray-500">
-              Agency includes the Proposal Evaluator "Red Team" and team roles — available separately from the core tiers.
-            </p>
-          </div>
-
           {/* Done-for-you services (priced separately from the software plans; same
               prices as /bid-scout and /bid-fit-review, features per lib/plan-gates). */}
           <div className="mt-10 grid gap-6 md:grid-cols-2">
@@ -284,6 +228,12 @@ function PricingPage() {
 
           {/* Footer notes */}
           <p className="mt-8 text-center text-sm text-gray-500">Plans are billed monthly. Cancel anytime.</p>
+          <p className="mt-3 text-center text-sm text-gray-500">
+            Also available:{" "}
+            <a href="/signup?plan=agency" className="font-medium text-amber-600 hover:text-amber-500">Agency</a> ($199/month, for teams and consultants) ·{" "}
+            <a href="/grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits) ·{" "}
+            <a href="/contract-payments" className="font-medium text-amber-600 hover:text-amber-500">Contrax Payments</a> ($9/month)
+          </p>
           <p className="mt-3 text-center">
             <a href="/signup?plan=professional" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
               Or start your 14-day Professional trial &rarr;
@@ -305,7 +255,7 @@ function PricingPage() {
           <div className="mt-10 space-y-6">
             {[
               { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
-              { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes basic solicitations search, standard set-aside filters, and up to 3 saved bids. Upgrade to Starter ($19/mo) for unlimited saved bids and daily NAICS email alerts. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
+              { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes basic solicitations search, standard set-aside filters, and up to 3 saved bids. Upgrade to Starter ($19/mo) for email alerts when new bids post and unlimited saved bids. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
               { q: "Is there a free trial?", a: "Start your 14-day Professional trial when you upgrade. Cancel anytime during your trial. Basic itself is free forever — no trial and no card." },
               { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
               { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },

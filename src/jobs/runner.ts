@@ -51,6 +51,7 @@ import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
 import { sendBidDigest, type NewBidSummary } from "../lib/email";
+import { digestRecipients, type DigestUserRow } from "../lib/digest-recipients";
 import { createNotification } from "../lib/notifications";
 import { generateBidAlerts } from "../lib/bid-alerts";
 import { inferNaics } from "../lib/naics-infer";
@@ -1282,15 +1283,27 @@ export async function runSync(): Promise<SyncResult> {
   }
 
   // ── Send bid digest email ────────────────────────────────────────────────
+  // Email alerts are a PAID feature (Starter and up), so the digest goes only to
+  // paying users, running trials, Bid Scout subscribers and admins
+  // (src/lib/digest-recipients.ts). Free Basic users still see every bid on the
+  // site. If the entitlement read fails, nobody is mailed (fail closed).
   if (opportunityNewBids.length > 0) {
     try {
-      const userRows = await sql`SELECT email FROM users` as { email: string }[];
-      if (userRows.length > 0) {
-        const userEmails = userRows.map((r) => r.email);
-        console.log(`\n📧 Sending bid digest to ${userEmails.length} user(s)...`);
+      const userRows = await sql`
+        SELECT u.email, u.is_admin, u.plan_tier, u.trial_started_at, u.subscription_status,
+               u.access_expires_at, u.full_access,
+               EXISTS (
+                 SELECT 1 FROM bid_scout_subscriptions s
+                 WHERE s.user_id = u.id AND s.status = 'active'
+               ) AS has_bid_scout
+        FROM users u
+      ` as DigestUserRow[];
+      const userEmails = digestRecipients(userRows);
+      if (userEmails.length > 0) {
+        console.log(`\n📧 Sending bid digest to ${userEmails.length} paying/trial user(s) (of ${userRows.length} accounts)...`);
         await sendBidDigest(userEmails, opportunityNewBids);
       } else {
-        console.log("\n📧 No users found in DB — skipping bid digest");
+        console.log(`\n📧 No paying or trial users among ${userRows.length} accounts — skipping bid digest`);
       }
     } catch (err) {
       console.error(

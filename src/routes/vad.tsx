@@ -51,7 +51,7 @@ const vadPlans: {
     description: "For businesses ready to build and track a real government-contracting pipeline.",
     features: [
       "Unlimited Saved Bids",
-      "Daily NAICS Email Alerts",
+      "Email Alerts When New Bids Post",
     ],
     cta: "Get Started",
     tier: "starter",

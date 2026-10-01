@@ -5,7 +5,8 @@ import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { persistPendingDraft } from "~/lib/pending-draft";
 import { readRememberedNext, clearRememberedNext } from "~/lib/remember-next";
-import { locationMatchesStates, keywordPred, setAsidePred } from "~/lib/open-bids";
+import { keywordPred, setAsidePred } from "~/lib/open-bids";
+import { bidInStates, profileTradePred } from "~/lib/profile-match";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { NaicsTypeahead, searchNaics } from "~/components/NaicsTypeahead";
 import {
@@ -139,13 +140,10 @@ const countMatchOpportunities = createServerFn({ method: "GET" })
     const certPred = setAsidePred(certification, sql);
     let kwPred;
     if (codes.length > 0) {
-      const codeAny = sql()`naics_code = ANY(${codes})`;
-      if (q && !/^\d{6}$/.test(q)) {
-        // Selected codes OR a complementary keyword-phrase match.
-        kwPred = sql()`AND (${codeAny} ${sql().unsafe("OR")} LOWER(COALESCE(naics_code,'')) LIKE ${"%" + q + "%"})`;
-      } else {
-        kwPred = sql()`AND ${codeAny}`;
-      }
+      // Selected codes, plus — for bids that carry no NAICS code (every state
+      // portal) — the trade words of those codes and of any typed phrase.
+      // Same rule as the dashboard feed (src/lib/profile-match.ts).
+      kwPred = profileTradePred({ naics_codes: codes, industry: q && !/^\d{6}$/.test(q) ? q : "" }, sql);
     } else {
       kwPred = keywordPred(query, sql);
     }
@@ -166,7 +164,7 @@ const countMatchOpportunities = createServerFn({ method: "GET" })
       // "Select all states" / no states → no-op (nationwide): EVERY location
       // matches, so national/unspecified-location bids are NOT under-counted.
       // Specific states → targeted 2-letter state filter, unchanged.
-      if (!locationMatchesStates(r.location, states)) continue;
+      if (!bidInStates(r.location, r.agency, states)) continue;
       // Contract-range filter. Unspecified value → cannot be ruled out → counts
       // as matching (documented, honest; disclosed in the UI note).
       const v = parseEstimatedValue(r.estimated_value);

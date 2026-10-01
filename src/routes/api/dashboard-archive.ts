@@ -3,7 +3,8 @@ import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { countRoleMatches } from "~/lib/healthcare";
 import { ARCHIVED_STATUSES, DEAD_SQL } from "~/lib/bid-status";
-import { locationMatchesStates, naicsPred, setAsidePredMulti } from "~/lib/open-bids";
+import { setAsidePredMulti } from "~/lib/open-bids";
+import { bidInStates, profileTradePred } from "~/lib/profile-match";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 // S2 NOTICE IDENTITY (owner-approved 2026-09-23): canonical read-side notice key
 // (`sol + notice_type`, else `title + agency + notice_type`) — same key as Radar.
@@ -32,14 +33,18 @@ async function handler({ request }: { request: Request }) {
     let certifications: string[] = [];
     let naicsCodes: string[] = [];
     let locations: string[] = [];
+    let industry = "";
+    let serviceCategories: string[] = [];
     try {
-      const pr = await sql()`SELECT specialties, certifications, naics_codes, locations FROM business_profiles WHERE user_id = ${user.id}`;
+      const pr = await sql()`SELECT specialties, certifications, naics_codes, locations, industry, service_categories FROM business_profiles WHERE user_id = ${user.id}`;
       if (pr.length > 0) {
         const p = pr[0] as any;
         specialties = Array.isArray(p.specialties) ? p.specialties : [];
         certifications = Array.isArray(p.certifications) ? p.certifications : [];
         naicsCodes = Array.isArray(p.naics_codes) ? p.naics_codes : [];
         locations = Array.isArray(p.locations) ? p.locations : [];
+        industry = p.industry ? String(p.industry) : "";
+        serviceCategories = Array.isArray(p.service_categories) ? p.service_categories : [];
       }
     } catch {}
 
@@ -49,7 +54,7 @@ async function handler({ request }: { request: Request }) {
     // location), deduped on (title, agency). LEFT JOIN saved_matches so each
     // row carries the status that put it here.
     const setAsideFrag = setAsidePredMulti(certifications, sql);
-    const naicsFrag = naicsPred(naicsCodes, sql);
+    const naicsFrag = profileTradePred({ naics_codes: naicsCodes, industry, service_categories: serviceCategories }, sql);
     const rows = await sql()`SELECT * FROM (
       SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("b"))})
         b.id, b.title, b.agency, b.description, b.location, b.category, b.set_aside,
@@ -65,7 +70,7 @@ async function handler({ request }: { request: Request }) {
     ORDER BY due_date DESC NULLS LAST`;
 
     const bids: ArchiveBid[] = (rows as any[])
-      .filter((b) => locationMatchesStates(b.location, locations))
+      .filter((b) => bidInStates(b.location, b.agency, locations))
       .map((b) => ({
         id: b.id, title: b.title, agency: b.agency, description: b.description,
         location: b.location, category: b.category, set_aside: b.set_aside ?? null,

@@ -10,7 +10,8 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 // notice Radar splits (or vice versa). See src/lib/notice-dedupe.ts.
 import { noticeKeySql } from "~/lib/notice-dedupe";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
-import { locationMatchesStates, naicsPred, setAsidePredMulti } from "~/lib/open-bids";
+import { setAsidePredMulti } from "~/lib/open-bids";
+import { bidInStates, profileTradePred } from "~/lib/profile-match";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
@@ -173,7 +174,9 @@ async function handler({ request }: { request: Request }) {
   // EXISTS` lazy-migration guards are removed (migration-only concern now).
   const locations = (profile?.locations ?? []).map((s) => String(s));
   const setAsideFrag = setAsidePredMulti(profile?.certifications ?? [], sql);
-  const naicsFrag = naicsPred(profile?.naics_codes ?? [], sql);
+  // Trade: profile NAICS codes, plus trade-word matches for bids that carry
+  // no NAICS code (every state portal) — src/lib/profile-match.ts.
+  const naicsFrag = profileTradePred(profile, sql);
 
   const bidRows = await sql()`
     SELECT * FROM (
@@ -198,7 +201,7 @@ async function handler({ request }: { request: Request }) {
   // Geography filter applied POST-dedup (same `locationMatchesStates` the
   // onboarding count uses — nationwide = no-op, specific states = targeted).
   const bids: Bid[] = (bidRows as any[])
-    .filter((b) => locationMatchesStates(b.location, locations))
+    .filter((b) => bidInStates(b.location, b.agency, locations))
     .map((b) => applyHeadStart({
       id: b.id, title: b.title, agency: b.agency, description: b.description,
       location: b.location, category: b.category, set_aside: b.set_aside ?? null,
@@ -302,7 +305,7 @@ async function handler({ request }: { request: Request }) {
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         ${setAsideFrag} ${naicsFrag}
       ORDER BY ${sql().unsafe(noticeKeySql("bids"))}`;
-    archivedCount = (archRows as any[]).filter((r) => locationMatchesStates(r.location, locations)).length;
+    archivedCount = (archRows as any[]).filter((r) => bidInStates(r.location, r.agency, locations)).length;
   } catch {}
   let lossesCount = 0;
   try { const lossRows = await sql()`SELECT COUNT(*) as count FROM bid_losses WHERE user_email = ${user.email}`; lossesCount = Number(lossRows[0]?.count || 0); } catch {}

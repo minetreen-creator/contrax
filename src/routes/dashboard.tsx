@@ -3,7 +3,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
-import { locationMatchesStates, shouldApplyStateFilter } from "~/lib/open-bids";
+import { shouldApplyStateFilter } from "~/lib/open-bids";
+import { bidInStates } from "~/lib/profile-match";
 import type { PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
 import { isHealthcareBid } from "~/lib/healthcare";
@@ -672,7 +673,7 @@ function evalGeographyDimension(bid: Bid, profile: BusinessProfile | null): Elig
   if (!shouldApplyStateFilter(locs)) {
     return { status: "MATCH", label: "Geography", reason: "Nationwide — you target all states, so location is no restriction." };
   }
-  const viaStates = locationMatchesStates(bid.location, locs);
+  const viaStates = bidInStates(bid.location, bid.agency, locs);
   const viaName = locs.some((l) => bid.location?.toLowerCase().includes(String(l).toLowerCase()));
   if (viaStates || viaName) {
     return { status: "MATCH", label: "Geography", reason: `Solicitation location (${bid.location}) is in your target states.` };

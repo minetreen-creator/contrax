@@ -12,8 +12,9 @@
  *     resolver, so "Hamilton County, Ohio" and "Ohio" both count, not only
  *     "City, OH") is one of the profile's states. No states, or all 50, means
  *     no state filter.
- *   - TRADE: a bid fits when its NAICS code is one of the profile's codes, OR
- *     its title/description/category hits the trade expansion (trade-registry
+ *   - TRADE: a bid with a NAICS code fits when it is one of the profile's
+ *     codes (when the profile has codes); otherwise its title/description/
+ *     category must hit the trade expansion (trade-registry
  *     `expandTrade`, the same synonyms Radar uses) of the profile's typed trade
  *     words or of the curated trade entries those NAICS codes belong to. No
  *     trade information means no trade filter.
@@ -22,8 +23,9 @@
  *
  * PURE (no DB, no server imports); unit-tested in digest-match.test.ts.
  */
-import { resolveBidState, STATE_NAME_TO_CODE } from "./location-state";
-import { expandTrade, TRADE_ALIASES, tradeTextIncludes, type TradeExpansion } from "./trade-registry";
+import { bidInStates, profileNaicsCodes, profileStateCodes, profileTradeExpansions } from "./profile-match";
+import { shouldApplyStateFilter } from "./open-bids";
+import { tradeTextIncludes, type TradeExpansion } from "./trade-registry";
 
 export interface DigestProfile {
   locations?: readonly string[] | null;
@@ -52,31 +54,12 @@ export interface DigestMatcher {
   matches(bid: DigestBidFields): boolean;
 }
 
-const ALL_STATES = 50;
-
-function stateCode(raw: string): string | null {
-  const t = String(raw ?? "").trim();
-  if (/^[A-Za-z]{2}$/.test(t)) return t.toUpperCase();
-  return STATE_NAME_TO_CODE[t.toLowerCase()] ?? null;
-}
 
 export function buildDigestMatcher(profile: DigestProfile | null | undefined): DigestMatcher {
-  const states = [...new Set((profile?.locations ?? []).map(stateCode).filter((c): c is string => !!c))];
-  const stateFilter = states.length > 0 && states.length < ALL_STATES ? new Set(states) : null;
-
-  const naicsCodes = [...new Set((profile?.naics_codes ?? []).map((c) => String(c).trim()).filter((c) => /^\d{6}$/.test(c)))];
-  const words = [profile?.industry ?? "", ...(profile?.service_categories ?? [])]
-    .map((w) => String(w ?? "").trim())
-    .filter((w) => w.length >= 3 && !/^\d{6}$/.test(w));
-  // Trade words from the curated entries the profile's NAICS codes belong to
-  // (e.g. 561720 → "janitorial"), so state bids — which carry no NAICS code —
-  // still match a NAICS-only profile by their text.
-  for (const entry of Object.values(TRADE_ALIASES)) {
-    if (entry.naics.some((code) => naicsCodes.includes(code)) && entry.synonyms[0]) words.push(entry.synonyms[0]);
-  }
-  const expansions = [...new Set(words.map((w) => w.toLowerCase()))]
-    .map((w) => expandTrade(w))
-    .filter((e) => !e.isNaics && e.terms.length > 0);
+  const states = profileStateCodes(profile?.locations);
+  const stateFilter = shouldApplyStateFilter(states);
+  const naicsCodes = profileNaicsCodes(profile);
+  const expansions = profileTradeExpansions(profile);
   const tradeFilter = naicsCodes.length > 0 || expansions.length > 0;
 
   const tradeLabel = expansions[0]?.original ?? (naicsCodes.length ? `NAICS ${naicsCodes.slice(0, 2).join(", ")}` : "");
@@ -85,22 +68,20 @@ export function buildDigestMatcher(profile: DigestProfile | null | undefined): D
     .join(" ");
 
   return {
-    personal: !!stateFilter || tradeFilter,
+    personal: stateFilter || tradeFilter,
     states,
     naicsCodes,
     expansions,
     label,
     matches(bid) {
-      if (stateFilter) {
-        const code = resolveBidState(bid.location ?? null, bid.agency ?? null);
-        if (!code || !stateFilter.has(code)) return false;
-      }
-      if (tradeFilter) {
-        if (bid.naics_code && naicsCodes.includes(String(bid.naics_code))) return true;
-        const text = `${bid.title ?? ""} ${bid.description ?? ""} ${bid.category ?? ""}`;
-        return expansions.some((e) => tradeTextIncludes(text, e));
-      }
-      return true;
+      if (stateFilter && !bidInStates(bid.location, bid.agency, states)) return false;
+      if (!tradeFilter) return true;
+      const code = String(bid.naics_code ?? "").trim();
+      // A bid with a NAICS code is held to the profile's codes when it has
+      // some (same rule as the dashboard feed, profile-match.ts).
+      if (code && naicsCodes.length > 0) return naicsCodes.includes(code);
+      const text = `${bid.title ?? ""} ${bid.description ?? ""} ${bid.category ?? ""}`;
+      return expansions.some((e) => tradeTextIncludes(text, e));
     },
   };
 }

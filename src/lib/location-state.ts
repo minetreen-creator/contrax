@@ -929,6 +929,8 @@ export function displayPlaceOfPerformance(
  *    va_eva        → eVA, Virginia's own procurement portal; every buyer on it
  *                    is a Virginia public body.
  *    tx_esbd       → Texas ESBD; every buyer on it is a Texas public body.
+ *    fl_mfmp       → Florida MFMP Vendor Bid System; every buyer is a Florida
+ *                    state entity.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -938,6 +940,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   oh_dayton: "OH",
   va_eva: "VA",
   tx_esbd: "TX",
+  fl_mfmp: "FL",
 };
 
 export interface InsertLocationColumns {

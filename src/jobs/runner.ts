@@ -48,6 +48,7 @@ import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import { fetchVaEvaBids } from "./sources/va-eva";
 import { fetchTxEsbdBids } from "./sources/tx-esbd";
+import { fetchFlMfmpBids } from "./sources/fl-mfmp";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -212,6 +213,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Texas ESBD (Electronic State Business Daily): open solicitations from
   // Texas state agencies, universities, ISDs, counties and cities.
   { name: "tx_esbd", fetchFn: () => fetchTxEsbdBids() },
+  // Florida MyFloridaMarketPlace Vendor Bid System: open state-agency bids.
+  { name: "fl_mfmp", fetchFn: () => fetchFlMfmpBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

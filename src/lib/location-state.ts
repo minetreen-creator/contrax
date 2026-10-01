@@ -956,6 +956,8 @@ export function displayPlaceOfPerformance(
  *                    is ALDOT itself.
  *    de_mmp        → Delaware Bid Solicitation Directory; every buyer is a
  *                    Delaware state agency, school district or college.
+ *    sc_scbo       → South Carolina Business Opportunities; every advertiser
+ *                    is a South Carolina state or local public body.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -983,6 +985,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ky_vss: "KY",
   al_aldot: "AL",
   de_mmp: "DE",
+  sc_scbo: "SC",
 };
 
 export interface InsertLocationColumns {

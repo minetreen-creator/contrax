@@ -954,6 +954,8 @@ export function displayPlaceOfPerformance(
  *                    Commonwealth agency.
  *    al_aldot      → Alabama Department of Transportation lettings; the buyer
  *                    is ALDOT itself.
+ *    de_mmp        → Delaware Bid Solicitation Directory; every buyer is a
+ *                    Delaware state agency, school district or college.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -980,6 +982,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   wv_oasis: "WV",
   ky_vss: "KY",
   al_aldot: "AL",
+  de_mmp: "DE",
 };
 
 export interface InsertLocationColumns {

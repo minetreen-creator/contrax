@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("101 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS and Alabama DOT lettings classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(101);
+  test("102 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings and Delaware directory classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(102);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -90,8 +90,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // lettings), ny_nyscr (NYS Contract Reporter) and mi_sigma (Michigan SIGMA)
     // were added as tail sources, then the six Periscope marketplaces (MA, NJ,
     // IL, OR, NV, AR), ga_gpr (Georgia Procurement Registry), wv_oasis
-    // (West Virginia wvOASIS), ky_vss (Kentucky VSS) and al_aldot (Alabama DOT lettings).
-    expect(TAIL_SOURCES.length).toBe(25);
+    // (West Virginia wvOASIS), ky_vss (Kentucky VSS), al_aldot (Alabama DOT lettings)
+    // and de_mmp (Delaware Bid Solicitation Directory).
+    expect(TAIL_SOURCES.length).toBe(26);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {
@@ -272,7 +273,7 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
 });
 
  test("NC and Maryland public imports retain state provenance and separate awards", () => {
- for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"],["wv_oasis","WV"],["ky_vss","KY"],["al_aldot","AL"]]) {
+ for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"],["wv_oasis","WV"],["ky_vss","KY"],["al_aldot","AL"],["de_mmp","DE"]]) {
  expect(resolveSourceClass(source)).toBe("state");
  expect(SOURCE_CLASSES[source]!.scopeState).toBe(state);
  }

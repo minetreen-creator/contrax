@@ -952,6 +952,8 @@ export function displayPlaceOfPerformance(
  *                    state agency.
  *    ky_vss        → Kentucky eProcurement VSS; every buyer is a Kentucky
  *                    Commonwealth agency.
+ *    al_aldot      → Alabama Department of Transportation lettings; the buyer
+ *                    is ALDOT itself.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -977,6 +979,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ga_gpr: "GA",
   wv_oasis: "WV",
   ky_vss: "KY",
+  al_aldot: "AL",
 };
 
 export interface InsertLocationColumns {

@@ -28,6 +28,8 @@ describe("fl_mfmp — parse (captured fixtures)", () => {
       expect(r.external_id).toMatch(/^mfmp-\d+$/);
       expect(r.source_url).toMatch(/^https:\/\/vendor\.myfloridamarketplace\.com\/search\/bids\/detail\/\d+$/);
       expect(r.naics_code).toBeNull();
+      // the buyer is never repeated in the description (trade matching reads it)
+      expect(r.description).not.toContain(r.agency);
       const cols = deriveInsertLocationColumns({ location: r.location, agency: r.agency, title: r.title, description: r.description, sourceName: "fl_mfmp" });
       expect(cols.source_jurisdiction).toBe("FL");
       expect(cols.normalized_state).toBe("FL");

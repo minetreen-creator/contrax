@@ -931,6 +931,8 @@ export function displayPlaceOfPerformance(
  *    tx_esbd       → Texas ESBD; every buyer on it is a Texas public body.
  *    fl_mfmp       → Florida MFMP Vendor Bid System; every buyer is a Florida
  *                    state entity.
+ *    ca_eprocure   → California Cal eProcure; every buyer is a California state
+ *                    department.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -941,6 +943,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   va_eva: "VA",
   tx_esbd: "TX",
   fl_mfmp: "FL",
+  ca_eprocure: "CA",
 };
 
 export interface InsertLocationColumns {

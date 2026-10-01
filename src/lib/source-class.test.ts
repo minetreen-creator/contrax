@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("85 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD and Florida MFMP portal classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(85);
+  test("86 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP and California eProcure portal classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(86);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -84,9 +84,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // the 73 collectors: the tail registry (7) already includes the retired
     // nys_socrata label, which PR-1 removed from TAIL_SOURCES, so the live
     // registry is 72 collectors = 73 labels minus the retired one. va_eva
-    // (Virginia's eVA portal), tx_esbd (Texas ESBD) and fl_mfmp (Florida MFMP)
-    // were added as tail sources.
-    expect(TAIL_SOURCES.length).toBe(9);
+    // (Virginia's eVA portal), tx_esbd (Texas ESBD), fl_mfmp (Florida MFMP) and
+    // ca_eprocure (California Cal eProcure) were added as tail sources.
+    expect(TAIL_SOURCES.length).toBe(10);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {
@@ -267,7 +267,7 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
 });
 
  test("NC and Maryland public imports retain state provenance and separate awards", () => {
- for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"]]) {
+ for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"]]) {
  expect(resolveSourceClass(source)).toBe("state");
  expect(SOURCE_CLASSES[source]!.scopeState).toBe(state);
  }

@@ -36,6 +36,8 @@ describe("tx_esbd — parse (captured fixtures)", () => {
       expect(r.agency).not.toMatch(/ - [A-Z]{0,2}\d[A-Z0-9]*$/);
       expect(r.naics_code).toBeNull();
       expect(r.set_aside).toBeNull();
+      // the buyer is never repeated in the description (trade matching reads it)
+      expect(r.description).not.toContain(r.agency);
       const cols = deriveInsertLocationColumns({ location: r.location, agency: r.agency, title: r.title, description: r.description, sourceName: "tx_esbd" });
       expect(cols.source_jurisdiction).toBe("TX");
       expect(cols.normalized_state).toBe("TX");

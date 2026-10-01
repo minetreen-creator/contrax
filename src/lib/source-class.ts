@@ -191,6 +191,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // West Virginia wvOASIS Vendor Self Service (src/jobs/sources/wv-oasis.ts).
   wv_oasis: { class: "state", scopeState: "WV", searchScope: "state-portal", recordType: "opportunity" },
   ky_vss: { class: "state", scopeState: "KY", searchScope: "state-portal", recordType: "opportunity" },
+  al_aldot: { class: "state", scopeState: "AL", searchScope: "state-portal", recordType: "opportunity" },
   md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's

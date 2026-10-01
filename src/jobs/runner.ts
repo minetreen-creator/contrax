@@ -53,6 +53,7 @@ import { fetchCaEprocureBids } from "./sources/ca-eprocure";
 import { fetchPaEmarketplaceBids } from "./sources/pa-emarketplace";
 import { fetchCoVssBids } from "./sources/co-vss";
 import { fetchOhOdotBids } from "./sources/oh-odot";
+import { fetchNyNyscrBids } from "./sources/ny-nyscr";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -227,6 +228,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "co_vss", fetchFn: () => fetchCoVssBids() },
   // Ohio DOT construction lettings (planholders summary; OhioBuys is CAPTCHA-gated).
   { name: "oh_odot", fetchFn: () => fetchOhOdotBids() },
+  // New York State Contract Reporter: open state and local ads.
+  { name: "ny_nyscr", fetchFn: () => fetchNyNyscrBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

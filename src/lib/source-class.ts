@@ -169,6 +169,8 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   fl_mfmp: { class: "state", scopeState: "FL", searchScope: "state-portal", recordType: "opportunity" },
   // California Cal eProcure (src/jobs/sources/ca-eprocure.ts).
   ca_eprocure: { class: "state", scopeState: "CA", searchScope: "state-portal", recordType: "opportunity" },
+  // Pennsylvania eMarketplace, DGS's Commonwealth solicitation board (src/jobs/sources/pa-emarketplace.ts).
+  pa_dgs_emarketplace: { class: "state", scopeState: "PA", searchScope: "state-portal", recordType: "opportunity" },
   md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's

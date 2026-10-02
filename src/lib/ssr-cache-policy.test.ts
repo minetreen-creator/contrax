@@ -169,3 +169,22 @@ describe("ssr-cache-policy: the reason `/` is uncacheable is still true (source 
     expect(launcher).not.toContain('url.pathname === "/"');
   });
 });
+
+describe("FAR/DFARS clause library is edge-cached (owner 2026-10-02)", () => {
+  test("/clauses and clause/part pages are cacheable on GET only", () => {
+    expect(isPublicSsrCacheable("GET", "/clauses")).toBe(true);
+    expect(isPublicSsrCacheable("GET", "/clauses/52.219-14")).toBe(true);
+    expect(isPublicSsrCacheable("GET", "/clauses/15.407-5")).toBe(true);
+    expect(isPublicSsrCacheable("GET", "/clauses/252.204-7012")).toBe(true);
+    expect(isPublicSsrCacheable("POST", "/clauses/52.219-14")).toBe(false);
+    expect(isPublicSsrCacheable("GET", "/clauses/52.219-14/extra")).toBe(false);
+  });
+
+  test("the clause routes read no session at SSR time", () => {
+    for (const f of ["index.tsx", "$clauseNumber.tsx"]) {
+      const src = readFileSync(join(import.meta.dir, "..", "routes", "clauses", f), "utf8");
+      expect(src).not.toContain("getCurrentUser");
+      expect(src).not.toContain("getUserFromRequest");
+    }
+  });
+});

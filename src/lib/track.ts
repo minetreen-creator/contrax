@@ -30,8 +30,23 @@ import { readStoredAttemptToken } from "~/lib/signup-telemetry";
  * (fail-open, byte-identical behavior). A token attached to a non-signup event
  * is IGNORED server-side.
  */
+/**
+ * True in an automated browser (headless Chrome / Playwright / Selenium set
+ * `navigator.webdriver`). Crawlers that run JavaScript otherwise fire a
+ * tracking request per page — each one a Vercel function call — and pollute
+ * the funnel (owner 2026-10-02). Real visitors' browsers report false.
+ */
+export function isAutomatedBrowser(): boolean {
+  try {
+    return typeof navigator !== "undefined" && navigator.webdriver === true;
+  } catch {
+    return false;
+  }
+}
+
 export function trackEvent(event: string, label?: string, path?: string) {
   if (typeof window === "undefined") return;
+  if (isAutomatedBrowser()) return;
   const payload: Record<string, string> = { event, kind: "event" };
   // Persistent per-visitor + per-session identity (first-party, self-hosted).
   // getOrCreateVisitorId() sets the `contrax_vid` cookie on first call so it is

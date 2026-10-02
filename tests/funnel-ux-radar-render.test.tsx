@@ -270,3 +270,14 @@ describe("Radar: a search link scans at once; only trade and state are asked", (
     expect(home).toContain('navigate({ to: "/radar", search: search as never });');
   });
 });
+
+// ── Automated browsers send no tracking calls (owner 2026-10-02) ─────────────
+describe("headless crawlers are not tracked", () => {
+  test("trackEvent and the page-view recorder both bail on navigator.webdriver", () => {
+    const track = readFileSync(join(REPO_SRC, "lib", "track.ts"), "utf8");
+    const root = readFileSync(join(REPO_SRC, "routes", "__root.tsx"), "utf8");
+    expect(track).toContain("navigator.webdriver === true");
+    expect(track).toContain("if (isAutomatedBrowser()) return;");
+    expect(root).toContain("if (isAutomatedBrowser()) return;");
+  });
+});

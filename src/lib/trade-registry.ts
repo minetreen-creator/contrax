@@ -404,6 +404,35 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
    * cleaning). No cleaning-only query and no janitorial match TERM changed: the
    * regression suite pins both this binding and the untouched 561720 payload.
    */
+  /**
+   * OWNER 2026-10-02 — LAUNDRY/LINEN → NAICS 812320 Drycleaning and Laundry
+   * Services, 812331 Linen Supply, 812332 Industrial Launderers (real codes).
+   *
+   * A real Radar visitor searched "Laundry services" nationwide and found 3
+   * matches: with no curated entry the query was verbatim text only and implied
+   * no NAICS code. Government laundry and linen contracts (VA medical centers,
+   * military installations, corrections) are written as "laundry services",
+   * "linen services", "linen supply", "uniform rental", "dry cleaning".
+   *
+   * Precision: no bare "linen" (a DLA supply line "LINEN, BED" is a product
+   * buy, not a service) and no bare "uniform" (uniform PURCHASES are apparel).
+   * Laundry stays out of the Janitorial category (trade-classification.ts
+   * already treats laundry as a different purchased service).
+   */
+  "laundry-linen": {
+    label: "Laundry/Linen",
+    synonyms: [
+      "laundry",
+      "laundry services",
+      "linen services",
+      "linen service",
+      "linen supply",
+      "industrial laundry",
+      "uniform rental",
+      "dry cleaning",
+    ],
+    naics: ["812320", "812331", "812332"],
+  },
   "facilities-support-services": {
     label: "Facilities Support/Operations",
     synonyms: [

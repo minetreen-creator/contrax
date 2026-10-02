@@ -203,6 +203,12 @@ export const NAICS_NAMES: Record<string, string> = {
   // Repair & maintenance
   "811210": "Electronic and Precision Equipment Repair and Maintenance",
   "811310": "Commercial and Industrial Machinery and Equipment Repair and Maintenance",
+  // Laundry & linen (owner 2026-10-02): real codes backing the Laundry/Linen
+  // trade. A "Laundry services" Radar scan returned 3 nationwide matches
+  // because no laundry code existed for the trade to imply.
+  "812320": "Drycleaning and Laundry Services (except Coin-Operated)",
+  "812331": "Linen Supply",
+  "812332": "Industrial Launderers",
   // Public administration / national security
   "921110": "Executive Offices",
   "922160": "Fire Protection",

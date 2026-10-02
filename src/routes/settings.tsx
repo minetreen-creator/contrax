@@ -124,6 +124,119 @@ function SuccessToast({ message, onClose }: { message: string; onClose: () => vo
  * the same order (a loader-result flip used to change the hook count between
  * renders of the same fiber → React #300/#301).
  */
+/**
+ * Saved-bid calendar feed (src/lib/calendar-feed.ts): a private .ics link of
+ * the member's saved bids' deadlines. Starter and up; the API answers 402 for
+ * a free account, and the upgrade line is shown only after they ask for the
+ * link (attempt-only, never on page view).
+ */
+function CalendarFeedSection() {
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [message, setMessage] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  async function request(reset: boolean) {
+    setBusy(true);
+    setMessage("");
+    setCopied(false);
+    try {
+      const res = await fetch("/api/calendar-feed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(reset ? { reset: true } : {}),
+      });
+      const body = (await res.json().catch(() => ({}))) as { url?: string; error?: string; message?: string };
+      if (res.status === 402) {
+        setLocked(true);
+        return;
+      }
+      if (!res.ok || !body.url) {
+        setMessage(body.error ?? "Could not get your calendar link. Please try again.");
+        return;
+      }
+      setUrl(body.url);
+      if (reset) setMessage("New link created. The old link no longer works.");
+    } catch {
+      setMessage("Could not get your calendar link. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-1">Calendar</h2>
+          <p className="text-sm text-slate-500">
+            Your saved bids' deadlines in Google Calendar, Outlook or Apple Calendar, with reminders 2 days and 1 day before.
+          </p>
+        </div>
+        {!url && !locked && (
+          <button
+            type="button"
+            onClick={() => request(false)}
+            disabled={busy}
+            className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:opacity-60"
+          >
+            {busy ? "Getting link…" : "Get my calendar link"}
+          </button>
+        )}
+      </div>
+      {locked && (
+        <div className="mt-4 flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between">
+          <span>The calendar feed is part of Starter ($19/month, or $190 a year).</span>
+          <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">See plans →</a>
+        </div>
+      )}
+      {url && (
+        <div className="mt-4 space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              readOnly
+              value={url}
+              aria-label="Your private calendar link"
+              onFocus={(e) => e.currentTarget.select()}
+              className="block w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 font-mono text-xs text-slate-700"
+            />
+            <button
+              type="button"
+              onClick={copy}
+              className="shrink-0 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              {copied ? "Copied" : "Copy link"}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500">
+            Google Calendar: Other calendars → + → From URL, then paste. Outlook: Add calendar → Subscribe from web.
+            Keep this link private; anyone with it can see your saved bids' deadlines.
+          </p>
+          <button
+            type="button"
+            onClick={() => request(true)}
+            disabled={busy}
+            className="text-xs font-semibold text-slate-500 underline hover:text-slate-700 disabled:opacity-60"
+          >
+            Reset link
+          </button>
+        </div>
+      )}
+      {message && <p className="mt-3 text-sm text-slate-600">{message}</p>}
+    </section>
+  );
+}
+
 function SettingsRoute() {
   const currentUser = Route.useLoaderData();
   const navigate = useNavigate();
@@ -491,6 +604,8 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
             When a new bid matches your profile, Contrax can POST it to any endpoint — including a Zapier webhook trigger — signed with your webhook secret.
           </p>
         </section>
+
+        <CalendarFeedSection />
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Error */}

@@ -14,16 +14,27 @@
  */
 
 /** Sum an active Stripe subscription's recurring line items (unit_amount ×
- *  quantity). Non-recurring prices contribute 0 — MRR only counts recurring. */
+ *  quantity), as a MONTHLY amount: a yearly price counts 1/12 of its amount
+ *  (rounded to the cent), so a $190/yr Starter adds $15.83 of MRR, not $190.
+ *  Non-recurring prices contribute 0 — MRR only counts recurring. */
 export function recurringMonthlyAmount(subscription: {
-  items?: { data?: { price?: { recurring?: unknown; unit_amount?: number | null } | null; quantity?: number | null }[] };
+  items?: {
+    data?: {
+      price?: { recurring?: { interval?: string | null; interval_count?: number | null } | boolean | null; unit_amount?: number | null } | null;
+      quantity?: number | null;
+    }[];
+  };
 }): number {
   let total = 0;
   for (const item of subscription.items?.data ?? []) {
     const price = item.price;
     if (!price?.recurring) continue; // MRR = recurring only
     const amt = Number(price?.unit_amount ?? 0);
-    if (amt > 0) total += amt * (item.quantity ?? 1);
+    if (!(amt > 0)) continue;
+    const rec = typeof price.recurring === "object" ? price.recurring : null;
+    const count = Math.max(1, Number(rec?.interval_count ?? 1) || 1);
+    const months = rec?.interval === "year" ? 12 * count : rec?.interval === "month" ? count : 1;
+    total += Math.round((amt * (item.quantity ?? 1)) / months);
   }
   return total;
 }

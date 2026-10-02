@@ -121,19 +121,23 @@ export async function openBillingPortal(): Promise<
  * anonymous caller): they are sent to signup and returned to the plans page.
  *
  * @param planTier - The plan to purchase
- * @param options - Optional checkout options (e.g. { promoCode: "VAD26" } for
- *   the Veterans Against Diabetes partner code). Backward compatible — omitting
- *   the second argument sends the standard checkout.
+ * @param options - Optional checkout options: { promoCode: "VAD26" } for the
+ *   Veterans Against Diabetes partner code, { interval: "year" } for yearly
+ *   billing (10 × monthly). Backward compatible — omitting the second argument
+ *   sends the standard monthly checkout.
  * @returns A promise that resolves when the redirect is initiated
  */
 export async function redirectToCheckout(
   planTier: PlanTier,
-  options?: { promoCode?: string },
+  options?: { promoCode?: string; interval?: "month" | "year" },
 ): Promise<void> {
   try {
     const payload: Record<string, unknown> = { planTier };
     if (options?.promoCode) {
       payload.promoCode = options.promoCode;
+    }
+    if (options?.interval === "year") {
+      payload.interval = "year";
     }
 
     const response = await fetch("/api/stripe/create-checkout-session", {

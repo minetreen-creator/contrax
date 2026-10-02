@@ -9,8 +9,10 @@ import {
  * POST /api/stripe/create-checkout-session
  *
  * Body: { "planTier": "starter"|"professional"|"agency"|"savings_premium",
- *         "mode": "payment"|"subscription" }   (mode optional, defaults to
- *         "subscription" since all Contrax plans are billed monthly)
+ *         "mode": "payment"|"subscription",
+ *         "interval": "month"|"year" }   (mode optional, defaults to
+ *         "subscription"; interval optional, defaults to "month" — "year" bills
+ *         10 × the monthly price once a year, see ANNUAL_UNIT_AMOUNTS)
  *
  * SIGN-IN REQUIRED (owner order 2026-09-18): an unauthenticated request is a 401
  * and NO Stripe session is ever created — exactly like
@@ -57,6 +59,7 @@ async function handler({ request }: { request: Request }) {
       planTier?: string;
       mode?: "payment" | "subscription";
       promoCode?: string;
+      interval?: string;
     };
 
     if (!body.planTier || !(VALID_TIERS as string[]).includes(body.planTier)) {
@@ -82,6 +85,7 @@ async function handler({ request }: { request: Request }) {
     const result = await createCheckoutSession(body.planTier as PlanTier, {
       userId,
       mode: body.mode ?? "subscription",
+      interval: body.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),
     });
 

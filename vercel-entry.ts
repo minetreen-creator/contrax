@@ -600,6 +600,7 @@ async function handleCreateCheckoutSession(
       planTier?: string;
       mode?: "payment" | "subscription";
       promoCode?: string;
+      interval?: string;
     };
 
     const validTiers = ["starter", "professional", "agency", "savings_premium"];
@@ -625,6 +626,7 @@ async function handleCreateCheckoutSession(
     const result = await createCheckoutSession(parsed.planTier as any, {
       userId,
       mode: parsed.mode ?? "subscription",
+      interval: parsed.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),
     });
 

@@ -964,6 +964,8 @@ export function displayPlaceOfPerformance(
  *                    university, college or local public body.
  *    in_idoa       → Indiana IDOA Current Business Opportunities; every buyer
  *                    is an Indiana state agency.
+ *    mt_emacs      → Montana eMACS; every buyer is a Montana state agency or
+ *                    university.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -995,6 +997,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ia_das: "IA",
   la_lapac: "LA",
   in_idoa: "IN",
+  mt_emacs: "MT",
 };
 
 export interface InsertLocationColumns {

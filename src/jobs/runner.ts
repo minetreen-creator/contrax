@@ -65,6 +65,7 @@ import { fetchScScboBids } from "./sources/sc-scbo";
 import { fetchIaDasBids } from "./sources/ia-das";
 import { fetchLaLapacBids } from "./sources/la-lapac";
 import { fetchInIdoaBids } from "./sources/in-idoa";
+import { fetchMtEmacsBids } from "./sources/mt-emacs";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -264,6 +265,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "la_lapac", fetchFn: () => fetchLaLapacBids() },
   // Indiana IDOA Current Business Opportunities: open state agency bid events.
   { name: "in_idoa", fetchFn: () => fetchInIdoaBids() },
+  // Montana eMACS (JAGGAER public site): open state agency and university events.
+  { name: "mt_emacs", fetchFn: () => fetchMtEmacsBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

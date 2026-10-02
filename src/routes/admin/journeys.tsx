@@ -70,7 +70,7 @@ interface Journey {
   watched_since?: string | null;
   returned_since_view?: boolean;
   /** Board-side lead score (same heuristic as the intel panel; owner 2026-09-06). */
-  lead_score?: { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: { points: number; reason: string }[] };
+  lead_score?: { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: { points: number; reason: string }[]; automated?: string | null };
   /** Present ONLY on High / Very High rows. */
   conversion_opportunity?: ConversionOpportunity;
 }
@@ -93,7 +93,7 @@ interface JourneysResult {
 
 // ── Visitor Intelligence payload (mirrors src/lib/visitor-intel.ts) ──────────
 interface ScoreReason { points: number; reason: string; }
-interface LeadScore { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: ScoreReason[]; }
+interface LeadScore { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: ScoreReason[]; automated?: string | null; }
 interface InferredInterest { key: string; label: string; evidence: string; }
 interface ContractView {
   bid_id: number; path: string; title: string | null; agency: string | null;
@@ -445,6 +445,9 @@ function IntelPanel({
               <span className="text-2xl font-bold text-slate-900">{lead_score.score}</span>
               <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${LEVEL_STYLES[lead_score.level]}`}>{LEVEL_LABEL[lead_score.level]} intent</span>
             </p>
+            {lead_score.automated && (
+              <p className="mt-1 inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-700">🤖 Likely automated</p>
+            )}
           </div>
           <WatchToggle visitorId={visitorId} watched={watched} onChange={onWatchedChange} watchable={lead_score.score >= 50} />
         </div>
@@ -452,7 +455,11 @@ function IntelPanel({
 
       {/* Why this score — explicit, honest reasons */}
       <PanelSection title="Why this score" hint="Every point comes from a real, observed action — nothing modeled.">
-        {lead_score.reasons.length === 0 ? (
+        {lead_score.automated ? (
+          <p className="text-sm text-slate-600">
+            Scored 0: {lead_score.automated}, a pace no person keeps. This is most likely a bot, crawler or link checker, not a lead.
+          </p>
+        ) : lead_score.reasons.length === 0 ? (
           <p className="text-sm text-slate-400">No scoring signals yet — very early or single-page visit.</p>
         ) : (
           <ul className="space-y-1">

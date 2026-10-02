@@ -5,7 +5,7 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
-import { computeLeadScore, bidIdsFromPaths, getWatchedMap } from "~/lib/visitor-intel";
+import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds } from "~/lib/visitor-intel";
 import { buildConversionOpportunity, type ConversionOpportunity } from "~/lib/conversion-opportunity";
 
 /**
@@ -164,6 +164,8 @@ interface Journey {
     score: number;
     level: "Very High" | "High" | "Medium" | "Low";
     reasons: { points: number; reason: string }[];
+    /** Observed evidence when the visitor looks like a script (score forced to 0). */
+    automated?: string | null;
   };
   /** Rule-based "what to do next" — present ONLY on High / Very High rows. */
   conversion_opportunity?: ConversionOpportunity;
@@ -540,6 +542,7 @@ function buildRowLeadScore(o: {
   level: "Very High" | "High" | "Medium" | "Low";
   reasons: { points: number; reason: string }[];
   opportunity: ConversionOpportunity | null;
+  automated: string | null;
 } {
   const radarCompleted = o.eventNames.includes("radar_scan_complete");
   const sawPath = (needle: string) => o.paths.some((p) => p.includes(needle));
@@ -578,6 +581,8 @@ function buildRowLeadScore(o: {
     autopsyAwardFound,
     autopsyReportViewed,
     autopsyRadarUsed,
+    activeSpanSeconds: spanSeconds(o.firstSeenIso, o.lastSeenIso),
+    pageViews: o.paths.length,
   });
   const highOrVeryHigh = scored.level === "High" || scored.level === "Very High";
   const opportunity: ConversionOpportunity | null = highOrVeryHigh
@@ -595,7 +600,7 @@ function buildRowLeadScore(o: {
         reasons: scored.reasons,
       })
     : null;
-  return { score: scored.score, level: scored.level, reasons: scored.reasons, opportunity };
+  return { score: scored.score, level: scored.level, reasons: scored.reasons, opportunity, automated: scored.automated ?? null };
 }
 
 /**
@@ -863,7 +868,7 @@ async function handler({ request }: { request: Request }) {
         steps: Number(v.steps) || 0,
         badges: computeBadges(!!v.saw_pricing, !!v.saw_brief),
         events: [], // timeline is lazy — fetched per-expanded-row via /api/admin/journeys-timeline
-        lead_score: { score: scored.score, level: scored.level, reasons: scored.reasons },
+        lead_score: { score: scored.score, level: scored.level, reasons: scored.reasons, automated: scored.automated },
         ...(scored.opportunity ? { conversion_opportunity: scored.opportunity } : {}),
       });
     }
@@ -927,7 +932,7 @@ async function handler({ request }: { request: Request }) {
           return {
             ...j,
             events: [],
-            lead_score: { score: scored.score, level: scored.level, reasons: scored.reasons },
+            lead_score: { score: scored.score, level: scored.level, reasons: scored.reasons, automated: scored.automated },
             ...(scored.opportunity ? { conversion_opportunity: scored.opportunity } : {}),
           };
         });

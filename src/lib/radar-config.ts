@@ -41,3 +41,13 @@ export const SHOW_FREE_INCUMBENT = true;
  * (they keep normal entitlement — see /radar).
  */
 export const FREE_ANONYMOUS_RADAR_RESULTS = 3;
+
+/**
+ * Most default (title/NAICS-corroborated) matches one Radar scan returns
+ * (owner 2026-10-02; was a hard-coded 5). With a cap of 5 every popular search
+ * read "5 found" and the locked card always said "Unlock 2 more", whatever the
+ * real count. Anonymous visitors still see FREE_ANONYMOUS_RADAR_RESULTS; the
+ * rest is the honest locked count. Must not exceed the signup handoff's
+ * locked-id limit (25, src/lib/radar-handoff.server.ts).
+ */
+export const RADAR_MATCH_CAP = 25;

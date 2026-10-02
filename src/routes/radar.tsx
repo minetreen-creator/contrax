@@ -23,7 +23,7 @@ import {
   buildRadarFirstRunHref,
   isFirstRunSearch,
 } from "~/lib/funnel-ux";
-import { SHOW_FREE_INCUMBENT, FREE_ANONYMOUS_RADAR_RESULTS } from "~/lib/radar-config";
+import { SHOW_FREE_INCUMBENT, FREE_ANONYMOUS_RADAR_RESULTS, RADAR_MATCH_CAP } from "~/lib/radar-config";
 import type { FPDSIntel } from "~/lib/fpds";
 import {
   loadRadarIntel,
@@ -448,7 +448,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
       rows = await runKeywordScanQuery(sql, { certFrag, tradeFrag }, LOW_CONTENT_SQL);
       // R5 DEDUPE, WIRED (QA F2): collapse the SAME notice re-ingested under
       // several source labels BEFORE scoring/ranking, so duplicate rows can no
-      // longer fill the ≤5 default-match cap. Key = solicitation number (R2 /
+      // longer fill the default-match cap (RADAR_MATCH_CAP). Key = solicitation number (R2 /
       // migration 047) PLUS notice_type (FIX ①, owner-locked nationwide
       // correctness fix 2026-09-23: an Award Notice and a Justification share a
       // solicitation number and must stay two matches, matching the stored
@@ -529,7 +529,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
     // excluded from the default result set and handled under Related
     // opportunities below (state-local rows only). NAICS-input queries are
     // exact-code matches and are strong by construction.
-    const ranked = scored.filter((m) => m.strong).slice(0, 5);
+    const ranked = scored.filter((m) => m.strong).slice(0, RADAR_MATCH_CAP);
     const weakRowCandidates = scored.filter((m) => !m.strong);
 
     // OWNER 09-16 (Radar scan-latency fix, order #1): this handler performs NO

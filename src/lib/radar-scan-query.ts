@@ -130,7 +130,7 @@ export function logScanFailure(
  * READ-TIME DUPLICATE COLLAPSE — the PRODUCTION caller of the R5 dedupe
  * (`~/lib/notice-dedupe`); QA F2 found the module was library-only, so the
  * audit's measured 3,652 title groups / 36.9 % inflation was still live and
- * duplicate rows could consume the ≤5 default-match cap.
+ * duplicate rows could consume the default-match cap (RADAR_MATCH_CAP).
  *
  * The scan's result set is collapsed BEFORE scoring/ranking: the SAME notice
  * re-ingested under several state-door source labels ("F108--Mobile Firing Range
@@ -163,7 +163,7 @@ export interface ScanCollapseResult<T> {
   collapsed: number;
   /**
    * True when the notice-key columns were readable (migration 047 live). False
-   * means the natural-key fallback was used, so the ≤5 cap may hold more
+   * means the natural-key fallback was used, so the match cap may hold more
    * duplicates — a caller must not report "distinct notices" in that case.
    */
   noticeKeyColumns: boolean;

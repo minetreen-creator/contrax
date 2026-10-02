@@ -198,6 +198,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   la_lapac: { class: "state", scopeState: "LA", searchScope: "state-portal", recordType: "opportunity" },
   in_idoa: { class: "state", scopeState: "IN", searchScope: "state-portal", recordType: "opportunity" },
   mt_emacs: { class: "state", scopeState: "MT", searchScope: "state-portal", recordType: "opportunity" },
+  vt_vbr: { class: "state", scopeState: "VT", searchScope: "state-portal", recordType: "opportunity" },
   md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's

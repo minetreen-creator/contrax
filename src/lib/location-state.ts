@@ -968,6 +968,8 @@ export function displayPlaceOfPerformance(
  *                    university.
  *    vt_vbr        → Vermont Business Registry (state and municipal lists);
  *                    every author is a Vermont state or municipal body.
+ *    tn_cpo        → Tennessee Central Procurement Office; every buyer is a
+ *                    Tennessee state agency.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -1001,6 +1003,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   in_idoa: "IN",
   mt_emacs: "MT",
   vt_vbr: "VT",
+  tn_cpo: "TN",
 };
 
 export interface InsertLocationColumns {

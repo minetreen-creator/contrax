@@ -3,7 +3,8 @@ import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
 import { countRoleMatches } from "~/lib/healthcare";
 import { ARCHIVED_STATUSES, DEAD_SQL } from "~/lib/bid-status";
-import { bidInStates, profileSetAsidePred, profileTradePred } from "~/lib/profile-match";
+import { bidInStates, profileSetAsidePred, profileTradePred, scopeProfileToPlan } from "~/lib/profile-match";
+import { hasPaidBidAccess } from "~/lib/head-start.server";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 // S2 NOTICE IDENTITY (owner-approved 2026-09-23): canonical read-side notice key
 // (`sol + notice_type`, else `title + agency + notice_type`) — same key as Radar.
@@ -52,8 +53,14 @@ async function handler({ request }: { request: Request }) {
     // profile relevance as the live feed (set-aside + NAICS SQL predicates +
     // location), deduped on (title, agency). LEFT JOIN saved_matches so each
     // row carries the status that put it here.
+    // Same free-plan scope as the live feed (one state, one trade): src/lib/profile-match.ts.
+    const { profile: matchProfile } = scopeProfileToPlan(
+      { naics_codes: naicsCodes, industry, service_categories: serviceCategories, locations },
+      await hasPaidBidAccess(user),
+    );
+    locations = (matchProfile?.locations ?? []).map(String);
     const setAsideFrag = profileSetAsidePred(certifications, sql);
-    const naicsFrag = profileTradePred({ naics_codes: naicsCodes, industry, service_categories: serviceCategories }, sql);
+    const naicsFrag = profileTradePred(matchProfile, sql);
     const rows = await sql()`SELECT * FROM (
       SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("b"))})
         b.id, b.title, b.agency, b.description, b.location, b.category, b.set_aside,

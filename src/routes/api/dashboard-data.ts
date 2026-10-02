@@ -10,7 +10,7 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 // notice Radar splits (or vice versa). See src/lib/notice-dedupe.ts.
 import { noticeKeySql } from "~/lib/notice-dedupe";
 import { createDeadlineAlertsForUser } from "~/lib/notifications";
-import { bidInStates, profileSetAsidePred, profileTradePred } from "~/lib/profile-match";
+import { bidInStates, profileSetAsidePred, profileTradePred, scopeProfileToPlan } from "~/lib/profile-match";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
@@ -171,13 +171,19 @@ async function handler({ request }: { request: Request }) {
   // set_aside / naics_code are migration-created columns present in
   // src/db/schema.sql — the old per-request `ALTER TABLE ... ADD COLUMN IF NOT
   // EXISTS` lazy-migration guards are removed (migration-only concern now).
-  const locations = (profile?.locations ?? []).map((s) => String(s));
+  // Paid head start (src/lib/head-start.ts): without paid access, a bid's
+  // first 72 hours on Contrax show without its source link. The same flag
+  // scopes a free account's matching to one state and one trade
+  // (scopeProfileToPlan); the stored and returned profile is untouched.
+  const paid = await hasPaidBidAccess(user);
+  const { profile: matchProfile, scope: freePlanScope } = scopeProfileToPlan(profile, paid);
+  const locations = (matchProfile?.locations ?? []).map((s) => String(s));
   // Certifications: matching federal set-asides, plus open state/local bids
   // (no set-aside) — src/lib/profile-match.ts profileSetAsidePred.
   const setAsideFrag = profileSetAsidePred(profile?.certifications ?? [], sql);
   // Trade: profile NAICS codes, plus trade-word matches for bids that carry
   // no NAICS code (every state portal) — src/lib/profile-match.ts.
-  const naicsFrag = profileTradePred(profile, sql);
+  const naicsFrag = profileTradePred(matchProfile, sql);
 
   const bidRows = await sql()`
     SELECT * FROM (
@@ -196,9 +202,6 @@ async function handler({ request }: { request: Request }) {
     ) matched
     ORDER BY due_date ASC NULLS LAST`;
   const userSpecialties = profile?.specialties || [];
-  // Paid head start (src/lib/head-start.ts): without paid access, a bid's
-  // first 72 hours on Contrax show without its source link.
-  const paid = await hasPaidBidAccess(user);
   // Geography filter applied POST-dedup (same `locationMatchesStates` the
   // onboarding count uses — nationwide = no-op, specific states = targeted).
   const bids: Bid[] = (bidRows as any[])
@@ -315,7 +318,7 @@ async function handler({ request }: { request: Request }) {
   let topCompetitor: { name: string; awards: number } | null = null;
   let activeAwardees = 0;
   try {
-    const codes = (profile?.naics_codes || []).map(String);
+    const codes = (matchProfile?.naics_codes || []).map(String);
     const rows = codes.length ? await sql()`SELECT winning_company, COUNT(*)::int AS awards FROM awarded_contracts WHERE winning_company IS NOT NULL AND naics_code = ANY(${codes}) GROUP BY winning_company ORDER BY awards DESC LIMIT 1` : [];
     topCompetitor = rows[0] ? { name: String((rows[0] as any).winning_company), awards: Number((rows[0] as any).awards) } : null;
     const count = codes.length ? await sql()`SELECT COUNT(DISTINCT winning_company)::int AS count FROM awarded_contracts WHERE winning_company IS NOT NULL AND naics_code = ANY(${codes})` : [];
@@ -332,7 +335,7 @@ async function handler({ request }: { request: Request }) {
   try { createDeadlineAlertsForUser(user.id, user.email).catch(() => {}); } catch { /* non-blocking */ }
 
   let unreadAlerts = 0; try { const ar = await sql()`SELECT COUNT(*)::int AS count FROM bid_alerts WHERE user_id = ${user.id} AND is_read=false`; unreadAlerts = Number((ar[0] as any)?.count || 0); } catch {}
-  return Response.json({ profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, matchCount: bids.length, archivedCount, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts, pendingDraft });
+  return Response.json({ profile, bids, savedMatches, summaries, drafts, scores, recommendations, pricing: [], lastSynced, totalBids, matchCount: bids.length, archivedCount, lossesCount, urgentTrackedCount, topCompetitor, activeAwardees, unreadAlerts, pendingDraft, freePlanScope });
   } catch (err) {
     console.error("[api/dashboard-data] error:", err);
     return Response.json(

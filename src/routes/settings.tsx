@@ -1066,6 +1066,12 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
               <p className="mt-2 text-sm text-slate-500">
                 {form.locations.length} state{form.locations.length !== 1 ? "s" : ""} selected
               </p>
+              {trial && !(isPaidTier && !trial.expired) && (form.locations.length > 1 || naicsActive.length > 1) && (
+                <p className="mt-2 text-xs text-blue-800">
+                  On Basic, your bid matches use the first state and the first trade you list. Starter matches all of them.{" "}
+                  <a href="/upgrade" className="font-semibold underline">See Starter</a>
+                </p>
+              )}
             </div>
           </section>
 

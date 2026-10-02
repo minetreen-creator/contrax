@@ -134,3 +134,67 @@ export function profileSetAsidePred(certs: readonly string[] | null | undefined,
     : "";
   return s`AND (${s.unsafe(`(${clauses.join(" OR ")})${open}`)})`;
 }
+
+/**
+ * FREE PLAN SCOPE (owner 2026-10-02, Starter value #3): a free account's
+ * feed follows ONE state and ONE trade; Starter and up follow every state and
+ * trade in the profile. The profile itself is never trimmed (no data is
+ * lost, and upgrading takes effect on the next load): only the copy used for
+ * matching is narrowed, to the FIRST state and the FIRST trade the member
+ * listed. A profile with no states stays nationwide (nothing was chosen).
+ *
+ * "Trades" are the profile's NAICS codes; for a profile without codes, its
+ * typed service categories.
+ */
+export const FREE_PLAN_STATE_LIMIT = 1;
+export const FREE_PLAN_TRADE_LIMIT = 1;
+
+export interface FreePlanScope {
+  /** True when the free scope removed states or trades from matching. */
+  limited: boolean;
+  totalStates: number;
+  totalTrades: number;
+  followedStates: string[];
+  followedTrades: string[];
+}
+
+export function scopeProfileToPlan<T extends MatchProfile>(
+  profile: T | null,
+  paid: boolean,
+): { profile: T | null; scope: FreePlanScope | null } {
+  if (!profile || paid) return { profile, scope: null };
+  const states = profileStateCodes(profile.locations);
+  const codes = profileNaicsCodes(profile);
+  const services = (profile.service_categories ?? []).map((s) => String(s ?? "").trim()).filter(Boolean);
+  const trades = codes.length > 0 ? codes : services;
+  const followedStates = states.slice(0, FREE_PLAN_STATE_LIMIT);
+  const followedTrades = trades.slice(0, FREE_PLAN_TRADE_LIMIT);
+  const limited = states.length > followedStates.length || trades.length > followedTrades.length;
+  const scoped: T = {
+    ...profile,
+    locations: states.length > FREE_PLAN_STATE_LIMIT ? followedStates : profile.locations,
+    naics_codes: codes.length > 0 ? codes.slice(0, FREE_PLAN_TRADE_LIMIT) : profile.naics_codes,
+    service_categories: codes.length === 0 ? services.slice(0, FREE_PLAN_TRADE_LIMIT) : profile.service_categories,
+  };
+  return {
+    profile: scoped,
+    scope: { limited, totalStates: states.length, totalTrades: trades.length, followedStates, followedTrades },
+  };
+}
+
+/**
+ * The dashboard line for a limited free scope, e.g. "Basic matches 1 state
+ * and 1 trade (OH, Janitorial Services). Starter matches all 3 of your states
+ * and all 2 of your trades." `tradeLabel` turns a NAICS code into its name.
+ */
+export function freePlanScopeMessage(scope: FreePlanScope, tradeLabel: (trade: string) => string = (t) => t): string {
+  const followed = [scope.followedStates[0], scope.followedTrades[0] ? tradeLabel(scope.followedTrades[0]) : ""].filter(Boolean);
+  const more: string[] = [];
+  if (scope.totalStates > FREE_PLAN_STATE_LIMIT) more.push(`all ${scope.totalStates} of your states`);
+  if (scope.totalTrades > FREE_PLAN_TRADE_LIMIT) more.push(`all ${scope.totalTrades} of your trades`);
+  return (
+    `Basic matches 1 state and 1 trade${followed.length ? ` (${followed.join(", ")})` : ""}.` +
+    (more.length ? ` Starter matches ${more.join(" and ")}.` : "")
+  );
+}
+

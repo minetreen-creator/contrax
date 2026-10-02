@@ -160,6 +160,12 @@ export interface LeadScore {
   score: number; // 0–100, capped
   level: "Very High" | "High" | "Medium" | "Low"; // Very High ≥60, High 40–59, Medium 20–39, Low 0–19 (owner 2026-09-06)
   reasons: ScoreReason[];
+  /**
+   * Set when the visitor's pace says a script, not a person (owner 2026-10-02):
+   * the observed evidence, e.g. "6 sessions within 61 seconds". A flagged
+   * visitor scores 0 / Low so automated traffic never reads as a lead.
+   */
+  automated?: string | null;
 }
 
 export interface ScoreSignals {
@@ -180,9 +186,48 @@ export interface ScoreSignals {
   autopsyAwardFound: boolean;
   autopsyReportViewed: boolean;
   autopsyRadarUsed: boolean;
+  /** Seconds between first and last activity (null when unknown). */
+  activeSpanSeconds?: number | null;
+  /** Page views observed for the visitor (for the pace check). */
+  pageViews?: number;
+}
+
+/** Pace thresholds for likelyAutomated (owner 2026-10-02). */
+export const AUTOMATED_SESSION_LIMIT = { sessions: 3, withinSeconds: 120 };
+export const AUTOMATED_PAGE_LIMIT = { pages: 6, withinSeconds: 60 };
+
+/**
+ * A visitor whose pace no person keeps: 3+ separate sessions inside 2 minutes
+ * (a script that drops cookies starts a new session per request) or 6+ page
+ * views inside 1 minute. Signed-up or bid-saving visitors are never flagged —
+ * those are real accounts. Returns the observed evidence, or null.
+ */
+export function likelyAutomated(s: Pick<ScoreSignals, "sessions" | "activeSpanSeconds" | "pageViews" | "signedUp" | "savedBid">): string | null {
+  if (s.signedUp || s.savedBid) return null;
+  const span = s.activeSpanSeconds;
+  if (span == null || !Number.isFinite(span) || span < 0) return null;
+  const secs = Math.round(span);
+  if (s.sessions >= AUTOMATED_SESSION_LIMIT.sessions && span <= AUTOMATED_SESSION_LIMIT.withinSeconds) {
+    return `${s.sessions} sessions within ${secs} seconds`;
+  }
+  const pages = s.pageViews ?? 0;
+  if (pages >= AUTOMATED_PAGE_LIMIT.pages && span <= AUTOMATED_PAGE_LIMIT.withinSeconds) {
+    return `${pages} pages within ${secs} seconds`;
+  }
+  return null;
+}
+
+/** Seconds between two ISO timestamps, or null. */
+export function spanSeconds(firstIso: string | null | undefined, lastIso: string | null | undefined): number | null {
+  if (!firstIso || !lastIso) return null;
+  const a = Date.parse(firstIso);
+  const b = Date.parse(lastIso);
+  return Number.isFinite(a) && Number.isFinite(b) ? Math.max(0, (b - a) / 1000) : null;
 }
 
 export function computeLeadScore(s: ScoreSignals): LeadScore {
+  const automated = likelyAutomated(s);
+  if (automated) return { score: 0, level: "Low", reasons: [], automated };
   const reasons: ScoreReason[] = [];
   const add = (points: number, reason: string) => {
     if (points > 0) reasons.push({ points, reason });
@@ -659,6 +704,8 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
     autopsyAwardFound,
     autopsyReportViewed,
     autopsyRadarUsed,
+    activeSpanSeconds: spanSeconds(firstSeen, lastSeen),
+    pageViews: pageRows.length,
   });
 
   const radarProfileRow = radarSave ?? anonymousRadarProfile;

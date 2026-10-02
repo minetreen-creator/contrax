@@ -63,6 +63,7 @@ import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchDeMmpBids } from "./sources/de-mmp";
 import { fetchScScboBids } from "./sources/sc-scbo";
 import { fetchIaDasBids } from "./sources/ia-das";
+import { fetchLaLapacBids } from "./sources/la-lapac";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -258,6 +259,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "sc_scbo", fetchFn: () => fetchScScboBids() },
   // Iowa Bid Opportunities: open state agency solicitations.
   { name: "ia_das", fetchFn: () => fetchIaDasBids() },
+  // Louisiana LaPAC: state, university and local public bids.
+  { name: "la_lapac", fetchFn: () => fetchLaLapacBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

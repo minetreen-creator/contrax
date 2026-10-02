@@ -23,6 +23,7 @@ import { runWithRequestContext } from "./src/lib/request-context.server";
 // `/` is deliberately excluded — it renders the session-dependent navbar. See
 // src/lib/ssr-cache-policy.ts for the full R1 rationale + the regression test.
 import { isPublicSsrCacheable } from "./src/lib/ssr-cache-policy";
+import { anonHintClearCookie, issuesSession } from "./src/lib/anon-hint";
 
 // ── Client asset references for the static SEO pages ─────────────────────────
 // The entry chunk / CSS / preload filenames come from vercel-entry.assets.json,
@@ -950,13 +951,10 @@ export default async function vercelHandler(
     // user-specific routes (those flow through the generic SSR handler below,
     // which does NOT set this header).
     //
-    // `/` is NOT in this set (root cause R1, fixed 2026-09-21): the front door's
-    // SSR render IS session-dependent — the landing loader awaits
-    // getCurrentUser() and renders <Navbar user={user} />, so the shared cache
-    // served a signed-in visitor the signed-out navbar ("it keeps signing me
-    // out"), and could serve an anonymous visitor the signed-in one. The policy
-    // lives in src/lib/ssr-cache-policy.ts (with a regression test that locks
-    // both `/`-is-not-cacheable and the landing loader's session read).
+    // `/` was taken out of this set for root cause R1 (2026-09-21: its render
+    // read the session) and is back since owner 2026-10-02, now that the
+    // landing render is session-free (navbar resolved client-side). The policy
+    // lives in src/lib/ssr-cache-policy.ts, whose test locks that precondition.
     const cacheableSsrf = isPublicSsrCacheable(req.method || "GET", url.pathname);
 
     // AsyncLocalStorage request context: scoped to this request's async
@@ -972,10 +970,20 @@ export default async function vercelHandler(
     );
     res.statusCode = webRes.status;
     webRes.headers.forEach((value, key) => res.setHeader(key, value));
+    // Known-anonymous hint (src/lib/anon-hint.ts): any response that issues a
+    // session cookie also clears the hint, so every login path is covered.
+    // getSetCookie() keeps multiple Set-Cookie headers separate (forEach above
+    // joins them); re-set the whole list when we append.
+    const setCookies = webRes.headers.getSetCookie?.() ?? [];
+    if (issuesSession(setCookies)) {
+      res.setHeader("set-cookie", [...setCookies, anonHintClearCookie()]);
+    }
     // Set our public edge-cache header AFTER copying the SSR framework headers,
     // so this value wins on the cacheable routes (the framework emits
     // "public, max-age=0, must-revalidate", which would otherwise overwrite it).
-    if (cacheableSsrf) {
+    // Only a 200 is shared-cached: an error page rendered during a load spike
+    // must never be served to everyone for the next hour.
+    if (cacheableSsrf && webRes.status === 200) {
       res.setHeader("cache-control", PUBLIC_SSR_CACHE_CONTROL);
     }
     if (webRes.body) {

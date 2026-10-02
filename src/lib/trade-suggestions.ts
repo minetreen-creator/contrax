@@ -1,6 +1,6 @@
 /**
  * Radar trade-field suggestions — the ONE source for both datalist inputs
- * (`src/routes/radar.tsx` + `src/components/HeroRadar.tsx`). Owner 09-15.
+ * (`src/routes/radar.tsx`). Owner 09-15.
  *
  * WHY THIS EXISTS (the bug it fixes): both inputs used to build their datalist
  * from `Object.entries(NAICS_NAMES).slice(0, 120)`. NAICS_NAMES is grouped by

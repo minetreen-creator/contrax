@@ -10,8 +10,8 @@
  *
  * Design contract (owner-exact, non-negotiable):
  *   - PURE module: NO ~/db import, NO server fns, NO node:*, NO process.env at
- *     import time. Importable from server fns, client components
- *     (HeroRadar.tsx), job runners, and future surfaces alike. SQL fragments
+ *     import time. Importable from server fns, client components,
+ *     job runners, and future surfaces alike. SQL fragments
  *     are built by CALLERS via tradeKeywordPred(sqlFactory, expansion) — the
  *     caller passes its own sql factory (the `~/db` value), mirroring
  *     open-bids.ts keywordPred.

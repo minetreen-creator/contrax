@@ -7,6 +7,7 @@
 
 import { isAdminEmail } from "~/lib/admin";
 import { getRequestContext } from "~/lib/request-context";
+import { hasAnonHint } from "~/lib/anon-hint";
 
 const SESSION_COOKIE = "contrax_session";
 
@@ -58,6 +59,9 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     }
     return null;
   }
+  // Client-side: a browser /api/auth/me already answered 401 for (within the
+  // last hour, and no login since) is known-anonymous — skip the server call.
+  if (hasAnonHint(typeof document !== "undefined" ? document.cookie : "")) return null;
   // Client-side: use the API endpoint
   try {
     const res = await fetch("/api/auth/me");

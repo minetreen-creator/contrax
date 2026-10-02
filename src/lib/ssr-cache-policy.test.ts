@@ -2,15 +2,12 @@
  * Public edge-cache policy tests (bun test — deterministic, zero network).
  *
  * Regression guard for root cause R1 (`shared/signout-diagnosis-2026-09-21.md`):
- * `/` was shared-cached for 1h while its SSR render reads the session, so a
+ * `/` was shared-cached for 1h while its SSR render read the session, so a
  * signed-in visitor was served the cached signed-out navbar ("it keeps signing
- * me out"). Two halves are locked here:
- *   A. `/` is not cacheable, and the other cookie-agnostic marketing routes
- *      still are (so the fix does not silently drop the cache everywhere);
- *   B. the landing loader still reads the session — i.e. the reason `/` must
- *      stay uncacheable is still true. If someone later makes the navbar
- *      client-resolved, half B fails loudly and forces a deliberate re-review of
- *      the policy instead of a silent re-add.
+ * me out"). Since owner 2026-10-02 the landing render is session-free (the
+ * navbar resolves the viewer client-side), so `/` is cacheable again. The
+ * precondition is locked below: the landing loader must not read the session
+ * and the navbar must get no server-resolved user.
  */
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
@@ -23,27 +20,17 @@ import {
 const REPO_ROOT = join(import.meta.dir, "..", "..");
 const readRepoFile = (rel: string) => readFileSync(join(REPO_ROOT, rel), "utf8");
 
-describe("ssr-cache-policy: the front door is never shared-cached (R1)", () => {
-  test('"/" is not cacheable', () => {
-    expect(isPublicSsrCacheable("GET", "/")).toBe(false);
-  });
-
-  test('"/" stays uncacheable through normalization (empty, trailing slash, query)', () => {
-    for (const p of ["", "//", "/?utm_source=x", "/?fbclid=1"]) {
-      expect(isPublicSsrCacheable("GET", p)).toBe(false);
+describe("ssr-cache-policy: the front door is cached now that it is session-free", () => {
+  test('"/" is cacheable on GET, through normalization', () => {
+    for (const p of ["/", "", "/?utm_source=x", "/?fbclid=1"]) {
+      expect(isPublicSsrCacheable("GET", p)).toBe(true);
     }
-  });
-
-  test("no cached route pattern can ever match the root", () => {
-    expect(PUBLIC_SSR_CACHEABLE_EXACT_PATHS).not.toContain("/");
-    expect(PUBLIC_SSR_CACHEABLE_EXACT_PATHS.every((p) => p !== "/")).toBe(true);
+    expect(PUBLIC_SSR_CACHEABLE_EXACT_PATHS).toContain("/");
   });
 });
 
 describe("ssr-cache-policy: session-dependent routes are never cached", () => {
   const sessionRoutes = [
-    // the front door (renders <Navbar user={user} />)
-    "/",
     // guarded app surfaces
     "/dashboard",
     "/onboarding",
@@ -145,7 +132,6 @@ describe("ssr-cache-policy: only GET is cacheable", () => {
   test("non-GET methods are never cached, even on a cacheable path", () => {
     for (const method of ["POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]) {
       expect(isPublicSsrCacheable(method, "/map")).toBe(false);
-      expect(isPublicSsrCacheable(method, "/")).toBe(false);
     }
   });
 
@@ -154,11 +140,14 @@ describe("ssr-cache-policy: only GET is cacheable", () => {
   });
 });
 
-describe("ssr-cache-policy: the reason `/` is uncacheable is still true (source guard)", () => {
-  test("the landing loader still resolves the session and feeds the navbar", () => {
+describe("ssr-cache-policy: `/` stays session-free (source guard for R1)", () => {
+  test("the landing loader reads no session and the navbar gets no server user", () => {
     const landing = readRepoFile("src/routes/index.tsx");
-    expect(landing).toContain("getCurrentUser()");
-    expect(landing).toMatch(/<Navbar\s+user=\{user\}/);
+    expect(landing).not.toContain("getCurrentUser");
+    expect(landing).not.toContain("getUserFromRequest");
+    expect(landing).not.toMatch(/<Navbar\s+user=/);
+    expect(landing).not.toMatch(/<SiteHeader\s+user=/);
+    expect(landing).toContain("return <SiteHeader />;");
   });
 
   test("the launcher delegates to this policy instead of re-inlining a `/` rule", () => {

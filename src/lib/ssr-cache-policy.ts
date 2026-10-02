@@ -19,12 +19,12 @@
  * the session was never lost, the cached HTML was simply wrong.
  * Evidence: `shared/signout-diagnosis-2026-09-21.md` + `shared/signout-evidence/`.
  *
- * `/` is NO LONGER cacheable (owner-approved fix F1). Re-adding it is only
- * correct once the navbar stops depending on the request's session at
- * server-render time (e.g. it resolves auth client-side after hydration, so the
- * cached HTML is genuinely user-agnostic). `ssr-cache-policy.test.ts` locks both
- * halves of that reasoning: `/` is not cacheable, and the landing loader still
- * reads the session.
+ * `/` was made uncacheable (owner-approved fix F1). It is cacheable AGAIN
+ * since owner 2026-10-02: the landing loader no longer reads the session and
+ * the navbar resolves the viewer client-side after hydration (SiteHeader with
+ * no `user` prop), so the cached HTML is genuinely user-agnostic.
+ * `ssr-cache-policy.test.ts` locks that precondition: if the landing loader
+ * ever reads the session again, the test fails and `/` must come back out.
  *
  * ── The routes that remain cached ────────────────────────────────────────────
  * Cookie-agnostic marketing/SEO surfaces. Audited 2026-09-21: the map, industry
@@ -39,6 +39,7 @@
  * here is a visible, reviewable decision.
  */
 export const PUBLIC_SSR_CACHEABLE_EXACT_PATHS: readonly string[] = [
+  "/",
   "/map",
   "/radar",
   "/contracts-by-industry",
@@ -75,14 +76,11 @@ function normalizePathname(pathname: string): string {
  * Should this request's SSR response be stamped with the shared public edge
  * cache header? True only for GET on a reviewed, session-free route.
  *
- * Returns `false` for `/` unconditionally — see the R1 note above.
+ * `/` is cacheable only because its render is session-free (see above).
  */
 export function isPublicSsrCacheable(method: string, pathname: string): boolean {
   if (method.toUpperCase() !== "GET") return false;
   const path = normalizePathname(pathname);
-  // ── The front door is NEVER shared-cached (R1). It renders the session-
-  //    dependent navbar, so a cached copy signs people out visually. ──────────
-  if (path === "/") return false;
   if (PUBLIC_SSR_CACHEABLE_EXACT_PATHS.includes(path)) return true;
   if (CERT_HUB_PATTERN.test(path)) return true;
   if (STATE_LANDING_PATTERN.test(path)) return true;

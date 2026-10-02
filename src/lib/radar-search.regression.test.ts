@@ -1740,7 +1740,7 @@ describe("owner 09-15/09-16 Radar datalist fix — everyday-service codes reacha
       src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
     const sources: [string, string, string][] = [
       ["radar", readSrc("routes/radar.tsx"), "radar-naics-list"],
-      ["hero", readSrc("components/HeroRadar.tsx"), "hero-radar-naics-list"],
+      // HeroRadar.tsx was deleted (owner 2026-10-02): it was never mounted.
     ];
     for (const [name, raw, datalistId] of sources) {
       expect(`${name}:${raw.includes('from "~/lib/trade-suggestions"')}`).toBe(`${name}:true`);

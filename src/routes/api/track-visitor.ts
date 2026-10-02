@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { handleIntake } from "~/lib/tracking-intake";
+import { handleIntake, handleIntakeBatch } from "~/lib/tracking-intake";
 
 /**
  * POST /api/track-visitor
@@ -28,6 +28,16 @@ import { handleIntake } from "~/lib/tracking-intake";
  */
 
 async function handler({ request }: { request: Request }) {
+  // Batched beacons (src/lib/track-queue.ts): `{ batch: [...] }` → one
+  // invocation for many payloads. Anything else is the original single shape.
+  let parsed: unknown = null;
+  try {
+    parsed = await request.clone().json();
+  } catch {
+    parsed = null;
+  }
+  const batch = (parsed as { batch?: unknown } | null)?.batch;
+  if (Array.isArray(batch)) return handleIntakeBatch(request, batch);
   return handleIntake(request);
 }
 

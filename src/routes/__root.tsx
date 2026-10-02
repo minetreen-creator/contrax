@@ -17,6 +17,7 @@ import {
 import { trackingIds, getOrCreateVisitorId } from "~/lib/visitor";
 import { getTrackingUser, resolveTrackingUser } from "~/lib/identity";
 import { isAutomatedBrowser } from "~/lib/track";
+import { enqueueTracking } from "~/lib/track-queue";
 import appCss from "~/styles/app.css?url";
 
 const PROD_URL = "https://www.contrax.company";
@@ -117,18 +118,8 @@ function recordPageView(path: string) {
     payload.user_id = user.id;
     payload.user_email = user.email;
   }
-  try {
-    fetch("/api/track-visitor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      keepalive: true,
-    }).catch(() => {
-      /* fire-and-forget — never surface tracking failures */
-    });
-  } catch {
-    /* never let tracking break rendering */
-  }
+  // Batched with the page's tracking events (src/lib/track-queue.ts).
+  enqueueTracking(payload);
 }
 
 function PageViewTracker() {

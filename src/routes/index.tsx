@@ -3,7 +3,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useState } from "react";
 
-import { getCurrentUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
@@ -122,11 +121,15 @@ export function resolveGrantsUpgradeEnabled(
 // "N open opportunities" counter renders from it (the compact homepage map that
 // also used it was removed by owner order 2026-09-23).
 // grantsUpgradeEnabled (owner directive rev 327) is an ENV READ ONLY — it adds
-// no DB query and no network call, and it is computed per request (the homepage
-// is not in the public SSR cache allowlist: ssr-cache-policy isPublicSsrCacheable("/")
-// === false), so a flag flip is reflected on the next render.
+// no DB query and no network call. The homepage is edge-cached for 1 hour
+// (owner 2026-10-02, ssr-cache-policy), so a flag flip reaches the cached
+// copy within the TTL.
+//
+// NO SESSION READ (owner 2026-10-02): the navbar resolves the viewer in the
+// browser (SiteHeader without a `user` prop), so this render is identical for
+// every visitor and can be served from the edge cache.
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, user, bidStats, contractMap, grantsUpgradeEnabled] = await Promise.all([
+  const [businessName, bidStats, contractMap, grantsUpgradeEnabled] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -137,7 +140,6 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
         return "Contrax";
       }
     })(),
-    getCurrentUser(),
     getBidStats(),
     getContractMapAggregate(),
     // Server-only, per-request env read (the `typeof process` guard mirrors the
@@ -147,7 +149,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
         typeof process !== "undefined" ? process.env : undefined,
       ))(),
   ]);
-  return { businessName, user, bidStats, contractMap, grantsUpgradeEnabled };
+  return { businessName, bidStats, contractMap, grantsUpgradeEnabled };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -224,7 +226,7 @@ const BTN =
 
 function Home() {
 
-  const { user, bidStats, contractMap, grantsUpgradeEnabled } = Route.useLoaderData();
+  const { bidStats, contractMap, grantsUpgradeEnabled } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -246,7 +248,7 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <PartnershipBanner />
-      <Navbar user={user} />
+      <Navbar />
       <Hero sample={sample} />
       <Stats bidStats={bidStats} contractMap={contractMap} />
       <Steps />
@@ -261,10 +263,12 @@ function Home() {
 }
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
-// The shared public header; the loader already resolved the session, so pass it.
+// The shared public header; it resolves the viewer in the browser.
 
-function Navbar({ user }: { user: { id: number; email: string; is_admin?: boolean } | null }) {
-  return <SiteHeader user={user} />;
+function Navbar() {
+  // No `user` prop: SiteHeader resolves the viewer client-side after mount, so
+  // the server render is session-free and edge-cacheable.
+  return <SiteHeader />;
 }
 
 // ── Hero: search form + live SDVOSB sample ────────────────────────────────────

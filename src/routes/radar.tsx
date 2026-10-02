@@ -1049,8 +1049,8 @@ const STATE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
 // Collection 562111 (positions 129-148 of 184) never reached the public
 // dropdown. The shared list leads with the curated TRADES (search term + curated
 // label), then the curated codes (each ONCE under its official NAICS_NAMES
-// title — 492110 canonical-once), then the COMPLETE code set. HeroRadar renders
-// the exact same list. The trade field stays free text; presentation-only.
+// title — 492110 canonical-once), then the COMPLETE code set. The trade field
+// stays free text; presentation-only.
 
 function RadarLanding() {
   // Deep-link initial state (owner-directed): /radar accepts `?trade=&state=&cert=&size=`
@@ -2044,10 +2044,8 @@ function tradeLabel(t: string): string {
  * by RADAR_INTEL_CLIENT_TIMEOUT_MS (~/lib/radar-intel), so a card can never sit
  * in a loading state and no request can hang. The 15 s scan cap is untouched.
  *
- * EXPORTED (owner 09-16, homepage-hero follow-up): the homepage hero
- * (HeroRadar) runs this SAME scan and shows the same intel on its displayed
- * free <=3 cards, so it reuses THIS hook and the getRadarMatchIntel server fn
- * verbatim instead of growing a parallel loader. Only the first
+ * EXPORTED (owner 09-16) so any other Radar surface reuses THIS hook and the
+ * getRadarMatchIntel server fn instead of growing a parallel loader. Only the first
  * FREE_ANONYMOUS_RADAR_RESULTS ids - the ones the scan's signed intel ticket
  * covers - are ever requested, so gated cards still cost zero requests.
  */

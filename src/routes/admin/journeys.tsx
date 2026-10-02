@@ -796,6 +796,13 @@ function JourneysPage() {
 
   const bannerRows = (data?.watched_returned ?? []).filter((w) => !dismissed.has(w.visitor_id));
 
+  // Likely-automated visitors (lead score flag, owner 2026-10-02) are hidden
+  // from People by default; a watched visitor always stays visible.
+  const [showAutomated, setShowAutomated] = useState(false);
+  const isAutomated = (j: Journey) => !!j.lead_score?.automated && !j.watched;
+  const automatedCount = (data?.journeys ?? []).filter(isAutomated).length;
+  const people = (data?.journeys ?? []).filter((j) => showAutomated || !isAutomated(j));
+
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader scoreboard={<MrrScoreboard />} />
@@ -914,12 +921,20 @@ function JourneysPage() {
             viewed, lead score with reasons, and full timeline. Unauthenticated visitors are labeled by geo/behavior with a muted
             #hash; linked users = email local-part. 👀 Watch flags a visitor and highlights them here when they return.
           </p>
+          {automatedCount > 0 && (
+            <label className="mb-3 flex items-center gap-2 text-xs text-slate-600">
+              <input type="checkbox" checked={showAutomated} onChange={(e) => setShowAutomated(e.target.checked)} />
+              Show likely automated visitors ({automatedCount}) — 3+ sessions within 2 minutes or 6+ pages within 1 minute; hidden by default
+            </label>
+          )}
           {loading ? (
             <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">Loading journeys…</div>
           ) : error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
-          ) : !data || data.journeys.length === 0 ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">No journeys in this range.</div>
+          ) : !data || people.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">
+              {data && data.journeys.length > 0 ? "Only likely automated visitors in this range." : "No journeys in this range."}
+            </div>
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
@@ -937,7 +952,7 @@ function JourneysPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {data.journeys.map((j) => (
+                    {people.map((j) => (
                       <JourneyRow key={j.visitor_id} j={j} onWatchedChange={handleWatchedChange} />
                     ))}
                   </tbody>

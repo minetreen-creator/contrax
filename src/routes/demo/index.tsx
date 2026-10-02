@@ -53,7 +53,7 @@ const jsonLd = {
     "Tell Contrax what your business does. Radar finds government opportunities that match — live set-asides for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses, with bid documents explained and proposals drafted so certified firms can compete and win.",
   url: PROD_URL,
   logo: `${PROD_URL}/logo-square.png`,
-  email: "hello@contrax.company",
+  email: "contrax.companyllc@gmail.com",
   knowsAbout: [
     "Government contracting",
     "Federal procurement",
@@ -166,7 +166,7 @@ function DemoPage() {
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
             <a
-              href="mailto:hello@contrax.company?subject=Request%20a%20live%20demo"
+              href="mailto:contrax.companyllc@gmail.com?subject=Request%20a%20live%20demo"
               className="inline-flex items-center rounded-xl bg-amber-500 px-8 py-4 text-base font-semibold text-white shadow-lg shadow-amber-500/25 transition-all hover:bg-amber-400 hover:shadow-xl active:scale-[0.98]"
             >
               <Mail className="mr-2 h-5 w-5" />
@@ -226,11 +226,11 @@ function DemoPage() {
                 works for you — usually within one business day.
               </p>
               <a
-                href="mailto:hello@contrax.company?subject=Request%20a%20live%20demo"
+                href="mailto:contrax.companyllc@gmail.com?subject=Request%20a%20live%20demo"
                 className="mt-6 inline-flex items-center justify-center rounded-xl bg-slate-900 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98]"
               >
                 <Mail className="mr-2 h-4 w-4" />
-                hello@contrax.company
+                contrax.companyllc@gmail.com
               </a>
               <p className="mt-4 text-center text-xs text-gray-500">
                 Or start your 14-day free trial and explore on your own.
@@ -321,7 +321,7 @@ function DemoPage() {
               <ArrowRight className="ml-2 h-5 w-5" />
             </a>
             <a
-              href="mailto:hello@contrax.company?subject=Request%20a%20live%20demo"
+              href="mailto:contrax.companyllc@gmail.com?subject=Request%20a%20live%20demo"
               className="inline-flex items-center rounded-xl border border-blue-400/30 px-6 py-4 text-base font-medium text-blue-100 transition-colors hover:bg-blue-400/10 hover:text-white"
             >
               <Mail className="mr-2 h-5 w-5" />

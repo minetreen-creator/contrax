@@ -236,7 +236,7 @@ function Home() {
       "Tell Contrax what your business does. Radar finds government opportunities that match — live set-asides for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses, with bid documents explained and proposals drafted so certified firms can compete and win.",
     url: "https://www.contrax.company",
     logo: "https://www.contrax.company/logo-square.png",
-    email: "hello@contrax.company",
+    email: "contrax.companyllc@gmail.com",
   };
 
   return (
@@ -530,7 +530,7 @@ function Footer() {
     { href: "/security", label: "Security" },
     { href: "/privacy", label: "Privacy" },
     { href: "/terms", label: "Terms" },
-    { href: "mailto:hello@contrax.company", label: "hello@contrax.company" },
+    { href: "mailto:contrax.companyllc@gmail.com", label: "contrax.companyllc@gmail.com" },
   ];
   return (
     <footer className="pt-14 pb-9 text-sm text-[#56647a] dark:text-[#9fb0c8]">

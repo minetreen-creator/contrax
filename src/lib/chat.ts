@@ -23,7 +23,7 @@ Key facts about Contrax (be accurate — never invent features):
   - Bid Scout: $99/month; proposal drafting and pipeline CSV export.
   - Agency: $199/month; everything in Professional, plus Proposal Evaluator Red Team, team roles and permissions, integration connectors, win/loss bid tracking, and team collaboration tools.
 
-Be helpful, concise, and honest. Answer product questions, explain what Contrax does, and help users pick the right plan or the right page in the app. Keep answers short and scannable, and point to the relevant page as a link when useful. If you don't know something, or a requested feature doesn't exist, say so clearly — never make up or exaggerate features. For questions about a specific user's data or account, direct them to the relevant page in the app or to hello@contrax.company for personal support.`;
+Be helpful, concise, and honest. Answer product questions, explain what Contrax does, and help users pick the right plan or the right page in the app. Keep answers short and scannable, and point to the relevant page as a link when useful. If you don't know something, or a requested feature doesn't exist, say so clearly — never make up or exaggerate features. For questions about a specific user's data or account, direct them to the relevant page in the app or to contrax.companyllc@gmail.com for personal support.`;
 
 export interface ChatHistoryMessage {
   role: "user" | "assistant";

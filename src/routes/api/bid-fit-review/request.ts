@@ -46,7 +46,7 @@ async function handler({ request }: { request: Request }) {
     if (!process.env.RESEND_API_KEY) throw new Error("Email service unavailable");
     const result = await new Resend(process.env.RESEND_API_KEY).emails.send({
       from: "Contrax <hello@contrax.company>",
-      to: ["minetreen@gmail.com"],
+      to: ["contrax.companyllc@gmail.com"],
       replyTo: data.email,
       subject: "Bid Fit Review request",
       text: ["New $99 review request (unpaid; qualify before sending payment link)", `Name: ${data.name}`, `Business: ${data.business}`, `Email: ${data.email}`, `Solicitation: ${data.solicitationUrl}`, `Capabilities: ${data.capabilities}`, `Deadline: ${data.deadline}`, `Document access: ${data.documentsAvailable}`].join("\n\n"),

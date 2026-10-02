@@ -980,7 +980,7 @@ function GrantsPage() {
                   Stripe billing portal.
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Your subscription with Contrax LLC. Billing support: hello@contrax.company.
+                  Your subscription with Contrax LLC. Billing support: contrax.companyllc@gmail.com.
                 </p>
                 <button
                   type="button"

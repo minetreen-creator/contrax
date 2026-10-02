@@ -79,7 +79,7 @@ export function verificationWordingForIrsRecordsAsOf(
 export const NONPROFIT_PROMISE = NONPROFIT_FREE_PROMISE;
 
 /** Where an applicant writes when something looks wrong (the appeal path). */
-export const NONPROFIT_APPEAL_EMAIL = "hello@contrax.company";
+export const NONPROFIT_APPEAL_EMAIL = "contrax.companyllc@gmail.com";
 /** The mailbox as a sentence fragment, so no surface hand-builds a mailto. */
 export const NONPROFIT_APPEAL_PATH = `write to ${NONPROFIT_APPEAL_EMAIL}`;
 

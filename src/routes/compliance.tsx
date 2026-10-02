@@ -694,7 +694,7 @@ function CompliancePage() {
             <a href="/clauses" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">FAR Clause Library</a>
             <a href="/privacy" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Privacy Policy</a>
             <a href="/terms" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Terms of Service</a>
-            <a href="mailto:hello@contrax.company" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Contact</a>
+            <a href="mailto:contrax.companyllc@gmail.com" className="text-sm text-slate-500 hover:text-slate-700 transition-colors">Contact</a>
           </div>
         </div>
       </footer>

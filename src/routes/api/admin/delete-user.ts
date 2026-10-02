@@ -63,7 +63,7 @@ async function handler({ request }: { request: Request }) {
     const found = await db`SELECT id, email FROM users WHERE id = ${userId} LIMIT 1`;
     if (found.length === 0) return Response.json({ error: "User not found" }, { status: 404 });
     const email = String((found[0] as { email?: unknown }).email ?? "").toLowerCase();
-    if (email === "minetreen@gmail.com") {
+    if (email === "minetreen@gmail.com" || email === "contrax.companyllc@gmail.com") {
       return Response.json({ error: "The owner account cannot be deleted" }, { status: 403 });
     }
 

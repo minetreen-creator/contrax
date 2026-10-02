@@ -958,6 +958,8 @@ export function displayPlaceOfPerformance(
  *                    Delaware state agency, school district or college.
  *    sc_scbo       → South Carolina Business Opportunities; every advertiser
  *                    is a South Carolina state or local public body.
+ *    ia_das        → Iowa Bid Opportunities; every buyer is an Iowa state or
+ *                    local public body.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -986,6 +988,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   al_aldot: "AL",
   de_mmp: "DE",
   sc_scbo: "SC",
+  ia_das: "IA",
 };
 
 export interface InsertLocationColumns {

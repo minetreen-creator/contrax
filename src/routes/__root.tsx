@@ -16,6 +16,7 @@ import {
 } from "~/lib/attribution";
 import { trackingIds, getOrCreateVisitorId } from "~/lib/visitor";
 import { getTrackingUser, resolveTrackingUser } from "~/lib/identity";
+import { isAutomatedBrowser } from "~/lib/track";
 import appCss from "~/styles/app.css?url";
 
 const PROD_URL = "https://www.contrax.company";
@@ -97,6 +98,7 @@ if (typeof window !== "undefined") {
 function recordPageView(path: string) {
   if (typeof window === "undefined") return;
   if (path.startsWith("/admin")) return; // don't track admin views
+  if (isAutomatedBrowser()) return; // headless crawlers: no tracking call (see track.ts)
   // Persistent per-visitor + per-session identity (first-party, self-hosted).
   // getOrCreateVisitorId() sets the `contrax_vid` cookie on first call so it is
   // in place before the first page view; the id also rides in the body.

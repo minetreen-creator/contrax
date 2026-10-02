@@ -48,6 +48,16 @@ export const PUBLIC_SSR_CACHEABLE_EXACT_PATHS: readonly string[] = [
 /** Certification hub landing pages: `/<cert>-contracts`. */
 const CERT_HUB_PATTERN = /^\/(?:8a|hubzone|sdvosb|set-aside|small-business|wosb)-contracts$/;
 
+/**
+ * FAR/DFARS clause library: `/clauses` and `/clauses/<clause or part>`
+ * (owner 2026-10-02). The pages render regulatory text synced from
+ * acquisition.gov and read no session at SSR time (the header resolves the
+ * viewer client-side via /api/auth/me), so they are cookie-agnostic. A
+ * crawler walking the clause library at ~1 page/second was the largest share
+ * of Vercel function CPU; cached copies are served from the edge instead.
+ */
+const CLAUSES_PATTERN = /^\/clauses(?:\/[A-Za-z0-9.\-]+)?$/;
+
 /** Per-state landing pages: `/contracts-in/<state-slug>`. */
 const STATE_LANDING_PATTERN = /^\/contracts-in\/[a-z0-9-]+$/;
 
@@ -76,5 +86,6 @@ export function isPublicSsrCacheable(method: string, pathname: string): boolean 
   if (PUBLIC_SSR_CACHEABLE_EXACT_PATHS.includes(path)) return true;
   if (CERT_HUB_PATTERN.test(path)) return true;
   if (STATE_LANDING_PATTERN.test(path)) return true;
+  if (CLAUSES_PATTERN.test(path)) return true;
   return false;
 }

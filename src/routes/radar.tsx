@@ -127,7 +127,9 @@ export function radarOpening({
   stateCode: string;
   cert: string | null;
 }): { headline: string; intro: string } {
-  const certLabel = cert ? CERT_LABEL[cert] ?? "set-aside" : "SDVOSB";
+  // No cert in the link → the scan runs with the broad Small Business default,
+  // so the headline names no certification.
+  const certLabel = cert ? `${CERT_LABEL[cert] ?? "set-aside"} ` : "";
   const stateName = stateCode ? STATE_NAMES[stateCode] ?? stateCode : "";
   // URL-supplied text: React escapes it; cap the length so a crafted link
   // cannot blow up the headline.
@@ -136,15 +138,15 @@ export function radarOpening({
     const forTrade = tradeText ? ` for ${tradeText} work` : "";
     const inState = stateName ? ` in ${stateName}` : "";
     return {
-      headline: `Your ${certLabel} matches${forTrade}${inState}`,
+      headline: `Your ${certLabel}matches${forTrade}${inState}`,
       intro:
-        "We've filled in what you picked on the homepage. Check your certification and contract size, then scan — your first 3 matches are free, each with a real match score and full Incumbent Intelligence (previous winner & award price).",
+        "We've filled in what you picked on the homepage. See your matches now — your first 3 are free, each with a real match score and full Incumbent Intelligence (previous winner & award price). Certification and contract size are optional; set them under Refine.",
     };
   }
   return {
     headline: "Find the set-asides your SDVOSB can actually win. Your first 3 matches are free.",
     intro:
-      "Answer four quick questions and we'll reveal your strongest live set-aside matches — one at a time, with a real match score and full Incumbent Intelligence (previous winner & award price). Works for 8(a), WOSB and HUBZone firms too.",
+      "Tell us your trade and state and we'll show your strongest live matches, with a real match score and full Incumbent Intelligence (previous winner & award price). Works for 8(a), WOSB and HUBZone firms too.",
   };
 }
 
@@ -156,6 +158,15 @@ export const SIZE_OPTS = [
 ] as const;
 
 export type SizeId = (typeof SIZE_OPTS)[number]["id"];
+
+/**
+ * The defaults Radar scans with when the visitor has only given a trade and a
+ * state (owner 2026-10-02: ask two questions, refine later). "sb" is the
+ * broadest certification filter (SBA set-asides + unrestricted + state/local
+ * postings without federal set-aside metadata); "any" puts no size limit on.
+ */
+export const DEFAULT_RADAR_CERT: RadarCert = "sb";
+export const DEFAULT_RADAR_SIZE: SizeId = "any";
 
 /**
  * R2: Contract Radar → signup CTA builder — carries the visitor's radar
@@ -986,7 +997,7 @@ export const Route = createFileRoute("/radar")({
       {
         property: "og:description",
         content:
-          "Answer four quick questions. Contract Radar scans live federal, state and local solicitations and reveals your strongest matches one at a time — the first 3 are free, with full incumbent intel.",
+          "Tell us your trade and state. Contract Radar scans live federal, state and local solicitations and reveals your strongest matches one at a time — the first 3 are free, with full incumbent intel.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
@@ -1042,14 +1053,16 @@ const STATE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
 // the exact same list. The trade field stays free text; presentation-only.
 
 function RadarLanding() {
-  const [step, setStep] = useState<Step>(1);
   // Deep-link initial state (owner-directed): /radar accepts `?trade=&state=&cert=&size=`
   // so CTAs (homepage hero, Example Brief section) can drop a visitor straight
   // onto a personalized scan with their trade / certification preselected. Each
   // param is validated against its known set (cert ids, size ids, two-letter US
   // states); invalid or absent params fall through to saved answers / defaults.
-  // The form is PRE-FILLED but NOT auto-scanned — the visitor still owns the
-  // "Scan" click (honesty + intent: they confirm the criteria).
+  // RESULTS FIRST (owner 2026-10-02, funnel fix #1): a deep link that carries
+  // a trade (the homepage search sends ?trade=&state=) runs the scan straight
+  // away, so the visitor who already told us their trade and state sees real
+  // matching bids instead of a second form. The criteria stay editable via
+  // "Adjust my answers" on the results screen.
   //
   // Directive order per field: URL param (an explicit deep link) > saved radar
   // answers (localStorage) > empty defaults.
@@ -1073,10 +1086,17 @@ function RadarLanding() {
     : null;
   const hasDeepLink = !!(urlTrade || urlState || urlCert || urlSizePref);
   const opening = radarOpening({ trade: urlTrade, stateCode: urlState, cert: urlCert });
+  // TWO QUESTIONS (owner 2026-10-02, funnel fix #2): only trade and state are
+  // asked up front. Certification and contract size start at the broadest
+  // honest defaults (Small Business, which keeps unrestricted and state/local
+  // postings in the pool — see cert-matching.ts; any size) and are refined
+  // later from the collapsed "Refine" panel.
+  const autoScan = urlTrade !== "";
+  const [step, setStep] = useState<Step>(autoScan ? 2 : 1);
   const [trade, setTrade] = useState(urlTrade);
   const [state, setState] = useState(urlState);
-  const [cert, setCert] = useState<RadarCert | null>(urlCert);
-  const [sizePref, setSizePref] = useState<SizeId | null>(urlSizePref);
+  const [cert, setCert] = useState<RadarCert | null>(urlCert ?? DEFAULT_RADAR_CERT);
+  const [sizePref, setSizePref] = useState<SizeId | null>(urlSizePref ?? DEFAULT_RADAR_SIZE);
   const [scan, setScan] = useState<ScanState>({ status: "idle" });
   const [restoredResults, setRestoredResults] = useState(false);
   const [revealed, setRevealed] = useState(0);
@@ -1199,7 +1219,9 @@ function RadarLanding() {
   // both read this to make resuming a ~10s continuation instead of a restart.
   useEffect(() => {
     if (!cert || !sizePref) return;
-    if (prefilledRef.current && !didInteract.current) return; // mount-time prefill snapshot is not a visitor action
+    // Only a visitor action persists: the mount-time defaults and prefills
+    // must never overwrite answers saved by an earlier visit.
+    if (!didInteract.current) return;
     saveRadarAnswers({ trade: trade.trim(), state, cert, sizePref });
   }, [trade, state, cert, sizePref]);
 
@@ -1208,7 +1230,7 @@ function RadarLanding() {
   // Only applies when no deep-link params handled the prefill (prefilledRef is
   // already set once the URL-prefill effect runs, with or without params).
   useEffect(() => {
-    if (prefilledRef.current || cert || sizePref) return;
+    if (prefilledRef.current || didInteract.current) return;
     const ra = getRadarAnswers();
     if (ra) {
       prefilledRef.current = true;
@@ -1219,7 +1241,8 @@ function RadarLanding() {
         setSizePref(ra.sizePref as SizeId);
       }
     }
-  }, [cert, sizePref]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // A returning anonymous visitor came back for the value they already found,
   // not for another blank questionnaire. Restore only a timestamped, <=72h
@@ -1423,6 +1446,16 @@ function RadarLanding() {
     if (!editing) return;
     runScan({ trade: trade.trim(), state, cert: cert!, sizePref: sizePref! });
   };
+
+  // RESULTS FIRST: a deep link with a trade scans once, on mount.
+  const autoScanRanRef = useRef(false);
+  useEffect(() => {
+    if (!autoScan || autoScanRanRef.current) return;
+    autoScanRanRef.current = true;
+    trackEvent("radar_auto_scan", urlState || "nationwide");
+    runScan({ trade: urlTrade, state: urlState, cert: cert ?? DEFAULT_RADAR_CERT, sizePref: sizePref ?? DEFAULT_RADAR_SIZE });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const track = (trade.trim() || "any");
   const stateLabel = state ? ` / ${state}` : "";
 
@@ -1439,7 +1472,7 @@ function RadarLanding() {
             <p className="mt-3 text-sm leading-relaxed text-slate-300">{opening.intro}</p>
 
             {/* FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2):
-                ONE clear sentence + the four inputs the scan asks for + the note
+                ONE clear sentence + the two inputs the scan asks for + the note
                 that search is free. Sits ABOVE the unchanged scan form; gone
                 after the first successful scan or an explicit dismissal. */}
             {guidanceVisible && (
@@ -1519,9 +1552,16 @@ function RadarLanding() {
                 </select>
               </div>
 
-              {/* Certification */}
-              <div>
-                <p className="text-sm font-semibold text-slate-200">3. Your set-aside certification</p>
+              {/* Certification + size: optional, collapsed (owner 2026-10-02:
+                  two questions up front, refine later). */}
+              <details className="rounded-2xl border border-slate-700 bg-slate-900/70 px-5 py-4 text-sm text-slate-300">
+                <summary className="cursor-pointer select-none">
+                  <span className="font-semibold text-white">Refine (optional):</span>{" "}
+                  {cert ? CERT_LABEL[cert] : "Small Business"} ·{" "}
+                  {SIZE_OPTS.find((s) => s.id === sizePref)?.label ?? "Any size"}
+                </summary>
+              <div className="mt-4">
+                <p className="text-sm font-semibold text-slate-200">Set-aside certification</p>
                 <div role="list" className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {RADAR_CERTS.map((c) => (
                     <button
@@ -1547,8 +1587,8 @@ function RadarLanding() {
               </div>
 
               {/* Size */}
-              <div>
-                <p className="text-sm font-semibold text-slate-200">4. Preferred contract size</p>
+              <div className="mt-5">
+                <p className="text-sm font-semibold text-slate-200">Contract size</p>
                 <div role="list" className="mt-2 grid grid-cols-2 gap-2">
                   {SIZE_OPTS.map((s) => (
                     <button
@@ -1573,6 +1613,7 @@ function RadarLanding() {
                   ))}
                 </div>
               </div>
+              </details>
 
               <button
                 type="button"
@@ -1580,7 +1621,7 @@ function RadarLanding() {
                 onClick={startScan}
                 className="mt-2 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Scan the market for my matches →
+                See my matches →
               </button>
               <p className="text-center text-xs text-slate-500">
                 Scans live federal, state and local solicitations.

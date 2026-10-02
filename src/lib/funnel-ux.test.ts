@@ -226,17 +226,15 @@ describe("the owner-verbatim copy rendered by the Radar funnel", () => {
     expect(SAVE_OPPORTUNITY_LABEL).toBe("Save Opportunity");
   });
 
-  test("the first-run guidance: ONE sentence + the four inputs + the free note", () => {
+  test("the first-run guidance: ONE sentence + the two inputs + the free note", () => {
     expect(FIRST_RUN_SENTENCE).toBe(
       "Run your first real search to see the live set-aside opportunities your business qualifies for.",
     );
     expect(FIRST_RUN_INPUTS).toEqual([
       "Trade or NAICS code",
       "State",
-      "Certification",
-      "Preferred contract size",
     ]);
-    expect(FIRST_RUN_INPUTS.length).toBe(4);
+    expect(FIRST_RUN_INPUTS.length).toBe(2);
     expect(FIRST_RUN_FREE_NOTE).toContain("free");
   });
 });

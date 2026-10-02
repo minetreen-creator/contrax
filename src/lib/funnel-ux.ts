@@ -182,12 +182,11 @@ export function resolveGoogleCallbackDestination(
 /** Exactly ONE clear sentence (item 2). */
 export const FIRST_RUN_SENTENCE =
   "Run your first real search to see the live set-aside opportunities your business qualifies for.";
-/** The four inputs the scan form asks for, listed in form order. */
+/** The two inputs the scan form asks for, in form order (certification and
+ *  contract size are optional refinements since owner 2026-10-02). */
 export const FIRST_RUN_INPUTS: readonly string[] = [
   "Trade or NAICS code",
   "State",
-  "Certification",
-  "Preferred contract size",
 ];
 /** The honesty/price note: discovery stays free (owner item 6). */
 export const FIRST_RUN_FREE_NOTE = "Search is always free — no card required.";

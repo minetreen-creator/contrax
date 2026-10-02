@@ -234,3 +234,39 @@ describe("RadarCard — the requirements signup CTA is anonymous-only (F2 family
     expect(html).not.toContain('href="/signup');
   });
 });
+
+// ── Results first + two questions (owner 2026-10-02, funnel fixes #1 and #2) ──
+describe("Radar: a search link scans at once; only trade and state are asked", () => {
+  const src = readFileSync(join(REPO_SRC, "routes", "radar.tsx"), "utf8");
+  const home = readFileSync(join(REPO_SRC, "routes", "index.tsx"), "utf8");
+
+  test("a deep link with a trade runs the scan on mount, once", () => {
+    expect(src).toContain('const autoScan = urlTrade !== "";');
+    expect(src).toContain("useState<Step>(autoScan ? 2 : 1)");
+    expect(src).toContain("if (!autoScan || autoScanRanRef.current) return;");
+    expect(src).toContain('trackEvent("radar_auto_scan"');
+  });
+
+  test("certification and size default broad and sit in a collapsed Refine panel", () => {
+    expect(src).toContain('export const DEFAULT_RADAR_CERT: RadarCert = "sb";');
+    expect(src).toContain('export const DEFAULT_RADAR_SIZE: SizeId = "any";');
+    expect(src).toContain("useState<RadarCert | null>(urlCert ?? DEFAULT_RADAR_CERT)");
+    const details = src.indexOf("<details");
+    const cert = src.indexOf("Set-aside certification</p>");
+    const size = src.indexOf("Contract size</p>");
+    const close = src.indexOf("</details>");
+    expect(details).toBeGreaterThan(-1);
+    expect(details).toBeLessThan(cert);
+    expect(cert).toBeLessThan(size);
+    expect(size).toBeLessThan(close);
+  });
+
+  test("defaults never overwrite answers saved by an earlier visit", () => {
+    expect(src).toContain("if (!didInteract.current) return;\n    saveRadarAnswers(");
+  });
+
+  test("the homepage search sends no SDVOSB-only filter", () => {
+    expect(home).not.toContain('cert: "sdvosb", size: "any"');
+    expect(home).toContain('navigate({ to: "/radar", search: search as never });');
+  });
+});

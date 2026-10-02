@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { getCurrentUser } from "~/lib/auth";
@@ -15,14 +16,16 @@ export const Route = createFileRoute("/upgrade")({
   component: Upgrade,
 });
 
+// Yearly = 10 × monthly (2 months free); mirrors ANNUAL_UNIT_AMOUNTS in src/lib/stripe.ts.
 const plans = [
-  { id: "starter", name: "Starter", price: 19 },
-  { id: "professional", name: "Professional", price: 79 },
-  { id: "agency", name: "Agency", price: 199 },
+  { id: "starter", name: "Starter", price: 19, yearly: 190 },
+  { id: "professional", name: "Professional", price: 79, yearly: 790 },
+  { id: "agency", name: "Agency", price: 199, yearly: 1990 },
 ];
 
 function Upgrade() {
   const status = Route.useLoaderData();
+  const [interval, setInterval] = useState<"month" | "year">("month");
   const endsLabel =
     status?.active && status.endsAt
       ? new Date(status.endsAt).toLocaleDateString("en-US", {
@@ -48,7 +51,25 @@ function Upgrade() {
               }. Choose a plan to keep going.`
             : "Choose a plan to keep going."}
         </p>
-        <div className="mt-10 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 flex justify-center">
+          <div role="radiogroup" aria-label="Billing period" className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm font-semibold shadow-sm">
+            {(["month", "year"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                role="radio"
+                aria-checked={interval === v}
+                onClick={() => setInterval(v)}
+                className={`rounded-full px-4 py-1.5 transition ${
+                  interval === v ? "bg-slate-900 text-white" : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                {v === "month" ? "Monthly" : "Yearly · 2 months free"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="mt-8 grid gap-6 md:grid-cols-3">
           {plans.map((p) => {
             const isCurrent = status?.planTier === p.id;
             return (
@@ -66,12 +87,24 @@ function Upgrade() {
                   </div>
                 )}
                 <h2 className="text-xl font-bold text-slate-900">{p.name}</h2>
-                <p className="mt-4 text-4xl font-extrabold text-slate-900">
-                  ${p.price}
-                  <span className="text-sm font-normal text-slate-500">/mo</span>
-                </p>
+                {interval === "month" ? (
+                  <p className="mt-4 text-4xl font-extrabold text-slate-900">
+                    ${p.price}
+                    <span className="text-sm font-normal text-slate-500">/mo</span>
+                  </p>
+                ) : (
+                  <>
+                    <p className="mt-4 text-4xl font-extrabold text-slate-900">
+                      ${p.yearly.toLocaleString("en-US")}
+                      <span className="text-sm font-normal text-slate-500">/yr</span>
+                    </p>
+                    <p className="mt-1 text-sm text-emerald-700">
+                      ${(p.price * 12).toLocaleString("en-US")} if paid monthly. You save ${(p.price * 2).toLocaleString("en-US")}.
+                    </p>
+                  </>
+                )}
                 <button
-                  onClick={() => redirectToCheckout(p.id as any)}
+                  onClick={() => redirectToCheckout(p.id as any, { interval })}
                   className={`mt-8 w-full rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 ${
                     isCurrent ? "bg-amber-500" : "bg-slate-900 hover:bg-slate-800"
                   }`}

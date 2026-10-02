@@ -76,6 +76,31 @@ const EXPECTED_UNIT_AMOUNTS: Record<PlanTier, number | null> = {
   savings_premium: null, // one-time price — amount varies
 };
 
+// ── Annual billing (owner 2026-10-02: "2 months free") ─────────────────────────
+//
+// A yearly plan costs 10 × the monthly price (12 months for the price of 10).
+// There are no separate yearly Prices in the Stripe catalog: the checkout
+// builds the yearly line item inline (`price_data`) on the SAME Product as the
+// tier's monthly price, so the subscription, its metadata (plan_tier, user_id)
+// and the webhook flow are identical to a monthly one; only the amount and the
+// billing interval differ.
+
+export type BillingInterval = "month" | "year";
+
+/** Yearly unit_amount (cents) per tier: 10 × the monthly price. */
+export const ANNUAL_UNIT_AMOUNTS: Partial<Record<PlanTier, number>> = {
+  starter: 1900 * 10, // $190/yr
+  professional: 7900 * 10, // $790/yr
+  agency: 19900 * 10, // $1,990/yr
+};
+
+/** Monthly price in whole dollars per tier (the catalog prices above). */
+export const MONTHLY_PRICE_USD: Partial<Record<PlanTier, number>> = {
+  starter: 19,
+  professional: 79,
+  agency: 199,
+};
+
 // ── Veterans Against Diabetes (VAD) partner pricing ────────────────────────────
 //
 // VAD partner members get EXCLUSIVE pricing for the first 12 months via the
@@ -341,6 +366,12 @@ export interface CreateCheckoutSessionOptions {
    * our own server-side verification that selects pre-existing VAD prices.
    */
   promoCode?: string;
+  /**
+   * "month" (default) or "year". A yearly checkout bills ANNUAL_UNIT_AMOUNTS
+   * (10 × monthly) once a year on the tier's own Product. Yearly is offered for
+   * Starter, Professional and Agency only, and not with the VAD partner code.
+   */
+  interval?: BillingInterval;
 }
 
 /**
@@ -357,12 +388,39 @@ export async function createCheckoutSession(
 ): Promise<CreateCheckoutSessionResult> {
   try {
     const isVad = opts.promoCode === "VAD26";
+    const interval: BillingInterval = opts.interval ?? "month";
+    const annualAmount = ANNUAL_UNIT_AMOUNTS[planTier];
+    if (interval === "year" && (isVad || !annualAmount)) {
+      return { success: false, error: "Yearly billing is not available for this plan." };
+    }
     const priceId = isVad
       ? await getVadPriceIdForPlanTier(planTier)
       : await getPriceIdForPlanTier(planTier);
     const mode: CheckoutMode = opts.mode ?? "subscription";
+    if (interval === "year" && mode !== "subscription") {
+      return { success: false, error: "Yearly billing is a subscription." };
+    }
+
+    // Yearly: the same Product as the monthly price, billed 10 × monthly once a year.
+    let lineItem: Stripe.Checkout.SessionCreateParams.LineItem = { price: priceId, quantity: 1 };
+    if (interval === "year") {
+      const monthly = await getStripe().prices.retrieve(priceId);
+      const productId = typeof monthly.product === "string" ? monthly.product : monthly.product.id;
+      lineItem = {
+        price_data: {
+          currency: monthly.currency || "usd",
+          product: productId,
+          unit_amount: annualAmount!,
+          recurring: { interval: "year" },
+        },
+        quantity: 1,
+      };
+    }
 
     const metadata: Record<string, string> = { plan_tier: planTier };
+    if (interval === "year") {
+      metadata.billing_interval = "year";
+    }
     if (opts.userId != null) {
       metadata.user_id = String(opts.userId);
     }
@@ -372,12 +430,7 @@ export async function createCheckoutSession(
 
     const session = await getStripe().checkout.sessions.create({
       mode,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
+      line_items: [lineItem],
       metadata,
       // Carry the SAME attribution metadata on the SUBSCRIPTION (not just the
       // checkout session) so the lifecycle webhook can attribute

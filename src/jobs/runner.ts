@@ -68,6 +68,7 @@ import { fetchInIdoaBids } from "./sources/in-idoa";
 import { fetchMtEmacsBids } from "./sources/mt-emacs";
 import { fetchVtVbrBids } from "./sources/vt-vbr";
 import { fetchTnCpoBids } from "./sources/tn-cpo";
+import { fetchNeDasBids } from "./sources/ne-das";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -273,6 +274,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "vt_vbr", fetchFn: () => fetchVtVbrBids() },
   // Tennessee Central Procurement Office: open RFPs, RFQs, RFIs and solicitation notices.
   { name: "tn_cpo", fetchFn: () => fetchTnCpoBids() },
+  // Nebraska State Purchasing Bureau: current bid opportunities.
+  { name: "ne_das", fetchFn: () => fetchNeDasBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

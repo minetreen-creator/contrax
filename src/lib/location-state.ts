@@ -962,6 +962,8 @@ export function displayPlaceOfPerformance(
  *                    local public body.
  *    la_lapac      → Louisiana LaPAC; every buyer is a Louisiana state agency,
  *                    university, college or local public body.
+ *    in_idoa       → Indiana IDOA Current Business Opportunities; every buyer
+ *                    is an Indiana state agency.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -992,6 +994,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   sc_scbo: "SC",
   ia_das: "IA",
   la_lapac: "LA",
+  in_idoa: "IN",
 };
 
 export interface InsertLocationColumns {

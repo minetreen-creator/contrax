@@ -278,7 +278,7 @@ const TRADES = [
   { label: "Construction", q: "construction" },
   { label: "Security guards", q: "security guard" },
   { label: "IT services", q: "IT services" },
-  { label: "Other (enter NAICS on the next step)", q: "" },
+  { label: "Other (type your trade on the next step)", q: "" },
 ];
 
 const SORTED_STATES = [...US_STATES].sort((a, b) =>
@@ -299,10 +299,11 @@ function Hero({ sample }: { sample: SampleBid[] }) {
 
   const onSearch = () => {
     trackEvent("homepage_radar_cta_clicked", "hero_primary");
-    // size=any: Radar's Scan needs a contract size and the homepage doesn't ask
-    // for one, so preselect "Any size" (the visitor can still change it and
-    // still clicks Scan themselves).
-    const search: Record<string, string> = { cert: "sdvosb", size: "any" };
+    // Results first (owner 2026-10-02): /radar scans as soon as it receives a
+    // trade, with its broad defaults (Small Business, any size). No cert is
+    // sent: an SDVOSB-only filter hides the unrestricted and state/local bids a
+    // veteran-owned firm can also bid; the visitor narrows it on the results.
+    const search: Record<string, string> = {};
     if (trade) search.trade = trade;
     if (state) search.state = state;
     navigate({ to: "/radar", search: search as never });

@@ -30,10 +30,11 @@ describe("funnel qualifying events", () => {
     }
   });
 
-  test("the homepage fires that exact event and preselects a size Radar accepts", () => {
+  test("the homepage fires that exact event; Radar defaults to a size it accepts", () => {
     const home = read("src/routes/index.tsx");
     expect(home).toContain('trackEvent("homepage_radar_cta_clicked", "hero_primary")');
-    expect(home).toContain('size: "any"');
-    expect(read("src/routes/radar.tsx")).toContain('{ id: "any", label: "Any size"');
+    const radar = read("src/routes/radar.tsx");
+    expect(radar).toContain('{ id: "any", label: "Any size"');
+    expect(radar).toContain('export const DEFAULT_RADAR_SIZE: SizeId = "any";');
   });
 });

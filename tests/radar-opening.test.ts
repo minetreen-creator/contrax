@@ -37,6 +37,12 @@ describe("radarOpening — Radar step-1 headline", () => {
     );
   });
 
+  test("no cert in the link: the headline names no certification (broad default scan)", () => {
+    expect(radarOpening({ trade: "janitorial", stateCode: "VA", cert: null }).headline).toBe(
+      "Your matches for janitorial work in Virginia",
+    );
+  });
+
   test("an over-long URL trade is capped", () => {
     const o = radarOpening({ trade: "x".repeat(500), stateCode: "", cert: "sdvosb" });
     expect(o.headline.length).toBeLessThan(120);

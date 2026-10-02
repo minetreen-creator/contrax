@@ -1833,6 +1833,19 @@ function RadarLanding() {
             {/* ANONYMOUS results (PR1): the first min(total, free cap) REAL
                 matches render up front; the locked-results card renders ONLY
                 when real matches exceed the cap (never a manufactured wall). */}
+            {/* FEW-MATCHES OFFER (owner 2026-10-02): 1..=3 real matches means
+                nothing is locked, so the email alert for NEW matches leads the
+                results instead of sitting under them. */}
+            {isAnonymous && scan.matches.length > 0 && locked === 0 && (
+              <MatchAlertsCard
+                certLabel={scan.certLabel}
+                trade={trade}
+                state={state}
+                cert={cert ?? ""}
+                sizePref={sizePref ?? ""}
+                fewMatches={scan.matches.length}
+              />
+            )}
             {isAnonymous && scan.matches.length > 0 && (
               <div className="mt-6 flex flex-col gap-5">
                 {scan.matches.slice(0, visibleCount).map((m, i) => (
@@ -1930,7 +1943,7 @@ function RadarLanding() {
                 consent to be alerted when new matching opportunities open (no
                 account required). Sends only the ONE confirmation email; the
                 periodic match-alert sender is a separately queued follow-up. */}
-            {isAnonymous && scan.matches.length > 0 && (
+            {isAnonymous && scan.matches.length > 0 && locked > 0 && (
               <MatchAlertsCard
                 certLabel={scan.certLabel}
                 trade={trade}
@@ -2905,19 +2918,39 @@ export function MatchAlertsCard({
   state,
   cert,
   sizePref,
+  fewMatches,
 }: {
   certLabel: string;
   trade: string;
   state: string;
   cert: string;
   sizePref: string;
+  /**
+   * FEW-MATCHES OFFER (owner 2026-10-02): the real match count when a scan
+   * found 1..=FREE_ANONYMOUS_RADAR_RESULTS. The card then leads the results
+   * ("Only 3 open right now. Get new laundry bids by email.") instead of
+   * sitting under them: a visitor who already sees every match has nothing to
+   * unlock, so future matches are the reason to leave an email.
+   */
+  fewMatches?: number;
 }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
   const [dismissed, setDismissed] = useState(false);
   const [error, setError] = useState("");
+  const shownRef = useRef(false);
+  useEffect(() => {
+    if (shownRef.current) return;
+    shownRef.current = true;
+    trackEvent("radar_alert_offer_shown", fewMatches ? `few_${fewMatches}` : "standard");
+  }, [fewMatches]);
 
   if (dismissed) return null;
+  const tradeText = trade.trim().slice(0, 40);
+  const stateName = state ? STATE_NAMES[state] ?? state : "";
+  const heading = fewMatches
+    ? `Only ${fewMatches} open right now. Get new ${tradeText ? `${tradeText} ` : ""}bids${stateName ? ` in ${stateName}` : ""} by email.`
+    : "Want new matches by email instead?";
 
   const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -2981,10 +3014,11 @@ export function MatchAlertsCard({
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="text-base font-bold text-white">Want new matches by email instead?</h3>
+          <h3 className="text-base font-bold text-white">{heading}</h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-300">
-            Leave your email and we&apos;ll send you a weekly email of new
-            matching opportunities. No account required.
+            {fewMatches
+              ? "New bids post every day. Leave your email and we'll send you a weekly email when new matching opportunities open. No account required."
+              : "Leave your email and we'll send you a weekly email of new matching opportunities. No account required."}
           </p>
         </div>
         <button
@@ -3026,7 +3060,7 @@ export function MatchAlertsCard({
           disabled={status === "submitting"}
           className="w-full rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:opacity-60"
         >
-          {status === "submitting" ? "Sending…" : "Send My Matches →"}
+          {status === "submitting" ? "Sending…" : fewMatches ? "Email me new matches →" : "Send My Matches →"}
         </button>
       </form>
     </section>

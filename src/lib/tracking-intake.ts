@@ -97,6 +97,7 @@ export const EVENT_LABELS: Record<string, string> = {
   save_opportunity_prompt_shown: "Tracking prompt shown after save",
   radar_save: "Saved radar match",
   radar_lead_captured: "Radar match-alert lead captured",
+  radar_alert_offer_shown: "Radar match-alert offer shown",
   radar_alert_sent: "Radar match-alert sent",
   // Radar match-alert channel (owner 2026-09-06/07) — DISPLAY labels only; the
   // admin radar-leads funnel reads these two as stage events (mirrors how the

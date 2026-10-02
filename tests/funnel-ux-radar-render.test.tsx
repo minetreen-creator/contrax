@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { RadarCard, RequirementsFallback, SaveTrackingPrompt, type RadarMatch } from "~/routes/radar";
+import { MatchAlertsCard, RadarCard, RequirementsFallback, SaveTrackingPrompt, type RadarMatch } from "~/routes/radar";
 import { BEST_MATCH_BADGE, SAVE_TRACKING_PROMPT } from "~/lib/funnel-ux";
 
 const REPO_SRC = join(import.meta.dir, "..", "src");
@@ -279,5 +279,40 @@ describe("headless crawlers are not tracked", () => {
     expect(track).toContain("navigator.webdriver === true");
     expect(track).toContain("if (isAutomatedBrowser()) return;");
     expect(root).toContain("if (isAutomatedBrowser()) return;");
+  });
+});
+
+// ── Few-matches alert offer (owner 2026-10-02) ───────────────────────────────
+describe("a scan with 1-3 matches leads with the email alert offer", () => {
+  const src = readFileSync(join(REPO_SRC, "routes", "radar.tsx"), "utf8");
+
+  test("the few-matches headline names the count, trade and state", () => {
+    const html = renderToStaticMarkup(
+      <MatchAlertsCard certLabel="Small Business" trade="Laundry services" state="VA" cert="sb" sizePref="any" fewMatches={3} />,
+    );
+    expect(html).toContain("Only 3 open right now. Get new Laundry services bids in Virginia by email.");
+    expect(html).toContain("No account required");
+    expect(html).toContain("Email me new matches →");
+  });
+
+  test("nationwide reads naturally; the standard card is unchanged", () => {
+    const nationwide = renderToStaticMarkup(
+      <MatchAlertsCard certLabel="Small Business" trade="Laundry services" state="" cert="sb" sizePref="any" fewMatches={1} />,
+    );
+    expect(nationwide).toContain("Only 1 open right now. Get new Laundry services bids by email.");
+    const standard = renderToStaticMarkup(
+      <MatchAlertsCard certLabel="Small Business" trade="janitorial" state="VA" cert="sb" sizePref="any" />,
+    );
+    expect(standard).toContain("Want new matches by email instead?");
+    expect(standard).toContain("Send My Matches →");
+  });
+
+  test("placement: above the cards when nothing is locked, below them otherwise", () => {
+    const top = src.indexOf("fewMatches={scan.matches.length}");
+    const cards = src.indexOf("{scan.matches.slice(0, visibleCount).map((m, i) => (");
+    expect(top).toBeGreaterThan(-1);
+    expect(top).toBeLessThan(cards);
+    expect(src).toContain("{isAnonymous && scan.matches.length > 0 && locked === 0 && (");
+    expect(src).toContain("{isAnonymous && scan.matches.length > 0 && locked > 0 && (");
   });
 });

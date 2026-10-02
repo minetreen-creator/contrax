@@ -38,6 +38,6 @@ export const SHOW_FREE_INCUMBENT = true;
  * Rules (owner-brief non-negotiables): the locked card is shown ONLY when real
  * matches exceed the free cap (never a manufactured wall), the counts shown are
  * ALWAYS the real ones, and AUTHENTICATED users of any tier never see any gating
- * (they keep normal entitlement — see /radar + HeroRadar).
+ * (they keep normal entitlement — see /radar).
  */
 export const FREE_ANONYMOUS_RADAR_RESULTS = 3;

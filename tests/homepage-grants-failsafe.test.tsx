@@ -204,12 +204,12 @@ describe("homepage loader — server-only, per-request, and unable to break the 
 
   test("the flag flows loader payload → component props (the path bidStats/contractMap use)", () => {
     // the loader RETURNS the field on the same payload as bidStats/contractMap
-    expect(src).toContain("return { businessName, user, bidStats, contractMap, grantsUpgradeEnabled };");
+    expect(src).toContain("return { businessName, bidStats, contractMap, grantsUpgradeEnabled };");
     expect(src).toContain(
       "<ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />",
     );
     expect(src).toContain(
-      "const { user, bidStats, contractMap, grantsUpgradeEnabled } = Route.useLoaderData();",
+      "const { bidStats, contractMap, grantsUpgradeEnabled } = Route.useLoaderData();",
     );
   });
 

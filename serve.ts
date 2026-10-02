@@ -9,6 +9,7 @@
 // with an already-running server. Every sandbox user has passwordless sudo, so
 // the takeover works across user boundaries.
 import handler from "./dist/server/server.js";
+import { anonHintClearCookie, issuesSession } from "./src/lib/anon-hint";
 
 // Pinned, NOT read from the environment. The published preview URL
 // (<label>.<PUBLIC_SITE_DOMAIN>) is reverse-proxied to 0.0.0.0:3000 inside the
@@ -404,9 +405,15 @@ async function mainFetch(req: Request): Promise<Response> {
   }
 
   // SSR
-  return (
+  const ssrRes = await (
     handler as { fetch: (r: Request) => Response | Promise<Response> }
   ).fetch(req);
+  // Known-anonymous hint (src/lib/anon-hint.ts): a response that issues a
+  // session cookie also clears the hint — same rule as vercel-entry.ts.
+  if (issuesSession(ssrRes.headers.getSetCookie?.() ?? [])) {
+    ssrRes.headers.append("set-cookie", anonHintClearCookie());
+  }
+  return ssrRes;
 }
 
 // ── Port management + startup ────────────────────────────────────────────────

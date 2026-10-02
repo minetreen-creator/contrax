@@ -1,6 +1,7 @@
 import { trackingIds } from "~/lib/visitor";
 import { getTrackingUser } from "~/lib/identity";
 import { readStoredAttemptToken } from "~/lib/signup-telemetry";
+import { enqueueTracking } from "~/lib/track-queue";
 /**
  * Fire-and-forget funnel event tracking (client-side only).
  *
@@ -70,16 +71,6 @@ export function trackEvent(event: string, label?: string, path?: string) {
   // signup one-shot family). sessionStorage read is guarded + cheap.
   const attempt = readStoredAttemptToken();
   if (attempt) payload.attempt_token = attempt;
-  try {
-    fetch("/api/track-visitor", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      keepalive: true,
-    }).catch(() => {
-      /* fire-and-forget — never surface tracking failures */
-    });
-  } catch {
-    /* never let tracking break rendering */
-  }
+  // Batched with other tracking calls (src/lib/track-queue.ts).
+  enqueueTracking(payload);
 }

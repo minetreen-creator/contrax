@@ -739,3 +739,39 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
     return Response.json({ ok: true, skipped: true });
   }
 }
+
+// ── Batched intake (owner 2026-10-02 — Vercel CPU) ──────────────────────────
+
+/** Max items one batched beacon may carry (mirrors the client's MAX_BATCH). */
+export const MAX_INTAKE_BATCH = 20;
+
+/**
+ * POST /api/track-visitor with `{ batch: [...] }` (src/lib/track-queue.ts):
+ * one function invocation for up to MAX_INTAKE_BATCH payloads instead of one
+ * each. Every item runs through the SAME handleIntake as a single beacon — a
+ * per-item synthetic request carries the original headers (cookies, UA, geo,
+ * IP) with the item's own page as Referer — so dedupe, attribution, summary
+ * upserts and bot filtering are unchanged. The BotID check runs once, on the
+ * first item; a bot verdict drops the whole batch. Items run in order so the
+ * stored timestamps keep the visitor's sequence.
+ */
+export async function handleIntakeBatch(request: Request, items: unknown[]): Promise<Response> {
+  const list = items.slice(0, MAX_INTAKE_BATCH).filter(
+    (i): i is Record<string, unknown> => !!i && typeof i === "object" && !Array.isArray(i),
+  );
+  let recorded = 0;
+  for (let i = 0; i < list.length; i++) {
+    const { href, ...item } = list[i];
+    const headers = new Headers(request.headers);
+    headers.delete("content-length");
+    if (typeof href === "string" && /^https?:\/\//.test(href)) headers.set("referer", href.slice(0, 2048));
+    const itemRequest = new Request(request.url, { method: "POST", headers, body: JSON.stringify(item) });
+    const res = await handleIntake(itemRequest, undefined, i > 0);
+    if (i === 0) {
+      const verdict = (await res.clone().json().catch(() => null)) as { bot?: boolean } | null;
+      if (verdict?.bot) return Response.json({ ok: true, bot: true });
+    }
+    recorded++;
+  }
+  return Response.json({ ok: true, batch: recorded });
+}

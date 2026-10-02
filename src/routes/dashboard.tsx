@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef, useMemo, type ReactNode } fro
 import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { shouldApplyStateFilter } from "~/lib/open-bids";
-import { bidInStates } from "~/lib/profile-match";
+import { bidInStates, freePlanScopeMessage } from "~/lib/profile-match";
 import type { PricingRecommendation } from "~/lib/pricing";
 import { trackBid, untrackBid } from "~/routes/tracking";
 import { isHealthcareBid } from "~/lib/healthcare";
@@ -46,6 +46,7 @@ import {
 import { StickyFilterBar } from "~/components/StickyFilterBar";
 import { ReviewPager } from "~/components/ReviewPager";
 import { HeadStartLock } from "~/components/HeadStartLock";
+import { naicsTitle } from "~/components/NaicsTypeahead";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Bid {
@@ -123,6 +124,14 @@ interface DashboardData {
   totalBids: number;
   matchCount?: number;
   archivedCount?: number;
+  /** Set for a free account whose profile lists more than one state or trade (profile-match.ts scopeProfileToPlan). */
+  freePlanScope?: {
+    limited: boolean;
+    totalStates: number;
+    totalTrades: number;
+    followedStates: string[];
+    followedTrades: string[];
+  } | null;
   lossesCount: number;
   urgentTrackedCount: number;
   topCompetitor: { name: string; awards: number } | null;
@@ -1841,6 +1850,14 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
               Archived
               <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${feedTab === "archived" ? "bg-white/20 text-white" : "bg-slate-100 text-slate-600"}`}>{archivedCount}</span>
             </button>
+          </div>
+        )}
+        {data?.freePlanScope?.limited && feedTab === "live" && (
+          <div className="mb-4 flex flex-col gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              {freePlanScopeMessage(data.freePlanScope, (t) => (/^\d{6}$/.test(t) ? naicsTitle(t) : t))}
+            </span>
+            <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">See Starter →</a>
           </div>
         )}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">

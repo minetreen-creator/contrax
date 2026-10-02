@@ -75,6 +75,7 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
 
     await resend.emails.send({
       from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
       to: [to],
       subject: "Welcome to Contrax — let's find your first contract",
       html: welcomeEmailHtml(to),
@@ -111,6 +112,7 @@ export async function sendPasswordResetEmail(
 
     await resend.emails.send({
       from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
       to: [to],
       subject: "Reset your Contrax password",
       html: passwordResetEmailHtml(token),
@@ -158,6 +160,7 @@ export async function sendWeeklyBidDigest(
       const { error } = await resend.batch.send(
         chunk.map((r) => ({
           from: "Contrax <hello@contrax.company>",
+          replyTo: "contrax.companyllc@gmail.com",
           to: [r.email],
           subject,
           html: bidDigestHtml(listed, newBids.length, { unsubscribeUrl: r.unsubscribeUrl, headStartCount }),
@@ -203,6 +206,7 @@ export async function sendPersonalBidDigests(
       const { error } = await resend.batch.send(
         chunk.map((e) => ({
           from: "Contrax <hello@contrax.company>",
+          replyTo: "contrax.companyllc@gmail.com",
           to: [e.to],
           subject: `Your morning bid digest: ${e.bids.length} new ${e.options.matchLabel ? "matching " : ""}government bid${e.bids.length === 1 ? "" : "s"} — Contrax`,
           html: bidDigestHtml(digestBidsToList(e.bids), e.bids.length, null, e.options),
@@ -252,6 +256,7 @@ export async function sendRadarLeadConfirmationEmail(
 
     await resend.emails.send({
       from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
       to: [to],
       subject: "Confirm your Contrax match alerts",
       html: radarLeadConfirmationHtml(confirmUrl, unsubscribeUrl),
@@ -381,6 +386,7 @@ export async function sendRadarMatchAlertEmail(
 
     await resend.emails.send({
       from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
       to: [to],
       subject: `Contrax found ${bids.length} new opportunity${bids.length === 1 ? "" : "ies"} matching your Radar profile`,
       html: radarMatchAlertHtml(bids, truncatedCount, unsubscribeUrl),
@@ -847,13 +853,14 @@ export async function sendNonprofitApprovedEmail(
     <a href="https://www.contrax.company/grants" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;">Open Contrax Grants</a>
   </td></tr>
   <tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-    <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Questions? Write to hello@contrax.company.</p>
+    <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Questions? Write to contrax.companyllc@gmail.com.</p>
     <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">Contrax LLC · contrax.company</p>
     <p style="margin:0;color:#9ca3af;font-size:12px;">&copy; ${new Date().getFullYear()} Contrax LLC</p>
   </td></tr>
 </table></td></tr></table></body>`;
     const result = await resend.emails.send({
       from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
       to: [to],
       subject: "Your Contrax nonprofit access is active",
       html,
@@ -883,7 +890,7 @@ export async function sendNonprofitDeniedEmail(to: string, orgName: string): Pro
   <tr><td style="padding:32px 32px 24px;">
     <h1 style="margin:0 0 12px;color:#111827;font-size:22px;">About your Nonprofit Free application</h1>
     <p style="margin:0 0 12px;color:#374151;font-size:15px;">We reviewed the application for ${escapeHtml(orgName)} and could not verify it against IRS tax-exempt records, so free nonprofit access was not granted.</p>
-    <p style="margin:0 0 12px;color:#374151;font-size:15px;">If you believe this is a mistake, write to hello@contrax.company and we will take another look — many organizations are simply not in the IRS records yet, and we can review supporting documentation.</p>
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">If you believe this is a mistake, write to contrax.companyllc@gmail.com and we will take another look — many organizations are simply not in the IRS records yet, and we can review supporting documentation.</p>
     <p style="margin:0;color:#6b7280;font-size:13px;">Your Contrax account is unchanged, and anything you had saved is still there.</p>
   </td></tr>
   <tr><td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
@@ -893,6 +900,7 @@ export async function sendNonprofitDeniedEmail(to: string, orgName: string): Pro
 </table></td></tr></table></body>`;
     const result = await resend.emails.send({
       from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
       to: [to],
       subject: "Your Contrax nonprofit application",
       html,

@@ -108,8 +108,8 @@ function BlogIndexPage() {
             <a href="/clauses" className="text-sm text-gray-400 transition-colors hover:text-white">FAR Clause Library</a>
             <a href="/privacy" className="text-sm text-gray-400 transition-colors hover:text-white">Privacy Policy</a>
             <a href="/terms" className="text-sm text-gray-400 transition-colors hover:text-white">Terms of Service</a>
-            <a href="mailto:hello@contrax.company" className="text-sm text-gray-400 transition-colors hover:text-white">
-              hello@contrax.company
+            <a href="mailto:contrax.companyllc@gmail.com" className="text-sm text-gray-400 transition-colors hover:text-white">
+              contrax.companyllc@gmail.com
             </a>
           </div>
         </div>

@@ -378,7 +378,7 @@ describe("the apply flow's order of operations", () => {
     expect(serialized).not.toContain("fraud-likely");
     expect(serialized).not.toContain("identity_contradicts_application");
     expect(serialized).not.toMatch(/fraud|suspicious|invalid|rejected/i);
-    expect(serialized).toContain("hello@contrax.company");
+    expect(serialized).toContain("contrax.companyllc@gmail.com");
     expect(harness.calls.notify).toEqual(["denied"]);
   });
 
@@ -708,7 +708,7 @@ describe("copy module rules (build plan §6)", () => {
   });
 
   test("the not-granted copy is neutral and carries the appeal path", () => {
-    expect(NONPROFIT_NOT_GRANTED_COPY).toContain("hello@contrax.company");
+    expect(NONPROFIT_NOT_GRANTED_COPY).toContain("contrax.companyllc@gmail.com");
     expect(NONPROFIT_NOT_GRANTED_COPY).not.toMatch(/fraud|suspicious|invalid|rejected/i);
   });
 

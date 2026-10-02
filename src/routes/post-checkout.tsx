@@ -412,10 +412,10 @@ function PostCheckoutPage() {
                 <p className="text-xs text-gray-400">
                   Need help? Email us at{" "}
                   <a
-                    href="mailto:hello@contrax.company"
+                    href="mailto:contrax.companyllc@gmail.com"
                     className="text-blue-600 hover:text-blue-500"
                   >
-                    hello@contrax.company
+                    contrax.companyllc@gmail.com
                   </a>
                 </p>
               </div>

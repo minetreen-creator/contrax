@@ -90,7 +90,7 @@ function TermsPage() {
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">11. Contact</h2>
-            <p className="mt-3">For questions, contact Contrax LLC at <a href="mailto:hello@contrax.company" className="text-blue-600 hover:text-blue-500">hello@contrax.company</a> or <a href="mailto:legal@contrax.company" className="text-blue-600 hover:text-blue-500">legal@contrax.company</a>. Website: <a href="https://www.contrax.company" className="text-blue-600 hover:text-blue-500">contrax.company</a>.</p>
+            <p className="mt-3">For questions, contact Contrax LLC at <a href="mailto:contrax.companyllc@gmail.com" className="text-blue-600 hover:text-blue-500">contrax.companyllc@gmail.com</a>. Website: <a href="https://www.contrax.company" className="text-blue-600 hover:text-blue-500">contrax.company</a>.</p>
           </section>
         </div>
       </div>

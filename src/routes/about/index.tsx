@@ -53,7 +53,7 @@ const jsonLd = {
     "@type": "Person",
     name: "Nathaniel Minetree",
   },
-  email: "hello@contrax.company",
+  email: "contrax.companyllc@gmail.com",
   sameAs: [],
   knowsAbout: [
     "Government contracting",

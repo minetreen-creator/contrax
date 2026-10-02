@@ -69,7 +69,7 @@ function BidFitReview() {
             <label className="block text-sm font-medium">Bid deadline and time zone<input name="deadline" required maxLength={100} placeholder="October 22, 3 PM Eastern" defaultValue={prefill.deadline ?? ""} className="mt-1 w-full rounded-lg border border-slate-300 p-3" /></label>
             <label className="block text-sm font-medium">Full documents accessible? <select name="documentsAvailable" required className="mt-1 w-full rounded-lg border border-slate-300 p-3"><option value="">Select one</option><option value="yes">Yes, through the link</option><option value="login">Account or login required</option><option value="unsure">Not sure</option></select></label>
             <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
-            {state === "error" && <p role="alert" className="text-sm text-red-700">Could not send your request. Please email minetreen@gmail.com.</p>}
+            {state === "error" && <p role="alert" className="text-sm text-red-700">Could not send your request. Please email contrax.companyllc@gmail.com.</p>}
             <button disabled={state === "sending"} className="w-full rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white hover:bg-blue-800 disabled:opacity-60">{state === "sending" ? "Sending…" : "Request my $99 review"}</button>
           </form>}
         </section>

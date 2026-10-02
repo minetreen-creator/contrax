@@ -163,20 +163,20 @@ function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-slate-900">10. Your Privacy Rights</h2>
             <p className="mt-3">Depending on where you live, you may have rights regarding personal information Contrax maintains about you, including rights to request access, correction, deletion, or a copy of certain information, and rights to object to or restrict certain processing.</p>
-            <p className="mt-3">Requests may be submitted to <a href="mailto:privacy@contrax.company" className="text-blue-600 hover:text-blue-500">privacy@contrax.company</a>.</p>
+            <p className="mt-3">Requests may be submitted to <a href="mailto:contrax.companyllc@gmail.com" className="text-blue-600 hover:text-blue-500">contrax.companyllc@gmail.com</a>.</p>
             <p className="mt-3">We may need to verify your identity before fulfilling certain requests. Some information may be retained when required or permitted by law, including for security, fraud prevention, recordkeeping, or legal compliance.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">11. California Residents</h2>
             <p className="mt-3">California residents may have additional rights under applicable California privacy laws, including rights concerning access, correction, deletion, and information about how personal information is collected, used, or disclosed.</p>
             <p className="mt-3">Contrax does not sell personal information for monetary consideration.</p>
-            <p className="mt-3">California privacy requests may be submitted to <a href="mailto:privacy@contrax.company" className="text-blue-600 hover:text-blue-500">privacy@contrax.company</a>.</p>
+            <p className="mt-3">California privacy requests may be submitted to <a href="mailto:contrax.companyllc@gmail.com" className="text-blue-600 hover:text-blue-500">contrax.companyllc@gmail.com</a>.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">12. European Economic Area, United Kingdom, and Similar Jurisdictions</h2>
             <p className="mt-3">Where applicable, Contrax processes personal information based on one or more lawful bases, including performance of a contract, legitimate interests, consent where required, and compliance with legal obligations.</p>
             <p className="mt-3">Applicable rights may include access, correction, deletion, portability, restriction, objection, and withdrawal of consent where processing relies upon consent.</p>
-            <p className="mt-3">Requests may be submitted to <a href="mailto:privacy@contrax.company" className="text-blue-600 hover:text-blue-500">privacy@contrax.company</a>.</p>
+            <p className="mt-3">Requests may be submitted to <a href="mailto:contrax.companyllc@gmail.com" className="text-blue-600 hover:text-blue-500">contrax.companyllc@gmail.com</a>.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">13. Children&rsquo;s Privacy</h2>
@@ -191,7 +191,7 @@ function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold text-slate-900">15. Contact</h2>
             <p className="mt-3">Questions or privacy requests may be directed to:</p>
-            <p className="mt-3">Contrax LLC<br /><a href="mailto:privacy@contrax.company" className="text-blue-600 hover:text-blue-500">privacy@contrax.company</a><br /><a href="https://www.contrax.company" className="text-blue-600 hover:text-blue-500">contrax.company</a></p>
+            <p className="mt-3">Contrax LLC<br /><a href="mailto:contrax.companyllc@gmail.com" className="text-blue-600 hover:text-blue-500">contrax.companyllc@gmail.com</a><br /><a href="https://www.contrax.company" className="text-blue-600 hover:text-blue-500">contrax.company</a></p>
           </section>
         </div>
       </div>

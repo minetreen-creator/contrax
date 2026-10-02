@@ -1483,7 +1483,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
     finally { setDownloadingPdf((p) => { const n = new Set(p); n.delete(bid.id); return n; }); }
   }, []);
 
-  const doScore = useCallback(async (bidId: number, regenerate = false) => {
+  const doScore = useCallback(async (bidId: number, regenerate = false, auto = false) => {
     setScoring((p) => new Set(p).add(bidId));
     setAiError((p) => { const n = { ...p }; delete n[bidId]; return n; });
     try {
@@ -1495,9 +1495,10 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
       if (res.error) throw new Error(res.error);
       const result = res;
       setScores((p) => ({ ...p, [bidId]: result })); setActiveTab((p) => ({ ...p, [bidId]: "score" }));
-      // Only this explicit user action counts as activation. The automatic
-      // dashboard digest also writes bid_scores rows without a user click.
-      trackEvent("score_result", String(bidId), "/dashboard");
+      // Only an explicit user action counts as activation: the automatic
+      // top-5 scoring below (auto = true) and the dashboard digest also write
+      // bid_scores rows without a user click.
+      if (!auto) trackEvent("score_result", String(bidId), "/dashboard");
       await new Promise((resolve) => setTimeout(resolve, 200));
       const bid = bids.find((b) => b.id === bidId);
       if (bid && profile) {
@@ -1572,10 +1573,19 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
     removeFilterChip("geo");
   }, [profile, filterUpdating, removeFilterChip]);
 
+  // Auto-score the TOP 5 bids only, each at most once per page load (owner
+  // 2026-10-02). This effect used to re-run on every finished score and pick
+  // the NEXT five unscored bids, so one visit chained through every bid on the
+  // dashboard (each one a score + recommendation + pricing AI call) and logged
+  // each as a user "score_result".
+  const autoScoredRef = useRef<Set<number>>(new Set());
   useEffect(() => {
     if (!data?.profile) return;
-    const pending = bids.filter((b) => !scores[b.id] && !scoring.has(b.id)).slice(0, 5);
-    if (pending.length) { pending.forEach((b, i) => setTimeout(() => doScore(b.id), i * 350)); }
+    const pending = bids.slice(0, 5).filter((b) => !scores[b.id] && !autoScoredRef.current.has(b.id));
+    pending.forEach((b, i) => {
+      autoScoredRef.current.add(b.id);
+      setTimeout(() => doScore(b.id, false, true), i * 350);
+    });
   }, [data, scores, doScore]);
 
   const [copiedBid, setCopiedBid] = useState<number | null>(null);

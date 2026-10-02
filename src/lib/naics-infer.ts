@@ -157,6 +157,10 @@ const KEYWORD_OVERRIDES: Record<string, string[]> = {
   // ── Repair & maintenance ─────────────────────────────────────────────────
   "811210": ["electronics repair", "electronic repair", "refurbishment", "electronics"],
   "811310": ["machinery repair", "equipment repair", "machine repair", "tool repair", "equipment maintenance"],
+  // ── Laundry & linen ──────────────────────────────────────────────────────
+  "812320": ["laundry services", "dry cleaning", "drycleaning", "laundering"],
+  "812331": ["linen supply", "linen services", "linen service"],
+  "812332": ["industrial laundry", "uniform rental", "uniform laundry"],
   // ── Public administration / protection ──────────────────────────────────
   "922160": ["fire protection", "fire suppression", "sprinkler", "fire alarm", "firefighting", "fire services"],
   "928110": ["national security", "defense", "military"],

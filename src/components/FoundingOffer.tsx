@@ -11,7 +11,7 @@ type Offer = { available: boolean; remaining: number; limit: number; monthlyUsd:
  * renders until it answers, and nothing renders when the offer is closed or
  * the count is unavailable — the banner never shows a made-up number.
  */
-export function FoundingOffer({ source }: { source: "pricing" | "upgrade" }) {
+export function FoundingOffer({ source }: { source: "pricing" | "upgrade" | "home" }) {
   const [offer, setOffer] = useState<Offer | null>(null);
   const [busy, setBusy] = useState(false);
   useEffect(() => {

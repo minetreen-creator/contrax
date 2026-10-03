@@ -371,13 +371,13 @@ function Hero({ sample }: { sample: SampleBid[] }) {
         </div>
 
         {sample.length > 0 && (
-          <aside className={`${CARD} overflow-hidden`} aria-label="Open SDVOSB set-asides">
+          <aside className={`${CARD} overflow-hidden`} aria-label="New SDVOSB set-asides">
             <div className="border-b border-[#dde3ec] px-[22px] py-[18px] dark:border-[#24334f]">
               <h2 className={`${SERIF} text-xl leading-[1.15] font-bold`}>
-                Open SDVOSB set-asides, closing soon
+                New SDVOSB set-asides
               </h2>
               <div className="mt-1 text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
-                Live from today's data · free to search
+                Newest first, live from today's data · free to search
                 <span className="ml-1.5 inline-block rounded-full bg-[#f6eed9] px-2 py-0.5 text-xs font-semibold text-[#8a6a1d] dark:bg-[#2b2413] dark:text-[#e0c078]">
                   SDVOSB set-aside
                 </span>
@@ -394,7 +394,9 @@ function Hero({ sample }: { sample: SampleBid[] }) {
                   {formatDue(bid.due_date) && `Due ${formatDue(bid.due_date)}`}
                 </span>
                 <span className="col-span-2 text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
-                  {[bid.agency, bid.location].filter(Boolean).join(" · ")}
+                  {[formatDue(bid.created_at) && `Added ${formatDue(bid.created_at)}`, bid.agency, bid.location]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </span>
               </a>
             ))}

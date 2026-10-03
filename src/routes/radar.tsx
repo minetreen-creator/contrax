@@ -1,8 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createServerFn } from "@tanstack/react-start";
-import { setAsidePred } from "~/lib/open-bids";
-import { certMatches, sbCertFragment, setAsideCardLabel } from "~/lib/cert-matching";
+import { setAsideCardLabel } from "~/lib/cert-matching";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { US_STATES } from "~/lib/states";
 import { NAICS_NAMES } from "~/lib/naics-names";
@@ -42,24 +41,20 @@ import {
   type RadarCertId,
 } from "~/lib/radar-session";
 import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/award-autopsy";
-import { expandTrade, tradeKeywordPred, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
+import { expandTrade, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
 import { TRADE_SUGGESTIONS } from "~/lib/trade-suggestions";
 import { STATE_NAMES } from "~/lib/contract-map";
 import {
   normalizeStateInput,
   resolveBidState,
   locationConflict,
-  geoRelevant as geoRelevantByState,
   matchGeographyBucket,
   STATE_NAME_TO_CODE,
   displayPlaceOfPerformance,
 } from "~/lib/location-state";
 import {
-  runKeywordScanQuery,
   runRelatedScanQuery,
   logScanFailure,
-  collapseScanRows,
-  loadNoticeDedupeKeys,
 } from "~/lib/radar-scan-query";
 import {
   raceRadarScan,
@@ -67,6 +62,8 @@ import {
   RADAR_SCAN_TIMEOUT_ERROR,
   type RadarScanRace,
 } from "~/lib/radar-scan-runner";
+import { fetchStrictRadarRows, radarRowPasses } from "~/lib/radar-candidates";
+import { radarShareUrl } from "~/lib/radar-share";
 import { SiteHeader } from "~/components/SiteHeader";
 import { HeadStartLock } from "~/components/HeadStartLock";
 import { headStartUntil } from "~/lib/head-start";
@@ -423,48 +420,10 @@ export const runRadarScan = createServerFn({ method: "POST" })
     let rows: any[] = [];
     let relatedRows: any[] = [];
     try {
-      // Set-aside predicate fragment (PR-C.0, owner 09-13: Small Business
-      // DESCRIBES the user's business — the sb branch admits explicit SBA/
-      // small-business markers, unrestricted rows, and state/local rows whose
-      // portal publishes no set-aside metadata. The text-level include/exclude
-      // decision runs in JS below via the same certMatches predicate. Non-sb
-      // certs keep their literal set_aside patterns UNCHANGED (mirrors
-      // /trades).
-      const certFrag =
-        certId === "sb" ? sbCertFragment(sql) : setAsidePred(certId, sql);
-      // Trade/NAICS predicate: exact NAICS equality when a 6-digit code is given,
-      // otherwise the EXPANDED keyword set (trade-registry: curated synonyms +
-      // implied NAICS codes). isNaics is derived from the ORIGINAL input; the
-      // expanded fragment is used on the non-NAICS branch only. Every term is a
-      // bound `${...}` parameter (injection-safe by construction).
-      const tradeFrag = isNaics
-        ? sql()`AND LOWER(COALESCE(naics_code,'')) = ${trade.toLowerCase()}`
-        : trade
-          ? tradeKeywordPred(sql, expansion)
-          : sql()``;
-      // Keyword-scan execution moved to a shared lib that THROWS RadarScanError
-      // on failure instead of letting it become a misleading 0 (owner v6) —
-      // the forced-failure regression test drives this same function.
-      rows = await runKeywordScanQuery(sql, { certFrag, tradeFrag }, LOW_CONTENT_SQL, state || null);
-      // R5 DEDUPE, WIRED (QA F2): collapse the SAME notice re-ingested under
-      // several source labels BEFORE scoring/ranking, so duplicate rows can no
-      // longer fill the default-match cap (RADAR_MATCH_CAP). Key = solicitation number (R2 /
-      // migration 047) PLUS notice_type (FIX ①, owner-locked nationwide
-      // correctness fix 2026-09-23: an Award Notice and a Justification share a
-      // solicitation number and must stay two matches, matching the stored
-      // 5-dim natural key of migration 048) else (title, agency, notice_type);
-      // the key read is FAIL-SOFT, so a not-yet-applied 047 degrades to the
-      // natural key instead of failing the scan. Never deletes anything — see
-      // ~/lib/notice-dedupe.
-      const collapsedScan = await collapseScanRows(rows, (ids) =>
-        loadNoticeDedupeKeys(sql, ids),
-      );
-      if (collapsedScan.collapsed > 0) {
-        console.log(
-          `[radar] dedupe: ${rows.length} rows → ${collapsedScan.rows.length} distinct notices (${collapsedScan.collapsed} collapsed; keyed by ${collapsedScan.noticeKeyColumns ? "solicitation_number + notice_type else (title,agency,notice_type)" : "(title,agency,notice_type) — notice-key columns unavailable"})`,
-        );
-      }
-      rows = collapsedScan.rows;
+      // Strict query + state pass + R5 dedupe: shared with the share-card page
+      // (~/lib/radar-candidates) so a shared count equals these results.
+      // Throws RadarScanError on failure (owner v6 — never a misleading 0).
+      rows = (await fetchStrictRadarRows(sql, { trade, state, certId })).rows;
       // RELATED opportunities (owner v6.1): adjacent-work terms, pulled only
       // when a state is requested. Same open/low-content guards, but NO cert
       // and NO strict trade filter — deliberately: the DoD related rows
@@ -490,23 +449,9 @@ export const runRadarScan = createServerFn({ method: "POST" })
     }
 
     const scored = rows
-      .filter((r) => {
-        // Contradictory-location exclusion (owner 09-13): a row whose own
-        // title/description names a DIFFERENT state's place signal than its
-        // resolved geography is FLAGGED and excluded from state matching —
-        // computed at match time from EXISTING fields only (PR-A; the stored
-        // PR-B columns are NOT read). Raw values stay visible.
-        // D16 READ-PATH FILTER ORDER (owner-approved 2026-09-23, Q5 = INCLUDE):
-        // the authoritative certification decision (PR-C.0) is evaluated FIRST,
-        // so the geography stages below only ever run on rows the cert stage
-        // keeps. COMPUTE-ONLY REORDER — the same rows pass, in the same order,
-        // with the same values.
-        if (certMatches(r.set_aside, [r.source], certId) !== "include") return false;
-        const resolved = resolveBidState(r.location, r.agency);
-        const conflicted = locationConflict(r.title, r.description, resolved);
-        if (conflicted) return false;
-        return geoRelevantByState(r.location, r.agency, state);
-      })
+      // Cert decision first, then contradictory-location exclusion and state
+      // relevance (D16 order, owner 09-13/09-23) — ~/lib/radar-candidates.
+      .filter((r) => radarRowPasses(r, certId, state))
       .map((r) => {
         const bid: RadarBidRow = {
           id: Number(r.id), title: String(r.title ?? ""), agency: r.agency ? String(r.agency) : null,
@@ -1795,6 +1740,7 @@ function RadarLanding() {
                     : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
               </p>
             )}
+            {scan.matches.length > 0 && <ShareResultsButton trade={trade} state={state} />}
 
             {/* Soft, NON-BLOCKING nudge — appears after the FIRST match is revealed.
                 Dismissible; never a hard gate. The full locked-results card still
@@ -2926,6 +2872,53 @@ export function SaveMatchesCard({
  * This is the foundation for the queued abandoned-signup recovery email and
  * the periodic match-alert sender.
  */
+/**
+ * "Share these results" (owner 2026-10-03): a short /r/<trade>/<state> link
+ * whose link preview shows the live match count (~/lib/radar-share). Phones
+ * get the native share sheet; elsewhere the link is copied, with a Facebook
+ * button alongside. Hidden when the search has no state (no share link).
+ */
+function ShareResultsButton({ trade, state }: { trade: string; state: string }) {
+  const url = radarShareUrl(trade, state);
+  const [copied, setCopied] = useState(false);
+  if (!url) return null;
+  const share = async () => {
+    const canShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
+    trackEvent("radar_share_clicked", canShare ? "native" : "copy");
+    try {
+      if (canShare) {
+        await navigator.share({ title: "Open government contracts on Contrax", url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      // share sheet dismissed or clipboard blocked: nothing to do
+    }
+  };
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <button
+        type="button"
+        onClick={share}
+        className="rounded-lg border border-slate-600 bg-slate-800 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-700"
+      >
+        {copied ? "Link copied ✓" : "Share these results"}
+      </button>
+      <a
+        href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => trackEvent("radar_share_clicked", "facebook")}
+        className="rounded-lg border border-slate-600 px-3 py-1.5 text-sm font-semibold text-slate-200 no-underline hover:bg-slate-800"
+      >
+        Share on Facebook
+      </a>
+    </div>
+  );
+}
+
 export function MatchAlertsCard({
   certLabel,
   trade,

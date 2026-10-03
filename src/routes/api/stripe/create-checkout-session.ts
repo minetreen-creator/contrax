@@ -60,6 +60,7 @@ async function handler({ request }: { request: Request }) {
       mode?: "payment" | "subscription";
       promoCode?: string;
       interval?: string;
+      founding?: boolean;
     };
 
     if (!body.planTier || !(VALID_TIERS as string[]).includes(body.planTier)) {
@@ -87,6 +88,7 @@ async function handler({ request }: { request: Request }) {
       mode: body.mode ?? "subscription",
       interval: body.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),
+      ...(body.founding === true ? { founding: true } : {}),
     });
 
     if (!result.success) {

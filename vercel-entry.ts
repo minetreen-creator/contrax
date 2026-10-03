@@ -602,6 +602,7 @@ async function handleCreateCheckoutSession(
       mode?: "payment" | "subscription";
       promoCode?: string;
       interval?: string;
+      founding?: boolean;
     };
 
     const validTiers = ["starter", "professional", "agency", "savings_premium"];
@@ -629,6 +630,7 @@ async function handleCreateCheckoutSession(
       mode: parsed.mode ?? "subscription",
       interval: parsed.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),
+      ...(parsed.founding === true ? { founding: true } : {}),
     });
 
     if (!result.success) {

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
+import { FoundingOffer } from "~/components/FoundingOffer";
 
 export const Route = createFileRoute("/pricing/")({
   component: PricingPage,
@@ -129,6 +130,8 @@ function PricingPage() {
               Start free on Basic with no card, then scale up as your contracting pipeline grows. No long-term contracts required. Your 14-day Professional trial starts when you upgrade, and you can cancel anytime during it.
             </p>
           </div>
+
+          <FoundingOffer source="pricing" />
 
           <WhichPlan />
 

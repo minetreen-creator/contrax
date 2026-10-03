@@ -129,7 +129,7 @@ export async function openBillingPortal(): Promise<
  */
 export async function redirectToCheckout(
   planTier: PlanTier,
-  options?: { promoCode?: string; interval?: "month" | "year" },
+  options?: { promoCode?: string; interval?: "month" | "year"; founding?: boolean },
 ): Promise<void> {
   try {
     const payload: Record<string, unknown> = { planTier };
@@ -138,6 +138,9 @@ export async function redirectToCheckout(
     }
     if (options?.interval === "year") {
       payload.interval = "year";
+    }
+    if (options?.founding) {
+      payload.founding = true;
     }
 
     const response = await fetch("/api/stripe/create-checkout-session", {
@@ -158,6 +161,14 @@ export async function redirectToCheckout(
     // them back to the plans page.
     if (response.status === 401) {
       window.location.href = "/signup?next=/upgrade";
+      return;
+    }
+
+    // A refused founding checkout (spots taken / count unavailable) carries a
+    // message the visitor should see as-is.
+    if (options?.founding) {
+      const err = (await response.json().catch(() => null)) as { error?: string } | null;
+      alert(err?.error ?? "The founding-member offer is unavailable right now.");
       return;
     }
 

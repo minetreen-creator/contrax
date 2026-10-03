@@ -4,6 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { getCurrentUser } from "~/lib/auth";
 import { checkTrial } from "~/routes/dashboard";
 import { redirectToCheckout } from "~/lib/checkout";
+import { FoundingOffer } from "~/components/FoundingOffer";
 
 const getStatus = createServerFn({ method: "GET" }).handler(async () => {
   const u = await getCurrentUser();
@@ -51,6 +52,7 @@ function Upgrade() {
               }. Choose a plan to keep going.`
             : "Choose a plan to keep going."}
         </p>
+        <FoundingOffer source="upgrade" />
         <div className="mt-8 flex justify-center">
           <div role="radiogroup" aria-label="Billing period" className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm font-semibold shadow-sm">
             {(["month", "year"] as const).map((v) => (

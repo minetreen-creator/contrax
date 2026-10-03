@@ -8,8 +8,17 @@ import { beforeAll, describe, expect, mock, test } from "bun:test";
 import { recurringMonthlyAmount } from "./finance-mrr";
 
 const created: any[] = [];
+// Founding-member spot count (live subscription search), driven per test.
+let foundingSubs: { status: string }[] = [];
+let foundingSearchFails = false;
 mock.module("stripe", () => ({
   default: class FakeStripe {
+    subscriptions = {
+      search: async () => {
+        if (foundingSearchFails) throw new Error("stripe down");
+        return { data: foundingSubs, has_more: false, next_page: null };
+      },
+    };
     prices = {
       list: async () => ({
         data: [
@@ -82,5 +91,45 @@ describe("MRR counts a yearly price per month", () => {
     expect(recurringMonthlyAmount({ items: { data: [{ price: { recurring: { interval: "year" }, unit_amount: 19000 } }] } })).toBe(1583);
     expect(recurringMonthlyAmount({ items: { data: [{ price: { recurring: null, unit_amount: 9900 } }] } })).toBe(0);
     expect(recurringMonthlyAmount({ items: { data: [{ price: { recurring: { interval: "month", interval_count: 3 }, unit_amount: 3000 } }] } })).toBe(1000);
+  });
+});
+
+describe("founding-member offer (owner 2026-10-03)", () => {
+  test("$9/month, 10 spots", () => {
+    expect(stripeLib.FOUNDING_MEMBER_UNIT_AMOUNT).toBe(900);
+    expect(stripeLib.FOUNDING_MEMBER_LIMIT).toBe(10);
+  });
+
+  test("spots: canceled subscriptions free a spot; a failed count is null (fail closed)", async () => {
+    foundingSubs = [{ status: "active" }, { status: "active" }, { status: "canceled" }, { status: "past_due" }];
+    expect(await stripeLib.foundingSpotsRemaining()).toBe(7);
+    foundingSearchFails = true;
+    expect(await stripeLib.foundingSpotsRemaining()).toBeNull();
+    foundingSearchFails = false;
+    foundingSubs = [];
+  });
+
+  test("a founding checkout bills $9/month on the Starter product with founding metadata", async () => {
+    created.length = 0;
+    const r = await stripeLib.createCheckoutSession("starter", { userId: 7, founding: true });
+    expect(r.success).toBe(true);
+    const params = created[0];
+    expect(params.line_items).toEqual([
+      { price_data: { currency: "usd", product: "prod_starter", unit_amount: 900, recurring: { interval: "month" } }, quantity: 1 },
+    ]);
+    expect(params.metadata).toEqual({ plan_tier: "starter", user_id: "7", founding_member: "true" });
+    expect(params.subscription_data.metadata.founding_member).toBe("true");
+  });
+
+  test("refused when full, when the count fails, and for other tiers / yearly / VAD", async () => {
+    foundingSubs = Array.from({ length: 10 }, () => ({ status: "active" }));
+    expect((await stripeLib.createCheckoutSession("starter", { founding: true })).success).toBe(false);
+    foundingSubs = [];
+    foundingSearchFails = true;
+    expect((await stripeLib.createCheckoutSession("starter", { founding: true })).success).toBe(false);
+    foundingSearchFails = false;
+    expect((await stripeLib.createCheckoutSession("professional", { founding: true })).success).toBe(false);
+    expect((await stripeLib.createCheckoutSession("starter", { founding: true, interval: "year" })).success).toBe(false);
+    expect((await stripeLib.createCheckoutSession("starter", { founding: true, promoCode: "VAD26" })).success).toBe(false);
   });
 });

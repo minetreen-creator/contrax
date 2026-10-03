@@ -94,6 +94,50 @@ export const ANNUAL_UNIT_AMOUNTS: Partial<Record<PlanTier, number>> = {
   agency: 19900 * 10, // $1,990/yr
 };
 
+// ── Founding-member offer (owner 2026-10-03) ──────────────────────────────────
+//
+// Starter at $9/month FOR LIFE for the first FOUNDING_MEMBER_LIMIT customers.
+// Like the yearly plan there is no separate catalog Price: the checkout builds
+// the line item inline (`price_data`) on the Starter Product, and a Stripe
+// subscription keeps its price until it is changed, so "for life" holds for as
+// long as the member stays subscribed. Every founding subscription carries
+// `founding_member: "true"` metadata; the spot count is read LIVE from Stripe
+// (countFoundingMembers) before each founding checkout, so the "first 10" limit
+// is real. If the count cannot be read the offer is unavailable (fail closed).
+
+export const FOUNDING_MEMBER_LIMIT = 10;
+/** $9.00 a month, in cents. */
+export const FOUNDING_MEMBER_UNIT_AMOUNT = 900;
+/** Subscription statuses that hold a founding spot (a canceled one frees it). */
+const FOUNDING_HOLDING_STATUSES = new Set(["active", "trialing", "past_due", "unpaid", "incomplete"]);
+
+/** Founding subscriptions that currently hold a spot (live Stripe search). */
+export async function countFoundingMembers(): Promise<number> {
+  let count = 0;
+  let page: string | undefined;
+  for (let i = 0; i < 10; i++) {
+    const res = await getStripe().subscriptions.search({
+      query: "metadata['founding_member']:'true'",
+      limit: 100,
+      ...(page ? { page } : {}),
+    });
+    for (const sub of res.data) if (FOUNDING_HOLDING_STATUSES.has(sub.status)) count++;
+    if (!res.has_more || !res.next_page) break;
+    page = res.next_page;
+  }
+  return count;
+}
+
+/** Founding spots left (0..LIMIT), or null when Stripe cannot be read. */
+export async function foundingSpotsRemaining(): Promise<number | null> {
+  try {
+    return Math.max(0, FOUNDING_MEMBER_LIMIT - (await countFoundingMembers()));
+  } catch (err) {
+    console.error("[founding] spot count unavailable:", (err as Error).message);
+    return null;
+  }
+}
+
 /** Monthly price in whole dollars per tier (the catalog prices above). */
 export const MONTHLY_PRICE_USD: Partial<Record<PlanTier, number>> = {
   starter: 19,
@@ -372,6 +416,12 @@ export interface CreateCheckoutSessionOptions {
    * Starter, Professional and Agency only, and not with the VAD partner code.
    */
   interval?: BillingInterval;
+  /**
+   * Founding-member price: Starter at FOUNDING_MEMBER_UNIT_AMOUNT a month for
+   * life. Starter + monthly only, not with VAD; refused once
+   * FOUNDING_MEMBER_LIMIT spots are held or when the count cannot be read.
+   */
+  founding?: boolean;
 }
 
 /**
@@ -393,6 +443,19 @@ export async function createCheckoutSession(
     if (interval === "year" && (isVad || !annualAmount)) {
       return { success: false, error: "Yearly billing is not available for this plan." };
     }
+    const founding = opts.founding === true;
+    if (founding) {
+      if (planTier !== "starter" || interval !== "month" || isVad || (opts.mode ?? "subscription") !== "subscription") {
+        return { success: false, error: "The founding-member price is for monthly Starter only." };
+      }
+      const remaining = await foundingSpotsRemaining();
+      if (remaining === null) {
+        return { success: false, error: "The founding-member offer is unavailable right now. Please try again shortly." };
+      }
+      if (remaining <= 0) {
+        return { success: false, error: "All founding-member spots have been taken." };
+      }
+    }
     const priceId = isVad
       ? await getVadPriceIdForPlanTier(planTier)
       : await getPriceIdForPlanTier(planTier);
@@ -403,7 +466,19 @@ export async function createCheckoutSession(
 
     // Yearly: the same Product as the monthly price, billed 10 × monthly once a year.
     let lineItem: Stripe.Checkout.SessionCreateParams.LineItem = { price: priceId, quantity: 1 };
-    if (interval === "year") {
+    if (founding) {
+      const monthly = await getStripe().prices.retrieve(priceId);
+      const productId = typeof monthly.product === "string" ? monthly.product : monthly.product.id;
+      lineItem = {
+        price_data: {
+          currency: monthly.currency || "usd",
+          product: productId,
+          unit_amount: FOUNDING_MEMBER_UNIT_AMOUNT,
+          recurring: { interval: "month" },
+        },
+        quantity: 1,
+      };
+    } else if (interval === "year") {
       const monthly = await getStripe().prices.retrieve(priceId);
       const productId = typeof monthly.product === "string" ? monthly.product : monthly.product.id;
       lineItem = {
@@ -420,6 +495,9 @@ export async function createCheckoutSession(
     const metadata: Record<string, string> = { plan_tier: planTier };
     if (interval === "year") {
       metadata.billing_interval = "year";
+    }
+    if (founding) {
+      metadata.founding_member = "true";
     }
     if (opts.userId != null) {
       metadata.user_id = String(opts.userId);

@@ -363,9 +363,13 @@ describe("R5 (QA F2) — the dedupe is WIRED into the Radar read path", () => {
   test("the Radar scan route actually CALLS the collapse (not library-only)", () => {
     // Guards the exact QA F2 regression: a dedupe module with tests and no
     // production caller changes no observable behaviour.
+    // Since 2026-10-03 the scan's strict read path lives in ~/lib/radar-candidates
+    // (shared with the share-card page); the route must call it, and it must collapse.
     const src = readFileSync(new URL("../routes/radar.tsx", import.meta.url), "utf8");
-    expect(src).toContain("collapseScanRows(rows");
-    expect(src).toContain("loadNoticeDedupeKeys(sql, ids)");
+    expect(src).toContain("fetchStrictRadarRows(sql, { trade, state, certId })");
+    const lib = readFileSync(new URL("./radar-candidates.ts", import.meta.url), "utf8");
+    expect(lib).toContain("collapseScanRows(raw");
+    expect(lib).toContain("loadNoticeDedupeKeys(sql, ids)");
     expect(readFileSync(new URL("./radar-scan-query.ts", import.meta.url), "utf8")).toContain(
       'from "~/lib/notice-dedupe"',
     );

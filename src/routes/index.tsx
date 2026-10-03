@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
+import { FoundingOffer } from "~/components/FoundingOffer";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
@@ -154,7 +155,7 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
-const PAGE_TITLE = "Contrax | Find federal bids your SDVOSB can actually win";
+const PAGE_TITLE = "Contrax | Find government contracts your business can actually win";
 const PAGE_DESCRIPTION =
   "Tell us your trade and state. Contrax searches federal, state, and local solicitations and shows you the ones that fit, with source links and real deadlines. Free to search, no account required.";
 
@@ -251,6 +252,11 @@ function Home() {
       <Navbar />
       <Hero sample={sample} />
       <Stats bidStats={bidStats} contractMap={contractMap} />
+      {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the
+          edge-cached homepage stays session-free; hidden when no spots remain. */}
+      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <FoundingOffer source="home" />
+      </div>
       <Steps />
       <BidScoutCallout />
       {/* Kept light in both themes: the grants table is owner-locked light markup. */}
@@ -325,11 +331,11 @@ function Hero({ sample }: { sample: SampleBid[] }) {
       >
         <div>
           <h1 className={`${SERIF} text-[clamp(34px,4.6vw,52px)] leading-[1.15] font-bold tracking-[-.015em]`}>
-            Find federal bids your SDVOSB can actually win
+            Find government contracts your business can actually win
           </h1>
           <p className="mt-5 mb-7 max-w-[31em] text-lg text-[#b9c7dc]">
-            Tell us your trade and state. We search federal, state, and local solicitations and show
-            you the ones that fit, with source links and real deadlines.
+            Federal, state and local bids in 30 states. Type your trade and state to see what's open
+            now, with source links and real deadlines.
           </p>
           <form
             className={`${CARD} max-w-[500px] p-[22px]`}

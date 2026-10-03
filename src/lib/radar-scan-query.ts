@@ -14,6 +14,7 @@
  * resolving with rows.
  */
 import { collapseDuplicateNotices } from "~/lib/notice-dedupe";
+import { STATE_CODE_TO_NAME } from "~/lib/location-state";
 
 export class RadarScanError extends Error {
   readonly queryName: string;
@@ -38,17 +39,27 @@ export interface ScanQueryFrags {
  * low-content guard, cert + trade fragments, due-date order, LIMIT 100); the
  * only change is that ANY execution failure throws RadarScanError (query name
  * "keyword-scan") instead of being converted into 0 rows.
+ *
+ * STATE PASS (owner 2026-10-03, "only 5 matches?"): the 100 soonest rows are
+ * nationwide, so for a common trade a single state kept only a handful after
+ * the JS state filter (a Newport, NC janitorial scan showed 5). With a
+ * `stateCode`, a second pass with the same filters also pulls up to 100 rows
+ * whose location or agency text mentions that state (full name, or the code as
+ * a standalone token: the same rule as resolveStateFromText). The hint is a
+ * SUPERSET only; the caller's JS geography check stays the single authority.
+ * Results are merged, de-duplicated by id and returned in due-date order.
  */
 export async function runKeywordScanQuery(
   sqlFactory: unknown,
   frags: ScanQueryFrags,
   lowContentSql: string,
+  stateCode?: string | null,
 ): Promise<any[]> {
   const s = (sqlFactory as any)?.unsafe
     ? (sqlFactory as any)
     : (sqlFactory as any)();
   try {
-    return await s`
+    const nationwide: any[] = await s`
       SELECT id, title, agency, description, location, category, due_date,
              estimated_value, naics_code, source_url, source, set_aside
       FROM bids
@@ -59,9 +70,57 @@ export async function runKeywordScanQuery(
       ORDER BY due_date ASC NULLS LAST
       LIMIT 100
     `;
+    const hint = stateHintPatterns(stateCode);
+    if (!hint) return nationwide;
+    const inState: any[] = await s`
+      SELECT id, title, agency, description, location, category, due_date,
+             estimated_value, naics_code, source_url, source, set_aside
+      FROM bids
+      WHERE due_date > NOW()
+        AND ${s.unsafe(lowContentSql)}
+        ${frags.certFrag}
+        ${frags.tradeFrag}
+        AND (LOWER(COALESCE(location,'')) LIKE ${hint.name}
+             OR LOWER(COALESCE(agency,'')) LIKE ${hint.name}
+             OR COALESCE(location,'') ~* ${hint.token}
+             OR COALESCE(agency,'') ~* ${hint.token})
+      ORDER BY due_date ASC NULLS LAST
+      LIMIT 100
+    `;
+    return mergeScanRows(nationwide, inState);
   } catch (cause) {
     throw new RadarScanError("keyword-scan", cause);
   }
+}
+
+/**
+ * SQL patterns for the state pass: a LIKE pattern for the full state name and
+ * a case-insensitive POSIX regex for the standalone 2-letter code (start, or
+ * after space , / ( ; then end, or space , . ) / — resolveStateFromText's rule).
+ * Null for a missing or unknown code (no state pass).
+ */
+export function stateHintPatterns(stateCode: string | null | undefined): { name: string; token: string } | null {
+  const code = String(stateCode ?? "").trim().toUpperCase();
+  const name = STATE_CODE_TO_NAME[code];
+  if (!/^[A-Z]{2}$/.test(code) || !name) return null;
+  return {
+    name: `%${name.toLowerCase()}%`,
+    token: `(^|[[:space:],/()])${code}($|[[:space:],.)/])`,
+  };
+}
+
+/** Union of two scan result sets by id, in due-date order (nulls last). */
+export function mergeScanRows(a: readonly any[], b: readonly any[]): any[] {
+  const seen = new Set<string>();
+  const out: any[] = [];
+  for (const r of [...a, ...b]) {
+    const key = String(r?.id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  const t = (r: any) => (r?.due_date ? new Date(r.due_date).getTime() : Number.POSITIVE_INFINITY);
+  return out.sort((x, y) => t(x) - t(y));
 }
 
 /**

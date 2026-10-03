@@ -51,6 +51,26 @@ async function handler({ request }: { request: Request }) {
       source_url: r.source_url ?? null,
       set_aside: r.set_aside ?? null,
     }));
+    // "Did I win?" awards (owner 2026-10-03). Separate, fail-open query: the
+    // table is created by the daily award-check job and may not exist yet.
+    try {
+      const ids = data.map((d) => d.bid_id);
+      if (ids.length > 0) {
+        const awards = (await sql()`
+          SELECT bid_id, awardee_name, amount, award_date FROM bid_award_checks
+          WHERE found_at IS NOT NULL AND bid_id = ANY(${ids})
+        `) as any[];
+        const byBid = new Map(awards.map((a) => [Number(a.bid_id), a]));
+        for (const d of data as any[]) {
+          const a = byBid.get(d.bid_id);
+          d.award = a
+            ? { awardee_name: String(a.awardee_name), amount: a.amount != null ? Number(a.amount) : null, award_date: dateOnly(a.award_date) }
+            : null;
+        }
+      }
+    } catch {
+      // no awards table yet: cards render without the award line
+    }
     return Response.json({ data });
   } catch (err) {
     console.error("[api/my-pipeline] error:", err);

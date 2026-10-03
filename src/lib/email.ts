@@ -6,6 +6,7 @@
  */
 
 import { digestBidsToList } from "./digest-recipients";
+import { displayCompanyName, formatAwardAmount } from "./award-check";
 import { Resend } from "resend";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -669,6 +670,130 @@ function passwordResetEmailHtml(token: string): string {
   </table>
 </body>
 </html>`;
+}
+
+// ── "Did I win?" award results (owner 2026-10-03) ──────────────────────────────
+// One email per member listing the awards posted on bids in their pipeline
+// (src/jobs/check-awards.ts). Pure HTML builder below, unit-tested.
+
+export interface AwardEmailItem {
+  bidId: number;
+  title: string;
+  agency: string;
+  awardeeName: string;
+  amount: number | null;
+  awardDate: string | null;
+  /** won = awardee UEI is theirs; lost = they bid, someone else won; submitted = they bid, can't tell; saved = only saved it. */
+  outcome: "won" | "lost" | "submitted" | "saved";
+}
+
+export function awardResultsSubject(items: AwardEmailItem[]): string {
+  if (items.some((i) => i.outcome === "won")) return "You won a government contract 🎉 — Contrax";
+  if (items.length === 1) return `Award posted: ${items[0].title.slice(0, 80)}`;
+  return `${items.length} bids in your pipeline were awarded — Contrax`;
+}
+
+export function awardResultsHtml(items: AwardEmailItem[]): string {
+  const rows = items
+    .map((i) => {
+      const amount = formatAwardAmount(i.amount);
+      const date = i.awardDate
+        ? new Date(`${i.awardDate}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+        : null;
+      const winner = escapeHtml(displayCompanyName(i.awardeeName));
+      const headline =
+        i.outcome === "won"
+          ? `<strong style="color:#15803d;">You won.</strong> Awarded to ${winner}${amount ? ` for <strong>${amount}</strong>` : ""}.`
+          : `Awarded to <strong>${winner}</strong>${amount ? ` for <strong>${amount}</strong>` : ""}.`;
+      const note =
+        i.outcome === "won"
+          ? "Congratulations. Mark it Won in your pipeline so we can track your wins."
+          : i.outcome === "lost"
+            ? `Not this time. ${amount ? `The winning price, ${amount}, is your benchmark for the next one like it. ` : ""}Log it as a loss to get a short debrief on what to change.`
+            : i.outcome === "submitted"
+              ? `If that's you, congratulations: mark it Won in your pipeline. If not, ${amount ? `the winning price, ${amount}, is your benchmark for next time, and ` : ""}logging it as a loss gets you a short debrief. Add your UEI in Settings and we'll tell you outright next time.`
+            : `${amount ? `${amount} is what this agency paid. ` : ""}A useful benchmark if a bid like this comes up again.`;
+      const link =
+        i.outcome === "lost" || i.outcome === "submitted"
+          ? `<a href="https://www.contrax.company/losses" style="color:#2563eb;font-weight:600;text-decoration:none;">Get a debrief →</a>`
+          : `<a href="https://www.contrax.company/pipeline" style="color:#2563eb;font-weight:600;text-decoration:none;">Open my pipeline →</a>`;
+      return `
+<tr>
+  <td style="padding:0 32px 16px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;">
+      <tr>
+        <td style="padding:16px 20px;">
+          <p style="margin:0 0 4px;color:#111827;font-size:16px;font-weight:600;line-height:1.4;">${escapeHtml(i.title)}</p>
+          <p style="margin:0 0 10px;color:#6b7280;font-size:13px;">${escapeHtml(i.agency)}${date ? ` · Awarded ${date}` : ""}</p>
+          <p style="margin:0 0 6px;color:#111827;font-size:15px;line-height:1.5;">${headline}</p>
+          <p style="margin:0 0 10px;color:#374151;font-size:13px;line-height:1.5;">${escapeHtml(note)}</p>
+          ${link}
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>`;
+    })
+    .join("\n");
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Award results — Contrax</title></head>
+<body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f4f4f5;">
+<tr>
+  <td align="center" style="padding:40px 16px;">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
+      <tr>
+        <td style="background:#0f1f38;padding:28px 32px;text-align:center;">
+          <h1 style="margin:0;color:#ffffff;font-size:21px;font-weight:700;">Award results for bids you saved</h1>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:24px 32px 12px;color:#374151;font-size:14px;line-height:1.6;">
+          The government posted the award${items.length === 1 ? "" : "s"} below on SAM.gov. Contrax checks every federal bid in your pipeline after its deadline, so you don't have to.
+        </td>
+      </tr>
+      ${rows}
+      <tr>
+        <td style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+          <p style="margin:0 0 4px;color:#9ca3af;font-size:12px;">You get this because these bids are saved in your Contrax pipeline. Remove a bid from your pipeline to stop updates on it.</p>
+          <p style="margin:0;color:#9ca3af;font-size:12px;">Contrax LLC · contrax.company</p>
+        </td>
+      </tr>
+    </table>
+  </td>
+</tr>
+</table>
+</body>
+</html>`;
+}
+
+/** Sends the award results email; true only when Resend accepted. Never throws. */
+export async function sendAwardResultsEmail(to: string, items: AwardEmailItem[]): Promise<boolean> {
+  if (items.length === 0) return false;
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send award results — RESEND_API_KEY not set");
+      return false;
+    }
+    const { error } = await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
+      to: [to],
+      subject: awardResultsSubject(items),
+      html: awardResultsHtml(items),
+    });
+    if (error) {
+      console.error("Award results email rejected:", error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    // PII-safe: never log the address.
+    console.error("Failed to send award results:", (err as Error).message);
+    return false;
+  }
 }
 
 // ── Founding-member offer line (owner 2026-10-03) ──────────────────────────────

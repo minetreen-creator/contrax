@@ -457,7 +457,7 @@ function IntelPanel({
       <PanelSection title="Why this score" hint="Every point comes from a real, observed action — nothing modeled.">
         {lead_score.automated ? (
           <p className="text-sm text-slate-600">
-            Scored 0: {lead_score.automated}, a pace no person keeps. This is most likely a bot, crawler or link checker, not a lead.
+            Scored 0: {lead_score.automated}. This is most likely a bot, crawler or link checker, not a lead.
           </p>
         ) : lead_score.reasons.length === 0 ? (
           <p className="text-sm text-slate-400">No scoring signals yet — very early or single-page visit.</p>
@@ -924,7 +924,7 @@ function JourneysPage() {
           {automatedCount > 0 && (
             <label className="mb-3 flex items-center gap-2 text-xs text-slate-600">
               <input type="checkbox" checked={showAutomated} onChange={(e) => setShowAutomated(e.target.checked)} />
-              Show likely automated visitors ({automatedCount}) — 3+ sessions within 2 minutes, 6+ pages within 1 minute, or an email link scanner (first visit referred by contrax.company, under a minute); hidden by default
+              Show likely automated visitors ({automatedCount}) — 3+ sessions within 2 minutes, 6+ pages within 1 minute, or an email link scanner (first visit referred by contrax.company, or 3+ quick visitors landing on the same page in the same minute); hidden by default
             </label>
           )}
           {loading ? (

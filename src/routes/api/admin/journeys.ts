@@ -5,7 +5,7 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
-import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds } from "~/lib/visitor-intel";
+import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, type ClusterCandidate } from "~/lib/visitor-intel";
 import { buildConversionOpportunity, type ConversionOpportunity } from "~/lib/conversion-opportunity";
 
 /**
@@ -790,6 +790,8 @@ async function handler({ request }: { request: Request }) {
       }
     }
 
+    // Same-minute cluster inputs (email link scanners), filled per row below.
+    const clusterInputs: ClusterCandidate[] = [];
     const journeys: Journey[] = [];
     for (const v of visitorRows) {
       const vid = v.visitor_id;
@@ -854,6 +856,17 @@ async function handler({ request }: { request: Request }) {
         emailKnown,
         firstReferrer: firstPage.get(vid)?.referrer ?? null,
       });
+      {
+        const firstIso = v.first_seen_at ? new Date(v.first_seen_at).toISOString() : null;
+        const lastIso = v.last_seen_at ? new Date(v.last_seen_at).toISOString() : null;
+        clusterInputs.push({
+          id: vid,
+          firstSeenMs: firstIso ? Date.parse(firstIso) : null,
+          visitSeconds: spanSeconds(firstIso, lastIso),
+          landing: v.first_path ?? null,
+          exempt: signedUpFlag || emailKnown || eventNames.includes("save_success") || eventNames.includes("radar_login_notify_save"),
+        });
+      }
       journeys.push({
         visitor_id: vid,
         label,
@@ -953,6 +966,28 @@ async function handler({ request }: { request: Request }) {
     }
 
     const all = [...journeys, ...orphanJourneys];
+    // Orphan rows: first in-window page view stands in for first-seen.
+    for (const j of orphanJourneys) {
+      const fp = firstPage.get(j.visitor_id);
+      const firstMs = fp && Number.isFinite(fp.at) ? fp.at : null;
+      const lastMs = j.last_activity ? Date.parse(j.last_activity) : NaN;
+      const names = [...(detailEvents.get(j.visitor_id)?.names ?? [])];
+      clusterInputs.push({
+        id: j.visitor_id,
+        firstSeenMs: firstMs,
+        visitSeconds: firstMs != null && Number.isFinite(lastMs) ? Math.max(0, (lastMs - firstMs) / 1000) : null,
+        landing: j.landing_page,
+        exempt: j.signup === "Success" || !j.visitor_hash || !!detailEvents.get(j.visitor_id)?.emailKnown || names.includes("save_success") || names.includes("radar_login_notify_save"),
+      });
+    }
+    // Same-minute cluster rule (owner 2026-10-03): flag + zero the score.
+    const clustered = sameMinuteClusters(clusterInputs);
+    for (const j of all) {
+      const evidence = clustered.get(j.visitor_id);
+      if (!evidence || j.lead_score?.automated) continue;
+      j.lead_score = { score: 0, level: "Low", reasons: [], automated: evidence };
+      delete j.conversion_opportunity;
+    }
     // Newest activity first.
     all.sort((a, b) => (b.last_activity ?? "").localeCompare(a.last_activity ?? ""));
 

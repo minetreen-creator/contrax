@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { computeLeadScore, isSelfReferrer, likelyAutomated, spanSeconds, type ScoreSignals } from "./visitor-intel";
+import { computeLeadScore, isSelfReferrer, likelyAutomated, sameMinuteClusters, spanSeconds, type ClusterCandidate, type ScoreSignals } from "./visitor-intel";
 
 const base: ScoreSignals = {
   returnedMultiDay: false,
@@ -92,5 +92,43 @@ describe("the People table hides likely-automated visitors by default", () => {
     expect(src).toContain("const isAutomated = (j: Journey) => !!j.lead_score?.automated && !j.watched;");
     expect(src).toContain("{people.map((j) => (");
     expect(src).not.toContain("{data.journeys.map((j) => (");
+  });
+});
+
+describe("sameMinuteClusters (owner 2026-10-03)", () => {
+  const t0 = Date.parse("2026-10-03T11:16:05Z");
+  const row = (id: string, offsetSec: number, extra: Partial<ClusterCandidate> = {}) => ({
+    id,
+    firstSeenMs: t0 + offsetSec * 1000,
+    visitSeconds: 20,
+    landing: "/radar",
+    exempt: false,
+    ...extra,
+  });
+
+  test("flags 3 quick visitors on the same page in the same minute (Boardman, OR scanners)", () => {
+    const out = sameMinuteClusters([row("a", 0), row("b", 4), row("c", 9)]);
+    expect([...out.keys()].sort()).toEqual(["a", "b", "c"]);
+    expect(out.get("a")).toContain("3 visitors arrived on /radar");
+  });
+
+  test("works across a clock-minute boundary", () => {
+    const out = sameMinuteClusters([row("a", 50), row("b", 58), row("c", 62)]);
+    expect(out.size).toBe(3);
+  });
+
+  test("two visitors are not a cluster", () => {
+    expect(sameMinuteClusters([row("a", 0), row("b", 5)]).size).toBe(0);
+  });
+
+  test("different landing pages or spread-out arrivals are not a cluster", () => {
+    expect(sameMinuteClusters([row("a", 0), row("b", 5, { landing: "/pricing" }), row("c", 9)]).size).toBe(0);
+    expect(sameMinuteClusters([row("a", 0), row("b", 70), row("c", 140)]).size).toBe(0);
+  });
+
+  test("visitors who stayed longer than a minute, or are exempt, are never flagged", () => {
+    expect(sameMinuteClusters([row("a", 0), row("b", 5, { visitSeconds: 300 }), row("c", 9)]).size).toBe(0);
+    expect(sameMinuteClusters([row("a", 0), row("b", 5, { exempt: true }), row("c", 9)]).size).toBe(0);
+    expect(sameMinuteClusters([row("a", 0), row("b", 5, { visitSeconds: null }), row("c", 9)]).size).toBe(0);
   });
 });

@@ -240,6 +240,56 @@ export function likelyAutomated(
   return null;
 }
 
+/** Same-minute cluster rule (owner 2026-10-03): this many quick visitors, one page, one minute. */
+export const AUTOMATED_CLUSTER = { visitors: 3, withinSeconds: 60, maxVisitSeconds: 60 };
+
+export interface ClusterCandidate {
+  id: string;
+  /** First-seen time in ms since epoch (null = unknown, never clustered). */
+  firstSeenMs: number | null;
+  /** Seconds between first and last activity (null = unknown, never clustered). */
+  visitSeconds: number | null;
+  landing: string | null;
+  /** Signed up, saved a bid or left an email — a real person, never flagged. */
+  exempt: boolean;
+}
+
+/**
+ * Email link scanners open the same link from several cloud machines at once
+ * (owner 2026-10-03: three Boardman, OR visitors on /radar at 11:16). Each one
+ * looks like a separate quick visitor, so the per-visitor rules miss them.
+ * Flags every visitor in a group of 3+ who landed on the same page within one
+ * minute of each other and each left within a minute. Returns id -> evidence.
+ */
+export function sameMinuteClusters(rows: ClusterCandidate[]): Map<string, string> {
+  const flagged = new Map<string, string>();
+  const byLanding = new Map<string, ClusterCandidate[]>();
+  for (const r of rows) {
+    if (r.exempt || r.firstSeenMs == null || !Number.isFinite(r.firstSeenMs)) continue;
+    if (r.visitSeconds == null || !Number.isFinite(r.visitSeconds) || r.visitSeconds > AUTOMATED_CLUSTER.maxVisitSeconds) continue;
+    const key = r.landing || "/";
+    if (!byLanding.has(key)) byLanding.set(key, []);
+    byLanding.get(key)!.push(r);
+  }
+  const windowMs = AUTOMATED_CLUSTER.withinSeconds * 1000;
+  for (const [landing, group] of byLanding) {
+    group.sort((a, b) => a.firstSeenMs! - b.firstSeenMs!);
+    let start = 0;
+    for (let end = 0; end < group.length; end++) {
+      while (group[end].firstSeenMs! - group[start].firstSeenMs! > windowMs) start++;
+      const size = end - start + 1;
+      if (size >= AUTOMATED_CLUSTER.visitors) {
+        for (let i = start; i <= end; i++) {
+          const prev = flagged.get(group[i].id);
+          const n = prev ? Math.max(size, Number(prev.match(/^(\d+)/)?.[1] ?? 0)) : size;
+          flagged.set(group[i].id, `${n} visitors arrived on ${landing} within the same minute, each gone within a minute (email link scanner)`);
+        }
+      }
+    }
+  }
+  return flagged;
+}
+
 /** Seconds between two ISO timestamps, or null. */
 export function spanSeconds(firstIso: string | null | undefined, lastIso: string | null | undefined): number | null {
   if (!firstIso || !lastIso) return null;

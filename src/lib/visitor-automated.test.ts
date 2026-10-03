@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { computeLeadScore, isSelfReferrer, likelyAutomated, sameMinuteClusters, spanSeconds, type ClusterCandidate, type ScoreSignals } from "./visitor-intel";
+import { computeLeadScore, dataCenterLocation, isSelfReferrer, likelyAutomated, sameMinuteClusters, spanSeconds, type ClusterCandidate, type ScoreSignals } from "./visitor-intel";
 
 const base: ScoreSignals = {
   returnedMultiDay: false,
@@ -130,5 +130,19 @@ describe("sameMinuteClusters (owner 2026-10-03)", () => {
     expect(sameMinuteClusters([row("a", 0), row("b", 5, { visitSeconds: 300 }), row("c", 9)]).size).toBe(0);
     expect(sameMinuteClusters([row("a", 0), row("b", 5, { exempt: true }), row("c", 9)]).size).toBe(0);
     expect(sameMinuteClusters([row("a", 0), row("b", 5, { visitSeconds: null }), row("c", 9)]).size).toBe(0);
+  });
+});
+
+describe("dataCenterLocation (owner 2026-10-03)", () => {
+  test("Boardman, OR is flagged, by code or full state name", () => {
+    expect(dataCenterLocation("Boardman", "OR")).toContain("Boardman, OR");
+    expect(dataCenterLocation(" boardman ", "Oregon")).toContain("data-center town");
+  });
+
+  test("real towns, other states and missing data are not", () => {
+    expect(dataCenterLocation("Newport", "NC")).toBeNull();
+    expect(dataCenterLocation("Boardman", "OH")).toBeNull();
+    expect(dataCenterLocation(null, "OR")).toBeNull();
+    expect(dataCenterLocation("Boardman", null)).toBeNull();
   });
 });

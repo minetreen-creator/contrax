@@ -290,6 +290,25 @@ export function sameMinuteClusters(rows: ClusterCandidate[]): Map<string, string
   return flagged;
 }
 
+/**
+ * Data-center towns (owner 2026-10-03): places whose web traffic is almost all
+ * servers, not people. Boardman, OR hosts Amazon's us-west-2 region; repeated
+ * "visitors" from there were link scanners and preview bots on AWS addresses.
+ * Keys are lower-case "city|state code".
+ */
+export const DATA_CENTER_LOCATIONS: ReadonlySet<string> = new Set(["boardman|or"]);
+
+const REGION_CODES: Record<string, string> = { oregon: "OR" };
+
+/** Evidence string when the visitor's IP-derived city is a data-center town, else null. */
+export function dataCenterLocation(city: string | null | undefined, region: string | null | undefined): string | null {
+  const c = String(city ?? "").trim().toLowerCase();
+  const rRaw = String(region ?? "").trim();
+  const r = (REGION_CODES[rRaw.toLowerCase()] ?? rRaw).toLowerCase();
+  if (!c || !r || !DATA_CENTER_LOCATIONS.has(`${c}|${r}`)) return null;
+  return `located in ${String(city).trim()}, ${r.toUpperCase()}, a data-center town (server traffic, not a person)`;
+}
+
 /** Seconds between two ISO timestamps, or null. */
 export function spanSeconds(firstIso: string | null | undefined, lastIso: string | null | undefined): number | null {
   if (!firstIso || !lastIso) return null;

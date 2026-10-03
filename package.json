@@ -14,6 +14,7 @@
     "radar-alerts": "bun run src/jobs/send-radar-lead-alerts.ts",
     "bid-digest": "bun run src/jobs/send-bid-digest.ts",
     "weekly-digest": "bun run src/jobs/send-weekly-digest.ts",
+    "award-check": "bun run src/jobs/check-awards.ts",
     "purge-network-identifiers": "bun run src/jobs/purge-network-identifiers.ts",
     "sync-far": "bun run src/jobs/far-sync.ts",
     "check:routes": "bun run scripts/check-routes.mjs",

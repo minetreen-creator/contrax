@@ -8,7 +8,9 @@ name: Daily Emails
 #   - the free Basic plan's weekly bid email: Mondays only, the past week's
 #     new bids (src/jobs/send-weekly-digest.ts; it skips the other days);
 #   - free Radar match alerts: at most one per lead per week
-#     (src/lib/radar-lead-alerts.ts, LEAD_ALERT_INTERVAL_DAYS).
+#     (src/lib/radar-lead-alerts.ts, LEAD_ALERT_INTERVAL_DAYS);
+#   - "Did I win?" award results: SAM.gov award notices for saved federal bids
+#     past their deadline, one email per member (src/jobs/check-awards.ts).
 #
 # Sent at 6 AM Eastern (owner 2026-10-01). GitHub cron is UTC-only, and 6 AM
 # Eastern is 10:00 UTC in summer (EDT) but 11:00 UTC in winter (EST), so the
@@ -78,3 +80,7 @@ jobs:
       - name: Send Radar match alerts (weekly per lead)
         if: always() && steps.gate.outputs.send == 'true'
         run: bun run radar-alerts
+
+      - name: Check awards on saved bids ("Did I win?")
+        if: always() && steps.gate.outputs.send == 'true'
+        run: bun run award-check

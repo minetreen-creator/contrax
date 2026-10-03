@@ -8,6 +8,7 @@ import { trackEvent } from "~/lib/track";
 // `export_attempted`/"gated" event.
 import { ATTEMPT_EVENT_FOR_ACTION, GATE_ATTEMPT_LABEL, gatePrompt } from "~/lib/plan-gates";
 import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
+import { displayCompanyName, formatAwardAmount } from "~/lib/award-check";
 
 /**
  * /pipeline — "My Pipeline"
@@ -39,6 +40,8 @@ interface PipelineItem {
   category: string | null;
   source_url: string | null;
   set_aside: string | null;
+  /** SAM.gov award posted after the deadline ("Did I win?", owner 2026-10-03). */
+  award?: { awardee_name: string; amount: number | null; award_date: string | null } | null;
 }
 
 export const Route = createFileRoute("/pipeline")({
@@ -347,6 +350,13 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
                       {item.location && <span>{item.location}</span>}
                       {item.created_at && <span>Saved {fmtDate(item.created_at)}</span>}
                     </div>
+                    {item.award && (
+                      <p className="mt-2 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                        🏆 Awarded to <strong>{displayCompanyName(item.award.awardee_name)}</strong>
+                        {formatAwardAmount(item.award.amount) && <> for <strong>{formatAwardAmount(item.award.amount)}</strong></>}
+                        {item.award.award_date && <> on {fmtDate(item.award.award_date)}</>}
+                      </p>
+                    )}
                   </div>
                   <button
                     type="button"

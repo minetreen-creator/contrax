@@ -5,7 +5,7 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
-import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, type ClusterCandidate } from "~/lib/visitor-intel";
+import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, dataCenterLocation, type ClusterCandidate } from "~/lib/visitor-intel";
 import { buildConversionOpportunity, type ConversionOpportunity } from "~/lib/conversion-opportunity";
 
 /**
@@ -982,8 +982,12 @@ async function handler({ request }: { request: Request }) {
     }
     // Same-minute cluster rule (owner 2026-10-03): flag + zero the score.
     const clustered = sameMinuteClusters(clusterInputs);
+    // Data-center town rule (owner 2026-10-03): a lone visit from Boardman, OR
+    // (AWS us-west-2) is a server. Same exemptions as the cluster rule.
+    const exemptIds = new Set(clusterInputs.filter((c) => c.exempt).map((c) => c.id));
     for (const j of all) {
-      const evidence = clustered.get(j.visitor_id);
+      const evidence =
+        clustered.get(j.visitor_id) ?? (exemptIds.has(j.visitor_id) ? null : dataCenterLocation(j.city, j.region));
       if (!evidence || j.lead_score?.automated) continue;
       j.lead_score = { score: 0, level: "Low", reasons: [], automated: evidence };
       delete j.conversion_opportunity;

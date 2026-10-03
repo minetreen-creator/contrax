@@ -50,3 +50,21 @@ describe("Radar match cap (owner 2026-10-02)", () => {
     expect(handoff).toContain(".slice(0, 25)");
   });
 });
+
+describe("homepage SDVOSB sample: newest service bids (owner 2026-10-03)", () => {
+  test("parts/supply listings are left out", async () => {
+    const { isProductListingTitle } = await import("./sample-bids");
+    expect(isProductListingTitle("59--ACCESSORY KIT,ELECTRON")).toBe(true);
+    expect(isProductListingTitle("59--COUPLER,DIRECTIONAL")).toBe(true);
+    expect(isProductListingTitle("S201--Janitorial Services l Chattanooga National Cemetery")).toBe(false);
+    expect(isProductListingTitle("S218--Snow Removal Services Lebanon VAMC")).toBe(false);
+    expect(isProductListingTitle("AMENDMENT 0003 UNARMED SECURITY SERVICES JESSE BRWON VAMC AND CBOCS")).toBe(false);
+  });
+
+  test("the query sorts newest first and excludes numeric-FSC titles", () => {
+    const src = readFileSync(join(import.meta.dir, "sample-bids.ts"), "utf8");
+    expect(src).toContain("ORDER BY created_at DESC NULLS LAST, id DESC");
+    expect(src).toContain("AND title !~ '^[[:space:]]*[0-9]{2}--'");
+    expect(src).not.toContain("ORDER BY due_date ASC");
+  });
+});

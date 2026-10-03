@@ -64,6 +64,7 @@ import {
 } from "~/lib/radar-scan-runner";
 import { fetchStrictRadarRows, radarRowPasses } from "~/lib/radar-candidates";
 import { radarShareUrl } from "~/lib/radar-share";
+import { stateFromGeoHeaders, withTimeout } from "~/lib/radar-geo";
 import { SiteHeader } from "~/components/SiteHeader";
 import { HeadStartLock } from "~/components/HeadStartLock";
 import { headStartUntil } from "~/lib/head-start";
@@ -361,6 +362,20 @@ export type RadarMatch = {
    *  and the bid is in its first 72 hours, in which case source_url is null. */
   head_start_until?: string | null;
 };
+
+/**
+ * The visitor's approximate US state from Vercel's IP geolocation headers, or
+ * "" (owner 2026-10-03). Used only to default a Radar link that has no state.
+ */
+export const getVisitorStateHint = createServerFn({ method: "GET" }).handler(async () => {
+  try {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const h = getRequest().headers;
+    return stateFromGeoHeaders(h.get("x-vercel-ip-country"), h.get("x-vercel-ip-country-region"));
+  } catch {
+    return "";
+  }
+});
 
 export const runRadarScan = createServerFn({ method: "POST" })
   .validator((d: unknown) => {
@@ -1413,8 +1428,22 @@ function RadarLanding() {
   useEffect(() => {
     if (!autoScan || autoScanRanRef.current) return;
     autoScanRanRef.current = true;
-    trackEvent("radar_auto_scan", urlState || "nationwide");
-    runScan({ trade: urlTrade, state: urlState, cert: cert ?? DEFAULT_RADAR_CERT, sizePref: sizePref ?? DEFAULT_RADAR_SIZE });
+    const go = (st: string) => {
+      trackEvent("radar_auto_scan", urlState ? urlState : st ? `geo_${st}` : "nationwide");
+      runScan({ trade: urlTrade, state: st, cert: cert ?? DEFAULT_RADAR_CERT, sizePref: sizePref ?? DEFAULT_RADAR_SIZE });
+    };
+    if (urlState) {
+      go(urlState);
+      return;
+    }
+    // No state in the link (owner 2026-10-03): default to the visitor's own
+    // approximate state so the first results are local. Never waits more than
+    // 1.5 s; no state found means nationwide, exactly as before. The visitor
+    // can change it under "Refine (optional)".
+    withTimeout(getVisitorStateHint(), 1500).then((st) => {
+      if (st) setState(st);
+      go(st);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const track = (trade.trim() || "any");

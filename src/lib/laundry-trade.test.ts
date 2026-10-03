@@ -68,3 +68,34 @@ describe("homepage SDVOSB sample: newest service bids (owner 2026-10-03)", () =>
     expect(src).not.toContain("ORDER BY due_date ASC");
   });
 });
+
+describe("Radar card fixes (owner 2026-10-03)", () => {
+  test("uniform/linen cleaning is laundry, not a strong janitorial match", async () => {
+    const { isSpecialtyCleaningOnly, isJanitorialWork } = await import("./trade-classification");
+    const { isStrongTradeMatch } = await import("./trade-registry");
+    const title = "REPOST - Uniform Cleaning Services";
+    expect(isSpecialtyCleaningOnly(title.toLowerCase())).toBe(true);
+    expect(isJanitorialWork(title.toLowerCase(), title.toLowerCase())).toBe(false);
+    expect(isStrongTradeMatch(title, "Janitorial", null, null, expandTrade("janitorial"))).toBe(false);
+    // Genuine custodial contracts keep their match.
+    expect(isStrongTradeMatch("Janitorial Services - Building 12", "Janitorial", null, null, expandTrade("janitorial"))).toBe(true);
+    expect(isStrongTradeMatch("Custodial and Linen Service for Clinic", null, null, null, expandTrade("janitorial"))).toBe(true);
+  });
+
+  test("the nationwide badge is spelled correctly", () => {
+    const radar = readFileSync(join(import.meta.dir, "..", "routes", "radar.tsx"), "utf8");
+    expect(radar).not.toMatch(/>\s*nationalwide\s*</);
+    expect(radar).toMatch(/>\s*nationwide\s*</);
+  });
+
+  test("next action names SAM.gov only for SAM.gov links", async () => {
+    const { buildNextAction, isSamGovUrl } = await import("~/routes/radar");
+    const sam = buildNextAction({ due_date: null, source_url: "https://sam.gov/opp/abc/view" });
+    const eva = buildNextAction({ due_date: null, source_url: "https://mvendor.cgieva.com/Vendor/public/IVDetails.jsp?x=1" });
+    expect(sam).toContain("on SAM.gov");
+    expect(eva).not.toContain("SAM.gov");
+    expect(eva).toContain("Open the original notice to confirm all requirements.");
+    expect(isSamGovUrl("https://www.sam.gov/x")).toBe(true);
+    expect(isSamGovUrl("https://sam.gov.evil.io/x")).toBe(false);
+  });
+});

@@ -970,10 +970,26 @@ function buildRequirements(bid: RadarBidRow): string[] {
   return reqs;
 }
 
-function buildNextAction(bid: RadarBidRow): string {
+/** True when a URL points at SAM.gov (sam.gov or a subdomain). */
+export function isSamGovUrl(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    return host === "sam.gov" || host.endsWith(".sam.gov");
+  } catch {
+    return false;
+  }
+}
+
+export function buildNextAction(bid: Pick<RadarBidRow, "due_date" | "source_url">): string {
   const due = bid.due_date ? new Date(bid.due_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : null;
   const base = due ? `Review the full solicitation and prepare your response before the ${due} deadline.` : "Review the full solicitation and prepare your response before the deadline.";
-  return bid.source_url ? `${base} Open the original notice on SAM.gov to confirm all requirements.` : `${base} The original notice link is not yet available in our system.`;
+  if (!bid.source_url) return `${base} The original notice link is not yet available in our system.`;
+  // Name SAM.gov only when the link really goes there (owner 2026-10-03: a
+  // Virginia eVA bid said "on SAM.gov"); state and local postings link to
+  // their own portals.
+  return isSamGovUrl(bid.source_url)
+    ? `${base} Open the original notice on SAM.gov to confirm all requirements.`
+    : `${base} Open the original notice to confirm all requirements.`;
 }
 
 // ── Route ────────────────────────────────────────────────────────────────────
@@ -2259,7 +2275,7 @@ export function RadarCard({
             )}
             {!isStateLocal && (
               <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">
-                nationalwide
+                nationwide
               </span>
             )}
           </p>

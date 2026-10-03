@@ -537,6 +537,8 @@ function buildRowLeadScore(o: {
   paths: string[];
   signedUp: boolean;
   emailKnown: boolean;
+  /** Referrer of the visitor's first in-window page view (self-referral bot check). */
+  firstReferrer?: string | null;
 }): {
   score: number;
   level: "Very High" | "High" | "Medium" | "Low";
@@ -583,6 +585,7 @@ function buildRowLeadScore(o: {
     autopsyRadarUsed,
     activeSpanSeconds: spanSeconds(o.firstSeenIso, o.lastSeenIso),
     pageViews: o.paths.length,
+    firstReferrer: o.firstReferrer ?? null,
   });
   const highOrVeryHigh = scored.level === "High" || scored.level === "Very High";
   const opportunity: ConversionOpportunity | null = highOrVeryHigh
@@ -731,15 +734,18 @@ async function handler({ request }: { request: Request }) {
     // beyond the plain High/Very High level).
     const detailEvents = new Map<string, { names: Set<string>; paths: string[]; emailKnown: boolean }>();
     const detailPaths = new Map<string, string[]>();
+    // First in-window page view per visitor: its referrer feeds the
+    // self-referral (email link scanner) bot check.
+    const firstPage = new Map<string, { at: number; referrer: string | null }>();
     try {
       const deRows: any[] = await sql()`
-        SELECT visitor_id, event_name, path, user_email FROM funnel_events
+        SELECT visitor_id, event_name, path, user_email, NULL AS referrer, created_at FROM funnel_events
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
           AND event_name IS NOT NULL
           AND created_at >= ${fromIso}
           ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}
         UNION ALL
-        SELECT visitor_id, NULL AS event_name, path, user_email FROM page_views
+        SELECT visitor_id, NULL AS event_name, path, user_email, referrer, created_at FROM page_views
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
           AND path IS NOT NULL
           AND created_at >= ${fromIso}
@@ -761,6 +767,9 @@ async function handler({ request }: { request: Request }) {
         } else {
           if (!detailPaths.has(vid)) detailPaths.set(vid, []);
           if (path) detailPaths.get(vid)!.push(path);
+          const at = r.created_at ? new Date(r.created_at).getTime() : Number.POSITIVE_INFINITY;
+          const prev = firstPage.get(vid);
+          if (!prev || at < prev.at) firstPage.set(vid, { at, referrer: r.referrer ? String(r.referrer) : null });
         }
       }
     } catch (deErr) {
@@ -843,6 +852,7 @@ async function handler({ request }: { request: Request }) {
         paths,
         signedUp: signedUpFlag,
         emailKnown,
+        firstReferrer: firstPage.get(vid)?.referrer ?? null,
       });
       journeys.push({
         visitor_id: vid,
@@ -928,6 +938,7 @@ async function handler({ request }: { request: Request }) {
             paths,
             signedUp: signedUpFlag,
             emailKnown,
+            firstReferrer: firstPage.get(j.visitor_id)?.referrer ?? null,
           });
           return {
             ...j,

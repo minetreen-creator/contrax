@@ -144,6 +144,7 @@ export async function sendWeeklyBidDigest(
   recipients: { email: string; unsubscribeUrl: string }[],
   newBids: NewBidSummary[],
   headStartCount = 0,
+  foundingSpots: number | null = null,
 ): Promise<number> {
   if (recipients.length === 0 || newBids.length === 0) return 0;
   const resend = getResend();
@@ -163,7 +164,7 @@ export async function sendWeeklyBidDigest(
           replyTo: "contrax.companyllc@gmail.com",
           to: [r.email],
           subject,
-          html: bidDigestHtml(listed, newBids.length, { unsubscribeUrl: r.unsubscribeUrl, headStartCount }),
+          html: bidDigestHtml(listed, newBids.length, { unsubscribeUrl: r.unsubscribeUrl, headStartCount, foundingSpots }),
           headers: {
             "List-Unsubscribe": `<${r.unsubscribeUrl}>`,
             "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
@@ -375,6 +376,7 @@ export async function sendRadarMatchAlertEmail(
   token: string,
   bids: NewBidSummary[],
   truncatedCount: number,
+  foundingSpots: number | null = null,
 ): Promise<boolean> {
   try {
     const resend = getResend();
@@ -389,7 +391,7 @@ export async function sendRadarMatchAlertEmail(
       replyTo: "contrax.companyllc@gmail.com",
       to: [to],
       subject: `Contrax found ${bids.length} new opportunity${bids.length === 1 ? "" : "ies"} matching your Radar profile`,
-      html: radarMatchAlertHtml(bids, truncatedCount, unsubscribeUrl),
+      html: radarMatchAlertHtml(bids, truncatedCount, unsubscribeUrl, foundingSpots),
     });
 
     console.log(`Radar match alert sent (${bids.length} bid${bids.length === 1 ? "" : "s"}, +${truncatedCount} truncated, 1 lead)`);
@@ -402,7 +404,12 @@ export async function sendRadarMatchAlertEmail(
 }
 
 /** Owner-exact V1 layout: header + per-bid cards + "See all my matches →", nothing else. */
-function radarMatchAlertHtml(bids: NewBidSummary[], truncatedCount: number, unsubscribeUrl: string): string {
+export function radarMatchAlertHtml(
+  bids: NewBidSummary[],
+  truncatedCount: number,
+  unsubscribeUrl: string,
+  foundingSpots: number | null = null,
+): string {
   const bidCards = bids
     .map((bid) => {
       // "View opportunity →" goes through the PII-safe click redirect (logs the
@@ -479,7 +486,9 @@ function radarMatchAlertHtml(bids: NewBidSummary[], truncatedCount: number, unsu
           </a>
           <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
             Free match alerts arrive once a week. Want every new bid each morning?
-            <a href="https://www.contrax.company/pricing" style="color:#2563eb;">Starter is $19/month</a>.
+            ${foundingOfferOpen(foundingSpots)
+              ? `Starter is ${starterPriceHtml(foundingSpots)}. <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;">Claim a founding spot →</a>`
+              : `<a href="https://www.contrax.company/pricing" style="color:#2563eb;">Starter is $19/month</a>.`}
           </p>
         </td>
       </tr>
@@ -662,6 +671,23 @@ function passwordResetEmailHtml(token: string): string {
 </html>`;
 }
 
+// ── Founding-member offer line (owner 2026-10-03) ──────────────────────────────
+// The free emails pitch Starter at the founding price while spots remain
+// (Starter at $9/month for life, first 10 members, src/lib/stripe.ts). The
+// caller passes foundingSpotsRemaining(): null (count unavailable) or 0 falls
+// back to the regular $19/month line, so a full or unknown offer is never sold.
+
+/** True when the founding price should be shown. */
+export function foundingOfferOpen(spots: number | null | undefined): spots is number {
+  return typeof spots === "number" && Number.isFinite(spots) && spots > 0;
+}
+
+/** "$9/month for life … (3 spots left)" while founding spots remain, else "$19/month". */
+export function starterPriceHtml(spots: number | null | undefined): string {
+  if (!foundingOfferOpen(spots)) return "$19/month";
+  return `<strong>$9/month for life</strong> as one of our first 10 founding members (${spots} spot${spots === 1 ? "" : "s"} left)`;
+}
+
 // ── Bid Digest HTML Template ───────────────────────────────────────────────────
 
 /** The free Basic plan's weekly variant: weekly wording, a Starter line and an unsubscribe link. */
@@ -669,6 +695,8 @@ export interface WeeklyDigestHtmlOptions {
   unsubscribeUrl: string;
   /** Open bids added in the last 72 hours, still in their paid head start (not listed). */
   headStartCount?: number;
+  /** Founding-member spots left (null/0 = show the regular Starter price). */
+  foundingSpots?: number | null;
 }
 
 /** The paying member's personal daily variant (src/lib/digest-match.ts). */
@@ -783,8 +811,8 @@ export function bidDigestHtml(
         <td style="padding:0 32px 24px;text-align:center;">
           <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
             ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last 3 days.</strong> Starter members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a 3-day head start.<br>` : ""}
-            You get this once a week on the free Basic plan. <strong>Starter</strong> sends every new bid at 6 AM Eastern, every morning, for $19/month.
-            <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;text-decoration:none;">See Starter →</a>
+            You get this once a week on the free Basic plan. <strong>Starter</strong> sends every new bid at 6 AM Eastern, every morning, for ${starterPriceHtml(weekly.foundingSpots)}.
+            <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;text-decoration:none;">${foundingOfferOpen(weekly.foundingSpots) ? "Claim a founding spot →" : "See Starter →"}</a>
           </p>
         </td>
       </tr>` : ""}

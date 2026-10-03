@@ -5,6 +5,7 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 // historical intel, never an opportunity — it may not enter a lead alert scan.
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { sendRadarMatchAlertEmail, type NewBidSummary } from "~/lib/email";
+import { foundingSpotsRemaining } from "~/lib/stripe";
 import { ensureRadarLeadsClickLog, buildOpportunityClickUrl, hashClickToken } from "~/lib/radar-lead-clicks";
 import { expandTrade, tradeProvenanceFor } from "~/lib/trade-registry";
 
@@ -397,9 +398,11 @@ export async function sendRadarLeadMatchAlerts(): Promise<RadarAlertRunResult> {
     return result;
   }
 
+  // One Stripe count per run (null when unreadable: emails show $19/month).
+  const foundingSpots = await foundingSpotsRemaining();
   for (const lead of leadRows) {
     try {
-      const sent = await sendForOneLead(lead);
+      const sent = await sendForOneLead(lead, foundingSpots);
       if (sent.emailsSent > 0) {
         result.emailsSent += sent.emailsSent;
         result.matchesEmailed += sent.matchesEmailed;
@@ -423,6 +426,7 @@ export async function sendRadarLeadMatchAlerts(): Promise<RadarAlertRunResult> {
 
 async function sendForOneLead(
   lead: RadarLeadRow,
+  foundingSpots: number | null = null,
 ): Promise<{ emailsSent: number; matchesEmailed: number }> {
   if (!lead.radar_profile) return { emailsSent: 0, matchesEmailed: 0 };
 
@@ -493,6 +497,7 @@ async function sendForOneLead(
       };
     }),
     truncatedCount,
+    foundingSpots,
   );
   if (!sentOk) return { emailsSent: 0, matchesEmailed: 0 };
 

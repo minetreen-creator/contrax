@@ -15,6 +15,7 @@ import { sql } from "~/db";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { sendWeeklyBidDigest, type NewBidSummary } from "~/lib/email";
+import { foundingSpotsRemaining } from "~/lib/stripe";
 import type { DigestUserRow } from "~/lib/digest-recipients";
 import {
   shouldSendWeeklyDigest,
@@ -116,7 +117,9 @@ export async function sendWeeklyDigest(
     .filter((e) => tokenOf.has(e.toLowerCase()))
     .map((e) => ({ email: e, unsubscribeUrl: weeklyUnsubscribeUrl(tokenOf.get(e.toLowerCase())!) }));
 
-  const accepted = await sendWeeklyBidDigest(addressed, newBids, headStartCount);
+  // Founding-member spots left (null when Stripe can't be read: the email then shows $19/month).
+  const foundingSpots = await foundingSpotsRemaining();
+  const accepted = await sendWeeklyBidDigest(addressed, newBids, headStartCount, foundingSpots);
   if (accepted > 0) {
     await sql()`
       INSERT INTO weekly_digest_log (sent_at, window_start, bids, recipients)

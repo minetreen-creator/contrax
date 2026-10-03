@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { bidDigestHtml } from "./email";
+import { bidDigestHtml, radarMatchAlertHtml, starterPriceHtml } from "./email";
 import {
   isWeeklyDigestEligible,
   newYorkWeekday,
@@ -104,5 +104,39 @@ describe("weekly digest — email", () => {
     expect(html).toContain("since your last digest");
     expect(html).not.toContain("weekly-unsubscribe");
     expect(html).not.toContain("$19/month");
+  });
+});
+
+describe("founding offer in the free emails (owner 2026-10-03)", () => {
+  const bid = { bid_id: 1, title: "Snow plowing", agency: "City", source_url: "https://x", location: "Ohio", due_date: null };
+  const unsub = weeklyUnsubscribeUrl("t");
+
+  test("weekly email pitches $9 for life while spots remain", () => {
+    const html = bidDigestHtml([bid], 1, { unsubscribeUrl: unsub, foundingSpots: 7 });
+    expect(html).toContain("$9/month for life");
+    expect(html).toContain("7 spots left");
+    expect(html).toContain("Claim a founding spot");
+    expect(html).not.toContain("$19/month");
+  });
+
+  test("weekly email falls back to $19 when full or unknown", () => {
+    for (const spots of [0, null, undefined]) {
+      const html = bidDigestHtml([bid], 1, { unsubscribeUrl: unsub, foundingSpots: spots });
+      expect(html).toContain("$19/month");
+      expect(html).not.toContain("founding");
+    }
+  });
+
+  test("radar match alert pitches the founding price only while spots remain", () => {
+    expect(radarMatchAlertHtml([bid], 0, "https://u", 1)).toContain("(1 spot left)");
+    const full = radarMatchAlertHtml([bid], 0, "https://u", 0);
+    expect(full).toContain("Starter is $19/month");
+    expect(full).not.toContain("founding");
+    expect(radarMatchAlertHtml([bid], 0, "https://u")).toContain("Starter is $19/month");
+  });
+
+  test("starterPriceHtml", () => {
+    expect(starterPriceHtml(3)).toContain("3 spots left");
+    expect(starterPriceHtml(null)).toBe("$19/month");
   });
 });

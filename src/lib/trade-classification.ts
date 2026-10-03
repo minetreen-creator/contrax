@@ -78,6 +78,11 @@ export const JANITORIAL_SERVICE_PATTERNS: RegExp[] = [
 export const SPECIALTY_CLEANING_PATTERNS: RegExp[] = [
   /\blaundry\b/,
   /\bdry[ -]clean/,
+  // Owner 2026-10-03: "REPOST - Uniform Cleaning Services" (NVCC, eVA) scored
+  // as a strong JANITORIAL match. Cleaning uniforms or linens is laundry work
+  // (the Laundry/Linen trade), not custodial service.
+  /\buniform (?:cleaning|laundering|laundry|rental)/,
+  /\blinen (?:cleaning|laundering|service|supply)/,
   // S6 CLASSIFIER ORDER (owner-approved 2026-09-23, D6): the blanket
   // /\btank/, /\bsewer/, /\bpipe/ and /\bstreet sweep/ vetoes were REMOVED. They
   // match ordinary custodial prose and infrastructure that the owner's own

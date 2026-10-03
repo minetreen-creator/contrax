@@ -445,7 +445,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
       // Keyword-scan execution moved to a shared lib that THROWS RadarScanError
       // on failure instead of letting it become a misleading 0 (owner v6) —
       // the forced-failure regression test drives this same function.
-      rows = await runKeywordScanQuery(sql, { certFrag, tradeFrag }, LOW_CONTENT_SQL);
+      rows = await runKeywordScanQuery(sql, { certFrag, tradeFrag }, LOW_CONTENT_SQL, state || null);
       // R5 DEDUPE, WIRED (QA F2): collapse the SAME notice re-ingested under
       // several source labels BEFORE scoring/ranking, so duplicate rows can no
       // longer fill the default-match cap (RADAR_MATCH_CAP). Key = solicitation number (R2 /

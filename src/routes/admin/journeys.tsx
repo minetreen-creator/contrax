@@ -924,7 +924,7 @@ function JourneysPage() {
           {automatedCount > 0 && (
             <label className="mb-3 flex items-center gap-2 text-xs text-slate-600">
               <input type="checkbox" checked={showAutomated} onChange={(e) => setShowAutomated(e.target.checked)} />
-              Show likely automated visitors ({automatedCount}) — 3+ sessions within 2 minutes or 6+ pages within 1 minute; hidden by default
+              Show likely automated visitors ({automatedCount}) — 3+ sessions within 2 minutes, 6+ pages within 1 minute, or an email link scanner (first visit referred by contrax.company, under a minute); hidden by default
             </label>
           )}
           {loading ? (

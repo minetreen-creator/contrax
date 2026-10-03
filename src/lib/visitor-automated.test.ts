@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { computeLeadScore, likelyAutomated, spanSeconds, type ScoreSignals } from "./visitor-intel";
+import { computeLeadScore, isSelfReferrer, likelyAutomated, spanSeconds, type ScoreSignals } from "./visitor-intel";
 
 const base: ScoreSignals = {
   returnedMultiDay: false,
@@ -53,6 +53,28 @@ describe("likely-automated visitors (owner 2026-10-02)", () => {
   test("signed-up and bid-saving visitors are never flagged", () => {
     expect(likelyAutomated({ sessions: 6, pageViews: 10, activeSpanSeconds: 30, signedUp: true, savedBid: false })).toBeNull();
     expect(likelyAutomated({ sessions: 6, pageViews: 10, activeSpanSeconds: 30, signedUp: false, savedBid: true })).toBeNull();
+  });
+
+  test("email link scanners: self-referred first visit lasting under a minute is flagged", () => {
+    // The 10:51 AM cluster after the NC outreach emails: 2 sessions, 3 steps, ~0 s, referrer contrax.company.
+    const s = computeLeadScore({ ...base, sessions: 2, radarStarted: true, pageViews: 2, activeSpanSeconds: 4, firstReferrer: "https://www.contrax.company/" });
+    expect(s.score).toBe(0);
+    expect(s.automated).toContain("email link scanner");
+    expect(likelyAutomated({ sessions: 1, pageViews: 1, activeSpanSeconds: 0, firstReferrer: "https://contrax.company/radar", signedUp: false, savedBid: false })).not.toBeNull();
+  });
+
+  test("self-referral alone is not enough: a longer visit or another referrer stays human", () => {
+    expect(likelyAutomated({ sessions: 2, pageViews: 3, activeSpanSeconds: 300, firstReferrer: "https://www.contrax.company/", signedUp: false, savedBid: false })).toBeNull();
+    expect(likelyAutomated({ sessions: 2, pageViews: 3, activeSpanSeconds: 4, firstReferrer: "https://lm.facebook.com/", signedUp: false, savedBid: false })).toBeNull();
+    expect(likelyAutomated({ sessions: 2, pageViews: 3, activeSpanSeconds: 4, firstReferrer: "https://notcontrax.company.evil.com/", signedUp: false, savedBid: false })).toBeNull();
+    expect(likelyAutomated({ sessions: 2, pageViews: 3, activeSpanSeconds: 4, firstReferrer: null, signedUp: false, savedBid: false })).toBeNull();
+  });
+
+  test("isSelfReferrer", () => {
+    expect(isSelfReferrer("https://www.contrax.company/radar")).toBe(true);
+    expect(isSelfReferrer("https://contrax.company")).toBe(true);
+    expect(isSelfReferrer("https://contrax.company.attacker.io/")).toBe(false);
+    expect(isSelfReferrer("not a url")).toBe(false);
   });
 
   test("spanSeconds", () => {

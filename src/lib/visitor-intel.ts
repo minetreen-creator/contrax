@@ -190,11 +190,26 @@ export interface ScoreSignals {
   activeSpanSeconds?: number | null;
   /** Page views observed for the visitor (for the pace check). */
   pageViews?: number;
+  /** Referrer recorded on the visitor's FIRST page view (for the self-referral check). */
+  firstReferrer?: string | null;
 }
 
 /** Pace thresholds for likelyAutomated (owner 2026-10-02). */
 export const AUTOMATED_SESSION_LIMIT = { sessions: 3, withinSeconds: 120 };
 export const AUTOMATED_PAGE_LIMIT = { pages: 6, withinSeconds: 60 };
+/** Self-referred first visit (owner 2026-10-03): whole visit within this many seconds. */
+export const AUTOMATED_SELF_REFERRAL_SECONDS = 60;
+
+/** True when a referrer URL is Contrax itself. */
+export function isSelfReferrer(referrer: string | null | undefined): boolean {
+  if (!referrer) return false;
+  try {
+    const host = new URL(referrer).hostname.toLowerCase();
+    return host === "contrax.company" || host.endsWith(".contrax.company");
+  } catch {
+    return false;
+  }
+}
 
 /**
  * A visitor whose pace no person keeps: 3+ separate sessions inside 2 minutes
@@ -202,7 +217,9 @@ export const AUTOMATED_PAGE_LIMIT = { pages: 6, withinSeconds: 60 };
  * views inside 1 minute. Signed-up or bid-saving visitors are never flagged —
  * those are real accounts. Returns the observed evidence, or null.
  */
-export function likelyAutomated(s: Pick<ScoreSignals, "sessions" | "activeSpanSeconds" | "pageViews" | "signedUp" | "savedBid">): string | null {
+export function likelyAutomated(
+  s: Pick<ScoreSignals, "sessions" | "activeSpanSeconds" | "pageViews" | "signedUp" | "savedBid" | "firstReferrer">,
+): string | null {
   if (s.signedUp || s.savedBid) return null;
   const span = s.activeSpanSeconds;
   if (span == null || !Number.isFinite(span) || span < 0) return null;
@@ -213,6 +230,12 @@ export function likelyAutomated(s: Pick<ScoreSignals, "sessions" | "activeSpanSe
   const pages = s.pageViews ?? 0;
   if (pages >= AUTOMATED_PAGE_LIMIT.pages && span <= AUTOMATED_PAGE_LIMIT.withinSeconds) {
     return `${pages} pages within ${secs} seconds`;
+  }
+  // Email link scanners (owner 2026-10-03): a brand-new visitor cannot arrive
+  // FROM Contrax on its very first page view. Mail security services that open
+  // the links in outgoing emails do exactly that, then leave within seconds.
+  if (isSelfReferrer(s.firstReferrer) && span <= AUTOMATED_SELF_REFERRAL_SECONDS) {
+    return `first visit already referred by contrax.company, whole visit ${secs} seconds (email link scanner)`;
   }
   return null;
 }
@@ -706,6 +729,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
     autopsyRadarUsed,
     activeSpanSeconds: spanSeconds(firstSeen, lastSeen),
     pageViews: pageRows.length,
+    firstReferrer: pageRows[0]?.referrer ?? null,
   });
 
   const radarProfileRow = radarSave ?? anonymousRadarProfile;

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { cleanBidTitle, isCodeHeavyTitle } from "./bid-title";
+import { cleanBidTitle, fixTitleTypos, isCodeHeavyTitle } from "./bid-title";
 
 describe("cleanBidTitle (owner 2026-10-04)", () => {
   test("strips PSC prefixes and leading reference numbers", () => {
@@ -62,5 +62,14 @@ describe("product listings (owner 2026-10-04)", () => {
     expect(isProductListingTitle("59--ACCESSORY KIT")).toBe(true);
     expect(isProductListingTitle("6515-- | 2027 | CTX Home O2")).toBe(true);
     expect(isProductListingTitle("S201--Custodial Services")).toBe(false);
+  });
+});
+
+describe("fixTitleTypos", () => {
+  test("fixes listed misspellings and keeps case", () => {
+    expect(fixTitleTypos("Court Repoting Service")).toBe("Court Reporting Service");
+    expect(fixTitleTypos("JANITORAL SERVIES")).toBe("JANITORIAL SERVICES");
+    expect(fixTitleTypos("hvac maintanence")).toBe("hvac maintenance");
+    expect(fixTitleTypos("Court Reporting Service")).toBe("Court Reporting Service");
   });
 });

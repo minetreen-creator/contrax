@@ -102,3 +102,39 @@ export function isCodeHeavyTitle(raw: string | null | undefined): boolean {
   const letters = (title.match(/[A-Za-z]/g) ?? []).length;
   return words.length < 2 || digits > letters * 0.4 || /\|/.test(title);
 }
+
+/**
+ * Common misspellings in agency-written titles (owner 2026-10-04: the homepage
+ * showed the VA's "Court Repoting Service"). DISPLAY ONLY, for homepage
+ * examples: the bid page and search keep the official title, so it still
+ * matches the notice on SAM.gov.
+ */
+const TITLE_TYPOS: Record<string, string> = {
+  repoting: "reporting",
+  reportng: "reporting",
+  maintanence: "maintenance",
+  maintainance: "maintenance",
+  maintenace: "maintenance",
+  janitoral: "janitorial",
+  servies: "services",
+  sevices: "services",
+  managment: "management",
+  equipement: "equipment",
+  replacment: "replacement",
+  instalation: "installation",
+  constuction: "construction",
+  contruction: "construction",
+  landscapping: "landscaping",
+  removel: "removal",
+};
+
+/** Fix the listed misspellings, keeping each word's capitalization. */
+export function fixTitleTypos(title: string): string {
+  return title.replace(/[A-Za-z]+/g, (w) => {
+    const fix = TITLE_TYPOS[w.toLowerCase()];
+    if (!fix) return w;
+    if (w === w.toUpperCase()) return fix.toUpperCase();
+    if (w[0] === w[0].toUpperCase()) return fix.charAt(0).toUpperCase() + fix.slice(1);
+    return fix;
+  });
+}

@@ -9,7 +9,7 @@
  * set, the signup is still sent as a standard "sign_up" event.
  */
 export const GOOGLE_ADS_ID = "AW-18493657028";
-export const GOOGLE_ADS_SIGNUP_LABEL = "";
+export const GOOGLE_ADS_SIGNUP_LABEL = "0Qa5CKOFzpAdEMSfu_JE";
 
 type Gtag = (...args: unknown[]) => void;
 declare global {

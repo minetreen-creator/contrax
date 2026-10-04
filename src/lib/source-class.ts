@@ -160,6 +160,7 @@ function stateNameKeywordDoors(): Record<string, SourceClassRecord> {
  */
 export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   nc_evp: { class: "state", scopeState: "NC", searchScope: "state-portal", recordType: "opportunity" },
+  az_app: { class: "state", scopeState: "AZ", searchScope: "state-portal", recordType: "opportunity" },
   md_emma: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "opportunity" },
   // eVA, Virginia's own procurement portal (src/jobs/sources/va-eva.ts).
   va_eva: { class: "state", scopeState: "VA", searchScope: "state-portal", recordType: "opportunity" },

@@ -5,7 +5,7 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
-import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, dataCenterLocation, type ClusterCandidate } from "~/lib/visitor-intel";
+import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, dataCenterLocation, sourceLabel, type ClusterCandidate } from "~/lib/visitor-intel";
 import { buildConversionOpportunity, type ConversionOpportunity } from "~/lib/conversion-opportunity";
 
 /**
@@ -125,6 +125,8 @@ interface Journey {
   label: string; // masked, recognizable identifier (NO full PII)
   visitor_hash: string | null; // subtle "#last4" debugging badge (anonymous rows)
   source: string | null;
+  /** Display label when it differs from `source`, e.g. "Google Ads" for a paid click. */
+  source_label?: string | null;
   landing_page: string | null;
   city: string | null;
   region: string | null;
@@ -737,21 +739,24 @@ async function handler({ request }: { request: Request }) {
     // First in-window page view per visitor: its referrer feeds the
     // self-referral (email link scanner) bot check.
     const firstPage = new Map<string, { at: number; referrer: string | null }>();
+    // Visitors with a paid-ad click (medium "cpc", e.g. a Google Ads gclid) — owner 2026-10-04.
+    const paidVids = new Set<string>();
     try {
       const deRows: any[] = await sql()`
-        SELECT visitor_id, event_name, path, user_email, NULL AS referrer, created_at FROM funnel_events
+        SELECT visitor_id, event_name, path, user_email, NULL AS referrer, medium, created_at FROM funnel_events
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
           AND event_name IS NOT NULL
           AND created_at >= ${fromIso}
           ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}
         UNION ALL
-        SELECT visitor_id, NULL AS event_name, path, user_email, referrer, created_at FROM page_views
+        SELECT visitor_id, NULL AS event_name, path, user_email, referrer, medium, created_at FROM page_views
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
           AND path IS NOT NULL
           AND created_at >= ${fromIso}
           ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}`;
       for (const r of deRows) {
         const vid = String(r.visitor_id);
+        if (String(r.medium ?? "").toLowerCase() === "cpc") paidVids.add(vid);
         const en = r.event_name ? String(r.event_name) : null;
         const path = r.path ? String(r.path) : null;
         const email = r.user_email ? String(r.user_email) : null;
@@ -966,6 +971,10 @@ async function handler({ request }: { request: Request }) {
     }
 
     const all = [...journeys, ...orphanJourneys];
+    // "Google Ads" instead of a bare "google" for paid clicks (owner 2026-10-04).
+    for (const j of all) {
+      if (paidVids.has(j.visitor_id)) j.source_label = sourceLabel(j.source, "cpc");
+    }
     // Orphan rows: first in-window page view stands in for first-seen.
     for (const j of orphanJourneys) {
       const fp = firstPage.get(j.visitor_id);

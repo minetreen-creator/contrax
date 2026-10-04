@@ -51,6 +51,7 @@ interface Journey {
   label: string;
   visitor_hash: string | null;
   source: string | null;
+  source_label?: string | null;
   landing_page: string | null;
   city: string | null;
   region: string | null;
@@ -708,7 +709,7 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
             IP {j.last_ip ?? j.first_ip ?? "unavailable"}
           </p>
         </td>
-        <td className="px-5 py-3 text-slate-600">{j.source ? <span className="capitalize">{j.source}</span> : "—"}</td>
+        <td className="px-5 py-3 text-slate-600">{j.source_label ? <span className="font-medium text-blue-700">{j.source_label}</span> : j.source ? <span className="capitalize">{j.source}</span> : "—"}</td>
         <td className="px-5 py-3 text-slate-500 max-w-[180px] truncate font-mono">{j.landing_page ?? "—"}</td>
         <td className="px-5 py-3"><YesNo value={j.radar} /></td>
         <td className="px-5 py-3"><SignupBadge status={j.signup} /></td>

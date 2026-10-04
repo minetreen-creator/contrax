@@ -146,3 +146,15 @@ describe("dataCenterLocation (owner 2026-10-03)", () => {
     expect(dataCenterLocation("Boardman", null)).toBeNull();
   });
 });
+
+import { sourceLabel } from "./visitor-intel";
+
+describe("sourceLabel (owner 2026-10-04)", () => {
+  test("paid clicks read as ads, everything else unchanged", () => {
+    expect(sourceLabel("google", "cpc")).toBe("Google Ads");
+    expect(sourceLabel("bing", "CPC")).toBe("Bing Ads");
+    expect(sourceLabel("google", "organic")).toBe("google");
+    expect(sourceLabel("facebook", "social")).toBe("facebook");
+    expect(sourceLabel(null, "cpc")).toBeNull();
+  });
+});

@@ -972,6 +972,8 @@ export function displayPlaceOfPerformance(
  *                    Tennessee state agency.
  *    ne_das        → Nebraska State Purchasing Bureau; every buyer is a
  *                    Nebraska state agency.
+ *    mo_movers     → Missouri MissouriBUYS (MOVERS) bid board; every buyer is a
+ *                    Missouri state agency.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -1007,6 +1009,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   vt_vbr: "VT",
   tn_cpo: "TN",
   ne_das: "NE",
+  mo_movers: "MO",
 };
 
 export interface InsertLocationColumns {

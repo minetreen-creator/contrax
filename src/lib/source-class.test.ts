@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("110 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO and Nebraska SPB classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(110);
+  test("110 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB and Missouri MOVERS classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(111);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -95,7 +95,7 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // ia_das (Iowa Bid Opportunities), la_lapac (Louisiana LaPAC), in_idoa (Indiana IDOA)
     // mt_emacs (Montana eMACS), vt_vbr (Vermont Business Registry), tn_cpo (Tennessee CPO)
     // and ne_das (Nebraska State Purchasing Bureau).
-    expect(TAIL_SOURCES.length).toBe(34);
+    expect(TAIL_SOURCES.length).toBe(35);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { GOOGLE_ADS_ID, adsTagAllowed, signupConversionCall } from "./google-ads";
+import { GOOGLE_ADS_ID, GOOGLE_ADS_SIGNUP_LABEL, adsTagAllowed, signupConversionCall } from "./google-ads";
 
 describe("Google Ads tag (owner 2026-10-04)", () => {
-  test("account id", () => {
+  test("account id and Signup conversion label", () => {
     expect(GOOGLE_ADS_ID).toBe("AW-18493657028");
+    expect(GOOGLE_ADS_SIGNUP_LABEL).toBe("0Qa5CKOFzpAdEMSfu_JE");
+    expect(signupConversionCall()).toEqual(["event", "conversion", { send_to: "AW-18493657028/0Qa5CKOFzpAdEMSfu_JE" }]);
   });
 
   test("never on admin pages", () => {

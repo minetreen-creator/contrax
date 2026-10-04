@@ -2,6 +2,15 @@ import { useEffect, useState } from "react";
 import { redirectToCheckout } from "~/lib/checkout";
 import { trackEvent } from "~/lib/track";
 
+/**
+ * Spots line (owner 2026-10-04): "10 of 10 spots left" told visitors nobody
+ * had bought yet, so the count only shows once a spot is taken.
+ */
+export function foundingSpotsLine(remaining: number, limit: number): string {
+  if (remaining >= limit) return `Limited to the first ${limit} customers`;
+  return `Only ${remaining} of ${limit} spots left`;
+}
+
 type Offer = { available: boolean; remaining: number; limit: number; monthlyUsd: number };
 
 /**
@@ -49,7 +58,7 @@ export function FoundingOffer({ source }: { source: "pricing" | "upgrade" | "hom
         $19 for as long as you stay subscribed. Cancel anytime.
       </p>
       <p className="mt-3 text-sm font-semibold text-amber-800">
-        {offer.remaining} of {offer.limit} spots left
+        {foundingSpotsLine(offer.remaining, offer.limit)}
       </p>
       <button
         type="button"

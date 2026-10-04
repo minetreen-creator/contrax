@@ -64,7 +64,8 @@ describe("homepage SDVOSB sample: newest service bids (owner 2026-10-03)", () =>
   test("the query sorts newest first and excludes numeric-FSC titles", () => {
     const src = readFileSync(join(import.meta.dir, "sample-bids.ts"), "utf8");
     expect(src).toContain("ORDER BY created_at DESC NULLS LAST, id DESC");
-    expect(src).toContain("AND title !~ '^[[:space:]]*[0-9]{2}--'");
+    // Widened 2026-10-04 to 4-digit FSC codes ("6515--…") with optional spaces.
+    expect(src).toContain("AND title !~ '^[[:space:]]*[0-9]{2,4}[[:space:]]*--'");
     expect(src).not.toContain("ORDER BY due_date ASC");
   });
 });

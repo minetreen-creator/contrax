@@ -39,12 +39,12 @@ if (process.argv.includes("--apply")) {
   const candidates = canonical.filter(r => !match(r));
   const result = await syncSource(sql, {name: "az_app", fetchFn: async () => candidates});
   if (result.failed || result.errors.length) throw new Error("Arizona import failed");
-  const stored = await sql`SELECT id, solicitation_number, agency, source_url, title, normalized_state, source_jurisdiction, due_date FROM bids WHERE normalized_state = 'AZ'`;
+  const stored = await sql`SELECT id, solicitation_number, agency, source_url, title, source, normalized_state, source_jurisdiction, due_date FROM bids WHERE normalized_state = 'AZ'`;
   const verified = canonical.filter(r => stored.some(e => (e.source_url === r.source_url || e.id === match(r)?.id) && e.normalized_state === "AZ"));
   if (verified.length !== canonical.length) throw new Error("Stored identity verification failed");
-  for (const r of candidates) {
-    const e = stored.find(e => e.source_url === r.source_url);
-    if (!e || e.source_jurisdiction !== "state" || Date.parse(e.due_date) !== Date.parse(r.due_date!)) throw new Error("Stored provenance/deadline verification failed");
+  for (const r of canonical) {
+    const e = stored.find(e => e.source_url === r.source_url || e.id === match(r)?.id);
+    if (!e || (e.source === "az_app" && e.source_jurisdiction !== "AZ") || Date.parse(e.due_date) !== Date.parse(r.due_date!)) throw new Error("Stored provenance/deadline verification failed");
   }
   console.log(JSON.stringify({newlyInserted: result.new, existingIdentityMatches: rows.length - candidates.length, verified: verified.length, result}));
 }

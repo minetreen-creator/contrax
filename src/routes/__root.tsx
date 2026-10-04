@@ -18,6 +18,7 @@ import { trackingIds, getOrCreateVisitorId } from "~/lib/visitor";
 import { getTrackingUser, resolveTrackingUser } from "~/lib/identity";
 import { isAutomatedBrowser } from "~/lib/track";
 import { enqueueTracking } from "~/lib/track-queue";
+import { loadGoogleAdsTag } from "~/lib/google-ads";
 import appCss from "~/styles/app.css?url";
 
 const PROD_URL = "https://www.contrax.company";
@@ -203,10 +204,20 @@ function RootDocument({ children }: { children: ReactNode }) {
   );
 }
 
+// Google Ads tag (owner 2026-10-04): loaded after first render, never on /admin.
+function GoogleAdsTag() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    loadGoogleAdsTag(pathname);
+  }, [pathname]);
+  return null;
+}
+
 function RootComponent() {
   return (
     <RootDocument>
       <Outlet />
+      <GoogleAdsTag />
       <AttributionCookie />
       <PageViewTracker />
       <ChatWidget />

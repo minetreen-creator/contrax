@@ -69,6 +69,7 @@ import { fetchMtEmacsBids } from "./sources/mt-emacs";
 import { fetchVtVbrBids } from "./sources/vt-vbr";
 import { fetchTnCpoBids } from "./sources/tn-cpo";
 import { fetchMoMoversBids } from "./sources/mo-movers";
+import { fetchCtWebprocureBids } from "./sources/ct-webprocure";
 import { fetchNeDasBids } from "./sources/ne-das";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
@@ -279,6 +280,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "ne_das", fetchFn: () => fetchNeDasBids() },
   // Missouri MissouriBUYS (MOVERS) bid board: open state agency solicitations.
   { name: "mo_movers", fetchFn: () => fetchMoMoversBids() },
+  // Connecticut CTsource Bid Board (WebProcure): state agency, town and city solicitations.
+  { name: "ct_webprocure", fetchFn: () => fetchCtWebprocureBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

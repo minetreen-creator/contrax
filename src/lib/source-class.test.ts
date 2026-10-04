@@ -94,8 +94,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // de_mmp (Delaware Bid Solicitation Directory), sc_scbo (SC Business Opportunities)
     // ia_das (Iowa Bid Opportunities), la_lapac (Louisiana LaPAC), in_idoa (Indiana IDOA)
     // mt_emacs (Montana eMACS), vt_vbr (Vermont Business Registry), tn_cpo (Tennessee CPO)
-    // and ne_das (Nebraska State Purchasing Bureau).
-    expect(TAIL_SOURCES.length).toBe(36);
+    // ne_das (Nebraska State Purchasing Bureau), mo_movers (Missouri MOVERS),
+    // ct_webprocure (Connecticut CTsource) and az_app (Arizona Procurement Portal).
+    expect(TAIL_SOURCES.length).toBe(37);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

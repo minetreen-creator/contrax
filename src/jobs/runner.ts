@@ -70,6 +70,7 @@ import { fetchVtVbrBids } from "./sources/vt-vbr";
 import { fetchTnCpoBids } from "./sources/tn-cpo";
 import { fetchMoMoversBids } from "./sources/mo-movers";
 import { fetchCtWebprocureBids } from "./sources/ct-webprocure";
+import { fetchAzAppBids } from "./sources/az-app";
 import { fetchNeDasBids } from "./sources/ne-das";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
@@ -282,6 +283,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "mo_movers", fetchFn: () => fetchMoMoversBids() },
   // Connecticut CTsource Bid Board (WebProcure): state agency, town and city solicitations.
   { name: "ct_webprocure", fetchFn: () => fetchCtWebprocureBids() },
+  // Arizona Procurement Portal (APP): open state agency, city and tribal solicitations.
+  { name: "az_app", fetchFn: () => fetchAzAppBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

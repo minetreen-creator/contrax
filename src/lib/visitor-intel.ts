@@ -309,6 +309,18 @@ export function dataCenterLocation(city: string | null | undefined, region: stri
   return `located in ${String(city).trim()}, ${r.toUpperCase()}, a data-center town (server traffic, not a person)`;
 }
 
+/**
+ * Source as shown on the board (owner 2026-10-04): a paid click (medium "cpc")
+ * reads "Google Ads" / "Bing Ads" / "<Source> Ads"; anything else is the source.
+ */
+export function sourceLabel(source: string | null | undefined, medium: string | null | undefined): string | null {
+  const s = String(source ?? "").trim();
+  if (!s) return null;
+  if (String(medium ?? "").toLowerCase() !== "cpc") return s;
+  const name = s.toLowerCase() === "google" ? "Google" : s.toLowerCase() === "bing" ? "Bing" : s.charAt(0).toUpperCase() + s.slice(1);
+  return `${name} Ads`;
+}
+
 /** Seconds between two ISO timestamps, or null. */
 export function spanSeconds(firstIso: string | null | undefined, lastIso: string | null | undefined): number | null {
   if (!firstIso || !lastIso) return null;

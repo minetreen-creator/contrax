@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("110 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS and Connecticut CTsource classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(112);
+  test("113 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS Connecticut CTsource and Arizona APP classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(113);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -276,7 +276,7 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
 });
 
  test("NC and Maryland public imports retain state provenance and separate awards", () => {
- for (const [source,state] of [["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"],["wv_oasis","WV"],["ky_vss","KY"],["al_aldot","AL"],["de_mmp","DE"],["sc_scbo","SC"],["ia_das","IA"],["la_lapac","LA"],["in_idoa","IN"],["mt_emacs","MT"],["vt_vbr","VT"],["tn_cpo","TN"],["ne_das","NE"]]) {
+ for (const [source,state] of [["az_app","AZ"],["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"],["wv_oasis","WV"],["ky_vss","KY"],["al_aldot","AL"],["de_mmp","DE"],["sc_scbo","SC"],["ia_das","IA"],["la_lapac","LA"],["in_idoa","IN"],["mt_emacs","MT"],["vt_vbr","VT"],["tn_cpo","TN"],["ne_das","NE"]]) {
  expect(resolveSourceClass(source)).toBe("state");
  expect(SOURCE_CLASSES[source]!.scopeState).toBe(state);
  }

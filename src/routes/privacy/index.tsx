@@ -46,7 +46,7 @@ function PrivacyPage() {
     <div className="min-h-screen bg-white">
       <div className="mx-auto max-w-3xl px-6 py-16 sm:py-24">
         <h1 className="text-3xl font-bold text-slate-900 sm:text-4xl">Privacy Policy</h1>
-        <p className="mt-2 text-sm text-slate-500">Last updated: September 24, 2026</p>
+        <p className="mt-2 text-sm text-slate-500">Last updated: October 4, 2026</p>
         <div className="mt-10 space-y-8 text-slate-700 leading-relaxed">
           <p>Contrax LLC, doing business as Contrax, is responsible for the personal information described in this Policy. Contrax respects your privacy. This Privacy Policy explains what information we collect when you visit or use Contrax, how we use that information, and the choices available to you.</p>
           <section>
@@ -115,11 +115,13 @@ function PrivacyPage() {
               <li>session identifiers;</li>
               <li>recognizing return visits;</li>
               <li>first-party analytics;</li>
+              <li>measuring advertising results (the Google Ads tag described below);</li>
               <li>attribution; and</li>
               <li>measuring product and signup engagement.</li>
             </ul>
             <p className="mt-3">Contrax does not sell personal information in exchange for money.</p>
-            <p className="mt-3">If Contrax later introduces advertising technologies, third-party behavioral tracking, or other materially different tracking practices, this Privacy Policy may be updated and consent mechanisms will be implemented where required by applicable law.</p>
+            <p className="mt-3">Contrax uses the Google Ads tag (gtag.js) on its public pages to measure whether its Google ads lead to visits and signups. Google may set cookies and receive information such as the pages you visit, your IP address, browser details, and whether you completed a signup. Google's use of this information is governed by Google's own privacy policy. The tag is not loaded on administrator pages. You can manage or turn off ad personalization at <a href="https://adssettings.google.com" className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">adssettings.google.com</a>, and you can block or delete cookies in your browser settings.</p>
+            <p className="mt-3">If Contrax introduces other advertising technologies or materially different tracking practices, this Privacy Policy will be updated and consent mechanisms will be implemented where required by applicable law.</p>
           </section>
           <section>
             <h2 className="text-xl font-semibold text-slate-900">5. Artificial Intelligence</h2>

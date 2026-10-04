@@ -2,6 +2,7 @@ import { trackingIds } from "~/lib/visitor";
 import { getTrackingUser } from "~/lib/identity";
 import { readStoredAttemptToken } from "~/lib/signup-telemetry";
 import { enqueueTracking } from "~/lib/track-queue";
+import { reportSignupConversion } from "~/lib/google-ads";
 /**
  * Fire-and-forget funnel event tracking (client-side only).
  *
@@ -73,4 +74,6 @@ export function trackEvent(event: string, label?: string, path?: string) {
   if (attempt) payload.attempt_token = attempt;
   // Batched with other tracking calls (src/lib/track-queue.ts).
   enqueueTracking(payload);
+  // Google Ads conversion for a completed signup (src/lib/google-ads.ts).
+  if (event === "signup_success") reportSignupConversion();
 }

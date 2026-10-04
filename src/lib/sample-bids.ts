@@ -3,7 +3,8 @@ import { setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { isProductBuy } from "~/lib/trade-classification";
-import { cleanBidTitle, isCodeHeavyTitle } from "~/lib/bid-title";
+import { cleanBidTitle, fixTitleTypos, isCodeHeavyTitle } from "~/lib/bid-title";
+import { displayAgency, displayLocation } from "~/lib/agency-display";
 
 // Live sample of REAL open SDVOSB set-asides, NEWEST first (owner 2026-10-03:
 // "closing soonest" showed the same five rows day after day until each aged
@@ -57,9 +58,9 @@ export const getSdvosbSample = createServerFn({ method: "GET" }).handler(
       });
       return picked.slice(0, 5).map((r) => ({
         id: Number(r.id),
-        title: cleanBidTitle(String(r.title ?? "")).title,
-        agency: r.agency ? String(r.agency) : null,
-        location: r.location ? String(r.location) : null,
+        title: fixTitleTypos(cleanBidTitle(String(r.title ?? "")).title),
+        agency: displayAgency(r.agency),
+        location: displayLocation(r.location),
         due_date: r.due_date ? String(r.due_date) : null,
         set_aside: r.set_aside ? String(r.set_aside) : null,
         source_url: r.source_url ? String(r.source_url) : null,

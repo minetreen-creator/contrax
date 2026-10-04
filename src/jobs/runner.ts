@@ -71,6 +71,7 @@ import { fetchTnCpoBids } from "./sources/tn-cpo";
 import { fetchMoMoversBids } from "./sources/mo-movers";
 import { fetchCtWebprocureBids } from "./sources/ct-webprocure";
 import { fetchAzAppBids } from "./sources/az-app";
+import { fetchWaWebsBids } from "./sources/wa-webs";
 import { fetchNeDasBids } from "./sources/ne-das";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
@@ -285,6 +286,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "ct_webprocure", fetchFn: () => fetchCtWebprocureBids() },
   // Arizona Procurement Portal (APP): open state agency, city and tribal solicitations.
   { name: "az_app", fetchFn: () => fetchAzAppBids() },
+  // Washington WEBS bid calendar: state agency, university, city and district bids.
+  { name: "wa_webs", fetchFn: () => fetchWaWebsBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

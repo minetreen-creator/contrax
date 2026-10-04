@@ -3,6 +3,7 @@ import { setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { isProductBuy } from "~/lib/trade-classification";
+import { cleanBidTitle, isCodeHeavyTitle } from "~/lib/bid-title";
 
 // Live sample of REAL open SDVOSB set-asides, NEWEST first (owner 2026-10-03:
 // "closing soonest" showed the same five rows day after day until each aged
@@ -24,9 +25,9 @@ export type SampleBid = {
   created_at: string | null;
 };
 
-/** SAM product listings lead with a numeric Federal Supply Class ("59--…"); services lead with a letter ("S201--…"). */
+/** SAM product listings lead with a numeric Federal Supply Class ("59--…", "6515--…"); services lead with a letter ("S201--…"). */
 export function isProductListingTitle(title: string): boolean {
-  return /^\s*\d{2}--/.test(title) || isProductBuy(title.toLowerCase());
+  return /^\s*\d{2,4}\s*--/.test(title) || isProductBuy(title.toLowerCase());
 }
 
 export const getSdvosbSample = createServerFn({ method: "GET" }).handler(
@@ -37,17 +38,18 @@ export const getSdvosbSample = createServerFn({ method: "GET" }).handler(
         SELECT id, title, agency, location, due_date, set_aside, source_url, created_at
         FROM bids
         WHERE due_date::date >= (NOW() + INTERVAL '2 days')::date
-          AND title !~ '^[[:space:]]*[0-9]{2}--'
+          AND title !~ '^[[:space:]]*[0-9]{2,4}[[:space:]]*--'
           ${setAsidePred("sdvosb", sql)}
           AND ${sql().unsafe(LOW_CONTENT_SQL)}
           AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         ORDER BY created_at DESC NULLS LAST, id DESC
-        LIMIT 30
+        LIMIT 60
       `) as any[];
       const seen = new Set<string>();
       const picked = rows.filter((r) => {
         const title = String(r.title ?? "");
-        if (!title || isProductListingTitle(title)) return false;
+        // Homepage examples must read as plain English (owner 2026-10-04).
+        if (!title || isProductListingTitle(title) || isCodeHeavyTitle(title)) return false;
         const key = `${title.toLowerCase()}|${String(r.agency ?? "").toLowerCase()}`;
         if (seen.has(key)) return false;
         seen.add(key);
@@ -55,7 +57,7 @@ export const getSdvosbSample = createServerFn({ method: "GET" }).handler(
       });
       return picked.slice(0, 5).map((r) => ({
         id: Number(r.id),
-        title: String(r.title ?? ""),
+        title: cleanBidTitle(String(r.title ?? "")).title,
         agency: r.agency ? String(r.agency) : null,
         location: r.location ? String(r.location) : null,
         due_date: r.due_date ? String(r.due_date) : null,

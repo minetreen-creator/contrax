@@ -193,8 +193,8 @@ export const Route = createFileRoute("/")({
 });
 
 // ── Official Partnership Announcement (Veterans Against Diabetes) ──────────────
-// Static, self-contained announcement band rendered at the very top of the
-// homepage (above the Navbar). Pure presentational copy — no buttons, no
+// Static, self-contained announcement band rendered just above the footer
+// (moved from the top of the page, owner 2026-10-04). Pure presentational copy — no buttons, no
 // checkout wiring, no pricing/gating changes.
 function PartnershipBanner() {
   return (
@@ -248,7 +248,6 @@ function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <PartnershipBanner />
       <Navbar />
       <Hero sample={sample} />
       <Stats bidStats={bidStats} contractMap={contractMap} />
@@ -263,6 +262,8 @@ function Home() {
       <div className="mt-10 bg-[#f5f7fa] py-8 text-slate-900">
         <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />
       </div>
+      {/* Moved from the very top (owner 2026-10-04) so the headline is the first thing people read. */}
+      <PartnershipBanner />
       <Footer />
     </div>
   );

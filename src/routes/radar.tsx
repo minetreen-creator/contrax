@@ -64,6 +64,7 @@ import {
 } from "~/lib/radar-scan-runner";
 import { fetchStrictRadarRows, radarRowPasses } from "~/lib/radar-candidates";
 import { radarShareUrl } from "~/lib/radar-share";
+import { cleanBidTitle } from "~/lib/bid-title";
 import { stateFromGeoHeaders, withTimeout } from "~/lib/radar-geo";
 import { SiteHeader } from "~/components/SiteHeader";
 import { HeadStartLock } from "~/components/HeadStartLock";
@@ -1968,7 +1969,7 @@ function RadarLanding() {
                         key={m.id}
                         className="rounded-xl border border-slate-700 bg-slate-900 px-4 py-3"
                       >
-                        <p className="text-sm font-semibold text-white">{m.title}</p>
+                        <p className="text-sm font-semibold text-white">{cleanBidTitle(m.title).title || m.title}</p>
                         <p className="mt-1 text-xs text-slate-400">
                           {displayPlaceOfPerformance(m.title, m.location, m.agency) ??
                             "Place of performance not specified"}
@@ -2170,6 +2171,8 @@ export function RadarCard({
   // agency-jurisdiction rule (Ohio Phase 3) flows through it.
   const isStateLocal = matchGeographyBucket(state, match.location, match.agency) === "local";
   const place = displayPlaceOfPerformance(match.title, match.location, match.agency);
+  // Readable title for display (owner 2026-10-04); the stored title is unchanged.
+  const shownTitle = cleanBidTitle(match.title);
   const courierSubtype = isCourierFamilyNaics(match.naics_code) && !tradeExpresslyCourier(trade);
   const rawVal = (match.estimated_value || "").trim();
   const VALUE_PLACEHOLDER = /^(not specified|not available|n\/a|unknown|tbd|none|to be determined|available upon request|see solicitation)$/i;
@@ -2236,7 +2239,8 @@ export function RadarCard({
             </p>
           </div>
         )}
-        <h3 className="text-base font-bold leading-snug text-white">{match.title || "Solicitation"}</h3>
+        <h3 className="text-base font-bold leading-snug text-white">{shownTitle.title || "Solicitation"}</h3>
+        {shownTitle.reference && <p className="mt-0.5 text-[11px] text-slate-500">Ref. {shownTitle.reference}</p>}
         {match.agency && <p className="mt-0.5 text-sm text-slate-400">{match.agency}</p>}
         {/* v6.2: ACTUAL place of performance + eligibility tag — "nationalwide"
             is a separate ELIGIBILITY tag, never the location. State-local cards

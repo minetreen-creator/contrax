@@ -128,7 +128,7 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
   });
 
   test("radar match alert pitches the founding price only while spots remain", () => {
-    expect(radarMatchAlertHtml([bid], 0, "https://u", 1)).toContain("(1 spot left)");
+    expect(radarMatchAlertHtml([bid], 0, "https://u", 1)).toContain("(only 1 spot left)");
     const full = radarMatchAlertHtml([bid], 0, "https://u", 0);
     expect(full).toContain("Starter is $19/month");
     expect(full).not.toContain("founding");

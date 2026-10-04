@@ -810,7 +810,9 @@ export function foundingOfferOpen(spots: number | null | undefined): spots is nu
 /** "$9/month for life … (3 spots left)" while founding spots remain, else "$19/month". */
 export function starterPriceHtml(spots: number | null | undefined): string {
   if (!foundingOfferOpen(spots)) return "$19/month";
-  return `<strong>$9/month for life</strong> as one of our first 10 founding members (${spots} spot${spots === 1 ? "" : "s"} left)`;
+  // No "10 spots left" while none are taken (owner 2026-10-04): it reads as "nobody bought".
+  const left = spots >= 10 ? "" : ` (only ${spots} spot${spots === 1 ? "" : "s"} left)`;
+  return `<strong>$9/month for life</strong> as one of our first 10 founding members${left}`;
 }
 
 // ── Bid Digest HTML Template ───────────────────────────────────────────────────

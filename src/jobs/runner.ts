@@ -74,6 +74,9 @@ import { fetchAzAppBids } from "./sources/az-app";
 import { fetchWaWebsBids } from "./sources/wa-webs";
 import { fetchUtBonfireBids } from "./sources/ut-bonfire";
 import { fetchMsDfaBids } from "./sources/ms-dfa";
+import { fetchMnDotBids } from "./sources/mn-mndot";
+import { fetchMnConnexBids } from "./sources/mn-connex";
+import { fetchMnQuestcdnBids } from "./sources/mn-questcdn";
 import { fetchNeDasBids } from "./sources/ne-das";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
@@ -293,6 +296,9 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Utah U3P (Bonfire) open opportunities: state, city, county, school and district bids.
   { name: "ut_bonfire", fetchFn: () => fetchUtBonfireBids() },
   { name: "ms_dfa", fetchFn: () => fetchMsDfaBids() },
+  { name: "mn_mndot", fetchFn: () => fetchMnDotBids() },
+  { name: "mn_connex", fetchFn: () => fetchMnConnexBids() },
+  { name: "mn_questcdn", fetchFn: () => fetchMnQuestcdnBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

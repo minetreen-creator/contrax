@@ -1860,9 +1860,37 @@ function RadarLanding() {
               <div className="mt-8 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-10 text-center text-sm text-slate-300">
                 <p className="text-base font-semibold text-white">No strong matches yet.</p>
                 <p className="mx-auto mt-2 max-w-md text-slate-300">
-                  Try broadening your criteria, or leave your email and Contrax
-                  can notify you when a matching opportunity appears.
+                  {state
+                    ? `Nothing open for ${trade.trim() || "this search"} in ${STATE_NAMES[state] ?? state} right now. Try every state, or get an email when one posts.`
+                    : "Try a different trade, or get an email when one posts."}
                 </p>
+                {/* Owner 2026-10-05 (Lehi, UT visitor: security guard in Utah, zero
+                    matches, left): one tap to the same trade nationwide. */}
+                {state && trade.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackEvent("radar_zero_nationwide", `${trade.trim()}|${state}`);
+                      setState("");
+                      runScan({ trade: trade.trim(), state: "", cert: cert ?? DEFAULT_RADAR_CERT, sizePref: sizePref ?? DEFAULT_RADAR_SIZE });
+                    }}
+                    className="mt-6 w-full rounded-2xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
+                  >
+                    See {trade.trim().slice(0, 40)} contracts nationwide →
+                  </button>
+                )}
+                {isAnonymous && (
+                  <div className="text-left">
+                    <MatchAlertsCard
+                      certLabel={scan.certLabel}
+                      trade={trade}
+                      state={state}
+                      cert={cert ?? ""}
+                      sizePref={sizePref ?? ""}
+                      noMatches
+                    />
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => { setStep(1); setScan({ status: "idle" }); setRestoredResults(false); setRevealed(0); setNudgeDismissed(false); }}
@@ -3010,6 +3038,7 @@ export function MatchAlertsCard({
   cert,
   sizePref,
   fewMatches,
+  noMatches,
 }: {
   certLabel: string;
   trade: string;
@@ -3024,6 +3053,8 @@ export function MatchAlertsCard({
    * unlock, so future matches are the reason to leave an email.
    */
   fewMatches?: number;
+  /** Zero-match variant (owner 2026-10-05): the empty result offers the alert instead of a dead end. */
+  noMatches?: boolean;
 }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
@@ -3033,13 +3064,15 @@ export function MatchAlertsCard({
   useEffect(() => {
     if (shownRef.current) return;
     shownRef.current = true;
-    trackEvent("radar_alert_offer_shown", fewMatches ? `few_${fewMatches}` : "standard");
-  }, [fewMatches]);
+    trackEvent("radar_alert_offer_shown", noMatches ? "zero" : fewMatches ? `few_${fewMatches}` : "standard");
+  }, [fewMatches, noMatches]);
 
   if (dismissed) return null;
   const tradeText = trade.trim().slice(0, 40);
   const stateName = state ? STATE_NAMES[state] ?? state : "";
-  const heading = fewMatches
+  const heading = noMatches
+    ? `Nothing open right now. Get an email when a ${tradeText ? `${tradeText} ` : ""}bid posts${stateName ? ` in ${stateName}` : ""}.`
+    : fewMatches
     ? `Only ${fewMatches} open right now. Get new ${tradeText ? `${tradeText} ` : ""}bids${stateName ? ` in ${stateName}` : ""} by email.`
     : "Want new matches by email instead?";
 
@@ -3107,7 +3140,7 @@ export function MatchAlertsCard({
         <div>
           <h3 className="text-base font-bold text-white">{heading}</h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-300">
-            {fewMatches
+            {fewMatches || noMatches
               ? "New bids post every day. Leave your email and we'll send you a weekly email when new matching opportunities open. No account required."
               : "Leave your email and we'll send you a weekly email of new matching opportunities. No account required."}
           </p>
@@ -3151,7 +3184,7 @@ export function MatchAlertsCard({
           disabled={status === "submitting"}
           className="w-full rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:opacity-60"
         >
-          {status === "submitting" ? "Sending…" : fewMatches ? "Email me new matches →" : "Send My Matches →"}
+          {status === "submitting" ? "Sending…" : fewMatches || noMatches ? "Email me new matches →" : "Send My Matches →"}
         </button>
       </form>
     </section>

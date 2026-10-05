@@ -335,7 +335,7 @@ function Hero({ sample }: { sample: SampleBid[] }) {
             Find government contracts your business can actually win
           </h1>
           <p className="mt-5 mb-7 max-w-[31em] text-lg text-[#b9c7dc]">
-            Federal, state and local bids in 34 states. Type your trade and state to see what's open
+            Federal, state and local bids in 36 states. Type your trade and state to see what's open
             now, with source links and real deadlines.
           </p>
           <form

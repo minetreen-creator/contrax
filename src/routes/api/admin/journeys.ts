@@ -317,7 +317,7 @@ function isBotVisitorRow(v: {
     return !!(ip2 && fn(ip2));
   };
   if (any((ip) => ip === "34.214.71.218" || ip === "73.40.36.204")) return true;
-  if (any((ip) => ip.startsWith("66.249.") || ip.startsWith("40.77.") || ip.startsWith("157.55.") || ip.startsWith("207.46."))) return true;
+  if (any((ip) => ip.startsWith("66.249.") || ip.startsWith("66.102.") || ip.startsWith("40.77.") || ip.startsWith("157.55.") || ip.startsWith("207.46."))) return true;
   if (any((ip) => ip.startsWith("66.220.") || ip.startsWith("31.13.") || ip.startsWith("173.252.") || ip.startsWith("104.189.") || ip.startsWith("69.171.") || ip.startsWith("157.240."))) return true;
   if (
     any((ip) => ip.startsWith("52.") || ip.startsWith("54.") || ip.startsWith("35.") || ip.startsWith("44.") || ip.startsWith("34.")) &&
@@ -740,23 +740,25 @@ async function handler({ request }: { request: Request }) {
     // self-referral (email link scanner) bot check.
     const firstPage = new Map<string, { at: number; referrer: string | null }>();
     // Visitors with a paid-ad click (medium "cpc", e.g. a Google Ads gclid) — owner 2026-10-04.
-    const paidVids = new Set<string>();
+    // vid → the source on its paid row ("google"), so the label never depends
+    // on the summary row's first-touch source being filled in.
+    const paidVids = new Map<string, string>();
     try {
       const deRows: any[] = await sql()`
-        SELECT visitor_id, event_name, path, user_email, NULL AS referrer, medium, created_at FROM funnel_events
+        SELECT visitor_id, event_name, path, user_email, NULL AS referrer, source, medium, created_at FROM funnel_events
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
           AND event_name IS NOT NULL
           AND created_at >= ${fromIso}
           ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}
         UNION ALL
-        SELECT visitor_id, NULL AS event_name, path, user_email, referrer, medium, created_at FROM page_views
+        SELECT visitor_id, NULL AS event_name, path, user_email, referrer, source, medium, created_at FROM page_views
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
           AND path IS NOT NULL
           AND created_at >= ${fromIso}
           ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}`;
       for (const r of deRows) {
         const vid = String(r.visitor_id);
-        if (String(r.medium ?? "").toLowerCase() === "cpc") paidVids.add(vid);
+        if (String(r.medium ?? "").toLowerCase() === "cpc" && !paidVids.has(vid)) paidVids.set(vid, String(r.source ?? "").trim());
         const en = r.event_name ? String(r.event_name) : null;
         const path = r.path ? String(r.path) : null;
         const email = r.user_email ? String(r.user_email) : null;
@@ -973,7 +975,8 @@ async function handler({ request }: { request: Request }) {
     const all = [...journeys, ...orphanJourneys];
     // "Google Ads" instead of a bare "google" for paid clicks (owner 2026-10-04).
     for (const j of all) {
-      if (paidVids.has(j.visitor_id)) j.source_label = sourceLabel(j.source, "cpc");
+      const paidSource = paidVids.get(j.visitor_id);
+      if (paidSource !== undefined) j.source_label = sourceLabel(paidSource || j.source || "google", "cpc");
     }
     // Orphan rows: first in-window page view stands in for first-seen.
     for (const j of orphanJourneys) {
@@ -1000,6 +1003,14 @@ async function handler({ request }: { request: Request }) {
       if (!evidence || j.lead_score?.automated) continue;
       j.lead_score = { score: 0, level: "Low", reasons: [], automated: evidence };
       delete j.conversion_opportunity;
+    }
+    // A paid ad click is never hidden as "likely automated" (owner 2026-10-05:
+    // "i still dont see google ads"): the owner pays for each one and wants to
+    // see it. Known crawler addresses are already dropped by the SQL filters.
+    for (const j of all) {
+      if (paidVids.has(j.visitor_id) && j.lead_score?.automated) {
+        j.lead_score = { ...j.lead_score, automated: null };
+      }
     }
     // Newest activity first.
     all.sort((a, b) => (b.last_activity ?? "").localeCompare(a.last_activity ?? ""));

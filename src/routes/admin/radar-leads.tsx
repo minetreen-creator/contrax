@@ -119,7 +119,7 @@ function RadarLeadsPage() {
                     <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">{i + 1}. {s.label}</p>
                     <p className="mt-1 text-2xl font-bold text-slate-900">{s.count}</p>
                     {s.dropOffPct !== null && s.count < data.funnel[i - 1].count && (
-                      <p className="mt-0.5 text-[10px] text-red-500">−{s.dropOffPct}% from prior</p>
+                      <p className="mt-0.5 text-[10px] text-red-500">−{s.dropOffPct}% from previous step</p>
                     )}
                   </div>
                 ))}

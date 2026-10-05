@@ -296,7 +296,12 @@ export function sameMinuteClusters(rows: ClusterCandidate[]): Map<string, string
  * "visitors" from there were link scanners and preview bots on AWS addresses.
  * Keys are lower-case "city|state code".
  */
-export const DATA_CENTER_LOCATIONS: ReadonlySet<string> = new Set(["boardman|or"]);
+export const DATA_CENTER_LOCATIONS: ReadonlySet<string> = new Set([
+  "boardman|or",
+  // Hamina, Finland (region 09, Kymenlaakso): a Google data center; the 2026-10-04
+  // "Hamina, 09 · Desktop" visitor was 66.102.9.164, a Google address.
+  "hamina|09",
+]);
 
 const REGION_CODES: Record<string, string> = { oregon: "OR" };
 

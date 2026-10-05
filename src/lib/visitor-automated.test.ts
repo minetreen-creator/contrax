@@ -139,6 +139,11 @@ describe("dataCenterLocation (owner 2026-10-03)", () => {
     expect(dataCenterLocation(" boardman ", "Oregon")).toContain("data-center town");
   });
 
+  test("Hamina, Finland (Google data center, region 09) is flagged", () => {
+    expect(dataCenterLocation("Hamina", "09")).toContain("Hamina, 09");
+    expect(dataCenterLocation("Hamina", "10")).toBeNull();
+  });
+
   test("real towns, other states and missing data are not", () => {
     expect(dataCenterLocation("Newport", "NC")).toBeNull();
     expect(dataCenterLocation("Boardman", "OH")).toBeNull();
@@ -156,5 +161,13 @@ describe("sourceLabel (owner 2026-10-04)", () => {
     expect(sourceLabel("google", "organic")).toBe("google");
     expect(sourceLabel("facebook", "social")).toBe("facebook");
     expect(sourceLabel(null, "cpc")).toBeNull();
+  });
+});
+
+import { BOT_EXCLUSION_SQL } from "./bot-exclusion";
+describe("Google ad-review addresses (owner 2026-10-05)", () => {
+  test("66.102.* is excluded like Googlebot's 66.249.*", () => {
+    expect(BOT_EXCLUSION_SQL).toContain("ip LIKE '66.102.%'");
+    expect(BOT_EXCLUSION_SQL).toContain("ip LIKE '66.249.%'");
   });
 });

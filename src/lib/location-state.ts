@@ -985,6 +985,11 @@ export function displayPlaceOfPerformance(
  *    ms_dfa        → Mississippi procurement search (DFA, with MPTAP legal
  *                    notices); every buyer is a Mississippi state agency,
  *                    university, county, city, school or utility district.
+ *    mn_mndot      → MnDOT highway lettings; the buyer is MnDOT.
+ *    mn_connex     → MnDOT State Aid eAdvert (ConneX), filtered to Minnesota;
+ *                    every buyer is a Minnesota county or city.
+ *    mn_questcdn   → Minnesota Dept of Administration QuestCDN postings;
+ *                    every buyer is a Minnesota state department.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -1026,6 +1031,9 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   wa_webs: "WA",
   ut_bonfire: "UT",
   ms_dfa: "MS",
+  mn_mndot: "MN",
+  mn_connex: "MN",
+  mn_questcdn: "MN",
 };
 
 export interface InsertLocationColumns {

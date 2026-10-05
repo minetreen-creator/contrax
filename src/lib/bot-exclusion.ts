@@ -22,8 +22,9 @@ export const BOT_EXCLUSION_SQL = `
     ip IN ('34.214.71.218','73.40.36.204')
     -- Search-engine crawler IP prefixes: Googlebot + common Bing ranges.
     OR ip LIKE '66.249.%'
-    -- Google ad review / page-preview fetchers (headless Chrome on Google addresses).
-    OR ip LIKE '66.102.%'
+    -- Google ad review / page-preview fetchers (headless Chrome on Google addresses;
+    -- 2026-10-04: Hamina 66.102.9.164, Council Bluffs 74.125.212.135/.140).
+    OR ip LIKE '66.102.%' OR ip LIKE '74.125.%'
     OR ip LIKE '40.77.%' OR ip LIKE '157.55.%' OR ip LIKE '207.46.%'
     -- Social link-preview / crawler IP prefixes (Facebook/Meta, etc.).
     OR ip LIKE '66.220.%' OR ip LIKE '31.13.%' OR ip LIKE '173.252.%'

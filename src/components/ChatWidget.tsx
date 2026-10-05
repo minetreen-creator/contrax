@@ -19,6 +19,10 @@ export function ChatWidget() {
   const [messages, setMessages] = useState<ChatHistoryMessage[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  // Phones (owner 2026-10-05): the bubble sat on top of the search button and
+  // the state dropdown at the bottom of the first screen. Below `sm` it stays
+  // out of the way until the visitor scrolls past the first screen.
+  const [scrolledPastFold, setScrolledPastFold] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -27,6 +31,13 @@ export function ChatWidget() {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages, loading, open]);
+
+  useEffect(() => {
+    const onScroll = () => setScrolledPastFold(window.scrollY > window.innerHeight * 0.9);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   // Autofocus the input when the panel opens.
   useEffect(() => {
@@ -59,7 +70,11 @@ export function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3">
+    <div
+      className={`fixed right-4 bottom-4 z-50 flex flex-col items-end gap-3 sm:right-5 sm:bottom-5 ${
+        open || scrolledPastFold ? "" : "max-sm:hidden"
+      }`}
+    >
       {open && (
         <section
           aria-label="Contrax AI chat support"
@@ -162,7 +177,7 @@ export function ChatWidget() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Close chat support" : "Open chat support"}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-amber-500 text-white shadow-lg shadow-amber-500/30 transition-transform hover:scale-105 hover:bg-amber-400"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 sm:h-14 sm:w-14 text-white shadow-lg shadow-amber-500/30 transition-transform hover:scale-105 hover:bg-amber-400"
       >
         {open ? (
           <X className="h-6 w-6" />

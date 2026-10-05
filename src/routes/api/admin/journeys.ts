@@ -317,7 +317,7 @@ function isBotVisitorRow(v: {
     return !!(ip2 && fn(ip2));
   };
   if (any((ip) => ip === "34.214.71.218" || ip === "73.40.36.204")) return true;
-  if (any((ip) => ip.startsWith("66.249.") || ip.startsWith("66.102.") || ip.startsWith("40.77.") || ip.startsWith("157.55.") || ip.startsWith("207.46."))) return true;
+  if (any((ip) => ip.startsWith("66.249.") || ip.startsWith("66.102.") || ip.startsWith("74.125.") || ip.startsWith("40.77.") || ip.startsWith("157.55.") || ip.startsWith("207.46."))) return true;
   if (any((ip) => ip.startsWith("66.220.") || ip.startsWith("31.13.") || ip.startsWith("173.252.") || ip.startsWith("104.189.") || ip.startsWith("69.171.") || ip.startsWith("157.240."))) return true;
   if (
     any((ip) => ip.startsWith("52.") || ip.startsWith("54.") || ip.startsWith("35.") || ip.startsWith("44.") || ip.startsWith("34.")) &&

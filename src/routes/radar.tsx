@@ -102,6 +102,17 @@ import { headStartUntil } from "~/lib/head-start";
 export const RADAR_CERTS = ["sdvosb", "8a", "wosb", "hubzone", "sb"] as const;
 export type RadarCert = (typeof RADAR_CERTS)[number];
 
+/** One-tap trades above the trade field (owner 2026-10-05), same searches as the homepage. */
+const QUICK_TRADES: { label: string; q: string }[] = [
+  { label: "Janitorial", q: "janitorial" },
+  { label: "Landscaping", q: "landscaping" },
+  { label: "Construction", q: "construction" },
+  { label: "HVAC", q: "HVAC" },
+  { label: "Trucking", q: "trucking" },
+  { label: "Security guards", q: "security guard" },
+  { label: "IT services", q: "IT services" },
+];
+
 const CERT_LABEL: Record<string, string> = {
   sdvosb: "SDVOSB",
   "8a": "8(a)",
@@ -1071,6 +1082,7 @@ function RadarLanding() {
   const autoScan = urlTrade !== "";
   const [step, setStep] = useState<Step>(autoScan ? 2 : 1);
   const [trade, setTrade] = useState(urlTrade);
+  const [tradeHint, setTradeHint] = useState(false);
   const [state, setState] = useState(urlState);
   const [cert, setCert] = useState<RadarCert | null>(urlCert ?? DEFAULT_RADAR_CERT);
   const [sizePref, setSizePref] = useState<SizeId | null>(urlSizePref ?? DEFAULT_RADAR_SIZE);
@@ -1452,15 +1464,20 @@ function RadarLanding() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-8">
+      <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-4 sm:py-8">
 
         {step === 1 && (
-          <section className="flex flex-1 flex-col justify-center py-8">
+          <section className="flex flex-1 flex-col py-2 sm:justify-center sm:py-8">
             <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">Contract Radar</p>
-            <h1 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
+            <h1 className="mt-2 text-xl font-bold leading-tight text-white sm:text-3xl">
               {opening.headline}
             </h1>
-            <p className="mt-3 text-sm leading-relaxed text-slate-300">{opening.intro}</p>
+            {/* Phones (owner 2026-10-05): the long intro pushed the search
+                button below the first screen; a short line stands in. */}
+            <p className="mt-3 hidden text-sm leading-relaxed text-slate-300 sm:block">{opening.intro}</p>
+            <p className="mt-2 text-sm leading-relaxed text-slate-300 sm:hidden">
+              Pick your trade and state. Free to search, no signup.
+            </p>
 
             {/* FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2):
                 ONE clear sentence + the two inputs the scan asks for + the note
@@ -1498,12 +1515,35 @@ function RadarLanding() {
               </div>
             )}
 
-            <div className="mt-8 flex flex-col gap-6">
+            <div className="mt-5 flex flex-col gap-5 sm:mt-8 sm:gap-6">
               {/* Trade / NAICS */}
               <div>
                 <label htmlFor="radar-trade" className="text-sm font-semibold text-slate-200">
                   1. Your trade or NAICS code
                 </label>
+                {/* One-tap trades (owner 2026-10-05): typing is slow on a phone. */}
+                <div className="mt-2 flex flex-wrap gap-1.5 sm:gap-2" role="group" aria-label="Common trades">
+                  {QUICK_TRADES.map((t) => (
+                    <button
+                      key={t.q}
+                      type="button"
+                      onClick={() => {
+                        didInteract.current = true;
+                        setTrade(t.q);
+                        setTradeHint(false);
+                        trackEvent("radar_quick_trade", t.q);
+                      }}
+                      aria-pressed={trade.trim().toLowerCase() === t.q.toLowerCase()}
+                      className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors sm:px-3 sm:py-1.5 sm:text-sm ${
+                        trade.trim().toLowerCase() === t.q.toLowerCase()
+                          ? "border-amber-400 bg-amber-500 text-slate-950"
+                          : "border-slate-600 bg-slate-900 text-slate-200 hover:border-amber-400"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
                 <input
                   id="radar-trade"
                   list="radar-naics-list"
@@ -1511,15 +1551,21 @@ function RadarLanding() {
                   onChange={(e) => {
                     didInteract.current = true;
                     setTrade(e.target.value);
+                    setTradeHint(false);
                   }}
-                  placeholder='e.g. "HVAC" or a 6-digit NAICS like 238220'
-                  className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-4 text-base text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                  placeholder='Or type it: "HVAC" or a NAICS like 238220'
+                  className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-3 text-base text-white placeholder:text-slate-500 sm:py-4 focus:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                 />
                 <datalist id="radar-naics-list">
                   {TRADE_SUGGESTIONS.map(([value, text]) => (
                     <option key={value} value={value}>{text}</option>
                   ))}
                 </datalist>
+                {tradeHint && (
+                  <p className="mt-2 text-sm font-medium text-amber-300" role="alert">
+                    Pick a trade above or type one to see your matches.
+                  </p>
+                )}
               </div>
 
               {/* State */}
@@ -1534,7 +1580,7 @@ function RadarLanding() {
                     didInteract.current = true;
                     setState(e.target.value);
                   }}
-                  className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-4 text-base text-white focus:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+                  className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-3 text-base text-white focus:border-amber-500 sm:py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                 >
                   <option value="">Any state (nationwide)</option>
                   {US_STATES.map((s) => (
@@ -1545,7 +1591,7 @@ function RadarLanding() {
 
               {/* Certification + size: optional, collapsed (owner 2026-10-02:
                   two questions up front, refine later). */}
-              <details className="rounded-2xl border border-slate-700 bg-slate-900/70 px-5 py-4 text-sm text-slate-300">
+              <details className="max-sm:order-1 rounded-2xl border border-slate-700 bg-slate-900/70 px-5 py-4 text-sm text-slate-300">
                 <summary className="cursor-pointer select-none">
                   <span className="font-semibold text-white">Refine (optional):</span>{" "}
                   {cert ? CERT_LABEL[cert] : "Small Business"} ·{" "}
@@ -1606,11 +1652,16 @@ function RadarLanding() {
               </div>
               </details>
 
+              {/* Always looks tappable (owner 2026-10-05: the dimmed button read as
+                  broken). With no trade yet it points the visitor to the trade field. */}
               <button
                 type="button"
-                disabled={!editing}
-                onClick={startScan}
-                className="mt-2 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                onClick={() => {
+                  if (editing) return startScan();
+                  setTradeHint(true);
+                  document.getElementById("radar-trade")?.focus();
+                }}
+                className="mt-2 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
               >
                 See my matches →
               </button>

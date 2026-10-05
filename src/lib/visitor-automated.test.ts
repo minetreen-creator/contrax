@@ -168,6 +168,7 @@ import { BOT_EXCLUSION_SQL } from "./bot-exclusion";
 describe("Google ad-review addresses (owner 2026-10-05)", () => {
   test("66.102.* is excluded like Googlebot's 66.249.*", () => {
     expect(BOT_EXCLUSION_SQL).toContain("ip LIKE '66.102.%'");
+    expect(BOT_EXCLUSION_SQL).toContain("ip LIKE '74.125.%'");
     expect(BOT_EXCLUSION_SQL).toContain("ip LIKE '66.249.%'");
   });
 });

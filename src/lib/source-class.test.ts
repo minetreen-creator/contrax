@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("114 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP and Washington WEBS classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(114);
+  test("115 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS and Utah U3P classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(115);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -96,8 +96,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // mt_emacs (Montana eMACS), vt_vbr (Vermont Business Registry), tn_cpo (Tennessee CPO)
     // ne_das (Nebraska State Purchasing Bureau), mo_movers (Missouri MOVERS),
     // ct_webprocure (Connecticut CTsource), az_app (Arizona Procurement Portal)
-    // and wa_webs (Washington WEBS).
-    expect(TAIL_SOURCES.length).toBe(38);
+    // wa_webs (Washington WEBS) and ut_bonfire (Utah U3P / Bonfire).
+    expect(TAIL_SOURCES.length).toBe(39);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {
@@ -278,7 +278,7 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
 });
 
  test("NC and Maryland public imports retain state provenance and separate awards", () => {
- for (const [source,state] of [["az_app","AZ"],["wa_webs","WA"],["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"],["wv_oasis","WV"],["ky_vss","KY"],["al_aldot","AL"],["de_mmp","DE"],["sc_scbo","SC"],["ia_das","IA"],["la_lapac","LA"],["in_idoa","IN"],["mt_emacs","MT"],["vt_vbr","VT"],["tn_cpo","TN"],["ne_das","NE"]]) {
+ for (const [source,state] of [["az_app","AZ"],["wa_webs","WA"],["ut_bonfire","UT"],["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"],["wv_oasis","WV"],["ky_vss","KY"],["al_aldot","AL"],["de_mmp","DE"],["sc_scbo","SC"],["ia_das","IA"],["la_lapac","LA"],["in_idoa","IN"],["mt_emacs","MT"],["vt_vbr","VT"],["tn_cpo","TN"],["ne_das","NE"]]) {
  expect(resolveSourceClass(source)).toBe("state");
  expect(SOURCE_CLASSES[source]!.scopeState).toBe(state);
  }

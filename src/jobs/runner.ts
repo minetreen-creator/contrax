@@ -72,6 +72,7 @@ import { fetchMoMoversBids } from "./sources/mo-movers";
 import { fetchCtWebprocureBids } from "./sources/ct-webprocure";
 import { fetchAzAppBids } from "./sources/az-app";
 import { fetchWaWebsBids } from "./sources/wa-webs";
+import { fetchUtBonfireBids } from "./sources/ut-bonfire";
 import { fetchNeDasBids } from "./sources/ne-das";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
@@ -288,6 +289,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "az_app", fetchFn: () => fetchAzAppBids() },
   // Washington WEBS bid calendar: state agency, university, city and district bids.
   { name: "wa_webs", fetchFn: () => fetchWaWebsBids() },
+  // Utah U3P (Bonfire) open opportunities: state, city, county, school and district bids.
+  { name: "ut_bonfire", fetchFn: () => fetchUtBonfireBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

@@ -316,3 +316,21 @@ describe("a scan with 1-3 matches leads with the email alert offer", () => {
     expect(src).toContain("{isAnonymous && scan.matches.length > 0 && locked > 0 && (");
   });
 });
+
+// ── Zero-match result (owner 2026-10-05) ─────────────────────────────────────
+describe("a scan with zero matches is not a dead end", () => {
+  const src = readFileSync(join(REPO_SRC, "routes", "radar.tsx"), "utf8");
+
+  test("the alert card offers an email for the next matching bid", () => {
+    const html = renderToStaticMarkup(
+      <MatchAlertsCard certLabel="Small Business" trade="security guard" state="UT" cert="sb" sizePref="any" noMatches />,
+    );
+    expect(html).toContain("Nothing open right now. Get an email when a security guard bid posts in Utah.");
+    expect(html).toContain("Email me new matches →");
+  });
+
+  test("the empty result renders the alert and a nationwide retry", () => {
+    expect(src).toContain('trackEvent("radar_zero_nationwide"');
+    expect(src).toMatch(/noMatches\s*\n\s*\/>/);
+  });
+});

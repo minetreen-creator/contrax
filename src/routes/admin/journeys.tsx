@@ -906,7 +906,7 @@ function JourneysPage() {
                   <p className="text-xs font-medium text-slate-400 uppercase tracking-wide">{s.label}</p>
                   <p className="mt-1 text-3xl font-bold text-slate-900">{s.count}</p>
                   {s.dropOffPct !== null && s.count < data.funnel[i - 1].count && (
-                    <p className="mt-0.5 text-[11px] text-red-500">−{s.dropOffPct}% from prior</p>
+                    <p className="mt-0.5 text-[11px] text-red-500">−{s.dropOffPct}% from previous step</p>
                   )}
                 </div>
               ))}

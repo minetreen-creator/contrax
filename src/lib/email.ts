@@ -1160,3 +1160,36 @@ function escapeHtml(str: string): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+/** Welcome a prime contractor who bought Prime Access to the supplier directory (owner 2026-10-06, idea #8). */
+export async function sendPrimeAccessWelcomeEmail(to: string): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send Prime Access welcome email — RESEND_API_KEY not set");
+      return false;
+    }
+    const html = `<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f3f4f6;padding:32px 0;"><tr><td align="center">
+<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
+  <tr><td style="padding:32px;">
+    <h1 style="margin:0 0 12px;color:#111827;font-size:22px;">Your Prime Access is active</h1>
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">Sign in and open the small-business supplier directory to see every listed company's contact name, email, phone, website and UEI. Filter by NAICS, state and certification (SDVOSB, WOSB, HUBZone, 8(a) and more).</p>
+    <p style="margin:0 0 20px;"><a href="https://www.contrax.company/suppliers" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;">Open the directory</a></p>
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">Manage or cancel billing: <a href="https://www.contrax.company/api/data-feed/portal" style="color:#1d4ed8;">billing portal</a> (sign in first).</p>
+    <p style="margin:0;color:#6b7280;font-size:13px;">Questions? Reply to this email.</p>
+  </td></tr>
+</table></td></tr></table></body>`;
+    const result = await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
+      to: [to],
+      subject: "Your Contrax Prime Access is active",
+      html,
+    });
+    return !result.error;
+  } catch (error) {
+    console.error("failed to send Prime Access welcome email:", error);
+    return false;
+  }
+}

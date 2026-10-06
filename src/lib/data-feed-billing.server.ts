@@ -23,13 +23,23 @@ import { parseFeedQuery } from "~/lib/data-feed";
 export const DATA_FEED_PRODUCT = "contrax_data_feed";
 const BASE_URL = process.env.PROD_URL || "https://www.contrax.company";
 
-export type DataFeedTier = "starter" | "pro" | "leads";
+export type DataFeedTier = "starter" | "pro" | "leads" | "primes";
 export const DATA_FEED_PLANS: Record<DataFeedTier, { label: string; cents: number; maxStates: number | null; product: string }> = {
   starter: { label: "Starter", cents: 29900, maxStates: 5, product: "Contrax Bid Data — Starter (up to 5 states)" },
   pro: { label: "Pro", cents: 79900, maxStates: null, product: "Contrax Bid Data — Pro (all states + federal)" },
   // Award leads (owner 2026-10-06, idea #6): new federal contract winners, sold on /leads.
   leads: { label: "Award Leads", cents: 24900, maxStates: null, product: "Contrax Award Leads — new federal contract winners" },
+  // Supplier directory (owner 2026-10-06, idea #8): primes see small-business contacts on /suppliers.
+  primes: { label: "Prime Access", cents: 19900, maxStates: null, product: "Contrax Prime Access — small-business supplier contacts" },
 };
+
+/** Supplier contacts come with Prime Access; an owner-granted key (no tier) gets everything. */
+export function tierHasSupplierContacts(tier: string | null): boolean {
+  return tier === null || tier === "primes";
+}
+
+/** Where each plan's checkout returns to. */
+const PLAN_PAGE: Record<DataFeedTier, string> = { starter: "/data", pro: "/data", leads: "/leads", primes: "/suppliers" };
 
 /** Award leads come with the Leads plan and with Pro; an owner-granted key (no tier) gets everything. */
 export function tierHasAwardLeads(tier: string | null): boolean {
@@ -37,7 +47,7 @@ export function tierHasAwardLeads(tier: string | null): boolean {
 }
 
 export function isDataFeedTier(v: unknown): v is DataFeedTier {
-  return v === "starter" || v === "pro" || v === "leads";
+  return v === "starter" || v === "pro" || v === "leads" || v === "primes";
 }
 
 /** Starter needs 1–5 valid USPS codes; Pro takes none. Returns the normalized list or an error. */
@@ -83,8 +93,8 @@ export async function createDataFeedCheckout(userId: number, tier: DataFeedTier,
     ],
     metadata,
     subscription_data: { metadata },
-    success_url: `${BASE_URL}${tier === "leads" ? "/leads" : "/data"}?checkout=success`,
-    cancel_url: `${BASE_URL}${tier === "leads" ? "/leads" : "/data"}?checkout=canceled#plans`,
+    success_url: `${BASE_URL}${PLAN_PAGE[tier]}?checkout=success`,
+    cancel_url: `${BASE_URL}${PLAN_PAGE[tier]}?checkout=canceled#plans`,
   });
   if (!session.url) throw new Error("Checkout URL unavailable");
   return session.url;
@@ -175,7 +185,14 @@ export async function handleDataFeedEvent(event: Stripe.Event): Promise<boolean>
 
   // First activation: issue a key and email it (a webhook can't show it on screen).
   const wasActive = !!before[0]?.active && before[0]?.stripe_subscription_id === sub.id;
-  if (active && !wasActive) {
+  if (active && !wasActive && tier === "primes") {
+    // Prime Access is used on /suppliers while signed in: no API key, just a welcome.
+    const u = (await sql()`SELECT email FROM users WHERE id = ${userId}`) as { email: string }[];
+    if (u[0]?.email) {
+      const { sendPrimeAccessWelcomeEmail } = await import("~/lib/email");
+      await sendPrimeAccessWelcomeEmail(u[0].email);
+    }
+  } else if (active && !wasActive) {
     const keys = await sql()`SELECT 1 FROM api_keys WHERE user_id = ${userId} AND revoked = FALSE AND name = 'Data feed key' LIMIT 1`;
     if (!keys.length) {
       const key = await issueKey(userId);

@@ -559,6 +559,7 @@ export function SeoFooterLinks() {
       <a href="/pricing" className="transition-colors hover:text-white">Pricing</a>
       <a href="/data" className="transition-colors hover:text-white">Bid Data API</a>
       <a href="/leads" className="transition-colors hover:text-white">Award Leads</a>
+      <a href="/suppliers" className="transition-colors hover:text-white">Supplier Directory</a>
       <a href="/signup" className="transition-colors hover:text-white">Sign up</a>
     </>
   );

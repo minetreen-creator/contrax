@@ -13,6 +13,14 @@ async function handler({ request }: { request: Request }) {
     if (!user) return Response.json({ error: "Sign in to subscribe", needsAccount: true }, { status: 401 });
     const body = (await request.json().catch(() => ({}))) as { tier?: unknown; states?: unknown };
     if (!isDataFeedTier(body.tier)) return Response.json({ error: "Choose a plan." }, { status: 400 });
+    if (body.tier === "primes") {
+      // Never sell access to an empty directory (owner rule: no fabricated value).
+      const { countListedSuppliers } = await import("~/lib/suppliers.server");
+      const { DIRECTORY_MIN_LISTINGS_TO_SELL } = await import("~/lib/suppliers");
+      if ((await countListedSuppliers()) < DIRECTORY_MIN_LISTINGS_TO_SELL) {
+        return Response.json({ error: "Prime Access opens once more businesses are listed. Email contrax.companyllc@gmail.com to be notified." }, { status: 400 });
+      }
+    }
     const states = validatePlanStates(body.tier, body.states);
     if (!states.ok) return Response.json({ error: states.error }, { status: 400 });
     const url = await createDataFeedCheckout(user.id, body.tier, states.states);

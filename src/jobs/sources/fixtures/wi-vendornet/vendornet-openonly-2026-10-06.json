@@ -1,0 +1,1155 @@
+{
+  "v": 1,
+  "source": "wi_vendornet",
+  "endpoint": "https://vendornet.wi.gov/Bids",
+  "capturedAt": "2026-10-06T05:29:16.423Z",
+  "captureTimezone": "America/Chicago",
+  "driver": {
+    "file": "vendornet-bids-fetch.mjs",
+    "node": "v22.23.3",
+    "puppeteerCore": "24.43.1"
+  },
+  "expectedHeaders": [
+    "Solicitation Reference #",
+    "Title",
+    "Organization",
+    "Available Date",
+    "Due Date",
+    "Bid Type"
+  ],
+  "browser": {
+    "launchMode": "executablePath:/usr/local/bin/chromium",
+    "version": "Chrome/153.0.8010.12",
+    "executablePath": "/usr/local/bin/chromium"
+  },
+  "baselineHttpStatus": 200,
+  "navigationMs": 3862,
+  "baseline": {
+    "footerText": "1 - 10 of 7,841 items",
+    "totalItems": 7841,
+    "rowCount": 10,
+    "headers": [
+      "Solicitation Reference #",
+      "Title",
+      "Organization",
+      "Available Date",
+      "Due Date",
+      "Bid Type"
+    ],
+    "headerSource": "document-header-table",
+    "columnMapping": "header-labels",
+    "columnIndexes": {
+      "ref": 0,
+      "title": 1,
+      "organization": 2,
+      "available": 3,
+      "due": 4,
+      "bidType": 5
+    },
+    "firstRef": "2027-GRBATH-01410-RFB"
+  },
+  "baselineForm": {
+    "dueDateStart": {
+      "value": "",
+      "via": "label[for]"
+    },
+    "dueDateEnd": {
+      "value": "",
+      "via": "label[for]"
+    },
+    "availableStart": {
+      "value": "",
+      "via": "label[for]"
+    },
+    "availableEnd": {
+      "value": "",
+      "via": "label[for]"
+    },
+    "bidType": {
+      "value": "All",
+      "via": "label[for]"
+    },
+    "includeAwarded": {
+      "checked": true,
+      "via": "label[for]"
+    },
+    "includeCanceled": {
+      "checked": true,
+      "via": "label[for]"
+    }
+  },
+  "pageSize": {
+    "requested": 50,
+    "before": "10",
+    "kind": "telerik-dropdown",
+    "options": null,
+    "openedOptions": [
+      "10",
+      "25",
+      "50"
+    ]
+  },
+  "appliedPageSize": 50,
+  "preFilter": {
+    "footerText": "1 - 50 of 7,841 items",
+    "totalItems": 7841
+  },
+  "filterRequested": {
+    "dueDateStart": "2026-10-06",
+    "dueDateEnd": null,
+    "bidType": "All",
+    "includeAwarded": false,
+    "includeCanceled": false,
+    "availableStart": null,
+    "availableEnd": null
+  },
+  "toggles": {
+    "includeAwarded": "chk-awarded-label",
+    "includeCanceled": "chk-canceled-label"
+  },
+  "filterReadBack": {
+    "dueDateStart": {
+      "value": "2026-10-06",
+      "via": "label[for]"
+    },
+    "dueDateEnd": {
+      "value": "",
+      "via": "label[for]"
+    },
+    "availableStart": {
+      "value": "",
+      "via": "label[for]"
+    },
+    "availableEnd": {
+      "value": "",
+      "via": "label[for]"
+    },
+    "bidType": {
+      "value": "All",
+      "via": "label[for]"
+    },
+    "includeAwarded": {
+      "checked": false,
+      "via": "label[for]"
+    },
+    "includeCanceled": {
+      "checked": false,
+      "via": "label[for]"
+    }
+  },
+  "openOnly": {
+    "footerText": "1 - 50 of 56 items",
+    "countFromSource": 56,
+    "footerKind": "count",
+    "rowCount": 50,
+    "headers": [
+      "Solicitation Reference #",
+      "Title",
+      "Organization",
+      "Available Date",
+      "Due Date",
+      "Bid Type"
+    ],
+    "headerSource": "document-header-table",
+    "columnMapping": "header-labels",
+    "columnIndexes": {
+      "ref": 0,
+      "title": 1,
+      "organization": 2,
+      "available": 3,
+      "due": 4,
+      "bidType": 5
+    }
+  },
+  "pages": [
+    {
+      "page": 1,
+      "footerText": "1 - 50 of 56 items",
+      "rangeStart": 1,
+      "rangeEnd": 50,
+      "countFromSource": 56,
+      "rowCount": 50,
+      "firstRef": "2027-GRBATH-01410-RFB",
+      "refs": [
+        "2027-GRBATH-01410-RFB",
+        "MMSD, 2026, PFAS Testing of Wastewater and Biosolids Consultant",
+        "2027-UWMIL-01468-RFB",
+        "2026-01 FIN",
+        "GASB752024-2025",
+        "2027-UWMSN-01464-RFB",
+        "2027-UWEAU-01432-RFB",
+        "2027-UWMSN-01456-RFB",
+        "MMSD, 2026, Communications & Public Relations Support",
+        "2026-00001",
+        "2027-UWEAU-01424-RFB",
+        "2027-UWSYS-01405-RFP",
+        "NGNF2-DB",
+        "2027-UWMSN-01465-RFB",
+        "WMHI5692",
+        "27-584-41",
+        "RD270094",
+        "Educational Bathroom Evaluation",
+        "2027-UWMSN-01457-RFB",
+        "Polymer Tank Cleaning",
+        "8-inch Fittings and Hose",
+        "PS271166",
+        "2027-UWMSN-01461-RFB",
+        "2027-UWMSN-01460-RFB",
+        "2027-UWMSN-01430-RFP",
+        "MMHI-O27-36",
+        "27-594-20",
+        "2026-UWMSN-01331-RFB",
+        "UWL-2701",
+        "2026-032",
+        "15073-0-2026-TJ",
+        "2026-UWMSN-01376-RFP",
+        "27-589-40",
+        "27-590-40",
+        "2027-UWSYS-01434-RFB",
+        "15076",
+        "2620",
+        "27-592-38",
+        "2601",
+        "Trimble R580 GNSS System Receiver Purchases",
+        "2027-UWSYS-01438-RFP",
+        "Facilitator for Internal and External Focus Groups",
+        "15074-0-2026-BG",
+        "Dunn-2026-1",
+        "2026-UWMIL-01134-RFB v2",
+        "2026-01 Fac",
+        "510683",
+        "MMSD, 2026, Public Sentiment Analysis: Survey Question Set & Methodology Development",
+        "S-1951 DQA-26",
+        "2621"
+      ],
+      "rows": [
+        {
+          "ref": "2027-GRBATH-01410-RFB",
+          "title": "UW-Green Bay Athletic Apparel, Footware, and Equipment",
+          "organization": "University of Wisconsin Green Bay",
+          "available_date": "10/06/2026",
+          "due_date": "10/22/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-GRBATH-01410-RFB",
+            "UW-Green Bay Athletic Apparel, Footware, and Equipment",
+            "University of Wisconsin Green Bay",
+            "10/06/2026",
+            "10/22/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "MMSD, 2026, PFAS Testing of Wastewater and Biosolids Consultant",
+          "title": "PFAS Testing of Wastewater and Biosolids Consultant",
+          "organization": "Madison Metropolitan Sewerage District",
+          "available_date": "10/06/2026",
+          "due_date": "10/30/2026 03:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "MMSD, 2026, PFAS Testing of Wastewater and Biosolids Consultant",
+            "PFAS Testing of Wastewater and Biosolids Consultant",
+            "Madison Metropolitan Sewerage District",
+            "10/06/2026",
+            "10/30/2026 03:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "2027-UWMIL-01468-RFB",
+          "title": "Elevator Testing and Maintenance for UW Milwaukee Residence Halls",
+          "organization": "University of Wisconsin Milwaukee",
+          "available_date": "10/06/2026",
+          "due_date": "10/22/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWMIL-01468-RFB",
+            "Elevator Testing and Maintenance for UW Milwaukee Residence Halls",
+            "University of Wisconsin Milwaukee",
+            "10/06/2026",
+            "10/22/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2026-01 FIN",
+          "title": "Request for Proposals - Accounting, Professional Auditing, and Financial Services",
+          "organization": "Sauk County",
+          "available_date": "10/05/2026",
+          "due_date": "10/23/2026 12:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "2026-01 FIN",
+            "Request for Proposals - Accounting, Professional Auditing, and Financial Services",
+            "Sauk County",
+            "10/05/2026",
+            "10/23/2026 12:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "GASB752024-2025",
+          "title": "GASB 75 Other Postemployment Benefits (OPEB) Actuarial Valuation",
+          "organization": "City of Fitchburg",
+          "available_date": "10/05/2026",
+          "due_date": "10/29/2026 11:00 AM",
+          "bid_type": "RFP",
+          "cells": [
+            "GASB752024-2025",
+            "GASB 75 Other Postemployment Benefits (OPEB) Actuarial Valuation",
+            "City of Fitchburg",
+            "10/05/2026",
+            "10/29/2026 11:00 AM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "2027-UWMSN-01464-RFB",
+          "title": "Custom High-Vacuum Stainless-Steel Chambers",
+          "organization": "University of Wisconsin Madison",
+          "available_date": "10/05/2026",
+          "due_date": "10/13/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWMSN-01464-RFB",
+            "Custom High-Vacuum Stainless-Steel Chambers",
+            "University of Wisconsin Madison",
+            "10/05/2026",
+            "10/13/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2027-UWEAU-01432-RFB",
+          "title": "Kitchen Exhaust System Cleaning Services",
+          "organization": "University of Wisconsin Eau Claire",
+          "available_date": "10/02/2026",
+          "due_date": "11/03/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWEAU-01432-RFB",
+            "Kitchen Exhaust System Cleaning Services",
+            "University of Wisconsin Eau Claire",
+            "10/02/2026",
+            "11/03/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2027-UWMSN-01456-RFB",
+          "title": "Rental of Tents, Tables, Furniture and Accessories for Events A1",
+          "organization": "University of Wisconsin Madison",
+          "available_date": "10/02/2026",
+          "due_date": "10/15/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWMSN-01456-RFB",
+            "Rental of Tents, Tables, Furniture and Accessories for Events A1",
+            "University of Wisconsin Madison",
+            "10/02/2026",
+            "10/15/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "MMSD, 2026, Communications & Public Relations Support",
+          "title": "Communications & Public Relations Support, Master Service Agreement (MSA)",
+          "organization": "Madison Metropolitan Sewerage District",
+          "available_date": "10/02/2026",
+          "due_date": "11/02/2026 04:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "MMSD, 2026, Communications & Public Relations Support",
+            "Communications & Public Relations Support, Master Service Agreement (MSA)",
+            "Madison Metropolitan Sewerage District",
+            "10/02/2026",
+            "11/02/2026 04:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "2026-00001",
+          "title": "Request For Proposals (RFP) For Paratransit (ADA & Ancillary) Services",
+          "organization": "City of Oshkosh",
+          "available_date": "10/02/2026",
+          "due_date": "11/03/2026 04:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "2026-00001",
+            "Request For Proposals (RFP) For Paratransit (ADA & Ancillary) Services",
+            "City of Oshkosh",
+            "10/02/2026",
+            "11/03/2026 04:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "2027-UWEAU-01424-RFB",
+          "title": "Small Business Financial Consulting Services",
+          "organization": "University of Wisconsin Eau Claire",
+          "available_date": "10/02/2026",
+          "due_date": "10/30/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWEAU-01424-RFB",
+            "Small Business Financial Consulting Services",
+            "University of Wisconsin Eau Claire",
+            "10/02/2026",
+            "10/30/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2027-UWSYS-01405-RFP",
+          "title": "Zoho One CRM Development and Optimization Services",
+          "organization": "University of Wisconsin Shared Services",
+          "available_date": "10/01/2026",
+          "due_date": "11/03/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "2027-UWSYS-01405-RFP",
+            "Zoho One CRM Development and Optimization Services",
+            "University of Wisconsin Shared Services",
+            "10/01/2026",
+            "11/03/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "NGNF2-DB",
+          "title": "Natural Gas Non Firm Supply and Management Services",
+          "organization": "Department of Administration",
+          "available_date": "10/01/2026",
+          "due_date": "10/23/2026 03:36 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "NGNF2-DB",
+            "Natural Gas Non Firm Supply and Management Services",
+            "Department of Administration",
+            "10/01/2026",
+            "10/23/2026 03:36 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2027-UWMSN-01465-RFB",
+          "title": "APxF Rev K3 Assembly and Reflow",
+          "organization": "University of Wisconsin Madison",
+          "available_date": "10/01/2026",
+          "due_date": "10/09/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWMSN-01465-RFB",
+            "APxF Rev K3 Assembly and Reflow",
+            "University of Wisconsin Madison",
+            "10/01/2026",
+            "10/09/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "WMHI5692",
+          "title": "Pump Repair and Maintenance",
+          "organization": "Department of Health Services",
+          "available_date": "09/30/2026",
+          "due_date": "10/16/2026 02:00 PM",
+          "bid_type": "Simplified Bid",
+          "cells": [
+            "WMHI5692",
+            "Pump Repair and Maintenance",
+            "Department of Health Services",
+            "09/30/2026",
+            "10/16/2026 02:00 PM",
+            "Simplified Bid"
+          ]
+        },
+        {
+          "ref": "27-584-41",
+          "title": "Point of Sale License Kiosks",
+          "organization": "Dept of Natural Resources",
+          "available_date": "09/30/2026",
+          "due_date": "11/09/2026 01:00 PM",
+          "bid_type": "",
+          "cells": [
+            "27-584-41",
+            "Point of Sale License Kiosks",
+            "Dept of Natural Resources",
+            "09/30/2026",
+            "11/09/2026 01:00 PM",
+            ""
+          ]
+        },
+        {
+          "ref": "RD270094",
+          "title": "WI Lottery Printing of X Family of Games Topper",
+          "organization": "Department of Revenue",
+          "available_date": "09/30/2026",
+          "due_date": "10/07/2026 02:00 PM",
+          "bid_type": "Simplified Bid",
+          "cells": [
+            "RD270094",
+            "WI Lottery Printing of X Family of Games Topper",
+            "Department of Revenue",
+            "09/30/2026",
+            "10/07/2026 02:00 PM",
+            "Simplified Bid"
+          ]
+        },
+        {
+          "ref": "Educational Bathroom Evaluation",
+          "title": "MMSD, 2026, Educational Bathroom Evaluation",
+          "organization": "Madison Metropolitan Sewerage District",
+          "available_date": "09/30/2026",
+          "due_date": "10/21/2026 12:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "Educational Bathroom Evaluation",
+            "MMSD, 2026, Educational Bathroom Evaluation",
+            "Madison Metropolitan Sewerage District",
+            "09/30/2026",
+            "10/21/2026 12:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "2027-UWMSN-01457-RFB",
+          "title": "ROBOTIC LAWN MOWERS, PARTS, AND SERVICE",
+          "organization": "University of Wisconsin Madison",
+          "available_date": "09/30/2026",
+          "due_date": "10/22/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWMSN-01457-RFB",
+            "ROBOTIC LAWN MOWERS, PARTS, AND SERVICE",
+            "University of Wisconsin Madison",
+            "09/30/2026",
+            "10/22/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "Polymer Tank Cleaning",
+          "title": "MMSD, 2026, Polymer Tank Cleaning",
+          "organization": "Madison Metropolitan Sewerage District",
+          "available_date": "09/29/2026",
+          "due_date": "10/13/2026 11:00 AM",
+          "bid_type": "RFB",
+          "cells": [
+            "Polymer Tank Cleaning",
+            "MMSD, 2026, Polymer Tank Cleaning",
+            "Madison Metropolitan Sewerage District",
+            "09/29/2026",
+            "10/13/2026 11:00 AM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "8-inch Fittings and Hose",
+          "title": "MMSD, 2026, 8-inch Fittings and Hose",
+          "organization": "Madison Metropolitan Sewerage District",
+          "available_date": "09/29/2026",
+          "due_date": "10/13/2026 11:00 AM",
+          "bid_type": "RFB",
+          "cells": [
+            "8-inch Fittings and Hose",
+            "MMSD, 2026, 8-inch Fittings and Hose",
+            "Madison Metropolitan Sewerage District",
+            "09/29/2026",
+            "10/13/2026 11:00 AM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "PS271166",
+          "title": "Evaluation of the Wisconsin Utilities’ Focus on Energy Programs",
+          "organization": "Public Service Commission",
+          "available_date": "09/28/2026",
+          "due_date": "11/10/2026 01:00 PM",
+          "bid_type": "",
+          "cells": [
+            "PS271166",
+            "Evaluation of the Wisconsin Utilities’ Focus on Energy Programs",
+            "Public Service Commission",
+            "09/28/2026",
+            "11/10/2026 01:00 PM",
+            ""
+          ]
+        },
+        {
+          "ref": "2027-UWMSN-01461-RFB",
+          "title": "Multispecies Hematology Analyzer",
+          "organization": "University of Wisconsin Madison",
+          "available_date": "09/28/2026",
+          "due_date": "10/06/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWMSN-01461-RFB",
+            "Multispecies Hematology Analyzer",
+            "University of Wisconsin Madison",
+            "09/28/2026",
+            "10/06/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2027-UWMSN-01460-RFB",
+          "title": "Large FOV custom objective for neutral atom tweezer array",
+          "organization": "University of Wisconsin Madison",
+          "available_date": "09/28/2026",
+          "due_date": "10/06/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWMSN-01460-RFB",
+            "Large FOV custom objective for neutral atom tweezer array",
+            "University of Wisconsin Madison",
+            "09/28/2026",
+            "10/06/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2027-UWMSN-01430-RFP",
+          "title": "Enterprise-wide electronic medical record (EMR) (2027-UWMSN-01430-RFP)",
+          "organization": "University of Wisconsin Madison",
+          "available_date": "09/28/2026",
+          "due_date": "11/09/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "2027-UWMSN-01430-RFP",
+            "Enterprise-wide electronic medical record (EMR) (2027-UWMSN-01430-RFP)",
+            "University of Wisconsin Madison",
+            "09/28/2026",
+            "11/09/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "MMHI-O27-36",
+          "title": "Fencing Removal and Installation",
+          "organization": "Department of Health Services",
+          "available_date": "09/25/2026",
+          "due_date": "10/15/2026 02:00 PM",
+          "bid_type": "Simplified Bid",
+          "cells": [
+            "MMHI-O27-36",
+            "Fencing Removal and Installation",
+            "Department of Health Services",
+            "09/25/2026",
+            "10/15/2026 02:00 PM",
+            "Simplified Bid"
+          ]
+        },
+        {
+          "ref": "27-594-20",
+          "title": "Piechowski Wetland Restoration Construction Project",
+          "organization": "Dept of Natural Resources",
+          "available_date": "09/25/2026",
+          "due_date": "10/26/2026 02:00 PM",
+          "bid_type": "",
+          "cells": [
+            "27-594-20",
+            "Piechowski Wetland Restoration Construction Project",
+            "Dept of Natural Resources",
+            "09/25/2026",
+            "10/26/2026 02:00 PM",
+            ""
+          ]
+        },
+        {
+          "ref": "2026-UWMSN-01331-RFB",
+          "title": "SPECIALTY AIR FILTERS",
+          "organization": "University of Wisconsin Madison",
+          "available_date": "09/25/2026",
+          "due_date": "10/16/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2026-UWMSN-01331-RFB",
+            "SPECIALTY AIR FILTERS",
+            "University of Wisconsin Madison",
+            "09/25/2026",
+            "10/16/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "UWL-2701",
+          "title": "UW-La Crosse - Parking lot sealcoating, pothole patching, and line painting",
+          "organization": "University of Wisconsin La Crosse",
+          "available_date": "09/25/2026",
+          "due_date": "10/23/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "UWL-2701",
+            "UW-La Crosse - Parking lot sealcoating, pothole patching, and line painting",
+            "University of Wisconsin La Crosse",
+            "09/25/2026",
+            "10/23/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2026-032",
+          "title": "Laboratory Information Management System (LIMS) Software and Implementation Services",
+          "organization": "Marathon County",
+          "available_date": "09/25/2026",
+          "due_date": "10/07/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "2026-032",
+            "Laboratory Information Management System (LIMS) Software and Implementation Services",
+            "Marathon County",
+            "09/25/2026",
+            "10/07/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "15073-0-2026-TJ",
+          "title": "Hanson Rd Fall Protection Equipment and Installation",
+          "organization": "City of Madison",
+          "available_date": "09/25/2026",
+          "due_date": "10/23/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "15073-0-2026-TJ",
+            "Hanson Rd Fall Protection Equipment and Installation",
+            "City of Madison",
+            "09/25/2026",
+            "10/23/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "2026-UWMSN-01376-RFP",
+          "title": "Fresh Produce: Processed and Whole",
+          "organization": "University of Wisconsin Madison",
+          "available_date": "09/24/2026",
+          "due_date": "10/22/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "2026-UWMSN-01376-RFP",
+            "Fresh Produce: Processed and Whole",
+            "University of Wisconsin Madison",
+            "09/24/2026",
+            "10/22/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "27-589-40",
+          "title": "PSRP Utility Trailers",
+          "organization": "Dept of Natural Resources",
+          "available_date": "09/23/2026",
+          "due_date": "10/15/2026 10:00 AM",
+          "bid_type": "",
+          "cells": [
+            "27-589-40",
+            "PSRP Utility Trailers",
+            "Dept of Natural Resources",
+            "09/23/2026",
+            "10/15/2026 10:00 AM",
+            ""
+          ]
+        },
+        {
+          "ref": "27-590-40",
+          "title": "PSRP UTVs",
+          "organization": "Dept of Natural Resources",
+          "available_date": "09/23/2026",
+          "due_date": "10/15/2026 10:00 AM",
+          "bid_type": "",
+          "cells": [
+            "27-590-40",
+            "PSRP UTVs",
+            "Dept of Natural Resources",
+            "09/23/2026",
+            "10/15/2026 10:00 AM",
+            ""
+          ]
+        },
+        {
+          "ref": "2027-UWSYS-01434-RFB",
+          "title": "Interior and Exterior Signage for UW-Superior",
+          "organization": "University of Wisconsin Shared Services",
+          "available_date": "09/23/2026",
+          "due_date": "10/13/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2027-UWSYS-01434-RFB",
+            "Interior and Exterior Signage for UW-Superior",
+            "University of Wisconsin Shared Services",
+            "09/23/2026",
+            "10/13/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "15076",
+          "title": "Tenney Pavilion PV Removal and Reinstall",
+          "organization": "City of Madison",
+          "available_date": "09/23/2026",
+          "due_date": "10/07/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "15076",
+            "Tenney Pavilion PV Removal and Reinstall",
+            "City of Madison",
+            "09/23/2026",
+            "10/07/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2620",
+          "title": "Kemper Center – Durkee Mansion Stained-Glass Window Restoration",
+          "organization": "Kenosha County",
+          "available_date": "09/23/2026",
+          "due_date": "10/28/2026 08:41 AM",
+          "bid_type": "Simplified Bid",
+          "cells": [
+            "2620",
+            "Kemper Center – Durkee Mansion Stained-Glass Window Restoration",
+            "Kenosha County",
+            "09/23/2026",
+            "10/28/2026 08:41 AM",
+            "Simplified Bid"
+          ]
+        },
+        {
+          "ref": "27-592-38",
+          "title": "Enclosed Trailer Purchase",
+          "organization": "Dept of Natural Resources",
+          "available_date": "09/22/2026",
+          "due_date": "10/09/2026 10:00 AM",
+          "bid_type": "",
+          "cells": [
+            "27-592-38",
+            "Enclosed Trailer Purchase",
+            "Dept of Natural Resources",
+            "09/22/2026",
+            "10/09/2026 10:00 AM",
+            ""
+          ]
+        },
+        {
+          "ref": "2601",
+          "title": "Kenosha County Center Interior Remodel",
+          "organization": "Kenosha County",
+          "available_date": "09/18/2026",
+          "due_date": "10/21/2026 01:00 PM",
+          "bid_type": "Simplified Bid",
+          "cells": [
+            "2601",
+            "Kenosha County Center Interior Remodel",
+            "Kenosha County",
+            "09/18/2026",
+            "10/21/2026 01:00 PM",
+            "Simplified Bid"
+          ]
+        },
+        {
+          "ref": "Trimble R580 GNSS System Receiver Purchases",
+          "title": "MMSD, 2026, Trimble R580 GNSS System Receiver Purchases",
+          "organization": "Madison Metropolitan Sewerage District",
+          "available_date": "09/17/2026",
+          "due_date": "10/08/2026 04:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "Trimble R580 GNSS System Receiver Purchases",
+            "MMSD, 2026, Trimble R580 GNSS System Receiver Purchases",
+            "Madison Metropolitan Sewerage District",
+            "09/17/2026",
+            "10/08/2026 04:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2027-UWSYS-01438-RFP",
+          "title": "Dining Services for the University of Wisconsin-Eau Claire, University of Wisconsin-La Crosse, University of Wisconsin-River Falls and University of Wisconsin-Superior",
+          "organization": "University of Wisconsin System Administration",
+          "available_date": "09/17/2026",
+          "due_date": "11/04/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "2027-UWSYS-01438-RFP",
+            "Dining Services for the University of Wisconsin-Eau Claire, University of Wisconsin-La Crosse, University of Wisconsin-River Falls and University of Wisconsin-Superior",
+            "University of Wisconsin System Administration",
+            "09/17/2026",
+            "11/04/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "Facilitator for Internal and External Focus Groups",
+          "title": "MMSD, 2026, Facilitator for Internal and External Focus Groups",
+          "organization": "Madison Metropolitan Sewerage District",
+          "available_date": "09/16/2026",
+          "due_date": "10/16/2026 04:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "Facilitator for Internal and External Focus Groups",
+            "MMSD, 2026, Facilitator for Internal and External Focus Groups",
+            "Madison Metropolitan Sewerage District",
+            "09/16/2026",
+            "10/16/2026 04:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "15074-0-2026-BG",
+          "title": "Moving Services",
+          "organization": "City of Madison",
+          "available_date": "09/16/2026",
+          "due_date": "10/14/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "15074-0-2026-BG",
+            "Moving Services",
+            "City of Madison",
+            "09/16/2026",
+            "10/14/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "Dunn-2026-1",
+          "title": "RFQ - Haul & Plow Truck Fabrication & Upfitting",
+          "organization": "Dunn County",
+          "available_date": "09/15/2026",
+          "due_date": "10/08/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "Dunn-2026-1",
+            "RFQ - Haul & Plow Truck Fabrication & Upfitting",
+            "Dunn County",
+            "09/15/2026",
+            "10/08/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "2026-UWMIL-01134-RFB v2",
+          "title": "Mezzanine Platforms, Access Ladders, and Installation",
+          "organization": "University of Wisconsin Milwaukee",
+          "available_date": "09/15/2026",
+          "due_date": "10/08/2026 02:00 PM",
+          "bid_type": "RFB",
+          "cells": [
+            "2026-UWMIL-01134-RFB v2",
+            "Mezzanine Platforms, Access Ladders, and Installation",
+            "University of Wisconsin Milwaukee",
+            "09/15/2026",
+            "10/08/2026 02:00 PM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "2026-01 Fac",
+          "title": "Sauk County Courthouse HVAC and Lighting Upgrades Project Bid",
+          "organization": "Sauk County",
+          "available_date": "09/11/2026",
+          "due_date": "10/29/2026 10:00 AM",
+          "bid_type": "RFB",
+          "cells": [
+            "2026-01 Fac",
+            "Sauk County Courthouse HVAC and Lighting Upgrades Project Bid",
+            "Sauk County",
+            "09/11/2026",
+            "10/29/2026 10:00 AM",
+            "RFB"
+          ]
+        },
+        {
+          "ref": "510683",
+          "title": "Traffic Signal LED Modules",
+          "organization": "WI Dept of Transportation",
+          "available_date": "09/10/2026",
+          "due_date": "10/15/2026 02:00 PM",
+          "bid_type": "",
+          "cells": [
+            "510683",
+            "Traffic Signal LED Modules",
+            "WI Dept of Transportation",
+            "09/10/2026",
+            "10/15/2026 02:00 PM",
+            ""
+          ]
+        },
+        {
+          "ref": "MMSD, 2026, Public Sentiment Analysis: Survey Question Set & Methodology Development",
+          "title": "Public Sentiment Analysis: Survey Question Set & Methodology Development",
+          "organization": "Madison Metropolitan Sewerage District",
+          "available_date": "09/10/2026",
+          "due_date": "10/09/2026 04:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "MMSD, 2026, Public Sentiment Analysis: Survey Question Set & Methodology Development",
+            "Public Sentiment Analysis: Survey Question Set & Methodology Development",
+            "Madison Metropolitan Sewerage District",
+            "09/10/2026",
+            "10/09/2026 04:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "S-1951 DQA-26",
+          "title": "Nurse Aide Registry and Training and Competency Evaluation Program",
+          "organization": "Department of Health Services",
+          "available_date": "09/02/2026",
+          "due_date": "10/14/2026 02:00 PM",
+          "bid_type": "",
+          "cells": [
+            "S-1951 DQA-26",
+            "Nurse Aide Registry and Training and Competency Evaluation Program",
+            "Department of Health Services",
+            "09/02/2026",
+            "10/14/2026 02:00 PM",
+            ""
+          ]
+        },
+        {
+          "ref": "2621",
+          "title": "Kenosha County Pre-Trial Facility HVAC Improvements Phase 2",
+          "organization": "Kenosha County",
+          "available_date": "09/02/2026",
+          "due_date": "10/14/2026 01:00 PM",
+          "bid_type": "Simplified Bid",
+          "cells": [
+            "2621",
+            "Kenosha County Pre-Trial Facility HVAC Improvements Phase 2",
+            "Kenosha County",
+            "09/02/2026",
+            "10/14/2026 01:00 PM",
+            "Simplified Bid"
+          ]
+        }
+      ]
+    },
+    {
+      "page": 2,
+      "footerText": "51 - 56 of 56 items",
+      "rangeStart": 51,
+      "rangeEnd": 56,
+      "countFromSource": 56,
+      "rowCount": 6,
+      "firstRef": "2026-SYSALL-01367-RFP",
+      "refs": [
+        "2026-SYSALL-01367-RFP",
+        "S-1952 DQA-26",
+        "28481-SB",
+        "15044-0-2026",
+        "15013-0-2026-BP",
+        "Not-A-Bid"
+      ],
+      "rows": [
+        {
+          "ref": "2026-SYSALL-01367-RFP",
+          "title": "REAL PROPERTY ADVISORY SERVICES",
+          "organization": "University of Wisconsin Shared Services",
+          "available_date": "08/31/2026",
+          "due_date": "10/06/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "2026-SYSALL-01367-RFP",
+            "REAL PROPERTY ADVISORY SERVICES",
+            "University of Wisconsin Shared Services",
+            "08/31/2026",
+            "10/06/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "S-1952 DQA-26",
+          "title": "State Monitoring Services",
+          "organization": "Department of Health Services",
+          "available_date": "08/26/2026",
+          "due_date": "10/13/2026 02:00 PM",
+          "bid_type": "",
+          "cells": [
+            "S-1952 DQA-26",
+            "State Monitoring Services",
+            "Department of Health Services",
+            "08/26/2026",
+            "10/13/2026 02:00 PM",
+            ""
+          ]
+        },
+        {
+          "ref": "28481-SB",
+          "title": "Disposable Food Service and Commercial Paper Products",
+          "organization": "Department of Administration",
+          "available_date": "08/21/2026",
+          "due_date": "10/14/2026 01:00 PM",
+          "bid_type": "",
+          "cells": [
+            "28481-SB",
+            "Disposable Food Service and Commercial Paper Products",
+            "Department of Administration",
+            "08/21/2026",
+            "10/14/2026 01:00 PM",
+            ""
+          ]
+        },
+        {
+          "ref": "15044-0-2026",
+          "title": "Northeast Park Athletic Complex",
+          "organization": "City of Madison",
+          "available_date": "08/05/2026",
+          "due_date": "11/06/2026 02:00 PM",
+          "bid_type": "",
+          "cells": [
+            "15044-0-2026",
+            "Northeast Park Athletic Complex",
+            "City of Madison",
+            "08/05/2026",
+            "11/06/2026 02:00 PM",
+            ""
+          ]
+        },
+        {
+          "ref": "15013-0-2026-BP",
+          "title": "Elevator Maintenance",
+          "organization": "City of Madison",
+          "available_date": "07/30/2026",
+          "due_date": "10/09/2026 02:00 PM",
+          "bid_type": "RFP",
+          "cells": [
+            "15013-0-2026-BP",
+            "Elevator Maintenance",
+            "City of Madison",
+            "07/30/2026",
+            "10/09/2026 02:00 PM",
+            "RFP"
+          ]
+        },
+        {
+          "ref": "Not-A-Bid",
+          "title": "WI DOC Evidence-Based Program Standards: Cognitive-Behavioral Program; Employment Program; Sex Offender Treatment Service; Substance Use Disorder Treatment; and Virtual Program Delivery (Info only - This is NOT a bid!)",
+          "organization": "CORRECTIONS, DEPT OF",
+          "available_date": "02/28/2023",
+          "due_date": "06/30/2027 11:59 PM",
+          "bid_type": "RFI",
+          "cells": [
+            "Not-A-Bid",
+            "WI DOC Evidence-Based Program Standards: Cognitive-Behavioral Program; Employment Program; Sex Offender Treatment Service; Substance Use Disorder Treatment; and Virtual Program Delivery (Info only - This is NOT a bid!)",
+            "CORRECTIONS, DEPT OF",
+            "02/28/2023",
+            "06/30/2027 11:59 PM",
+            "RFI"
+          ]
+        }
+      ]
+    }
+  ],
+  "countFromSource": 56,
+  "rowsSeen": 56,
+  "pagesRendered": 2,
+  "blazor": {
+    "negotiations": 1,
+    "negotiateStatus": 200,
+    "webSocketCreated": 1,
+    "webSocketFramesReceived": 113,
+    "webSocketHandshakeFailures": 0
+  },
+  "elapsedMs": 18393
+}

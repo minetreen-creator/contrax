@@ -1048,6 +1048,11 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   nm_epronm: "NM",
   id_ipro: "ID",
   id_itd: "ID",
+  // Wisconsin DOA VendorNet Bids (src/jobs/sources/wi-vendornet.ts): the Wisconsin
+  // Department of Administration's own statewide board, so every buyer publishing
+  // through it is a Wisconsin public body — provable by construction, never
+  // text-derived from the free-text buyer string (policy R7).
+  wi_vendornet: "WI",
 };
 
 export interface InsertLocationColumns {

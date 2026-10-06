@@ -227,6 +227,17 @@ jobs:
       # the non-federal "City" badge) that nothing else in CI covers.
       - name: City of Dayton connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/oh-dayton.test.ts
+      # Wisconsin DOA VendorNet Bids (wi_vendornet) - the FIRST browser-rendered
+      # source in the bids family. This suite is the PARSER half only, deterministic
+      # and zero-network/zero-browser by construction: it reads ONE committed capture
+      # of the live board open-only set and exercises the pure parse function
+      # (identity, slug fallback, skip accounting, the fail-closed guards, the plan
+      # section 4 copy). The browser half is the OPT-IN live gate
+      # (wi-vendornet.source-validation.test.ts), which needs Chrome + puppeteer-core
+      # and must never run here. Named EXPLICITLY: a new deterministic suite that no
+      # workflow names runs nowhere.
+      - name: Wisconsin VendorNet connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/wi-vendornet.test.ts
       # Nationwide correctness PR A — FIX ① (notice_type in Radar's solicitation
       # dedupe key) + FIX ② (a dead collector is never FRESH) (owner-locked scope
       # 2026-09-23). THREE new DETERMINISTIC, network-free suites, no DATABASE_URL —

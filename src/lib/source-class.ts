@@ -215,6 +215,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   nm_epronm: { class: "state", scopeState: "NM", searchScope: "state-portal", recordType: "opportunity" },
   id_ipro: { class: "state", scopeState: "ID", searchScope: "state-portal", recordType: "opportunity" },
   id_itd: { class: "state", scopeState: "ID", searchScope: "state-portal", recordType: "opportunity" },
+  // Wisconsin DOA VendorNet Bids (src/jobs/sources/wi-vendornet.ts). R5: VendorNet
+  // is the Wisconsin Department of Administration's own statewide system, so it is
+  // STATE. Its buyers include cities, counties and special districts — that is
+  // buyer TEXT (kept verbatim in `agency`), never a per-row jurisdiction (R7 /
+  // ruling b), and it does not downgrade the source to LOCAL. It is also the first
+  // BROWSER-RENDERED source in the corpus; the class is still a property of the
+  // source (R8), not of how it is fetched.
+  wi_vendornet: { class: "state", scopeState: "WI", searchScope: "state-portal", recordType: "opportunity" },
   md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's

@@ -84,6 +84,7 @@ import { fetchNmEpronmBids } from "./sources/nm-epronm";
 import { fetchIdIproBids } from "./sources/id-ipro";
 import { fetchIdItdBids } from "./sources/id-itd";
 import { fetchNeDasBids } from "./sources/ne-das";
+import { fetchWiVendornetBids } from "./sources/wi-vendornet";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -310,6 +311,19 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "nm_epronm", fetchFn: () => fetchNmEpronmBids() },
   { name: "id_ipro", fetchFn: () => fetchIdIproBids() },
   { name: "id_itd", fetchFn: () => fetchIdItdBids() },
+  // Wisconsin DOA VendorNet Bids (owner decision 2026-10-06). The FIRST
+  // browser-rendered source in this registry: vendornet.wi.gov/Bids is a Blazor
+  // Server + Telerik grid whose rows only exist over a WebSocket, so
+  // `fetchWiVendornetBids` runs a headless driver
+  // (.github/scripts/vendornet-bids-fetch.mjs, puppeteer-core installed
+  // EPHEMERALLY by sync-bids.yml against the runner's own Chrome) and parses its
+  // payload with a pure module. It is a tail source — interleaved one at a time
+  // between state-keyword batches — so its (measured, ~20 s) browser pass adds
+  // ZERO SAM.gov load and its own collector_run_log row keeps freshness, ran_zero
+  // and quality_gate independently observable. Owner-locked shapes: joins the
+  // shared `bids` table as class `state` / badge "State (WI)", NO migration and NO
+  // new cron (the existing sync-bids schedule picks it up).
+  { name: "wi_vendornet", fetchFn: () => fetchWiVendornetBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

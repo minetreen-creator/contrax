@@ -17,7 +17,8 @@
  *   4. the review table accepts the owner's five actions and rejects anything else.
  *
  * HOW IT IS PROVIDED (and why it never touches the team's data). It only issues
- * `CREATE DATABASE` / `DROP DATABASE` for a name containing "nonprofit_bootstrap", and
+ * `CREATE DATABASE` / `DROP DATABASE` for a per-run name containing "nonprofit_bootstrap"
+ * (`contrax_nonprofit_bootstrap_schema_<run>`, see `RUN_SUFFIX` below), and
  * every table it reads is inside that database. The database is dropped in `afterAll`,
  * including after a failed run.
  *
@@ -35,7 +36,14 @@ import { decideNonprofitVerification } from "~/lib/nonprofit-verification.server
 const ENABLED =
   process.env.NONPROFIT_TEST_PROVISION_SCHEMA === "1" && !!process.env.DATABASE_URL;
 const ADMIN_URL = process.env.DATABASE_URL ?? "";
-const SCHEMA_DB = "contrax_nonprofit_bootstrap_schema";
+/**
+ * Unique-per-run throwaway name. Two Build Check runs used to build the SAME fixed database
+ * (`contrax_nonprofit_bootstrap_schema`), so whichever reached its `DROP DATABASE … WITH
+ * (FORCE)` first killed the other run's mid-test database. `GITHUB_RUN_ID` is set on Actions;
+ * the pid fallback keeps local solo runs — and any two local runs — distinct.
+ */
+const RUN_SUFFIX = process.env.GITHUB_RUN_ID ?? String(process.pid);
+const SCHEMA_DB = `contrax_nonprofit_bootstrap_schema_${RUN_SUFFIX}`;
 const SCHEMA_FILE = "../../src/db/schema.sql";
 
 type Db = ReturnType<typeof neon>;

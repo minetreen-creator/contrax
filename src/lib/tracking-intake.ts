@@ -68,6 +68,8 @@ export const RADAR_COMPLETE_EVENT = "radar_scan_complete";
 
 /** Human-readable timeline labels for known funnel events (mirrors journeys.ts). */
 export const EVENT_LABELS: Record<string, string> = {
+  page_engaged: "Stayed and read (15+ seconds or scrolled halfway)",
+  radar_live_bid_click: "Opened a live bid from their state on Radar",
   hero_cta_click: "Trial CTA clicked",
   hero_search: "Hero search submitted",
   homepage_radar_cta_clicked: "Homepage Radar CTA clicked",

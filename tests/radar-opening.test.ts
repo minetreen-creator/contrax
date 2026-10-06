@@ -48,3 +48,25 @@ describe("radarOpening — Radar step-1 headline", () => {
     expect(o.headline.length).toBeLessThan(120);
   });
 });
+
+describe("paid-ad visitors get a broader opening (owner 2026-10-06)", () => {
+  test("isPaidAdVisit: Google click ids or a paid utm_medium", async () => {
+    const { isPaidAdVisit } = await import("../src/routes/radar");
+    expect(isPaidAdVisit({ gclid: "abc" })).toBe(true);
+    expect(isPaidAdVisit({ gbraid: "x" })).toBe(true);
+    expect(isPaidAdVisit({ utm_source: "google", utm_medium: "CPC" })).toBe(true);
+    expect(isPaidAdVisit({ utm_medium: "email" })).toBe(false);
+    expect(isPaidAdVisit({ gclid: "  " })).toBe(false);
+    expect(isPaidAdVisit({})).toBe(false);
+    expect(isPaidAdVisit(null)).toBe(false);
+  });
+
+  test("ad headline names every business; a deep link still wins", async () => {
+    const { radarOpening } = await import("../src/routes/radar");
+    const ad = radarOpening({ trade: "", stateCode: "", cert: null, fromAd: true });
+    expect(ad.headline).toBe("Find government contracts your business can win.");
+    expect(ad.intro).toContain("SDVOSB");
+    expect(radarOpening({ trade: "", stateCode: "", cert: null }).headline).toContain("SDVOSB");
+    expect(radarOpening({ trade: "HVAC", stateCode: "VA", cert: null, fromAd: true }).headline).toBe("Your matches for HVAC work in Virginia");
+  });
+});

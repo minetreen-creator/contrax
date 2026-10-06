@@ -7,7 +7,8 @@ import { feedUserFromRequest, queryFeed } from "~/lib/data-feed.server";
  * businesses. Open opportunities only (deadline in the future, award notices
  * and low-content rows excluded), keyset-paged by id.
  *
- *   Authorization: Bearer <key>   (key issued from /admin/data-access)
+ *   Authorization: Bearer <key>   (Stripe plan or /admin/data-access), or
+ *   X-RapidAPI-Proxy-Secret       (RapidAPI marketplace buyers)
  *   ?state=VA,NC  ?updated_since=ISO  ?naics=2382,561720  ?set_aside=SDVOSB
  *   ?limit=1..500 (default 100)  ?after=<next_after from the previous page>
  *

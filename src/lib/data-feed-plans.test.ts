@@ -78,3 +78,20 @@ describe("Stripe webhook events check", async () => {
     for (const e of DATA_FEED_WEBHOOK_EVENTS) expect(handled).toContain(`"${e}"`);
   });
 });
+
+describe("RapidAPI proxy secret", async () => {
+  const { isRapidApiRequest } = await import("./data-feed.server");
+  const h = (v?: string) => new Headers(v === undefined ? {} : { "X-RapidAPI-Proxy-Secret": v });
+
+  test("only the exact configured secret is accepted", () => {
+    expect(isRapidApiRequest(h("s3cret"), "s3cret")).toBe(true);
+    expect(isRapidApiRequest(h("s3cret-x"), "s3cret")).toBe(false);
+    expect(isRapidApiRequest(h(""), "s3cret")).toBe(false);
+    expect(isRapidApiRequest(h(), "s3cret")).toBe(false);
+  });
+
+  test("off when the env var is unset, whatever is sent", () => {
+    expect(isRapidApiRequest(h("anything"), undefined)).toBe(false);
+    expect(isRapidApiRequest(h(""), "")).toBe(false);
+  });
+});

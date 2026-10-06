@@ -11,13 +11,15 @@ name: Sync Bids
 
 on:
   schedule:
-    # Every 4 hours, every day (incl. weekends), UTC. The homepage's "Newest
-    # solicitations" section shows a rolling 24-hour window, so weekend
-    # visitors must see fresh solicitations too — weekdays-only left the
-    # section empty from Fri evening UTC until Mon's first run. 42 runs/week
-    # on SAM.gov's public API is still modest (30 on weekdays before; 6 extra
-    # per weekend day), and the API rate stays identical within each day.
-    - cron: "0 */4 * * *"
+    # Weekdays every 4 hours (UTC); weekends once a day (owner 2026-10-06:
+    # "once on Saturday and once on Sunday"). Agencies post little on
+    # weekends, so the extra weekend runs found almost nothing. The weekend
+    # run keeps weekend postings from waiting until Monday; weekdays-only
+    # (no weekend run at all) once left the homepage's 24-hour "Newest
+    # solicitations" section empty from Friday evening to Monday.
+    # 32 runs/week (was 42).
+    - cron: "0 */4 * * 1-5"
+    - cron: "0 15 * * 0,6"
   workflow_dispatch:
 
 concurrency:

@@ -876,10 +876,40 @@ function strongTitleVeto(titleText: string, expansion: TradeExpansion): boolean 
  *  Substring semantics across the RAW expanded terms (mirrors today's 22pt
  *  path — `title.includes(trade)` — and the sender's `text.includes(trade)`).
  *  A hit is reported together with WHICH term/concept matched (provenance). */
+/**
+ * Short trade terms match only where a word starts (owner 2026-10-06). Plain
+ * substring matching let "duct" hit "product"/"conduct", "ltl" hit "title",
+ * "guards" hit "safeguards" and "it services" hit "credit/audit services", so
+ * the Virginia HVAC page listed French fries. A term whose FIRST word is six
+ * letters or fewer must start a word; longer words still match inside words, so
+ * "hauling" keeps matching "BACKHAULING" (owner 09-14). The SQL side uses the
+ * same rule (Postgres `\m`), so pages, Radar and provenance agree.
+ */
+export function termNeedsWordStart(term: string): boolean {
+  return (term.split(/\s+/)[0] ?? "").length <= 6;
+}
+
+export function termMatches(text: string, term: string): boolean {
+  if (!term) return false;
+  if (!termNeedsWordStart(term)) return text.includes(term);
+  let from = 0;
+  for (;;) {
+    const i = text.indexOf(term, from);
+    if (i < 0) return false;
+    if (i === 0 || !/[a-z0-9]/.test(text[i - 1])) return true;
+    from = i + 1;
+  }
+}
+
+/** Postgres ARE for a word-start term: `\m` + the term with regex characters escaped. */
+export function termWordStartRegex(term: string): string {
+  return "\\m" + term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export function tradeTextIncludes(text: string, expansion: TradeExpansion): boolean {
   if (!text || expansion.isNaics || expansion.terms.length === 0) return false;
   const t = text.toLowerCase();
-  if (!expansion.terms.some((term) => t.includes(term))) return false;
+  if (!expansion.terms.some((term) => termMatches(t, term))) return false;
   return !purchasedServiceVeto(t, expansion);
 }
 
@@ -962,7 +992,7 @@ export function tradeProvenanceFor(
   // the implied-NAICS branch, so no corroborated match is ever lost.
   const hit = purchasedServiceVeto(t, expansion)
     ? undefined
-    : longestFirst.find((term) => term.length >= 2 && t.includes(term));
+    : longestFirst.find((term) => term.length >= 2 && termMatches(t, term));
 
   if (hit) {
     // Registry-sourced synonym → industry label (owner-exact "Trucking/Hauling").
@@ -1047,7 +1077,7 @@ export function isStrongTradeMatch(
   // DEFAULT match — see `strongTitleVeto`. A vetoed title still falls through to
   // the implied-NAICS check below, so a NAICS-corroborated row is never removed.
   if (
-    terms.some((t) => titleText.includes(t)) &&
+    terms.some((t) => termMatches(titleText, t)) &&
     !strongTitleVeto(titleText, expansion)
   ) {
     return true;
@@ -1086,7 +1116,13 @@ export function tradeKeywordPred(sql: any, expansion: TradeExpansion): any {
   for (const term of expansion.terms.slice(0, MAX_EXPANDED_TERMS)) {
     if (!term || term.length < 2) continue;
     clauses.push(
-      s`(
+      termNeedsWordStart(term)
+        ? s`(
+        ${s`COALESCE(title,'') ~* ${termWordStartRegex(term)}`} OR
+        ${s`COALESCE(description,'') ~* ${termWordStartRegex(term)}`} OR
+        ${s`COALESCE(category,'') ~* ${termWordStartRegex(term)}`}
+      )`
+        : s`(
         ${s`LOWER(COALESCE(title,'')) LIKE ${"%" + term + "%"}`} OR
         ${s`LOWER(COALESCE(description,'')) LIKE ${"%" + term + "%"}`} OR
         ${s`LOWER(COALESCE(category,'')) LIKE ${"%" + term + "%"}`}

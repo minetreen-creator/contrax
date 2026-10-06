@@ -66,6 +66,8 @@ function DataAccessPage() {
         </p>
         {error && <SectionError message={error} />}
 
+        <StripeWebhookCheck />
+
         <section className="rounded-xl border border-slate-200 bg-white p-4">
           <h2 className="text-base font-semibold text-slate-900">Grant access</h2>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -130,5 +132,55 @@ function DataAccessPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+interface WebhookEndpoint { id: string; url: string; status: string; missing: string[] }
+
+/** Paid plans only switch on if the Stripe webhook sends the right events; check and fix in one click. */
+function StripeWebhookCheck() {
+  const [endpoints, setEndpoints] = useState<WebhookEndpoint[] | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const run = async (action: "webhook-check" | "webhook-fix") => {
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch("/api/admin/data-access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Stripe check failed");
+      setEndpoints(j.endpoints);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Stripe check failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+  useEffect(() => { run("webhook-check"); }, []);
+
+  const missing = endpoints?.some((e) => e.missing.length > 0) ?? false;
+  return (
+    <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+      <h2 className="text-base font-semibold text-slate-900">Stripe webhook</h2>
+      {error && <p className="mt-2 text-red-700">{error}</p>}
+      {!endpoints && !error && <p className="mt-2 text-slate-500">Checking Stripe…</p>}
+      {endpoints && endpoints.length === 0 && (
+        <p className="mt-2 text-red-700">No Stripe webhook points at contrax.company/api/stripe/webhook. Paid plans won&rsquo;t switch on until one does.</p>
+      )}
+      {endpoints?.map((e) => (
+        <p key={e.id} className={`mt-2 ${e.missing.length ? "text-amber-800" : "text-emerald-700"}`}>
+          {e.missing.length ? "⚠ " : "✓ "}
+          <span className="break-all">{e.url}</span>
+          {e.status !== "enabled" && <span className="font-semibold"> ({e.status})</span>}
+          {e.missing.length ? ` is missing: ${e.missing.join(", ")}` : " sends every event the data feed needs."}
+        </p>
+      ))}
+      {missing && (
+        <button disabled={busy} onClick={() => run("webhook-fix")} className="mt-3 rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white disabled:opacity-50">
+          Add missing events
+        </button>
+      )}
+    </section>
   );
 }

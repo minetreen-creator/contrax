@@ -181,3 +181,54 @@ export async function handleDataFeedEvent(event: Stripe.Event): Promise<boolean>
   }
   return true;
 }
+
+/**
+ * Events the data feed needs from the Stripe webhook (owner 2026-10-06: "cant
+ * you do the webhooks?"). /admin/data-access checks the live endpoint and, on
+ * the owner's click, adds any that are missing using the site's Stripe key.
+ */
+export const DATA_FEED_WEBHOOK_EVENTS = [
+  "checkout.session.completed",
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+  "invoice.paid",
+  "invoice.payment_failed",
+] as const;
+
+export function missingWebhookEvents(enabled: readonly string[]): string[] {
+  if (enabled.includes("*")) return [];
+  return DATA_FEED_WEBHOOK_EVENTS.filter((e) => !enabled.includes(e));
+}
+
+export interface WebhookEndpointStatus {
+  id: string;
+  url: string;
+  status: string;
+  missing: string[];
+}
+
+const isOurEndpoint = (url: string) => url.includes("/api/stripe/webhook");
+
+/** Stripe webhook endpoints pointing at this site, with any events the feed is missing. */
+export async function dataFeedWebhookStatus(): Promise<WebhookEndpointStatus[]> {
+  const list = await getStripe().webhookEndpoints.list({ limit: 100 });
+  return list.data
+    .filter((e) => isOurEndpoint(e.url))
+    .map((e) => ({ id: e.id, url: e.url, status: e.status, missing: missingWebhookEvents(e.enabled_events) }));
+}
+
+/** Add the missing events to each of this site's endpoints, keeping the events already there. */
+export async function addMissingWebhookEvents(): Promise<WebhookEndpointStatus[]> {
+  const stripe = getStripe();
+  const list = await stripe.webhookEndpoints.list({ limit: 100 });
+  for (const e of list.data) {
+    if (!isOurEndpoint(e.url)) continue;
+    const missing = missingWebhookEvents(e.enabled_events);
+    if (!missing.length) continue;
+    await stripe.webhookEndpoints.update(e.id, {
+      enabled_events: [...e.enabled_events, ...missing] as Stripe.WebhookEndpointUpdateParams.EnabledEvent[],
+    });
+  }
+  return dataFeedWebhookStatus();
+}

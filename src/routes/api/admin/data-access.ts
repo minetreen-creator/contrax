@@ -1,11 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
+import { addMissingWebhookEvents, dataFeedWebhookStatus } from "~/lib/data-feed-billing.server";
 import { grantDataAccess, listDataAccess, revokeDataAccess } from "~/lib/data-feed.server";
 
 /**
  * GET  /api/admin/data-access → data feed access requests + active grants
  * POST /api/admin/data-access → { action: "grant", email, note? } issues a key
  *                               (returned once) | { action: "revoke", userId }
+ *                               | { action: "webhook-check" | "webhook-fix" }
  * Admin only (owner 2026-10-06).
  */
 async function guard(request: Request) {
@@ -42,6 +44,15 @@ async function post({ request }: { request: Request }) {
       if (!Number.isInteger(id) || id <= 0) return Response.json({ error: "userId is required." }, { status: 400 });
       await revokeDataAccess(id);
       return Response.json({ ok: true });
+    }
+    if (body.action === "webhook-check" || body.action === "webhook-fix") {
+      try {
+        const endpoints = body.action === "webhook-fix" ? await addMissingWebhookEvents() : await dataFeedWebhookStatus();
+        return Response.json({ endpoints });
+      } catch (err) {
+        console.error("[api/admin/data-access] stripe webhook error:", err);
+        return Response.json({ error: `Stripe: ${err instanceof Error ? err.message : "request failed"}` }, { status: 502 });
+      }
     }
     return Response.json({ error: "Unknown action." }, { status: 400 });
   } catch (err) {

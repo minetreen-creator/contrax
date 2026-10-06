@@ -195,6 +195,13 @@ function RootDocument({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        {/* Impact publisher website verification (owner supplied). */}
+        <script
+          type="text/javascript"
+          dangerouslySetInnerHTML={{
+            __html: "(function(i,m,p,a,c,t){c.ire_o=p;c[p]=c[p]||function(){(c[p].a=c[p].a||[]).push(arguments)};t=a.createElement(m);var z=a.getElementsByTagName(m)[0];t.async=1;t.src=i;z.parentNode.insertBefore(t,z)})('https://utt.impactcdn.com/P-A7916731-89e0-45be-9ad2-7039fd0dc6781.js','script','impactStat',document,window);impactStat('transformLinks');impactStat('trackImpression');",
+          }}
+        />
       </head>
       <body className="antialiased">
         {children}

@@ -590,6 +590,11 @@ export async function handleStripeWebhook(
 
   // Standalone Contractor Operations subscription. Its webhook-owned status is
   // the only authority for payment and labor workspace access.
+  // Contrax bid data feed (owner 2026-10-06): its own subscription line, owned
+  // by metadata.product === "contrax_data_feed" or a stored subscription id.
+  const { handleDataFeedEvent } = await import("~/lib/data-feed-billing.server");
+  if (await handleDataFeedEvent(event)) return { success: true };
+
   const { handleOperationsEvent } = await import("~/lib/contractor-operations-billing.server");
   if (await handleOperationsEvent(event)) return { success: true };
 

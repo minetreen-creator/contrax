@@ -1,0 +1,59 @@
+import { describe, expect, test } from "bun:test";
+import { applyPlanStates, parseFeedQuery, toFeedRow } from "./data-feed";
+import { DATA_FEED_OPENAPI } from "./data-feed-openapi";
+
+const q = (s: string) => {
+  const r = parseFeedQuery(new URLSearchParams(s));
+  if (!r.ok) throw new Error(r.error);
+  return r.query;
+};
+
+describe("data feed plan scoping (owner 2026-10-06)", () => {
+  test("Pro (no state limit) passes the query through", () => {
+    expect(applyPlanStates(q("state=TX"), null)).toEqual({ ok: true, query: q("state=TX") });
+    expect(applyPlanStates(q(""), null)).toEqual({ ok: true, query: q("") });
+  });
+
+  test("Starter with no state asked gets its plan states", () => {
+    const r = applyPlanStates(q(""), ["VA", "NC"]);
+    expect(r.ok && r.query.states).toEqual(["VA", "NC"]);
+  });
+
+  test("Starter can narrow inside its plan but not reach outside it", () => {
+    const inside = applyPlanStates(q("state=va"), ["VA", "NC"]);
+    expect(inside.ok && inside.query.states).toEqual(["VA"]);
+    const outside = applyPlanStates(q("state=VA,TX"), ["VA", "NC"]);
+    expect(outside.ok).toBe(false);
+    if (!outside.ok) expect(outside.error).toContain("TX");
+  });
+});
+
+describe("OpenAPI matches the feed", () => {
+  test("Bid schema lists exactly the toFeedRow fields", () => {
+    const row = toFeedRow({ id: 1, title: "t", agency: "a", source: "s" });
+    expect(Object.keys(DATA_FEED_OPENAPI.components.schemas.Bid.properties).sort()).toEqual(Object.keys(row).sort());
+  });
+
+  test("documented parameters are the ones parseFeedQuery reads", () => {
+    const names = DATA_FEED_OPENAPI.paths["/api/v1/feed"].get.parameters.map((p) => p.name).sort();
+    expect(names).toEqual(["after", "limit", "naics", "set_aside", "state", "updated_since"]);
+  });
+});
+
+describe("checkout plan validation", async () => {
+  const { validatePlanStates, DATA_FEED_PLANS } = await import("./data-feed-billing.server");
+
+  test("prices are the published ones", () => {
+    expect(DATA_FEED_PLANS.starter.cents).toBe(29900);
+    expect(DATA_FEED_PLANS.pro.cents).toBe(79900);
+  });
+
+  test("Starter needs 1–5 real states; Pro takes none", () => {
+    expect(validatePlanStates("starter", "va, nc ,VA")).toEqual({ ok: true, states: ["VA", "NC"] });
+    expect(validatePlanStates("starter", "").ok).toBe(false);
+    expect(validatePlanStates("starter", "VA,NC,MD,DE,PA,NJ").ok).toBe(false);
+    expect(validatePlanStates("starter", "ZZ").ok).toBe(false);
+    expect(validatePlanStates("starter", 5).ok).toBe(false);
+    expect(validatePlanStates("pro", "VA")).toEqual({ ok: true, states: [] });
+  });
+});

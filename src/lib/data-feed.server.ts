@@ -28,25 +28,35 @@ export async function ensureDataFeedTables(): Promise<void> {
     note TEXT,
     active BOOLEAN NOT NULL DEFAULT TRUE
   )`;
+  // Self-serve Stripe plans (data-feed-billing.server.ts): tier, Starter's
+  // chosen states (comma list; NULL = every state) and the subscription.
+  await sql()`ALTER TABLE data_feed_access ADD COLUMN IF NOT EXISTS tier TEXT`;
+  await sql()`ALTER TABLE data_feed_access ADD COLUMN IF NOT EXISTS states TEXT`;
+  await sql()`ALTER TABLE data_feed_access ADD COLUMN IF NOT EXISTS status TEXT`;
+  await sql()`ALTER TABLE data_feed_access ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT`;
+  await sql()`ALTER TABLE data_feed_access ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT`;
   await sql()`CREATE TABLE IF NOT EXISTS api_keys (id SERIAL PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id),key_hash TEXT NOT NULL UNIQUE,name TEXT NOT NULL DEFAULT 'Default key',last_used_at TIMESTAMPTZ,created_at TIMESTAMPTZ DEFAULT NOW(),revoked BOOLEAN NOT NULL DEFAULT FALSE)`;
 }
 
 /** The API key's user id when the key is valid AND that user has active feed access. */
-export async function feedUserFromRequest(request: Request): Promise<{ userId: number } | { error: string; status: number }> {
+export async function feedUserFromRequest(
+  request: Request,
+): Promise<{ userId: number; allowedStates: string[] | null } | { error: string; status: number }> {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
   if (!token) return { error: "Missing API key. Send Authorization: Bearer <key>.", status: 401 };
   const hash = createHash("sha256").update(token).digest("hex");
   await ensureDataFeedTables();
   const rows = await sql()`
-    SELECT k.id, k.user_id, a.active
+    SELECT k.id, k.user_id, a.active, a.states
     FROM api_keys k LEFT JOIN data_feed_access a ON a.user_id = k.user_id
     WHERE k.key_hash = ${hash} AND k.revoked = FALSE
     LIMIT 1`;
   if (!rows.length) return { error: "Invalid API key.", status: 401 };
-  const row = rows[0] as { id: number; user_id: number; active: boolean | null };
+  const row = rows[0] as { id: number; user_id: number; active: boolean | null; states: string | null };
   if (!row.active) return { error: "This key does not have data feed access. Request access at https://www.contrax.company/data.", status: 403 };
   await sql()`UPDATE api_keys SET last_used_at = NOW() WHERE id = ${row.id}`;
-  return { userId: row.user_id };
+  const allowedStates = row.states ? row.states.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean) : null;
+  return { userId: row.user_id, allowedStates: allowedStates && allowedStates.length ? allowedStates : null };
 }
 
 /** Open opportunities matching the query, oldest id first (keyset paging on id). */

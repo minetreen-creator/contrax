@@ -70,6 +70,18 @@ export function parseFeedQuery(params: URLSearchParams): FeedQueryResult {
   return { ok: true, query: { states, updatedSince, naics, setAside: setAsideRaw || null, limit, after } };
 }
 
+/**
+ * Apply a plan's state limit (Starter: the states bought; null = every state).
+ * No state asked for → the plan's states. Asking for one outside the plan → error.
+ */
+export function applyPlanStates(q: FeedQuery, allowed: string[] | null): { ok: true; query: FeedQuery } | { ok: false; error: string } {
+  if (!allowed) return { ok: true, query: q };
+  if (!q.states.length) return { ok: true, query: { ...q, states: allowed } };
+  const outside = q.states.filter((s) => !allowed.includes(s));
+  if (outside.length) return { ok: false, error: `Your plan covers ${allowed.join(", ")}. ${outside.join(", ")} is not included; upgrade to Pro for every state.` };
+  return { ok: true, query: q };
+}
+
 export interface FeedRow {
   id: number;
   title: string;

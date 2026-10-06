@@ -101,9 +101,14 @@ async function handler({ request }: { request: Request }) {
   const daysParam = parseInt(url.searchParams.get("days") || "30", 10);
   const rangeDays = Number.isFinite(daysParam) ? Math.min(365, Math.max(1, daysParam)) : 30;
 
-  const now = new Date();
+  // ?offset=N shifts the window N days into the past (owner 2026-10-06: the
+  // Overview compares this week with the 7 days before it via days=7&offset=7).
+  const offsetParam = parseInt(url.searchParams.get("offset") || "0", 10);
+  const offsetDays = Number.isFinite(offsetParam) ? Math.min(365, Math.max(0, offsetParam)) : 0;
+  const now = new Date(Date.now() - offsetDays * 24 * 60 * 60 * 1000);
   const from = new Date(now.getTime() - rangeDays * 24 * 60 * 60 * 1000);
   const fromIso = from.toISOString();
+  const toIso = now.toISOString();
 
   // Shared human/bot/QA/admin exclusion fragment. Inlined via sql().unsafe()
   // into a WHERE ... AND ( ... ).
@@ -136,7 +141,7 @@ async function handler({ request }: { request: Request }) {
       const rows = await sql()`
         SELECT COUNT(DISTINCT visitor_id) AS n FROM funnel_events
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
-          AND created_at >= ${fromIso}
+          AND created_at >= ${fromIso} AND created_at < ${toIso}
           AND event_name = ANY(${events})
           AND ${sql().unsafe(humanFilter)}`;
       return Number(rows[0]?.n ?? 0);
@@ -148,7 +153,7 @@ async function handler({ request }: { request: Request }) {
     const paidRows = await sql()`
       SELECT COUNT(DISTINCT fe.user_id) AS n
       FROM funnel_events fe JOIN users u ON u.id::text = fe.user_id
-      WHERE fe.user_id IS NOT NULL AND fe.user_id <> '' AND fe.created_at >= ${fromIso}
+      WHERE fe.user_id IS NOT NULL AND fe.user_id <> '' AND fe.created_at >= ${fromIso} AND fe.created_at < ${toIso}
         AND u.subscription_status = 'active'
         AND ${sql().unsafe(humanFilter)}`;
 
@@ -169,7 +174,7 @@ async function handler({ request }: { request: Request }) {
         SELECT DISTINCT ON (visitor_id) visitor_id, source
         FROM funnel_events
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
-          AND created_at >= ${fromIso}
+          AND created_at >= ${fromIso} AND created_at < ${toIso}
           AND event_name = ANY(${QUALIFYING_EVENTS})
           AND ${sql().unsafe(humanFilter)}
         ORDER BY visitor_id, created_at ASC
@@ -182,7 +187,7 @@ async function handler({ request }: { request: Request }) {
         SELECT DISTINCT ON (visitor_id) visitor_id, medium
         FROM funnel_events
         WHERE visitor_id IS NOT NULL AND visitor_id <> ''
-          AND created_at >= ${fromIso}
+          AND created_at >= ${fromIso} AND created_at < ${toIso}
           AND event_name = ANY(${QUALIFYING_EVENTS})
           AND ${sql().unsafe(humanFilter)}
         ORDER BY visitor_id, created_at ASC

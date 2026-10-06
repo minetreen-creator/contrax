@@ -359,6 +359,7 @@ export async function ensureVisitorsTable(): Promise<void> {
   )`;
   await sql()`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS saw_pricing BOOLEAN NOT NULL DEFAULT FALSE`;
   await sql()`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS saw_brief BOOLEAN NOT NULL DEFAULT FALSE`;
+  await sql()`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS country TEXT`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_visitors_last_seen_at ON visitors (last_seen_at)`;
 }
 
@@ -376,6 +377,7 @@ interface VisitorUpsertInput {
   ip: string | null;
   city: string | null;
   region: string | null;
+  country: string | null;
   deviceType: string | null;
   browserLabel: string | null;
   source: string | null;
@@ -403,7 +405,7 @@ interface VisitorUpsertInput {
  */
 async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
   const {
-    visitorId, path, ip, city, region, deviceType, browserLabel, source,
+    visitorId, path, ip, city, region, country, deviceType, browserLabel, source,
     eventName, visitId, lastAction,
   } = v;
 
@@ -427,13 +429,13 @@ async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
       visitor_id, first_seen_at, last_seen_at, first_path, last_path,
       first_ip, last_ip, city, region, device_type, browser_label, source,
       radar, signup, activated, steps, sessions, last_visit_id, last_action, last_action_at,
-      saw_pricing, saw_brief
+      saw_pricing, saw_brief, country
     ) VALUES (
       ${visitorId}, NOW(), NOW(), ${path}, ${path},
       ${ip}, ${ip}, ${city}, ${region}, ${deviceType}, ${browserLabel}, ${source},
       ${radarContrib}, ${signupContrib ?? "Not started"}, ${activatedContrib}, 1,
       ${visitId ? 1 : 0}, ${visitId}, ${lastAction}, NOW(),
-      ${sawPricingContrib}, ${sawBriefContrib}
+      ${sawPricingContrib}, ${sawBriefContrib}, ${country}
     )
     ON CONFLICT (visitor_id) DO UPDATE SET
       last_seen_at = NOW(),
@@ -443,6 +445,7 @@ async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
       first_path = COALESCE(visitors.first_path, EXCLUDED.first_path),
       city = COALESCE(EXCLUDED.city, visitors.city),
       region = COALESCE(EXCLUDED.region, visitors.region),
+      country = COALESCE(EXCLUDED.country, visitors.country),
       device_type = COALESCE(EXCLUDED.device_type, visitors.device_type),
       browser_label = COALESCE(EXCLUDED.browser_label, visitors.browser_label),
       radar = (visitors.radar OR EXCLUDED.radar),
@@ -717,6 +720,7 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
           ip,
           city: ctx.city,
           region: ctx.region,
+          country: ctx.country,
           deviceType: ctx.device_type,
           browserLabel: ctx.browser_label,
           source: attr.source,

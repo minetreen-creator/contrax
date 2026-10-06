@@ -130,6 +130,10 @@ interface Journey {
   landing_page: string | null;
   city: string | null;
   region: string | null;
+  /** ISO country code (x-vercel-ip-country); null for rows from before 2026-10-06. */
+  country?: string | null;
+  /** True when the visit came from a paid ad click (Google/Bing cpc). */
+  paid_click?: boolean;
   first_ip?: string | null;
   last_ip?: string | null;
   device_type: string | null;
@@ -700,7 +704,7 @@ async function handler({ request }: { request: Request }) {
 
     // ── FAST PATH: per-visitor row summaries straight from the `visitors` cache.
     const visitorRows: any[] = await sql()`
-      SELECT visitor_id, first_ip, last_ip, first_path, first_seen_at, last_seen_at, city, region, device_type, browser_label, source,
+      SELECT visitor_id, first_ip, last_ip, first_path, first_seen_at, last_seen_at, city, region, country, device_type, browser_label, source,
              radar, signup, activated, steps, sessions, last_action, last_action_at,
              converted_user_id, saw_pricing, saw_brief
       FROM visitors
@@ -892,6 +896,7 @@ async function handler({ request }: { request: Request }) {
         landing_page: landing,
         city: v.city ?? null,
         region: v.region ?? null,
+        country: v.country ?? null,
         first_ip: v.first_ip ?? null,
         last_ip: v.last_ip ?? null,
         device_type: v.device_type ?? null,
@@ -987,7 +992,10 @@ async function handler({ request }: { request: Request }) {
     // "Google Ads" instead of a bare "google" for paid clicks (owner 2026-10-04).
     for (const j of all) {
       const paidSource = paidVids.get(j.visitor_id);
-      if (paidSource !== undefined) j.source_label = sourceLabel(paidSource || j.source || "google", "cpc");
+      if (paidSource !== undefined) {
+        j.source_label = sourceLabel(paidSource || j.source || "google", "cpc");
+        j.paid_click = true;
+      }
     }
     // Orphan rows: first in-window page view stands in for first-seen.
     for (const j of orphanJourneys) {

@@ -105,15 +105,18 @@ export function MrrScoreboard() {
 // ── Tab bar ──────────────────────────────────────────────────────────────────
 export type AdminTab = "overview" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "payments" | "bid-scout" | "bid-fit-reviews" | "nonprofits";
 
-export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: "Command" | "Growth" | "Operations" }[] = [
-  { key: "overview", label: "Overview", href: "/admin", group: "Command" },
-  { key: "visitors", label: "Visitors", href: "/admin/journeys", group: "Command" },
-  { key: "radar-leads", label: "Radar Leads", href: "/admin/radar-leads", group: "Growth" },
-  { key: "autopsy", label: "Autopsy", href: "/admin/autopsy", group: "Growth" },
-  { key: "signups", label: "Signups", href: "/admin/signups", group: "Growth" },
-  { key: "customers", label: "Customers", href: "/admin/customers", group: "Growth" },
-  { key: "payments", label: "Contrax Payments", href: "/admin/payments", group: "Growth" },
-  { key: "bid-scout", label: "Bid Scout", href: "/admin/bid-scout", group: "Growth" },
+export type AdminSection = "Overview" | "Visitors" | "Leads & Signups" | "Revenue" | "Operations";
+
+/** Every admin page, grouped into five sections (owner 2026-10-06: 11 tabs was too many). */
+export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: AdminSection }[] = [
+  { key: "overview", label: "Overview", href: "/admin", group: "Overview" },
+  { key: "visitors", label: "Visitors", href: "/admin/journeys", group: "Visitors" },
+  { key: "signups", label: "Signups", href: "/admin/signups", group: "Leads & Signups" },
+  { key: "radar-leads", label: "Radar Leads", href: "/admin/radar-leads", group: "Leads & Signups" },
+  { key: "autopsy", label: "Autopsy", href: "/admin/autopsy", group: "Leads & Signups" },
+  { key: "customers", label: "Customers", href: "/admin/customers", group: "Revenue" },
+  { key: "payments", label: "Contrax Payments", href: "/admin/payments", group: "Revenue" },
+  { key: "bid-scout", label: "Bid Scout", href: "/admin/bid-scout", group: "Revenue" },
   { key: "bid-fit-reviews", label: "Bid Fit Reviews", href: "/admin/bid-fit-reviews", group: "Operations" },
   // Nonprofit Free phase 2 unit B — the human review queue. A review surface nobody can
   // navigate to is not a review surface (owner lock: manual reviews with a 3-business-day
@@ -121,30 +124,47 @@ export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: "C
   { key: "nonprofits", label: "Nonprofit Reviews", href: "/admin/nonprofits", group: "Operations" },
 ];
 
+export const ADMIN_SECTIONS: AdminSection[] = ["Overview", "Visitors", "Leads & Signups", "Revenue", "Operations"];
+
 export function AdminTabs({ active }: { active: AdminTab }) {
+  const activeGroup = ADMIN_TABS.find((t) => t.key === active)?.group ?? "Overview";
+  const pages = ADMIN_TABS.filter((t) => t.group === activeGroup);
   return (
-    <nav aria-label="Admin sections" className="overflow-x-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
-      <div className="flex min-w-max items-end gap-4">
-        {(["Command", "Growth", "Operations"] as const).map((group) => (
-          <div key={group} className="space-y-1">
-            <p className="px-2 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">{group}</p>
-            <div className="flex items-center gap-1">
-              {ADMIN_TABS.filter((tab) => tab.group === group).map((t) => (
-                <a
-                  key={t.key}
-                  href={t.href}
-                  aria-current={active === t.key ? "page" : undefined}
-                  className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                    active === t.key ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  {t.label}
-                </a>
-              ))}
-            </div>
-          </div>
-        ))}
+    <nav aria-label="Admin sections" className="space-y-2">
+      <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
+        {ADMIN_SECTIONS.map((group) => {
+          const first = ADMIN_TABS.find((t) => t.group === group)!;
+          const on = group === activeGroup;
+          return (
+            <a
+              key={group}
+              href={first.href}
+              aria-current={on ? "page" : undefined}
+              className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-semibold ${
+                on ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-800"
+              }`}
+            >
+              {group}
+            </a>
+          );
+        })}
       </div>
+      {pages.length > 1 && (
+        <div className="flex flex-wrap gap-1">
+          {pages.map((t) => (
+            <a
+              key={t.key}
+              href={t.href}
+              aria-current={active === t.key ? "page" : undefined}
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                active === t.key ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100"
+              }`}
+            >
+              {t.label}
+            </a>
+          ))}
+        </div>
+      )}
     </nav>
   );
 }

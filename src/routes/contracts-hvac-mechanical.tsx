@@ -193,7 +193,7 @@ export const Route = createFileRoute("/contracts-hvac-mechanical")({
     seoHead({
       title: "HVAC & Mechanical Set-Aside Contracts (8(a), SDVOSB, WOSB, HUBZone) | Contrax",
       description:
-        "Open federal set-aside solicitations for HVAC, mechanical, plumbing, controls, BAS, and facility maintenance contractors — live counts and real bid postings for 8(a), SDVOSB, WOSB, and HUBZone firms, synced every 4 hours.",
+        "Open federal set-aside solicitations for HVAC, mechanical, plumbing, controls, BAS, and facility maintenance contractors — live counts and real bid postings for 8(a), SDVOSB, WOSB, and HUBZone firms, synced every 4 hours on weekdays.",
       canonical: "https://www.contrax.company/contracts-hvac-mechanical",
     }),
   component: ContractsHvacMechanical,
@@ -246,7 +246,7 @@ function ContractsHvacMechanical() {
           <>
             Every count and card on this page is a live query of open
             solicitations in NAICS 238220, 236220, 541330, 561720, and 561210 —
-            synced from SAM.gov and state &amp; city sources every 4 hours. Only
+            synced from SAM.gov and state &amp; city sources every 4 hours on weekdays. Only
             real, currently-open set-asides appear; when none exist the section
             stays empty. Nothing is fabricated.
           </>
@@ -266,7 +266,7 @@ function ContractsHvacMechanical() {
               </p>
             )}
             <p className="mt-1 text-sm text-slate-500">
-              Open set-aside postings by NAICS code · synced every 4 hours
+              Open set-aside postings by NAICS code · synced every 4 hours on weekdays
             </p>
             {d.counts.length > 0 && (
               <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -400,7 +400,7 @@ function ContractsHvacMechanical() {
             </div>
             <p className="mt-5 text-center text-xs text-slate-500">
               Source: synced from SAM.gov and state &amp; city solicitations ·
-              updated every 4 hours · your free account includes AI Executive
+              updated every 4 hours on weekdays · your free account includes AI Executive
               Briefs
             </p>
           </section>

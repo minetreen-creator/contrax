@@ -11,8 +11,9 @@
  *
  * Scheduling (production):
  *   GitHub Actions workflow .github/workflows/sync-bids.yml runs
- *   `bun run sync-bids` every 4 hours, every day (incl. weekends — the
- *   homepage "Newest solicitations" window is a rolling 24h) and can be
+ *   `bun run sync-bids` every 4 hours on weekdays and once a day on Saturday
+ *   and Sunday (the homepage "Newest solicitations" window is a rolling 24h,
+ *   so weekends still get a run) and can be
  *   triggered manually via workflow_dispatch. The Vercel cron entry for
  *   /api/sync-bids was removed — Vercel Hobby's 10s serverless cap cannot
  *   fit a multi-minute sync across 73 sources (15 SAM.gov passes — 4 fixed +

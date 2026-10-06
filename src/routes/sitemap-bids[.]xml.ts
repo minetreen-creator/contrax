@@ -7,7 +7,7 @@ import { BID_SITEMAP_MAX_URLS, buildBidSitemapXml } from "~/lib/bid-seo";
 
 /**
  * /sitemap-bids.xml — every OPEN bid page (/bid/:id), built live from the
- * database (bids change every 4 hours; public/sitemap.xml only changes on
+ * database (bids change every 4 hours on weekdays; public/sitemap.xml only changes on
  * deploy). Same filters as the public bid lists: open, not low-content, not an
  * award row, one page per notice. Listed in robots.txt. Cached at the edge for
  * an hour. A database error returns 503 so crawlers retry instead of reading

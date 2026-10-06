@@ -30,12 +30,12 @@ function ContractsInState() {
     <SeoLanding
       eyebrow={`⚡ LIVE GOVCON DATA — ${name.toUpperCase()}`}
       headline={`Government contracts in ${name}`}
-      subhead={`Real open federal and state solicitations in ${name}, counted straight from live procurement data and updated every 4 hours. See the totals, set-asides and closing-soon deadlines.`}
+      subhead={`Real open federal and state solicitations in ${name}, counted straight from live procurement data and updated every 4 hours on weekdays. See the totals, set-asides and closing-soon deadlines.`}
       radarHref={data.code ? `/radar?state=${data.code}` : "/radar"}
       radarLabel="Or explore live set-aside bids free with Contract Radar"
       honesty={
         <>
-          Every number is a live query of open solicitations, updated every 4 hours.
+          Every number is a live query of open solicitations, updated every 4 hours on weekdays.
           Stated values are summed only where a dollar figure is actually listed (the
           “across N of M” denominator makes the limitation transparent). Most set-asides
           are nationwide — region pages show the honest set-aside sub-count and point to

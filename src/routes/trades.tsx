@@ -272,7 +272,7 @@ function TradesLanding() {
             </div>
             <p className="mt-6 text-center text-xs text-slate-500">
               Real counts from live federal &amp; state solicitations — updated
-              every 4 hours.
+              every 4 hours on weekdays.
             </p>
           </section>
         )}

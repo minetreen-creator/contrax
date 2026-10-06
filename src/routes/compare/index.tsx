@@ -6,7 +6,7 @@ const rows = [
   ["Pricing", "$19–199/mo with free trial", "$5K–20K+/yr (enterprise)", "$300–800/mo", "Varies by plan", "$0 (but cost of time)", "$3–10K+/mo retainer"],
   ["Incumbent Pricing Intel", "Yes (5-yr history)", "Partial (enterprise only)", "No", "No", "No", "No"],
   ["Free trial", "14-day free trial", "No or limited", "No or limited", "No or limited", "N/A", "No"],
-  ["Bid coverage", "Federal + State + Local (nationwide, synced every 4 hours)", "Federal only (strong)", "State/Local focused", "Federal spend data", "Limited to what you search", "Depends on their expertise"],
+  ["Bid coverage", "Federal + State + Local (nationwide, synced every 4 hours on weekdays)", "Federal only (strong)", "State/Local focused", "Federal spend data", "Limited to what you search", "Depends on their expertise"],
   ["Proposal drafting", "Yes (tailored to each RFP)", "No built-in drafting", "No", "No", "N/A", "Depends on consultant"],
   ["Win probability scoring", "Yes", "Partial (spend analytics)", "No", "Spend analytics", "N/A", "Subjective"],
   ["Ease of use / onboarding", "Minutes (4-step wizard)", "Weeks (enterprise onboarding)", "Moderate", "Moderate", "Steep (learn each system)", "Quick, but onboarding takes weeks"],
@@ -66,7 +66,7 @@ function ComparePage() {
     <section className="bg-gray-50 py-16 sm:py-24"><div className="mx-auto max-w-7xl px-6"><div className="mx-auto max-w-2xl text-center"><h2 className="text-sm font-semibold uppercase tracking-widest text-blue-600">The alternative</h2><h3 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Contrax vs. doing it yourself, a specialist, or generic tools</h3><p className="mt-4 text-lg text-gray-600">Beyond the named platforms, the realistic choices are manual bidding, hiring a consultant, or repurposing generic RFP software. Here is how those stack up.</p></div>
       <div className="mt-14 overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm"><table className="w-full min-w-[820px] border-collapse text-left text-sm"><thead><tr className="border-b border-gray-200 bg-gray-50"><th className="px-6 py-5 text-sm font-semibold text-slate-700"><span className="sr-only">Criteria</span></th>{[{name:"Contrax",key:"contrax",highlight:true},{name:"Manual Bidding",key:"manual",highlight:false},{name:"Consultant",key:"consultant",highlight:false},{name:"Other Tools",key:"tools",highlight:false}].map((col)=>(<th key={col.key} className={`px-5 py-5 text-center ${col.highlight?"bg-blue-50/60":""}`}><span className={`text-sm font-bold ${col.highlight?"text-blue-700":"text-slate-700"}`}>{col.name}</span></th>))}</tr></thead><tbody className="divide-y divide-gray-100">{[{
         label:"Bid discovery",tooltip:"Who finds opportunities for you?",
-        contrax:{value:"Scans federal, state, and local procurement sites every 4 hours",positive:true},
+        contrax:{value:"Scans federal, state, and local procurement sites every 4 hours on weekdays",positive:true},
         manual:{value:"You search SAM.gov, state portals & city sites manually",positive:false},
         consultant:{value:"Consultant checks known sources during business hours",positive:false},
         tools:{value:"Requires you to set up searches & filters yourself",positive:false},

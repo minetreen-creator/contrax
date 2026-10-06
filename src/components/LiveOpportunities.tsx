@@ -162,7 +162,7 @@ export function LiveOpportunities({ bids }: { bids: LiveOpportunity[] | null | u
         </div>
         <p className="mt-5 text-center text-xs text-gray-500">
           Source: synced from SAM.gov and state &amp; city solicitations ·
-          updated every 4 hours · your free account includes AI Executive Briefs
+          updated every 4 hours on weekdays · your free account includes AI Executive Briefs
         </p>
       </div>
     </section>

@@ -1067,6 +1067,45 @@ export async function sendNonprofitDeniedEmail(to: string, orgName: string): Pro
   }
 }
 
+// ── Data feed access request (owner 2026-10-06) ─────────────────────────────
+
+/** Tell the owner a business asked for data feed access. Fire-and-forget. */
+export async function sendDataAccessRequestNotice(r: {
+  id: number;
+  name: string;
+  email: string;
+  company: string;
+  useCase: string | null;
+  states: string | null;
+  message: string | null;
+}): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send data access request notice — RESEND_API_KEY not set");
+      return false;
+    }
+    const row = (k: string, v: string | null) =>
+      `<tr><td style="padding:4px 12px 4px 0;color:#6b7280;font-size:14px;vertical-align:top;">${k}</td><td style="padding:4px 0;color:#111827;font-size:14px;">${escapeHtml(v || "—")}</td></tr>`;
+    const html = `<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<h2 style="color:#111827;">New data feed access request #${r.id}</h2>
+<table>${row("Name", r.name)}${row("Email", r.email)}${row("Company", r.company)}${row("Use", r.useCase)}${row("States", r.states)}${row("Message", r.message)}</table>
+<p style="color:#374151;font-size:14px;">Review and grant at <a href="https://www.contrax.company/admin/data-access">contrax.company/admin/data-access</a>.</p>
+</body>`;
+    const result = await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: r.email,
+      to: ["contrax.companyllc@gmail.com"],
+      subject: `Data feed request: ${r.company}`,
+      html,
+    });
+    return !result.error;
+  } catch (error) {
+    console.error("Failed to send data access request notice:", error);
+    return false;
+  }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function escapeHtml(str: string): string {

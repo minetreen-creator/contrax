@@ -18,7 +18,8 @@
  *     allowed (admin) against real `users` + `sessions` rows.
  *
  * HOW IT IS PROVIDED (and why it never touches the team's data). It issues `CREATE DATABASE` /
- * `DROP DATABASE` ONLY for a name containing "nonprofit_bootstrap", builds that database from
+ * `DROP DATABASE` ONLY for a per-run name containing "nonprofit_bootstrap"
+ * (`contrax_nonprofit_bootstrap_review_<run>`, see `RUN_SUFFIX` below), builds that database from
  * `src/db/schema.sql` ALONE, and drops it in `afterAll` — including after a failed run. The
  * only production-adjacent thing it touches is the connection URL, and every query runs
  * against the throwaway database.
@@ -35,7 +36,13 @@ import { schemaStatements } from "../../db/migrations/sql-statements";
 const ENABLED =
   process.env.NONPROFIT_TEST_PROVISION_SCHEMA === "1" && !!process.env.DATABASE_URL;
 const ADMIN_URL = process.env.DATABASE_URL ?? "";
-const SCHEMA_DB = "contrax_nonprofit_bootstrap_review";
+/**
+ * Unique-per-run throwaway name (same fix as the apply suite). A fixed name let a concurrent
+ * Build Check run's `DROP DATABASE … WITH (FORCE)` delete this run's mid-test database.
+ * `GITHUB_RUN_ID` is set on Actions; the pid fallback keeps local solo runs distinct.
+ */
+const RUN_SUFFIX = process.env.GITHUB_RUN_ID ?? String(process.pid);
+const SCHEMA_DB = `contrax_nonprofit_bootstrap_review_${RUN_SUFFIX}`;
 const SCHEMA_FILE = "../../src/db/schema.sql";
 
 type Db = ReturnType<typeof neon>;

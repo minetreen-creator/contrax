@@ -63,6 +63,7 @@ interface Journey {
   device_type: string | null;
   browser_label: string | null;
   radar: boolean;
+  engaged?: boolean;
   signup: "Not started" | "Viewed" | "Started" | "Abandoned" | "Success";
   activated: boolean;
   paid: boolean;
@@ -604,6 +605,8 @@ function didLabel(j: Journey): string {
   if (j.signup === "Started" || j.signup === "Abandoned") return "Started signup";
   if (j.radar) return "Ran a Radar scan";
   if (j.signup === "Viewed") return "Looked at signup";
+  // page_engaged (owner 2026-10-06): read 15+ s or scrolled halfway vs. bounced.
+  if (j.engaged) return "Stayed and read";
   return "Browsed";
 }
 

@@ -71,6 +71,8 @@ const EVENT_LABELS: Record<string, string> = {
   hero_cta_click: "Trial CTA clicked",
   hero_search: "Hero search submitted",
   homepage_radar_cta_clicked: "Homepage Radar CTA clicked",
+  page_engaged: "Stayed and read (15+ seconds or scrolled halfway)",
+  radar_live_bid_click: "Opened a live bid from their state on Radar",
   radar_scan_start: "Radar scan started",
   radar_scan_complete: "Radar scan completed",
   radar_results_viewed: "Radar results viewed (anonymous)",
@@ -139,6 +141,8 @@ interface Journey {
   device_type: string | null;
   browser_label: string | null;
   radar: boolean;
+  /** Stayed 15+ seconds or scrolled halfway on some page (page_engaged, owner 2026-10-06). */
+  engaged?: boolean;
   signup: "Not started" | "Viewed" | "Started" | "Abandoned" | "Success";
   activated: boolean;
   paid: boolean;
@@ -472,6 +476,7 @@ async function buildFromDetail(pageRows: any[], eventRows: any[]): Promise<Journ
     if (j.events.length > 0) j.last_activity = j.events[j.events.length - 1].t;
     const events = seenEvents.get(vid) ?? new Set<string>();
     j.radar = events.has(RADAR_COMPLETE);
+    j.engaged = events.has("page_engaged");
     j.signup = signupStatus(events);
     j.activated = ACTIVATION_EVENTS.some((e) => events.has(e));
     const linkedEmail = linkedUsers.get(vid);

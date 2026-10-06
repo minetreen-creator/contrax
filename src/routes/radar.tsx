@@ -132,10 +132,13 @@ export function radarOpening({
   trade,
   stateCode,
   cert,
+  fromAd = false,
 }: {
   trade: string;
   stateCode: string;
   cert: string | null;
+  /** Paid-ad visit (isPaidAdVisit): a broader headline than the SDVOSB one. */
+  fromAd?: boolean;
 }): { headline: string; intro: string } {
   // No cert in the link → the scan runs with the broad Small Business default,
   // so the headline names no certification.
@@ -151,6 +154,15 @@ export function radarOpening({
       headline: `Your ${certLabel}matches${forTrade}${inState}`,
       intro:
         "We've filled in what you picked on the homepage. See your matches now — your first 3 are free, each with a real match score and full Incumbent Intelligence (previous winner & award price). Certification and contract size are optional; set them under Refine.",
+    };
+  }
+  // Ad visitors (owner 2026-10-06): most aren't SDVOSBs, so lead with every
+  // business; the veteran and other set-asides follow in the intro.
+  if (fromAd) {
+    return {
+      headline: "Find government contracts your business can win.",
+      intro:
+        "Live federal, state and local bids matched to your trade, with a real match score and the previous winner and award price. Veteran-owned (SDVOSB), 8(a), WOSB and HUBZone set-asides included.",
     };
   }
   return {
@@ -388,6 +400,53 @@ export const getVisitorStateHint = createServerFn({ method: "GET" }).handler(asy
     return "";
   }
 });
+
+/**
+ * Up to 3 open bids from the visitor's approximate state, plus that state's open
+ * count, for the first Radar screen (owner 2026-10-06: ad visitors left before
+ * seeing a single bid). Real rows only, same open / low-content / award guards as
+ * every opportunity surface; no state or no rows → nothing is shown. Does not
+ * touch the Radar preview allowance.
+ */
+export const getLiveStateBids = createServerFn({ method: "GET" }).handler(
+  async (): Promise<{ state: string; total: number; bids: { id: number; title: string; agency: string; due_date: string | null }[] }> => {
+    try {
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const h = getRequest().headers;
+      const state = stateFromGeoHeaders(h.get("x-vercel-ip-country"), h.get("x-vercel-ip-country-region"));
+      if (!state) return { state: "", total: 0, bids: [] };
+      const { sql } = await import("~/db");
+      const { AWARD_EXCLUSION_SQL } = await import("~/lib/source-class");
+      const s = sql();
+      const [rows, count] = await Promise.all([
+        s`SELECT id, title, agency, due_date FROM bids
+          WHERE normalized_state = ${state} AND due_date > NOW() + INTERVAL '3 days'
+            AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
+          ORDER BY created_at DESC LIMIT 3`,
+        s`SELECT COUNT(*)::int AS n FROM bids
+          WHERE normalized_state = ${state} AND due_date > NOW()
+            AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}`,
+      ]);
+      const bids = (rows as Record<string, unknown>[]).map((r) => ({
+        id: Number(r.id),
+        title: String(r.title ?? ""),
+        agency: String(r.agency ?? ""),
+        due_date: r.due_date ? new Date(r.due_date as string).toISOString() : null,
+      }));
+      return { state, total: Number((count as { n: number }[])[0]?.n ?? 0), bids };
+    } catch (err) {
+      console.error("[radar] live state bids failed:", err);
+      return { state: "", total: 0, bids: [] };
+    }
+  },
+);
+
+/** True when the visit came from a paid ad click (Google Ads ids or a paid utm_medium). PURE. */
+export function isPaidAdVisit(search: Record<string, unknown> | null | undefined): boolean {
+  if (!search) return false;
+  if (["gclid", "gbraid", "wbraid"].some((k) => String(search[k] ?? "").trim())) return true;
+  return ["cpc", "ppc", "paid", "paidsearch", "paid_search"].includes(String(search.utm_medium ?? "").trim().toLowerCase());
+}
 
 export const runRadarScan = createServerFn({ method: "POST" })
   .validator((d: unknown) => {
@@ -1144,7 +1203,12 @@ function RadarLanding() {
     ? (uSize as SizeId)
     : null;
   const hasDeepLink = !!(urlTrade || urlState || urlCert || urlSizePref);
-  const opening = radarOpening({ trade: urlTrade, stateCode: urlState, cert: urlCert });
+  const opening = radarOpening({
+    trade: urlTrade,
+    stateCode: urlState,
+    cert: urlCert,
+    fromAd: isPaidAdVisit(searchParams as Record<string, unknown>),
+  });
   // TWO QUESTIONS (owner 2026-10-02, funnel fix #2): only trade and state are
   // asked up front. Certification and contract size start at the broadest
   // honest defaults (Small Business, which keeps unrestricted and state/local
@@ -1555,6 +1619,8 @@ function RadarLanding() {
             <p className="mt-2 text-sm leading-relaxed text-slate-300 sm:hidden">
               Pick your trade and state. Free to search, no signup.
             </p>
+
+            {!hasDeepLink && <LiveStateBids />}
 
             {/* FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2):
                 ONE clear sentence + the two inputs the scan asks for + the note
@@ -3273,5 +3339,53 @@ export function MatchAlertsCard({
         </button>
       </form>
     </section>
+  );
+}
+
+/**
+ * "Open now in your state" on the first Radar screen (owner 2026-10-06): three
+ * real bids from the visitor's approximate state so a new visitor sees proof
+ * before filling anything in. Renders nothing until loaded, and nothing at all
+ * when the state is unknown or has no open bids.
+ */
+function LiveStateBids() {
+  const [data, setData] = useState<Awaited<ReturnType<typeof getLiveStateBids>> | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getLiveStateBids()
+      .then((d) => alive && setData(d))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  if (!data || !data.state || data.bids.length === 0) return null;
+  const stateName = STATE_NAMES[data.state] ?? data.state;
+  const due = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : null;
+  return (
+    <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3">
+      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
+        Open now in {stateName}
+        {data.total > data.bids.length ? ` · ${data.total.toLocaleString("en-US")} bids` : ""}
+      </p>
+      <ul className="mt-2 divide-y divide-slate-800">
+        {data.bids.map((b) => (
+          <li key={b.id} className="py-2">
+            <a
+              href={`/bid/${b.id}`}
+              onClick={() => trackEvent("radar_live_bid_click", String(b.id))}
+              className="block text-sm font-semibold leading-snug text-white hover:text-amber-300"
+            >
+              <span className="line-clamp-1">{b.title}</span>
+            </a>
+            <p className="line-clamp-1 text-xs text-slate-400">
+              {[b.agency, due(b.due_date) && `due ${due(b.due_date)}`].filter(Boolean).join(" · ")}
+            </p>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-1 text-xs text-slate-400">Pick your trade below to see the ones that fit your business.</p>
+    </div>
   );
 }

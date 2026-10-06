@@ -18,6 +18,7 @@ import { trackingIds, getOrCreateVisitorId } from "~/lib/visitor";
 import { getTrackingUser, resolveTrackingUser } from "~/lib/identity";
 import { isAutomatedBrowser } from "~/lib/track";
 import { enqueueTracking } from "~/lib/track-queue";
+import { watchEngagement } from "~/lib/engagement";
 import { loadGoogleAdsTag } from "~/lib/google-ads";
 import appCss from "~/styles/app.css?url";
 
@@ -148,6 +149,13 @@ function PageViewTracker() {
       return;
     }
     recordPageView(path);
+  }, [location.pathname]);
+
+  // One `page_engaged` event per page once the visitor reads 15 s or scrolls
+  // halfway (owner 2026-10-06), so one-page visits show who actually stayed.
+  useEffect(() => {
+    if (!location.pathname || isAutomatedBrowser()) return;
+    return watchEngagement(location.pathname);
   }, [location.pathname]);
 
   return null;

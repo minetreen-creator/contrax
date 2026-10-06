@@ -1060,6 +1060,16 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   // label (policy R7; TxDOT's portal renders internal codes such as "SSD_CM").
   tx_txdot_bonfire: "TX",
   tx_uttyler_bonfire: "TX",
+  // Texas university JAGGAER tenants (src/jobs/sources/tx-uh-jaggaer.ts,
+  // tx-tamu-jaggaer.ts, tx-texastech-jaggaer.ts, tx-utsa-jaggaer.ts): each is a
+  // Texas public university's OWN portal on bids.sciquest.com, so every buyer
+  // publishing through it is a Texas public body — provable by construction, never
+  // text-derived from the free-text buyer name (policy R7; TAMU's portal carries
+  // system-unit codes such as "TAMUG" and "AG-RSCH" in its event numbers).
+  tx_uh_jaggaer: "TX",
+  tx_tamu_jaggaer: "TX",
+  tx_texastech_jaggaer: "TX",
+  tx_utsa_jaggaer: "TX",
 };
 
 export interface InsertLocationColumns {

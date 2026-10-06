@@ -250,6 +250,21 @@ jobs:
       # names runs nowhere (the reason runner.dedupe.test.ts went unrun for weeks).
       - name: Texas Bonfire tenants tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/tx-bonfire.test.ts
+      # Texas university JAGGAER tenants (tx_uh_jaggaer, tx_tamu_jaggaer,
+      # tx_texastech_jaggaer, tx_utsa_jaggaer — batch 3b, owner green-light
+      # 2026-10-06). DETERMINISTIC and network-free by construction: every byte it
+      # reads is a committed capture of the live tenant pages
+      # (src/jobs/sources/fixtures/tx-*-jaggaer/, see their READMEs), the parse is a
+      # PURE function, and the ONE fetch it exercises is stubbed from those same
+      # bytes. No DATABASE_URL. It pins the two page shapes the family must tolerate
+      # (TAMU prints "1-21 of 21 Results"; UH, Texas Tech and UTSA print no total)
+      # PLUS the count cross-check that keeps a truncated page from passing, the
+      # per-tenant id prefixes, and the source registration (TAIL_SOURCES 51 -> 55,
+      # SOURCE_CLASSES 127 -> 131, SOURCE_HOME_JURISDICTIONS -> TX, the non-federal
+      # "State (TX)" badge) that nothing else in CI covers. Named EXPLICITLY: a new
+      # deterministic suite that no workflow names runs nowhere.
+      - name: Texas university JAGGAER tenants tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/tx-jaggaer.test.ts
       # Nationwide correctness PR A — FIX ① (notice_type in Radar's solicitation
       # dedupe key) + FIX ② (a dead collector is never FRESH) (owner-locked scope
       # 2026-09-23). THREE new DETERMINISTIC, network-free suites, no DATABASE_URL —

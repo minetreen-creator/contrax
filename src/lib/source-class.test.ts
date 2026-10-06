@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("127 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS, Utah U3P, Mississippi DFA, three Minnesota (MnDOT, eAdvert, Admin QuestCDN), Oklahoma OMES, Kansas, New Mexico eProNM, Idaho (IPRO, ITD), Wisconsin VendorNet and the two Texas Bonfire tenants (TxDOT, UT Tyler) classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(127);
+  test("131 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS, Utah U3P, Mississippi DFA, three Minnesota (MnDOT, eAdvert, Admin QuestCDN), Oklahoma OMES, Kansas, New Mexico eProNM, Idaho (IPRO, ITD), Wisconsin VendorNet, the two Texas Bonfire tenants (TxDOT, UT Tyler) and the four Texas university JAGGAER tenants (UH, TAMU, Texas Tech, UTSA) classifications", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(131);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -99,8 +99,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // wa_webs (Washington WEBS), ut_bonfire (Utah U3P / Bonfire), ms_dfa (Mississippi DFA)
     // mn_mndot, mn_connex, mn_questcdn (Minnesota) ok_omes (Oklahoma), ks_sok (Kansas), nm_epronm (New Mexico), id_ipro and id_itd (Idaho), wi_vendornet (Wisconsin
     // VendorNet — the first browser-rendered source in the registry) and
-    // tx_txdot_bonfire + tx_uttyler_bonfire (Texas Bonfire tenants, batch 3a).
-    expect(TAIL_SOURCES.length).toBe(51);
+    // tx_txdot_bonfire + tx_uttyler_bonfire (Texas Bonfire tenants, batch 3a) and the
+    // four Texas university JAGGAER tenants (batch 3b).
+    expect(TAIL_SOURCES.length).toBe(55);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

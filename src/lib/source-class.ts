@@ -233,6 +233,16 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // "SSD_CM"), never a per-row jurisdiction and never re-derived (R7 / ruling b).
   tx_txdot_bonfire: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
   tx_uttyler_bonfire: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
+  // Texas university JAGGAER tenants (owner green-light 2026-10-06, batch 3b;
+  // src/jobs/sources/tx-uh-jaggaer.ts, tx-tamu-jaggaer.ts, tx-texastech-jaggaer.ts,
+  // tx-utsa-jaggaer.ts — the same reader as mt_emacs). R5/R8: each is a Texas public
+  // university's OWN portal, so all four are STATE with home jurisdiction TX, not LOCAL.
+  // A university is not a state agency, and the badge says the class, never the
+  // buyer string (the buyer is the portal's own name and is kept verbatim).
+  tx_uh_jaggaer: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
+  tx_tamu_jaggaer: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
+  tx_texastech_jaggaer: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
+  tx_utsa_jaggaer: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
   md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's

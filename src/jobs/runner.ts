@@ -87,6 +87,10 @@ import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
 import { fetchTxTxdotBonfireBids } from "./sources/tx-txdot-bonfire";
 import { fetchTxUttylerBonfireBids } from "./sources/tx-uttyler-bonfire";
+import { fetchTxUhJaggaerBids } from "./sources/tx-uh-jaggaer";
+import { fetchTxTamuJaggaerBids } from "./sources/tx-tamu-jaggaer";
+import { fetchTxTexasTechJaggaerBids } from "./sources/tx-texastech-jaggaer";
+import { fetchTxUtsaJaggaerBids } from "./sources/tx-utsa-jaggaer";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -342,6 +346,23 @@ export const TAIL_SOURCES: SyncSource[] = [
   // are explicitly OUT of scope and untouched.
   { name: "tx_txdot_bonfire", fetchFn: fetchTxTxdotBonfireBids },
   { name: "tx_uttyler_bonfire", fetchFn: fetchTxUttylerBonfireBids },
+  // Texas university JAGGAER tenants (owner green-light 2026-10-06, batch 3b) — the
+  // same JAGGAER reader as `mt_emacs` (src/jobs/sources/jaggaer-public.ts), one
+  // config per tenant. The University of Houston, Texas A&M University, Texas Tech
+  // and UT San Antonio each publish their open events on bids.sciquest.com under
+  // their own `CustomerOrg`, so the host is unchanged and only the org differs.
+  //
+  // Owner-locked shapes (same as `wi_vendornet` / the Bonfire tenants): they join
+  // the shared `bids` table as class `state` / badge "State (TX)", ride this
+  // EXISTING sync-bids cadence as tail sources (one at a time between state-keyword
+  // batches, their own collector_run_log rows, ZERO added SAM.gov load), and add NO
+  // migration and NO new cron. JAGGAER event ids live in ONE numeric space shared by
+  // every tenant, so each entry carries its own `source` label AND its own
+  // external_id prefix — an id can never collide across tenants.
+  { name: "tx_uh_jaggaer", fetchFn: fetchTxUhJaggaerBids },
+  { name: "tx_tamu_jaggaer", fetchFn: fetchTxTamuJaggaerBids },
+  { name: "tx_texastech_jaggaer", fetchFn: fetchTxTexasTechJaggaerBids },
+  { name: "tx_utsa_jaggaer", fetchFn: fetchTxUtsaJaggaerBids },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

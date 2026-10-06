@@ -6,9 +6,15 @@
  *
  * SOURCE (verified live on Montana eMACS 2026-10-02, no login, no CAPTCHA):
  *   GET PublicEvent?CustomerOrg=<org>&tab=PHX_NAV_SourcingOpenForBid&PageSize=200
- * returns the "Open for Bid" tab, server-rendered, every event on one page
- * (the page prints "1-30 of 30 Results"; the parsed count must equal the
- * total, so a cut-off or layout change fails loudly). One table row per
+ * returns the "Open for Bid" tab, server-rendered, every event on one page.
+ * THE PAGE'S OWN RESULT COUNT IS PRINTED ONLY WHEN THE LIST PAGES: Montana (30
+ * events) and Texas A&M (21) print "1-N of N Results"; University of Houston (5),
+ * Texas Tech (4) and UT San Antonio (2) print no total at all (verified live
+ * 2026-10-06 on the connector's own URL, `&PageSize=200` included). BOTH shapes
+ * are normal, so both are accepted — and the count is cross-checked either way
+ * (a printed total must equal the rows parsed; with no printed total the rows
+ * parsed must equal the rows the page rendered, counted independently). A
+ * cut-off or layout change therefore still fails loudly. One table row per
  * event:
  *   - a status badge ("Open"),
  *   - the event title (a link into the bidder site),
@@ -149,6 +155,19 @@ function recordSkip(result: JaggaerParseResult, id: string, reason: string) {
   result.skippedRows.push({ id, reason });
 }
 
+/**
+ * How many event ROWS the page rendered, counted independently of the row parser:
+ * every row prints exactly one labelled `Close` cell (the first row's cell has no
+ * class, so the id suffix is optional). `fetchJaggaerBids` uses it as the count
+ * cross-check on the tenants whose page prints no "of N Results" total.
+ */
+export function countJaggaerCloseRows(html: string): number {
+  return html.match(/SourcingPublicSite_LABEL_CLOSE/g)?.length ?? 0;
+}
+
+/** The tab marker every Open for Bid page carries (and the error pages do not). */
+export const JAGGAER_OPEN_FOR_BID_TAB = "PHX_NAV_SourcingOpenForBid";
+
 /** PURE parse — no network, no DB; `now` is injected. */
 export function parseJaggaerPage(cfg: JaggaerConfig, html: string, now: number = Date.now()): JaggaerParseResult {
   const { events, total } = readJaggaerEvents(html);
@@ -226,10 +245,26 @@ export async function fetchJaggaerBids(cfg: JaggaerConfig, now: number = Date.no
     clearTimeout(timer);
   }
   const r = parseJaggaerPage(cfg, html, now);
-  if (r.total === null) fail(`page shape changed: no "of N Results" total (${html.length} bytes)`);
-  if (r.events.length !== r.total) fail(`page shape changed: ${r.total} results listed, ${r.events.length} parsed`);
+  // THE COUNT CROSS-CHECK — both page shapes, never weakened to "no check".
+  if (r.total === null) {
+    // This tenant's page prints no "of N Results" pager (see the header): the list
+    // is short enough not to page. The page must still BE the Open for Bid listing
+    // (not a login/error page), and the rows parsed must equal the rows the page
+    // actually rendered — counted independently of the row parser.
+    if (!html.includes(JAGGAER_OPEN_FOR_BID_TAB)) {
+      fail(`page shape changed: not a "${JAGGAER_OPEN_FOR_BID_TAB}" page (${html.length} bytes)`);
+    }
+    const rendered = countJaggaerCloseRows(html);
+    if (rendered !== r.events.length) {
+      fail(`page shape changed: ${rendered} rows rendered, ${r.events.length} parsed (the page prints no result total)`);
+    }
+  } else if (r.events.length !== r.total) {
+    fail(`page shape changed: ${r.total} results listed, ${r.events.length} parsed`);
+  }
   console.log(
-    `  ${cfg.source}: ${r.rows.length} open events accepted (listed: ${r.events.length}; skips: ${
+    `  ${cfg.source}: ${r.rows.length} open events accepted (listed: ${r.events.length}; page total: ${
+      r.total ?? "not printed"
+    }; skips: ${
       Object.entries(r.skipped)
         .map(([k, n]) => `${k}=${n}`)
         .join(", ") || "none"

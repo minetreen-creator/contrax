@@ -15,8 +15,9 @@
  * postback (no public per-event URL), so rows link to the list.
  *
  * WHAT A ROW BECOMES (data honesty — never manufacture, relabel, or loosen):
- *   - `title` = Event Name as posted ("SW1043M- LIVESCAN"); the portal cuts
- *     names at 50 characters, so a 50-character name gets "…".
+ *   - `title` = Event Name as posted ("SW1043M- LIVESCAN"). The portal keeps
+ *     at most 50 characters; a 50-character name may be cut or complete, so it
+ *     is kept as posted.
  *   - `agency` = Business Unit with "Oklahoma " in front ("Department of
  *     Health" → "Oklahoma Department of Health"; "Mgmt and Enterprise
  *     Services" → "Oklahoma Office of Management and Enterprise Services").
@@ -159,8 +160,7 @@ export function parseOkEvents(events: OkEvent[], now: number = Date.now()): OkPa
     ].join(" ");
     result.rows.push({
       external_id: rowId,
-      // The portal cuts Event Name at 50 characters; mark a cut name.
-      title: e.name.length >= 50 && /\w$/.test(e.name) ? `${e.name}…` : e.name,
+      title: e.name,
       agency,
       description,
       location: "Oklahoma",
@@ -183,14 +183,17 @@ function fail(detail: string): never {
   throw new SourceUnreachableError(OK_OMES_SOURCE, [detail]);
 }
 
-/** GET the list, following its cookie-setting redirect, and return ingest rows. */
-export async function fetchOkOmesBids(now: number = Date.now()): Promise<FetchResult> {
+/**
+ * GET a PeopleSoft public bid list, following its cookie-setting redirect.
+ * Shared with other states on the same PeopleSoft page (ks_sok).
+ */
+export async function fetchPeopleSoftBidList(listUrl: string, failWith: (detail: string) => never): Promise<string> {
   const cookies = new Map<string, string>();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 60000);
   let html = "";
   try {
-    let url = OK_OMES_URL;
+    let url = listUrl;
     for (let hop = 0; ; hop++) {
       const resp = await fetch(url, {
         redirect: "manual",
@@ -212,17 +215,23 @@ export async function fetchOkOmesBids(now: number = Date.now()): Promise<FetchRe
         await resp.text();
         continue;
       }
-      if (resp.status !== 200) fail(httpFailureDetail(resp.status, url));
+      if (resp.status !== 200) failWith(httpFailureDetail(resp.status, url));
       html = await resp.text();
       break;
     }
   } catch (e) {
     if (e instanceof SourceUnreachableError) throw e;
-    fail(requestFailureDetail(e));
+    failWith(requestFailureDetail(e));
   } finally {
     clearTimeout(timer);
   }
-  if (!/SCP_PUB_AUC_VW/.test(html)) fail("page shape changed: no event grid");
+  if (!/SCP_PUB_AUC_VW/.test(html)) failWith("page shape changed: no event grid");
+  return html;
+}
+
+/** GET the list, following its cookie-setting redirect, and return ingest rows. */
+export async function fetchOkOmesBids(now: number = Date.now()): Promise<FetchResult> {
+  const html = await fetchPeopleSoftBidList(OK_OMES_URL, fail);
   const events = parseOkGrid(html);
   const { rows, skipped, skippedRows } = parseOkEvents(events, now);
   console.log(

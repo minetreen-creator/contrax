@@ -179,3 +179,15 @@ describe("Google ad-review addresses (owner 2026-10-05)", () => {
     expect(BOT_EXCLUSION_SQL).toContain("ip LIKE '66.249.%'");
   });
 });
+
+import { isAnthropicIp } from "~/routes/api/admin/journeys";
+describe("Anthropic outbound range (owner 2026-10-06)", () => {
+  test("160.79.104.0/21 is excluded in SQL and on the journeys fast path", () => {
+    for (let o = 104; o <= 111; o++) expect(BOT_EXCLUSION_SQL).toContain(`ip LIKE '160.79.${o}.%'`);
+    expect(isAnthropicIp("160.79.106.137")).toBe(true);
+    expect(isAnthropicIp("160.79.111.1")).toBe(true);
+    expect(isAnthropicIp("160.79.103.9")).toBe(false);
+    expect(isAnthropicIp("160.79.112.9")).toBe(false);
+    expect(isAnthropicIp("60.79.106.1")).toBe(false);
+  });
+});

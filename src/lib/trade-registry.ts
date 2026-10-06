@@ -1067,7 +1067,7 @@ export function tradeProvenanceFor(
 function isNonCarrierFreightWork(titleText: string, expansion: TradeExpansion): boolean {
   if (!expansion.naicsCodes.some((code) => code.startsWith("484"))) return false;
   const carrierService = /\b(?:freight|cargo|goods|materials?|equipment|textbooks?)\s+(?:hauling|delivery|shipping|transport(?:ation)?|services)\b|\b(?:hauling|delivery|transportation|shipping)\s+(?:of|services?\s+for)\b/.test(titleText);
-  if (carrierService) return false;
+  if (carrierService && !/\b(?:plans?|planning|stud(?:y|ies)|consulting|consultancy)\b/.test(titleText)) return false;
   return /\bfreight(?:liner)?\b/.test(titleText) &&
     (/\b(?:repairs?|maintenance|parts|servicing)\b/.test(titleText) ||
      /\b(?:plans?|planning|stud(?:y|ies)|consulting|consultancy)\b/.test(titleText));

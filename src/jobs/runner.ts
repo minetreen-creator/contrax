@@ -85,6 +85,8 @@ import { fetchIdIproBids } from "./sources/id-ipro";
 import { fetchIdItdBids } from "./sources/id-itd";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
+import { fetchTxTxdotBonfireBids } from "./sources/tx-txdot-bonfire";
+import { fetchTxUttylerBonfireBids } from "./sources/tx-uttyler-bonfire";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
 import { isAwardTypeSource, resolveSourceClass } from "../lib/source-class";
@@ -324,6 +326,22 @@ export const TAIL_SOURCES: SyncSource[] = [
   // shared `bids` table as class `state` / badge "State (WI)", NO migration and NO
   // new cron (the existing sync-bids schedule picks it up).
   { name: "wi_vendornet", fetchFn: () => fetchWiVendornetBids() },
+  // Texas Bonfire tenants (owner green-light 2026-10-06, batch 3a) — the same
+  // Bonfire reader as `ut_bonfire` (src/jobs/sources/bonfire-public.ts), now
+  // parameterised by host/source/idPrefix/state so one reader serves every
+  // tenant. TxDOT's OWN procurement portal and the UT Tyler portal (which also
+  // carries UT Health Science Center at Tyler rows) are separate tenants with
+  // separate `bids.source` labels and tenant-scoped external_id prefixes, so a
+  // Bonfire ProjectID can never collide across tenants.
+  //
+  // Owner-locked shapes (same as wi_vendornet): they join the shared `bids`
+  // table as class `state` / badge "State (TX)", ride this EXISTING
+  // sync-bids cadence as tail sources (one at a time between state-keyword
+  // batches, their own collector_run_log rows, ZERO added SAM.gov load), and
+  // add NO migration and NO new cron. TxDOT DPS/Appian, TxDOT lettings and iCX
+  // are explicitly OUT of scope and untouched.
+  { name: "tx_txdot_bonfire", fetchFn: fetchTxTxdotBonfireBids },
+  { name: "tx_uttyler_bonfire", fetchFn: fetchTxUttylerBonfireBids },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

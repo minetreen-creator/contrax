@@ -238,6 +238,18 @@ jobs:
       # workflow names runs nowhere.
       - name: Wisconsin VendorNet connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/wi-vendornet.test.ts
+      # Texas Bonfire tenants (tx_txdot_bonfire, tx_uttyler_bonfire - batch 3a,
+      # owner green-light 2026-10-06). DETERMINISTIC and network-free by construction:
+      # every byte it reads is a committed capture of the live tenant responses
+      # (src/jobs/sources/fixtures/tx-txdot-bonfire/ + fixtures/tx-uttyler-bonfire/,
+      # see their READMEs) and the parse is a PURE function. No DATABASE_URL. It also
+      # pins the TIME-ZONE RULE (Bonfire's zone-less DateClose is UTC - bonfire-public.ts)
+      # and the source registration (TAIL_SOURCES 49 -> 51, SOURCE_CLASSES 125 -> 127,
+      # SOURCE_HOME_JURISDICTIONS -> TX, the non-federal "State (TX)" badge) that nothing
+      # else in CI covers. Named EXPLICITLY: a new deterministic suite that no workflow
+      # names runs nowhere (the reason runner.dedupe.test.ts went unrun for weeks).
+      - name: Texas Bonfire tenants tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/tx-bonfire.test.ts
       # Nationwide correctness PR A — FIX ① (notice_type in Radar's solicitation
       # dedupe key) + FIX ② (a dead collector is never FRESH) (owner-locked scope
       # 2026-09-23). THREE new DETERMINISTIC, network-free suites, no DATABASE_URL —

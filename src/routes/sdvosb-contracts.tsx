@@ -30,7 +30,7 @@ function SdvosbContractsPage() {
       honesty={
         <>
           Real open counts and bid details from live federal procurement data, updated
-          every 4 hours. Estimated values are shown exactly as listed — some bids
+          every 4 hours on weekdays. Estimated values are shown exactly as listed — some bids
           don&apos;t disclose one.
         </>
       }

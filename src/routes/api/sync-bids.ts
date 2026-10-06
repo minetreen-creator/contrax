@@ -55,7 +55,7 @@ async function handler({ request }: { request: Request }) {
         success: true,
         status: "accepted",
         message:
-          "Bid sync now runs on GitHub Actions (cron: every 4h on weekdays, Mon–Fri UTC). " +
+          "Bid sync now runs on GitHub Actions (cron: every 4h on weekdays, once a day Sat and Sun, UTC). " +
           "Trigger it from the Actions UI ('Run workflow'), with `gh workflow run sync-bids.yml`, " +
           "or run `bun run sync-bids` locally with DATABASE_URL set.",
         workflow: WORKFLOW_URL,

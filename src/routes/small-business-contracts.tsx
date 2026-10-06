@@ -30,7 +30,7 @@ function SmallBusinessContractsPage() {
       honesty={
         <>
           Real open counts and bid details from live federal procurement data, updated
-          every 4 hours. “Small Business” counts every set-aside competition; restricted
+          every 4 hours on weekdays. “Small Business” counts every set-aside competition; restricted
           full-and-open rows are not included here. Estimated values shown as listed.
         </>
       }

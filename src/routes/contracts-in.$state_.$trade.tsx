@@ -24,7 +24,7 @@ export const Route = createFileRoute("/contracts-in/$state_/$trade")({
           : "Government Contracts by State and Trade | Contrax",
       description:
         name && label
-          ? `Open ${label.toLowerCase()} government contracts in ${name}, from federal, state and local sources. Real deadlines and links to each official notice, updated every 4 hours.`
+          ? `Open ${label.toLowerCase()} government contracts in ${name}, from federal, state and local sources. Real deadlines and links to each official notice, updated every 4 hours on weekdays.`
           : "Open government contracts by state and trade, from federal, state and local sources.",
       canonical: `https://www.contrax.company/contracts-in/${(loaderData?.name ?? loaderData?.stateSlug ?? "").toLowerCase().replace(/\s+/g, "-")}/${loaderData?.trade?.slug ?? ""}`,
     });
@@ -49,7 +49,7 @@ function ContractsInStateTrade() {
     <SeoLanding
       eyebrow={`Live government contracts · ${name}`}
       headline={`${label} contracts in ${name}`}
-      subhead={`Open ${label.toLowerCase()} solicitations performed in ${name}, from federal, state and local sources. Real deadlines, each linked to its official notice, updated every 4 hours.`}
+      subhead={`Open ${label.toLowerCase()} solicitations performed in ${name}, from federal, state and local sources. Real deadlines, each linked to its official notice, updated every 4 hours on weekdays.`}
       radarHref={radarHref}
       radarLabel={`Search ${label.toLowerCase()} contracts in ${name} with Contract Radar`}
       honesty={

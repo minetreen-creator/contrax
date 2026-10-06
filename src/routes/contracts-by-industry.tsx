@@ -22,13 +22,13 @@ function ContractsByIndustry() {
     <SeoLanding
       eyebrow="⚡ SET-ASIDE CONTRACTS BY INDUSTRY"
       headline="Government contracts by industry (NAICS)"
-      subhead="Open federal set-aside solicitations grouped by NAICS industry, counted straight from live procurement data and updated every 4 hours. See which industries have real set-aside bidding open right now."
+      subhead="Open federal set-aside solicitations grouped by NAICS industry, counted straight from live procurement data and updated every 4 hours on weekdays. See which industries have real set-aside bidding open right now."
       radarHref="/radar"
       radarLabel="Or explore live set-aside bids free with Contract Radar"
       honesty={
         <>
           Every count is a live query of open set-aside solicitations grouped by
-          NAICS code, excluding low-content listings and updated every 4 hours. Only
+          NAICS code, excluding low-content listings and updated every 4 hours on weekdays. Only
           industries with real open bids appear — nothing is fabricated.
         </>
       }

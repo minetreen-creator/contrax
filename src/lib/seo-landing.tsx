@@ -765,7 +765,7 @@ export function RegionView({ data }: { data: RegionData }) {
       </h2>
       <p className="mt-2 max-w-3xl text-slate-600">
         Real open federal and state solicitations tied to {name}, counted straight from
-        live procurement data and updated every 4 hours.
+        live procurement data and updated every 4 hours on weekdays.
       </p>
 
       {/* Stat cards */}
@@ -876,7 +876,7 @@ export function SetAsideIndexView({
       </div>
       <p className="mt-6 text-sm text-slate-500">
         Counts are live queries of open (due in the future) set-aside solicitations,
-        deduplicated and excluding low-content listings — updated every 4 hours.
+        deduplicated and excluding low-content listings — updated every 4 hours on weekdays.
       </p>
     </div>
   );
@@ -931,7 +931,7 @@ export function RegionTradeView({ data, radarHref }: { data: RegionTradeData; ra
           No open {label.toLowerCase()} solicitations in {name} right now
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-sm text-slate-600">
-          New notices arrive every 4 hours. Search nationwide in Radar, or check back soon.
+          New notices arrive every 4 hours on weekdays. Search nationwide in Radar, or check back soon.
         </p>
         <a href={radarHref} className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">
           Search {label.toLowerCase()} contracts in Radar
@@ -1001,7 +1001,7 @@ export function IndustryHubView({ data }: { data: IndustryHubData }) {
         </h2>
         <p className="mt-2 max-w-3xl text-slate-600">
           Real open set-aside solicitations grouped by NAICS industry, counted
-          straight from live federal procurement data and updated every 4 hours.
+          straight from live federal procurement data and updated every 4 hours on weekdays.
           Only industries with open bids appear — nothing is fabricated.
         </p>
       </section>
@@ -1069,7 +1069,7 @@ export function IndustryHubView({ data }: { data: IndustryHubData }) {
           </ul>
           <p className="mt-6 text-sm text-slate-500">
             Counts are live queries of open set-aside solicitations grouped by NAICS
-            code, excluding low-content listings — updated every 4 hours. Each industry
+            code, excluding low-content listings — updated every 4 hours on weekdays. Each industry
             links to its real set-aside solicitations.
           </p>
         </>

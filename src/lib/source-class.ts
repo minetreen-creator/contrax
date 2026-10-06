@@ -210,6 +210,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   mn_mndot: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_connex: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_questcdn: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
+  ok_omes: { class: "state", scopeState: "OK", searchScope: "state-portal", recordType: "opportunity" },
   md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's

@@ -77,6 +77,7 @@ import { fetchMsDfaBids } from "./sources/ms-dfa";
 import { fetchMnDotBids } from "./sources/mn-mndot";
 import { fetchMnConnexBids } from "./sources/mn-connex";
 import { fetchMnQuestcdnBids } from "./sources/mn-questcdn";
+import { fetchOkOmesBids } from "./sources/ok-omes";
 import { fetchNeDasBids } from "./sources/ne-das";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
@@ -299,6 +300,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "mn_mndot", fetchFn: () => fetchMnDotBids() },
   { name: "mn_connex", fetchFn: () => fetchMnConnexBids() },
   { name: "mn_questcdn", fetchFn: () => fetchMnQuestcdnBids() },
+  { name: "ok_omes", fetchFn: () => fetchOkOmesBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

@@ -549,7 +549,9 @@ describe("F1: a gated DRAFTING attempt on /dashboard opens the Bid Scout prompt"
 
 describe("F2: the signed-in first-run results screen never asks for a new account", () => {
   const radar = read("routes", "radar.tsx");
-  const NUDGE_COPY = "Create a free account to save them and get deadline alerts.";
+  // Copy updated by the owner 2026-10-06 (896622e, "Align remaining Radar results
+  // copy with paid-plan access"); the anonymous-only guard below is unchanged.
+  const NUDGE_COPY = "Choose a paid plan to save opportunities and get deadline alerts.";
   const GUARDED_NUDGE =
     "{isAnonymous && scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (";
 
@@ -566,7 +568,7 @@ describe("F2: the signed-in first-run results screen never asks for a new accoun
     expect(end).toBeGreaterThan(at);
     const block = radar.slice(at, end);
     expect(block).toContain(NUDGE_COPY);
-    expect(block).toContain("Create free account");
+    expect(block).toContain("Choose a plan");
     expect(block).toContain("radarSignupHref(");
     // The signal is the file's own anonymous detector — the same one used by the
     // other anonymous-only results sections.

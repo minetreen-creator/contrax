@@ -129,7 +129,9 @@ describe("C. scan path — no FPDS, base-path latency, 15 s cap untouched", () =
       expect(`${forbidden}:${scanHandler.includes(forbidden)}`).toBe(`${forbidden}:false`);
     }
     // …and it still returns matches + provenance + the entitlement ticket.
-    expect(scanHandler.includes("return { matches, certLabel: CERT_LABEL[certId]")).toBe(true);
+    // (owner 2026-10-06, bf01321: the return now carries the free-preview slice)
+    expect(scanHandler.includes("matches: visibleMatches")).toBe(true);
+    expect(scanHandler.includes("certLabel: CERT_LABEL[certId]")).toBe(true);
     expect(scanHandler.includes("intelTicket")).toBe(true);
     expect(scanHandler.includes("signRadarIntelTicket")).toBe(true);
   });

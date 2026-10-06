@@ -85,6 +85,8 @@ import { fetchIdIproBids } from "./sources/id-ipro";
 import { fetchIdItdBids } from "./sources/id-itd";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
+import { fetchRiOspBids } from "./sources/ri-osp";
+import { fetchRiExternalBids } from "./sources/ri-external";
 import { fetchTxTxdotBonfireBids } from "./sources/tx-txdot-bonfire";
 import { fetchTxUttylerBonfireBids } from "./sources/tx-uttyler-bonfire";
 import { fetchTxUhJaggaerBids } from "./sources/tx-uh-jaggaer";
@@ -363,6 +365,11 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "tx_tamu_jaggaer", fetchFn: fetchTxTamuJaggaerBids },
   { name: "tx_texastech_jaggaer", fetchFn: fetchTxTexasTechJaggaerBids },
   { name: "tx_utsa_jaggaer", fetchFn: fetchTxUtsaJaggaerBids },
+  // Rhode Island (owner 2026-10-06): Ocean State Procures (every state agency
+  // and RIDOT, Proactis WebProcure customer 46) and the Division of Purchases'
+  // external board (quasi-public agencies, cities and towns, URI/RIC/CCRI).
+  { name: "ri_osp", fetchFn: () => fetchRiOspBids() },
+  { name: "ri_external", fetchFn: () => fetchRiExternalBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

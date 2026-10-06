@@ -57,3 +57,24 @@ describe("checkout plan validation", async () => {
     expect(validatePlanStates("pro", "VA")).toEqual({ ok: true, states: [] });
   });
 });
+
+describe("Stripe webhook events check", async () => {
+  const { missingWebhookEvents, DATA_FEED_WEBHOOK_EVENTS } = await import("./data-feed-billing.server");
+
+  test("lists only what's missing; '*' covers everything", () => {
+    expect(missingWebhookEvents(["*"])).toEqual([]);
+    expect(missingWebhookEvents([...DATA_FEED_WEBHOOK_EVENTS])).toEqual([]);
+    expect(missingWebhookEvents(["checkout.session.completed", "invoice.paid", "charge.refunded"])).toEqual([
+      "customer.subscription.created",
+      "customer.subscription.updated",
+      "customer.subscription.deleted",
+      "invoice.payment_failed",
+    ]);
+  });
+
+  test("every event the feed asks for is one handleDataFeedEvent handles", async () => {
+    const src = await Bun.file(new URL("./data-feed-billing.server.ts", import.meta.url)).text();
+    const handled = src.slice(src.indexOf("const supported = ["), src.indexOf("if (!supported.includes"));
+    for (const e of DATA_FEED_WEBHOOK_EVENTS) expect(handled).toContain(`"${e}"`);
+  });
+});

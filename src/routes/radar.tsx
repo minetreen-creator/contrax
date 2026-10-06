@@ -208,7 +208,7 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   // Every other caller keeps source=radar — no behavior change there.
   const source = opts?.unlock ? "radar_results_unlock" : opts?.cta ? "radar_results_cta" : "radar";
   const p = new URLSearchParams({
-    plan: "basic",
+    plan: "starter",
     source,
     next: buildRadarFirstRunHref({
       trade: (answers.trade || "").trim(),
@@ -223,7 +223,7 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   if (st) p.set("state", st);
   if (answers.cert) p.set("cert", answers.cert);
   if (answers.sizePref) p.set("size", answers.sizePref);
-  return `/signup?${p.toString()}`;
+  return `/upgrade?${p.toString()}`;
 }
 
 /**
@@ -417,6 +417,63 @@ export const runRadarScan = createServerFn({ method: "POST" })
     } catch {
       scanVisitorId = ""; // fail-open: no visitor id, no handoff cookie
     }
+
+    // One preview per network, persisted across reloads/cookie resets and instances.
+    // Existing subscribed customers and explicitly granted internal access bypass it.
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { sql: accessSql } = await import("~/db");
+    const { getCurrentUser: accessUser } = await import("~/lib/auth");
+    const scanner = await accessUser();
+    let subscribed = !!scanner?.is_admin;
+    if (scanner && !subscribed) {
+      const db = accessSql();
+      const rows = await db`
+        SELECT plan_tier, subscription_status, access_expires_at, full_access
+        FROM users WHERE id = ${scanner.id}
+      `;
+      const account = rows[0];
+      const grantValid = account?.access_expires_at &&
+        new Date(account.access_expires_at).getTime() > Date.now();
+      subscribed = !!(
+        (account?.plan_tier === "demo") ||
+        (grantValid && account?.full_access) ||
+        (!account?.access_expires_at &&
+          ["starter", "professional", "agency"].includes(account?.plan_tier) &&
+          ["active", "trialing"].includes(account?.subscription_status))
+      );
+      if (!subscribed) {
+        const { neonBidScoutStore } = await import("~/lib/plan-gates.server");
+        subscribed = await neonBidScoutStore.hasActiveSubscription(scanner.id);
+      }
+    }
+    if (!subscribed) {
+      const { getClientIp } = await import("~/lib/request-ip");
+      const { createHash } = await import("node:crypto");
+      const ip = getClientIp(getRequest());
+      const identity = ip ? "ip:" + ip : scanVisitorId ? "visitor:" + scanVisitorId : null;
+      if (!identity) throw new Error("Preview identity unavailable");
+      const key = createHash("sha256").update("radar-preview-v1:" + identity).digest("hex");
+      const db = accessSql();
+      await db`
+        CREATE TABLE IF NOT EXISTS radar_preview_usage (
+          identity_hash TEXT PRIMARY KEY,
+          used_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+      `;
+      const claimed = await db`
+        INSERT INTO radar_preview_usage (identity_hash) VALUES (${key})
+        ON CONFLICT (identity_hash) DO NOTHING
+        RETURNING identity_hash
+      `;
+      if (!claimed.length) return {
+        paidRequired: true,
+        matches: [],
+        certLabel: CERT_LABEL[certId],
+        sections: { local: [], nationwide: [], related: [] },
+        intelTicket: null,
+      };
+    }
+
     const isNaics = /^\d{6}$/.test(trade);
     // Trade-query normalization (owner 2026-09-06/07): expand AFTER the isNaics
     // gate — isNaics is derived ONLY from the ORIGINAL trade; expansion drives
@@ -720,7 +777,19 @@ export const runRadarScan = createServerFn({ method: "POST" })
     } catch (e) {
       console.error("[radar] head-start lookup failed (cards unchanged):", e);
     }
-    return { matches, certLabel: CERT_LABEL[certId], sections: { local, nationwide, related }, intelTicket };
+    const visibleMatches = subscribed ? matches : matches.slice(0, FREE_ANONYMOUS_RADAR_RESULTS);
+    const visibleIds = new Set(visibleMatches.map((match) => match.id));
+    return {
+      paidRequired: false,
+      matches: visibleMatches,
+      certLabel: CERT_LABEL[certId],
+      sections: {
+        local: local.filter((match) => visibleIds.has(match.id)),
+        nationwide: nationwide.filter((match) => visibleIds.has(match.id)),
+        related: related.filter((match) => visibleIds.has(match.id)),
+      },
+      intelTicket,
+    };
   });
 
 /**
@@ -1012,6 +1081,7 @@ type ScanState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null }
+  | { status: "paid_required" }
   | { status: "error" };
 /** Resolved payload of a successful runRadarScan call (handler return shape).
  *  `intelTicket` (owner 09-16): the signed, server-minted list of the match ids
@@ -1019,6 +1089,7 @@ type ScanState =
  *  it. null = no ticket (missing server config) ⇒ the cards show an honest
  *  "unavailable", never a fabricated "no previous winner". */
 type ScanResult = {
+  paidRequired?: boolean;
   matches: RadarMatch[];
   certLabel: string;
   sections: RadarSections;
@@ -1327,6 +1398,12 @@ function RadarLanding() {
       scanRaceRef.current?.clearTimer();
       if (scanCancelledRef.current) return;
       if (flashTimer) window.clearTimeout(flashTimer);
+      if (res.paidRequired) {
+        setScan({ status: "paid_required" });
+        setRestoredResults(false);
+        setStep(3);
+        return;
+      }
       trackEvent("radar_scan_complete", input.cert);
       // Radar scan diagnostics (owner 2026-09-28): the scan cohort — signed-in
       // vs anonymous × matches-found vs ZERO matches. Recorded on the same
@@ -1690,6 +1767,15 @@ function RadarLanding() {
           </section>
         )}
 
+        {step === 3 && scan.status === "paid_required" && (
+          <section className="flex flex-1 flex-col justify-center py-10 text-center">
+            <h2 className="text-2xl font-bold text-white">Your preview scan has been used</h2>
+            <p className="mt-3 text-slate-300">Choose a paid plan to keep searching for contracts with Radar.</p>
+            <a href="/upgrade" className="mt-6 rounded-2xl bg-amber-500 px-6 py-4 font-bold text-slate-950 hover:bg-amber-400">Choose a plan</a>
+            <a href="/login?redirect=%2Fradar" className="mt-4 text-sm text-slate-300 underline">Already subscribed? Sign in</a>
+          </section>
+        )}
+
         {step === 3 && scan.status === "error" && (
           <section className="flex flex-1 flex-col justify-center py-10" role="alert">
             <p className="text-center text-amber-400">
@@ -1711,7 +1797,7 @@ function RadarLanding() {
               <div className="mb-5 rounded-2xl border border-blue-400/40 bg-blue-500/10 p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
                 <div>
                   <p className="font-bold text-white">Welcome back — your matches are still open.</p>
-                  <p className="mt-1 text-sm text-blue-100/80">Create a free account to keep them and continue where you left off.</p>
+                  <p className="mt-1 text-sm text-blue-100/80">Choose a paid plan to keep searching and tracking opportunities.</p>
                 </div>
                 <a
                   href={radarSignupHref({ trade, state, cert, sizePref }, { cta: true })}
@@ -1828,13 +1914,13 @@ function RadarLanding() {
                 only appears past the free cap (anonymous, real matches > cap).
                 F2 (funnel QA 2026-09-26): ANONYMOUS ONLY — a just-signed-up user
                 landed on /radar?first_run=1 by definition already has an account,
-                so asking them to "Create free account" above the Save Opportunity
+                so asking them to "Choose a plan" above the Save Opportunity
                 primary was both confusing and wrong. Signed-in users never see it. */}
             {isAnonymous && scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (
               <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
                 <p className="text-sm leading-relaxed text-slate-200">
                   <span className="font-semibold text-amber-400">Keep these matches.</span>{" "}
-                  Create a free account to save them and get deadline alerts.
+                  Choose a paid plan to save opportunities and get deadline alerts.
                 </p>
                 <div className="flex shrink-0 items-center gap-2">
                   <a
@@ -1842,7 +1928,7 @@ function RadarLanding() {
                     onClick={() => trackEvent("radar_nudge_cta", scan.certLabel)}
                     className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 transition-colors hover:bg-amber-400"
                   >
-                    Create free account
+                    Choose a plan
                   </a>
                   <button
                     type="button"
@@ -2599,11 +2685,11 @@ function IncumbentBlock({
           onClick={() => trackEvent("radar_incumbent_teaser_cta", String(match.id))}
           className="font-semibold text-amber-400 hover:text-amber-300"
         >
-          unlock with your free account
+          choose a plan to unlock
         </a>
       </p>
       <p className="mt-1 text-[11px] text-slate-500">
-        Incumbent Intelligence &amp; past pricing are included with a free account
+        Choose a plan for Incumbent Intelligence &amp; past pricing
         and full contract history on Professional.
       </p>
     </div>
@@ -2700,11 +2786,10 @@ export function SignupGate({
         onClick={() => trackEvent("radar_results_unlock_clicked", certLabel)}
         className="mt-5 block w-full rounded-xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
       >
-        {locked > 0 ? `Unlock My ${locked} Matches →` : `Create my free account →`}
+        {locked > 0 ? `Unlock My ${locked} Matches →` : `Choose a paid plan →`}
       </a>
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
-        Free account · No credit card required. Save this Radar, see all{" "}
-        {totalFound}, and continue tracking opportunities.
+        Choose a paid plan to continue searching and tracking opportunities.
       </p>
     </div>
   );
@@ -2783,7 +2868,7 @@ export function RadarResultsCta({
         onClick={handleClick}
         className="mt-4 block w-full rounded-xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
       >
-        Create your free account
+        Choose a paid plan
       </button>
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
         Save these matches and unlock full opportunity details.

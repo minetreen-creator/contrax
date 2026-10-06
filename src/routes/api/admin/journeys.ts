@@ -5,7 +5,7 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
-import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, dataCenterLocation, sourceLabel, type ClusterCandidate } from "~/lib/visitor-intel";
+import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, dataCenterLocation, sourceLabel, isActiveRadarEvent, type ClusterCandidate } from "~/lib/visitor-intel";
 import { buildConversionOpportunity, type ConversionOpportunity } from "~/lib/conversion-opportunity";
 
 /**
@@ -579,8 +579,7 @@ function buildRowLeadScore(o: {
     radarStarted:
       !!o.radar ||
       radarCompleted ||
-      o.eventNames.some((e) => e.startsWith("radar_")) ||
-      sawPath("/radar"),
+      o.eventNames.some(isActiveRadarEvent),
     radarCompleted,
     incumbentViewed,
     briefViewed,

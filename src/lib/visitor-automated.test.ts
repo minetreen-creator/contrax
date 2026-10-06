@@ -191,3 +191,18 @@ describe("Anthropic outbound range (owner 2026-10-06)", () => {
     expect(isAnthropicIp("60.79.106.1")).toBe(false);
   });
 });
+
+import { isActiveRadarEvent } from "./visitor-intel";
+describe("Radar counts only when the visitor does something (owner 2026-10-06)", () => {
+  test("actions count; page-fired events and landing do not", () => {
+    for (const e of ["radar_quick_trade", "radar_scan_start", "radar_scan_complete", "radar_save", "radar_cert_selected", "radar_source_click", "radar_results_cta_clicked"]) {
+      expect(isActiveRadarEvent(e)).toBe(true);
+    }
+    for (const e of ["radar_prefill_shown", "radar_nudge_shown", "radar_answers_restored", "radar_auto_scan", "radar_results_viewed", "radar_zero_nationwide", "page_view", "signup_start"]) {
+      expect(isActiveRadarEvent(e)).toBe(false);
+    }
+  });
+  test("a paid click that only landed on /radar scores 0", () => {
+    expect(computeLeadScore({ ...base, radarStarted: [].some(isActiveRadarEvent) }).score).toBe(0);
+  });
+});

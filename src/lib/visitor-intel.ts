@@ -339,6 +339,19 @@ export function spanSeconds(firstIso: string | null | undefined, lastIso: string
   return Number.isFinite(a) && Number.isFinite(b) ? Math.max(0, (b - a) / 1000) : null;
 }
 
+/**
+ * A Radar event the visitor caused by doing something: picking a trade, cert or
+ * size, running or saving a scan, or clicking a result. Landing on /radar alone,
+ * and events the page fires by itself (prompts shown, saved answers restored, an
+ * automatic scan from link parameters), do not count (owner 2026-10-06: paid
+ * YouTube clicks that bounced in a second showed "Started a Radar scan +5").
+ */
+export function isActiveRadarEvent(name: string): boolean {
+  if (!name.startsWith("radar_")) return false;
+  if (name.endsWith("_shown")) return false;
+  return !["radar_answers_restored", "radar_auto_scan", "radar_results_viewed", "radar_zero_nationwide"].includes(name);
+}
+
 export function computeLeadScore(s: ScoreSignals): LeadScore {
   const automated = likelyAutomated(s);
   if (automated) return { score: 0, level: "Low", reasons: [], automated };
@@ -766,7 +779,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
   const has = (needle: string) => eventNames.some((e) => e.includes(needle));
   const sawPath = (needle: string) => paths.some((p) => p.includes(needle));
   const radarCompleted = eventNames.includes("radar_scan_complete");
-  const radarUsed = !!v?.radar || eventNames.some((e) => e.startsWith("radar_")) || sawPath("/radar");
+  const radarUsed = !!v?.radar || eventNames.some(isActiveRadarEvent);
   const incumbentViewed = has("incumbent");
   const briefGenerated = eventNames.includes("rfp_brief_result");
   const briefViewed = briefGenerated || !!v?.saw_brief || sawPath("/example-brief");

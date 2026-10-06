@@ -401,7 +401,7 @@ describe("oh_dayton — trade classification goes through the SHARED classifier"
 
 describe("oh_dayton — registration (runner tail source + jurisdiction + non-federal badge)", () => {
   test("TAIL_SOURCES carries oh_dayton as its 7th… of 7 (6 → 7 with this connector)", () => {
-    expect(TAIL_SOURCES.length).toBe(45) // PR-1: nys_socrata retired; va_eva, tx_esbd, fl_mfmp, ca_eprocure, pa_dgs_emarketplace, co_vss, oh_odot, ny_nyscr, mi_sigma, six Periscope marketplaces, ga_gpr, wv_oasis, ky_vss, al_aldot, de_mmp, sc_scbo, ia_das, la_lapac, in_idoa, mt_emacs, vt_vbr, tn_cpo, ne_das, mo_movers, ct_webprocure, az_app, wa_webs, ut_bonfire, ms_dfa, mn_mndot, mn_connex, mn_questcdn, ok_omes and ks_sok added;
+    expect(TAIL_SOURCES.length).toBe(46) // PR-1: nys_socrata retired; va_eva, tx_esbd, fl_mfmp, ca_eprocure, pa_dgs_emarketplace, co_vss, oh_odot, ny_nyscr, mi_sigma, six Periscope marketplaces, ga_gpr, wv_oasis, ky_vss, al_aldot, de_mmp, sc_scbo, ia_das, la_lapac, in_idoa, mt_emacs, vt_vbr, tn_cpo, ne_das, mo_movers, ct_webprocure, az_app, wa_webs, ut_bonfire, ms_dfa, mn_mndot, mn_connex, mn_questcdn, ok_omes, ks_sok and nm_epronm added;
     expect(TAIL_SOURCES.map((s) => s.name)).toContain("oh_dayton");
     expect(TAIL_SOURCES.find((s) => s.name === "oh_dayton")!.fetchFn).toBe(fetchOhDaytonBids);
     expect(new Set(TAIL_SOURCES.map((s) => s.name)).size).toBe(TAIL_SOURCES.length);

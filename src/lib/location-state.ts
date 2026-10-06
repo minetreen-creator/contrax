@@ -994,6 +994,8 @@ export function displayPlaceOfPerformance(
  *                    an Oklahoma state agency.
  *    ks_sok        → Kansas PeopleSoft bidding events; every buyer is a
  *                    Kansas state agency.
+ *    nm_epronm     → New Mexico State Purchasing (eProNM on JAGGAER); every
+ *                    buyer is a New Mexico state agency.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -1040,6 +1042,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   mn_questcdn: "MN",
   ok_omes: "OK",
   ks_sok: "KS",
+  nm_epronm: "NM",
 };
 
 export interface InsertLocationColumns {

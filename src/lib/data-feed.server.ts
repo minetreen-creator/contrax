@@ -4,7 +4,7 @@
  * issues the customer an API key. Tables are created lazily (additive, safe on
  * every call) so no separate migration is needed before the page goes live.
  */
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -38,10 +38,24 @@ export async function ensureDataFeedTables(): Promise<void> {
   await sql()`CREATE TABLE IF NOT EXISTS api_keys (id SERIAL PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id),key_hash TEXT NOT NULL UNIQUE,name TEXT NOT NULL DEFAULT 'Default key',last_used_at TIMESTAMPTZ,created_at TIMESTAMPTZ DEFAULT NOW(),revoked BOOLEAN NOT NULL DEFAULT FALSE)`;
 }
 
+/**
+ * RapidAPI marketplace (owner 2026-10-06): RapidAPI bills its buyers and forwards
+ * their calls with X-RapidAPI-Proxy-Secret, a value only RapidAPI and this site
+ * know (Vercel env RAPIDAPI_PROXY_SECRET). Off when the env var isn't set.
+ * RapidAPI plans differ by request quota, which RapidAPI enforces; every state.
+ */
+export function isRapidApiRequest(headers: Headers, secret: string | undefined): boolean {
+  const sent = headers.get("x-rapidapi-proxy-secret");
+  if (!secret || !sent) return false;
+  const digest = (v: string) => createHash("sha256").update(v).digest();
+  return timingSafeEqual(digest(sent), digest(secret));
+}
+
 /** The API key's user id when the key is valid AND that user has active feed access. */
 export async function feedUserFromRequest(
   request: Request,
-): Promise<{ userId: number; allowedStates: string[] | null } | { error: string; status: number }> {
+): Promise<{ userId: number | null; allowedStates: string[] | null } | { error: string; status: number }> {
+  if (isRapidApiRequest(request.headers, process.env.RAPIDAPI_PROXY_SECRET)) return { userId: null, allowedStates: null };
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
   if (!token) return { error: "Missing API key. Send Authorization: Bearer <key>.", status: 401 };
   const hash = createHash("sha256").update(token).digest("hex");

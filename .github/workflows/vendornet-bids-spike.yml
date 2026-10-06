@@ -1,0 +1,151 @@
+name: VendorNet Bids spike (Phase 1, dry probe)
+# ============================================================================
+# VendorNet Bids (Wisconsin DOA) — PHASE 1 SPIKE. Owner green-lit 2026-10-06.
+# Spec: shared/vendornet-bids-build-plan-2026-10-06.md §7 Phase 1 (deliverables ①–⑤).
+#
+# WORKFLOW_DISPATCH ONLY — deliberately no schedule: this is a one-shot evidence
+# probe that answers the plan's Phase-1 questions in the REAL runner environment,
+# not a sync job (the plan proposes a separate daily sync-vendornet-bids.yml in
+# Phase 2, and only if this spike says go).
+#
+# WHAT IT PROVES (the lines the evidence block emits):
+#   1  a browser launches headless on the pristine ubuntu-latest image (+ its version)
+#   2  https://vendornet.wi.gov/Bids renders enough to scrape (grid footer "N items"
+#      / grid rows) and the wall-clock time load-to-render
+#   3  DEEP-LINK TEST: whether the Telerik grid's filter state can be set by URL
+#      query parameters (a YES would let Phase 2 skip UI driving entirely)
+#   4  the OPEN-ONLY count, driven through the source's own UI (Due Date Start =
+#      today, America/Chicago; Include Awarded Bids OFF; Include Canceled Bids OFF;
+#      Bid Type untouched = All; Available range left blank) and read from the
+#      source's OWN footer text — the number the whole build depends on
+#   5  pagination: items-per-page options, per-page render wall-clock, page 2 via the
+#      grid's pager (1.5–3 s polite delay) + first-row Solicitation Ref # on pages 1
+#      and 2 to prove identity-keyed ordering. The grid is NEVER crawled: stop after 2.
+#   6  WebSocket / `_blazor/negotiate` connectivity through the runner's egress
+#      (the page rendering at all IS the SignalR proof; the status codes are recorded)
+#   7  verbatim row shape (2–3 sample rows) + how many rows publish NO Solicitation Ref #
+#   8  FAIL-CLOSED: no render, no count text, a filter that cannot be set, or a page 2
+#      that will not repaint => exit 1 naming the step, never a "0 rows" success.
+#
+# WHAT THIS WORKFLOW CANNOT DO (by construction, not by promise):
+#   · NO secrets, NO DATABASE_URL, no `bun install`, no app imports: the probe is a
+#     standalone script (.github/scripts/, no ~/db, no connector, no route), and the
+#     job's permissions are contents: read only — there is no credential in scope and
+#     no code path to the production database.
+#   · NO repo manifest change: puppeteer-core is installed EPHEMERALLY into
+#     $RUNNER_TEMP, and a later step asserts package.json/bun.lock are unmodified.
+#     Adding a browser dependency to the repo is an OWNER decision (plan §7 #1).
+#   · NO product surface, no connector, no migration, no writes at all beyond the
+#     job's own artifact directory.
+#
+# DRIVER VERSION: the probe was dry-run end-to-end against Chrome-for-Testing 153 with
+# puppeteer-core 24.43.1 (see the PR description). The runner image ships its own
+# Chrome, so the first attempt uses the validated 24.x line; if that attempt fails at
+# the DRIVER/BROWSER HANDSHAKE (a version mismatch is the only plausible cause), the
+# next step re-runs the same script once with puppeteer-core@latest. A failure for any
+# other reason is never retried. The version actually used is recorded in the evidence.
+#
+# EVIDENCE HARVESTING: the probe prints a KEY=VALUE block plus one
+# SPIKE_EVIDENCE_JSON_BEGIN/END blob to the log, and writes the JSON + the rendered
+# page-1/page-2 DOM snapshots + screenshots to spike-evidence/, uploaded as an
+# artifact even when the probe fails (if: always()).
+# ============================================================================
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: vendornet-bids-spike
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  spike:
+    name: VendorNet Bids Phase-1 spike (dry probe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: America/Chicago
+      OUT_DIR: ${{ github.workspace }}/spike-evidence
+      SPIKE_DEADLINE_MS: "540000" # 9 min internal ceiling inside the 15 min job cap
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Show the browser the runner image already ships
+        # Informational only — the probe picks the browser itself (channel 'chrome'
+        # first, then explicit paths) and records which one it used.
+        run: |
+          (google-chrome --version || true)
+          (chromium --version || true)
+          echo "CHROMEWEBDRIVER=${CHROMEWEBDRIVER:-unset}"
+          (ls -l /usr/bin/google-chrome /usr/bin/google-chrome-stable 2>/dev/null || true)
+
+      - name: Install puppeteer-core ephemerally (repo manifest untouched)
+        # The probe file is COPIED into a temp dir so Node resolves `puppeteer-core`
+        # from that dir's node_modules. Nothing is written inside the checkout, and
+        # --no-save/--no-package-lock mean package.json and bun.lock are never touched.
+        run: |
+          SPIKE_DIR="$RUNNER_TEMP/vendornet-spike"
+          mkdir -p "$SPIKE_DIR"
+          cp .github/scripts/vendornet-bids-spike.mjs "$SPIKE_DIR/"
+          cd "$SPIKE_DIR"
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@24 \
+            || npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@latest
+          node -e "console.log('puppeteer-core version: ' + require('puppeteer-core/package.json').version)"
+          echo "SPIKE_DIR=$SPIKE_DIR" >> "$GITHUB_ENV"
+
+      - name: Assert the repo manifest was not modified
+        run: |
+          git diff --exit-code -- package.json bun.lock || {
+            echo "::error::the spike must not modify package.json / bun.lock"; exit 1; }
+          echo "manifest unchanged:"; git status --porcelain || true
+
+      - name: Run the VendorNet Bids probe (dry, read-only)
+        # The exit status is recorded, not surfaced here, so the next step can retry
+        # ONCE if (and only if) the failure was the driver/browser handshake. A genuine
+        # probe failure is still fatal — the retry step re-raises it.
+        run: |
+          set +e
+          node "$SPIKE_DIR/vendornet-bids-spike.mjs" 2>&1 | tee "$RUNNER_TEMP/spike-attempt-1.log"
+          echo "ATTEMPT1_EXIT=${PIPESTATUS[0]}" >> "$GITHUB_ENV"
+
+      - name: Retry once with the newest driver if the driver handshake failed
+        run: |
+          set -e
+          if [ "${ATTEMPT1_EXIT:-0}" = "0" ]; then
+            echo "attempt 1 succeeded — no retry needed"; exit 0
+          fi
+          cp "$RUNNER_TEMP/spike-attempt-1.log" "$OUT_DIR/" || true
+          if ! grep -qE "SPIKE_FAILED_STEP=(load-driver|launch-browser)|Protocol error|not supported|Could not find|Failed to launch" "$RUNNER_TEMP/spike-attempt-1.log"; then
+            echo "::error::the probe failed for a reason unrelated to the driver/browser handshake — not retrying"
+            tail -50 "$RUNNER_TEMP/spike-attempt-1.log"
+            exit 1
+          fi
+          echo "driver/browser handshake failed — retrying once with puppeteer-core@latest"
+          DIR="$RUNNER_TEMP/vendornet-spike-latest"
+          mkdir -p "$DIR"
+          cp .github/scripts/vendornet-bids-spike.mjs "$DIR/"
+          cd "$DIR"
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@latest
+          node -e "console.log('puppeteer-core version: ' + require('puppeteer-core/package.json').version)"
+          cd "$GITHUB_WORKSPACE"
+          node "$DIR/vendornet-bids-spike.mjs"
+
+      - name: Upload evidence artifacts
+        if: always() # a failed probe still uploads its partial evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: vendornet-bids-spike-evidence
+          path: ${{ github.workspace }}/spike-evidence
+          if-no-files-found: warn
+          retention-days: 30

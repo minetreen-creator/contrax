@@ -72,6 +72,8 @@ const MAX_PAGES = Number(process.env.WI_VENDORNET_MAX_PAGES || 20);
 const REQUESTED_PAGE_SIZE = Number(process.env.WI_VENDORNET_PAGE_SIZE || 50);
 const POLITE_MS = Number(process.env.WI_VENDORNET_POLITE_MS || 2000);
 const RENDER_TIMEOUT_MS = 60_000;
+/** Baseline-navigation attempt timeout (hardened 2026-10-06: was RENDER_TIMEOUT_MS). */
+const NAV_TIMEOUT_MS = 120_000;
 const HARD_STOP_AT = Date.now() + DEADLINE_MS;
 const EXPECTED_HOST = 'vendornet.wi.gov';
 const HEADERS = [
@@ -153,6 +155,56 @@ async function waitForRenderedGrid(label, { timeout = RENDER_TIMEOUT_MS, minRows
         `${String(err.message).split('\n')[0]}`,
     );
   }
+}
+
+/**
+ * BASELINE NAVIGATION AT THE COMMITTED RESPONSE (hardened 2026-10-06).
+ *
+ * `waitUntil: 'commit'` is a PLAYWRIGHT value, not a Puppeteer one: this driver's
+ * pinned puppeteer-core maps ONLY load | domcontentloaded | networkidle0 |
+ * networkidle2 and THROWS `Unknown value for options.waitUntil: commit` on anything
+ * else, so "resolve at the committed response" has to be built from the API Puppeteer
+ * does expose. The earliest observable moment of a navigation is its main-frame
+ * RESPONSE — the status line plus headers, i.e. first byte — so the real `page.goto`
+ * is started and this resolves on that response instead of waiting for
+ * DOMContentLoaded (which on this Blazor page also waits for `/_framework/blazor.web.js`
+ * to execute). The goto promise stays attached as the backstop: a hard navigation
+ * failure (DNS / refused / reset / TLS / timeout) still rejects with exactly the error
+ * it produced before, and a rejection that lands after the response arrived is
+ * ignored. Rows are NOT expected yet — they arrive over the Blazor WebSocket and
+ * `waitForRenderedGrid(...)` waits for the grid text itself, so the only change is
+ * WHERE the waiting happens, not whether it does.
+ */
+async function gotoAtCommittedResponse(url, timeoutMs) {
+  const mainFrame = page.mainFrame();
+  const pending = page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+  return await new Promise((resolve, reject) => {
+    let done = false;
+    let timer = null;
+    const finish = (settle, value) => {
+      if (done) return;
+      done = true;
+      if (timer) clearTimeout(timer);
+      page.off('response', onResponse);
+      settle(value);
+    };
+    const onResponse = (r) => {
+      if (!r.request().isNavigationRequest() || r.frame() !== mainFrame) return;
+      // A 3xx is a provisional hop, not the committed document: keep waiting so a
+      // redirect chain resolves on the final response, exactly as `goto` would.
+      if (r.status() >= 300 && r.status() < 400) return;
+      finish(resolve, r);
+    };
+    timer = setTimeout(
+      () => finish(reject, new Error(`Navigation timeout of ${timeoutMs} ms exceeded`)),
+      timeoutMs,
+    );
+    page.on('response', onResponse);
+    pending.then(
+      (res) => finish(resolve, res ?? null),
+      (err) => finish(reject, err),
+    );
+  });
 }
 
 /** Central-Time "today" as YYYY-MM-DD (the value semantics the grid commits) */
@@ -546,10 +598,20 @@ async function main() {
     say(`CDP websocket instrumentation unavailable (${String(err.message).split('\n')[0]})`);
   }
 
+  // ── BASELINE NAVIGATION (hardened 2026-10-06) ─────────────────────────────
+  // Resolve on the COMMITTED RESPONSE (first byte) instead of DOMContentLoaded, and
+  // give each attempt 120 s instead of 60 s, so a throttled first-byte window on a
+  // shared CI IP cannot consume the whole budget. See
+  // `gotoAtCommittedResponse()` for why this is not `waitUntil:'commit'`.
+  // Budget: 3 attempts total — the existing 2 retries with the existing 2 s → 6 s
+  // backoff; every attempt, including the last, gets the raised timeout, so the
+  // worst case is 3 × 120 s + 8 s ≈ 368 s inside the driver's 600 s spawn budget.
   stage = 'navigate';
   const navStart = Date.now();
-  const resp = await withRetry('baseline navigation', () =>
-    page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: RENDER_TIMEOUT_MS }),
+  const resp = await withRetry(
+    'baseline navigation',
+    () => gotoAtCommittedResponse(BASE_URL, NAV_TIMEOUT_MS),
+    3,
   );
   E.baselineHttpStatus = resp ? resp.status() : null;
   if (!resp || !resp.ok()) fail(`baseline navigation returned HTTP ${resp ? resp.status() : 'no response'}`);

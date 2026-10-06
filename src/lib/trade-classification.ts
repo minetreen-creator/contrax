@@ -394,6 +394,15 @@ export function isTransportationWork(title: string, _full: string): boolean {
  * would refuse, so the same notice is classified identically whichever pass
  * (or door) picked it up.
  */
+/** IT wording: "IT services/support/…", "information technology", software, cloud, help desk. */
+export function isItWork(full: string): boolean {
+  return (
+    /\bit (services?|support|consulting|staffing|solutions|infrastructure|hardware|equipment|managed services|help ?desk)\b/.test(full) ||
+    /\binformation technology\b/.test(full) ||
+    /\b(software|cloud (services|hosting|computing)|cybersecurity|help ?desk|network (services|support|infrastructure))\b/.test(full)
+  );
+}
+
 export function mapCategory(typeValue: string, title: string, description: string): string {
   const t = (typeValue || "").toLowerCase();
   const titleLc = (title || "").toLowerCase();
@@ -405,7 +414,10 @@ export function mapCategory(typeValue: string, title: string, description: strin
   // S5: moved AHEAD of the construction/type fallbacks (D3).
   if (isJanitorialWork(titleLc, full)) return "Janitorial";
   if (full.includes("construction") || full.includes("renovation") || full.includes("demolition")) return "Construction";
-  if (full.includes("it ") && (full.includes("service") || full.includes("support") || full.includes("software") || full.includes("cloud"))) return "IT Services";
+  // Owner 2026-10-06: the old `includes("it ")` test matched "submit", "credit",
+  // "permit" and "unit", so VDOT snow-removal notices ("how to submit via …
+  // Services") were labeled IT Services. Require real IT wording.
+  if (isItWork(full)) return "IT Services";
   if (full.includes("security") || full.includes("guard ")) return "Security";
   if (full.includes("hvac") || full.includes("heating") || full.includes("cooling")) return "HVAC";
   if (full.includes("electrical") || full.includes("plumbing")) return "Plumbing & Electrical";

@@ -36,10 +36,9 @@ function ContractsInState() {
       honesty={
         <>
           Every number is a live query of open solicitations, updated every 4 hours on weekdays.
-          Stated values are summed only where a dollar figure is actually listed (the
-          “across N of M” denominator makes the limitation transparent). Most set-asides
-          are nationwide — region pages show the honest set-aside sub-count and point to
-          the map to confirm.
+          Dollar totals only add up bids that list a value, and we say how many do. Most
+          set-aside bids are open nationwide, so this page counts only the ones tied to
+          this state; check the map for the full picture.
         </>
       }
     >

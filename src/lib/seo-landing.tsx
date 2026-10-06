@@ -492,10 +492,10 @@ export function SeoLanding(props: {
               onClick={() => trackEvent("hero_cta_click", "start_trial")}
               className="inline-block rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
             >
-              🚀 Start your 14-day FREE Professional trial →
+              🚀 Try Professional free for 14 days →
             </a>
             <p className="mt-2 text-xs font-medium text-blue-200/60">
-              Start your 14-day trial when you upgrade · Cancel anytime during your trial
+              Card required at checkout · Cancel anytime during your trial
             </p>
             {/* SECONDARY Radar CTA */}
             <a
@@ -792,7 +792,7 @@ export function RegionView({ data }: { data: RegionData }) {
       {/* Top agencies + industries (real content to avoid thin pages) */}
       <div className="mt-8 grid gap-6 sm:grid-cols-2">
         {agg.agencies.length > 0 && (
-          <div className="rounded-2xl bg-white p-6 ring-1 ring-slate-200">
+          <div className="min-w-0 rounded-2xl bg-white p-6 ring-1 ring-slate-200">
             <h3 className="font-bold text-slate-900">Most active agencies in {name}</h3>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               {agg.agencies.map((a) => (
@@ -805,7 +805,7 @@ export function RegionView({ data }: { data: RegionData }) {
           </div>
         )}
         {agg.industries.length > 0 && (
-          <div className="rounded-2xl bg-white p-6 ring-1 ring-slate-200">
+          <div className="min-w-0 rounded-2xl bg-white p-6 ring-1 ring-slate-200">
             <h3 className="font-bold text-slate-900">Top industries in {name}</h3>
             <ul className="mt-3 space-y-2 text-sm text-slate-600">
               {agg.industries.map((i) => (
@@ -829,10 +829,10 @@ export function RegionView({ data }: { data: RegionData }) {
           onClick={() => trackEvent("hero_cta_click", "start_trial")}
           className="mt-4 inline-block rounded-xl bg-amber-500 px-7 py-3.5 text-base font-extrabold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.99]"
         >
-          🚀 Start your 14-day FREE Professional trial →
+          🚀 Try Professional free for 14 days →
         </a>
         <p className="mt-2 text-xs text-blue-200/60">
-          Start your 14-day trial when you upgrade · Cancel anytime during your trial
+          Card required at checkout · Cancel anytime during your trial
         </p>
       </div>
     </div>

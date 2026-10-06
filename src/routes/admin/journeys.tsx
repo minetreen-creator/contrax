@@ -356,12 +356,13 @@ const LEVEL_LABEL: Record<LeadScore["level"], string> = {
 
 /** The expanded Visitor Intelligence panel (intel + timeline, lazily fetched). */
 function IntelPanel({
-  visitorId, watched, watchedSince, onWatchedChange, timeline, timelineLoading, timelineError,
+  visitorId, watched, watchedSince, onWatchedChange, onIntelLoaded, timeline, timelineLoading, timelineError,
 }: {
   visitorId: string;
   watched: boolean;
   watchedSince: string | null;
   onWatchedChange: (watched: boolean, since: string | null) => void;
+  onIntelLoaded: (intel: VisitorIntel) => void;
   timeline: TimelineItem[] | null;
   timelineLoading: boolean;
   timelineError: string;
@@ -375,11 +376,11 @@ function IntelPanel({
     setLoading(true);
     setError("");
     fetchIntel(visitorId)
-      .then((d) => { if (!cancelled) setIntel(d); })
+      .then((d) => { if (!cancelled) { setIntel(d); onIntelLoaded(d); } })
       .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load visitor intel"); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [visitorId]);
+  }, [visitorId, onIntelLoaded]);
 
   if (loading) {
     return (
@@ -607,6 +608,7 @@ function didLabel(j: Journey): string {
 }
 
 function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visitorId: string, watched: boolean, since: string | null) => void }) {
+  const [summaryIntel, setSummaryIntel] = useState<VisitorIntel | null>(null);
   const [open, setOpen] = useState(false);
   const [oppOpen, setOppOpen] = useState(false);
   const [watched, setWatched] = useState(!!j.watched);
@@ -641,17 +643,11 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
     onWatchedChange(j.visitor_id, w, since);
   };
 
-  // The summary cache's LIFETIME step count (j.steps) is the CANONICAL
-  // "Steps N" for a row, shown identically whether collapsed or expanded. It
-  // must never be overridden downward by the lazily-loaded timeline's length:
-  // for QA/test/admin egress-IP rows the timeline endpoint is IP-excluded and
-  // returns [] while the summary still carries the lifetime count — letting the
-  // timeline length drive the count would flip a row from "Steps 6" to "Steps 0"
-  // on expand. j.steps and a non-excluded timeline both measure lifetime, so
-  // they agree for real visitors; using j.steps only corrects the excluded-IP
-  // case. (Math.max(j.steps, events.length) was rejected: it could override
-  // j.steps UPWARD and break the always-agree guarantee.)
-  const stepCount = j.steps;
+  // Retain the reconciled detail summary after collapse; never reduce a
+  // lifetime count when detail rows are excluded or unavailable.
+  const stepCount = Math.max(j.steps, summaryIntel?.engagement.steps ?? 0);
+  const landingPage = summaryIntel ? summaryIntel.engagement.first_path : j.landing_page;
+  const radarUsed = summaryIntel ? summaryIntel.conversion_signals.radar_used : j.radar;
   // Non-US visitors get a small country tag (owner 2026-10-06 ad check).
   const geo = visitorCountry(j.country, j.region, j.city);
   const abroad = geo && geo.code !== "US" ? countryLabel(geo) : null;
@@ -702,8 +698,8 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
           <td colSpan={5} className="px-6 py-4">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
-                <span>Landed on <span className="font-mono">{j.landing_page ?? "—"}</span></span>
-                <span>· Radar {j.radar ? "yes" : "no"} · Signup {j.signup.toLowerCase()} · Activated {j.activated ? "yes" : "no"}</span>
+                <span>Landed on <span className="font-mono">{landingPage ?? "—"}</span></span>
+                <span>· Radar {radarUsed ? "yes" : "no"} · Signup {j.signup.toLowerCase()} · Activated {j.activated ? "yes" : "no"}</span>
                 <span className="font-mono">· IP {j.last_ip ?? j.first_ip ?? "unavailable"}</span>
                 <Badges badges={j.badges} />
               </div>
@@ -712,6 +708,7 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
               )}
               <IntelPanel
                 visitorId={j.visitor_id}
+                onIntelLoaded={setSummaryIntel}
                 watched={watched}
                 watchedSince={watchedSince}
                 onWatchedChange={handleWatchedChange}

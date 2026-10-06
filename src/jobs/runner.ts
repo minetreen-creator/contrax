@@ -81,6 +81,8 @@ import { fetchMnQuestcdnBids } from "./sources/mn-questcdn";
 import { fetchOkOmesBids } from "./sources/ok-omes";
 import { fetchKsSokBids } from "./sources/ks-sok";
 import { fetchNmEpronmBids } from "./sources/nm-epronm";
+import { fetchIdIproBids } from "./sources/id-ipro";
+import { fetchIdItdBids } from "./sources/id-itd";
 import { fetchNeDasBids } from "./sources/ne-das";
 import type { RawBid } from "./sources/sam-gov";
 import { CITY_SOURCES } from "../lib/city-procurement";
@@ -306,6 +308,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "ok_omes", fetchFn: () => fetchOkOmesBids() },
   { name: "ks_sok", fetchFn: () => fetchKsSokBids() },
   { name: "nm_epronm", fetchFn: () => fetchNmEpronmBids() },
+  { name: "id_ipro", fetchFn: () => fetchIdIproBids() },
+  { name: "id_itd", fetchFn: () => fetchIdItdBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

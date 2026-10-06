@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { parseFeedQuery } from "~/lib/data-feed";
+import { applyPlanStates, parseFeedQuery } from "~/lib/data-feed";
 import { feedUserFromRequest, queryFeed } from "~/lib/data-feed.server";
 
 /**
@@ -19,7 +19,9 @@ async function handler({ request }: { request: Request }) {
     if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status });
     const parsed = parseFeedQuery(new URL(request.url).searchParams);
     if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 });
-    const { rows, nextAfter } = await queryFeed(parsed.query);
+    const scoped = applyPlanStates(parsed.query, auth.allowedStates);
+    if (!scoped.ok) return Response.json({ error: scoped.error }, { status: 403 });
+    const { rows, nextAfter } = await queryFeed(scoped.query);
     return Response.json(
       { data: rows, next_after: nextAfter, count: rows.length },
       { headers: { "Cache-Control": "no-store" } },

@@ -1106,6 +1106,43 @@ export async function sendDataAccessRequestNotice(r: {
   }
 }
 
+/** Welcome a self-serve data feed customer with their API key (shown only here). */
+export async function sendDataFeedWelcomeEmail(to: string, key: string, plan: string, states: string | null): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send data feed welcome email — RESEND_API_KEY not set");
+      return false;
+    }
+    const coverage = states ? `Your plan covers: ${escapeHtml(states.split(",").join(", "))}.` : "Your plan covers every state plus federal.";
+    const html = `<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f3f4f6;padding:32px 0;"><tr><td align="center">
+<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
+  <tr><td style="padding:32px;">
+    <h1 style="margin:0 0 12px;color:#111827;font-size:22px;">Your Contrax bid data feed is ready</h1>
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">Thanks for choosing the ${escapeHtml(plan)} plan. ${coverage}</p>
+    <p style="margin:0 0 6px;color:#374151;font-size:15px;">Your API key (keep it secret; this is the only time we send it):</p>
+    <p style="margin:0 0 16px;padding:12px;background:#0f172a;color:#f8fafc;font-family:Menlo,Consolas,monospace;font-size:13px;word-break:break-all;border-radius:8px;">${escapeHtml(key)}</p>
+    <p style="margin:0 0 6px;color:#374151;font-size:15px;">Try it:</p>
+    <p style="margin:0 0 16px;padding:12px;background:#f1f5f9;color:#0f172a;font-family:Menlo,Consolas,monospace;font-size:12px;word-break:break-all;border-radius:8px;">curl -H "Authorization: Bearer YOUR_KEY" "https://www.contrax.company/api/v1/feed?limit=5"</p>
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">Docs: <a href="https://www.contrax.company/data" style="color:#1d4ed8;">contrax.company/data</a> · Manage or cancel billing: <a href="https://www.contrax.company/api/data-feed/portal" style="color:#1d4ed8;">billing portal</a> (sign in first).</p>
+    <p style="margin:0;color:#6b7280;font-size:13px;">Questions? Reply to this email.</p>
+  </td></tr>
+</table></td></tr></table></body>`;
+    const result = await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
+      to: [to],
+      subject: "Your Contrax bid data feed API key",
+      html,
+    });
+    return !result.error;
+  } catch (error) {
+    console.error("Failed to send data feed welcome email:", error);
+    return false;
+  }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function escapeHtml(str: string): string {

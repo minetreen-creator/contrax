@@ -115,8 +115,8 @@ function DataPage() {
             </dl>
           )}
           <p className="mt-4 text-xs text-slate-500">Live counts. Updated every 4 hours on weekdays and daily on weekends.</p>
-          <a href="#request" className="mt-8 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400">
-            Request access
+          <a href="#plans" className="mt-8 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400">
+            See plans
           </a>
         </div>
       </section>
@@ -155,6 +155,7 @@ function DataPage() {
         <h2 className="text-xl font-bold text-slate-900">The API</h2>
         <p className="mt-2 text-sm text-slate-600">
           One JSON endpoint, <code className="font-mono">GET /api/v1/feed</code>, with your key in an Authorization header.
+          OpenAPI spec: <a className="font-mono text-blue-700 underline" href="/openapi.json">/openapi.json</a>.
         </p>
         <dl className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-200">
           {PARAMS.map(([k, v]) => (
@@ -169,17 +170,114 @@ function DataPage() {
         <p className="mt-2 text-xs text-slate-500">The id shown is illustrative; the bid is a real Rhode Island DOT solicitation.</p>
       </section>
 
+      <Plans />
+
       <section id="request" className="bg-slate-50 px-4 py-12">
         <div className="mx-auto max-w-2xl">
-          <h2 className="text-xl font-bold text-slate-900">Request access</h2>
+          <h2 className="text-xl font-bold text-slate-900">Need something else?</h2>
           <p className="mt-2 text-sm text-slate-600">
-            Pricing depends on the states and volume you need. Tell us about your use and we&rsquo;ll reply by email with a
-            quote and a sample.
+            Bulk history, a custom delivery format, or a sample before you buy: tell us what you need and we&rsquo;ll reply by
+            email.
           </p>
           <RequestForm />
         </div>
       </section>
     </main>
+  );
+}
+
+
+function Plans() {
+  const [busy, setBusy] = useState<"" | "starter" | "pro">("");
+  const [states, setStates] = useState("");
+  const [error, setError] = useState("");
+  const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+  const status = params?.get("checkout");
+  const buy = async (tier: "starter" | "pro") => {
+    setBusy(tier);
+    setError("");
+    try {
+      const res = await fetch("/api/data-feed/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier, states }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.status === 401 && j.needsAccount) {
+        window.location.assign(`/signup?plan=basic&next=${encodeURIComponent("/data#plans")}`);
+        return;
+      }
+      if (!res.ok || !j.url) throw new Error(j.error || "Checkout is unavailable right now.");
+      window.location.assign(j.url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Checkout is unavailable right now.");
+      setBusy("");
+    }
+  };
+  const card = "flex flex-col rounded-2xl border bg-white p-6";
+  return (
+    <section id="plans" className="mx-auto max-w-4xl px-4 pb-12">
+      <h2 className="text-xl font-bold text-slate-900">Plans</h2>
+      <p className="mt-2 text-sm text-slate-600">Monthly, cancel anytime. Your API key arrives by email right after checkout.</p>
+      {status === "success" && (
+        <p className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800">
+          You&rsquo;re subscribed. Your API key is on its way to your email.
+        </p>
+      )}
+      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className={`${card} border-slate-200`}>
+          <p className="text-sm font-semibold text-slate-500">Starter</p>
+          <p className="mt-1 text-3xl font-extrabold text-slate-900">
+            $299<span className="text-base font-medium text-slate-500">/month</span>
+          </p>
+          <ul className="mt-4 space-y-1.5 text-sm text-slate-700">
+            <li>✓ Up to 5 states you choose</li>
+            <li>✓ Every open state, local and federal bid in those states</li>
+            <li>✓ Full API, updated every 4 hours on weekdays</li>
+          </ul>
+          <label className="mt-4 block text-sm font-medium text-slate-700">
+            Your states
+            <input
+              value={states}
+              onChange={(e) => setStates(e.target.value)}
+              placeholder="e.g. VA, NC, MD"
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            />
+          </label>
+          <button
+            onClick={() => buy("starter")}
+            disabled={busy !== ""}
+            className="mt-4 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+          >
+            {busy === "starter" ? "Opening checkout…" : "Subscribe to Starter"}
+          </button>
+        </div>
+        <div className={`${card} border-amber-400 ring-1 ring-amber-400`}>
+          <p className="text-sm font-semibold text-amber-700">Pro</p>
+          <p className="mt-1 text-3xl font-extrabold text-slate-900">
+            $799<span className="text-base font-medium text-slate-500">/month</span>
+          </p>
+          <ul className="mt-4 space-y-1.5 text-sm text-slate-700">
+            <li>✓ Every state Contrax covers, plus federal</li>
+            <li>✓ New states added at no extra cost</li>
+            <li>✓ Full API, updated every 4 hours on weekdays</li>
+          </ul>
+          <div className="flex-1" />
+          <button
+            onClick={() => buy("pro")}
+            disabled={busy !== ""}
+            className="mt-4 rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400 disabled:opacity-60"
+          >
+            {busy === "pro" ? "Opening checkout…" : "Subscribe to Pro"}
+          </button>
+        </div>
+      </div>
+      {error && <p className="mt-3 text-sm text-rose-700">{error}</p>}
+      <p className="mt-3 text-xs text-slate-500">
+        You&rsquo;ll need a free Contrax account so we can attach your API key. Manage or cancel anytime from the billing link
+        in your welcome email.
+      </p>
+    </section>
   );
 }
 

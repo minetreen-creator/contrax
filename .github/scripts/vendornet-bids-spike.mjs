@@ -109,17 +109,24 @@ async function clickTagged(id) {
   const sel = `[data-spike-id="${id}"]`;
   const h = await page.$(sel);
   if (!h) throw new Error(`no tagged element for ${id}`);
-  try {
-    await h.click();
-    return 'mouse';
-  } catch (err) {
-    say(`mouse click on ${id} failed (${err.message.split('\n')[0]}) — falling back to element.click()`);
-    await page.evaluate((s) => {
-      const el = document.querySelector(s);
-      if (el) el.click();
-    }, sel);
-    return 'js';
+  const box = await h.boundingBox().catch(() => null);
+  if (box && box.width > 0 && box.height > 0) {
+    try {
+      await h.click();
+      return 'mouse';
+    } catch (err) {
+      say(`mouse click on ${id} failed (${err.message.split('\n')[0]}) — falling back to element.click()`);
+    }
+  } else {
+    // hidden/clipped node (e.g. a styled Bootstrap switch input): puppeteer would
+    // otherwise sit on its visibility timeout before we fell back anyway
+    say(`${id} has no clickable box (${JSON.stringify(box)}) — using element.click()`);
   }
+  await page.evaluate((s) => {
+    const el = document.querySelector(s);
+    if (el) el.click();
+  }, sel);
+  return 'js';
 }
 
 /** Central-Time "today" as YYYY-MM-DD */
@@ -914,6 +921,15 @@ async function main() {
   record('ROWS_WITHOUT_REF_PAGE1', openRows.filter((r) => !r.ref || !r.ref.trim()).length);
   record('ROWS_WITHOUT_REF_SAMPLES', openRows.filter((r) => !r.ref || !r.ref.trim()).slice(0, 3));
   record('ROWS_WITHOUT_REF_BASELINE_PAGE1', baseline.grid.rows.filter((r) => !r.ref || !r.ref.trim()).length);
+  // The research found MMSD rows carrying no conventional Solicitation Ref #: the ref
+  // CELL repeats the title. Count that shape explicitly, because the plan's natural key
+  // needs a slug fallback for exactly those rows (plan §1.5).
+  const refEqualsTitle = openRows.filter((r) => r.ref && r.title && r.ref === r.title);
+  record('ROWS_REF_CELL_REPEATS_TITLE', refEqualsTitle.length);
+  record(
+    'ROWS_REF_CELL_REPEATS_TITLE_SAMPLES',
+    refEqualsTitle.slice(0, 3).map((r) => ({ ref: r.ref, organization: r.organization, due_date: r.due_date }))
+  );
 
   // ── 5. PAGINATION + ITEMS PER PAGE ────────────────────────────────────
   failedStep = 'pagesize-options';
@@ -1007,7 +1023,7 @@ async function main() {
 
   // ── request / politeness accounting ───────────────────────────────────
   record('POLITE_DELAY_MS', POLITE_MS);
-  record('PAGE_1_NAVIGATIONS', 1); // baseline unfiltered
+  record('BASELINE_NAVIGATIONS', 1); // baseline unfiltered
   record('DEEPLINK_NAVIGATIONS', probes.length);
   record('OPENONLY_NAVIGATIONS', 1); // reload before driving the UI
   record('GRID_PAGES_RENDERED_TOTAL', 2); // open-only page 1 + page 2 (the grid was never crawled)
@@ -1023,7 +1039,7 @@ function emit(status, errorMessage) {
   E.SPIKE_STATUS = status;
   E.SPIKE_FINISHED_AT = now();
   E.SPIKE_WALL_CLOCK_MS = elapsed();
-  E.SPIKE_FAILED_STEP = failedStep || 'none';
+  E.SPIKE_FAILED_STEP = status === 'OK' ? 'none' : failedStep || 'unknown';
   E.SPIKE_FAILED_MESSAGE = errorMessage || 'none';
   E.SPIKE_FAIL_CLOSED_RULES =
     'grid-never-renders | count-text-absent | filter-cannot-be-set | page-2-not-distinct => exit 1, never an empty success';

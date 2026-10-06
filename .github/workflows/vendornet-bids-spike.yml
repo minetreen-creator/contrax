@@ -38,6 +38,13 @@ name: VendorNet Bids spike (Phase 1, dry probe)
 #   · NO product surface, no connector, no migration, no writes at all beyond the
 #     job's own artifact directory.
 #
+# DRIVER VERSION: the probe was dry-run end-to-end against Chrome-for-Testing 153 with
+# puppeteer-core 24.43.1 (see the PR description). The runner image ships its own
+# Chrome, so the first attempt uses the validated 24.x line; if that attempt fails at
+# the DRIVER/BROWSER HANDSHAKE (a version mismatch is the only plausible cause), the
+# next step re-runs the same script once with puppeteer-core@latest. A failure for any
+# other reason is never retried. The version actually used is recorded in the evidence.
+#
 # EVIDENCE HARVESTING: the probe prints a KEY=VALUE block plus one
 # SPIKE_EVIDENCE_JSON_BEGIN/END blob to the log, and writes the JSON + the rendered
 # page-1/page-2 DOM snapshots + screenshots to spike-evidence/, uploaded as an
@@ -103,7 +110,36 @@ jobs:
           echo "manifest unchanged:"; git status --porcelain || true
 
       - name: Run the VendorNet Bids probe (dry, read-only)
-        run: node "$SPIKE_DIR/vendornet-bids-spike.mjs"
+        # The exit status is recorded, not surfaced here, so the next step can retry
+        # ONCE if (and only if) the failure was the driver/browser handshake. A genuine
+        # probe failure is still fatal — the retry step re-raises it.
+        run: |
+          set +e
+          node "$SPIKE_DIR/vendornet-bids-spike.mjs" 2>&1 | tee "$RUNNER_TEMP/spike-attempt-1.log"
+          echo "ATTEMPT1_EXIT=${PIPESTATUS[0]}" >> "$GITHUB_ENV"
+
+      - name: Retry once with the newest driver if the driver handshake failed
+        run: |
+          set -e
+          if [ "${ATTEMPT1_EXIT:-0}" = "0" ]; then
+            echo "attempt 1 succeeded — no retry needed"; exit 0
+          fi
+          cp "$RUNNER_TEMP/spike-attempt-1.log" "$OUT_DIR/" || true
+          if ! grep -qE "SPIKE_FAILED_STEP=(load-driver|launch-browser)|Protocol error|not supported|Could not find|Failed to launch" "$RUNNER_TEMP/spike-attempt-1.log"; then
+            echo "::error::the probe failed for a reason unrelated to the driver/browser handshake — not retrying"
+            tail -50 "$RUNNER_TEMP/spike-attempt-1.log"
+            exit 1
+          fi
+          echo "driver/browser handshake failed — retrying once with puppeteer-core@latest"
+          DIR="$RUNNER_TEMP/vendornet-spike-latest"
+          mkdir -p "$DIR"
+          cp .github/scripts/vendornet-bids-spike.mjs "$DIR/"
+          cd "$DIR"
+          npm init -y >/dev/null 2>&1
+          npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@latest
+          node -e "console.log('puppeteer-core version: ' + require('puppeteer-core/package.json').version)"
+          cd "$GITHUB_WORKSPACE"
+          node "$DIR/vendornet-bids-spike.mjs"
 
       - name: Upload evidence artifacts
         if: always() # a failed probe still uploads its partial evidence

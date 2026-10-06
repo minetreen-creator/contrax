@@ -996,6 +996,9 @@ export function displayPlaceOfPerformance(
  *                    Kansas state agency.
  *    nm_epronm     → New Mexico State Purchasing (eProNM on JAGGAER); every
  *                    buyer is a New Mexico state agency.
+ *    id_ipro       → Idaho IPRO open sourcing events; every buyer is an Idaho
+ *                    state agency.
+ *    id_itd        → Idaho Transportation Department highway lettings.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -1043,6 +1046,8 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ok_omes: "OK",
   ks_sok: "KS",
   nm_epronm: "NM",
+  id_ipro: "ID",
+  id_itd: "ID",
 };
 
 export interface InsertLocationColumns {

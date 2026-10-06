@@ -541,6 +541,8 @@ function buildRowLeadScore(o: {
   emailKnown: boolean;
   /** Referrer of the visitor's first in-window page view (self-referral bot check). */
   firstReferrer?: string | null;
+  /** Arrived from a paid ad click (medium "cpc"). */
+  paidClick?: boolean;
 }): {
   score: number;
   level: "Very High" | "High" | "Medium" | "Low";
@@ -588,6 +590,7 @@ function buildRowLeadScore(o: {
     activeSpanSeconds: spanSeconds(o.firstSeenIso, o.lastSeenIso),
     pageViews: o.paths.length,
     firstReferrer: o.firstReferrer ?? null,
+    paidClick: !!o.paidClick,
   });
   const highOrVeryHigh = scored.level === "High" || scored.level === "Very High";
   const opportunity: ConversionOpportunity | null = highOrVeryHigh
@@ -862,6 +865,7 @@ async function handler({ request }: { request: Request }) {
         signedUp: signedUpFlag,
         emailKnown,
         firstReferrer: firstPage.get(vid)?.referrer ?? null,
+        paidClick: paidVids.has(vid),
       });
       {
         const firstIso = v.first_seen_at ? new Date(v.first_seen_at).toISOString() : null;
@@ -959,6 +963,7 @@ async function handler({ request }: { request: Request }) {
             signedUp: signedUpFlag,
             emailKnown,
             firstReferrer: firstPage.get(j.visitor_id)?.referrer ?? null,
+            paidClick: paidVids.has(j.visitor_id),
           });
           return {
             ...j,

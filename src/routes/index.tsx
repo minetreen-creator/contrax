@@ -524,6 +524,10 @@ function BidScoutCallout() {
               Want a second opinion on one bid? A one-page{" "}
               <a href="/bid-fit-review" className="underline">Bid Fit Review</a> is $99 once.
             </div>
+            <div className="mt-2 text-sm text-[#56647a] dark:text-[#9fb0c8]">
+              Get found by prime contractors:{" "}
+              <a href="/suppliers/join?source=homepage" className="underline">add your company to the supplier directory</a>.
+            </div>
           </div>
         </div>
       </div>
@@ -532,6 +536,12 @@ function BidScoutCallout() {
 }
 
 // ── Footer ────────────────────────────────────────────────────────────────────
+
+const BUSINESS_LINKS = [
+  { href: "/data", label: "Bid Data API" },
+  { href: "/leads", label: "Award Leads" },
+  { href: "/suppliers", label: "Supplier Directory" },
+];
 
 function Footer() {
   const links = [
@@ -550,6 +560,15 @@ function Footer() {
       <div className="mx-auto flex max-w-[1120px] flex-wrap gap-x-6 gap-y-2 border-t border-[#dde3ec] px-4 pt-6 sm:px-6 dark:border-[#24334f]">
         <span>&copy; {new Date().getFullYear()} Contrax LLC</span>
         {links.map((l) => (
+          <a key={l.href} href={l.href} className="hover:text-[#0f1f38] dark:hover:text-white">
+            {l.label}
+          </a>
+        ))}
+      </div>
+      {/* For businesses (owner 2026-10-06): the data and directory products, kept low-key. */}
+      <div className="mx-auto mt-3 flex max-w-[1120px] flex-wrap gap-x-6 gap-y-2 px-4 sm:px-6">
+        <span className="font-semibold">For businesses</span>
+        {BUSINESS_LINKS.map((l) => (
           <a key={l.href} href={l.href} className="hover:text-[#0f1f38] dark:hover:text-white">
             {l.label}
           </a>

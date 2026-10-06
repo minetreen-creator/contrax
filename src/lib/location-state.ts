@@ -999,6 +999,9 @@ export function displayPlaceOfPerformance(
  *    id_ipro       → Idaho IPRO open sourcing events; every buyer is an Idaho
  *                    state agency.
  *    id_itd        → Idaho Transportation Department highway lettings.
+ *    ri_osp        → Rhode Island Ocean State Procures (state agencies, RIDOT).
+ *    ri_external   → RI Division of Purchases external board (quasi-public,
+ *                    cities and towns, URI/RIC/CCRI).
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -1070,6 +1073,10 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   tx_tamu_jaggaer: "TX",
   tx_texastech_jaggaer: "TX",
   tx_utsa_jaggaer: "TX",
+  // Rhode Island (owner 2026-10-06): both boards are run by the RI Division of
+  // Purchases and list only Rhode Island public buyers.
+  ri_osp: "RI",
+  ri_external: "RI",
 };
 
 export interface InsertLocationColumns {

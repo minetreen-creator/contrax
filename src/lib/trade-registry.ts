@@ -1062,6 +1062,17 @@ export function tradeProvenanceFor(
  * the explicitly labeled "Related opportunities" section (adjacent evidence,
  * never a direct match). See radar.tsx's handler, which applies this split.
  */
+// Carrier searches must not treat truck maintenance or freight-policy studies
+// as hauling work, even when an imported notice has a trucking NAICS code.
+function isNonCarrierFreightWork(titleText: string, expansion: TradeExpansion): boolean {
+  if (!expansion.naicsCodes.some((code) => code.startsWith("484"))) return false;
+  const carrierService = /\b(?:freight|cargo|goods|materials?|equipment|textbooks?)\s+(?:hauling|delivery|shipping|transport(?:ation)?|services)\b|\b(?:hauling|delivery|transportation|shipping)\s+(?:of|services?\s+for)\b/.test(titleText);
+  if (carrierService) return false;
+  return /\bfreight(?:liner)?\b/.test(titleText) &&
+    (/\b(?:repairs?|maintenance|parts|servicing)\b/.test(titleText) ||
+     /\b(?:plans?|planning|stud(?:y|ies)|consulting|consultancy)\b/.test(titleText));
+}
+
 export function isStrongTradeMatch(
   title: string | null | undefined,
   _category: string | null | undefined,
@@ -1071,6 +1082,7 @@ export function isStrongTradeMatch(
 ): boolean {
   if (expansion.isNaics) return true; // exact NAICS equality — strong by construction
   const titleText = String(title ?? "").toLowerCase();
+  if (isNonCarrierFreightWork(titleText, expansion)) return false;
   const terms = expansion.terms.filter((t) => t && t.length >= 2);
   // QA re-verification N1/F8 (PR #414): a TITLE-TERM hit on the janitorial
   // expansion must survive the purchased-service guards before it counts as a

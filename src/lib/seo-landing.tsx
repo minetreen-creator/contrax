@@ -557,6 +557,7 @@ export function SeoFooterLinks() {
       <a href="/radar" className="transition-colors hover:text-white">Contract Radar</a>
       <a href="/map" className="transition-colors hover:text-white">Contract Map</a>
       <a href="/pricing" className="transition-colors hover:text-white">Pricing</a>
+      <a href="/data" className="transition-colors hover:text-white">Bid Data API</a>
       <a href="/signup" className="transition-colors hover:text-white">Sign up</a>
     </>
   );

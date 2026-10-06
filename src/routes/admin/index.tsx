@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import type { RadarConversionFunnelResult } from "~/lib/radar-conversion-funnel";
+import { countryLabel, isUsVisitor, visitorCountry } from "~/lib/visitor-geo";
 import {
   AdminHeader,
   AdminTabs,
@@ -13,7 +14,11 @@ import {
 } from "~/components/AdminShared";
 
 /**
- * /admin/ — Overview tab of the redesigned admin dashboard (owner 2026-09-07).
+ * /admin/ — Overview tab (owner 2026-10-06 redesign: "This week" numbers vs the
+ * week before, Leads worth a look, and an Ad check by country up top; the older
+ * 30-day sections below sit under a collapsed "More numbers").
+ *
+ * Earlier layout (owner 2026-09-07), kept below the fold:
  *
  *   CONTRAX TODAY — the owner-exact 8-card scoreboard, in order: Qualified
  *   Visitors / Radar Completed / Radar Leads / Autopsy Started / Signups /
@@ -62,27 +67,6 @@ type RadarLeadStage = "captured" | "confirmed" | "alerted" | "clicked";
 type SignupStatus = "Not started" | "Viewed" | "Started" | "Abandoned" | "Success";
 
 interface OppReason { points: number; reason: string; }
-interface ActOnRow {
-  visitor_id: string;
-  label: string;
-  visitor_hash: string | null;
-  source: string | null;
-  city: string | null;
-  region: string | null;
-  device_type: string | null;
-  browser_label: string | null;
-  radar: boolean;
-  signup: SignupStatus;
-  radar_lead_stage: RadarLeadStage | null;
-  last_activity: string | null;
-  score: number;
-  level: "Very High" | "High" | "Medium" | "Low";
-  reasons: OppReason[];
-  best_next: string;
-  obstacle: string;
-  cta: string;
-  channel: "outreach" | "onsite";
-}
 interface JourneysShape {
   journeys: {
     visitor_id: string;
@@ -97,7 +81,11 @@ interface JourneysShape {
     signup: SignupStatus;
     radar_lead_stage?: RadarLeadStage | null;
     last_activity: string | null;
-    lead_score?: { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: OppReason[] };
+    country?: string | null;
+    paid_click?: boolean;
+    source_label?: string | null;
+    steps?: number;
+    lead_score?: { score: number; level: "Very High" | "High" | "Medium" | "Low"; reasons: OppReason[]; automated?: string | null };
     conversion_opportunity?: { best_next: string; obstacle: string; cta: string; channel: "outreach" | "onsite" };
   }[];
   watched_returned?: { visitor_id: string }[];
@@ -113,46 +101,6 @@ async function getJson<T>(url: string): Promise<T> {
   return res.json();
 }
 
-const LEVEL_STYLE: Record<ActOnRow["level"], string> = {
-  "Very High": "bg-rose-100 text-rose-700",
-  High: "bg-amber-100 text-amber-800",
-  Medium: "bg-yellow-100 text-yellow-800",
-  Low: "bg-slate-100 text-slate-500",
-};
-
-function acquisitionPath(source: string | null, radar: boolean, signup: string): string {
-  const src = source ? source.charAt(0).toUpperCase() + source.slice(1) : "Direct";
-  const steps: string[] = [];
-  if (radar) steps.push("Radar completed");
-  if (signup === "Success") steps.push("Signed up");
-  else if (signup === "Started" || signup === "Abandoned") steps.push("Signup started");
-  return steps.length > 0 ? `${src} → ${steps.join(" → ")}` : `${src} → Browsing`;
-}
-
-/** Where-in-funnel marker (owner 2026-09-07): signup + radar + radar-lead
- *  stage in one compact chip row. Absent stages simply don't render. */
-function funnelMarkers(r: ActOnRow): { label: string; cls: string; key: string }[] {
-  const out: { label: string; cls: string; key: string }[] = [];
-  if (r.radar_lead_stage) {
-    const label = `Lead ${r.radar_lead_stage}`;
-    out.push({ label, key: `lead-${r.radar_lead_stage}`, cls: "border-violet-200 bg-violet-50/70 text-violet-800" });
-  }
-  if (r.radar) out.push({ label: "Radar done", key: "radar", cls: "border-indigo-200 bg-indigo-50/70 text-indigo-800" });
-  if (r.signup === "Success") out.push({ label: "Signed up", key: "signup-success", cls: "border-emerald-200 bg-emerald-50/70 text-emerald-800" });
-  else if (r.signup === "Started" || r.signup === "Abandoned") out.push({ label: "Signup started", key: "signup-started", cls: "border-amber-200 bg-amber-50/70 text-amber-800" });
-  else if (r.signup === "Viewed") out.push({ label: "Signup viewed", key: "signup-viewed", cls: "border-slate-200 bg-slate-50/70 text-slate-600" });
-  return out;
-}
-
-function locationDevice(r: ActOnRow): string {
-  const geo = [r.city, r.region].filter(Boolean).join(", ");
-  const device = r.browser_label || r.device_type;
-  if (geo && device) return `${geo} · ${device}`;
-  if (geo) return geo;
-  if (device) return device;
-  return "Direct Lead";
-}
-
 /** Drop-off % to the NEXT stage (null when the current count is 0). */
 function dropPct(next: number, prev: number): number | null {
   if (prev <= 0) return null;
@@ -160,94 +108,111 @@ function dropPct(next: number, prev: number): number | null {
   return p > 0 ? p : 0;
 }
 
-function PeopleToActOn({ rows, loading, error }: { rows: ActOnRow[]; loading: boolean; error: string }) {
-  if (error) return <SectionError message={error} />;
-  if (loading) return <SectionLoading message="Ranking highest-intent visitors…" />;
+type JourneyRow = JourneysShape["journeys"][number];
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function withinDays(iso: string | null, days: number): boolean {
+  if (!iso) return false;
+  const t = Date.parse(iso);
+  return Number.isFinite(t) && Date.now() - t <= days * DAY_MS;
+}
+
+function place(r: { city: string | null; region: string | null }): string {
+  return [r.city, r.region].filter(Boolean).join(", ") || "Unknown place";
+}
+
+function whatTheyDid(r: JourneyRow): string {
+  if (r.signup === "Success") return "Signed up";
+  if (r.signup === "Started" || r.signup === "Abandoned") return "Started signup";
+  if (r.radar) return "Ran a Radar scan";
+  if (r.signup === "Viewed") return "Looked at signup";
+  return `${r.steps ?? 0} page${(r.steps ?? 0) === 1 ? "" : "s"}`;
+}
+
+/** One number for this week with the change from the 7 days before. */
+function WeekCard({ label, now, before, href }: { label: string; now: number | null; before: number | null; href: string }) {
+  const diff = now != null && before != null ? now - before : null;
+  return (
+    <a href={href} className="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300">
+      <p className="text-xs font-semibold text-slate-500">{label}</p>
+      <p className="mt-1 text-3xl font-bold text-slate-900">{now ?? "…"}</p>
+      <p className={`mt-0.5 text-xs font-medium ${diff == null || diff === 0 ? "text-slate-400" : diff > 0 ? "text-emerald-700" : "text-rose-600"}`}>
+        {diff == null ? "\u00a0" : diff === 0 ? "same as last week" : `${diff > 0 ? "▲" : "▼"} ${Math.abs(diff)} vs last week`}
+      </p>
+    </a>
+  );
+}
+
+/** Real US visitors who did something worth a follow-up (owner 2026-10-06). */
+function LeadsWorthALook({ rows }: { rows: JourneyRow[] | null }) {
+  if (!rows) return <SectionLoading message="Loading…" />;
   if (rows.length === 0) {
-    return (
-      <div className="rounded-2xl border border-slate-200 bg-white p-6">
-        <p className="text-sm font-medium text-slate-700">Nobody hot right now — honest empty state, not a measurement error.</p>
-        <p className="mt-1 text-xs text-slate-400">
-          High / Very High-intent visitors (per the existing lead-score heuristic) appear here with a recommended
-          next step as soon as real humans engage.
-        </p>
-      </div>
-    );
+    return <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">No one to follow up with in the last 14 days.</p>;
   }
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">
+      {rows.map((r) => (
+        <li key={r.visitor_id}>
+          <a href={`/admin/journeys?visitor=${encodeURIComponent(r.visitor_id)}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm hover:bg-slate-50">
+            <span className="font-semibold text-slate-900">{r.label && !r.label.includes("·") && !r.label.startsWith("Direct Lead") ? r.label : place(r)}</span>
+            <span className="text-slate-500">{r.source_label || r.source || "direct"}</span>
+            <span className="text-slate-700">{whatTheyDid(r)}</span>
+            <span className="ml-auto text-xs text-slate-400">{timeFmt(r.last_activity)}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Paid clicks this week by country, and how many left after one page. */
+function AdCheck({ rows }: { rows: JourneyRow[] | null }) {
+  if (!rows) return <SectionLoading message="Loading…" />;
+  const paid = rows.filter((r) => r.paid_click && withinDays(r.last_activity, 7));
+  if (paid.length === 0) {
+    return <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">No paid ad clicks in the last 7 days.</p>;
+  }
+  const groups = new Map<string, { clicks: number; bounced: number; us: boolean }>();
+  for (const r of paid) {
+    const c = visitorCountry(r.country, r.region, r.city);
+    const key = countryLabel(c);
+    const g = groups.get(key) ?? { clicks: 0, bounced: 0, us: c?.code === "US" };
+    g.clicks += 1;
+    if ((r.steps ?? 0) <= 1) g.bounced += 1;
+    groups.set(key, g);
+  }
+  const list = [...groups.entries()].sort((a, b) => b[1].clicks - a[1].clicks);
+  const outside = list.filter(([, g]) => !g.us).reduce((n, [, g]) => n + g.clicks, 0);
+  const bounced = list.reduce((n, [, g]) => n + g.bounced, 0);
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white">
+      {outside > 0 && (
+        <p className="border-b border-rose-100 bg-rose-50 px-4 py-2.5 text-sm text-rose-800">
+          <span className="font-semibold">{outside} of {paid.length} paid clicks came from outside the US.</span> In Google Ads, set Locations to
+          the United States with &ldquo;Presence: people in or regularly in your targeted locations&rdquo;.
+        </p>
+      )}
       <table className="w-full text-sm">
         <thead>
-          <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
-            <th className="px-5 py-3 font-medium">Visitor</th>
-            <th className="px-5 py-3 font-medium">Intent</th>
-            <th className="px-5 py-3 font-medium">In funnel</th>
-            <th className="px-5 py-3 font-medium">Path</th>
-            <th className="px-5 py-3 font-medium">Recommended action</th>
-            <th className="px-5 py-3 font-medium">Journey</th>
+          <tr className="text-left text-xs text-slate-400">
+            <th className="px-4 py-2 font-medium">Country</th>
+            <th className="px-4 py-2 font-medium">Clicks</th>
+            <th className="px-4 py-2 font-medium">Left after 1 page</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r) => (
-            <tr key={r.visitor_id} className="border-t border-slate-50 hover:bg-rose-50/30">
-              <td className="px-5 py-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-medium text-slate-800">{locationDevice(r)}</span>
-                  {r.visitor_hash && (
-                    <span className="rounded bg-slate-100 px-1 py-0.5 font-mono text-[10px] text-slate-400" title="Visitor id (last 4)">
-                      {r.visitor_hash}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 text-[11px] text-slate-400">last active {timeFmt(r.last_activity)}</p>
-              </td>
-              <td className="px-5 py-3 whitespace-nowrap align-top">
-                <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold ${LEVEL_STYLE[r.level]}`}>
-                  {r.level === "Very High" ? "🔥 Very High" : r.level === "High" ? "🔥 High" : r.level} · {r.score}
-                </span>
-                {r.reasons.length > 0 && (
-                  <ul className="mt-1.5 max-w-[220px] space-y-0.5">
-                    {r.reasons.slice(0, 3).map((rs, i) => (
-                      <li key={i} className="text-[10px] leading-tight text-slate-500">+{rs.points} {rs.reason}</li>
-                    ))}
-                  </ul>
-                )}
-              </td>
-              <td className="px-5 py-3 align-top">
-                <div className="flex max-w-[200px] flex-wrap gap-1">
-                  {funnelMarkers(r).map((m) => (
-                    <span key={m.key} className={`inline-flex rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${m.cls}`}>
-                      {m.label}
-                    </span>
-                  ))}
-                </div>
-              </td>
-              <td className="px-5 py-3 text-slate-600 whitespace-nowrap">{acquisitionPath(r.source, r.radar, r.signup)}</td>
-              <td className="px-5 py-3">
-                <span className={`mb-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${r.channel === "outreach" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
-                  {r.channel === "outreach" ? "Direct outreach" : "On-site only"}
-                </span>
-                <p className="font-medium text-slate-800">{r.best_next}</p>
-                <p className="mt-0.5 inline-flex rounded-lg border border-rose-200 bg-rose-50/60 px-2 py-0.5 text-xs text-rose-800">
-                  Try: “{r.cta}”
-                </p>
-              </td>
-              <td className="px-5 py-3 whitespace-nowrap">
-                <a
-                  href={`/admin/journeys?visitor=${encodeURIComponent(r.visitor_id)}`}
-                  className="inline-flex rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  View Journey
-                </a>
-              </td>
+          {list.map(([name, g]) => (
+            <tr key={name} className="border-t border-slate-100">
+              <td className={`px-4 py-2 font-medium ${g.us ? "text-slate-800" : "text-rose-700"}`}>{name}</td>
+              <td className="px-4 py-2 text-slate-700">{g.clicks}</td>
+              <td className="px-4 py-2 text-slate-700">{g.bounced}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <p className="px-5 py-3 text-[10px] text-slate-400 border-t border-slate-100">
-        HIGH-VALUE ONLY: rows restricted to the existing board-side lead score's "Very High" / "High" levels (Medium/Low
-        dropped), top 10 by score, newest activity breaks ties. Location is approximate / IP-derived; linked users show
-        the masked label. Bot/QA/admin rows never appear.
+      <p className="border-t border-slate-100 px-4 py-2 text-[11px] text-slate-400">
+        {bounced} of {paid.length} left after one page. Countries marked (est.) are guessed from the region code; exact countries are recorded from Oct 6, 2026.
       </p>
     </div>
   );
@@ -346,14 +311,13 @@ function AdminOverviewPage() {
   const [radarLeads, setRadarLeads] = useState<SimpleFunnel | null>(null);
   const [radarConv, setRadarConv] = useState<RadarConversionFunnelResult | null>(null);
   const [bidScoutFunnel, setBidScoutFunnel] = useState<BidScoutFunnelShape | null>(null);
-  const [fin, setFin] = useState<FinanceShape | null>(null);
-  const [actOn, setActOn] = useState<ActOnRow[]>([]);
-  const [watchedReturned, setWatchedReturned] = useState(0);
+  const [fin, setFin] = useState<(FinanceShape & { customers?: { since: string | null }[] }) | null>(null);
   const [nonprofitQueue, setNonprofitQueue] = useState<number | null>(null);
+  const [thisWeek, setThisWeek] = useState<UnifiedResult | null>(null);
+  const [lastWeek, setLastWeek] = useState<UnifiedResult | null>(null);
+  const [visitors, setVisitors] = useState<JourneyRow[] | null>(null);
   const [loading, setLoading] = useState(true);
-  const [actOnLoading, setActOnLoading] = useState(true);
   const [error, setError] = useState("");
-  const [actOnError, setActOnError] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -363,7 +327,7 @@ function AdminOverviewPage() {
       getJson<SimpleFunnel>("/api/admin/radar-leads-funnel?days=30"),
       getJson<RadarConversionFunnelResult>("/api/admin/radar-conversion-funnel?days=30"),
       getJson<BidScoutFunnelShape>("/api/admin/bid-scout-funnel"),
-      getJson<FinanceShape>("/api/admin/finance"),
+      getJson<FinanceShape & { customers?: { since: string | null }[] }>("/api/admin/finance"),
       getJson<NonprofitQueueShape>("/api/admin/nonprofit-applications?filter=queue&limit=100"),
     ])
       .then(([u, a, r, rc, bs, fn, np]) => {
@@ -380,51 +344,11 @@ function AdminOverviewPage() {
         if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load overview");
       })
       .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
-  // 🔥 PEOPLE TO ACT ON — HIGH-VALUE ONLY: "Very High" / "High" level rows
-  // (the existing board-side lead score), capped at top 10 by score.
-  useEffect(() => {
-    let cancelled = false;
-    setActOnLoading(true);
-    setActOnError("");
-    getJson<JourneysShape>("/api/admin/journeys?days=30")
-      .then((d) => {
-        if (cancelled) return;
-        const scored = (d.journeys ?? [])
-          .filter((j) => j.lead_score && j.conversion_opportunity)
-          .filter((j) => j.lead_score!.level === "Very High" || j.lead_score!.level === "High")
-          .map((j): ActOnRow => ({
-            visitor_id: j.visitor_id,
-            label: j.label,
-            visitor_hash: j.visitor_hash,
-            source: j.source,
-            city: j.city,
-            region: j.region,
-            device_type: j.device_type,
-            browser_label: j.browser_label,
-            radar: j.radar,
-            signup: j.signup,
-            radar_lead_stage: j.radar_lead_stage ?? null,
-            last_activity: j.last_activity,
-            score: j.lead_score!.score,
-            level: j.lead_score!.level,
-            reasons: j.lead_score!.reasons,
-            best_next: j.conversion_opportunity!.best_next,
-            obstacle: j.conversion_opportunity!.obstacle,
-            cta: j.conversion_opportunity!.cta,
-            channel: j.conversion_opportunity!.channel,
-          }))
-          .sort((a, b) => b.score - a.score || (b.last_activity ?? "").localeCompare(a.last_activity ?? ""))
-          .slice(0, 10);
-        setActOn(scored);
-        setWatchedReturned(d.watched_returned?.length ?? 0);
-      })
-      .catch((err) => {
-        if (!cancelled) setActOnError(err instanceof Error ? err.message : "Failed to rank visitors");
-      })
-      .finally(() => { if (!cancelled) setActOnLoading(false); });
+    getJson<UnifiedResult>("/api/admin/unified-funnel?days=7").then((d) => !cancelled && setThisWeek(d)).catch(() => {});
+    getJson<UnifiedResult>("/api/admin/unified-funnel?days=7&offset=7").then((d) => !cancelled && setLastWeek(d)).catch(() => {});
+    getJson<JourneysShape>("/api/admin/journeys?days=14")
+      .then((d) => !cancelled && setVisitors(d.journeys ?? []))
+      .catch(() => !cancelled && setVisitors([]));
     return () => { cancelled = true; };
   }, []);
 
@@ -434,13 +358,29 @@ function AdminOverviewPage() {
     radarLeads?.funnel.find((s) => s.stage === name)?.count ?? 0;
   const autopsyCount = (name: string): number =>
     autopsy?.funnel.find((s) => s.stage === name)?.count ?? 0;
+  const week = (d: UnifiedResult | null, name: string): number | null =>
+    d ? d.stages.find((s) => s.stage === name)?.count ?? 0 : null;
+  const newCustomers = (fromDays: number, toDays: number): number | null => {
+    if (!fin?.customers) return null;
+    return fin.customers.filter((c) => {
+      const t = c.since ? Date.parse(c.since) : NaN;
+      const age = Date.now() - t;
+      return Number.isFinite(t) && age >= toDays * DAY_MS && age < fromDays * DAY_MS;
+    }).length;
+  };
 
-  // CONTRAX TODAY — the owner-exact 8 cards, in order (owner 2026-09-07
-  // refined spec). Each maps LIVE from the existing endpoints:
-  //   Qualified / Radar / Signups / Activated → unified-funnel
-  //   Radar Leads (capture)                     → radar-leads-funnel
-  //   Autopsy Started (entry)                   → autopsy-funnel
-  //   Customers + MRR                           → finance (Stripe-live)
+  // Leads worth a look: real (not likely automated), in the US, and did
+  // something (Medium or higher lead score) in the last 14 days. Top 5.
+  const leads = visitors
+    ? visitors
+        .filter((j) => !j.lead_score?.automated)
+        .filter((j) => isUsVisitor(j.country, j.region, j.city))
+        .filter((j) => j.lead_score && j.lead_score.level !== "Low")
+        .sort((a, b) => (b.lead_score?.score ?? 0) - (a.lead_score?.score ?? 0) || (b.last_activity ?? "").localeCompare(a.last_activity ?? ""))
+        .slice(0, 5)
+    : null;
+
+  // CONTRAX TODAY — the owner-exact 8 cards (30 days), now under "More numbers".
   const todayCards = [
     { label: "Qualified Visitors", value: unified ? stage("qualified") : null, hint: "qualified visits · 30d" },
     { label: "Radar Completed", value: unified ? stage("radar") : null, hint: "radar scans completed · 30d" },
@@ -455,46 +395,39 @@ function AdminOverviewPage() {
   return (
     <div className="min-h-screen bg-slate-50">
       <AdminHeader scoreboard={<MrrScoreboard />} />
-      <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Owner workspace</p>
-            <h1 className="mt-1 text-3xl font-bold text-slate-950">Contrax Command Center</h1>
-            <p className="mt-1 text-sm text-slate-500">What needs attention, where revenue is blocked, and who to contact next.</p>
-          </div>
-        </div>
+      <main className="mx-auto max-w-5xl px-4 py-6 space-y-8">
         <AdminTabs active="overview" />
 
+        {nonprofitQueue != null && nonprofitQueue > 0 && (
+          <a href="/admin/nonprofits" className="block rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-800">
+            {nonprofitQueue} nonprofit application{nonprofitQueue === 1 ? "" : "s"} waiting for review →
+          </a>
+        )}
+
         <section>
-          <div className="mb-3 flex items-end justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">Needs attention</h2>
-              <p className="text-xs text-slate-500">The shortest path from today&rsquo;s activity to an owner action.</p>
-            </div>
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Live</span>
+          <h2 className="mb-2 text-base font-semibold text-slate-900">This week</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <WeekCard label="Visitors" now={week(thisWeek, "qualified")} before={week(lastWeek, "qualified")} href="/admin/journeys" />
+            <WeekCard label="Radar scans" now={week(thisWeek, "radar")} before={week(lastWeek, "radar")} href="/admin/journeys" />
+            <WeekCard label="Signups" now={week(thisWeek, "signup")} before={week(lastWeek, "signup")} href="/admin/signups" />
+            <WeekCard label="New paying customers" now={newCustomers(7, 0)} before={newCustomers(14, 7)} href="/admin/customers" />
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { label: "High-intent visitors", value: actOnLoading ? "…" : actOn.length, detail: "Review and follow up", href: "/admin/journeys", tone: "border-rose-200 bg-rose-50/70 text-rose-800" },
-              { label: "Watched visitors returned", value: actOnLoading ? "…" : watchedReturned, detail: "See what changed", href: "/admin/journeys", tone: "border-amber-200 bg-amber-50/70 text-amber-800" },
-              { label: "Nonprofit reviews", value: nonprofitQueue ?? "…", detail: "Work the review queue", href: "/admin/nonprofits", tone: "border-violet-200 bg-violet-50/70 text-violet-800" },
-              { label: "Paying customers", value: fin?.customerCount ?? "…", detail: fin ? `${moneyWhole(fin.mrrCents)} MRR` : "Loading revenue", href: "/admin/customers", tone: "border-emerald-200 bg-emerald-50/70 text-emerald-800" },
-            ].map((item) => (
-              <a key={item.label} href={item.href} className={`rounded-2xl border p-4 shadow-sm transition-transform hover:-translate-y-0.5 ${item.tone}`}>
-                <p className="text-xs font-semibold uppercase tracking-wide opacity-75">{item.label}</p>
-                <p className="mt-1 text-3xl font-bold">{item.value}</p>
-                <p className="mt-1 text-xs font-medium">{item.detail} →</p>
-              </a>
-            ))}
-          </div>
+          <p className="mt-1.5 text-[11px] text-slate-400">Last 7 days vs the 7 days before. Bots, test and admin traffic excluded.</p>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-slate-800 mb-1">🔥 People to act on</h2>
-          <p className="mb-3 text-xs text-slate-500">Highest-intent visitors, ranked with the next practical conversion step.</p>
-          <PeopleToActOn rows={actOn} loading={actOnLoading} error={actOnError} />
+          <h2 className="mb-2 text-base font-semibold text-slate-900">Leads worth a look</h2>
+          <LeadsWorthALook rows={leads} />
         </section>
 
+        <section>
+          <h2 className="mb-2 text-base font-semibold text-slate-900">Ad check · last 7 days</h2>
+          <AdCheck rows={visitors} />
+        </section>
+
+        <details className="rounded-xl border border-slate-200 bg-white p-4">
+          <summary className="cursor-pointer text-sm font-semibold text-slate-700">More numbers (30 days, funnels)</summary>
+          <div className="mt-6 space-y-8">
         {/* CONTRAX TODAY — owner-exact 8-card scoreboard */}
         <section>
           <h2 className="text-lg font-semibold text-slate-800 mb-1">Business pulse (30 days)</h2>
@@ -669,31 +602,8 @@ function AdminOverviewPage() {
           )}
         </section>
 
-        {/* Jump links to the deep surfaces */}
-        <section>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <a
-              href="/admin/journeys"
-              className="group flex items-center gap-4 rounded-2xl border border-indigo-200 bg-gradient-to-r from-indigo-50 to-white p-5 shadow-sm transition-colors hover:border-indigo-300"
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-500 text-xl">🧭</span>
-              <div>
-                <p className="font-bold text-slate-900">Visitor Journeys</p>
-                <p className="text-xs text-slate-500">Full People table + unified funnel + watch banner</p>
-              </div>
-            </a>
-            <a
-              href="/admin/radar-leads"
-              className="group flex items-center gap-4 rounded-2xl border border-violet-200 bg-gradient-to-r from-violet-50 to-white p-5 shadow-sm transition-colors hover:border-violet-300"
-            >
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-500 text-xl">📧</span>
-              <div>
-                <p className="font-bold text-slate-900">Radar Leads</p>
-                <p className="text-xs text-slate-500">7-stage match-alert funnel + masked lead table</p>
-              </div>
-            </a>
           </div>
-        </section>
+        </details>
       </main>
     </div>
   );

@@ -32,6 +32,8 @@ export interface ClientContext {
   city: string | null;
   /** Approximate country region from Vercel edge headers, e.g. "TX". Null if absent. */
   region: string | null;
+  /** ISO country code from `x-vercel-ip-country`, e.g. "US". Null if absent. */
+  country: string | null;
   /** "Desktop" | "Mobile" (tablets count as Mobile). Null if UA was unrecognizable. */
   device_type: "Desktop" | "Mobile" | null;
   /** Human-readable browser + OS label, e.g. "Chrome · Windows". Null if unknown. */
@@ -117,6 +119,10 @@ function parseBrowserLabel(ua: string): string | null {
  */
 export function parseClientContext(request: Request): ClientContext {
   const { city, region } = parseGeo(request);
+  // Owner 2026-10-06: region alone can't tell Lagos ("LA") from Louisiana, so
+  // the country is kept too (the admin ad check groups paid clicks by it).
+  const rawCountry = clean(request.headers.get("x-vercel-ip-country"), 2);
+  const country = rawCountry && /^[A-Za-z]{2}$/.test(rawCountry) ? rawCountry.toUpperCase() : null;
   const rawUa = (request.headers.get("user-agent") ?? "").slice(0, 512);
   let device_type: ClientContext["device_type"] = null;
   let browser_label: string | null = null;
@@ -128,5 +134,5 @@ export function parseClientContext(request: Request): ClientContext {
       // Defensive: a weird UA must never break the beacon.
     }
   }
-  return { city, region, device_type, browser_label };
+  return { city, region, country, device_type, browser_label };
 }

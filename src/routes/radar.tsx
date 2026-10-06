@@ -2275,7 +2275,7 @@ export function RequirementsFallback({
         onClick={() => trackEvent("radar_requirements_cta", String(bidId))}
         className="font-semibold text-amber-400 hover:text-amber-300"
       >
-        sign up free to analyze the complete document
+        choose a plan with AI briefs to analyze the complete document
       </a>
       .
     </p>

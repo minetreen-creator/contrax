@@ -1329,8 +1329,9 @@ function SignupPage() {
 
           {/* Continue with LinkedIn — OAuth implemented, GATED until the owner
               supplies LINKEDIN_CLIENT_ID / LINKEDIN_CLIENT_SECRET. While the key
-              is absent the button stays visible but disabled ("coming soon") and
-              never produces a broken OAuth URL. The moment the env vars are set
+              is absent the button is hidden (owner 2026-10-06: the disabled "coming
+              soon" button wrapped badly on phones) and never produces a broken
+              OAuth URL. The moment the env vars are set
               server-side the flow becomes active with no further code change. */}
           {linkedInAuthUrl ? (
             <a
@@ -1342,20 +1343,7 @@ function SignupPage() {
               </svg>
               Continue with LinkedIn
             </a>
-          ) : (
-            <button
-              type="button"
-              disabled
-              title="LinkedIn sign-in is coming soon"
-              className="mt-3 flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-6 py-4 text-base font-semibold text-gray-400"
-            >
-              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="#0A66C2" aria-hidden="true">
-                <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45z" />
-              </svg>
-              Continue with LinkedIn
-              <span className="text-xs font-medium text-gray-400">— coming soon</span>
-            </button>
-          )}
+          ) : null}
 
           {/* Divider */}
           <div className="relative mt-5">

@@ -1553,7 +1553,7 @@ function RadarLanding() {
                     setTrade(e.target.value);
                     setTradeHint(false);
                   }}
-                  placeholder='Or type it: "HVAC" or a NAICS like 238220'
+                  placeholder='Or type: HVAC or NAICS 238220'
                   className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-3 text-base text-white placeholder:text-slate-500 sm:py-4 focus:border-amber-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                 />
                 <datalist id="radar-naics-list">

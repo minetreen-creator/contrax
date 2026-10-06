@@ -141,9 +141,6 @@ function LoginPage({ linkedInAuthUrl, googleAuthUrl }: { linkedInAuthUrl: string
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Sign in to your Contrax account</h1>
-          <p className="mt-2 text-sm text-gray-500">
-            Sign in to your Contrax account.
-          </p>
 
           {/* Continue with Google — gated at runtime. Only rendered as a live
               link when getGoogleAuthUrl() returned a fully-configured URL (both
@@ -196,20 +193,7 @@ function LoginPage({ linkedInAuthUrl, googleAuthUrl }: { linkedInAuthUrl: string
                 </svg>
                 Continue with LinkedIn
               </a>
-            ) : (
-              <button
-                type="button"
-                disabled
-                title="LinkedIn sign-in is coming soon"
-                className="mt-3 flex w-full cursor-not-allowed items-center justify-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-6 py-3 text-sm font-semibold text-gray-400"
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="#0A66C2" aria-hidden="true">
-                  <path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 110-4.12 2.06 2.06 0 010 4.12zM7.12 20.45H3.56V9h3.56v11.45z" />
-                </svg>
-                Continue with LinkedIn
-                <span className="text-xs font-medium text-gray-400">— coming soon</span>
-              </button>
-            )}
+            ) : null}
 
             {/* Divider */}
             <div className="relative mt-6">

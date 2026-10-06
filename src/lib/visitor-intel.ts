@@ -696,7 +696,6 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
   for (const r of pageRows) {
     if (r.path) {
       paths.push(String(r.path));
-      if (landingPath === null && r.path !== "/") landingPath = String(r.path);
       lastDetailPath = String(r.path);
     }
     if (r.visit_id) visitIds.add(String(r.visit_id));
@@ -716,11 +715,21 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
     pageRows.find((r) => r.campaign)?.campaign ?? eventRows.find((r) => r.campaign)?.campaign ?? null;
   const referrerHost_ = referrerHost(pageRows.find((r) => r.referrer)?.referrer);
 
-  const firstSeen = iso(v?.first_seen_at) ?? iso(pageRows[0]?.created_at) ?? iso(eventRows[0]?.created_at);
-  const lastSeen =
-    iso(v?.last_seen_at) ??
-    iso(pageRows[pageRows.length - 1]?.created_at) ??
-    iso(eventRows[eventRows.length - 1]?.created_at);
+  // Merge cache and detail dates rather than allowing a newer cache row to
+  // hide earlier activity. Both panel sections use the same first path.
+  const recordedActivity = [...pageRows, ...eventRows]
+    .map((row) => ({ at: iso(row.created_at), path: row.path }))
+    .filter((row) => row.at !== null)
+    .sort((a, b) => a.at!.localeCompare(b.at!));
+  const firstDates = [iso(v?.first_seen_at), recordedActivity[0]?.at]
+    .filter((at): at is string => !!at).sort();
+  const lastDates = [iso(v?.last_seen_at), recordedActivity[recordedActivity.length - 1]?.at]
+    .filter((at): at is string => !!at).sort();
+  const firstSeen = firstDates[0] ?? null;
+  const lastSeen = lastDates[lastDates.length - 1] ?? null;
+  landingPath = firstSeen && firstSeen === iso(v?.first_seen_at) && v?.first_path
+    ? String(v.first_path)
+    : recordedActivity.find((row) => row.path)?.path ?? v?.first_path ?? null;
   const returning = !!(firstSeen && lastSeen && !sameUtcDay(firstSeen, lastSeen));
 
   const steps = Math.max(Number(v?.steps) || 0, pageRows.length + eventRows.length);
@@ -779,7 +788,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
   const has = (needle: string) => eventNames.some((e) => e.includes(needle));
   const sawPath = (needle: string) => paths.some((p) => p.includes(needle));
   const radarCompleted = eventNames.includes("radar_scan_complete");
-  const radarUsed = !!v?.radar || eventNames.some(isActiveRadarEvent);
+  const radarUsed = !!v?.radar || eventNames.some(isActiveRadarEvent) || !!radarSave || !!anonymousRadarProfile;
   const incumbentViewed = has("incumbent");
   const briefGenerated = eventNames.includes("rfp_brief_result");
   const briefViewed = briefGenerated || !!v?.saw_brief || sawPath("/example-brief");
@@ -892,7 +901,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
       steps,
       sessions,
       returning,
-      first_path: v?.first_path ?? landingPath,
+      first_path: landingPath,
       last_path: v?.last_path ?? lastDetailPath,
       last_action: v?.last_action ?? null,
       last_action_at: iso(v?.last_action_at),

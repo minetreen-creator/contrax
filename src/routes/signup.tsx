@@ -1383,7 +1383,7 @@ function SignupPage() {
                   as "everything is free". */}
               {selectedPlan === "basic" && (
                 <p className="mt-1.5 text-xs text-gray-500">
-                  Free forever — up to 3 saved bids. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
+                  Basic includes up to 3 saved bids. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
                 </p>
               )}
               <input
@@ -1493,8 +1493,12 @@ function SignupPage() {
                 framing instead of the "free forever" claim. */}
             <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
               {selectedPlan === "basic" ? <span>No credit card required</span> : <span>Card required at checkout</span>}
-              <span aria-hidden="true" className="text-gray-300">·</span>
-              {selectedPlan === "basic" ? <span>Free forever</span> : <span>Trial starts when you upgrade</span>}
+              {selectedPlan !== "basic" && (
+                <>
+                  <span aria-hidden="true" className="text-gray-300">·</span>
+                  <span>Trial starts when you upgrade</span>
+                </>
+              )}
               <span aria-hidden="true" className="text-gray-300">·</span>
               <span>Takes under 30 seconds</span>
               <span aria-hidden="true" className="text-gray-300">·</span>

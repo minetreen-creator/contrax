@@ -992,6 +992,8 @@ export function displayPlaceOfPerformance(
  *                    every buyer is a Minnesota state department.
  *    ok_omes       → Oklahoma OMES PeopleSoft bidding events; every buyer is
  *                    an Oklahoma state agency.
+ *    ks_sok        → Kansas PeopleSoft bidding events; every buyer is a
+ *                    Kansas state agency.
  *  Everything else derives the jurisdiction from the row's own text (or NULL
  *  where unprovable) — same conservative rule as normalized_state.
  *  Exported for the audit/regression pins (src/jobs/sources/oh-dayton.test.ts). */
@@ -1037,6 +1039,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   mn_connex: "MN",
   mn_questcdn: "MN",
   ok_omes: "OK",
+  ks_sok: "KS",
 };
 
 export interface InsertLocationColumns {

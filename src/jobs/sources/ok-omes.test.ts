@@ -40,8 +40,8 @@ describe("ok_omes — parse (captured page)", () => {
     expect(r.due_date).toBe("2026-10-29T20:00:00.000Z"); // 03:00 PM Central (CDT)
     expect(r.solicitation_number).toBe("EV00000939");
     expect(r.notice_type).toBe("RFx");
-    // The portal cuts names at 50 characters.
-    expect(rows.find((x) => x.external_id === "okomes-EV00000973")!.title).toBe("SW1023-Supplemental RFP-Online database informatio…");
+    // Names are kept as posted (the portal keeps at most 50 characters).
+    expect(rows.find((x) => x.external_id === "okomes-EV00000973")!.title).toBe("SW1023-Supplemental RFP-Online database informatio");
   });
 
   test("a passed end date is never accepted; a repeat is skipped", () => {

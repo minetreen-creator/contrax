@@ -174,7 +174,7 @@ describe("the Radar screen wires the new UI (no reorder, no gate change)", () =>
 
 // ── The Important-requirements signup CTA is ANONYMOUS-ONLY ──────────────────
 // Funnel-QA fix (owner green-lit 2026-09-28): a signed-in visitor on the results
-// screen was still told to "sign up free to analyze the complete document". The
+// screen was still told to "choose a plan with AI briefs to analyze the complete document". The
 // guard is the file's own anonymous detector — the same `!getTrackingUser()`
 // signal as the F2 first-run nudge — AND-ed with the card's resolved `user`
 // prop. The card's real actions are untouched for everyone.
@@ -193,8 +193,9 @@ describe("RadarCard — the requirements signup CTA is anonymous-only (F2 family
   test("an ANONYMOUS card with no stated requirements still renders the signup CTA", () => {
     const html = card({ match: match({ requirements: [] }) });
     expect(html).toContain("Full requirements are listed in the original solicitation");
-    expect(html).toContain("sign up free to analyze the complete document");
-    expect(html).toContain('href="/signup?');
+    expect(html).toContain("choose a plan with AI briefs to analyze the complete document");
+    // radarSignupHref now hands off to the paid plan (owner 2026-10-06, bf01321).
+    expect(html).toContain('href="/upgrade?plan=starter');
   });
 
   test("a SIGNED-IN viewer's requirements block renders the pointer with NO create-account CTA", () => {
@@ -203,6 +204,7 @@ describe("RadarCard — the requirements signup CTA is anonymous-only (F2 family
     );
     expect(signedIn).toContain("Full requirements are listed in the original solicitation");
     expect(signedIn).not.toContain("sign up free");
+    expect(signedIn).not.toContain("choose a plan with AI briefs");
     expect(signedIn).not.toContain('href="/signup');
     expect(signedIn).not.toContain("Create free account");
     expect(signedIn).not.toContain("<a ");
@@ -211,7 +213,7 @@ describe("RadarCard — the requirements signup CTA is anonymous-only (F2 family
       <RequirementsFallback anonymous signupHref={SIGNUP_HREF} bidId={4242} />,
     );
     expect(anon).toContain("Full requirements are listed in the original solicitation");
-    expect(anon).toContain("sign up free to analyze the complete document");
+    expect(anon).toContain("choose a plan with AI briefs to analyze the complete document");
     expect(anon).toContain('href="/signup?plan=basic&amp;source=radar&amp;trade=janitorial"');
     expect(anon).toContain("<a "); // the CTA really is a link for anonymous viewers
   });
@@ -223,7 +225,7 @@ describe("RadarCard — the requirements signup CTA is anonymous-only (F2 family
     expect(src).toContain("signupHref={radarSignupHref({ trade, state, cert, sizePref })}");
     // One CTA, one event: the copy and its tracking call live in the anonymous
     // branch only.
-    expect(src.split("sign up free to analyze the complete document").length - 1).toBe(1);
+    expect(src.split("choose a plan with AI briefs to analyze the complete document").length - 1).toBe(1);
     expect(src.split("radar_requirements_cta").length - 1).toBe(1);
   });
 

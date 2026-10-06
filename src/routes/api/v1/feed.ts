@@ -18,6 +18,9 @@ async function handler({ request }: { request: Request }) {
   try {
     const auth = await feedUserFromRequest(request);
     if ("error" in auth) return Response.json({ error: auth.error }, { status: auth.status });
+    if (auth.tier === "leads" || auth.tier === "primes") {
+      return Response.json({ error: "Your plan doesn't include the bid feed. Open bids need a Starter or Pro plan: https://www.contrax.company/data" }, { status: 403 });
+    }
     const parsed = parseFeedQuery(new URL(request.url).searchParams);
     if (!parsed.ok) return Response.json({ error: parsed.error }, { status: 400 });
     const scoped = applyPlanStates(parsed.query, auth.allowedStates);

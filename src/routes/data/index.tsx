@@ -260,6 +260,9 @@ function Plans() {
           <ul className="mt-4 space-y-1.5 text-sm text-slate-700">
             <li>✓ Every state Contrax covers, plus federal</li>
             <li>✓ New states added at no extra cost</li>
+            <li>
+              ✓ Includes <a className="underline" href="/leads">Award Leads</a> (new contract winners)
+            </li>
             <li>✓ Full API, updated every 4 hours on weekdays</li>
           </ul>
           <div className="flex-1" />

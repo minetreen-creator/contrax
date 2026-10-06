@@ -23,19 +23,26 @@ import { parseFeedQuery } from "~/lib/data-feed";
 export const DATA_FEED_PRODUCT = "contrax_data_feed";
 const BASE_URL = process.env.PROD_URL || "https://www.contrax.company";
 
-export type DataFeedTier = "starter" | "pro";
+export type DataFeedTier = "starter" | "pro" | "leads";
 export const DATA_FEED_PLANS: Record<DataFeedTier, { label: string; cents: number; maxStates: number | null; product: string }> = {
   starter: { label: "Starter", cents: 29900, maxStates: 5, product: "Contrax Bid Data — Starter (up to 5 states)" },
   pro: { label: "Pro", cents: 79900, maxStates: null, product: "Contrax Bid Data — Pro (all states + federal)" },
+  // Award leads (owner 2026-10-06, idea #6): new federal contract winners, sold on /leads.
+  leads: { label: "Award Leads", cents: 24900, maxStates: null, product: "Contrax Award Leads — new federal contract winners" },
 };
 
+/** Award leads come with the Leads plan and with Pro; an owner-granted key (no tier) gets everything. */
+export function tierHasAwardLeads(tier: string | null): boolean {
+  return tier === null || tier === "leads" || tier === "pro";
+}
+
 export function isDataFeedTier(v: unknown): v is DataFeedTier {
-  return v === "starter" || v === "pro";
+  return v === "starter" || v === "pro" || v === "leads";
 }
 
 /** Starter needs 1–5 valid USPS codes; Pro takes none. Returns the normalized list or an error. */
 export function validatePlanStates(tier: DataFeedTier, raw: unknown): { ok: true; states: string[] } | { ok: false; error: string } {
-  if (tier === "pro") return { ok: true, states: [] };
+  if (tier !== "starter") return { ok: true, states: [] };
   const parsed = parseFeedQuery(new URLSearchParams({ state: typeof raw === "string" ? raw : "" }));
   if (!parsed.ok) return { ok: false, error: parsed.error };
   const states = [...new Set(parsed.query.states)];
@@ -76,8 +83,8 @@ export async function createDataFeedCheckout(userId: number, tier: DataFeedTier,
     ],
     metadata,
     subscription_data: { metadata },
-    success_url: `${BASE_URL}/data?checkout=success`,
-    cancel_url: `${BASE_URL}/data?checkout=canceled#plans`,
+    success_url: `${BASE_URL}${tier === "leads" ? "/leads" : "/data"}?checkout=success`,
+    cancel_url: `${BASE_URL}${tier === "leads" ? "/leads" : "/data"}?checkout=canceled#plans`,
   });
   if (!session.url) throw new Error("Checkout URL unavailable");
   return session.url;

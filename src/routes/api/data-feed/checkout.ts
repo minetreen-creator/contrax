@@ -3,7 +3,7 @@ import { getUserFromRequest } from "~/lib/api-auth";
 import { createDataFeedCheckout, isDataFeedTier, validatePlanStates } from "~/lib/data-feed-billing.server";
 
 /**
- * POST /api/data-feed/checkout { tier: "starter" | "pro", states?: "VA,NC" }
+ * POST /api/data-feed/checkout { tier: "starter" | "pro" | "leads", states?: "VA,NC" }
  * → { url } for Stripe Checkout. Requires a signed-in Contrax account (the API
  * key is issued to that account). 401 tells the page to send the buyer to signup.
  */
@@ -12,7 +12,7 @@ async function handler({ request }: { request: Request }) {
     const user = await getUserFromRequest(request);
     if (!user) return Response.json({ error: "Sign in to subscribe", needsAccount: true }, { status: 401 });
     const body = (await request.json().catch(() => ({}))) as { tier?: unknown; states?: unknown };
-    if (!isDataFeedTier(body.tier)) return Response.json({ error: "Choose Starter or Pro." }, { status: 400 });
+    if (!isDataFeedTier(body.tier)) return Response.json({ error: "Choose a plan." }, { status: 400 });
     const states = validatePlanStates(body.tier, body.states);
     if (!states.ok) return Response.json({ error: states.error }, { status: 400 });
     const url = await createDataFeedCheckout(user.id, body.tier, states.states);

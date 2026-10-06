@@ -54,23 +54,23 @@ export function isRapidApiRequest(headers: Headers, secret: string | undefined):
 /** The API key's user id when the key is valid AND that user has active feed access. */
 export async function feedUserFromRequest(
   request: Request,
-): Promise<{ userId: number | null; allowedStates: string[] | null } | { error: string; status: number }> {
-  if (isRapidApiRequest(request.headers, process.env.RAPIDAPI_PROXY_SECRET)) return { userId: null, allowedStates: null };
+): Promise<{ userId: number | null; allowedStates: string[] | null; tier: string | null; rapidApi: boolean } | { error: string; status: number }> {
+  if (isRapidApiRequest(request.headers, process.env.RAPIDAPI_PROXY_SECRET)) return { userId: null, allowedStates: null, tier: null, rapidApi: true };
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
   if (!token) return { error: "Missing API key. Send Authorization: Bearer <key>.", status: 401 };
   const hash = createHash("sha256").update(token).digest("hex");
   await ensureDataFeedTables();
   const rows = await sql()`
-    SELECT k.id, k.user_id, a.active, a.states
+    SELECT k.id, k.user_id, a.active, a.states, a.tier
     FROM api_keys k LEFT JOIN data_feed_access a ON a.user_id = k.user_id
     WHERE k.key_hash = ${hash} AND k.revoked = FALSE
     LIMIT 1`;
   if (!rows.length) return { error: "Invalid API key.", status: 401 };
-  const row = rows[0] as { id: number; user_id: number; active: boolean | null; states: string | null };
+  const row = rows[0] as { id: number; user_id: number; active: boolean | null; states: string | null; tier: string | null };
   if (!row.active) return { error: "This key does not have data feed access. Request access at https://www.contrax.company/data.", status: 403 };
   await sql()`UPDATE api_keys SET last_used_at = NOW() WHERE id = ${row.id}`;
   const allowedStates = row.states ? row.states.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean) : null;
-  return { userId: row.user_id, allowedStates: allowedStates && allowedStates.length ? allowedStates : null };
+  return { userId: row.user_id, allowedStates: allowedStates && allowedStates.length ? allowedStates : null, tier: row.tier ?? null, rapidApi: false };
 }
 
 /** Open opportunities matching the query, oldest id first (keyset paging on id). */
@@ -166,4 +166,11 @@ export async function grantDataAccess(email: string, note: string | null): Promi
 export async function revokeDataAccess(userId: number): Promise<void> {
   await ensureDataFeedTables();
   await sql()`UPDATE data_feed_access SET active = FALSE WHERE user_id = ${userId}`;
+}
+
+/** A signed-in account's data plan (for the /leads CSV download), or null without one. */
+export async function dataPlanForUser(userId: number): Promise<{ tier: string | null } | null> {
+  await ensureDataFeedTables();
+  const rows = (await sql()`SELECT tier FROM data_feed_access WHERE user_id = ${userId} AND active = TRUE`) as { tier: string | null }[];
+  return rows.length ? { tier: rows[0].tier ?? null } : null;
 }

@@ -223,6 +223,16 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // BROWSER-RENDERED source in the corpus; the class is still a property of the
   // source (R8), not of how it is fetched.
   wi_vendornet: { class: "state", scopeState: "WI", searchScope: "state-portal", recordType: "opportunity" },
+  // Texas Bonfire tenants (owner green-light 2026-10-06, batch 3a;
+  // src/jobs/sources/tx-txdot-bonfire.ts + tx-uttyler-bonfire.ts). R5/R8: each is
+  // the Texas public body's OWN portal — TxDOT's portal for TxDOT, the University
+  // of Texas at Tyler's portal for UT Tyler and UT Health Science Center at Tyler
+  // — so both are STATE with home jurisdiction TX, not LOCAL, even though a
+  // university is not a state agency. The portal's Department column is buyer
+  // TEXT kept verbatim in `agency` (TxDOT renders internal codes such as
+  // "SSD_CM"), never a per-row jurisdiction and never re-derived (R7 / ruling b).
+  tx_txdot_bonfire: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
+  tx_uttyler_bonfire: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
   md_emma_awards: { class: "state", scopeState: "MD", searchScope: "state-portal", recordType: "award" },
   // ── The federal SAM.gov feeds (R1/R2/R3) ────────────────────────────────
   // The national pass. Its fetchFn ALSO emits the additive regional pass's

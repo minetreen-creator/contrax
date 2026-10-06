@@ -1053,6 +1053,13 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   // through it is a Wisconsin public body — provable by construction, never
   // text-derived from the free-text buyer string (policy R7).
   wi_vendornet: "WI",
+  // Texas Bonfire tenants (src/jobs/sources/tx-txdot-bonfire.ts /
+  // tx-uttyler-bonfire.ts): each is a Texas public body's OWN portal on
+  // bonfirehub.com, so every buyer publishing through it is a Texas public body
+  // — provable by construction, never text-derived from the free-text department
+  // label (policy R7; TxDOT's portal renders internal codes such as "SSD_CM").
+  tx_txdot_bonfire: "TX",
+  tx_uttyler_bonfire: "TX",
 };
 
 export interface InsertLocationColumns {

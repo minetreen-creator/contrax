@@ -1216,12 +1216,7 @@ function SignupPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <a href="/" className="inline-flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900">
-              <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </span>
-            <span className="text-xl font-bold tracking-tight text-slate-900">Contrax</span>
+            <img src="/logo.png" alt="Contrax" height={44} className="block h-11 w-auto mix-blend-multiply" />
           </a>
         </div>
 
@@ -1384,11 +1379,13 @@ function SignupPage() {
                   agency) we use honest 14-day trial framing instead so a paid
                   plan is never claimed to be free. Styling/placement identical
                   for both branches. */}
-              <div className="mt-1.5 rounded-lg border border-emerald-300 bg-emerald-600 px-3 py-2.5 text-sm font-bold text-white shadow-sm">
+              {/* A note, not a button (owner 2026-10-06): light fill, no shadow,
+                  so on a phone it is not mistaken for a tap target above the email box. */}
+              <p className="mt-1.5 rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
                 {selectedPlan === "basic"
                   ? "🔒 100% Free Forever • Zero Credit Card Required"
                   : "🔒 Start your 14-day trial when you upgrade • Cancel anytime"}
-              </div>
+              </p>
               {/* Honest scope on the free forever claim — Basic is free and never
                   expires, but it is LIMITED: capped at 3 saved bids, with AI
                   Executive Briefs / Incumbent Intelligence / AI Match Scoring gated

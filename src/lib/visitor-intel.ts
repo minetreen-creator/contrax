@@ -192,6 +192,8 @@ export interface ScoreSignals {
   pageViews?: number;
   /** Referrer recorded on the visitor's FIRST page view (for the self-referral check). */
   firstReferrer?: string | null;
+  /** The visit came from a paid ad click (medium "cpc"); never an email link scanner. */
+  paidClick?: boolean;
 }
 
 /** Pace thresholds for likelyAutomated (owner 2026-10-02). */
@@ -218,7 +220,7 @@ export function isSelfReferrer(referrer: string | null | undefined): boolean {
  * those are real accounts. Returns the observed evidence, or null.
  */
 export function likelyAutomated(
-  s: Pick<ScoreSignals, "sessions" | "activeSpanSeconds" | "pageViews" | "signedUp" | "savedBid" | "firstReferrer">,
+  s: Pick<ScoreSignals, "sessions" | "activeSpanSeconds" | "pageViews" | "signedUp" | "savedBid" | "firstReferrer" | "paidClick">,
 ): string | null {
   if (s.signedUp || s.savedBid) return null;
   const span = s.activeSpanSeconds;
@@ -234,7 +236,10 @@ export function likelyAutomated(
   // Email link scanners (owner 2026-10-03): a brand-new visitor cannot arrive
   // FROM Contrax on its very first page view. Mail security services that open
   // the links in outgoing emails do exactly that, then leave within seconds.
-  if (isSelfReferrer(s.firstReferrer) && span <= AUTOMATED_SELF_REFERRAL_SECONDS) {
+  // A paid ad click is exempt (owner 2026-10-06): Google's ad redirect can
+  // hand over a contrax.company referrer, and a quick tap on a mobile ad is a
+  // person, not a mail scanner.
+  if (!s.paidClick && isSelfReferrer(s.firstReferrer) && span <= AUTOMATED_SELF_REFERRAL_SECONDS) {
     return `first visit already referred by contrax.company, whole visit ${secs} seconds (email link scanner)`;
   }
   return null;
@@ -816,6 +821,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
     activeSpanSeconds: spanSeconds(firstSeen, lastSeen),
     pageViews: pageRows.length,
     firstReferrer: pageRows[0]?.referrer ?? null,
+    paidClick: String(medium ?? "").toLowerCase() === "cpc",
   });
 
   const radarProfileRow = radarSave ?? anonymousRadarProfile;

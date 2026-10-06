@@ -427,7 +427,7 @@ function Stats({
   const stats = [
     { value: contractMap.totals.totalOpen.toLocaleString("en-US"), label: "open opportunities" },
     { value: bidStats.agencyCount.toLocaleString("en-US"), label: "agencies represented" },
-    { value: "Every 4 hours", label: "contract data refreshed" },
+    { value: "Every 4 hours", label: "on weekdays, contract data refreshed" },
   ];
   return (
     <div className="-mt-11">

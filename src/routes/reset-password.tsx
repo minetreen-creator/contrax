@@ -64,12 +64,7 @@ function ResetPasswordPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <a href="/" className="inline-flex items-center gap-2">
-            <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-900">
-              <svg className="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </span>
-            <span className="text-xl font-bold tracking-tight text-slate-900">Contrax</span>
+            <img src="/logo.png" alt="Contrax" height={44} className="block h-11 w-auto mix-blend-multiply" />
           </a>
         </div>
 

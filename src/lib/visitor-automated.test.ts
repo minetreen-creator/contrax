@@ -70,6 +70,13 @@ describe("likely-automated visitors (owner 2026-10-02)", () => {
     expect(likelyAutomated({ sessions: 2, pageViews: 3, activeSpanSeconds: 4, firstReferrer: null, signedUp: false, savedBid: false })).toBeNull();
   });
 
+  test("a paid ad click with a contrax.company referrer is not an email link scanner", () => {
+    // Portland, OR Google Ads click (owner 2026-10-06): cpc, referrer contrax.company, 0 seconds.
+    expect(likelyAutomated({ sessions: 1, pageViews: 1, activeSpanSeconds: 0, firstReferrer: "https://contrax.company/radar", paidClick: true, signedUp: false, savedBid: false })).toBeNull();
+    // The pace rules still apply to paid clicks.
+    expect(likelyAutomated({ sessions: 1, pageViews: 8, activeSpanSeconds: 20, paidClick: true, signedUp: false, savedBid: false })).not.toBeNull();
+  });
+
   test("isSelfReferrer", () => {
     expect(isSelfReferrer("https://www.contrax.company/radar")).toBe(true);
     expect(isSelfReferrer("https://contrax.company")).toBe(true);

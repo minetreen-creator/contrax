@@ -20,6 +20,11 @@ export const BOT_EXCLUSION_SQL = `
   (
     -- Our own test / scraper IPs (exclude always).
     ip IN ('34.214.71.218','73.40.36.204')
+    -- Anthropic's outbound range 160.79.104.0/21 (160.79.104.x–160.79.111.x):
+    -- Claude's own site checks (owner 2026-10-06: a "Columbus, OH" Pixel 7
+    -- signup abandon was a Claude Code mobile screenshot run). Never a customer.
+    OR ip LIKE '160.79.104.%' OR ip LIKE '160.79.105.%' OR ip LIKE '160.79.106.%' OR ip LIKE '160.79.107.%'
+    OR ip LIKE '160.79.108.%' OR ip LIKE '160.79.109.%' OR ip LIKE '160.79.110.%' OR ip LIKE '160.79.111.%'
     -- Search-engine crawler IP prefixes: Googlebot + common Bing ranges.
     OR ip LIKE '66.249.%'
     -- Google ad review / page-preview fetchers (headless Chrome on Google addresses;

@@ -303,6 +303,12 @@ function isExcludedEmail(email: string | null | undefined): boolean {
  * `qa-*` probe/manual-exit visitor ids. Apply it the same way the timeline
  * applies its filters — the board must match its own expanded rows.
  */
+/** Anthropic's outbound range 160.79.104.0/21 — mirrors BOT_EXCLUSION_SQL. */
+export function isAnthropicIp(ip: string): boolean {
+  const m = /^160\.79\.(\d{1,3})\./.exec(ip);
+  return !!m && +m[1] >= 104 && +m[1] <= 111;
+}
+
 function isBotVisitorRow(v: {
   first_ip: string | null;
   last_ip: string | null;
@@ -317,6 +323,7 @@ function isBotVisitorRow(v: {
     return !!(ip2 && fn(ip2));
   };
   if (any((ip) => ip === "34.214.71.218" || ip === "73.40.36.204")) return true;
+  if (any(isAnthropicIp)) return true;
   if (any((ip) => ip.startsWith("66.249.") || ip.startsWith("66.102.") || ip.startsWith("74.125.") || ip.startsWith("40.77.") || ip.startsWith("157.55.") || ip.startsWith("207.46."))) return true;
   if (any((ip) => ip.startsWith("66.220.") || ip.startsWith("31.13.") || ip.startsWith("173.252.") || ip.startsWith("104.189.") || ip.startsWith("69.171.") || ip.startsWith("157.240."))) return true;
   if (

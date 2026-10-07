@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
 import { STATE_NAMES } from "~/lib/contract-map";
 import {
+  COURSE_TRADES,
+  courseTrade,
   COURSE_MINUTES,
   COURSE_SUBTITLE,
   COURSE_TITLE,
@@ -31,13 +33,13 @@ const PROGRESS_KEY = "contrax_course_construction_v1";
 const loadCourse = createServerFn({ method: "GET" })
   .validator((d: unknown) => {
     const st = String((d as { state?: unknown })?.state ?? "").trim().toUpperCase();
-    return { state: /^[A-Z]{2}$/.test(st) ? st : "RI" };
+    return { state: Object.hasOwn(STATE_NAMES, st) ? st : "RI", trade: courseTrade((d as { trade?: unknown })?.trade).id };
   })
   .handler(async ({ data }) => {
     try {
       const { courseLiveBids, countCompletions } = await import("~/lib/course.server");
       const { COURSE_ID } = await import("~/lib/course-construction");
-      const [live, completed] = await Promise.all([courseLiveBids(data.state), countCompletions(COURSE_ID)]);
+      const [live, completed] = await Promise.all([courseLiveBids(data.state, data.trade), countCompletions(COURSE_ID)]);
       return { live, completed };
     } catch (err) {
       console.error("[learn/construction] load failed:", err);
@@ -46,9 +48,9 @@ const loadCourse = createServerFn({ method: "GET" })
   });
 
 export const Route = createFileRoute("/learn/construction")({
-  validateSearch: (s: Record<string, unknown>) => ({ state: typeof s.state === "string" ? s.state : undefined }),
-  loaderDeps: ({ search }) => ({ state: search.state }),
-  loader: ({ deps }) => loadCourse({ data: { state: deps.state } }),
+  validateSearch: (s: Record<string, unknown>) => ({ state: typeof s.state === "string" && Object.hasOwn(STATE_NAMES, s.state.toUpperCase()) ? s.state.toUpperCase() : "RI", trade: courseTrade(s.trade).id }),
+  loaderDeps: ({ search }) => ({ state: search.state, trade: search.trade }),
+  loader: ({ deps }) => loadCourse({ data: { state: deps.state, trade: deps.trade } }),
   component: () => (
     <>
       <SiteHeader />
@@ -91,6 +93,8 @@ function saveProgress(ids: string[]) {
 
 function CoursePage() {
   const { live, completed } = Route.useLoaderData();
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const [done, setDone] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string>(LESSONS[0].id);
   useEffect(() => {
@@ -118,6 +122,22 @@ function CoursePage() {
         <p className="text-sm font-semibold uppercase tracking-wide text-amber-700">Free course · {COURSE_MINUTES} minutes</p>
         <h1 className="mt-2 text-3xl font-extrabold leading-tight text-slate-900">{COURSE_TITLE}</h1>
         <p className="mt-2 text-slate-700">{COURSE_SUBTITLE}</p>
+        <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4">
+          <h2 className="font-semibold text-slate-900">Find examples for your business</h2>
+          <p className="mt-1 text-sm text-slate-600">Choose a state and trade to update the live bid examples. The lessons and your progress stay the same. Specialty matches use NAICS codes; some opportunities may have missing codes.</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label className="text-sm font-medium text-slate-700">State
+              <select value={search.state} onChange={(e) => void navigate({ search: { ...search, state: e.target.value }, replace: true, resetScroll: false })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+                {Object.entries(STATE_NAMES).sort((a, b) => a[1].localeCompare(b[1])).map(([code, name]) => <option key={code} value={code}>{name}</option>)}
+              </select>
+            </label>
+            <label className="text-sm font-medium text-slate-700">Construction trade
+              <select value={search.trade} onChange={(e) => void navigate({ search: { ...search, trade: courseTrade(e.target.value).id }, replace: true, resetScroll: false })} className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2">
+                {COURSE_TRADES.map((trade) => <option key={trade.id} value={trade.id}>{trade.label}</option>)}
+              </select>
+            </label>
+          </div>
+        </div>
         <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-slate-200" aria-label={`${done.length} of ${LESSONS.length} lessons done`}>
           <div className="h-full bg-amber-500 transition-all" style={{ width: `${(done.length / LESSONS.length) * 100}%` }} />
         </div>
@@ -144,7 +164,7 @@ function CoursePage() {
       </section>
 
       <section className="mx-auto max-w-2xl px-4 pb-16">
-        {allDone ? <Complete /> : <p className="text-center text-sm text-slate-500">Finish all {LESSONS.length} lessons to get your certificate.</p>}
+        {allDone ? <Complete key={search.state} initialState={search.state} trade={search.trade} /> : <p className="text-center text-sm text-slate-500">Finish all {LESSONS.length} lessons to get your certificate.</p>}
       </section>
     </main>
   );
@@ -270,7 +290,7 @@ function LiveBids({ kind, live, stateName }: { kind: NonNullable<Lesson["live"]>
   return (
     <div className={box}>
       <BidList title={`Open-enrollment agreements in ${stateName}`} bids={live.openEnrollment} />
-      <a href={`/radar?trade=construction&state=${live.state}`} className="inline-block text-sm font-semibold text-blue-700 underline">
+      <a href={`/radar?trade=${courseTrade(live.trade).id === "all" ? "construction" : courseTrade(live.trade).naics}&state=${live.state}`} className="inline-block text-sm font-semibold text-blue-700 underline">
         See every open construction bid in {stateName} →
       </a>
       <a href="/suppliers/join" className="block text-sm font-semibold text-blue-700 underline">
@@ -377,10 +397,10 @@ function Ask({ lessonId }: { lessonId: string }) {
   );
 }
 
-function Complete() {
+function Complete({ initialState, trade }: { initialState: string; trade: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [state, setState] = useState("RI");
+  const [state, setState] = useState(initialState);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [token, setToken] = useState("");
@@ -417,7 +437,7 @@ function Complete() {
         <a href={`/learn/certificate/${token}`} className="mt-3 inline-block rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white">
           View and print your certificate
         </a>
-        <a href={`/radar?trade=construction&state=${state}`} className="mt-3 block text-sm font-semibold text-blue-700 underline">
+        <a href={`/radar?trade=${courseTrade(trade).id === "all" ? "construction" : courseTrade(trade).naics}&state=${state}`} className="mt-3 block text-sm font-semibold text-blue-700 underline">
           Find open construction bids in your state →
         </a>
       </div>

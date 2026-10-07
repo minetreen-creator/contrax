@@ -7,7 +7,7 @@ import { randomBytes } from "node:crypto";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
-import type { CompletionInput } from "~/lib/course-construction";
+import { courseTrade, type CompletionInput } from "~/lib/course-construction";
 
 export async function ensureCourseTable(): Promise<void> {
   await sql()`CREATE TABLE IF NOT EXISTS course_completions (
@@ -71,15 +71,17 @@ const toBid = (r: Record<string, unknown>): CourseBid => ({
  * practice bids, set-aside ones, and open-enrollment agreements. Nothing is
  * shown that the bids table doesn't hold.
  */
-export async function courseLiveBids(state: string): Promise<{
+export async function courseLiveBids(state: string, tradeId = "all"): Promise<{
   state: string;
+  trade: string;
   total: number;
   practice: CourseBid[];
   setAside: CourseBid[];
   openEnrollment: CourseBid[];
 }> {
   const s = sql();
-  const construction = s`(category ILIKE '%construction%' OR naics_code ~ '^23')`;
+  const trade = courseTrade(tradeId);
+  const construction = trade.id === "all" ? s`(category ILIKE '%construction%' OR naics_code ~ '^23')` : s`naics_code LIKE ${trade.naics + "%"}`;
   const open = s`due_date > NOW() + INTERVAL '2 days' AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}`;
   const [count, practice, setAside, openEnrollment] = await Promise.all([
     s`SELECT COUNT(*)::int AS n FROM bids WHERE normalized_state = ${state} AND ${construction} AND ${open}`,
@@ -98,6 +100,7 @@ export async function courseLiveBids(state: string): Promise<{
   ]);
   return {
     state,
+    trade: trade.id,
     total: Number((count as { n: number }[])[0]?.n ?? 0),
     practice: (practice as Record<string, unknown>[]).map(toBid),
     setAside: (setAside as Record<string, unknown>[]).map(toBid),

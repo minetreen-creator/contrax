@@ -1009,6 +1009,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   pennbid: "PA",
   va_evirginia: "VA",
   oh_dayton: "OH",
+  wi_milwaukee_bonfire: "WI", // City of Milwaukee's own Bonfire portal (owner 2026-10-07)
   va_eva: "VA",
   tx_esbd: "TX",
   fl_mfmp: "FL",

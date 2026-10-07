@@ -89,6 +89,7 @@ import { fetchRiOspBids } from "./sources/ri-osp";
 import { fetchRiExternalBids } from "./sources/ri-external";
 import { fetchTxTxdotBonfireBids } from "./sources/tx-txdot-bonfire";
 import { fetchTxUttylerBonfireBids } from "./sources/tx-uttyler-bonfire";
+import { fetchWiMilwaukeeBonfireBids } from "./sources/wi-milwaukee-bonfire";
 import { fetchTxUhJaggaerBids } from "./sources/tx-uh-jaggaer";
 import { fetchTxTamuJaggaerBids } from "./sources/tx-tamu-jaggaer";
 import { fetchTxTexasTechJaggaerBids } from "./sources/tx-texastech-jaggaer";
@@ -370,6 +371,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   // external board (quasi-public agencies, cities and towns, URI/RIC/CCRI).
   { name: "ri_osp", fetchFn: () => fetchRiOspBids() },
   { name: "ri_external", fetchFn: () => fetchRiExternalBids() },
+  // Milwaukee (owner 2026-10-07): the City of Milwaukee's own Bonfire portal.
+  { name: "wi_milwaukee_bonfire", fetchFn: fetchWiMilwaukeeBonfireBids },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

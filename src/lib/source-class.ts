@@ -334,6 +334,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   },
   // The City of Dayton's own CivicEngage bid board (Ohio Phase 3) — a real
   // municipal board with real due dates.
+  // City of Milwaukee's own Bonfire portal (owner 2026-10-07; src/jobs/sources/wi-milwaukee-bonfire.ts).
+  wi_milwaukee_bonfire: {
+    class: "local",
+    city: "Milwaukee",
+    scopeState: "WI",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   oh_dayton: {
     class: "local",
     city: "Dayton",

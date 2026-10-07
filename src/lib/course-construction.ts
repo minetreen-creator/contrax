@@ -281,3 +281,20 @@ export function parseProgress(raw: string | null): string[] {
     return [];
   }
 }
+
+/** Construction specialties used by the course's live opportunity filters. */
+export const COURSE_TRADES = [
+  { id: "all", label: "All construction", naics: "23" },
+  { id: "building", label: "Building construction", naics: "236" },
+  { id: "civil", label: "Heavy and civil construction", naics: "237" },
+  { id: "electrical", label: "Electrical", naics: "238210" },
+  { id: "plumbing-hvac", label: "Plumbing and HVAC", naics: "238220" },
+  { id: "roofing", label: "Roofing", naics: "238160" },
+  { id: "concrete", label: "Concrete", naics: "238110" },
+  { id: "masonry", label: "Masonry", naics: "238140" },
+  { id: "painting", label: "Painting", naics: "238320" },
+  { id: "site-preparation", label: "Site preparation", naics: "238910" },
+] as const;
+export function courseTrade(value: unknown) {
+  return COURSE_TRADES.find((trade) => trade.id === value) ?? COURSE_TRADES[0];
+}

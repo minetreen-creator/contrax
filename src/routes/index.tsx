@@ -257,6 +257,7 @@ function Home() {
         <FoundingOffer source="home" />
       </div>
       <Steps />
+      <ConstructionCoursePromo />
       <BidScoutCallout />
       {/* Kept light in both themes: the grants table is owner-locked light markup. */}
       <div className="mt-10 bg-[#f5f7fa] py-8 text-slate-900">
@@ -266,6 +267,22 @@ function Home() {
       <PartnershipBanner />
       <Footer />
     </div>
+  );
+}
+
+function ConstructionCoursePromo() {
+  return (
+    <section aria-labelledby="construction-course-title" className="mx-auto mt-12 max-w-[1120px] px-4 sm:px-6">
+      <div className="flex flex-col items-start justify-between gap-5 rounded-2xl border border-amber-200 bg-amber-50 p-6 sm:flex-row sm:items-center sm:p-8 dark:border-amber-500/30 dark:bg-slate-900">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-widest text-amber-800 dark:text-amber-300">Free contractor training · 15 minutes</p>
+          <h2 id="construction-course-title" className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Win Government Construction Work</h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-700 dark:text-slate-300">Five short lessons for veteran-owned and small construction contractors. Learn where to find bids, understand set-asides, and evaluate opportunities—with quizzes and a printable completion certificate.</p>
+          <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Choose your state and construction trade to explore relevant live bid examples.</p>
+        </div>
+        <a href="/learn/construction" className="shrink-0 rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-600">Take the free course →</a>
+      </div>
+    </section>
   );
 }
 

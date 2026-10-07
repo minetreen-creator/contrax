@@ -561,3 +561,21 @@ describe("QA N2 — the 11 new federal trade labels are federal, not state/local
     expect(src).not.toContain('a.source === "sam_gov"');
   });
 });
+
+describe("mapCategory: building-trade words (owner 2026-10-07, Wisconsin VendorNet)", async () => {
+  const { mapCategory } = await import("./trade-classification");
+  const c = (title: string) => mapCategory("", title, "");
+  test("real Wisconsin titles that were 'Other' now land in a trade", () => {
+    expect(c("Kenosha County Center Interior Remodel")).toBe("Construction");
+    expect(c("UW-La Crosse - Parking lot sealcoating, pothole patching, and line painting")).toBe("Construction");
+    expect(c("Fencing Removal and Installation")).toBe("Construction");
+    expect(c("Kemper Center – Durkee Mansion Stained-Glass Window Restoration")).toBe("Construction");
+    expect(c("Tenney Pavilion PV Removal and Reinstall")).toBe("Plumbing & Electrical");
+  });
+  test("goods and services that aren't building trades stay 'Other'", () => {
+    expect(c("Multispecies Hematology Analyzer")).toBe("Other");
+    expect(c("WI Lottery Printing of X Family of Games Topper")).toBe("Other");
+    expect(c("Fencing team equipment and uniforms")).toBe("Other");
+    expect(c("Solar eclipse viewing glasses")).toBe("Other");
+  });
+});

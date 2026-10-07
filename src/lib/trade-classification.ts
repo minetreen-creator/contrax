@@ -403,6 +403,12 @@ export function isItWork(full: string): boolean {
   );
 }
 
+/** Building-trade work words that mean Construction (whole words; owner 2026-10-07). */
+const CONSTRUCTION_WORDS =
+  /\b(remodel(ing)?|re-?paving|paving|sealcoat(ing)?|potholes?|re-?roof(ing)?|roofing|fencing (removal|installation|repair)|fence (removal|installation|repair)|masonry|tuckpointing|concrete (repair|replacement|work)|window restoration)\b/;
+/** Solar / photovoltaic installation work → Plumbing & Electrical (owner 2026-10-07). */
+const ELECTRICAL_WORDS = /\b(photovoltaic|solar (panel|array|pv|installation)|pv (removal|installation|system))\b/;
+
 export function mapCategory(typeValue: string, title: string, description: string): string {
   const t = (typeValue || "").toLowerCase();
   const titleLc = (title || "").toLowerCase();
@@ -414,13 +420,16 @@ export function mapCategory(typeValue: string, title: string, description: strin
   // S5: moved AHEAD of the construction/type fallbacks (D3).
   if (isJanitorialWork(titleLc, full)) return "Janitorial";
   if (full.includes("construction") || full.includes("renovation") || full.includes("demolition")) return "Construction";
+  // Owner 2026-10-07: Wisconsin's VendorNet labeled remodels, paving, fencing and
+  // roofing jobs "Other". Whole-word building-trade terms only.
+  if (CONSTRUCTION_WORDS.test(full)) return "Construction";
   // Owner 2026-10-06: the old `includes("it ")` test matched "submit", "credit",
   // "permit" and "unit", so VDOT snow-removal notices ("how to submit via …
   // Services") were labeled IT Services. Require real IT wording.
   if (isItWork(full)) return "IT Services";
   if (full.includes("security") || full.includes("guard ")) return "Security";
   if (full.includes("hvac") || full.includes("heating") || full.includes("cooling")) return "HVAC";
-  if (full.includes("electrical") || full.includes("plumbing")) return "Plumbing & Electrical";
+  if (full.includes("electrical") || full.includes("plumbing") || ELECTRICAL_WORDS.test(full)) return "Plumbing & Electrical";
 
   if (t.includes("solicitation") || t.includes("combined")) return "Construction";
   // S5/D4: `award` / `justification` / `special` deliberately fall through to the

@@ -43,6 +43,13 @@ export const SHOW_FREE_INCUMBENT = true;
 export const FREE_ANONYMOUS_RADAR_RESULTS = 3;
 
 /**
+ * Free Radar scans per network before a paid plan is required (owner 2026-10-07:
+ * was 1 — a Milwaukee janitorial visitor who left an email was blocked on their
+ * second look, and shared phone/office networks used up one scan for everyone).
+ */
+export const FREE_RADAR_PREVIEW_SCANS = 3;
+
+/**
  * Most default (title/NAICS-corroborated) matches one Radar scan returns
  * (owner 2026-10-02; was a hard-coded 5). With a cap of 5 every popular search
  * read "5 found" and the locked card always said "Unlock 2 more", whatever the

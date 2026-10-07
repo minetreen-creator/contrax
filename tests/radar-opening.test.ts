@@ -70,3 +70,14 @@ describe("paid-ad visitors get a broader opening (owner 2026-10-06)", () => {
     expect(radarOpening({ trade: "HVAC", stateCode: "VA", cert: null, fromAd: true }).headline).toBe("Your matches for HVAC work in Virginia");
   });
 });
+
+describe("free Radar preview allowance (owner 2026-10-07)", () => {
+  test("3 free scans per network, enforced by the upsert", async () => {
+    const { FREE_RADAR_PREVIEW_SCANS } = await import("../src/lib/radar-config");
+    expect(FREE_RADAR_PREVIEW_SCANS).toBe(3);
+    const { readFileSync } = await import("node:fs");
+    const src = readFileSync(new URL("../src/routes/radar.tsx", import.meta.url), "utf8");
+    expect(src).toContain("WHERE radar_preview_usage.scans < ${FREE_RADAR_PREVIEW_SCANS}");
+    expect(src).toContain("Your free preview scans have been used");
+  });
+});

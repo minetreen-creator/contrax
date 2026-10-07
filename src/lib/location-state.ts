@@ -1009,6 +1009,9 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   pennbid: "PA",
   va_evirginia: "VA",
   oh_dayton: "OH",
+  wi_milwaukee_bonfire: "WI",
+  wi_milwaukee_county_bonfire: "WI",
+  wi_mps_bonfire: "WI", // Milwaukee Public Schools' own Bonfire portal (owner 2026-10-07) // Milwaukee County's own Bonfire portal (owner 2026-10-07) // City of Milwaukee's own Bonfire portal (owner 2026-10-07)
   va_eva: "VA",
   tx_esbd: "TX",
   fl_mfmp: "FL",

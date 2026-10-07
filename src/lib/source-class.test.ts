@@ -62,7 +62,7 @@ const prePr1IsStateLocal = (sources: string[]) =>
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
   test("131 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS, Utah U3P, Mississippi DFA, three Minnesota (MnDOT, eAdvert, Admin QuestCDN), Oklahoma OMES, Kansas, New Mexico eProNM, Idaho (IPRO, ITD), Wisconsin VendorNet, the two Texas Bonfire tenants (TxDOT, UT Tyler) the four Texas university JAGGAER tenants (UH, TAMU, Texas Tech, UTSA) and Rhode Island (OSP, external board) classifications", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(133);
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(136);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -101,7 +101,7 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // VendorNet — the first browser-rendered source in the registry) and
     // tx_txdot_bonfire + tx_uttyler_bonfire (Texas Bonfire tenants, batch 3a) and the
     // four Texas university JAGGAER tenants (batch 3b), ri_osp and ri_external (Rhode Island).
-    expect(TAIL_SOURCES.length).toBe(57);
+    expect(TAIL_SOURCES.length).toBe(60);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

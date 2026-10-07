@@ -22,7 +22,7 @@ import {
   buildRadarFirstRunHref,
   isFirstRunSearch,
 } from "~/lib/funnel-ux";
-import { SHOW_FREE_INCUMBENT, FREE_ANONYMOUS_RADAR_RESULTS, RADAR_MATCH_CAP } from "~/lib/radar-config";
+import { SHOW_FREE_INCUMBENT, FREE_ANONYMOUS_RADAR_RESULTS, FREE_RADAR_PREVIEW_SCANS, RADAR_MATCH_CAP } from "~/lib/radar-config";
 import type { FPDSIntel } from "~/lib/fpds";
 import {
   loadRadarIntel,
@@ -519,9 +519,14 @@ export const runRadarScan = createServerFn({ method: "POST" })
           used_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
       `;
+      // Up to FREE_RADAR_PREVIEW_SCANS per identity (owner 2026-10-07). Rows from
+      // the one-scan era start at 1, so they keep the scans they have left.
+      await db`ALTER TABLE radar_preview_usage ADD COLUMN IF NOT EXISTS scans INTEGER NOT NULL DEFAULT 1`;
       const claimed = await db`
-        INSERT INTO radar_preview_usage (identity_hash) VALUES (${key})
-        ON CONFLICT (identity_hash) DO NOTHING
+        INSERT INTO radar_preview_usage (identity_hash, scans) VALUES (${key}, 1)
+        ON CONFLICT (identity_hash) DO UPDATE
+          SET scans = radar_preview_usage.scans + 1, used_at = NOW()
+          WHERE radar_preview_usage.scans < ${FREE_RADAR_PREVIEW_SCANS}
         RETURNING identity_hash
       `;
       if (!claimed.length) return {
@@ -1835,7 +1840,7 @@ function RadarLanding() {
 
         {step === 3 && scan.status === "paid_required" && (
           <section className="flex flex-1 flex-col justify-center py-10 text-center">
-            <h2 className="text-2xl font-bold text-white">Your preview scan has been used</h2>
+            <h2 className="text-2xl font-bold text-white">Your free preview scans have been used</h2>
             <p className="mt-3 text-slate-300">Choose a paid plan to keep searching for contracts with Radar.</p>
             <a href="/upgrade" className="mt-6 rounded-2xl bg-amber-500 px-6 py-4 font-bold text-slate-950 hover:bg-amber-400">Choose a plan</a>
             <a href="/login?redirect=%2Fradar" className="mt-4 text-sm text-slate-300 underline">Already subscribed? Sign in</a>

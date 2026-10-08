@@ -65,8 +65,10 @@
  *     "Procurement"), and no expansion of those codes is published anywhere on
  *     the source, so nothing is expanded or inferred here.
  *   - `due_date` = DateClose, read as UTC (see the time-zone rule above).
- *   - `location` = the config's state name; `category` = mapCategory over the
- *     title + description.
+ *   - `location` = the config's `locationName` when the tenant's public buyer is
+ *     narrower than the state (a county's or a city's OWN portal), else its state
+ *     name; `category` = mapCategory over the title + description. The field is
+ *     additive (see `locationName` below) and changes no pre-existing tenant.
  *   - `naics_code` / `psc` / `set_aside` / `notice_type` stay NULL — a Bonfire
  *     public list exposes none of them, and a missing federal set-aside is never
  *     read as a state/local small-business opportunity (owner ruling f).
@@ -98,6 +100,17 @@ export interface BonfireConfig {
   idPrefix: string;
   /** Bid location, e.g. "Utah". */
   stateName: string;
+  /**
+   * The row's `location`, when the tenant's own place is NARROWER than its state —
+   * a county's or a city's own portal, e.g. "Fairfax County, VA" / "City of
+   * Alexandria, VA" (owner green-light 2026-10-08: a locality board's rows carry
+   * the locality, not "Virginia"). ADDITIVE and OPTIONAL: when a config omits it
+   * the row's location is `stateName` — the shape every pre-existing tenant
+   * (utah / txdot / uttyler / the three Milwaukee tenants) already relies on, so
+   * their rows are unchanged to the byte. It is a CONFIG literal, exactly like
+   * `stateName`: never derived from a row's text.
+   */
+  locationName?: string;
   /** Agency fallback for a row whose department names none, e.g. "State of Utah". */
   buyerName: string;
   /** Portal name used in the description, e.g. "U3P (Bonfire)". */
@@ -207,7 +220,7 @@ export function parseBonfire(
       title,
       agency,
       description,
-      location: cfg.stateName,
+      location: cfg.locationName ?? cfg.stateName,
       category: mapCategory("", title, description),
       due_date: new Date(closeMs).toISOString(),
       estimated_value: "Not specified",

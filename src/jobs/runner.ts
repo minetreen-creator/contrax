@@ -50,6 +50,8 @@ import { fetchVaLoudounBids } from "./sources/va-loudoun";
 import { fetchVaSuffolkBids } from "./sources/va-suffolk";
 import { fetchVaLynchburgBids } from "./sources/va-lynchburg";
 import { fetchVaCharlottesvilleBids } from "./sources/va-charlottesville";
+import { fetchVaFairfaxBonfireBids } from "./sources/va-fairfax-bonfire";
+import { fetchVaAlexandriaBonfireBids } from "./sources/va-alexandria-bonfire";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import { fetchVaEvaBids } from "./sources/va-eva";
 import { fetchTxEsbdBids } from "./sources/tx-esbd";
@@ -401,6 +403,18 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "va_suffolk", fetchFn: fetchVaSuffolkBids },
   { name: "va_lynchburg", fetchFn: fetchVaLynchburgBids },
   { name: "va_charlottesville", fetchFn: fetchVaCharlottesvilleBids },
+  // Virginia locality BONFIRE portals (owner green-light 2026-10-08, dispatch B):
+  // Fairfax County's own Bonfire tenant and the City of Alexandria's. Same
+  // config-driven reader as the Texas / Utah / Milwaukee Bonfire tenants
+  // (src/jobs/sources/bonfire-public.ts) with one small config each — no new
+  // parser, no new dependency, no migration, and the SAME tail-source shape as the
+  // CivicEngage boards above: their own `collector_run_log` rows, no added SAM.gov
+  // load, no dedupe against `va_eva` (a locality may legitimately post to both the
+  // state portal and its own). Each tenant's `external_id` carries its own prefix
+  // (`fairfaxbonfire-` / `alexandriabonfire-`) because Bonfire ProjectIDs come from
+  // ONE numeric space shared by every tenant on the platform.
+  { name: "va_fairfax_bonfire", fetchFn: fetchVaFairfaxBonfireBids },
+  { name: "va_alexandria_bonfire", fetchFn: fetchVaAlexandriaBonfireBids },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

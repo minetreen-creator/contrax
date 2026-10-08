@@ -392,6 +392,27 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Virginia locality Bonfire portals (owner green-light 2026-10-08; dispatch B —
+  // src/jobs/sources/va-fairfax-bonfire.ts, va-alexandria-bonfire.ts, on the shared
+  // Bonfire reader bonfire-public.ts, the same one the Texas / Utah / Milwaukee
+  // tenants use). Each is a Virginia locality's OWN portal, so every row is that
+  // locality's solicitation — a county board and a city board, hence two places.
+  // `va_eva` (the state portal) is a DIFFERENT surface: a locality MAY post to both,
+  // so both badges are correct and nothing is deduped.
+  va_fairfax_bonfire: {
+    class: "local",
+    city: "Fairfax County",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  va_alexandria_bonfire: {
+    class: "local",
+    city: "Alexandria",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   oh_dayton: {
     class: "local",
     city: "Dayton",

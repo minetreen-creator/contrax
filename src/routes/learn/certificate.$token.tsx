@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { COURSE_TITLE } from "~/lib/course-construction";
+import { courseTitle } from "~/lib/course-catalog";
 
 /**
  * /learn/certificate/$token — printable completion certificate for the free
@@ -18,7 +18,9 @@ export const Route = createFileRoute("/learn/certificate/$token")({
   loader: async ({ params }) => {
     const c = await loadCertificate({ data: { token: params.token } });
     if (!c) throw notFound();
-    return c;
+    const title = courseTitle(c.course);
+    if (!title) throw notFound();
+    return { ...c, title };
   },
   component: CertificatePage,
   head: () => ({ meta: [{ title: "Certificate of Completion | Contrax" }, { name: "robots", content: "noindex, nofollow" }] }),
@@ -35,7 +37,7 @@ function CertificatePage() {
         <p className="mt-6 text-slate-600">This certifies that</p>
         <p className="mt-2 text-3xl font-extrabold text-slate-900 sm:text-4xl">{c.name}</p>
         <p className="mt-4 text-slate-600">has completed the free course</p>
-        <p className="mt-2 text-xl font-bold text-slate-900">{COURSE_TITLE}</p>
+        <p className="mt-2 text-xl font-bold text-slate-900">{c.title}</p>
         <p className="mt-6 text-sm text-slate-500">{date}</p>
         <p className="mt-8 text-sm text-slate-700">
           Nathaniel Minetree

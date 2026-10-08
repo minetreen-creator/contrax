@@ -296,6 +296,43 @@ jobs:
         run: bun test src/jobs/sources/civicengage-bids.test.ts
       - name: Virginia locality CivicEngage board tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/va-loudoun.test.ts src/jobs/sources/va-suffolk.test.ts src/jobs/sources/va-lynchburg.test.ts src/jobs/sources/va-charlottesville.test.ts
+      # Virginia locality BONFIRE portals (va_fairfax_bonfire · va_alexandria_bonfire —
+      # owner green-light 2026-10-08, dispatch B), built as TWO config entries on the
+      # EXISTING shared Bonfire reader (bonfire-public.ts) that the Utah, Texas and
+      # Milwaukee tenants already use. DETERMINISTIC, zero network, no DATABASE_URL,
+      # and deliberately NO `mock.module` (bun's mock registry is process-global and
+      # leaks across test files in one run — the #613/#588/#591 standard): every byte
+      # read is a committed capture of the live tenant
+      # (src/jobs/sources/fixtures/va-{fairfax,alexandria}-bonfire/, sha256-indexed in
+      # each README, two byte-identical fetch pairs). It pins, on real bytes:
+      #   · the captured listed/accepted counts (Fairfax 7/7, Alexandria 3/3) with ZERO
+      #     skips, and the row-by-row identity the portal itself states (project id ·
+      #     reference · title · department · close instant · category);
+      #   · each tenant's own published shape: Fairfax's department list is EMPTY, so
+      #     every row falls back to the County (no code expanded, no name invented);
+      #     Alexandria DOES publish department labels and they are kept VERBATIM as
+      #     `agency` ("41 - Transportation and Environmental Services (TES/DPI)");
+      #   · HONEST DATA — the config literals "Fairfax County" / "City of Alexandria,
+      #     VA" for agency/location, per-tenant `external_id` prefixes over Bonfire's
+      #     SHARED ProjectID space (no cross-tenant collision), the absolute
+      #     official-host URL, and NULL for set_aside/naics/psc/notice_type (a Bonfire
+      #     public list publishes none — ruling f);
+      #   · THE TIME-ZONE RULE on the wire — DateClose is the stored UTC instant and
+      #     every due_date is exactly that value, never shifted into the tenant's
+      #     display zone (America/Toronto on Fairfax, America/New_York on Alexandria);
+      #   · the reader's gates (status · passed close · non-competition · missing
+      #     fields · unreadable date) and the ADDITIVE `locationName` config field that
+      #     leaves every pre-existing tenant stating its state name;
+      #   · the registration nothing else in CI covers (TAIL_SOURCES, SOURCE_CLASSES
+      #     LOCAL + place badge + `city-open-data`, VA home jurisdiction, non-federal
+      #     badge) and the copy, which quotes the live capture counts and makes no
+      #     coverage claim (and no courier/delivery claim for Fairfax, whose 7 open
+      #     solicitation titles contain none).
+      # The live half is the OPT-IN gate (va-{fairfax,alexandria}-bonfire.source-validation.test.ts,
+      # wired into `validate:live-bids-sources`) and must never run here.
+      # Named EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
+      - name: Virginia locality Bonfire portal tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/va-fairfax-bonfire.test.ts src/jobs/sources/va-alexandria-bonfire.test.ts
       # Wisconsin DOA VendorNet Bids (wi_vendornet) - the FIRST browser-rendered
       # source in the bids family. This suite is the PARSER half only, deterministic
       # and zero-network/zero-browser by construction: it reads ONE committed capture

@@ -1,5 +1,6 @@
 /** City of Omaha notices on the shared Douglas County IonWave portal.
- * Current-public board + public details, no login. County bids stay excluded.
+ * Public current board only, no login. County bids stay excluded.
+ * Automated public-detail reads return HTTP 429; do not request those pages.
  */
 import { mapCategory } from "~/lib/trade-classification";
 import type { FetchResult } from "../runner";
@@ -46,25 +47,20 @@ export function omahaClose(value: string): string | null {
   }
   return null;
 }
-const field=(html:string,name:string)=>text(html.match(new RegExp(`<span\\b[^>]*id="ctl00_mainContent_${name}"[^>]*>([\\s\\S]*?)<\\/span>`))?.[1]??"");
-export function mapOmahaDetails(items: OmahaItem[], details: Map<string,string>, now=Date.now()): FetchResult {
+export function mapOmahaBoard(items: OmahaItem[], now=Date.now()): FetchResult {
   const rows:RawBid[]=[], skipped:Record<string,number>={}, skippedRows:{id:string;reason:string}[]=[];
   const skip=(id:string,reason:string)=>{skipped[reason]=(skipped[reason]??0)+1;skippedRows.push({id,reason});};
   const seen=new Set<string>();
   for(const item of items) {
     if(seen.has(item.id)){skip(item.id,"duplicate");continue;} seen.add(item.id);
     if(!/^CI-/.test(item.number)){skip(item.id,"outside_city_scope");continue;}
-    const html=details.get(item.id);
-    if(!html || !html.includes("Bid Opportunity Detail")) fail(`missing public detail ${item.id}`);
-    const type=field(html,"lblType"), status=field(html,"lblStatus"), number=field(html,"lblNumber");
-    if(!number.startsWith(item.number+" (") || !/^City - (?:Request for Bid|Request for Proposal)/i.test(type)) fail(`city identity/type mismatch ${item.id}`);
-    if(status!=="Issued"){skip(item.id,"not_open");continue;}
-    const close=field(html,"lblClose"), due=omahaClose(close);
-    if(!due || close!==item.close) fail(`deadline mismatch or invalid CT time ${item.id}`);
+    // Public board's City (CI) taxonomy. Unknown types are not assumed to be bids.
+    if(!/^CI-(?:BID-(?:S|G|P|OPW)|RFP)$/i.test(item.type)){skip(item.id,"unsupported_notice_type");continue;}
+    const due=omahaClose(item.close);
+    if(!due) fail(`invalid CT closing time ${item.id}`);
     if(Date.parse(due)<=now){skip(item.id,"closed");continue;}
-    const notes=text(html.match(/<tr\b[^>]*id="ctl00_mainContent_trNotes"[^>]*>([\s\S]*?)<\/tr>/)?.[1]??"").replace(/^Notes\s*/,"");
-    const description=`${type}. ${notes} Published close: ${close} (America/Chicago). Consult the official bid and attachments for requirements and amendments.`;
-    rows.push({external_id:`omahaionwave-${item.id}`,title:item.title,agency:"City of Omaha",location:"Omaha, NE",description,category:mapCategory("",item.title,description),due_date:due,source_url:`${OMAHA_ORIGIN}/PublicDetail.aspx?bidID=${item.id}&SourceType=1`,estimated_value:"",notice_type:type,solicitation_number:item.number,set_aside:null,naics_code:null,psc:null});
+    const description=`City of Omaha public current bid board. Bid number: ${item.number}. Published type: ${item.type}. Published close: ${item.close} (America/Chicago). Only public listing fields are collected; scope, eligibility, attachments and amendments must be checked in the official solicitation.`;
+    rows.push({external_id:`omahaionwave-${item.id}`,title:item.title,agency:"City of Omaha",location:"Omaha, NE",description,category:mapCategory("",item.title,description),due_date:due,source_url:`${OMAHA_ORIGIN}/PublicDetail.aspx?bidID=${item.id}&SourceType=1`,estimated_value:"",notice_type:item.type,solicitation_number:item.number,set_aside:null,naics_code:null,psc:null});
   }
   return {rows,skipped,skippedRows};
 }
@@ -101,12 +97,7 @@ export async function fetchOmahaBids(now=Date.now()): Promise<FetchResult> {
       items.push(...page.items);
     }
     if(items.length!==total)fail(`only ${items.length} of ${total} current bids`);
-    const details=new Map<string,string>();
-    for(const item of items.filter(i=>/^CI-/.test(i.number))) {
-      await new Promise(resolve=>setTimeout(resolve,2000));
-      details.set(item.id,await request(`${OMAHA_ORIGIN}/PublicDetail.aspx?bidID=${item.id}&SourceType=1`));
-    }
-    const result=mapOmahaDetails(items,details,now);
+    const result=mapOmahaBoard(items,now);
     console.log(`  ${OMAHA_SOURCE}: ${result.rows.length} Omaha bids; listed ${total}; skipped ${JSON.stringify(result.skipped)}`);
     return result;
   } catch(error) {if(error instanceof SourceUnreachableError)throw error;return fail(`request failed: ${(error as Error).name}`);} finally {clearTimeout(timer);}

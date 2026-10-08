@@ -15,5 +15,5 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
-      - name: Read public board and verify city bid details (no database)
+      - name: Read public board and parse city notices (no database)
         run: bun -e 'import {fetchOmahaBids} from "./src/jobs/sources/ne-omaha-ionwave"; const r=await fetchOmahaBids(); console.log(JSON.stringify({accepted:r.rows.length,skipped:r.skipped,examples:r.rows.map(x=>({title:x.title,due:x.due_date}))}));'

@@ -1,3 +1,4 @@
+import { FromTheCEO } from "~/components/FromTheCEO";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
@@ -258,6 +259,7 @@ function Home() {
       </div>
       <Steps />
       <FreeCoursesPromo />
+      <FromTheCEO />
       <BidScoutCallout />
       {/* Kept light in both themes: the grants table is owner-locked light markup. */}
       <div className="mt-10 bg-[#f5f7fa] py-8 text-slate-900">

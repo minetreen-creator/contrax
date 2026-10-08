@@ -398,3 +398,17 @@ jobs:
       # dimension never denying, and store/DB errors failing OPEN.
       - name: Anonymous free-score limit (dual dimension) tests (unit, deterministic, zero network)
         run: bun test src/lib/free-score-limit.test.ts
+      # ANONYMOUS RADAR FREE-SEARCH LIMIT — DUAL DIMENSION (owner directive
+      # 2026-10-08: "Count the free searches by network address and browser ID,
+      # and stop at whichever runs out first"). Locks the regression where the
+      # anonymous Radar allowance was keyed by whichever single identity came
+      # first (the client IP, FALLING BACK to the visitor cookie), so a VPN
+      # switch handed out a fresh quota. DETERMINISTIC, network-free and
+      # database-free: pure key building + the real gate/consume functions over
+      # an IN-MEMORY store (no DATABASE_URL, no clock, NO mock.module), covering
+      # same-ip+same-browser (2 then blocked), VPN switch (new ip/same browser),
+      # fresh browser (new id/same ip), a missing dimension never denying, an
+      # unreadable store failing OPEN, the legacy-row hash compatibility, and a
+      # FAILED scan never consuming a free search.
+      - name: Anonymous Radar free-search limit (dual dimension) tests (unit, deterministic, zero network)
+        run: bun test src/lib/radar-free-search-limit.test.ts

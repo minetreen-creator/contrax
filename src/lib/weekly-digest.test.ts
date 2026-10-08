@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { bidDigestHtml, radarMatchAlertHtml, starterPriceHtml } from "./email";
+import { bidDigestHtml, radarMatchAlertHtml, starterPriceHtml, WEEKLY_DIGEST_LIST_LIMIT } from "./email";
 import {
   isWeeklyDigestEligible,
   newYorkWeekday,
@@ -69,20 +69,30 @@ describe("weekly digest — when", () => {
 });
 
 describe("weekly digest — paid head start", () => {
-  test("the listed window ends 72 hours ago, and consecutive Mondays tile", () => {
+  test("the listed window ends 7 days ago, and consecutive Mondays tile", () => {
     const first = weeklyWindowBounds(null, MONDAY_6AM);
-    expect(first.end.getTime()).toBe(MONDAY_6AM - 3 * DAY);
-    expect(first.start.getTime()).toBe(MONDAY_6AM - 10 * DAY);
+    expect(first.end.getTime()).toBe(MONDAY_6AM - 7 * DAY);
+    expect(first.start.getTime()).toBe(MONDAY_6AM - 14 * DAY);
     const next = weeklyWindowBounds(new Date(MONDAY_6AM), MONDAY_6AM + 7 * DAY);
     expect(next.start.getTime()).toBe(first.end.getTime());
-    expect(next.end.getTime()).toBe(MONDAY_6AM + 4 * DAY);
+    expect(next.end.getTime()).toBe(MONDAY_6AM);
   });
 
   test("the email counts the bids still in their head start", () => {
     const bid = { bid_id: 1, title: "Snow plowing", agency: "City", source_url: "https://x", location: "Ohio", due_date: null };
     const html = bidDigestHtml([bid], 1, { unsubscribeUrl: weeklyUnsubscribeUrl("t"), headStartCount: 12 });
-    expect(html).toContain("+ 12 newer bids were posted in the last 3 days.");
+    expect(html).toContain("+ 12 newer bids were posted in the last 7 days.");
     expect(bidDigestHtml([bid], 1, { unsubscribeUrl: weeklyUnsubscribeUrl("t") })).not.toContain("newer bid");
+  });
+});
+
+describe("weekly digest — top 5 only (owner 2026-10-08)", () => {
+  test("bids past the top 5 are pointed to Starter, not listed", () => {
+    expect(WEEKLY_DIGEST_LIST_LIMIT).toBe(5);
+    const bid = { bid_id: 1, title: "Snow plowing", agency: "City", source_url: "https://x", location: "Ohio", due_date: null };
+    const html = bidDigestHtml([bid], 28, { unsubscribeUrl: weeklyUnsubscribeUrl("t") });
+    expect(html).toContain("+ 27 more new bids on Starter.");
+    expect(bidDigestHtml([bid], 28)).toContain("+ 27 more new bids on Contrax.");
   });
 });
 

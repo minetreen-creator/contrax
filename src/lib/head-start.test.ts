@@ -7,21 +7,21 @@ const NOW = Date.parse("2026-10-05T12:00:00Z");
 const HOUR = 60 * 60 * 1000;
 
 describe("paid head start — the rule", () => {
-  test("a bid is in its head start for its first 72 hours on Contrax", () => {
-    expect(HEAD_START_HOURS).toBe(72);
-    expect(headStartUntil(new Date(NOW - 1 * HOUR).toISOString(), NOW)).toBe(new Date(NOW + 71 * HOUR).toISOString());
-    expect(headStartUntil(new Date(NOW - 71 * HOUR).toISOString(), NOW)).toBe(new Date(NOW + 1 * HOUR).toISOString());
-    expect(headStartUntil(new Date(NOW - 73 * HOUR).toISOString(), NOW)).toBeNull();
+  test("a bid is in its head start for its first 7 days on Contrax (owner 2026-10-08: was 3)", () => {
+    expect(HEAD_START_HOURS).toBe(168);
+    expect(headStartUntil(new Date(NOW - 1 * HOUR).toISOString(), NOW)).toBe(new Date(NOW + 167 * HOUR).toISOString());
+    expect(headStartUntil(new Date(NOW - 167 * HOUR).toISOString(), NOW)).toBe(new Date(NOW + 1 * HOUR).toISOString());
+    expect(headStartUntil(new Date(NOW - 169 * HOUR).toISOString(), NOW)).toBeNull();
     expect(headStartUntil(null, NOW)).toBeNull();
     expect(headStartUntil("not a date", NOW)).toBeNull();
   });
 
   test("free viewers lose the source link during the head start; paid viewers never do", () => {
     const fresh = { id: 1, source_url: "https://example.gov/bid/1", created_at: new Date(NOW - 2 * HOUR).toISOString() };
-    const old = { ...fresh, created_at: new Date(NOW - 100 * HOUR).toISOString() };
+    const old = { ...fresh, created_at: new Date(NOW - 200 * HOUR).toISOString() };
     const locked = applyHeadStart(fresh, false, NOW);
     expect(locked.source_url).toBeNull();
-    expect(locked.head_start_until).toBe(new Date(NOW + 70 * HOUR).toISOString());
+    expect(locked.head_start_until).toBe(new Date(NOW + 166 * HOUR).toISOString());
     expect(applyHeadStart(fresh, true, NOW)).toEqual({ ...fresh, head_start_until: null });
     expect(applyHeadStart(old, false, NOW)).toEqual({ ...old, head_start_until: null });
   });

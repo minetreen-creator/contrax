@@ -6,6 +6,7 @@
  */
 
 import { digestBidsToList } from "./digest-recipients";
+import { HEAD_START_DAYS } from "./head-start";
 import { displayCompanyName, formatAwardAmount } from "./award-check";
 import { Resend } from "resend";
 
@@ -140,6 +141,8 @@ export async function sendPasswordResetEmail(
  * accepted; never throws.
  */
 export const WEEKLY_DIGEST_BATCH_SIZE = 100;
+/** Bids the free weekly email lists (owner 2026-10-08: top 5; the rest are on Starter). */
+export const WEEKLY_DIGEST_LIST_LIMIT = 5;
 
 export async function sendWeeklyBidDigest(
   recipients: { email: string; unsubscribeUrl: string }[],
@@ -153,7 +156,8 @@ export async function sendWeeklyBidDigest(
     console.warn("Cannot send weekly bid digest — RESEND_API_KEY not set");
     return 0;
   }
-  const listed = digestBidsToList(newBids);
+  // Owner 2026-10-08: the free weekly email lists only the top 5; the rest point to Starter.
+  const listed = digestBidsToList(newBids, WEEKLY_DIGEST_LIST_LIMIT);
   const subject = `Your weekly bid digest: ${newBids.length} new government bid${newBids.length === 1 ? "" : "s"} — Contrax`;
   let accepted = 0;
   for (let i = 0; i < recipients.length; i += WEEKLY_DIGEST_BATCH_SIZE) {
@@ -820,7 +824,7 @@ export function starterPriceHtml(spots: number | null | undefined): string {
 /** The free Basic plan's weekly variant: weekly wording, a Starter line and an unsubscribe link. */
 export interface WeeklyDigestHtmlOptions {
   unsubscribeUrl: string;
-  /** Open bids added in the last 72 hours, still in their paid head start (not listed). */
+  /** Open bids added in the last HEAD_START_DAYS days, still in their paid head start (not listed). */
   headStartCount?: number;
   /** Founding-member spots left (null/0 = show the regular Starter price). */
   foundingSpots?: number | null;
@@ -912,7 +916,7 @@ export function bidDigestHtml(
           <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">
             ${bidRows}
           </table>
-          ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.</p>` : ""}
+          ${moreCount > 0 ? `<p style="margin:12px 0 0;color:#374151;font-size:14px;text-align:center;">${weekly ? `<strong>+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Starter.</strong> <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;text-decoration:none;">See them all →</a>` : `+ ${moreCount} more new bid${moreCount === 1 ? "" : "s"} on Contrax.`}</p>` : ""}
         </td>
       </tr>
       <!-- CTA -->
@@ -937,7 +941,7 @@ export function bidDigestHtml(
       <tr>
         <td style="padding:0 32px 24px;text-align:center;">
           <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
-            ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last 3 days.</strong> Starter members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a 3-day head start.<br>` : ""}
+            ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last ${HEAD_START_DAYS} days.</strong> Starter members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a ${HEAD_START_DAYS}-day head start.<br>` : ""}
             You get this once a week on the free Basic plan. <strong>Starter</strong> sends every new bid at 6 AM Eastern, every morning, for ${starterPriceHtml(weekly.foundingSpots)}.
             <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;text-decoration:none;">${foundingOfferOpen(weekly.foundingSpots) ? "Claim a founding spot →" : "See Starter →"}</a>
           </p>

@@ -179,7 +179,7 @@ async function handler({ request }: { request: Request }) {
   // src/db/schema.sql — the old per-request `ALTER TABLE ... ADD COLUMN IF NOT
   // EXISTS` lazy-migration guards are removed (migration-only concern now).
   // Paid head start (src/lib/head-start.ts): without paid access, a bid's
-  // first 72 hours on Contrax show without its source link. The same flag
+  // head start (HEAD_START_HOURS) on Contrax show without its source link. The same flag
   // scopes a free account's matching to one state and one trade
   // (scopeProfileToPlan); the stored and returned profile is untouched.
   const paid = await hasPaidBidAccess(user);

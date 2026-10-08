@@ -96,7 +96,7 @@ import { headStartUntil } from "~/lib/head-start";
  * normal entitlement — they are never gated. The unlock CTA routes to the
  * EXISTING /signup for now (PR1; PR2 adds the server/session restore).
  * Consistent with the existing Professional paywalls: Basic is free forever
- * (up to 3 saved bids); AI match scoring is on Professional, and proposal
+ * (1 saved bid); AI match scoring is on Professional, and proposal
  * drafting is on Bid Scout.
  */
 
@@ -413,7 +413,7 @@ export type RadarMatch = {
   /** Contrax Learning ⚡ memory (PAID-ONLY, Professional+ — never Basic/Starter). */
   learned: PriorLossBadge | null;
   /** Paid head start (src/lib/head-start.ts): set when this viewer is not paid
-   *  and the bid is in its first 72 hours, in which case source_url is null. */
+   *  and the bid is in its head start (HEAD_START_HOURS), in which case source_url is null. */
   head_start_until?: string | null;
 };
 
@@ -857,7 +857,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         : a.due_date ? -1 : b.due_date ? 1 : 0,
     );
     // Paid head start (src/lib/head-start.ts): for a viewer without paid
-    // access, every returned card whose bid is in its first 72 hours loses its
+    // access, every returned card whose bid is in its head start loses its
     // source link here, on the server. `local`/`nationwide` hold the same
     // objects as `matches`, so one pass covers every section. A lookup failure
     // leaves the cards as they are (the scan must never fail on this).

@@ -1,0 +1,44 @@
+{
+ "responseHeader": {
+  "zkConnected": true,
+  "status": 0,
+  "QTime": 2,
+  "params": {
+   "q": "id:IV129024",
+   "fl": "*",
+   "rows": "1",
+   "wt": "json"
+  }
+ },
+ "response": {
+  "numFound": 1,
+  "start": 0,
+  "maxScore": 5.0013113,
+  "numFoundExact": true,
+  "docs": [
+   {
+    "externalid": "129024",
+    "internalid": "129024",
+    "version": "1",
+    "doccd": "IFB",
+    "doctype": "SO",
+    "agencyname": "Old Dominion University",
+    "id": "IV129024",
+    "app": "IV",
+    "shortdesc": "IFB #27-ODU-04-CCC - Hauling, Moving, and Labor Services",
+    "pubdate": "2026-10-05T16:27:11.250Z",
+    "closedate": "2026-10-16T11:00:00Z",
+    "workloc": "Both Main and Medical Campus",
+    "doccddesc": "Invitation for Bids (IFB)",
+    "agency": "A221ODU",
+    "docdeptcd": "A221ODU",
+    "status": "Open",
+    "category": "Non-professional Services - Non-Technology",
+    "longdesc": "Contractor(s) to furnish labor, materials, equipment, and supplies to Old Dominion University to provide hauling, moving, and labor services on an as needed basis as directed by Facilities Management or other using agencies. ",
+    "categoryshortdesc": "Non-Prof Serv",
+    "lastupdatedate": "2026-10-05T20:27:14Z",
+    "_version_": 1878242922087841792
+   }
+  ]
+ }
+}

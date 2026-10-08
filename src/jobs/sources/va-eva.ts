@@ -48,6 +48,33 @@
  * IDENTITY: `external_id = eva-<id>` (eVA's own unique Solr id, e.g.
  * "IV128951"). An amended solicitation keeps its id and bumps `version`, so the
  * upsert key (source, external_id) REFRESHES the row instead of duplicating it.
+ *
+ * ── OPEN-SET SCOPE: `app:IV` ONLY (2026-10-08, owner spec) ───────────────────
+ * The index carries TWO applications. `app:IV` (~44.7k docs) is the LIVE
+ * solicitation index; `app:VBO` (~106k docs) is the ARCHIVED legacy VBO, frozen
+ * in 2023 and never maintained — its `status` field still says "Open" on one
+ * 2022-era notice whose close date is 2026-08-01 (`VBO:IFQC:A208:170594`).
+ * A query on `status:Open` ALONE therefore spans both apps: measured on
+ * 2026-10-08, `status:Open` over the whole index = 575 while
+ * `app:IV AND status:Open` = 574 — the delta is exactly that one archived row.
+ * This connector queries `app:IV` explicitly (`EVA_OPEN_QUERY`) so an archived
+ * row can never be ingested as open. `status` is never trusted on its own.
+ *
+ * ── CLOSE-DATE TIME ZONE: AS PUBLISHED, UNVERIFIED (owner-flagged 2026-10-08) ─
+ * eVA states its deadlines in EASTERN time, but the values the Solr proxy serves
+ * carry a bare `Z` (e.g. `2026-10-16T11:00:00Z`) — i.e. the wire says UTC while
+ * the source publishes ET. Whether the stored value is a true UTC instant or an
+ * ET wall-clock mislabelled `Z` was NOT established by the 2026-10-08 probe, so
+ * — same class as the Bonfire `DateClose` zone flag, and by owner direction —
+ * this connector does NOT shift, convert or re-label it. `toIsoDueDate` reads the
+ * value exactly as the source states it (a bare `Z` is a real instant to the
+ * runtime) and `VA_EVA_COPY.timeZoneNote` discloses the open question wherever
+ * this source's rows are described. Countdown/"due in N days" labels for these
+ * rows are NOT settled: the surfaces that render a countdown (dashboard feed,
+ * tracking, map) derive it from `due_date` alone and their row payloads do not
+ * carry `source`, so a source-scoped suppression needs a data-plumbing change on
+ * those surfaces — deliberately NOT made here (no product-surface change in this
+ * PR). `VA_EVA_DUE_DATE_ZONE_UNVERIFIED` is the flag a future surface must read.
  */
 import { mapCategory } from "~/lib/trade-classification";
 import { resolveStateFromText } from "~/lib/location-state";
@@ -78,6 +105,82 @@ export const EVA_PAGE_SIZE = 100;
 /** Hard ceiling on pages per sync, so a cursor bug can never loop forever. */
 export const EVA_MAX_PAGES = 30;
 const EVA_PAGE_DELAY_MS = 300;
+
+/**
+ * The ONLY application this connector ingests. `app:VBO` (106k docs) is the
+ * archived legacy VBO, frozen in 2023, whose `status` field is unmaintained —
+ * ingesting it as "open" would be false (see the header). Never widen this.
+ */
+export const EVA_APP = "IV";
+
+/**
+ * The hard-coded open-set query (owner spec 2026-10-08). It is asserted verbatim
+ * in the live source-validation gate, so a silent loosening of the open set —
+ * e.g. dropping `closedate:[NOW TO *]` and re-admitting rows that already closed,
+ * or dropping `app:IV` and re-admitting the archived VBO row — turns that gate
+ * red instead of quietly changing what Contrax calls an open Virginia bid.
+ */
+export const EVA_OPEN_QUERY = `app:${EVA_APP} AND status:Open AND closedate:[NOW TO *]`;
+
+/**
+ * eVA's malformed-query signature: HTTP 200 with a tiny NON-JSON body (measured
+ * 5 bytes, five newlines, when a space is sent as `+` instead of `%20`). It is not
+ * an error status and not `numFound:0` — a naive reader would store zero rows and
+ * log success. Anything below this many bytes fails closed with the real reason.
+ */
+export const EVA_MIN_BODY_BYTES = 20;
+
+/**
+ * The due-date time zone is NOT settled for this source (owner-noted 2026-10-08):
+ * eVA publishes Eastern Time but serves a bare `Z`. Contrax stores the value as
+ * published and never converts it. A surface that renders a countdown ("due in
+ * N days") must read this flag and suppress the label for this source's rows
+ * until the question is settled against a detail page.
+ */
+export const VA_EVA_DUE_DATE_ZONE_UNVERIFIED = true;
+
+/**
+ * THE COPY (owner-honest wording; exported so a surface, an alert or a run record
+ * quotes the same sentence, and so a count line can only be built from numbers a
+ * REAL run produced). Verbatim source copy, no coverage claim.
+ */
+export const VA_EVA_COPY = {
+  publisherLine:
+    "Virginia state and local solicitations as published on eVA, the Commonwealth's procurement portal.",
+  /** The badge comes from `source-class.ts` (STATE → "State (VA)"); pinned here too. */
+  badge: "State (VA)",
+  openSetDefinition:
+    "Every open eVA solicitation whose close date has not passed is included — state agencies, public universities and authorities, and the Virginia localities that publish through eVA. Sole-source notices and the non-procurement categories (surplus, grant opportunity, real property) are excluded.",
+  buyerMixNote:
+    "eVA hosts solicitations for Virginia state agencies and public universities and authorities, and for Virginia cities, counties, towns, school divisions, transit and regional bodies that publish through it. The buying entity is shown exactly as the source states it; a locality's row is not a state-agency row.",
+  timeZoneNote:
+    "Close dates are shown as eVA publishes them. eVA states its deadlines in Eastern Time, but the values it serves carry a bare 'Z' marker, so the time zone is not settled: Contrax stores the value exactly as published, never shifted, and does not show a countdown for these rows.",
+  noClaimsLine:
+    "Contrax checks this source on a schedule, but does not warrant that every Virginia solicitation is listed. Always confirm details and deadlines at the official source.",
+} as const;
+
+/**
+ * The live-count honesty line. `count` MUST be the number of open rows a REAL run
+ * read; `asOf` is that run's own "last checked" stamp. Never hardcode a number
+ * beside this string.
+ */
+export function vaEvaCountLine(count: number, asOf: Date | string): string {
+  const stamped =
+    typeof asOf === "string"
+      ? asOf
+      : new Intl.DateTimeFormat("en-CA", {
+          timeZone: "America/New_York",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+          .format(asOf)
+          .replace(",", "");
+  return `eVA listed ${count} open Virginia solicitations · last checked by Contrax ${stamped} ET.`;
+}
 
 /** Categories that are not something a contractor bids to perform/supply. */
 const NON_PROCUREMENT_CATEGORIES = new Set(["surplus", "grant opportunity", "real property"]);
@@ -226,6 +329,14 @@ export function parseEvaDocs(docs: readonly EvaDoc[], now: number = Date.now()):
       recordSkip(result, rowId, "not_open");
       continue;
     }
+    // SCOPE, BELT-AND-BRACES: the query is `app:IV` (see the header), so an
+    // archived-app row should never arrive — but `app:VBO`'s `status` field is
+    // unmaintained and still reads "Open" on one 2022-era notice, so if the query
+    // is ever loosened the row is refused HERE too rather than stored as open.
+    if (doc.app && clean(doc.app).toUpperCase() !== EVA_APP) {
+      recordSkip(result, rowId, "wrong_app");
+      continue;
+    }
     if (NON_BIDDABLE_DOCCDS.has(clean(doc.doccd).toUpperCase())) {
       recordSkip(result, rowId, "sole_source");
       continue;
@@ -235,6 +346,11 @@ export function parseEvaDocs(docs: readonly EvaDoc[], now: number = Date.now()):
       continue;
     }
     const due = toIsoDueDate(doc.closedate ?? null);
+    // AS PUBLISHED, NEVER SHIFTED (owner flag 2026-10-08): eVA serves a bare `Z`
+    // on a source that publishes Eastern Time. `toIsoDueDate` is the runtime's
+    // own parse of exactly what the source said — no zone conversion, no
+    // inference — and the open question is disclosed in
+    // VA_EVA_COPY.timeZoneNote / VA_EVA_DUE_DATE_ZONE_UNVERIFIED.
     if (due && Date.parse(due) < now) {
       recordSkip(result, rowId, "closed");
       continue;
@@ -270,12 +386,19 @@ export function parseEvaDocs(docs: readonly EvaDoc[], now: number = Date.now()):
   return result;
 }
 
-/** The Solr query string for one page — the same query eVA's page sends. */
+/**
+ * The Solr query string for one page. `q` is the hard-coded open-set query
+ * (`EVA_OPEN_QUERY`, `app:IV` scoped — see the header); paging is the Solr
+ * CURSOR (`cursorMark`, sorted on a unique final key) rather than a numeric
+ * `start` offset, because eVA's index is written continuously — an offset into a
+ * shifting result set can skip or repeat rows between requests, while a cursor
+ * cannot. Every space is percent-encoded by `encodeURIComponent` (a literal `+`
+ * makes eVA answer HTTP 200 with a 5-byte body — see `EVA_MIN_BODY_BYTES`).
+ */
 export function evaQueryUrl(cursorMark: string, rows: number = EVA_PAGE_SIZE): string {
   const params = [
-    "q=*:*",
-    `fq=${encodeURIComponent('status:("Open")')}`,
-    `sort=${encodeURIComponent("pubdate desc,id desc")}`,
+    `q=${encodeURIComponent(EVA_OPEN_QUERY)}`,
+    `sort=${encodeURIComponent("closedate asc,id asc")}`,
     `rows=${rows}`,
     "wt=json",
     `cursorMark=${encodeURIComponent(cursorMark)}`,
@@ -306,6 +429,15 @@ async function fetchPage(url: string): Promise<EvaSolrResponse> {
     throw new SourceUnreachableError("va_eva", [detail]);
   }
   const text = await resp.text();
+  // THE MEASURED TRAP: a malformed query (e.g. a space sent as `+`) is answered
+  // with HTTP 200 and a 5-byte body of newlines — not an error status, not
+  // `numFound:0`. Fail closed with the real reason rather than reading it as an
+  // empty board. Checked before JSON.parse so the log line says what happened.
+  if (text.length < EVA_MIN_BODY_BYTES) {
+    const detail = `response body too small to be a Solr result (${text.length} bytes, expected >= ${EVA_MIN_BODY_BYTES}) — eVA's malformed-query signature`;
+    console.error(`  va_eva: ${detail}`);
+    throw new SourceUnreachableError("va_eva", [detail]);
+  }
   let body: EvaSolrResponse;
   try {
     body = JSON.parse(text);
@@ -326,20 +458,48 @@ async function fetchPage(url: string): Promise<EvaSolrResponse> {
  * Fetch every open eVA opportunity (cursor-paged) and return ingest rows. Any
  * HTTP/network/shape failure throws `SourceUnreachableError`, which the runner
  * records per source (DEAD tier) without aborting the sync.
+ *
+ * TWO FAIL-CLOSED GATES on the read itself (owner spec 2026-10-08), because a
+ * partial or misread page must never be written as "the open Virginia set":
+ *   ① `numFound` is 0 or absent. `EVA_OPEN_QUERY` is a query eVA always has rows
+ *      for (~574 on 2026-10-08); a zero total means the proxy or the query
+ *      changed, not that Virginia has no open work.
+ *   ② the documents actually read do NOT equal the total the source reported
+ *      (`numFound`). This is the anti-churn count gate: it catches a truncated
+ *      read (cursor stopped early), a `rows` cap, and a silently altered open
+ *      set, all of which would otherwise be stored as a smaller-but-plausible
+ *      corpus. `numFound` is taken from the FIRST page and re-checked on later
+ *      pages; a later page disagreeing with it is itself a shape failure.
  */
 export async function fetchVaEvaBids(now: number = Date.now()): Promise<FetchResult> {
   const docs: EvaDoc[] = [];
   let cursor = "*";
-  let numFound = 0;
+  let numFound: number | null = null;
   for (let page = 0; page < EVA_MAX_PAGES; page++) {
     const body = await fetchPage(evaQueryUrl(cursor));
     const pageDocs = body.response!.docs!;
-    numFound = body.response?.numFound ?? numFound;
+    const pageTotal = body.response?.numFound;
+    if (numFound === null && typeof pageTotal === "number") numFound = pageTotal;
+    if (typeof pageTotal === "number" && numFound !== null && pageTotal !== numFound) {
+      const detail = `count gate: page ${page + 1} reports numFound=${pageTotal} but page 1 reported ${numFound} — the open set moved mid-read`;
+      console.error(`  va_eva: ${detail}`);
+      throw new SourceUnreachableError("va_eva", [detail]);
+    }
     docs.push(...pageDocs);
     const next = body.nextCursorMark;
     if (!next || next === cursor || pageDocs.length === 0) break;
     cursor = next;
     await sleep(EVA_PAGE_DELAY_MS);
+  }
+  if (!numFound) {
+    const detail = `count gate: the open-set query reported numFound=${numFound ?? "absent"} — expected a positive total`;
+    console.error(`  va_eva: ${detail}`);
+    throw new SourceUnreachableError("va_eva", [detail]);
+  }
+  if (docs.length !== numFound) {
+    const detail = `count gate: read ${docs.length} documents but the source reported numFound=${numFound} — refusing a partial open set`;
+    console.error(`  va_eva: ${detail}`);
+    throw new SourceUnreachableError("va_eva", [detail]);
   }
   const { rows, skipped, skippedRows } = parseEvaDocs(docs, now);
   console.log(

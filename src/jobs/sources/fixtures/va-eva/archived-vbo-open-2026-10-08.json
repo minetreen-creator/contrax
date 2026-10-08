@@ -1,0 +1,30 @@
+{
+ "responseHeader": {
+  "zkConnected": true,
+  "status": 0,
+  "QTime": 3,
+  "params": {
+   "q": "app:VBO AND status:Open",
+   "fl": "id,app,agencyname,shortdesc,closedate,status,doctype",
+   "rows": "3",
+   "wt": "json"
+  }
+ },
+ "response": {
+  "numFound": 1,
+  "start": 0,
+  "maxScore": 3.5903819,
+  "numFoundExact": true,
+  "docs": [
+   {
+    "app": "VBO",
+    "doctype": "SO",
+    "closedate": "2026-08-01T14:15:00Z",
+    "shortdesc": "A/E Services for Small Projects",
+    "id": "VBO:IFQC:A208:170594",
+    "agencyname": "Virginia Polytechnic Institute and State University",
+    "status": "Open"
+   }
+  ]
+ }
+}

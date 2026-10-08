@@ -69,6 +69,7 @@ import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
 import { fetchAlAldotBids } from "./sources/al-aldot";
+import { fetchAkDotpfBids } from "./sources/ak-dotpf";
 import { fetchDeMmpBids } from "./sources/de-mmp";
 import { fetchScScboBids } from "./sources/sc-scbo";
 import { fetchIaDasBids } from "./sources/ia-das";
@@ -294,6 +295,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "ky_louisville_bonfire", fetchFn: fetchLouisvilleBonfireBids },
   // Alabama DOT road and bridge lettings (Alabama Buys is behind a reCAPTCHA).
   { name: "al_aldot", fetchFn: () => fetchAlAldotBids() },
+  // Alaska DOT&PF construction bid calendar (Online Public Notices is behind bot protection).
+  { name: "ak_dotpf", fetchFn: () => fetchAkDotpfBids() },
   // Delaware Bid Solicitation Directory: open state and school solicitations.
   { name: "de_mmp", fetchFn: () => fetchDeMmpBids() },
   // South Carolina Business Opportunities: state and local public bids.

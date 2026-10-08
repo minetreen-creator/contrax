@@ -196,6 +196,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   ky_vss: { class: "state", scopeState: "KY", searchScope: "state-portal", recordType: "opportunity" },
   al_birmingham_purchasing: { class: "local", city: "Birmingham", scopeState: "AL", searchScope: "city-open-data", recordType: "opportunity" },
   al_aldot: { class: "state", scopeState: "AL", searchScope: "state-portal", recordType: "opportunity" },
+  ak_dotpf: { class: "state", scopeState: "AK", searchScope: "state-portal", recordType: "opportunity" },
   de_mmp: { class: "state", scopeState: "DE", searchScope: "state-portal", recordType: "opportunity" },
   sc_scbo: { class: "state", scopeState: "SC", searchScope: "state-portal", recordType: "opportunity" },
   ia_das: { class: "state", scopeState: "IA", searchScope: "state-portal", recordType: "opportunity" },

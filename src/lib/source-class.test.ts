@@ -61,8 +61,8 @@ const prePr1IsStateLocal = (sources: string[]) =>
   sources.some((s) => !PRE_PR1_FEDERAL.has(String(s).toLowerCase().trim()));
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
-  test("131 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS, Utah U3P, Mississippi DFA, three Minnesota (MnDOT, eAdvert, Admin QuestCDN), Oklahoma OMES, Kansas, New Mexico eProNM, Idaho (IPRO, ITD), Wisconsin VendorNet, the two Texas Bonfire tenants (TxDOT, UT Tyler) the four Texas university JAGGAER tenants (UH, TAMU, Texas Tech, UTSA) and Rhode Island (OSP, external board) classifications, the four Virginia locality CivicEngage boards and the two Virginia locality Bonfire portals (Fairfax County, City of Alexandria)", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(145);
+  test("132 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Alaska DOT&PF lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS, Utah U3P, Mississippi DFA, three Minnesota (MnDOT, eAdvert, Admin QuestCDN), Oklahoma OMES, Kansas, New Mexico eProNM, Idaho (IPRO, ITD), Wisconsin VendorNet, the two Texas Bonfire tenants (TxDOT, UT Tyler) the four Texas university JAGGAER tenants (UH, TAMU, Texas Tech, UTSA) and Rhode Island (OSP, external board) classifications, the four Virginia locality CivicEngage boards and the two Virginia locality Bonfire portals (Fairfax County, City of Alexandria)", () => {
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(146);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -102,8 +102,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // tx_txdot_bonfire + tx_uttyler_bonfire (Texas Bonfire tenants, batch 3a) and the
     // four Texas university JAGGAER tenants (batch 3b), ri_osp and ri_external (Rhode Island),
     // the four Virginia locality CivicEngage boards and the two Virginia locality Bonfire
-    // portals (Fairfax County, City of Alexandria) — 2026-10-08.
-    expect(TAIL_SOURCES.length).toBe(69);
+    // portals (Fairfax County, City of Alexandria) — 2026-10-08, and ak_dotpf
+    // (Alaska DOT&PF construction bid calendar) — 2026-10-08.
+    expect(TAIL_SOURCES.length).toBe(70);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {
@@ -284,7 +285,7 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
 });
 
  test("NC and Maryland public imports retain state provenance and separate awards", () => {
- for (const [source,state] of [["ri_osp","RI"],["ri_external","RI"],["az_app","AZ"],["wa_webs","WA"],["ut_bonfire","UT"],["ms_dfa","MS"],["mn_mndot","MN"],["mn_connex","MN"],["mn_questcdn","MN"],["ok_omes","OK"],["ks_sok","KS"],["nm_epronm","NM"],["id_ipro","ID"],["id_itd","ID"],["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"],["wv_oasis","WV"],["ky_vss","KY"],["al_aldot","AL"],["de_mmp","DE"],["sc_scbo","SC"],["ia_das","IA"],["la_lapac","LA"],["in_idoa","IN"],["mt_emacs","MT"],["vt_vbr","VT"],["tn_cpo","TN"],["ne_das","NE"]]) {
+ for (const [source,state] of [["ri_osp","RI"],["ri_external","RI"],["az_app","AZ"],["wa_webs","WA"],["ut_bonfire","UT"],["ms_dfa","MS"],["mn_mndot","MN"],["mn_connex","MN"],["mn_questcdn","MN"],["ok_omes","OK"],["ks_sok","KS"],["nm_epronm","NM"],["id_ipro","ID"],["id_itd","ID"],["nc_evp","NC"],["md_emma","MD"],["md_emma_awards","MD"],["va_eva","VA"],["tx_esbd","TX"],["fl_mfmp","FL"],["ca_eprocure","CA"],["pa_dgs_emarketplace","PA"],["co_vss","CO"],["oh_odot","OH"],["ny_nyscr","NY"],["mi_sigma","MI"],["ma_commbuys","MA"],["nj_njstart","NJ"],["il_bidbuy","IL"],["or_oregonbuys","OR"],["nv_nevadaepro","NV"],["ar_arbuy","AR"],["ga_gpr","GA"],["wv_oasis","WV"],["ky_vss","KY"],["al_aldot","AL"],["ak_dotpf","AK"],["de_mmp","DE"],["sc_scbo","SC"],["ia_das","IA"],["la_lapac","LA"],["in_idoa","IN"],["mt_emacs","MT"],["vt_vbr","VT"],["tn_cpo","TN"],["ne_das","NE"]]) {
  expect(resolveSourceClass(source)).toBe("state");
  expect(SOURCE_CLASSES[source]!.scopeState).toBe(state);
  }

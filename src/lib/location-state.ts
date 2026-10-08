@@ -954,6 +954,8 @@ export function displayPlaceOfPerformance(
  *                    Commonwealth agency.
  *    al_aldot      → Alabama Department of Transportation lettings; the buyer
  *                    is ALDOT itself.
+ *    ak_dotpf      → Alaska DOT&PF construction bid calendar; the buyer is
+ *                    DOT&PF itself.
  *    de_mmp        → Delaware Bid Solicitation Directory; every buyer is a
  *                    Delaware state agency, school district or college.
  *    sc_scbo       → South Carolina Business Opportunities; every advertiser
@@ -1048,6 +1050,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   wv_oasis: "WV",
   ky_vss: "KY",
   al_aldot: "AL",
+  ak_dotpf: "AK",
   al_birmingham_purchasing: "AL",
   de_mmp: "DE",
   sc_scbo: "SC",

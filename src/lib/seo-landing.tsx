@@ -17,6 +17,10 @@ import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import { setAsidePred } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+// Raw close-date render gate (owner ruling 2026-10-08): a zone-unverified
+// source's stored instant is the published Eastern wall-clock read as UTC, so
+// "Closes …" must be rendered in UTC, not the reader's zone.
+import { publishedDateOnlyFor } from "~/lib/deadline-label";
 // S2 NOTICE IDENTITY + D15/Q8 AWARD-EXCLUSION SWEEP (owner-approved 2026-09-23):
 // every SEO surface collapses with the canonical notice key Radar uses, and the
 // state-landing aggregate — the one surface the metrics harness measured still
@@ -110,6 +114,9 @@ export interface SeoBid {
   location: string | null;
   set_aside: string | null;
   source_url: string | null;
+  /** Raw `bids.source` — read ONLY by `BidCard`'s raw-date render gate
+   *  (`publishedDateOnlyFor`). NULL/unknown ⇒ existing render, unchanged. */
+  source: string | null;
   /** Paid head start (src/lib/head-start.ts): these public pages always show
    *  the free view, so a bid's first 72 hours appear without its source link. */
   head_start_until: string | null;
@@ -127,6 +134,7 @@ function mapSeoBid(r: any): SeoBid {
     location: r.location ? String(r.location) : null,
     set_aside: r.set_aside ? String(r.set_aside) : null,
     source_url: r.source_url ? String(r.source_url) : null,
+    source: r.source ? String(r.source) : null,
     created_at: r.created_at ?? null,
   }, false);
 }
@@ -159,11 +167,11 @@ export const getCertHubData = createServerFn({ method: "GET" })
         count = Number((c as any)[0]?.n ?? 0);
         const rows = await sql()`
           SELECT id, title, agency, description, due_date, estimated_value,
-                 naics_code, location, set_aside, source_url, created_at
+                 naics_code, location, set_aside, source_url, source, created_at
           FROM (
             SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
                    id, title, agency, description, due_date, estimated_value,
-                   naics_code, location, set_aside, source_url, created_at
+                   naics_code, location, set_aside, source_url, source, created_at
             FROM bids
             WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)} ${certPred(def.slug, sql)}
               AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
@@ -298,11 +306,11 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
       try {
         const rows = await sql()`
           SELECT id, title, agency, description, due_date, estimated_value,
-                 naics_code, location, set_aside, source_url, created_at
+                 naics_code, location, set_aside, source_url, source, created_at
           FROM (
             SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
                    id, title, agency, description, due_date, estimated_value,
-                   naics_code, location, set_aside, source_url, created_at
+                   naics_code, location, set_aside, source_url, source, created_at
             FROM bids
             WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)}
               AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
@@ -587,7 +595,11 @@ export { formatCompactMoney };
 
 /** One real bid card. Links the real SAM.gov source_url; never fabricates a match %. */
 export function BidCard({ b }: { b: SeoBid }) {
-  const due = fmtDue(b.due_date);
+  // Raw-date gate (owner ruling 2026-10-08): a countdown-suppressed source's
+  // close date is the published Eastern wall-clock read as UTC — render it in
+  // UTC so a US browser cannot show the day before. Every other source keeps
+  // `fmtDue`'s existing output, byte for byte.
+  const due = publishedDateOnlyFor(b.due_date, b.source) ?? fmtDue(b.due_date);
   const reviewHref = bidFitReviewHref(b);
   const title = (
     <span className="line-clamp-2 text-base font-semibold text-slate-900">

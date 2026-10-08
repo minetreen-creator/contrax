@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { trackEvent } from "~/lib/track";
+// Raw close-date render gate (owner ruling 2026-10-08): a zone-unverified
+// source's stored instant is the published Eastern wall-clock read as UTC.
+import { publishedDateOnlyFor } from "~/lib/deadline-label";
 
 /**
  * SavedRadarMatches — in-app (NOT email) fulfillment of the anonymous Contract
@@ -44,6 +47,9 @@ type SavedRadarData = {
     source_url: string | null;
     score: number;
     score_label: string;
+    /** Raw `bids.source` (carried through the Radar scan payload) — read ONLY
+     *  by the raw-date render gate. NULL/unknown ⇒ existing render, unchanged. */
+    source?: string | null;
   }>;
   total: number;
 };
@@ -198,7 +204,9 @@ export function SavedRadarMatches() {
                     <p className="mt-0.5 text-xs text-slate-500">
                       {m.agency ? `${m.agency} · ` : ""}
                       {m.set_aside ? `${m.set_aside} · ` : ""}
-                      {m.due_date ? `Due ${fmtDate(m.due_date)}` : "Due date not stated"}
+                      {m.due_date
+                        ? `Due ${publishedDateOnlyFor(m.due_date, m.source) ?? fmtDate(m.due_date)}`
+                        : "Due date not stated"}
                     </p>
                   </div>
                   {m.score != null && (

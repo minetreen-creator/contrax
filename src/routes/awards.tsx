@@ -21,6 +21,10 @@ import { checkTrialCap, consumeTrial } from "~/lib/trial-usage";
 // exhausted, never merely because the detail panel expanded.
 import { ATTEMPT_EVENT_FOR_ACTION, GATE_ATTEMPT_LABEL, gatePrompt } from "~/lib/plan-gates";
 import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
+// Raw close-date render gate (owner ruling 2026-10-08): a zone-unverified
+// source's stored instant is the published Eastern wall-clock read as UTC, so
+// its date must be rendered in UTC or a US browser shows the day before.
+import { publishedDateOnlyFor } from "~/lib/deadline-label";
 
 // Milestone Grant — logged-out visitors accumulate a cross-tab counter of
 // teased incumbent-intel card views (localStorage); when the counter reaches
@@ -38,6 +42,9 @@ interface Award {
 interface SimilarBid {
   id: number; title: string; agency: string; due_date: string;
   estimated_value: string; category: string;
+  /** Raw `bids.source` — read ONLY by the raw-date render gate
+   *  (`publishedDateOnlyFor`). NULL/unknown ⇒ existing render, unchanged. */
+  source: string | null;
 }
 
 const SEED_AWARDS = [
@@ -176,12 +183,13 @@ const getAwardsData = createServerFn({ method: "GET" })
     if (!cat) { similarBids[award.id] = []; continue; }
     const parts = loc ? loc.split(",")[0].trim() : "";
     const bidRows = parts
-      ? await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT 5`
-      : await sql()`SELECT id, title, agency, due_date, estimated_value, category FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
+      ? await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND (category ILIKE ${"%" + cat + "%"} OR location ILIKE ${"%" + parts + "%"}) ORDER BY due_date ASC NULLS LAST LIMIT 5`
+      : await sql()`SELECT id, title, agency, due_date, estimated_value, category, source FROM bids WHERE id <> ${award.id} AND ${sql().unsafe(LOW_CONTENT_SQL)} AND due_date > NOW() AND ${sql().unsafe(AWARD_EXCLUSION_SQL)} AND category ILIKE ${"%" + cat + "%"} ORDER BY due_date ASC NULLS LAST LIMIT 5`;
     similarBids[award.id] = (bidRows as any[]).map((b) => ({
       id: Number(b.id), title: b.title, agency: b.agency,
       due_date: b.due_date ? (toISODate(b.due_date) || "Not specified") : "Not specified",
       estimated_value: b.estimated_value || "Not specified", category: b.category || "",
+      source: b.source ? String(b.source) : null,
     }));
   }
   return { awards, similarBids };
@@ -723,7 +731,7 @@ function AwardsPage() {
                             >
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm font-medium text-slate-800 truncate">{bid.title}</p>
-                                <p className="text-xs text-slate-500">{bid.agency} · Due {fmtDate(bid.due_date)}</p>
+                                <p className="text-xs text-slate-500">{bid.agency} · Due {publishedDateOnlyFor(bid.due_date, bid.source) ?? fmtDate(bid.due_date)}</p>
                               </div>
                               <div className="ml-3 shrink-0 text-right">
                                 <span className="text-sm font-semibold text-green-700">{bid.estimated_value}</span>

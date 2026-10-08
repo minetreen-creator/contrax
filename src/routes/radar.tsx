@@ -390,6 +390,14 @@ export type RadarMatch = {
   set_aside_label: string | null;
   naics_code: string | null;
   source_url: string | null;
+  /**
+   * Raw `bids.source` provenance, carried through the payload so a CONSUMER of
+   * the scan can apply the same raw-date policy the card applies
+   * (`/api/saved-radar-matches` -> SavedRadarMatches' "Due ..." line, owner
+   * ruling 2026-10-08). Read ONLY by that render gate: `computeMatch` never
+   * sees it, so the closing-soon SCORE is untouched.
+   */
+  source: string | null;
   estimated_value: string | null;
   estimated_value_num: number | null;
   due_date: string | null; days_remaining: number | null;
@@ -668,6 +676,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         set_aside_label: setAsideCardLabel(bid.set_aside),
         naics_code: bid.naics_code,
         source_url: bid.source_url, estimated_value: bid.estimated_value,
+        source: bid.source,
         estimated_value_num: parseValue(bid.estimated_value),
         due_date: bid.due_date, days_remaining: suppressedDays(bid),
         score, score_label: scoreLabel,
@@ -796,6 +805,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         set_aside_label: setAsideCardLabel(bid.set_aside),
         naics_code: bid.naics_code,
         source_url: bid.source_url, estimated_value: bid.estimated_value,
+        source: bid.source,
         estimated_value_num: parseValue(bid.estimated_value),
         due_date: bid.due_date, days_remaining: suppressedDays(bid),
         score, score_label: scoreLabel,
@@ -828,6 +838,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         set_aside_label: setAsideCardLabel(bid.set_aside),
         naics_code: bid.naics_code,
         source_url: bid.source_url, estimated_value: bid.estimated_value,
+        source: bid.source,
         estimated_value_num: parseValue(bid.estimated_value),
         due_date: bid.due_date, days_remaining: suppressedDays(bid),
         score: w.score, score_label: w.scoreLabel,

@@ -300,8 +300,14 @@ jobs:
       # helper suite also derives the flag-bearing connector set from src/jobs + runner.ts,
       # so a future connector that mints a *_DUE_DATE_ZONE_UNVERIFIED flag but forgets
       # src/lib/deadline-label.ts turns THIS step red.
-      - name: Deadline-label countdown suppression + ICS alarm suppression tests (unit, deterministic, zero network)
-        run: bun test src/lib/deadline-label.test.ts src/lib/calendar-feed-suppression.test.ts
+      # The same step runs the RAW-DATE render gate suite (owner follow-up, 2026-10-08):
+      # the six surfaces that print a bid's close date VERBATIM must render a flagged
+      # source's date in UTC ("Oct 15", not the reader-shifted "Oct 14"), and every
+      # unflagged/NULL source must keep its existing output byte-for-byte. In-process
+      # react-dom/server renders of the real components + literal/source pins:
+      # deterministic, network-free, no DATABASE_URL, no clock.
+      - name: Deadline-label countdown + ICS alarm + raw published-date render tests (unit, deterministic, zero network)
+        run: bun test src/lib/deadline-label.test.ts src/lib/calendar-feed-suppression.test.ts tests/deadline-label-raw-render.test.tsx
       # Virginia locality BONFIRE portals (va_fairfax_bonfire · va_alexandria_bonfire —
       # owner green-light 2026-10-08, dispatch B), built as TWO config entries on the
       # EXISTING shared Bonfire reader (bonfire-public.ts) that the Utah, Texas and

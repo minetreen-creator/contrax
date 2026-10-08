@@ -66,7 +66,8 @@ const EXPECTED = [
     title: "Durant Roof Replacement",
     dept: "34 - General Services",
     utc: "2026-10-21T18:00:00.000Z",
-    cat: "Other",
+    // Roof replacement is building work (owner 2026-10-08 Georgia label fix).
+    cat: "Construction",
   },
   {
     id: "251367",

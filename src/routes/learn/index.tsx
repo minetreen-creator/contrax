@@ -69,6 +69,15 @@ function LearnPage() {
         <a href="/learn/government-contracting" className="shrink-0 rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400">Take the course →</a>
       </div>
     </section>
+    <section className="mx-auto max-w-7xl px-6 pb-10">
+      <div className="flex flex-col gap-5 rounded-2xl border border-blue-200 bg-blue-50 p-6 sm:flex-row sm:items-center sm:justify-between">
+        <div><p className="text-xs font-bold uppercase tracking-wide text-blue-700">New · Free intermediate course · 45 minutes</p>
+          <h2 className="mt-2 text-2xl font-bold text-slate-900">Preparing a Government Contract Bid</h2>
+          <p className="mt-2 max-w-2xl text-sm text-slate-700">Six practical lessons for all trades: evaluate an opportunity, build a checklist, price your work, prepare evidence, submit, and follow up. Includes quizzes, a downloadable bid plan, and a completion certificate.</p>
+        </div>
+        <a href="/learn/intermediate-government-contracting" className="shrink-0 rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">Start the intermediate course →</a>
+      </div>
+    </section>
     <section className="bg-white py-14">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">

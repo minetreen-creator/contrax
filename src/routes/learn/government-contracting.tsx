@@ -164,6 +164,11 @@ function CoursePage() {
 
       <section className="mx-auto max-w-2xl px-4 pb-16">
         {allDone ? <Complete key={search.state} initialState={search.state} trade={search.trade} /> : <p className="text-center text-sm text-slate-500">Finish all {LESSONS.length} lessons to get your certificate.</p>}
+        <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+          <p className="font-bold text-slate-900">Ready for the next step?</p>
+          <p className="mt-2 text-sm text-slate-700">Build a compliance checklist, price your work, and prepare your response in our free intermediate course for all trades.</p>
+          <a href="/learn/intermediate-government-contracting" className="mt-3 inline-block font-semibold text-blue-700 underline">Preparing a Government Contract Bid →</a>
+        </div>
       </section>
     </main>
   );

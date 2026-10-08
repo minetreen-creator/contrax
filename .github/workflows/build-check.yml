@@ -474,6 +474,9 @@ jobs:
       # src/lib/subcontracts` is what makes this suite visible in the CI step list.
       - name: Subcontracting preview data layer tests (unit, deterministic, zero network)
         run: bun test src/lib/subcontracts
+      - name: Free course progression and certificate identity tests
+        run: bun test src/lib/course-construction.test.ts src/lib/course-intermediate.test.ts
+
       # PLAN GATES (owner gating map 2026-09-26, funnel PR-B): the attempt-only
       # gate contract — the map/copy/predicates, the five standalone gated-attempt
       # events, the CSV export engine, the render-level ATTEMPT-only proofs and

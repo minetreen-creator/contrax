@@ -68,6 +68,7 @@ import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
 import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
+import { fetchBirminghamBids } from "./sources/al-birmingham";
 import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchAkDotpfBids } from "./sources/ak-dotpf";
 import { fetchDeMmpBids } from "./sources/de-mmp";
@@ -294,6 +295,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "ky_vss", fetchFn: () => fetchKyVssBids() },
   { name: "ky_louisville_bonfire", fetchFn: fetchLouisvilleBonfireBids },
   // Alabama DOT road and bridge lettings (Alabama Buys is behind a reCAPTCHA).
+  { name: "al_birmingham_purchasing", fetchFn: fetchBirminghamBids },
   { name: "al_aldot", fetchFn: () => fetchAlAldotBids() },
   // Alaska DOT&PF construction bid calendar (Online Public Notices is behind bot protection).
   { name: "ak_dotpf", fetchFn: () => fetchAkDotpfBids() },

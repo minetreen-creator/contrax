@@ -1051,6 +1051,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ky_vss: "KY",
   al_aldot: "AL",
   ak_dotpf: "AK",
+  al_birmingham_purchasing: "AL",
   de_mmp: "DE",
   sc_scbo: "SC",
   ia_das: "IA",

@@ -1,0 +1,72 @@
+{
+  "props": {
+    "pageProps": {
+      "nodeResource": {
+        "__typename": "NodeBasicPage",
+        "id": "853",
+        "siteSlug": "www",
+        "shortTitle": null,
+        "path": "/work/bidding-opportunities",
+        "title": "Bidding Opportunities",
+        "status": true,
+        "summary": "See current bidding and proposal opportunities from the Purchasing Division.",
+        "displayChatbot": false,
+        "password": null,
+        "pageLogo": null,
+        "content": [
+          {
+            "__typename": "ParagraphRichText",
+            "id": "378",
+            "title": null,
+            "callOutBox": false,
+            "responsiveTables": false,
+            "body": {
+              "processed": "<div>\n<div>\n<div>\n<div>\n<div>\n<div>\n<div>\n<div>\n<p>The City of Birmingham is currently accepting sealed bids for the following project(s) in accordance with established procurement guidelines. &nbsp;All questions should be directed to the Purchasing Department at <a href=\"tel:+12052542265\">(205) 254-2265</a>.</p>\n<p>&nbsp;</p>\n</div>\n</div>\n</div>\n</div>\n</div>\n</div>\n<h4>Would you like your business to be included on the City\u2019s bid list?</h4>\n<p><a class=\"button button-primary\" href=\"/supplier-registration-purchasing\" data-entity-type=\"node\" data-entity-uuid=\"e5a811d5-2ef1-4c61-b9e5-00a75141873e\" data-entity-substitution=\"canonical\" title=\"Supplier Registration - Purchasing\">Complete Your New Supplier Registration</a></p>\n<hr></div>\n</div>\n"
+            }
+          },
+          {
+            "__typename": "ParagraphRichText",
+            "id": "7304",
+            "title": "BID #27-08 \"ASBESTOS ABATEMENT\"",
+            "callOutBox": false,
+            "responsiveTables": false,
+            "body": {
+              "processed": "</div><div class=\"\"><p>The City of Birmingham, Alabama, is accepting sealed bids for &quot;BID #27-08 ASBESTOS ABATEMENT&quot;.</p><p>Download a copy of the bid here:</p><div class=\"bs_grid ck-widget\"><div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\"><div class=\"col-3 md:col-start-1\"><p>BID #27-08</p></div><div class=\"col-9 md:col-start-2 md:col-span-2\">\n\n<a class=\"font-medium font-body text-xl text-center inline-block tracking-[0.5px]  py-2 px-4 bg-secondary-1 text-white border-2 border-secondary-1 hover:bg-secondary-2 hover:shadow-md hover:border-secondary-2 dark:text-coolGray-10 dark:hover:text-white document-btn mb-4\" tabindex=\"0\" target=\"_blank\" aria-label=\"27-08 Asbestos Abatement-signed.pdf\" href=\"/archival-document?document=https://s3.us-east-2.amazonaws.com/assets.birminghamal.gov/s3fs-public/2026-09/27-08%20Asbestos%20Abatement-signed.pdf&amp;ad=aHR0cHM6Ly9zMy51cy1lYXN0LTIuYW1hem9uYXdzLmNvbS9hc3NldHMuYmlybWluZ2hhbWFsLmdvdi9zM2ZzLXB1YmxpYy8yMDI2LTA5LzI3LTA4JTIwQXNiZXN0b3MlMjBBYmF0ZW1lbnQtc2lnbmVkLnBkZg==&amp;title=27-08%20Asbestos%20Abatement-signed.pdf\"><i class=\"fa-box-archive fa-regular pr-2\"></i>27-08 Asbestos Abatement-signed.pdf</a>\n</div>\n</div>\n</div>\n<p>\u00a0</p>\n<p>\u00a0</p>\n<div class=\"bs_grid ck-widget\">\n<div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\">\n<div class=\"col-3 md:col-start-1\">\n<p class=\"text-align-right\"><strong>Issued by:</strong></p>\n</div>\n<div class=\"col-9 md:col-start-2 md:col-span-2\">\n<p>City of Birmingham</p>\n</div>\n</div>\n</div>\n<div class=\"bs_grid ck-widget\">\n<div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\">\n<div class=\"col-3 md:col-start-1\">\n<p class=\"text-align-right\"><strong>Bid Release Date:</strong></p>\n</div>\n<div class=\"col-9 md:col-start-2 md:col-span-2\">\n<p>Wednesday, September 23, 2026</p>\n</div>\n</div>\n</div>\n<div class=\"bs_grid ck-widget\">\n<div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\">\n<div class=\"col-3 md:col-start-1\">\n<p class=\"text-align-right\"><strong>Bids Due:</strong></p>\n</div>\n<div class=\"col-9 md:col-start-2 md:col-span-2\">\n<p>Tuesday, October 13, 2026, by 5:00 p.m. CST</p>\n<p><br/>Please submit all bids to:<br/><strong>Purchasing Division</strong><br/><strong>710 North 20th Street</strong><br/><strong>P-100 City Hall</strong><br/><strong>Birmingham, AL 35203-2227</strong></p>\n</div>\n</div>\n</div>\n<div class=\"bs_grid ck-widget\">\n<div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\">\n<div class=\"col-3 md:col-start-1\">\n<p class=\"text-align-right\">"
+            }
+          },
+          {
+            "__typename": "ParagraphRichText",
+            "id": "7345",
+            "title": "BID #27-11 \"FIREFIGHTER TURNOUT GEAR\"",
+            "callOutBox": false,
+            "responsiveTables": false,
+            "body": {
+              "processed": "</div><div class=\"\"><p>The City of Birmingham, Alabama, is accepting sealed bids for &quot;BID #27-11 FIREFIGHTER TURNOUT GEAR&quot;.</p><p>Download a copy of the bid here:</p><div class=\"bs_grid ck-widget\"><div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\"><div class=\"col-3 md:col-start-1\"><p>BID #27-11</p></div><div class=\"col-9 md:col-start-2 md:col-span-2\">\n\n<a class=\"font-medium font-body text-xl text-center inline-block tracking-[0.5px]  py-2 px-4 bg-secondary-1 text-white border-2 border-secondary-1 hover:bg-secondary-2 hover:shadow-md hover:border-secondary-2 dark:text-coolGray-10 dark:hover:text-white document-btn mb-4\" tabindex=\"0\" target=\"_blank\" aria-label=\"27-11 FIRE FIGHTER TURNOUT GEAR - SIGNED (6).pdf\" href=\"/archival-document?document=https://s3.us-east-2.amazonaws.com/assets.birminghamal.gov/s3fs-public/2026-09/27-11%20FIRE%20FIGHTER%20TURNOUT%20GEAR%20-%20SIGNED%20(6)_0.pdf&amp;ad=aHR0cHM6Ly9zMy51cy1lYXN0LTIuYW1hem9uYXdzLmNvbS9hc3NldHMuYmlybWluZ2hhbWFsLmdvdi9zM2ZzLXB1YmxpYy8yMDI2LTA5LzI3LTExJTIwRklSRSUyMEZJR0hURVIlMjBUVVJOT1VUJTIwR0VBUiUyMC0lMjBTSUdORUQlMjAlMjg2JTI5XzAucGRm&amp;title=27-11%20FIRE%20FIGHTER%20TURNOUT%20GEAR%20-%20SIGNED%20(6).pdf\"><i class=\"fa-box-archive fa-regular pr-2\"></i>27-11 FIRE FIGHTER TURNOUT GEAR - SIGNED (6).pdf</a>\n</div>\n</div>\n</div>\n<p>\u00a0</p>\n<p>\u00a0</p>\n<div class=\"bs_grid ck-widget\">\n<div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\">\n<div class=\"col-3 md:col-start-1\">\n<p class=\"text-align-right\"><strong>Issued by:</strong></p>\n</div>\n<div class=\"col-9 md:col-start-2 md:col-span-2\">\n<p>City of Birmingham</p>\n</div>\n</div>\n</div>\n<div class=\"bs_grid ck-widget\">\n<div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\">\n<div class=\"col-3 md:col-start-1\">\n<p class=\"text-align-right\"><strong>Bid Release Date:</strong></p>\n</div>\n<div class=\"col-9 md:col-start-2 md:col-span-2\">\n<p>Wednesday, September 23, 2026</p>\n</div>\n</div>\n</div>\n<div class=\"bs_grid ck-widget\">\n<div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\">\n<div class=\"col-3 md:col-start-1\">\n<p class=\"text-align-right\"><strong>Bids Due:</strong></p>\n</div>\n<div class=\"col-9 md:col-start-2 md:col-span-2\">\n<p>Thursday, October 08, 2026, by 5:00 p.m. CST</p>\n<p><br/>Please submit all bids to:<br/><strong>Purchasing Division</strong><br/><strong>710 North 20th Street</strong><br/><strong>P-100 City Hall</strong><br/><strong>Birmingham, AL 35203-2227</strong></p>\n</div>\n</div>\n</div>\n<div class=\"bs_grid ck-widget\">\n<div class=\"two-col-left row md:grid md:grid-cols-3 md:gap-default mb-8 ck-widget\" data-row-none=\"3_9\" data-row-sm=\"3_9\" data-row-md=\"3_9\" data-row-lg=\"3_9\" data-row-xl=\"3_9\" data-row-xxl=\"3_9\">\n<div class=\"col-3 md:col-start-1\">\n<p class=\"text-align-right\">"
+            }
+          }
+        ],
+        "metatag": [
+          {
+            "__typename": "MetaTagValue",
+            "attributes": {
+              "content": "Bidding Opportunities | City of Birmingham, Alabama",
+              "name": "title"
+            }
+          },
+          {
+            "__typename": "MetaTagValue",
+            "attributes": {
+              "content": "See current bidding and proposal opportunities from the Purchasing Division.",
+              "name": "description"
+            }
+          },
+          {}
+        ],
+        "department": {
+          "name": "Finance"
+        },
+        "computedMenu": "[{\"title\":\"Work\",\"url\":\"\\/work\",\"children\":[{\"title\":\"Bidding Opportunities\",\"url\":\"\\/work\\/bidding-opportunities\",\"children\":[]},{\"title\":\"Birmingham Comprehensive Plan\",\"url\":\"https:\\/\\/www.birminghamal.gov\\/work\\/birmingham-comprehensive-plan\",\"children\":[]},{\"title\":\"Building Codes\",\"url\":\"\\/work\\/building-codes\",\"children\":[]},{\"title\":\"Careers at the City of Birmingham\",\"url\":\"https:\\/\\/www.birminghamal.gov\\/employment\",\"children\":[]},{\"title\":\"eServices\",\"url\":\"\\/work\\/eservices\",\"children\":[]},{\"title\":\"Taxes and efiling\",\"url\":\"https:\\/\\/birminghamal.hdlgov.com\\/\",\"children\":[]}]}]"
+      }
+    }
+  }
+}

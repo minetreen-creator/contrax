@@ -194,6 +194,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   va_virginia_beach_oracle: { class: "local", city: "Virginia Beach", scopeState: "VA", searchScope: "city-open-data", recordType: "opportunity" },
   ky_louisville_bonfire: { class: "local", city: "Louisville", scopeState: "KY", searchScope: "city-open-data", recordType: "opportunity" },
   ky_vss: { class: "state", scopeState: "KY", searchScope: "state-portal", recordType: "opportunity" },
+  al_birmingham_purchasing: { class: "local", city: "Birmingham", scopeState: "AL", searchScope: "city-open-data", recordType: "opportunity" },
   al_aldot: { class: "state", scopeState: "AL", searchScope: "state-portal", recordType: "opportunity" },
   ak_dotpf: { class: "state", scopeState: "AK", searchScope: "state-portal", recordType: "opportunity" },
   de_mmp: { class: "state", scopeState: "DE", searchScope: "state-portal", recordType: "opportunity" },

@@ -470,9 +470,11 @@ export const runRadarScan = createServerFn({ method: "POST" })
     let scanVisitorId = "";
     try {
       const { getRequest } = await import("@tanstack/react-start/server");
-      const cookie = getRequest().headers.get("cookie") ?? "";
-      const hit = cookie.split(";").map((c) => c.trim()).find((c) => c.startsWith("contrax_vid="));
-      if (hit) scanVisitorId = decodeURIComponent(hit.slice("contrax_vid=".length)).trim().slice(0, 64);
+      // Same validated read the anonymous free-score gate uses (shared helper —
+      // no second cookie parser). A missing/empty/malformed value is simply ""
+      // → that dimension is dropped (fail-open), never a denial.
+      const { visitorIdFromCookieHeader } = await import("~/lib/free-score-limit.server");
+      scanVisitorId = visitorIdFromCookieHeader(getRequest().headers.get("cookie"));
     } catch {
       scanVisitorId = ""; // fail-open: no visitor id, no handoff cookie
     }
@@ -505,36 +507,40 @@ export const runRadarScan = createServerFn({ method: "POST" })
         subscribed = await neonBidScoutStore.hasActiveSubscription(scanner.id);
       }
     }
+    // ── ANONYMOUS FREE-SEARCH GATE (owner directive 2026-10-08) ──────────────
+    // "Count the free searches by network address and browser ID, and stop at
+    // whichever runs out first." Both dimensions are read here, BEFORE the scan
+    // spends anything; the FIRST one at the cap blocks. The block is the
+    // EXISTING sentinel — the unchanged { paidRequired: true } result, which the
+    // client renders as its "your free searches have been used → choose a plan /
+    // sign in" conversion screen. No new error, no new response shape.
+    //
+    // The allowlist of who is gated is UNCHANGED: any scanner without paid
+    // entitlement (the unchanged !subscribed test) — an anonymous visitor, or a
+    // signed-in account with no plan. An entitled/subscribed account still
+    // bypasses this entirely.
+    //
+    // Consumption is NOT here: a search is spent only on the SUCCESS path below
+    // (after the scan actually produced results), so a failed or errored scan
+    // never burns one. Fail-open: a missing IP or a missing/malformed visitor
+    // cookie drops that one dimension (the other still counts), no usable key at
+    // all allows, and any store/DB error allows — see
+    // ~/lib/radar-free-search-limit.server.
+    let freeSearchIp: string | null = null;
     if (!subscribed) {
       const { getClientIp } = await import("~/lib/request-ip");
-      const { createHash } = await import("node:crypto");
-      const ip = getClientIp(getRequest());
-      const identity = ip ? "ip:" + ip : scanVisitorId ? "visitor:" + scanVisitorId : null;
-      if (!identity) throw new Error("Preview identity unavailable");
-      const key = createHash("sha256").update("radar-preview-v1:" + identity).digest("hex");
-      const db = accessSql();
-      await db`
-        CREATE TABLE IF NOT EXISTS radar_preview_usage (
-          identity_hash TEXT PRIMARY KEY,
-          used_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )
-      `;
-      // Up to FREE_RADAR_PREVIEW_SCANS per identity (owner 2026-10-07). Rows from
-      // the one-scan era start at 1, so they keep the scans they have left.
-      await db`ALTER TABLE radar_preview_usage ADD COLUMN IF NOT EXISTS scans INTEGER NOT NULL DEFAULT 1`;
-      const claimed = await db`
-        INSERT INTO radar_preview_usage (identity_hash, scans) VALUES (${key}, 1)
-        ON CONFLICT (identity_hash) DO UPDATE
-          SET scans = radar_preview_usage.scans + 1, used_at = NOW()
-          WHERE radar_preview_usage.scans < ${FREE_RADAR_PREVIEW_SCANS}
-        RETURNING identity_hash
-      `;
-      if (!claimed.length) return {
+      freeSearchIp = getClientIp(getRequest()) ?? null;
+      const { checkAnonymousRadarSearch } = await import("~/lib/radar-free-search-limit.server");
+      const gate = await checkAnonymousRadarSearch(freeSearchIp, scanVisitorId || null);
+      if (!gate.allowed) return {
         paidRequired: true,
         matches: [],
         certLabel: CERT_LABEL[certId],
         sections: { local: [], nationwide: [], related: [] },
         intelTicket: null,
+        // The honest count for the block screen ("2 of 2 free searches used"),
+        // echoed from the server so the copy can never drift from the gate.
+        freeSearchLimit: gate.limit,
       };
     }
 
@@ -843,6 +849,14 @@ export const runRadarScan = createServerFn({ method: "POST" })
     }
     const visibleMatches = subscribed ? matches : matches.slice(0, FREE_ANONYMOUS_RADAR_RESULTS);
     const visibleIds = new Set(visibleMatches.map((match) => match.id));
+    // The scan COMPLETED (every path above only reaches here with real,
+    // assembled results) → spend one free search in BOTH dimensions. Never
+    // throws; a write failure is logged and ignored (fail-open — an inability to
+    // count must never fail a successful scan).
+    if (!subscribed) {
+      const { consumeAnonymousRadarSearch } = await import("~/lib/radar-free-search-limit.server");
+      await consumeAnonymousRadarSearch(freeSearchIp, scanVisitorId || null);
+    }
     return {
       paidRequired: false,
       matches: visibleMatches,
@@ -1145,7 +1159,7 @@ type ScanState =
   | { status: "idle" }
   | { status: "loading" }
   | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null }
-  | { status: "paid_required" }
+  | { status: "paid_required"; limit?: number }
   | { status: "error" };
 /** Resolved payload of a successful runRadarScan call (handler return shape).
  *  `intelTicket` (owner 09-16): the signed, server-minted list of the match ids
@@ -1158,6 +1172,9 @@ type ScanResult = {
   certLabel: string;
   sections: RadarSections;
   intelTicket: string | null;
+  /** Present ONLY on the paidRequired (free searches exhausted) result: the
+   *  server-side allowance, so the block screen states the real number. */
+  freeSearchLimit?: number;
 };
 /** USPS code → full state name (for section labels). */
 const STATE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
@@ -1468,7 +1485,7 @@ function RadarLanding() {
       if (scanCancelledRef.current) return;
       if (flashTimer) window.clearTimeout(flashTimer);
       if (res.paidRequired) {
-        setScan({ status: "paid_required" });
+        setScan({ status: "paid_required", limit: res.freeSearchLimit });
         setRestoredResults(false);
         setStep(3);
         return;
@@ -1624,6 +1641,14 @@ function RadarLanding() {
             <p className="mt-2 text-sm leading-relaxed text-slate-300 sm:hidden">
               Pick your trade and state. Free to search, no signup.
             </p>
+            {/* The offer, visible before the counter runs out (owner directive
+                2026-10-08) — the same constants the server gate enforces, so the
+                wall is never a surprise. */}
+            {isAnonymous && (
+              <p className="mt-2 text-xs font-semibold text-amber-300">
+                Free: {FREE_RADAR_PREVIEW_SCANS} searches, up to {FREE_ANONYMOUS_RADAR_RESULTS} matches each — no account needed.
+              </p>
+            )}
 
             {!hasDeepLink && <LiveStateBids />}
 
@@ -1840,10 +1865,25 @@ function RadarLanding() {
 
         {step === 3 && scan.status === "paid_required" && (
           <section className="flex flex-1 flex-col justify-center py-10 text-center">
-            <h2 className="text-2xl font-bold text-white">Your free preview scans have been used</h2>
-            <p className="mt-3 text-slate-300">Choose a paid plan to keep searching for contracts with Radar.</p>
-            <a href="/upgrade" className="mt-6 rounded-2xl bg-amber-500 px-6 py-4 font-bold text-slate-950 hover:bg-amber-400">Choose a plan</a>
-            <a href="/login?redirect=%2Fradar" className="mt-4 text-sm text-slate-300 underline">Already subscribed? Sign in</a>
+            {/* Owner directive 2026-10-08: the free-search offer is stated up
+                front and the block repeats the honest count — "2 free searches",
+                the server's own limit — with the unchanged conversion surface
+                (plan + sign in) plus the funnel's signup handoff. No urgency, no
+                manufactured scarcity. */}
+            <p className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+              {scan.limit ?? FREE_RADAR_PREVIEW_SCANS} of {scan.limit ?? FREE_RADAR_PREVIEW_SCANS} free searches used
+            </p>
+            <h2 className="mt-2 text-2xl font-bold text-white">Your free searches have been used</h2>
+            <p className="mt-3 text-slate-300">
+              Each free search shows up to {FREE_ANONYMOUS_RADAR_RESULTS} matches. Create a free account or choose a
+              plan to keep searching for contracts with Radar.
+            </p>
+            <a href={radarSignupHref({ trade, state, cert, sizePref }, { cta: true })}
+              className="mt-6 rounded-2xl bg-amber-500 px-6 py-4 font-bold text-slate-950 hover:bg-amber-400">
+              Create a free account
+            </a>
+            <a href="/upgrade" className="mt-4 text-sm text-slate-300 underline">Or choose a plan</a>
+            <a href="/login?redirect=%2Fradar" className="mt-6 text-sm text-slate-300 underline">Already subscribed? Sign in</a>
           </section>
         )}
 

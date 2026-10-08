@@ -1,0 +1,19 @@
+name: Validate Birmingham public purchasing board
+on:
+  pull_request:
+    paths:
+      - 'src/jobs/sources/al-birmingham*'
+      - '.github/workflows/validate-birmingham.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Fetch and parse public purchasing board (no database)
+        run: bun -e 'import {fetchBirminghamBids} from "./src/jobs/sources/al-birmingham"; const r=await fetchBirminghamBids(); console.log(JSON.stringify({accepted:r.rows.length,skipped:r.skipped,examples:r.rows.map(x=>({title:x.title,due:x.due_date}))}));'

@@ -579,3 +579,27 @@ describe("mapCategory: building-trade words (owner 2026-10-07, Wisconsin VendorN
     expect(c("Solar eclipse viewing glasses")).toBe("Other");
   });
 });
+
+describe("mapCategory: road, utility and building titles (owner 2026-10-08, Georgia GPR)", async () => {
+  const { mapCategory } = await import("./trade-classification");
+  const c = (title: string, description = "") => mapCategory("", title, description);
+  test("real Georgia titles that were 'Other' now land in a trade", () => {
+    expect(c("2026 LMIG Resurfacing, Striping, and Milling")).toBe("Construction");
+    expect(c("27-007 S2161 Windsor Parkway Sidewalk Project")).toBe("Construction");
+    expect(c("27038-B Greenfield Circle (250) Culvert Replacement")).toBe("Construction");
+    expect(c("Project: Mechanicsville & Jones Mill Road Water Main Replacement")).toBe("Construction");
+    expect(c("Stallings Lift Station & Force Main Improvements")).toBe("Construction");
+    expect(c("Rock Springs ES - Roof Replacement")).toBe("Construction");
+    expect(c("Trip ES - Addition")).toBe("Construction");
+    expect(c("RFP2027-02 Lewis Frasier Middle School Boiler Replacement")).toBe("HVAC");
+    expect(c("2026-20 Colonnade Chiller Replacement")).toBe("HVAC");
+    expect(c("LED Lighting Project #FY2027-Phase 03- Mill Creek Elem")).toBe("Plumbing & Electrical");
+    expect(c("Interdisciplinary Research Building Replacement of the Fire Alarm System")).toBe("Plumbing & Electrical");
+  });
+  test("the new words are read from the title only, and goods stay 'Other'", () => {
+    expect(c("Snow Removal Services", "Plow parking lots and clear sidewalks. In addition, apply salt.")).toBe("Other");
+    expect(c("2027 Annual Vehicle Batteries")).toBe("Other");
+    expect(c("Student Laptops")).toBe("Other");
+    expect(c("Legal Services")).toBe("Other");
+  });
+});

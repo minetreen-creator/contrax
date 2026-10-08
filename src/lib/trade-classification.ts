@@ -406,8 +406,20 @@ export function isItWork(full: string): boolean {
 /** Building-trade work words that mean Construction (whole words; owner 2026-10-07). */
 const CONSTRUCTION_WORDS =
   /\b(remodel(ing)?|re-?paving|paving|sealcoat(ing)?|potholes?|re-?roof(ing)?|roofing|fencing (removal|installation|repair)|fence (removal|installation|repair)|masonry|tuckpointing|concrete (repair|replacement|work)|window restoration)\b/;
+/**
+ * Owner 2026-10-08: the Georgia Procurement Registry labeled 81% of its open bids
+ * "Other" — mostly road, water/sewer, roofing and building-addition jobs. These
+ * are matched against the TITLE only, so a service notice whose description
+ * mentions sidewalks or an addition (snow removal, "in addition") is unaffected.
+ */
+const CONSTRUCTION_TITLE_WORDS =
+  /\b(resurfac(e|ing)|asphalt(ic)?|milling|striping|sidewalks?|streetscapes?|culverts?|roundabouts?|lmig|roadway|intersection improvements?|(road|street|drainage|stormwater|flood|sewer|water system|pedestrian|parking lot|driveway) improvements?|road (work|project|patching|widening|maintenance)|patching and repair|pavement (repair|preservation|upgrades?)|dirt to pave|water (main|lines?|distribution)|sewer (rehabilitation|lines?|main)|lift station|force main|pump station|roof replacement|bridge (replacement|rehabilitation)|site development|pad preparation|design[- ]build|cmar|general contractors?|addition)\b/;
 /** Solar / photovoltaic installation work → Plumbing & Electrical (owner 2026-10-07). */
 const ELECTRICAL_WORDS = /\b(photovoltaic|solar (panel|array|pv|installation)|pv (removal|installation|system))\b/;
+/** Owner 2026-10-08 (Georgia): lighting, generator and fire-alarm jobs, title only. */
+const ELECTRICAL_TITLE_WORDS = /\b(led lighting|lighting (replacement|upgrades?|installation|project)|generators?|fire alarm)\b/;
+/** Owner 2026-10-08 (Georgia): boiler/chiller/ventilation equipment work, title only. */
+const HVAC_TITLE_WORDS = /\b(boilers?|chillers?|energy recovery (units?|ventilators?)|condensers?|central a\/?c)\b/;
 
 export function mapCategory(typeValue: string, title: string, description: string): string {
   const t = (typeValue || "").toLowerCase();
@@ -422,14 +434,14 @@ export function mapCategory(typeValue: string, title: string, description: strin
   if (full.includes("construction") || full.includes("renovation") || full.includes("demolition")) return "Construction";
   // Owner 2026-10-07: Wisconsin's VendorNet labeled remodels, paving, fencing and
   // roofing jobs "Other". Whole-word building-trade terms only.
-  if (CONSTRUCTION_WORDS.test(full)) return "Construction";
+  if (CONSTRUCTION_WORDS.test(full) || CONSTRUCTION_TITLE_WORDS.test(titleLc)) return "Construction";
   // Owner 2026-10-06: the old `includes("it ")` test matched "submit", "credit",
   // "permit" and "unit", so VDOT snow-removal notices ("how to submit via …
   // Services") were labeled IT Services. Require real IT wording.
   if (isItWork(full)) return "IT Services";
   if (full.includes("security") || full.includes("guard ")) return "Security";
-  if (full.includes("hvac") || full.includes("heating") || full.includes("cooling")) return "HVAC";
-  if (full.includes("electrical") || full.includes("plumbing") || ELECTRICAL_WORDS.test(full)) return "Plumbing & Electrical";
+  if (full.includes("hvac") || full.includes("heating") || full.includes("cooling") || HVAC_TITLE_WORDS.test(titleLc)) return "HVAC";
+  if (full.includes("electrical") || full.includes("plumbing") || ELECTRICAL_WORDS.test(full) || ELECTRICAL_TITLE_WORDS.test(titleLc)) return "Plumbing & Electrical";
 
   if (t.includes("solicitation") || t.includes("combined")) return "Construction";
   // S5/D4: `award` / `justification` / `special` deliberately fall through to the

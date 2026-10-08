@@ -236,7 +236,7 @@ export const getRegionData = createServerFn({ method: "GET" })
       const { sql } = await import("~/db");
       try {
         const rows = await sql()`
-          SELECT location, set_aside, estimated_value, agency, category, due_date
+          SELECT location, set_aside, estimated_value, agency, category, due_date, source
           FROM bids
           WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
             AND ${sql().unsafe(LOW_CONTENT_SQL)}

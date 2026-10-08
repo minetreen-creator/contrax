@@ -1,5 +1,5 @@
 src/lib/far-parts.ts(108,9): error TS6133: 'rows' is declared but its value is never read.
-src/lib/notifications.ts(112,11): error TS6133: 'bidId' is declared but its value is never read.
+src/lib/notifications.ts(113,11): error TS6133: 'bidId' is declared but its value is never read.
 src/lib/radar-leads-funnel.ts(105,10): error TS6133: 'pct' is declared but its value is never read.
 src/lib/trade-registry.ts(628,7): error TS6133: 'REGISTRY_SYNONYMS' is declared but its value is never read.
 src/routes/admin/bid-scout.tsx(217,9): error TS6133: 'purchased' is declared but its value is never read.
@@ -9,14 +9,14 @@ src/routes/api/pricing-recommend.ts(83,11): error TS6133: 'sqlBuilder' is declar
 src/routes/api/radar/opportunity-click.ts(46,7): error TS6133: 'PAGE' is declared but its value is never read.
 src/routes/awards.tsx(43,7): error TS6133: 'SEED_AWARDS' is declared but its value is never read.
 src/routes/compliance.tsx(279,7): error TS6133: 'severityBadge' is declared but its value is never read.
-src/routes/dashboard.tsx(2259,37): error TS6133: 'medPct' is declared but its value is never read.
+src/routes/dashboard.tsx(2282,37): error TS6133: 'medPct' is declared but its value is never read.
 src/routes/learnings.tsx(4,31): error TS6133: 'AuthUser' is declared but its value is never read.
 src/routes/learnings.tsx(41,10): error TS6133: 'LearningsPageGated' is declared but its value is never read.
 src/routes/learnings.tsx(67,9): error TS6133: 'navigate' is declared but its value is never read.
 src/routes/learnings.tsx(89,13): error TS6133: 'fresh' is declared but its value is never read.
 src/routes/learnings.tsx(89,27): error TS2554: Expected 1 arguments, but got 0.
 src/routes/settings.tsx(49,11): error TS6196: 'BusinessProfileFull' is declared but never used.
-src/routes/tracking.tsx(160,7): error TS6133: 'getAmendments' is declared but its value is never read.
-src/routes/tracking.tsx(239,9): error TS6133: 'thisWeekStart' is declared but its value is never read.
-src/routes/tracking.tsx(499,38): error TS2353: Object literal may only specify known properties, and 'certificationDates' does not exist in type 'OptionalFetcherDataOptions<undefined, (data: unknown) => { certificationDates: Record<string, string>; }>'.
+src/routes/tracking.tsx(181,7): error TS6133: 'getAmendments' is declared but its value is never read.
+src/routes/tracking.tsx(260,9): error TS6133: 'thisWeekStart' is declared but its value is never read.
+src/routes/tracking.tsx(520,38): error TS2353: Object literal may only specify known properties, and 'certificationDates' does not exist in type 'OptionalFetcherDataOptions<undefined, (data: unknown) => { certificationDates: Record<string, string>; }>'.
 src/routes/tracking.tsx(7,75): error TS6133: 'fmtCertDate' is declared but its value is never read.

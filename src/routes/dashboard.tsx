@@ -47,6 +47,7 @@ import { StickyFilterBar } from "~/components/StickyFilterBar";
 import { ReviewPager } from "~/components/ReviewPager";
 import { HeadStartLock } from "~/components/HeadStartLock";
 import { naicsTitle } from "~/components/NaicsTypeahead";
+import { deadlineLabel } from "~/lib/deadline-label";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface Bid {
@@ -54,6 +55,12 @@ interface Bid {
   location: string; category: string; set_aside: string | null; due_date: string; estimated_value: string;
   source_url: string | null; role_matches: number;
   naics_code: string | null; created_at: string;
+  /**
+   * Provenance label (`bids.source`, selected by /api/dashboard-data). A
+   * source whose published due-date time zone is not settled never shows a
+   * derived countdown (`~/lib/deadline-label`); NULL/legacy ⇒ fail open.
+   */
+  source: string | null;
   /** Paid head start (src/lib/head-start.ts): set when the link is withheld. */
   head_start_until?: string | null;
 }
@@ -1361,7 +1368,9 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
   const doTrack = useCallback(async (bid: Bid) => {
     setTrackingLoading((p) => new Set(p).add(bid.id));
     try {
-      await trackBid({ data: { bid_id: String(bid.id), bid_title: bid.title, agency: bid.agency, due_date: bid.due_date } });
+      // Migration 058: carry the provenance label so /tracking (and the deadline alerts it
+        // feeds) can suppress a countdown for a zone-unverified source.
+      await trackBid({ data: { bid_id: String(bid.id), bid_title: bid.title, agency: bid.agency, due_date: bid.due_date, source: bid.source ?? null } });
       setTrackedBidIds((p) => new Set(p).add(String(bid.id)));
     } catch {} finally {
       setTrackingLoading((p) => { const n = new Set(p); n.delete(bid.id); return n; });
@@ -2009,6 +2018,12 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
             {sorted.map((bid) => {
               const days = daysUntil(bid.due_date);
               const cd = countdown(days);
+              // Zone-unverified source (owner 2026-10-08): a due date whose
+              // time zone is not settled (eVA + the four Virginia locality
+              // boards) never renders a derived countdown — show the raw
+              // published close date, UTC-rendered so no US browser shifts the
+              // bare-`Z` value by a day. Other sources: byte-identical as before.
+              const dl = deadlineLabel({ due_date: bid.due_date, source: bid.source });
               const isExpanded = expandedBid === bid.id;
               const isSaved = savedBids.has(bid.id);
               const isTracked = trackedBidIds.has(String(bid.id));
@@ -2050,12 +2065,16 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
                           {isTracking ? "⏳" : isTracked ? "🔖" : "🔖"}
                         </button>
                         {recommendation ? <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${recStyle.bg} ${recStyle.text}`}>{recStyle.dot} {recStyle.label}</span> : score ? <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${score.win_probability >= 80 ? "bg-green-100 text-green-700" : score.win_probability >= 50 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>{score.win_probability}% Win Chance</span> : <button type="button" onClick={(e) => { e.stopPropagation(); doScore(bid.id); }} disabled={isScoring} className="shrink-0 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-500 hover:bg-blue-50 hover:text-blue-600">{isScoring ? "Analyzing…" : "Win Odds"}</button>}
-                        <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${cd.bg} ${cd.text}`}>{cd.label}</span>
+                        {dl.suppressed ? (
+                          <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600" title={dl.note ?? undefined}>{dl.text}</span>
+                        ) : (
+                          <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${cd.bg} ${cd.text}`}>{cd.label}</span>
+                        )}
                       </div>
                       <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-slate-500">
                         <span className="inline-flex items-center gap-1">
                           <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                          Due {fmtDate(bid.due_date)}
+                          Due {dl.suppressed && dl.dateText ? dl.dateText : fmtDate(bid.due_date)}
                         </span>
                         {isTracked && <span className="inline-flex items-center gap-1 text-amber-600 font-medium text-xs">🔖 Tracked</span>}
                         <span className="inline-flex items-center gap-1">
@@ -2134,8 +2153,12 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
                               <div className="mt-2 flex items-center justify-between">
                                 <span className="text-sm text-slate-600">Proposal due</span>
                                 <span className="inline-flex items-center gap-2">
-                                  <span className="text-sm font-semibold text-slate-800">{fmtDate(bid.due_date)}</span>
-                                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${cd.bg} ${cd.text}`}>{cd.label}</span>
+                                  <span className="text-sm font-semibold text-slate-800">{dl.suppressed && dl.dateText ? dl.dateText : fmtDate(bid.due_date)}</span>
+                                  {dl.suppressed ? (
+                                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-600" title={dl.note ?? undefined}>{dl.text}</span>
+                                  ) : (
+                                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${cd.bg} ${cd.text}`}>{cd.label}</span>
+                                  )}
                                 </span>
                               </div>
                               {bid.created_at && (

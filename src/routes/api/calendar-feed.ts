@@ -96,7 +96,7 @@ async function feed({ request }: { request: Request }): Promise<Response> {
     let bids: CalendarBid[] = [];
     if (await hasPaidBidAccess(owner)) {
       const rows = (await sql()`
-        SELECT b.id, b.title, b.agency, b.due_date, b.solicitation_number
+        SELECT b.id, b.title, b.agency, b.due_date, b.solicitation_number, b.source
         FROM saved_matches s JOIN bids b ON b.id = s.bid_id
         WHERE s.user_id = ${owner.id}
           AND s.status = 'saved'
@@ -104,13 +104,16 @@ async function feed({ request }: { request: Request }): Promise<Response> {
           AND b.due_date > NOW() - INTERVAL '30 days'
         ORDER BY b.due_date
         LIMIT 500
-      `) as { id: number; title: string; agency: string | null; due_date: string; solicitation_number: string | null }[];
+      `) as { id: number; title: string; agency: string | null; due_date: string; solicitation_number: string | null; source: string | null }[];
       bids = rows.map((r) => ({
         bidId: Number(r.id),
         title: String(r.title ?? "Saved bid"),
         agency: r.agency,
         dueDate: r.due_date,
         solicitationNumber: r.solicitation_number,
+        // Migration 058's policy, applied to the ICS feed: a zone-unverified source
+        // gets no derived "2 days / 1 day before" VALARM (src/lib/calendar-feed.ts).
+        source: r.source ?? null,
       }));
     }
     return new Response(buildSavedBidsCalendar(bids), { status: 200, headers: ICS_HEADERS });

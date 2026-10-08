@@ -111,6 +111,8 @@ export function formatCompactMoney(n: number): string {
   if (abs >= 1_000) return `$${trimNum(n / 1_000)}K`;
   return `$${Math.round(n)}`;
 }
+import { isCountdownSuppressed } from "~/lib/deadline-label";
+
 function trimNum(x: number): string {
   const rounded = Math.round(x * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : String(rounded);
@@ -151,6 +153,11 @@ interface OpenBidRow {
   agency: string | null;
   category: string | null;
   due_date: string | Date | null;
+  /** Provenance label, when the caller selects it. Used ONLY to keep a
+   *  zone-unverified source out of `closingSoon` (see the loop below); the
+   *  row is still counted in `count`, so the map's open-bid totals do not
+   *  move. Omitted/NULL ⇒ fail open, exactly as before. */
+  source?: string | null;
 }
 
 /**
@@ -214,8 +221,17 @@ export function buildContractMap(rows: readonly OpenBidRow[]): ContractMapAggreg
       industries.set(code, m);
     }
 
-    // closing soon = due within the next 7 days
-    if (r.due_date) {
+    // closing soon = due within the next 7 days.
+    //
+    // DISCLOSURE (owner 2026-10-08): a zone-unverified source (eVA + the four
+    // Virginia locality boards — see ~/lib/deadline-label) stores the source's
+    // own wall-clock close time read as UTC, so its instant can be 4-5h off.
+    // A row like that must not contribute to a "closing in the next 7 days"
+    // figure — the same misleading math the per-row countdown suppression
+    // removes. It IS still counted in `count`/`setAsideCount`/stated value:
+    // those are not derived from the instant. Excluded rows are therefore
+    // NEVER silently dropped from the map, only from this 7-day window.
+    if (r.due_date && !isCountdownSuppressed(r.source)) {
       const t = new Date(r.due_date).getTime();
       if (!Number.isNaN(t) && t >= now && t <= in7) agg.closingSoon++;
     }

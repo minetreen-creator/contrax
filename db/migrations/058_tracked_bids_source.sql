@@ -1,0 +1,34 @@
+-- Migration 058 — TRACKED-BID SOURCE (`tracked_bids.source`), schema delta
+-- (owner-directed 2026-10-08, Virginia drive dispatch C; business plan STANDING
+--  owner rule — migration written, NOT applied, by the engineer).
+--
+-- ADDITIVE ONLY and idempotent: ONE NULLABLE column on the EXISTING tracked_bids
+-- table. Nothing is dropped, renamed, defaulted or back-filled — every
+-- pre-existing row keeps NULL, which is the HONEST value: the provenance of a
+-- tracked bid was never recorded before this migration and it is NOT inferred
+-- from the title, the agency or a best-effort `bids` join (the migration-046
+-- rule: a signal that could not supply a value leaves NULL rather than a guess).
+--
+--   source   TEXT, NULLABLE. The `bids.source` provenance label of the tracked
+--            bid, copied off the dashboard payload at track time. It exists for
+--            ONE purpose: let a countdown surface know whether the row's
+--            published due-date TIME ZONE is settled. Virginia's eVA states its
+--            deadlines in Eastern Time but serves a bare 'Z' marker on
+--            `closedate`, and the four Virginia locality CivicEngage boards
+--            (Loudoun / Suffolk / Lynchburg / Charlottesville) are the same
+--            shape, so a UTC-derived "due in N days" is misleading by up to 4-5
+--            hours. `src/lib/deadline-label.ts` is the single policy: a source
+--            that mints a `*_DUE_DATE_ZONE_UNVERIFIED` flag never renders a
+--            countdown — the raw published close date is shown instead.
+--
+--            NULL (every legacy row, and any row tracked before this migration)
+--            is FAIL-OPEN: an unknown source keeps exactly the behaviour it had
+--            before this column existed. It is never read as "verified".
+--
+-- WHAT THIS COLUMN IS NOT. It is not a title/agency/date cache, not a
+-- jurisdiction stamp, and it grants nothing: no entitlement, billing, matching
+-- or scoring path reads it. The countdown policy is the only consumer.
+--
+-- ROLLBACK: ALTER TABLE tracked_bids DROP COLUMN source; — the column is new and
+-- nothing depends on it.
+ALTER TABLE tracked_bids ADD COLUMN IF NOT EXISTS source TEXT;

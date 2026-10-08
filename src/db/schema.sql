@@ -468,6 +468,11 @@ CREATE TABLE IF NOT EXISTS tracked_bids (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(user_email, bid_id)
 );
+-- Migration 058 (owner 2026-10-08): the tracked bid's provenance label. NULLABLE,
+-- no default, no back-fill — a row tracked before the column existed keeps NULL,
+-- which the countdown policy reads as fail-open. See db/migrations/058_tracked_bids_source.sql
+-- and src/lib/deadline-label.ts.
+ALTER TABLE tracked_bids ADD COLUMN IF NOT EXISTS source TEXT;
 
 CREATE TABLE IF NOT EXISTS bid_amendments (
     id SERIAL PRIMARY KEY,

@@ -5,6 +5,12 @@ import { sql } from "~/db";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { TrialGate } from "~/components/TrialGate";
 import { CERTIFICATIONS, certificationDaysRemaining, certificationStatus, fmtCertDate } from "~/lib/certifications";
+import {
+  DEADLINE_AS_PUBLISHED_LABEL,
+  deadlineLabel,
+  isCountdownSuppressed,
+  publishedDateParts,
+} from "~/lib/deadline-label";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface TrackedBid {
@@ -14,6 +20,12 @@ interface TrackedBid {
   bid_title: string;
   agency: string;
   due_date: string;
+  /**
+   * Provenance label copied off the dashboard payload at track time (`bids.source`,
+   * migration 058). NULL on every row tracked before the column existed — treated as
+   * fail-open by `~/lib/deadline-label`, never as "zone verified".
+   */
+  source: string | null;
   status: string;
   last_checked: string;
   created_at: string;
@@ -38,15 +50,23 @@ export const trackBid = createServerFn({ method: "POST" })
     if (!d || typeof d.bid_id !== "string" || typeof d.bid_title !== "string" || typeof d.agency !== "string") {
       throw new Error("Invalid track input");
     }
-    return d as { bid_id: string; bid_title: string; agency: string; due_date: string };
+    // Migration 058: the row's provenance label, taken from the dashboard payload's
+    // `source` field (selected by /api/dashboard-data). Junk/absent ⇒ NULL, NEVER
+    // inferred — a NULL source is fail-open on every countdown surface.
+    const source = typeof d.source === "string" && d.source.trim() ? d.source : null;
+    return {
+      bid_id: d.bid_id, bid_title: d.bid_title, agency: d.agency, due_date: d.due_date, source,
+    } as { bid_id: string; bid_title: string; agency: string; due_date: string; source: string | null };
   })
   .handler(async ({ data }) => {
     const user = await getCurrentUser();
     if (!user) throw new Error("Not authenticated");
 
-    await sql()`CREATE TABLE IF NOT EXISTS tracked_bids (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'tracked', last_checked TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
+    await sql()`CREATE TABLE IF NOT EXISTS tracked_bids (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'tracked', last_checked TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW(), source TEXT, UNIQUE(user_email, bid_id))`;
 
-    await sql()`INSERT INTO tracked_bids (user_email, bid_id, bid_title, agency, due_date) VALUES (${user.email}, ${data.bid_id}, ${data.bid_title}, ${data.agency}, ${data.due_date}) ON CONFLICT (user_email, bid_id) DO UPDATE SET due_date = ${data.due_date}, bid_title = ${data.bid_title}, agency = ${data.agency}, last_checked = NOW()`;
+    // Migration 058: `source` rides along. COALESCE on update so a re-track that
+    // arrives without a provenance label can never DOWNGRADE a known one to NULL.
+    await sql()`INSERT INTO tracked_bids (user_email, bid_id, bid_title, agency, due_date, source) VALUES (${user.email}, ${data.bid_id}, ${data.bid_title}, ${data.agency}, ${data.due_date}, ${data.source}) ON CONFLICT (user_email, bid_id) DO UPDATE SET due_date = ${data.due_date}, bid_title = ${data.bid_title}, agency = ${data.agency}, source = COALESCE(EXCLUDED.source, tracked_bids.source), last_checked = NOW()`;
 
     return { success: true };
   });
@@ -121,7 +141,7 @@ const getTrackedBids = createServerFn({ method: "GET" }).handler(async (): Promi
   const user = await getCurrentUser();
   if (!user) throw new Error("Not authenticated");
 
-  await sql()`CREATE TABLE IF NOT EXISTS tracked_bids (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'tracked', last_checked TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
+  await sql()`CREATE TABLE IF NOT EXISTS tracked_bids (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'tracked', last_checked TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW(), source TEXT, UNIQUE(user_email, bid_id))`;
   await sql()`CREATE TABLE IF NOT EXISTS bid_amendments (id SERIAL PRIMARY KEY, bid_id TEXT NOT NULL, change_type TEXT NOT NULL, old_value TEXT, new_value TEXT, detected_at TIMESTAMPTZ DEFAULT NOW())`;
 
   const rows = await sql()`SELECT * FROM tracked_bids WHERE user_email = ${user.email} ORDER BY due_date ASC`;
@@ -149,6 +169,7 @@ const getTrackedBids = createServerFn({ method: "GET" }).handler(async (): Promi
       status: row.status,
       last_checked: String(row.last_checked),
       created_at: String(row.created_at),
+      source: row.source == null ? null : String(row.source),
       days_remaining: days,
       amendments,
     });
@@ -533,7 +554,13 @@ function TrackingPage({ currentUser }: { currentUser: AuthUser }) {
 
   const activeBids = bids.filter((b) => b.days_remaining >= 0);
   const pastBids = bids.filter((b) => b.days_remaining < 0);
-  const urgentCount = bids.filter((b) => b.days_remaining >= 0 && b.days_remaining <= 3).length;
+  // NEVER count a zone-unverified source as "closing soon": its stored close instant
+  // is the source's own wall-clock read as UTC, so the 3-day window can be wrong by
+  // 4-5h. Those rows still list (with their published close date) — they just never
+  // inflate the urgent banner or the Urgent stat.
+  const urgentCount = bids.filter(
+    (b) => b.days_remaining >= 0 && b.days_remaining <= 3 && !isCountdownSuppressed(b.source),
+  ).length;
 
   if (loading) return <LoadingSkeleton />;
 
@@ -623,6 +650,8 @@ function TrackingPage({ currentUser }: { currentUser: AuthUser }) {
                   {activeBids.map((bid) => {
                     const cd = countdownLabel(bid.days_remaining);
                     const dc = deadlineColor(bid.days_remaining);
+                    // Zone-unverified source ⇒ no derived countdown anywhere on this card.
+                    const dl = deadlineLabel({ due_date: bid.due_date, source: bid.source });
                     const isExpanded = expandedBid === bid.bid_id;
                     const isUntracking = untracking.has(bid.bid_id);
 
@@ -638,10 +667,16 @@ function TrackingPage({ currentUser }: { currentUser: AuthUser }) {
                               <h3 className="font-semibold text-slate-900 truncate">{bid.bid_title}</h3>
                               <p className="mt-0.5 text-sm text-slate-500">{bid.agency}</p>
                               <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
-                                <span className={`inline-flex items-center gap-1 font-medium ${dc}`}>
-                                  🕐 {bid.days_remaining === 0 ? "Due today" : `${bid.days_remaining} day${bid.days_remaining !== 1 ? "s" : ""} remaining`}
-                                </span>
-                                <span className="text-slate-400">Due {fmtDate(bid.due_date)}</span>
+                                {dl.suppressed ? (
+                                  <span className="inline-flex items-center gap-1 font-medium text-slate-600" title={dl.note ?? undefined}>
+                                    🕐 {DEADLINE_AS_PUBLISHED_LABEL}
+                                  </span>
+                                ) : (
+                                  <span className={`inline-flex items-center gap-1 font-medium ${dc}`}>
+                                    🕐 {bid.days_remaining === 0 ? "Due today" : `${bid.days_remaining} day${bid.days_remaining !== 1 ? "s" : ""} remaining`}
+                                  </span>
+                                )}
+                                <span className="text-slate-400">Due {dl.suppressed && dl.dateText ? dl.dateText : fmtDate(bid.due_date)}</span>
                                 {bid.amendments.length > 0 && (
                                   <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
                                     📋 {bid.amendments.length} amendment{bid.amendments.length !== 1 ? "s" : ""}
@@ -649,14 +684,18 @@ function TrackingPage({ currentUser }: { currentUser: AuthUser }) {
                                 )}
                               </div>
                             </div>
-                            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${cd.color}`}>{cd.label}</span>
+                            {dl.suppressed ? (
+                              <span className="shrink-0 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-bold text-slate-600" title={dl.note ?? undefined}>{dl.text}</span>
+                            ) : (
+                              <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-bold ${cd.color}`}>{cd.label}</span>
+                            )}
                           </div>
                         </button>
 
                         {isExpanded && (
                           <div className="border-t border-slate-100 px-4 pb-4 pt-3 space-y-3">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-                              <div><p className="font-medium text-slate-400">Due Date</p><p className="text-slate-800">{fmtDate(bid.due_date)}</p></div>
+                              <div><p className="font-medium text-slate-400">Due Date</p><p className="text-slate-800">{dl.suppressed && dl.dateText ? dl.dateText : fmtDate(bid.due_date)}</p></div>
                               <div><p className="font-medium text-slate-400">Status</p><span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-semibold capitalize ${bid.status === "amended" ? "bg-purple-100 text-purple-700" : bid.status === "extended" ? "bg-blue-100 text-blue-700" : bid.status === "closed" ? "bg-slate-100 text-slate-600" : "bg-green-100 text-green-700"}`}>{bid.status}</span></div>
                               <div><p className="font-medium text-slate-400">Last Checked</p><p className="text-slate-800">{fmtDateTime(bid.last_checked)}</p></div>
                               <div><p className="font-medium text-slate-400">Tracked Since</p><p className="text-slate-800">{fmtDate(bid.created_at)}</p></div>
@@ -710,18 +749,22 @@ function TrackingPage({ currentUser }: { currentUser: AuthUser }) {
                       <div className="space-y-2">
                         {group.bids.map((bid) => {
                           const dc = deadlineColor(bid.days_remaining);
+                          const dl = deadlineLabel({ due_date: bid.due_date, source: bid.source });
+                          // The tile reads the published instant in UTC and the trailing
+                          // cell states the published date instead of a derived day count.
+                          const parts = dl.suppressed ? publishedDateParts(bid.due_date) : null;
                           return (
                             <div key={bid.bid_id} className="flex items-center gap-3 rounded-lg border border-slate-100 bg-white p-3">
-                              <div className={`flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg ${bid.days_remaining < 0 ? "bg-slate-100" : bid.days_remaining <= 3 ? "bg-red-100" : bid.days_remaining <= 7 ? "bg-amber-100" : "bg-green-100"}`}>
-                                <span className="text-sm font-bold leading-none">{new Date(bid.due_date).getDate()}</span>
-                                <span className="text-[10px] font-medium text-slate-500">{new Date(bid.due_date).toLocaleString("en-US", { month: "short" })}</span>
+                              <div className={`flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg ${dl.suppressed ? "bg-slate-100" : bid.days_remaining < 0 ? "bg-slate-100" : bid.days_remaining <= 3 ? "bg-red-100" : bid.days_remaining <= 7 ? "bg-amber-100" : "bg-green-100"}`}>
+                                <span className="text-sm font-bold leading-none">{parts ? parts.day : new Date(bid.due_date).getDate()}</span>
+                                <span className="text-[10px] font-medium text-slate-500">{parts ? parts.month : new Date(bid.due_date).toLocaleString("en-US", { month: "short" })}</span>
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="font-medium text-slate-800 truncate text-sm">{bid.bid_title}</p>
                                 <p className="text-xs text-slate-500">{bid.agency}</p>
                               </div>
-                              <span className={`shrink-0 text-xs font-semibold ${dc}`}>
-                                {bid.days_remaining < 0 ? "Past" : bid.days_remaining === 0 ? "Today" : `${bid.days_remaining}d`}
+                              <span className={`shrink-0 text-xs font-semibold ${dl.suppressed ? "text-slate-600" : dc}`} title={dl.suppressed ? (dl.note ?? undefined) : undefined}>
+                                {dl.suppressed ? (dl.dateText ?? "—") : bid.days_remaining < 0 ? "Past" : bid.days_remaining === 0 ? "Today" : `${bid.days_remaining}d`}
                               </span>
                             </div>
                           );

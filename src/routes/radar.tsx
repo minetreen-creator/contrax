@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createServerFn } from "@tanstack/react-start";
 import { setAsideCardLabel } from "~/lib/cert-matching";
+import { isCountdownSuppressed } from "~/lib/deadline-label";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { US_STATES } from "~/lib/states";
 import { NAICS_NAMES } from "~/lib/naics-names";
@@ -349,6 +350,20 @@ function daysRemaining(due: string | null): number | null {
   return Math.max(0, Math.ceil((d.getTime() - Date.now()) / 86_400_000));
 }
 
+/**
+ * `days_remaining` for the PAYLOAD, or null when the row's source is
+ * zone-unverified. The card hides its "N days left" chip on null, so the
+ * suppression is the same one the rest of the app applies — and `due_date`
+ * still ships, so the card shows the raw published date.
+ *
+ * Deliberately NOT wired into `computeMatch`: the closing-soon SCORE (15/11/7
+ * points at radar.tsx's `fresh`) keeps using the real value. Suppress the
+ * label, never the score.
+ */
+function suppressedDays(bid: { due_date: string | null; source: string | null }): number | null {
+  return isCountdownSuppressed(bid.source) ? null : daysRemaining(bid.due_date);
+}
+
 const money = (n: number): string =>
   n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}K` : `$${n}`;
 
@@ -358,6 +373,13 @@ type RadarBidRow = {
   location: string | null; category: string | null; due_date: string | null;
   estimated_value: string | null; naics_code: string | null;
   source_url: string | null; set_aside: string | null;
+  /**
+   * RAW provenance label (`bids.source`, already selected by
+   * `~/lib/radar-scan-query`). Read ONLY by the countdown policy — never by
+   * `computeMatch`, whose closing-soon SCORE is deliberately untouched: the
+   * rule suppresses the misleading label, not the ranking.
+   */
+  source: string | null;
 };
 
 export type RadarMatch = {
@@ -613,6 +635,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
           category: r.category ? String(r.category) : null, due_date: r.due_date ? String(r.due_date) : null,
           estimated_value: r.estimated_value ? String(r.estimated_value) : null, naics_code: r.naics_code ? String(r.naics_code) : null,
           source_url: r.source_url ? String(r.source_url) : null, set_aside: r.set_aside ? String(r.set_aside) : null,
+          source: r.source ? String(r.source) : null,
         };
         const { score, scoreLabel } = computeMatch(bid, {
           trade, isNaics, expansion, state, cert: certId, sizePref: sizeId,
@@ -646,7 +669,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         naics_code: bid.naics_code,
         source_url: bid.source_url, estimated_value: bid.estimated_value,
         estimated_value_num: parseValue(bid.estimated_value),
-        due_date: bid.due_date, days_remaining: daysRemaining(bid.due_date),
+        due_date: bid.due_date, days_remaining: suppressedDays(bid),
         score, score_label: scoreLabel,
         trade_provenance: tradeProvenance,
         reasons: buildReasons(bid, { trade, isNaics, expansion, state, cert: certId, sizePref: sizeId, score, scoreLabel, tradeProvenance }),
@@ -758,6 +781,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         category: r.category ? String(r.category) : null, due_date: r.due_date ? String(r.due_date) : null,
         estimated_value: r.estimated_value ? String(r.estimated_value) : null, naics_code: r.naics_code ? String(r.naics_code) : null,
         source_url: r.source_url ? String(r.source_url) : null, set_aside: r.set_aside ? String(r.set_aside) : null,
+        source: r.source ? String(r.source) : null,
       };
       const resolved = resolveBidState(bid.location, bid.agency);
       if (resolved !== state) continue; // related rows surface only for the requested state
@@ -773,7 +797,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         naics_code: bid.naics_code,
         source_url: bid.source_url, estimated_value: bid.estimated_value,
         estimated_value_num: parseValue(bid.estimated_value),
-        due_date: bid.due_date, days_remaining: daysRemaining(bid.due_date),
+        due_date: bid.due_date, days_remaining: suppressedDays(bid),
         score, score_label: scoreLabel,
         trade_provenance: null,
         reasons: [
@@ -805,7 +829,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
         naics_code: bid.naics_code,
         source_url: bid.source_url, estimated_value: bid.estimated_value,
         estimated_value_num: parseValue(bid.estimated_value),
-        due_date: bid.due_date, days_remaining: daysRemaining(bid.due_date),
+        due_date: bid.due_date, days_remaining: suppressedDays(bid),
         score: w.score, score_label: w.scoreLabel,
         trade_provenance: null,
         reasons: [
@@ -1024,7 +1048,9 @@ function buildReasons(
 ): string[] {
   const reasons: string[] = [];
   reasons.push(`${CERT_LABEL[c.cert]} solicitation — set aside for your certification`);
-  const days = daysRemaining(bid.due_date);
+  // Owner 2026-10-08: a source whose close-date time zone is not settled never
+  // gets the derived "Closing in N days" bullet (see ~/lib/deadline-label).
+  const days = suppressedDays(bid);
   if (days != null) reasons.push(days <= 30 ? `Closing in ${days} day${days === 1 ? "" : "s"}` : `Closing in ${days} days`);
   const ev = parseValue(bid.estimated_value);
   if (ev != null) reasons.push(`Estimated value ${money(ev)}${c.sizePref !== "any" ? " fits your size preference" : ""}`);

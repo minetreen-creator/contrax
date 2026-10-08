@@ -23,6 +23,13 @@ interface Bid {
   location: string; category: string; set_aside: string | null; due_date: string; estimated_value: string;
   source_url: string | null; role_matches: number;
   naics_code: string | null; created_at: string;
+  /**
+   * The row's provenance label (`bids.source`). Carried here so the client can
+   * apply the deadline-label policy (`~/lib/deadline-label`): a source whose
+   * published due-date time zone is not settled never renders a countdown.
+   * NULL on legacy rows ⇒ fail open (unchanged behaviour).
+   */
+  source: string | null;
   /** Set while the bid is in its paid head start and this user is not paid. */
   head_start_until: string | null;
 }
@@ -189,7 +196,7 @@ async function handler({ request }: { request: Request }) {
     SELECT * FROM (
       SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))})
         id, title, agency, description, location, category, set_aside, due_date,
-        estimated_value, source_url, naics_code, created_at
+        estimated_value, source_url, naics_code, created_at, source
       FROM bids
       WHERE ${sql().unsafe(LIVE_SQL)}
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
@@ -212,6 +219,7 @@ async function handler({ request }: { request: Request }) {
       due_date: String(b.due_date),
       estimated_value: b.estimated_value, source_url: b.source_url,
       naics_code: b.naics_code ?? null,
+      source: b.source ?? null,
       created_at: b.created_at ? String(b.created_at) : "",
       role_matches: countRoleMatches(b as any, userSpecialties),
     }, paid));

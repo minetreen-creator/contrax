@@ -46,7 +46,7 @@ const getContractMapAggregate = createServerFn({ method: "GET" }).handler(
     try {
       const { sql } = await import("~/db");
       const rows = await sql()`
-        SELECT location, set_aside, estimated_value, agency, category, due_date
+        SELECT location, set_aside, estimated_value, agency, category, due_date, source
         FROM bids
         WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
           AND ${sql().unsafe(LOW_CONTENT_SQL)}

@@ -50,6 +50,7 @@ import { fetchVaLoudounBids } from "./sources/va-loudoun";
 import { fetchVaSuffolkBids } from "./sources/va-suffolk";
 import { fetchVaLynchburgBids } from "./sources/va-lynchburg";
 import { fetchVaCharlottesvilleBids } from "./sources/va-charlottesville";
+import { fetchVirginiaBeachBids } from "./sources/va-virginia-beach-oracle";
 import { fetchLouisvilleBonfireBids } from "./sources/ky-louisville-bonfire";
 import { fetchVaFairfaxBonfireBids } from "./sources/va-fairfax-bonfire";
 import { fetchVaAlexandriaBonfireBids } from "./sources/va-alexandria-bonfire";
@@ -415,6 +416,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   // state portal and its own). Each tenant's `external_id` carries its own prefix
   // (`fairfaxbonfire-` / `alexandriabonfire-`) because Bonfire ProjectIDs come from
   // ONE numeric space shared by every tenant on the platform.
+  { name: "va_virginia_beach_oracle", fetchFn: fetchVirginiaBeachBids },
   { name: "va_fairfax_bonfire", fetchFn: fetchVaFairfaxBonfireBids },
   { name: "va_alexandria_bonfire", fetchFn: fetchVaAlexandriaBonfireBids },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),

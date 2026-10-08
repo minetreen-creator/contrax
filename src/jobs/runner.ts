@@ -93,6 +93,7 @@ import { fetchKsSokBids } from "./sources/ks-sok";
 import { fetchNmEpronmBids } from "./sources/nm-epronm";
 import { fetchIdIproBids } from "./sources/id-ipro";
 import { fetchIdItdBids } from "./sources/id-itd";
+import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
 import { fetchRiOspBids } from "./sources/ri-osp";
@@ -316,6 +317,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Tennessee Central Procurement Office: open RFPs, RFQs, RFIs and solicitation notices.
   { name: "tn_cpo", fetchFn: () => fetchTnCpoBids() },
   // Nebraska State Purchasing Bureau: current bid opportunities.
+  { name: "ne_omaha_ionwave", fetchFn: fetchOmahaBids },
   { name: "ne_das", fetchFn: () => fetchNeDasBids() },
   // Missouri MissouriBUYS (MOVERS) bid board: open state agency solicitations.
   { name: "mo_movers", fetchFn: () => fetchMoMoversBids() },

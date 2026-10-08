@@ -205,6 +205,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   mt_emacs: { class: "state", scopeState: "MT", searchScope: "state-portal", recordType: "opportunity" },
   vt_vbr: { class: "state", scopeState: "VT", searchScope: "state-portal", recordType: "opportunity" },
   tn_cpo: { class: "state", scopeState: "TN", searchScope: "state-portal", recordType: "opportunity" },
+  ne_omaha_ionwave: { class: "local", city: "Omaha", scopeState: "NE", searchScope: "city-open-data", recordType: "opportunity" },
   ne_das: { class: "state", scopeState: "NE", searchScope: "state-portal", recordType: "opportunity" },
   mo_movers: { class: "state", scopeState: "MO", searchScope: "state-portal", recordType: "opportunity" },
   ct_webprocure: { class: "state", scopeState: "CT", searchScope: "state-portal", recordType: "opportunity" },

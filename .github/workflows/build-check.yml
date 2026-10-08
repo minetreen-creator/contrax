@@ -227,6 +227,33 @@ jobs:
       # the non-federal "City" badge) that nothing else in CI covers.
       - name: City of Dayton connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/oh-dayton.test.ts
+      # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
+      # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
+      # construction: every byte it reads is a committed capture of the live Solr
+      # proxy (src/jobs/sources/fixtures/va-eva/, sha256-indexed in its README), the
+      # parse is a PURE function, and the ONE fetch it exercises is stubbed from
+      # those same bytes. No DATABASE_URL. It pins, on real bytes:
+      #   · the OPEN-SET SCOPE — `EVA_OPEN_QUERY` is asserted VERBATIM
+      #     (`app:IV AND status:Open AND closedate:[NOW TO *]`), and the one
+      #     ARCHIVED `app:VBO` row that still says status:Open is refused
+      #     (`wrong_app`) so a frozen-2023 notice can never enter as open;
+      #   · the COUNT GATE — documents read must equal the source's own `numFound`,
+      #     `numFound = 0` is refused, and a set that moves mid-read is refused
+      #     (including the REAL partial page: 25 docs vs numFound 572);
+      #   · the 5-byte malformed-query body (HTTP 200, not an error) fails CLOSED;
+      #   · the CLOSE-DATE RULE — `due_date` is exactly what eVA published, never
+      #     shifted to/from Eastern (owner-noted unresolved `Z`-on-an-ET-source
+      #     quirk), with no countdown label for these rows;
+      #   · the honest `VA_EVA_COPY` (no trade-coverage claim — the 2026-10-08 probe
+      #     measured ZERO courier/freight/trucking rows among 574 open) and the
+      #     source registration (TAIL_SOURCES, SOURCE_HOME_JURISDICTIONS → VA, the
+      #     non-federal "State (VA)" badge) that nothing else in CI covers.
+      # The live half is the OPT-IN gate (va-eva.source-validation.test.ts, wired
+      # into `validate:live-bids-sources`) and must never run here.
+      # Named EXPLICITLY: this suite was referenced by NO workflow before this PR,
+      # which is the same way runner.dedupe.test.ts went unrun for weeks.
+      - name: Virginia eVA connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/va-eva.test.ts
       # Wisconsin DOA VendorNet Bids (wi_vendornet) - the FIRST browser-rendered
       # source in the bids family. This suite is the PARSER half only, deterministic
       # and zero-network/zero-browser by construction: it reads ONE committed capture

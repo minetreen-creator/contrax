@@ -475,7 +475,7 @@ jobs:
       - name: Subcontracting preview data layer tests (unit, deterministic, zero network)
         run: bun test src/lib/subcontracts
       - name: Free course progression and certificate identity tests
-        run: bun test src/lib/course-construction.test.ts src/lib/course-intermediate.test.ts
+        run: bun test src/lib/course-construction.test.ts src/lib/course-intermediate.test.ts src/lib/course-advanced.test.ts
 
       # PLAN GATES (owner gating map 2026-09-26, funnel PR-B): the attempt-only
       # gate contract — the map/copy/predicates, the five standalone gated-attempt

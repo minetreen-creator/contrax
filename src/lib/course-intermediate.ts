@@ -1,3 +1,4 @@
+import type { SelfPacedCourse } from "./self-paced-course";
 import type { Lesson } from "./course-construction";
 
 export const INTERMEDIATE_ID = "government-bids-intermediate-v1";
@@ -128,3 +129,12 @@ export function readIntermediateProgress(raw: string | null): { answers: Interme
 export function bidPlanText(notes: Record<string, string>): string {
   return `${INTERMEDIATE_TITLE}\nContrax practice worksheet — not a submitted proposal\n\nOpportunity/reference: ____________________\nOfficial source: ____________________\n\n` + INTERMEDIATE_LESSONS.map((l, i) => `${i + 1}. ${l.title}\n${l.worksheet}\n${notes[l.id]?.trim() || "[Add your notes]"}`).join("\n\n");
 }
+
+export const INTERMEDIATE_COURSE: SelfPacedCourse = {
+  id: INTERMEDIATE_ID, key: INTERMEDIATE_KEY, title: INTERMEDIATE_TITLE, level: "Intermediate",
+  minutes: INTERMEDIATE_MINUTES, lessons: INTERMEDIATE_LESSONS,
+  summary: "Turn an opportunity into a practical bid plan. Build a checklist, work through pricing, organize your evidence, and prepare for submission.",
+  prerequisiteHref: "/learn/government-contracting", prerequisiteLabel: "Start with our introductory course",
+  worksheetLabel: "bid-planning worksheet", worksheetFile: "contrax-bid-plan.txt",
+  nextHref: "/learn/advanced-government-contracting", nextTitle: "Government Contracting Strategy and Management",
+};

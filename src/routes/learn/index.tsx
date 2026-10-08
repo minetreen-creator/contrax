@@ -78,6 +78,15 @@ function LearnPage() {
         <a href="/learn/intermediate-government-contracting" className="shrink-0 rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">Start the intermediate course →</a>
       </div>
     </section>
+
+    <section className="mx-auto max-w-7xl px-6 pb-10">
+      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 sm:p-8">
+        <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Advanced · Free for everyone · About 60 minutes</p>
+        <h2 className="mt-2 text-2xl font-bold text-slate-900">Government Contracting Strategy and Management</h2>
+        <p className="mt-3 max-w-3xl text-slate-700">Strengthen your pursuit strategy, evaluate partners, stress-test pricing risk, and manage performance after award. Six lessons, quizzes, a downloadable strategy plan, and a completion certificate.</p>
+        <a href="/learn/advanced-government-contracting" className="mt-5 inline-block rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white">Start the free advanced course →</a>
+      </div>
+    </section>
     <section className="bg-white py-14">
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">

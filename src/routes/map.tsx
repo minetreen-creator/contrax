@@ -14,6 +14,10 @@ import {
 } from "~/lib/contract-map";
 import { US_MAP_VIEWBOX, US_STATE_PATHS } from "~/lib/us-states-map";
 import { US_STATES } from "~/lib/states";
+// Raw close-date render gate (owner ruling 2026-10-08): a zone-unverified
+// source's stored instant is the published Eastern wall-clock read as UTC, so
+// the drill-down card must render its date in UTC, not the reader's zone.
+import { publishedDateOnlyFor } from "~/lib/deadline-label";
 
 /**
  * /map — "U.S. Contract Map"
@@ -40,6 +44,9 @@ interface DrillBid {
   estimated_value: string | null;
   due_date: string | null;
   source_url: string | null;
+  /** Raw `bids.source` — read ONLY by the raw-date render gate
+   *  (`publishedDateOnlyFor`). NULL/unknown ⇒ existing render, unchanged. */
+  source: string | null;
 }
 
 /** Pseudo-state that lists open bids not attributable to a single state. */
@@ -69,7 +76,7 @@ const getStateBids = createServerFn({ method: "GET" })
       return { state: raw, name: "", bids: [] };
     }
     const rows = await sql()`
-      SELECT id, title, agency, location, set_aside, estimated_value, due_date, source_url
+      SELECT id, title, agency, location, set_aside, estimated_value, due_date, source_url, source
       FROM bids
       WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
@@ -91,6 +98,7 @@ const getStateBids = createServerFn({ method: "GET" })
         estimated_value: r.estimated_value,
         due_date: r.due_date ? new Date(r.due_date).toISOString() : null,
         source_url: r.source_url,
+        source: r.source ? String(r.source) : null,
       }));
     return {
       state: isUnspecified ? UNSPECIFIED : raw,
@@ -190,7 +198,7 @@ function BidCard({ bid }: { bid: DrillBid }) {
           <span className="inline-flex items-center gap-1">📍 {bid.location}</span>
         ) : null}
         {bid.estimated_value ? <span>{bid.estimated_value}</span> : null}
-        <span>Due {fmtDate(bid.due_date)}</span>
+        <span>Due {publishedDateOnlyFor(bid.due_date, bid.source) ?? fmtDate(bid.due_date)}</span>
       </div>
       {bid.source_url ? (
         <a

@@ -71,6 +71,33 @@ export const ZONE_UNVERIFIED_DEADLINE_NOTE =
  *  date cannot be read (precedent: `SET_ASIDE_NOT_SPECIFIED_LABEL`). */
 export const DEADLINE_AS_PUBLISHED_LABEL = "Deadline as published";
 
+/**
+ * THE RAW-DATE RENDER GATE (owner ruling 2026-10-08, follow-up to #616).
+ *
+ * The surfaces that print a bid's close date VERBATIM (pipeline, awards
+ * similar-bid cards, the map drill-down card, SavedRadarMatches, the homepage
+ * live-opportunities strip, the SEO landing cards) format the stored instant
+ * with `toLocaleDateString` and no `timeZone`. For a suppressed source the
+ * stored instant is the published Eastern WALL-CLOCK read as UTC
+ * (`2026-10-15T02:00:00Z`), so a US browser renders "Oct 14" — a day early, and
+ * no longer the value as published.
+ *
+ * Returns the published date rendered in UTC (the value's OWN offset) when
+ * `source` is countdown-suppressed, else `null` so every unflagged row keeps its
+ * surface's existing formatter byte-for-byte:
+ *
+ *   `publishedDateOnlyFor(bid.due_date, bid.source) ?? fmtDate(bid.due_date)`
+ *
+ * Null on an unreadable value too — the caller then falls back to its own
+ * formatter, which already has the "unreadable" wording for that surface.
+ */
+export function publishedDateOnlyFor(
+  due: string | Date | null | undefined,
+  source: string | null | undefined,
+): string | null {
+  return isCountdownSuppressed(source) ? publishedDateText(due) : null;
+}
+
 /** True when a countdown must never be derived from this source's due date. */
 export function isCountdownSuppressed(source: string | null | undefined): boolean {
   if (typeof source !== "string") return false; // NULL / undefined ⇒ fail open

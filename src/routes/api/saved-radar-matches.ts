@@ -72,6 +72,10 @@ async function handler({ request }: { request: Request }) {
       source_url: m.source_url,
       score: m.score,
       score_label: m.score_label,
+      // Raw `bids.source`, already carried by the Radar scan payload. Read ONLY
+      // by the client's raw-date render gate (owner ruling 2026-10-08) — never
+      // by matching or scoring.
+      source: m.source ?? null,
     }));
 
     return Response.json({

@@ -1,0 +1,19 @@
+name: Validate Omaha public IonWave board
+on:
+  pull_request:
+    paths:
+      - 'src/jobs/sources/ne-omaha-ionwave*'
+      - '.github/workflows/validate-omaha.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Read public board and parse city notices (no database)
+        run: bun -e 'import {fetchOmahaBids} from "./src/jobs/sources/ne-omaha-ionwave"; const r=await fetchOmahaBids(); console.log(JSON.stringify({accepted:r.rows.length,skipped:r.skipped,examples:r.rows.map(x=>({title:x.title,due:x.due_date}))}));'

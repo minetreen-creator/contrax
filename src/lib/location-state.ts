@@ -1061,6 +1061,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   vt_vbr: "VT",
   tn_cpo: "TN",
   ne_das: "NE",
+  ne_omaha_ionwave: "NE",
   mo_movers: "MO",
   ct_webprocure: "CT",
   az_app: "AZ",

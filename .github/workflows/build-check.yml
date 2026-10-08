@@ -535,3 +535,5 @@ jobs:
         run: bun test src/lib/radar-free-search-limit.test.ts
       - name: Birmingham purchasing source tests
         run: TZ=UTC bun test src/jobs/sources/al-birmingham.test.ts
+      - name: Omaha IonWave source tests
+        run: TZ=UTC bun test src/jobs/sources/ne-omaha-ionwave.test.ts

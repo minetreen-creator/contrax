@@ -1,3 +1,4 @@
+import { LearnFunnel } from "~/components/LearnFunnel";
 import { countryLabel, visitorCountry } from "~/lib/visitor-geo";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect, type ReactNode } from "react";
@@ -869,6 +870,8 @@ function JourneysPage() {
             </div>
           )}
         </section>
+
+        <LearnFunnel days={days} />
 
         {/* Journeys table */}
         <section>

@@ -1,3 +1,4 @@
+import { trackEvent } from "~/lib/track";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { listDocuments, searchDocuments, getDocument, seedLearnContent, type KnowledgeListItem, type KnowledgeDocument } from "~/lib/knowledge";
@@ -38,6 +39,7 @@ export const Route = createFileRoute("/learn/")({
 });
 
 function LearnPage() {
+  useEffect(() => { trackEvent("learn_page_view", "learning_hub", "/learn"); }, []);
   const initial = Route.useLoaderData() as { docs: KnowledgeListItem[]; total: number; hasMore: boolean } | null;
   const [docs, setDocs] = useState<KnowledgeListItem[]>((initial?.docs ?? []).filter(Boolean));
   const [active, setActive] = useState("");

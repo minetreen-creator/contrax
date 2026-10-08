@@ -63,10 +63,10 @@ function LearnPage() {
       <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 px-6 sm:flex-row sm:items-center">
         <div>
           <p className="text-sm font-semibold uppercase tracking-widest text-amber-700">Free course · 15 minutes</p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900">Win Government Construction Work</h2>
-          <p className="mt-1 text-slate-700">Five short lessons for veteran-owned and small construction contractors, with real open bids and a certificate.</p>
+          <h2 className="mt-1 text-2xl font-bold text-slate-900">Getting Started with Government Contracting</h2>
+          <p className="mt-1 text-slate-700">Five short lessons on government contracting, free for everyone, with live construction bid examples and a completion certificate.</p>
         </div>
-        <a href="/learn/construction" className="shrink-0 rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400">Take the course →</a>
+        <a href="/learn/government-contracting" className="shrink-0 rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400">Take the course →</a>
       </div>
     </section>
     <section className="bg-white py-14">

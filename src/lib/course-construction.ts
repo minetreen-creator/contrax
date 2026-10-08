@@ -1,5 +1,5 @@
 /**
- * "Win Government Construction Work" — free self-paced course for veteran-owned
+ * "Getting Started with Government Contracting" — free self-paced course for veteran-owned
  * contractors (owner 2026-10-07, for the SBA Rhode Island resource list). PURE:
  * lesson text, quizzes and the AI helper's source text live here so the owner can
  * edit wording in one place. Every rule stated cites an official source in the
@@ -7,8 +7,8 @@
  */
 
 export const COURSE_ID = "construction-v1";
-export const COURSE_TITLE = "Win Government Construction Work";
-export const COURSE_SUBTITLE = "A free 15-minute course for veteran-owned and small construction contractors";
+export const COURSE_TITLE = "Getting Started with Government Contracting";
+export const COURSE_SUBTITLE = "A free 15-minute introduction to government contracting, open to everyone";
 
 export type Block = { p: string } | { list: string[] } | { tip: string };
 

@@ -46,6 +46,10 @@ import { collectorHealthRows } from "../lib/collector-freshness";
 import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
 import { fetchPennBidOpen } from "./sources/pennbid";
 import { fetchOhDaytonBids } from "./sources/oh-dayton";
+import { fetchVaLoudounBids } from "./sources/va-loudoun";
+import { fetchVaSuffolkBids } from "./sources/va-suffolk";
+import { fetchVaLynchburgBids } from "./sources/va-lynchburg";
+import { fetchVaCharlottesvilleBids } from "./sources/va-charlottesville";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import { fetchVaEvaBids } from "./sources/va-eva";
 import { fetchTxEsbdBids } from "./sources/tx-esbd";
@@ -377,6 +381,26 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "wi_milwaukee_bonfire", fetchFn: fetchWiMilwaukeeBonfireBids },
   { name: "wi_milwaukee_county_bonfire", fetchFn: fetchWiMilwaukeeCountyBonfireBids },
   { name: "wi_mps_bonfire", fetchFn: fetchWiMpsBonfireBids },
+  // Virginia locality CivicEngage boards (owner green-light 2026-10-08, dispatch
+  // A): Loudoun County, the City of Suffolk, the City of Lynchburg and the City of
+  // Charlottesville each publish their OWN open-bid board on CivicEngage /
+  // CivicPlus (`bids.aspx`), read by ONE config-driven shared reader
+  // (src/jobs/sources/civicengage-bids.ts) with a small config per board. `va_eva`
+  // (above) is the STATE surface every Virginia locality MAY post through; these
+  // are the localities' own boards and a notice may legitimately appear on both,
+  // so there is deliberately NO dedupe against eVA.
+  //
+  // Owner-locked shapes (same as `wi_vendornet` / the Bonfire tenants): they join
+  // the shared `bids` table as class `local` with a city/county badge, ride this
+  // EXISTING sync-bids cadence as tail sources (one at a time between state-keyword
+  // batches, their own collector_run_log rows, ZERO added SAM.gov load), and add NO
+  // migration and NO new cron. Each board's `external_id` carries its own prefix
+  // (`loudoun-` / `suffolk-` / `lynchburg-` / `charlottesville-`) because CivicEngage
+  // bidIDs are only unique PER SITE — an id can never collide across boards.
+  { name: "va_loudoun", fetchFn: fetchVaLoudounBids },
+  { name: "va_suffolk", fetchFn: fetchVaSuffolkBids },
+  { name: "va_lynchburg", fetchFn: fetchVaLynchburgBids },
+  { name: "va_charlottesville", fetchFn: fetchVaCharlottesvilleBids },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

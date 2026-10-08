@@ -29,7 +29,10 @@ export function FromTheCEO() {
             <summary className="cursor-pointer font-semibold text-slate-900 dark:text-white">Read the message as text</summary>
             <div className="mt-4 space-y-4 text-base leading-relaxed text-slate-700 dark:text-slate-300">{message.map(paragraph => <p key={paragraph}>{paragraph}</p>)}</div>
           </details>
-          <a href="/learn" className="mt-6 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Explore all three free courses →</a>
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+          <a href="/learn" className=" inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Explore all three free courses →</a>
+          <a href="https://www.facebook.com/profile.php?id=61593835047770" target="_blank" rel="noopener noreferrer" aria-label="Follow Contrax on Facebook (opens in a new tab)" className="rounded-xl border border-blue-200 px-5 py-3 text-sm font-bold text-blue-700 transition hover:bg-blue-50 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-blue-500/40 dark:text-blue-300 dark:hover:bg-blue-950">Follow Contrax on Facebook ↗</a>
+          </div>
         </div>
       </div>
     </section>

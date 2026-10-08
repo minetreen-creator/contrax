@@ -386,3 +386,15 @@ jobs:
       # above), so running it beside the Funnel UX suites is safe.
       - name: Radar scan diagnostics tests (unit, deterministic, zero network)
         run: bun test src/lib/radar-scan-diagnostics.test.ts
+      # ANONYMOUS FREE-SCORE LIMIT — DUAL DIMENSION (owner directive 2026-10-06:
+      # "Count free scans by network address and browser ID, and block when
+      # either one runs out"). Locks the regression where the anonymous /score
+      # allowance was keyed by the client IP ALONE, so a VPN switch reset it.
+      # DETERMINISTIC, network-free and database-free: pure key building + the
+      # real gate/consume functions over an IN-MEMORY store (no DATABASE_URL, no
+      # clock, NO mock.module — bun's mock registry is process-global and leaks
+      # across files in one run), covering same-ip+same-browser, VPN switch
+      # (new ip/same browser), fresh browser (new id/same ip), a missing
+      # dimension never denying, and store/DB errors failing OPEN.
+      - name: Anonymous free-score limit (dual dimension) tests (unit, deterministic, zero network)
+        run: bun test src/lib/free-score-limit.test.ts

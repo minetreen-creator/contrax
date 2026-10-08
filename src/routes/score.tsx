@@ -21,6 +21,16 @@ import {
   type PlanGate,
 } from "~/lib/plan-gates";
 import { hasRadarProAccess, loadGateEntitlements } from "~/lib/plan-gates.server";
+// ANONYMOUS FREE-SCORE LIMIT — DUAL DIMENSION (owner directive 2026-10-06):
+// counted by network address AND browser id, blocked when EITHER runs out.
+// See ~/lib/free-score-limit.server for the full rationale + fail-open rules.
+import {
+  FREE_SCORE_LIMIT,
+  checkAnonymousFreeScore,
+  consumeAnonymousFreeScore,
+  freeScoreKeys,
+  visitorIdFromCookieHeader,
+} from "~/lib/free-score-limit.server";
 import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
 import type { BusinessProfile } from "~/components/CompanyProfile";
 import { FeedbackWidget } from "~/components/FeedbackWidget";
@@ -89,11 +99,14 @@ const scoreFaqs = [
 ];
 
 // ── Free-score credit limit (anonymous only) ────────────────────────────────
-// Anonymous visitors get 3 free analyses per IP; the 4th attempt is blocked
-// BEFORE any OpenAI spend with a signup CTA. Logged-in users (any tier) are
-// never limited — the account is the unlock. Only SUCCESSFUL analyses consume
-// a credit (OpenAI failures / request errors do not decrement).
-const FREE_SCORE_LIMIT = 3;
+// Anonymous visitors get 3 free analyses — counted by NETWORK ADDRESS **and**
+// BROWSER ID, blocked when EITHER runs out (owner directive 2026-10-06:
+// "Switching VPN servers would no longer reset the count, and nothing changes
+// for normal visitors"). The 4th attempt is blocked BEFORE any OpenAI spend
+// with a signup CTA. Logged-in users (any tier) are never limited — the account
+// is the unlock. Only SUCCESSFUL analyses consume a credit (OpenAI failures /
+// request errors do not decrement). FREE_SCORE_LIMIT + the dual-dimension
+// counting live in ~/lib/free-score-limit.server (one source of truth).
 const FREE_LIMIT_REACHED_MESSAGE = "FREE_LIMIT_REACHED";
 // Per-trial score cap sentinel (owner): an ACTIVE 14-day Professional-trial
 // user gets 3 complete scores for the whole trial (see src/lib/trial-usage.ts).
@@ -116,13 +129,13 @@ interface ScoreCredits {
 }
 
 /**
- * Client IP for the anonymous free-score limit. Resolves the request-scoped
- * AsyncLocalStorage context (src/lib/request-context.server.ts) installed by
- * vercel-entry.ts with the real client IP (x-forwarded-for first value /
- * cf-connecting-ip / x-real-ip, sliced to 64 chars — the same derivation as
- * /api/event). Outside the Vercel launcher (local serve / smoke tests / client
- * bundle) the context is empty → null → the limit is skipped (fail-open),
- * never a crash.
+ * Client IP for the anonymous free-score limit (NETWORK-ADDRESS dimension).
+ * Resolves the request-scoped AsyncLocalStorage context
+ * (src/lib/request-context.server.ts) installed by vercel-entry.ts with the
+ * real client IP (x-forwarded-for first value / cf-connecting-ip / x-real-ip,
+ * sliced to 64 chars — the same derivation as /api/event). Outside the Vercel
+ * launcher (local serve / smoke tests / client bundle) the context is empty →
+ * null → that dimension is skipped (fail-open), never a crash.
  */
 function getStashedClientIp(): string | null {
   if (typeof window === "undefined") {
@@ -132,40 +145,21 @@ function getStashedClientIp(): string | null {
   return null;
 }
 
-/** Idempotent DDL guard — same lazy pattern as event.ts / page-view.ts. */
-async function ensureScoreCreditsTable(): Promise<void> {
-  await sql()`CREATE TABLE IF NOT EXISTS score_credits (
-    ip TEXT PRIMARY KEY,
-    count INTEGER NOT NULL DEFAULT 0,
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-  )`;
-}
-
-/** Current credit count for an IP (0 when never used). Never throws. */
-async function getUsedCredits(ip: string): Promise<number> {
-  try {
-    await ensureScoreCreditsTable();
-    const rows = await sql()`SELECT count FROM score_credits WHERE ip = ${ip}`;
-    return rows.length > 0 ? Number(rows[0].count) || 0 : 0;
-  } catch (err) {
-    // DB failure must never block scoring — fail open (treat as 0 used).
-    console.error("[score] credits lookup failed:", err);
-    return 0;
-  }
-}
-
 /**
- * Consume one credit. Only called AFTER a successful OpenAI analysis — a
- * failed credit write must never fail a successful score.
+ * Browser id for the anonymous free-score limit (BROWSER-ID dimension).
+ *
+ * Reads the SAME first-party `contrax_vid` cookie the funnel/tracking code
+ * already mints (src/lib/visitor.ts) out of the request-scoped context's raw
+ * Cookie header — no new fingerprint library, no new id, no new cookie. A
+ * missing, empty or malformed cookie returns null, which drops that dimension
+ * only: the network-address dimension still counts (fail-open, and a
+ * cookie-less visitor is never denied because of the missing id).
  */
-async function incrementCredits(ip: string): Promise<void> {
-  try {
-    await ensureScoreCreditsTable();
-    await sql()`INSERT INTO score_credits (ip, count) VALUES (${ip}, 1)
-      ON CONFLICT (ip) DO UPDATE SET count = score_credits.count + 1, updated_at = NOW()`;
-  } catch (err) {
-    console.error("[score] credit increment failed:", err);
+function getStashedVisitorId(): string | null {
+  if (typeof window === "undefined") {
+    return visitorIdFromCookieHeader(getRequestContext().cookie) || null;
   }
+  return null;
 }
 
 // ── Server function: honest AI win-probability analysis ─────────────────────
@@ -191,15 +185,18 @@ const scoreSolicitation = createServerFn({ method: "POST" })
       user = await getCurrentUser();
     } catch { /* session/DB hiccup — treat as anonymous */ }
 
-    // Anonymous free-score gate: block BEFORE any OpenAI spend once this IP has
-    // used its 3 free analyses. Only successful analyses consume a credit.
+    // Anonymous free-score gate: block BEFORE any OpenAI spend once EITHER
+    // dimension (network address OR browser id) has used its 3 free analyses.
+    // Only successful analyses consume a credit; a missing dimension or an
+    // unreadable counter allows (fail-open — see ~/lib/free-score-limit.server).
     const clientIp = getStashedClientIp();
-    if (!user && clientIp) {
-      const used = await getUsedCredits(clientIp);
-      if (used >= FREE_SCORE_LIMIT) {
+    const visitorId = getStashedVisitorId();
+    if (!user) {
+      const gate = await checkAnonymousFreeScore(clientIp, visitorId);
+      if (!gate.allowed) {
         // Distinguishable sentinel — the client matches this exact message and
         // renders the "create an account to keep scoring" panel instead of a
-        // generic error.
+        // generic error. UNCHANGED by the dual-dimension fix.
         throw new Error(FREE_LIMIT_REACHED_MESSAGE);
       }
     }
@@ -329,8 +326,9 @@ ${knowledgeCtx}` : ""}`;
         recommendation: pickEnum(parsed.recommendation, ["GO", "CAUTIOUS", "NO-GO"] as const, "CAUTIOUS"),
       };
 
-      // Only a SUCCESSFUL analysis consumes a credit (anonymous only).
-      if (!user && clientIp) await incrementCredits(clientIp);
+      // Only a SUCCESSFUL analysis consumes a credit, in BOTH dimensions
+      // (anonymous only). OpenAI failures / request errors burn nothing.
+      if (!user) await consumeAnonymousFreeScore(clientIp, visitorId);
       // Trial users consume a per-trial score unit on SUCCESS (never the
       // anonymous credit path, and failed analyses never consume).
       if (user && !user.is_admin) await consumeTrial(user.id, "scores");
@@ -369,8 +367,10 @@ const getScoreCredits = createServerFn({ method: "GET" }).handler(
       };
     }
     const ip = getStashedClientIp();
-    if (!ip) {
-      // No IP available (non-Vercel runtime) — show no limit, hide the counter.
+    const visitorId = getStashedVisitorId();
+    if (!freeScoreKeys(ip, visitorId).length) {
+      // No dimension available (non-Vercel runtime, no cookie) — show no limit
+      // and hide the counter. Fail-open, exactly as before.
       return {
         used: 0,
         limit: FREE_SCORE_LIMIT,
@@ -381,11 +381,14 @@ const getScoreCredits = createServerFn({ method: "GET" }).handler(
         bidScout: false,
       };
     }
-    const used = await getUsedCredits(ip);
+    // Honest counter across BOTH dimensions: `used` is the most-advanced
+    // counter (the one that will block first) and `limited` mirrors the exact
+    // rule the attempt path enforces, so the panel and the block agree.
+    const gate = await checkAnonymousFreeScore(ip, visitorId);
     return {
-      used,
-      limit: FREE_SCORE_LIMIT,
-      limited: used >= FREE_SCORE_LIMIT,
+      used: gate.used,
+      limit: gate.limit,
+      limited: !gate.allowed,
       unlimited: false,
       signedIn: false,
       radarPro: false,

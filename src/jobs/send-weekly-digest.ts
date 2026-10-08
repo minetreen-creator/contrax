@@ -54,7 +54,7 @@ export async function sendWeeklyDigest(
   if (!shouldSendWeeklyDigest(lastSent, now.getTime(), force)) {
     return { bids: 0, recipients: 0, sent: false, reason: "not the weekly send day (or sent within the last 6 days)" };
   }
-  // The window ends 72 hours ago: newer bids are in their paid head start
+  // The window ends one head start (7 days) ago: newer bids are in their paid head start
   // (src/lib/head-start.ts) and are only counted, never listed.
   const { start: since, end: until } = weeklyWindowBounds(lastSent, now.getTime());
 

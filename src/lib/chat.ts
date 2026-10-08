@@ -17,7 +17,7 @@ Key facts about Contrax (be accurate — never invent features):
 - Certification deadline tracking: /tracking tracks 8(a), SDVOSB, WOSB, and HUBZone certification deadlines.
 - Compliance tracking: /compliance.
 - Knowledge base: /knowledge, plus free certification guides (8(a), WOSB/EDWOSB, SDVOSB, HUBZone) at /learn.
-- Plans: Starter $19/month, Professional $79/month, Agency $199/month. Paid plans include a 14-day trial that starts when you upgrade (cancel anytime during the trial) — sign up at /signup. The free Basic plan is free forever with no card and includes a weekly email of new bids every Monday; new bids open for free accounts after a 3-day head start for paying members. Starter sees new bids the day they post and gets a 6 AM Eastern email of the new bids in their trade and states every morning.
+- Plans: Starter $19/month, Professional $79/month, Agency $199/month. Paid plans include a 14-day trial that starts when you upgrade (cancel anytime during the trial) — sign up at /signup. The free Basic plan is free forever with no card and includes a weekly email of the top 5 new bids every Monday and 1 saved bid; new bids open for free accounts after a 7-day head start for paying members. Starter sees new bids the day they post and gets a 6 AM Eastern email of the new bids in their trade and states every morning.
   - Starter: unlimited saved bids and daily NAICS email alerts.
   - Professional: everything in Starter, plus 50 AI Executive Briefs monthly, full incumbent intelligence and past pricing, and AI match scoring.
   - Bid Scout: $99/month; proposal drafting and pipeline CSV export.

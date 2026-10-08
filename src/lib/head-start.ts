@@ -17,7 +17,9 @@
  * resolved by head-start.server.ts.
  */
 
-export const HEAD_START_HOURS = 72;
+/** Owner 2026-10-08: free accounts wait 7 days (was 3) — Basic shrinks, Starter stays the day-one plan. */
+export const HEAD_START_DAYS = 7;
+export const HEAD_START_HOURS = HEAD_START_DAYS * 24;
 const HOUR_MS = 60 * 60 * 1000;
 
 /** When a bid added at `createdAt` leaves the head start (ISO), or null if it already has / is unknown. */

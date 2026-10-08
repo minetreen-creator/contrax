@@ -86,7 +86,7 @@ const scoreFaqs = [
   },
   {
     q: "Do I need to sign up?",
-    a: "No — your first 3 scores are free with no account: paste a solicitation and get your score, no login or credit card required. Bid scoring itself is part of the Radar Pro plan ($79/month, the Professional tier), so once your free scores are used you upgrade to Radar Pro to keep scoring. A free account still covers opportunity search, set-aside filters, and up to 3 saved bids.",
+    a: "No — your first 3 scores are free with no account: paste a solicitation and get your score, no login or credit card required. Bid scoring itself is part of the Radar Pro plan ($79/month, the Professional tier), so once your free scores are used you upgrade to Radar Pro to keep scoring. A free account still covers opportunity search, set-aside filters, and 1 saved bid.",
   },
   {
     q: "What do GO, CAUTIOUS, and NO-GO mean?",

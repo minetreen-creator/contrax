@@ -82,8 +82,8 @@ export function weeklyWindowStart(lastSentAt: string | Date | null | undefined, 
 
 /**
  * The window the free weekly email lists, shifted back by the paid head start
- * (head-start.ts) so it never includes a bid still inside its first 72 hours:
- * [weeklyWindowStart − 72h, now − 72h]. Consecutive Mondays tile without gaps
+ * (head-start.ts) so it never includes a bid still inside its head start (HEAD_START_HOURS):
+ * [weeklyWindowStart − head start, now − head start]. Consecutive Mondays tile without gaps
  * or repeats, because each window starts where the previous one ended.
  */
 export function weeklyWindowBounds(

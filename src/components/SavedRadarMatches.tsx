@@ -267,8 +267,8 @@ export function SavedRadarMatches() {
             </p>
           ) : (
             <p className="mt-3 text-sm font-semibold text-amber-900">
-              Saved {result.saved} of {result.total} — Basic is limited to {result.limit ?? 3} saved
-              bids.{" "}
+              Saved {result.saved} of {result.total} — Basic is limited to {result.limit ?? 1} saved
+              bid{(result.limit ?? 1) === 1 ? "" : "s"}.{" "}
               <a href="/upgrade" className="font-bold underline hover:text-amber-700">
                 Upgrade to Starter for unlimited
               </a>

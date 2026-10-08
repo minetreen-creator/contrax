@@ -118,7 +118,7 @@ export interface SeoBid {
    *  (`publishedDateOnlyFor`). NULL/unknown ⇒ existing render, unchanged. */
   source: string | null;
   /** Paid head start (src/lib/head-start.ts): these public pages always show
-   *  the free view, so a bid's first 72 hours appear without its source link. */
+   *  the free view, so a bid's head start (HEAD_START_HOURS) appears without its source link. */
   head_start_until: string | null;
 }
 

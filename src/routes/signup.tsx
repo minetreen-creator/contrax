@@ -184,9 +184,9 @@ const PLAN_OPTIONS: {
     price: 0,
     free: true,
     bullets: [
-      "Basic Solicitations Search (new bids after 3 days)",
+      "Basic Solicitations Search (new bids after 7 days)",
       "A weekly email of new bids (Mondays)",
-      "Up to 3 saved bids",
+      "1 saved bid",
       "Standard set-aside filters",
     ],
   },
@@ -196,7 +196,7 @@ const PLAN_OPTIONS: {
     price: 19,
     bullets: [
       "Everything in Basic",
-      "New bids the day they post, 3 days before free accounts",
+      "New bids the day they post, 7 days before free accounts",
       "A 6 AM email of new bids in your trade and states",
       "Unlimited saved bids",
     ],
@@ -1375,7 +1375,7 @@ function SignupPage() {
                   : "🔒 Start your 14-day trial when you upgrade • Cancel anytime"}
               </p>
               {/* Honest scope on the free forever claim — Basic is free and never
-                  expires, but it is LIMITED: capped at 3 saved bids, with AI
+                  expires, but it is LIMITED: capped at 1 saved bid, with AI
                   Executive Briefs / Incumbent Intelligence / AI Match Scoring gated
                   on Professional and drafting / pipeline CSV export gated on Bid
                   Scout (the ratified gate map, src/lib/plan-gates.ts). Kept small
@@ -1383,7 +1383,7 @@ function SignupPage() {
                   as "everything is free". */}
               {selectedPlan === "basic" && (
                 <p className="mt-1.5 text-xs text-gray-500">
-                  Basic includes up to 3 saved bids. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
+                  Basic includes 1 saved bid. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
                 </p>
               )}
               <input

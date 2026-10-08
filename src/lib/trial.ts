@@ -27,7 +27,7 @@ export const TIER_ORDER: Record<string, number> = { basic: 0, starter: 1, profes
  * Starter. Starter/Professional/Agency, admins, demo and active-grant users
  * bypass the cap.
  */
-export const FREE_SAVE_LIMIT = 3;
+export const FREE_SAVE_LIMIT = 1; // owner 2026-10-08: was 3
 /**
  * Shared premium-access predicate used by BOTH premium paywalls (the
  * Incumbent Intelligence reveal and the saved-bid limit). A user "has

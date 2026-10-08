@@ -1,0 +1,29 @@
+name: Validate Virginia Beach public collector
+on:
+  pull_request:
+    paths:
+      - '.github/scripts/virginia-beach-bids-fetch.mjs'
+      - 'src/jobs/sources/va-virginia-beach-oracle*'
+      - '.github/workflows/validate-virginia-beach.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Read and parse live public abstracts (no database)
+        run: |
+          D="$RUNNER_TEMP/virginia-beach"
+          mkdir -p "$D"
+          cp .github/scripts/virginia-beach-bids-fetch.mjs "$D/"
+          cd "$D"
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@24
+          VA_VIRGINIA_BEACH_OUT="$D/payload.json" node "$D/virginia-beach-bids-fetch.mjs"
+          cd "$GITHUB_WORKSPACE"
+          VB_PAYLOAD="$D/payload.json" bun -e 'import {parseVirginiaBeach} from "./src/jobs/sources/va-virginia-beach-oracle"; const p=await Bun.file(process.env.VB_PAYLOAD!).json(); const r=parseVirginiaBeach(p); console.log(JSON.stringify({captured:p.rowCount,accepted:r.rows.length,skipped:r.skipped,examples:r.rows.slice(0,3).map(x=>({title:x.title,due:x.due_date}))}));'

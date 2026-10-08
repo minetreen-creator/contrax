@@ -49,7 +49,7 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # WISCONSIN DOA VENDORNET (wi_vendornet) - the bids family's only
+      # WISCONSIN DOA VENDORNET (wi_vendornet) - a
       # browser-rendered source. vendornet.wi.gov/Bids is a Blazor Server + Telerik
       # grid whose rows exist only over a WebSocket, so the collector needs a driver.
       # Same proven pattern as the Phase-1 spike (PR #582): the runner image ALREADY
@@ -59,11 +59,11 @@ jobs:
       # FAILS the job if it ever were. NO new cron (owner decision 3): this source
       # runs inside the EXISTING sync-bids schedule, as one more source in the
       # runner's tail registry.
-      - name: Install the VendorNet (WI) headless driver (ephemeral, manifest untouched)
+      - name: Install public bid portal headless drivers (ephemeral, manifest untouched)
         run: |
           D="$RUNNER_TEMP/vendornet"
           mkdir -p "$D"
-          cp .github/scripts/vendornet-bids-fetch.mjs "$D/"
+          cp .github/scripts/vendornet-bids-fetch.mjs .github/scripts/virginia-beach-bids-fetch.mjs "$D/"
           cd "$D"
           npm init -y >/dev/null
           npm install --no-audit --no-fund --no-save --no-package-lock puppeteer-core@24
@@ -74,6 +74,7 @@ jobs:
         env:
           # The collector executes this copy (resolveWiVendornetDriverConfig).
           WI_VENDORNET_FETCH_SCRIPT: ${{ runner.temp }}/vendornet/vendornet-bids-fetch.mjs
+          VA_VIRGINIA_BEACH_FETCH_SCRIPT: ${{ runner.temp }}/vendornet/virginia-beach-bids-fetch.mjs
         run: bun run sync-bids
 
       - name: Enforce 90-day raw-IP retention

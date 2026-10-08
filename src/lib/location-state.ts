@@ -1025,6 +1025,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   // src/jobs/sources/va-fairfax-bonfire.ts, va-alexandria-bonfire.ts): each is a
   // Virginia locality's OWN portal on Bonfire, so every buyer publishing through it
   // is that Virginia locality — provable by construction, never text-derived.
+  va_virginia_beach_oracle: "VA",
   ky_louisville_bonfire: "KY",
   va_fairfax_bonfire: "VA",
   va_alexandria_bonfire: "VA",

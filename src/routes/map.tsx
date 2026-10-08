@@ -49,7 +49,7 @@ const UNSPECIFIED_NAME = "Nationwide / Location not specified";
 const getContractMap = createServerFn({ method: "GET" }).handler(
   async (): Promise<ContractMapAggregate> => {
     const rows = await sql()`
-      SELECT location, set_aside, estimated_value, agency, category, due_date
+      SELECT location, set_aside, estimated_value, agency, category, due_date, source
       FROM bids
       WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
         AND ${sql().unsafe(LOW_CONTENT_SQL)}

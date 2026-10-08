@@ -26,7 +26,7 @@ import { buildContractMap } from "~/lib/contract-map";
 async function handler({ request: _request }: { request: Request }) {
   try {
     const rows = await sql()`
-      SELECT location, set_aside, estimated_value, agency, category, due_date
+      SELECT location, set_aside, estimated_value, agency, category, due_date, source
       FROM bids
       WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
         AND ${sql().unsafe(LOW_CONTENT_SQL)}

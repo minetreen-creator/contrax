@@ -9,6 +9,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
+import { isCountdownSuppressed, publishedDateText } from "~/lib/deadline-label";
 
 export interface Notification {
   id: number;
@@ -97,10 +98,10 @@ export async function createDeadlineAlertsForUser(
   userEmail: string,
 ): Promise<number> {
   await ensureNotificationsTable();
-  await sql()`CREATE TABLE IF NOT EXISTS tracked_bids (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'tracked', last_checked TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(user_email, bid_id))`;
+  await sql()`CREATE TABLE IF NOT EXISTS tracked_bids (id SERIAL PRIMARY KEY, user_email TEXT NOT NULL, bid_id TEXT NOT NULL, bid_title TEXT NOT NULL, agency TEXT NOT NULL, due_date TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'tracked', last_checked TIMESTAMPTZ DEFAULT NOW(), created_at TIMESTAMPTZ DEFAULT NOW(), source TEXT, UNIQUE(user_email, bid_id))`;
 
   const trackedRows = await sql()`
-    SELECT bid_id, bid_title, agency, due_date
+    SELECT bid_id, bid_title, agency, due_date, source
     FROM tracked_bids
     WHERE user_email = ${userEmail} AND due_date IS NOT NULL
   `;
@@ -114,6 +115,13 @@ export async function createDeadlineAlertsForUser(
     const agency = row.agency as string;
     const dueDate = new Date(row.due_date);
     const hoursUntilDue = (dueDate.getTime() - now) / (1000 * 60 * 60);
+    // ZONE-UNVERIFIED SOURCE (owner 2026-10-08): the derived phrases "is due in less
+    // than 24 hours" / "is due in 2 days" are exactly the misleading math on a close
+    // date whose time zone is not settled, so they are never produced for a flagged
+    // source. The alert still fires inside the same 48-hour window and states the RAW
+    // published close date instead; the "was due …" alert below is untouched.
+    const suppressed = isCountdownSuppressed(row.source == null ? null : String(row.source));
+    const publishedCloseDate = publishedDateText(row.due_date);
 
     let title = "";
     let message = "";
@@ -121,6 +129,11 @@ export async function createDeadlineAlertsForUser(
     if (hoursUntilDue < 0) {
       title = "Bid deadline passed";
       message = `"${bidTitle}" (${agency}) was due ${formatRelative(dueDate)}.`;
+    } else if (suppressed) {
+      if (hoursUntilDue > 48) continue; // same alert window as the derived thresholds
+      const when = publishedCloseDate ?? formatRelative(dueDate);
+      title = `Bid closes ${when}`;
+      message = `"${bidTitle}" (${agency}) is published to close ${when}. This source's close-date time zone is not settled, so Contrax shows the published date rather than a countdown — confirm the exact time at the official source.`;
     } else if (hoursUntilDue <= 24) {
       title = "Bid due within 24 hours";
       message = `"${bidTitle}" (${agency}) is due in less than 24 hours. Act now!`;

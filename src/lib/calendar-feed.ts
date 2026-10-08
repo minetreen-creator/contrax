@@ -20,6 +20,7 @@
  * PURE helpers here (no DB): ics text building and escaping, unit-tested in
  * calendar-feed.test.ts. The route is src/routes/api/calendar-feed.ts.
  */
+import { isCountdownSuppressed } from "~/lib/deadline-label";
 
 export const CALENDAR_FEED_PATH = "/api/calendar-feed";
 const SITE = "https://www.contrax.company";
@@ -30,6 +31,13 @@ export interface CalendarBid {
   agency: string | null;
   dueDate: string | Date;
   solicitationNumber?: string | null;
+  /**
+   * Provenance label (`bids.source`). A source whose published due-date time zone
+   * is not settled (eVA + the four Virginia locality boards) gets NO reminder
+   * alarms: `TRIGGER:-P2D` / `-P1D` are derived countdowns off a close instant
+   * that may be up to 4-5h off (`~/lib/deadline-label`). NULL/unknown ⇒ unchanged.
+   */
+  source?: string | null;
 }
 
 /** The feed URL for a token. */
@@ -125,18 +133,26 @@ export function buildSavedBidsCalendar(bids: readonly CalendarBid[], now: Date =
       `DESCRIPTION:${icsEscape(description)}`,
       `URL:${link}`,
       "TRANSP:TRANSPARENT",
-      "BEGIN:VALARM",
-      "ACTION:DISPLAY",
-      `DESCRIPTION:${icsEscape(`Bid due in 2 days: ${b.title}`)}`,
-      "TRIGGER:-P2D",
-      "END:VALARM",
-      "BEGIN:VALARM",
-      "ACTION:DISPLAY",
-      `DESCRIPTION:${icsEscape(`Bid due tomorrow: ${b.title}`)}`,
-      "TRIGGER:-P1D",
-      "END:VALARM",
-      "END:VEVENT",
     );
+    // Zone-unverified source: the event stays (the member asked to be reminded of
+    // this bid's date), but the derived "2 days before" / "1 day before" alarms are
+    // NOT emitted — they are countdowns computed off a close instant whose time
+    // zone is not settled. See `~/lib/deadline-label`.
+    if (!isCountdownSuppressed(b.source)) {
+      lines.push(
+        "BEGIN:VALARM",
+        "ACTION:DISPLAY",
+        `DESCRIPTION:${icsEscape(`Bid due in 2 days: ${b.title}`)}`,
+        "TRIGGER:-P2D",
+        "END:VALARM",
+        "BEGIN:VALARM",
+        "ACTION:DISPLAY",
+        `DESCRIPTION:${icsEscape(`Bid due tomorrow: ${b.title}`)}`,
+        "TRIGGER:-P1D",
+        "END:VALARM",
+      );
+    }
+    lines.push("END:VEVENT");
   }
   lines.push("END:VCALENDAR");
   return lines.map(icsFold).join("\r\n") + "\r\n";

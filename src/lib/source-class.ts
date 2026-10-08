@@ -191,6 +191,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   ga_gpr: { class: "state", scopeState: "GA", searchScope: "state-portal", recordType: "opportunity" },
   // West Virginia wvOASIS Vendor Self Service (src/jobs/sources/wv-oasis.ts).
   wv_oasis: { class: "state", scopeState: "WV", searchScope: "state-portal", recordType: "opportunity" },
+  ky_louisville_bonfire: { class: "local", city: "Louisville", scopeState: "KY", searchScope: "city-open-data", recordType: "opportunity" },
   ky_vss: { class: "state", scopeState: "KY", searchScope: "state-portal", recordType: "opportunity" },
   al_aldot: { class: "state", scopeState: "AL", searchScope: "state-portal", recordType: "opportunity" },
   de_mmp: { class: "state", scopeState: "DE", searchScope: "state-portal", recordType: "opportunity" },

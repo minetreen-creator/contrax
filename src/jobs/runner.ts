@@ -50,6 +50,7 @@ import { fetchVaLoudounBids } from "./sources/va-loudoun";
 import { fetchVaSuffolkBids } from "./sources/va-suffolk";
 import { fetchVaLynchburgBids } from "./sources/va-lynchburg";
 import { fetchVaCharlottesvilleBids } from "./sources/va-charlottesville";
+import { fetchLouisvilleBonfireBids } from "./sources/ky-louisville-bonfire";
 import { fetchVaFairfaxBonfireBids } from "./sources/va-fairfax-bonfire";
 import { fetchVaAlexandriaBonfireBids } from "./sources/va-alexandria-bonfire";
 import { fetchVaEvirginia } from "./sources/va-ev";
@@ -289,6 +290,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "wv_oasis", fetchFn: () => fetchWvOasisBids() },
   // Kentucky eProcurement Vendor Self Service: open Commonwealth solicitations.
   { name: "ky_vss", fetchFn: () => fetchKyVssBids() },
+  { name: "ky_louisville_bonfire", fetchFn: fetchLouisvilleBonfireBids },
   // Alabama DOT road and bridge lettings (Alabama Buys is behind a reCAPTCHA).
   { name: "al_aldot", fetchFn: () => fetchAlAldotBids() },
   // Delaware Bid Solicitation Directory: open state and school solicitations.

@@ -1,3 +1,4 @@
+import { LearnFunnel } from "~/components/LearnFunnel";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
@@ -467,6 +468,8 @@ function AdminOverviewPage() {
           </p>
           <RevenueFunnel unified={unified} radarLeads={radarLeads} fin={fin} loading={loading} error={error} />
         </section>
+        <LearnFunnel />
+
         {/* RADAR CONVERSION (09-07 sprint, PR2) — separate 9-stage funnel */}
         <section>
           <h2 className="text-lg font-semibold text-slate-800 mb-1">Radar Conversion (09-07 sprint)</h2>

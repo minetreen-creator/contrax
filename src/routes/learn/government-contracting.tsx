@@ -5,6 +5,7 @@ import { SiteHeader } from "~/components/SiteHeader";
 import { STATE_NAMES } from "~/lib/contract-map";
 import {
   COURSE_TRADES,
+  COURSE_ID,
   courseTrade,
   COURSE_MINUTES,
   COURSE_SUBTITLE,
@@ -97,6 +98,7 @@ function CoursePage() {
   const [done, setDone] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string>(LESSONS[0].id);
   useEffect(() => {
+    trackEvent("course_started", COURSE_ID, "/learn/government-contracting");
     const p = readProgress();
     setDone(p);
     const next = LESSONS.find((l) => !p.includes(l.id));
@@ -426,7 +428,7 @@ function Complete({ initialState, trade }: { initialState: string; trade: string
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || !j.token) throw new Error(j.error || "Couldn't save your completion.");
-      trackEvent("course_completed", state);
+      trackEvent("course_completed", COURSE_ID, "/learn/government-contracting");
       setToken(j.token);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Couldn't save your completion.");

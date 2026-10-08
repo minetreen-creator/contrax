@@ -13,7 +13,7 @@ export function SelfPacedCoursePage({ course }: { course: SelfPacedCourse }) {
     try { const saved = readCourseProgress(course, localStorage.getItem(course.key)); setAnswers(saved.answers); setNotes(saved.notes); }
     catch { setStorageWarning(true); }
     setReady(true);
-    trackEvent("course_started", course.id);
+    trackEvent("course_started", course.id, window.location.pathname);
   }, [course]);
   useEffect(() => {
     if (!ready) return;
@@ -94,7 +94,7 @@ function CertificateForm({ course, answers }: { course: SelfPacedCourse; answers
       const value = await response.json();
       if (!response.ok || !value.token) throw new Error(value.error || "Couldn't save your completion.");
       setToken(value.token);
-      trackEvent("course_completed", course.id);
+      trackEvent("course_completed", course.id, window.location.pathname);
     } catch (err) { setError(err instanceof Error ? err.message : "Couldn't save your completion. Please try again."); }
     finally { setBusy(false); }
   };

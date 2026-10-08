@@ -358,6 +358,40 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Virginia locality CivicEngage boards (owner green-light 2026-10-08; dispatch A
+  // — src/jobs/sources/va-loudoun.ts, va-suffolk.ts, va-lynchburg.ts,
+  // va-charlottesville.ts, all on the shared reader civicengage-bids.ts). Each is a
+  // Virginia locality's OWN board, so every row is that locality's solicitation.
+  // `va_eva` (state portal) is a DIFFERENT surface: a locality MAY post to both, so
+  // both badges are correct and nothing is deduped.
+  va_loudoun: {
+    class: "local",
+    city: "Loudoun County",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  va_suffolk: {
+    class: "local",
+    city: "Suffolk",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  va_lynchburg: {
+    class: "local",
+    city: "Lynchburg",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  va_charlottesville: {
+    class: "local",
+    city: "Charlottesville",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   oh_dayton: {
     class: "local",
     city: "Dayton",

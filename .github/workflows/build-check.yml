@@ -254,6 +254,48 @@ jobs:
       # which is the same way runner.dedupe.test.ts went unrun for weeks.
       - name: Virginia eVA connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/va-eva.test.ts
+      # The SHARED CivicEngage / CivicPlus bid-board reader (civicengage-bids.ts) and
+      # the four Virginia locality boards built on it (va_loudoun · va_suffolk ·
+      # va_lynchburg · va_charlottesville — owner green-light 2026-10-08, dispatch A).
+      # DETERMINISTIC, zero network, no DATABASE_URL, and deliberately NO
+      # `mock.module` (bun's mock registry is process-global and leaks across test
+      # files in one run — the #613/#588/#591 standard): every byte read is a
+      # committed capture of the live boards (src/jobs/sources/fixtures/{loudoun,
+      # suffolk,lynchburg,charlottesville}/, sha256-indexed in each README) and the
+      # ONE fetch path is exercised through an in-process `globalThis.fetch` stub
+      # built from those same bytes. It pins, on real bytes:
+      #   · the BARE-URL rule — a query-param endpoint is refused at CONFIG load,
+      #     and the real `?showAllBids=true&Status=all` capture (HTTP 404, no item
+      #     container on all four boards) parses to ZERO rows + `{shape_change: 1}`
+      #     instead of a plausible-but-empty board;
+      #   · the two div.bidStatus child divs (labels vs VALUES — the naive read
+      #     returns the text "Status:"), the OPTIONAL `Bid No.` line, alternating
+      #     row classes, and the "Read on" affordance stripped on EITHER spelling
+      #     (Dayton writes `Read&nbsp;on`, these boards a plain `Read on`) with the
+      #     mixed entities (&ldquo;/&rsquo;/&mdash;) decoded;
+      #   · "parse or NULL" — a non-date `Closes:` value ("Upon Contract" is the
+      #     open-ended state these boards print) → due_date null and the row is
+      #     STILL emitted; a genuinely past-due row is dropped as `closed` through
+      #     the INJECTED reference instant (no wall-clock dependence);
+      #   · all four fail-closed fetch gates (non-2xx · body < 5 000 bytes ·
+      #     missing item-region anchors · transport failure) throwing
+      #     SourceUnreachableError (DEAD) rather than reading as an honest zero;
+      #   · HONEST DATA — agency/location/ids come from the board CONFIG (a config
+      #     deliberately disagreeing with the bytes it parses proves it), set_aside
+      #     is NULL unless the row's own text states a program, and naics/psc/
+      #     notice_type/solicitation_number stay NULL;
+      #   · the registration that nothing else in CI covers (TAIL_SOURCES,
+      #     SOURCE_CLASSES LOCAL + city badge + `city-open-data`, the VA home
+      #     jurisdiction and the non-federal badge).
+      # The live half is the OPT-IN gate (va-{loudoun,suffolk,lynchburg,
+      # charlottesville}.source-validation.test.ts, wired into
+      # `validate:live-bids-sources`) and must never run here.
+      # Named EXPLICITLY: a deterministic suite that no workflow names runs nowhere
+      # (the reason runner.dedupe.test.ts went unrun for weeks).
+      - name: CivicEngage shared bid-board reader tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/civicengage-bids.test.ts
+      - name: Virginia locality CivicEngage board tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/va-loudoun.test.ts src/jobs/sources/va-suffolk.test.ts src/jobs/sources/va-lynchburg.test.ts src/jobs/sources/va-charlottesville.test.ts
       # Wisconsin DOA VendorNet Bids (wi_vendornet) - the FIRST browser-rendered
       # source in the bids family. This suite is the PARSER half only, deterministic
       # and zero-network/zero-browser by construction: it reads ONE committed capture

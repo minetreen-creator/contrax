@@ -1012,6 +1012,15 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   wi_milwaukee_bonfire: "WI",
   wi_milwaukee_county_bonfire: "WI",
   wi_mps_bonfire: "WI", // Milwaukee Public Schools' own Bonfire portal (owner 2026-10-07) // Milwaukee County's own Bonfire portal (owner 2026-10-07) // City of Milwaukee's own Bonfire portal (owner 2026-10-07)
+  // Virginia locality CivicEngage boards (owner green-light 2026-10-08; dispatch A
+  // — src/jobs/sources/va-loudoun.ts, va-suffolk.ts, va-lynchburg.ts,
+  // va-charlottesville.ts): each is a Virginia locality's OWN board on
+  // CivicPlus/CivicEngage, so every buyer publishing through it is that Virginia
+  // locality — provable by construction, never text-derived from a row.
+  va_loudoun: "VA",
+  va_suffolk: "VA",
+  va_lynchburg: "VA",
+  va_charlottesville: "VA",
   va_eva: "VA",
   tx_esbd: "TX",
   fl_mfmp: "FL",

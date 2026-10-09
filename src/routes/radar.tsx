@@ -1622,6 +1622,12 @@ function RadarLanding() {
     runScan({ trade: trade.trim(), state, cert: cert!, sizePref: sizePref! });
   };
 
+  const confirmScan = () => {
+    if (editing) return startScan();
+    setTradeHint(true);
+    document.getElementById("radar-trade")?.focus();
+  };
+
   // RESULTS FIRST: a deep link with a trade scans once, on mount.
   const autoScanRanRef = useRef(false);
   useEffect(() => {
@@ -1728,21 +1734,7 @@ function RadarLanding() {
                         setTrade(t.q);
                         setTradeHint(false);
                         trackEvent("radar_quick_trade", t.q);
-                        // Phones (owner 2026-10-09): a tap searches right away. Mobile ad
-                        // visitors tapped a trade, never reached the search button
-                        // further down, and left without seeing a match. Their state
-                        // comes from their location (nationwide if unknown); they can
-                        // refine afterward.
-                        if (typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches) {
-                          const go = (st: string) =>
-                            runScan({ trade: t.q, state: st, cert: cert ?? DEFAULT_RADAR_CERT, sizePref: sizePref ?? DEFAULT_RADAR_SIZE });
-                          if (state) go(state);
-                          else
-                            withTimeout(getVisitorStateHint(), 1500).then((st) => {
-                              if (st) setState(st);
-                              go(st ?? "");
-                            });
-                        }
+
                       }}
                       aria-pressed={trade.trim().toLowerCase() === t.q.toLowerCase()}
                       className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors sm:px-3 sm:py-1.5 sm:text-sm ${
@@ -1755,6 +1747,18 @@ function RadarLanding() {
                     </button>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={confirmScan}
+                  className="mt-3 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
+                >
+                  Find my matches →
+                </button>
+                <p className="mt-2 text-center text-xs text-slate-400">
+                  {trade.trim() ? `Selected: ${trade.trim()}. ` : "Choose a trade above or type one below. "}
+                  {state ? `Search area: ${state}.` : "Search area: all states."} Change your state below.
+                  {" "}Selecting a trade does not use a search.
+                </p>
                 <input
                   id="radar-trade"
                   list="radar-naics-list"
@@ -1867,11 +1871,7 @@ function RadarLanding() {
                   broken). With no trade yet it points the visitor to the trade field. */}
               <button
                 type="button"
-                onClick={() => {
-                  if (editing) return startScan();
-                  setTradeHint(true);
-                  document.getElementById("radar-trade")?.focus();
-                }}
+                onClick={confirmScan}
                 className="mt-2 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
               >
                 See my matches →

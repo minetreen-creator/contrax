@@ -537,3 +537,5 @@ jobs:
         run: TZ=UTC bun test src/jobs/sources/al-birmingham.test.ts
       - name: Omaha IonWave source tests
         run: TZ=UTC bun test src/jobs/sources/ne-omaha-ionwave.test.ts
+      - name: Course to Radar handoff tests
+        run: bun test src/lib/learn-radar.test.tsx

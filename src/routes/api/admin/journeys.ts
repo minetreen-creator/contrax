@@ -69,6 +69,7 @@ const RADAR_COMPLETE = "radar_scan_complete";
 /** Human-readable timeline labels for known funnel events. */
 const EVENT_LABELS: Record<string, string> = {
   learn_page_view: "Learn page viewed",
+  course_radar_clicked: "Course to Radar search clicked",
   course_started: "Course opened",
   course_completed: "Course completed / certificate recorded",
   course_lesson_complete: "Course lesson completed",

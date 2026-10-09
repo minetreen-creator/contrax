@@ -1,3 +1,4 @@
+import { isLearnRadarVisit } from "~/lib/learn-radar";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createServerFn } from "@tanstack/react-start";
@@ -134,12 +135,14 @@ export function radarOpening({
   stateCode,
   cert,
   fromAd = false,
+  fromLearn = false,
 }: {
   trade: string;
   stateCode: string;
   cert: string | null;
   /** Paid-ad visit (isPaidAdVisit): a broader headline than the SDVOSB one. */
   fromAd?: boolean;
+  fromLearn?: boolean;
 }): { headline: string; intro: string } {
   // No cert in the link → the scan runs with the broad Small Business default,
   // so the headline names no certification.
@@ -153,7 +156,7 @@ export function radarOpening({
     const inState = stateName ? ` in ${stateName}` : "";
     return {
       headline: `Your ${certLabel}matches${forTrade}${inState}`,
-      intro:
+      intro: fromLearn ? "Your course selections are ready. Review the current matches, then save an opportunity with a free account. AI briefs and drafting are available with the relevant paid plans." :
         "We've filled in what you picked on the homepage. See your matches now — your first 3 are free, each with a real match score and full Incumbent Intelligence (previous winner & award price). Certification and contract size are optional; set them under Refine.",
     };
   }
@@ -1249,6 +1252,7 @@ function RadarLanding() {
     cert?: unknown;
     size?: unknown;
   };
+  const fromLearn = isLearnRadarVisit(searchParams as Record<string,unknown>);
   const uTrade = String(searchParams?.trade ?? "").trim();
   const uState = String(searchParams?.state ?? "").trim().toUpperCase();
   const uCert = String(searchParams?.cert ?? "").trim();
@@ -1267,6 +1271,7 @@ function RadarLanding() {
     stateCode: urlState,
     cert: urlCert,
     fromAd: isPaidAdVisit(searchParams as Record<string, unknown>),
+    fromLearn,
   });
   // TWO QUESTIONS (owner 2026-10-02, funnel fix #2): only trade and state are
   // asked up front. Certification and contract size start at the broadest
@@ -2030,6 +2035,7 @@ function RadarLanding() {
                         cert={cert}
                         sizePref={sizePref}
                         user={viewer}
+                        showSaveInvite={fromLearn}
                         bestMatch={m.id === bestMatchId}
                       />
                     ))}
@@ -2181,6 +2187,7 @@ function RadarLanding() {
                     cert={cert}
                     sizePref={sizePref}
                     user={viewer}
+                        showSaveInvite={fromLearn}
                     bestMatch={m.id === bestMatchId}
                   />
                 ))}
@@ -2227,6 +2234,7 @@ function RadarLanding() {
                   cert={cert}
                   sizePref={sizePref}
                   user={viewer}
+                        showSaveInvite={fromLearn}
                   bestMatch={scan.matches[revealed].id === bestMatchId}
                 />
                 {revealed < scan.matches.length - 1 ? (
@@ -2456,6 +2464,7 @@ export function RadarCard({
   intel,
   user = null,
   bestMatch = false,
+  showSaveInvite = false,
 }: {
   match: RadarMatch;
   certLabel: string;
@@ -2484,6 +2493,8 @@ export function RadarCard({
    * badge + a subtle accent on THIS card only. Never reorders anything.
    */
   bestMatch?: boolean;
+  /** Learners can create a free account to save a real opportunity. */
+  showSaveInvite?: boolean;
 }) {
   // Item 5 — the post-save tracking confirmation for THIS card (set by the
   // SaveToPipeline success hook below).
@@ -2608,6 +2619,7 @@ export function RadarCard({
           )}
         </p>
 
+        {showSaveInvite && !user && <div className="mt-4"><SaveToPipeline bidId={match.id} user={null} compact label="Save Opportunity" returnPath={`/bid/${match.id}`} /><p className="mt-2 text-xs text-slate-400">Create a free account to save this opportunity.</p></div>}
         {/* CARD ACTIONS (owner rework 2026-09-26, PR-A, item 4). On a SIGNED-IN
             card the PRIMARY action is "Save Opportunity" — the EXISTING
             SaveToPipeline component, so the save_limit paywall, the logged-out

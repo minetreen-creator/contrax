@@ -270,6 +270,35 @@ const consumeTrialIncumbent = createServerFn({ method: "POST" }).handler(async (
   await consumeTrial(user.id, "incumbent");
 });
 
+// WINNER-PRICE ENTITLEMENT (owner 2026-10-09): the Starter-and-up paid rule,
+// resolved ONCE on the server by the SAME helper the paid head start
+// (src/lib/head-start.ts) and the calendar feed use — admins/demo, active
+// full-access grants, Starter-or-above not expired, and active Bid Scout
+// subscribers pass; everyone else gets the teaser. One rule, one copy (no plan
+// names or prices are re-derived here). FAIL-CLOSED: a lookup error means "not
+// paid" — a paying member briefly sees the teaser, never a free viewer seeing
+// paid data.
+//
+// SCOPE MATTERS (build): this lookup lives in a createServerFn HANDLER body on
+// purpose. `~/lib/head-start.server` is a *.server.* module and the
+// import-protection plugin denies it in the client environment; the route
+// LOADER body is client-bundled (router.tsx -> routeTree.gen.ts ->
+// routes/awards.tsx), so importing it from the loader fails the build even as a
+// dynamic `await import(...)`. Server-fn handler bodies are stripped from the
+// client bundle, which is why the dynamic import is safe here — the same shape
+// radar.tsx uses for its own head-start lookup.
+const getPaidBidAccess = createServerFn({ method: "GET" }).handler(async (): Promise<boolean> => {
+  try {
+    const { getCurrentUser: loadUser } = await import("~/lib/auth");
+    const { hasPaidBidAccess } = await import("~/lib/head-start.server");
+    const user = await loadUser();
+    return user ? await hasPaidBidAccess(user) : false;
+  } catch (e) {
+    console.error("[awards] paid-access lookup failed (treated as not paid):", (e as Error).message);
+    return false;
+  }
+});
+
 // ── Route ──────────────────────────────────────────────────────────────────────
 export const Route = createFileRoute("/awards")({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -285,22 +314,12 @@ export const Route = createFileRoute("/awards")({
         ? getSavedBidIds({ data: { userId: currentUser.id } })
         : Promise.resolve([] as number[]),
       // WINNER-PRICE ENTITLEMENT (owner 2026-10-09): the Starter-and-up paid
-      // rule, resolved ONCE here on the server by the SAME helper the paid head
-      // start (src/lib/head-start.ts) and the calendar feed use — admins/demo,
-      // active full-access grants, Starter-or-above not expired, and active Bid
-      // Scout subscribers pass; everyone else gets the teaser. One rule, one
-      // copy (no plan names or prices are re-derived here). FAIL-CLOSED: a
-      // lookup error means "not paid" — a paying member briefly sees the teaser,
-      // never a free viewer seeing paid data.
-      (async () => {
-        try {
-          const { hasPaidBidAccess } = await import("~/lib/head-start.server");
-          return await hasPaidBidAccess(currentUser);
-        } catch (e) {
-          console.error("[awards] paid-access lookup failed (treated as not paid):", (e as Error).message);
-          return false;
-        }
-      })(),
+      // rule, resolved ONCE on the server by `getPaidBidAccess` above (see the
+      // scope note there: a *.server.* import may only be reached from a
+      // server-fn handler, never from this client-bundled loader body).
+      // FAIL-CLOSED: a lookup error means "not paid" — a paying member briefly
+      // sees the teaser, never a free viewer seeing paid data.
+      getPaidBidAccess(),
     ]);
     return { ...data, currentUser, savedBidIds, paidAccess };
   },

@@ -1306,3 +1306,50 @@ CREATE INDEX IF NOT EXISTS idx_dot_directory_records_prime ON dot_directory_reco
     WHERE prime_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_subcontract_primes_state
     ON subcontract_primes (vendor_state, fy);
+-- Migration 059: bid tabulations — the publisher's own record of what every bidder
+-- bid on a contract that was let before ("last time this project was let"). Three
+-- NEW tables, additive and idempotent; NOTHING on `bids` changes and no read path
+-- depends on them existing (fail-open: an absent table renders nothing).
+-- Shape rationale and the four owner rules (provable link only / verbatim prices /
+-- scanned-PDF flag / Starter-$19 unlock) are documented in
+-- db/migrations/059_bid_tabulations.sql, which is the reviewed record.
+CREATE TABLE IF NOT EXISTS bid_tabulations (
+    id                SERIAL PRIMARY KEY,
+    source            TEXT NOT NULL,
+    source_project_id TEXT,
+    reference_number  TEXT,
+    project_number    TEXT,
+    agency            TEXT,
+    title             TEXT,
+    bid_opened_on     DATE,
+    tabulation_type   TEXT,
+    bidders_count     INTEGER,
+    low_amount        NUMERIC(16,2),
+    high_amount       NUMERIC(16,2),
+    source_url        TEXT NOT NULL,
+    source_published  DATE,
+    raw_format        TEXT,
+    fetched_at        TIMESTAMPTZ DEFAULT NOW(),
+    scanned           BOOLEAN DEFAULT false,
+    extraction_note   TEXT,
+    UNIQUE (source, source_project_id)
+);
+CREATE TABLE IF NOT EXISTS bid_tabulation_bidders (
+    id            SERIAL PRIMARY KEY,
+    tabulation_id INTEGER NOT NULL REFERENCES bid_tabulations(id) ON DELETE CASCADE,
+    bidder_name   TEXT NOT NULL,
+    bid_amount    NUMERIC(16,2),
+    source_url    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_bid_tabulation_bidders_tabulation
+    ON bid_tabulation_bidders (tabulation_id);
+CREATE TABLE IF NOT EXISTS bid_tabulation_links (
+    bid_id        INTEGER NOT NULL REFERENCES bids(id) ON DELETE CASCADE,
+    tabulation_id INTEGER NOT NULL REFERENCES bid_tabulations(id) ON DELETE CASCADE,
+    match_kind    TEXT NOT NULL CHECK (match_kind IN ('reference_number', 'project_number', 'predecessor_named')),
+    match_value   TEXT NOT NULL,
+    created_at    TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (bid_id, tabulation_id)
+);
+CREATE INDEX IF NOT EXISTS idx_bid_tabulation_links_tabulation
+    ON bid_tabulation_links (tabulation_id);

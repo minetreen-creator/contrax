@@ -18,16 +18,15 @@ import { createFileRoute } from "@tanstack/react-router";
  *
  * Auth: shared token. The caller must present it either as
  * `Authorization: Bearer <token>` or as `?token=<token>`. The expected token
- * is `process.env.SYNC_TOKEN`, falling back to the hardcoded value below
- * (which was also the old cron secret, so the cron stayed authorized). When
- * rotating, set SYNC_TOKEN in the Vercel project env.
+ * is `process.env.SYNC_TOKEN` and it is REQUIRED: there is no hardcoded
+ * fallback, so when the env var is unset every request is rejected
+ * (fail-closed). Rotate by setting SYNC_TOKEN in the Vercel project env
+ * (production + preview).
  *
  * NOTE: do not import node builtins at the top level of this file — TanStack
  * Start API routes are bundled for the server, but keep the module free of
  * server-only imports to stay compatible with the client-bundle protection.
  */
-
-const FALLBACK_SYNC_TOKEN = "cx-sync-4f8a2c1e9b3d7f5a6e0c4b8d2a1f9e3c";
 
 const WORKFLOW_URL =
   "https://github.com/minetreen-creator/contrax/actions/workflows/sync-bids.yml";
@@ -42,8 +41,17 @@ function extractToken(request: Request): string {
 
 async function handler({ request }: { request: Request }) {
   try {
-    const expected = process.env.SYNC_TOKEN || FALLBACK_SYNC_TOKEN;
+    const expected = process.env.SYNC_TOKEN;
     const provided = extractToken(request);
+    if (!expected) {
+      // No hardcoded fallback any more (it was published in this public
+      // repo). Refusing every caller is the safe default when the env var is
+      // missing — the endpoint stays closed rather than open.
+      console.error(
+        "[sync-bids] SYNC_TOKEN is not set — rejecting request (fail-closed).",
+      );
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
     if (!provided || provided !== expected) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }

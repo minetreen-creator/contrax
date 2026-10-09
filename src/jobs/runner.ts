@@ -102,6 +102,7 @@ import { fetchTxTxdotBonfireBids } from "./sources/tx-txdot-bonfire";
 import { fetchTxUttylerBonfireBids } from "./sources/tx-uttyler-bonfire";
 import { fetchWiMilwaukeeBonfireBids } from "./sources/wi-milwaukee-bonfire";
 import { fetchIlCookCountyBonfireBids, fetchIlCookCountyHealthBonfireBids, fetchIlCpsBonfireBids } from "./sources/il-chicago-bonfire";
+import { fetchIlChicagoDpsBids } from "./sources/il-chicago-dps";
 import { fetchWiMilwaukeeCountyBonfireBids } from "./sources/wi-milwaukee-county-bonfire";
 import { fetchWiMpsBonfireBids } from "./sources/wi-mps-bonfire";
 import { fetchTxUhJaggaerBids } from "./sources/tx-uh-jaggaer";
@@ -399,6 +400,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "il_cook_county_bonfire", fetchFn: fetchIlCookCountyBonfireBids },
   { name: "il_cps_bonfire", fetchFn: fetchIlCpsBonfireBids },
   { name: "il_cook_county_health_bonfire", fetchFn: fetchIlCookCountyHealthBonfireBids },
+  // City of Chicago DPS weekly Bid Opportunity List PDF (eProcurement itself needs a login).
+  { name: "il_chicago_dps", fetchFn: () => fetchIlChicagoDpsBids() },
   // Virginia locality CivicEngage boards (owner green-light 2026-10-08, dispatch
   // A): Loudoun County, the City of Suffolk, the City of Lynchburg and the City of
   // Charlottesville each publish their OWN open-bid board on CivicEngage /

@@ -363,6 +363,16 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // City of Chicago DPS weekly Bid Opportunity List (owner 2026-10-09;
+  // src/jobs/sources/il-chicago-dps.ts) — open City solicitations, unlike the
+  // award-type chicago_open_data feed.
+  il_chicago_dps: {
+    class: "local",
+    city: "Chicago",
+    scopeState: "IL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // Chicago area: Cook County, Chicago Public Schools and Cook County Health
   // Bonfire portals (owner 2026-10-09; src/jobs/sources/il-chicago-bonfire.ts).
   il_cook_county_bonfire: {

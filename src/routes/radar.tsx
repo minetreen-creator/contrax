@@ -215,7 +215,7 @@ export const DEFAULT_RADAR_SIZE: SizeId = "any";
  * for the anonymous locked-results card's "Unlock My N Matches →" CTA — a clean
  * hook point; PR2 adds server/session restore of the anonymous scan.
  */
-export function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }, opts?: { unlock?: boolean; cta?: boolean }): string {
+export function radarSignupHref(answers: { trade: string; state: string; cert: RadarCertId | null; sizePref: SizeId | null }, opts?: { unlock?: boolean; cta?: boolean; free?: boolean }): string {
   // PR2 (owner 2026-09-07): the anonymous locked-results card passes
   // source=radar_results_unlock so /signup can attribute the unlock handoff
   // (signed cookie restore + signup_viewed_from_radar). Owner 09-09: the
@@ -224,7 +224,7 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   // Every other caller keeps source=radar — no behavior change there.
   const source = opts?.unlock ? "radar_results_unlock" : opts?.cta ? "radar_results_cta" : "radar";
   const p = new URLSearchParams({
-    plan: "starter",
+    plan: opts?.free ? "basic" : "starter",
     source,
     next: buildRadarFirstRunHref({
       trade: (answers.trade || "").trim(),
@@ -239,7 +239,7 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   if (st) p.set("state", st);
   if (answers.cert) p.set("cert", answers.cert);
   if (answers.sizePref) p.set("size", answers.sizePref);
-  return `/upgrade?${p.toString()}`;
+  return `${opts?.free ? "/signup" : "/upgrade"}?${p.toString()}`;
 }
 
 /**
@@ -1914,7 +1914,7 @@ function RadarLanding() {
                 ? "You've used your anonymous preview. A free Basic account includes two Radar searches and one saved bid. No credit card required."
                 : "You've used the two Radar searches included with your free Basic account. Choose a paid plan for continued Radar access."}
             </p>
-            <a href={scan.signupRequired ? radarSignupHref({ trade, state, cert, sizePref }, { cta: true }) : "/upgrade"}
+            <a href={scan.signupRequired ? radarSignupHref({ trade, state, cert, sizePref }, { cta: true, free: true }) : "/upgrade"}
               className="mt-6 rounded-2xl bg-amber-500 px-6 py-4 font-bold text-slate-950 hover:bg-amber-400">
               {scan.signupRequired ? "Create a free account" : "Choose a paid plan"}
             </a>

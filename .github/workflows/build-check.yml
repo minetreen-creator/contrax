@@ -542,3 +542,6 @@ jobs:
 
       - name: QA traffic exclusion tests
         run: bun test src/lib/qa-traffic.test.ts
+
+      - name: Radar opening and free signup handoff tests
+        run: bun test tests/radar-opening.test.ts

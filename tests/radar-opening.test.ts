@@ -81,3 +81,18 @@ describe("free Radar preview allowance (owner 2026-10-07)", () => {
     expect(src).toContain("Create a free account to keep searching");
   });
 });
+
+import { radarSignupHref } from "../src/routes/radar";
+describe("exhausted anonymous preview handoff", () => {
+  test("free signup CTA keeps Basic and Radar criteria", () => {
+    const href = radarSignupHref({trade:"janitorial",state:"VA",cert:"sb",sizePref:"any"}, {cta:true,free:true});
+    const url = new URL(href,"https://www.contrax.company");
+    expect(url.pathname).toBe("/signup");
+    expect(url.searchParams.get("plan")).toBe("basic");
+    expect(url.searchParams.get("trade")).toBe("janitorial");
+    expect(url.searchParams.get("state")).toBe("VA");
+    expect(url.searchParams.get("next")).toContain("/radar?first_run=1");
+    expect(url.searchParams.get("next")).toContain("trade=janitorial");
+    expect(new URL(radarSignupHref({trade:"janitorial",state:"VA",cert:"sb",sizePref:"any"}),"https://www.contrax.company").pathname).toBe("/upgrade");
+  });
+});

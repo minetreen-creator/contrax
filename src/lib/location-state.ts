@@ -1013,6 +1013,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   oh_dayton: "OH",
   wi_milwaukee_bonfire: "WI",
   wi_milwaukee_county_bonfire: "WI",
+  ca_sacramento_library_bonfire: "CA", // Sacramento Public Library Authority Bonfire portal (owner 2026-10-09)
   il_chicago_dps: "IL", // City of Chicago DPS weekly Bid Opportunity List (owner 2026-10-09)
   il_cook_county_bonfire: "IL", // Cook County OCPO Bonfire portal (owner 2026-10-09)
   il_cps_bonfire: "IL", // Chicago Public Schools Bonfire portal (owner 2026-10-09)

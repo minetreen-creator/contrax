@@ -363,6 +363,15 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Sacramento Public Library Authority's Bonfire portal (owner 2026-10-09;
+  // src/jobs/sources/ca-sacramento-library-bonfire.ts).
+  ca_sacramento_library_bonfire: {
+    class: "local",
+    city: "Sacramento",
+    scopeState: "CA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // City of Chicago DPS weekly Bid Opportunity List (owner 2026-10-09;
   // src/jobs/sources/il-chicago-dps.ts) — open City solicitations, unlike the
   // award-type chicago_open_data feed.

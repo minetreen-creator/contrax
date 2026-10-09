@@ -54,7 +54,7 @@ const plans = [
       "A 6 AM email of new bids in your trade and states",
       "Bid matches for every state and trade you work in",
       "Unlimited Saved Bids",
-      'Coming soon: "What did the winner bid last time?"',
+      '"What did the winner bid last time?"',
       "Your saved bids' deadlines in Google Calendar or Outlook",
       "Or $190 a year: 2 months free",
       "Cancel anytime",

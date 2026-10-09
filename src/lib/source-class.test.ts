@@ -62,7 +62,7 @@ const prePr1IsStateLocal = (sources: string[]) =>
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
   test("132 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Alaska DOT&PF lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS, Utah U3P, Mississippi DFA, three Minnesota (MnDOT, eAdvert, Admin QuestCDN), Oklahoma OMES, Kansas, New Mexico eProNM, Idaho (IPRO, ITD), Wisconsin VendorNet, the two Texas Bonfire tenants (TxDOT, UT Tyler) the four Texas university JAGGAER tenants (UH, TAMU, Texas Tech, UTSA) and Rhode Island (OSP, external board) classifications, the four Virginia locality CivicEngage boards and the two Virginia locality Bonfire portals (Fairfax County, City of Alexandria)", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(151);
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(152);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -106,7 +106,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // (Alaska DOT&PF construction bid calendar) — 2026-10-08.
     // + the three Chicago-area Bonfire portals (Cook County, CPS, Cook County Health) — 2026-10-09.
     // + the City of Chicago DPS weekly Bid Opportunity List — 2026-10-09.
-    expect(TAIL_SOURCES.length).toBe(75);
+    // + the Sacramento Public Library Bonfire portal — 2026-10-09.
+    expect(TAIL_SOURCES.length).toBe(76);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

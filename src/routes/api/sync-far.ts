@@ -15,23 +15,23 @@ import { syncFarDfars, type FARSource } from "../../lib/far-dfars";
  *                           targeted refresh; default: every FAR + DFARS part)
  *
  * Auth: shared token — `Authorization: Bearer <token>` or `?token=<token>`
- * (convenient for manual testing / the admin button). Accepts any of
- * `SYNC_TOKEN`, `CRON_SECRET` (Vercel's auto-injected cron secret, kept for
- * compatibility with any future Vercel cron), or the bundled fallback token.
+ * (convenient for manual testing / the admin button). Accepts `SYNC_TOKEN` or
+ * `CRON_SECRET` (Vercel's auto-injected cron secret, kept for compatibility
+ * with any future Vercel cron). There is no hardcoded fallback — if neither
+ * env var is set, every request is rejected (fail-closed). Rotate SYNC_TOKEN
+ * by setting it in the Vercel project env (production + preview).
  *
  * NOTE: like sync-bids.ts, keep this module free of node builtins — it only
  * uses global fetch + neon (via src/lib/far-dfars.ts), so it stays compatible
  * with the client-bundle protection.
  */
 
-const FALLBACK_SYNC_TOKEN = "cx-sync-4f8a2c1e9b3d7f5a6e0c4b8d2a1f9e3c";
-
 function allowedTokens(): string[] {
-  return [
-    process.env.SYNC_TOKEN,
-    process.env.CRON_SECRET,
-    FALLBACK_SYNC_TOKEN,
-  ].filter((t): t is string => typeof t === "string" && t.length > 0);
+  // No hardcoded fallback (the old one was published in this public repo).
+  // An empty list means every request is rejected — fail-closed.
+  return [process.env.SYNC_TOKEN, process.env.CRON_SECRET].filter(
+    (t): t is string => typeof t === "string" && t.length > 0,
+  );
 }
 
 function extractToken(request: Request): string {

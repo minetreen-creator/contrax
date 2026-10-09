@@ -9,8 +9,12 @@
  *   il_bidbuy    BidBuy, Illinois [191]
  *   or_oregonbuys OregonBuys, Oregon [178]
  *   nv_nevadaepro NevadaEPro, Nevada [31]
- *   ar_arbuy     ARBuy, Arkansas [0 open that day; the reader still runs so
- *                new solicitations appear as soon as they are posted]
+ *   ar_arbuy     ARBuy, Arkansas [0 open — VERIFIED EMPTY, not an ingestion
+ *                error: rowCount:0 with the table body "No records found." on
+ *                the ARBuy open-bids search both in the 2026-10-01 fixture and
+ *                on a live fetch 2026-10-09. Arkansas' board is genuinely
+ *                quiet; the reader still runs daily, so new solicitations
+ *                appear as soon as they are posted]
  */
 import type { FetchResult } from "../runner";
 import { fetchBsoBids, type BsoConfig } from "./periscope-bso";

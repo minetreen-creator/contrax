@@ -363,7 +363,7 @@ export function computeLeadScore(s: ScoreSignals): LeadScore {
   if (s.savedBid) add(20, "Saved a bid to pipeline");
   if (s.incumbentViewed) add(20, "Viewed incumbent intelligence");
   if (s.radarCompleted) add(20, "Completed a Radar scan");
-  else if (s.radarStarted) add(5, "Started a Radar scan");
+  else if (s.radarStarted) add(5, "Used the Radar (picked a trade or started a search)");
   if (s.returnedMultiDay) add(30, "Returned on a later day");
   else if (s.sessions >= 2) add(10, "Multiple sessions");
   if (s.briefGenerated) add(15, "Generated an AI Executive Brief");

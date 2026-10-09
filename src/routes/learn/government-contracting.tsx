@@ -1,3 +1,5 @@
+import { introductoryRadarTrade } from "~/lib/learn-radar";
+import { CourseOpportunity } from "~/components/CourseOpportunity";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
@@ -165,12 +167,8 @@ function CoursePage() {
       </section>
 
       <section className="mx-auto max-w-2xl px-4 pb-16">
-        {allDone ? <Complete key={search.state} initialState={search.state} trade={search.trade} /> : <p className="text-center text-sm text-slate-500">Finish all {LESSONS.length} lessons to get your certificate.</p>}
-        <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
-          <p className="font-bold text-slate-900">Ready for the next step?</p>
-          <p className="mt-2 text-sm text-slate-700">Build a compliance checklist, price your work, and prepare your response in our free intermediate course for all trades.</p>
-          <a href="/learn/intermediate-government-contracting" className="mt-3 inline-block font-semibold text-blue-700 underline">Preparing a Government Contract Bid →</a>
-        </div>
+        {allDone ? <Complete key={search.state} initialState={search.state} /> : <p className="text-center text-sm text-slate-500">Finish all {LESSONS.length} lessons to get your certificate.</p>}
+        <CourseOpportunity key={`${search.state}:${search.trade}`} courseId={COURSE_ID} initialState={search.state} initialTrade={introductoryRadarTrade(courseTrade(search.trade))} nextHref="/learn/intermediate-government-contracting" nextTitle="Preparing a Government Contract Bid" />
       </section>
     </main>
   );
@@ -403,7 +401,7 @@ function Ask({ lessonId }: { lessonId: string }) {
   );
 }
 
-function Complete({ initialState, trade }: { initialState: string; trade: string }) {
+function Complete({ initialState }: { initialState: string }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [state, setState] = useState(initialState);
@@ -443,9 +441,7 @@ function Complete({ initialState, trade }: { initialState: string; trade: string
         <a href={`/learn/certificate/${token}`} className="mt-3 inline-block rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white">
           View and print your certificate
         </a>
-        <a href={`/radar?trade=${courseTrade(trade).id === "all" ? "construction" : courseTrade(trade).naics}&state=${state}`} className="mt-3 block text-sm font-semibold text-blue-700 underline">
-          Find open construction bids in your state →
-        </a>
+
       </div>
     );
   }

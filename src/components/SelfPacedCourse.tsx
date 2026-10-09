@@ -1,9 +1,10 @@
+import { CourseOpportunity } from "./CourseOpportunity";
 import { useEffect, useState } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
 import { trackEvent } from "~/lib/track";
 import { courseLessonPassed, coursePassed, readCourseProgress, courseWorksheet, type CourseAnswers, type SelfPacedCourse } from "~/lib/self-paced-course";
 
-export function SelfPacedCoursePage({ course }: { course: SelfPacedCourse }) {
+export function SelfPacedCoursePage({ course, business = {state:"",trade:""} }: { course: SelfPacedCourse; business?: {state:string;trade:string} }) {
   const [answers, setAnswers] = useState<CourseAnswers>({});
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [ready, setReady] = useState(false);
@@ -75,10 +76,9 @@ export function SelfPacedCoursePage({ course }: { course: SelfPacedCourse }) {
       <div className="rounded-2xl border border-slate-200 bg-white p-6"><h2 className="text-xl font-bold text-slate-900">Your {course.worksheetLabel}</h2>
         <p className="mt-2 text-sm text-slate-600">Download your exercise notes as an editable text worksheet at any time. Blank sections include prompts so you can reuse it for another opportunity.</p>
         <button type="button" onClick={download} className="mt-4 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white">Download my {course.worksheetLabel}</button>
-        <a href="/radar" className="ml-4 inline-block pt-3 text-sm font-semibold text-blue-700 underline">Find an opportunity to practice with →</a>
       </div>
+      <CourseOpportunity key={`${business.state}:${business.trade}`} courseId={course.id} initialState={business.state} initialTrade={business.trade} nextHref={course.nextHref} nextTitle={course.nextTitle} />
       {coursePassed(course, answers) ? <CertificateForm course={course} answers={answers} /> : <p className="mt-6 text-center text-sm text-slate-500">Complete all {course.lessons.reduce((total, lesson) => total + lesson.quiz.length, 0)} quiz questions correctly to unlock your certificate. You can retry any question.</p>}
-      {course.nextHref && <p className="mt-6 text-center"><a href={course.nextHref} className="font-semibold text-blue-700 underline">Continue learning: {course.nextTitle} →</a></p>}
       <p className="mt-6 text-center text-xs text-slate-500">Contrax course completion is educational recognition, not a government certification, professional license, or guarantee of an award.</p>
     </section>
   </main></>;

@@ -1013,6 +1013,9 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   oh_dayton: "OH",
   wi_milwaukee_bonfire: "WI",
   wi_milwaukee_county_bonfire: "WI",
+  il_cook_county_bonfire: "IL", // Cook County OCPO Bonfire portal (owner 2026-10-09)
+  il_cps_bonfire: "IL", // Chicago Public Schools Bonfire portal (owner 2026-10-09)
+  il_cook_county_health_bonfire: "IL", // Cook County Health Bonfire portal (owner 2026-10-09)
   wi_mps_bonfire: "WI", // Milwaukee Public Schools' own Bonfire portal (owner 2026-10-07) // Milwaukee County's own Bonfire portal (owner 2026-10-07) // City of Milwaukee's own Bonfire portal (owner 2026-10-07)
   // Virginia locality CivicEngage boards (owner green-light 2026-10-08; dispatch A
   // — src/jobs/sources/va-loudoun.ts, va-suffolk.ts, va-lynchburg.ts,

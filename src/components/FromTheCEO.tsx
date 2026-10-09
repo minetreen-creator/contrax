@@ -1,3 +1,10 @@
+const rhodeIslandMessage = [
+  "We are proud to be working with the U.S. Small Business Administration’s Rhode Island District Office to share resources that help small business owners explore government contracting opportunities.",
+  "At Contrax, we believe access to practical education can make a meaningful difference. Our introductory, intermediate, and advanced government contracting courses are free for everyone—and will remain free.",
+  "From understanding the basics to preparing a bid and managing contract performance, these courses help business owners take their next step with greater confidence.",
+  "We appreciate the Rhode Island SBA team’s commitment to supporting small businesses and the opportunity to contribute to that mission.",
+];
+
 const message = [
   "You can have the skills. You can have the determination. You can work hard every day—and still feel lost when it comes to government contracting.",
   "Where do you start? What does the paperwork mean? Is your business even ready to bid?",
@@ -18,6 +25,22 @@ export function FromTheCEO() {
         <div className="mx-auto max-w-[680px]">
           <h2 id="from-the-ceo-title" className="text-2xl font-bold text-slate-900 dark:text-white">From the CEO</h2>
           <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">Nathaniel Minetree · Founder &amp; CEO, Contrax</p>
+          <article className="mt-6 border-b border-slate-200 pb-8 dark:border-slate-700" aria-labelledby="ceo-rhode-island-title">
+            <h3 id="ceo-rhode-island-title" className="text-xl font-bold text-slate-900 dark:text-white">Working with Rhode Island SBA</h3>
+            <figure className="mt-4">
+              <a href="/images/from-the-ceo-rhode-island-sba.png" target="_blank" rel="noopener noreferrer" aria-label="Open the Rhode Island SBA announcement screenshot full size (new tab)" className="block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
+                <img src="/images/from-the-ceo-rhode-island-sba.png" width={682} height={366} loading="lazy" decoding="async" alt="Contrax Facebook announcement about working with the Rhode Island SBA District Office and offering three free government contracting courses. Read the complete announcement in the text version below." className="h-auto w-full rounded-xl border border-slate-200 dark:border-slate-700" />
+              </a>
+              <figcaption className="mt-2 text-xs text-slate-500 dark:text-slate-400">Our Rhode Island SBA announcement. Select the screenshot to open it full size.</figcaption>
+            </figure>
+            <details className="mt-5 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+              <summary className="cursor-pointer font-semibold text-slate-900 dark:text-white">Read the Rhode Island SBA announcement as text</summary>
+              <div className="mt-4 space-y-4 text-base leading-relaxed text-slate-700 dark:text-slate-300">
+                {rhodeIslandMessage.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+                <p>Explore our free courses at <a href="/learn" className="text-blue-700 underline dark:text-blue-300">www.contrax.company/learn</a>.</p>
+              </div>
+            </details>
+          </article>
           <p className="mt-3 text-base leading-relaxed text-slate-700 dark:text-slate-300">Why our introductory, intermediate, and advanced courses are free—and will stay free.</p>
           <figure className="mt-6">
             <a href="/images/from-the-ceo.png" target="_blank" rel="noopener noreferrer" aria-label="Open the CEO message screenshot full size (new tab)" className="block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">

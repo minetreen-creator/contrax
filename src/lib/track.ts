@@ -1,3 +1,4 @@
+import { isQaTraffic } from "~/lib/qa-traffic";
 import { trackingIds } from "~/lib/visitor";
 import { getTrackingUser } from "~/lib/identity";
 import { readStoredAttemptToken } from "~/lib/signup-telemetry";
@@ -40,7 +41,7 @@ import { reportSignupConversion } from "~/lib/google-ads";
  */
 export function isAutomatedBrowser(): boolean {
   try {
-    return typeof navigator !== "undefined" && navigator.webdriver === true;
+    return isQaTraffic() || (typeof navigator !== "undefined" && navigator.webdriver === true);
   } catch {
     return false;
   }

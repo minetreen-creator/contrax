@@ -42,12 +42,11 @@ export const SHOW_FREE_INCUMBENT = true;
  */
 export const FREE_ANONYMOUS_RADAR_RESULTS = 3;
 
-/**
- * Free Radar scans per network before a paid plan is required (owner 2026-10-07:
- * was 1 — a Milwaukee janitorial visitor who left an email was blocked on their
- * second look — then 3; owner set it to 2 the same day).
- */
-export const FREE_RADAR_PREVIEW_SCANS = 2;
+/** One anonymous Radar search across browser and network before signup. */
+export const FREE_RADAR_PREVIEW_SCANS = 1;
+/** Basic accounts get two successful Radar searches, counted against their
+ * authenticated account across browsers and networks. Paid access is unchanged. */
+export const FREE_ACCOUNT_RADAR_SCANS = 2;
 
 /**
  * Most default (title/NAICS-corroborated) matches one Radar scan returns

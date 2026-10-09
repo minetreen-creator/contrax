@@ -1,3 +1,4 @@
+import { isQaTraffic } from "~/lib/qa-traffic";
 /**
  * CLIENT TRACKING QUEUE (owner 2026-10-02 — Vercel CPU).
  *
@@ -26,7 +27,7 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 let listening = false;
 
 function send(items: Payload[]): void {
-  if (items.length === 0) return;
+  if (items.length === 0 || isQaTraffic()) return;
   let body: Payload;
   if (items.length === 1) {
     // One item: the original single-payload shape (the Referer header is the
@@ -75,7 +76,7 @@ export function isImmediateEvent(event: unknown): boolean {
 
 /** Queue one /api/track-visitor payload. */
 export function enqueueTracking(payload: Payload): void {
-  if (typeof window === "undefined") return;
+  if (typeof window === "undefined" || isQaTraffic()) return;
   listen();
   queue.push({ ...payload, href: payload.href ?? window.location.href });
   if (isImmediateEvent(payload.event) || queue.length >= MAX_BATCH) {

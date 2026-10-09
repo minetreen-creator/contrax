@@ -1,3 +1,4 @@
+import { isQaTraffic } from "~/lib/qa-traffic";
 /**
  * Google Ads tag (owner 2026-10-04, account AW-18493657028).
  *
@@ -29,7 +30,7 @@ let loaded = false;
 /** Inject gtag.js once and configure the Ads account. Browser only; safe to call repeatedly. */
 export function loadGoogleAdsTag(pathname: string): void {
   if (loaded || typeof window === "undefined" || typeof document === "undefined") return;
-  if (!adsTagAllowed(pathname)) return;
+  if (!adsTagAllowed(pathname) || isQaTraffic()) return;
   try {
     if (navigator.webdriver === true) return;
   } catch {
@@ -59,7 +60,7 @@ export function signupConversionCall(label: string = GOOGLE_ADS_SIGNUP_LABEL): [
 
 /** Report a completed signup to Google Ads (no-op when the tag isn't loaded). */
 export function reportSignupConversion(): void {
-  if (typeof window === "undefined" || typeof window.gtag !== "function") return;
+  if (typeof window === "undefined" || typeof window.gtag !== "function" || isQaTraffic()) return;
   try {
     window.gtag(...signupConversionCall());
   } catch {

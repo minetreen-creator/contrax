@@ -1,3 +1,4 @@
+import { hasQaCookie } from "~/lib/qa-traffic";
 /**
  * Shared visitor-intake handler (Admin Tracker Enrichment, owner 2026-08-31).
  *
@@ -502,6 +503,8 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
   // parse try below where `body` is in scope; stays null on JSON failure).
   let attemptTokenRaw: string | null = null;
   try {
+    if (hasQaCookie(request.headers.get("cookie"))) return Response.json({ ok: true, qa: true });
+
     // Skip known bots/crawlers — don't pollute funnel event / page counts.
     const userAgent = (request.headers.get("user-agent") ?? "").slice(0, 512) || null;
     if (isBot(userAgent)) {

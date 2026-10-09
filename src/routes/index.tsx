@@ -433,6 +433,30 @@ function Hero({ sample }: { sample: SampleBid[] }) {
                 </span>
               </div>
             </div>
+            {/*
+              Coming-soon teaser for the winner-price line (owner 2026-10-09:
+              "add it to the card on the homepage"). It reuses the homepage
+              section's OWNER-VERBATIM heading constant (WINNER_PRICE_HEADING)
+              and the same "Not available yet" wording the section's badge uses
+              — no new copy. NON-INTERACTIVE on purpose: the feature is NOT
+              live, so this strip carries no link, no CTA and no payment path
+              (only the non-interactive badge, same marker as the section).
+            */}
+            <div
+              role="note"
+              aria-label="Coming soon: winner prices from past bids"
+              className="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-[#dde3ec] bg-[#f9fafc] px-[22px] py-2.5 dark:border-[#24334f] dark:bg-[#0b1424]"
+            >
+              <span className="text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
+                {WINNER_PRICE_HEADING}
+              </span>
+              <span
+                data-winner-price-cta="coming-soon"
+                className="inline-block rounded-full bg-[#f6eed9] px-2 py-0.5 text-xs font-semibold text-[#8a6a1d] dark:bg-[#2b2413] dark:text-[#e0c078]"
+              >
+                Not available yet
+              </span>
+            </div>
             {sample.map((bid) => (
               <a
                 key={bid.id}

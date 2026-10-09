@@ -70,6 +70,7 @@ import { cleanBidTitle } from "~/lib/bid-title";
 import { stateFromGeoHeaders, withTimeout } from "~/lib/radar-geo";
 import { SiteHeader } from "~/components/SiteHeader";
 import { HeadStartLock } from "~/components/HeadStartLock";
+import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { headStartUntil } from "~/lib/head-start";
 
 /**
@@ -2815,6 +2816,20 @@ function IncumbentBlock({
             <span className="text-amber-400" aria-hidden="true">→</span>
             <span>Prior award value: <strong className="text-white">{money(i.total_obligated)}</strong></span>
           </p>
+          {/* WINNER-PRICE LINE (owner 2026-10-09): the owner's own framing —
+              "last time this was bid: won by … for $ … (FY…)" — with the exact published
+              dollars, the fiscal year of the award's period-of-performance start,
+              and the "as published" provenance note. The two lines above are
+              untouched; this one adds the year and the exact figure.
+              ENTITLEMENT: the line unlocks at Starter ($19) via the
+              server-resolved hasPaidBidAccess (see ~/components/WinnerPriceLine),
+              but a Radar match card that rendered intel here is ALREADY showing
+              this viewer the same winner and prior award value for free under the
+              owner's SHOW_FREE_INCUMBENT free-match directive (~/lib/radar-config),
+              so `revealed` renders the line in full rather than advertising a lock
+              on data printed two lines above. Gated (4th+) cards never load intel
+              at all, so no unentitled viewer can obtain it from this card. */}
+          <WinnerPriceLine intel={i} paidAccess={false} revealed tone="dark" />
           <p className="mt-1 text-[11px] text-slate-500">Powered by FPDS / USASpending.gov</p>
         </div>
       );

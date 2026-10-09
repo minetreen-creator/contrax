@@ -265,6 +265,11 @@ function Home() {
       <div className="mt-10 bg-[#f5f7fa] py-8 text-slate-900">
         <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />
       </div>
+      {/* Owner teaser for the winner-price feature (owner 2026-10-09) — copy
+          only: it announces the feature and links nowhere (see the component). */}
+      <div className="mt-4 bg-[#f5f7fa] pb-8 text-slate-900">
+        <WinnerPriceComingSoon />
+      </div>
       {/* Moved from the very top (owner 2026-10-04) so the headline is the first thing people read. */}
       <PartnershipBanner />
       <Footer />
@@ -802,6 +807,50 @@ export function ContraxGrantsPromo({
           Prices in US dollars. Verified nonprofits keep free grant search with no credit card, no
           trial, and no expiration.
         </p>
+      </div>
+    </section>
+  );
+}
+
+// ── "What did the winner bid last time?" — homepage teaser (owner 2026-10-09) ──
+// OWNER COPY, VERBATIM. Byte-identical to the owner's wording — including the
+// quote marks around the question in the heading. Do NOT reword, retitle,
+// re-punctuate or re-quote; do NOT turn either line into a link.
+const WINNER_PRICE_HEADING = 'Coming soon: "What did the winner bid last time?"';
+const WINNER_PRICE_BODY =
+  "We're working on something small contractors almost never get to see: the prices from past bids on the same kind of work, straight from public government records. Knowing what wins is half the battle, and we want you to have it.";
+
+/**
+ * HOMEPAGE TEASER for the winner-price line (owner 2026-10-09).
+ *
+ * Presentational only — the same shape as ContraxGrantsPromo: no data fetch, no
+ * server fn, no analytics event, no DB. It renders instantly in the server HTML.
+ *
+ * HONESTY (the grants "Coming soon" discipline, applied here): the feature is
+ * NOT live yet, so this section carries NO call to action — nothing links to a
+ * page that 404s, there is no payment link and no register button. The only
+ * affordance is a plain, non-interactive badge that states the feature is not
+ * available yet. The heading and body are the owner's words, unaltered.
+ */
+export function WinnerPriceComingSoon() {
+  return (
+    <section aria-label="Coming soon: winner prices from past bids" className="py-2">
+      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">
+            Winner prices from past bids
+          </p>
+          <h2 className={`${SERIF} mt-3 text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold text-[#0f1f38]`}>
+            {WINNER_PRICE_HEADING}
+          </h2>
+          <p className="mt-4 max-w-3xl text-lg leading-relaxed text-[#56647a]">{WINNER_PRICE_BODY}</p>
+          <p
+            data-winner-price-cta="coming-soon"
+            className="mt-6 inline-block rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-500"
+          >
+            Not available yet
+          </p>
+        </div>
       </div>
     </section>
   );

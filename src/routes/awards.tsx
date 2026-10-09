@@ -4,7 +4,12 @@ import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { US_STATES } from "~/lib/states";
 import { IncumbentCard } from "~/components/IncumbentCard";
+import { WinnerPriceLine } from "~/components/WinnerPriceLine";
 import { getFPDSIntel, type FPDSIntel } from "~/lib/fpds";
+// WINNER-PRICE LINE (owner 2026-10-09): "last time this was bid — won by … for
+// …". Entitlement is the Starter-and-up paid rule (hasPaidBidAccess, resolved in
+// the loader below) — NOT the Radar Pro gate IncumbentCard keeps.
+import type { WinnerPriceAward } from "~/lib/winner-price";
 import { SaveToPipeline } from "~/components/SaveToPipeline";
 import { getCurrentUser } from "~/lib/auth";
 import { getSavedBidIds } from "~/lib/saved-matches";
@@ -195,10 +200,57 @@ const getAwardsData = createServerFn({ method: "GET" })
   return { awards, similarBids };
 });
 
+/** What one card's lazy intel load returns. */
+export interface IncumbentIntelResult {
+  /** FPDS/USAspending incumbent intel (null = the source answered "no record"). */
+  intel: FPDSIntel | null;
+  /** A stored SAM.gov Award Notice for this bid, when one exists. */
+  award: WinnerPriceAward | null;
+}
+
 const getIncumbentIntel = createServerFn({ method: "GET" })
-  .validator((d: unknown) => d as { naicsCode: string; agency: string; title: string })
-  .handler(async ({ data }: { data: { naicsCode: string; agency: string; title: string } }): Promise<FPDSIntel | null> => {
-  return getFPDSIntel(data.naicsCode, data.agency, data.title);
+  .validator((d: unknown) => {
+    const v = (d as any) ?? {};
+    const bidId = Math.trunc(Number(v.bidId));
+    return {
+      naicsCode: String(v.naicsCode ?? ""),
+      agency: String(v.agency ?? ""),
+      title: String(v.title ?? ""),
+      bidId: Number.isFinite(bidId) && bidId > 0 ? bidId : 0,
+    };
+  })
+  .handler(async ({ data }): Promise<IncumbentIntelResult> => {
+  const intel = await getFPDSIntel(data.naicsCode, data.agency, data.title);
+  // STORED AWARD (owner 2026-10-09): when the daily "did I win?" job has already
+  // stored a SAM.gov Award Notice for this bid (bid_award_checks), that record is
+  // the exact published winner + amount + date for this solicitation — so the
+  // winner-price line prefers it over the incumbent heuristic. READ-ONLY: the
+  // daily job (src/jobs/check-awards.ts) is untouched and keeps its own schedule.
+  // Fail-soft: a missing table or any error leaves award null and the line falls
+  // back to the FPDS intel, exactly as before this change.
+  let award: WinnerPriceAward | null = null;
+  if (data.bidId > 0) {
+    try {
+      const rows = (await sql()`
+        SELECT awardee_name, amount, award_date FROM bid_award_checks WHERE bid_id = ${data.bidId} LIMIT 1
+      `) as any[];
+      const r = rows[0];
+      const name = String(r?.awardee_name ?? "").trim();
+      if (name) {
+        const amount = Number(r.amount);
+        award = {
+          awardeeName: name,
+          amount: Number.isFinite(amount) && amount > 0 ? amount : null,
+          // Neon hands back a DATE as a JS Date; toISODate renders a real
+          // YYYY-MM-DD (never "Thu Oct 15 …").
+          awardDate: r.award_date ? toISODate(r.award_date) || null : null,
+        };
+      }
+    } catch (e) {
+      console.error("[awards] stored-award lookup failed (winner-price line uses FPDS intel):", (e as Error).message);
+    }
+  }
+  return { intel, award };
 });
 
 // PER-TRIAL INCUMBENT CAP (owner): during an ACTIVE Professional trial the user
@@ -227,13 +279,30 @@ export const Route = createFileRoute("/awards")({
     // Resolve the current user + their saved bid ids so SSR renders the correct
     // logged-in/logged-out button state (and the saved state) in the HTML.
     const currentUser = await getCurrentUser();
-    const [data, savedBidIds] = await Promise.all([
+    const [data, savedBidIds, paidAccess] = await Promise.all([
       getAwardsData({ data: { search: (context as { search?: string }).search } }),
       currentUser
         ? getSavedBidIds({ data: { userId: currentUser.id } })
         : Promise.resolve([] as number[]),
+      // WINNER-PRICE ENTITLEMENT (owner 2026-10-09): the Starter-and-up paid
+      // rule, resolved ONCE here on the server by the SAME helper the paid head
+      // start (src/lib/head-start.ts) and the calendar feed use — admins/demo,
+      // active full-access grants, Starter-or-above not expired, and active Bid
+      // Scout subscribers pass; everyone else gets the teaser. One rule, one
+      // copy (no plan names or prices are re-derived here). FAIL-CLOSED: a
+      // lookup error means "not paid" — a paying member briefly sees the teaser,
+      // never a free viewer seeing paid data.
+      (async () => {
+        try {
+          const { hasPaidBidAccess } = await import("~/lib/head-start.server");
+          return await hasPaidBidAccess(currentUser);
+        } catch (e) {
+          console.error("[awards] paid-access lookup failed (treated as not paid):", (e as Error).message);
+          return false;
+        }
+      })(),
     ]);
-    return { ...data, currentUser, savedBidIds };
+    return { ...data, currentUser, savedBidIds, paidAccess };
   },
   component: AwardsPage,
   head: () => ({
@@ -284,7 +353,7 @@ function fmtDate(d: string | null | undefined) {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 function AwardsPage() {
-  const { awards, similarBids, currentUser, savedBidIds } = Route.useLoaderData();
+  const { awards, similarBids, currentUser, savedBidIds, paidAccess } = Route.useLoaderData();
   const routeSearch = Route.useSearch();
   const [search, setSearch] = useState("");
   const inputSearch = search || routeSearch.search || "";
@@ -293,7 +362,10 @@ function AwardsPage() {
   const [stateFilter, setStateFilter] = useState("");
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
-  const [intel, setIntel] = useState<Record<number, FPDSIntel | null | undefined>>({});
+  // One entry per expanded card: the lazy FPDS/USAspending intel plus any stored
+  // SAM.gov Award Notice for that bid (see getIncumbentIntel). Undefined = not
+  // loaded yet.
+  const [intel, setIntel] = useState<Record<number, IncumbentIntelResult | undefined>>({});
   const [loadingIntel, setLoadingIntel] = useState<number | null>(null);
   // Logged-in user's trial status — drives whether a logged-in non-Professional
   // user sees the Incumbent Intelligence paywall (a logged-in free/Starter user
@@ -391,13 +463,13 @@ function AwardsPage() {
       return;
     }
     setLoadingIntel(award.id); setExpandedId(award.id);
-    const result = await getIncumbentIntel({ data: { naicsCode: award.naics_code, agency: award.agency, title: award.title } });
+    const result = await getIncumbentIntel({ data: { naicsCode: award.naics_code, agency: award.agency, title: award.title, bidId: award.id } });
     setIntel((prev) => ({ ...prev, [award.id]: result })); setLoadingIntel(null);
     // Consume one trial incumbent look only on a successful reveal by a trial
     // user. Data-less cards (no FPDS history) never consume (mirrors the
     // check+write-in-same-block pattern below so in-flight fetches can't
     // double-consume; consume is idempotent server-side per instance).
-    if (trial?.active && currentUser && result !== null && trialIncumbentLeft != null && trialIncumbentLeft > 0) {
+    if (trial?.active && currentUser && result.intel !== null && trialIncumbentLeft != null && trialIncumbentLeft > 0) {
       await consumeTrialIncumbent();
       setTrialIncumbentLeft((prev) => (prev != null ? prev - 1 : prev));
     }
@@ -406,7 +478,7 @@ function AwardsPage() {
     // grant and fire no events. Every later data card shows the tease wall —
     // record the wall view then. Grant check+write are in the same synchronous
     // block after the await, so in-flight fetches cannot double-grant.
-    if (!currentUser && result !== null) {
+    if (!currentUser && result.intel !== null) {
       if (!freeIntelGranted()) {
         grantFreeIntel();
         setFreeRevealAwardId(award.id);
@@ -638,7 +710,7 @@ function AwardsPage() {
                 {/* Expanded Detail Panel */}
                 {isExpanded && (
                   <div className="border-t border-slate-100 px-4 sm:px-5 py-5 space-y-5">
-                    {intel[award.id] === null && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No matching award history found for this agency and opportunity title.</p>}
+                    {intel[award.id]?.intel === null && !intel[award.id]?.award && <p className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">No matching award history found for this agency and opportunity title.</p>}
                     {trialIncumbentBlockedId === award.id && (
                       <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-center">
                         <p className="text-sm font-semibold text-slate-800">You&rsquo;ve used your 3 trial incumbent looks</p>
@@ -648,11 +720,29 @@ function AwardsPage() {
                         </p>
                       </div>
                     )}
-                    {intel[award.id] && trialIncumbentBlockedId !== award.id && <IncumbentCard intel={intel[award.id]!} winner={award.winning_company} user={currentUser} bidId={award.id} title={award.title} agency={award.agency}
+                    {intel[award.id]?.intel && trialIncumbentBlockedId !== award.id && <IncumbentCard intel={intel[award.id]!.intel!} winner={award.winning_company} user={currentUser} bidId={award.id} title={award.title} agency={award.agency}
                       freeReveal={!currentUser && (freeRevealAwardId === award.id || milestoneRevealAwardId === award.id)}
                       milestoneOffer={!currentUser && milestoneOfferAwardId === award.id}
                       proAccess={hasProfessionalAccess(trial, currentUser)}
                       onMilestoneGranted={() => handleMilestoneGranted(award.id)} />}
+                    {/* WINNER-PRICE LINE (owner 2026-10-09): "last time this was
+                        bid — won by … for … (FY…)", built from the intel this
+                        card just lazy-loaded (plus a stored SAM.gov award when
+                        one exists). STARTER-and-up unlocks it: `paidAccess` is
+                        the server-resolved hasPaidBidAccess verdict, so the
+                        pricing rule has one copy. It is independent of the
+                        IncumbentCard above, whose Radar Pro gate is unchanged.
+                        `revealed` = this card is already showing this viewer the
+                        incumbent under an existing owner-directed free grant, so
+                        the line is not sold against data already on screen. */}
+                    {trialIncumbentBlockedId !== award.id && (
+                      <WinnerPriceLine
+                        intel={intel[award.id]?.intel ?? null}
+                        award={intel[award.id]?.award ?? null}
+                        paidAccess={!!paidAccess}
+                        revealed={!currentUser && (freeRevealAwardId === award.id || milestoneRevealAwardId === award.id)}
+                      />
+                    )}
                     {/* Key Info Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-white p-4">

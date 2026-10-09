@@ -101,6 +101,7 @@ import { fetchRiExternalBids } from "./sources/ri-external";
 import { fetchTxTxdotBonfireBids } from "./sources/tx-txdot-bonfire";
 import { fetchTxUttylerBonfireBids } from "./sources/tx-uttyler-bonfire";
 import { fetchWiMilwaukeeBonfireBids } from "./sources/wi-milwaukee-bonfire";
+import { fetchIlCookCountyBonfireBids, fetchIlCookCountyHealthBonfireBids, fetchIlCpsBonfireBids } from "./sources/il-chicago-bonfire";
 import { fetchWiMilwaukeeCountyBonfireBids } from "./sources/wi-milwaukee-county-bonfire";
 import { fetchWiMpsBonfireBids } from "./sources/wi-mps-bonfire";
 import { fetchTxUhJaggaerBids } from "./sources/tx-uh-jaggaer";
@@ -393,6 +394,11 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "wi_milwaukee_bonfire", fetchFn: fetchWiMilwaukeeBonfireBids },
   { name: "wi_milwaukee_county_bonfire", fetchFn: fetchWiMilwaukeeCountyBonfireBids },
   { name: "wi_mps_bonfire", fetchFn: fetchWiMpsBonfireBids },
+  // Chicago area (owner 2026-10-09): Cook County, Chicago Public Schools and Cook
+  // County Health each post on their own Bonfire portal (il-chicago-bonfire.ts).
+  { name: "il_cook_county_bonfire", fetchFn: fetchIlCookCountyBonfireBids },
+  { name: "il_cps_bonfire", fetchFn: fetchIlCpsBonfireBids },
+  { name: "il_cook_county_health_bonfire", fetchFn: fetchIlCookCountyHealthBonfireBids },
   // Virginia locality CivicEngage boards (owner green-light 2026-10-08, dispatch
   // A): Loudoun County, the City of Suffolk, the City of Lynchburg and the City of
   // Charlottesville each publish their OWN open-bid board on CivicEngage /

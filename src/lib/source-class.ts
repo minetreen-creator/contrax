@@ -363,6 +363,29 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Chicago area: Cook County, Chicago Public Schools and Cook County Health
+  // Bonfire portals (owner 2026-10-09; src/jobs/sources/il-chicago-bonfire.ts).
+  il_cook_county_bonfire: {
+    class: "local",
+    city: "Chicago",
+    scopeState: "IL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  il_cps_bonfire: {
+    class: "local",
+    city: "Chicago",
+    scopeState: "IL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  il_cook_county_health_bonfire: {
+    class: "local",
+    city: "Chicago",
+    scopeState: "IL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // Virginia locality CivicEngage boards (owner green-light 2026-10-08; dispatch A
   // — src/jobs/sources/va-loudoun.ts, va-suffolk.ts, va-lynchburg.ts,
   // va-charlottesville.ts, all on the shared reader civicengage-bids.ts). Each is a

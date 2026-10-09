@@ -1,68 +1,12 @@
-/**
- * ANONYMOUS RADAR FREE-SEARCH LIMIT — DUAL DIMENSION (owner directive 2026-10-08).
- *
- * "Count the free searches by network address and browser ID, and stop at
- *  whichever runs out first. Nothing changes for normal visitors; they still get
- *  2 free searches with 3 matches each."
- *
- * WHAT AN ANONYMOUS RADAR SCAN IS COUNTED UNDER (two dimensions, both must
- * have budget left):
- *
- *   - `ip:<client ip>`        — the network address, resolved by the SAME
- *                               helper the scan already used
- *                               (~/lib/request-ip#getClientIp: x-forwarded-for
- *                               first value / cf-connecting-ip / x-real-ip,
- *                               sliced to 64 chars).
- *   - `visitor:<contrax_vid>` — the SAME long-lived first-party browser id the
- *                               funnel/tracking code already mints
- *                               (~/lib/visitor). No new fingerprint, no new id,
- *                               no new cookie, no new secret.
- *
- * A scan is allowed only while BOTH counters are below the limit. The first
- * dimension to run out blocks, and it blocks EXACTLY the way Radar blocked
- * before this change: runRadarScan returns the unchanged
- * `{ paidRequired: true, matches: [], … }` result, so the client renders its
- * existing "your free searches have been used → choose a plan / sign in"
- * conversion screen. No new error, no new response shape.
- *
- * GUARANTEES (owner constraints, mirrored from the free-score fix #611):
- *   - FAIL-OPEN. A missing/unresolvable IP or a missing/invalid visitor id
- *     simply drops that one dimension (the other still counts); no usable key
- *     at all → allowed; ANY store failure (DB down, DATABASE_URL unset, a
- *     timeout, a broken read) → allowed. An inability to count must never deny
- *     a visitor.
- *   - SAME ALLOWANCE. The cap stays the owner's `FREE_RADAR_PREVIEW_SCANS` (2;
- *     ~/lib/radar-config.ts is still the single decision point).
- *   - NOTHING CHANGES FOR A NORMAL VISITOR. One browser behind one address
- *     burns the two counters in lock-step, so the number of searches, the
- *     results (≤ FREE_ANONYMOUS_RADAR_RESULTS = 3 matches per scan) and the
- *     block point are unchanged.
- *   - ONLY A SUCCESSFUL SCAN CONSUMES A SEARCH. Consumption happens on the
- *     scan's SUCCESS path in radar.tsx (after the results are assembled), and
- *     never at the pre-check — a scan that errored or threw must not eat an
- *     allowance. (Before this change the count was claimed BEFORE the scan ran,
- *     so a failed scan burned a search — see the PR body.)
- *   - SIGNED-IN CALLERS KEEP THEIR EXISTING ENTITLEMENT PATH. The gate runs
- *     under the UNCHANGED `!subscribed` condition in radar.tsx (an entitled
- *     account bypasses it exactly as before); this module adds no gate of its
- *     own for signed-in users.
- *
- * SCHEMA: no migration and no new table. The pre-existing lazily-created
- * `radar_preview_usage` table (identity_hash TEXT PRIMARY KEY, used_at, scans)
- * now holds one row per DIMENSION, keyed by the sha256 of the prefixed
- * identity. The hash input keeps the exact legacy prefix
- * (`radar-preview-v1:` + key), so the row an address already had under the old
- * IP-only keying is the SAME row the address dimension reads today: a visitor
- * who had already used one scan keeps that scan (no reset, no extra free
- * search). Only the browser dimension is new. A row written by the old code for
- * a visitor with NO address (never seen in production) simply stops matching —
- * strictly more generous, never a new block.
- */
+/** Radar preview counters. Anonymous: one search across IP/browser dimensions.
+ * Basic: two searches per authenticated account, independent of IP/browser.
+ * Paid entitlement bypasses this gate. Legacy anonymous hashes retain usage.
+ * Store outages retain the existing fail-open policy. */
 import { createHash } from "node:crypto";
-import { FREE_RADAR_PREVIEW_SCANS } from "~/lib/radar-config";
+import { FREE_RADAR_PREVIEW_SCANS, FREE_ACCOUNT_RADAR_SCANS } from "~/lib/radar-config";
 import { sql } from "~/db";
 
-/** Free anonymous Radar searches. Same owner-set cap as before (2). */
+/** Free anonymous Radar searches. Owner-set anonymous cap (1). */
 export const FREE_RADAR_SEARCH_LIMIT = FREE_RADAR_PREVIEW_SCANS;
 
 /** Dimension prefixes (the same style as ~/lib/free-score-limit.server). */
@@ -250,5 +194,43 @@ export async function consumeAnonymousRadarSearch(
     await consumeRadarSearchCredits(radarSearchKeys(ip, visitorId), store);
   } catch (err) {
     console.error("[radar-free-search] consume failed (non-fatal):", err);
+  }
+}
+
+/** The account ID must come from server authentication, never request input. */
+export function radarSearchBudget(ip: string | null, visitorId: string | null, accountId: number | null) {
+  return accountId
+    ? { keys: [`account:${accountId}`], limit: FREE_ACCOUNT_RADAR_SCANS }
+    : { keys: radarSearchKeys(ip, visitorId), limit: FREE_RADAR_SEARCH_LIMIT };
+}
+
+/** Conditional upsert prevents parallel successful requests releasing extra
+ * previews. A losing multi-dimension request can conservatively consume a
+ * remaining dimension, but never grants more matches than its allowance. */
+async function claimRadarSearchKey(key: string, limit: number): Promise<boolean> {
+  if (!(await ensureRadarPreviewUsageTable())) return true;
+  const hash = radarSearchKeyHash(key);
+  const rows = await sql()`INSERT INTO radar_preview_usage (identity_hash, scans)
+    VALUES (${hash}, 1)
+    ON CONFLICT (identity_hash) DO UPDATE
+    SET scans = radar_preview_usage.scans + 1, used_at = NOW()
+    WHERE radar_preview_usage.scans < ${limit}
+    RETURNING scans`;
+  return rows.length > 0;
+}
+
+export async function claimRadarSearchBudget(
+  keys: readonly string[],
+  limit: number,
+  claim: (key: string, limit: number) => Promise<boolean> = claimRadarSearchKey,
+): Promise<boolean> {
+  if (!keys.length) return true;
+  try {
+    let allowed = true;
+    for (const key of keys) if (!(await claim(key, limit))) allowed = false;
+    return allowed;
+  } catch (error) {
+    console.error("[radar-free-search] claim failed (fail-open):", error);
+    return true;
   }
 }

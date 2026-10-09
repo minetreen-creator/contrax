@@ -185,6 +185,7 @@ const PLAN_OPTIONS: {
     free: true,
     bullets: [
       "Basic Solicitations Search (new bids after 7 days)",
+      "2 Radar searches per account",
       "A weekly email of new bids (Mondays)",
       "1 saved bid",
       "Standard set-aside filters",

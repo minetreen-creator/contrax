@@ -65,7 +65,7 @@ export function deriveStateCode(location: string | null | undefined): string | n
   }
   const lower = loc.toLowerCase();
   // match "north carolina" (multi-word) with word boundaries
-  for (const [name, code] of Object.entries(NAME_TO_CODE)) {
+  for (const [name, code] of Object.entries(NAME_TO_CODE).sort(([a], [b]) => b.length - a.length)) {
     const re = new RegExp(`\\b${name.replace(" ", "\\s+")}\\b`);
     if (re.test(lower)) return code;
   }

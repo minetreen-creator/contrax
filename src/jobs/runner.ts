@@ -789,16 +789,49 @@ async function insertBidsBatch(
      -- own VALUES list — that same-batch case is now closed IN MEMORY by
      -- dedupeBatchByNaturalKey, which runs before the VALUES list is built.
      -- This SQL guard is unchanged and still owns the cross-source case.
+     -- SELF-EXCLUSION (owner fix 2026-10-10, eVA due-date staleness): the guard
+     -- must NOT match the candidate row against ITSELF. INSERT … SELECT … WHERE
+     -- … ON CONFLICT applies this WHERE to the candidate rows BEFORE the insert
+     -- is attempted, so a re-fetch of an already-stored row matched its own
+     -- (title, agency), was filtered out, and the ON CONFLICT (source,
+     -- external_id) DO UPDATE refresh was never reached. An amendment that
+     -- keeps the notice's title (eVA moves closedate in place and bumps
+     -- version) therefore never refreshed anything: 743/745 stored va_eva
+     -- rows had updated_at == created_at after 32 runs and 21 live-open notices
+     -- stayed hidden from Radar on a past stored due_date (evidence:
+     -- shared/eva-staleness-2026-10-10/findings.md). The row's OWN identity is
+     -- (source, external_id) — excluding exactly that pair keeps the guard's one
+     -- real job (refusing a DIFFERENT source's copy of the same notice) intact,
+     -- while letting the conflict clause refresh the row it owns.
      WHERE NOT EXISTS (
        SELECT 1 FROM bids b
        WHERE lower(btrim(b.title)) = lower(btrim(v.title))
          AND lower(btrim(b.agency)) = lower(btrim(v.agency))
+         AND NOT (b.source = v.source AND b.external_id = v.external_id)
      )
      ON CONFLICT (source, external_id) DO UPDATE SET
        title = EXCLUDED.title,
        location = EXCLUDED.location,
        category = EXCLUDED.category,
        due_date = EXCLUDED.due_date,
+       -- SOURCE-FRESHNESS (owner fix 2026-10-10): the detail link embeds the
+       -- source's own round/version (eVA: rfp_id_round), which moves when a
+       -- notice is amended. It was absent from every SET list, so a fired update
+       -- still left the round from the FIRST insert in the stored link
+       -- (135/563 live-open va_eva rows at probe time). Same source document as
+       -- every other column here — no new data is introduced.
+       source_url = EXCLUDED.source_url,
+       -- SOURCE-FRESHNESS, description (owner fix 2026-10-10): the runner's two
+       -- upserts are the ONLY writer of bids.description (verified: no trigger on
+       -- bids, every other UPDATE bids in the repo writes ai_summary*/naics_*/
+       -- the location columns, the two forecast importers write the separate
+       -- procurement_forecasts table, and seed/demo only INSERT). A notice that
+       -- amends its text in place therefore kept the first-read description
+       -- forever. Never-erase guard (the same house rule already applied to
+       -- psc/notice_type/solicitation_number): EXCLUDED.description is a required
+       -- field but is '' when a source's detail parse yields nothing, and an
+       -- empty overwrite would be a visible regression on the Radar cards.
+       description = COALESCE(NULLIF(EXCLUDED.description, ''), bids.description),
        estimated_value = EXCLUDED.estimated_value,
        naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code),
        -- Track whichever code is actually retained: when the incoming code
@@ -932,16 +965,34 @@ async function insertBid(
       ${bid.notice_type ?? null},
       ${bid.solicitation_number ?? null}
     -- Cross-source dedup guard (same natural-key check as the batch path).
+    -- SELF-EXCLUSION (owner fix 2026-10-10, eVA due-date staleness): the guard
+    -- must not match the candidate against ITSELF — a re-fetch of a stored row
+    -- matched its own (title, agency), so it was filtered out before
+    -- ON CONFLICT (source, external_id) DO UPDATE could refresh it (the same
+    -- defect as the batch path; see the long note there). The row's own identity
+    -- is (source, external_id): excluding exactly that pair preserves both
+    -- cross-source dedupe and the refresh.
     WHERE NOT EXISTS (
       SELECT 1 FROM bids b
       WHERE lower(btrim(b.title)) = lower(btrim(${bid.title}))
         AND lower(btrim(b.agency)) = lower(btrim(${bid.agency}))
+        AND NOT (b.source = ${bid.source_label ?? source.name}
+                 AND b.external_id = ${bid.external_id})
     )
     ON CONFLICT (source, external_id) DO UPDATE SET
       title = EXCLUDED.title,
       location = EXCLUDED.location,
       category = EXCLUDED.category,
       due_date = EXCLUDED.due_date,
+      -- SOURCE-FRESHNESS (owner fix 2026-10-10, same as the batch path): the
+      -- detail link embeds the source's own round/version (eVA rfp_id_round).
+      -- Absent from every SET list before this, so a fired update kept the
+      -- round from the first insert.
+      source_url = EXCLUDED.source_url,
+      -- description: same source-freshness refresh as the batch path (this
+      -- upsert is one of the only two writers of bids.description), with the
+      -- same never-erase guard against an empty detail parse.
+      description = COALESCE(NULLIF(EXCLUDED.description, ''), bids.description),
       estimated_value = EXCLUDED.estimated_value,
       naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code),
       naics_code_source = CASE

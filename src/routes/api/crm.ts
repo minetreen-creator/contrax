@@ -147,7 +147,7 @@ async function post({ request }: { request: Request }) {
       const name = boundedText(body.name, 200, true);
       const organization = boundedText(body.organization, 200);
       const role = boundedText(body.role, 200);
-      const phone = boundedText(body.phone, 200);
+      const phone = boundedText(body.phone, 60);
       const email = boundedText(body.email, 254);
       const notes = boundedText(body.notes, 5000);
       if (

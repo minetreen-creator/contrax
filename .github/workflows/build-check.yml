@@ -457,6 +457,29 @@ jobs:
             echo "DATABASE_URL secret NOT configured — the DB-backed state grants suites skip loudly (the unit half still runs and must pass)."
           fi
           bun test src/lib/state-grants
+      # eVA DUE-DATE REFRESH — the runner UPSERT REFRESH regression pins (owner
+      # fix 2026-10-10). DB-BACKED but SELF-PROVISIONING: it builds a THROWAWAY
+      # database (contrax_runner_upsert_<run>) from src/db/schema.sql + the
+      # additive `bids` migrations (007/012/015 + the run-039 DDL the upsert
+      # references), drives the REAL `syncSource` → `insertBidsBatch` path with an
+      # injected fake connector, and DROPs that database in afterAll — so the
+      # team's data is never touched and the default sandbox DATABASE_URL (which
+      # IS production) can never be the subject of a write. OPT-IN like the
+      # state-grants / nonprofit integration halves: with no DATABASE_URL the
+      # suite skips LOUDLY (never silently green). Listed EXPLICITLY because a new
+      # suite that no workflow names runs nowhere.
+      - name: Runner upsert refresh tests (unit + throwaway-DB integration when available)
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RUNNER_UPSERT_TEST_PROVISION_SCHEMA: "1"
+        run: |
+          set -uo pipefail
+          if [ -n "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL secret present — the self-refresh / cross-source dedupe / no-op pins run against a throwaway database."
+          else
+            echo "DATABASE_URL secret NOT configured — the DB-backed runner upsert pins skip LOUDLY."
+          fi
+          bun test src/jobs/runner.upsert-refresh.integration.test.ts
       # Subcontracting preview, DATA LAYER (owner directive 2026-09-25; go-live
       # approved once built, NO UI in this PR). DETERMINISTIC, network-free AND
       # database-free by construction: every byte comes from a committed fixture

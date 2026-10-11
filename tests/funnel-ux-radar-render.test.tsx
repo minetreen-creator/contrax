@@ -331,8 +331,15 @@ describe("a scan with zero matches is not a dead end", () => {
     expect(html).toContain("Email me new matches →");
   });
 
-  test("the empty result renders the alert and a nationwide retry", () => {
+  test("the empty result renders a nationwide retry, not the email alert (owner 2026-10-11)", () => {
     expect(src).toContain('trackEvent("radar_zero_nationwide"');
-    expect(src).toMatch(/noMatches\s*\n\s*\/>/);
+    expect(src).not.toMatch(/noMatches\s*\n\s*\/>/);
+    expect(src).not.toContain("get an email when one posts");
+  });
+
+  test("a free search that shows no bids is not counted (owner 2026-10-11)", () => {
+    expect(src).toContain("const freeSearchKept = !subscribed && visibleMatches.length === 0;");
+    expect(src).toContain("if (!subscribed && !freeSearchKept && !(await claimRadarSearchBudget(budget.keys, budget.limit)))");
+    expect(src).toContain("This search didn't use your free search.");
   });
 });

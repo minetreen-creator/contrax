@@ -1,8 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { createServerFn } from "@tanstack/react-start";
+import { GrantsPricing } from "~/components/GrantsPricing";
+import { resolveGrantsUpgradeEnabled } from "~/lib/grants-upgrade-signal";
 import { SiteHeader } from "~/components/SiteHeader";
 import { FoundingOffer } from "~/components/FoundingOffer";
 
+const getGrantsPricingData = createServerFn({ method: "GET" }).handler(async () => {
+  const grantsUpgradeEnabled = resolveGrantsUpgradeEnabled(
+    typeof process !== "undefined" ? process.env : undefined,
+  );
+  return { grantsUpgradeEnabled };
+});
+
 export const Route = createFileRoute("/pricing/")({
+  loader: () => getGrantsPricingData(),
   component: PricingPage,
   head: () => ({
     meta: [
@@ -119,6 +130,7 @@ function WhichPlan() {
 }
 
 function PricingPage() {
+  const { grantsUpgradeEnabled } = Route.useLoaderData();
   return (
     <div className="min-h-screen bg-white">
       <SiteHeader />
@@ -249,7 +261,7 @@ function PricingPage() {
           <p className="mt-3 text-center text-sm text-gray-500">
             Also available:{" "}
             <a href="/signup?plan=agency" className="font-medium text-amber-600 hover:text-amber-500">Agency</a> ($199/month, for teams and consultants) ·{" "}
-            <a href="/grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits) ·{" "}
+            <a href="#grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits) ·{" "}
             <a href="/contract-payments" className="font-medium text-amber-600 hover:text-amber-500">Contrax Payments</a> ($9/month)
           </p>
           <p className="mt-3 text-center">
@@ -265,6 +277,8 @@ function PricingPage() {
           </p>
         </div>
       </section>
+
+      <GrantsPricing grantsUpgradeEnabled={grantsUpgradeEnabled} />
 
       {/* FAQ */}
       <section className="bg-gray-50 py-16 sm:py-20">

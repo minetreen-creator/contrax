@@ -873,11 +873,16 @@ export const runRadarScan = createServerFn({ method: "POST" })
     const visibleIds = new Set(visibleMatches.map((match) => match.id));
     // Claim only after results are assembled. Conditional writes close the
     // concurrent pre-check race before any matches are returned.
-    if (!subscribed && !(await claimRadarSearchBudget(budget.keys, budget.limit))) {
+    // Owner 2026-10-11 (Richmond, VA freight visitor: 0 results, never came
+    // back): a search that shows no bids does not use the free search, so the
+    // zero screen's "every state" retry still runs instead of hitting the wall.
+    const freeSearchKept = !subscribed && visibleMatches.length === 0;
+    if (!subscribed && !freeSearchKept && !(await claimRadarSearchBudget(budget.keys, budget.limit))) {
       return blockedResult();
     }
     return {
       paidRequired: false,
+      freeSearchKept,
       matches: visibleMatches,
       certLabel: CERT_LABEL[certId],
       sections: {
@@ -1179,7 +1184,7 @@ export interface RadarSections {
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null }
+  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean }
   | { status: "paid_required"; limit?: number; signupRequired?: boolean }
   | { status: "error" };
 /** Resolved payload of a successful runRadarScan call (handler return shape).
@@ -1194,6 +1199,8 @@ type ScanResult = {
   certLabel: string;
   sections: RadarSections;
   intelTicket: string | null;
+  /** true = a free (unpaid) search that showed no bids, so it was not counted. */
+  freeSearchKept?: boolean;
   /** Present ONLY on the paidRequired (free searches exhausted) result: the
    *  server-side allowance, so the block screen states the real number. */
   freeSearchLimit?: number;
@@ -1564,6 +1571,7 @@ function RadarLanding() {
         certLabel: res.certLabel,
         sections: res.sections,
         intelTicket: res.intelTicket ?? null,
+        freeSearchKept: res.freeSearchKept === true,
       });
       setRestoredResults(false);
       setStep(3);
@@ -2096,9 +2104,16 @@ function RadarLanding() {
                 <p className="text-base font-semibold text-white">No strong matches yet.</p>
                 <p className="mx-auto mt-2 max-w-md text-slate-300">
                   {state
-                    ? `Nothing open for ${trade.trim() || "this search"} in ${STATE_NAMES[state] ?? state} right now. Try every state, or get an email when one posts.`
-                    : "Try a different trade, or get an email when one posts."}
+                    ? `Nothing open for ${trade.trim() || "this search"} in ${STATE_NAMES[state] ?? state} right now. Try every state.`
+                    : "Try a different trade or a related one."}
                 </p>
+                {/* Owner 2026-10-11: a zero result does not use the free search
+                    (runRadarScan), so the visitor can still try again. */}
+                {scan.freeSearchKept && (
+                  <p className="mx-auto mt-2 max-w-md text-xs font-semibold text-amber-400">
+                    This search didn't use your free search.
+                  </p>
+                )}
                 {/* Owner 2026-10-05 (Lehi, UT visitor: security guard in Utah, zero
                     matches, left): one tap to the same trade nationwide. */}
                 {state && trade.trim() && (
@@ -2113,18 +2128,6 @@ function RadarLanding() {
                   >
                     See {trade.trim().slice(0, 40)} contracts nationwide →
                   </button>
-                )}
-                {isAnonymous && (
-                  <div className="text-left">
-                    <MatchAlertsCard
-                      certLabel={scan.certLabel}
-                      trade={trade}
-                      state={state}
-                      cert={cert ?? ""}
-                      sizePref={sizePref ?? ""}
-                      noMatches
-                    />
-                  </div>
                 )}
                 <button
                   type="button"

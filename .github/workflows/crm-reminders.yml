@@ -1,0 +1,50 @@
+name: CRM follow-up reminders
+# CRM phase 3a (owner handoff 2026-10-10, item 4): "Implement the scheduled worker;
+# the code above does not send reminders."
+#
+# Once a day, src/jobs/crm-reminder-send.ts emails each OPTED-IN Professional account
+# about the saved-bid follow-up dates that have come due IN THAT USER'S TIMEZONE. It
+# is the only thing in the feature that sends, and it sends nothing to an account that
+# has not opted in or that is not entitled at the moment of the run.
+#
+# 13:00 UTC is a morning hour across the US, which is where the accounts are; the run
+# is once a day because the ledger keys a delivery to the FOLLOW-UP DATE, so a window
+# that is due (or overdue) is emailed exactly once however often this job runs.
+#
+# Required secrets: DATABASE_URL, RESEND_API_KEY (with no key the attempts fail and
+# are recorded on the delivery ledger for a later run — never silently lost).
+on:
+  schedule:
+    - cron: "0 13 * * *"
+  workflow_dispatch:
+concurrency:
+  # Never two workers at once. The delivery ledger's unique idempotency key makes a
+  # duplicate impossible even if two DO overlap, but there is no reason to race.
+  group: crm-reminders
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  send:
+    name: Send follow-up reminders
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      # Names the suite it depends on first: the worker's rules and the
+      # duplicate-impossibility matrix are unit-tested deterministically (no network,
+      # no database), so a regression fails HERE rather than in someone's inbox.
+      - name: Reminder rules + ledger tests (unit, deterministic, zero network)
+        run: bun test src/lib/crm-reminders.test.ts src/lib/crm-reminders.server.test.ts
+      - name: Send follow-up reminders
+        run: bun run crm-reminders

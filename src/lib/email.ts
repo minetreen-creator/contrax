@@ -1197,3 +1197,79 @@ export async function sendPrimeAccessWelcomeEmail(to: string): Promise<boolean> 
     return false;
   }
 }
+
+// ── CRM follow-up reminders (owner handoff 2026-10-10, item 4 / CRM phase 3a) ──
+
+/** One saved bid whose follow-up date is due, as the reminder email renders it. */
+export interface CrmReminderEmailItem {
+  /** The saved bid's title (never invented — the row's own value). */
+  title: string;
+  /** The follow-up calendar date the reminder is about (`YYYY-MM-DD`). */
+  follow_up_date: string;
+  /** The user's own "next action" text, or "" when they left it blank. */
+  next_action: string;
+  /** The bid's official page, when the saved row has one. */
+  source_url?: string | null;
+}
+
+/**
+ * The ONE email the CRM reminder feature produces: "these follow-ups are due".
+ *
+ * Follows the module's existing transactional shape (getResend(), a plain HTML
+ * template, a boolean result that never throws) so the scheduled worker can treat a
+ * transport failure as a retryable outcome rather than a crash. It sends nothing
+ * else: this function is called only by the reminder worker, which has already
+ * rechecked the recipient's entitlement AND their explicit opt-in.
+ */
+export async function sendCrmFollowUpReminderEmail(
+  to: string,
+  items: CrmReminderEmailItem[],
+): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send follow-up reminder — RESEND_API_KEY not set");
+      return false;
+    }
+    if (items.length === 0) {
+      console.warn("Cannot send follow-up reminder — no due follow-ups");
+      return false;
+    }
+    const rows = items
+      .map((item) => {
+        const link = item.source_url
+          ? `<a href="${item.source_url}" style="color:#1d4ed8;text-decoration:none;">${item.title}</a>`
+          : item.title;
+        return `<tr><td style="padding:12px 0;border-bottom:1px solid #e5e7eb;">
+  <p style="margin:0 0 4px;color:#111827;font-size:15px;font-weight:600;">${link}</p>
+  <p style="margin:0;color:#374151;font-size:14px;">Follow-up date: <strong>${item.follow_up_date}</strong></p>
+  ${item.next_action ? `<p style="margin:4px 0 0;color:#6b7280;font-size:14px;">Next action: ${item.next_action}</p>` : ""}
+</td></tr>`;
+      })
+      .join("\n");
+    const html = `<body style="margin:0;padding:0;background:#f3f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background:#f3f4f6;padding:32px 0;"><tr><td align="center">
+<table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;">
+  <tr><td style="padding:32px;">
+    <h1 style="margin:0 0 12px;color:#111827;font-size:22px;">Follow-ups due on your saved bids</h1>
+    <p style="margin:0 0 12px;color:#374151;font-size:15px;">These follow-up dates have come due (measured in your timezone).</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:0 0 20px;">
+${rows}
+    </table>
+    <p style="margin:0 0 20px;"><a href="https://www.contrax.company/pipeline" style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:8px;font-size:15px;font-weight:600;">Open My Pipeline</a></p>
+    <p style="margin:0;color:#6b7280;font-size:13px;">You are receiving this because email reminders are switched on for your account. Turn them off any time in My Pipeline → Follow-up reminders.</p>
+  </td></tr>
+</table></td></tr></table></body>`;
+    const result = await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
+      to: [to],
+      subject: "Contrax follow-ups due on your saved bids",
+      html,
+    });
+    return !result.error;
+  } catch (error) {
+    console.error("failed to send follow-up reminder email:", error);
+    return false;
+  }
+}

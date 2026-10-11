@@ -9,6 +9,12 @@ import { trackEvent } from "~/lib/track";
 import { ATTEMPT_EVENT_FOR_ACTION, GATE_ATTEMPT_LABEL, gatePrompt } from "~/lib/plan-gates";
 import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
 import { PipelineContacts } from "~/components/PipelineContacts";
+import { PipelineReminders } from "~/components/PipelineReminders";
+import {
+  CRM_REMINDERS_LOCK_BODY,
+  CRM_REMINDERS_LOCK_CTA,
+  CRM_REMINDERS_LOCK_TITLE,
+} from "~/lib/crm-reminders";
 import {
   CRM_CONTACTS_LOCK_BODY,
   CRM_CONTACTS_LOCK_CTA,
@@ -210,6 +216,9 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
   // ATTEMPT-ONLY Starter prompt (owner rule 8): opened by a gated click in the
   // contacts panel, never by the page view.
   const [contactsGate, setContactsGate] = useState(false);
+  // ATTEMPT-ONLY Professional prompt for Follow-up reminders (CRM phase 3a) —
+  // opened solely by a gated click in the reminders panel.
+  const [remindersGate, setRemindersGate] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -266,6 +275,23 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
 
   /** Contacts by id, so a saved bid can render the name of the one it links to. */
   const contactsById = useMemo(() => new Map(contacts.map((c) => [c.id, c])), [contacts]);
+
+  /**
+   * The follow-up slice the reminders panel classifies. `id` (the saved_matches row)
+   * is passed through as the reminder's own row key — the panel never re-reads the
+   * pipeline, so a follow-up date edited below is reflected in the lists immediately.
+   */
+  const reminderItems = useMemo(
+    () =>
+      (items ?? []).map((entry) => ({
+        id: entry.id,
+        bid_id: entry.bid_id,
+        title: entry.title,
+        follow_up_date: entry.follow_up_date,
+        next_action: entry.next_action,
+      })),
+    [items],
+  );
 
   /**
    * Merge a save response into the list AND re-resolve its linked contact from the
@@ -416,6 +442,18 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
           onUpgrade={() => setContactsGate(true)}
         />
 
+        {/* CRM phase 3a — Follow-up reminders (owner handoff item 4). The lists are
+            built from the SAME saved_matches.follow_up_date rows the bid workspace
+            below edits, classified in the user's own timezone; a non-Professional
+            user gets the read-only locked card instead, whose only action is an
+            upgrade attempt (owner rule 8). */}
+        <PipelineReminders
+          access={crmAccess}
+          items={reminderItems}
+          loading={loading}
+          onUpgrade={() => setRemindersGate(true)}
+        />
+
         {loading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
@@ -514,6 +552,19 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
         message={CRM_CONTACTS_LOCK_BODY}
         ctaLabel={CRM_CONTACTS_LOCK_CTA}
         priceNote={CRM_CONTACTS_LOCK_PRICE}
+      />
+      {/* ATTEMPT-ONLY Professional prompt for Follow-up reminders (owner rule 8) —
+          opened solely by the gated control in the reminders panel. The plan and the
+          price note are the component's EXISTING Professional defaults ($79/mo, the
+          ratified tier table); phase 3b owns the /pricing copy, so this file adds
+          none. */}
+      <PremiumUpgradeModal
+        open={remindersGate}
+        onClose={() => setRemindersGate(false)}
+        checkoutPlan="professional"
+        title={CRM_REMINDERS_LOCK_TITLE}
+        message={CRM_REMINDERS_LOCK_BODY}
+        ctaLabel={CRM_REMINDERS_LOCK_CTA}
       />
     </div>
   );

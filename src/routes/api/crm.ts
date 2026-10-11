@@ -1,12 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { getCrmAccess } from "~/lib/crm-access.server";
+import { isValidTimezone } from "~/lib/crm-reminders";
+import {
+  loadCrmReminderPrefs,
+  loadReminderLists,
+  saveCrmReminderPrefs,
+} from "~/lib/crm-reminders.server";
 import { sql } from "~/db";
 
 /**
  * GET/POST /api/crm — the CRM (contacts + activity history) backend, phase 1 of
- * the owner's 3-phase CRM build (owner handoff 2026-10-10). No UI, no reminder
- * worker and no AI-draft endpoint live here yet (phases 2 and 3).
+ * the owner's 3-phase CRM build (owner handoff 2026-10-10), plus the phase-3a
+ * reminder READ/WRITE surface. No AI-draft endpoint lives here (phase 3b/3c).
  *
  * GET  ?resource=contacts (default)
  *        → { access, contacts } for the authenticated user, newest-updated first.
@@ -15,12 +21,29 @@ import { sql } from "~/db";
  * GET  ?resource=history&contactId=<id>
  *        → { activities } — 403 unless the tier includes relationshipHistory
  *          (Professional), 400 for a non-positive contactId.
- * POST { action: "saveContact" | "archiveContact" | "addActivity", … }
+ * GET  ?resource=reminders
+ *        → { access, prefs, overdue, upcoming } — 403 unless the tier includes
+ *          reminders (Professional). PHASE 3a, owner handoff item 4. `prefs` is the
+ *          user's own opt-in + timezone (absent row = not opted in, UTC); the lists
+ *          are the user's saved-bid follow-up dates classified against their LOCAL
+ *          day. Both come from src/lib/crm-reminders.ts — the same pure functions
+ *          the scheduled worker uses, so the panel and the email can never disagree
+ *          about which day a follow-up falls on. The Pipeline panel derives its own
+ *          lists from the follow-up dates it already holds (so an in-page edit shows
+ *          immediately); this resource is the complete server-side read.
+ * POST { action: "saveContact" | "archiveContact" | "addActivity" | "saveReminderPrefs", … }
  *        → see each branch below. Origin-checked (the request's own origin must
- *          match the Origin header), then auth, then `access.canEdit`.
+ *          match the Origin header), then auth, then `access.canEdit`
+ *          (`saveReminderPrefs` requires the Professional `reminders` flag instead:
+ *          preferring an email is not editing a contact).
  *
  * Entitlement comes from src/lib/crm-access.server.ts ONLY — no column read here
  * is an entitlement, and nothing in this route reads a pricing or Stripe path.
+ *
+ * MIGRATION 060 CAVEAT: the `reminders` branches read/write `user_crm_prefs` and
+ * `crm_reminder_deliveries`, which migration 060 adds. They are wrapped in their
+ * OWN try/catch so a database without it answers "Reminders unavailable" on that
+ * resource instead of taking the contacts/history reads down with them.
  */
 const ACTIVITY_KINDS = ["note", "call", "meeting", "email"] as const;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -116,6 +139,27 @@ async function get({ request }: { request: Request }) {
         },
         { headers: { "Cache-Control": "private, no-store" } },
       );
+    }
+    if (resource === "reminders") {
+      // Professional only (owner tier table: reminders are a Professional feature).
+      // A downgraded account is NOT emailed and does NOT see the panel — the gate is
+      // here, server-side, not in the client.
+      if (!access.reminders) {
+        return Response.json({ error: "Professional plan required" }, { status: 403 });
+      }
+      // Its OWN try/catch: these two tables arrive with migration 060, and an
+      // un-migrated database must not break the contacts/history reads above.
+      try {
+        const prefs = await loadCrmReminderPrefs(user.id);
+        const lists = await loadReminderLists(user.id, prefs.timezone, new Date());
+        return Response.json(
+          { access, prefs, overdue: lists.overdue, upcoming: lists.upcoming },
+          { headers: { "Cache-Control": "private, no-store" } },
+        );
+      } catch (error) {
+        console.error("[api/crm] reminders read failed", error);
+        return Response.json({ error: "Reminders unavailable" }, { status: 500 });
+      }
     }
     return Response.json({ error: "Unknown resource" }, { status: 400 });
   } catch (error) {
@@ -236,6 +280,39 @@ async function post({ request }: { request: Request }) {
       `) as Array<{ id: number }>;
       if (!rows.length) return Response.json({ error: "Contact not found" }, { status: 404 });
       return Response.json({ id: Number(rows[0]!.id) }, { status: 201 });
+    }
+
+    if (action === "saveReminderPrefs") {
+      // The Professional gate, not `canEdit`: choosing to receive a reminder email
+      // is not editing a contact. A non-Professional account is refused here, so a
+      // forged request can never opt an unentitled account in (and the worker's own
+      // recheck would refuse anyway).
+      if (!access.reminders) {
+        return Response.json({ error: "Professional plan required" }, { status: 403 });
+      }
+      // `opt_in` must be a real boolean. Nothing is coerced: a missing/false value
+      // turns reminders OFF, which is the safe direction; only a literal `true` opts
+      // in, and nothing here ever defaults a user INTO consent.
+      if (typeof body.opt_in !== "boolean") {
+        return Response.json({ error: "Invalid reminder preference" }, { status: 400 });
+      }
+      // An IANA zone the runtime can resolve, or nothing. Never guessed and never
+      // silently mapped (see isValidTimezone).
+      if (!isValidTimezone(body.timezone)) {
+        return Response.json({ error: "Invalid timezone" }, { status: 400 });
+      }
+      try {
+        const prefs = await saveCrmReminderPrefs(user.id, {
+          // `=== true` after the guard above: the only accepted opt-in is a literal
+          // boolean true, and anything else has already been refused with a 400.
+          optIn: body.opt_in === true,
+          timezone: String(body.timezone).trim(),
+        });
+        return Response.json({ prefs });
+      } catch (error) {
+        console.error("[api/crm] reminder prefs write failed", error);
+        return Response.json({ error: "Could not save reminder settings" }, { status: 500 });
+      }
     }
 
     return Response.json({ error: "Unknown action" }, { status: 400 });

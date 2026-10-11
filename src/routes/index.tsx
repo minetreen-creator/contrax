@@ -591,6 +591,7 @@ function Footer() {
     { href: "/security", label: "Security" },
     { href: "/privacy", label: "Privacy" },
     { href: "/terms", label: "Terms" },
+    { href: "/from-the-ceo", label: "From the CEO" },
     { href: "mailto:contrax.companyllc@gmail.com", label: "contrax.companyllc@gmail.com" },
   ];
   return (

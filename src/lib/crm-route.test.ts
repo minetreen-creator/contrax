@@ -287,9 +287,15 @@ function buildRoute(options: BuildOptions) {
       ((user: { id: number; is_admin?: boolean }) => getCrmAccess(user, accessDeps)),
     store: options.store,
     ...(options.reminders ? { reminders: options.reminders as CrmRouteDepsReminders } : {}),
-    ...(options.generateDraft
-      ? { generateDraft: options.generateDraft as never }
-      : {}),
+    // The draft seam is ALWAYS injected — never left to the route's production
+    // default. The route only FORWARDS the seam's outcome (status + error are the
+    // seam's, the route maps nothing); the real Professional gate lives inside the
+    // seam and is pinned by src/lib/crm-drafts-run.test.ts. Left unwired, the route
+    // falls back to the production `generateCrmDraft`, which reads the database —
+    // that is what made this suite silently DB-dependent (a 500 here, a live
+    // production query when DATABASE_URL happened to be set).
+    generateDraft: (options.generateDraft ??
+      (async () => ({ ok: false, status: 403, error: CRM_DRAFT_PRO_REQUIRED }))) as never,
     now: options.now ?? (() => NOW),
   });
 }

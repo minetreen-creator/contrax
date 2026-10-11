@@ -1055,6 +1055,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ga_gpr: "GA",
   wv_oasis: "WV",
   ky_vss: "KY",
+  al_mobile: "AL",
   al_aldot: "AL",
   ak_dotpf: "AK",
   al_birmingham_purchasing: "AL",

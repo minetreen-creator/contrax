@@ -68,6 +68,7 @@ import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
 import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
+import { fetchMobileBids } from "./sources/al-mobile";
 import { fetchBostonBids } from "./sources/ma-boston";
 import { fetchBirminghamBids } from "./sources/al-birmingham";
 import { fetchAlAldotBids } from "./sources/al-aldot";
@@ -293,6 +294,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   // OregonBuys, NevadaEPro, ARBuy (src/jobs/sources/periscope-states.ts).
   ...PERISCOPE_TAIL_SOURCES,
   { name: "ma_boston", fetchFn: fetchBostonBids },
+  { name: "al_mobile", fetchFn: fetchMobileBids },
   // Georgia Procurement Registry: open state and local bidding events.
   { name: "ga_gpr", fetchFn: () => fetchGaGprBids() },
   // West Virginia wvOASIS Vendor Self Service: open state solicitations.

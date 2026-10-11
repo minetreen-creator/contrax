@@ -608,3 +608,29 @@ jobs:
       # (.github/workflows/crm-reminders.yml) runs the same two files before it sends.
       - name: CRM follow-up reminder rules + worker tests (unit, deterministic, zero network)
         run: bun test src/lib/crm-reminders.test.ts src/lib/crm-reminders.server.test.ts
+      # CRM PHASE 3b — AI follow-up DRAFTS (owner handoff 2026-10-10, item 5:
+      # "generate a draft follow-up email for a contact from their relationship
+      # history + notes; drafts only — never auto-send; server-gated to
+      # Professional (aiDrafts flag)"). Three suites, ALL deterministic,
+      # network-free and DATABASE-FREE by construction:
+      #   * crm-drafts.test.ts — the PURE half (prompt builder, context bounds,
+      #     output normalizer, instruction parser, copy). Imports NOTHING.
+      #   * crm-drafts-run.test.ts — the SERVER SEAM through four injected
+      #     dependencies (entitlement / read-only store / usage cap / generator):
+      #     the Professional gate refuses Starter/Basic before ANY read and an
+      #     unreadable entitlement propagates (fail-closed), another user's contact
+      #     id is a 404 with no history read, the pre-existing daily cap is a 429
+      #     with an honest message and no model call, an empty answer is NOT a draft,
+      #     and source pins prove the production wiring is the REAL getCrmAccess()
+      #     + checkRateLimit() (no new table, no migration) + callAI(), that the
+      #     store has exactly two READ methods, and that no send/write statement
+      #     exists in the feature.
+      #   * crm-draft-panel-render.test.tsx — the Contacts panel RENDERED with
+      #     react-dom/server (Professional sees the control, Starter sees the house
+      #     locked card, Basic keeps the phase-2 lock, no send control anywhere, and
+      #     rendering performs no network call).
+      # NO mock.module anywhere — bun's mock registry is process-global and leaks
+      # across files in one run (skill contrax-bun-mock-module-leak). Named
+      # EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
+      - name: CRM AI follow-up draft tests (unit + seam + panel render, zero network)
+        run: bun test src/lib/crm-drafts.test.ts src/lib/crm-drafts-run.test.ts tests/crm-draft-panel-render.test.tsx

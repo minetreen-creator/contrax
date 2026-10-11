@@ -20,6 +20,21 @@
  * transient error (a plan problem is not "try again"), and a Professional-only
  * read (activity history) that the server 403s shows the server's message instead
  * of an empty list — the client never fakes an entitlement.
+ *
+ * CRM PHASE 3b (owner handoff item 5) — the AI follow-up DRAFT editor. A second,
+ * independent gate hangs off the same panel:
+ *   * `access.aiDrafts` (Professional, server-decided) → a per-contact "Draft
+ *     follow-up" control. It POSTs to the same live route
+ *     (`{ action: "generateDraft", contactId, instructions? }`), and the server's
+ *     answer is TEXT, rendered into an EDITABLE textarea with a copy button.
+ *   * anything else → the house locked card (`CRM_DRAFT_LOCK_*`), whose only action
+ *     is an upgrade attempt via `onUpgradeProfessional()` (owner rule 8).
+ *
+ * DRAFTS ONLY, BY CONSTRUCTION: there is no send button, no "sent" state, no
+ * scheduled delivery and no activity write in this component — the draft is text
+ * the user reviews, edits and copies themselves. A failed draft (403 plan problem,
+ * 429 daily cap, or a transient error) is shown in the server's own words and
+ * changes nothing else on the page (fail-soft, like the phase-2 contacts read).
  */
 import { useState } from "react";
 import {
@@ -32,6 +47,25 @@ import {
   type CrmActivityView,
   type CrmContactView,
 } from "~/lib/pipeline-contacts";
+import {
+  CRM_DRAFT_ACTION_LABEL,
+  CRM_DRAFT_CLOSE_LABEL,
+  CRM_DRAFT_COPIED_LABEL,
+  CRM_DRAFT_COPY_FAILED_LABEL,
+  CRM_DRAFT_COPY_LABEL,
+  CRM_DRAFT_EDITOR_NOTE,
+  CRM_DRAFT_EDITOR_TITLE,
+  CRM_DRAFT_GENERATE_LABEL,
+  CRM_DRAFT_GENERATING_LABEL,
+  CRM_DRAFT_INSTRUCTIONS_LABEL,
+  CRM_DRAFT_INSTRUCTIONS_MAX,
+  CRM_DRAFT_INSTRUCTIONS_PLACEHOLDER,
+  CRM_DRAFT_LOCK_BODY,
+  CRM_DRAFT_LOCK_CTA,
+  CRM_DRAFT_LOCK_TITLE,
+  CRM_DRAFT_REGENERATE_LABEL,
+  CRM_DRAFT_TEXT_MAX,
+} from "~/lib/crm-drafts";
 
 /** The field bounds the phase-1 route enforces (mirrored so the UI cannot exceed them). */
 const BOUNDS = { name: 200, organization: 200, role: 200, email: 254, phone: 60, notes: 5000 } as const;
@@ -91,6 +125,7 @@ export function PipelineContacts({
   loadError,
   onChange,
   onUpgrade,
+  onUpgradeProfessional,
 }: {
   access: CrmAccessView | null;
   contacts: CrmContactView[];
@@ -100,6 +135,12 @@ export function PipelineContacts({
   onChange: (next: CrmContactView[]) => void;
   /** Attempt-only: opens the Starter upgrade prompt (never on page view). */
   onUpgrade: () => void;
+  /**
+   * Attempt-only: opens the PROFESSIONAL upgrade prompt (CRM phase 3b). Wired to the
+   * `aiDrafts` gate only — the draft affordance for an entitled account, and the
+   * locked card's click for everyone else.
+   */
+  onUpgradeProfessional: () => void;
 }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [busy, setBusy] = useState(false);
@@ -110,8 +151,20 @@ export function PipelineContacts({
   const [history, setHistory] = useState<CrmActivityView[] | null>(null);
   const [historyError, setHistoryError] = useState("");
   const [historyLoading, setHistoryLoading] = useState(false);
-
+  // ── CRM phase 3b: the AI follow-up DRAFT editor (drafts only — never sent) ────
+  /** Which contact's draft box is open (one at a time), or null. */
+  const [draftsFor, setDraftsFor] = useState<number | null>(null);
+  /** The user's optional instruction for the next draft. */
+  const [draftNote, setDraftNote] = useState("");
+  /** The draft text — EDITABLE, and the only thing this feature produces. */
+  const [draftText, setDraftText] = useState("");
+  const [draftBusy, setDraftBusy] = useState(false);
+  const [draftError, setDraftError] = useState("");
+  const [draftCopied, setDraftCopied] = useState(false);
   const canEdit = access?.canEdit === true;
+  /** Professional only — the SERVER decides this (`aiDrafts`), never the client. */
+  const canDraft = access?.aiDrafts === true;
+
   const atLimit = canEdit && access ? contacts.length >= access.contactLimit : false;
 
   /** ONE place that talks to /api/crm and turns a failure into the server's words. */
@@ -218,6 +271,75 @@ export function PipelineContacts({
       return;
     }
     setHistory(Array.isArray(body?.activities) ? (body.activities as CrmActivityView[]) : []);
+  }
+
+  // ── CRM phase 3b: the draft editor's handlers ────────────────────────────────
+  /**
+   * Opens the draft box for one contact and clears any previous draft. Clicks only:
+   * nothing here fetches on mount or on page view, and the Professional gate is the
+   * SERVER's (`access.aiDrafts`, mirrored here just to decide what to render).
+   */
+  function openDrafts(contactId: number) {
+    setDraftsFor(contactId);
+    setDraftNote("");
+    setDraftText("");
+    setDraftError("");
+    setDraftCopied(false);
+  }
+
+  function closeDrafts() {
+    setDraftsFor(null);
+    setDraftNote("");
+    setDraftText("");
+    setDraftError("");
+    setDraftCopied(false);
+  }
+
+  /**
+   * Asks the server for one draft. FAIL-SOFT, like every other CRM read here: a
+   * failure shows the server's own words in the panel and leaves the contacts list
+   * (and the rest of the pipeline) untouched. The response is TEXT — there is no
+   * send step to follow it, because the feature has none.
+   */
+  async function requestDraft() {
+    if (draftsFor === null || draftBusy) return;
+    setDraftBusy(true);
+    setDraftError("");
+    setDraftCopied(false);
+    const result = await callCrm({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "generateDraft",
+        contactId: draftsFor,
+        ...(draftNote.trim() ? { instructions: draftNote.trim() } : {}),
+      }),
+    });
+    setDraftBusy(false);
+    if (!result.ok) {
+      // A 403 (Professional) is the server's sentence; a 429 is the honest cap
+      // message; anything else is a transient failure. The client never fakes one.
+      setDraftError(result.message);
+      return;
+    }
+    const text = typeof result.body?.draft?.text === "string" ? result.body.draft.text : "";
+    if (!text) {
+      setDraftError("The draft came back empty. Please try again.");
+      return;
+    }
+    setDraftText(text);
+  }
+
+  /** Copies the draft the user is looking at — the last step this feature offers. */
+  async function copyDraft() {
+    try {
+      await navigator.clipboard.writeText(draftText);
+      setDraftCopied(true);
+      setDraftError("");
+    } catch {
+      setDraftCopied(false);
+      setDraftError(CRM_DRAFT_COPY_FAILED_LABEL);
+    }
   }
 
   // ── Basic / no-entitlement: read-only + an UPGRADE ATTEMPT (owner rule 8) ────
@@ -338,6 +460,15 @@ export function PipelineContacts({
                     {updated && <p className="mt-1 text-xs text-slate-400">Updated {updated}</p>}
                   </div>
                   <div className="flex shrink-0 items-center gap-2">
+                    {canDraft && (
+                      <button
+                        type="button"
+                        onClick={() => (draftsFor === contact.id ? closeDrafts() : openDrafts(contact.id))}
+                        className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 hover:bg-amber-100"
+                      >
+                        {CRM_DRAFT_ACTION_LABEL}
+                      </button>
+                    )}
                     {access?.relationshipHistory && (
                       <button
                         type="button"
@@ -386,10 +517,96 @@ export function PipelineContacts({
                     ))}
                   </div>
                 )}
+                {/* CRM phase 3b — the ONE thing this feature produces: editable text
+                    for the user to review and copy. There is deliberately no send
+                    button, no "sent" state and no activity write. */}
+                {draftsFor === contact.id && (
+                  <div className="mt-2 rounded-lg bg-amber-50/60 p-3 text-sm">
+                    <p className="font-semibold text-slate-800">{CRM_DRAFT_EDITOR_TITLE}</p>
+                    <p className="mt-1 text-xs text-slate-500">{CRM_DRAFT_EDITOR_NOTE}</p>
+                    <label className="mt-3 block text-sm text-slate-700">
+                      {CRM_DRAFT_INSTRUCTIONS_LABEL}
+                      <textarea
+                        className={`${inputClass} mt-1`}
+                        rows={2}
+                        maxLength={CRM_DRAFT_INSTRUCTIONS_MAX}
+                        value={draftNote}
+                        onChange={(e) => setDraftNote(e.target.value)}
+                        placeholder={CRM_DRAFT_INSTRUCTIONS_PLACEHOLDER}
+                      />
+                    </label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        disabled={draftBusy}
+                        onClick={requestDraft}
+                        className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:cursor-wait disabled:opacity-60"
+                      >
+                        {draftBusy
+                          ? CRM_DRAFT_GENERATING_LABEL
+                          : draftText
+                            ? CRM_DRAFT_REGENERATE_LABEL
+                            : CRM_DRAFT_GENERATE_LABEL}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={closeDrafts}
+                        className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                      >
+                        {CRM_DRAFT_CLOSE_LABEL}
+                      </button>
+                    </div>
+                    {draftError && (
+                      <p role="alert" className="mt-2 rounded-lg border border-red-200 bg-red-50 p-2 text-sm text-red-700">
+                        {draftError}
+                      </p>
+                    )}
+                    {draftText && (
+                      <>
+                        <textarea
+                          className={`${inputClass} mt-3 font-mono`}
+                          rows={10}
+                          maxLength={CRM_DRAFT_TEXT_MAX}
+                          aria-label={CRM_DRAFT_EDITOR_TITLE}
+                          value={draftText}
+                          onChange={(e) => setDraftText(e.target.value)}
+                        />
+                        <div className="mt-2 flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={copyDraft}
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                          >
+                            {draftCopied ? CRM_DRAFT_COPIED_LABEL : CRM_DRAFT_COPY_LABEL}
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </li>
             );
           })}
         </ul>
+      )}
+
+      {/* CRM phase 3b — the Professional gate for AI follow-up drafts. Shown to an
+          account that can edit contacts but is not entitled to drafts (Starter):
+          the house locked card on view, and its ONLY action is an upgrade attempt
+          (owner rule 8), which opens the Professional prompt. No price is claimed
+          here — the modal keeps the existing Professional defaults. */}
+      {access && !canDraft && (
+        <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+          <p className="text-sm font-semibold text-slate-800">🔒 {CRM_DRAFT_LOCK_TITLE}</p>
+          <p className="mt-1 text-sm text-slate-600">{CRM_DRAFT_LOCK_BODY}</p>
+          <button
+            type="button"
+            onClick={onUpgradeProfessional}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-600"
+          >
+            {CRM_DRAFT_LOCK_CTA}
+          </button>
+        </div>
       )}
     </section>
   );

@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { sanitizeLogString } from "~/lib/ai";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { getCrmAccess } from "~/lib/crm-access.server";
+import { generateCrmDraft } from "~/lib/crm-drafts.server";
 import { isValidTimezone } from "~/lib/crm-reminders";
 import {
   loadCrmReminderPrefs,
@@ -12,7 +14,7 @@ import { sql } from "~/db";
 /**
  * GET/POST /api/crm — the CRM (contacts + activity history) backend, phase 1 of
  * the owner's 3-phase CRM build (owner handoff 2026-10-10), plus the phase-3a
- * reminder READ/WRITE surface. No AI-draft endpoint lives here (phase 3b/3c).
+ * reminder READ/WRITE surface and the phase-3b AI follow-up DRAFT action.
  *
  * GET  ?resource=contacts (default)
  *        → { access, contacts } for the authenticated user, newest-updated first.
@@ -36,6 +38,15 @@ import { sql } from "~/db";
  *          match the Origin header), then auth, then `access.canEdit`
  *          (`saveReminderPrefs` requires the Professional `reminders` flag instead:
  *          preferring an email is not editing a contact).
+ * POST { action: "generateDraft", contactId, instructions? }
+ *        → PHASE 3b (owner handoff item 5). Returns { draft: { text, contactId,
+ *          generatedAt } } — TEXT for the caller's editor; nothing is written and
+ *          nothing is sent. Gated on the Professional `aiDrafts` flag (NOT
+ *          `canEdit`), so its branch is resolved BEFORE the Starter gate below; the
+ *          whole decision lives in src/lib/crm-drafts-run.ts and its production
+ *          adapters (real `getCrmAccess()`, owner-scoped reads, the existing
+ *          per-user daily `rate_limits` cap, the shared `callAI` helper). A failed
+ *          entitlement read is a 500 here, never a draft (fail-closed).
  *
  * Entitlement comes from src/lib/crm-access.server.ts ONLY — no column read here
  * is an entitlement, and nothing in this route reads a pricing or Stripe path.
@@ -180,12 +191,50 @@ async function post({ request }: { request: Request }) {
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
   try {
     const access = await getCrmAccess(user);
+    const body = await plainBody(request);
+    const action = body?.action;
+
+    // PHASE 3b — AI follow-up drafts. This branch is gated on the Professional
+    // `aiDrafts` flag, NOT on `canEdit` (Starter), so it is resolved BEFORE the
+    // Starter gate below: that gate would otherwise answer a Starter account
+    // attempting a draft with a 403 naming the wrong plan. Nothing about the
+    // existing actions changes — an unparseable body still falls through to the
+    // Starter gate exactly as before.
+    if (action === "generateDraft") {
+      try {
+        const outcome = await generateCrmDraft(user, body ?? {});
+        if (outcome.ok) {
+          return Response.json(
+            { draft: outcome.draft },
+            { headers: { "Cache-Control": "private, no-store" } },
+          );
+        }
+        // `detail` is diagnostics for the log only — never part of the response.
+        if (outcome.detail) {
+          console.error("[api/crm]", JSON.stringify({
+            event: "draft_failed",
+            user_id: user.id,
+            status: outcome.status,
+            error: sanitizeLogString(outcome.detail),
+          }));
+        }
+        const init: ResponseInit = { status: outcome.status };
+        if (outcome.retryAfterSec) {
+          init.headers = { "retry-after": String(outcome.retryAfterSec) };
+        }
+        return Response.json({ error: outcome.error }, init);
+      } catch (error) {
+        // Fail-closed: an unreadable entitlement, contact or history means NO
+        // draft — a 500, never a partial one.
+        console.error("[api/crm] draft generation failed", sanitizeLogString(error));
+        return Response.json({ error: "Could not generate a draft. Please try again." }, { status: 500 });
+      }
+    }
+
     if (!access.canEdit) {
       return Response.json({ error: "Starter plan required" }, { status: 403 });
     }
-    const body = await plainBody(request);
     if (!body) return Response.json({ error: "Invalid request" }, { status: 400 });
-    const action = body.action;
 
     if (action === "saveContact") {
       const name = boundedText(body.name, 200, true);

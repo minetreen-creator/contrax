@@ -155,6 +155,14 @@ export function PipelineReminders({
   const lists = allowed ? buildReminderLists(sources, zone, now) : { overdue: [], upcoming: [] };
   const total = lists.overdue.length + lists.upcoming.length;
   const withFollowUp = sources.filter((s) => s.follow_up_date).length;
+  /** Plain English, never a number that overstates or understates what is listed. */
+  const status = loading
+    ? "Loading your pipeline…"
+    : withFollowUp === 0
+      ? "No follow-up dates set yet"
+      : total === 0
+        ? `${withFollowUp} follow-up date${withFollowUp === 1 ? "" : "s"} tracked · nothing due yet · times shown in ${zone}`
+        : `${total} of ${withFollowUp} follow-up date${withFollowUp === 1 ? "" : "s"} need${total === 1 ? "s" : ""} attention · times shown in ${zone}`;
 
   async function savePreferences() {
     if (saving) return;
@@ -230,13 +238,7 @@ export function PipelineReminders({
           <h2 id="pipeline-reminders-heading" className="text-lg font-semibold text-slate-900">
             Follow-up reminders
           </h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {loading
-              ? "Loading your pipeline…"
-              : withFollowUp === 0
-                ? "No follow-up dates set yet"
-                : `${total} of ${withFollowUp} follow-up date${withFollowUp === 1 ? "" : "s"} need${total === 1 ? "s" : ""} attention · times shown in ${zone}`}
-          </p>
+          <p className="mt-1 text-sm text-slate-500">{status}</p>
         </div>
       </div>
 

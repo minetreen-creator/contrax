@@ -1,0 +1,35 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fetchMobileBids, mobileDeadline, parseMobileHtml } from "../src/jobs/sources/al-mobile";
+const html = readFileSync("src/jobs/sources/fixtures/al-mobile/open-2026-10-11.html", "utf8");
+const now = Date.parse("2026-10-11T12:00:00Z");
+test("captures all four official notices with stable identities and Central deadlines", () => {
+  const result = parseMobileHtml(html, now);
+  assert.equal(result.rows.length, 4);
+  assert.equal(new Set(result.rows.map(r => r.external_id)).size, 4);
+  const tires = result.rows.find(r => r.solicitation_number === "6077")!;
+  assert.match(tires.title, /LARGE TRUCK TIRES/);
+  assert.equal(tires.due_date, "2026-10-23T17:01:00.000Z");
+  assert.equal(tires.source_url, "https://www.cityofmobile.gov/bids/?bid=4257");
+  assert.equal(result.rows.find(r => r.solicitation_number === "2020-2060-01")!.due_date, "2026-11-12T20:30:00.000Z");
+  for (const row of result.rows) { assert.equal(row.location, "Mobile, AL"); assert.equal(row.naics_code, null); assert.equal(row.set_aside, null); }
+});
+test("rejects invalid dates and DST gaps/folds; skips closed notices", () => {
+  assert.equal(mobileDeadline("Mon, Feb 30, 2026", "2:30pm"), null);
+  assert.equal(mobileDeadline("Sun, Mar 08, 2026", "2:30am"), null);
+  assert.equal(mobileDeadline("Sun, Nov 01, 2026", "1:30am"), null);
+  assert.equal(mobileDeadline("Wed, Oct 21, 2026", "0:30pm"), null);
+  assert.equal(parseMobileHtml(html, Date.parse("2027-01-01")).skipped.closed, 4);
+});
+test("missing or changed board data fails rather than claiming zero bids", () => {
+  assert.throws(() => parseMobileHtml("login", now));
+  assert.throws(() => parseMobileHtml(html.replace("12:01pm", "unknown"), now));
+  assert.throws(() => parseMobileHtml(html.replace("Date Due", "Date Posted"), now));
+  assert.throws(() => parseMobileHtml(html.replace(/<tbody>[\s\S]*?<\/tbody>/, "<tbody></tbody>"), now));
+  assert.equal(parseMobileHtml(html.replace(/<tbody>[\s\S]*?<\/tbody>/, '<tbody><tr><td colspan="6">No open bids</td></tr></tbody>'), now).rows.length, 0);
+});
+test("HTTP failure rejects the source; live-fetch seam preserves parsed rows", async () => {
+  await assert.rejects(fetchMobileBids(now, (async () => new Response("unavailable", {status: 503})) as typeof fetch));
+  assert.equal((await fetchMobileBids(now, (async () => new Response(html)) as typeof fetch)).rows.length, 4);
+});

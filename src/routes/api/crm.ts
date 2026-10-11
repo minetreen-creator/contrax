@@ -1,15 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sanitizeLogString } from "~/lib/ai";
 import { getUserFromRequest } from "~/lib/api-auth";
-import { getCrmAccess } from "~/lib/crm-access.server";
+import { getCrmAccess, type CrmAccess } from "~/lib/crm-access.server";
+import { neonCrmContactsStore, type CrmContactsStore } from "~/lib/crm-contacts.server";
 import { generateCrmDraft } from "~/lib/crm-drafts.server";
-import { isValidTimezone } from "~/lib/crm-reminders";
+import { isValidTimezone, type ReminderLists, type CrmReminderPrefsView } from "~/lib/crm-reminders";
 import {
   loadCrmReminderPrefs,
   loadReminderLists,
   saveCrmReminderPrefs,
 } from "~/lib/crm-reminders.server";
-import { sql } from "~/db";
+import type { CrmDraftOutcome } from "~/lib/crm-drafts-run";
 
 /**
  * GET/POST /api/crm — the CRM (contacts + activity history) backend, phase 1 of
@@ -50,6 +51,15 @@ import { sql } from "~/db";
  *
  * Entitlement comes from src/lib/crm-access.server.ts ONLY — no column read here
  * is an entitlement, and nothing in this route reads a pricing or Stripe path.
+ *
+ * THE SQL IS NOT HERE ANY MORE. The six statements this route used to inline
+ * (contacts list, activity list, contact update, capped contact create, archive
+ * add-activity) now live in src/lib/crm-contacts.server.ts, and the phase-3a
+ * reminder helpers and the phase-3b draft generator are reached through the same
+ * `crmRouteHandlers(deps)` seam — so a unit test can drive these handlers END TO
+ * END (auth → entitlement ladder → branch → response) with an in-memory store, no
+ * database and no `mock.module`. Every `deps` default is the real collaborator, so
+ * production behaviour is unchanged. See src/lib/crm-route.test.ts.
  *
  * MIGRATION 060 CAVEAT: the `reminders` branches read/write `user_crm_prefs` and
  * `crm_reminder_deliveries`, which migration 060 adds. They are wrapped in their
@@ -103,21 +113,93 @@ function contactRow(r: Record<string, unknown>) {
   };
 }
 
-async function get({ request }: { request: Request }) {
-  const user = await getUserFromRequest(request);
+/** The authenticated caller, as much of it as the CRM needs (AuthUser is assignable). */
+export type CrmRouteUser = { id: number; is_admin?: boolean };
+
+/** The phase-3a reminder reads/writes, behind their own seam (migration 060 tables). */
+export interface CrmRouteReminderDeps {
+  loadPrefs(userId: number): Promise<CrmReminderPrefsView>;
+  loadLists(userId: number, timezone: string, now: Date): Promise<ReminderLists>;
+  savePrefs(
+    userId: number,
+    input: { optIn: boolean; timezone: string },
+  ): Promise<CrmReminderPrefsView>;
+}
+
+/**
+ * INJECTABLE ON PURPOSE — the `deps` seam exists so a unit test can drive the REAL
+ * GET/POST handler end to end (auth → entitlement ladder → branch → response) with
+ * an in-memory store, no database and no `mock.module`: bun's mock registry is never
+ * un-registered and leaks across test files in one run (the pathology documented in
+ * src/routes/api/subcontracts/primes.ts). Same pattern as
+ * `pipelineWorkspaceHandler({ store, authenticate })` in
+ * src/routes/api/pipeline-workspace.ts. Every default below is the real thing, so
+ * production behaviour is exactly what it was.
+ */
+export interface CrmRouteDeps {
+  authenticate?: (request: Request) => Promise<CrmRouteUser | null>;
+  /** Entitlement is src/lib/crm-access.server.ts ONLY — never re-implemented here. */
+  getAccess?: (user: CrmRouteUser) => Promise<CrmAccess>;
+  /** The phase-1/2 contact + activity SQL (src/lib/crm-contacts.server.ts). */
+  store?: CrmContactsStore;
+  reminders?: CrmRouteReminderDeps;
+  generateDraft?: (
+    user: CrmRouteUser,
+    body: { contactId?: unknown; instructions?: unknown },
+  ) => Promise<CrmDraftOutcome>;
+  /** Injectable clock (the reminder lists are classified against the user's local day). */
+  now?: () => Date;
+}
+
+/** The same dependencies with production defaults filled in. */
+interface CrmRouteDepsResolved {
+  authenticate: (request: Request) => Promise<CrmRouteUser | null>;
+  getAccess: (user: CrmRouteUser) => Promise<CrmAccess>;
+  store: CrmContactsStore;
+  reminders: CrmRouteReminderDeps;
+  generateDraft: (
+    user: CrmRouteUser,
+    body: { contactId?: unknown; instructions?: unknown },
+  ) => Promise<CrmDraftOutcome>;
+  now: () => Date;
+}
+
+/**
+ * Builds the endpoint's two handlers around `deps`. What it returns is what
+ * TanStack Start's `server.handlers` calls; the exported `Route` uses the default
+ * (production) set and a test passes its own.
+ */
+export function crmRouteHandlers(deps: CrmRouteDeps = {}) {
+  const resolved: CrmRouteDepsResolved = {
+    authenticate: deps.authenticate ?? getUserFromRequest,
+    getAccess: deps.getAccess ?? getCrmAccess,
+    store: deps.store ?? neonCrmContactsStore,
+    reminders: {
+      loadPrefs: loadCrmReminderPrefs,
+      loadLists: loadReminderLists,
+      savePrefs: saveCrmReminderPrefs,
+      ...deps.reminders,
+    },
+    generateDraft: deps.generateDraft ?? generateCrmDraft,
+    now: deps.now ?? (() => new Date()),
+  };
+  return {
+    GET: ({ request }: { request: Request }) => get(resolved, { request }),
+    POST: ({ request }: { request: Request }) => post(resolved, { request }),
+  };
+}
+
+async function get(deps: CrmRouteDepsResolved, { request }: { request: Request }) {
+  const user = await deps.authenticate(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
   const url = new URL(request.url);
   const resource = url.searchParams.get("resource") ?? "contacts";
   try {
-    const access = await getCrmAccess(user);
+    const access = await deps.getAccess(user);
     if (resource === "contacts") {
-      const rows = (await sql()`
-        SELECT id, name, organization, role, email, phone, notes, created_at, updated_at
-        FROM crm_contacts
-        WHERE user_id = ${user.id} AND archived_at IS NULL
-        ORDER BY updated_at DESC, id DESC
-        LIMIT 1000
-      `) as Array<Record<string, unknown>>;
+      // Owner-scoped in the store (`user_id = userId`); NO tier check — a
+      // downgraded account KEEPS its own data.
+      const rows = await deps.store.listContacts(user.id);
       return Response.json(
         { access, contacts: rows.map(contactRow) },
         { headers: { "Cache-Control": "private, no-store" } },
@@ -131,13 +213,7 @@ async function get({ request }: { request: Request }) {
       if (contactId === null) {
         return Response.json({ error: "Invalid contactId" }, { status: 400 });
       }
-      const rows = (await sql()`
-        SELECT id, contact_id, kind, body, created_at
-        FROM crm_activities
-        WHERE user_id = ${user.id} AND contact_id = ${contactId}
-        ORDER BY created_at DESC, id DESC
-        LIMIT 200
-      `) as Array<Record<string, unknown>>;
+      const rows = await deps.store.listActivities(user.id, contactId);
       return Response.json(
         {
           activities: rows.map((r) => ({
@@ -161,8 +237,8 @@ async function get({ request }: { request: Request }) {
       // Its OWN try/catch: these two tables arrive with migration 060, and an
       // un-migrated database must not break the contacts/history reads above.
       try {
-        const prefs = await loadCrmReminderPrefs(user.id);
-        const lists = await loadReminderLists(user.id, prefs.timezone, new Date());
+        const prefs = await deps.reminders.loadPrefs(user.id);
+        const lists = await deps.reminders.loadLists(user.id, prefs.timezone, deps.now());
         return Response.json(
           { access, prefs, overdue: lists.overdue, upcoming: lists.upcoming },
           { headers: { "Cache-Control": "private, no-store" } },
@@ -179,7 +255,7 @@ async function get({ request }: { request: Request }) {
   }
 }
 
-async function post({ request }: { request: Request }) {
+async function post(deps: CrmRouteDepsResolved, { request }: { request: Request }) {
   // Same-origin only: a POST from another site would carry a different Origin.
   // (A non-browser caller that sends no Origin at all is rejected too — this
   // endpoint has no server-to-server consumer in phase 1.)
@@ -187,10 +263,10 @@ async function post({ request }: { request: Request }) {
   if (!origin || origin !== new URL(request.url).origin) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
   }
-  const user = await getUserFromRequest(request);
+  const user = await deps.authenticate(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
   try {
-    const access = await getCrmAccess(user);
+    const access = await deps.getAccess(user);
     const body = await plainBody(request);
     const action = body?.action;
 
@@ -202,7 +278,7 @@ async function post({ request }: { request: Request }) {
     // Starter gate exactly as before.
     if (action === "generateDraft") {
       try {
-        const outcome = await generateCrmDraft(user, body ?? {});
+        const outcome = await deps.generateDraft(user, body ?? {});
         if (outcome.ok) {
           return Response.json(
             { draft: outcome.draft },
@@ -260,25 +336,27 @@ async function post({ request }: { request: Request }) {
       if (rawId !== undefined && rawId !== null) {
         const id = positiveInt(rawId);
         if (id === null) return Response.json({ error: "Invalid contact id" }, { status: 400 });
-        const rows = (await sql()`
-          UPDATE crm_contacts SET
-            name = ${name}, organization = ${organization}, role = ${role},
-            email = ${email}, phone = ${phone}, notes = ${notes}, updated_at = NOW()
-          WHERE id = ${id} AND user_id = ${user.id} AND archived_at IS NULL
-          RETURNING id
-        `) as Array<{ id: number }>;
-        if (!rows.length) return Response.json({ error: "Contact not found" }, { status: 404 });
-        return Response.json({ id: Number(rows[0]!.id) });
+        const updated = await deps.store.updateContact(user.id, id, {
+          name,
+          organization,
+          role,
+          email,
+          phone,
+          notes,
+        });
+        if (updated === null) return Response.json({ error: "Contact not found" }, { status: 404 });
+        return Response.json({ id: updated });
       }
       // Creation goes through the migration-059 function so the per-account cap is
       // enforced atomically (a NULL return means the cap was hit).
-      const rows = (await sql()`
-        SELECT crm_create_contact(
-          ${user.id}, ${access.contactLimit}, ${name}, ${organization},
-          ${role}, ${email}, ${phone}, ${notes}
-        ) AS id
-      `) as Array<{ id: number | null }>;
-      const id = rows[0]?.id ?? null;
+      const id = await deps.store.createContact(user.id, access.contactLimit, {
+        name,
+        organization,
+        role,
+        email,
+        phone,
+        notes,
+      });
       if (id === null) {
         return Response.json(
           {
@@ -294,12 +372,8 @@ async function post({ request }: { request: Request }) {
     if (action === "archiveContact") {
       const id = positiveInt(body.id);
       if (id === null) return Response.json({ error: "Invalid contact id" }, { status: 400 });
-      const rows = (await sql()`
-        UPDATE crm_contacts SET archived_at = NOW(), updated_at = NOW()
-        WHERE id = ${id} AND user_id = ${user.id} AND archived_at IS NULL
-        RETURNING id
-      `) as Array<{ id: number }>;
-      if (!rows.length) return Response.json({ error: "Contact not found" }, { status: 404 });
+      const archived = await deps.store.archiveContact(user.id, id);
+      if (archived === null) return Response.json({ error: "Contact not found" }, { status: 404 });
       return Response.json({ success: true });
     }
 
@@ -320,15 +394,9 @@ async function post({ request }: { request: Request }) {
       if (text === null) return Response.json({ error: "Invalid activity" }, { status: 400 });
       // The INSERT…SELECT is the ownership check: a contact that is not the
       // caller's (or is archived) yields no row, hence 404.
-      const rows = (await sql()`
-        INSERT INTO crm_activities (user_id, contact_id, kind, body)
-        SELECT ${user.id}, id, ${kind}, ${text}
-        FROM crm_contacts
-        WHERE id = ${contactId} AND user_id = ${user.id} AND archived_at IS NULL
-        RETURNING id
-      `) as Array<{ id: number }>;
-      if (!rows.length) return Response.json({ error: "Contact not found" }, { status: 404 });
-      return Response.json({ id: Number(rows[0]!.id) }, { status: 201 });
+      const activityId = await deps.store.addActivity(user.id, contactId, kind, text);
+      if (activityId === null) return Response.json({ error: "Contact not found" }, { status: 404 });
+      return Response.json({ id: activityId }, { status: 201 });
     }
 
     if (action === "saveReminderPrefs") {
@@ -351,7 +419,7 @@ async function post({ request }: { request: Request }) {
         return Response.json({ error: "Invalid timezone" }, { status: 400 });
       }
       try {
-        const prefs = await saveCrmReminderPrefs(user.id, {
+        const prefs = await deps.reminders.savePrefs(user.id, {
           // `=== true` after the guard above: the only accepted opt-in is a literal
           // boolean true, and anything else has already been refused with a 400.
           optIn: body.opt_in === true,
@@ -372,5 +440,9 @@ async function post({ request }: { request: Request }) {
 }
 
 export const Route = createFileRoute("/api/crm")({
-  server: { handlers: { GET: get, POST: post } },
+  // The production handler set: same two functions, wired to the real auth, the
+  // real `getCrmAccess()`, the real Neon store, the real reminder helpers and the
+  // real draft generator. Nothing about their behaviour changed — only how they
+  // get their collaborators (see `CrmRouteDeps`).
+  server: { handlers: crmRouteHandlers() },
 });

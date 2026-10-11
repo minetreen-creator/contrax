@@ -588,3 +588,23 @@ jobs:
       # Named EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
       - name: CRM access + pipeline contacts tests (unit, deterministic, zero network)
         run: bun test src/lib/crm-access.test.ts src/lib/pipeline-contacts.test.ts
+      # CRM PHASE 3a — Professional follow-up reminders (owner handoff 2026-10-10,
+      # item 4). DETERMINISTIC, network-free and DATABASE-FREE by construction:
+      #   * crm-reminders.test.ts — the PURE rules: the user's-timezone local-day
+      #     math (including the SAME instant landing on different calendar days in
+      #     UTC / America/New_York / Pacific/Auckland, and the DST offset change),
+      #     due/overdue classification, the idempotency key's identity, and the
+      #     decision matrix that makes a retry incapable of a second email.
+      #   * crm-reminders.server.test.ts — the SWEEP through its three injected seams
+      #     (store / entitlement checker / mailer): opt-out blocks delivery, a
+      #     downgrade is caught by the per-user RECHECK before any send, a window in
+      #     the future writes no ledger row, running the same sweep twice sends ONE
+      #     email, a racing worker's claim wins, a crashed attempt with no recorded
+      #     outcome is never retried, a definite failure IS retried on the same
+      #     ledger row, and the attempt ceiling stops it. NO mock.module anywhere —
+      #     bun's mock registry is process-global and leaks across files in one run.
+      # Named EXPLICITLY: a deterministic suite that no workflow names runs nowhere
+      # (the reason runner.dedupe.test.ts went unrun for weeks). The scheduled worker
+      # (.github/workflows/crm-reminders.yml) runs the same two files before it sends.
+      - name: CRM follow-up reminder rules + worker tests (unit, deterministic, zero network)
+        run: bun test src/lib/crm-reminders.test.ts src/lib/crm-reminders.server.test.ts

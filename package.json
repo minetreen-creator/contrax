@@ -15,6 +15,7 @@
     "bid-digest": "bun run src/jobs/send-bid-digest.ts",
     "weekly-digest": "bun run src/jobs/send-weekly-digest.ts",
     "award-check": "bun run src/jobs/check-awards.ts",
+    "crm-reminders": "bun run src/jobs/crm-reminder-send.ts",
     "purge-network-identifiers": "bun run src/jobs/purge-network-identifiers.ts",
     "sync-far": "bun run src/jobs/far-sync.ts",
     "check:routes": "bun run scripts/check-routes.mjs",

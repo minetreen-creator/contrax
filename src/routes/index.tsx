@@ -14,17 +14,6 @@ import {
   STATE_NAMES,
   type ContractMapAggregate,
 } from "~/lib/contract-map";
-// HOMEPAGE GRANTS PLUS FAIL-SAFE (owner directive rev 327, 2026-09-23).
-// The /grants page and this homepage tier row must ALWAYS agree about whether
-// Grants Plus is purchasable; a differing rule would advertise "Get Grants Plus"
-// directly above a "Coming soon" /grants page — the exact inconsistency the
-// directive forbids. So the homepage uses the SAME pure decision helper /grants'
-// own server surfaces use (isUpgradePromptEnabled reads GRANTS_UPGRADE_PROMPT_ENABLED;
-// absent / non-"true" / non-"1" ⇒ false), resolved ONCE per request in the loader.
-// `~/lib/grants` is a PURE module (no DB, no network, no builtins, and no env
-// read at import time), so importing it here is safe on both sides of the
-// render, and the value itself is only ever read server-side (see the loader).
-import { isUpgradePromptEnabled } from "~/lib/grants";
 import { getSdvosbSample, type SampleBid } from "~/lib/sample-bids";
 import { US_STATES } from "~/lib/states";
 
@@ -85,36 +74,6 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
   }
 };
 
-/**
- * FAIL-SAFE decision for the homepage Grants Plus tier row (owner directive
- * rev 327, 2026-09-23): "if the Stripe price configuration or the subscription
- * availability signal becomes unavailable, surfaces must display 'Coming soon'
- * — NEVER a broken payment button."
- *
- * The homepage's ONLY signal is the SAME flag /grants already gates on
- * (`isUpgradePromptEnabled`), so the two pages can never disagree. This wrapper
- * adds the one thing a public page needs: it can NEVER throw. A missing
- * `process` object, an env absent from the runtime, or a hostile getter on the
- * process environment all resolve to `false` ⇒ the row falls back to "Coming
- * soon" instead of 500-ing the public homepage.
- *
- * PURE and exported so the fail-closed contract is unit-tested rather than
- * asserted by reading the source (tests/homepage-grants-failsafe.test.tsx).
- * Takes the env record as an ARGUMENT — it reads no global — so it stays
- * trivially testable and can never become a build-time/inlined read.
- */
-export function resolveGrantsUpgradeEnabled(
-  env: Record<string, string | undefined> | undefined | null,
-): boolean {
-  try {
-    if (!env) return false;
-    return isUpgradePromptEnabled(env);
-  } catch {
-    // Fail CLOSED: an unreadable signal is treated as "not available".
-    return false;
-  }
-}
-
 // Homepage loader (owner spec 2026-09-04 v2): the radar hero + the honest live
 // counts are all the data the page needs. The former recent-bids / today-bids /
 // live-opportunities / alert-count fetches backed sections REMOVED from the page
@@ -122,16 +81,12 @@ export function resolveGrantsUpgradeEnabled(
 // render, no dead fields. contractMap is still fetched: the hero's live
 // "N open opportunities" counter renders from it (the compact homepage map that
 // also used it was removed by owner order 2026-09-23).
-// grantsUpgradeEnabled (owner directive rev 327) is an ENV READ ONLY — it adds
-// no DB query and no network call. The homepage is edge-cached for 1 hour
-// (owner 2026-10-02, ssr-cache-policy), so a flag flip reaches the cached
-// copy within the TTL.
 //
 // NO SESSION READ (owner 2026-10-02): the navbar resolves the viewer in the
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, bidStats, contractMap, grantsUpgradeEnabled] = await Promise.all([
+  const [businessName, bidStats, contractMap] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -144,14 +99,8 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     })(),
     getBidStats(),
     getContractMapAggregate(),
-    // Server-only, per-request env read (the `typeof process` guard mirrors the
-    // /api/grants/search one). Never throws — see resolveGrantsUpgradeEnabled.
-    (async () =>
-      resolveGrantsUpgradeEnabled(
-        typeof process !== "undefined" ? process.env : undefined,
-      ))(),
   ]);
-  return { businessName, bidStats, contractMap, grantsUpgradeEnabled };
+  return { businessName, bidStats, contractMap };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -228,7 +177,7 @@ const BTN =
 
 function Home() {
 
-  const { bidStats, contractMap, grantsUpgradeEnabled } = Route.useLoaderData();
+  const { bidStats, contractMap } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -261,9 +210,9 @@ function Home() {
       <FreeCoursesPromo />
       <FromTheCEO />
       <BidScoutCallout />
-      {/* Kept light in both themes: the grants table is owner-locked light markup. */}
+      {/* Compact grants introduction; full plan comparison lives on pricing. */}
       <div className="mt-10 bg-[#f5f7fa] py-8 text-slate-900">
-        <ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />
+        <ContraxGrantsPromo />
       </div>
       {/* Moved from the very top (owner 2026-10-04) so the headline is the first thing people read. */}
       <PartnershipBanner />
@@ -639,170 +588,22 @@ function Footer() {
 // in ~/lib/grants and is still imported by /grants (both untouched) — this
 // homepage block no longer renders that label, so its import was dropped here
 // only, and it is gone from this file's import list entirely.
-const GRANTS_REPORT_PAYMENT_LINK = "https://buy.stripe.com/8x26oJcpV9fCcos7eEf7i0b";
-
-// FAIL-SAFE label (owner directive rev 327, 2026-09-23) — the exact words /grants
-// already shows when the upgrade signal is unavailable. Owner copy: do not alter.
-const GRANTS_COMING_SOON_LABEL = "Coming soon";
-
-type GrantsTier = {
-  name: string;
-  price: string;
-  period: string;
-  bestFor: string;
-  included: string;
-  ctaLabel: string;
-  ctaHref: string;
-  external?: boolean;
-  /**
-   * FAIL-SAFE (owner directive rev 327): this tier's CTA is only live while the
-   * subscription-upgrade signal is available. When it is not, the CTA renders as
-   * plain non-interactive text — never a payment link and never a button that
-   * could break. Everything else about the row (name, price, copy) is unchanged.
-   */
-  gatedByUpgradeSignal?: boolean;
-  /** Only the $49 report carries the required not-guaranteed / no-submission line. */
-  disclaimer?: string;
-};
-
-const GRANTS_TIERS: GrantsTier[] = [
-  {
-    name: "Nonprofit Free",
-    price: "$0",
-    period: "forever",
-    bestFor: "Verified 501(c)(3) organizations",
-    included:
-      "Basic grant search, standard filters, grant previews and official application links. No credit card, trial, or expiration.",
-    ctaLabel: "Search grants →",
-    ctaHref: "/grants",
-  },
-  {
-    name: "Grants Plus",
-    price: "$19",
-    period: "/month",
-    bestFor: "Businesses and nonprofits wanting ongoing tools",
-    included:
-      "Unlimited searches and full grant details, advanced filters, saved opportunities, deadline tracking, weekly matching alerts, and enhanced summaries.",
-    ctaLabel: "Get Grants Plus →",
-    ctaHref: "/grants",
-    gatedByUpgradeSignal: true,
-  },
-  {
-    name: "Personalized Grant Opportunity Report",
-    price: "$49",
-    period: "one-time",
-    bestFor: "Organizations wanting hands-on research",
-    included:
-      "Founder-researched report identifying the strongest opportunities, eligibility observations, deadlines, official links, reasons each grant may fit, and recommended next steps. Delivered within three business days.",
-    ctaLabel: "Get the $49 Report →",
-    ctaHref: GRANTS_REPORT_PAYMENT_LINK,
-    external: true,
-    disclaimer:
-      "Optional — free grant search remains available to verified nonprofits. Matches and funding are not guaranteed, and this report does not include writing or submitting the grant application.",
-  },
-];
-
-/**
- * The homepage Contrax Grants tier table (owner order 2026-09-16; three-tier
- * table + copy owner-locked 2026-09-23).
- *
- * FAIL-SAFE (owner directive rev 327, 2026-09-23): `grantsUpgradeEnabled` is the
- * loader's server-side read of the SAME upgrade signal /grants gates on. When it
- * is false/absent the gated tier ("Grants Plus") renders its CTA as plain,
- * non-interactive text — never a payment link, never a button — so an
- * unavailable Stripe configuration or subscription signal can never surface a
- * broken payment affordance. When it is true the row renders exactly as it did
- * before this directive (byte-identical markup; the <a> below keeps its original
- * indentation so a diff shows it as untouched context). The other two rows are
- * never gated. Optional with a FAIL-CLOSED default: a caller that forgets the
- * prop gets the "Coming soon" fallback, never a live payment CTA.
- */
-export function ContraxGrantsPromo({
-  grantsUpgradeEnabled = false,
-}: {
-  grantsUpgradeEnabled?: boolean;
-}) {
+export function ContraxGrantsPromo() {
   return (
     <section aria-label="Contrax Grants" className="py-2">
       <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold uppercase tracking-widest text-[#8a6a1d]">
-            Contrax Grants
-          </p>
-          <h2 className={`${SERIF} mt-3 text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold text-[#0f1f38]`}>
-            Find grants your organization actually qualifies for.
-          </h2>
-          <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#56647a]">
-            Contrax Grants searches federal grant opportunities on Grants.gov by keyword,
-            applicant type, funding category, agency, and status — source-verbatim details,
-            nothing invented. Basic grant search is free for verified nonprofits, and it stays
-            free.
-          </p>
-        </div>
-
-        <div className="mt-9 grid gap-5 lg:grid-cols-3">
-        {GRANTS_TIERS.map((tier) => {
-          // FAIL-SAFE (owner directive rev 327): an unavailable upgrade signal
-          // turns the gated tier's CTA into plain non-interactive text. No href,
-          // no button, no payment link — nothing that can break.
-          const ctaGated =
-            tier.gatedByUpgradeSignal === true && !grantsUpgradeEnabled;
-          return (
-          <div
-            key={tier.name}
-            className="flex flex-col rounded-2xl border border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md"
-          >
-            <h3 className="text-xl font-bold text-slate-900">{tier.name}</h3>
-            <p className="mt-1 text-sm text-gray-500">{tier.bestFor}</p>
-            <p className="mt-5">
-              <span className="text-4xl font-extrabold text-slate-900">{tier.price}</span>{" "}
-              <span className="text-gray-500">{tier.period}</span>
-            </p>
-            <p className="mt-5 flex-1 text-sm leading-relaxed text-gray-700">
-              <span className="font-semibold text-slate-900">Included: </span>
-              {tier.included}
-            </p>
-            {tier.disclaimer ? (
-              <p className="mt-4 rounded-xl bg-slate-50 px-3 py-2.5 text-xs leading-relaxed text-gray-600">
-                {tier.disclaimer}
-              </p>
-            ) : null}
-            {/* FAIL-SAFE (owner directive rev 327, 2026-09-23): with the upgrade
-                signal unavailable the gated CTA becomes plain, non-interactive
-                text — text-only, so there is no href, no button and no payment
-                link to break. The <a> below is the pre-directive markup verbatim
-                at its original indentation, so when the signal IS available the
-                row renders byte-identically to the launched page. */}
-            {ctaGated ? (
-              <p
-                data-grants-cta="coming-soon"
-                className="mt-6 block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold text-gray-500"
-              >
-                {GRANTS_COMING_SOON_LABEL}
-              </p>
-            ) : (
-            <a
-              href={tier.ctaHref}
-              target={tier.external ? "_blank" : undefined}
-              rel={tier.external ? "noopener noreferrer" : undefined}
-              className={`mt-6 block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
-                tier.external
-                  ? "bg-amber-500 text-white hover:bg-amber-400"
-                  : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
-              }`}
-            >
-              {tier.ctaLabel}
-            </a>
-            )}
-          </div>
-          );
-        })}
-        </div>
-
-        <p className="mt-6 text-xs text-gray-500">
-          Prices in US dollars. Verified nonprofits keep free grant search with no credit card, no
-          trial, and no expiration.
+        <p className="text-sm font-semibold uppercase tracking-widest text-[#8a6a1d]">Contrax Grants</p>
+        <h2 className={`${SERIF} mt-3 text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold text-[#0f1f38]`}>
+          Find grants your organization actually qualifies for.
+        </h2>
+        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#56647a]">
+          Search federal grant opportunities on Grants.gov with official source details and application links.
         </p>
+        <p className="mt-4 font-semibold text-slate-900">Free for verified nonprofits</p>
+        <div className="mt-6 flex flex-wrap gap-4">
+          <a href="/grants" className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800">Search grants →</a>
+          <a href="/pricing#grants" className="rounded-xl border-2 border-slate-900 px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-900 hover:text-white">View plans →</a>
+        </div>
       </div>
     </section>
   );

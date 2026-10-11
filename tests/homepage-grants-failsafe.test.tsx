@@ -1,15 +1,15 @@
 /**
- * HOMEPAGE GRANTS PLUS FAIL-SAFE — owner directive rev 327, 2026-09-23.
+ * GRANTS PRICING FAIL-SAFE — owner directive rev 327, 2026-09-23.
  *
  * "If the Stripe price configuration or the subscription availability signal
  * becomes unavailable, surfaces must display 'Coming soon' — NEVER a broken
  * payment button; under normal operation the fallback must not appear."
  *
- * /grants already fails safe. The gap this suite pins is the HOMEPAGE tier row:
+ * /grants already fails safe. The gap this suite pins is the public pricing tier row:
  * since PR #428 it was static, so it kept advertising a live "Get Grants Plus →"
  * CTA even when the upgrade signal was off. The fix routes the row through the
  * SAME pure signal /grants gates on (`isUpgradePromptEnabled`), read ONCE
- * server-side per request in the / route loader.
+ * server-side per request in the /pricing route loader.
  *
  * DETERMINISTIC and network-free by construction: every input is a literal, the
  * component is rendered to static markup in-process, there is no DATABASE_URL,
@@ -19,7 +19,8 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { ContraxGrantsPromo, resolveGrantsUpgradeEnabled } from "~/routes/index";
+import { GrantsPricing as ContraxGrantsPromo } from "~/components/GrantsPricing";
+import { resolveGrantsUpgradeEnabled } from "~/lib/grants-upgrade-signal";
 import { GRANTS_UPGRADE_FLAG_ENV, isUpgradePromptEnabled } from "~/lib/grants";
 
 // ── helpers ──────────────────────────────────────────────────────────────────
@@ -181,17 +182,17 @@ describe("ContraxGrantsPromo — the Grants Plus tier row", () => {
 
 // ── 3. the loader contract ───────────────────────────────────────────────────
 
-describe("homepage loader — server-only, per-request, and unable to break the page", () => {
+describe("pricing loader — server-only, per-request, and unable to break the page", () => {
   const src = readFileSync(
-    new URL("../src/routes/index.tsx", import.meta.url),
+    new URL("../src/routes/pricing/index.tsx", import.meta.url),
     "utf8",
   );
 
-  test("the env is read exactly once, inside the / loader (never in JSX, never in the client)", () => {
+  test("the env is read exactly once, inside the /pricing loader (never in JSX, never in the client)", () => {
     expect(count(src, "process.env")).toBe(1);
-    const loaderAt = src.indexOf("const getLandingData = createServerFn");
+    const loaderAt = src.indexOf("const getGrantsPricingData = createServerFn");
     const envAt = src.indexOf("process.env");
-    const routeAt = src.indexOf('export const Route = createFileRoute("/")');
+    const routeAt = src.indexOf('export const Route = createFileRoute("/pricing/")');
     expect(loaderAt).toBeGreaterThan(-1);
     expect(routeAt).toBeGreaterThan(loaderAt);
     // the single read sits inside the loader handler, before the Route export
@@ -202,14 +203,14 @@ describe("homepage loader — server-only, per-request, and unable to break the 
     expect(count(src, "VITE_")).toBe(0);
   });
 
-  test("the flag flows loader payload → component props (the path bidStats/contractMap use)", () => {
-    // the loader RETURNS the field on the same payload as bidStats/contractMap
-    expect(src).toContain("return { businessName, bidStats, contractMap, grantsUpgradeEnabled };");
+  test("the flag flows loader payload → component props", () => {
+    // The loader returns the server-resolved flag to the pricing component.
+    expect(src).toContain("return { grantsUpgradeEnabled };");
     expect(src).toContain(
-      "<ContraxGrantsPromo grantsUpgradeEnabled={grantsUpgradeEnabled} />",
+      "<GrantsPricing grantsUpgradeEnabled={grantsUpgradeEnabled} />",
     );
     expect(src).toContain(
-      "const { bidStats, contractMap, grantsUpgradeEnabled } = Route.useLoaderData();",
+      "const { grantsUpgradeEnabled } = Route.useLoaderData();",
     );
   });
 

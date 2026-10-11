@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
-export const Route = createFileRoute("/bid-fit-review/request")({
+export const Route = createFileRoute("/bid-fit-review_/request")({
   head: () => ({ meta: [{ title: "Your Bid Fit Review | Contrax" }, { name: "robots", content: "noindex, nofollow" }, {name:"referrer",content:"no-referrer"}],
     links: [], }),
   component: ReviewProgress,

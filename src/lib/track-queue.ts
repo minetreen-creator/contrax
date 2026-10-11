@@ -77,6 +77,7 @@ export function isImmediateEvent(event: unknown): boolean {
 /** Queue one /api/track-visitor payload. */
 export function enqueueTracking(payload: Payload): void {
   if (typeof window === "undefined" || isQaTraffic()) return;
+  if (window.location.pathname?.startsWith("/bid-fit-review/request")) return;
   listen();
   queue.push({ ...payload, href: payload.href ?? window.location.href });
   if (isImmediateEvent(payload.event) || queue.length >= MAX_BATCH) {

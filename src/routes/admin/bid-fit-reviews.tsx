@@ -3,9 +3,9 @@ import { useCallback, useEffect, useState } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { AdminHeader, AdminTabs, SectionError, SectionLoading, timeFmt } from "~/components/AdminShared";
 
-type Status = "new" | "reviewing" | "awaiting_payment" | "in_progress" | "completed" | "declined";
+type Status = "new" | "reviewing" | "awaiting_information" | "awaiting_payment" | "in_progress" | "completed" | "declined";
 const STATUS_LABELS: Record<Status, string> = {
-  new: "New", reviewing: "Reviewing", awaiting_payment: "Awaiting payment",
+  new: "New", reviewing: "Reviewing", awaiting_information: "Awaiting information", awaiting_payment: "Awaiting payment",
   in_progress: "In progress", completed: "Completed", declined: "Declined",
 };
 interface ReviewRequest {
@@ -21,6 +21,12 @@ interface ReviewRequest {
   notification_status: "pending" | "sent" | "failed";
   created_at: string;
   updated_at: string;
+  payment_status: string;
+  paid_at: string | null;
+  paid_amount: number | null;
+  accepted_at: string | null;
+  checkout_url: string | null;
+  documents: {id: number; filename: string; size: number}[];
 }
 
 export const Route = createFileRoute("/admin/bid-fit-reviews")({
@@ -36,7 +42,7 @@ export const Route = createFileRoute("/admin/bid-fit-reviews")({
 function BidFitReviewsPage() {
   const [requests, setRequests] = useState<ReviewRequest[] | null>(null);
   const [error, setError] = useState("");
-  const [notificationConfigured, setNotificationConfigured] = useState<boolean | null>(null);
+  const [shareLink, setShareLink] = useState<{id:number; url:string} | null>(null);
   const [saving, setSaving] = useState<number | null>(null);
   const [filter, setFilter] = useState<Status | "all">("all");
   const refresh = useCallback(async () => {
@@ -44,7 +50,6 @@ function BidFitReviewsPage() {
     const body = await response.json();
     if (!response.ok) throw new Error(body.error || "Could not load review requests");
     setRequests(body.requests);
-    setNotificationConfigured(body.notificationConfigured === true);
   }, []);
   useEffect(() => { refresh().catch((e) => setError(e.message)); }, [refresh]);
   async function updateStatus(id: number, status: Status) {
@@ -61,7 +66,15 @@ function BidFitReviewsPage() {
     } catch (e) { setError(e instanceof Error ? e.message : "Could not update status"); }
     finally { setSaving(null); }
   }
-  const failedNotifications = requests?.filter((r) => r.notification_status === "failed").length ?? 0;
+  async function action(id: number, action: "access" | "accept" | "checkout") {
+    setSaving(id); setError("");
+    try {
+      const r = await fetch("/api/admin/bid-fit-reviews", {method:"POST", headers:{"Content-Type":"application/json"},body:JSON.stringify({id,action})});
+      const body=await r.json(); if(!r.ok) throw new Error(body.error || "Action failed");
+      if(body.url) setShareLink({id,url:body.url});
+      await refresh();
+    } catch(e) {setError(e instanceof Error ? e.message : "Action failed");} finally {setSaving(null);}
+  }
   const visible = requests?.filter((r) => filter === "all" || r.status === filter) ?? [];
   return <div className="min-h-screen bg-slate-50 text-slate-900">
     <AdminHeader />
@@ -69,21 +82,9 @@ function BidFitReviewsPage() {
       <AdminTabs active="bid-fit-reviews" />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div><h1 className="text-3xl font-bold">Bid Fit Reviews</h1>
-          <p className="mt-2 text-sm text-slate-600">One-time $99 service requests. Statuses track work only; they do not confirm payment or count revenue.</p></div>
+          <p className="mt-2 text-sm text-slate-600">One-time $99 reviews. Payment is confirmed by Stripe separately from work status.</p></div>
         <button onClick={() => { setError(""); refresh().catch((e) => setError(e.message)); }} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-100">Refresh</button>
       </div>
-      {notificationConfigured === false ? (
-        <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
-          <p className="font-bold">Email notifications are disabled</p>
-          <p className="mt-1 text-sm">The email service key is missing. Requests are still saved here, but notification emails cannot be sent. Configure RESEND_API_KEY in production and redeploy to restore sending.</p>
-        </div>
-      ) : null}
-      {failedNotifications > 0 ? (
-        <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
-          <p className="font-bold">{failedNotifications} request notification{failedNotifications === 1 ? "" : "s"} failed</p>
-          <p className="mt-1 text-sm">Review the saved requests below, including those hidden by the status filter. A failed notification does not mean the request was lost. Restoring email configuration does not resend earlier notifications.</p>
-        </div>
-      ) : null}
       {error && <SectionError message={error} />}
       {!requests ? (!error && <SectionLoading message="Loading review requests…" />) : <>
         <div className="flex flex-wrap items-center gap-3">
@@ -98,9 +99,21 @@ function BidFitReviewsPage() {
             <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2"><p><strong>Bid deadline:</strong> {r.deadline}</p><p><strong>Documents:</strong> {r.documents_available === "yes" ? "Accessible via link" : r.documents_available === "login" ? "Login required" : "Unclear"}</p></div>
             <p className="mt-3 break-all text-sm"><strong>Solicitation:</strong> <a href={r.solicitation_url} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">{r.solicitation_url}</a></p>
             <p className="mt-3 whitespace-pre-wrap text-sm"><strong>Capabilities:</strong> {r.capabilities}</p>
+            <div className="mt-4 space-y-3 text-sm">
+              <p><strong>Payment:</strong> {r.payment_status}{r.paid_at ? ` · $${(Number(r.paid_amount)/100).toFixed(2)} · ${timeFmt(r.paid_at)}` : ""}</p>
+              <p className="font-semibold">Uploaded documents</p>
+              {r.documents?.length ? <ul>{r.documents.map(d=><li key={d.id}><a className="text-blue-700 underline" href={`/api/bid-fit-review/documents?id=${d.id}`}>{d.filename}</a> · {Math.ceil(d.size/1000)} KB</li>)}</ul> : <p>No documents uploaded.</p>}
+              <div className="flex flex-wrap gap-2">
+                <button disabled={saving===r.id} onClick={()=>action(r.id,"access")} className="rounded-lg border px-3 py-2">Generate private upload link</button>
+                {["new","reviewing","awaiting_information"].includes(r.status) && <button disabled={saving===r.id} onClick={()=>action(r.id,"accept")} className="rounded-lg border px-3 py-2">Accept review — ready to offer $99 payment</button>}
+                {r.status==="awaiting_payment" && r.payment_status!=="paid" && <button disabled={saving===r.id} onClick={()=>action(r.id,"checkout")} className="rounded-lg bg-blue-700 px-3 py-2 text-white">Generate $99 payment link</button>}
+              </div>
+              <p className="text-xs text-slate-500">Accept only after checking business fit, full documents, deadline, and availability. Generating an upload link replaces the previous link; share it privately. Links are not emailed automatically.</p>
+              {shareLink?.id===r.id && <label className="block font-semibold">Link to share<input readOnly value={shareLink.url} onFocus={e=>e.currentTarget.select()} className="mt-1 w-full rounded border p-2 font-normal" /></label>}
+            </div>
             <div className="mt-4 flex flex-wrap items-center gap-3 border-t pt-4 text-sm">
               <label className="font-semibold">Work status <select value={r.status} disabled={saving === r.id} onChange={(e) => updateStatus(r.id, e.target.value as Status)} className="ml-2 rounded-lg border border-slate-300 bg-white p-2 font-normal">
-                {Object.entries(STATUS_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+                {Object.entries(STATUS_LABELS).map(([key, label]) => <option key={key} value={key} disabled={key === "awaiting_payment"}>{label}</option>)}
               </select></label>
               <span className={r.notification_status === "failed" ? "font-semibold text-red-700" : "text-slate-500"}>Email notification: {r.notification_status}</span>
             </div>

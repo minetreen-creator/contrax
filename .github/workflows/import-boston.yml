@@ -1,0 +1,25 @@
+name: Import Boston public bids
+on:
+  push:
+    branches: [main]
+    paths: [src/jobs/sources/ma-boston.ts, scripts/import-boston.ts, .github/workflows/import-boston.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sync-bids
+  cancel-in-progress: false
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: Import and verify Boston notices
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun run scripts/import-boston.ts --apply

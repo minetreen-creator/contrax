@@ -75,6 +75,7 @@ import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchAkDotpfBids } from "./sources/ak-dotpf";
 import { fetchNcEvpBids } from "./sources/nc-evp";
 import { fetchDcPassBids } from "./sources/dc-pass";
+import { fetchMdMontgomeryBids } from "./sources/md-montgomery";
 import { fetchDeMmpBids } from "./sources/de-mmp";
 import { fetchScScboBids } from "./sources/sc-scbo";
 import { fetchIaDasBids } from "./sources/ia-das";
@@ -313,6 +314,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "nc_evp", fetchFn: () => fetchNcEvpBids() },
   // District of Columbia: OCP's open PASS solicitations from DC Open Data.
   { name: "dc_pass", fetchFn: () => fetchDcPassBids() },
+  // Montgomery County, MD open data (Maryland's eMMA is behind a CAPTCHA browser check).
+  { name: "md_montgomery", fetchFn: () => fetchMdMontgomeryBids() },
   // Delaware Bid Solicitation Directory: open state and school solicitations.
   { name: "de_mmp", fetchFn: () => fetchDeMmpBids() },
   // South Carolina Business Opportunities: state and local public bids.

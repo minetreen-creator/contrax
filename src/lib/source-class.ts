@@ -387,6 +387,15 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   },
   // Chicago area: Cook County, Chicago Public Schools and Cook County Health
   // Bonfire portals (owner 2026-10-09; src/jobs/sources/il-chicago-bonfire.ts).
+  // Montgomery County, MD open-data solicitations (owner 2026-10-11;
+  // src/jobs/sources/md-montgomery.ts).
+  md_montgomery: {
+    class: "local",
+    city: "Montgomery County",
+    scopeState: "MD",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   il_cook_county_bonfire: {
     class: "local",
     city: "Chicago",

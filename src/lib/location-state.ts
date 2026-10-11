@@ -1020,6 +1020,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ca_sacramento_library_bonfire: "CA", // Sacramento Public Library Authority Bonfire portal (owner 2026-10-09)
   il_chicago_dps: "IL", // City of Chicago DPS weekly Bid Opportunity List (owner 2026-10-09)
   il_cook_county_bonfire: "IL", // Cook County OCPO Bonfire portal (owner 2026-10-09)
+  md_montgomery: "MD", // Montgomery County, MD open-data solicitations (owner 2026-10-11)
   il_cps_bonfire: "IL", // Chicago Public Schools Bonfire portal (owner 2026-10-09)
   il_cook_county_health_bonfire: "IL", // Cook County Health Bonfire portal (owner 2026-10-09)
   wi_mps_bonfire: "WI", // Milwaukee Public Schools' own Bonfire portal (owner 2026-10-07) // Milwaukee County's own Bonfire portal (owner 2026-10-07) // City of Milwaukee's own Bonfire portal (owner 2026-10-07)

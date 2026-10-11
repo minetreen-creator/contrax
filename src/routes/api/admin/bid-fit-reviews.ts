@@ -23,7 +23,7 @@ async function get({ request }: { request: Request }) {
       ORDER BY CASE status WHEN 'new' THEN 0 WHEN 'reviewing' THEN 1 WHEN 'awaiting_payment' THEN 2 WHEN 'in_progress' THEN 3 ELSE 4 END,
                created_at ASC
       LIMIT 300`;
-    return Response.json({ requests: rows });
+    return Response.json({ requests: rows, notificationConfigured: Boolean(process.env.RESEND_API_KEY?.trim()) });
   } catch (error) {
     console.error("[api/admin/bid-fit-reviews] list failed", error);
     return Response.json({ error: "Could not load review requests" }, { status: 500 });

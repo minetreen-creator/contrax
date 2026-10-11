@@ -40,7 +40,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
 import { IncumbentCard } from "~/components/IncumbentCard";
@@ -593,6 +593,24 @@ describe("F2: the signed-in first-run results screen never asks for a new accoun
   });
 });
 
+/**
+ * F3 SWEEP CARVE-OUT — the CRM drafts module, and NOTHING else.
+ *
+ * F3 exists to guarantee that PROPOSAL drafting (the Bid Scout $99 feature) is
+ * never claimed on Professional — that ban is unchanged and stays absolute.
+ * The owner-ratified CRM phase 3b feature (owner handoff 2026-10-10, item 5)
+ * additionally makes "AI follow-up drafts" a genuine, owner-approved Professional
+ * feature, so `src/lib/crm-drafts.ts` legitimately describes follow-up drafts as
+ * Professional in its own source comments. Exempt that ONE path — by exact
+ * relative path, not by pattern — from the short-form adjacency check below.
+ *
+ * The exemption is deliberately narrow, per-pattern:
+ *   * P1 "drafting tools … Professional" — enforced on EVERY scanned file, this
+ *     module included (so re-adding a real *drafting-tools* claim here still fails).
+ *   * P2 "draft(s) … on Professional" — enforced everywhere EXCEPT the paths below.
+ */
+const CRM_DRAFT_SOURCES = ["src/lib/crm-drafts.ts"];
+
 describe("F3: no surface still sells proposal drafting on Professional", () => {
   const signup = read("routes", "signup.tsx");
   const trades = read("routes", "trades.tsx");
@@ -632,14 +650,27 @@ describe("F3: no surface still sells proposal drafting on Professional", () => {
       ...walkFiles(join(SRC, "lib")),
     ].filter((path) => /\.(ts|tsx)$/.test(path) && !/\.test\.(ts|tsx)$/.test(path));
     expect(files.length).toBeGreaterThan(100); // non-vacuous
-    const offenders = files.filter((path) => {
-      const text = readFileSync(path, "utf8");
-      return (
-        /draft(ing)? tools?[^.\n]{0,60}professional/i.test(text) ||
-        /draft(ing)?[^.\n]{0,20}on professional/i.test(text)
-      );
-    });
-    expect(offenders).toEqual([]);
+    // P1 — "drafting tools … Professional": the #455 defect this sweep was built
+    // to catch. Enforced on EVERY scanned file, carve-out included.
+    const p1Offenders = files.filter((path) =>
+      /draft(ing)? tools?[^.\n]{0,60}professional/i.test(readFileSync(path, "utf8")),
+    );
+    expect(p1Offenders).toEqual([]);
+    // P2 — the short-form adjacency "draft(s) … on Professional", which is also how
+    // a proposal-drafting claim tends to be written. Enforced on every scanned file
+    // EXCEPT the owner-ratified CRM 3b drafts module(s) in CRM_DRAFT_SOURCES.
+    const p2Offenders = files.filter(
+      (path) =>
+        !CRM_DRAFT_SOURCES.includes(relative(ROOT, path)) &&
+        /draft(ing)?[^.\n]{0,20}on professional/i.test(readFileSync(path, "utf8")),
+    );
+    expect(p2Offenders).toEqual([]);
+    // The carve-out must name a REAL file that this sweep actually scans — a stale
+    // path would silently widen the exemption above.
+    for (const allowed of CRM_DRAFT_SOURCES) {
+      expect(existsSync(join(ROOT, allowed))).toBe(true);
+      expect(files).toContain(join(ROOT, allowed));
+    }
   });
 });
 

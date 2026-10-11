@@ -634,3 +634,27 @@ jobs:
       # EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
       - name: CRM AI follow-up draft tests (unit + seam + panel render, zero network)
         run: bun test src/lib/crm-drafts.test.ts src/lib/crm-drafts-run.test.ts tests/crm-draft-panel-render.test.tsx
+      # CRM PHASE 3c-1 — the ROUTE HANDLER itself, end to end (the two coverage
+      # gaps the 3c-1 matrix recorded: (a) no test invoked GET/POST /api/crm;
+      # (b) no NAMED test pinned the downgrade policy at the route boundary).
+      # DETERMINISTIC, network-free and DATABASE-FREE by construction:
+      #   * it drives the SHIPPED handlers through the route's own injectable seam
+      #     (`crmRouteHandlers({ authenticate, getAccess, store, reminders,
+      #     generateDraft, now })` — defaults are the real collaborators, added in
+      #     this PR, exactly like `pipelineWorkspaceHandler({ store, authenticate })`);
+      #   * the data layer is an in-memory store that records every call, the
+      #     entitlement is the REAL `getCrmAccess()` over raw columns fed through the
+      #     REAL `computeTrialStatus()`, and the reminder lists go through the REAL
+      #     pure `buildReminderLists()` — so a "lapsed Professional" is the repo's own
+      #     math on 30-day-old trial columns, not a hand-written stub;
+      #   * it pins: an entitled read returns the caller's own rows; the contacts read
+      #     is auth-only (NOT tier-gated) while every write and both Professional-only
+      #     reads are; the origin check precedes auth; the cap's NULL is the 409; the
+      #     draft branch resolves before the Starter gate and its failure is a
+      #     fail-closed 500; and, BY NAME, "READ SURVIVES DOWNGRADE" +
+      #     "EDITS ARE GATED AFTER DOWNGRADE" (nothing is deleted on a tier change).
+      # NO mock.module anywhere — bun's mock registry is process-global and leaks
+      # across files in one run (skill contrax-bun-mock-module-leak). Named
+      # EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
+      - name: CRM route handler end-to-end tests (unit, deterministic, zero network)
+        run: bun test src/lib/crm-route.test.ts

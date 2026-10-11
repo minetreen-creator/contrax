@@ -235,6 +235,49 @@ export function parseBonfire(
   return result;
 }
 
+/**
+ * RATE LIMIT (owner 2026-10-11): every tenant is served by bonfirehub.com, which
+ * answers HTTP 429 "too many requests" once one sync has read several tenants in
+ * a row (syncs of 2026-10-09/10: the first ~7 tenants read, the rest got 429).
+ * This is a published rate limit, not a bot check, so the reader honors it:
+ * consecutive Bonfire requests are spaced BONFIRE_MIN_GAP_MS apart, and a 429 is
+ * retried ONCE after the wait the server names in Retry-After (capped at
+ * BONFIRE_MAX_RETRY_WAIT_MS; BONFIRE_DEFAULT_RETRY_WAIT_MS when it names none).
+ * A second 429 is reported as before.
+ */
+export const BONFIRE_MIN_GAP_MS = 5_000;
+export const BONFIRE_DEFAULT_RETRY_WAIT_MS = 20_000;
+export const BONFIRE_MAX_RETRY_WAIT_MS = 60_000; // keeps the 30-min sync job inside its limit
+
+/** Retry-After ("120" seconds or an HTTP date) → wait in ms, capped. PURE. */
+export function bonfireRetryWaitMs(retryAfter: string | null | undefined, now: number = Date.now()): number {
+  const v = (retryAfter ?? "").trim();
+  let ms = BONFIRE_DEFAULT_RETRY_WAIT_MS;
+  if (/^\d+$/.test(v)) ms = Number(v) * 1000;
+  else if (v && Number.isFinite(Date.parse(v))) ms = Math.max(0, Date.parse(v) - now);
+  return Math.min(ms, BONFIRE_MAX_RETRY_WAIT_MS);
+}
+
+/** Injectable for tests: the clock, the wait and the request. */
+export const bonfireRequestDeps = {
+  sleep: (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
+  clock: () => Date.now(),
+  fetch: (url: string, init: RequestInit) => fetch(url, init),
+};
+let lastBonfireRequestAt = 0;
+
+/** Test hook: forget the last request time. */
+export function resetBonfirePacing() {
+  lastBonfireRequestAt = 0;
+}
+
+async function pacedBonfireRequest(url: string, init: RequestInit): Promise<Response> {
+  const wait = lastBonfireRequestAt + BONFIRE_MIN_GAP_MS - bonfireRequestDeps.clock();
+  if (wait > 0) await bonfireRequestDeps.sleep(wait);
+  lastBonfireRequestAt = bonfireRequestDeps.clock();
+  return bonfireRequestDeps.fetch(url, init);
+}
+
 /** Fetch one tenant's open-opportunity list and return ingest rows. */
 export async function fetchBonfireBids(cfg: BonfireConfig, now: number = Date.now()): Promise<FetchResult> {
   const url = bonfireDataUrl(cfg);
@@ -242,21 +285,35 @@ export async function fetchBonfireBids(cfg: BonfireConfig, now: number = Date.no
     console.error(`  ${cfg.source}: ${detail}`);
     throw new SourceUnreachableError(cfg.source, [detail]);
   };
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 60000);
+  // One request; the body is read inside the same 60 s timeout.
+  const request = async (): Promise<{ status: number; retryAfter: string | null; body: any }> => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 60000);
+    try {
+      const resp = await pacedBonfireRequest(`${url}?_=${now}`, {
+        headers: { "User-Agent": UA, Accept: "application/json", Referer: bonfirePortalUrl(cfg) },
+        signal: controller.signal,
+      });
+      if (resp.status !== 200) return { status: resp.status, retryAfter: resp.headers.get("retry-after"), body: null };
+      return { status: 200, retryAfter: null, body: await resp.json() };
+    } finally {
+      clearTimeout(timer);
+    }
+  };
   let body: any;
   try {
-    const resp = await fetch(`${url}?_=${now}`, {
-      headers: { "User-Agent": UA, Accept: "application/json", Referer: bonfirePortalUrl(cfg) },
-      signal: controller.signal,
-    });
-    if (resp.status !== 200) fail(httpFailureDetail(resp.status, url));
-    body = await resp.json();
+    let res = await request();
+    if (res.status === 429) {
+      const wait = bonfireRetryWaitMs(res.retryAfter, bonfireRequestDeps.clock());
+      console.log(`  ${cfg.source}: HTTP 429 (rate limited) — retrying once in ${Math.round(wait / 1000)}s`);
+      await bonfireRequestDeps.sleep(wait);
+      res = await request();
+    }
+    if (res.status !== 200) fail(httpFailureDetail(res.status, url));
+    body = res.body;
   } catch (e) {
     if (e instanceof SourceUnreachableError) throw e;
     fail(requestFailureDetail(e));
-  } finally {
-    clearTimeout(timer);
   }
   const payload = body?.payload;
   if (!body?.success || !payload || typeof payload.projects !== "object") {

@@ -73,6 +73,7 @@ import { fetchBirminghamBids } from "./sources/al-birmingham";
 import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchAkDotpfBids } from "./sources/ak-dotpf";
 import { fetchNcEvpBids } from "./sources/nc-evp";
+import { fetchDcPassBids } from "./sources/dc-pass";
 import { fetchDeMmpBids } from "./sources/de-mmp";
 import { fetchScScboBids } from "./sources/sc-scbo";
 import { fetchIaDasBids } from "./sources/ia-das";
@@ -308,6 +309,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "ak_dotpf", fetchFn: () => fetchAkDotpfBids() },
   // North Carolina eVP: open state, university, school and local government bids.
   { name: "nc_evp", fetchFn: () => fetchNcEvpBids() },
+  // District of Columbia: OCP's open PASS solicitations from DC Open Data.
+  { name: "dc_pass", fetchFn: () => fetchDcPassBids() },
   // Delaware Bid Solicitation Directory: open state and school solicitations.
   { name: "de_mmp", fetchFn: () => fetchDeMmpBids() },
   // South Carolina Business Opportunities: state and local public bids.

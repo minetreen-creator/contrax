@@ -958,6 +958,8 @@ export function displayPlaceOfPerformance(
  *                    DOT&PF itself.
  *    nc_evp        → North Carolina eVP; every buyer is a North Carolina
  *                    state agency, university, school or local government.
+ *    dc_pass       → DC OCP PASS solicitations; every buyer is a District of
+ *                    Columbia government agency.
  *    de_mmp        → Delaware Bid Solicitation Directory; every buyer is a
  *                    Delaware state agency, school district or college.
  *    sc_scbo       → South Carolina Business Opportunities; every advertiser
@@ -1060,6 +1062,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   al_aldot: "AL",
   ak_dotpf: "AK",
   nc_evp: "NC",
+  dc_pass: "DC",
   al_birmingham_purchasing: "AL",
   de_mmp: "DE",
   sc_scbo: "SC",

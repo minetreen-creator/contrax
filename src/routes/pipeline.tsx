@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { trackEvent } from "~/lib/track";
 // PIPELINE CSV EXPORT gate (owner decision 2, 2026-09-26): export is a Bid
@@ -8,6 +8,16 @@ import { trackEvent } from "~/lib/track";
 // `export_attempted`/"gated" event.
 import { ATTEMPT_EVENT_FOR_ACTION, GATE_ATTEMPT_LABEL, gatePrompt } from "~/lib/plan-gates";
 import { PremiumUpgradeModal } from "~/components/PremiumUpgradeModal";
+import { PipelineContacts } from "~/components/PipelineContacts";
+import {
+  CRM_CONTACTS_LOCK_BODY,
+  CRM_CONTACTS_LOCK_CTA,
+  CRM_CONTACTS_LOCK_PRICE,
+  CRM_CONTACTS_LOCK_TITLE,
+  type CrmAccessView,
+  type CrmContactView,
+  type PipelineContactLink,
+} from "~/lib/pipeline-contacts";
 import { displayCompanyName, formatAwardAmount } from "~/lib/award-check";
 
 /**
@@ -17,6 +27,12 @@ import { displayCompanyName, formatAwardAmount } from "~/lib/award-check";
  * Uses the PR #139 wrapper pattern: the guard lives in PipelineRoute (which has
  * only unconditional hooks) so PipelinePage's hooks always run in the same
  * order — no early-return-before-hooks.
+ *
+ * CRM PHASE 2 (owner handoff 2026-10-10): the page also carries the Contacts
+ * section (create/edit/archive against the live /api/crm route) and lets a saved
+ * bid LINK to one of those contacts through saved_matches.crm_contact_id. The
+ * pre-existing bid fields — pursuit status, next action, follow-up date, notes
+ * and the free-text contact name/organization/role/email block — are untouched.
  */
 
 interface PipelineItem {
@@ -31,6 +47,10 @@ interface PipelineItem {
   contact_organization: string;
   contact_role: string;
   contact_email: string;
+  /** CRM phase 2: the linked CRM contact's id (null when nothing is linked). */
+  crm_contact_id: number | null;
+  /** CRM phase 2: the linked contact as /api/my-pipeline resolves it. */
+  crm_contact?: PipelineContactLink | null;
   created_at: string | null;
   title: string;
   agency: string;
@@ -84,9 +104,21 @@ function PipelineRoute() {
 const pursuitStatuses = ["evaluating", "preparing", "submitted", "won", "lost"] as const;
 type WorkspaceKey = "pursuit_status" | "notes" | "next_action" | "follow_up_date" | "contact_name" | "contact_organization" | "contact_role" | "contact_email";
 
-function BidWorkspace({ item, onSaved }: { item: PipelineItem; onSaved: (updated: Partial<PipelineItem>) => void }) {
+/**
+ * One saved bid's workspace: the shipped fields (pursuit status / next action /
+ * follow-up date / notes / the free-text contact block) PLUS, since CRM phase 2,
+ * a link to one of the user's CRM contacts.
+ *
+ * The link is a separate control from the free-text contact block on purpose: the
+ * free-text block is unchanged pipeline data ("contact_name", migration 052) and
+ * the link is a real crm_contacts row ("crm_contact_id", migration 059). Nothing
+ * is inferred from one to the other. The save posts both in one request.
+ */
+function BidWorkspace({ item, contacts, onSaved }: { item: PipelineItem; contacts: CrmContactView[]; onSaved: (updated: Partial<PipelineItem>) => void }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(item);
+  // The link is held as the <select>'s string value ("" = no linked contact).
+  const [linkId, setLinkId] = useState(item.crm_contact_id ? String(item.crm_contact_id) : "");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   function update(key: WorkspaceKey, value: string) { setDraft((old) => ({ ...old, [key]: value })); }
@@ -103,6 +135,8 @@ function BidWorkspace({ item, onSaved }: { item: PipelineItem; onSaved: (updated
           follow_up_date: draft.follow_up_date || null,
           contact_name: draft.contact_name, contact_organization: draft.contact_organization,
           contact_role: draft.contact_role, contact_email: draft.contact_email,
+          // "" → null = unlink; otherwise the contact id (server checks ownership).
+          crm_contact_id: linkId ? Number(linkId) : null,
         }),
       });
       if (!res.ok) {
@@ -112,6 +146,7 @@ function BidWorkspace({ item, onSaved }: { item: PipelineItem; onSaved: (updated
       const payload = await res.json();
       onSaved(payload.data);
       setDraft((old) => ({ ...old, ...payload.data }));
+      setLinkId(payload.data?.crm_contact_id ? String(payload.data.crm_contact_id) : "");
       setEditing(false);
     } catch (error) {
       setSaveError(error instanceof Error ? error.message : "Could not save bid details");
@@ -125,14 +160,25 @@ function BidWorkspace({ item, onSaved }: { item: PipelineItem; onSaved: (updated
           <p><span className="font-semibold text-slate-800">Pursuit:</span> {item.pursuit_status}</p>
           {item.next_action && <p><span className="font-semibold text-slate-800">Next action:</span> {item.next_action}{item.follow_up_date ? ` · ${item.follow_up_date}` : ""}</p>}
           {item.contact_name && <p><span className="font-semibold text-slate-800">Contact:</span> {item.contact_name}{item.contact_organization ? ` · ${item.contact_organization}` : ""}</p>}
+          {item.crm_contact && <p><span className="font-semibold text-slate-800">Linked contact:</span> {item.crm_contact.name}{item.crm_contact.organization ? ` · ${item.crm_contact.organization}` : ""}</p>}
           {item.notes && <p className="whitespace-pre-wrap"><span className="font-semibold text-slate-800">Notes:</span> {item.notes}</p>}
         </div>
-        <button type="button" className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50" onClick={() => { if (editing) setDraft(item); setSaveError(""); setEditing(!editing); }}>{editing ? "Cancel" : "Manage bid"}</button>
+        <button type="button" className="rounded-lg border border-slate-300 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50" onClick={() => { if (editing) { setDraft(item); setLinkId(item.crm_contact_id ? String(item.crm_contact_id) : ""); } setSaveError(""); setEditing(!editing); }}>{editing ? "Cancel" : "Manage bid"}</button>
       </div>
       {editing && <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2">
         <label className="space-y-1">Pursuit status<select className={input} value={draft.pursuit_status} onChange={(e) => update("pursuit_status", e.target.value)}>{pursuitStatuses.map((status) => <option key={status} value={status}>{status[0].toUpperCase() + status.slice(1)}</option>)}</select></label>
         <label className="space-y-1">Follow-up date<input className={input} type="date" value={draft.follow_up_date ?? ""} onChange={(e) => update("follow_up_date", e.target.value)} /></label>
         <label className="space-y-1 sm:col-span-2">Next action<input className={input} maxLength={300} value={draft.next_action} onChange={(e) => update("next_action", e.target.value)} placeholder="Email the procurement contact" /></label>
+        {contacts.length > 0 && (
+          <label className="space-y-1 sm:col-span-2">Linked contact
+            <select className={input} value={linkId} onChange={(e) => setLinkId(e.target.value)}>
+              <option value="">No linked contact</option>
+              {contacts.map((contact) => (
+                <option key={contact.id} value={String(contact.id)}>{contact.name}{contact.organization ? ` · ${contact.organization}` : ""}</option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="space-y-1">Contact name<input className={input} maxLength={300} value={draft.contact_name} onChange={(e) => update("contact_name", e.target.value)} /></label>
         <label className="space-y-1">Organization<input className={input} maxLength={300} value={draft.contact_organization} onChange={(e) => update("contact_organization", e.target.value)} /></label>
         <label className="space-y-1">Contact role<input className={input} maxLength={300} value={draft.contact_role} onChange={(e) => update("contact_role", e.target.value)} /></label>
@@ -155,6 +201,15 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
   const [loggingOut, setLoggingOut] = useState(false);
   const [exportGate, setExportGate] = useState(false);
   const [exportBusy, setExportBusy] = useState(false);
+  // ── CRM phase 2: the contacts section ──────────────────────────────────────
+  // `crm.access` is COMPUTED BY THE SERVER (GET /api/crm) — the UI only reads it.
+  const [crmAccess, setCrmAccess] = useState<CrmAccessView | null>(null);
+  const [contacts, setContacts] = useState<CrmContactView[]>([]);
+  const [crmLoading, setCrmLoading] = useState(true);
+  const [crmError, setCrmError] = useState("");
+  // ATTEMPT-ONLY Starter prompt (owner rule 8): opened by a gated click in the
+  // contacts panel, never by the page view.
+  const [contactsGate, setContactsGate] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -179,6 +234,57 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
       cancelled = true;
     };
   }, []);
+
+  /**
+   * The contacts read. SEPARATE from the pipeline fetch and FAIL-SOFT: a CRM
+   * failure (a 500, or an older environment) must never stop the saved bids from
+   * rendering — the panel shows the error, the pipeline stays usable.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/crm", { credentials: "same-origin" })
+      .then(async (r) => {
+        const body = await r.json().catch(() => null);
+        if (!r.ok) throw new Error(body?.error || "Could not load your contacts.");
+        return body as { access?: CrmAccessView; contacts?: CrmContactView[] } | null;
+      })
+      .then((body) => {
+        if (cancelled) return;
+        setCrmAccess(body?.access ?? null);
+        setContacts(Array.isArray(body?.contacts) ? body.contacts : []);
+        setCrmLoading(false);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setCrmError(err instanceof Error ? err.message : "Could not load your contacts.");
+        setCrmLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Contacts by id, so a saved bid can render the name of the one it links to. */
+  const contactsById = useMemo(() => new Map(contacts.map((c) => [c.id, c])), [contacts]);
+
+  /**
+   * Merge a save response into the list AND re-resolve its linked contact from the
+   * contacts the page already holds (the save response carries the id, the list
+   * carries the name/organization — one source of truth for each).
+   */
+  function applySaved(bidId: number, updated: Partial<PipelineItem>) {
+    setItems((previous) =>
+      previous?.map((entry) => {
+        if (entry.bid_id !== bidId) return entry;
+        const next: PipelineItem = { ...entry, ...updated };
+        if ("crm_contact_id" in updated) {
+          const id = updated.crm_contact_id ?? null;
+          next.crm_contact = id ? (contactsById.get(id) ?? null) : null;
+        }
+        return next;
+      }) ?? null,
+    );
+  }
 
   async function handleRemove(bidId: number) {
     if (removing !== null) return;
@@ -298,6 +404,18 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
           <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>
         )}
 
+        {/* CRM phase 2 — Contacts live INSIDE the pipeline (owner handoff item 1).
+            A Basic user gets the read-only locked state; its only action is an
+            upgrade attempt, which opens the prompt below (owner rule 8). */}
+        <PipelineContacts
+          access={crmAccess}
+          contacts={contacts}
+          loading={crmLoading}
+          loadError={crmError}
+          onChange={setContacts}
+          onUpgrade={() => setContactsGate(true)}
+        />
+
         {loading ? (
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
@@ -367,7 +485,7 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
                     {removing === item.bid_id ? "Removing…" : "Remove"}
                   </button>
                 </div>
-                <BidWorkspace item={item} onSaved={(updated) => setItems((previous) => previous?.map((entry) => entry.bid_id === item.bid_id ? { ...entry, ...updated } : entry) ?? null)} />
+                <BidWorkspace item={item} contacts={contacts} onSaved={(updated) => applySaved(item.bid_id, updated)} />
               </div>
             ))}
           </div>
@@ -383,6 +501,19 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
         ctaLabel={gatePrompt("bid_scout").ctaLabel}
         priceNote={gatePrompt("bid_scout").priceNote}
         ctaHref={gatePrompt("bid_scout").href}
+      />
+      {/* ATTEMPT-ONLY Starter prompt for CRM Contacts (owner rule 8) — opened
+          solely by a gated click in the contacts panel. The copy is the shared
+          contacts-lock copy; the checkout plan is the ratified Starter tier
+          ($19/mo), the same plan the existing saved-bid paywall points at. */}
+      <PremiumUpgradeModal
+        open={contactsGate}
+        onClose={() => setContactsGate(false)}
+        checkoutPlan="starter"
+        title={CRM_CONTACTS_LOCK_TITLE}
+        message={CRM_CONTACTS_LOCK_BODY}
+        ctaLabel={CRM_CONTACTS_LOCK_CTA}
+        priceNote={CRM_CONTACTS_LOCK_PRICE}
       />
     </div>
   );

@@ -568,3 +568,23 @@ jobs:
 
       - name: Radar opening and free signup handoff tests
         run: bun test tests/radar-opening.test.ts
+
+      # CRM PHASE 2 — contacts in the Pipeline + saved_bid contact linking (owner
+      # handoff 2026-10-10, remaining-work items 1–3). Both suites are
+      # DETERMINISTIC, network-free and DATABASE-FREE by construction:
+      #   * crm-access.test.ts — the phase-1 tier ladder, pure over literals + the
+      #     real computeTrialStatus (no DATABASE_URL, no network). It was named by
+      #     NO workflow when phase 1 merged, so it ran nowhere until now — the same
+      #     way runner.dedupe.test.ts went unrun for weeks.
+      #   * pipeline-contacts.test.ts — the link rules at the route boundary
+      #     (owned contact accepted · another user's → 404 · archived → 400 ·
+      #     null/absent = unlink with no contact read), the untouched pre-phase-2
+      #     validation and trims, the my-pipeline join shape (LEFT JOIN typed on
+      #     `id AND user_id`, `sm.user_id` scope, mapper shared with the UI), and
+      #     the client-vs-server access-key mirror. Driven through the route's
+      #     INJECTABLE deps seam (`pipelineWorkspaceHandler({ store, authenticate })`),
+      #     with NO mock.module anywhere — bun's mock registry is process-global and
+      #     leaks across test files in one run (skill contrax-bun-mock-module-leak).
+      # Named EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
+      - name: CRM access + pipeline contacts tests (unit, deterministic, zero network)
+        run: bun test src/lib/crm-access.test.ts src/lib/pipeline-contacts.test.ts

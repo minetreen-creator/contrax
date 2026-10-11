@@ -16,6 +16,11 @@ import {
   CRM_REMINDERS_LOCK_TITLE,
 } from "~/lib/crm-reminders";
 import {
+  CRM_DRAFT_LOCK_BODY,
+  CRM_DRAFT_LOCK_CTA,
+  CRM_DRAFT_LOCK_TITLE,
+} from "~/lib/crm-drafts";
+import {
   CRM_CONTACTS_LOCK_BODY,
   CRM_CONTACTS_LOCK_CTA,
   CRM_CONTACTS_LOCK_PRICE,
@@ -219,6 +224,8 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
   // ATTEMPT-ONLY Professional prompt for Follow-up reminders (CRM phase 3a) —
   // opened solely by a gated click in the reminders panel.
   const [remindersGate, setRemindersGate] = useState(false);
+  /** CRM phase 3b — the ATTEMPT-ONLY Professional prompt for AI follow-up drafts. */
+  const [draftsGate, setDraftsGate] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -440,6 +447,7 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
           loadError={crmError}
           onChange={setContacts}
           onUpgrade={() => setContactsGate(true)}
+          onUpgradeProfessional={() => setDraftsGate(true)}
         />
 
         {/* CRM phase 3a — Follow-up reminders (owner handoff item 4). The lists are
@@ -565,6 +573,18 @@ function PipelinePage({ user: _user }: { user: AuthUser }) {
         title={CRM_REMINDERS_LOCK_TITLE}
         message={CRM_REMINDERS_LOCK_BODY}
         ctaLabel={CRM_REMINDERS_LOCK_CTA}
+      />
+      {/* ATTEMPT-ONLY Professional prompt for AI follow-up drafts (owner rule 8) —
+          opened solely by the gated control / locked card in the contacts panel
+          (CRM phase 3b). Same Professional plan and the component's EXISTING price
+          note: this file adds no pricing copy (3b's copy work is on /pricing). */}
+      <PremiumUpgradeModal
+        open={draftsGate}
+        onClose={() => setDraftsGate(false)}
+        checkoutPlan="professional"
+        title={CRM_DRAFT_LOCK_TITLE}
+        message={CRM_DRAFT_LOCK_BODY}
+        ctaLabel={CRM_DRAFT_LOCK_CTA}
       />
     </div>
   );

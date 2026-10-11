@@ -62,7 +62,7 @@ const prePr1IsStateLocal = (sources: string[]) =>
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
   test("132 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Alaska DOT&PF lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS, Utah U3P, Mississippi DFA, three Minnesota (MnDOT, eAdvert, Admin QuestCDN), Oklahoma OMES, Kansas, New Mexico eProNM, Idaho (IPRO, ITD), Wisconsin VendorNet, the two Texas Bonfire tenants (TxDOT, UT Tyler) the four Texas university JAGGAER tenants (UH, TAMU, Texas Tech, UTSA) and Rhode Island (OSP, external board) classifications, the four Virginia locality CivicEngage boards and the two Virginia locality Bonfire portals (Fairfax County, City of Alexandria)", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(153);
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(154);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -107,7 +107,7 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + the three Chicago-area Bonfire portals (Cook County, CPS, Cook County Health) — 2026-10-09.
     // + the City of Chicago DPS weekly Bid Opportunity List — 2026-10-09.
     // + the Sacramento Public Library Bonfire portal — 2026-10-09.
-    expect(TAIL_SOURCES.length).toBe(77);
+    expect(TAIL_SOURCES.length).toBe(78);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {
@@ -302,4 +302,11 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
    expect(SOURCE_CLASSES["ma_boston"]!.scopeState).toBe("MA");
    expect(sourceBadgeLabel("ma_boston")).toBe("Boston");
    expect(isAwardTypeSource("ma_boston")).toBe(false);
+ });
+
+ test("Mobile public board retains local Alabama provenance", () => {
+ expect(resolveSourceClass("al_mobile")).toBe("local");
+ expect(SOURCE_CLASSES["al_mobile"]!.scopeState).toBe("AL");
+ expect(sourceBadgeLabel("al_mobile")).toBe("Mobile");
+ expect(isAwardTypeSource("al_mobile")).toBe(false);
  });

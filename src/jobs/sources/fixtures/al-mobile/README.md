@@ -1,0 +1,1 @@
+Public HTML table excerpt captured from https://www.cityofmobile.gov/bids/ on October 11, 2026. All four rows are delivered in the public HTML; DataTables presents them in the browser. Dates use Mobile local America/Chicago time. The four notices are a source-board count, not a stored Contrax count.

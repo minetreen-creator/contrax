@@ -31,6 +31,9 @@ function CEOPage() {
           <h1 className="mt-5 text-3xl font-bold sm:text-4xl">From the CEO</h1>
           <p className="mt-3 max-w-2xl text-slate-600 dark:text-slate-300">News, milestones, and the reasons behind what we’re building at Contrax.</p>
         </div>
+        <div className="mx-auto mt-5 max-w-[1120px] px-4 sm:px-6">
+          <a href="/our-story" className="font-semibold text-blue-700 underline underline-offset-4 dark:text-blue-300">Read my story: why I started Contrax →</a>
+        </div>
         <CEOPosts />
       </main>
       <footer className="mx-auto max-w-[1120px] border-t border-slate-200 px-4 py-6 text-sm dark:border-slate-800 sm:px-6">

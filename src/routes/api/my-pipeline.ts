@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { dateOnly } from "~/lib/brief-source";
+import { crmContactLink } from "~/lib/pipeline-contacts";
 import { sql } from "~/db";
 
 /**
@@ -12,7 +13,23 @@ import { sql } from "~/db";
  *
  * Returns { data: PipelineItem[] } where PipelineItem is:
  *   { id, bid_id, status, created_at, title, agency, estimated_value,
- *     due_date, location, category, source_url, set_aside }
+ *     due_date, location, category, source_url, set_aside,
+ *     crm_contact_id, crm_contact }
+ *
+ * crm_contact (CRM phase 2) is the contact the saved bid is linked to:
+ * `{ id, name, organization }`, or null. It comes from a LEFT JOIN on
+ * crm_contacts keyed `c.id = sm.crm_contact_id AND c.user_id = sm.user_id` — the
+ * composite key, not the bare id, so a link can NEVER surface another user's
+ * contact even if a row were mis-keyed; an unlinked bid keeps its NULL
+ * crm_contact_id and comes back with crm_contact null, and every other field is
+ * byte-identical to the pre-phase-2 response.
+ *
+ * NOTE ON THE DEPENDENCY: this statement already selects the migration-052
+ * bid-workspace columns (pursuit_status / next_action / follow_up_date /
+ * contact_*), so it has always required its migrations to be applied; phase 2
+ * adds migration 059's column to the same list rather than papering over a
+ * half-migrated database. The awards block below IS fail-open, for a different
+ * reason — that table is written by a scheduled job that may not have run yet.
  */
 async function handler({ request }: { request: Request }) {
   const user = await getUserFromRequest(request);
@@ -22,10 +39,13 @@ async function handler({ request }: { request: Request }) {
       SELECT sm.id, sm.bid_id, sm.status, sm.created_at, sm.notes,
              sm.pursuit_status, sm.next_action, sm.follow_up_date,
              sm.contact_name, sm.contact_organization, sm.contact_role, sm.contact_email,
+             sm.crm_contact_id,
+             c.name AS crm_contact_name, c.organization AS crm_contact_organization,
              b.title, b.agency, b.estimated_value, b.due_date, b.location,
              b.category, b.source_url, b.set_aside
       FROM saved_matches sm
       JOIN bids b ON b.id = sm.bid_id
+      LEFT JOIN crm_contacts c ON c.id = sm.crm_contact_id AND c.user_id = sm.user_id
       WHERE sm.user_id = ${user.id} AND sm.status = 'saved'
       ORDER BY sm.created_at DESC NULLS LAST, b.due_date ASC NULLS LAST
     `;
@@ -41,6 +61,10 @@ async function handler({ request }: { request: Request }) {
       contact_organization: r.contact_organization ?? "",
       contact_role: r.contact_role ?? "",
       contact_email: r.contact_email ?? "",
+      // CRM phase 2: the linked contact (null when nothing is linked). The
+      // mapper is shared with the UI so both read the same wire shape.
+      crm_contact_id: r.crm_contact_id == null ? null : Number(r.crm_contact_id),
+      crm_contact: crmContactLink(r),
       created_at: r.created_at ? String(r.created_at) : null,
       title: r.title || "Untitled opportunity",
       agency: r.agency || "Unknown agency",

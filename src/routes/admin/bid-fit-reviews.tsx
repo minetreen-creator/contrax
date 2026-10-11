@@ -36,6 +36,7 @@ export const Route = createFileRoute("/admin/bid-fit-reviews")({
 function BidFitReviewsPage() {
   const [requests, setRequests] = useState<ReviewRequest[] | null>(null);
   const [error, setError] = useState("");
+  const [notificationConfigured, setNotificationConfigured] = useState<boolean | null>(null);
   const [saving, setSaving] = useState<number | null>(null);
   const [filter, setFilter] = useState<Status | "all">("all");
   const refresh = useCallback(async () => {
@@ -43,6 +44,7 @@ function BidFitReviewsPage() {
     const body = await response.json();
     if (!response.ok) throw new Error(body.error || "Could not load review requests");
     setRequests(body.requests);
+    setNotificationConfigured(body.notificationConfigured === true);
   }, []);
   useEffect(() => { refresh().catch((e) => setError(e.message)); }, [refresh]);
   async function updateStatus(id: number, status: Status) {
@@ -59,6 +61,7 @@ function BidFitReviewsPage() {
     } catch (e) { setError(e instanceof Error ? e.message : "Could not update status"); }
     finally { setSaving(null); }
   }
+  const failedNotifications = requests?.filter((r) => r.notification_status === "failed").length ?? 0;
   const visible = requests?.filter((r) => filter === "all" || r.status === filter) ?? [];
   return <div className="min-h-screen bg-slate-50 text-slate-900">
     <AdminHeader />
@@ -69,6 +72,18 @@ function BidFitReviewsPage() {
           <p className="mt-2 text-sm text-slate-600">One-time $99 service requests. Statuses track work only; they do not confirm payment or count revenue.</p></div>
         <button onClick={() => { setError(""); refresh().catch((e) => setError(e.message)); }} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-100">Refresh</button>
       </div>
+      {notificationConfigured === false ? (
+        <div role="alert" className="rounded-xl border border-red-300 bg-red-50 p-4 text-red-900">
+          <p className="font-bold">Email notifications are disabled</p>
+          <p className="mt-1 text-sm">The email service key is missing. Requests are still saved here, but notification emails cannot be sent. Configure RESEND_API_KEY in production and redeploy to restore sending.</p>
+        </div>
+      ) : null}
+      {failedNotifications > 0 ? (
+        <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-950">
+          <p className="font-bold">{failedNotifications} request notification{failedNotifications === 1 ? "" : "s"} failed</p>
+          <p className="mt-1 text-sm">Review the saved requests below, including those hidden by the status filter. A failed notification does not mean the request was lost. Restoring email configuration does not resend earlier notifications.</p>
+        </div>
+      ) : null}
       {error && <SectionError message={error} />}
       {!requests ? (!error && <SectionLoading message="Loading review requests…" />) : <>
         <div className="flex flex-wrap items-center gap-3">

@@ -72,6 +72,7 @@ import { fetchBostonBids } from "./sources/ma-boston";
 import { fetchBirminghamBids } from "./sources/al-birmingham";
 import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchAkDotpfBids } from "./sources/ak-dotpf";
+import { fetchNcEvpBids } from "./sources/nc-evp";
 import { fetchDeMmpBids } from "./sources/de-mmp";
 import { fetchScScboBids } from "./sources/sc-scbo";
 import { fetchIaDasBids } from "./sources/ia-das";
@@ -305,6 +306,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "al_aldot", fetchFn: () => fetchAlAldotBids() },
   // Alaska DOT&PF construction bid calendar (Online Public Notices is behind bot protection).
   { name: "ak_dotpf", fetchFn: () => fetchAkDotpfBids() },
+  // North Carolina eVP: open state, university, school and local government bids.
+  { name: "nc_evp", fetchFn: () => fetchNcEvpBids() },
   // Delaware Bid Solicitation Directory: open state and school solicitations.
   { name: "de_mmp", fetchFn: () => fetchDeMmpBids() },
   // South Carolina Business Opportunities: state and local public bids.

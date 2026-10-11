@@ -107,7 +107,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + the three Chicago-area Bonfire portals (Cook County, CPS, Cook County Health) — 2026-10-09.
     // + the City of Chicago DPS weekly Bid Opportunity List — 2026-10-09.
     // + the Sacramento Public Library Bonfire portal — 2026-10-09.
-    expect(TAIL_SOURCES.length).toBe(77);
+    // + North Carolina eVP (live, replacing the 2026-09-30 snapshot) — 2026-10-11.
+    expect(TAIL_SOURCES.length).toBe(78);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

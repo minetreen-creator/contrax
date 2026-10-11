@@ -586,6 +586,11 @@ jobs:
       #     with NO mock.module anywhere — bun's mock registry is process-global and
       #     leaks across test files in one run (skill contrax-bun-mock-module-leak).
       # Named EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
+      - name: Bid Fit Review upload and payment rules
+        run: |
+          node --input-type=module -e 'import {build} from "esbuild"; await build({entryPoints:["tests/bid-fit-review-flow.test.ts"],bundle:true,platform:"node",format:"esm",packages:"external",outfile:".review-flow-test.mjs"})'
+          node --test .review-flow-test.mjs
+
       - name: CRM access + pipeline contacts tests (unit, deterministic, zero network)
         run: bun test src/lib/crm-access.test.ts src/lib/pipeline-contacts.test.ts
       # CRM PHASE 3a — Professional follow-up reminders (owner handoff 2026-10-10,

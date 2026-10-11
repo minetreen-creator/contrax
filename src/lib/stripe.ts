@@ -563,6 +563,9 @@ export async function handleStripeWebhook(
     return { success: false, error: "Invalid signature" };
   }
 
+  const { handleReviewPaymentEvent } = await import("~/lib/bid-fit-review-flow.server");
+  if (await handleReviewPaymentEvent(event)) return { success: true };
+
   // Bid Scout is a SEPARATE product (not a Contrax user plan) — consume its
   // events (checkout.session.completed / customer.subscription.deleted /
   // invoice.payment_failed) here and NEVER fall through to the user-account

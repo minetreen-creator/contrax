@@ -227,7 +227,7 @@ jobs:
       # the non-federal "City" badge) that nothing else in CI covers.
       - name: City of Dayton connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/oh-dayton.test.ts
-      # SDDOT highway bid lettings (sd_dot) — South Dakota's ONLY bid source
+      # SDDOT highway bid lettings (sd_dot) — the first South Dakota source
       # (owner 2026-10-12): the state's central procurement portal is a ServiceNow
       # SPA publishing no dated solicitation records, so the SD source is SDDOT's
       # own server-rendered letting site. DETERMINISTIC and network-free by
@@ -238,6 +238,22 @@ jobs:
       # src/lib/source-class.test.ts counts, and the date-only deadline rule.
       - name: SDDOT lettings connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/sd-dot.test.ts
+      # BidNet Direct South Dakota Purchasing Group (sd_bidnet) — SD's
+      # GENERAL-procurement surface, the complement to sd_dot above: the state's
+      # own portal publishes no dated records, so the public aggregator listing is
+      # the only other dated SD bid surface. THIRD-PARTY aggregator, read through
+      # its public login-free open-bids list only. DETERMINISTIC and network-free
+      # by construction: every byte comes from a committed capture of the live list
+      # pages (src/jobs/sources/fixtures/sd-bidnet/, sha256-indexed in its README),
+      # the parse is a PURE function and the ONE fetch the pagination loop makes is
+      # STUBBED from those same bytes. No DATABASE_URL. It also pins the
+      # registration (TAIL_SOURCES 82→83, SOURCE_CLASSES 157→158, sd_bidnet →
+      # state/SD) that src/lib/source-class.test.ts counts, the fail-closed shape
+      # gates (a reshape, and a heading claiming rows the parse did not deliver),
+      # the members-only cells never being claimed, and the Eastern-time
+      # date-only deadline rule.
+      - name: BidNet South Dakota connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/sd-bidnet.test.ts
       # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
       # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
       # construction: every byte it reads is a committed capture of the live Solr

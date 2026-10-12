@@ -99,6 +99,7 @@ import { fetchNmEpronmBids } from "./sources/nm-epronm";
 import { fetchIdIproBids } from "./sources/id-ipro";
 import { fetchIdItdBids } from "./sources/id-itd";
 import { fetchSdDotBids } from "./sources/sd-dot";
+import { fetchSdBidnetBids } from "./sources/sd-bidnet";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -459,6 +460,17 @@ export const TAIL_SOURCES: SyncSource[] = [
   // shared/sd-bids-discovery-2026-10-11/EVIDENCE.md), so SD's only plain,
   // server-rendered, dated bid surface is SDDOT's own Bid Letting application.
   { name: "sd_dot", fetchFn: () => fetchSdDotBids() },
+  // South Dakota's GENERAL-procurement surface (src/jobs/sources/sd-bidnet.ts),
+  // the complement to `sd_dot` above. BidNet Direct is a THIRD-PARTY aggregator
+  // (bidnetdirect.com, not a .gov host, agencies self-post) — NOT the state's
+  // official portal; only its public, login-free open-bids list is read (two GETs
+  // on 2026-10-12: the list plus the one page it advertises). Same tail-source
+  // shape as every source above: no migration, no new cron, its own
+  // collector_run_log rows, no added SAM.gov load. It is a SEPARATE source from
+  // `sd_dot` with its own `sdbidnet-` prefix — SDDOT lettings republished here are
+  // a second publisher's listing of the same work and are stored as their own row
+  // (exactly as `va_eva` coexists with the locality boards).
+  { name: "sd_bidnet", fetchFn: () => fetchSdBidnetBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

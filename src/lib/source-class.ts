@@ -212,6 +212,11 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   wa_webs: { class: "state", scopeState: "WA", searchScope: "state-portal", recordType: "opportunity" },
   ut_bonfire: { class: "state", scopeState: "UT", searchScope: "state-portal", recordType: "opportunity" },
   ms_dfa: { class: "state", scopeState: "MS", searchScope: "state-portal", recordType: "opportunity" },
+  // South Dakota DOT highway bid lettings (src/jobs/sources/sd-dot.ts). South
+  // Dakota's central procurement portal (the BHRA ServiceNow service portal) is a
+  // JS SPA publishing no dated solicitation records, so this is SD's only
+  // registered bid source.
+  sd_dot: { class: "state", scopeState: "SD", searchScope: "state-portal", recordType: "opportunity" },
   mn_mndot: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_connex: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_questcdn: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },

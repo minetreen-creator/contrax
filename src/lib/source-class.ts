@@ -519,6 +519,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Franklin County, OH Purchasing bid board (owner 2026-10-12; oh-franklin-county.ts).
+  oh_franklin_county: {
+    class: "local",
+    city: "Franklin County",
+    scopeState: "OH",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   oh_worthington: {
     class: "local",
     city: "Worthington",

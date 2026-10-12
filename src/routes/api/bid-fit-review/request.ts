@@ -5,6 +5,8 @@ import { checkIpLimit, checkEmailLimit, rateLimitedResponse } from "~/lib/rate-l
 import { isBlockedIp } from "~/lib/request-ip";
 import { createBidFitReviewRequest, setBidFitNotificationStatus } from "~/lib/bid-fit-review.server";
 
+import { issueReviewAccess } from "~/lib/bid-fit-review-flow.server";
+
 const schema = z.object({
   name: z.string().trim().min(1).max(100),
   business: z.string().trim().min(1).max(150),
@@ -58,7 +60,8 @@ async function handler({ request }: { request: Request }) {
   }
   try { await setBidFitNotificationStatus(id, notificationStatus); }
   catch (updateError) { console.error("[bid-fit-review/request] notification status update failed", updateError); }
-  return Response.json({ ok: true });
+  const token = await issueReviewAccess(id);
+  return Response.json({ ok: true, token }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export const Route = createFileRoute("/api/bid-fit-review/request")({ server: { handlers: { POST: handler } } });

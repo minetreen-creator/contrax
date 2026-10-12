@@ -68,9 +68,14 @@ import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
 import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
+import { fetchMobileBids } from "./sources/al-mobile";
+import { fetchBostonBids } from "./sources/ma-boston";
 import { fetchBirminghamBids } from "./sources/al-birmingham";
 import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchAkDotpfBids } from "./sources/ak-dotpf";
+import { fetchNcEvpBids } from "./sources/nc-evp";
+import { fetchDcPassBids } from "./sources/dc-pass";
+import { fetchMdMontgomeryBids } from "./sources/md-montgomery";
 import { fetchDeMmpBids } from "./sources/de-mmp";
 import { fetchScScboBids } from "./sources/sc-scbo";
 import { fetchIaDasBids } from "./sources/ia-das";
@@ -292,6 +297,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Periscope S2G state marketplaces: MA COMMBUYS, NJ NJSTART, IL BidBuy,
   // OregonBuys, NevadaEPro, ARBuy (src/jobs/sources/periscope-states.ts).
   ...PERISCOPE_TAIL_SOURCES,
+  { name: "ma_boston", fetchFn: fetchBostonBids },
+  { name: "al_mobile", fetchFn: fetchMobileBids },
   // Georgia Procurement Registry: open state and local bidding events.
   { name: "ga_gpr", fetchFn: () => fetchGaGprBids() },
   // West Virginia wvOASIS Vendor Self Service: open state solicitations.
@@ -304,6 +311,12 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "al_aldot", fetchFn: () => fetchAlAldotBids() },
   // Alaska DOT&PF construction bid calendar (Online Public Notices is behind bot protection).
   { name: "ak_dotpf", fetchFn: () => fetchAkDotpfBids() },
+  // North Carolina eVP: open state, university, school and local government bids.
+  { name: "nc_evp", fetchFn: () => fetchNcEvpBids() },
+  // District of Columbia: OCP's open PASS solicitations from DC Open Data.
+  { name: "dc_pass", fetchFn: () => fetchDcPassBids() },
+  // Montgomery County, MD open data (Maryland's eMMA is behind a CAPTCHA browser check).
+  { name: "md_montgomery", fetchFn: () => fetchMdMontgomeryBids() },
   // Delaware Bid Solicitation Directory: open state and school solicitations.
   { name: "de_mmp", fetchFn: () => fetchDeMmpBids() },
   // South Carolina Business Opportunities: state and local public bids.

@@ -22,7 +22,7 @@ declare global {
 
 /** True when the tag should load on this path (never on admin pages). */
 export function adsTagAllowed(pathname: string): boolean {
-  return !pathname.startsWith("/admin");
+  return !pathname.startsWith("/admin") && !pathname.startsWith("/bid-fit-review/request");
 }
 
 let loaded = false;

@@ -956,6 +956,10 @@ export function displayPlaceOfPerformance(
  *                    is ALDOT itself.
  *    ak_dotpf      → Alaska DOT&PF construction bid calendar; the buyer is
  *                    DOT&PF itself.
+ *    nc_evp        → North Carolina eVP; every buyer is a North Carolina
+ *                    state agency, university, school or local government.
+ *    dc_pass       → DC OCP PASS solicitations; every buyer is a District of
+ *                    Columbia government agency.
  *    de_mmp        → Delaware Bid Solicitation Directory; every buyer is a
  *                    Delaware state agency, school district or college.
  *    sc_scbo       → South Carolina Business Opportunities; every advertiser
@@ -1016,6 +1020,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ca_sacramento_library_bonfire: "CA", // Sacramento Public Library Authority Bonfire portal (owner 2026-10-09)
   il_chicago_dps: "IL", // City of Chicago DPS weekly Bid Opportunity List (owner 2026-10-09)
   il_cook_county_bonfire: "IL", // Cook County OCPO Bonfire portal (owner 2026-10-09)
+  md_montgomery: "MD", // Montgomery County, MD open-data solicitations (owner 2026-10-11)
   il_cps_bonfire: "IL", // Chicago Public Schools Bonfire portal (owner 2026-10-09)
   il_cook_county_health_bonfire: "IL", // Cook County Health Bonfire portal (owner 2026-10-09)
   wi_mps_bonfire: "WI", // Milwaukee Public Schools' own Bonfire portal (owner 2026-10-07) // Milwaukee County's own Bonfire portal (owner 2026-10-07) // City of Milwaukee's own Bonfire portal (owner 2026-10-07)
@@ -1045,6 +1050,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   oh_odot: "OH",
   ny_nyscr: "NY",
   mi_sigma: "MI",
+  ma_boston: "MA",
   ma_commbuys: "MA",
   nj_njstart: "NJ",
   il_bidbuy: "IL",
@@ -1054,8 +1060,11 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ga_gpr: "GA",
   wv_oasis: "WV",
   ky_vss: "KY",
+  al_mobile: "AL",
   al_aldot: "AL",
   ak_dotpf: "AK",
+  nc_evp: "NC",
+  dc_pass: "DC",
   al_birmingham_purchasing: "AL",
   de_mmp: "DE",
   sc_scbo: "SC",

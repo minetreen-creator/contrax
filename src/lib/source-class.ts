@@ -181,6 +181,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // Michigan SIGMA Vendor Self Service (src/jobs/sources/mi-sigma.ts).
   mi_sigma: { class: "state", scopeState: "MI", searchScope: "state-portal", recordType: "opportunity" },
   // Periscope S2G state marketplaces (src/jobs/sources/periscope-states.ts).
+  ma_boston: { class: "local", city: "Boston", scopeState: "MA", searchScope: "city-open-data", recordType: "opportunity" },
   ma_commbuys: { class: "state", scopeState: "MA", searchScope: "state-portal", recordType: "opportunity" },
   nj_njstart: { class: "state", scopeState: "NJ", searchScope: "state-portal", recordType: "opportunity" },
   il_bidbuy: { class: "state", scopeState: "IL", searchScope: "state-portal", recordType: "opportunity" },
@@ -194,9 +195,11 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   va_virginia_beach_oracle: { class: "local", city: "Virginia Beach", scopeState: "VA", searchScope: "city-open-data", recordType: "opportunity" },
   ky_louisville_bonfire: { class: "local", city: "Louisville", scopeState: "KY", searchScope: "city-open-data", recordType: "opportunity" },
   ky_vss: { class: "state", scopeState: "KY", searchScope: "state-portal", recordType: "opportunity" },
+  al_mobile: { class: "local", city: "Mobile", scopeState: "AL", searchScope: "city-open-data", recordType: "opportunity" },
   al_birmingham_purchasing: { class: "local", city: "Birmingham", scopeState: "AL", searchScope: "city-open-data", recordType: "opportunity" },
   al_aldot: { class: "state", scopeState: "AL", searchScope: "state-portal", recordType: "opportunity" },
   ak_dotpf: { class: "state", scopeState: "AK", searchScope: "state-portal", recordType: "opportunity" },
+  dc_pass: { class: "state", scopeState: "DC", searchScope: "state-portal", recordType: "opportunity" },
   de_mmp: { class: "state", scopeState: "DE", searchScope: "state-portal", recordType: "opportunity" },
   sc_scbo: { class: "state", scopeState: "SC", searchScope: "state-portal", recordType: "opportunity" },
   ia_das: { class: "state", scopeState: "IA", searchScope: "state-portal", recordType: "opportunity" },
@@ -389,6 +392,15 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   },
   // Chicago area: Cook County, Chicago Public Schools and Cook County Health
   // Bonfire portals (owner 2026-10-09; src/jobs/sources/il-chicago-bonfire.ts).
+  // Montgomery County, MD open-data solicitations (owner 2026-10-11;
+  // src/jobs/sources/md-montgomery.ts).
+  md_montgomery: {
+    class: "local",
+    city: "Montgomery County",
+    scopeState: "MD",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   il_cook_county_bonfire: {
     class: "local",
     city: "Chicago",

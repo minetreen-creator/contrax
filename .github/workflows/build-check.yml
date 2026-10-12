@@ -234,7 +234,7 @@ jobs:
       # construction: every byte comes from a committed capture of the live pages
       # (src/jobs/sources/fixtures/sd-dot/, sha256-indexed in its README) and the
       # parse is a PURE function. No DATABASE_URL. It also pins the registration
-      # (TAIL_SOURCES +1 → 77, SOURCE_CLASSES +1 → 153, sd_dot → state/SD) that
+      # (TAIL_SOURCES +1, SOURCE_CLASSES +1, sd_dot → state/SD) that
       # src/lib/source-class.test.ts counts, and the date-only deadline rule.
       - name: SDDOT lettings connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/sd-dot.test.ts
@@ -509,7 +509,7 @@ jobs:
       - name: Subcontracting preview data layer tests (unit, deterministic, zero network)
         run: bun test src/lib/subcontracts
       - name: Free course progression and certificate identity tests
-        run: bun test src/lib/learn-funnel.test.ts src/lib/course-construction.test.ts src/lib/course-intermediate.test.ts src/lib/course-advanced.test.ts
+        run: bun test src/lib/story-funnel.test.ts src/lib/learn-funnel.test.ts src/lib/course-construction.test.ts src/lib/course-intermediate.test.ts src/lib/course-advanced.test.ts
 
       # PLAN GATES (owner gating map 2026-09-26, funnel PR-B): the attempt-only
       # gate contract — the map/copy/predicates, the five standalone gated-attempt
@@ -567,6 +567,14 @@ jobs:
       # FAILED scan never consuming a free search.
       - name: Anonymous Radar free-search limit (dual dimension) tests (unit, deterministic, zero network)
         run: bun test src/lib/radar-free-search-limit.test.ts
+      - name: Mobile public bid source tests
+        run: |
+          node --input-type=module -e 'import {build} from "esbuild"; await build({entryPoints:["tests/mobile-source.test.ts"],bundle:true,platform:"node",format:"esm",packages:"external",outfile:".mobile-source-test.mjs"})'
+          node --test .mobile-source-test.mjs
+      - name: Boston public bid source tests
+        run: |
+          node --input-type=module -e 'import {build} from "esbuild"; await build({entryPoints:["tests/boston-source.test.ts"],bundle:true,platform:"node",format:"esm",packages:"external",outfile:".boston-source-test.mjs"})'
+          node --test .boston-source-test.mjs
       - name: Birmingham purchasing source tests
         run: TZ=UTC bun test src/jobs/sources/al-birmingham.test.ts
       - name: Omaha IonWave source tests
@@ -597,6 +605,11 @@ jobs:
       #     with NO mock.module anywhere — bun's mock registry is process-global and
       #     leaks across test files in one run (skill contrax-bun-mock-module-leak).
       # Named EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
+      - name: Bid Fit Review upload and payment rules
+        run: |
+          node --input-type=module -e 'import {build} from "esbuild"; await build({entryPoints:["tests/bid-fit-review-flow.test.ts"],bundle:true,platform:"node",format:"esm",packages:"external",outfile:".review-flow-test.mjs"})'
+          node --test .review-flow-test.mjs
+
       - name: CRM access + pipeline contacts tests (unit, deterministic, zero network)
         run: bun test src/lib/crm-access.test.ts src/lib/pipeline-contacts.test.ts
       # CRM PHASE 3a — Professional follow-up reminders (owner handoff 2026-10-10,

@@ -16,5 +16,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun test src/jobs/sources/ca-san-diego-county.test.ts src/lib/local-agencies.test.ts
+      - name: Check public board connection
+        run: |
+          curl -4 --connect-timeout 15 --max-time 25 --silent --show-error --output /tmp/buynet.html --write-out "HTTP %{http_code} in %{time_total}s\n" https://sdbuynet.sandiegocounty.gov/page.aspx/en/rfp/request_browse_public
+          test -s /tmp/buynet.html
       - name: Read public board without database
         run: bun -e 'import {fetchCaSanDiegoCountyBids} from "./src/jobs/sources/ca-san-diego-county"; const r=await fetchCaSanDiegoCountyBids(); if(!r.rows.length) throw new Error("No accepted bids"); console.log(JSON.stringify({accepted:r.rows.length,skipped:r.skipped}));'

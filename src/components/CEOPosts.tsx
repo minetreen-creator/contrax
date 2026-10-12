@@ -1,3 +1,24 @@
+const trialMessage = [
+  "🚀 Big change at Contrax: every new account now starts with a 7-day Professional trial.",
+  "Why are we doing this? Most people who signed up only ever saw the basic version of Contrax. They never saw the tools that actually help you win: the daily bid emails, the match scores and the past winners and award prices. You can’t know if something is worth paying for until you’ve used it. So now everyone gets the whole thing for a week, and you decide based on real results.",
+  "No credit card. No catch. Just create your account and you get the full Contrax experience for a week:",
+];
+
+const trialFeatures = [
+  "Unlimited Radar searches matched to your trade and area",
+  "A daily 6 AM email of new government bids that fit your business",
+  "Every state and trade you work in",
+  "Unlimited saved bids, with deadlines in your calendar",
+  "Past winners and award prices, so you know what it takes to win",
+  "AI bid briefs and match scores",
+];
+
+const trialClosing = [
+  "We cover federal, state and local bids in 45 states and DC, and every bid links straight to the official government posting.",
+  "After 7 days, pick the plan that fits. Starter is just $19/month. Or keep searching on Basic at no cost.",
+  "Already have an account? Your 7-day trial starts the next time you log in.",
+];
+
 const rhodeIslandMessage = [
   "We are proud to be working with the U.S. Small Business Administration’s Rhode Island District Office to share resources that help small business owners explore government contracting opportunities.",
   "At Contrax, we believe access to practical education can make a meaningful difference. Our introductory, intermediate, and advanced government contracting courses are free for everyone—and will remain free.",
@@ -25,6 +46,27 @@ export function CEOPosts() {
         <div className="mx-auto max-w-[680px]">
           <h2 id="from-the-ceo-title" className="text-2xl font-bold text-slate-900 dark:text-white">From the CEO</h2>
           <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">Nathaniel Minetree · Founder &amp; CEO, Contrax</p>
+          <article className="mt-6 border-b border-slate-200 pb-8 dark:border-slate-700" aria-labelledby="ceo-trial-title">
+            <h3 id="ceo-trial-title" className="text-xl font-bold text-slate-900 dark:text-white">Every account now starts with a 7-day trial</h3>
+            <p className="mt-3 text-base leading-relaxed text-slate-700 dark:text-slate-300">Most people only ever saw the basic version of Contrax. Now everyone gets the full Professional tools for a week, and decides based on real results.</p>
+            <figure className="mt-4">
+              <a href="/images/from-the-ceo-trial.png" target="_blank" rel="noopener noreferrer" aria-label="Open the 7-day trial announcement screenshot full size (new tab)" className="block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">
+                <img src="/images/from-the-ceo-trial.png" width={690} height={542} loading="lazy" decoding="async" alt="Contrax Facebook announcement that every new account now starts with a 7-day Professional trial, and why. The announcement is available as text below." className="h-auto w-full rounded-xl border border-slate-200 dark:border-slate-700" />
+              </a>
+              <figcaption className="mt-2 text-xs text-slate-500 dark:text-slate-400">Our 7-day trial announcement. Select the screenshot to open it full size.</figcaption>
+            </figure>
+            <details className="mt-5 rounded-xl border border-slate-200 p-4 dark:border-slate-700">
+              <summary className="cursor-pointer font-semibold text-slate-900 dark:text-white">Read the trial announcement as text</summary>
+              <div className="mt-4 space-y-4 text-base leading-relaxed text-slate-700 dark:text-slate-300">
+                {trialMessage.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+                <ul className="space-y-1">{trialFeatures.map(feature => <li key={feature}>✅ {feature}</li>)}</ul>
+                {trialClosing.map(paragraph => <p key={paragraph}>{paragraph}</p>)}
+                <p>Find your next contract at <a href="/" className="text-blue-700 underline dark:text-blue-300">contrax.company</a></p>
+                <p>📧 Questions? <a href="mailto:contrax.companyllc@gmail.com" className="text-blue-700 underline dark:text-blue-300">contrax.companyllc@gmail.com</a></p>
+              </div>
+            </details>
+            <a href="/signup" className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Start my 7-day trial →</a>
+          </article>
           <article className="mt-6 border-b border-slate-200 pb-8 dark:border-slate-700" aria-labelledby="ceo-crm-title">
             <h3 id="ceo-crm-title" className="text-xl font-bold text-slate-900 dark:text-white">Big upgrade. Same price.</h3>
             <p className="mt-3 text-base leading-relaxed text-slate-700 dark:text-slate-300">Our paid plans now include a built-in CRM to organize contacts, connect them to saved bids, and keep your next steps in sight.</p>

@@ -3,7 +3,7 @@ import { SiteHeader } from "~/components/SiteHeader";
 import { CEOPosts } from "~/components/CEOPosts";
 
 const title = "From the CEO | Contrax";
-const description = "Updates from Nathaniel Minetree, founder and CEO of Contrax: our new CRM, free courses, and work with Rhode Island SBA.";
+const description = "Updates from Nathaniel Minetree, founder and CEO of Contrax: our new 7-day trial, our CRM, free courses, and work with Rhode Island SBA.";
 const url = "https://www.contrax.company/from-the-ceo";
 
 export const Route = createFileRoute("/from-the-ceo")({

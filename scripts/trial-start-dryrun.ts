@@ -183,18 +183,18 @@ try {
   ].join(" ");
   const lower = allCopy.toLowerCase();
   check(
-    "copy says the trial starts when you upgrade",
-    TRIAL_START_COPY.noCard === `Start your ${TRIAL_DAYS}-day trial when you upgrade.`,
+    "copy says the trial starts with the account (owner 2026-10-12)",
+    TRIAL_START_COPY.noCard === `Your ${TRIAL_DAYS}-day trial starts when you create your account. No credit card.`,
   );
   check("copy says you can cancel anytime during the trial", TRIAL_START_COPY.body === "Cancel anytime during your trial.");
-  check("copy truthfully states the 14-day window", allCopy.includes("14-day") && allCopy.includes("Professional trial"));
+  check("copy truthfully states the 7-day window", allCopy.includes("7-day") && allCopy.includes("Professional trial"));
   check("what-you-get is derived from the TRIAL_CHECKLIST ledger (capped, not invented)",
     TRIAL_START_COPY.whatYouGet === TRIAL_CHECKLIST.map((c) => `${c.label} (${c.limit})`).join(" · "));
   check("copy never claims 'unlimited'", !lower.includes("unlimited"));
   check("copy has no billing / card-number language", !lower.includes("billing") && !lower.includes("card number"));
-  check("copy truthfully says the trial starts when the user upgrades (gated attempts no longer start it)",
-    lower.includes("trial when you upgrade") && lower.includes("cancel anytime"));
-  check("TRIAL_DAYS single source of truth = 14", TRIAL_DAYS === 14, String(TRIAL_DAYS));
+  check("copy truthfully says the trial starts with the account and needs no card",
+    lower.includes("starts when you create your account") && lower.includes("no credit card"));
+  check("TRIAL_DAYS single source of truth = 7", TRIAL_DAYS === 7, String(TRIAL_DAYS));
 
   /* ═══════ (e) EXISTING SURFACES INTACT ═══════ */
   section("(e) Existing dashboard surfaces + radar semantics intact");

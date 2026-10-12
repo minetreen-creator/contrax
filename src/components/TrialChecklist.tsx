@@ -8,7 +8,7 @@
  *   ✅ / ⬜ Score an opportunity          (3 left)
  *
  * Proposal drafting is NOT listed: it is gated on Bid Scout ($99/mo), not on
- * the 14-day Professional trial (owner gate map 2026-09-26; funnel-QA copy fix
+ * the 7-day Professional trial (owner gate map 2026-09-26; funnel-QA copy fix
  * 2026-09-28 removed the stale item from TRIAL_CHECKLIST).
  *
  * An item is complete once its corresponding usage counter is > 0. The card
@@ -51,7 +51,7 @@ export function TrialChecklist() {
   return (
     <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 to-white p-5 shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-bold text-slate-900">⚡ Your 14-day Professional trial</h3>
+        <h3 className="text-sm font-bold text-slate-900">⚡ Your 7-day Professional trial</h3>
         <span className="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-semibold text-blue-700">
           {data.daysLeft} day{data.daysLeft === 1 ? "" : "s"} left
         </span>

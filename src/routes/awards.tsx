@@ -734,7 +734,7 @@ function AwardsPage() {
                       <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-center">
                         <p className="text-sm font-semibold text-slate-800">You&rsquo;ve used your 3 trial incumbent looks</p>
                         <p className="mx-auto mt-1 max-w-md text-sm text-slate-600">
-                          Your 14-day Professional trial includes incumbent intelligence on 3 opportunities, and
+                          Your 7-day Professional trial includes incumbent intelligence on 3 opportunities, and
                           you&rsquo;ve used all 3. No further incumbent looks are included.
                         </p>
                       </div>
@@ -867,7 +867,7 @@ function AwardsPage() {
         open={incumbentGateOpen}
         onClose={() => setIncumbentGateOpen(false)}
         title={gatePrompt("radar_pro").title}
-        message="Your 14-day Professional trial includes incumbent intelligence on 3 opportunities, and you've used all 3. Upgrade to Radar Pro (Professional, $79/mo) for unlimited incumbent intel & past pricing."
+        message="Your 7-day Professional trial includes incumbent intelligence on 3 opportunities, and you've used all 3. Upgrade to Radar Pro (Professional, $79/mo) for unlimited incumbent intel & past pricing."
         ctaLabel={gatePrompt("radar_pro").ctaLabel}
         priceNote={gatePrompt("radar_pro").priceNote}
         checkoutPlan="professional"

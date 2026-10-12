@@ -114,7 +114,7 @@ describe("attempt-only prompts: nothing renders on view", () => {
     expect(html).toContain('role="dialog"');
     expect(html).toContain("Radar Pro feature");
     expect(html).toContain("Upgrade to Radar Pro →");
-    expect(html).toContain("$79/mo · 14-day Professional trial · Cancel anytime");
+    expect(html).toContain("$79/mo · 7-day Professional trial · Cancel anytime");
     expect(html).toContain("Maybe later");
     // The Bid Scout prompt links out (no Stripe tier to redirect to).
     const b = gatePrompt("bid_scout");
@@ -631,9 +631,9 @@ describe("F3: no surface still sells proposal drafting on Professional", () => {
     expect(signup).toContain("Proposal drafting and pipeline CSV export are on Bid Scout.");
     // The #456 OWNER-RATIFIED trial copy is untouched (byte-identical, both sites).
     expect(
-      count(signup, "Start your 14-day trial when you upgrade. Cancel anytime during your trial."),
+      count(signup, "Your 7-day Professional trial starts when you create your account — no credit card required. After it, choose a plan or keep searching on free Basic."),
     ).toBe(2);
-    expect(signup).toContain("🔒 Start your 14-day trial when you upgrade • Cancel anytime");
+    expect(signup).toContain("🔒 7-day trial starts today • No credit card");
   });
 
   test("the signed-out CTA line that sold drafting now points at Bid Scout", () => {
@@ -708,7 +708,7 @@ describe("(g1) the /awards incumbent reveal shows the ratified Radar Pro gate", 
     );
     expect(html).toContain("Radar Pro feature");
     expect(html).toContain("Upgrade to Radar Pro →");
-    expect(html).toContain("$79/mo · 14-day Professional trial · Cancel anytime");
+    expect(html).toContain("$79/mo · 7-day Professional trial · Cancel anytime");
     expect(html).not.toContain("Upgrade to Professional");
     expect(html).not.toContain("past contract awardees and pricing history");
     expect(html).not.toContain("GATE_REQUIRED");
@@ -735,7 +735,7 @@ describe("(g4) the AI-brief locked preview shows the ratified Radar Pro offer", 
   test("the locked copy names the Radar Pro feature + its price note — the legacy Professional pitch is gone", () => {
     for (const src of [card, allowance]) {
       expect(src).toContain("Radar Pro feature");
-      expect(src).toContain("$79/mo · 14-day Professional trial · Cancel anytime");
+      expect(src).toContain("$79/mo · 7-day Professional trial · Cancel anytime");
       // The legacy locked-preview sentences are gone from every locked-brief source.
       expect(src).not.toContain("Understand this RFP in minutes");
       expect(src).not.toContain("Upgrade to Professional to reveal");
@@ -801,7 +801,7 @@ describe("(g2) the dashboard trial card never sells proposal drafting on Profess
       "Generate an Executive Brief (5) · Review incumbent pricing (3) · Score an opportunity (3)",
     );
     // The #456 owner-ratified honest-copy sentences are untouched.
-    expect(TRIAL_START_COPY.noCard).toBe("Start your 14-day trial when you upgrade.");
+    expect(TRIAL_START_COPY.noCard).toBe("Your 7-day trial starts when you create your account. No credit card.");
     expect(TRIAL_START_COPY.body).toBe("Cancel anytime during your trial.");
     // The ledger's server-side caps are untouched: drafting is simply no longer
     // SOLD as a trial inclusion (no gate changed).

@@ -6,7 +6,7 @@
  * PREMIUM ACTION (owner-ratified lazy-start semantics in ~/lib/trial.ts).
  * Today a free Basic user who finishes onboarding has no surfaced next step,
  * so they can sit on the Basic dashboard forever with trial_started_at NULL
- * and never trigger the 14-day Professional trial. This module computes the
+ * and never trigger the 7-day Professional trial. This module computes the
  * honest, SSR-safe context the dashboard card needs:
  *
  *   - whether to SHOW the card (free-Basic tier, trial not started, no
@@ -66,9 +66,9 @@ export interface TrialStartCardData {
  * the user can cancel anytime during the trial.
  */
 export const TRIAL_START_COPY = {
-  heading: "Your 14-day Professional trial is ready",
+  heading: "Your 7-day Professional trial is ready",
   badge: `${TRIAL_DAYS}-day free trial`,
-  noCard: `Start your ${TRIAL_DAYS}-day trial when you upgrade.`,
+  noCard: `Your ${TRIAL_DAYS}-day trial starts when you create your account. No credit card.`,
   body: "Cancel anytime during your trial.",
   primary: "Run my first Executive Brief",
   // HONESTY FIX (owner gating map, 2026-09-26): the Executive Brief is a Radar
@@ -77,7 +77,7 @@ export const TRIAL_START_COPY = {
   // grant trial access). So the brief path can no longer start the clock and
   // this hint must not claim it does — it states the real offer instead.
   primaryHint:
-    "Executive Briefs are a Radar Pro feature — your 14-day Professional trial starts when you upgrade.",
+    "Executive Briefs are a Radar Pro feature — included while your 7-day Professional trial runs.",
   // FIX (funnel QA 2026-09-28): this line lists the trial's REAL inclusions
   // only. Proposal drafting is a Bid Scout ($99/mo) feature, so it was removed
   // from TRIAL_CHECKLIST and can never appear here as a Professional-trial
@@ -91,7 +91,7 @@ export const TRIAL_START_COPY = {
   noMatchesCta: "Score a solicitation to start →",
   cachedNote:
     "That brief was already on file, so no trial time was used — cached briefs are free and don't start the clock.",
-  started: "Your 14-day Professional trial is live",
+  started: "Your 7-day Professional trial is live",
   startedBody: (title: string) =>
     `Your first Executive Brief${title ? ` on “${title}”` : ""} is ready. Read it on the bid page, or use the checklist below as you work through your trial.`,
   startedCta: "Read the brief →",
@@ -101,13 +101,13 @@ export const TRIAL_START_COPY = {
 
 /**
  * Pure predicate — should the trial-start card render for this trial/user?
- * Show ONLY for a free-Basic user whose 14-day Professional trial has NOT
+ * Show ONLY for a free-Basic user whose 7-day Professional trial has NOT
  * started: no active trial window, not expired, no full-access grant, tier
  * exactly 'basic', and no admin bypass. Every other state (paid, demo,
  * admin, active/expired trial, grant) hides the card.
  */
 export function shouldShowTrialStartCard(
-  trial: Pick<TrialStatus, "active" | "expired" | "fullAccess" | "planTier"> | null | undefined,
+  trial: Pick<TrialStatus, "active" | "expired" | "fullAccess" | "planTier" | "trialEnded"> | null | undefined,
   user?: { is_admin?: boolean } | null,
 ): { show: boolean; reason: string } {
   if (user?.is_admin) return { show: false, reason: "admin" };
@@ -115,6 +115,8 @@ export function shouldShowTrialStartCard(
   if (trial.planTier !== "basic") return { show: false, reason: `tier-${trial.planTier ?? "null"}` };
   if (trial.active) return { show: false, reason: "trial-active" };
   if (trial.expired) return { show: false, reason: "trial-expired" };
+  // Owner 2026-10-12: a trial that ran out lands on Basic — never offer it again.
+  if (trial.trialEnded) return { show: false, reason: "trial-ended" };
   if (trial.fullAccess) return { show: false, reason: "full-access-grant" };
   return { show: true, reason: "" };
 }

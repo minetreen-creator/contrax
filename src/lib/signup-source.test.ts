@@ -132,7 +132,7 @@ describe("/signup forwards the marker and /api/signup is the authority", () => {
       "INSERT INTO users (email, password_hash, plan_tier, trial_started_at, company_name, signup_source)",
     );
     expect(SIGNUP_API).toContain(
-      "VALUES (${email}, ${passwordHash}, 'basic', NULL, ${company}, ${signupSource})",
+      "VALUES (${email}, ${passwordHash}, 'professional', NOW(), ${company}, ${signupSource})",
     );
     expect(SIGNUP_API).not.toContain("${body.signup_source}");
   });

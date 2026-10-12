@@ -208,7 +208,11 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: "An account with this email already exists." }, { status: 409 });
     }
 
-    // Create user. Paid plans enter a 14-day trial (trial_started_at = now) and
+    // Owner 2026-10-12: EVERY signup starts a 7-day Professional trial at once
+    // (plan_tier='professional', trial_started_at=NOW(); no card). When it ends
+    // unpaid, computeTrialStatus drops the account to free Basic (search only).
+    // The notes below describe the previous lazy-trial behavior.
+    // Create user. Paid plans enter a 7-day trial (trial_started_at = now) and
     // expire into a subscribe prompt; the free Basic package never enters a
     // trial (trial_started_at = NULL), so it stays free forever and is never
     // locked by TrialGate.
@@ -221,7 +225,7 @@ async function handler({ request }: { request: Request }) {
     // trial (see /api/bids/{id}/analyze). No card is collected at signup.
     const inserted = await sql()`
       INSERT INTO users (email, password_hash, plan_tier, trial_started_at, company_name, signup_source)
-      VALUES (${email}, ${passwordHash}, 'basic', NULL, ${company}, ${signupSource})
+      VALUES (${email}, ${passwordHash}, 'professional', NOW(), ${company}, ${signupSource})
       RETURNING id, email, created_at
     `;
     const user = inserted[0] as { id: number; email: string; created_at: Date };

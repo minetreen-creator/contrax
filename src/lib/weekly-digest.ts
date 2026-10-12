@@ -18,6 +18,12 @@ import { HEAD_START_HOURS } from "./head-start";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** The weekly email goes out on this New York weekday. */
+/**
+ * Owner 2026-10-12: free Basic is search only (every signup gets a 7-day full
+ * trial first), so the Basic weekly email no longer sends. Kept as a switch so
+ * the job, template and unsubscribe route stay intact.
+ */
+export const WEEKLY_DIGEST_ENABLED = false;
 export const WEEKLY_DIGEST_WEEKDAY = "Monday";
 /** A second weekly send is refused within this many days of the last one. */
 export const WEEKLY_DIGEST_MIN_GAP_DAYS = 6;

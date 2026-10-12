@@ -148,7 +148,7 @@ export const CRM_CONTACTS_LOCK_BODY =
   "Contacts keep the people you're pursuing bids with — with notes and follow-ups — and you can link a contact to any saved bid. Your saved bids and their pipeline details are unchanged.";
 export const CRM_CONTACTS_LOCK_CTA = "Upgrade to Starter →";
 /** Mirrors the shipped Starter paywall note (PremiumUpgradeModal SAVE_LIMIT_PAYWALL_PRICE). */
-export const CRM_CONTACTS_LOCK_PRICE = "$19/mo · 14-day Professional trial · Cancel anytime";
+export const CRM_CONTACTS_LOCK_PRICE = "$19/mo · 7-day Professional trial · Cancel anytime";
 /**
  * Shown under the locked card: Basic is READ-ONLY for contacts, and the phase-1
  * route is auth-only on reads, so a downgraded account keeps seeing the contacts

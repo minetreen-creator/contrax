@@ -20,6 +20,7 @@ import type { DigestUserRow } from "~/lib/digest-recipients";
 import {
   shouldSendWeeklyDigest,
   weeklyDigestRecipients,
+  WEEKLY_DIGEST_ENABLED,
   weeklyUnsubscribeUrl,
   weeklyWindowBounds,
 } from "~/lib/weekly-digest";
@@ -47,6 +48,9 @@ export async function ensureWeeklyDigestTables(): Promise<void> {
 export async function sendWeeklyDigest(
   force: boolean = process.env.WEEKLY_DIGEST_FORCE === "1",
 ): Promise<{ bids: number; recipients: number; sent: boolean; reason?: string }> {
+  if (!WEEKLY_DIGEST_ENABLED) {
+    return { bids: 0, recipients: 0, sent: false, reason: "the Basic weekly email is off (Basic is search only, owner 2026-10-12)" };
+  }
   await ensureWeeklyDigestTables();
   const last = (await sql()`SELECT MAX(sent_at) AS last FROM weekly_digest_log`) as { last: string | null }[];
   const lastSent = last[0]?.last ?? null;

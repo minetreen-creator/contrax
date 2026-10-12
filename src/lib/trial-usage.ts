@@ -2,7 +2,7 @@
  * TRIAL USAGE LEDGER — per-trial caps for the 14-day PROFESSIONAL trial.
  * (owner requirements, lazy-start Professional trial)
  *
- * The 14-day trial is an explicit PROFESSIONAL trial that:
+ * The 7-day trial is an explicit PROFESSIONAL trial that:
  *  - starts LAZILY: `trial_started_at` is set on FIRST premium-feature use
  *    (src/lib/trial.ts `ensureTrialStarted`), NOT at account signup;
  *  - requires NO credit card;
@@ -13,7 +13,7 @@
  *  - is capped per-trial by this ledger, keyed to the trial INSTANCE
  *    (`trial_started_at`) so usage NEVER resets at a calendar-month boundary.
  *
- * Caps (per single 14-day trial, one shared ledger):
+ * Caps (per single 7-day trial, one shared ledger):
  *    5  AI Executive Briefs
  *    3  complete bid scores
  *    1  proposal draft
@@ -44,7 +44,7 @@ export type TrialUsageKey = keyof typeof TRIAL_CAPS;
 /** The user-visible trial checklist items (the ledger below is the source of
  *  truth for the CAPS). FIX (owner gate map, 2026-09-26; funnel-QA copy fix
  *  2026-09-28): proposal drafting is gated on Bid Scout ($99/mo), NOT on the
- *  14-day Professional trial — so the drafting item is GONE from every trial
+ *  7-day Professional trial — so the drafting item is GONE from every trial
  *  surface (the dashboard trial-start card and the active-trial checklist). The
  *  `drafts` counter/column stays in the ledger for compatibility
  *  (~/routes/api/bids-draft.ts still consumes it) — it is simply no longer sold

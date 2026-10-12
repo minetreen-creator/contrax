@@ -521,7 +521,7 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-900 mb-1">Plan &amp; Trial</h2>
-              <p className="text-sm text-slate-500">Your subscription status and 14-day free trial.</p>
+              <p className="text-sm text-slate-500">Your subscription status and 7-day free trial.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {isPaidTier && (
@@ -562,7 +562,7 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
                 <p className="mt-1 text-lg font-bold text-slate-900">
                   {trial.daysLeft} day{trial.daysLeft === 1 ? "" : "s"} left
                 </p>
-              ) : trial?.expired ? (
+              ) : trial?.expired || trial?.trialEnded ? (
                 <p className="mt-1 text-lg font-bold text-red-600">Trial ended</p>
               ) : (
                 <p className="mt-1 text-lg font-bold text-slate-900">{trial ? "Not in trial" : "…"}</p>
@@ -578,8 +578,14 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
           </div>
           {trial?.active && (
             <div className="mt-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
-              <span>Your 14-day free trial is almost over — keep bid matching, AI scoring, and proposal drafting after it ends.</span>
+              <span>You're on your 7-day trial. When it ends your account moves to free Basic (search only) — choose a plan to keep the daily bid email, every state and trade, and AI scoring.</span>
               <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">Upgrade now →</a>
+            </div>
+          )}
+          {trial?.trialEnded && (
+            <div className="mt-4 flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
+              <span>Your trial has ended and your account is on free Basic (search only). Choose a plan to bring back the daily bid email and full access.</span>
+              <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">View plans →</a>
             </div>
           )}
           {trial?.expired && (

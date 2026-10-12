@@ -359,6 +359,12 @@ function Hero({ sample }: { sample: SampleBid[] }) {
             </small>
           </form>
           <p className="mt-4 text-[15px] text-[#b9c7dc]">
+            Looking for local opportunities?{" "}
+            <a href="/local-bids" className="font-semibold text-white underline underline-offset-4 hover:text-[#b9c7dc] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
+              Browse City &amp; County Bids →
+            </a>
+          </p>
+          <p className="mt-4 text-[15px] text-[#b9c7dc]">
             Prefer it delivered?{" "}
             <a href="#scout" className="text-white underline">Get Friday picks</a>
           </p>
@@ -532,6 +538,7 @@ const BUSINESS_LINKS = [
 
 function Footer() {
   const links = [
+    { href: "/local-bids", label: "City & County Bids" },
     { href: "/grants", label: "Grants" },
     { href: "/contract-payments", label: "Payments tracker" },
     { href: "/blog", label: "Blog" },

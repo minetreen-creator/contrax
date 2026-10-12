@@ -89,6 +89,9 @@ cat > .vercel/output/config.json <<'JSON'
   { "src": "^/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/a-4-a/c\\.js$", "dest": "https://api.vercel.com/bot-protection/v1/challenge" },
   { "src": "^/149e9513-01fa-4fb0-aad4-566afd725d1b/2d206a39-8ed7-437e-a3be-862e0f06eea3/(.*)$", "dest": "https://api.vercel.com/bot-protection/v1/proxy/$1", "headers": { "X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'" } },
   { "handle": "filesystem" }, { "src": "/(.*)", "dest": "/render" }
+], "crons": [
+  { "path": "/api/cron/daily-emails?slot=10", "schedule": "0 10 * * *" },
+  { "path": "/api/cron/daily-emails?slot=11", "schedule": "0 11 * * *" }
 ] }
 JSON
 

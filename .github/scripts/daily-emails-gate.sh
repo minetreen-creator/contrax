@@ -7,11 +7,12 @@
 # after 6 AM New York time sends; any later run that day sees an earlier run
 # already reached the send step and skips, so nobody gets two emails.
 #
-# A manual "Run workflow" always sends. Needs GH_TOKEN (actions: read),
-# GITHUB_REPOSITORY, GITHUB_RUN_ID and EVENT_NAME.
+# A manual "Run workflow" always sends; a dispatch with GATED=true (Vercel Cron)
+# goes through the same gate as a scheduled run. Needs GH_TOKEN (actions: read),
+# GITHUB_REPOSITORY, GITHUB_RUN_ID, EVENT_NAME and optionally GATED.
 set -euo pipefail
 
-if [ "${EVENT_NAME}" != "schedule" ]; then
+if [ "${EVENT_NAME}" != "schedule" ] && [ "${GATED:-false}" != "true" ]; then
   echo "Manual run (${EVENT_NAME}): sending." >&2
   echo "send=true"
   exit 0
@@ -42,5 +43,5 @@ for id in ${run_ids}; do
   fi
 done
 
-echo "First run at or after 6 AM New York time on ${today} (hour=${hour}): sending." >&2
+echo "First run at or after 6 AM New York time on ${today} (hour=${hour}, event=${EVENT_NAME}): sending." >&2
 echo "send=true"

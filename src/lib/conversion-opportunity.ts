@@ -68,11 +68,11 @@ export function buildConversionOpportunity(o: ConversionOpportunitySignals): Con
   } else if (o.signedUp && (o.savedBid || o.briefViewed)) {
     best_next = "Suggest a Professional trial — saved bids + briefs both point to drafting.";
     obstacle = "Free account, seeing value but not yet upgraded.";
-    cta = "Try Professional free for 14 days";
+    cta = "Try Professional free for 7 days";
   } else if (o.pricingViewed && o.signedUp) {
     best_next = "Suggest a Professional trial — they already compared plans.";
     obstacle = "Free account, compared pricing, hasn't upgraded.";
-    cta = "Try Professional free for 14 days";
+    cta = "Try Professional free for 7 days";
   }
   return { reasons: o.reasons, best_next, obstacle, cta, channel };
 }

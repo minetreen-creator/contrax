@@ -82,7 +82,7 @@ export const neonGateStores: GateStores = {
  * incumbent-reveal gate exactly: admin bypass first, then the shared
  * hasProfessionalAccess predicate over the user's stored trial/tier state.
  *
- * NOTE (owner decision 1, hard Pro gate): the lazy 14-day Professional trial is
+ * NOTE (owner decision 1, hard Pro gate): the lazy 7-day Professional trial is
  * NOT started here. A gated attempt therefore never silently upgrades a free
  * account into trial access — the user gets the Pro prompt at the attempt.
  */

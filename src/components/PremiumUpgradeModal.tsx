@@ -28,7 +28,7 @@ export const SAVE_LIMIT_PAYWALL_MESSAGE =
 export const SAVE_LIMIT_PAYWALL_TITLE = "Upgrade to Starter";
 /** CTA label / price note for the saved-bid-limit prompt (Starter, $19/mo). */
 export const SAVE_LIMIT_PAYWALL_CTA = "Upgrade to Starter →";
-export const SAVE_LIMIT_PAYWALL_PRICE = "$19/mo · 14-day Professional trial · Cancel anytime";
+export const SAVE_LIMIT_PAYWALL_PRICE = "$19/mo · 7-day Professional trial · Cancel anytime";
 
 /** Stripe plan tier that the "Upgrade" CTA boots into (default: Professional). */
 type CheckoutPlan = "starter" | "professional" | "agency";
@@ -40,7 +40,7 @@ export function PremiumUpgradeModal({
   message = SAVE_LIMIT_PAYWALL_MESSAGE,
   checkoutPlan = "professional",
   ctaLabel = "Upgrade to Radar Pro →",
-  priceNote = "$79/mo · 14-day Professional trial · Cancel anytime",
+  priceNote = "$79/mo · 7-day Professional trial · Cancel anytime",
   ctaHref,
 }: {
   open: boolean;

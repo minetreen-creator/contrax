@@ -107,7 +107,7 @@ const LOCKED_PREVIEW_COPY =
 /** The price + trial path for the locked surface (the same price note the
  *  ratified Radar Pro gate renders — no pricing change). */
 const BRIEF_PROMISE_COPY =
-  "Included with Radar Pro on the Professional plan — $79/mo · 14-day Professional trial · Cancel anytime.";
+  "Included with Radar Pro on the Professional plan — $79/mo · 7-day Professional trial · Cancel anytime.";
 
 /** Days from today until a date; negative = past. Returns null when unparseable. */
 function daysUntil(dateStr: string | null): number | null {

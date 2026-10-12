@@ -722,7 +722,7 @@ function ScorePage() {
               You&rsquo;ve used your 3 trial scores
             </h2>
             <p className="mx-auto mt-2 max-w-md text-[15px] leading-relaxed text-slate-600">
-              Your 14-day Professional trial includes 3 complete bid scores. Upgrade to Radar Pro
+              Your 7-day Professional trial includes 3 complete bid scores. Upgrade to Radar Pro
               (Professional, $79/mo) to keep scoring every opportunity you're tracking.
             </p>
             <a

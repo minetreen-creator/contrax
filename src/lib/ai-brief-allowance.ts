@@ -44,7 +44,7 @@ export const AI_BRIEF_LOCKED_PREVIEW =
 /** The price + trial path shown with the locked preview — the same price note
  *  the ratified Radar Pro gate renders (no pricing change). */
 export const AI_BRIEF_PROMISE =
-  "Included with Radar Pro on the Professional plan — $79/mo · 14-day Professional trial · Cancel anytime.";
+  "Included with Radar Pro on the Professional plan — $79/mo · 7-day Professional trial · Cancel anytime.";
 
 const CREATE_TABLE = `
   CREATE TABLE IF NOT EXISTS ai_brief_allowance (

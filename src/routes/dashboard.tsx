@@ -899,14 +899,38 @@ function DeadlineAlertBanner({ count }: { count: number }) {
 }
 
 function TrialBanner({ daysLeft, planTier: _planTier, endsAt }: { daysLeft: number; planTier: string | null; endsAt: string | null }) {
+  // Owner 2026-10-12: every signup gets a 7-day full trial; in its last two days
+  // the banner turns into a clear "ends soon" notice (in-app only, no email).
+  const endingSoon = daysLeft <= 2;
   return (
     <div className="mx-auto max-w-5xl px-4 pt-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between">
+      <div className={`flex flex-col gap-3 rounded-xl border px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between ${endingSoon ? "border-red-200 bg-red-50 text-red-900" : "border-amber-200 bg-amber-50 text-amber-900"}`}>
         <div>
-          <strong>Your 14-day Professional trial</strong> · {daysLeft} day{daysLeft === 1 ? "" : "s"} left
-          {endsAt ? <span className="text-amber-700"> · ends {fmtDate(endsAt)}</span> : null}
+          {endingSoon ? (
+            <>
+              <strong>Your trial ends in {daysLeft} day{daysLeft === 1 ? "" : "s"}.</strong> After that your account moves to free Basic: search only, with new bids opening a week late, no daily email and one saved bid.
+            </>
+          ) : (
+            <>
+              <strong>Your 7-day trial</strong> · {daysLeft} day{daysLeft === 1 ? "" : "s"} left
+            </>
+          )}
+          {endsAt ? <span className={endingSoon ? "text-red-700" : "text-amber-700"}> · ends {fmtDate(endsAt)}</span> : null}
         </div>
-        <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">Subscribe now →</a>
+        <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">Choose a plan →</a>
+      </div>
+    </div>
+  );
+}
+/** Owner 2026-10-12: shown on Basic after a trial ran out (the account is not locked). */
+function TrialEndedBanner() {
+  return (
+    <div className="mx-auto max-w-5xl px-4 pt-4">
+      <div className="flex flex-col gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <strong>Your trial has ended — you're on free Basic.</strong> Search still works. Starter brings back the daily bid email, every state and trade, same-day new bids and unlimited saved bids for $19/month.
+        </div>
+        <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">Choose a plan →</a>
       </div>
     </div>
   );
@@ -1695,7 +1719,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
             recompute + surface their current matching bids. */}
         <SavedRadarMatches />
         {/* R1/R2: first-run trial-start surface — a free-Basic user whose
-            14-day Professional trial has NOT started sees the one-click
+            7-day Professional trial has NOT started sees the one-click
             "run my first Executive Brief" card; it routes them to the
             existing premium brief path (which lazily starts the trial).
             Hides itself once the trial is active (server predicate).
@@ -1835,6 +1859,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
         )}
 
         {trial?.active && <TrialBanner daysLeft={trial.daysLeft} planTier={trial.planTier} endsAt={trial.endsAt} />}
+        {trial?.trialEnded && <TrialEndedBanner />}
         {trial?.active && <div className="mx-auto max-w-5xl px-4 pt-4"><TrialChecklist /></div>}
 
         {/* Bid Matches */}

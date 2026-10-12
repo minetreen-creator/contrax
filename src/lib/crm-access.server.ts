@@ -11,7 +11,7 @@
  *               not expired. Exactly the internal bypass set of
  *               `hasProfessionalAccess` / `hasBidScoutAccess`.
  *   entitled  → the user is not expired AND (their subscription_status is
- *               'active' OR they are inside the 14-day trial window). This is the
+ *               'active' OR they are inside the 7-day trial window). This is the
  *               owner's literal predicate: `!expired && (subscription_status ===
  *               'active' || trial.active)`.
  *   tier      → internal ? professional

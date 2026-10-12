@@ -257,19 +257,18 @@ const handleGoogleAuth = createServerFn({ method: "POST" })
     let isNewUser = false;
     if (userId === null) {
       isNewUser = true;
-      // LAZY TRIAL START (owner): every OAuth signup provisions on free Basic —
-      // plan_tier='basic', trial_started_at=NULL. The 14-day PROFESSIONAL trial
-      // begins when the user upgrades to a paid plan — the hard Pro gate returns
-      // GATE_REQUIRED on gated attempts, so this no longer starts lazily.
-      const trialStartedAt = null;
+      // Owner 2026-10-12: every OAuth signup starts the 7-day Professional trial
+      // now (plan_tier='professional', trial_started_at=now; no card). When it
+      // ends unpaid, computeTrialStatus drops the account to free Basic.
+      const trialStartedAt = new Date().toISOString();
       const inserted = await sql()`
         INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-        VALUES (${email}, NULL, 'basic', ${trialStartedAt})
+        VALUES (${email}, NULL, 'professional', ${trialStartedAt})
         RETURNING id
       `.catch(async () => {
         const retry = await sql()`
           INSERT INTO users (email, password_hash, plan_tier, trial_started_at)
-          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, 'basic', ${trialStartedAt})
+          VALUES (${email}, ${`oauth:${crypto.randomUUID()}`}, 'professional', ${trialStartedAt})
           RETURNING id
         `;
         return retry;

@@ -18,10 +18,10 @@ export const Route = createFileRoute("/pricing/")({
   head: () => ({
     meta: [
       { title: "Pricing | Contrax" },
-      { name: "description", content: "Contrax plans for every stage of growth. Basic is free forever. Paid upgrades include a 14-day Professional trial that starts when you upgrade." },
+      { name: "description", content: "Contrax plans for every stage of growth. Every new account starts with a 7-day Professional trial, no credit card. After it, choose a plan or keep searching on free Basic." },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: "Pricing | Contrax" },
-      { property: "og:description", content: "Contrax plans for every stage of growth. Basic free forever, Starter $19/mo, Professional $79/mo. Every plan includes a 14-day Professional trial." },
+      { property: "og:description", content: "Contrax plans for every stage of growth. Every new account starts with a 7-day Professional trial. Starter $19/mo, Professional $79/mo, Basic search free." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
       { property: "og:image:width", content: "1200" },
@@ -40,16 +40,16 @@ const plans = [
     name: "Basic",
     price: "0",
     period: "/month",
-    description: "Free forever. Search every open bid yourself, whenever you like.",
+    description: "Where your account lands after the 7-day trial if you don't choose a plan: search only.",
     features: [
       "Search every open solicitation (new bids after a 7-day head start)",
       "2 Radar searches per account",
       "Bid matches for 1 state and 1 trade",
-      "A weekly email of the top 5 new bids (Mondays)",
       "1 Saved Bid",
       "Standard Set-Aside Filters",
+      "No bid emails",
     ],
-    cta: "Start Free",
+    cta: "Start 7-day trial",
     slug: "basic",
     featured: false,
     free: true,
@@ -144,7 +144,7 @@ function PricingPage() {
               Plans for every stage of growth
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Start free on Basic with no card, then scale up as your contracting pipeline grows. No long-term contracts required. Your 14-day Professional trial starts when you upgrade, and you can cancel anytime during it.
+              Every new account starts with a 7-day Professional trial, no credit card. When it ends, choose the plan that fits or keep searching on free Basic. No long-term contracts required.
             </p>
           </div>
 
@@ -208,7 +208,7 @@ function PricingPage() {
                     Basic card only. */}
                 {plan.free && (
                   <p className="mt-3 text-center text-xs text-gray-500">
-                    Basic is free forever, with 2 Radar searches per account and 1 saved bid. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
+                    Every account starts with a 7-day Professional trial. Afterward, Basic stays free for searching: 2 Radar searches per account, 1 saved bid, no bid emails. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
                   </p>
                 )}
               </div>
@@ -266,7 +266,7 @@ function PricingPage() {
           </p>
           <p className="mt-3 text-center">
             <a href="/signup?plan=professional" className="text-sm font-medium text-amber-600 hover:text-amber-500 transition-colors">
-              Or start your 14-day Professional trial &rarr;
+              Or start your 7-day Professional trial &rarr;
             </a>
           </p>
           <p className="mt-3 text-center text-sm text-gray-500">
@@ -287,8 +287,8 @@ function PricingPage() {
           <div className="mt-10 space-y-6">
             {[
               { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
-              { q: "How much does Basic cost?", a: "Basic is free forever — $0/mo. It includes 2 Radar searches per account, basic solicitations search, a weekly email of the top 5 new bids every Monday, standard set-aside filters, and 1 saved bid. New bids open for free accounts after a 7-day head start for paying members. Basic matches bids for one state and one trade. Upgrade to Starter ($19/mo) to see new bids the day they post, match every state and trade you work in, get a 6 AM Eastern email of the new bids in your trade and states every morning, save unlimited bids, and get your saved bids' deadlines in your calendar. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
-              { q: "Is there a free trial?", a: "Start your 14-day Professional trial when you upgrade. Cancel anytime during your trial. Basic itself is free forever — no trial and no card." },
+              { q: "How much does Basic cost?", a: "Basic is $0/mo and is where an account lands after its 7-day trial if no plan is chosen. It includes 2 Radar searches per account, basic solicitations search, standard set-aside filters, and 1 saved bid, with no bid emails. New bids open for free accounts after a 7-day head start for paying members. Basic matches bids for one state and one trade. Upgrade to Starter ($19/mo) to see new bids the day they post, match every state and trade you work in, get a 6 AM Eastern email of the new bids in your trade and states every morning, save unlimited bids, and get your saved bids' deadlines in your calendar. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
+              { q: "Is there a free trial?", a: "Yes. Every new account starts with a 7-day Professional trial, with no credit card. When it ends, choose a plan or keep searching on free Basic." },
               { q: "Is there a yearly plan?", a: "Yes. Pay yearly and get 2 months free: Starter is $190 a year instead of $228, Professional $790 instead of $948, and Agency $1,990 instead of $2,388. Choose Yearly on the upgrade page at checkout." },
               { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },
               { q: "What payment methods do you accept?", a: "We accept all major credit and debit cards through Stripe." },

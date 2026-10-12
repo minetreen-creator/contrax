@@ -500,7 +500,7 @@ export function SeoLanding(props: {
               onClick={() => trackEvent("hero_cta_click", "start_trial")}
               className="inline-block rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
             >
-              🚀 Try Professional free for 14 days →
+              🚀 Try Professional free for 7 days →
             </a>
             <p className="mt-2 text-xs font-medium text-blue-200/60">
               Card required at checkout · Cancel anytime during your trial
@@ -844,7 +844,7 @@ export function RegionView({ data }: { data: RegionData }) {
           onClick={() => trackEvent("hero_cta_click", "start_trial")}
           className="mt-4 inline-block rounded-xl bg-amber-500 px-7 py-3.5 text-base font-extrabold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.99]"
         >
-          🚀 Try Professional free for 14 days →
+          🚀 Try Professional free for 7 days →
         </a>
         <p className="mt-2 text-xs text-blue-200/60">
           Card required at checkout · Cancel anytime during your trial

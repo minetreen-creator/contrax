@@ -24,7 +24,7 @@
  *
  * HONESTY: no new trial/billing behavior. The card still routes to the
  * EXISTING /api/bids/{id}/analyze path, which runs ensureTrialStarted (lazy
- * 14-day Professional trial on first premium action) + consumeTrial('briefs')
+ * 7-day Professional trial on first premium action) + consumeTrial('briefs')
  * within the same caps (5 briefs / 3 scores / 1 draft / 3 incumbent). Cached
  * views remain free and never start the trial.
  */

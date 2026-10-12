@@ -12,7 +12,7 @@
  *     future) with full_access or a Starter+ tier;
  *   - their plan_tier is Starter or above and their access has not expired,
  *     using the same rules as computeTrialStatus (src/lib/trial.ts): a paying
- *     subscription is never expired, and a 14-day trial counts while it runs.
+ *     subscription is never expired, and a 7-day trial counts while it runs.
  *
  * Free Basic users, expired trials and the internal demo/seed tiers do not;
  * Basic users and expired trials get the free weekly email instead
@@ -26,7 +26,7 @@ import { isAdminEmail } from "./admin";
 /** Mirrors TIER_ORDER in src/lib/trial.ts (pinned by the test). */
 export const DIGEST_TIER_ORDER: Record<string, number> = { basic: 0, starter: 1, professional: 2, agency: 3 };
 /** Mirrors TRIAL_DAYS in src/lib/trial.ts (pinned by the test). */
-export const DIGEST_TRIAL_DAYS = 14;
+export const DIGEST_TRIAL_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Most bids listed in one digest email; the rest are summarised with a link. */

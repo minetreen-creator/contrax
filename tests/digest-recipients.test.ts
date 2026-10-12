@@ -56,9 +56,10 @@ describe("bid digest goes to paying users only", () => {
 
   test("agrees with computeTrialStatus on expiry for Starter+ tiers", () => {
     expect(DIGEST_TIER_ORDER).toEqual(TIER_ORDER);
-    expect(DIGEST_TRIAL_DAYS).toBe(14);
+    expect(DIGEST_TRIAL_DAYS).toBe(7);
     const cases: Partial<DigestUserRow>[] = [
       { trial_started_at: ago(1) },
+      { trial_started_at: ago(6) },
       { trial_started_at: ago(13) },
       { trial_started_at: ago(20) },
       { trial_started_at: ago(20), subscription_status: "active" },
@@ -70,7 +71,7 @@ describe("bid digest goes to paying users only", () => {
       for (const c of cases) {
         const row = user({ plan_tier: tier, ...c });
         const status = computeTrialStatus(row.trial_started_at, row.plan_tier, row.subscription_status, row.access_expires_at, !!row.full_access);
-        expect(`${tier} ${JSON.stringify(c)} -> ${isDigestEligible(row, NOW)}`).toBe(`${tier} ${JSON.stringify(c)} -> ${!status.expired}`);
+        expect(`${tier} ${JSON.stringify(c)} -> ${isDigestEligible(row, NOW)}`).toBe(`${tier} ${JSON.stringify(c)} -> ${!status.expired && !status.trialEnded}`);
       }
     }
   });

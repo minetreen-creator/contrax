@@ -3,7 +3,7 @@
  *
  * WHY IT EXISTS: a free Basic user who completes onboarding lands on the Basic
  * dashboard with trial_started_at NULL and NO surfaced next step, so the
- * 14-day Professional trial (lazy-start on FIRST PREMIUM ACTION) never gets
+ * 7-day Professional trial (lazy-start on FIRST PREMIUM ACTION) never gets
  * triggered. This card is that missing step: a prominent, honest surface that
  * routes the user to their first premium action — an AI Executive Brief on
  * their #1 matched bid, via the EXISTING premium brief path

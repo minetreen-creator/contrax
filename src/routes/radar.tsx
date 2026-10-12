@@ -540,6 +540,13 @@ export const runRadarScan = createServerFn({ method: "POST" })
         const { neonBidScoutStore } = await import("~/lib/plan-gates.server");
         subscribed = await neonBidScoutStore.hasActiveSubscription(scanner.id);
       }
+      // Owner 2026-10-12: an account inside its 7-day trial searches without the
+      // Basic limit (loading the status also starts a never-trialed account's
+      // first trial).
+      if (!subscribed) {
+        const { loadUserTrialStatus } = await import("~/lib/trial");
+        subscribed = (await loadUserTrialStatus(scanner.id)).active;
+      }
     }
     // Authenticate before selecting a budget: Basic is counted by account,
     // anonymous by browser + network; paid entitlement bypasses both.
@@ -1920,12 +1927,12 @@ function RadarLanding() {
             </h2>
             <p className="mt-3 text-slate-300">
               {scan.signupRequired
-                ? "You've used your anonymous preview. A free Basic account includes two Radar searches and one saved bid. No credit card required."
+                ? "You've used your anonymous preview. A new account starts with a 7-day trial: unlimited Radar searches, every state and trade, and the daily bid email. No credit card required."
                 : "You've used the two Radar searches included with your free Basic account. Choose a paid plan for continued Radar access."}
             </p>
             <a href={scan.signupRequired ? radarSignupHref({ trade, state, cert, sizePref }, { cta: true, free: true }) : "/upgrade"}
               className="mt-6 rounded-2xl bg-amber-500 px-6 py-4 font-bold text-slate-950 hover:bg-amber-400">
-              {scan.signupRequired ? "Create a free account" : "Choose a paid plan"}
+              {scan.signupRequired ? "Start my 7-day trial" : "Choose a paid plan"}
             </a>
             {scan.signupRequired && <a href="/login?redirect=%2Fradar" className="mt-6 text-sm text-slate-300 underline">Already have an account? Sign in</a>}
             <p className="mt-4 text-sm text-slate-400">All three government contracting courses remain free.</p>

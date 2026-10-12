@@ -13,7 +13,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { getCurrentUser } from "~/lib/auth";
-export const TRIAL_DAYS = 14;
+/** Owner 2026-10-12: every signup starts a 7-day Professional trial (was 14, lazy). */
+export const TRIAL_DAYS = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
 /** Tier ladder — higher is more capable. Shared by PlanGate and premium gates.
  * `basic` (0) is the free tier (below Starter); `starter`, `professional` and
@@ -123,12 +124,19 @@ export function hasAgencyAccess(
   return !!trial.planTier && !trial.expired && (TIER_ORDER[trial.planTier] ?? 0) >= TIER_ORDER.agency;
 }
 export interface TrialStatus {
-  /** True while the user is inside the 14-day trial window. */
+  /** True while the user is inside the 7-day trial window. */
   active: boolean;
   /** Whole days remaining in the trial (>= 0). */
   daysLeft: number;
-  /** True when the trial window has passed and the user has not paid. */
+  /**
+   * True when a time-boxed ACCESS GRANT (access_expires_at) has passed. A
+   * TRIAL that ends without payment is NOT expired: the account drops to free
+   * Basic (planTier 'basic', trialEnded true) instead of being locked out
+   * (owner 2026-10-12).
+   */
   expired: boolean;
+  /** True when the user's trial ran out without payment and they are now on free Basic. */
+  trialEnded?: boolean;
   /** ISO timestamp of when the trial ends, or null when not in trial. */
   endsAt: string | null;
   /** The user's plan_tier (starter/professional/agency/…), or null. */
@@ -167,7 +175,7 @@ export function computeTrialStatus(
       const daysLeft = Math.max(0, Math.ceil((expires - now) / DAY_MS));
       return {
         // A grant user is not "in trial" — active=false mirrors a paid account
-        // (no misleading 14-day trial banner/callout), access is granted via
+        // (no misleading 7-day trial banner/callout), access is granted via
         // expired=false and fullAccess below.
         active: false,
         daysLeft,
@@ -199,10 +207,16 @@ export function computeTrialStatus(
   const endsAt = new Date(started + TRIAL_DAYS * DAY_MS);
   const msLeft = endsAt.getTime() - Date.now();
   const daysLeft = Math.max(0, Math.ceil(msLeft / DAY_MS));
+  // Owner 2026-10-12: a trial that ends without payment drops the account to
+  // free Basic (search only) — it is never locked out. Every tier gate reads
+  // planTier, so reporting 'basic' here applies the Basic limits everywhere.
+  if (msLeft <= 0) {
+    return { active: false, daysLeft: 0, expired: false, endsAt: endsAt.toISOString(), planTier: "basic", fullAccess: false, trialEnded: true };
+  }
   return {
-    active: msLeft > 0,
+    active: true,
     daysLeft,
-    expired: msLeft <= 0,
+    expired: false,
     endsAt: endsAt.toISOString(),
     planTier: tier,
     fullAccess: false,
@@ -213,22 +227,48 @@ export function computeTrialStatus(
  * TrialStatus. Used by server API routes (e.g. /api/bids-save) whose auth user
  * object does not include plan_tier/full_access columns.
  */
+/** Never-trialed free account eligible for its first 7-day trial. PURE. */
+export function needsFirstTrial(r: {
+  plan_tier?: string | null;
+  trial_started_at?: string | Date | null;
+  subscription_status?: string | null;
+  access_expires_at?: string | Date | null;
+  full_access?: boolean | null;
+}): boolean {
+  return (
+    (r.plan_tier === "basic" || r.plan_tier == null) &&
+    !r.trial_started_at &&
+    r.subscription_status !== "active" &&
+    r.subscription_status !== "trialing" &&
+    !r.access_expires_at &&
+    !r.full_access
+  );
+}
 export async function loadUserTrialStatus(userId: number): Promise<TrialStatus> {
   const rows = await sql()`SELECT plan_tier, trial_started_at, subscription_status, access_expires_at, full_access FROM users WHERE id = ${userId}`;
   const r = rows[0] as { plan_tier?: string | null; trial_started_at?: string | Date | null; subscription_status?: string | null; access_expires_at?: string | Date | null; full_access?: boolean } | undefined;
+  // Owner 2026-10-12: an account that has NEVER had a trial (free Basic from
+  // before every signup started one) gets its 7-day Professional trial the next
+  // time its status is loaded. In-app only — no email. A user whose trial
+  // already ran (trial_started_at set) is never restarted, and paid, granted
+  // and demo accounts are never touched.
+  if (r && needsFirstTrial(r)) {
+    const started = await ensureTrialStarted(userId);
+    if (started) return computeTrialStatus(started, "professional", r.subscription_status, r.access_expires_at, r.full_access);
+  }
   return computeTrialStatus(r?.trial_started_at, r?.plan_tier, r?.subscription_status, r?.access_expires_at, r?.full_access);
 }
 /**
  * Returns the current user's trial status, or an empty status when logged out.
  * Recognizes trials by `trial_started_at` — NOT by plan_tier — so paid-plan
- * signups (starter/professional/agency) see the 14-day trial countdown, while
+ * signups (starter/professional/agency) see the 7-day trial countdown, while
  * free Basic users (trial_started_at NULL) are never in trial and never expire.
  */
 /**
  * Admin/internal accounts bypass every premium gate (see hasProfessionalAccess),
  * so they must never be reported as trial-expired: /dashboard's trial gate and
  * <TrialGate> read `expired` directly and would otherwise lock an admin whose
- * old 14-day trial ran out out of the dashboard (and its Admin link).
+ * old 7-day trial ran out out of the dashboard (and its Admin link).
  */
 export function applyAdminTrialBypass(
   status: TrialStatus,
@@ -246,7 +286,7 @@ export const checkTrial = createServerFn({ method: "GET" }).handler(async (): Pr
 /**
  * LAZY TRIAL START (owner requirement).
  *
- * The 14-day trial is an explicit PROFESSIONAL trial. The clock does NOT begin
+ * The 7-day trial is an explicit PROFESSIONAL trial. The clock does NOT begin
  * at account signup — it begins on the user's FIRST use of a premium feature.
  * Until they touch a premium feature they are effectively free Basic and the
  * clock is not running.

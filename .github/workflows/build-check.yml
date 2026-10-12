@@ -252,6 +252,25 @@ jobs:
       # date-only deadline rule.
       - name: BidNet South Dakota connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/sd-bidnet.test.ts
+      # BidNet Direct New Hampshire Purchasing Group (nh_bidnet) — NH's ONLY readable
+      # bid surface: every nh.gov host (DAS Bureau of Purchase and Property, NHDOT
+      # lettings, legacy das.nh.gov) answers HTTP 403 to ingestion, so the official
+      # portal is UNVERIFIED and is NOT faked; the public aggregator listing is what
+      # ships. THIRD-PARTY aggregator, read through its public login-free open-bids
+      # list only. DETERMINISTIC and network-free by construction: every byte comes
+      # from a committed capture of the live list pages
+      # (src/jobs/sources/fixtures/nh-bidnet/, sha256-indexed in its README), the
+      # parse is a PURE function and the ONE fetch the pagination loop makes is
+      # STUBBED from those same bytes. No DATABASE_URL. It also pins the
+      # registration (TAIL_SOURCES 92→93, SOURCE_CLASSES 169→170, nh_bidnet →
+      # state/NH) that src/lib/source-class.test.ts counts, the honest 91-listed →
+      # 90-accepted accounting (one row prints "Not Available" for its closing date
+      # and is skipped rather than given an invented deadline), the fail-closed shape
+      # gates (a reshape, and a heading claiming rows the parse did not deliver), the
+      # members-only cells never being claimed, and the Eastern-time date-only
+      # deadline rule.
+      - name: BidNet New Hampshire connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/nh-bidnet.test.ts
       # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
       # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
       # construction: every byte it reads is a committed capture of the live Solr

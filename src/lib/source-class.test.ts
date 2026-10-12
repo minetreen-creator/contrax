@@ -63,10 +63,11 @@ const prePr1IsStateLocal = (sources: string[]) =>
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
   test("132 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Alaska DOT&PF lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS, Utah U3P, Mississippi DFA, three Minnesota (MnDOT, eAdvert, Admin QuestCDN), Oklahoma OMES, Kansas, New Mexico eProNM, Idaho (IPRO, ITD), Wisconsin VendorNet, the two Texas Bonfire tenants (TxDOT, UT Tyler) the four Texas university JAGGAER tenants (UH, TAMU, Texas Tech, UTSA) and Rhode Island (OSP, external board) classifications, the four Virginia locality CivicEngage boards and the two Virginia locality Bonfire portals (Fairfax County, City of Alexandria)", () => {
     // 152 (merge base) + 4 from main (#663/#664: Boston, Mobile AL, DC PASS,
-    // Montgomery County MD) + 1 from #666 (sd_dot) + 1 from this branch
-    // (sd_bidnet) = 158.
+    // Montgomery County MD) + 1 from #666 (sd_dot) + 1 from #667 (sd_bidnet) + 1
+    // from this branch (nh_bidnet) = 159.
     // + 2 USPS mail-route trade passes (owner 2026-10-16).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(169);
+    // Count measured from the real merged module (rebase of #669 onto main @ #718).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(170);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -118,12 +119,16 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     //   the state's ServiceNow procurement portal publishes no dated records) — 2026-10-12.
     // + BidNet Direct's South Dakota Purchasing Group (sd_bidnet) — the state's
     //   GENERAL-procurement surface, a third-party aggregator, 2026-10-12.
-    // 76 (merge base) + 5 from main (#663/#664) + 1 from #666 (sd_dot) + 1 from
-    // this branch (sd_bidnet) = 83.
+    // + BidNet Direct's New Hampshire Purchasing Group (nh_bidnet) — NH's only
+    //   readable bid surface (every nh.gov host answers 403 to ingestion), a
+    //   third-party aggregator, 2026-10-12.
+    // 76 (merge base) + 5 from main (#663/#664) + 1 from #666 (sd_dot) + 1 from #667
+    // (sd_bidnet) + 1 from this branch (nh_bidnet) = 84.
     // + Gastonia, NC (City page) and Gaston County (CivicEngage board) — 2026-10-12.
     // + City of Dallas Bonfire portal — 2026-10-12.
     // + Worthington OH current municipal RFP page — 2026-10-12.
-    expect(TAIL_SOURCES.length).toBe(92);
+    // Count measured from the real merged module (rebase of #669 onto main @ #718).
+    expect(TAIL_SOURCES.length).toBe(93);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

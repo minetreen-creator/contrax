@@ -109,6 +109,7 @@ import { fetchIdIproBids } from "./sources/id-ipro";
 import { fetchIdItdBids } from "./sources/id-itd";
 import { fetchSdDotBids } from "./sources/sd-dot";
 import { fetchSdBidnetBids } from "./sources/sd-bidnet";
+import { fetchNhBidnetBids } from "./sources/nh-bidnet";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -492,6 +493,21 @@ export const TAIL_SOURCES: SyncSource[] = [
   // a second publisher's listing of the same work and are stored as their own row
   // (exactly as `va_eva` coexists with the locality boards).
   { name: "sd_bidnet", fetchFn: () => fetchSdBidnetBids() },
+  // NEW HAMPSHIRE (owner-directed 2026-10-12, "state bids" — the SD pattern).
+  // NH's own procurement surfaces are UNREADABLE from Contrax's ingestion network:
+  // every nh.gov host (`www.nh.gov`, `/dot`, `/das`, `/das/purchasing`,
+  // `apps.nh.gov/das/bids`, the legacy `das.nh.gov`) answers HTTP 403 to a plain
+  // GET with either a browser or a bot User-Agent (verified 2026-10-12 — see
+  // shared/nh-bids-discovery-2026-10-12/EVIDENCE.md). BidNet Direct's *New
+  // Hampshire Purchasing Group* IS readable, so it ships as `nh_bidnet` and the
+  // official portal is NOT faked. Same config-driven reader as `sd_bidnet`
+  // (src/jobs/sources/bidnet-direct.ts) with one config object — no new parser.
+  // THIRD-PARTY aggregator (bidnetdirect.com, not a .gov host, agencies self-post);
+  // only its public, login-free open-bids list is read (four GETs on 2026-10-12:
+  // the list plus the three pages it advertises). Tail-source shape unchanged: no
+  // migration, no new cron, its own `collector_run_log` rows, no SAM.gov load.
+  // Its own `nhbidnet-` prefix keeps it a separate source from `sd_bidnet`.
+  { name: "nh_bidnet", fetchFn: () => fetchNhBidnetBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

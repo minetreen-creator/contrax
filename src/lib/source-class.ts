@@ -447,6 +447,21 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Gastonia, NC (owner 2026-10-12): the City's page and Gaston County's board.
+  nc_gastonia: {
+    class: "local",
+    city: "Gastonia",
+    scopeState: "NC",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  nc_gaston_county: {
+    class: "local",
+    city: "Gaston County",
+    scopeState: "NC",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   va_suffolk: {
     class: "local",
     city: "Suffolk",

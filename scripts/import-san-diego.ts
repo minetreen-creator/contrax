@@ -17,7 +17,7 @@ if (process.argv.includes("--apply")) {
   const keys = new Set(stored.map(r => key(r as {title: string; agency: string})));
   if (fetched.rows.some(r => !urls.has(r.source_url) && !keys.has(key(r)))) throw new Error("San Diego County stored-row verification failed");
   const own = stored.filter(r => r.source === "ca_san_diego_county");
-  if (own.some(r => r.normalized_state !== "MA")) throw new Error("San Diego County state normalization failed");
+  if (own.some(r => r.normalized_state !== "CA")) throw new Error("San Diego County state normalization failed");
   const ownKeys = new Set(own.map(r => key(r as {title: string; agency: string})));
   if (stored.some(r => r.source !== "ca_san_diego_county" && ownKeys.has(key(r as {title: string; agency: string})))) throw new Error("Cross-source natural-key duplicate found");
   console.log(JSON.stringify({ verifiedPublicNotices: fetched.rows.length, sanDiegoCountySourceRows: own.length, newlyInserted: result.new, result }));

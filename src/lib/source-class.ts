@@ -385,6 +385,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   },
   // Sacramento Public Library Authority's Bonfire portal (owner 2026-10-09;
   // src/jobs/sources/ca-sacramento-library-bonfire.ts).
+  ca_san_diego_county: { class: "local", city: "San Diego County", scopeState: "CA", recordType: "opportunity" },
   ca_sacramento_library_bonfire: {
     class: "local",
     city: "Sacramento",

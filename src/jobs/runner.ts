@@ -48,6 +48,7 @@ import { fetchPennBidOpen } from "./sources/pennbid";
 import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaColonialHeightsBids } from "./sources/va-colonial-heights";
 import { fetchOhWorthingtonBids } from "./sources/oh-worthington";
+import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
 import { fetchVaSuffolkBids } from "./sources/va-suffolk";
 import { fetchVaLynchburgBids } from "./sources/va-lynchburg";
@@ -450,6 +451,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   // bidIDs are only unique PER SITE — an id can never collide across boards.
   { name: "va_colonial_heights", fetchFn: fetchVaColonialHeightsBids },
   { name: "oh_worthington", fetchFn: fetchOhWorthingtonBids },
+  { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },
   { name: "va_suffolk", fetchFn: fetchVaSuffolkBids },
   { name: "va_lynchburg", fetchFn: fetchVaLynchburgBids },

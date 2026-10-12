@@ -200,8 +200,8 @@ jobs:
       # file list. Same determinism posture: pure functions over literals, zero
       # network, zero database, zero clock — and a new deterministic suite that no
       # workflow names runs nowhere.
-      - name: Worthington Ohio deadline and local page tests
-        run: bun test src/jobs/sources/oh-worthington.test.ts src/lib/local-agencies.test.ts
+      - name: Ohio local source (Worthington, Franklin County) and local page tests
+        run: bun test src/jobs/sources/oh-worthington.test.ts src/jobs/sources/oh-franklin-county.test.ts src/lib/local-agencies.test.ts
       - name: Source provenance class map tests (unit, deterministic, zero network)
         run: bun test src/lib/source-class.test.ts src/lib/location-foreign-pop.test.ts
       # D14 CORPUS-LABEL ALARM — the post-PR-1 metrics layer (owner-locked order

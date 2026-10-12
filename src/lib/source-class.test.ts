@@ -65,7 +65,7 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // 152 (merge base) + 4 from main (#663/#664: Boston, Mobile AL, DC PASS,
     // Montgomery County MD) + 1 from #666 (sd_dot) + 1 from this branch
     // (sd_bidnet) = 158.
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(161);
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(162);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -121,7 +121,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // this branch (sd_bidnet) = 83.
     // + Gastonia, NC (City page) and Gaston County (CivicEngage board) — 2026-10-12.
     // + City of Dallas Bonfire portal — 2026-10-12.
-    expect(TAIL_SOURCES.length).toBe(86);
+    // + Worthington OH current municipal RFP page — 2026-10-12.
+    expect(TAIL_SOURCES.length).toBe(87);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

@@ -46,6 +46,7 @@ import { collectorHealthRows } from "../lib/collector-freshness";
 import { createStateKeywordSource, STATE_NAMES } from "./sources/state-keyword";
 import { fetchPennBidOpen } from "./sources/pennbid";
 import { fetchOhDaytonBids } from "./sources/oh-dayton";
+import { fetchOhWorthingtonBids } from "./sources/oh-worthington";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
 import { fetchVaSuffolkBids } from "./sources/va-suffolk";
 import { fetchVaLynchburgBids } from "./sources/va-lynchburg";
@@ -446,6 +447,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   // migration and NO new cron. Each board's `external_id` carries its own prefix
   // (`loudoun-` / `suffolk-` / `lynchburg-` / `charlottesville-`) because CivicEngage
   // bidIDs are only unique PER SITE — an id can never collide across boards.
+  { name: "oh_worthington", fetchFn: fetchOhWorthingtonBids },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },
   { name: "va_suffolk", fetchFn: fetchVaSuffolkBids },
   { name: "va_lynchburg", fetchFn: fetchVaLynchburgBids },

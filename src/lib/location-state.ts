@@ -1014,6 +1014,7 @@ export function displayPlaceOfPerformance(
 export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   pennbid: "PA",
   va_evirginia: "VA",
+  oh_worthington: "OH",
   oh_dayton: "OH",
   wi_milwaukee_bonfire: "WI",
   wi_milwaukee_county_bonfire: "WI",

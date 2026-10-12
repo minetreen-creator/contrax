@@ -84,6 +84,7 @@ describe("the pinned set is derived from the flag-bearing connectors", () => {
     const expectedFlagFiles = [
       "va-eva.ts",
       "va-loudoun.ts",
+      "va-colonial-heights.ts",
       "va-suffolk.ts",
       "va-lynchburg.ts",
       "va-charlottesville.ts",

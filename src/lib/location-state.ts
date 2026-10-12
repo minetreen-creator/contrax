@@ -1030,6 +1030,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   // va-charlottesville.ts): each is a Virginia locality's OWN board on
   // CivicPlus/CivicEngage, so every buyer publishing through it is that Virginia
   // locality — provable by construction, never text-derived from a row.
+  va_colonial_heights: "VA",
   va_loudoun: "VA",
   va_suffolk: "VA",
   va_lynchburg: "VA",

@@ -91,7 +91,9 @@ cat > .vercel/output/config.json <<'JSON'
   { "handle": "filesystem" }, { "src": "/(.*)", "dest": "/render" }
 ], "crons": [
   { "path": "/api/cron/daily-emails?slot=10", "schedule": "0 10 * * *" },
-  { "path": "/api/cron/daily-emails?slot=11", "schedule": "0 11 * * *" }
+  { "path": "/api/cron/daily-emails?slot=11", "schedule": "0 11 * * *" },
+  { "path": "/api/cron/sync-bids?slot=weekday", "schedule": "0 */4 * * 1-5" },
+  { "path": "/api/cron/sync-bids?slot=weekend", "schedule": "0 15 * * 0,6" }
 ] }
 JSON
 

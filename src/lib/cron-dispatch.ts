@@ -68,3 +68,4 @@ export async function dispatchWorkflow(o: DispatchOptions): Promise<{ ok: boolea
 
 export const DAILY_EMAILS_REPO = "minetreen-creator/contrax";
 export const DAILY_EMAILS_WORKFLOW = "daily-emails.yml";
+export const SYNC_BIDS_WORKFLOW = "sync-bids.yml";

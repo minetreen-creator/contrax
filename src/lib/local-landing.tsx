@@ -15,9 +15,12 @@ import {
   AGENCY_BY_SLUG,
   LOCAL_PLACES,
   RESOLVED_AGENCIES,
+  agencyForRow,
   agencyHref,
+  agencyScope,
   findPlace,
   placeHref,
+  type LocalAgency,
   type LocalPlace,
   type ResolvedAgency,
 } from "~/lib/local-agencies";
@@ -41,32 +44,46 @@ function mapBid(r: any): SeoBid {
   }, false);
 }
 
-/** Open-bid count per source, for the given sources. */
-export async function openCountsBySource(sources: string[]): Promise<Record<string, number>> {
-  if (sources.length === 0) return {};
+/** WHERE clause scoping rows to the given agencies (whole sources + exact buyer pairs). */
+function scopeWhere(sql: any, agencies: readonly LocalAgency[]) {
+  const { sources, pairSources, pairAgencies } = agencyScope(agencies);
+  return sql()`(
+    source = ANY(${sources})
+    OR (source, agency) IN (SELECT s, a FROM unnest(${pairSources}::text[], ${pairAgencies}::text[]) AS t(s, a))
+  )`;
+}
+
+/** Open-bid count per agency slug. */
+export async function openCountsByAgency(agencies: readonly LocalAgency[]): Promise<Record<string, number>> {
+  if (agencies.length === 0) return {};
   const { sql } = await import("~/db");
   const rows = (await sql()`
-    SELECT source, COUNT(*)::int AS n FROM (
-      SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))}) source
+    SELECT source, agency, COUNT(*)::int AS n FROM (
+      SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))}) source, agency
       FROM bids
-      WHERE due_date > NOW() AND source = ANY(${sources})
+      WHERE due_date > NOW() AND ${scopeWhere(sql, agencies)}
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
       ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
     ) d
-    GROUP BY source
-  `) as { source: string; n: number }[];
-  return Object.fromEntries(rows.map((r) => [r.source, Number(r.n)]));
+    GROUP BY source, agency
+  `) as { source: string; agency: string | null; n: number }[];
+  const counts: Record<string, number> = {};
+  for (const r of rows) {
+    const a = agencyForRow(agencies, r.source, r.agency);
+    if (a) counts[a.slug] = (counts[a.slug] ?? 0) + Number(r.n);
+  }
+  return counts;
 }
 
-/** Open bids from the given sources, soonest deadline first. */
-async function openBids(sources: string[], limit: number): Promise<SeoBid[]> {
+/** Open bids from the given agencies, soonest deadline first. */
+async function openBids(agencies: readonly LocalAgency[], limit: number): Promise<SeoBid[]> {
   const { sql } = await import("~/db");
   const rows = await sql()`
     SELECT ${sql().unsafe(BID_COLS)} FROM (
       SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))}) ${sql().unsafe(BID_COLS)}
       FROM bids
-      WHERE due_date > NOW() AND source = ANY(${sources})
+      WHERE due_date > NOW() AND ${scopeWhere(sql, agencies)}
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
       ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
@@ -108,12 +125,11 @@ export const getPlaceData = createServerFn({ method: "GET" })
   .handler(async ({ data }): Promise<PlaceData> => {
     const place = findPlace(data.state, data.place);
     if (!place) return { place: null, agencies: [], count: 0, bids: [], generatedAt: new Date().toISOString() };
-    const sources = place.agencies.map((a) => a.source);
     let counts: Record<string, number> = {};
     let bids: SeoBid[] = [];
     try {
-      counts = await openCountsBySource(sources);
-      bids = await openBids(sources, 30);
+      counts = await openCountsByAgency(place.agencies);
+      bids = await openBids(place.agencies, 30);
     } catch (e) {
       console.error("[local-landing] place query failed:", e);
       counts = {};
@@ -122,7 +138,7 @@ export const getPlaceData = createServerFn({ method: "GET" })
     const { agencies, ...rest } = place;
     return {
       place: rest,
-      agencies: agencies.map((a) => ({ slug: a.slug, name: a.name, count: counts[a.source] ?? 0 })),
+      agencies: agencies.map((a) => ({ slug: a.slug, name: a.name, count: counts[a.slug] ?? 0 })),
       count: Object.values(counts).reduce((s, n) => s + n, 0),
       bids,
       generatedAt: new Date().toISOString(),
@@ -130,7 +146,7 @@ export const getPlaceData = createServerFn({ method: "GET" })
   });
 
 export interface AgencyData {
-  agency: Omit<ResolvedAgency, "source"> | null;
+  agency: Omit<ResolvedAgency, "source" | "agencyName"> | null;
   count: number;
   bids: SeoBid[];
   /** Other agencies we read in the same place. */
@@ -146,14 +162,14 @@ export const getAgencyData = createServerFn({ method: "GET" })
     let count = 0;
     let bids: SeoBid[] = [];
     try {
-      count = (await openCountsBySource([agency.source]))[agency.source] ?? 0;
-      bids = await openBids([agency.source], 50);
+      count = (await openCountsByAgency([agency]))[agency.slug] ?? 0;
+      bids = await openBids([agency], 50);
     } catch (e) {
       console.error("[local-landing] agency query failed:", e);
       count = 0;
       bids = [];
     }
-    const { source: _source, ...rest } = agency;
+    const { source: _source, agencyName: _agencyName, ...rest } = agency;
     const siblings = RESOLVED_AGENCIES.filter(
       (a) => a.slug !== agency.slug && a.stateSlug === agency.stateSlug && a.placeSlug === agency.placeSlug,
     ).map((a) => ({ slug: a.slug, name: a.name }));
@@ -173,12 +189,12 @@ export interface LocalIndexPlace {
 export const getLocalIndex = createServerFn({ method: "GET" }).handler(async (): Promise<LocalIndexPlace[]> => {
   let counts: Record<string, number> = {};
   try {
-    counts = await openCountsBySource(RESOLVED_AGENCIES.map((a) => a.source));
+    counts = await openCountsByAgency(RESOLVED_AGENCIES);
   } catch (e) {
     console.error("[local-landing] index query failed:", e);
   }
   return LOCAL_PLACES.map((p) => {
-    const agencies = p.agencies.map((a) => ({ slug: a.slug, name: a.name, href: agencyHref(a), count: counts[a.source] ?? 0 }));
+    const agencies = p.agencies.map((a) => ({ slug: a.slug, name: a.name, href: agencyHref(a), count: counts[a.slug] ?? 0 }));
     return {
       name: p.name,
       href: placeHref(p),

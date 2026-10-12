@@ -1,0 +1,20 @@
+name: Validate San Diego County public board
+on:
+  pull_request:
+    paths:
+      - 'src/jobs/sources/ca-san-diego-county*'
+      - '.github/workflows/validate-san-diego.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun test src/jobs/sources/ca-san-diego-county.test.ts src/lib/local-agencies.test.ts
+      - name: Read public board without database
+        run: bun -e 'import {fetchCaSanDiegoCountyBids} from "./src/jobs/sources/ca-san-diego-county"; const r=await fetchCaSanDiegoCountyBids(); if(!r.rows.length) throw new Error("No accepted bids"); console.log(JSON.stringify({accepted:r.rows.length,skipped:r.skipped}));'

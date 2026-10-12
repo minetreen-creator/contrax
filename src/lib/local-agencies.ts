@@ -41,6 +41,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "wi_milwaukee_bonfire", slug: "city-of-milwaukee", name: "City of Milwaukee" },
   { source: "wi_milwaukee_county_bonfire", slug: "milwaukee-county", name: "Milwaukee County" },
   { source: "wi_mps_bonfire", slug: "milwaukee-public-schools", name: "Milwaukee Public Schools" },
+  { source: "ca_san_diego_county", slug: "county-of-san-diego", name: "County of San Diego" },
   { source: "ca_sacramento_library_bonfire", slug: "sacramento-public-library", name: "Sacramento Public Library" },
   { source: "il_chicago_dps", slug: "city-of-chicago", name: "City of Chicago" },
   { source: "il_cook_county_bonfire", slug: "cook-county", name: "Cook County" },

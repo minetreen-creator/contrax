@@ -1,3 +1,4 @@
+import { fetchCaSanDiegoCountyBids } from "./sources/ca-san-diego-county";
 /**
  * Contrax Sync Runner
  *
@@ -432,6 +433,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "il_chicago_dps", fetchFn: () => fetchIlChicagoDpsBids() },
   // Sacramento (owner 2026-10-09): the Public Library Authority's Bonfire portal
   // (the City/SacRT PlanetBids and County OpenGov portals are bot-protected).
+  { name: "ca_san_diego_county", fetchFn: fetchCaSanDiegoCountyBids },
   { name: "ca_sacramento_library_bonfire", fetchFn: fetchCaSacramentoLibraryBonfireBids },
   // Virginia locality CivicEngage boards (owner green-light 2026-10-08, dispatch
   // A): Loudoun County, the City of Suffolk, the City of Lynchburg and the City of

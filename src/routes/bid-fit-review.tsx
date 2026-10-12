@@ -59,6 +59,34 @@ function BidFitReview() {
             <li>Deal breakers and questions to resolve before bidding</li>
             <li>A pursue/pass recommendation with links to source sections</li>
           </ul>
+          <details id="sample-review" className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <summary className="cursor-pointer font-semibold text-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-700">View a sample Bid Fit Review</summary>
+            <article aria-label="Illustrative Bid Fit Review sample" className="mt-4 space-y-4 text-sm leading-6 text-slate-700">
+              <p className="text-xs font-bold uppercase tracking-wide text-blue-700">Illustrative sample · Real solicitation · Checked October 12, 2026</p>
+              <h3 className="text-lg font-bold text-slate-900">Planning &amp; Zoning Code Assessment and Rewrite</h3>
+              <p>City of Worthington, Ohio. This shows the review format, not a completed customer review. Business details below are hypothetical; this example is not a live bid-status update.</p>
+              <p><strong>Example business:</strong> A planning consultancy with zoning rewrite experience. Staffing, references and insurance have not been verified.</p>
+              <p className="rounded-lg border border-amber-300 bg-amber-50 p-3"><strong>Recommendation: conditional pursue.</strong> The stated work aligns with the example business. Confirm capacity, comparable experience, required legal support and insurance before committing to a proposal. Pass if those requirements cannot be met.</p>
+              <div>
+                <h4 className="font-bold text-slate-900">Scope and stated budget</h4>
+                <p>Assess and rewrite the planning and zoning code, with maps, public engagement and adoption support. The City states a $275,000 project budget; this is not an awarded amount. <a href="https://www.worthington.org/DocumentCenter/View/13616/Planning-and-Zoning-Code-Assessment-and-Rewrite-RFP-09212026#page=3" className="text-blue-800 underline">RFP pages 3–5</a>.</p>
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-900">Deadline and submission</h4>
+                <p>November 2, 2026 at noon, local Worthington time. Submit five hardcopies and one electronic copy (USB or email). The response is limited to 25 pages; the cover letter is excluded. <a href="https://www.worthington.org/DocumentCenter/View/13616/Planning-and-Zoning-Code-Assessment-and-Rewrite-RFP-09212026#page=6" className="text-blue-800 underline">RFP page 6</a>.</p>
+              </div>
+              <div>
+                <h4 className="font-bold text-slate-900">Resolve before bidding</h4>
+                <ul className="list-disc space-y-1 pl-5">
+                  <li>Confirm the team can provide the required legal review. <a href="https://www.worthington.org/DocumentCenter/View/13616/Planning-and-Zoning-Code-Assessment-and-Rewrite-RFP-09212026#page=4" className="text-blue-800 underline">Page 4</a>.</li>
+                  <li>Check insurance coverage and required limits. <a href="https://www.worthington.org/DocumentCenter/View/13616/Planning-and-Zoning-Code-Assessment-and-Rewrite-RFP-09212026#page=9" className="text-blue-800 underline">Pages 9–10</a>.</li>
+                  <li>Verify amendments and clarify submission instructions with the City before responding.</li>
+                </ul>
+              </div>
+              <p className="border-t border-blue-200 pt-3"><strong>Your review:</strong> Uses your company details and the full solicitation to identify eligibility, deadlines, deal breakers and a source-cited pursue/pass recommendation.</p>
+              <a href="https://www.worthington.org/DocumentCenter/View/13616/Planning-and-Zoning-Code-Assessment-and-Rewrite-RFP-09212026" className="inline-block font-semibold text-blue-800 underline">Read the official solicitation →</a>
+            </article>
+          </details>
           <p className="mt-6 text-sm text-slate-600">One solicitation per review. After checking document access, the bid deadline, and availability, we will confirm whether we can take it on. For accepted requests, delivery is within two business days of payment and receipt of the full solicitation documents and company details, and always before the bid deadline.</p>
           <p className="mt-3 text-sm text-slate-600">Bid writing, pricing, submission, legal advice, and award guarantees are outside this service.</p>
         </section>

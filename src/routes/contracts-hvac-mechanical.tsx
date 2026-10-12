@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { SeoLanding, seoHead, fmtDue } from "~/lib/seo-landing";
+import { SeoLanding, seoHead, fmtDue, seoSignupHref } from "~/lib/seo-landing";
 import { trackEvent } from "~/lib/track";
 
 /**
@@ -424,15 +424,15 @@ function ContractsHvacMechanical() {
               📡 Scan HVAC & mechanical set-asides free →
             </a>
             <a
-              href="/signup?plan=professional"
+              href={seoSignupHref()}
               onClick={() => trackEvent("mech_cta_click", "start_trial")}
               className="inline-block rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-7 py-3.5 text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99]"
             >
-              🚀 Try Professional free for 7 days →
+              🚀 Start my 7-day trial →
             </a>
           </div>
           <p className="mt-3 text-xs font-medium text-blue-200/60">
-            Card required at checkout · Cancel anytime during your trial
+            No credit card · Cancel anytime
           </p>
         </section>
 

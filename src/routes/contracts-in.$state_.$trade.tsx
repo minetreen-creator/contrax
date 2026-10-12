@@ -51,6 +51,7 @@ function ContractsInStateTrade() {
       headline={`${label} contracts in ${name}`}
       subhead={`Open ${label.toLowerCase()} solicitations performed in ${name}, from federal, state and local sources. Real deadlines, each linked to its official notice, updated every 4 hours on weekdays.`}
       radarHref={radarHref}
+      signupState={data.code}
       radarLabel={`Search ${label.toLowerCase()} contracts in ${name} with Contract Radar`}
       honesty={
         <>

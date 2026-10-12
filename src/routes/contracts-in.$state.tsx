@@ -34,6 +34,7 @@ function ContractsInState() {
       subhead={`Real open federal and state solicitations in ${name}, counted straight from live procurement data and updated every 4 hours on weekdays. See the totals, set-asides and closing-soon deadlines.`}
       radarHref={data.code ? `/radar?state=${data.code}` : "/radar"}
       radarLabel="Or explore live set-aside bids free with Contract Radar"
+      signupState={data.code}
       honesty={
         <>
           Every number is a live query of open solicitations, updated every 4 hours on weekdays.

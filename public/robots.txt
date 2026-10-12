@@ -3,3 +3,4 @@ Allow: /
 
 Sitemap: https://www.contrax.company/sitemap.xml
 Sitemap: https://www.contrax.company/sitemap-bids.xml
+Sitemap: https://www.contrax.company/sitemap-local.xml

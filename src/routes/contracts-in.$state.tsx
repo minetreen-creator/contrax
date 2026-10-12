@@ -7,6 +7,7 @@ import {
   SeoLanding,
   seoHead,
 } from "~/lib/seo-landing";
+import { StatePlaceLinks } from "~/lib/local-landing";
 
 export const Route = createFileRoute("/contracts-in/$state")({
   loader: ({ params }) => getRegionData({ data: { slug: params.state } }),
@@ -43,6 +44,9 @@ function ContractsInState() {
       }
     >
       <RegionView data={data} />
+      {data.code && data.name && (
+        <StatePlaceLinks stateCode={data.code} stateName={data.name} />
+      )}
       {data.code && data.name && (
         <OtherTradeLinks stateName={data.name} />
       )}

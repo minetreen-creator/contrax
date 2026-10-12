@@ -62,6 +62,13 @@ const CLAUSES_PATTERN = /^\/clauses(?:\/[A-Za-z0-9.\-]+)?$/;
 /** Per-state landing pages: `/contracts-in/<state-slug>`. */
 const STATE_LANDING_PATTERN = /^\/contracts-in\/[a-z0-9-]+$/;
 
+/**
+ * City/county and agency landing pages (owner 2026-10-12): `/local-bids`,
+ * `/bids-in/<state>/<place>` and `/agency/<slug>`. Their loaders read only open
+ * bids (src/lib/local-landing.tsx) and no session.
+ */
+const LOCAL_LANDING_PATTERN = /^\/(?:local-bids|bids-in\/[a-z0-9-]+\/[a-z0-9-]+|agency\/[a-z0-9-]+)$/;
+
 /** Collapse a query string and a single trailing slash before matching. */
 function normalizePathname(pathname: string): string {
   if (!pathname) return "/";
@@ -84,6 +91,7 @@ export function isPublicSsrCacheable(method: string, pathname: string): boolean 
   if (PUBLIC_SSR_CACHEABLE_EXACT_PATHS.includes(path)) return true;
   if (CERT_HUB_PATTERN.test(path)) return true;
   if (STATE_LANDING_PATTERN.test(path)) return true;
+  if (LOCAL_LANDING_PATTERN.test(path)) return true;
   if (CLAUSES_PATTERN.test(path)) return true;
   return false;
 }

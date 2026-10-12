@@ -512,6 +512,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  oh_worthington: {
+    class: "local",
+    city: "Worthington",
+    scopeState: "OH",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   oh_dayton: {
     class: "local",
     city: "Dayton",

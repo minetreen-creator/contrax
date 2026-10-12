@@ -448,6 +448,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     recordType: "opportunity",
   },
   // Gastonia, NC (owner 2026-10-12): the City's page and Gaston County's board.
+  // City of Dallas Bonfire portal (owner 2026-10-12; tx-dallas-bonfire.ts).
+  tx_dallas_bonfire: {
+    class: "local",
+    city: "Dallas",
+    scopeState: "TX",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   nc_gastonia: {
     class: "local",
     city: "Gastonia",

@@ -18,7 +18,9 @@ name: Daily Emails
 # runs hourly from 10:07 to 23:07 UTC (6 or 7 AM Eastern onward, both EDT and
 # EST), and .github/scripts/daily-emails-gate.sh lets the FIRST run at or after
 # 6 AM New York time send; later runs that day see it already sent and skip.
-# A manual "Run workflow" always sends.
+# A manual "Run workflow" always sends, unless started with gated=true: Vercel
+# Cron (owner 2026-10-12, /api/cron/daily-emails) starts this workflow on time
+# every morning with gated=true, so it goes through the same once-a-day gate.
 #
 # Required secrets: DATABASE_URL, RESEND_API_KEY (emails are skipped with a
 # warning when the key is absent).
@@ -27,6 +29,11 @@ on:
   schedule:
     - cron: "7 10-23 * * *"
   workflow_dispatch:
+    inputs:
+      gated:
+        description: "Apply the once-a-day 6 AM gate (set by Vercel Cron)"
+        type: boolean
+        default: false
 
 concurrency:
   group: daily-emails
@@ -53,6 +60,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           EVENT_NAME: ${{ github.event_name }}
+          GATED: ${{ inputs.gated && 'true' || 'false' }}
         run: bash .github/scripts/daily-emails-gate.sh >> "$GITHUB_OUTPUT"
 
       - name: Set up Bun

@@ -98,6 +98,7 @@ import { fetchKsSokBids } from "./sources/ks-sok";
 import { fetchNmEpronmBids } from "./sources/nm-epronm";
 import { fetchIdIproBids } from "./sources/id-ipro";
 import { fetchIdItdBids } from "./sources/id-itd";
+import { fetchSdDotBids } from "./sources/sd-dot";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -452,6 +453,12 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "va_virginia_beach_oracle", fetchFn: fetchVirginiaBeachBids },
   { name: "va_fairfax_bonfire", fetchFn: fetchVaFairfaxBonfireBids },
   { name: "va_alexandria_bonfire", fetchFn: fetchVaAlexandriaBonfireBids },
+  // South Dakota (owner 2026-10-12, "not grants, state bids"): the state's central
+  // procurement portal is a ServiceNow SPA whose listings are Knowledge Base
+  // articles (no dated solicitation records — see
+  // shared/sd-bids-discovery-2026-10-11/EVIDENCE.md), so SD's only plain,
+  // server-rendered, dated bid surface is SDDOT's own Bid Letting application.
+  { name: "sd_dot", fetchFn: () => fetchSdDotBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

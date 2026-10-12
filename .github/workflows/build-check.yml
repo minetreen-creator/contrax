@@ -227,6 +227,17 @@ jobs:
       # the non-federal "City" badge) that nothing else in CI covers.
       - name: City of Dayton connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/oh-dayton.test.ts
+      # SDDOT highway bid lettings (sd_dot) — South Dakota's ONLY bid source
+      # (owner 2026-10-12): the state's central procurement portal is a ServiceNow
+      # SPA publishing no dated solicitation records, so the SD source is SDDOT's
+      # own server-rendered letting site. DETERMINISTIC and network-free by
+      # construction: every byte comes from a committed capture of the live pages
+      # (src/jobs/sources/fixtures/sd-dot/, sha256-indexed in its README) and the
+      # parse is a PURE function. No DATABASE_URL. It also pins the registration
+      # (TAIL_SOURCES +1, SOURCE_CLASSES +1, sd_dot → state/SD) that
+      # src/lib/source-class.test.ts counts, and the date-only deadline rule.
+      - name: SDDOT lettings connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/sd-dot.test.ts
       # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
       # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
       # construction: every byte it reads is a committed capture of the live Solr

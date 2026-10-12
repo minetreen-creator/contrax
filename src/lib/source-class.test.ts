@@ -62,7 +62,9 @@ const prePr1IsStateLocal = (sources: string[]) =>
 
 describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
   test("132 entries: original 79 plus the NC, Maryland, Virginia eVA, Texas ESBD, Florida MFMP, California eProcure, Pennsylvania eMarketplace, Colorado VSS, Ohio DOT, NYS Contract Reporter, Michigan SIGMA, six Periscope, Georgia GPR, West Virginia wvOASIS, Kentucky VSS, Alabama DOT lettings, Alaska DOT&PF lettings, Delaware directory, SC Business Opportunities, Iowa Bid Opportunities, Louisiana LaPAC, Indiana IDOA, Montana eMACS, Vermont Business Registry, Tennessee CPO, Nebraska SPB, Missouri MOVERS, Connecticut CTsource, Arizona APP, Washington WEBS, Utah U3P, Mississippi DFA, three Minnesota (MnDOT, eAdvert, Admin QuestCDN), Oklahoma OMES, Kansas, New Mexico eProNM, Idaho (IPRO, ITD), Wisconsin VendorNet, the two Texas Bonfire tenants (TxDOT, UT Tyler) the four Texas university JAGGAER tenants (UH, TAMU, Texas Tech, UTSA) and Rhode Island (OSP, external board) classifications, the four Virginia locality CivicEngage boards and the two Virginia locality Bonfire portals (Fairfax County, City of Alexandria)", () => {
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(156);
+    // 152 (merge base) + 4 from main (#663/#664: Boston, Mobile AL, DC PASS,
+    // Montgomery County MD) + 1 from this branch (sd_dot) = 157.
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(157);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -110,7 +112,10 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + Mobile, AL public bid board (main #664); North Carolina eVP (live, replacing the 2026-09-30 snapshot) — 2026-10-11.
     // + District of Columbia OCP PASS solicitations (DC Open Data) — 2026-10-11.
     // + Montgomery County, MD open-data solicitations — 2026-10-11.
-    expect(TAIL_SOURCES.length).toBe(81);
+    // + SDDOT highway bid lettings (South Dakota's only registered bid source;
+    //   the state's ServiceNow procurement portal publishes no dated records) — 2026-10-12.
+    // 76 (merge base) + 5 from main (#663/#664) + 1 from this branch (sd_dot) = 82.
+    expect(TAIL_SOURCES.length).toBe(82);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

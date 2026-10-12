@@ -47,6 +47,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "il_cps_bonfire", slug: "chicago-public-schools", name: "Chicago Public Schools" },
   { source: "il_cook_county_health_bonfire", slug: "cook-county-health", name: "Cook County Health" },
   { source: "md_montgomery", slug: "montgomery-county-md", name: "Montgomery County, Maryland" },
+  { source: "va_colonial_heights", slug: "city-of-colonial-heights", name: "City of Colonial Heights" },
   { source: "va_loudoun", slug: "loudoun-county", name: "Loudoun County" },
   { source: "tx_dallas_bonfire", slug: "city-of-dallas", name: "City of Dallas" },
   { source: "nc_gastonia", slug: "city-of-gastonia", name: "City of Gastonia" },

@@ -72,6 +72,18 @@ describe("buyers inside a state portal", () => {
     expect(placeHref(rva!)).toBe("/bids-in/virginia/richmond");
   });
 
+  test("Norfolk, Hampton, Henrico, Arlington and Chesapeake pages resolve", () => {
+    expect(findPlace("virginia", "norfolk")?.agencies.map((a) => a.slug).sort()).toEqual([
+      "city-of-norfolk",
+      "norfolk-airport-authority",
+      "norfolk-redevelopment-housing-authority",
+    ]);
+    expect(findPlace("virginia", "hampton")?.agencies.length).toBe(2);
+    expect(findPlace("virginia", "henrico-county")?.agencies[0].agencyName).toBe("Henrico County Government");
+    expect(findPlace("virginia", "arlington-county")?.agencies[0].slug).toBe("arlington-county");
+    expect(findPlace("virginia", "chesapeake")?.agencies[0].name).toBe("City of Chesapeake");
+  });
+
   test("every exact-name buyer sits on its own state's portal and resolves", () => {
     const named = LOCAL_AGENCIES.filter((a) => a.agencyName);
     expect(named.length).toBeGreaterThan(0);

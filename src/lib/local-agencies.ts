@@ -62,6 +62,15 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "va_eva", agencyName: "City of Richmond Schools", slug: "richmond-public-schools", name: "Richmond Public Schools", place: "Richmond", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
   { source: "va_eva", agencyName: "Greater Richmond Transit Company", slug: "grtc-transit", name: "Greater Richmond Transit Company (GRTC)", place: "Richmond", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
   { source: "va_eva", agencyName: "Richmond Redevelopment Housing Authority", slug: "richmond-redevelopment-housing-authority", name: "Richmond Redevelopment and Housing Authority", place: "Richmond", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  // More Virginia buyers on eVA (owner 2026-10-12), same exact-name match.
+  { source: "va_eva", agencyName: "Henrico County Government", slug: "henrico-county", name: "Henrico County", place: "Henrico County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "City of Norfolk", slug: "city-of-norfolk", name: "City of Norfolk", place: "Norfolk", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "Norfolk Airport Authority", slug: "norfolk-airport-authority", name: "Norfolk Airport Authority", place: "Norfolk", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "Norfolk Redevelopment Housing Authority", slug: "norfolk-redevelopment-housing-authority", name: "Norfolk Redevelopment and Housing Authority", place: "Norfolk", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "City of Hampton", slug: "city-of-hampton", name: "City of Hampton", place: "Hampton", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "Hampton City Schools", slug: "hampton-city-schools", name: "Hampton City Schools", place: "Hampton", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "Arlington County Government", slug: "arlington-county", name: "Arlington County", place: "Arlington County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "City of Chesapeake", slug: "city-of-chesapeake", name: "City of Chesapeake", place: "Chesapeake", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
 ];
 
 export function slugify(s: string): string {

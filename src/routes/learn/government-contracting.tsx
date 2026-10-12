@@ -2,7 +2,7 @@ import { introductoryRadarTrade } from "~/lib/learn-radar";
 import { CourseOpportunity } from "~/components/CourseOpportunity";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
 import { STATE_NAMES } from "~/lib/contract-map";
 import {
@@ -99,6 +99,7 @@ function CoursePage() {
   const navigate = Route.useNavigate();
   const [done, setDone] = useState<string[]>([]);
   const [openId, setOpenId] = useState<string>(LESSONS[0].id);
+  const engagedRef = useRef(false);
   useEffect(() => {
     trackEvent("course_started", COURSE_ID, "/learn/government-contracting");
     const p = readProgress();
@@ -112,7 +113,12 @@ function CoursePage() {
     const next = [...done, id];
     setDone(next);
     saveProgress(next);
-    trackEvent("course_lesson_complete", id);
+    if (!engagedRef.current) {
+      engagedRef.current = true;
+      trackEvent("course_engaged", COURSE_ID, "/learn/government-contracting");
+    }
+    trackEvent("course_lesson_complete", `${COURSE_ID}:${id}`, "/learn/government-contracting");
+    if (LESSONS.every((l) => next.includes(l.id))) trackEvent("course_all_lessons_complete", COURSE_ID, "/learn/government-contracting");
     const upcoming = LESSONS.find((l) => !next.includes(l.id));
     if (upcoming) setOpenId(upcoming.id);
   };

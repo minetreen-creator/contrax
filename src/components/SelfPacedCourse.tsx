@@ -1,8 +1,8 @@
 import { CourseOpportunity } from "./CourseOpportunity";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SiteHeader } from "~/components/SiteHeader";
 import { trackEvent } from "~/lib/track";
-import { courseLessonPassed, coursePassed, readCourseProgress, courseWorksheet, type CourseAnswers, type SelfPacedCourse } from "~/lib/self-paced-course";
+import { courseLessonPassed, coursePassed, lessonProgressEvents, readCourseProgress, courseWorksheet, type CourseAnswers, type SelfPacedCourse } from "~/lib/self-paced-course";
 
 export function SelfPacedCoursePage({ course, business = {state:"",trade:""} }: { course: SelfPacedCourse; business?: {state:string;trade:string} }) {
   const [answers, setAnswers] = useState<CourseAnswers>({});
@@ -22,6 +22,24 @@ export function SelfPacedCoursePage({ course, business = {state:"",trade:""} }: 
     catch { setStorageWarning(true); }
   }, [answers, notes, ready, course]);
   const done = course.lessons.filter(l => courseLessonPassed(course, l.id, answers)).length;
+  // Learn funnel (owner 2026-10-12): record real progress, not page loads.
+  // Lessons restored from this device's saved progress are the baseline and
+  // never re-fire; only a lesson passed in this visit is recorded.
+  const passedRef = useRef<Set<string> | null>(null);
+  const engagedRef = useRef(false);
+  useEffect(() => {
+    if (!ready) return;
+    const passed = new Set(course.lessons.filter(l => courseLessonPassed(course, l.id, answers)).map(l => l.id));
+    const { lessons, finishedAll } = lessonProgressEvents(passedRef.current, passed, course.lessons.length);
+    passedRef.current = passed;
+    for (const id of lessons) trackEvent("course_lesson_complete", `${course.id}:${id}`, window.location.pathname);
+    if (finishedAll) trackEvent("course_all_lessons_complete", course.id, window.location.pathname);
+  }, [answers, ready, course]);
+  const engage = () => {
+    if (engagedRef.current) return;
+    engagedRef.current = true;
+    trackEvent("course_engaged", course.id, window.location.pathname);
+  };
   const download = () => {
     trackEvent("course_worksheet_download", course.id);
     const link = document.createElement("a");
@@ -62,7 +80,7 @@ export function SelfPacedCoursePage({ course, business = {state:"",trade:""} }: 
           <div className="space-y-4 rounded-xl bg-slate-50 p-4"><h3 className="font-bold text-slate-900">Check your understanding</h3>
             {l.quiz.map((q, qi) => <fieldset key={q.q}><legend className="text-sm font-semibold text-slate-900">{q.q}</legend>
               <div className="mt-2 space-y-2">{q.options.map((option, oi) => <label key={option} className={`flex cursor-pointer items-start gap-2 rounded-lg border p-3 text-sm ${answers[l.id]?.[qi] === oi ? "border-blue-400 bg-blue-50" : "border-slate-200 bg-white"}`}>
-                <input type="radio" name={`${l.id}-${qi}`} checked={answers[l.id]?.[qi] === oi} className="mt-1" onChange={() => setAnswers(previous => ({ ...previous, [l.id]: l.quiz.map((_, i) => i === qi ? oi : previous[l.id]?.[i] ?? null) }))} />{option}
+                <input type="radio" name={`${l.id}-${qi}`} checked={answers[l.id]?.[qi] === oi} className="mt-1" onChange={() => { engage(); setAnswers(previous => ({ ...previous, [l.id]: l.quiz.map((_, i) => i === qi ? oi : previous[l.id]?.[i] ?? null) })); }} />{option}
               </label>)}</div>
               {answers[l.id]?.[qi] != null && <p className={`mt-2 text-sm ${answers[l.id][qi] === q.answer ? "text-emerald-800" : "text-red-700"}`} role="status">{answers[l.id][qi] === q.answer ? "Correct. " : "Try again. "}{q.why}</p>}
             </fieldset>)}

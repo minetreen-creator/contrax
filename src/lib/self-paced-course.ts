@@ -28,3 +28,20 @@ export function readCourseProgress(course: SelfPacedCourse, raw: string | null):
 export function courseWorksheet(course: SelfPacedCourse, notes: Record<string, string>): string {
   return `${course.title}\nContrax practice worksheet — not a submitted proposal\n\nOpportunity/reference: ____________________\nOfficial source: ____________________\n\n` + course.lessons.map((l, i) => `${i + 1}. ${l.title}\n${l.worksheet}\n${notes[l.id]?.trim() || "[Add your notes]"}`).join("\n\n");
 }
+
+/**
+ * Learn funnel progress events for one change in passed lessons (owner
+ * 2026-10-12). `previous === null` is the first look after restoring saved
+ * progress: that state is the baseline and records nothing, so a returning
+ * visitor's already-finished lessons are never counted again. PURE.
+ */
+export function lessonProgressEvents(
+  previous: ReadonlySet<string> | null,
+  passed: ReadonlySet<string>,
+  totalLessons: number,
+): { lessons: string[]; finishedAll: boolean } {
+  if (!previous) return { lessons: [], finishedAll: false };
+  const lessons = [...passed].filter((id) => !previous.has(id));
+  const finishedAll = previous.size < totalLessons && passed.size === totalLessons;
+  return { lessons, finishedAll };
+}

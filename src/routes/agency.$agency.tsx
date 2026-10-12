@@ -29,15 +29,15 @@ function AgencyPage() {
     <SeoLanding
       eyebrow={a ? `Live bids · ${a.place}, ${a.stateName}` : "Live agency bids"}
       headline={a ? `${a.name} bids and RFPs` : "Agency bids"}
-      subhead={`Open solicitations from ${a?.name ?? "this agency"}, read straight from its own bid board. Real deadlines, updated every 4 hours on weekdays.`}
+      subhead={`Open solicitations from ${a?.name ?? "this agency"}, read straight from ${a?.via ?? "its own bid board"}. Real deadlines, updated every 4 hours on weekdays.`}
       radarHref={a ? `/radar?state=${a.stateCode}` : "/radar"}
       signupSource="local_page"
       signupState={a?.stateCode}
       radarLabel={`Search all bids in ${a?.stateName ?? "your state"} with Contract Radar`}
       honesty={
         <>
-          Every listing comes from {a?.name ?? "the agency"}'s own bid board, and the count is a live
-          query of open solicitations. Nothing here is an award or guaranteed work. Always confirm
+          Every listing is {a?.name ?? "the agency"}'s own solicitation, read from{" "}
+          {a?.via ?? "its own bid board"}, and the count is a live query of open solicitations. Nothing here is an award or guaranteed work. Always confirm
           details on the official notice.
         </>
       }

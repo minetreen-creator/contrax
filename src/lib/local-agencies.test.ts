@@ -8,6 +8,8 @@ import {
   findPlace,
   placeHref,
   placesInState,
+  agencyScope,
+  agencyForRow,
 } from "~/lib/local-agencies";
 import { buildLocalSitemapXml } from "~/lib/local-sitemap";
 import { closingWithinWeek } from "~/lib/local-landing";
@@ -18,7 +20,7 @@ describe("local agency registry", () => {
       .filter(([label, r]) => r.class === "local" && r.recordType === "opportunity" && !RETIRED_SOURCES.has(label) && !AWARD_TYPE_SOURCES.has(label))
       .map(([label]) => label)
       .sort();
-    expect(LOCAL_AGENCIES.map((a) => a.source).sort()).toEqual(local);
+    expect(LOCAL_AGENCIES.filter((a) => !a.agencyName).map((a) => a.source).sort()).toEqual(local);
   });
 
   test("every entry resolves to a place and state", () => {
@@ -54,6 +56,46 @@ describe("local agency registry", () => {
     expect(va.length).toBeGreaterThan(0);
     expect(va.every((p) => p.stateCode === "VA")).toBe(true);
     expect(placesInState("WY")).toEqual([]);
+  });
+});
+
+describe("buyers inside a state portal", () => {
+  test("Richmond groups its eVA buyers, matched by exact buyer name", () => {
+    const rva = findPlace("virginia", "richmond");
+    expect(rva?.agencies.map((a) => a.agencyName)).toEqual([
+      "City of Richmond Government",
+      "City of Richmond Schools",
+      "Greater Richmond Transit Company",
+      "Richmond Redevelopment Housing Authority",
+    ]);
+    expect(rva?.agencies.every((a) => a.source === "va_eva" && a.via)).toBe(true);
+    expect(placeHref(rva!)).toBe("/bids-in/virginia/richmond");
+  });
+
+  test("every exact-name buyer sits on its own state's portal and resolves", () => {
+    const named = LOCAL_AGENCIES.filter((a) => a.agencyName);
+    expect(named.length).toBeGreaterThan(0);
+    for (const a of named) {
+      expect(SOURCE_CLASSES[a.source]?.scopeState).toBe(a.stateCode);
+      expect(AGENCY_BY_SLUG[a.slug]?.placeSlug).toBeTruthy();
+    }
+  });
+
+  test("agencyScope splits whole sources from exact buyer pairs", () => {
+    const scope = agencyScope(findPlace("virginia", "richmond")!.agencies);
+    expect(scope.sources).toEqual([]);
+    expect(scope.pairSources.every((s) => s === "va_eva")).toBe(true);
+    expect(scope.pairAgencies).toContain("City of Richmond Government");
+    const chicago = agencyScope(findPlace("illinois", "chicago")!.agencies);
+    expect(chicago.pairSources).toEqual([]);
+    expect(chicago.sources.length).toBe(4);
+  });
+
+  test("agencyForRow matches the exact buyer only", () => {
+    const all = LOCAL_AGENCIES;
+    expect(agencyForRow(all, "va_eva", "City of Richmond Government")?.slug).toBe("city-of-richmond");
+    expect(agencyForRow(all, "va_eva", "Virginia Department of Transportation")).toBeUndefined();
+    expect(agencyForRow(all, "tx_dallas_bonfire", "Anything")?.slug).toBe("city-of-dallas");
   });
 });
 

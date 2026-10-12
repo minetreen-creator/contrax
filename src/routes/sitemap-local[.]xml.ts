@@ -9,12 +9,12 @@ import { buildLocalSitemapXml } from "~/lib/local-sitemap";
  */
 async function handler() {
   try {
-    const { openCountsBySource } = await import("~/lib/local-landing");
-    const counts = await openCountsBySource(RESOLVED_AGENCIES.map((a) => a.source));
+    const { openCountsByAgency } = await import("~/lib/local-landing");
+    const counts = await openCountsByAgency(RESOLVED_AGENCIES);
     const paths = [
       "/local-bids",
-      ...LOCAL_PLACES.filter((p) => p.agencies.some((a) => (counts[a.source] ?? 0) > 0)).map(placeHref),
-      ...RESOLVED_AGENCIES.filter((a) => (counts[a.source] ?? 0) > 0).map(agencyHref),
+      ...LOCAL_PLACES.filter((p) => p.agencies.some((a) => (counts[a.slug] ?? 0) > 0)).map(placeHref),
+      ...RESOLVED_AGENCIES.filter((a) => (counts[a.slug] ?? 0) > 0).map(agencyHref),
     ];
     return new Response(buildLocalSitemapXml(paths), {
       status: 200,

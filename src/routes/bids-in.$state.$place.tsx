@@ -30,14 +30,14 @@ function BidsInPlace() {
     <SeoLanding
       eyebrow={`Live local bids · ${name}`}
       headline={`Government bids in ${name}`}
-      subhead={`Open bids, RFPs and RFQs from ${data.place?.name ?? "local"} buyers, read straight from their own bid boards. Real deadlines, updated every 4 hours on weekdays.`}
+      subhead={`Open bids, RFPs and RFQs from ${data.place?.name ?? "local"} buyers, read straight from their own bid boards or the state portal they post on. Real deadlines, updated every 4 hours on weekdays.`}
       radarHref={data.place ? `/radar?state=${data.place.stateCode}` : "/radar"}
       signupSource="local_page"
       signupState={data.place?.stateCode}
       radarLabel={`Search all bids in ${data.place?.stateName ?? "your state"} with Contract Radar`}
       honesty={
         <>
-          Every listing comes from the buyer's own bid board, and the count is a live query of open
+          Every listing comes from the buyer's own bid board or the state portal it posts on, and the count is a live query of open
           solicitations. Nothing here is an award or guaranteed work. Always confirm details on the
           official notice.
         </>

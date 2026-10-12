@@ -74,6 +74,8 @@ import { fetchBirminghamBids } from "./sources/al-birmingham";
 import { fetchAlAldotBids } from "./sources/al-aldot";
 import { fetchAkDotpfBids } from "./sources/ak-dotpf";
 import { fetchNcEvpBids } from "./sources/nc-evp";
+import { fetchNcGastoniaBids } from "./sources/nc-gastonia";
+import { fetchNcGastonCountyBids } from "./sources/nc-gaston-county";
 import { fetchDcPassBids } from "./sources/dc-pass";
 import { fetchMdMontgomeryBids } from "./sources/md-montgomery";
 import { fetchDeMmpBids } from "./sources/de-mmp";
@@ -314,6 +316,10 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "ak_dotpf", fetchFn: () => fetchAkDotpfBids() },
   // North Carolina eVP: open state, university, school and local government bids.
   { name: "nc_evp", fetchFn: () => fetchNcEvpBids() },
+  // Gastonia, NC: the City's own Bids & RFPs page (deadlines read from each PDF)
+  // and Gaston County's CivicEngage board — neither posts on NC eVP.
+  { name: "nc_gastonia", fetchFn: () => fetchNcGastoniaBids() },
+  { name: "nc_gaston_county", fetchFn: () => fetchNcGastonCountyBids() },
   // District of Columbia: OCP's open PASS solicitations from DC Open Data.
   { name: "dc_pass", fetchFn: () => fetchDcPassBids() },
   // Montgomery County, MD open data (Maryland's eMMA is behind a CAPTCHA browser check).

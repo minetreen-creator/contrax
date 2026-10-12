@@ -65,7 +65,7 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // 152 (merge base) + 4 from main (#663/#664: Boston, Mobile AL, DC PASS,
     // Montgomery County MD) + 1 from #666 (sd_dot) + 1 from this branch
     // (sd_bidnet) = 158.
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(158);
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(160);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -119,7 +119,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     //   GENERAL-procurement surface, a third-party aggregator, 2026-10-12.
     // 76 (merge base) + 5 from main (#663/#664) + 1 from #666 (sd_dot) + 1 from
     // this branch (sd_bidnet) = 83.
-    expect(TAIL_SOURCES.length).toBe(83);
+    // + Gastonia, NC (City page) and Gaston County (CivicEngage board) — 2026-10-12.
+    expect(TAIL_SOURCES.length).toBe(85);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

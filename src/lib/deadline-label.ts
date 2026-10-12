@@ -49,6 +49,7 @@ const MS_PER_DAY = 86_400_000;
  */
 export const COUNTDOWN_SUPPRESSED_SOURCES = [
   "va_eva",
+  "va_colonial_heights",
   "va_loudoun",
   "va_suffolk",
   "va_lynchburg",

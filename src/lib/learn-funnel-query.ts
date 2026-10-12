@@ -20,6 +20,9 @@ export function learningQuery(human: string, qaUser: string) {
       ), activity AS (
         SELECT l.visitor_id, l.learn_at,
           MIN(e.created_at) FILTER (WHERE e.event_name = 'course_started') AS started_at,
+          MIN(e.created_at) FILTER (WHERE e.event_name = 'course_engaged') AS engaged_at,
+          MIN(e.created_at) FILTER (WHERE e.event_name = 'course_lesson_complete') AS lesson_at,
+          MIN(e.created_at) FILTER (WHERE e.event_name = 'course_all_lessons_complete') AS finished_at,
           MIN(e.created_at) FILTER (WHERE e.event_name = 'course_completed') AS completed_at,
           MIN(e.created_at) FILTER (WHERE e.event_name = 'radar_scan_complete') AS radar_at,
           MIN(e.created_at) FILTER (WHERE e.event_name = 'signup_success') AS signup_at,

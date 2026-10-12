@@ -74,6 +74,8 @@ export const EVENT_LABELS: Record<string, string> = {
   course_started: "Course opened",
   course_completed: "Course completed / certificate recorded",
   course_lesson_complete: "Course lesson completed",
+  course_engaged: "Started a course (answered or finished a lesson)",
+  course_all_lessons_complete: "Finished every lesson in a course",
   course_worksheet_download: "Course worksheet downloaded",
 
   page_engaged: "Stayed and read (15+ seconds or scrolled halfway)",

@@ -1,3 +1,4 @@
+import { request as httpsRequest } from "node:https";
 /** County of San Diego BuyNet public solicitations. City PlanetBids is separate.
  * Verified public list 2026-10-12; no login. Read Open records only, deduplicate
  * lots by BPM code, and use the portal countdown epoch for DST-safe deadlines.
@@ -61,22 +62,29 @@ export async function fetchCaSanDiegoCountyBids(now: number = Date.now()): Promi
         headers["Content-Type"] = "application/x-www-form-urlencoded";
         headers.Referer = CA_SAN_DIEGO_COUNTY_LIST_URL;
       }
-      const resp = await fetch(body ? `${CA_SAN_DIEGO_COUNTY_LIST_URL}?` : CA_SAN_DIEGO_COUNTY_LIST_URL, {
-        method: body ? "POST" : "GET",
-        headers,
-        body: body?.toString(),
-        redirect: "manual",
-        signal: controller.signal,
+      // Explicit IPv4 transport: GitHub's curl -4 reaches this public host,
+      // while Bun fetch times out during the connection.
+      const resp = await new Promise<{ status: number; cookies: string[]; html: string }>((resolve, reject) => {
+        const req = httpsRequest(body ? `${CA_SAN_DIEGO_COUNTY_LIST_URL}?` : CA_SAN_DIEGO_COUNTY_LIST_URL, {
+          method: body ? "POST" : "GET", headers, family: 4, signal: controller.signal,
+        }, res => {
+          let html = "";
+          res.setEncoding("utf8");
+          res.on("data", chunk => { html += chunk; });
+          res.on("error", reject);
+          res.on("end", () => resolve({ status: res.statusCode ?? 0, cookies: res.headers["set-cookie"] ?? [], html }));
+        });
+        req.on("error", reject);
+        req.end(body?.toString());
       });
-      const setCookies: string[] =
-        typeof (resp.headers as any).getSetCookie === "function" ? (resp.headers as any).getSetCookie() : [];
+      const setCookies = resp.cookies;
       for (const c of setCookies) {
         const [pair] = c.split(";");
         const eq = pair.indexOf("=");
         if (eq > 0) cookies.set(pair.slice(0, eq).trim(), pair.slice(eq + 1).trim());
       }
       if (resp.status !== 200) fail(httpFailureDetail(resp.status, CA_SAN_DIEGO_COUNTY_LIST_URL));
-      return await resp.text();
+      return resp.html;
     } catch (e) {
       if (e instanceof SourceUnreachableError) throw e;
       fail(requestFailureDetail(e));

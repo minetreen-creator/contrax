@@ -56,6 +56,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "va_charlottesville", slug: "city-of-charlottesville", name: "City of Charlottesville" },
   { source: "va_fairfax_bonfire", slug: "fairfax-county", name: "Fairfax County" },
   { source: "va_alexandria_bonfire", slug: "city-of-alexandria", name: "City of Alexandria" },
+  { source: "oh_worthington", slug: "city-of-worthington", name: "City of Worthington" },
   { source: "oh_dayton", slug: "city-of-dayton", name: "City of Dayton" },
   // Richmond, VA buyers on eVA (va_eva `agencyname`, exact).
   { source: "va_eva", agencyName: "City of Richmond Government", slug: "city-of-richmond", name: "City of Richmond", place: "Richmond", stateCode: "VA", via: "eVA, Virginia's procurement portal" },

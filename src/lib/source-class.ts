@@ -217,9 +217,21 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   ms_dfa: { class: "state", scopeState: "MS", searchScope: "state-portal", recordType: "opportunity" },
   // South Dakota DOT highway bid lettings (src/jobs/sources/sd-dot.ts). South
   // Dakota's central procurement portal (the BHRA ServiceNow service portal) is a
-  // JS SPA publishing no dated solicitation records, so this is SD's only
-  // registered bid source.
+  // JS SPA publishing no dated solicitation records, so this was SD's only
+  // registered bid source until `sd_bidnet` (below) added the general-procurement
+  // surface the state itself does not publish.
   sd_dot: { class: "state", scopeState: "SD", searchScope: "state-portal", recordType: "opportunity" },
+  // BidNet Direct's South Dakota Purchasing Group (src/jobs/sources/sd-bidnet.ts),
+  // the state's general-procurement surface next to `sd_dot`. HONESTY: BidNet is a
+  // THIRD-PARTY aggregator (bidnetdirect.com — not a .gov host; agencies self-post
+  // and the rows are SD-located) and is NOT the State of South Dakota's portal. The
+  // class vocabulary has no "aggregator" value (R8's four classes only), so this is
+  // recorded as STATE with home jurisdiction SD — the same treatment this table
+  // already gives the vendor-hosted but state-scoped marketplaces (`pennbid` ruling
+  // b, the six Periscope S2G marketplaces). The badge therefore reads "State (SD)"
+  // and the aggregator honesty is carried on the connector header and on every row
+  // description; it never claims the state operates BidNet.
+  sd_bidnet: { class: "state", scopeState: "SD", searchScope: "state-portal", recordType: "opportunity" },
   mn_mndot: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_connex: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_questcdn: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },

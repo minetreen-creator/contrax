@@ -28,6 +28,7 @@ import {
   type AcquisitionBucket,
 } from "~/lib/signup-telemetry";
 import {
+  isSearchPageSource,
   normalizeSignupSource,
   type SignupSource,
 } from "~/lib/signup-source";
@@ -588,6 +589,14 @@ function SignupPage() {
       .catch(() => { /* fail-open: no verified handoff */ });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source]);
+  // Search-page doors (owner 2026-10-12): carry the page's state to onboarding
+  // so the new account's first matches are for that area. State only; no trade
+  // or set-aside is assumed.
+  useEffect(() => {
+    if (!isSearchPageSource(source)) return;
+    const st = (state || "").trim().toUpperCase();
+    if (/^[A-Z]{2}$/.test(st)) saveRadarPrefill({ trade: "", state: st, cert: "" as RadarCertId, sizePref: "any" as RadarSizeId });
+  }, [source, state]);
   useEffect(() => {
     if (source !== "radar" && source !== "radar_results_unlock" && source !== "radar_results_cta") return;
     // SOURCE PRECEDENCE (owner rule): criteria come from the URL search params

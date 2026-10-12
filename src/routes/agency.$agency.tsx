@@ -31,6 +31,8 @@ function AgencyPage() {
       headline={a ? `${a.name} bids and RFPs` : "Agency bids"}
       subhead={`Open solicitations from ${a?.name ?? "this agency"}, read straight from its own bid board. Real deadlines, updated every 4 hours on weekdays.`}
       radarHref={a ? `/radar?state=${a.stateCode}` : "/radar"}
+      signupSource="local_page"
+      signupState={a?.stateCode}
       radarLabel={`Search all bids in ${a?.stateName ?? "your state"} with Contract Radar`}
       honesty={
         <>

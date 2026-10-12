@@ -81,3 +81,24 @@ describe("state + trade SEO pages", () => {
     }
   });
 });
+
+describe("search-page trial button", () => {
+  test("goes to the no-card signup, tagged with source and state", async () => {
+    const { seoSignupHref } = await import("~/lib/seo-landing");
+    expect(seoSignupHref()).toBe("/signup?source=seo_page");
+    expect(seoSignupHref("seo_page", "TX")).toBe("/signup?source=seo_page&state=TX");
+    expect(seoSignupHref("local_page", "IL")).toBe("/signup?source=local_page&state=IL");
+    // Anything but a two-letter code is dropped, never passed through.
+    expect(seoSignupHref("local_page", "texas")).toBe("/signup?source=local_page");
+    expect(seoSignupHref("seo_page", null)).toBe("/signup?source=seo_page");
+  });
+
+  test("never sends visitors to the card-at-checkout Professional signup", async () => {
+    const { readFileSync } = await import("node:fs");
+    for (const f of ["src/lib/seo-landing.tsx", "src/routes/contracts-hvac-mechanical.tsx"]) {
+      const src = readFileSync(f, "utf8");
+      expect(src).not.toContain('href="/signup?plan=professional"');
+      expect(src).not.toContain("Card required at checkout");
+    }
+  });
+});

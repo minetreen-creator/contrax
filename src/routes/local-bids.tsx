@@ -24,6 +24,7 @@ function LocalBids() {
       subhead="Open solicitations from local governments, school districts and agencies, read straight from their own bid boards and updated every 4 hours on weekdays."
       radarHref="/radar"
       radarLabel="Search every bid with Contract Radar"
+      signupSource="local_page"
       honesty={<>Counts are live queries of open solicitations from each buyer's own board.</>}
     >
       <LocalIndexView places={places} />

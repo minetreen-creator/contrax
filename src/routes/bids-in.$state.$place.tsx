@@ -32,6 +32,8 @@ function BidsInPlace() {
       headline={`Government bids in ${name}`}
       subhead={`Open bids, RFPs and RFQs from ${data.place?.name ?? "local"} buyers, read straight from their own bid boards. Real deadlines, updated every 4 hours on weekdays.`}
       radarHref={data.place ? `/radar?state=${data.place.stateCode}` : "/radar"}
+      signupSource="local_page"
+      signupState={data.place?.stateCode}
       radarLabel={`Search all bids in ${data.place?.stateName ?? "your state"} with Contract Radar`}
       honesty={
         <>

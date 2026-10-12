@@ -50,6 +50,10 @@ export const SIGNUP_SOURCE_VALUES = [
   "closing_soon",
   "incumbent",
   SIGNUP_SOURCE_NONPROFIT_APPLY,
+  // Owner 2026-10-12: the search pages' trial buttons. `seo_page` = state, trade,
+  // set-aside and industry pages; `local_page` = the city/county and agency pages.
+  "seo_page",
+  "local_page",
 ] as const;
 export type SignupSource = (typeof SIGNUP_SOURCE_VALUES)[number];
 /**
@@ -65,6 +69,11 @@ export function normalizeSignupSource(value: unknown): SignupSource | null {
   return (SIGNUP_SOURCE_VALUES as readonly string[]).includes(candidate)
     ? (candidate as SignupSource)
     : null;
+}
+/** The search-page doors (they carry `?state=` for the onboarding prefill). */
+export function isSearchPageSource(value: unknown): boolean {
+  const s = normalizeSignupSource(value);
+  return s === "seo_page" || s === "local_page";
 }
 /** True when the marker is the Nonprofit Free apply door (the admin surface's distinct label). */
 export function isNonprofitApplySource(value: unknown): boolean {

@@ -468,6 +468,17 @@ export function seoHead(opts: {
 // Shared layout: hero with the PRIMARY free-trial CTA + secondary Radar CTA,
 // the honesty banner, a slot for real content, and a footer of internal links.
 // ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Trial button target for the search pages (owner 2026-10-12): the plain signup,
+ * which starts the 7-day Professional trial with no card, tagged with where the
+ * visitor came from and the page's state so onboarding starts on their area.
+ */
+export function seoSignupHref(source: "seo_page" | "local_page" = "seo_page", state?: string | null): string {
+  const params = new URLSearchParams({ source });
+  if (state && /^[A-Z]{2}$/.test(state)) params.set("state", state);
+  return `/signup?${params.toString()}`;
+}
+
 export function SeoLanding(props: {
   eyebrow: string;
   headline: ReactNode;
@@ -476,6 +487,10 @@ export function SeoLanding(props: {
   radarLabel: string;
   honesty: ReactNode;
   children: ReactNode;
+  /** Signup attribution; city/county and agency pages pass "local_page". */
+  signupSource?: "seo_page" | "local_page";
+  /** Two-letter state the page is about, carried to signup. */
+  signupState?: string | null;
 }) {
   return (
     <main className="min-h-screen bg-slate-50 text-slate-900">
@@ -496,14 +511,14 @@ export function SeoLanding(props: {
           {/* PRIMARY free-trial CTA (verified live-homepage pattern) */}
           <div className="mt-8">
             <a
-              href="/signup?plan=professional"
+              href={seoSignupHref(props.signupSource, props.signupState)}
               onClick={() => trackEvent("hero_cta_click", "start_trial")}
               className="inline-block rounded-2xl bg-gradient-to-r from-amber-400 to-amber-500 px-8 py-4 text-center text-base font-extrabold text-slate-950 shadow-xl shadow-amber-500/25 transition-all hover:from-amber-300 hover:to-amber-400 active:scale-[0.99] sm:text-lg"
             >
-              🚀 Try Professional free for 7 days →
+              🚀 Start my 7-day trial →
             </a>
             <p className="mt-2 text-xs font-medium text-blue-200/60">
-              Card required at checkout · Cancel anytime during your trial
+              No credit card · Cancel anytime
             </p>
             {/* SECONDARY Radar CTA */}
             <a
@@ -841,14 +856,14 @@ export function RegionView({ data }: { data: RegionData }) {
           See every {name} bid and know if you qualify in seconds
         </h3>
         <a
-          href="/signup?plan=professional"
+          href={seoSignupHref("seo_page", data.code)}
           onClick={() => trackEvent("hero_cta_click", "start_trial")}
           className="mt-4 inline-block rounded-xl bg-amber-500 px-7 py-3.5 text-base font-extrabold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.99]"
         >
-          🚀 Try Professional free for 7 days →
+          🚀 Start my 7-day trial →
         </a>
         <p className="mt-2 text-xs text-blue-200/60">
-          Card required at checkout · Cancel anytime during your trial
+          No credit card · Cancel anytime
         </p>
       </div>
     </div>

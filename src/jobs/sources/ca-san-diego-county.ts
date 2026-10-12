@@ -1,4 +1,4 @@
-import { request as httpsRequest } from "node:https";
+import { spawn } from "node:child_process";
 /** County of San Diego BuyNet public solicitations. City PlanetBids is separate.
  * Verified public list 2026-10-12; no login. Read Open records only, deduplicate
  * lots by BPM code, and use the portal countdown epoch for DST-safe deadlines.
@@ -11,7 +11,6 @@ import { azFormFields, azRowIds, decodeHtml } from "./az-app";
 export const CA_SAN_DIEGO_COUNTY_SOURCE = "ca_san_diego_county";
 const HOST = "https://sdbuynet.sandiegocounty.gov";
 export const CA_SAN_DIEGO_COUNTY_LIST_URL = `${HOST}/page.aspx/en/rfp/request_browse_public`;
-const UA = "Contrax/1.0 (+https://www.contrax.company)";
 const MAX_PAGES = 40;
 const PAGE_DELAY_MS = 500;
 const text = (s: string) => decodeHtml(s.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
@@ -56,26 +55,47 @@ export async function fetchCaSanDiegoCountyBids(now: number = Date.now()): Promi
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 60000);
     try {
-      const headers: Record<string, string> = { "User-Agent": UA, Accept: "text/html" };
+      const headers: Record<string, string> = { Accept: "text/html" };
       if (cookies.size) headers.Cookie = [...cookies].map(([k, v]) => `${k}=${v}`).join("; ");
       if (body) {
         headers["Content-Type"] = "application/x-www-form-urlencoded";
         headers.Referer = CA_SAN_DIEGO_COUNTY_LIST_URL;
       }
-      // Explicit IPv4 transport: GitHub's curl -4 reaches this public host,
-      // while Bun fetch times out during the connection.
+      // curl reaches this public host from the sync runner; Bun's TLS clients
+      // time out. Use the ordinary public request, with form and cookies only
+      // on stdin (no credentials or session state in process arguments/files).
       const resp = await new Promise<{ status: number; cookies: string[]; html: string }>((resolve, reject) => {
-        const req = httpsRequest(body ? `${CA_SAN_DIEGO_COUNTY_LIST_URL}?` : CA_SAN_DIEGO_COUNTY_LIST_URL, {
-          method: body ? "POST" : "GET", headers, family: 4, signal: controller.signal,
-        }, res => {
-          let html = "";
-          res.setEncoding("utf8");
-          res.on("data", chunk => { html += chunk; });
-          res.on("error", reject);
-          res.on("end", () => resolve({ status: res.statusCode ?? 0, cookies: res.headers["set-cookie"] ?? [], html }));
+        const args = ["-q", "-4", "--silent", "--show-error", "--connect-timeout", "15", "--max-time", "60", "--dump-header", "-", "--config", "-"];
+        const child = spawn("curl", args, { stdio: ["pipe", "pipe", "pipe"], signal: controller.signal });
+        let output = "";
+        let stderr = "";
+        child.stdout.setEncoding("utf8");
+        child.stderr.setEncoding("utf8");
+        child.stdout.on("data", chunk => { output += chunk; if (output.length > 8_000_000) child.kill(); });
+        child.stderr.on("data", chunk => { stderr += chunk; });
+        child.on("error", reject);
+        child.on("close", code => {
+          if (code !== 0) { reject(new Error(`curl public request failed (${code}): ${stderr.slice(0, 300)}`)); return; }
+          let status = 0;
+          const responseCookies: string[] = [];
+          while (output.startsWith("HTTP/")) {
+            const end = output.indexOf("\r\n\r\n");
+            if (end < 0) break;
+            const block = output.slice(0, end);
+            status = Number(/^HTTP\/\S+ (\d+)/.exec(block)?.[1] ?? 0);
+            responseCookies.push(...[...block.matchAll(/^set-cookie: (.*)$/gim)].map(m => m[1].trim()));
+            output = output.slice(end + 4);
+          }
+          resolve({ status, cookies: responseCookies, html: output });
         });
-        req.on("error", reject);
-        req.end(body?.toString());
+        const config = [
+          `url = ${JSON.stringify(CA_SAN_DIEGO_COUNTY_LIST_URL)}`,
+          `request = ${JSON.stringify(body ? "POST" : "GET")}`,
+          ...Object.entries(headers).map(([key, value]) => `header = ${JSON.stringify(`${key}: ${value}`)}`),
+          ...(body ? [`data = ${JSON.stringify(body.toString())}`] : []),
+        ].join("\n") + "\n";
+        child.stdin.on("error", reject);
+        child.stdin.end(config);
       });
       const setCookies = resp.cookies;
       for (const c of setCookies) {

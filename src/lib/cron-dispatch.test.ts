@@ -50,18 +50,28 @@ describe("dispatchWorkflow", () => {
 });
 
 describe("wiring", () => {
-  test("the build registers both morning crons for the route", () => {
+  test("the build registers the morning email crons and the bid sync crons", () => {
     const sh = readFileSync("build-vercel.sh", "utf8");
     const json = sh.slice(sh.indexOf("cat > .vercel/output/config.json <<'JSON'") + "cat > .vercel/output/config.json <<'JSON'".length);
     const cfg = JSON.parse(json.slice(0, json.indexOf("\nJSON")));
     expect(cfg.crons).toEqual([
       { path: "/api/cron/daily-emails?slot=10", schedule: "0 10 * * *" },
       { path: "/api/cron/daily-emails?slot=11", schedule: "0 11 * * *" },
+      { path: "/api/cron/sync-bids?slot=weekday", schedule: "0 */4 * * 1-5" },
+      { path: "/api/cron/sync-bids?slot=weekend", schedule: "0 15 * * 0,6" },
     ]);
   });
   test("the workflow passes the gated input to the gate", () => {
     const wf = readFileSync(".github/workflows/daily-emails.yml", "utf8");
     expect(wf).toContain("gated:");
     expect(wf).toContain("GATED: ${{ inputs.gated && 'true' || 'false' }}");
+  });
+  test("Sync Bids is gated and the sync job waits on the gate", () => {
+    const wf = readFileSync(".github/workflows/sync-bids.yml", "utf8");
+    expect(wf).toContain("GATED: ${{ inputs.gated && 'true' || 'false' }}");
+    expect(wf).toContain("needs: gate");
+    expect(wf).toContain("if: needs.gate.outputs.run == 'true'");
+    // The sync job keeps its name: the gate script looks it up by name.
+    expect(wf).toContain("name: Run bid sync");
   });
 });

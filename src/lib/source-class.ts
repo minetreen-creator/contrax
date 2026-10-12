@@ -440,6 +440,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // Virginia locality's OWN board, so every row is that locality's solicitation.
   // `va_eva` (state portal) is a DIFFERENT surface: a locality MAY post to both, so
   // both badges are correct and nothing is deduped.
+  va_colonial_heights: {
+    class: "local",
+    city: "Colonial Heights",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   va_loudoun: {
     class: "local",
     city: "Loudoun County",

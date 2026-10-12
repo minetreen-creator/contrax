@@ -520,6 +520,14 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Town of Harrison, NJ CivicEngage bid board (owner 2026-10-12; nj-harrison.ts).
+  nj_harrison: {
+    class: "local",
+    city: "Harrison",
+    scopeState: "NJ",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // Franklin County, OH Purchasing bid board (owner 2026-10-12; oh-franklin-county.ts).
   oh_franklin_county: {
     class: "local",

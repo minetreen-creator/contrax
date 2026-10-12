@@ -50,6 +50,7 @@ import { fetchOhDaytonBids } from "./sources/oh-dayton";
 import { fetchVaColonialHeightsBids } from "./sources/va-colonial-heights";
 import { fetchOhWorthingtonBids } from "./sources/oh-worthington";
 import { fetchOhFranklinCountyBids } from "./sources/oh-franklin-county";
+import { fetchNjHarrisonBids } from "./sources/nj-harrison";
 import { fetchVaLoudounBids } from "./sources/va-loudoun";
 import { fetchVaSuffolkBids } from "./sources/va-suffolk";
 import { fetchVaLynchburgBids } from "./sources/va-lynchburg";
@@ -454,6 +455,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "va_colonial_heights", fetchFn: fetchVaColonialHeightsBids },
   { name: "oh_worthington", fetchFn: fetchOhWorthingtonBids },
   { name: "oh_franklin_county", fetchFn: () => fetchOhFranklinCountyBids() },
+  { name: "nj_harrison", fetchFn: () => fetchNjHarrisonBids() },
   { name: "va_loudoun", fetchFn: fetchVaLoudounBids },
   { name: "va_suffolk", fetchFn: fetchVaSuffolkBids },
   { name: "va_lynchburg", fetchFn: fetchVaLynchburgBids },

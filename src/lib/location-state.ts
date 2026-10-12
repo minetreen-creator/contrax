@@ -1104,6 +1104,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   // label (policy R7; TxDOT's portal renders internal codes such as "SSD_CM").
   tx_txdot_bonfire: "TX",
   tx_uttyler_bonfire: "TX",
+  tx_dallas_bonfire: "TX", // City of Dallas Bonfire portal (owner 2026-10-12)
   // Texas university JAGGAER tenants (src/jobs/sources/tx-uh-jaggaer.ts,
   // tx-tamu-jaggaer.ts, tx-texastech-jaggaer.ts, tx-utsa-jaggaer.ts): each is a
   // Texas public university's OWN portal on bids.sciquest.com, so every buyer

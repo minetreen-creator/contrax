@@ -76,6 +76,7 @@ import { fetchAkDotpfBids } from "./sources/ak-dotpf";
 import { fetchNcEvpBids } from "./sources/nc-evp";
 import { fetchNcGastoniaBids } from "./sources/nc-gastonia";
 import { fetchNcGastonCountyBids } from "./sources/nc-gaston-county";
+import { fetchTxDallasBonfireBids } from "./sources/tx-dallas-bonfire";
 import { fetchDcPassBids } from "./sources/dc-pass";
 import { fetchMdMontgomeryBids } from "./sources/md-montgomery";
 import { fetchDeMmpBids } from "./sources/de-mmp";
@@ -391,6 +392,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   // are explicitly OUT of scope and untouched.
   { name: "tx_txdot_bonfire", fetchFn: fetchTxTxdotBonfireBids },
   { name: "tx_uttyler_bonfire", fetchFn: fetchTxUttylerBonfireBids },
+  // City of Dallas: its own Bonfire portal (owner 2026-10-12).
+  { name: "tx_dallas_bonfire", fetchFn: () => fetchTxDallasBonfireBids() },
   // Texas university JAGGAER tenants (owner green-light 2026-10-06, batch 3b) — the
   // same JAGGAER reader as `mt_emacs` (src/jobs/sources/jaggaer-public.ts), one
   // config per tenant. The University of Houston, Texas A&M University, Texas Tech

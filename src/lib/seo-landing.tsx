@@ -562,6 +562,7 @@ export function SeoFooterLinks() {
       <a href="/contracts-in/texas" className="transition-colors hover:text-white">Texas</a>
       <a href="/contracts-in/virginia" className="transition-colors hover:text-white">Virginia</a>
       <a href="/contracts-in/district-of-columbia" className="transition-colors hover:text-white">D.C.</a>
+      <a href="/local-bids" className="transition-colors hover:text-white">City and County Bids</a>
       <a href="/radar" className="transition-colors hover:text-white">Contract Radar</a>
       <a href="/map" className="transition-colors hover:text-white">Contract Map</a>
       <a href="/pricing" className="transition-colors hover:text-white">Pricing</a>

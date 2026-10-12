@@ -87,6 +87,9 @@ describe("ssr-cache-policy: cookie-agnostic marketing/SEO routes keep the cache"
     "/contracts-in/texas",
     "/contracts-in/new-york",
     "/contracts-in/district-of-columbia",
+    "/local-bids",
+    "/bids-in/texas/dallas",
+    "/agency/city-of-dallas",
   ];
 
   test("all previously-cached non-`/` routes are still cacheable", () => {
@@ -114,6 +117,9 @@ describe("ssr-cache-policy: cookie-agnostic marketing/SEO routes keep the cache"
       "/map/state", // deeper segment
       "/contracts-by-industry/foo",
       "/radar/scan",
+      "/bids-in/texas", // no place
+      "/bids-in/texas/dallas/extra", // deeper segment
+      "/agency", // no slug
       "/grants",
       "/state-grants",
       "/pricing",

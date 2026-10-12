@@ -12,10 +12,12 @@ name: Daily Emails
 #   - "Did I win?" award results: SAM.gov award notices for saved federal bids
 #     past their deadline, one email per member (src/jobs/check-awards.ts).
 #
-# Sent at 6 AM Eastern (owner 2026-10-01). GitHub cron is UTC-only, and 6 AM
-# Eastern is 10:00 UTC in summer (EDT) but 11:00 UTC in winter (EST), so the
-# workflow is scheduled at both and the "Check it is 6 AM Eastern" step lets
-# only the run that falls in the 6 o'clock hour in America/New_York send.
+# Sent at 6 AM Eastern (owner 2026-10-01). GitHub starts scheduled runs late,
+# often by hours, so a fixed "6 o'clock hour only" check skipped every run from
+# 2026-10-02 to 10-12 and no email went out (owner 2026-10-12). The workflow now
+# runs hourly from 10:07 to 23:07 UTC (6 or 7 AM Eastern onward, both EDT and
+# EST), and .github/scripts/daily-emails-gate.sh lets the FIRST run at or after
+# 6 AM New York time send; later runs that day see it already sent and skip.
 # A manual "Run workflow" always sends.
 #
 # Required secrets: DATABASE_URL, RESEND_API_KEY (emails are skipped with a
@@ -23,8 +25,7 @@ name: Daily Emails
 
 on:
   schedule:
-    - cron: "0 10 * * *"
-    - cron: "0 11 * * *"
+    - cron: "7 10-23 * * *"
   workflow_dispatch:
 
 concurrency:
@@ -33,6 +34,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   send:
@@ -43,21 +45,15 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
     steps:
-      - name: Check it is 6 AM Eastern
-        id: gate
-        run: |
-          hour=$(TZ=America/New_York date +%H)
-          if [ "${{ github.event_name }}" != "schedule" ] || [ "$hour" = "06" ]; then
-            echo "send=true" >> "$GITHUB_OUTPUT"
-            echo "Sending (event=${{ github.event_name }}, New York hour=$hour)"
-          else
-            echo "send=false" >> "$GITHUB_OUTPUT"
-            echo "Not 6 AM in New York (hour=$hour); the other scheduled run sends today."
-          fi
-
       - name: Checkout repository
-        if: steps.gate.outputs.send == 'true'
         uses: actions/checkout@v4
+
+      - name: Send once a day, at or after 6 AM Eastern
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: bash .github/scripts/daily-emails-gate.sh >> "$GITHUB_OUTPUT"
 
       - name: Set up Bun
         if: steps.gate.outputs.send == 'true'

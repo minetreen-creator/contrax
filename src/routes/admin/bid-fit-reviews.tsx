@@ -66,7 +66,8 @@ function BidFitReviewsPage() {
     } catch (e) { setError(e instanceof Error ? e.message : "Could not update status"); }
     finally { setSaving(null); }
   }
-  async function action(id: number, action: "access" | "accept" | "checkout") {
+  async function action(id: number, action: "access" | "accept" | "checkout" | "delete") {
+    if (action === "delete" && !window.confirm("Permanently delete this bid fit review and its uploaded documents? This cannot be undone.")) return;
     setSaving(id); setError("");
     try {
       const r = await fetch("/api/admin/bid-fit-reviews", {method:"POST", headers:{"Content-Type":"application/json"},body:JSON.stringify({id,action})});
@@ -115,6 +116,7 @@ function BidFitReviewsPage() {
               <label className="font-semibold">Work status <select value={r.status} disabled={saving === r.id} onChange={(e) => updateStatus(r.id, e.target.value as Status)} className="ml-2 rounded-lg border border-slate-300 bg-white p-2 font-normal">
                 {Object.entries(STATUS_LABELS).map(([key, label]) => <option key={key} value={key} disabled={key === "awaiting_payment"}>{label}</option>)}
               </select></label>
+              {!["paid", "processing"].includes(r.payment_status) && <button type="button" disabled={saving === r.id} onClick={() => action(r.id, "delete")} className="rounded-lg border border-red-200 px-3 py-2 font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50">Delete request</button>}
               <span className={r.notification_status === "failed" ? "font-semibold text-red-700" : "text-slate-500"}>Email notification: {r.notification_status}</span>
             </div>
           </article>)}</div>}

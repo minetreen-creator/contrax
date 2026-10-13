@@ -6,6 +6,7 @@ import { STATE_NAMES } from "~/lib/contract-map";
 import { formatDollars, RECOMPETE_MONTH_CHOICES, type Recompete } from "~/lib/federal-trade-data";
 import { RADAR_PRO_HREF, RADAR_PRO_PRICE_NOTE } from "~/lib/plan-gates";
 import { SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
+import { trackEvent } from "~/lib/track";
 
 /**
  * /recompetes — Contracts Ending Soon (owner 2026-10-13, USAspending idea #1).
@@ -183,7 +184,8 @@ function RecompetesPage() {
                   Professional trial with no card required.
                 </p>
                 <a
-                  href={d.signedIn ? RADAR_PRO_HREF : `/signup?next=${encodeURIComponent(here)}`}
+                  href={d.signedIn ? RADAR_PRO_HREF : `/signup?source=recompetes&next=${encodeURIComponent(here)}`}
+                  onClick={() => trackEvent(d.signedIn ? "recompetes_upgrade_click" : "recompetes_signup_click", d.trade)}
                   className="mt-3 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800"
                 >
                   {d.signedIn ? "Upgrade to see the full list" : "Create an account to see the full list"}

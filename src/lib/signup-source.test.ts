@@ -52,6 +52,7 @@ describe("the source family allowlist", () => {
       "nonprofit_apply",
       "seo_page",
       "local_page",
+      "recompetes",
     ]);
     expect(SIGNUP_SOURCE_NONPROFIT_APPLY).toBe("nonprofit_apply");
     // Repo style: the family is snake_case, not hyphenated.

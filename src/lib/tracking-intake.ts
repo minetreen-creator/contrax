@@ -182,6 +182,11 @@ export const EVENT_LABELS: Record<string, string> = {
   // `subcontracts_checkout_started` is registered but INERT: there is no
   // subcontracting checkout surface, so nothing fires it (see
   // src/lib/subcontracts/subcontracts-analytics.ts).
+  // Contracts Ending Soon (owner 2026-10-13): standalone display labels, in no
+  // funnel-stage set.
+  recompetes_home_click: "Homepage Contracts Ending Soon clicked",
+  recompetes_signup_click: "Contracts Ending Soon: create-account clicked",
+  recompetes_upgrade_click: "Contracts Ending Soon: upgrade clicked",
   subcontracts_page_viewed: "Subcontracts page viewed",
   subcontracts_notice_viewed: "Subcontracting notice viewed",
   subcontract_source_open: "Subcontracting notice source opened",

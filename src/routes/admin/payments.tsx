@@ -31,7 +31,7 @@ function PaymentsPage() {
     return () => { cancelled = true; };
   }, []);
 
-  return <div className="min-h-screen bg-slate-50">
+  return <div className="admin-console min-h-screen bg-slate-50">
     <AdminHeader scoreboard={<MrrScoreboard />} />
     <main className="mx-auto max-w-6xl space-y-8 px-4 py-8">
       <h1 className="text-2xl font-bold text-slate-900">Admin Dashboard</h1>

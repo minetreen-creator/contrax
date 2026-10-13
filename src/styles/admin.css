@@ -1,0 +1,67 @@
+/* Owner console theme. Every rule is scoped to admin UI. */
+.admin-console {
+  --admin-ink: #10213e;
+  --admin-muted: #52647c;
+  min-height: 100vh;
+  color: var(--admin-ink);
+  background: radial-gradient(ellipse at 4% 0%, #d9ecff 0, transparent 36%), radial-gradient(ellipse at 98% 18%, #ebe7ff 0, transparent 32%), #f3f6fc;
+}
+.admin-console .admin-header {
+  background: linear-gradient(110deg, #0b152b, #142747 65%, #153c53);
+  border-bottom: 1px solid #34465f;
+  box-shadow: 0 8px 32px #0b152b26;
+}
+.admin-console .admin-header-inner { max-width: 1380px; margin: auto; padding: 18px 24px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.admin-console .admin-brand { display: flex; align-items: center; gap: 12px; }
+.admin-console .admin-logo { display: flex; padding: 8px 10px; background: white; border-radius: 12px; }
+.admin-console .admin-brand-copy { color: #fff; font-weight: 800; letter-spacing: .16em; font-size: 14px; }
+.admin-console .admin-brand-copy > span { display: block; color: #8fc9e0; font-size: 9px; letter-spacing: .2em; margin-top: 3px; }
+.admin-console .admin-header-actions { display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 14px; }
+.admin-console .admin-access { display: inline-flex; align-items: center; gap: 5px; color: #9ce5fa; font-size: 11px; font-weight: 700; }
+.admin-console .admin-dashboard-link { display: inline-flex; gap: 6px; align-items: center; color: #e1eaff; font-size: 12px; }
+.admin-console > main { max-width: 1380px; padding: 32px 24px 64px; }
+.admin-console main h1 { font-size: clamp(26px, 3vw, 38px); letter-spacing: -.04em; line-height: 1.2; }
+.admin-console main h2 { letter-spacing: -.025em; font-weight: 750; }
+.admin-console main :where(.text-slate-400) { color: #61718a; }
+.admin-console .admin-hero { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 32px; border-radius: 24px; background: radial-gradient(ellipse at 90% 0%, #21728a66, transparent 55%), linear-gradient(120deg, #111e38, #202c50); border: 1px solid #344768; box-shadow: 0 16px 40px #0b152b1f; }
+.admin-console .admin-hero h1 { margin: 8px 0 12px; color: #fff; font-weight: 800; font-size: clamp(32px, 4vw, 48px); }
+.admin-console .admin-hero p { color: #c4d3e9; font-size: 14px; max-width: 560px; }
+.admin-console .admin-hero .admin-eyebrow { color: #8be4f6; font-size: 10px; letter-spacing: .19em; font-weight: 800; }
+.admin-console .admin-hero-action { display: inline-flex; align-items: center; gap: 20px; flex-shrink: 0; padding: 12px 18px; border-radius: 12px; background: #9be9f8; color: #10213e; font-size: 13px; font-weight: 750; box-shadow: 0 4px 18px #67e8f92b; }
+.admin-console .admin-section-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 7px; background: #fff; border: 1px solid #dbe3ef; border-radius: 18px; box-shadow: 0 4px 16px #10213e05; }
+.admin-console .admin-section-tab { display: inline-flex; align-items: center; justify-content: center; gap: 9px; flex: 1; white-space: nowrap; border-radius: 12px; padding: 13px 18px; font-size: 13px; font-weight: 700; color: #52647c; transition: background .18s, color .18s; }
+.admin-console .admin-section-tab:hover { background: #edf4ff; color: #183e75; }
+.admin-console .admin-section-tab.is-active { background: linear-gradient(110deg, #1d3c70, #275888); color: white; box-shadow: 0 4px 12px #1d3c7026; }
+.admin-console .admin-page-tab { border: 1px solid #dbe3ef; border-radius: 9px; padding: 7px 13px; font-size: 12px; font-weight: 650; background: white; color: #52647c; }
+.admin-console .admin-page-tab:hover { border-color: #75a6d0; }
+.admin-console .admin-page-tab.is-active { border-color: #9ac6df; background: #e2f3fc; color: #154c70; }
+.admin-console main :where(div, a, details)[class*="rounded"][class*="bg-white"][class*="border-slate"] { border-color: #dbe3ef; box-shadow: 0 5px 20px #10213e06; }
+.admin-console main :where(.grid) > :where(div, a)[class*="rounded"][class*="bg-white"] { position: relative; border-top: 3px solid #3784bd; background: linear-gradient(135deg, #fff, #edf6ff); }
+.admin-console main :where(.grid) > :where(div, a)[class*="rounded"][class*="bg-white"]:nth-child(4n+2) { border-top-color: #7c65cb; background: linear-gradient(135deg, #fff, #f3efff); }
+.admin-console main :where(.grid) > :where(div, a)[class*="rounded"][class*="bg-white"]:nth-child(4n+3) { border-top-color: #168b86; background: linear-gradient(135deg, #fff, #eaf8f5); }
+.admin-console main :where(.grid) > :where(div, a)[class*="rounded"][class*="bg-white"]:nth-child(4n) { border-top-color: #c48a32; background: linear-gradient(135deg, #fff, #fff8e9); }
+.admin-console main :where(.text-3xl, .text-4xl) { letter-spacing: -.045em; font-variant-numeric: tabular-nums; }
+.admin-console main :where(table) { border-collapse: collapse; }
+.admin-console main :where(thead) { background: #edf2fa; }
+.admin-console main :where(th) { color: #52647c; font-size: 10px; font-weight: 750; text-transform: uppercase; letter-spacing: .08em; }
+.admin-console main :where(td, th) { padding-top: 14px; padding-bottom: 14px; }
+.admin-console main :where(tbody > tr) { transition: background .15s; }
+.admin-console main :where(tbody > tr:hover) { background: #edf5ff; }
+.admin-console main :where(input:not([type="checkbox"]):not([type="radio"]), select, textarea) { border-radius: 10px; border-color: #cbd8e8; }
+.admin-console main :where(summary) { padding: 5px 0; }
+.admin-console main :where(details[open] > summary) { color: #1d4f7c; }
+.admin-console :where(a, button, input, select, textarea, summary):focus-visible { outline: 3px solid #1688b8; outline-offset: 3px; }
+.admin-console .admin-loading { display: flex; align-items: center; gap: 12px; }
+.admin-console .admin-loading-dot { width: 10px; height: 10px; border-radius: 50%; background: #2586b4; animation: admin-breathe 1.4s ease-in-out infinite; }
+@keyframes admin-breathe { 50% { opacity: .35; } }
+@media (max-width: 640px) {
+  .admin-console .admin-header-inner { padding: 12px 16px; flex-wrap: wrap; gap: 12px; }
+  .admin-console .admin-header-actions { gap: 10px; justify-content: flex-start; }
+  .admin-console > main { padding: 24px 16px 48px; }
+  .admin-console .admin-hero { align-items: flex-start; flex-direction: column; padding: 24px; }
+  .admin-console .admin-section-tab { padding: 11px 14px; }
+  .admin-console .admin-brand-copy { font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-console *, .admin-console *::before, .admin-console *::after { animation: none !important; transition: none !important; }
+}

@@ -322,7 +322,7 @@ function BidScoutAdminPage() {
   }, [status]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="admin-console min-h-screen bg-slate-50">
       <AdminHeader scoreboard={<MrrScoreboard />} />
       <main className="mx-auto max-w-7xl px-4 py-8 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">

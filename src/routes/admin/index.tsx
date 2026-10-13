@@ -395,9 +395,13 @@ function AdminOverviewPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="admin-console min-h-screen bg-slate-50">
       <AdminHeader scoreboard={<MrrScoreboard />} />
       <main className="mx-auto max-w-5xl px-4 py-6 space-y-8">
+        <div className="admin-hero">
+          <div><p className="admin-eyebrow">YOUR BUSINESS AT A GLANCE</p><h1>Command center</h1><p>Track your traffic, spot promising leads, and follow the path to revenue.</p></div>
+          <a href="/admin/journeys" className="admin-hero-action">Explore visitors <span aria-hidden="true">↗</span></a>
+        </div>
         <AdminTabs active="overview" />
 
         {nonprofitQueue != null && nonprofitQueue > 0 && (

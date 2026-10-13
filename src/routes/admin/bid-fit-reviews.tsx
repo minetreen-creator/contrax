@@ -76,7 +76,7 @@ function BidFitReviewsPage() {
     } catch(e) {setError(e instanceof Error ? e.message : "Action failed");} finally {setSaving(null);}
   }
   const visible = requests?.filter((r) => filter === "all" || r.status === filter) ?? [];
-  return <div className="min-h-screen bg-slate-50 text-slate-900">
+  return <div className="admin-console min-h-screen bg-slate-50 text-slate-900">
     <AdminHeader />
     <main className="mx-auto max-w-6xl space-y-6 px-4 py-8 sm:px-6">
       <AdminTabs active="bid-fit-reviews" />

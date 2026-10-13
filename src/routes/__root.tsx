@@ -21,6 +21,7 @@ import { enqueueTracking } from "~/lib/track-queue";
 import { watchEngagement } from "~/lib/engagement";
 import { loadGoogleAdsTag } from "~/lib/google-ads";
 import appCss from "~/styles/app.css?url";
+import adminCss from "~/styles/admin.css?url";
 
 const PROD_URL = "https://www.contrax.company";
 const SITE_TITLE = "Contrax — Government RFPs Matched to Your Set-Aside Certifications";
@@ -58,6 +59,7 @@ export const Route = createRootRoute({
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "stylesheet", href: adminCss },
       { rel: "icon", type: "image/png", href: "/logo.png?v=3" },
     ],
   }),

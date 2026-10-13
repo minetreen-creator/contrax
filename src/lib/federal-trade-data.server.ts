@@ -56,15 +56,35 @@ export async function ensureFederalTradeTables(): Promise<void> {
   )`;
 }
 
+/**
+ * One USAspending call. Connections are not reused (`keepalive: false`): after
+ * the API answered one request with a 500 it closed the socket, and every later
+ * call on the pooled connection failed with "socket connection was closed"
+ * (run 38335339158). Server errors and dropped connections get two more tries
+ * with a growing pause; a 4xx is a bad request and fails at once.
+ */
 async function post(path: string, body: unknown): Promise<Record<string, unknown>> {
-  const res = await fetch(`${USASPENDING_API}${path}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "User-Agent": "Contrax/1.0 (+https://www.contrax.company)" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(60_000),
-  });
-  if (!res.ok) throw new Error(`USAspending ${path} HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
-  return (await res.json()) as Record<string, unknown>;
+  let lastErr: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await pause(2000 * attempt);
+    try {
+      const res = await fetch(`${USASPENDING_API}${path}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "User-Agent": "Contrax/1.0 (+https://www.contrax.company)", Connection: "close" },
+        body: JSON.stringify(body),
+        keepalive: false,
+        signal: AbortSignal.timeout(60_000),
+      });
+      if (res.ok) return (await res.json()) as Record<string, unknown>;
+      const err = new Error(`USAspending ${path} HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+      if (res.status < 500) throw Object.assign(err, { permanent: true });
+      lastErr = err;
+    } catch (e) {
+      if ((e as { permanent?: boolean }).permanent) throw e;
+      lastErr = e as Error;
+    }
+  }
+  throw lastErr ?? new Error(`USAspending ${path} failed`);
 }
 
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -201,10 +221,12 @@ export async function syncTradeSpending(opts: { dryRun?: boolean; trades?: strin
       if (!(amount > 0)) continue;
       await pause(250);
       let agencies: AgencyAmount[] = [];
+      let agenciesOk = true;
       try {
         agencies = parseAgencies((await post("/search/spending_by_category/awarding_agency/", agencyRequestBody(naics, fy, state))).results);
       } catch (e) {
-        log(`[spending] ${trade} ${state} agencies failed: ${(e as Error).message}`);
+        agenciesOk = false;
+        log(`[spending] ${trade} ${state} agencies failed: ${(e as Error).message.slice(0, 160)}`);
       }
       const row: TradeSpending = { trade_slug: trade, state, fiscal_year: fy, total_amount: amount, set_aside_amount: Math.max(0, setAside.get(state) ?? 0), top_agencies: agencies };
       if (rows < 3) log(`[spending] sample ${JSON.stringify(row)}`);
@@ -215,11 +237,22 @@ export async function syncTradeSpending(opts: { dryRun?: boolean; trades?: strin
           VALUES (${row.trade_slug}, ${row.state}, ${row.fiscal_year}, ${row.total_amount}, ${row.set_aside_amount}, ${JSON.stringify(row.top_agencies)}::jsonb, NOW())
           ON CONFLICT (trade_slug, state, fiscal_year) DO UPDATE SET
             total_amount = EXCLUDED.total_amount, set_aside_amount = EXCLUDED.set_aside_amount,
-            top_agencies = EXCLUDED.top_agencies, synced_at = NOW()`;
+            -- A failed agency lookup keeps the buyers already stored.
+            top_agencies = CASE WHEN ${agenciesOk} THEN EXCLUDED.top_agencies ELSE federal_trade_spending.top_agencies END,
+            synced_at = NOW()`;
       }
     }
   }
   return { fiscalYear: fy, rows };
+}
+
+/** Trades with no spending stored for the last complete fiscal year (a run that stopped partway). */
+export async function spendingMissingTrades(): Promise<string[]> {
+  await ensureFederalTradeTables();
+  const fy = lastCompleteFiscalYear(new Date().toISOString().slice(0, 10));
+  const r = (await sql()`SELECT DISTINCT trade_slug FROM federal_trade_spending WHERE fiscal_year = ${fy}`) as { trade_slug: string }[];
+  const have = new Set(r.map((x) => x.trade_slug));
+  return Object.entries(FEDERAL_TRADE_NAICS).filter(([t, n]) => n.length && !have.has(t)).map(([t]) => t);
 }
 
 /** Days since spending was last synced (Infinity when never). */

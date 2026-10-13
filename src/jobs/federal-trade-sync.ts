@@ -8,7 +8,7 @@
  *   --trades=a,b       limit to these trade slugs
  *   --max-pages=N      page cap per trade for the contract walk
  */
-import { spendingAgeDays, syncRecompetes, syncTradeSpending } from "~/lib/federal-trade-data.server";
+import { spendingAgeDays, spendingMissingTrades, syncRecompetes, syncTradeSpending } from "~/lib/federal-trade-data.server";
 
 const args = process.argv.slice(2);
 const dryRun = args.includes("--dry-run");
@@ -31,9 +31,14 @@ try {
 
   const force = args.includes("--spending") || dryRun;
   const age = dryRun ? Infinity : await spendingAgeDays();
+  // Trades a stopped run never reached are filled in on the next run, not a week later.
+  const missing = dryRun ? [] : await spendingMissingTrades();
   if (force || age >= 7) {
     const sp = await syncTradeSpending({ dryRun, trades, log });
     console.log(`[federal-trade] spending FY${sp.fiscalYear}: ${sp.rows} state rows${dryRun ? " (dry run)" : ""}`);
+  } else if (missing.length) {
+    const sp = await syncTradeSpending({ trades: missing, log });
+    console.log(`[federal-trade] spending FY${sp.fiscalYear}: filled ${missing.join(", ")} (${sp.rows} state rows)`);
   } else {
     console.log(`[federal-trade] spending is ${age.toFixed(1)} days old; next refresh at 7`);
   }

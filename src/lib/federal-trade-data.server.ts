@@ -14,7 +14,10 @@ import {
   parseGeography,
   pickRecompetes,
   recompeteRequestBody,
+  RECOMPETE_AMOUNT_BANDS,
+  RECOMPETE_PAGE_CAP,
   RECOMPETE_WINDOW_MONTHS,
+  walkComplete,
   USASPENDING_API,
   type AgencyAmount,
   type Recompete,
@@ -100,7 +103,7 @@ export interface RecompeteSyncResult {
  * that hit the page cap keeps them, so a partial walk never deletes anything.
  */
 export async function syncRecompetes(opts: { dryRun?: boolean; maxPages?: number; trades?: string[]; log?: (s: string) => void } = {}): Promise<RecompeteSyncResult[]> {
-  const maxPages = opts.maxPages ?? 300;
+  const maxPages = Math.min(opts.maxPages ?? RECOMPETE_PAGE_CAP, RECOMPETE_PAGE_CAP);
   const log = opts.log ?? (() => {});
   const today = new Date().toISOString().slice(0, 10);
   const windowEnd = addMonths(today, RECOMPETE_WINDOW_MONTHS);
@@ -111,23 +114,46 @@ export async function syncRecompetes(opts: { dryRun?: boolean; maxPages?: number
     if (!naics.length) continue;
     const runStart = new Date();
     let pages = 0;
-    let complete = false;
-    let lastEnd = "";
+    let complete = true;
     const kept: Recompete[] = [];
-    for (let page = 1; page <= maxPages; page++) {
-      const data = await post("/search/spending_by_award/", recompeteRequestBody(naics, page, today));
-      const results = (data.results as Record<string, unknown>[] | undefined) ?? [];
-      pages++;
-      const r = pickRecompetes(results, trade, today, windowEnd);
-      kept.push(...r.kept);
-      lastEnd = String(results[results.length - 1]?.["End Date"] ?? lastEnd);
-      if (page === 1 && results[0]) log(`[recompetes] ${trade} first row end=${String(results[0]["End Date"])}`);
-      const hasNext = (data.page_metadata as { hasNext?: boolean } | undefined)?.hasNext;
-      if (r.done || !hasNext) {
-        complete = true;
-        break;
+    // One walk per NAICS code × contract-size band (see RECOMPETE_PAGE_CAP).
+    for (const code of naics) {
+      for (const band of RECOMPETE_AMOUNT_BANDS) {
+        const label = `${trade} ${code} $${band.lower_bound}${band.upper_bound ? `-${band.upper_bound}` : "+"}`;
+        let walkDone = false;
+        let lastEnd = "";
+        try {
+          for (let page = 1; page <= maxPages; page++) {
+            const body = recompeteRequestBody([code], page, today, band);
+            let data: Record<string, unknown>;
+            try {
+              data = await post("/search/spending_by_award/", body);
+            } catch (e) {
+              // USAspending answers some deep pages with a 500; one retry, then give up on this walk.
+              log(`[recompetes] ${label} page ${page} failed, retrying: ${(e as Error).message.slice(0, 120)}`);
+              await pause(3000);
+              data = await post("/search/spending_by_award/", body);
+            }
+            const results = (data.results as Record<string, unknown>[] | undefined) ?? [];
+            pages++;
+            const r = pickRecompetes(results, trade, today, windowEnd);
+            kept.push(...r.kept);
+            lastEnd = String(results[results.length - 1]?.["End Date"] ?? lastEnd);
+            const hasNext = !!(data.page_metadata as { hasNext?: boolean } | undefined)?.hasNext;
+            if (r.done || !hasNext) {
+              walkDone = walkComplete(r.done, hasNext, page);
+              break;
+            }
+            await pause(300);
+          }
+        } catch (e) {
+          log(`[recompetes] ${label} skipped after retry: ${(e as Error).message.slice(0, 160)}`);
+        }
+        if (!walkDone) {
+          complete = false;
+          log(`[recompetes] ${label} incomplete (last_end=${lastEnd})`);
+        }
       }
-      await pause(300);
     }
     // One award can repeat across pages when the index shifts mid-walk.
     const unique = [...new Map(kept.map((k) => [k.award_key, k])).values()];
@@ -135,7 +161,7 @@ export async function syncRecompetes(opts: { dryRun?: boolean; maxPages?: number
       await upsertRecompetes(unique);
       if (complete) await sql()`DELETE FROM recompete_contracts WHERE trade_slug = ${trade} AND synced_at < ${runStart}`;
     }
-    log(`[recompetes] ${trade}: pages=${pages} kept=${unique.length} complete=${complete} last_end=${lastEnd}`);
+    log(`[recompetes] ${trade}: pages=${pages} kept=${unique.length} complete=${complete}`);
     out.push({ trade, pages, kept: unique.length, complete });
   }
   if (!opts.dryRun) await sql()`DELETE FROM recompete_contracts WHERE end_date < CURRENT_DATE`;
@@ -155,9 +181,17 @@ export async function syncTradeSpending(opts: { dryRun?: boolean; trades?: strin
   for (const [trade, naics] of Object.entries(FEDERAL_TRADE_NAICS)) {
     if (opts.trades && !opts.trades.includes(trade)) continue;
     if (!naics.length) continue;
-    const total = parseGeography((await post("/search/spending_by_geography/", geographyRequestBody(naics, fy, false))).results);
-    await pause(300);
-    const setAside = parseGeography((await post("/search/spending_by_geography/", geographyRequestBody(naics, fy, true))).results);
+    let total: Map<string, number>;
+    let setAside: Map<string, number>;
+    try {
+      total = parseGeography((await post("/search/spending_by_geography/", geographyRequestBody(naics, fy, false))).results);
+      await pause(300);
+      setAside = parseGeography((await post("/search/spending_by_geography/", geographyRequestBody(naics, fy, true))).results);
+    } catch (e) {
+      // One trade's failure leaves its stored figures as they were; the rest still refresh.
+      log(`[spending] ${trade} skipped: ${(e as Error).message.slice(0, 160)}`);
+      continue;
+    }
     log(`[spending] ${trade} FY${fy}: ${total.size} states, ${setAside.size} with set-aside spending`);
     for (const [state, amount] of total) {
       if (!(amount > 0)) continue;

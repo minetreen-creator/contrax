@@ -107,13 +107,30 @@ export const RECOMPETE_FIELDS = [
   "generated_internal_id",
 ] as const;
 
-export function recompeteRequestBody(naics: readonly string[], page: number, today: string) {
+/**
+ * USAspending's search stops at 10,000 results (100 pages of 100). Each trade is
+ * walked per NAICS code and per contract-size band so no single walk reaches
+ * that cap before it reaches today's date.
+ */
+export const RECOMPETE_PAGE_CAP = 100;
+export const RECOMPETE_AMOUNT_BANDS: readonly { lower_bound: number; upper_bound?: number }[] = [
+  { lower_bound: RECOMPETE_MIN_AMOUNT, upper_bound: 99_999.99 },
+  { lower_bound: 100_000, upper_bound: 999_999.99 },
+  { lower_bound: 1_000_000 },
+];
+
+export function recompeteRequestBody(
+  naics: readonly string[],
+  page: number,
+  today: string,
+  band: { lower_bound: number; upper_bound?: number } = { lower_bound: RECOMPETE_MIN_AMOUNT },
+) {
   const start = addMonths(today, -12 * RECOMPETE_ACTIVITY_YEARS);
   return {
     filters: {
       award_type_codes: [...CONTRACT_AWARD_TYPES],
       naics_codes: [...naics],
-      award_amounts: [{ lower_bound: RECOMPETE_MIN_AMOUNT }],
+      award_amounts: [{ ...band }],
       time_period: [{ start_date: start, end_date: today }],
     },
     fields: [...RECOMPETE_FIELDS],
@@ -198,6 +215,15 @@ export function toRecompete(r: Record<string, unknown>, tradeSlug: string): Reco
  * [today, windowEnd]; `done` once the page reaches dates before today, since
  * every later page ends earlier still.
  */
+/**
+ * A walk is complete only when it reached a contract ending before today, or
+ * when the API said there are no more pages before the 10,000-result cap. A
+ * walk that ran into the cap is cut short, even though the API reports no next page.
+ */
+export function walkComplete(done: boolean, hasNext: boolean, page: number): boolean {
+  return done || (!hasNext && page < RECOMPETE_PAGE_CAP);
+}
+
 export function pickRecompetes(
   rows: Record<string, unknown>[],
   tradeSlug: string,

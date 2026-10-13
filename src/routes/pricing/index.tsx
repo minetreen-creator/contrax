@@ -82,6 +82,7 @@ const plans = [
     description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and AI match scoring.",
     features: [
       "Everything in Starter",
+      "Contracts Ending Soon: full access to contract holders, agencies, values and end dates — prepare before the next bid is posted",
       "50 AI Executive Briefs a month — requirements, milestones & red flags",
       "Full Incumbent Intelligence & Past Pricing",
       "AI Match Scoring",

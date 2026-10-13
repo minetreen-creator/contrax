@@ -5,7 +5,7 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
-import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, dataCenterLocation, sourceLabel, isActiveRadarEvent, type ClusterCandidate } from "~/lib/visitor-intel";
+import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, dataCenterLocation, sourceLabel, isActiveRadarEvent, isQaSource, sameDeviceDuplicates, type ClusterCandidate } from "~/lib/visitor-intel";
 import { buildConversionOpportunity, type ConversionOpportunity } from "~/lib/conversion-opportunity";
 
 /**
@@ -188,6 +188,8 @@ interface Journey {
   };
   /** Rule-based "what to do next" — present ONLY on High / Very High rows. */
   conversion_opportunity?: ConversionOpportunity;
+  /** Browsers folded into this row by the same-device rule (2 = ad app + Safari). */
+  same_device_browsers?: number;
 }
 interface FunnelStage {
   stage: "qualified" | "radar" | "signup" | "activated" | "paid";
@@ -1002,13 +1004,53 @@ async function handler({ request }: { request: Request }) {
       console.error("[api/admin/journeys] legacy fallback failed (continuing with cache):", orphanErr);
     }
 
-    const all = [...journeys, ...orphanJourneys];
+    // QA runs tagged by source (owner 2026-10-13: "qa_radar_gate" was showing).
+    let all = [...journeys, ...orphanJourneys].filter((j) => !isQaSource(j.source));
     // "Google Ads" instead of a bare "google" for paid clicks (owner 2026-10-04).
     for (const j of all) {
       const paidSource = paidVids.get(j.visitor_id);
       if (paidSource !== undefined) {
         j.source_label = sourceLabel(paidSource || j.source || "google", "cpc");
         j.paid_click = true;
+      }
+    }
+    // Same person, two browsers (owner 2026-10-13): an ad tap opens the ad app's
+    // browser, then Safari/Chrome gives a second visitor id with no referrer.
+    // Fold the direct row into its ad-click row (same address, same device type,
+    // started within minutes) so one person is one row and one funnel count.
+    {
+      const firstMs = (j: Journey) => {
+        const fp = firstPage.get(j.visitor_id);
+        return fp && Number.isFinite(fp.at) ? fp.at : null;
+      };
+      const dupes = sameDeviceDuplicates(
+        all.map((j) => ({
+          id: j.visitor_id,
+          firstSeenMs: firstMs(j),
+          ip: j.first_ip ?? null,
+          device: j.device_type,
+          paidClick: !!j.paid_click,
+          direct: (!j.source || j.source.toLowerCase() === "direct") && !firstPage.get(j.visitor_id)?.referrer,
+        })),
+      );
+      if (dupes.size) {
+        const byId = new Map(all.map((j) => [j.visitor_id, j]));
+        const rank: Record<Journey["signup"], number> = { "Not started": 0, Viewed: 1, Started: 2, Abandoned: 3, Success: 4 };
+        for (const [dupId, primaryId] of dupes) {
+          const d = byId.get(dupId);
+          const p = byId.get(primaryId);
+          if (!d || !p) continue;
+          p.radar = p.radar || d.radar;
+          p.engaged = p.engaged || d.engaged;
+          if (rank[d.signup] > rank[p.signup]) p.signup = d.signup;
+          p.activated = p.activated || d.activated;
+          p.paid = p.paid || d.paid;
+          p.steps += d.steps;
+          if ((d.last_activity ?? "") > (p.last_activity ?? "")) p.last_activity = d.last_activity;
+          for (const b of d.badges) if (!p.badges.some((x) => x.key === b.key)) p.badges.push(b);
+          p.same_device_browsers = (p.same_device_browsers ?? 1) + 1;
+        }
+        all = all.filter((j) => !dupes.has(j.visitor_id));
       }
     }
     // Orphan rows: first in-window page view stands in for first-seen.
@@ -1083,12 +1125,15 @@ async function handler({ request }: { request: Request }) {
         watched_since: j.watched_since,
       }));
 
-    // Unified funnel.
-    const total = all.length;
-    const radar = all.filter((j) => j.radar).length;
-    const signup = all.filter((j) => j.signup === "Success").length;
-    const activated = all.filter((j) => j.activated).length;
-    const paid = all.filter((j) => j.paid).length;
+    // Unified funnel. Rows flagged as likely automated stay on the board (behind
+    // "Show likely bots") but are not people, so they are not counted here
+    // (owner 2026-10-13). Paid ad clicks are never flagged, so they always count.
+    const people = all.filter((j) => !j.lead_score?.automated);
+    const total = people.length;
+    const radar = people.filter((j) => j.radar).length;
+    const signup = people.filter((j) => j.signup === "Success").length;
+    const activated = people.filter((j) => j.activated).length;
+    const paid = people.filter((j) => j.paid).length;
     const funnel: FunnelStage[] = [
       { stage: "qualified", label: "Active Visitors", count: total, dropOffPct: null },
       { stage: "radar", label: "Radar completed", count: radar, dropOffPct: pct(radar, total) },

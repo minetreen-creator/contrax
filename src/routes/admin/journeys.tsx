@@ -1,5 +1,6 @@
 import { StoryFunnel } from "~/components/StoryFunnel";
 import { LearnFunnel } from "~/components/LearnFunnel";
+import { RecompetesFunnel } from "~/components/RecompetesFunnel";
 import { countryLabel, visitorCountry } from "~/lib/visitor-geo";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect, type ReactNode } from "react";
@@ -60,6 +61,8 @@ interface Journey {
   region: string | null;
   country?: string | null;
   paid_click?: boolean;
+  /** Browsers folded into this row (ad app + Safari/Chrome on the same phone). */
+  same_device_browsers?: number;
   first_ip?: string | null;
   last_ip?: string | null;
   device_type: string | null;
@@ -689,7 +692,7 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
             )}
           </div>
         </td>
-        <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">{j.source_label ? <span className="font-medium text-blue-700">{j.source_label}</span> : j.source ? <span className="capitalize">{j.source}</span> : "direct"}</td>
+        <td className="px-4 py-2.5 text-slate-600 whitespace-nowrap">{j.source_label ? <span className="font-medium text-blue-700">{j.source_label}</span> : j.source ? <span className="capitalize">{j.source}</span> : "direct"}{(j.same_device_browsers ?? 1) > 1 && <span className="ml-1 text-xs text-slate-400" title="Same phone or computer seen in two browsers (the ad app's browser, then Safari or Chrome), counted once">· {j.same_device_browsers} browsers</span>}</td>
         <td className="px-4 py-2.5 text-slate-700 whitespace-nowrap">{didLabel(j)}</td>
         <td className="px-4 py-2.5 text-slate-500 whitespace-nowrap">
           {j.last_activity ? timeFmt(j.last_activity) : "—"}
@@ -845,7 +848,7 @@ function JourneysPage() {
 
         {/* Unified funnel */}
         <section>
-          <h2 className="text-base font-semibold text-slate-900 mb-2">Funnel</h2>
+          <h2 className="text-base font-semibold text-slate-900 mb-2">Funnel <span className="text-xs font-normal text-slate-400">· people only: likely bots are not counted, and one phone seen in two browsers counts once</span></h2>
           {error ? (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div>
           ) : loading || !data ? (
@@ -873,6 +876,7 @@ function JourneysPage() {
         </section>
 
         <LearnFunnel days={days} />
+        <RecompetesFunnel days={days} />
         <StoryFunnel days={days} />
 
         {/* Journeys table */}

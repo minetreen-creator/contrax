@@ -74,3 +74,23 @@ test("stale checkout creation expires the unshared session",async()=>{
   const stripe={checkout:{sessions:{create:async()=>({id:"cs_stale",url:"https://checkout.stripe.com/stale"}),expire:async()=>{expired=true;}}}} as any;
   await assert.rejects(()=>createReviewCheckout(1,{db:db as any,stripe})); assert.equal(expired,true);
 });
+
+test("admin review actions accept numeric and Postgres BIGSERIAL string IDs", async () => {
+  const { reviewAdminUpdateSchema } = await import("../src/lib/bid-fit-review-admin-input.server");
+  for (const action of ["delete", "access", "accept", "checkout"]) {
+    for (const id of [1, "1", "123"]) {
+      const parsed = reviewAdminUpdateSchema.safeParse({ id, action });
+      assert.equal(parsed.success, true);
+      if (parsed.success) assert.equal(parsed.data.id, Number(id));
+    }
+  }
+  const status = reviewAdminUpdateSchema.parse({ id: "1", status: "reviewing" });
+  assert.equal(status.id, 1);
+});
+test("admin review IDs reject unsafe numbers and non-ID coercions", async () => {
+  const { reviewAdminUpdateSchema } = await import("../src/lib/bid-fit-review-admin-input.server");
+  for (const id of [null, true, "", " ", "0", 0, -1, "1.5", 1.5, "1e2", "abc", "9007199254740992", Number.MAX_SAFE_INTEGER + 1]) {
+    assert.equal(reviewAdminUpdateSchema.safeParse({ id, action: "delete" }).success, false);
+  }
+  assert.equal(reviewAdminUpdateSchema.safeParse({ id: "1", action: "unknown" }).success, false);
+});

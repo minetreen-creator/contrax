@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { createReviewCheckout, issueReviewAccess } from "~/lib/bid-fit-review-flow.server";
-import { z } from "zod";
+import { reviewAdminUpdateSchema } from "~/lib/bid-fit-review-admin-input.server";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
-import { BID_FIT_STATUSES, ensureBidFitReviewTable } from "~/lib/bid-fit-review.server";
+import { ensureBidFitReviewTable } from "~/lib/bid-fit-review.server";
 
 async function authorize(request: Request) {
   const user = await getUserFromRequest(request);
@@ -32,12 +32,6 @@ async function get({ request }: { request: Request }) {
   }
 }
 
-const updateSchema = z.object({
-  id: z.number().int().positive(),
-  status: z.enum(BID_FIT_STATUSES).optional(),
-  action: z.enum(["accept", "checkout", "access", "delete"]).optional(),
-});
-
 async function post({ request }: { request: Request }) {
   const denied = await authorize(request);
   if (denied) return denied;
@@ -48,7 +42,7 @@ async function post({ request }: { request: Request }) {
   const raw = await request.text();
   if (raw.length > 1000) return Response.json({ error: "Request too large" }, { status: 413 });
   let body;
-  try { body = updateSchema.safeParse(JSON.parse(raw)); }
+  try { body = reviewAdminUpdateSchema.safeParse(JSON.parse(raw)); }
   catch { return Response.json({ error: "Invalid request" }, { status: 400 }); }
   if (!body.success || (!body.data.status && !body.data.action)) return Response.json({ error: "Invalid request" }, { status: 400 });
   try {

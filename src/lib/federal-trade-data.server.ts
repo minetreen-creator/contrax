@@ -92,6 +92,8 @@ async function upsertRecompetes(rows: Recompete[]): Promise<void> {
 
 export interface RecompeteSyncResult {
   trade: string;
+  /** Walks skipped because the API refused or failed twice. */
+  errors: number;
   pages: number;
   kept: number;
   complete: boolean;
@@ -115,6 +117,7 @@ export async function syncRecompetes(opts: { dryRun?: boolean; maxPages?: number
     const runStart = new Date();
     let pages = 0;
     let complete = true;
+    let errors = 0;
     const kept: Recompete[] = [];
     // One walk per NAICS code × contract-size band (see RECOMPETE_PAGE_CAP).
     for (const code of naics) {
@@ -147,6 +150,7 @@ export async function syncRecompetes(opts: { dryRun?: boolean; maxPages?: number
             await pause(300);
           }
         } catch (e) {
+          errors++;
           log(`[recompetes] ${label} skipped after retry: ${(e as Error).message.slice(0, 160)}`);
         }
         if (!walkDone) {
@@ -162,7 +166,7 @@ export async function syncRecompetes(opts: { dryRun?: boolean; maxPages?: number
       if (complete) await sql()`DELETE FROM recompete_contracts WHERE trade_slug = ${trade} AND synced_at < ${runStart}`;
     }
     log(`[recompetes] ${trade}: pages=${pages} kept=${unique.length} complete=${complete}`);
-    out.push({ trade, pages, kept: unique.length, complete });
+    out.push({ trade, errors, pages, kept: unique.length, complete });
   }
   if (!opts.dryRun) await sql()`DELETE FROM recompete_contracts WHERE end_date < CURRENT_DATE`;
   return out;

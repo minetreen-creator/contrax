@@ -8,6 +8,11 @@ on:
   schedule:
     - cron: "40 13 * * 1-5"
   workflow_dispatch:
+    inputs:
+      refresh_spending:
+        description: "Refresh state spending figures now, even if under a week old"
+        type: boolean
+        default: false
   pull_request:
     paths:
       - src/lib/federal-trade-data.ts
@@ -40,4 +45,5 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: bun run sync-federal-trade-data
+          REFRESH_SPENDING: ${{ github.event.inputs.refresh_spending == 'true' && '--spending' || '' }}
+        run: bun run sync-federal-trade-data $REFRESH_SPENDING

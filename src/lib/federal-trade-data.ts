@@ -113,9 +113,11 @@ export const RECOMPETE_FIELDS = [
  * that cap before it reaches today's date.
  */
 export const RECOMPETE_PAGE_CAP = 100;
+// USAspending takes whole dollars only (a decimal bound is a 422). Neighbouring
+// bands share their boundary dollar; the sync de-duplicates by award key.
 export const RECOMPETE_AMOUNT_BANDS: readonly { lower_bound: number; upper_bound?: number }[] = [
-  { lower_bound: RECOMPETE_MIN_AMOUNT, upper_bound: 99_999.99 },
-  { lower_bound: 100_000, upper_bound: 999_999.99 },
+  { lower_bound: RECOMPETE_MIN_AMOUNT, upper_bound: 100_000 },
+  { lower_bound: 100_000, upper_bound: 1_000_000 },
   { lower_bound: 1_000_000 },
 ];
 

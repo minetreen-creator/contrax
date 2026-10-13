@@ -73,14 +73,17 @@ describe("contracts ending soon", () => {
     expect(b.page).toBe(3);
   });
 
-  test("walks are split into contract-size bands that cover $25,000 and up without overlap", () => {
+  test("walks are split into whole-dollar contract-size bands with no gaps from $25,000 up", () => {
     expect(RECOMPETE_AMOUNT_BANDS[0].lower_bound).toBe(25_000);
-    for (let i = 1; i < RECOMPETE_AMOUNT_BANDS.length; i++) {
-      expect(RECOMPETE_AMOUNT_BANDS[i].lower_bound).toBeGreaterThan(RECOMPETE_AMOUNT_BANDS[i - 1].upper_bound!);
+    for (let i = 0; i < RECOMPETE_AMOUNT_BANDS.length; i++) {
+      const b = RECOMPETE_AMOUNT_BANDS[i];
+      expect(Number.isInteger(b.lower_bound)).toBe(true);
+      if (b.upper_bound !== undefined) expect(Number.isInteger(b.upper_bound)).toBe(true);
+      if (i > 0) expect(b.lower_bound).toBe(RECOMPETE_AMOUNT_BANDS[i - 1].upper_bound!);
     }
     expect(RECOMPETE_AMOUNT_BANDS[RECOMPETE_AMOUNT_BANDS.length - 1].upper_bound).toBeUndefined();
     const b = recompeteRequestBody(["236220"], 1, "2026-10-13", RECOMPETE_AMOUNT_BANDS[1]);
-    expect(b.filters.award_amounts).toEqual([{ lower_bound: 100_000, upper_bound: 999_999.99 }]);
+    expect(b.filters.award_amounts).toEqual([{ lower_bound: 100_000, upper_bound: 1_000_000 }]);
   });
 
   test("a walk that ran into the 10,000-result cap is not complete", () => {

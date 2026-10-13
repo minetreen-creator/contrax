@@ -30,6 +30,7 @@
     "sync-subcontracts": "bun run src/jobs/subcontract-sync.ts",
     "sync-gsa-primes": "bun run src/jobs/gsa-primes-sync.ts",
     "sync-award-leads": "bun run src/jobs/award-leads-sync.ts",
+    "sync-federal-trade-data": "bun run src/jobs/federal-trade-sync.ts",
     "sync-dot-directory": "bun run src/jobs/dot-directory-sync.ts",
     "seed-subcontract-primes": "bun run src/jobs/subcontract-primes-seed.ts"
   },

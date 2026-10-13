@@ -42,6 +42,7 @@ import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-tra
 import { SiteHeader } from "~/components/SiteHeader";
 import { HeadStartLock } from "~/components/HeadStartLock";
 import { applyHeadStart } from "~/lib/head-start";
+import type { FederalTradeFactsData } from "~/components/FederalTradeFacts";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Set-aside cert hub taxonomy (canonical slugs reused everywhere: trades.tsx
@@ -282,6 +283,8 @@ export interface RegionTradeData {
   count: number;
   bids: SeoBid[];
   generatedAt: string;
+  /** Federal spending and contracts ending soon (USAspending), when synced. */
+  federal: FederalTradeFactsData | null;
 }
 
 /** Keep only rows performed in (or bought by) `code`, soonest deadline first. */
@@ -325,6 +328,19 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
         bids = [];
       }
     }
+    let federal: FederalTradeFactsData | null = null;
+    if (valid) {
+      try {
+        const { queryRecompetes, tradeSpendingFor } = await import("~/lib/federal-trade-data.server");
+        const [spending, ending] = await Promise.all([
+          tradeSpendingFor(trade!.slug, code!),
+          queryRecompetes({ trade: trade!.slug, state: code!, months: 12, limit: 3 }),
+        ]);
+        federal = { spending, ending };
+      } catch (e) {
+        console.error("[seo-landing] federal trade data failed:", e);
+      }
+    }
     return {
       code: valid ? code : null,
       name: valid ? (STATE_NAMES[code!] ?? null) : null,
@@ -333,6 +349,7 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
       count: bids.length,
       bids: bids.slice(0, 25),
       generatedAt: new Date().toISOString(),
+      federal,
     };
   });
 

@@ -7,6 +7,7 @@ import {
   seoHead,
 } from "~/lib/seo-landing";
 import { radarHrefFor, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
+import { FederalTradeFacts } from "~/components/FederalTradeFacts";
 
 // /contracts-in/{state}/{trade} — e.g. /contracts-in/virginia/janitorial.
 // The trailing underscore on $state_ keeps this route un-nested, so it renders
@@ -62,6 +63,15 @@ function ContractsInStateTrade() {
       }
     >
       <RegionTradeView data={data} radarHref={radarHref} />
+      {data.code && data.trade && (
+        <FederalTradeFacts
+          data={data.federal}
+          tradeSlug={data.trade.slug}
+          tradeLabel={data.trade.label}
+          stateCode={data.code}
+          stateName={name}
+        />
+      )}
       {data.code && (
         <OtherTradeLinks stateName={name} currentTrade={data.trade?.slug} />
       )}

@@ -1,0 +1,43 @@
+name: Sync federal trade data
+# Contracts ending soon and state spending figures from USAspending.gov (owner
+# 2026-10-13) into recompete_contracts and federal_trade_spending. Same pattern
+# as sync-award-leads.yml: GitHub Actions, never Vercel. Weekdays 13:40 UTC.
+# On a pull request that touches the sync, a dry run checks the live API
+# (fetch and parse only, no database, two trades, few pages).
+on:
+  schedule:
+    - cron: "40 13 * * 1-5"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - src/lib/federal-trade-data.ts
+      - src/lib/federal-trade-data.server.ts
+      - src/jobs/federal-trade-sync.ts
+      - .github/workflows/sync-federal-trade-data.yml
+concurrency:
+  group: sync-federal-trade-data-${{ github.event_name }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  sync:
+    name: Sync federal trade data
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Dry run against the live API
+        if: github.event_name == 'pull_request'
+        run: bun run src/jobs/federal-trade-sync.ts --dry-run --trades=janitorial,hvac --max-pages=5
+      - name: Sync
+        if: github.event_name != 'pull_request'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun run sync-federal-trade-data

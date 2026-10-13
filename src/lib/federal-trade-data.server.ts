@@ -66,13 +66,19 @@ async function post(path: string, body: unknown): Promise<Record<string, unknown
 
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Upsert in batches of 500 (one round trip each; a row-per-call loop took most of a run). */
 async function upsertRecompetes(rows: Recompete[]): Promise<void> {
-  for (const r of rows) {
+  for (let i = 0; i < rows.length; i += 500) {
+    const b = rows.slice(i, i + 500);
+    const col = <K extends keyof Recompete>(k: K) => b.map((r) => r[k]);
     await sql()`
       INSERT INTO recompete_contracts (award_key, trade_slug, award_id, recipient_name, recipient_uei, amount, start_date,
                                        end_date, agency, sub_agency, description, pop_state, naics_code, naics_description, synced_at)
-      VALUES (${r.award_key}, ${r.trade_slug}, ${r.award_id}, ${r.recipient_name}, ${r.recipient_uei}, ${r.amount}, ${r.start_date},
-              ${r.end_date}, ${r.agency}, ${r.sub_agency}, ${r.description}, ${r.pop_state}, ${r.naics_code}, ${r.naics_description}, NOW())
+      SELECT *, NOW() FROM UNNEST(
+        ${col("award_key")}::text[], ${col("trade_slug")}::text[], ${col("award_id")}::text[], ${col("recipient_name")}::text[],
+        ${col("recipient_uei")}::text[], ${col("amount")}::bigint[], ${col("start_date")}::date[], ${col("end_date")}::date[],
+        ${col("agency")}::text[], ${col("sub_agency")}::text[], ${col("description")}::text[], ${col("pop_state")}::text[],
+        ${col("naics_code")}::text[], ${col("naics_description")}::text[])
       ON CONFLICT (award_key, trade_slug) DO UPDATE SET
         award_id = EXCLUDED.award_id, recipient_name = EXCLUDED.recipient_name, recipient_uei = EXCLUDED.recipient_uei,
         amount = EXCLUDED.amount, start_date = EXCLUDED.start_date, end_date = EXCLUDED.end_date, agency = EXCLUDED.agency,

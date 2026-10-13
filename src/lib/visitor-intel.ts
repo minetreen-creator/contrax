@@ -306,6 +306,10 @@ export const DATA_CENTER_LOCATIONS: ReadonlySet<string> = new Set([
   // Hamina, Finland (region 09, Kymenlaakso): a Google data center; the 2026-10-04
   // "Hamina, 09 · Desktop" visitor was 66.102.9.164, a Google address.
   "hamina|09",
+  // Ashburn, VA (owner 2026-10-13): the largest data-center cluster in the world
+  // (AWS us-east-1 and many others). Paid ad clicks from there stay visible under
+  // the owner's 2026-10-05 rule; this flags the rest.
+  "ashburn|va",
 ]);
 
 const REGION_CODES: Record<string, string> = { oregon: "OR" };
@@ -924,4 +928,60 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
       activated,
     },
   };
+}
+
+
+/**
+ * QA traffic tagged by source (owner 2026-10-13): our own test runs arrive with
+ * a `qa_…` or `qa-…` utm_source (e.g. "qa_radar_gate") and must never count as a
+ * visitor.
+ */
+export function isQaSource(source: string | null | undefined): boolean {
+  return /^qa[_-]/i.test(String(source ?? "").trim());
+}
+
+/** A board row as the same-device rule sees it. */
+export interface DeviceCandidate {
+  id: string;
+  /** First-seen time (ms). */
+  firstSeenMs: number | null;
+  /** First network address. */
+  ip: string | null;
+  device: string | null;
+  paidClick: boolean;
+  /** Visitor arrived with no source and no referrer ("direct"). */
+  direct: boolean;
+}
+
+/** How close together the two visitor ids must start. */
+export const SAME_DEVICE_WINDOW_MS = 5 * 60_000;
+
+/**
+ * Same person, two browsers (owner 2026-10-13). A phone that taps an ad opens
+ * the site inside the ad app's own browser, then often reopens it in Safari or
+ * Chrome, which has a separate cookie jar and so a second visitor id, with no
+ * referrer. The pair shares a network address and device type and starts
+ * within minutes. Returns duplicate id → the paid-click id it belongs to.
+ * Rows without an address are never paired: nothing is guessed from city alone.
+ */
+export function sameDeviceDuplicates(rows: DeviceCandidate[]): Map<string, string> {
+  const out = new Map<string, string>();
+  const paid = rows.filter((r) => r.paidClick && r.ip && r.firstSeenMs != null);
+  const used = new Set<string>();
+  for (const d of rows) {
+    if (!d.direct || d.paidClick || !d.ip || d.firstSeenMs == null) continue;
+    let best: DeviceCandidate | null = null;
+    for (const p of paid) {
+      if (p.id === d.id || used.has(p.id) || p.ip !== d.ip) continue;
+      if ((p.device ?? "") !== (d.device ?? "")) continue;
+      const gap = d.firstSeenMs - p.firstSeenMs!;
+      if (gap < -60_000 || gap > SAME_DEVICE_WINDOW_MS) continue;
+      if (!best || Math.abs(gap) < Math.abs(d.firstSeenMs - best.firstSeenMs!)) best = p;
+    }
+    if (best) {
+      out.set(d.id, best.id);
+      used.add(best.id);
+    }
+  }
+  return out;
 }

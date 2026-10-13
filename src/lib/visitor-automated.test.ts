@@ -206,3 +206,47 @@ describe("Radar counts only when the visitor does something (owner 2026-10-06)",
     expect(computeLeadScore({ ...base, radarStarted: [].some(isActiveRadarEvent) }).score).toBe(0);
   });
 });
+
+import { isQaSource, sameDeviceDuplicates, type DeviceCandidate } from "./visitor-intel";
+describe("admin counting fixes (owner 2026-10-13)", () => {
+  test("Ashburn, VA is a data-center town", () => {
+    expect(dataCenterLocation("Ashburn", "VA")).toContain("Ashburn, VA");
+    expect(dataCenterLocation("Ashburn", "GA")).toBeNull();
+  });
+
+  test("qa_ and qa- sources are QA traffic", () => {
+    expect(isQaSource("qa_radar_gate")).toBe(true);
+    expect(isQaSource("QA-manual")).toBe(true);
+    expect(isQaSource("quality")).toBe(false);
+    expect(isQaSource(null)).toBe(false);
+  });
+
+  const t0 = Date.parse("2026-10-12T23:53:00Z");
+  const row = (o: Partial<DeviceCandidate>): DeviceCandidate => ({ id: "x", firstSeenMs: t0, ip: "1.2.3.4", device: "Mobile", paidClick: false, direct: false, ...o });
+
+  test("a direct visit on the same address and device right after an ad click is the same person", () => {
+    const m = sameDeviceDuplicates([
+      row({ id: "ad", paidClick: true }),
+      row({ id: "safari", direct: true, firstSeenMs: t0 + 60_000 }),
+    ]);
+    expect([...m]).toEqual([["safari", "ad"]]);
+  });
+
+  test("different address, device, or a long gap is not paired; rows without an address never are", () => {
+    const ad = row({ id: "ad", paidClick: true });
+    expect(sameDeviceDuplicates([ad, row({ id: "b", direct: true, ip: "5.6.7.8" })]).size).toBe(0);
+    expect(sameDeviceDuplicates([ad, row({ id: "b", direct: true, device: "Desktop" })]).size).toBe(0);
+    expect(sameDeviceDuplicates([ad, row({ id: "b", direct: true, firstSeenMs: t0 + 6 * 60_000 })]).size).toBe(0);
+    expect(sameDeviceDuplicates([row({ id: "ad", paidClick: true, ip: null }), row({ id: "b", direct: true, ip: null })]).size).toBe(0);
+    expect(sameDeviceDuplicates([ad, row({ id: "b", direct: false })]).size).toBe(0);
+  });
+
+  test("one ad click absorbs at most one direct visit", () => {
+    const m = sameDeviceDuplicates([
+      row({ id: "ad", paidClick: true }),
+      row({ id: "b", direct: true, firstSeenMs: t0 + 30_000 }),
+      row({ id: "c", direct: true, firstSeenMs: t0 + 90_000 }),
+    ]);
+    expect([...m]).toEqual([["b", "ad"]]);
+  });
+});

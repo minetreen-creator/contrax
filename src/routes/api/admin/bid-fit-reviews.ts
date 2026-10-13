@@ -35,7 +35,7 @@ async function get({ request }: { request: Request }) {
 const updateSchema = z.object({
   id: z.number().int().positive(),
   status: z.enum(BID_FIT_STATUSES).optional(),
-  action: z.enum(["accept", "checkout", "access"]).optional(),
+  action: z.enum(["accept", "checkout", "access", "delete"]).optional(),
 });
 
 async function post({ request }: { request: Request }) {
@@ -54,6 +54,33 @@ async function post({ request }: { request: Request }) {
   try {
     await ensureBidFitReviewTable();
     const { id, action, status } = body.data;
+    if (action === 'delete') {
+      const db = sql();
+      const current = await db`SELECT checkout_session_id, payment_status FROM bid_fit_review_requests WHERE id=${id}`;
+      if (!current.length) return Response.json({ error: 'Request not found' }, { status: 404 });
+      if (['paid', 'processing'].includes(current[0].payment_status)) {
+        return Response.json({ error: 'Paid or processing reviews cannot be deleted' }, { status: 409 });
+      }
+      if (current[0].checkout_session_id) {
+        const { getStripe } = await import("~/lib/stripe");
+        const session = await getStripe().checkout.sessions.retrieve(current[0].checkout_session_id);
+        if (session.status === 'complete') return Response.json({ error: 'Completed checkout cannot be deleted' }, { status: 409 });
+        if (session.status === 'open') await getStripe().checkout.sessions.expire(session.id);
+      }
+      const removed = await db`
+        WITH target AS (
+          SELECT id FROM bid_fit_review_requests
+          WHERE id=${id} AND payment_status NOT IN ('paid','processing')
+            AND checkout_session_id IS NOT DISTINCT FROM ${current[0].checkout_session_id}
+          FOR UPDATE
+        ), removed_documents AS (
+          DELETE FROM bid_fit_review_documents WHERE request_id IN (SELECT id FROM target) RETURNING id
+        )
+        DELETE FROM bid_fit_review_requests WHERE id IN (SELECT id FROM target)
+          AND (SELECT count(*) FROM removed_documents) >= 0 RETURNING id`;
+      if (!removed.length) return Response.json({ error: 'Request changed; refresh before deleting' }, { status: 409 });
+      return Response.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
+    }
     if (action === 'access') {
       const token = await issueReviewAccess(id);
       return Response.json({ url: `https://www.contrax.company/bid-fit-review/request#${token}` }, { headers: { 'Cache-Control':'no-store' } });

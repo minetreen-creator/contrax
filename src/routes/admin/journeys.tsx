@@ -26,11 +26,6 @@ import {
  *   GET /api/admin/journeys-timeline?visitor_id=<id> → timestamped timeline
  *     (rendered as one more panel section)
  *
- * Each row also carries a "👀 Watch visitor" toggle (POST /api/admin/watch-
- * visitor). Watched rows highlight; the top banner lists watched visitors who
- * RETURNED since the admin last viewed them — that list is computed
- * server-side (journeys payload `watched_returned`), never by the client.
- *
  * PII: unauthenticated visitors → geo/behavioral display name ("Dallas, TX ·
  * Desktop", "Direct Lead · /pricing") with a muted #hash badge; linked users →
  * "local-part@…". Location is always labeled "approximate / IP-derived";
@@ -176,15 +171,6 @@ async function fetchIntel(visitorId: string): Promise<VisitorIntel> {
   return res.json();
 }
 
-async function postWatch(visitorId: string, watch: boolean): Promise<{ ok: boolean; watched: boolean; watched_since: string | null; error?: string }> {
-  const res = await fetch("/api/admin/watch-visitor", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ visitor_id: visitorId, action: watch ? "watch" : "unwatch" }),
-  });
-  return res.json();
-}
-
 function timeFmt(iso: string): string {
   return new Date(iso).toLocaleString("en-US", {
     month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
@@ -271,55 +257,6 @@ function OpportunityPanel({ opp, score, level }: { opp: ConversionOpportunity; s
   );
 }
 
-/** 👀 Watch/unwatch toggle (row chip + panel button share this).
- *
- * WATCH GATE (owner 2026-09-11): when the visitor's lead score is < 50 the
- * "watch" direction is disabled with an explanatory tooltip; unwatch always
- * stays available (an already-watched low-score visitor can still be
- * unwatched). The authoritative check is server-side — this is UI only.
- */
-function WatchToggle({
-  visitorId, watched, onChange, compact, watchable = true,
-}: {
-  visitorId: string;
-  watched: boolean;
-  onChange: (watched: boolean, watchedSince: string | null) => void;
-  compact?: boolean;
-  /** Whether this visitor's lead score is ≥ 50 (watchable). Defaults true. */
-  watchable?: boolean;
-}) {
-  const [busy, setBusy] = useState(false);
-  const scoreBlocked = !watched && !watchable;
-  return (
-    <button
-      type="button"
-      disabled={busy || scoreBlocked}
-      onClick={(e) => {
-        e.stopPropagation();
-        if (busy) return;
-        setBusy(true);
-        postWatch(visitorId, !watched)
-          .then((r) => {
-            // Only trust a successful response — a server-side gate rejection
-            // (or a storage error) must NOT flip the toggle; it stays in its
-            // prior state.
-            if (r && r.ok !== false && typeof r.watched === "boolean") onChange(r.watched, r.watched_since ?? null);
-          })
-          .catch(() => { /* fail-open — button stays in prior state */ })
-          .finally(() => setBusy(false));
-      }}
-      title={watched ? "Stop watching this visitor" : scoreBlocked ? "Lead score below 50 — not watchable" : "Watch this visitor — get flagged when they return"}
-      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium transition-colors disabled:opacity-50 ${
-        watched
-          ? "border-amber-300 bg-amber-100 text-amber-800 hover:bg-amber-200"
-          : "border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-700"
-      } ${scoreBlocked ? "cursor-not-allowed" : ""}`}
-    >
-      {busy ? "…" : "👀"} {watched ? (compact ? "Watching" : "Watching — unwatch") : compact ? "Watch" : "Watch visitor"}
-    </button>
-  );
-}
-
 function PanelSection({ title, hint, children }: { title: string; hint?: string; children: ReactNode }) {
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4">
@@ -362,12 +299,9 @@ const LEVEL_LABEL: Record<LeadScore["level"], string> = {
 
 /** The expanded Visitor Intelligence panel (intel + timeline, lazily fetched). */
 function IntelPanel({
-  visitorId, watched, watchedSince, onWatchedChange, onIntelLoaded, timeline, timelineLoading, timelineError,
+  visitorId, onIntelLoaded, timeline, timelineLoading, timelineError,
 }: {
   visitorId: string;
-  watched: boolean;
-  watchedSince: string | null;
-  onWatchedChange: (watched: boolean, since: string | null) => void;
   onIntelLoaded: (intel: VisitorIntel) => void;
   timeline: TimelineItem[] | null;
   timelineLoading: boolean;
@@ -409,7 +343,7 @@ function IntelPanel({
 
   return (
     <div className="space-y-3">
-      {/* Header: identity + lead score + watch toggle */}
+      {/* Header: identity + lead score */}
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4">
         <div>
           <p className="text-sm font-semibold text-slate-800">
@@ -425,9 +359,6 @@ function IntelPanel({
         </div>
         <div className="flex items-center gap-3">
           <div className="text-right">
-            {watched && watchedSince && (
-              <p className="text-[10px] text-amber-700 mb-0.5">👀 watching since {dayFmt(watchedSince)}</p>
-            )}
             <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Lead score (heuristic)</p>
             <p className="flex items-baseline justify-end gap-1.5">
               <span className="text-2xl font-bold text-slate-900">{lead_score.score}</span>
@@ -437,7 +368,6 @@ function IntelPanel({
               <p className="mt-1 inline-flex rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-700">🤖 Likely automated</p>
             )}
           </div>
-          <WatchToggle visitorId={visitorId} watched={watched} onChange={onWatchedChange} watchable={lead_score.score >= 50} />
         </div>
       </div>
 
@@ -615,12 +545,10 @@ function didLabel(j: Journey): string {
   return "Browsed";
 }
 
-function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visitorId: string, watched: boolean, since: string | null) => void }) {
+function JourneyRow({ j }: { j: Journey }) {
   const [summaryIntel, setSummaryIntel] = useState<VisitorIntel | null>(null);
   const [open, setOpen] = useState(false);
   const [oppOpen, setOppOpen] = useState(false);
-  const [watched, setWatched] = useState(!!j.watched);
-  const [watchedSince, setWatchedSince] = useState<string | null>(j.watched_since ?? null);
   // Lazy per-expanded-row fetches — collapsed rows never fetch. Kept in local
   // state so toggling closed→open again doesn't re-fetch.
   const [events, setEvents] = useState<TimelineItem[] | null>(null);
@@ -645,12 +573,6 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
   // Medium rows get neither the button nor the panel (unchanged appearance).
   const opp = j.conversion_opportunity;
 
-  const handleWatchedChange = (w: boolean, since: string | null) => {
-    setWatched(w);
-    setWatchedSince(since);
-    onWatchedChange(j.visitor_id, w, since);
-  };
-
   // Retain the reconciled detail summary after collapse; never reduce a
   // lifetime count when detail rows are excluded or unavailable.
   const stepCount = Math.max(j.steps, summaryIntel?.engagement.steps ?? 0);
@@ -664,18 +586,12 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
     <>
       <tr
         onClick={() => setOpen((o) => !o)}
-        className={`border-t cursor-pointer transition-colors ${watched ? "border-amber-200 bg-amber-50/50 hover:bg-amber-50" : "border-slate-50 hover:bg-blue-50/40"}`}
+        className="border-t cursor-pointer transition-colors border-slate-50 hover:bg-blue-50/40"
       >
         <td className="px-4 py-2.5">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="font-medium text-slate-800">{j.label}</span>
             {abroad && <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">{abroad}</span>}
-            {watched && <span className="text-[11px]" title="Watching">👀</span>}
-            {j.returned_since_view && (
-              <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700" title="Active since you last viewed this visitor">
-                ↩ returned
-              </span>
-            )}
             {opp && (
               <button
                 type="button"
@@ -702,7 +618,7 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
         </td>
       </tr>
       {open && (
-        <tr className={watched ? "bg-amber-50/40" : "bg-slate-50/60"}>
+        <tr className="bg-slate-50/60">
           <td colSpan={5} className="px-6 py-4">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
@@ -717,9 +633,6 @@ function JourneyRow({ j, onWatchedChange }: { j: Journey; onWatchedChange: (visi
               <IntelPanel
                 visitorId={j.visitor_id}
                 onIntelLoaded={setSummaryIntel}
-                watched={watched}
-                watchedSince={watchedSince}
-                onWatchedChange={handleWatchedChange}
                 timeline={events}
                 timelineLoading={timelineLoading}
                 timelineError={timelineError}
@@ -748,8 +661,6 @@ function JourneysPage() {
   const [data, setData] = useState<JourneysResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  // Banner rows dismissed for this browser session (admin can clear them).
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let cancelled = false;
@@ -762,32 +673,10 @@ function JourneysPage() {
     return () => { cancelled = true; };
   }, [days]);
 
-  // A watch toggle happened in a row — refresh board data in the background so
-  // the highlight + server-authoritative returned-banner re-sync.
-  const handleWatchedChange = (visitorId: string, watched: boolean, since: string | null) => {
-    setData((prev) => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        journeys: prev.journeys.map((j) =>
-          j.visitor_id === visitorId ? { ...j, watched, watched_since: since, returned_since_view: watched ? j.returned_since_view : false } : j,
-        ),
-        watched_returned: watched
-          ? prev.watched_returned
-          : prev.watched_returned.filter((w) => w.visitor_id !== visitorId),
-      };
-    });
-    fetchJourneys(days)
-      .then((d) => setData(d))
-      .catch(() => { /* keep optimistic state */ });
-  };
-
-  const bannerRows = (data?.watched_returned ?? []).filter((w) => !dismissed.has(w.visitor_id));
-
   // Likely-automated visitors (lead score flag, owner 2026-10-02) are hidden
-  // from People by default; a watched visitor always stays visible.
+  // from People by default.
   const [showAutomated, setShowAutomated] = useState(false);
-  const isAutomated = (j: Journey) => !!j.lead_score?.automated && !j.watched;
+  const isAutomated = (j: Journey) => !!j.lead_score?.automated;
   const automatedCount = (data?.journeys ?? []).filter(isAutomated).length;
   const people = (data?.journeys ?? []).filter((j) => showAutomated || !isAutomated(j));
 
@@ -808,43 +697,6 @@ function JourneysPage() {
             ))}
           </div>
         </div>
-
-        {/* Watched-visitors-returned banner (server-authoritative) */}
-        {bannerRows.length > 0 && (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-amber-900">
-                👀 {bannerRows.length} watched visitor{bannerRows.length === 1 ? "" : "s"} returned since you last viewed them
-              </p>
-              <button
-                type="button"
-                onClick={() => setDismissed(new Set((data?.watched_returned ?? []).map((w) => w.visitor_id)))}
-                className="text-xs font-medium text-amber-700 underline hover:text-amber-900"
-              >
-                Dismiss all
-              </button>
-            </div>
-            <ul className="mt-2 space-y-1">
-              {bannerRows.map((w) => (
-                <li key={w.visitor_id} className="flex flex-wrap items-center gap-2 text-sm text-amber-900">
-                  <span className="font-medium">{w.label}</span>
-                  {w.visitor_hash && <span className="rounded bg-amber-100 px-1 py-0.5 font-mono text-[10px] text-amber-600">{w.visitor_hash}</span>}
-                  {w.last_activity && <span className="text-xs text-amber-700">active {timeFmt(w.last_activity)}</span>}
-                  <button
-                    type="button"
-                    onClick={() => setDismissed((prev) => new Set([...prev, w.visitor_id]))}
-                    className="text-xs text-amber-600 underline hover:text-amber-800"
-                  >
-                    dismiss
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2 text-[11px] text-amber-700">
-              Server-computed from watched_visitors.last_viewed_at — expanding a visitor's panel marks them viewed.
-            </p>
-          </div>
-        )}
 
         {/* Unified funnel */}
         <section>
@@ -911,7 +763,7 @@ function JourneysPage() {
                   </thead>
                   <tbody>
                     {people.map((j) => (
-                      <JourneyRow key={j.visitor_id} j={j} onWatchedChange={handleWatchedChange} />
+                      <JourneyRow key={j.visitor_id} j={j} />
                     ))}
                   </tbody>
                 </table>

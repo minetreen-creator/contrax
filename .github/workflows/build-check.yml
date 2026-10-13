@@ -203,7 +203,7 @@ jobs:
       - name: Ohio local source (Worthington, Franklin County) and local page tests
         run: bun test src/jobs/sources/oh-worthington.test.ts src/jobs/sources/oh-franklin-county.test.ts src/jobs/sources/nj-harrison.test.ts src/lib/local-agencies.test.ts
       - name: Vercel cron → daily emails dispatch tests (unit, deterministic, zero network)
-        run: bun test src/lib/cron-dispatch.test.ts
+        run: bun test src/lib/cron-dispatch.test.ts src/lib/ci-db-lock.test.ts
       - name: USAspending federal trade data tests (unit, deterministic, zero network)
         run: bun test src/lib/federal-trade-data.test.ts
       - name: Source provenance class map tests (unit, deterministic, zero network)
@@ -489,7 +489,11 @@ jobs:
           else
             echo "DATABASE_URL secret NOT configured — the DB-backed state grants suites skip loudly (the unit half still runs and must pass)."
           fi
-          bun test src/lib/state-grants
+          # One run at a time (owner 2026-10-13): the real-DB suites write fixed
+          # ZZ/ZY + itest- rows to the shared database, so two overlapping Build
+          # Checks deleted each other's rows and both failed. A ci_locks row makes
+          # a second run wait (src/lib/ci-db-lock.ts).
+          bun run scripts/with-db-lock.ts state-grants-real-db -- bun test src/lib/state-grants
       # eVA DUE-DATE REFRESH — the runner UPSERT REFRESH regression pins (owner
       # fix 2026-10-10). DB-BACKED but SELF-PROVISIONING: it builds a THROWAWAY
       # database (contrax_runner_upsert_<run>) from src/db/schema.sql + the

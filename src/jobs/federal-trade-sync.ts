@@ -21,6 +21,13 @@ try {
   const rec = await syncRecompetes({ dryRun, trades, maxPages, log });
   const kept = rec.reduce((n, r) => n + r.kept, 0);
   console.log(`[federal-trade] recompetes: ${rec.length} trades, ${kept} contracts ending in the window${dryRun ? " (dry run)" : ""}`);
+  const errors = rec.reduce((n, r) => n + r.errors, 0);
+  // A dry run (the PR check) must fail when the API refuses a request, so a bad
+  // filter can't pass review the way the decimal amount bands did.
+  if (dryRun && errors > 0) {
+    console.error(`[federal-trade] dry run: ${errors} walk(s) failed`);
+    process.exit(1);
+  }
 
   const force = args.includes("--spending") || dryRun;
   const age = dryRun ? Infinity : await spendingAgeDays();

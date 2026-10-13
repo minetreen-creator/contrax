@@ -292,8 +292,8 @@ function signupStatus(events: Set<string>): Journey["signup"] {
   const abandoned = events.has("signup_abandon"); // explicit abandon beacon (also covers started-but-no-success)
   const started = SIGNUP_EVENTS.started.some((e) => events.has(e));
   const viewed = SIGNUP_EVENTS.viewed.some((e) => events.has(e));
-  if (abandoned || started) return "Abandoned"; // abandoned, or started but never succeeded
-  if (viewed) return "Viewed";
+  if (started) return "Abandoned"; // actual form interaction without completion
+  if (viewed || abandoned) return "Viewed"; // leaving a page is not a form start
   return "Not started";
 }
 
@@ -580,8 +580,7 @@ function buildRowLeadScore(o: {
   const radarCompleted = o.eventNames.includes("radar_scan_complete");
   const sawPath = (needle: string) => o.paths.some((p) => p.includes(needle));
   const has = (needle: string) => o.eventNames.some((e) => e.includes(needle));
-  const signupStarted = o.eventNames.some((e) => ["signup_start", "signup_submit", "signup_abandon"].includes(e));
-  const signupAbandoned = o.signupStatus === "Abandoned";
+  const signupStarted = o.eventNames.some((e) => ["signup_start", "signup_submit"].includes(e));
   const incumbentViewed = has("incumbent");
   const savedBid = o.eventNames.includes("save_success") || o.eventNames.includes("radar_login_notify_save");
   const briefViewed = o.sawBrief || has("rfp_brief_result") || sawPath("/example-brief");
@@ -622,7 +621,7 @@ function buildRowLeadScore(o: {
   const opportunity: ConversionOpportunity | null = highOrVeryHigh
     ? buildConversionOpportunity({
         signedUp: o.signedUp,
-        signupStarted: signupStarted || signupAbandoned,
+        signupStarted,
         radarCompleted,
         pricingViewed,
         savedBid,
@@ -869,6 +868,9 @@ async function handler({ request }: { request: Request }) {
         if (!isRealSignupSuccess({ signup, resolvedUserId, signupSuccessEvent: successVids.has(vid) })) {
           signup = signupStatus(new Set(signupEventNames.get(vid) ?? []));
         }
+      } else {
+        // Recompute from events so stale abandonment badges cannot imply a form start.
+        signup = signupStatus(new Set(signupEventNames.get(vid) ?? []));
       }
       // Conversion Opportunity (owner 2026-09-06): same signals the panel's
       // computeLeadScore would use, assembled from the summary cache + the

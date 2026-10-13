@@ -1256,19 +1256,6 @@ function SignupPage() {
           </div>
         )}
 
-        {/* Save-to-Pipeline banner — arriving from a "⭐ Save to My Pipeline" click */}
-        {save_bid && (
-          <div className="mb-6 rounded-xl border-2 border-amber-300 bg-amber-50 p-5">
-            <p className="text-sm font-semibold text-amber-800">
-              ⭐ Save this opportunity to your Pipeline
-            </p>
-            <p className="mt-1 text-sm text-amber-700">
-              Create your free account and this bid is saved to your pipeline
-              automatically — no extra steps.
-            </p>
-          </div>
-        )}
-
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           {/* H1: the owner-ratified score-flow copy ("Get your Technical
@@ -1277,16 +1264,25 @@ function SignupPage() {
               signup → draft fires on onboarding completion). Cold arrivals
               keep the honest workflow headline. */}
           <h1 className="text-2xl font-bold text-slate-900">
-            {score_rec
+            {save_bid
+              ? "Create your free account to save this bid"
+              : score_rec
               ? "Get your Technical Approach in 60 seconds."
               : contextualHeader || "Your government-contracting workflow starts here."}
           </h1>
+          {save_bid && (
+            <p className="mt-2 text-sm text-slate-700">
+              We'll save this bid to your pipeline automatically and return you to your results.
+            </p>
+          )}
           <p className="mt-1.5 text-sm text-gray-500">
-            Your 7-day Professional trial starts when you create your account — no credit card required. After it, choose a plan or keep searching on free Basic.
+            {save_bid
+              ? "Your account includes a 7-day Professional trial, with no credit card or automatic charge. After the trial, keep your free Basic account with 1 saved bid, or choose a paid plan."
+              : "Your 7-day Professional trial starts when you create your account — no credit card required. After it, choose a plan or keep searching on free Basic."}
           </p>
 
           {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
-          {trackedBids > 0 && (
+          {!save_bid && trackedBids > 0 && (
             <p className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
               <span className="relative flex h-2 w-2 shrink-0">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
@@ -1379,11 +1375,11 @@ function SignupPage() {
                   for both branches. */}
               {/* A note, not a button (owner 2026-10-06): light fill, no shadow,
                   so on a phone it is not mistaken for a tap target above the email box. */}
-              <p className="mt-1.5 rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+              {!save_bid && <p className="mt-1.5 rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
                 {selectedPlan === "basic"
                   ? "🔒 100% Free Forever • Zero Credit Card Required"
                   : "🔒 7-day trial starts today • No credit card"}
-              </p>
+              </p>}
               {/* Honest scope on the free forever claim — Basic is free and never
                   expires, but it is LIMITED: capped at 1 saved bid, with AI
                   Executive Briefs / Incumbent Intelligence / AI Match Scoring gated
@@ -1391,7 +1387,7 @@ function SignupPage() {
                   Scout (the ratified gate map, src/lib/plan-gates.ts). Kept small
                   (text-xs) and only on the Basic branch so the badge is never read
                   as "everything is free". */}
-              {selectedPlan === "basic" && (
+              {!save_bid && selectedPlan === "basic" && (
                 <p className="mt-1.5 text-xs text-gray-500">
                   Basic includes 1 saved bid. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
                 </p>
@@ -1493,7 +1489,7 @@ function SignupPage() {
                 </span>
               ) : (
                 // Honest CTA: no draft promise until the draft flow (part B) lands.
-                "Create my free account →"
+                save_bid ? "Create account & save bid →" : "Create my free account →"
               )}
             </button>
 
@@ -1501,7 +1497,7 @@ function SignupPage() {
                 all three free/basic assurances: no card, free forever, and fast
                 (takes under 30 seconds). Paid plans keep honest 14-day-trial
                 framing instead of the "free forever" claim. */}
-            <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
+            {!save_bid && <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
               {selectedPlan === "basic" ? <span>No credit card required</span> : <span>Card required at checkout</span>}
               {selectedPlan !== "basic" && (
                 <>
@@ -1513,13 +1509,13 @@ function SignupPage() {
               <span>Takes under 30 seconds</span>
               <span aria-hidden="true" className="text-gray-300">·</span>
               <span>Cancel anytime</span>
-            </p>
+            </p>}
           </form>
           {/* Plan selector — selectable cards. Cold arrivals default to Starter
               ($19/mo, the homepage promise); ?plan=professional intent links
               preselect Professional via the URL. selectedPlan feeds both the
               signup POST body and the Google OAuth state. */}
-          <div className="mt-6 border-t border-gray-100 pt-5">
+          {!save_bid && <div className="mt-6 border-t border-gray-100 pt-5">
             <p className="text-sm font-semibold text-slate-900">Select your plan</p>
             <p className="mt-0.5 text-xs text-gray-500">
               Your 7-day Professional trial starts when you create your account — no credit card required. After it, choose a plan or keep searching on free Basic.
@@ -1598,12 +1594,12 @@ function SignupPage() {
                 ? "Basic — $0/mo, free forever"
                 : `${planInfo.name} — $${planInfo.price}/mo after your 7-day Professional trial`}
             </p>
-          </div>
+          </div>}
 
           {/* What you get after setup — each item is delivered once the
               onboarding profile is saved (matched bids, AI summaries/scores,
               deadline alerts). Heading deliberately avoids a time promise. */}
-          <ul className="mt-4 space-y-2 rounded-lg border border-gray-100 bg-slate-50 px-4 py-3">
+          {!save_bid && <ul className="mt-4 space-y-2 rounded-lg border border-gray-100 bg-slate-50 px-4 py-3">
             <li className="flex items-start gap-2 text-sm text-slate-700">
               <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -1622,7 +1618,7 @@ function SignupPage() {
               </svg>
               Deadline alerts so you never miss a response
             </li>
-          </ul>
+          </ul>}
 
 
         </div>

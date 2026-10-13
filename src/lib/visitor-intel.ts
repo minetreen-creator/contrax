@@ -798,8 +798,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
   const briefViewed = briefGenerated || !!v?.saw_brief || sawPath("/example-brief");
   const pricingViewed = !!v?.saw_pricing || sawPath("/pricing");
   const signupStarted =
-    eventNames.some((e) => ["signup_start", "signup_submit", "signup_abandon"].includes(e));
-  const signupViewed = eventNames.some((e) => e.startsWith("signup_view"));
+    eventNames.some((e) => ["signup_start", "signup_submit"].includes(e));
   const signedUp = (v?.signup === "Success" && (!!userRow || detailEmails.some((e) => eventRows.some((r) => r.event_name === "signup_success" && r.user_email === e)))) || false;
   const savedBid = eventNames.includes("save_success") || eventNames.includes("radar_login_notify_save");
   const activated = !!v?.activated;
@@ -923,7 +922,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
       incumbent_viewed: incumbentViewed,
       saved_bids: savedBid,
       pricing_viewed: pricingViewed,
-      started_signup: signupStarted || signupViewed,
+      started_signup: signupStarted,
       signed_up: signedUpFinal,
       activated,
     },

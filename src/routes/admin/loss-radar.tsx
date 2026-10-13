@@ -2,6 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
+import { AdminHeader } from "~/components/AdminShared";
 import { loadLossRadar, HIGH_VALUE_THRESHOLD } from "~/lib/lossRadar";
 import type { LossRadarData } from "~/lib/lossRadar";
 
@@ -111,7 +112,7 @@ function LossRadarPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="admin-console min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex items-center gap-3 text-slate-500">
           <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -125,7 +126,7 @@ function LossRadarPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="admin-console min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-xl font-bold text-slate-900">Error loading loss radar</h1>
           <p className="mt-2 text-sm text-slate-500">{error}</p>
@@ -145,21 +146,9 @@ function LossRadarPage() {
   const hot = data.prospects.filter((p) => p.prospectScore >= 75).length;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="admin-console min-h-screen bg-slate-50">
       {/* Header */}
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
-        <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-          <a href="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
-          </a>
-          <div className="flex items-center gap-4">
-            <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Admin</span>
-            <a href="/admin" className="text-sm font-medium text-slate-500 hover:text-slate-700">
-              Admin Dashboard &rarr;
-            </a>
-          </div>
-        </div>
-      </header>
+      <AdminHeader />
 
       <main className="mx-auto max-w-6xl px-4 py-8 space-y-6">
         <div className="flex flex-wrap items-end justify-between gap-3">

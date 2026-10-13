@@ -9,21 +9,21 @@
  */
 
 import { useState, useEffect, type ReactNode } from "react";
+import { LayoutDashboard, Users, Target, Wallet, Settings2, ArrowUpRight, ShieldCheck } from "lucide-react";
 
 // ── Admin page header (shared) ───────────────────────────────────────────────
 export function AdminHeader({ scoreboard }: { scoreboard?: ReactNode }) {
   return (
-    <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
-      <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between gap-3">
-        <a href="/" className="inline-flex items-center gap-2">
-          <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+    <header className="admin-header sticky top-0 z-10">
+      <div className="admin-header-inner">
+        <a href="/" className="admin-brand">
+          <span className="admin-logo"><img src="/logo.png" alt="Contrax" className="h-8 w-auto" /></span>
+          <span className="admin-brand-copy">CONTRAX<span>OWNER CONSOLE</span></span>
         </a>
-        <div className="flex items-center gap-3 sm:gap-4">
+        <div className="admin-header-actions">
           {scoreboard}
-          <span className="text-xs font-semibold uppercase tracking-wider text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md">Admin</span>
-          <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">
-            Dashboard &rarr;
-          </a>
+          <span className="admin-access"><ShieldCheck size={14} aria-hidden="true" /> Admin</span>
+          <a href="/dashboard" className="admin-dashboard-link">Dashboard <ArrowUpRight size={16} aria-hidden="true" /></a>
         </div>
       </div>
     </header>
@@ -127,25 +127,26 @@ export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: Ad
 
 export const ADMIN_SECTIONS: AdminSection[] = ["Overview", "Visitors", "Leads & Signups", "Revenue", "Operations"];
 
+const SECTION_ICONS = { Overview: LayoutDashboard, Visitors: Users, "Leads & Signups": Target, Revenue: Wallet, Operations: Settings2 };
+
 export function AdminTabs({ active }: { active: AdminTab }) {
   const activeGroup = ADMIN_TABS.find((t) => t.key === active)?.group ?? "Overview";
   const pages = ADMIN_TABS.filter((t) => t.group === activeGroup);
   return (
-    <nav aria-label="Admin sections" className="space-y-2">
-      <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
+    <nav aria-label="Admin sections" className="admin-nav space-y-3">
+      <div className="admin-section-tabs">
         {ADMIN_SECTIONS.map((group) => {
           const first = ADMIN_TABS.find((t) => t.group === group)!;
           const on = group === activeGroup;
+          const Icon = SECTION_ICONS[group];
           return (
             <a
               key={group}
               href={first.href}
-              aria-current={on ? "page" : undefined}
-              className={`-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-semibold ${
-                on ? "border-slate-900 text-slate-900" : "border-transparent text-slate-500 hover:text-slate-800"
-              }`}
+              aria-current={on && first.key === active ? "page" : undefined}
+              className={`admin-section-tab ${on ? "is-active" : ""}`}
             >
-              {group}
+              <Icon size={17} aria-hidden="true" /> {group}
             </a>
           );
         })}
@@ -157,9 +158,7 @@ export function AdminTabs({ active }: { active: AdminTab }) {
               key={t.key}
               href={t.href}
               aria-current={active === t.key ? "page" : undefined}
-              className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                active === t.key ? "bg-slate-900 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-100"
-              }`}
+              className={`admin-page-tab ${active === t.key ? "is-active" : ""}`}
             >
               {t.label}
             </a>
@@ -191,6 +190,6 @@ export function SectionError({ message }: { message: string }) {
 
 export function SectionLoading({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-400">{message}</div>
+    <div role="status" className="admin-loading rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600"><span className="admin-loading-dot" aria-hidden="true" />{message}</div>
   );
 }

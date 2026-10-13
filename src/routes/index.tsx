@@ -16,6 +16,7 @@ import {
 } from "~/lib/contract-map";
 import { getSdvosbSample, type SampleBid } from "~/lib/sample-bids";
 import { US_STATES } from "~/lib/states";
+import { formatDollars } from "~/lib/federal-trade-data";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
@@ -86,7 +87,7 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, bidStats, contractMap] = await Promise.all([
+  const [businessName, bidStats, contractMap, endingSoon] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -99,8 +100,19 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
     })(),
     getBidStats(),
     getContractMapAggregate(),
+    // Contracts Ending Soon (owner 2026-10-13): a live count from the USAspending
+    // sync; null hides the section, never a made-up number.
+    (async () => {
+      try {
+        const { recompeteTotals } = await import("~/lib/federal-trade-data.server");
+        const t = await recompeteTotals(12);
+        return t.count > 0 ? t : null;
+      } catch {
+        return null;
+      }
+    })(),
   ]);
-  return { businessName, bidStats, contractMap };
+  return { businessName, bidStats, contractMap, endingSoon };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -177,7 +189,7 @@ const BTN =
 
 function Home() {
 
-  const { bidStats, contractMap } = Route.useLoaderData();
+  const { bidStats, contractMap, endingSoon } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -201,6 +213,7 @@ function Home() {
       <Navbar />
       <Hero sample={sample} />
       <Stats bidStats={bidStats} contractMap={contractMap} />
+      {endingSoon && <EndingSoonPromo count={endingSoon.count} total={endingSoon.total} />}
       {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the
           edge-cached homepage stays session-free; hidden when no spots remain. */}
       <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
@@ -218,6 +231,25 @@ function Home() {
       <PartnershipBanner />
       <Footer />
     </div>
+  );
+}
+
+function EndingSoonPromo({ count, total }: { count: number; total: number }) {
+  return (
+    <section aria-labelledby="ending-soon-title" className="mx-auto mt-12 max-w-[1120px] px-4 sm:px-6">
+      <div className={`${CARD} p-6 sm:p-8`}>
+        <p className="text-xs font-bold uppercase tracking-widest text-[#1c5fbf] dark:text-[#8fbaf5]">New · Contracts Ending Soon</p>
+        <h2 id="ending-soon-title" className={`mt-2 text-2xl font-bold ${SERIF}`}>See which federal contracts are about to end</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+          {count.toLocaleString("en-US")} federal contracts in janitorial, security, construction, HVAC and other trades end in the next 12 months,
+          worth {formatDollars(total)} together. See who holds them now and prepare before the rebid is posted.
+        </p>
+        <a href="/recompetes" onClick={() => trackEvent("recompetes_home_click")} className="mt-5 inline-block rounded-lg bg-[#1c5fbf] px-5 py-3 text-sm font-semibold text-white hover:brightness-110 dark:bg-[#6aa3f0] dark:text-[#08172e]">
+          See contracts ending soon →
+        </a>
+        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">From public USAspending.gov records, refreshed every weekday.</p>
+      </div>
+    </section>
   );
 }
 

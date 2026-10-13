@@ -54,6 +54,8 @@ export const SIGNUP_SOURCE_VALUES = [
   // set-aside and industry pages; `local_page` = the city/county and agency pages.
   "seo_page",
   "local_page",
+  // Owner 2026-10-13: the Contracts Ending Soon page (/recompetes).
+  "recompetes",
 ] as const;
 export type SignupSource = (typeof SIGNUP_SOURCE_VALUES)[number];
 /**

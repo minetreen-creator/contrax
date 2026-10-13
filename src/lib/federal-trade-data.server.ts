@@ -243,3 +243,15 @@ export async function tradeSpendingFor(trade: string, state: string): Promise<Tr
     top_agencies: Array.isArray(agencies) ? (agencies as AgencyAmount[]) : [],
   };
 }
+
+/** Homepage line: contracts across all trades ending within `months` (an award in two trades counts once). */
+export async function recompeteTotals(months: number): Promise<{ count: number; total: number }> {
+  await ensureFederalTradeTables();
+  const until = addMonths(new Date().toISOString().slice(0, 10), months);
+  const r = (await sql()`
+    SELECT COUNT(*)::int AS n, COALESCE(SUM(amount),0)::float AS total FROM (
+      SELECT DISTINCT ON (award_key) award_key, amount FROM recompete_contracts
+      WHERE end_date >= CURRENT_DATE AND end_date <= ${until}
+    ) d`) as { n: number; total: number }[];
+  return { count: r[0]?.n ?? 0, total: r[0]?.total ?? 0 };
+}

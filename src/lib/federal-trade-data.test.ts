@@ -13,6 +13,8 @@ import {
   pickRecompetes,
   recompeteRequestBody,
   recompetesHref,
+  RECOMPETE_AMOUNT_BANDS,
+  walkComplete,
   setAsideShare,
   toRecompete,
 } from "~/lib/federal-trade-data";
@@ -69,6 +71,22 @@ describe("contracts ending soon", () => {
     expect(b.order).toBe("desc");
     expect(b.fields).toContain("End Date");
     expect(b.page).toBe(3);
+  });
+
+  test("walks are split into contract-size bands that cover $25,000 and up without overlap", () => {
+    expect(RECOMPETE_AMOUNT_BANDS[0].lower_bound).toBe(25_000);
+    for (let i = 1; i < RECOMPETE_AMOUNT_BANDS.length; i++) {
+      expect(RECOMPETE_AMOUNT_BANDS[i].lower_bound).toBeGreaterThan(RECOMPETE_AMOUNT_BANDS[i - 1].upper_bound!);
+    }
+    expect(RECOMPETE_AMOUNT_BANDS[RECOMPETE_AMOUNT_BANDS.length - 1].upper_bound).toBeUndefined();
+    const b = recompeteRequestBody(["236220"], 1, "2026-10-13", RECOMPETE_AMOUNT_BANDS[1]);
+    expect(b.filters.award_amounts).toEqual([{ lower_bound: 100_000, upper_bound: 999_999.99 }]);
+  });
+
+  test("a walk that ran into the 10,000-result cap is not complete", () => {
+    expect(walkComplete(true, true, 7)).toBe(true);
+    expect(walkComplete(false, false, 12)).toBe(true);
+    expect(walkComplete(false, false, 100)).toBe(false);
   });
 
   test("a row parses with object NAICS and uppercased state", () => {

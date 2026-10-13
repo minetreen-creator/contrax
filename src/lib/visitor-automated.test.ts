@@ -94,11 +94,14 @@ describe("likely-automated visitors (owner 2026-10-02)", () => {
 describe("the People table hides likely-automated visitors by default", () => {
   const src = require("node:fs").readFileSync(require("node:path").join(import.meta.dir, "..", "routes", "admin", "journeys.tsx"), "utf8") as string;
 
-  test("hidden unless toggled on; watched visitors always shown", () => {
+  test("hidden unless toggled on; no watched-visitor exception", () => {
     expect(src).toContain("const [showAutomated, setShowAutomated] = useState(false);");
-    expect(src).toContain("const isAutomated = (j: Journey) => !!j.lead_score?.automated && !j.watched;");
+    expect(src).toContain("const isAutomated = (j: Journey) => !!j.lead_score?.automated;");
     expect(src).toContain("{people.map((j) => (");
     expect(src).not.toContain("{data.journeys.map((j) => (");
+    expect(src).not.toContain("<WatchToggle");
+    expect(src).not.toContain("bannerRows");
+    expect(src).not.toContain("Watching — unwatch");
   });
 });
 

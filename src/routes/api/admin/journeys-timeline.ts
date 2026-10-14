@@ -49,7 +49,8 @@ async function handler({ request }: { request: Request }) {
       await sql()`SELECT 1 FROM page_views LIMIT 1`;
       await sql()`SELECT 1 FROM funnel_events LIMIT 1`;
     } catch {
-      return Response.json({ visitor_id: visitorId, events: [] });
+      console.error("[journeys-timeline] tracking tables unavailable");
+      return Response.json({ error: "Visitor timeline data unavailable" }, { status: 503 });
     }
 
     const pageRows: any[] = await sql()`
@@ -85,7 +86,7 @@ async function handler({ request }: { request: Request }) {
     return Response.json({ visitor_id: visitorId, events });
   } catch (err) {
     console.error("[api/admin/journeys-timeline] error:", err);
-    return Response.json({ visitor_id: visitorId, events: [] });
+    return Response.json({ error: "Visitor timeline query failed" }, { status: 500 });
   }
 }
 

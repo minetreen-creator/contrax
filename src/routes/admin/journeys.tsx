@@ -640,6 +640,7 @@ function JourneyRow({ j }: { j: Journey }) {
                 timeline={events}
                 timelineLoading={timelineLoading}
                 timelineError={timelineError}
+                summarySteps={j.steps}
               />
             </div>
           </td>

@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { dateOnly, mapStoredSummary, submissionDeadlineMilestone, isCompleteSummary } from "~/lib/brief-source";
 import { sql } from "~/db";
 import {
   fingerprintFor,
@@ -208,6 +209,43 @@ function logEvent(event: Record<string, unknown>): void {
 }
 
 /**
+ * Historical showcase: real persisted AI analysis only, never regenerated or
+ * represented as an active bid. Prefer internally consistent dated records.
+ */
+async function loadHistoricalExample() {
+  const rows = (await sql()`
+    SELECT id, title, agency, due_date, source_url, location,
+           estimated_value, naics_code, set_aside, ai_summary, ai_summary_at
+    FROM bids
+    WHERE ai_summary IS NOT NULL AND due_date IS NOT NULL
+      AND due_date <= NOW()
+      AND ai_summary_at IS NOT NULL
+    ORDER BY ai_summary_at DESC
+    LIMIT 100
+  `) as any[];
+  for (const row of rows) {
+    const summary = mapStoredSummary(row.ai_summary);
+    if (!isCompleteSummary(summary)) continue;
+    const deadline = submissionDeadlineMilestone(summary!.key_milestones);
+    // Reject known contradictory cached dates.
+    if (deadline && dateOnly(deadline.date) !== dateOnly(row.due_date)) continue;
+    return {
+      id: Number(row.id), title: String(row.title ?? ""),
+      agency: row.agency ? String(row.agency) : null,
+      due_date: row.due_date ? new Date(row.due_date).toISOString() : null,
+      source_url: null, // Archived publisher URLs may be dead; don't promote them.
+      location: row.location ? String(row.location) : null,
+      estimated_value: row.estimated_value ? String(row.estimated_value) : null,
+      naics_code: row.naics_code ? String(row.naics_code) : null,
+      set_aside: row.set_aside ? String(row.set_aside) : null,
+      summary, generatedAt: row.ai_summary_at ? new Date(row.ai_summary_at).toISOString() : null,
+      historical: true,
+    };
+  }
+  return null;
+}
+
+/**
  * Pick the best REAL, currently-open, internally consistent, LINK-RESOLVING
  * example brief. Honest — never fabricated, never stale, never a dead notice
  * link, null when nothing qualifies.
@@ -242,7 +280,7 @@ export const getExampleBrief = createServerFn({ method: "GET" }).handler(
           uncertain_link_ids: result.uncertainLinkIds,
           repair_target: result.repairTargetId,
         });
-        return null;
+        return await loadHistoricalExample();
       }
 
       if (result.deadLinkIds.length > 0 || result.path !== "fresh") {

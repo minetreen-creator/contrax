@@ -57,16 +57,25 @@ function LearnPage() {
   return <main className="min-h-screen bg-slate-50">
     <section className="bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 px-6 py-20 text-center text-white">
       <p className="text-sm font-semibold uppercase tracking-[.2em] text-amber-400">The Contrax Resource Hub</p>
-      <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-extrabold tracking-tight sm:text-6xl">Government Contracting Resources</h1>
+      <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-extrabold tracking-tight sm:text-6xl">Free Government Contracting Courses & Resources</h1>
       <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100">Free, practical guides and templates to help small businesses register, find opportunities, and submit stronger federal proposals.</p>
     </section>
+    <nav aria-label="Free course levels" className="mx-auto max-w-7xl px-6 pt-8">
+      <h2 className="text-2xl font-bold text-slate-900">Choose your free course</h2>
+      <p className="mt-2 text-slate-600">No payment required. Pick a level and begin learning.</p>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <a href="/learn/government-contracting" className="rounded-xl border border-amber-300 bg-amber-50 p-5 font-bold text-slate-900 hover:border-amber-500">1. Beginner <span className="block mt-2 text-sm font-medium text-slate-600">Start learning →</span></a>
+        <a href="/learn/intermediate-government-contracting" className="rounded-xl border border-blue-300 bg-blue-50 p-5 font-bold text-slate-900 hover:border-blue-500">2. Intermediate <span className="block mt-2 text-sm font-medium text-slate-600">Start learning →</span></a>
+        <a href="/learn/advanced-government-contracting" className="rounded-xl border border-emerald-300 bg-emerald-50 p-5 font-bold text-slate-900 hover:border-emerald-500">3. Advanced <span className="block mt-2 text-sm font-medium text-slate-600">Start learning →</span></a>
+      </div>
+    </nav>
     {/* Free course (owner 2026-10-07). */}
     <section className="bg-amber-50 py-10">
       <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 px-6 sm:flex-row sm:items-center">
         <div>
           <p className="text-sm font-semibold uppercase tracking-widest text-amber-700">Free course · 15 minutes</p>
           <h2 className="mt-1 text-2xl font-bold text-slate-900">Getting Started with Government Contracting</h2>
-          <p className="mt-1 text-slate-700">Five short lessons on government contracting, free for everyone, with live construction bid examples and a completion certificate.</p>
+          <p className="mt-1 text-slate-700">Five short lessons on government contracting, free for everyone, with practical bid examples and a completion certificate.</p>
         </div>
         <a href="/learn/government-contracting" className="shrink-0 rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 hover:bg-amber-400">Take the course →</a>
       </div>

@@ -10,11 +10,19 @@ export function SelfPacedCoursePage({ course, business = {state:"",trade:""} }: 
   const [ready, setReady] = useState(false);
   const [storageWarning, setStorageWarning] = useState(false);
   const [open, setOpen] = useState(course.lessons[0].id);
+  const startedRef = useRef(false);
+  const startLesson = (lessonId: string) => {
+    if (!startedRef.current) {
+      startedRef.current = true;
+      trackEvent("course_started", course.id, window.location.pathname);
+    }
+    trackEvent("course_lesson_open", `${course.id}:${lessonId}`, window.location.pathname);
+    setOpen(lessonId);
+  };
   useEffect(() => {
     try { const saved = readCourseProgress(course, localStorage.getItem(course.key)); setAnswers(saved.answers); setNotes(saved.notes); }
     catch { setStorageWarning(true); }
     setReady(true);
-    trackEvent("course_started", course.id, window.location.pathname);
   }, [course]);
   useEffect(() => {
     if (!ready) return;
@@ -65,7 +73,7 @@ export function SelfPacedCoursePage({ course, business = {state:"",trade:""} }: 
     </section>
     <section className="mx-auto max-w-3xl space-y-4 px-4" aria-label="Course lessons">
       {course.lessons.map((l, n) => <article key={l.id} className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <h2><button type="button" aria-expanded={open === l.id} aria-controls={`lesson-${l.id}`} onClick={() => setOpen(open === l.id ? "" : l.id)} className="flex w-full items-center gap-3 p-5 text-left">
+        <h2><button type="button" aria-expanded={open === l.id} aria-controls={`lesson-${l.id}`} onClick={() => open === l.id ? setOpen("") : startLesson(l.id)} className="flex w-full items-center gap-3 p-5 text-left">
           <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${courseLessonPassed(course, l.id, answers) ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>{courseLessonPassed(course, l.id, answers) ? "✓" : n + 1}</span>
           <span className="flex-1"><span className="block font-bold text-slate-900">{l.title}</span><span className="text-xs text-slate-500">About {l.minutes} minutes, including practice</span></span><span aria-hidden="true">{open === l.id ? "−" : "+"}</span>
         </button></h2>

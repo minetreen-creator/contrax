@@ -141,6 +141,13 @@ function LoginPage({ linkedInAuthUrl, googleAuthUrl }: { linkedInAuthUrl: string
         {/* Card */}
         <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
           <h1 className="text-2xl font-bold text-slate-900">Sign in to your Contrax account</h1>
+          <div className="mt-4 rounded-xl border border-blue-200 bg-blue-50 p-4">
+            <p className="font-semibold text-slate-900">New to Contrax? Start free.</p>
+            <p className="mt-1 text-sm text-slate-600">Create a free account to save a government bid and keep track of your next steps. No payment required for the Basic plan.</p>
+            <a href="/signup?plan=basic&source=home" className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-blue-700 px-4 py-3 text-sm font-bold text-white hover:bg-blue-800">
+              Create my free account
+            </a>
+          </div>
 
           {/* Continue with Google — gated at runtime. Only rendered as a live
               link when getGoogleAuthUrl() returned a fully-configured URL (both

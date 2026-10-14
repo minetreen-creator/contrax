@@ -276,7 +276,7 @@ function buildLabel(userEmail: string | null | undefined, _visitorId: string): s
 function computeBadges(sawPricing: boolean, sawBrief: boolean): JourneyBadge[] {
   const badges: JourneyBadge[] = [];
   if (sawPricing) badges.push({ key: "pricing", label: "💰 Pricing Evaluator" });
-  if (sawBrief) badges.push({ key: "brief", label: "📑 Brief Viewer" });
+  if (sawBrief) badges.push({ key: "brief", label: "📑 Brief Interest" });
   return badges;
 }
 

@@ -83,7 +83,17 @@ async function handler({ request }: { request: Request }) {
     }
     events.sort((a, b) => (a.t < b.t ? -1 : a.t > b.t ? 1 : 0));
 
-    return Response.json({ visitor_id: visitorId, events });
+    // Summary counters can outlive individual event/page rows.
+    const summaryRows: any[] = await sql()`
+      SELECT steps FROM visitors WHERE visitor_id = ${visitorId} LIMIT 1`;
+    const summarySteps = Number(summaryRows[0]?.steps ?? 0);
+    return Response.json({
+      visitor_id: visitorId,
+      events,
+      summary_steps: summarySteps,
+      detail_steps: events.length,
+      history_incomplete: summarySteps > events.length,
+    });
   } catch (err) {
     console.error("[api/admin/journeys-timeline] error:", err);
     return Response.json({ error: "Visitor timeline query failed" }, { status: 500 });

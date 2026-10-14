@@ -101,7 +101,66 @@ export function ExampleBriefView({
           : historical
             ? "Real archived AI analysis · Not an open bidding opportunity."
             : "This brief was pre-generated from a real solicitation. No signup required to view it."}
-        </p>
+      </p>
+    </div>
+  );
+
+  // ── Loading / empty (fallback) states ────────────────────────────────────
+  const loadingState =
+    brief === undefined ? (
+      <p className="mt-6 text-sm text-slate-400">Loading example brief…</p>
+    ) : null;
+
+  const emptyState =
+    brief === null ? (
+      <div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-8 text-center text-sm text-slate-300">
+        <h2 className="text-xl font-bold text-white">Explore government opportunities with Contrax</h2>
+        <p className="mx-auto mt-3 max-w-md leading-relaxed text-slate-300">A verified example AI brief is temporarily unavailable. We only show examples with current, consistent deadlines and working source links.</p>
+        <div className="mt-3">
+          <a
+            href="/radar"
+            onClick={onRadarClick}
+            className="inline-flex min-h-12 items-center justify-center rounded-xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300"
+          >
+            Find Government Contracts →
+          </a>
+        </div>
+        <p className="mt-5 text-xs text-slate-400">Search by trade and location. Free to get started.</p>
+      </div>
+    ) : null;
+
+  // ── Shared brief body (article header + summary + CTA) ──────────────────
+  const briefBody =
+    brief && (
+      <>
+        <article className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
+          <div className="border-b border-slate-800 px-5 py-4">
+            {historical && <p className="mb-3 rounded-lg bg-amber-500/15 px-3 py-2 text-xs font-bold uppercase tracking-wide text-amber-300">Historical example · Solicitation closed · For demonstration only</p>}
+            <h2 className="text-lg font-extrabold leading-snug text-white">
+              {brief.title || "Solicitation"}
+            </h2>
+            {brief.agency && (
+              <p className="mt-1 text-sm text-slate-400">{brief.agency}</p>
+            )}
+            <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium text-slate-300">
+              <span>{brief.set_aside || "Open to small business"}</span>
+              {brief.location && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{brief.location}</span>
+                </>
+              )}
+              <span aria-hidden="true">·</span>
+              <span>
+                {realValue ? `${realValue} estimated` : "Value not disclosed"}
+              </span>
+              {due && (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <span>{historical ? "Closed" : "Due"} {due}</span>
+                </>
+              )}
+            </p>
           </div>
           {brief.source_url && (
             <div className="px-5 py-3">

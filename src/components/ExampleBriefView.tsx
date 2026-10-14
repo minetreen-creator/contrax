@@ -39,6 +39,7 @@ export function ExampleBriefView({
   // HOMEPAGE: no valid example → hide the entire section (owner order).
   if (variant === "embed" && brief === null) return null;
 
+  const historical = Boolean(brief && "historical" in brief && brief.historical);
   const due = brief?.due_date
     ? new Date(brief.due_date).toLocaleDateString("en-US", {
         month: "short",
@@ -97,7 +98,7 @@ export function ExampleBriefView({
       <p className="mt-1 text-xs leading-relaxed text-amber-700/90 dark:text-amber-200/80">
         {brief === null
           ? "See how Contrax helps you evaluate opportunities and find matching bids."
-          : "This brief was pre-generated from a real solicitation. No signup required to view it."}
+          : "{historical ? "Real archived AI analysis · Not an open bidding opportunity." : "This brief was pre-generated from a real solicitation. No signup required to view it."}"}
       </p>
     </div>
   );
@@ -132,6 +133,7 @@ export function ExampleBriefView({
       <>
         <article className="overflow-hidden rounded-2xl border border-slate-700 bg-slate-900">
           <div className="border-b border-slate-800 px-5 py-4">
+            {historical && <p className="mb-3 rounded-lg bg-amber-500/15 px-3 py-2 text-xs font-bold uppercase tracking-wide text-amber-300">Historical example · Solicitation closed · For demonstration only</p>}
             <h2 className="text-lg font-extrabold leading-snug text-white">
               {brief.title || "Solicitation"}
             </h2>
@@ -153,7 +155,7 @@ export function ExampleBriefView({
               {due && (
                 <>
                   <span aria-hidden="true">·</span>
-                  <span>Due {due}</span>
+                  <span>{historical ? "Closed" : "Due"} {due}</span>
                 </>
               )}
             </p>

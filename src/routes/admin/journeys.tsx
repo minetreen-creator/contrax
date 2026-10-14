@@ -299,13 +299,14 @@ const LEVEL_LABEL: Record<LeadScore["level"], string> = {
 
 /** The expanded Visitor Intelligence panel (intel + timeline, lazily fetched). */
 function IntelPanel({
-  visitorId, onIntelLoaded, timeline, timelineLoading, timelineError,
+  visitorId, onIntelLoaded, timeline, timelineLoading, timelineError, summarySteps,
 }: {
   visitorId: string;
   onIntelLoaded: (intel: VisitorIntel) => void;
   timeline: TimelineItem[] | null;
   timelineLoading: boolean;
   timelineError: string;
+  summarySteps: number;
 }) {
   const [intel, setIntel] = useState<VisitorIntel | null>(null);
   const [loading, setLoading] = useState(true);
@@ -507,13 +508,16 @@ function IntelPanel({
       </div>
 
       {/* Timeline — merged as one more section of the panel */}
+      {!timelineLoading && !timelineError && timeline !== null && summarySteps > timeline.length && timeline.length > 0 && (
+        <p className="text-xs text-amber-700">Partial history: summary reports {summarySteps} steps, but only {timeline.length} detailed records are available.</p>
+      )}
       <PanelSection title={`Timeline · ${timelineLoading ? "…" : `${timeline?.length ?? 0} ${(timeline?.length ?? 0) === 1 ? "step" : "steps"}`}`}>
         {timelineLoading ? (
           <p className="text-sm text-slate-400">Loading timeline…</p>
         ) : timelineError ? (
           <p className="text-sm text-red-600">{timelineError}</p>
         ) : timeline && timeline.length === 0 ? (
-          <p className="text-sm text-slate-400">No tracked events.</p>
+          <p className="text-sm text-amber-700">{summarySteps > 0 ? `Summary recorded ${summarySteps} steps, but detailed history is unavailable. Do not interpret this as no activity.` : "No tracked events."}</p>
         ) : (
           <ul className="space-y-1.5 border-l-2 border-slate-100 pl-4">
             {(timeline ?? []).map((ev, i) => (

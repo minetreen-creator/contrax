@@ -157,7 +157,7 @@ async function fetchJourneys(days: number): Promise<JourneysResult> {
 }
 async function fetchTimeline(visitorId: string): Promise<TimelineItem[]> {
   const res = await fetch(`/api/admin/journeys-timeline?visitor_id=${encodeURIComponent(visitorId)}`);
-  if (!res.ok) throw new Error("Failed to load timeline");
+  if (!res.ok) throw new Error("Timeline unavailable — tracking data could not be loaded. This does not mean the visitor had zero activity.");
   const data = await res.json();
   return (data?.events ?? []) as TimelineItem[];
 }
@@ -563,7 +563,7 @@ function JourneyRow({ j }: { j: Journey }) {
     setTimelineError("");
     fetchTimeline(j.visitor_id)
       .then((ev) => { if (!cancelled) setEvents(ev); })
-      .catch(() => { if (!cancelled) setTimelineError("Failed to load timeline"); })
+      .catch((err) => { if (!cancelled) setTimelineError(err instanceof Error ? err.message : "Timeline unavailable"); })
       .finally(() => { if (!cancelled) setTimelineLoading(false); });
     return () => { cancelled = true; };
   }, [open, events, j.visitor_id]);

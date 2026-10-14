@@ -371,7 +371,7 @@ export function computeLeadScore(s: ScoreSignals): LeadScore {
   if (s.returnedMultiDay) add(30, "Returned on a later day");
   else if (s.sessions >= 2) add(10, "Multiple sessions");
   if (s.briefGenerated) add(15, "Generated an AI Executive Brief");
-  else if (s.briefViewed) add(15, "Viewed Executive Brief content");
+  else if (s.briefViewed) add(15, "Viewed Executive Brief preview or page");
   if (s.pricingViewed) add(10, "Viewed pricing");
   if (s.signupStarted && !s.signedUp) add(20, "Started signup (hasn't finished)");
   // Award Autopsy acquisition signals (owner-weighted 2026-09-05):
@@ -795,6 +795,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
   const radarUsed = !!v?.radar || eventNames.some(isActiveRadarEvent) || !!radarSave || !!anonymousRadarProfile;
   const incumbentViewed = has("incumbent");
   const briefGenerated = eventNames.includes("rfp_brief_result");
+  // This is interest in the brief surface, not proof that premium content was delivered.
   const briefViewed = briefGenerated || !!v?.saw_brief || sawPath("/example-brief");
   const pricingViewed = !!v?.saw_pricing || sawPath("/pricing");
   const signupStarted =

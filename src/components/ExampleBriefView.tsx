@@ -95,8 +95,9 @@ export function ExampleBriefView({
         ★ Example AI Executive Brief
       </p>
       <p className="mt-1 text-xs leading-relaxed text-amber-700/90 dark:text-amber-200/80">
-        This brief was pre-generated from a real solicitation. No signup required
-        to view it.
+        {brief === null
+          ? "See how Contrax helps you evaluate opportunities and find matching bids."
+          : "This brief was pre-generated from a real solicitation. No signup required to view it."}
       </p>
     </div>
   );
@@ -110,15 +111,18 @@ export function ExampleBriefView({
   const emptyState =
     brief === null ? (
       <div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-8 text-center text-sm text-slate-300">
-        No example brief is available right now.
+        <h2 className="text-xl font-bold text-white">Explore government opportunities with Contrax</h2>
+        <p className="mx-auto mt-3 max-w-md leading-relaxed text-slate-300">A verified example AI brief is temporarily unavailable. We only show examples with current, consistent deadlines and working source links.</p>
         <div className="mt-3">
           <a
-            href="/example-brief"
-            className="text-sm font-semibold text-amber-400 hover:text-amber-300"
+            href="/radar"
+            onClick={onRadarClick}
+            className="inline-flex min-h-12 items-center justify-center rounded-xl bg-amber-400 px-6 py-3 text-sm font-bold text-slate-950 hover:bg-amber-300"
           >
-            Open the example brief page →
+            Find Government Contracts →
           </a>
         </div>
+        <p className="mt-5 text-xs text-slate-400">Search by trade and location. Free to get started.</p>
       </div>
     ) : null;
 

@@ -3,6 +3,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { useState } from "react";
+import { Radar, Users, Bot, KanbanSquare, ArrowRight } from "lucide-react";
 
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -211,6 +212,7 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
+      <PlatformShowcase />
       <Hero sample={sample} />
       <Stats bidStats={bidStats} contractMap={contractMap} />
       {endingSoon && <EndingSoonPromo count={endingSoon.count} total={endingSoon.total} />}
@@ -231,6 +233,43 @@ function Home() {
       <PartnershipBanner />
       <Footer />
     </div>
+  );
+}
+
+// Knack-inspired product overview: keep the working Radar search immediately below.
+function PlatformShowcase() {
+  const features = [
+    { title: "Contract Radar", description: "Find opportunities that fit your business", href: "/radar", Icon: Radar },
+    { title: "Built-in CRM", description: "Organize contacts and follow-ups", href: "/pricing", Icon: Users },
+    { title: "AI Bid Tools", description: "Understand requirements faster", href: "/example-brief", Icon: Bot },
+    { title: "Bid Pipeline", description: "Keep pursuits and deadlines on track", href: "/pipeline", Icon: KanbanSquare },
+  ];
+  return (
+    <section aria-labelledby="platform-heading" className="px-4 pt-10 pb-8 sm:px-6 sm:pt-16">
+      <div className="mx-auto max-w-[1120px] rounded-[28px] bg-[#eef2ff] px-5 py-10 text-center text-[#203671] shadow-sm sm:px-12 sm:py-14 dark:bg-[#142343] dark:text-white">
+        <p className="text-xs font-bold uppercase tracking-[.22em] text-[#3656b6] dark:text-[#9ebaff]">Your government contracting command center</p>
+        <h1 id="platform-heading" className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">Find. Manage. Win.</h1>
+        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#4b5875] sm:text-xl dark:text-slate-300">
+          Discover government opportunities, manage your bids, and grow your business — all in one place.
+        </p>
+        <p className="mx-auto mt-2 max-w-xl text-sm text-[#53617c] dark:text-slate-300">
+          Built with veteran-owned and service-disabled veteran-owned businesses in mind. Open to every small business.
+        </p>
+        <div className="mt-9 grid grid-cols-2 gap-3 sm:gap-5">
+          {features.map(({ title, description, href, Icon }) => (
+            <a key={title} href={href} className="group flex min-h-40 flex-col items-center justify-center rounded-2xl border border-[#e2e8fa] bg-white p-4 text-[#203671] transition hover:-translate-y-0.5 hover:border-[#3656b6] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3656b6] dark:border-slate-600 dark:bg-[#1d3052] dark:text-white">
+              <Icon aria-hidden="true" className="mb-3 h-8 w-8 text-[#3656b6] dark:text-[#a6c4ff]" />
+              <span className="text-base font-bold sm:text-xl">{title}</span>
+              <span className="mt-1 text-xs leading-snug text-[#5a6680] sm:text-sm dark:text-slate-300">{description}</span>
+            </a>
+          ))}
+        </div>
+        <a href="/radar" onClick={() => trackEvent("homepage_radar_cta_clicked", "platform_showcase")} className="mt-8 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#3656c7] px-5 py-4 text-base font-bold text-white transition hover:bg-[#2846a8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3656c7]">
+          Find Government Contracts <ArrowRight aria-hidden="true" className="h-5 w-5" />
+        </a>
+        <p className="mt-3 text-xs text-[#5a6680] dark:text-slate-300">Explore opportunities for free. No account needed to start.</p>
+      </div>
+    </section>
   );
 }
 

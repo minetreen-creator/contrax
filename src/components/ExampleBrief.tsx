@@ -43,6 +43,8 @@ export function ExampleBrief({
       // Funnel signal — fire-and-forget, additive event name. Only the embed
       // (homepage) reports view + CTA; the standalone page stays event-free.
       if (variant === "embed" && b) trackEvent("example_brief_view");
+    }).catch(() => {
+      if (active) setBrief(null);
     });
     return () => {
       active = false;

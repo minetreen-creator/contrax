@@ -213,6 +213,17 @@ function logEvent(event: Record<string, unknown>): void {
  * represented as an active bid. Prefer internally consistent dated records.
  */
 async function loadHistoricalExample() {
+  // Dedicated snapshot survives bid expiration, cleanup, and source amendments.
+  // It is written only from an existing, genuine cached AI summary.
+  try {
+    const snapshots = (await sql()`
+      SELECT payload FROM example_brief_snapshots
+      WHERE id = 1 LIMIT 1
+    `) as { payload: any }[];
+    if (snapshots[0]?.payload?.summary) return snapshots[0].payload;
+  } catch (error) {
+    console.warn("[example-brief] historical snapshot unavailable:", error);
+  }
   const rows = (await sql()`
     SELECT id, title, agency, due_date, source_url, location,
            estimated_value, naics_code, set_aside, ai_summary, ai_summary_at
@@ -229,7 +240,7 @@ async function loadHistoricalExample() {
     const deadline = submissionDeadlineMilestone(summary!.key_milestones);
     // Reject known contradictory cached dates.
     if (deadline && dateOnly(deadline.date) !== dateOnly(row.due_date)) continue;
-    return {
+    const snapshot = {
       id: Number(row.id), title: String(row.title ?? ""),
       agency: row.agency ? String(row.agency) : null,
       due_date: row.due_date ? new Date(row.due_date).toISOString() : null,
@@ -241,6 +252,16 @@ async function loadHistoricalExample() {
       summary, generatedAt: row.ai_summary_at ? new Date(row.ai_summary_at).toISOString() : null,
       historical: true,
     };
+    try {
+      await sql()`
+        INSERT INTO example_brief_snapshots (id, payload)
+        VALUES (1, ${JSON.stringify(snapshot)}::jsonb)
+        ON CONFLICT (id) DO NOTHING
+      `;
+    } catch (error) {
+      console.warn("[example-brief] could not persist historical snapshot:", error);
+    }
+    return snapshot;
   }
   return null;
 }

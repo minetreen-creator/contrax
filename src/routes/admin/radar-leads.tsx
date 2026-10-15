@@ -65,6 +65,45 @@ async function fetchRadarLeadsFunnel(days: number): Promise<RadarLeadsResult> {
 
 const timeFmt = sharedTimeFmt;
 
+/**
+ * Owner 2026-10-15: re-send a pending lead's confirmation email (the same
+ * email and link). The server refuses confirmed/unsubscribed leads and limits
+ * it to once a day; the address never reaches the browser.
+ */
+function ResendConfirmButton({ id }: { id: number }) {
+  const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [msg, setMsg] = useState("");
+  if (state === "sent") return <span className="text-xs font-medium text-emerald-600">Resent ✓</span>;
+  return (
+    <span className="inline-flex flex-col">
+      <button
+        type="button"
+        disabled={state === "sending"}
+        onClick={async () => {
+          setState("sending");
+          try {
+            const res = await fetch("/api/admin/radar-lead-resend", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id }),
+            });
+            const body = await res.json().catch(() => ({}));
+            if (res.ok) setState("sent");
+            else { setState("error"); setMsg(body.error || "Could not resend."); }
+          } catch {
+            setState("error");
+            setMsg("Could not resend.");
+          }
+        }}
+        className="rounded-md border border-slate-300 px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+      >
+        {state === "sending" ? "Sending…" : "Resend confirmation"}
+      </button>
+      {state === "error" && <span className="mt-1 text-[11px] text-red-600">{msg}</span>}
+    </span>
+  );
+}
+
 function RadarLeadsPage() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState<RadarLeadsResult | null>(null);
@@ -178,7 +217,9 @@ function RadarLeadsPage() {
                       <td className="px-5 py-3">{r.cert ?? "—"}</td>
                       <td className="px-5 py-3">{r.trade ?? "—"}</td>
                       <td className="px-5 py-3">{r.sizePref ?? "—"}</td>
-                      <td className="px-5 py-3 text-xs text-slate-500">{timeFmt(r.confirmedAt)}</td>
+                      <td className="px-5 py-3 text-xs text-slate-500">
+                        {r.confirmedAt || r.unsubscribedAt ? timeFmt(r.confirmedAt) : <ResendConfirmButton id={r.id} />}
+                      </td>
                       <td className="px-5 py-3 text-xs text-slate-500">{timeFmt(r.unsubscribedAt)}</td>
                       <td className="px-5 py-3 text-xs text-slate-500">{timeFmt(r.lastAlertedAt)}</td>
                       <td className="px-5 py-3">

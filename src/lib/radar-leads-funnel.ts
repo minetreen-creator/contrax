@@ -123,3 +123,28 @@ export function emptyRadarLeadsFunnel(days: number): RadarLeadsFunnelResult {
     leads: [],
   };
 }
+/**
+ * Admin "Resend confirmation" (owner 2026-10-15: a janitorial lead never
+ * confirmed and so never gets alerts). Re-sends the SAME confirmation email,
+ * carrying the lead's existing link, only to a lead that is still pending —
+ * never to a confirmed or unsubscribed address — and at most once a day.
+ */
+export const CONFIRM_RESEND_COOLDOWN_HOURS = 24;
+
+export type ConfirmResendDecision =
+  | { ok: true }
+  | { ok: false; reason: "not_found" | "already_confirmed" | "unsubscribed" | "too_soon" };
+
+export function confirmResendDecision(
+  lead: { confirmed_at: string | null; unsubscribed_at: string | null; confirm_resent_at: string | null } | null,
+  now: Date = new Date(),
+): ConfirmResendDecision {
+  if (!lead) return { ok: false, reason: "not_found" };
+  if (lead.unsubscribed_at) return { ok: false, reason: "unsubscribed" };
+  if (lead.confirmed_at) return { ok: false, reason: "already_confirmed" };
+  const last = lead.confirm_resent_at ? Date.parse(lead.confirm_resent_at) : NaN;
+  if (Number.isFinite(last) && now.getTime() - last < CONFIRM_RESEND_COOLDOWN_HOURS * 3_600_000) {
+    return { ok: false, reason: "too_soon" };
+  }
+  return { ok: true };
+}

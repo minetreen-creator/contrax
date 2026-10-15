@@ -308,14 +308,14 @@ function FreeCoursesPromo() {
             <a href="/learn/government-contracting" aria-label="Start free introductory government contracting course" className="mt-5 self-start rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-600">Start free course →</a>
           </article>
           <article className="flex flex-col rounded-xl border border-blue-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950">
-            <p className="text-xs font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300">Intermediate · About 45 minutes</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300">Intermediate · About 65 minutes</p>
             <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">Preparing a Government Contract Bid</h3>
-            <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">Six practical lessons on bid decisions, compliance, pricing, proposal evidence, submission, and follow-up. Includes quizzes and a printable completion certificate.</p>
+            <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">Eight practical lessons on finding opportunities, capability statements, bid decisions, compliance, pricing, evidence, submission, and follow-up. Includes quizzes and a printable completion certificate.</p>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">For all trades, with saved progress and a downloadable bid-planning worksheet.</p>
             <a href="/learn/intermediate-government-contracting" aria-label="Start free intermediate government contracting course" className="mt-5 self-start rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Start free course →</a>
           </article>
           <article className="flex flex-col rounded-xl border border-emerald-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950">
-            <p className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Advanced · About 60 minutes</p>
+            <p className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Advanced · About 70 minutes</p>
             <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">Government Contracting Strategy and Management</h3>
             <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">Six lessons on pursuit strategy, evaluated value, teaming, pricing risk, contract performance, and continuous improvement. Includes quizzes and a printable completion certificate.</p>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">For all trades, with saved progress and a downloadable strategy and management plan.</p>

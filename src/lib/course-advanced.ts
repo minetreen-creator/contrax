@@ -93,7 +93,7 @@ export const ADVANCED_LESSONS: PracticeLesson[] = [
     blocks: [
       { p: "Advanced contracting is a cycle: pursue selectively, commit realistically, deliver, retain evidence, and improve. A future proposal is stronger when your business has truthful, relevant records rather than a collection of unsupported success claims." },
       { list: ["Maintain a project evidence file: actual scope and role, delivery period, approved changes, quality records, issue resolutions, measurable results, and reference permissions. Protect customer and partner information; do not publish confidential material.", "For federal contracts subject to performance evaluation, understand the applicable CPARS process and review opportunities. FAR 42.1503 calls for evaluations supported by objective facts. Use the actual notification and procedures rather than assuming a universal response deadline.", "Request permitted feedback after an unsuccessful pursuit using the buyer's process. Capture the stated weaknesses and distinguish them from your own hypotheses. Do not infer competitors' confidential proposal content from an award notice.", "Run an after-action review against the original pursuit brief and risk register. Which assumptions were wrong? Which mitigation worked? What should change in estimating, partner selection, proposal evidence, or delivery controls?"] },
-      { p: "Capstone: combine the six exercises into a strategy and management plan for the fictional multi-site contract or a real opportunity. The plan should include decision gates, an evaluated value proposition, a partner responsibility map, adverse cost and cash scenarios, a delivery baseline, a change-control route, and an evidence/improvement plan." },
+      { p: "Capstone: combine the exercises into a strategy and management plan for the fictional multi-site contract or a real opportunity. The plan should include decision gates, an evaluated value proposition, a partner responsibility map, adverse cost and cash scenarios, a delivery baseline, a change-control route, and an evidence/improvement plan." },
       { p: "The capstone is a planning worksheet, not a finished proposal, legal agreement, or government-approved management plan. Check it for consistency: if the value proposition promises rapid backup staffing, the partner map, cost model, and operating baseline must show how that promise is delivered." },
       { tip: "Choose one measurable improvement for the next pursuit, with an owner and review date. More bids alone do not prove a better contracting process." },
     ],
@@ -105,9 +105,52 @@ export const ADVANCED_LESSONS: PracticeLesson[] = [
       { q: "A value proposition promises rapid backup staffing. What must the capstone also show?", options: ["A partner/staffing plan, cost assumptions, and operating controls that support it", "Only a bold headline", "A guarantee that the buyer will award the next contract"], answer: 0, why: "Strategy, pricing, partners, and delivery must agree with the commitments you make." },
     ],
   },
+  {
+    "id": "weekly-review",
+    "title": "Run a weekly opportunity and pursuit review",
+    "minutes": 10,
+    "blocks": [
+      {
+        "p": "Turn saved bids into a routine you can sustain. A weekly review identifies what deserves attention, what has changed, and what to stop pursuing. Keep records in an available bid workspace, spreadsheet, or notebook."
+      },
+      {
+        "list": [
+          "Keep one row per pursuit: buyer, official source, stage, closing date/time zone, decision, expected bid effort, unresolved conditions, next action, owner, and follow-up date.",
+          "Recheck the official source for amendments and status changes. Put required meetings, questions, and deadlines on the calendar. A saved listing does not replace the current buyer notice.",
+          "Separate research, conditional pursuits, active bid preparation, submitted bids, and closed opportunities. Advance only when evidence supports the next decision gate.",
+          "Limit active pursuits to the proposals your team can prepare well. Archive weak fits with a reason and track time spent to improve future choices.",
+          "Measure qualified opportunities, decisions, submitted proposals, buyer feedback, and actual results. Pipeline estimates are not earned revenue.",
+          "Fictional example: five listings become two research items, one conditional pursuit awaiting a staffing check, one active bid, and one archived mismatch. Each remaining record has an owner and a dated action. The team prioritizes the active bid’s most urgent gap."
+        ]
+      },
+      {
+        "tip": "Use public information and truthful business details. Label unknowns for verification. A notebook or spreadsheet works for these activities; no paid subscription is required."
+      }
+    ],
+    "exercise": "Create a five-row practice pipeline. Run a 20-minute review, choose your top two actions, archive one weak fit, and schedule the next review.",
+    "worksheet": "Review date; opportunity/source; stage; deadline/zone; decision; effort; conditions; owner; next action/date; archive reason; lessons learned; next review",
+    "sources": [
+      {
+        "label": "SAM.gov Contract Opportunities",
+        "url": "https://sam.gov/content/opportunities"
+      }
+    ],
+    "quiz": [
+      {
+        "q": "Which pursuit record supports a useful weekly review?",
+        "options": [
+          "A title with no source or next step",
+          "An assumed award based only on interest",
+          "An official source, current stage, owner, and dated action"
+        ],
+        "answer": 2,
+        "why": "Traceable information and an actionable next step make a pursuit manageable."
+      }
+    ]
+  },
 ];
 export const ADVANCED_COURSE: SelfPacedCourse = {
-  id: ADVANCED_ID, key: "contrax_course_advanced_v1", title: ADVANCED_TITLE, level: "Advanced", minutes: 60,
+  id: ADVANCED_ID, key: "contrax_course_advanced_v1", title: ADVANCED_TITLE, level: "Advanced", minutes: ADVANCED_LESSONS.reduce((total, lesson) => total + lesson.minutes, 0),
   lessons: ADVANCED_LESSONS,
   summary: "Build a stronger pursuit strategy, evaluate partners, stress-test contract risk, and plan disciplined performance after award.",
   prerequisiteHref: "/learn/intermediate-government-contracting", prerequisiteLabel: "Review the intermediate course",

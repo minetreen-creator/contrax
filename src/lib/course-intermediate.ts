@@ -7,6 +7,92 @@ export const INTERMEDIATE_KEY = "contrax_course_intermediate_v1";
 const far = (section: string, label: string) => ({ label, url: `https://www.acquisition.gov/far/${section}` });
 export const INTERMEDIATE_LESSONS: (Lesson & { exercise: string; worksheet: string })[] = [
   {
+    "id": "first-opportunity",
+    "title": "Find and evaluate your first opportunity",
+    "minutes": 10,
+    "blocks": [
+      {
+        "p": "Begin with the work your business can deliver today. Use Contrax Radar or an official bid portal to build a manageable shortlist, then evaluate an actual solicitation before committing time to a proposal."
+      },
+      {
+        "list": [
+          "Write a search profile: products or services, service area, available team, relevant experience, and realistic start date. Try two or three terms buyers might use for your work.",
+          "Compare three opportunities. Record each official link, buyer, scope, closing date and time zone, required meetings, and why it might fit. Open the original documents.",
+          "Choose one opportunity. Mark eligibility, required events, staffing, equipment, evidence, and preparation time as verified, unresolved, or not met. A trade match alone does not establish qualification.",
+          "Make a bid, conditional bid, or pass decision. For a conditional decision, name the gap, the person resolving it, and the date it must be resolved.",
+          "Save the official link and set a next action. If no live opportunity fits, explain how you will change the search rather than forcing a poor match.",
+          "Fictional example: a two-person cleaning business compares a nearby office, a distant hospital, and a school needing daytime staff. It investigates the office but must still verify the site visit and service schedule before deciding to bid."
+        ]
+      },
+      {
+        "tip": "Use public information and truthful business details. Label unknowns for verification. A notebook or spreadsheet works for these activities; no paid subscription is required."
+      }
+    ],
+    "exercise": "Compare three bids, choose one, and complete a fit assessment with a reasoned decision and dated next action. Use a clearly labeled fictional scenario if suitable live bids are unavailable.",
+    "worksheet": "Business/search profile; three official links and fit notes; selected opportunity; current documents checked; mandatory requirements; capacity; unresolved questions; decision/reasons; next action; owner; date",
+    "sources": [
+      {
+        "label": "SAM.gov Contract Opportunities",
+        "url": "https://sam.gov/content/opportunities"
+      }
+    ],
+    "quiz": [
+      {
+        "q": "A search returns a bid in your trade. What comes next?",
+        "options": [
+          "Assume you qualify",
+          "Verify official requirements and delivery fit",
+          "Start work immediately"
+        ],
+        "answer": 1,
+        "why": "Search relevance is a starting point. Verify the actual requirements and capacity before committing."
+      }
+    ]
+  },
+  {
+    "id": "capability-statement",
+    "title": "Build a useful capability statement",
+    "minutes": 10,
+    "blocks": [
+      {
+        "p": "A capability statement is a concise introduction to your business and the evidence behind its abilities. It helps with introductions and permitted outreach, but does not replace a solicitation-specific proposal or registration."
+      },
+      {
+        "list": [
+          "Start with your business name, contact person, business email, service area, and a plain-language explanation of what you sell.",
+          "List three to five concrete capabilities. Describe tasks, capacity, and delivery methods instead of unsupported claims such as best quality.",
+          "Add two truthful project examples: work performed, your actual role, relevant scale or dates, and a result you can support. Label private-sector experience accurately.",
+          "Include only identifiers, registrations, certifications, and qualifications you can verify. Clearly distinguish pending applications from approved credentials. Veteran ownership alone does not establish an approved certification.",
+          "Adapt the introduction for a particular buyer or prime contractor. Verify contact details and remove confidential customer information before sharing.",
+          "Fictional example: River Services provides evening office cleaning within a defined service area. Its statement describes actual staffing, a supervisor’s room checklist, and comparable private-office experience. Every claim would need to be true for a business using that example."
+        ]
+      },
+      {
+        "tip": "Use public information and truthful business details. Label unknowns for verification. A notebook or spreadsheet works for these activities; no paid subscription is required."
+      }
+    ],
+    "exercise": "Draft a one-page capability statement: introduction, three capabilities, two project examples, verified credentials, and contact details. Mark every fact that needs checking before sharing.",
+    "worksheet": "Business/contact; service area; introduction; core capabilities; project examples and evidence; verified credentials; facts to verify; target reader; review date",
+    "sources": [
+      {
+        "label": "SAM.gov Contract Opportunities",
+        "url": "https://sam.gov/content/opportunities"
+      }
+    ],
+    "quiz": [
+      {
+        "q": "Your certification application is pending. How should you describe it?",
+        "options": [
+          "List it as approved",
+          "Clearly label it pending, or omit it",
+          "Use a partner’s certification as your own"
+        ],
+        "answer": 1,
+        "why": "A truthful introduction separates pending applications from verified credentials."
+      }
+    ]
+  },
+  {
     id: "decision", title: "Make a bid or no-bid decision", minutes: 7,
     blocks: [
       { p: "An attractive contract is not automatically a good contract for your business. Before drafting, decide whether you can meet the requirements, deliver the work, and afford the effort. The goal is a defensible decision, not a promise that you will win." },
@@ -92,7 +178,7 @@ export const INTERMEDIATE_LESSONS: (Lesson & { exercise: string; worksheet: stri
     blocks: [
       { p: "Submission is the start of a tracking phase, not permission to begin work. Monitor the official portal and designated communications. Log clarification requests and respond through the stated channel by the applicable deadline." },
       { list: ["Track status, contact, next action, and follow-up date. In Contrax, a saved bid can be managed in the Bid Workspace; use your own worksheet if your plan does not include that tool.", "If selected, read the actual award or contract, reconcile scope and price, and confirm the authorized start process. Build a kickoff plan with staffing, access, deliverables, inspection, invoicing, and issue reporting.", "If not selected, check the notice and procurement rules for available feedback or debriefing procedures and any time limits. Do not assume every buyer must provide the same kind of debriefing.", "Compare what you learned with your original bid decision and estimate. Update your reusable evidence and checklist. Choose one concrete improvement for the next opportunity."] },
-      { p: "Capstone: combine your six exercises into a one-page bid plan. It should name the opportunity; record a bid decision; list unresolved requirements; outline delivery and evidence; summarize pricing assumptions; assign submission responsibility; and schedule follow-up. This is a preparation tool, not a finished proposal or an award guarantee." },
+      { p: "Capstone: combine your exercises into a one-page bid plan. It should name the opportunity; record a bid decision; list unresolved requirements; outline delivery and evidence; summarize pricing assumptions; assign submission responsibility; and schedule follow-up. This is a preparation tool, not a finished proposal or an award guarantee." },
       { tip: "If a clarification changes what you believe the buyer needs, check for a formal written change. Keep your records tied to the official documents." },
     ],
     exercise: "Finish the bid plan below and set one next action with an owner and date. If you use a fictional scenario, clearly label it as practice.",
@@ -133,7 +219,7 @@ export function bidPlanText(notes: Record<string, string>): string {
 export const INTERMEDIATE_COURSE: SelfPacedCourse = {
   id: INTERMEDIATE_ID, key: INTERMEDIATE_KEY, title: INTERMEDIATE_TITLE, level: "Intermediate",
   minutes: INTERMEDIATE_MINUTES, lessons: INTERMEDIATE_LESSONS,
-  summary: "Turn an opportunity into a practical bid plan. Build a checklist, work through pricing, organize your evidence, and prepare for submission.",
+  summary: "Turn an opportunity into a practical bid plan. Find an opportunity, draft a capability statement, build a checklist, work through pricing, and prepare for submission.",
   prerequisiteHref: "/learn/government-contracting", prerequisiteLabel: "Start with our introductory course",
   worksheetLabel: "bid-planning worksheet", worksheetFile: "contrax-bid-plan.txt",
   nextHref: "/learn/advanced-government-contracting", nextTitle: "Government Contracting Strategy and Management",

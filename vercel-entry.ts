@@ -9,6 +9,9 @@
 // Bundled (with its deps + the SSR handler's dynamic ./assets chunks) into
 // .vercel/output/functions/render.func/index.mjs by build-vercel.sh.
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from "node:http";
+import { COURSE_TITLE, COURSE_MINUTES, LESSONS } from "./src/lib/course-construction";
+import { INTERMEDIATE_COURSE } from "./src/lib/course-intermediate";
+import { ADVANCED_COURSE } from "./src/lib/course-advanced";
 
 import handler from "./dist/server/server.js";
 // Request-scoped AsyncLocalStorage context (cookie + client IP) for SSR route
@@ -165,17 +168,17 @@ const LEARN_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Free Government Contracting Resources &amp; Guides | Contrax</title>
-<meta name="description" content="Free government contracting guides for small businesses — including 8(a), WOSB/EDWOSB, SDVOSB, and HUBZone certification guides, proposal templates, capability statement examples, compliance checklists, and more.">
+<title>Free Government Contracting Courses &amp; Resources | Contrax</title>
+<meta name="description" content="Free beginner, intermediate, and advanced government contracting courses. Find opportunities, build a capability statement, prepare bids, and manage pursuits. Includes quizzes, worksheets, certificates, and certification guides.">
 <meta name="robots" content="index, follow">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.contrax.company/learn">
-<meta property="og:title" content="Free Government Contracting Resources &amp; Guides | Contrax">
-<meta property="og:description" content="Free government contracting guides for small businesses — including 8(a), WOSB/EDWOSB, SDVOSB, and HUBZone certification guides.">
+<meta property="og:title" content="Free Government Contracting Courses &amp; Resources | Contrax">
+<meta property="og:description" content="Free government contracting courses: find opportunities, build capability statements, prepare bids, and manage pursuits. Quizzes, worksheets, and certificates included.">
 <meta property="og:site_name" content="Contrax">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Free Government Contracting Resources &amp; Guides | Contrax">
-<meta name="twitter:description" content="Free government contracting guides for small businesses — including 8(a), WOSB/EDWOSB, SDVOSB, and HUBZone certification guides.">
+<meta name="twitter:title" content="Free Government Contracting Courses &amp; Resources | Contrax">
+<meta name="twitter:description" content="Free government contracting courses: find opportunities, build capability statements, prepare bids, and manage pursuits. Quizzes, worksheets, and certificates included.">
 <link rel="canonical" href="https://www.contrax.company/learn">
 ${SEO_HEAD}
 <style>
@@ -195,7 +198,13 @@ ${SEO_HEAD}
 <body class="antialiased bg-slate-50">
 ${SEO_NAV}
 <main>
-<section class="learn-hero"><p class="learn-eyebrow" style="color:#fbbf24">The Contrax Resource Hub</p><h1 class="mt-4 text-4xl font-extrabold sm:text-6xl">Government Contracting Resources</h1><p>Free, practical guides and templates to help small businesses register, find opportunities, and submit stronger federal proposals.</p></section>
+<section class="learn-hero"><p class="learn-eyebrow" style="color:#fbbf24">The Contrax Resource Hub</p><h1 class="mt-4 text-4xl font-extrabold sm:text-6xl">Free Government Contracting Courses &amp; Resources</h1><p>Free, practical guides and templates to help small businesses register, find opportunities, and submit stronger federal proposals.</p></section>
+<section class="learn-wrap" aria-labelledby="free-courses"><p class="learn-eyebrow">Free courses · Open to everyone</p><h2 id="free-courses" class="learn-heading">Choose your free course</h2><p class="learn-intro">Learn at your own pace with quizzes, practical activities, and completion certificates. No paid subscription required.</p>
+<div class="resource-grid">
+<a class="resource-card" href="/learn/government-contracting"><span class="badge">Beginner · ${LESSONS.length} lessons · About ${COURSE_MINUTES} minutes</span><h3>${COURSE_TITLE}</h3><p>Learn where government opportunities are posted, understand set-asides, evaluate a solicitation, and prepare your next step. Includes practical bid examples and a completion certificate.</p><span class="read">Start the free introductory course →</span></a>
+<a class="resource-card" href="/learn/intermediate-government-contracting"><span class="badge">Intermediate · ${INTERMEDIATE_COURSE.lessons.length} lessons · About ${INTERMEDIATE_COURSE.minutes} minutes</span><h3>${INTERMEDIATE_COURSE.title}</h3><p>Find and evaluate your first opportunity, build a capability statement, create a compliance checklist, work through pricing and evidence, submit, and follow up. Includes quizzes, a downloadable bid plan, and a completion certificate.</p><span class="read">Start the free intermediate course →</span></a>
+<a class="resource-card" href="/learn/advanced-government-contracting"><span class="badge">Advanced · ${ADVANCED_COURSE.lessons.length} lessons · About ${ADVANCED_COURSE.minutes} minutes</span><h3>${ADVANCED_COURSE.title}</h3><p>Strengthen pursuit strategy, evaluate partners, stress-test pricing, manage performance, and run a weekly opportunity review. Includes quizzes, a downloadable strategy plan, and a completion certificate.</p><span class="read">Start the free advanced course →</span></a>
+</div></section>
 <section class="learn-guides"><div class="learn-wrap"><p class="learn-eyebrow">Certification guides</p><h2 class="learn-heading">Get certified, then win set-asides</h2><p class="learn-intro">8(a), WOSB/EDWOSB, SDVOSB, and HUBZone certifications unlock billions in federal set-aside contracts — but only if you qualify, certify, and bid. Start with the guide for your business.</p>
 <div class="guide-grid">
 <a class="guide-card" href="/learn/8a-certification-guide"><span class="badge">8(a)</span><h3>How to Get 8(a) Certified: The Complete Guide</h3><p>Eligibility, the application process, and the 9-year program timeline — in plain English.</p><span class="read">Read the guide →</span></a>

@@ -33,7 +33,7 @@ describe("Intermediate course completion and separate identity", () => {
     const worksheet = bidPlanText({ decision: "Conditional bid: resolve insurance" });
     expect(worksheet).toContain("Conditional bid: resolve insurance");
     expect(worksheet).toContain("[Add your notes]");
-    expect(new Set(INTERMEDIATE_LESSONS.map(l => l.id)).size).toBe(6);
-    expect(INTERMEDIATE_MINUTES).toBe(45);
+    expect(new Set(INTERMEDIATE_LESSONS.map(l => l.id)).size).toBe(8);
+    expect(INTERMEDIATE_MINUTES).toBe(65);
   });
 });

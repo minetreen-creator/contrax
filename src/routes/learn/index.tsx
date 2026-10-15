@@ -82,9 +82,9 @@ function LearnPage() {
     </section>
     <section className="mx-auto max-w-7xl px-6 pb-10">
       <div className="flex flex-col gap-5 rounded-2xl border border-blue-200 bg-blue-50 p-6 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="text-xs font-bold uppercase tracking-wide text-blue-700">New · Free intermediate course · 45 minutes</p>
+        <div><p className="text-xs font-bold uppercase tracking-wide text-blue-700">New · Free intermediate course · 65 minutes</p>
           <h2 className="mt-2 text-2xl font-bold text-slate-900">Preparing a Government Contract Bid</h2>
-          <p className="mt-2 max-w-2xl text-sm text-slate-700">Six practical lessons for all trades: evaluate an opportunity, build a checklist, price your work, prepare evidence, submit, and follow up. Includes quizzes, a downloadable bid plan, and a completion certificate.</p>
+          <p className="mt-2 max-w-2xl text-sm text-slate-700">Eight practical lessons for all trades: find an opportunity, draft a capability statement, evaluate fit, build a checklist, price your work, prepare evidence, submit, and follow up. Includes quizzes, a downloadable bid plan, and a completion certificate.</p>
         </div>
         <a href="/learn/intermediate-government-contracting" className="shrink-0 rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">Start the intermediate course →</a>
       </div>
@@ -92,9 +92,9 @@ function LearnPage() {
 
     <section className="mx-auto max-w-7xl px-6 pb-10">
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6 sm:p-8">
-        <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Advanced · Free for everyone · About 60 minutes</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-emerald-800">Advanced · Free for everyone · About 70 minutes</p>
         <h2 className="mt-2 text-2xl font-bold text-slate-900">Government Contracting Strategy and Management</h2>
-        <p className="mt-3 max-w-3xl text-slate-700">Strengthen your pursuit strategy, evaluate partners, stress-test pricing risk, and manage performance after award. Six lessons, quizzes, a downloadable strategy plan, and a completion certificate.</p>
+        <p className="mt-3 max-w-3xl text-slate-700">Strengthen your pursuit strategy, evaluate partners, stress-test pricing risk, and manage performance after award. Seven lessons, including a weekly pursuit review, quizzes, a downloadable strategy plan, and a completion certificate.</p>
         <a href="/learn/advanced-government-contracting" className="mt-5 inline-block rounded-xl bg-emerald-700 px-5 py-3 font-bold text-white">Start the free advanced course →</a>
       </div>
     </section>

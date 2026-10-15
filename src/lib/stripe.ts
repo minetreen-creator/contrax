@@ -492,6 +492,38 @@ export async function createCheckoutSession(
       };
     }
 
+    // Legacy catalog prices share a product named "Contrax Agency". Never
+    // display that name for Starter/Professional (including founding/yearly).
+    // Correct catalogs retain their existing product/price IDs. The inline
+    // repair preserves the amount, interval and tax configuration; entitlement
+    // continues to come from the session/subscription metadata below.
+    if (!isVad && planTier !== "savings_premium") {
+      const names = { starter: "Contrax Starter", professional: "Contrax Professional", agency: "Contrax Agency" };
+      const monthly = await getStripe().prices.retrieve(priceId, { expand: ["product"] });
+      const product = typeof monthly.product === "string" ? null : monthly.product;
+      if (!product || product.deleted) throw new Error("Checkout product is unavailable.");
+      if (product.name !== names[planTier]) {
+        const amount = founding ? FOUNDING_MEMBER_UNIT_AMOUNT
+          : interval === "year" ? annualAmount! : monthly.unit_amount;
+        if (amount == null) throw new Error("Checkout price amount is unavailable.");
+        const taxCode = typeof product.tax_code === "string" ? product.tax_code : product.tax_code?.id;
+        lineItem = {
+          price_data: {
+            currency: monthly.currency,
+            unit_amount: amount,
+            recurring: { interval },
+            ...(monthly.tax_behavior ? { tax_behavior: monthly.tax_behavior } : {}),
+            product_data: {
+              name: names[planTier],
+              metadata: { plan_tier: planTier },
+              ...(taxCode ? { tax_code: taxCode } : {}),
+            },
+          },
+          quantity: 1,
+        };
+      }
+    }
+
     const metadata: Record<string, string> = { plan_tier: planTier };
     if (interval === "year") {
       metadata.billing_interval = "year";

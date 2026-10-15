@@ -85,8 +85,6 @@ const EVENT_LABELS: Record<string, string> = {
   radar_scan_start: "Radar scan started",
   radar_scan_complete: "Radar scan completed",
   radar_results_viewed: "Radar results viewed (anonymous)",
-  radar_results_unlock_shown: "Radar locked-results card shown (anonymous)",
-  radar_results_unlock_clicked: "Radar locked-results CTA clicked",
   radar_save: "Saved radar match",
   signup_view: "Signup viewed",
   signup_view_with_score: "Signup viewed (with score)",
@@ -97,8 +95,6 @@ const EVENT_LABELS: Record<string, string> = {
   signup_cta_click: "Signup CTA clicked",
   save_success: "Bid saved",
   save_click: "Save clicked",
-  save_limit_wall: "Save limit reached",
-  save_signup_wall: "Save signup wall shown",
   score_cta_click: "Match-score CTA clicked",
   score_submit: "Match-score submitted",
   score_result: "Match-score result shown",
@@ -1188,3 +1184,4 @@ async function handler({ request }: { request: Request }) {
 export const Route = createFileRoute("/api/admin/journeys")({
   server: { handlers: { GET: handler } },
 });
+

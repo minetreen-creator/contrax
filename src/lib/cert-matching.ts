@@ -234,3 +234,11 @@ export function setAsideCardLabel(setAside: string | null): string {
   const t = String(setAside ?? "").trim();
   return t.length > 0 ? t : SET_ASIDE_NOT_SPECIFIED_LABEL;
 }
+
+/** Source evidence only: a search match never proves a firm's eligibility. */
+export function setAsideEvidence(setAside: string | null): string {
+  const value = String(setAside ?? "").trim();
+  return value
+    ? `Published set-aside: ${value} — verify eligibility in the solicitation`
+    : SET_ASIDE_NOT_SPECIFIED_LABEL;
+}

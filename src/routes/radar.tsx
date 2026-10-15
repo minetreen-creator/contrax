@@ -2,7 +2,7 @@ import { isLearnRadarVisit } from "~/lib/learn-radar";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createServerFn } from "@tanstack/react-start";
-import { setAsideCardLabel } from "~/lib/cert-matching";
+import { setAsideCardLabel, setAsideEvidence } from "~/lib/cert-matching";
 import { isCountdownSuppressed } from "~/lib/deadline-label";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { US_STATES } from "~/lib/states";
@@ -1054,7 +1054,7 @@ function buildReasons(
   c: { trade: string; isNaics: boolean; expansion: TradeExpansion; state: string; cert: RadarCert; sizePref: SizeId; score: number; scoreLabel: string; tradeProvenance: TradeMatchProvenance | null },
 ): string[] {
   const reasons: string[] = [];
-  reasons.push(`${CERT_LABEL[c.cert]} solicitation — set aside for your certification`);
+  reasons.push(setAsideEvidence(bid.set_aside));
   // Owner 2026-10-08: a source whose close-date time zone is not settled never
   // gets the derived "Closing in N days" bullet (see ~/lib/deadline-label).
   const days = suppressedDays(bid);
@@ -1087,7 +1087,7 @@ function buildReasons(
     reasons.push(
       matchGeographyBucket(c.state, bid.location, bid.agency) === "local"
         ? `Located in ${STATE_CODE_TO_NAME[c.state] ?? c.state} (verified)`
-        : "Eligible from any state — national set-aside row",
+        : "Nationwide opportunity — verify place-of-performance requirements",
     );
   }
   if (bid.agency) reasons.push(`Agency: ${bid.agency}`);
@@ -1098,7 +1098,7 @@ function buildQualifications(
   bid: RadarBidRow,
   c: { trade: string; isNaics: boolean; state: string; cert: RadarCert },
 ): string[] {
-  const q: string[] = [`Eligible as a ${CERT_LABEL[c.cert]} set-aside opportunity`];
+  const q: string[] = [setAsideEvidence(bid.set_aside)];
   if (c.isNaics && bid.naics_code) {
     const name = NAICS_NAMES[bid.naics_code];
     q.push(`Aligned with NAICS ${bid.naics_code}${name ? ` — ${name}` : ""}`);
@@ -2067,7 +2067,7 @@ function RadarLanding() {
                       Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1 ? "match" : "matches"
                     } — every one with full incumbent intel`
                   : state !== ""
-                    ? `${(scan.sections?.local ?? []).length} local · ${(scan.sections?.nationwide ?? []).length} nationwide set-aside opportunities`
+                    ? `${(scan.sections?.local ?? []).length} local · ${(scan.sections?.nationwide ?? []).length} nationwide opportunities`
                     : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
               </p>
             )}
@@ -2651,7 +2651,7 @@ export function RadarCard({
 
         {/* Why the business qualifies */}
         {match.qualifications.length > 0 && (
-          <RadarSection title="Why you qualify">
+          <RadarSection title="Why this matches your search">
             <ul className="space-y-1.5">
               {match.qualifications.map((q, i) => (
                 <li key={i} className="flex gap-2 text-sm text-slate-300">

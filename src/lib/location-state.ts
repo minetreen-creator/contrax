@@ -1070,6 +1070,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ak_dotpf: "AK",
   nc_evp: "NC",
   nc_gastonia: "NC", // City of Gastonia Bids & RFPs page (owner 2026-10-12)
+  nc_wayne_county: "NC", // Wayne County official public board
   nc_gaston_county: "NC", // Gaston County CivicEngage board (owner 2026-10-12)
   dc_pass: "DC",
   al_birmingham_purchasing: "AL",

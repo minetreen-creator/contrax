@@ -471,6 +471,10 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  nc_wayne_county: {
+    class: "local", city: "Wayne County", scopeState: "NC",
+    searchScope: "city-open-data", recordType: "opportunity",
+  },
   nc_gaston_county: {
     class: "local",
     city: "Gaston County",

@@ -81,6 +81,7 @@ import { fetchAkDotpfBids } from "./sources/ak-dotpf";
 import { fetchNcEvpBids } from "./sources/nc-evp";
 import { fetchNcGastoniaBids } from "./sources/nc-gastonia";
 import { fetchNcGastonCountyBids } from "./sources/nc-gaston-county";
+import { fetchNcWayneCountyBids } from "./sources/nc-wayne-county";
 import { fetchTxDallasBonfireBids } from "./sources/tx-dallas-bonfire";
 import { fetchDcPassBids } from "./sources/dc-pass";
 import { fetchMdMontgomeryBids } from "./sources/md-montgomery";
@@ -326,6 +327,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   // and Gaston County's CivicEngage board — neither posts on NC eVP.
   { name: "nc_gastonia", fetchFn: () => fetchNcGastoniaBids() },
   { name: "nc_gaston_county", fetchFn: () => fetchNcGastonCountyBids() },
+  { name: "nc_wayne_county", fetchFn: () => fetchNcWayneCountyBids() },
   // District of Columbia: OCP's open PASS solicitations from DC Open Data.
   { name: "dc_pass", fetchFn: () => fetchDcPassBids() },
   // Montgomery County, MD open data (Maryland's eMMA is behind a CAPTCHA browser check).

@@ -48,6 +48,7 @@ const MS_PER_DAY = 86_400_000;
  * (#615 pinned their zone-less `DateClose` as a UTC read, deliberately).
  */
 export const COUNTDOWN_SUPPRESSED_SOURCES = [
+  "nc_wayne_county",
   "va_eva",
   "va_colonial_heights",
   "va_loudoun",

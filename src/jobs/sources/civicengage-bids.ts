@@ -121,6 +121,8 @@ export const CIVICENGAGE_HEADERS = {
 
 /** One board, exactly as it must be described on a row. All literals, no inference. */
 export interface CivicEngageBoardConfig {
+  /** Optional source-specific decoder for the literal published closing text. */
+  parseDueDate?: (published: string) => string | null;
   /** Registered source label, e.g. `va_loudoun` (also the run-log label). */
   source: string;
   /** Bare absolute board URL, e.g. `https://www.loudoun.gov/bids.aspx`. */
@@ -411,7 +413,7 @@ export function parseCivicEngageBoard(
     }
 
     // "Parse or NULL" — never map a sentinel to a fabricated date.
-    const due = toIsoDueDate(closes);
+    const due = config.parseDueDate ? config.parseDueDate(closes) : toIsoDueDate(closes);
     // Defensive: never insert a row already closed between fetch and insert.
     // A NULL due_date ("Upon Contract") is legitimate and MUST still be emitted.
     if (due && Date.parse(due) < now) {

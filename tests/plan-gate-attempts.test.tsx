@@ -275,7 +275,13 @@ describe("plan-gate events: standalone labels, isolated from every funnel stage"
     expect(files.length).toBeGreaterThanOrEqual(3); // non-vacuous
     for (const path of files) {
       const text = readFileSync(path, "utf8");
-      for (const name of GATE_ATTEMPT_EVENTS) expect(text.includes(name)).toBe(false);
+      // Journey display labels describe events without counting them as funnel
+      // stages. Exclude only that named display map; inspect all remaining code.
+      const displayMap = /const EVENT_LABELS: Record<string, string> = \{[\s\S]*?\n\};/;
+      const isJourneys = path === join(SRC, "routes/api/admin/journeys.ts");
+      if (isJourneys) expect(text.match(displayMap)).not.toBeNull();
+      const funnelCode = isJourneys ? text.replace(displayMap, "") : text;
+      for (const name of GATE_ATTEMPT_EVENTS) expect(funnelCode.includes(name)).toBe(false);
     }
   });
 

@@ -318,7 +318,7 @@ jobs:
       # Named EXPLICITLY: a deterministic suite that no workflow names runs nowhere
       # (the reason runner.dedupe.test.ts went unrun for weeks).
       - name: CivicEngage shared bid-board reader tests (unit, deterministic, zero network)
-        run: bun test src/jobs/sources/civicengage-bids.test.ts
+        run: bun test src/jobs/sources/civicengage-bids.test.ts src/jobs/sources/nc-wayne-county.test.ts
       - name: Virginia locality CivicEngage board tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/va-loudoun.test.ts src/jobs/sources/va-suffolk.test.ts src/jobs/sources/va-lynchburg.test.ts src/jobs/sources/va-charlottesville.test.ts
       # Zone-unverified countdown suppression (owner 2026-10-08, Virginia drive). The

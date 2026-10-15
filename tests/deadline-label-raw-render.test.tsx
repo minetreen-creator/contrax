@@ -51,7 +51,8 @@ const EVA_UTC_LABEL = "Oct 15, 2026";
 
 describe("the raw-date render gate", () => {
   test("every pinned (zone-unverified) source renders the published UTC date", () => {
-    expect(COUNTDOWN_SUPPRESSED_SOURCES.length).toBe(6);
+    expect(COUNTDOWN_SUPPRESSED_SOURCES.length).toBe(7);
+    expect(COUNTDOWN_SUPPRESSED_SOURCES).toContain("nc_wayne_county");
     for (const source of COUNTDOWN_SUPPRESSED_SOURCES) {
       expect(publishedDateOnlyFor(EVA_INSTANT, source)).toBe(EVA_UTC_LABEL);
     }

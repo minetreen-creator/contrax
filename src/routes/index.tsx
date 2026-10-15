@@ -240,7 +240,7 @@ function Home() {
 function PlatformShowcase() {
   const features = [
     { title: "Contract Radar", description: "Find opportunities that fit your business", href: "/radar", Icon: Radar },
-    { title: "Built-in CRM", description: "Organize contacts and follow-ups", href: "/pricing", Icon: Users },
+    { title: "Built-in CRM", description: "Organize contacts and follow-ups", href: "/pipeline#contacts", Icon: Users },
     { title: "AI Bid Tools", description: "Understand requirements faster", href: "/example-brief", Icon: Bot },
     { title: "Bid Pipeline", description: "Keep pursuits and deadlines on track", href: "/pipeline", Icon: KanbanSquare },
   ];

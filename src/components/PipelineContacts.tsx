@@ -345,7 +345,7 @@ export function PipelineContacts({
   // ── Basic / no-entitlement: read-only + an UPGRADE ATTEMPT (owner rule 8) ────
   if (!canEdit) {
     return (
-      <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="pipeline-contacts-heading">
+      <section id="contacts" className="mb-6 scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="pipeline-contacts-heading">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 id="pipeline-contacts-heading" className="text-lg font-semibold text-slate-900">Contacts</h2>
@@ -383,7 +383,7 @@ export function PipelineContacts({
   }
 
   return (
-    <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="pipeline-contacts-heading">
+    <section id="contacts" className="mb-6 scroll-mt-20 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="pipeline-contacts-heading">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="pipeline-contacts-heading" className="text-lg font-semibold text-slate-900">Contacts</h2>

@@ -1193,7 +1193,7 @@ export interface RadarSections {
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean }
+  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean; totalMatched?: number }
   | { status: "paid_required"; limit?: number; signupRequired?: boolean }
   | { status: "error" };
 /** Resolved payload of a successful runRadarScan call (handler return shape).
@@ -1351,7 +1351,10 @@ function RadarLanding() {
     trackEvent(FUNNEL_UX_EVENTS.radarBestMatchHighlighted, String(bestMatchId));
   }, [bestMatchId]);
 
-  const totalMatches = scan.status === "done" ? scan.matches.length : 0;
+  // Owner 2026-10-15: the server sends anonymous visitors only the free matches,
+  // so count from its real total; otherwise every scan read "Found 3" and the
+  // locked card never showed. Restored browser results fall back to the list.
+  const totalMatches = scan.status === "done" ? Math.max(scan.totalMatched ?? 0, scan.matches.length) : 0;
   const visibleCount = Math.min(totalMatches, FREE_ANONYMOUS_RADAR_RESULTS);
   /** Real locked count — ONLY non-zero when genuine matches exceed the free cap. */
   const locked = Math.max(totalMatches - FREE_ANONYMOUS_RADAR_RESULTS, 0);
@@ -1584,6 +1587,7 @@ function RadarLanding() {
         sections: res.sections,
         intelTicket: res.intelTicket ?? null,
         freeSearchKept: res.freeSearchKept === true,
+        totalMatched: res.totalMatched,
       });
       setRestoredResults(false);
       setStep(3);
@@ -1998,7 +2002,7 @@ function RadarLanding() {
                 </span>
               ) : (
                 <span className="text-xs font-semibold text-amber-400">
-                  {scan.matches.length} found
+                  {totalMatches} found
                 </span>
               )}
             </div>
@@ -2189,7 +2193,7 @@ function RadarLanding() {
                 {locked > 0 && (
                   <SignupGate
                     certLabel={scan.certLabel}
-                    totalFound={scan.matches.length}
+                    totalFound={totalMatches}
                     trade={trade}
                     state={state}
                     cert={cert}
@@ -2204,7 +2208,7 @@ function RadarLanding() {
                 {locked === 0 && (
                   <RadarResultsCta
                     certLabel={scan.certLabel}
-                    totalFound={scan.matches.length}
+                    totalFound={totalMatches}
                     trade={trade}
                     state={state}
                     cert={cert}

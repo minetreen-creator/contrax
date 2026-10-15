@@ -11,6 +11,7 @@ const created: any[] = [];
 // Founding-member spot count (live subscription search), driven per test.
 let foundingSubs: { status: string }[] = [];
 let foundingSearchFails = false;
+let legacyProduct = false;
 mock.module("stripe", () => ({
   default: class FakeStripe {
     subscriptions = {
@@ -27,7 +28,15 @@ mock.module("stripe", () => ({
         ],
         has_more: false,
       }),
-      retrieve: async (id: string) => ({ id, currency: "usd", product: id === "price_pro_monthly" ? "prod_pro" : "prod_starter" }),
+      retrieve: async (id: string, options?: any) => ({
+        id, currency: "usd", unit_amount: id === "price_pro_monthly" ? 7900 : 1900,
+        tax_behavior: "unspecified",
+        product: options?.expand ? {
+          id: id === "price_pro_monthly" ? "prod_pro" : "prod_starter",
+          name: legacyProduct ? "Contrax Agency" : id === "price_pro_monthly" ? "Contrax Professional" : "Contrax Starter",
+          tax_code: "txcd_10103001",
+        } : id === "price_pro_monthly" ? "prod_pro" : "prod_starter",
+      }),
     };
     checkout = {
       sessions: {
@@ -131,5 +140,33 @@ describe("founding-member offer (owner 2026-10-03)", () => {
     expect((await stripeLib.createCheckoutSession("professional", { founding: true })).success).toBe(false);
     expect((await stripeLib.createCheckoutSession("starter", { founding: true, interval: "year" })).success).toBe(false);
     expect((await stripeLib.createCheckoutSession("starter", { founding: true, promoCode: "VAD26" })).success).toBe(false);
+  });
+});
+
+
+describe("legacy shared Agency product", () => {
+  test("repairs founding, monthly and yearly names without changing charges or attribution", async () => {
+    legacyProduct = true;
+    try {
+      for (const [tier, options, amount, name] of [
+        ["starter", { founding: true }, 900, "Contrax Starter"],
+        ["starter", {}, 1900, "Contrax Starter"],
+        ["professional", {}, 7900, "Contrax Professional"],
+        ["professional", { interval: "year" }, 79000, "Contrax Professional"],
+      ] as const) {
+        created.length = 0;
+        expect((await stripeLib.createCheckoutSession(tier, { ...options, userId: 42 })).success).toBe(true);
+        const session = created[0];
+        const price = session.line_items[0].price_data;
+        expect(price.product_data.name).toBe(name);
+        expect(price.product_data.tax_code).toBe("txcd_10103001");
+        expect(price.unit_amount).toBe(amount);
+        expect(price.recurring.interval).toBe("interval" in options ? options.interval : "month");
+        expect(price.tax_behavior).toBe("unspecified");
+        expect(session.metadata.plan_tier).toBe(tier);
+        expect(session.metadata.user_id).toBe("42");
+        expect(session.subscription_data.metadata).toEqual(session.metadata);
+      }
+    } finally { legacyProduct = false; }
   });
 });

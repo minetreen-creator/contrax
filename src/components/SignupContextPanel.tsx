@@ -51,17 +51,17 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
   // Radar variant — the visitor is continuing from a Contract Radar scan. Their
   // answers travel into signup/profiling (no email involved) so this feels like
   // a ~10s resume, not a restart. Value-driven, no deadline / urgency. The
-  // panel shows while either the criteria or seen matches are present so a
-  // radar-sourced visitor never lands on an irrelevant closing_soon framing.
-  if (source === "radar" && (radar || (matches && matches.length > 0))) {
-    const labelTop = [radar?.trade || null, radar?.state ? `in ${radar.state}` : "nationwide"]
+  // Radar framing also renders before browser context loads, so SSR and
+  // hydration never fall through to the closing-soon variant.
+  if (source === "radar") {
+    const labelTop = [radar?.trade || null, radar ? (radar.state ? `in ${radar.state}` : "nationwide") : null]
       .filter(Boolean)
       .join(" ");
     return (
       <div className="mb-6 overflow-hidden rounded-2xl border-2 border-amber-400 bg-amber-50 shadow-sm">
         <div className="px-5 py-4">
           <p className="text-sm font-bold text-slate-900">
-            Resuming your Contract Radar scan
+            Continue your Contract Radar search
           </p>
           <p className="mt-1 text-sm text-amber-700">
             {labelTop || "Your radar search"}
@@ -69,7 +69,7 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
             {radar?.sizeLabel ? ` · ${radar.sizeLabel}` : ""}
           </p>
           <p className="mt-3 text-xs text-amber-600">
-            Your answers will prefill your profile — just finish your free account below.
+            Create your free account to continue searching and save bids. Your 7-day Professional trial needs no credit card.
           </p>
           {/* Seen matches — the actual scanned bids (read-only). Absent/empty
               seen list = no block, criteria still shown. */}
@@ -156,7 +156,7 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
         <p className="text-sm font-bold text-slate-900">
           {closingLabel
             ? "Unlock this bid before it closes"
-            : "Want to see the full details and generate a proposal draft for this contract?"}
+            : "Create your free account to review this opportunity"}
         </p>
         <p className="mt-1 text-sm text-amber-700 line-clamp-2">
           <span className="font-medium">{agency ? `${agency} — ` : ""}</span>
@@ -164,7 +164,7 @@ export function SignupContextPanel({ source, title, agency, closingLabel, radar,
         </p>
         <p className="mt-3 text-xs text-amber-600">
           {closingLabel
-            ? "Start free below for full details, the AI summary, and a draft before the deadline."
+            ? "Start your 7-day Professional trial for full details and AI Executive Briefs. Verify the original notice before bidding."
             : "Start your 7-day Professional trial below to unlock the full opportunity."}
         </p>
       </div>

@@ -96,3 +96,20 @@ describe("exhausted anonymous preview handoff", () => {
     expect(new URL(radarSignupHref({trade:"janitorial",state:"VA",cert:"sb",sizePref:"any"}),"https://www.contrax.company").pathname).toBe("/upgrade");
   });
 });
+
+
+describe("Radar set-aside evidence", () => {
+  test("missing, unrestricted, unknown and named restrictions never become eligibility guarantees", async () => {
+    const { setAsideEvidence } = await import("../src/lib/cert-matching");
+    for (const value of [null, "", "   "]) {
+      expect(setAsideEvidence(value)).toBe("Set-aside not specified — verify solicitation");
+    }
+    for (const value of ["Unrestricted", "Full and open", "Unknown", "SBA", "SDVOSB", "8(a)", "WOSB", "HUBZone"]) {
+      const text = setAsideEvidence(value);
+      expect(text).toContain(`Published set-aside: ${value}`);
+      expect(text).toContain("verify eligibility");
+      expect(text).not.toContain("you qualify");
+      expect(text).not.toContain("Eligible as");
+    }
+  });
+});

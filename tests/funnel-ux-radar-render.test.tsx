@@ -343,3 +343,26 @@ describe("a scan with zero matches is not a dead end", () => {
     expect(src).toContain("This search didn't use your free search.");
   });
 });
+
+
+describe("Radar signup context", () => {
+  test("missing browser context still renders Radar copy during SSR and hydration", async () => {
+    const { SignupContextPanel } = await import("../src/components/SignupContextPanel");
+    for (const radar of [null, { trade: "janitorial", state: "VA", certLabel: "Small Business", sizeLabel: "Any size" }]) {
+      const html = renderToStaticMarkup(<SignupContextPanel source="radar" radar={radar} />);
+      expect(html).toContain("Continue your Contract Radar search");
+      expect(html).toContain("save bids");
+      expect(html).not.toContain("this contract");
+      expect(html).not.toContain("proposal draft");
+      expect(html).not.toContain("Closes in");
+    }
+  });
+  test("a real closing-soon bid retains its title and deadline, without promising drafting on Professional", async () => {
+    const { SignupContextPanel } = await import("../src/components/SignupContextPanel");
+    const html = renderToStaticMarkup(<SignupContextPanel source="closing_soon" title="Library cleaning" closingLabel="2d 4h" />);
+    expect(html).toContain("Library cleaning");
+    expect(html).toContain("2d 4h");
+    expect(html).toContain("AI Executive Briefs");
+    expect(html).not.toContain("a draft");
+  });
+});

@@ -27,8 +27,10 @@ async function post({ request }: { request: Request }) {
     const certRaw = typeof body?.cert === "string" ? body.cert : "";
     const sizeRaw = typeof body?.sizePref === "string" ? body.sizePref : "";
     const matched = typeof body?.matchedCount === "number" ? Math.floor(body.matchedCount) : -1;
+    const shownRaw = typeof body?.shownCount === "number" ? Math.floor(body.shownCount) : null;
+    const shown = shownRaw !== null && shownRaw >= 0 && shownRaw <= matched ? shownRaw : null;
 
-    if (!visitorId || !CERTS.has(certRaw) || !SIZES.has(sizeRaw) || matched < 0 || matched > 1000) {
+    if (!visitorId || !CERTS.has(certRaw) || !SIZES.has(sizeRaw) || matched < 0 || matched > 5000) {
       return Response.json({ error: "Invalid Radar profile." }, { status: 400 });
     }
 
@@ -43,11 +45,13 @@ async function post({ request }: { request: Request }) {
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )`;
+    // How many of matched_count were shown (anonymous scans see only the free few).
+    await sql()`ALTER TABLE anonymous_radar_profiles ADD COLUMN IF NOT EXISTS shown_count INTEGER`;
     await sql()`
       INSERT INTO anonymous_radar_profiles
-        (visitor_id, visit_id, trade, state, cert, size_pref, matched_count)
+        (visitor_id, visit_id, trade, state, cert, size_pref, matched_count, shown_count)
       VALUES
-        (${visitorId}, ${visitId || null}, ${trade || null}, ${state || null}, ${certRaw}, ${sizeRaw}, ${matched})
+        (${visitorId}, ${visitId || null}, ${trade || null}, ${state || null}, ${certRaw}, ${sizeRaw}, ${matched}, ${shown})
       ON CONFLICT (visitor_id) DO UPDATE SET
         visit_id = EXCLUDED.visit_id,
         trade = EXCLUDED.trade,
@@ -55,6 +59,7 @@ async function post({ request }: { request: Request }) {
         cert = EXCLUDED.cert,
         size_pref = EXCLUDED.size_pref,
         matched_count = EXCLUDED.matched_count,
+        shown_count = EXCLUDED.shown_count,
         updated_at = NOW()
     `;
     return Response.json({ success: true }, { headers: { "cache-control": "no-store" } });

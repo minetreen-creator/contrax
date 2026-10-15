@@ -432,6 +432,10 @@ async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
   // Path-derived behavioral-intent badges (kept on the summary cache so the
   // /admin/journeys fast read-path can render badges without touching the
   // detail tables). Mirrors the live computeBadges() path checks exactly.
+  // Only real page paths become first/last path. The signup exit and abandon
+  // beacons carry JSON in `path` (owner 2026-10-15: a Houston visitor's
+  // "Last path" read {"from":"home"}).
+  const pagePath = path && path.startsWith("/") ? path : null;
   const sawPricingContrib = !!path && path.includes("/pricing");
   const sawBriefContrib = !!path && path.includes("/example-brief");
   let signupContrib: string | null = null;
@@ -448,7 +452,7 @@ async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
       radar, signup, activated, steps, sessions, last_visit_id, last_action, last_action_at,
       saw_pricing, saw_brief, country
     ) VALUES (
-      ${visitorId}, NOW(), NOW(), ${path}, ${path},
+      ${visitorId}, NOW(), NOW(), ${pagePath}, ${pagePath},
       ${ip}, ${ip}, ${city}, ${region}, ${deviceType}, ${browserLabel}, ${source},
       ${radarContrib}, ${signupContrib ?? "Not started"}, ${activatedContrib}, 1,
       ${visitId ? 1 : 0}, ${visitId}, ${lastAction}, NOW(),
@@ -456,7 +460,7 @@ async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
     )
     ON CONFLICT (visitor_id) DO UPDATE SET
       last_seen_at = NOW(),
-      last_path = EXCLUDED.last_path,
+      last_path = COALESCE(EXCLUDED.last_path, visitors.last_path),
       last_ip = COALESCE(EXCLUDED.last_ip, visitors.last_ip),
       first_ip = COALESCE(visitors.first_ip, EXCLUDED.first_ip),
       first_path = COALESCE(visitors.first_path, EXCLUDED.first_path),

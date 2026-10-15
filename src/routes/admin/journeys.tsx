@@ -134,7 +134,8 @@ interface VisitorIntel {
   contracts_viewed: ContractView[];
   radar_profile: {
     trade: string | null; state: string | null; cert: string | null; cert_label: string | null;
-    size: string | null; size_label: string | null; matched_count: number | null; email_captured: boolean;
+    size: string | null; size_label: string | null; matched_count: number | null; shown_count: number | null; email_captured: boolean;
+    alert_status: "pending" | "confirmed" | "unsubscribed" | null;
     source: "email_save" | "anonymous_scan";
   } | null;
   lead_score: LeadScore;
@@ -486,9 +487,11 @@ function IntelPanel({
         <PanelSection
           title="Radar profile"
           hint={radar_profile
-            ? radar_profile.email_captured
-              ? "Criteria voluntarily saved through 'Save your matches'."
-              : "Non-contact criteria captured from a completed Radar scan."
+            ? radar_profile.alert_status
+              ? "Criteria from a Radar scan; the visitor signed up for match alerts."
+              : radar_profile.email_captured
+                ? "Criteria voluntarily saved through 'Save your matches'."
+                : "Non-contact criteria captured from a completed Radar scan."
             : "No server-side Radar profile saved for this visitor."}
         >
           {radar_profile ? (
@@ -497,8 +500,25 @@ function IntelPanel({
               <KV k="State" v={radar_profile.state || "Nationwide"} />
               <KV k="Certification" v={radar_profile.cert_label ?? "—"} />
               <KV k="Size" v={radar_profile.size_label ?? "—"} />
-              {radar_profile.matched_count !== null && <KV k="Matches found" v={String(radar_profile.matched_count)} />}
-              {radar_profile.email_captured && <p className="mt-1 text-[11px] text-slate-400">Via a voluntary "Save your matches" submission.</p>}
+              {radar_profile.matched_count !== null && (
+                <KV
+                  k="Matches found"
+                  v={radar_profile.shown_count !== null && radar_profile.shown_count < radar_profile.matched_count
+                    ? `${radar_profile.matched_count} (${radar_profile.shown_count} shown free)`
+                    : String(radar_profile.matched_count)}
+                />
+              )}
+              {radar_profile.alert_status && (
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {radar_profile.alert_status === "confirmed"
+                    ? "Email captured via match alerts (confirmed)."
+                    : radar_profile.alert_status === "pending"
+                      ? "Email captured via match alerts (not yet confirmed)."
+                      : "Signed up for match alerts, since unsubscribed."}{" "}
+                  <a href="/admin/radar-leads" className="underline">See Radar leads</a>
+                </p>
+              )}
+              {radar_profile.email_captured && !radar_profile.alert_status && <p className="mt-1 text-[11px] text-slate-400">Via a voluntary "Save your matches" submission.</p>}
               {!radar_profile.email_captured && <p className="mt-1 text-[11px] text-slate-400">Anonymous scan criteria only — no contact details captured.</p>}
             </>
           ) : (

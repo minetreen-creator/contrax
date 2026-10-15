@@ -253,3 +253,23 @@ describe("admin counting fixes (owner 2026-10-13)", () => {
     expect([...m]).toEqual([["b", "ad"]]);
   });
 });
+
+describe("Radar match-alert signup in the lead score (owner 2026-10-15)", () => {
+  // The Norfolk janitorial visitor: one scan, then left and confirmed an email.
+  const human = { ...base, radarStarted: true, radarCompleted: true, sessions: 1, pageViews: 3, activeSpanSeconds: 420, steps: 17 };
+
+  test("a scan alone stays at 20", () => {
+    expect(computeLeadScore(human).score).toBe(20);
+  });
+
+  test("signing up and confirming adds 25 + 15", () => {
+    const s = computeLeadScore({ ...human, alertSignup: true, alertConfirmed: true });
+    expect(s.score).toBe(60);
+    expect(s.level).toBe("Very High");
+    expect(s.reasons.map((r) => r.reason)).toContain("Confirmed the match-alert email");
+  });
+
+  test("an unconfirmed signup adds only 25", () => {
+    expect(computeLeadScore({ ...human, alertSignup: true }).score).toBe(45);
+  });
+});

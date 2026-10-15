@@ -194,6 +194,9 @@ export interface ScoreSignals {
   firstReferrer?: string | null;
   /** The visit came from a paid ad click (medium "cpc"); never an email link scanner. */
   paidClick?: boolean;
+  /** Left an email for Radar match alerts (a radar_leads row), and whether it was confirmed. */
+  alertSignup?: boolean;
+  alertConfirmed?: boolean;
 }
 
 /** Pace thresholds for likelyAutomated (owner 2026-10-02). */
@@ -368,6 +371,11 @@ export function computeLeadScore(s: ScoreSignals): LeadScore {
   if (s.incumbentViewed) add(20, "Viewed incumbent intelligence");
   if (s.radarCompleted) add(20, "Completed a Radar scan");
   else if (s.radarStarted) add(5, "Used the Radar (picked a trade or started a search)");
+  // Owner 2026-10-15 (Norfolk janitorial visitor scored 20 after leaving and
+  // confirming an email): a match-alert signup is the strongest intent short of
+  // an account, and confirming it proves the address is real.
+  if (s.alertSignup) add(25, "Signed up for Radar match alerts");
+  if (s.alertConfirmed) add(15, "Confirmed the match-alert email");
   if (s.returnedMultiDay) add(30, "Returned on a later day");
   else if (s.sessions >= 2) add(10, "Multiple sessions");
   if (s.briefGenerated) add(15, "Generated an AI Executive Brief");
@@ -538,7 +546,11 @@ export interface VisitorIntel {
     size: string | null;
     size_label: string | null;
     matched_count: number | null;
-    email_captured: boolean; // via "Save your matches" (radar_saves)
+    /** Results shown free when fewer than matched_count; null when not recorded. */
+    shown_count: number | null;
+    email_captured: boolean; // via "Save your matches" (radar_saves) or a match-alert signup (radar_leads)
+    /** Match-alert signup state from radar_leads; null when the visitor never signed up. */
+    alert_status: "pending" | "confirmed" | "unsubscribed" | null;
     source: "email_save" | "anonymous_scan";
   } | null;
   lead_score: LeadScore;
@@ -661,8 +673,7 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
   let anonymousRadarProfile: any = null;
   try {
     const profileRows: any[] = await sql()`
-      SELECT trade, state, cert, size_pref, matched_count, updated_at AS created_at
-      FROM anonymous_radar_profiles
+      SELECT * FROM anonymous_radar_profiles
       WHERE visitor_id = ${vid} LIMIT 1`;
     anonymousRadarProfile = profileRows[0] ?? null;
   } catch {
@@ -670,6 +681,21 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
     // visitors who never completed a scan simply have no server-side profile.
     anonymousRadarProfile = null;
   }
+
+  // ── Radar match-alert signup (radar_leads, keyed by the same visitor id) ──
+  let alertLead: { confirmed_at: string | null; unsubscribed_at: string | null } | null = null;
+  try {
+    const leadRows: any[] = await sql()`
+      SELECT confirmed_at, unsubscribed_at FROM radar_leads
+      WHERE visitor_id = ${vid} ORDER BY created_at DESC LIMIT 1`;
+    alertLead = leadRows[0] ?? null;
+  } catch {
+    // Created lazily by /api/radar/lead; absent until the first signup.
+    alertLead = null;
+  }
+  const alertStatus: "pending" | "confirmed" | "unsubscribed" | null = alertLead
+    ? alertLead.unsubscribed_at ? "unsubscribed" : alertLead.confirmed_at ? "confirmed" : "pending"
+    : null;
 
   // ── Known identity: live linked account, else detail-row email backfill ──
   const convertedId = v?.converted_user_id ? String(v.converted_user_id) : null;
@@ -848,6 +874,8 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
     pageViews: pageRows.length,
     firstReferrer: pageRows[0]?.referrer ?? null,
     paidClick: String(medium ?? "").toLowerCase() === "cpc",
+    alertSignup: !!alertLead || eventNames.includes("radar_lead_captured"),
+    alertConfirmed: !!alertLead?.confirmed_at || eventNames.includes("email_confirmed"),
   });
 
   const radarProfileRow = radarSave ?? anonymousRadarProfile;
@@ -860,7 +888,9 @@ export async function getVisitorIntel(visitorId: string): Promise<VisitorIntel |
         size: radarProfileRow.size_pref ?? null,
         size_label: radarSizeLabel(radarProfileRow.size_pref ?? null),
         matched_count: Number.isFinite(Number(radarProfileRow.matched_count)) ? Number(radarProfileRow.matched_count) : null,
-        email_captured: !!radarSave,
+        shown_count: radarProfileRow.shown_count != null && Number.isFinite(Number(radarProfileRow.shown_count)) ? Number(radarProfileRow.shown_count) : null,
+        email_captured: !!radarSave || !!alertLead,
+        alert_status: alertStatus,
         source: radarSave ? "email_save" as const : "anonymous_scan" as const,
       }
     : null;

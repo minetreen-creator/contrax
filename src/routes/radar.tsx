@@ -891,6 +891,8 @@ export const runRadarScan = createServerFn({ method: "POST" })
       paidRequired: false,
       freeSearchKept,
       matches: visibleMatches,
+      // Owner 2026-10-15: admin's "Matches found" showed the free 3, not the real count.
+      totalMatched: matches.length,
       certLabel: CERT_LABEL[certId],
       sections: {
         local: local.filter((match) => visibleIds.has(match.id)),
@@ -1208,6 +1210,8 @@ type ScanResult = {
   intelTicket: string | null;
   /** true = a free (unpaid) search that showed no bids, so it was not counted. */
   freeSearchKept?: boolean;
+  /** Every match found, including those past the free limit (matches holds only the shown ones). */
+  totalMatched?: number;
   /** Present ONLY on the paidRequired (free searches exhausted) result: the
    *  server-side allowance, so the block screen states the real number. */
   freeSearchLimit?: number;
@@ -1569,7 +1573,8 @@ function RadarLanding() {
           state: input.state,
           cert: input.cert,
           sizePref: input.sizePref,
-          matchedCount: res.matches.length,
+          matchedCount: res.totalMatched ?? res.matches.length,
+          shownCount: res.matches.length,
         }),
       }).catch(() => { /* analytics must never break Radar */ });
       setScan({

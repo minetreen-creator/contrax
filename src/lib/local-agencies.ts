@@ -52,6 +52,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "va_loudoun", slug: "loudoun-county", name: "Loudoun County" },
   { source: "tx_dallas_bonfire", slug: "city-of-dallas", name: "City of Dallas" },
   { source: "nc_gastonia", slug: "city-of-gastonia", name: "City of Gastonia" },
+  { source: "nc_wayne_county", slug: "wayne-county-nc", name: "Wayne County, North Carolina" },
   { source: "nc_gaston_county", slug: "gaston-county", name: "Gaston County" },
   { source: "va_suffolk", slug: "city-of-suffolk", name: "City of Suffolk" },
   { source: "va_lynchburg", slug: "city-of-lynchburg", name: "City of Lynchburg" },

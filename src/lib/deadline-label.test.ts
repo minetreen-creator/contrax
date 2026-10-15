@@ -82,6 +82,7 @@ describe("the pinned set is derived from the flag-bearing connectors", () => {
 
     // Sanity: the flags this build was scoped to exist at all.
     const expectedFlagFiles = [
+      "nc-wayne-county.ts",
       "va-eva.ts",
       "va-loudoun.ts",
       "va-colonial-heights.ts",

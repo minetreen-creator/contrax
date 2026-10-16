@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { RfpSummaryCard } from "~/components/RfpSummaryCard";
 import { resolveBidState, STATE_CODE_TO_NAME } from "~/lib/location-state";
+import { BidAlertCapture } from "~/components/BidAlertCapture";
 import {
   bidCanonicalUrl,
   bidSeoDescription,
@@ -50,6 +51,9 @@ interface BidDetail {
 /** The public bid fields the page (and Google) sees. No user data. */
 interface PublicBid extends Omit<BidDetail, "learned"> {
   state_name: string | null;
+  /** For the "Get bids like this by email" box. */
+  state_code: string | null;
+  naics_code: string | null;
 }
 
 /**
@@ -69,7 +73,7 @@ const getPublicBid = createServerFn({ method: "GET" })
     try {
       const rows = (await sql()`
         SELECT id, title, agency, description, location, set_aside,
-               due_date, estimated_value, source_url, created_at
+               due_date, estimated_value, source_url, naics_code, created_at
         FROM bids
         WHERE id = ${id}
         LIMIT 1
@@ -95,6 +99,8 @@ const getPublicBid = createServerFn({ method: "GET" })
         source_url,
         head_start_until,
         state_name: code ? (STATE_CODE_TO_NAME[code] ?? null) : null,
+        state_code: code ?? null,
+        naics_code: r.naics_code ? String(r.naics_code) : null,
       };
     } catch (e) {
       console.error("[bid/$id] public load failed:", e);
@@ -290,6 +296,8 @@ function BidDetailPage() {
                 </a>
               </p>
             )}
+
+            <BidAlertCapture naicsCode={bid.naics_code} stateCode={bid.state_code} />
 
             <div className="mt-5">
               <RfpSummaryCard

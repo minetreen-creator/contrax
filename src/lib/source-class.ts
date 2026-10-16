@@ -234,6 +234,21 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // and the aggregator honesty is carried on the connector header and on every row
   // description; it never claims the state operates BidNet.
   sd_bidnet: { class: "state", scopeState: "SD", searchScope: "state-portal", recordType: "opportunity" },
+  // BidNet Direct's New Hampshire Purchasing Group (src/jobs/sources/nh-bidnet.ts)
+  // — NH's ONLY readable bid surface: every nh.gov host (DAS Bureau of Purchase and
+  // Property, NHDOT lettings, the legacy das.nh.gov) answers HTTP 403 to Contrax's
+  // ingestion network, so the official portal is UNVERIFIED and is NOT faked (see
+  // shared/nh-bids-discovery-2026-10-12/EVIDENCE.md). Same treatment as `sd_bidnet`
+  // above, for the same reasons: BidNet is a THIRD-PARTY aggregator (bidnetdirect.com
+  // — not a .gov host; agencies self-post and the rows are NH-located), NOT the State
+  // of New Hampshire's portal. The class vocabulary has no "aggregator" value (R8's
+  // four classes only), so it is recorded as STATE with home jurisdiction NH — the
+  // same treatment this table gives the other vendor-hosted, state-scoped
+  // marketplaces (`pennbid` ruling b, the six Periscope S2G marketplaces). The badge
+  // therefore reads "State (NH)" and the aggregator honesty is carried on the
+  // connector header and on every row description; it never claims the state
+  // operates BidNet.
+  nh_bidnet: { class: "state", scopeState: "NH", searchScope: "state-portal", recordType: "opportunity" },
   mn_mndot: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_connex: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_questcdn: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },

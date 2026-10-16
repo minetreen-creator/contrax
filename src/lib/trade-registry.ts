@@ -223,7 +223,9 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     // into the trucking code set) — the freight-trucking codes stay exactly as
     // they were. Key renamed trucking-hauling-logistics → trucking-hauling to
     // match what the entry now covers.
-    naics: ["484110", "484121", "484122", "484210", "484220", "484230", "492110"],
+    // Owner 2026-10-16: + 491110 so USPS mail-route (CDS) contracts, which carry
+    // no trucking words in their titles, appear on a trucking search.
+    naics: ["484110", "484121", "484122", "484210", "484220", "484230", "492110", "491110"],
   },
   // Owner 09-13 (radar zero-results): janitorial vertical. The term set is the
   // owner's exact curated procurement language — deliberately NO bare
@@ -553,7 +555,29 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "freight delivery service",
       "freight delivery services",
     ],
-    naics: ["492110", "484110", "484121", "484122", "484220", "484230"],
+    naics: ["492110", "484110", "484121", "484122", "484220", "484230", "491110"],
+  },
+  /**
+   * OWNER 2026-10-16 — USPS MAIL ROUTES → NAICS 491110. Contract Delivery
+   * Service (CDS) / highway contract routes are hauled by small trucking and
+   * courier operators, but their titles read "Contract Delivery Service (CDS)
+   * HCR 935C2 Palmdale CA", so they need their own phrasing to be found.
+   */
+  "usps-mail-routes": {
+    label: "USPS Mail Routes",
+    synonyms: [
+      "mail route",
+      "mail routes",
+      "mail hauling",
+      "mail haul",
+      "mail contract",
+      "contract delivery service",
+      "highway contract route",
+      "postal route",
+      "usps route",
+      "usps contract",
+    ],
+    naics: ["491110"],
   },
   /**
    * OWNER 09-14/09-15 — LOGISTICS → NAICS 488510 Freight Transportation

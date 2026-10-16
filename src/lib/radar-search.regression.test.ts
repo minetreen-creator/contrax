@@ -1362,8 +1362,10 @@ describe("amended registry — #387 match quality + #388 hauling regressions sta
 // Moving) is part of the trucking family — the owner's own trucking code list is
 // 484110/484121/484122/484210/484220/484230/492110, and the registry entry
 // carries it. The pin below records that set.
-const TRUCKING_SET = ["484110", "484121", "484122", "484210", "484220", "484230", "492110"];
-const FREIGHT_DELIVERY_SET = ["492110", "484110", "484121", "484122", "484220", "484230"];
+// Owner 2026-10-16: + 491110 (USPS Contract Delivery Service mail routes) on
+// trucking and freight delivery; bare "delivery" stays 492110 only.
+const TRUCKING_SET = ["484110", "484121", "484122", "484210", "484220", "484230", "492110", "491110"];
+const FREIGHT_DELIVERY_SET = ["492110", "484110", "484121", "484122", "484220", "484230", "491110"];
 const ARRANGEMENT_PHRASES = [
   "freight broker",
   "freight brokerage",

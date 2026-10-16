@@ -65,7 +65,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // 152 (merge base) + 4 from main (#663/#664: Boston, Mobile AL, DC PASS,
     // Montgomery County MD) + 1 from #666 (sd_dot) + 1 from this branch
     // (sd_bidnet) = 158.
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(167);
+    // + 2 USPS mail-route trade passes (owner 2026-10-16).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(169);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -152,9 +153,10 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
   });
 
   test("the derived federal set is the policy's 66 labels", () => {
-    expect(FEDERAL_LABELS.size).toBe(66);
+    // 66 + the two USPS mail-route trade passes (owner 2026-10-16).
+    expect(FEDERAL_LABELS.size).toBe(68);
     // cert-matching derives FEDERAL_SOURCE_LABELS from FEDERAL_TRADE + FEDERAL
-    expect(FEDERAL_SOURCE_LABELS.size).toBe(66);
+    expect(FEDERAL_SOURCE_LABELS.size).toBe(68);
     for (const label of FEDERAL_LABELS) expect(FEDERAL_SOURCE_LABELS.has(label)).toBe(true);
     // …and the 53 SAM-derived "state" collectors are inside it (owner ruling f)
     for (const label of [...DOORS, "cities", "va_evirginia"]) {
@@ -281,7 +283,8 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
     // SUPERSET contract: the window's deny-list must cover the 66 federal + the
     // 5 internal labels, so the JS rule (authoritative) never sees a federal
     // NULL row it would have to drop one by one.
-    expect(NON_STATE_LOCAL_SOURCES.size).toBe(71);
+    // 68 federal (incl. the two USPS mail-route passes, 2026-10-16) + 5 internal.
+    expect(NON_STATE_LOCAL_SOURCES.size).toBe(73);
     for (const label of FEDERAL_SOURCE_LABELS) expect(NON_STATE_LOCAL_SOURCES.has(label)).toBe(true);
     for (const label of INTERNAL_SOURCE_LABELS) expect(NON_STATE_LOCAL_SOURCES.has(label)).toBe(true);
     expect(NON_STATE_LOCAL_SOURCES.has("pennbid")).toBe(false);

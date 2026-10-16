@@ -510,7 +510,8 @@ describe("QA N1/F8 — the Radar DEFAULT (strong) decision applies the purchased
 // ─────────────────────────────────────────────────────────────────────────────
 describe("QA N2 — the 11 new federal trade labels are federal, not state/local", () => {
   test("every registered trade pass is a registered FEDERAL source label", () => {
-    expect(SAM_TRADE_FILTERS.length).toBe(11);
+    // 11 + the two USPS mail-route passes (owner 2026-10-16).
+    expect(SAM_TRADE_FILTERS.length).toBe(13);
     for (const f of SAM_TRADE_FILTERS) {
       expect(FEDERAL_TRADE_SOURCE_LABELS).toContain(f.name);
       expect(NON_STATE_LOCAL_SOURCES.has(f.name)).toBe(true);
@@ -601,5 +602,17 @@ describe("mapCategory: road, utility and building titles (owner 2026-10-08, Geor
     expect(c("2027 Annual Vehicle Batteries")).toBe("Other");
     expect(c("Student Laptops")).toBe("Other");
     expect(c("Legal Services")).toBe("Other");
+  });
+});
+
+describe("USPS mail routes on trucking searches (owner 2026-10-16)", () => {
+  test("trucking and freight searches include NAICS 491110; mail-route phrasing resolves to it", async () => {
+    const { expandTrade } = await import("./trade-registry");
+    expect(expandTrade("trucking").naicsCodes).toContain("491110");
+    expect(expandTrade("freight delivery").naicsCodes).toContain("491110");
+    expect(expandTrade("contract delivery service").naicsCodes).toEqual(["491110"]);
+    expect(expandTrade("mail route").naicsCodes).toEqual(["491110"]);
+    // A bare "delivery" search stays courier-only (owner 09-15 rule).
+    expect(expandTrade("delivery").naicsCodes).not.toContain("491110");
   });
 });

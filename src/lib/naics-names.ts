@@ -193,6 +193,7 @@ export const NAICS_NAMES: Record<string, string> = {
   // NAICS_NAMES is the registry's module-load validation authority, so every
   // code TRADE_ALIASES names must exist here.
   "488510": "Freight Transportation Arrangement",
+  "491110": "Postal Service",
   "492110": "Couriers and Express Delivery Services",
   "488119": "Other Airport Operations",
   "493110": "General Warehousing and Storage",

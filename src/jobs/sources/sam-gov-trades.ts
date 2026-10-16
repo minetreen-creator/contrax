@@ -124,6 +124,11 @@ export const TRUCKING_TRADE_FILTERS: SamTradeFilter[] = [
   { name: "sam_naics_492110", kind: "naics", code: "492110", trade: "trucking", label: "Couriers and Express Delivery Services" },
   { name: "sam_psc_v112", kind: "psc", code: "V112", trade: "trucking", label: "Motor Freight / Moving / Drayage" },
   { name: "sam_psc_r602", kind: "psc", code: "R602", trade: "trucking", label: "Courier / Delivery Services" },
+  // Owner 2026-10-16: USPS Contract Delivery Service (CDS) / highway contract
+  // mail routes are posted on SAM.gov as NAICS 491110 (Postal Service) and PSC
+  // V119, neither of which the passes above request, so none reached the feed.
+  { name: "sam_naics_491110", kind: "naics", code: "491110", trade: "trucking", label: "USPS Contract Delivery Service routes" },
+  { name: "sam_psc_v119", kind: "psc", code: "V119", trade: "trucking", label: "Other Motor Transportation (USPS mail routes)" },
 ];
 
 export const SAM_TRADE_FILTERS: SamTradeFilter[] = [

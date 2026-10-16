@@ -31,12 +31,14 @@
  * categories the owner listed ("courier, delivery, medical-courier") — but it is
  * labelled for what it is, never as janitorial.
  *
- * DELIBERATELY NOT HERE (scope, audit R6/R7): the `sam-gov.ts` "regional" pass
- * still sends `placeOfPerformance.state=`, which the API SILENTLY IGNORES. The
- * honoured spelling is `state=`; repairing that multiplies ingest volume (~4×)
- * and is NOT janitorial/trucking-specific, so it is a separate PR. The
- * `oh_dayton` state/local connector (R7) belongs to the Ohio fix PR — two PRs
- * must not edit `runner.ts` + `src/jobs/sources/` concurrently.
+ * DELIBERATELY NOT HERE (scope, audit R6/R7): the `sam-gov.ts` "regional" pass's
+ * state filter. It used to send `placeOfPerformance.state=`, which the API
+ * SILENTLY IGNORES; that is now FIXED in `sam-gov.ts` (`buildSamSearchUrl` sends
+ * the honoured `state=` spelling — live gate 2026-10-16, task #3). It was a
+ * separate change because it multiplies ingest volume and is NOT
+ * janitorial/trucking-specific. The `oh_dayton` state/local connector (R7)
+ * belongs to the Ohio fix PR — two PRs must not edit `runner.ts` +
+ * `src/jobs/sources/` concurrently.
  *
  * HONEST ZEROS (nationwide correctness FIX ④, PR B2)
  * --------------------------------------------------

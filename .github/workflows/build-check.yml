@@ -170,6 +170,20 @@ jobs:
       # runs nowhere (the reason runner.dedupe.test.ts went unrun for weeks).
       - name: Nationwide correctness B2 pass-outcome tests (unit, deterministic, zero network)
         run: bun test src/jobs/pass-outcome.test.ts
+      # Hauling leads — trucking queue item #4 (owner-endorsed definition R, 2026-10-16):
+      # the federal-award-derived "may need hauling" ladder that feeds the /subcontracts
+      # section. DETERMINISTIC and network-free by construction: every byte it reads is a
+      # verbatim USAspending capture (src/lib/fixtures/hauling-leads/lexicon-slice.json,
+      # see that directory's README for the capture date + the sha256 of the rows array),
+      # the ladder and the field classifiers are PURE functions, and there is no
+      # DATABASE_URL, no clock and no fetch. It pins every rung (119 rows -> 99 kept, with
+      # the per-stage drop counts), the precomputed scope_kind/prime_kind mix, the measured
+      # geography, the stored snippet/URL, and the request body the sync job sends.
+      # The live half is the OPT-IN gate (src/lib/hauling-leads.source-validation.test.ts,
+      # wired into `validate:live-hauling-leads`) and must never run here.
+      # Named EXPLICITLY: a new deterministic suite that no workflow names runs nowhere.
+      - name: Hauling leads tests (unit, deterministic, zero network)
+        run: bun test src/lib/hauling-leads.test.ts
       - name: Radar return-session tests (unit, deterministic, zero network)
         run: bun test src/lib/radar-session.test.ts
       - name: Admin conversion-action tests (unit, deterministic, zero network)

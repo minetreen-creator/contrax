@@ -1,0 +1,2390 @@
+{
+ "captured_at": "2026-10-16",
+ "window": {
+  "start": "2025-10-16",
+  "end": "2026-10-16"
+ },
+ "source": "USAspending spending_by_award keyword arm (identical to /home/team/shared/trucking-4-hauling-leads-proposal-2026-10-16/lexicon-raw.json)",
+ "rows": [
+  {
+   "internal_id": 362249083,
+   "Award ID": "W912WJ26PA101",
+   "Recipient Name": "THOMSON TIMBER HARVESTING & TRUCKING, LLC",
+   "Recipient UEI": "G2DZBLNTVZ66",
+   "Award Amount": 82000,
+   "Base Obligation Date": "2026-06-16",
+   "Start Date": "2026-06-16",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "DEBRIS REMOVAL - LOG BOOM AND CATCHMENT AREA, FRANKLIN FALLS DAM, FRANKLIN, NH",
+   "Place of Performance State Code": "NH",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912WJ26PA101_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 354826731,
+   "Award ID": "W912PL26F0001",
+   "Recipient Name": "ROSELIN CHARITAR",
+   "Recipient UEI": "XZ7LKYF5K6J3",
+   "Award Amount": 3926574,
+   "Base Obligation Date": "2025-11-04",
+   "Start Date": "2025-10-09",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "DEBRIS REMOVAL SERVICES, WHITTIER NARROWS FLOOD CONTROL BASIN",
+   "Place of Performance State Code": "CA",
+   "NAICS": {
+    "code": "562998",
+    "description": "ALL OTHER MISCELLANEOUS WASTE MANAGEMENT SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_W912PL26F0001_9700_W912PL25D0032_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 362227675,
+   "Award ID": "W912PB26FA472",
+   "Recipient Name": "KRÄTZ GMBH",
+   "Recipient UEI": "UJ5ZJJQH5LB9",
+   "Award Amount": 411025.48,
+   "Base Obligation Date": "2026-06-15",
+   "Start Date": "2026-07-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION HOH - 01 JUL - 31 OCT 2026",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA472_9700_W912PB24D3018_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 360893892,
+   "Award ID": "W912PB26FA401",
+   "Recipient Name": "KRÄTZ GMBH",
+   "Recipient UEI": "UJ5ZJJQH5LB9",
+   "Award Amount": 36725.79,
+   "Base Obligation Date": "2026-04-28",
+   "Start Date": "2026-05-07",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "TAC-1 REFUSE COLLECTION, REFUSE/RECYCLING SUPPORT FOR TRAINING EXERCISES, IAW ATTACHED ELIN SHEET AND PERFORMANCE WORK STATEMENT (PWS). PERIOD OF PERFORMANCE DATES 07 MAY 2026 - 31 MAY 2026",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA401_9700_W912PB24D3018_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359443027,
+   "Award ID": "W912PB26FA309",
+   "Recipient Name": "KRÄTZ GMBH",
+   "Recipient UEI": "UJ5ZJJQH5LB9",
+   "Award Amount": 394321.74,
+   "Base Obligation Date": "2026-03-20",
+   "Start Date": "2026-04-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AND RENTAL FOR DUMPSTER AT USAG BAVARIA HOHENFELS.",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA309_9700_W912PB24D3018_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359117944,
+   "Award ID": "W912PB26FA263",
+   "Recipient Name": "KRÄTZ GMBH",
+   "Recipient UEI": "UJ5ZJJQH5LB9",
+   "Award Amount": 34697.41,
+   "Base Obligation Date": "2026-03-11",
+   "Start Date": "2026-03-14",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION HOH POP DATES 14 - 30 MARCH 2026 IAW THE ELIN SHEET.",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA263_9700_W912PB24D3018_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359092666,
+   "Award ID": "W912PB26FA260",
+   "Recipient Name": "KRÄTZ GMBH",
+   "Recipient UEI": "UJ5ZJJQH5LB9",
+   "Award Amount": 157008.5,
+   "Base Obligation Date": "2026-03-10",
+   "Start Date": "2026-04-07",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AT USAG BAVARIA HOHENFELS",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA260_9700_W912PB24D3018_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 357520673,
+   "Award ID": "W912PB26FA178",
+   "Recipient Name": "KRÄTZ GMBH",
+   "Recipient UEI": "UJ5ZJJQH5LB9",
+   "Award Amount": 168915.41,
+   "Base Obligation Date": "2026-01-28",
+   "Start Date": "2026-01-30",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AT USAG BAVARIA HOHENFELS IAW THE ATTACHED ELIN SHEET. POP 30 JAN 2026 - 03 MAR 2026",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA178_9700_W912PB24D3018_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 356431598,
+   "Award ID": "W912PB26FA121",
+   "Recipient Name": "KRÄTZ GMBH",
+   "Recipient UEI": "UJ5ZJJQH5LB9",
+   "Award Amount": 42689.21,
+   "Base Obligation Date": "2025-12-18",
+   "Start Date": "2026-01-23",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AT USAG HOHENFELS ISO KFOR 36",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA121_9700_W912PB24D3018_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 355619541,
+   "Award ID": "W912PB26FA081",
+   "Recipient Name": "STÄDTEREINIGUNG RUDOLF ERNST GMBH & CO. KG",
+   "Recipient UEI": "NDV1J4UETMX7",
+   "Award Amount": 32044.06,
+   "Base Obligation Date": "2025-11-25",
+   "Start Date": "2025-12-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AT USAG ANSBACH-ILLESHEIM 3OY 01 DEC 25 - 28 FEB 26",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA081_9700_W912PB22D3012_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 355619531,
+   "Award ID": "W912PB26FA053",
+   "Recipient Name": "KRÄTZ GMBH",
+   "Recipient UEI": "UJ5ZJJQH5LB9",
+   "Award Amount": 58250.77,
+   "Base Obligation Date": "2025-11-25",
+   "Start Date": "2025-11-05",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AND RENTAL FOR DUMPSTER (CBR 26-01) AT USAG BAVARIA POP 05-20NOV25",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA053_9700_W912PB24D3018_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 354763867,
+   "Award ID": "W912PB26FA025",
+   "Recipient Name": "KRÄTZ GMBH",
+   "Recipient UEI": "UJ5ZJJQH5LB9",
+   "Award Amount": 343009.03,
+   "Base Obligation Date": "2025-10-31",
+   "Start Date": "2025-11-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AND RENTAL FOR DUMPSTER AT USAG BAVARIA HOHENFELS",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA025_9700_W912PB24D3018_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 355423120,
+   "Award ID": "W912PB26FA014",
+   "Recipient Name": "VEOLIA UMWELTSERVICE SUED GMBH & CO. KG",
+   "Recipient UEI": "NQJEN7GDUKM6",
+   "Award Amount": 4012281.35,
+   "Base Obligation Date": "2025-11-21",
+   "Start Date": "2025-11-21",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AND DISPOSAL SERVICES AT USAG BAVARIA [TOWER BARRACKS AND ROSE BARRACKS] POP 01 NOV 25 - 30 JAN 26 - NTP ISSUED ON 01 NOV 25 DUE TO GOVERNMENT SHUTDOWN.",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912PB26FA014_9700_W912PB25DA017_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 360893879,
+   "Award ID": "W912P526FA088",
+   "Recipient Name": "DRC EMERGENCY SERVICES, LLC",
+   "Recipient UEI": "KLQXF6DU7EZ6",
+   "Award Amount": 33758112.27,
+   "Base Obligation Date": "2026-07-24",
+   "Start Date": "2026-07-27",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "USDA - HURRICANE HELENE DEBRIS REMOVAL SERVICES FOR THE CHEROKEE NATIONAL FOREST.",
+   "Place of Performance State Code": "TN",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912P526FA088_9700_W912EK22D0006_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 355832230,
+   "Award ID": "W912DS26PA001",
+   "Recipient Name": "ARK CONSTRUCTION MANAGEMENT LLC",
+   "Recipient UEI": "XND5YKUFG6Z3",
+   "Award Amount": 2504826,
+   "Base Obligation Date": "2025-12-05",
+   "Start Date": "2025-12-05",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "VEGETATION (VEG)/DEBRIS REMOVAL : CUTTING/ONSITE CHIPPING OF ALL REMAINING STANDING, DOWNED WOODY/HERBACEOUS VEG IN AREAS PREVIOUSLY CLEARED; AND REMOVAL OF ALL STANDING/DOWNED WOODY/HERBACEOUS VEG IN AREAS NOT PREVIOUSLY CLEARED.",
+   "Place of Performance State Code": "NJ",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_W912DS26PA001_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 355805910,
+   "Award ID": "W912DR26PA001",
+   "Recipient Name": "FOX SNAP ENTERPRISE LLC",
+   "Recipient UEI": "Y11DZH8H4UD9",
+   "Award Amount": 25680,
+   "Base Obligation Date": "2025-12-04",
+   "Start Date": "2025-12-08",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "DEBRIS REMOVAL SERVICE.",
+   "Place of Performance State Code": "MD",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912DR26PA001_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361314112,
+   "Award ID": "W912DR26FA148",
+   "Recipient Name": "N&S PROPERTY SERVICES LLC",
+   "Recipient UEI": "JDUTL6WKJN74",
+   "Award Amount": 877500,
+   "Base Obligation Date": "2026-05-14",
+   "Start Date": "2026-05-17",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "YEAR 3 NEW TASK ORDER FOR RESIDUAL HAULING PRICE CHANGE CONTRACT NUMBER W912DR24D0005",
+   "Place of Performance State Code": "DC",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912DR26FA148_9700_W912DR24D0005_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 357000716,
+   "Award ID": "W912DR26FA033",
+   "Recipient Name": "CHEROENHAKA NOTTOWAY ENTERPRISES, LLC",
+   "Recipient UEI": "HPHVSDPH1K93",
+   "Award Amount": 38488.74,
+   "Base Obligation Date": "2026-01-12",
+   "Start Date": "2026-01-09",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "THE SCOPE OF WORK FOR THIS MODIFICATION INCLUDES ALL LABOR, MATERIALS, AND EQUIPMENT TO PERFORM AN INSPECTION AND POTENTIAL DEBRIS REMOVAL FROM LITTLE FALLS PUMP STATION SLUICEGATE #1.",
+   "Place of Performance State Code": "DC",
+   "NAICS": {
+    "code": "237110",
+    "description": "WATER AND SEWER LINE AND RELATED STRUCTURES CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912DR26FA033_9700_W912DR25D0017_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 355736271,
+   "Award ID": "W912DQ26PA014",
+   "Recipient Name": "ALLIED SERVICES LLC",
+   "Recipient UEI": "LDTCJQ8JAHR3",
+   "Award Amount": 35904.12,
+   "Base Obligation Date": "2025-12-02",
+   "Start Date": "2025-12-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AND DISPOSAL SERVICES IAW THE PERFORMANCE WORK STATEMENT. WORK SHALL CONSIST OF REMOVE AND PROPERLY DISPOSE OF REFUSE AT THE STOCKTON LAKE PROJECT AND PROVIDE ROLL OFF SERVICES.",
+   "Place of Performance State Code": "MO",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912DQ26PA014_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359787504,
+   "Award ID": "W912DQ26FA060",
+   "Recipient Name": "OTTUMWA MOW & SNOW LLC",
+   "Recipient UEI": "DN4LFRKJ2533",
+   "Award Amount": 56490.4,
+   "Base Obligation Date": "2026-03-31",
+   "Start Date": "2026-04-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "BPA CALL TO PROVIDE GROUNDS MAINTENANCE SUPPORT. THIS INCLUDES DEBRIS REMOVAL, MOWING, TRIMMING AND CLEANUP IN CAMPGROUNDS, PARKS, ROADWAYS, AND EMBANKMENTS AT BRIDGE VIEW PARK AND PRAIRIE RIDGE PARK AT THE RATHBUN LAKE PROJECT.",
+   "Place of Performance State Code": "IA",
+   "NAICS": {
+    "code": "561730",
+    "description": "LANDSCAPING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_W912DQ26FA060_9700_W912DQ22A1003_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359763871,
+   "Award ID": "W912DQ26FA059",
+   "Recipient Name": "JAKI J STAGGS",
+   "Recipient UEI": "Y5EQWGBL1X35",
+   "Award Amount": 84713.3,
+   "Base Obligation Date": "2026-03-30",
+   "Start Date": "2026-04-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "BPA CALL TO PROVIDE GROUNDS MAINTENANCE SUPPORT. THIS INCLUDES DEBRIS REMOVAL, MOWING, TRIMMING AND CLEANUP IN CAMPGROUNDS, PARKS, ROADWAYS, AND EMBANKMENTS TO DAY USE, BUCK CREEK PARK, AND OUTLET PARK.",
+   "Place of Performance State Code": "IA",
+   "NAICS": {
+    "code": "561730",
+    "description": "LANDSCAPING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_W912DQ26FA059_9700_W912DQ23A1001_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361820891,
+   "Award ID": "W912CN26FA240",
+   "Recipient Name": "PERRY MANAGEMENT CORP OF SOUTH DAKOTA, L.L.C",
+   "Recipient UEI": "JM2FGF4JHMN3",
+   "Award Amount": 411858.6,
+   "Base Obligation Date": "2026-05-28",
+   "Start Date": "2026-06-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AND DISPOSAL; OY2 POP: 01 JUN 2026 - 31 MAY 2027",
+   "Place of Performance State Code": "HI",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912CN26FA240_9700_W912CN24D0010_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 362376413,
+   "Award ID": "W912BV26PA072",
+   "Recipient Name": "BOYD CO. LLC",
+   "Recipient UEI": "NKZ4U5L3K8Z5",
+   "Award Amount": 45312,
+   "Base Obligation Date": "2026-06-18",
+   "Start Date": "2026-06-18",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "TENKILLER / WEBBERS FALLS REFUSE COLLECTION SERVICE BASE, GORE OKLAHOMA",
+   "Place of Performance State Code": "OK",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912BV26PA072_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359787474,
+   "Award ID": "W912BV26PA046",
+   "Recipient Name": "WICHITA TREE SERVICE LLC",
+   "Recipient UEI": "VJEASNH7DDH8",
+   "Award Amount": 52500,
+   "Base Obligation Date": "2026-03-31",
+   "Start Date": "2026-04-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "DEBRIS REMOVAL EMBANKMENT JOHN REDMOND RES, KS",
+   "Place of Performance State Code": "KS",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912BV26PA046_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 363279177,
+   "Award ID": "W912BV26FA087",
+   "Recipient Name": "DEAD CALM SEAS MARINE SERVICES LLC",
+   "Recipient UEI": "UKKVK9NQQFG4",
+   "Award Amount": 30355,
+   "Base Obligation Date": "2026-07-09",
+   "Start Date": "2026-07-10",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "DIVE DEBRIS REMOVAL AT THE BROKEN BOW BULKHEAD SPILLWAY.",
+   "Place of Performance State Code": "OK",
+   "NAICS": {
+    "code": "561990",
+    "description": "ALL OTHER SUPPORT SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_W912BV26FA087_9700_W912BV26DA003_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 360074479,
+   "Award ID": "W9128F26PA028",
+   "Recipient Name": "CHRIS BURKE, LLC",
+   "Recipient UEI": "QH3PLB9W8F83",
+   "Award Amount": 48768,
+   "Base Obligation Date": "2026-04-07",
+   "Start Date": "2026-04-06",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "GAVINS POINT PROJECT REQUIRES REFUSE COLLECTION ON PROJECT LANDS AT GAVINS POINT PROJECT, LOCATED IN YANKTON, SD. REFUSE COLLECTION IS REQUIRED IN BOTH OPERATIONS AREAS AND PUBLIC RECREATION AREAS FOR HEALTH AND SANITARY CONDITION REQUIREMENTS.",
+   "Place of Performance State Code": "SD",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W9128F26PA028_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359787459,
+   "Award ID": "W9128F26PA023",
+   "Recipient Name": "BYRE BROTHERS INC",
+   "Recipient UEI": "FEDLH65XP2V5",
+   "Award Amount": 99875,
+   "Base Obligation Date": "2026-03-31",
+   "Start Date": "2026-04-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION AT BIG BEND, FORT THOMPSON, SOUTH DAKOTA",
+   "Place of Performance State Code": "SD",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W9128F26PA023_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361277854,
+   "Award ID": "W9128A26FA021",
+   "Recipient Name": "ECC CONSTRUCTORS LLC",
+   "Recipient UEI": "LJPLMV3GCYE7",
+   "Award Amount": 15528361.9,
+   "Base Obligation Date": "2026-05-13",
+   "Start Date": "2026-05-14",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "DEBRIS REMOVAL MANAGEMENT SERVICES, SUPER TYPHOON SINLAKU, TINIAN, COMMONWEALTH OF THE NORTHERN MARIANA ISLANDS",
+   "Place of Performance State Code": "MP",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W9128A26FA021_9700_W912EK22D0004_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361031296,
+   "Award ID": "W9128A26FA020",
+   "Recipient Name": "ECC CONSTRUCTORS LLC",
+   "Recipient UEI": "LJPLMV3GCYE7",
+   "Award Amount": 86451088.43,
+   "Base Obligation Date": "2026-05-04",
+   "Start Date": "2026-05-04",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "DEBRIS REMOVAL MANAGEMENT SERVICES, SUPER TYPHOON SINLAKU, COMMONWEALTH OF THE NORTHERN MARIANA ISLANDS",
+   "Place of Performance State Code": "MP",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W9128A26FA020_9700_W912EK22D0004_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 360926164,
+   "Award ID": "W9128A26FA019",
+   "Recipient Name": "ECC CONSTRUCTORS LLC",
+   "Recipient UEI": "LJPLMV3GCYE7",
+   "Award Amount": 622141.2,
+   "Base Obligation Date": "2026-04-29",
+   "Start Date": "2026-04-30",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "DEBRIS REMOVAL MANAGEMENT SERVICES, SUPER TYPHOON SINLAKU, COMMONWEALTH OF THE NORTHERN MARIANA ISLANDS",
+   "Place of Performance State Code": "MP",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W9128A26FA019_9700_W912EK22D0004_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 360843913,
+   "Award ID": "W9128A26FA018",
+   "Recipient Name": "ECC CONSTRUCTORS LLC",
+   "Recipient UEI": "LJPLMV3GCYE7",
+   "Award Amount": 551872.8,
+   "Base Obligation Date": "2026-04-26",
+   "Start Date": "2026-04-26",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "DEBRIS REMOVAL MANAGEMENT SERVICES, SUPER TYPHOON SINLAKU, COMMONWEALTH OF THE NORTHERN MARIANA ISLANDS",
+   "Place of Performance State Code": "MP",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W9128A26FA018_9700_W912EK22D0004_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 355680594,
+   "Award ID": "W9126G26PA003",
+   "Recipient Name": "PURESERVICE CORP",
+   "Recipient UEI": "ZN7MBG9Q7JD5",
+   "Award Amount": 285091,
+   "Base Obligation Date": "2025-11-30",
+   "Start Date": "2025-12-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "SERVICES FOR FACILITY CLEANING, GROUNDS CLEANING, WATER SYSTEM OPERATIONS AND MAINTENANCE WATER WELL TESTING, BEACH WATER TESTING AND REFUSE COLLECTION AND REFUSE DISPOSAL IS PERFORMED AT WHITNEY LAKE, TEXAS AND AQUILLA LAKE, TEXAS.",
+   "Place of Performance State Code": "TX",
+   "NAICS": {
+    "code": "561720",
+    "description": "JANITORIAL SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_W9126G26PA003_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 362160977,
+   "Award ID": "W911RX26FA122",
+   "Recipient Name": "NISOU ENTERPRISES INC",
+   "Recipient UEI": "KJ7TFNLB4AQ7",
+   "Award Amount": 357149.46,
+   "Base Obligation Date": "2026-06-11",
+   "Start Date": "2026-07-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION SERVICES",
+   "Place of Performance State Code": "KS",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W911RX26FA122_9700_W911RX22D0006_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359029271,
+   "Award ID": "W911RX26FA074",
+   "Recipient Name": "TERRESTRIS, LLC",
+   "Recipient UEI": "RM6LFF8N8KN3",
+   "Award Amount": 66925.38,
+   "Base Obligation Date": "2026-03-06",
+   "Start Date": "2026-03-18",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "FORKLIFTS, BACKHOES WITH TRAILER, DUMP TRUCKS.",
+   "Place of Performance State Code": "CA",
+   "NAICS": {
+    "code": "541614",
+    "description": "PROCESS, PHYSICAL DISTRIBUTION, AND LOGISTICS CONSULTING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_W911RX26FA074_9700_N0002325D0082_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 355619140,
+   "Award ID": "W911RX26FA025",
+   "Recipient Name": "NISOU ENTERPRISES INC",
+   "Recipient UEI": "KJ7TFNLB4AQ7",
+   "Award Amount": 351643.52,
+   "Base Obligation Date": "2025-11-25",
+   "Start Date": "2025-12-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REFUSE COLLECTION",
+   "Place of Performance State Code": "KS",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W911RX26FA025_9700_W911RX22D0006_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 357463802,
+   "Award ID": "W911N226PA005",
+   "Recipient Name": "SCOTTS HAULING & EXCAVATING INC",
+   "Recipient UEI": "U46HJV2L5M36",
+   "Award Amount": 41850,
+   "Base Obligation Date": "2026-01-26",
+   "Start Date": "2026-01-26",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "SNOW HAULING SERVICES AT LETTERKENNY ARMY DEPOT TO RELOCATE ACCUMULATED SNOW PILES AFTER SNOW EVENTS.",
+   "Place of Performance State Code": "PA",
+   "NAICS": {
+    "code": "238910",
+    "description": "SITE PREPARATION CONTRACTORS"
+   },
+   "generated_internal_id": "CONT_AWD_W911N226PA005_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 360926021,
+   "Award ID": "W911N226FA206",
+   "Recipient Name": "HELPFORCE LLC",
+   "Recipient UEI": "L653DZLL25Y6",
+   "Award Amount": 1068598,
+   "Base Obligation Date": "2026-04-29",
+   "Start Date": "2026-05-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "PERFORM NON-HAZARDOUS SALVAGE AND REFUSE COLLECTION, TRANSPORTATION AND OFFSITE DISPOSAL. DIRECTORATE OF PUBLIC WORKS REQUIREMENT TO SUPPORT THE LETTERKENNY ARMY DEPOT WARFIGHTERS.",
+   "Place of Performance State Code": "PA",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W911N226FA206_9700_W911N226DA015_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 362160944,
+   "Award ID": "W911KF26FA053",
+   "Recipient Name": "SEDONA- NASCO JOINT VENTURE",
+   "Recipient UEI": "GLSLZ75HV2T5",
+   "Award Amount": 1023501,
+   "Base Obligation Date": "2026-06-11",
+   "Start Date": "2026-06-15",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "REPAIRS TO INCLUDE ASPHALT AND CONCRETE ROADWAY REPAIRS, SLOPE STABILIZATION, EROSION REPAIRS, AGGRADATION AND SEDIMENT REMOVAL, PLACEMENT OF RIP RAP, VEGETATION AND DEBRIS REMOVAL, CONCRETE PATCHING, CONCRETE CRACK FILLING, PAINTING AND ETC.",
+   "Place of Performance State Code": "AL",
+   "NAICS": {
+    "code": "236210",
+    "description": "INDUSTRIAL BUILDING CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_W911KF26FA053_9700_W911KF22D0001_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 358562226,
+   "Award ID": "W911KB26PA004",
+   "Recipient Name": "MIDSTATE EQUIPMENT INC",
+   "Recipient UEI": "DY8PR7LASD55",
+   "Award Amount": 80000,
+   "Base Obligation Date": "2026-02-19",
+   "Start Date": "2026-02-19",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "THE CHENA RIVER LAKES FLOOD CONTROL PROJECT REQUIRES CONSTRUCTION SUPPORT SERVICES AND DEBRIS REMOVAL SUPPORT ANNUALLY.",
+   "Place of Performance State Code": "AK",
+   "NAICS": {
+    "code": "561210",
+    "description": "FACILITIES SUPPORT SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_W911KB26PA004_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 356559324,
+   "Award ID": "W90VN626FA007",
+   "Recipient Name": "DAEHWA HWANGYUNG INC",
+   "Recipient UEI": "KFRHFQBPD845",
+   "Award Amount": 83525.35,
+   "Base Obligation Date": "2025-12-22",
+   "Start Date": "2026-01-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "TASK ORDER FOR REFUSE COLLECTION AT GWANGJU AIR BASE (AB) - 2 OPTION YEAR",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W90VN626FA007_9700_W90VN624D0002_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359594229,
+   "Award ID": "W519TC26FA210",
+   "Recipient Name": "HUNT'S TRUCKING LLC",
+   "Recipient UEI": "DEQVHF95BVS1",
+   "Award Amount": 30000,
+   "Base Obligation Date": "2026-03-23",
+   "Start Date": "2026-03-23",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "BULK FUNDED BPA CALL FOR WASTE WOOD REMOVAL LOCATED AT THE QUALIFIED RECYCLING PROGRAM YARD, BLUE GRASS ARMYDEPOT, RICHMOND, KENTUCKY.",
+   "Place of Performance State Code": "KY",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W519TC26FA210_9700_W519TC26AA006_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 356416521,
+   "Award ID": "N4008026F1005",
+   "Recipient Name": "SNI UNITED LLC",
+   "Recipient UEI": "HWNJY4J4F1P7",
+   "Award Amount": 341846.04,
+   "Base Obligation Date": "2025-12-18",
+   "Start Date": "2025-12-18",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Navy",
+   "Description": "OPTION YEAR 4 RECURRING WORK FOR REFUSE COLLECTION AND DISPOSAL SERVICES AT VARIOUS LOCATIONS THROUGHOUT THE NAVAL DISTRICT WASHINGTON IN ACCORDANCE WITH THE PWS AND ALL APPLICABLE ATTACHMENTS STARTING 1 DEC 2025 THROUGH 30 NOV 2026.",
+   "Place of Performance State Code": "MD",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_N4008026F1005_9700_N4008021D0001_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359657289,
+   "Award ID": "N3943026F7002",
+   "Recipient Name": "ECOLOGY MIR GROUP LLC",
+   "Recipient UEI": "KH5HQMQVN6A5",
+   "Award Amount": 45000,
+   "Base Obligation Date": "2026-03-25",
+   "Start Date": "2026-03-25",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Navy",
+   "Description": "THE PURPOSE OF THIS BPA CALL ORDER IS TO PROVIDE CRANE AND TRUCKING SERVICES TO LIFT AND RELOCATE (1) 25000KVA UPC SUBSTATION ONTO A TRACTOR TRAILER FROM THE MUSE YARD IN PORT HUENEME TO FRC CORONADO, SAN DIEGO.",
+   "Place of Performance State Code": "CA",
+   "NAICS": {
+    "code": "238990",
+    "description": "ALL OTHER SPECIALTY TRADE CONTRACTORS"
+   },
+   "generated_internal_id": "CONT_AWD_N3943026F7002_9700_N3943023A0058_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359128572,
+   "Award ID": "N3319126F0064",
+   "Recipient Name": "V2X SYSTEMS LLC",
+   "Recipient UEI": "RRFJZGASZJ41",
+   "Award Amount": 2000000,
+   "Base Obligation Date": "2026-03-12",
+   "Start Date": "2026-03-12",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Navy",
+   "Description": "RAPID EMERGENCY REPAIRS, TEMPORARY STABILIZATION MEASURES, DEBRIS REMOVAL, UTILITY RESTORATION, AND OTHER URGENT CORRECTIVE ACTIONS NECESSARY TO SUSTAIN MISSION CAPABILITY IN RESPONSE TO EPIC FURY.",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "561210",
+    "description": "FACILITIES SUPPORT SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_N3319126F0064_9700_N6247020D0010_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 362582840,
+   "Award ID": "N0018926PL196",
+   "Recipient Name": "MODULUS LLC",
+   "Recipient UEI": "MHS6DRMPDA46",
+   "Award Amount": 35240,
+   "Base Obligation Date": "2026-06-23",
+   "Start Date": "2026-06-24",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Navy",
+   "Description": "THE CONTRACTOR SHALL PROVIDE ALL LABOR, MATERIALS, HEAVY EQUIPMENT, AND SUPERVISION NECESSARY TO COMPLETE THE DEMOLITION, DEBRIS REMOVAL, AND COMPREHENSIVE GRADING OF THE DESIGNATED PROJECT AREA.",
+   "Place of Performance State Code": "DC",
+   "NAICS": {
+    "code": "238910",
+    "description": "SITE PREPARATION CONTRACTORS"
+   },
+   "generated_internal_id": "CONT_AWD_N0018926PL196_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361442884,
+   "Award ID": "HE125426PE022",
+   "Recipient Name": "SANEI THANKS, K.K.",
+   "Recipient UEI": "H4CNVJDMTLN3",
+   "Award Amount": 62017.47,
+   "Base Obligation Date": "2026-05-19",
+   "Start Date": "2026-06-15",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of Defense Education Activity",
+   "Description": "DRAYAGE SERVICES FOR IWAKUNI MIDDLE SCHOOL CLOSURE (JAPAN)",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "561210",
+    "description": "FACILITIES SUPPORT SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_HE125426PE022_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359576878,
+   "Award ID": "FA527026FB026",
+   "Recipient Name": "KURASHIKI, CO.,LTD.",
+   "Recipient UEI": "KJYAG17M9FP1",
+   "Award Amount": 290766.18,
+   "Base Obligation Date": "2026-03-23",
+   "Start Date": "2026-05-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Air Force",
+   "Description": "THIS IS FOR REFUSE COLLECTION AND RECYCLE SERVICES AT THE U.S ARMY INSTALLATIONS IN OKINAWA, JAPAN.",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_FA527026FB026_9700_FA527022D0003_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 356164082,
+   "Award ID": "FA527026FB012",
+   "Recipient Name": "KURASHIKI, CO.,LTD.",
+   "Recipient UEI": "KJYAG17M9FP1",
+   "Award Amount": 191046.36,
+   "Base Obligation Date": "2025-12-15",
+   "Start Date": "2025-11-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Air Force",
+   "Description": "THIS IS AN ORDER OFF OF BASE FA527022D0003 TO FUND 1 SET FOR 6 MONTHS OF REFUSE COLLECTION FOR US ARMY INSTALLATIONS IN OKINAWA FROM 1 NOV 2025 TO 30 APR 2026.",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_FA527026FB012_9700_FA527022D0003_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361775839,
+   "Award ID": "FA520926F0135",
+   "Recipient Name": "YAMAKI CO., LTD.",
+   "Recipient UEI": "PFD3MMXK74M9",
+   "Award Amount": 443067.91,
+   "Base Obligation Date": "2026-05-27",
+   "Start Date": "2026-06-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Air Force",
+   "Description": "REFUSE COLLECTION, TRANSPORTATION, SEPARATION, DISPOSAL, AND RECYCLING SERVICE AT CZ, SFHA, AND SGD, JAPAN",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_FA520926F0135_9700_FA520924D0007_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 356696359,
+   "Award ID": "FA460026P0004",
+   "Recipient Name": "NASCENCE GROUP LLC",
+   "Recipient UEI": "SBQWM8YG93H1",
+   "Award Amount": 65000,
+   "Base Obligation Date": "2025-12-29",
+   "Start Date": "2025-12-05",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Air Force",
+   "Description": "THE CONTRACTOR SHALL PROVIDE ALL MANAGEMENT, VEHICLES, TOOLS, SUPPLIES, EQUIPMENT, AND LABOR NECESSARY TO ENSURE THAT SNOW HAULING SERVICES ARE PERFORMED AT OFFUTT AFB, NE (OAFB) IN A MANNER THAT WILL MAINTAIN A SATISFACTORY AND SAFE ENVIRONMENT.",
+   "Place of Performance State Code": "NE",
+   "NAICS": {
+    "code": "561730",
+    "description": "LANDSCAPING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_FA460026P0004_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 357198224,
+   "Award ID": "FA301626F0071",
+   "Recipient Name": "GOODWILL INDUSTRIES OF SAN ANTONIO CONTRACT SERVICES",
+   "Recipient UEI": "XUZ9P4RC4C64",
+   "Award Amount": 299376.91,
+   "Base Obligation Date": "2026-01-16",
+   "Start Date": "2026-01-16",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Air Force",
+   "Description": "PERFORM BIOLOGICAL, ARBORIST, AND CULTURAL RESOURCES SURVEYS; VEGETATION REMOVAL IN TRAINING AREAS AND TRAILS; HERBICIDE TREATMENT; TRAIL REPAIR; SITE CLEAN-UP; DEBRIS REMOVAL AND DISPOSAL, AND EQUIPMENT MAINTENANCE.",
+   "Place of Performance State Code": "TX",
+   "NAICS": {
+    "code": "238910",
+    "description": "SITE PREPARATION CONTRACTORS"
+   },
+   "generated_internal_id": "CONT_AWD_FA301626F0071_9700_FA301625D0026_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361775253,
+   "Award ID": "70Z04326PSMTC0008",
+   "Recipient Name": "MAYOINTHEMIX LLC",
+   "Recipient UEI": "TQ4VLMJTDL73",
+   "Award Amount": 73789.75,
+   "Base Obligation Date": "2026-08-25",
+   "Start Date": "2026-09-01",
+   "Awarding Agency": "Department of Homeland Security",
+   "Awarding Sub Agency": "U.S. Coast Guard",
+   "Description": "BULLET TRAP CLEANING AND DEBRIS REMOVAL FROM DEXTER SMALL ARMS FIRING RANGE FOR FORCECOM ARMORY DETACHMENT HONOLULU",
+   "Place of Performance State Code": "HI",
+   "NAICS": {
+    "code": "562910",
+    "description": "REMEDIATION SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_70Z04326PSMTC0008_7008_-NONE-_-NONE-",
+   "awarding_agency_id": 766,
+   "agency_slug": "department-of-homeland-security"
+  },
+  {
+   "internal_id": 355666418,
+   "Award ID": "70Z03926PCGA00019",
+   "Recipient Name": "BONNER ELECTRIC, INC.",
+   "Recipient UEI": "D14BZZCHJMJ7",
+   "Award Amount": 70000,
+   "Base Obligation Date": "2026-02-26",
+   "Start Date": "2026-02-25",
+   "Awarding Agency": "Department of Homeland Security",
+   "Awarding Sub Agency": "U.S. Coast Guard",
+   "Description": "USCG ACADEMY EMERGENCY SNOW HAULING SERVICE.",
+   "Place of Performance State Code": "CT",
+   "NAICS": {
+    "code": "238990",
+    "description": "ALL OTHER SPECIALTY TRADE CONTRACTORS"
+   },
+   "generated_internal_id": "CONT_AWD_70Z03926PCGA00019_7008_-NONE-_-NONE-",
+   "awarding_agency_id": 766,
+   "agency_slug": "department-of-homeland-security"
+  },
+  {
+   "internal_id": 355256290,
+   "Award ID": "70Z03926PCGA00016",
+   "Recipient Name": "SANITROL SEPTIC SERVICES, L.L.C.",
+   "Recipient UEI": "S1H9W7YL2KT4",
+   "Award Amount": 99000,
+   "Base Obligation Date": "2026-02-13",
+   "Start Date": "2026-02-04",
+   "Awarding Agency": "Department of Homeland Security",
+   "Awarding Sub Agency": "U.S. Coast Guard",
+   "Description": "TEMPORARY WASTEWATER PUMPING AND HAULING SERVICES TO PREVENT SANITARY SEWER OVERFLOW WHILE LOWER FIELD LIFT STATION FORCE MAIN DISCHARGE IS UNAVAILABLE",
+   "Place of Performance State Code": "CT",
+   "NAICS": {
+    "code": "562991",
+    "description": "SEPTIC TANK AND RELATED SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_70Z03926PCGA00016_7008_-NONE-_-NONE-",
+   "awarding_agency_id": 766,
+   "agency_slug": "department-of-homeland-security"
+  },
+  {
+   "internal_id": 356504749,
+   "Award ID": "70Z03126PALAM0045",
+   "Recipient Name": "RECOLOGY HUMBOLDT COUNTY",
+   "Recipient UEI": "XLMGKRN7DZ47",
+   "Award Amount": 92782.88,
+   "Base Obligation Date": "2026-03-20",
+   "Start Date": "2026-04-01",
+   "Awarding Agency": "Department of Homeland Security",
+   "Awarding Sub Agency": "U.S. Coast Guard",
+   "Description": "EUREKA HOUSING REFUSE COLLECTION",
+   "Place of Performance State Code": "CA",
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_70Z03126PALAM0045_7008_-NONE-_-NONE-",
+   "awarding_agency_id": 766,
+   "agency_slug": "department-of-homeland-security"
+  },
+  {
+   "internal_id": 356414856,
+   "Award ID": "70Z03126PALAM0044",
+   "Recipient Name": "HUMBOLDT SANITATION CO.",
+   "Recipient UEI": "LTSEA8KBZ4L7",
+   "Award Amount": 35768.7,
+   "Base Obligation Date": "2026-03-18",
+   "Start Date": "2026-04-01",
+   "Awarding Agency": "Department of Homeland Security",
+   "Awarding Sub Agency": "U.S. Coast Guard",
+   "Description": "SECTOR HUMBOLDT BAY REFUSE COLLECTION",
+   "Place of Performance State Code": "CA",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_70Z03126PALAM0044_7008_-NONE-_-NONE-",
+   "awarding_agency_id": 766,
+   "agency_slug": "department-of-homeland-security"
+  },
+  {
+   "internal_id": 291220057,
+   "Award ID": "70FBR426F00000002",
+   "Recipient Name": "MLU SERVICES, LLC",
+   "Recipient UEI": "L77SPKGHB5G5",
+   "Award Amount": 4341000,
+   "Base Obligation Date": "2025-10-17",
+   "Start Date": "2025-10-18",
+   "Awarding Agency": "Department of Homeland Security",
+   "Awarding Sub Agency": "Federal Emergency Management Agency",
+   "Description": "LOGISTICS HOUSING OPERATIONS UNIT INSTALLATION, MAINTENANCE AND DEACTIVATION (LOGHOUSE) - HAULING AND INSTALLING (H&I) AND MAINTENANCE AND DEACTIVATION (M&D) SERVICES UP TO 250 UNITS AND CONSTRUCTION IN SUPPORT OF DR-4860-KY IN KENTUCKY.",
+   "Place of Performance State Code": "KY",
+   "NAICS": {
+    "code": "236220",
+    "description": "COMMERCIAL AND INSTITUTIONAL BUILDING CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_70FBR426F00000002_7022_70FB8018D00000013_7022",
+   "awarding_agency_id": 766,
+   "agency_slug": "department-of-homeland-security"
+  },
+  {
+   "internal_id": 362663458,
+   "Award ID": "70B01C26P00000443",
+   "Recipient Name": "GULF SOUTH RESEARCH CORP",
+   "Recipient UEI": "NH3HNLDKWHK1",
+   "Award Amount": 639047.35,
+   "Base Obligation Date": "2026-09-23",
+   "Start Date": "2026-09-30",
+   "Awarding Agency": "Department of Homeland Security",
+   "Awarding Sub Agency": "U.S. Customs and Border Protection",
+   "Description": "CBP TACTICAL INFRASTRUCTURE ASSETS WHICH INCLUDE THE FOLLOWING CATEGORIES: ROADS AND BRIDGES FENCE AND GATES INCLUDING VEGETATION CONTROL DEBRIS REMOVAL BORDER LIGHTING AND ELECTRICAL DRAINAGE AND GRATE SYSTEMS AND TUNNEL REMEDIATION.",
+   "Place of Performance State Code": "DC",
+   "NAICS": {
+    "code": "541620",
+    "description": "ENVIRONMENTAL CONSULTING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_70B01C26P00000443_7014_-NONE-_-NONE-",
+   "awarding_agency_id": 766,
+   "agency_slug": "department-of-homeland-security"
+  },
+  {
+   "internal_id": 363019327,
+   "Award ID": "70B01C26F00001233",
+   "Recipient Name": "GULF SOUTH RESEARCH CORP",
+   "Recipient UEI": "NH3HNLDKWHK1",
+   "Award Amount": 797100.25,
+   "Base Obligation Date": "2026-09-25",
+   "Start Date": "2026-09-28",
+   "Awarding Agency": "Department of Homeland Security",
+   "Awarding Sub Agency": "U.S. Customs and Border Protection",
+   "Description": "CBP TACTICAL INFRASTRUCTURE (TI) CARRIZO CANE VEGETATION MANAGEMENT ACTIVITIES INCLUDING ROADS AND BRIDGES FENCE AND GATES (INCLUDING CONCERTINA WIRE) VEGETATION CONTROL (MANUAL, MECHANICAL, AND CHEMICAL) DEBRIS REMOVAL.",
+   "Place of Performance State Code": "LA",
+   "NAICS": {
+    "code": "541620",
+    "description": "ENVIRONMENTAL CONSULTING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_70B01C26F00001233_7014_47QRAA19D006W_4732",
+   "awarding_agency_id": 766,
+   "agency_slug": "department-of-homeland-security"
+  },
+  {
+   "internal_id": 352889473,
+   "Award ID": "47PH5326C0001",
+   "Recipient Name": "WILBURN HAULING INC",
+   "Recipient UEI": "F5JTME7NXPT9",
+   "Award Amount": 103691,
+   "Base Obligation Date": "2025-11-21",
+   "Start Date": "2025-12-06",
+   "Awarding Agency": "General Services Administration",
+   "Awarding Sub Agency": "Public Buildings Service",
+   "Description": "FSEM - WASTE AND DEBRIS REMOVAL (TRB) - SP-FSEM-39810 TRANSFER FROM OPM CONTRACT 24322623P0001",
+   "Place of Performance State Code": "DC",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_47PH5326C0001_4740_-NONE-_-NONE-",
+   "awarding_agency_id": 614,
+   "agency_slug": "general-services-administration"
+  },
+  {
+   "internal_id": 354164030,
+   "Award ID": "36C78626N0130",
+   "Recipient Name": "SPENCER-DOUGLAS, LLC",
+   "Recipient UEI": "R4GVRGTB33T1",
+   "Award Amount": 115155,
+   "Base Obligation Date": "2026-01-05",
+   "Start Date": "2026-01-12",
+   "Awarding Agency": "Department of Veterans Affairs",
+   "Awarding Sub Agency": "Department of Veterans Affairs",
+   "Description": "WILLAMETTE NATIONAL CEMETERY SPOILS AND DEBRIS REMOVAL",
+   "Place of Performance State Code": "OR",
+   "NAICS": {
+    "code": "561730",
+    "description": "LANDSCAPING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_36C78626N0130_3600_36C78622D0002_3600",
+   "awarding_agency_id": 561,
+   "agency_slug": "department-of-veterans-affairs"
+  },
+  {
+   "internal_id": 352969039,
+   "Award ID": "36C78626N0059",
+   "Recipient Name": "SPENCER-DOUGLAS, LLC",
+   "Recipient UEI": "R4GVRGTB33T1",
+   "Award Amount": 38385,
+   "Base Obligation Date": "2025-11-25",
+   "Start Date": "2025-11-25",
+   "Awarding Agency": "Department of Veterans Affairs",
+   "Awarding Sub Agency": "Department of Veterans Affairs",
+   "Description": "WILLAMETTE NATIONAL CEMETERY SPOILS AND DEBRIS REMOVAL",
+   "Place of Performance State Code": "OR",
+   "NAICS": {
+    "code": "561730",
+    "description": "LANDSCAPING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_36C78626N0059_3600_36C78622D0002_3600",
+   "awarding_agency_id": 561,
+   "agency_slug": "department-of-veterans-affairs"
+  },
+  {
+   "internal_id": 362493386,
+   "Award ID": "36C26226P1085",
+   "Recipient Name": "IAW CONSTRUCTION, INC.",
+   "Recipient UEI": "JMNAHUM151N9",
+   "Award Amount": 50000,
+   "Base Obligation Date": "2026-06-29",
+   "Start Date": "2026-07-01",
+   "Awarding Agency": "Department of Veterans Affairs",
+   "Awarding Sub Agency": "Department of Veterans Affairs",
+   "Description": "EMERGENCY DEBRIS REMOVAL AT LONG BEACH VA",
+   "Place of Performance State Code": "CA",
+   "NAICS": {
+    "code": "561790",
+    "description": "OTHER SERVICES TO BUILDINGS AND DWELLINGS"
+   },
+   "generated_internal_id": "CONT_AWD_36C26226P1085_3600_-NONE-_-NONE-",
+   "awarding_agency_id": 561,
+   "agency_slug": "department-of-veterans-affairs"
+  },
+  {
+   "internal_id": 357093459,
+   "Award ID": "36C25626P0573",
+   "Recipient Name": "RAS ENTERPRISES LLC",
+   "Recipient UEI": "RSCDDXH8DFZ9",
+   "Award Amount": 263254.08,
+   "Base Obligation Date": "2026-04-13",
+   "Start Date": "2026-04-15",
+   "Awarding Agency": "Department of Veterans Affairs",
+   "Awarding Sub Agency": "Department of Veterans Affairs",
+   "Description": "WASTE AND REFUSE COLLECTION SERVICES, BILOXI, MS",
+   "Place of Performance State Code": "MS",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_36C25626P0573_3600_-NONE-_-NONE-",
+   "awarding_agency_id": 561,
+   "agency_slug": "department-of-veterans-affairs"
+  },
+  {
+   "internal_id": 355362703,
+   "Award ID": "36C24826P0459",
+   "Recipient Name": "THE GOODE COMPANIES OF FLORIDA INC",
+   "Recipient UEI": "J8Z7AHMEQLA9",
+   "Award Amount": 283311.32,
+   "Base Obligation Date": "2026-02-18",
+   "Start Date": "2026-03-01",
+   "Awarding Agency": "Department of Veterans Affairs",
+   "Awarding Sub Agency": "Department of Veterans Affairs",
+   "Description": "SOLID WASTE HAULING SERVICE",
+   "Place of Performance State Code": "FL",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_36C24826P0459_3600_-NONE-_-NONE-",
+   "awarding_agency_id": 561,
+   "agency_slug": "department-of-veterans-affairs"
+  },
+  {
+   "internal_id": 359936151,
+   "Award ID": "36C24826N0477",
+   "Recipient Name": "FCC ENVIRONMENTAL SERVICES FLORIDA, LLC",
+   "Recipient UEI": "SG6MW14QMQ58",
+   "Award Amount": 416220,
+   "Base Obligation Date": "2026-07-01",
+   "Start Date": "2026-07-01",
+   "Awarding Agency": "Department of Veterans Affairs",
+   "Awarding Sub Agency": "Department of Veterans Affairs",
+   "Description": "SOLID WASTE COLLECTION, HAULING, REMOVAL, AND DISPOSAL SERVICE",
+   "Place of Performance State Code": "FL",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_36C24826N0477_3600_36C24825D0047_3600",
+   "awarding_agency_id": 561,
+   "agency_slug": "department-of-veterans-affairs"
+  },
+  {
+   "internal_id": 355783052,
+   "Award ID": "36C24726P0361",
+   "Recipient Name": "VENERGY GROUP LLC",
+   "Recipient UEI": "NWJ1Z3M5EAE5",
+   "Award Amount": 41890.2,
+   "Base Obligation Date": "2026-03-04",
+   "Start Date": "2026-03-03",
+   "Awarding Agency": "Department of Veterans Affairs",
+   "Awarding Sub Agency": "Department of Veterans Affairs",
+   "Description": "TREE DEBRIS REMOVAL SERVICES",
+   "Place of Performance State Code": "GA",
+   "NAICS": {
+    "code": "561210",
+    "description": "FACILITIES SUPPORT SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_36C24726P0361_3600_-NONE-_-NONE-",
+   "awarding_agency_id": 561,
+   "agency_slug": "department-of-veterans-affairs"
+  },
+  {
+   "internal_id": 358965250,
+   "Award ID": "28321326FDS030083",
+   "Recipient Name": "MELWOOD HORTICULTURAL TRAINING CENTER, INC.",
+   "Recipient UEI": "ZVX7ZJ5WZ576",
+   "Award Amount": 33459.48,
+   "Base Obligation Date": "2026-06-03",
+   "Start Date": "2026-06-03",
+   "Awarding Agency": "Social Security Administration",
+   "Awarding Sub Agency": "Social Security Administration",
+   "Description": "FOR THE TREE REMOVAL, PRUNING, STUMP GRINDING, AND RELATED DEBRIS HAULING SERVICES AT THE MAIN COURTYARD, ROOSEVELT COURTYARD, PARKING LOT AREAS, AND BEHIND THE STEAM PLANT. THE PURPOSE OF THIS PROJECT IS TO ADDRESS SAFETY CONCERNS, IMPROVE THE HEALT",
+   "Place of Performance State Code": "MD",
+   "NAICS": {
+    "code": "561730",
+    "description": "LANDSCAPING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_28321326FDS030083_2800_28321324D00060018_2800",
+   "awarding_agency_id": 539,
+   "agency_slug": "social-security-administration"
+  },
+  {
+   "internal_id": 362753319,
+   "Award ID": "19RS5026F0169",
+   "Recipient Name": "MISCELLANEOUS FOREIGN AWARDEES",
+   "Recipient UEI": "LN9PU5M2YZN5",
+   "Award Amount": 38697.21,
+   "Base Obligation Date": "2026-09-23",
+   "Start Date": "2026-09-23",
+   "Awarding Agency": "Department of State",
+   "Awarding Sub Agency": "Department of State",
+   "Description": "DEBRIS REMOVAL",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "561720",
+    "description": "JANITORIAL SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_19RS5026F0169_1900_19RS5026D0002_1900",
+   "awarding_agency_id": 315,
+   "agency_slug": "department-of-state"
+  },
+  {
+   "internal_id": 356498751,
+   "Award ID": "15BH0N26F00000026",
+   "Recipient Name": "MA TRUCKING LLC",
+   "Recipient UEI": "XS75N6B19J39",
+   "Award Amount": 70466,
+   "Base Obligation Date": "2025-12-30",
+   "Start Date": "2025-10-01",
+   "Awarding Agency": "Department of Justice",
+   "Awarding Sub Agency": "Federal Prison System / Bureau of Prisons",
+   "Description": "FDC HONOLULU SOLID WASTE PICK-UP-FY26 PER OF PERFORMANCE: OCTOBER 1, 2025 - SEPTEMBER 30, 2026 OPTION YEAR 1 INITIATED",
+   "Place of Performance State Code": "HI",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_15BH0N26F00000026_1540_15BFA023D00000042_1540",
+   "awarding_agency_id": 252,
+   "agency_slug": "department-of-justice"
+  },
+  {
+   "internal_id": 363015951,
+   "Award ID": "140PS126P0049",
+   "Recipient Name": "WATERFLEET, LLC",
+   "Recipient UEI": "NFJEHGLCMJW4",
+   "Award Amount": 8000000,
+   "Base Obligation Date": "2026-09-28",
+   "Start Date": "2026-09-28",
+   "Awarding Agency": "Department of the Interior",
+   "Awarding Sub Agency": "National Park Service",
+   "Description": "GRCA SOUTH RIM EMRGENCY WATER HAULING",
+   "Place of Performance State Code": "AZ",
+   "NAICS": {
+    "code": "561990",
+    "description": "ALL OTHER SUPPORT SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_140PS126P0049_1443_-NONE-_-NONE-",
+   "awarding_agency_id": 209,
+   "agency_slug": "department-of-the-interior"
+  },
+  {
+   "internal_id": 352935512,
+   "Award ID": "140PS126P0002",
+   "Recipient Name": "L & E MANAGEMENT SERVICES, LLC",
+   "Recipient UEI": "DGUDK15874K4",
+   "Award Amount": 183500,
+   "Base Obligation Date": "2025-11-24",
+   "Start Date": "2025-11-24",
+   "Awarding Agency": "Department of the Interior",
+   "Awarding Sub Agency": "National Park Service",
+   "Description": "CARL- HELENE DEBRIS REMOVAL",
+   "Place of Performance State Code": "NC",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_140PS126P0002_1443_-NONE-_-NONE-",
+   "awarding_agency_id": 209,
+   "agency_slug": "department-of-the-interior"
+  },
+  {
+   "internal_id": 359959624,
+   "Award ID": "140P8626P0014",
+   "Recipient Name": "RECOLOGY SONOMA MARIN",
+   "Recipient UEI": "N2F1X8WQWR51",
+   "Award Amount": 158801.97,
+   "Base Obligation Date": "2026-07-02",
+   "Start Date": "2026-07-02",
+   "Awarding Agency": "Department of the Interior",
+   "Awarding Sub Agency": "National Park Service",
+   "Description": "PROVIDE REFUSE COLLECTION IN MARIN COUNTY, GOLDEN GATE NATIONAL RECREATION AREA",
+   "Place of Performance State Code": "CA",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_140P8626P0014_1443_-NONE-_-NONE-",
+   "awarding_agency_id": 209,
+   "agency_slug": "department-of-the-interior"
+  },
+  {
+   "internal_id": 362650009,
+   "Award ID": "140P8426P0075",
+   "Recipient Name": "ECOLOGY MIR GROUP LLC",
+   "Recipient UEI": "KH5HQMQVN6A5",
+   "Award Amount": 40000,
+   "Base Obligation Date": "2026-09-23",
+   "Start Date": "2026-09-23",
+   "Awarding Agency": "Department of the Interior",
+   "Awarding Sub Agency": "Departmental Offices",
+   "Description": "15 ROLL-OFF DUMPSTER AND DEBRIS REMOVAL, POINT REYES NATIONAL SEASHORE, MARIN COUNTY, CALIFORNIA",
+   "Place of Performance State Code": "CA",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_140P8426P0075_1443_-NONE-_-NONE-",
+   "awarding_agency_id": 209,
+   "agency_slug": "department-of-the-interior"
+  },
+  {
+   "internal_id": 359121387,
+   "Award ID": "140P8426P0039",
+   "Recipient Name": "SOUTHERN OREGON SANITATION LLC",
+   "Recipient UEI": "HEJMH1M3MHY3",
+   "Award Amount": 56197,
+   "Base Obligation Date": "2026-06-10",
+   "Start Date": "2026-06-10",
+   "Awarding Agency": "Department of the Interior",
+   "Awarding Sub Agency": "National Park Service",
+   "Description": "SOLID WASTE HAULING & DISPOSAL, CRATER LAKE NATIONAL PARK, KLAMATH COUNTY, OREGON.",
+   "Place of Performance State Code": "OR",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_140P8426P0039_1443_-NONE-_-NONE-",
+   "awarding_agency_id": 209,
+   "agency_slug": "department-of-the-interior"
+  },
+  {
+   "internal_id": 354181819,
+   "Award ID": "140P5326C0002",
+   "Recipient Name": "STREET LEGAL INDUSTRIES LLC",
+   "Recipient UEI": "MFUMMJLS2DX1",
+   "Award Amount": 568609.2,
+   "Base Obligation Date": "2026-01-06",
+   "Start Date": "2026-01-06",
+   "Awarding Agency": "Department of the Interior",
+   "Awarding Sub Agency": "National Park Service",
+   "Description": "GRSM REFUSE COLLECTION",
+   "Place of Performance State Code": "TN",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_140P5326C0002_1443_-NONE-_-NONE-",
+   "awarding_agency_id": 209,
+   "agency_slug": "department-of-the-interior"
+  },
+  {
+   "internal_id": 362253647,
+   "Award ID": "140P4226P0027",
+   "Recipient Name": "ECOLOGY MIR GROUP LLC",
+   "Recipient UEI": "KH5HQMQVN6A5",
+   "Award Amount": 25000,
+   "Base Obligation Date": "2026-09-15",
+   "Start Date": "2026-09-30",
+   "Awarding Agency": "Department of the Interior",
+   "Awarding Sub Agency": "National Park Service",
+   "Description": "E.O. 14398 BIOSOLIDS HAULING AND DISPOSAL AT SHENANDOAH NATIONAL PARK",
+   "Place of Performance State Code": "VA",
+   "NAICS": {
+    "code": "562219",
+    "description": "OTHER NONHAZARDOUS WASTE TREATMENT AND DISPOSAL"
+   },
+   "generated_internal_id": "CONT_AWD_140P4226P0027_1443_-NONE-_-NONE-",
+   "awarding_agency_id": 209,
+   "agency_slug": "department-of-the-interior"
+  },
+  {
+   "internal_id": 359095418,
+   "Award ID": "140L3626P0018",
+   "Recipient Name": "HATT & SON LOGGING INC",
+   "Recipient UEI": "KJJTT39UNLR4",
+   "Award Amount": 182950,
+   "Base Obligation Date": "2026-06-09",
+   "Start Date": "2026-06-09",
+   "Awarding Agency": "Department of the Interior",
+   "Awarding Sub Agency": "Bureau of Land Management",
+   "Description": "MISSOULA BLM ROADS FALLEN TREE AND DEBRIS REMOVAL",
+   "Place of Performance State Code": "MT",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_140L3626P0018_1422_-NONE-_-NONE-",
+   "awarding_agency_id": 209,
+   "agency_slug": "department-of-the-interior"
+  },
+  {
+   "internal_id": 356590998,
+   "Award ID": "140A1126P0031",
+   "Recipient Name": "A & K EARTH MOVERS INC",
+   "Recipient UEI": "DN1LSNWJSNV1",
+   "Award Amount": 28500,
+   "Base Obligation Date": "2026-03-25",
+   "Start Date": "2026-03-24",
+   "Awarding Agency": "Department of the Interior",
+   "Awarding Sub Agency": "Bureau of Indian Affairs and Bureau of Indian Education",
+   "Description": "DEBRIS REMOVAL FOR WESTERN NEVADA AGENCY",
+   "Place of Performance State Code": "NV",
+   "NAICS": {
+    "code": "238910",
+    "description": "SITE PREPARATION CONTRACTORS"
+   },
+   "generated_internal_id": "CONT_AWD_140A1126P0031_1450_-NONE-_-NONE-",
+   "awarding_agency_id": 209,
+   "agency_slug": "department-of-the-interior"
+  },
+  {
+   "internal_id": 353322394,
+   "Award ID": "1305M226F0008",
+   "Recipient Name": "RESEARCH PLANNING, INC.",
+   "Recipient UEI": "CKFZMK7X16M1",
+   "Award Amount": 380103.6,
+   "Base Obligation Date": "2025-12-05",
+   "Start Date": "2025-12-08",
+   "Awarding Agency": "Department of Commerce",
+   "Awarding Sub Agency": "National Oceanic and Atmospheric Administration",
+   "Description": "MARINE DEBRIS REMOVAL ENVIRONMENTAL COMPLIANCE - CALL ORDER 9 OF 1305M223ANCNR0007",
+   "Place of Performance State Code": "MD",
+   "NAICS": {
+    "code": "541620",
+    "description": "ENVIRONMENTAL CONSULTING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_1305M226F0008_1330_1305M223ANCNR0007_1330",
+   "awarding_agency_id": 183,
+   "agency_slug": "department-of-commerce"
+  },
+  {
+   "internal_id": 363326487,
+   "Award ID": "129J6126M7450",
+   "Recipient Name": "FISHER B HAULING LLC",
+   "Recipient UEI": "E7A9Y3NAVP44",
+   "Award Amount": 109200,
+   "Base Obligation Date": "2026-09-21",
+   "Start Date": "2026-09-21",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "FISHER B HAULING LLC CALPF002271 E536",
+   "Place of Performance State Code": "CA",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_129J6126M7450_12C2_129J6126T7544_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 357402815,
+   "Award ID": "1282A726F0062",
+   "Recipient Name": "SURE DRAIN, LLC",
+   "Recipient UEI": "L1SRFRCFNYH6",
+   "Award Amount": 86220,
+   "Base Obligation Date": "2026-04-23",
+   "Start Date": "2024-12-20",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "JACOBS CREEK WWTP HAULING TASK ORDER 2",
+   "Place of Performance State Code": "VA",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_1282A726F0062_12C2_1282A725D0001_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 360446205,
+   "Award ID": "12569R26M0178",
+   "Recipient Name": "TABLE ROCK EQUIPMENT & HAULING LLC",
+   "Recipient UEI": "KS2USZ1E9PS6",
+   "Award Amount": 69900,
+   "Base Obligation Date": "2026-06-22",
+   "Start Date": "2026-06-22",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "TABLE ROCK EQUIPMENT & HAULING LLC ORRSF000013 E31",
+   "Place of Performance State Code": "OR",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_12569R26M0178_12C2_12569R25T7200_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 358534509,
+   "Award ID": "12569R26M0109",
+   "Recipient Name": "SCOTTS EXCAVATING & HAULING LLC",
+   "Recipient UEI": "HRMQTLHCMYF3",
+   "Award Amount": 35908.09,
+   "Base Obligation Date": "2026-05-07",
+   "Start Date": "2026-05-07",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "SCOTTS EXCAVATING & HAULING LLC WAOWF000795 E425",
+   "Place of Performance State Code": "WA",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_12569R26M0109_12C2_12569R23T7873_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 357837373,
+   "Award ID": "12445526F0054",
+   "Recipient Name": "D.J. GROUP INC",
+   "Recipient UEI": "GP6GLEH5PR71",
+   "Award Amount": 94218.89,
+   "Base Obligation Date": "2026-05-12",
+   "Start Date": "2026-05-12",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "ROUTINE MAINTENANCE AT LAKE VESUVIUS REVEALED DEBRIS LODGED IN THE CAST IRON SLIDE GATE, PREVENTING FULL CLOSURE AND REQUIRING THE LAKE TO BE DRAWN DOWN. AFTER DEBRIS REMOVAL, THE GATE CONTINUED LEAKING DUE TO MISALIGNED WEDGES. ADDITIONAL ISSUES WER",
+   "Place of Performance State Code": "OH",
+   "NAICS": {
+    "code": "236220",
+    "description": "COMMERCIAL AND INSTITUTIONAL BUILDING CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_12445526F0054_12C2_12445522A0009_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 359121104,
+   "Award ID": "12445226F0016",
+   "Recipient Name": "WILLIAMS CONSTRUCTION & CABINETRY, INC.",
+   "Recipient UEI": "G8N5FNKPPMY5",
+   "Award Amount": 3624816.4,
+   "Base Obligation Date": "2026-06-10",
+   "Start Date": "2026-06-10",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "REPAIR THE HAUL ROADS FOR THIS EFFORT IN PREPARATION FOR HAULING THE TIMBER OUT OF DAMAGED AREAS.",
+   "Place of Performance State Code": "NC",
+   "NAICS": {
+    "code": "237310",
+    "description": "HIGHWAY, STREET, AND BRIDGE CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_12445226F0016_12C2_12445224D0042_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 354913743,
+   "Award ID": "12444526F0010",
+   "Recipient Name": "GOLD WAVE INC",
+   "Recipient UEI": "GCM2KJKZGZK3",
+   "Award Amount": 118735,
+   "Base Obligation Date": "2026-02-03",
+   "Start Date": "2026-02-02",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "PRAIRIE CREEK ACCUMULATED DEBRIS REMOVAL PROJECT",
+   "Place of Performance State Code": "IL",
+   "NAICS": {
+    "code": "562910",
+    "description": "REMEDIATION SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_12444526F0010_12C2_47QRAA23D003C_4732",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 362041517,
+   "Award ID": "12444126F0061",
+   "Recipient Name": "F D RILEY & SONS INC",
+   "Recipient UEI": "CB2CKKJC6BT6",
+   "Award Amount": 265112.45,
+   "Base Obligation Date": "2026-09-04",
+   "Start Date": "2026-09-04",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "PROPOSED PROJECT INCLUDES ROAD REPAIR AND MAINTENANCE TO FURTHER RECOVER FROM IMPACTS FROM HURRICANE HELENE. THE PROPOSED WORK INCLUDES VEGETATION MANAGEMENT, DEBRIS REMOVAL, ROAD RECONSTRUCTION, ROAD GRADING, DRAINAGE REPAIR, CULVERT REPLACEMENT, AN",
+   "Place of Performance State Code": "SC",
+   "NAICS": {
+    "code": "237310",
+    "description": "HIGHWAY, STREET, AND BRIDGE CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_12444126F0061_12C2_12445224D0024_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 357935930,
+   "Award ID": "1240LP26F0017",
+   "Recipient Name": "TK3, LLC",
+   "Recipient UEI": "PBZQR7SWKLH2",
+   "Award Amount": 93261,
+   "Base Obligation Date": "2026-05-04",
+   "Start Date": "2026-05-12",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "TASK ORDER- WORK TO INCLUDE HAULING, PLACING, GRADING, AND COMPACTING ROAD BASE ON VARIOUS NFS ROADS ON THE WIND RIVER RANGER DISTRICT OF THE SHOSHONE NATIONAL FOREST. WORK ALSO INCLUDES MOTOR GRADING, DITCH CLEANING.",
+   "Place of Performance State Code": "WY",
+   "NAICS": {
+    "code": "237310",
+    "description": "HIGHWAY, STREET, AND BRIDGE CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_1240LP26F0017_12C2_1240LQ25D0019_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 360076714,
+   "Award ID": "1240BJ26F0016",
+   "Recipient Name": "BRUCH & BRUCH CONSTRUCTION, INC",
+   "Recipient UEI": "E6SDFSH9YLK9",
+   "Award Amount": 498435,
+   "Base Obligation Date": "2026-07-06",
+   "Start Date": "2026-07-07",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "PLACEMENT OF AGGREGATE SURFACING WHICH INCLUDES PREPARING ROADWAY SURFACE, HAULING, PLACING COMPACTING AND FINISHING CRUSHED AGGREGATE SURFACING",
+   "Place of Performance State Code": "WA",
+   "NAICS": {
+    "code": "237310",
+    "description": "HIGHWAY, STREET, AND BRIDGE CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_1240BJ26F0016_12C2_1240BH23D0035_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 363065896,
+   "Award ID": "1240BH26F0071",
+   "Recipient Name": "J & S TRUCKING I, INC",
+   "Recipient UEI": "YTX8NB9U1GA6",
+   "Award Amount": 73621,
+   "Base Obligation Date": "2026-09-29",
+   "Start Date": "2027-05-17",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "ROAD RECONSTRUCTION FOR TIMBER HAUL PREPARATIONS AND RECREATION ACCESS IN THE UPPER BEAR LAKE PROJECT AREA.",
+   "Place of Performance State Code": "OR",
+   "NAICS": {
+    "code": "237310",
+    "description": "HIGHWAY, STREET, AND BRIDGE CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_1240BH26F0071_12C2_1240BH23D0011_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 361858078,
+   "Award ID": "12363N26F4187",
+   "Recipient Name": "CONLEY, INC",
+   "Recipient UEI": "G3SCPKFAPJ58",
+   "Award Amount": 4045805.95,
+   "Base Obligation Date": "2026-08-28",
+   "Start Date": "2026-08-26",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "ANGOSTURA AND LUNA HAULING CONTRACT NEW OUT RPT # FY26-005521 WPAP#",
+   "Place of Performance State Code": "NM",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_12363N26F4187_12C2_12363N26A4247_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 355883779,
+   "Award ID": "12363N26F4048",
+   "Recipient Name": "BRYANT'S LAND AND DEVELOPMENT INDUSTRIES, INC.",
+   "Recipient UEI": "Y4ZPM3CNMSQ6",
+   "Award Amount": 2821081.8,
+   "Base Obligation Date": "2026-03-09",
+   "Start Date": "2026-03-10",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "THE PROPOSED WORK INCLUDES EMERGENCY HAZARDOUS DEBRIS REMOVAL ON FEDERAL LANDS TO MANAGE IMMEDIATE THREATS TO PUBLIC HEALTH AND SAFETY, PROTECT THE LOCAL ECONOMY, AND MINIMIZE THE INTRODUCTION OF CONTAMINANTS INTO THE NEARBY WATERWAY. INCLUDES APPROP",
+   "Place of Performance State Code": "NC",
+   "NAICS": {
+    "code": "237310",
+    "description": "HIGHWAY, STREET, AND BRIDGE CONSTRUCTION"
+   },
+   "generated_internal_id": "CONT_AWD_12363N26F4048_12C2_12445224D0032_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 357787923,
+   "Award ID": "1232SA26P0223",
+   "Recipient Name": "YOUR NEEDS LLC",
+   "Recipient UEI": "NEZWUGA4JRL3",
+   "Award Amount": 46206.96,
+   "Base Obligation Date": "2026-05-11",
+   "Start Date": "2026-05-12",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Agricultural Research Service",
+   "Description": "LAWN CARE AND GROUNDS MAINTENANCE SERVICES TO INCLUDE MOWING, EDGING, TRIMMING, DEBRIS REMOVAL, AND SEASONAL UPKEEP OF LANDSCAPED AREAS.",
+   "Place of Performance State Code": "SC",
+   "NAICS": {
+    "code": "561730",
+    "description": "LANDSCAPING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_1232SA26P0223_12H2_-NONE-_-NONE-",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 360927619,
+   "Award ID": "1232SA26F0405",
+   "Recipient Name": "2A LLC",
+   "Recipient UEI": "GZ67CL86SJR6",
+   "Award Amount": 901309,
+   "Base Obligation Date": "2026-07-29",
+   "Start Date": "2026-08-01",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Agricultural Research Service",
+   "Description": "NBAF - BIOWASTE DRAIN PIPE DEBRIS REMOVAL AND REPAIRS",
+   "Place of Performance State Code": "KS",
+   "NAICS": {
+    "code": "238220",
+    "description": "PLUMBING, HEATING, AND AIR-CONDITIONING CONTRACTORS"
+   },
+   "generated_internal_id": "CONT_AWD_1232SA26F0405_12H2_12805B24D0004_12H2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 362404440,
+   "Award ID": "1204H126M8864",
+   "Recipient Name": "DOUBLE D HAULING LLC",
+   "Recipient UEI": "G27HNJJZFT51",
+   "Award Amount": 28600,
+   "Base Obligation Date": "2026-08-13",
+   "Start Date": "2026-08-13",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "DOUBLE D HAULING LLC ORMHF000688 E548",
+   "Place of Performance State Code": "OR",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_1204H126M8864_12C2_1204H125T7009_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 362228581,
+   "Award ID": "1204H126M8602",
+   "Recipient Name": "SCOTTS EXCAVATING & HAULING LLC",
+   "Recipient UEI": "HRMQTLHCMYF3",
+   "Award Amount": 129350,
+   "Base Obligation Date": "2026-07-22",
+   "Start Date": "2026-07-22",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "SCOTTS EXCAVATING & HAULING LLC WAOWF260406 E3",
+   "Place of Performance State Code": "WA",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_1204H126M8602_12C2_1204H124T7281_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 361161545,
+   "Award ID": "1204H126M7529",
+   "Recipient Name": "SCOTTS EXCAVATING & HAULING LLC",
+   "Recipient UEI": "HRMQTLHCMYF3",
+   "Award Amount": 213514,
+   "Base Obligation Date": "2026-07-22",
+   "Start Date": "2026-07-22",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "SCOTTS EXCAVATING & HAULING LLC ORUMF000302 E140",
+   "Place of Performance State Code": "OR",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_1204H126M7529_12C2_1204H124T7281_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 360446155,
+   "Award ID": "1204H126M7229",
+   "Recipient Name": "SCOTTS EXCAVATING & HAULING LLC",
+   "Recipient UEI": "HRMQTLHCMYF3",
+   "Award Amount": 79818.24,
+   "Base Obligation Date": "2026-06-02",
+   "Start Date": "2026-06-02",
+   "Awarding Agency": "Department of Agriculture",
+   "Awarding Sub Agency": "Forest Service",
+   "Description": "SCOTTS EXCAVATING & HAULING LLC WAOWF000795 E431",
+   "Place of Performance State Code": "WA",
+   "NAICS": {
+    "code": "115310",
+    "description": "SUPPORT ACTIVITIES FOR FORESTRY"
+   },
+   "generated_internal_id": "CONT_AWD_1204H126M7229_12C2_1204H124T7281_12C2",
+   "awarding_agency_id": 95,
+   "agency_slug": "department-of-agriculture"
+  },
+  {
+   "internal_id": 354656190,
+   "Award ID": "W91QVP26PA013",
+   "Recipient Name": "BRIGGS ENTERPRISE GROUP LLC",
+   "Recipient UEI": "N6X1HAZFMXB3",
+   "Award Amount": 0,
+   "Base Obligation Date": "2025-10-27",
+   "Start Date": "2025-10-15",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "JPMRC 26-01 PTA REEFERS",
+   "Place of Performance State Code": "HI",
+   "NAICS": {
+    "code": "484220",
+    "description": "SPECIALIZED FREIGHT (EXCEPT USED GOODS) TRUCKING, LOCAL"
+   },
+   "generated_internal_id": "CONT_AWD_W91QVP26PA013_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 363091399,
+   "Award ID": "W91QVN26FC209",
+   "Recipient Name": "HANJIN LOGISTICS CORPORATION",
+   "Recipient UEI": "FJ59PKGQRRG5",
+   "Award Amount": 2195.08,
+   "Base Obligation Date": "2026-07-01",
+   "Start Date": "2026-07-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "GENERAL CARGO BPA",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "484110",
+    "description": "GENERAL FREIGHT TRUCKING, LOCAL"
+   },
+   "generated_internal_id": "CONT_AWD_W91QVN26FC209_9700_W91QVN24A0012_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361895159,
+   "Award ID": "W91QVN26FC188",
+   "Recipient Name": "HANJIN LOGISTICS CORPORATION",
+   "Recipient UEI": "FJ59PKGQRRG5",
+   "Award Amount": 15667.69,
+   "Base Obligation Date": "2026-06-01",
+   "Start Date": "2026-06-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "GENERAL CARGO BPA",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "484110",
+    "description": "GENERAL FREIGHT TRUCKING, LOCAL"
+   },
+   "generated_internal_id": "CONT_AWD_W91QVN26FC188_9700_W91QVN24A0012_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 350536434,
+   "Award ID": "W91YTZ22P0027",
+   "Recipient Name": "PATTERSON STORAGE WAREHOUSE COMPANY, INC.",
+   "Recipient UEI": "T9U6D25LM414",
+   "Award Amount": 165039.58,
+   "Base Obligation Date": "2022-03-18",
+   "Start Date": "2022-04-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "PATTERSON RECORD STORAGE",
+   "Place of Performance State Code": "NC",
+   "NAICS": {
+    "code": "484110",
+    "description": "GENERAL FREIGHT TRUCKING, LOCAL"
+   },
+   "generated_internal_id": "CONT_AWD_W91YTZ22P0027_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 350451730,
+   "Award ID": "W91QV125CA011",
+   "Recipient Name": "WB WASTE SOLUTIONS, LLC",
+   "Recipient UEI": "S552MPUJ2147",
+   "Award Amount": 847830,
+   "Base Obligation Date": "2025-05-29",
+   "Start Date": "2025-06-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "THIS CONTRACT IS FOR SOLID WASTE AND REFUSE COLLECTION AND DISPOSAL POST WIDE SERVICES FOR FORT BELVOIR, VA.",
+   "Place of Performance State Code": "VA",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W91QV125CA011_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 350449817,
+   "Award ID": "W91QV122C0041",
+   "Recipient Name": "JEROME L TAYLOR TRUCKING INC.",
+   "Recipient UEI": "PZPQFMUXL6K1",
+   "Award Amount": 3622841.36,
+   "Base Obligation Date": "2022-07-29",
+   "Start Date": "2022-07-26",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "BASE YEAR JBMHH REFUSE & SOLID WASTE",
+   "Place of Performance State Code": "VA",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W91QV122C0041_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 356731725,
+   "Award ID": "W91QVN26FA178",
+   "Recipient Name": "KOREA CONTAINER POOL CO.,LTD",
+   "Recipient UEI": "ZMJUSTAC4NC6",
+   "Award Amount": 971361,
+   "Base Obligation Date": "2025-12-30",
+   "Start Date": "2026-01-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "VAN TRUCKING SERVICES FOR DECA AND 35TH ADA - 1ST OPTION EXTEND",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "484110",
+    "description": "GENERAL FREIGHT TRUCKING, LOCAL"
+   },
+   "generated_internal_id": "CONT_AWD_W91QVN26FA178_9700_W91QVN25D0003_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359169051,
+   "Award ID": "W912QM26PA005",
+   "Recipient Name": "SUMINISTRADORA DE SERVICIOS Y MATERIALES HERNANDEZ S. DE R.L. DE CV",
+   "Recipient UEI": "R3J8NZMKMJY5",
+   "Award Amount": 97921.63,
+   "Base Obligation Date": "2026-03-13",
+   "Start Date": "2026-04-07",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "THE CONTRACTOR SHALL PROVIDE LINE HAUL SERVICES AND CUSTOMS BROKERAGE WITH DRIVERS TO TRANSPORT SUPPLIES, MATERIALS, EQUIPMENT, AND CONTAINERS SAFELY AND EXPEDITIOUSLY TO/FROM SOTO CANO AB, HND TO VARIOUS LOCATIONS, EL SALVADOR.",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "484121",
+    "description": "GENERAL FREIGHT TRUCKING, LONG-DISTANCE, TRUCKLOAD"
+   },
+   "generated_internal_id": "CONT_AWD_W912QM26PA005_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361866997,
+   "Award ID": "W912D126PA004",
+   "Recipient Name": "WALEED MOHAMMED DHAIF ALLAH ALSUWAT ESTABLISHMENT FOR TRANSPORTATION",
+   "Recipient UEI": "V916EGX83EK1",
+   "Award Amount": 101500,
+   "Base Obligation Date": "2026-05-30",
+   "Start Date": "2026-06-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "595TB REQUIRES SERVICE TO DELIVER 82ND COMBAT AVIATION BRIGADE (CAB) EQUIPMENT AND OTHER HIGH PRIORITY CARGO FROM LOGISTICS SUPPORT AREA (LSA) JENKINS TO MINHAD AIR BASE (AB) AND SWEIHAN, UNITED ARAB EMIRATES (UAE)",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "484121",
+    "description": "GENERAL FREIGHT TRUCKING, LONG-DISTANCE, TRUCKLOAD"
+   },
+   "generated_internal_id": "CONT_AWD_W912D126PA004_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 354619728,
+   "Award ID": "W90VN926FA007",
+   "Recipient Name": "HANJIN LOGISTICS CORPORATION",
+   "Recipient UEI": "FJ59PKGQRRG5",
+   "Award Amount": 875363.12,
+   "Base Obligation Date": "2025-10-23",
+   "Start Date": "2025-11-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "TANK TRUCK OPERATION COSTS ASSOCIATED WITH THE TRANSPORTATION OF DLA ENERGY PRODUCT WITHIN THE DLA ENERGY INDO-PACIFIC KOREA REGION, DURING THE PERIOD OF 1 NOVEMBER 2025 THROUGH 31 OCTOBER 2026",
+   "Place of Performance State Code": null,
+   "NAICS": {
+    "code": "484230",
+    "description": "SPECIALIZED FREIGHT (EXCEPT USED GOODS) TRUCKING, LONG-DISTANCE"
+   },
+   "generated_internal_id": "CONT_AWD_W90VN926FA007_9700_W90VN923D0012_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361277923,
+   "Award ID": "W912EE26FA060",
+   "Recipient Name": "BIG RIVER SALVAGE AND CONSTRUCTION, INC",
+   "Recipient UEI": "P3L7BYVMZN91",
+   "Award Amount": 151402,
+   "Base Obligation Date": "2026-05-13",
+   "Start Date": "2026-05-15",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "THE OPERATIONS DIVISION REQUIRES THE REBUILD TO RESTORE HAULING THE WINCHES TON SAFE, RELIABLE OPERATING CONDITIONS AND STRINGOUT BARGES UN VARIABLE RIVER STAGES AND ENVIRONMENTAL CONDITIONS AND FABRICATE, ASSEMBLE, AND DELIVER TWO (2) NEW SPUDS.",
+   "Place of Performance State Code": "MS",
+   "NAICS": {
+    "code": "336611",
+    "description": "SHIP BUILDING AND REPAIRING"
+   },
+   "generated_internal_id": "CONT_AWD_W912EE26FA060_9700_W912EE26AA011_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 358614362,
+   "Award ID": "W912EE26FA035",
+   "Recipient Name": "NEXT GENERATION LOGISTICS, LLC",
+   "Recipient UEI": "ESTXCGSHP8W5",
+   "Award Amount": 41700,
+   "Base Obligation Date": "2026-02-20",
+   "Start Date": "2026-02-20",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "THE USACE VICKSBURG DISTRICT REQUIRES THE SUPPLY AND DELIVERY OF APPROXIMATELY 250 TONS OF 610 CRUSHED AND 80 TRUCKLOADS FILL MATERIAL (DIRT) TO A POINT ON THE SOUTH BANK ARKANSAS RIVER LEVEE.",
+   "Place of Performance State Code": "AR",
+   "NAICS": {
+    "code": "212312",
+    "description": "CRUSHED AND BROKEN LIMESTONE MINING AND QUARRYING"
+   },
+   "generated_internal_id": "CONT_AWD_W912EE26FA035_9700_W912EE25A0003_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 357488400,
+   "Award ID": "W912DW26PA007",
+   "Recipient Name": "IRON MOUNTAIN QUARRY LLC",
+   "Recipient UEI": "ZCWNL3B8E3S6",
+   "Award Amount": 178958.5,
+   "Base Obligation Date": "2026-01-27",
+   "Start Date": "2026-01-28",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "PROVIDE ALL LABOR, MATERIALS, AND EQUIPMENT NECESSARY TO DELIVERY MATERIALS VIA SOLO DUMP TRUCK IN SUPPORT OF DECEMBER 2025 WESTERN WASHINGTON EMERGENCY FLOOD EVENT.",
+   "Place of Performance State Code": "WA",
+   "NAICS": {
+    "code": "212319",
+    "description": "OTHER CRUSHED AND BROKEN STONE MINING AND QUARRYING"
+   },
+   "generated_internal_id": "CONT_AWD_W912DW26PA007_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359700486,
+   "Award ID": "W912BV26FA041",
+   "Recipient Name": "FEDERAL CONTRACTS LLC",
+   "Recipient UEI": "TK67EL9NPMD9",
+   "Award Amount": 26505,
+   "Base Obligation Date": "2026-03-26",
+   "Start Date": "2026-03-29",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "3-MONTH RENTAL OF AN OVER THE ROAD DUMP TRUCK IN SUPPORT OF PUBLIC USE AREAS AT KAW LAKE, PONCA CITY, OKLAHOMA",
+   "Place of Performance State Code": "OK",
+   "NAICS": {
+    "code": "336112",
+    "description": "LIGHT TRUCK AND UTILITY VEHICLE MANUFACTURING"
+   },
+   "generated_internal_id": "CONT_AWD_W912BV26FA041_9700_W912BV23A0002_9700",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 357862711,
+   "Award ID": "W912QR26PA009",
+   "Recipient Name": "HOOSIER BRUSH AND DEBRIS REMOVAL LLC",
+   "Recipient UEI": "DM31WFSLR5D7",
+   "Award Amount": 28975,
+   "Base Obligation Date": "2026-02-12",
+   "Start Date": "2026-02-12",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "MONROE LAKE MOWING AND MAINTENANCE SERVICES",
+   "Place of Performance State Code": "IN",
+   "NAICS": {
+    "code": "561730",
+    "description": "LANDSCAPING SERVICES"
+   },
+   "generated_internal_id": "CONT_AWD_W912QR26PA009_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 358988888,
+   "Award ID": "W912DW26PA012",
+   "Recipient Name": "WOOD'S CRUSHING AND HAULING, INC.",
+   "Recipient UEI": "D1LNSG8VD3J3",
+   "Award Amount": 45420,
+   "Base Obligation Date": "2026-03-05",
+   "Start Date": "2026-03-02",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "THE PURPOSE OF THIS REQUIREMENT IS TO PROVIDE THE APPROPRIATE ASSISTANCE FOR REQUIRED EMERGENCY MEASURES TO SAVE LIVES AND TO PROTECT PROPERTY AND PUBLIC HEALTH AND SAFETY, OR TO LESSEN OR AVERT THE THREAT OF A CATASTROPHE IN THE DESIGNATED AREAS.",
+   "Place of Performance State Code": "WA",
+   "NAICS": {
+    "code": "238910",
+    "description": "SITE PREPARATION CONTRACTORS"
+   },
+   "generated_internal_id": "CONT_AWD_W912DW26PA012_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 358811831,
+   "Award ID": "N6279326PA010",
+   "Recipient Name": "OUT THE MUD HAULING LLC",
+   "Recipient UEI": "TBYXVJY49KV7",
+   "Award Amount": 27309.9,
+   "Base Obligation Date": "2026-02-27",
+   "Start Date": "2026-03-02",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Navy",
+   "Description": "30 YARD DUMPSTER RENTAL AND WASTE DISPOSAL PER TON",
+   "Place of Performance State Code": "VA",
+   "NAICS": {
+    "code": "562119",
+    "description": "OTHER WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_N6279326PA010_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359674235,
+   "Award ID": "W912DQ26PA046",
+   "Recipient Name": "OZARK DISPOSAL COMPANY",
+   "Recipient UEI": "MHW4N2YG5Z56",
+   "Award Amount": 77304,
+   "Base Obligation Date": "2026-03-25",
+   "Start Date": "2026-04-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "ODF-T HARRY S. TRUMAN LAKE PROJECT REFUSE COLLECTION AND DISPOSAL",
+   "Place of Performance State Code": "MO",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912DQ26PA046_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 359269017,
+   "Award ID": "W912DQ26CA019",
+   "Recipient Name": "HONEY CREEK DISPOSAL SERVICE, LLC",
+   "Recipient UEI": "DNQRVMM5NM17",
+   "Award Amount": 61298.45,
+   "Base Obligation Date": "2026-03-18",
+   "Start Date": "2026-04-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "THE U.S. ARMY CORPS OF ENGINEERS KANSAS CITY DISTRICT HAS A NEED FOR REFUSE COLLECTION AND DISPOSAL AT CLINTON LAKE, KANSAS.",
+   "Place of Performance State Code": "KS",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W912DQ26CA019_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  },
+  {
+   "internal_id": 361894983,
+   "Award ID": "W9128F26PA061",
+   "Recipient Name": "WASTE MANAGEMENT OF NORTH DAKOTA, INC.",
+   "Recipient UEI": "NGB6G87MY7C7",
+   "Award Amount": 37111.9,
+   "Base Obligation Date": "2026-06-01",
+   "Start Date": "2026-06-01",
+   "Awarding Agency": "Department of Defense",
+   "Awarding Sub Agency": "Department of the Army",
+   "Description": "THIS IS A NON-PERSONAL SERVICES CONTRACT TO PROVIDE REFUSE COLLECTION AND DISPOSAL SERVICES AT U.S. ARMY CORPS OF ENGINEERS, GARRISON PROJECT/LAKE SAKAKAWEA.",
+   "Place of Performance State Code": "ND",
+   "NAICS": {
+    "code": "562111",
+    "description": "SOLID WASTE COLLECTION"
+   },
+   "generated_internal_id": "CONT_AWD_W9128F26PA061_9700_-NONE-_-NONE-",
+   "awarding_agency_id": 1173,
+   "agency_slug": "department-of-defense"
+  }
+ ]
+}

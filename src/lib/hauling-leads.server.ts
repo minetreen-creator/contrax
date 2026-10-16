@@ -14,6 +14,7 @@ import {
   HAULING_LEAD_MIN_AMOUNT,
   HAULING_LEAD_WINDOW_DAYS,
   buildHaulingSearchBody,
+  isStorableHaulingLead,
   toHaulingLead,
   windowStartFor,
   type HaulingLead,
@@ -49,6 +50,10 @@ export async function ensureHaulingLeadsTable(): Promise<void> {
 export async function insertHaulingLeads(rows: readonly HaulingLead[]): Promise<number> {
   let inserted = 0;
   for (const r of rows) {
+    // Defence in depth: the sync already withholds placeholder-named rows before it
+    // calls this, but the store boundary refuses one too, so no future call site can
+    // put a non-approachable recipient name in front of a customer.
+    if (!isStorableHaulingLead(r)) continue;
     const res = (await sql()`
       INSERT INTO hauling_leads (award_key, award_id, award_date, pop_state, pop_city, prime_name, prime_uei, amount,
                                  naics_code, naics_description, agency, usa_spending_url, description_snippet,
@@ -144,9 +149,12 @@ export interface HaulingSyncResult {
   windowEnd: string;
   pages: number;
   seen: number;
+  /** Rows the ladder kept (definition R — the measured set, placeholders included). */
   kept: number;
+  /** R-kept rows the sync withheld because the recipient name is a placeholder. */
+  placeholderSkipped: number;
   inserted: number;
-  /** The leads themselves (dry runs report them without writing). */
+  /** The leads this run stores and reports: definition R minus placeholder-named rows. */
   leads: HaulingLead[];
   /** Per-run scope breakdown, so a run's mix is visible in the log. */
   byScopeKind: Record<string, number>;
@@ -157,6 +165,14 @@ export interface HaulingSyncResult {
  * Pull the 30-day rolling window of newly made contract awards from USAspending and
  * keep the ones that pass definition R. Idempotent: an award already stored is not
  * rewritten (ON CONFLICT (award_key) DO NOTHING).
+ *
+ * DEFINITION R IS NOT CHANGED HERE. The ladder's own output is reported as `kept`; the
+ * rows it produces whose recipient name is a USAspending PLACEHOLDER (see
+ * HAULING_PLACEHOLDER_RECIPIENT_NAMES — "MISCELLANEOUS FOREIGN AWARDEES" & co, whose
+ * row QA found rendered as a prime contractor) are counted as `placeholderSkipped` and
+ * never stored or shown. That is an approachability guard on the WRITE path only, so the
+ * census reference number (99 awards/yr) is unaffected — see the note in the list's
+ * comment before "re-reconciling" anything against the stored row count.
  */
 export async function syncHaulingLeads(
   opts: {
@@ -179,6 +195,7 @@ export async function syncHaulingLeads(
   let pages = 0;
   let seen = 0;
   let inserted = 0;
+  let placeholderSkipped = 0;
   for (let page = 1; page <= maxPages; page++) {
     const res = await doFetch(API, {
       method: "POST",
@@ -202,8 +219,11 @@ export async function syncHaulingLeads(
       const lead = toHaulingLead(row, { windowStart, minAmount: HAULING_LEAD_MIN_AMOUNT });
       if (lead) pageLeads.push(lead);
     }
-    leads.push(...pageLeads);
-    if (!opts.dryRun && pageLeads.length) inserted += await insertHaulingLeads(pageLeads);
+    // Definition R chooses the leads; the write gate then withholds placeholder names.
+    const storableLeads = pageLeads.filter(isStorableHaulingLead);
+    placeholderSkipped += pageLeads.length - storableLeads.length;
+    leads.push(...storableLeads);
+    if (!opts.dryRun && storableLeads.length) inserted += await insertHaulingLeads(storableLeads);
     if (!data.page_metadata?.hasNext || results.length === 0) break;
     await new Promise((r) => setTimeout(r, 750));
   }
@@ -214,5 +234,16 @@ export async function syncHaulingLeads(
     byScopeKind[lead.scope_kind] = (byScopeKind[lead.scope_kind] ?? 0) + 1;
     byPrimeKind[lead.prime_kind] = (byPrimeKind[lead.prime_kind] ?? 0) + 1;
   }
-  return { windowStart, windowEnd, pages, seen, kept: leads.length, inserted, leads, byScopeKind, byPrimeKind };
+  return {
+    windowStart,
+    windowEnd,
+    pages,
+    seen,
+    kept: leads.length + placeholderSkipped,
+    placeholderSkipped,
+    inserted,
+    leads,
+    byScopeKind,
+    byPrimeKind,
+  };
 }

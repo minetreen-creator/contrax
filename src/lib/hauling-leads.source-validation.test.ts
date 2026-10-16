@@ -21,6 +21,7 @@ import {
   descriptionHasHaulingScope,
   isCarrierNaics,
   isServiceNaics,
+  isStorableHaulingLead,
   naicsCode,
   toHaulingLead,
   windowStartFor,
@@ -87,12 +88,16 @@ if (LIVE) {
         expect(lead.prime_name.length).toBeGreaterThan(0);
         expect(lead.description_snippet.length).toBeGreaterThan(0);
       }
+      // The write gate is a separate, narrower step than definition R: a row R keeps may
+      // still be withheld (see HAULING_PLACEHOLDER_RECIPIENT_NAMES). Both numbers are
+      // reported so a live run shows exactly what the sync would store.
+      const storable = kept.filter(isStorableHaulingLead);
       console.log(
-        `[hauling-leads live] window=${windowStart}..${windowEnd} status=${status} rows=${rows.length} kept=${kept.length}`,
+        `[hauling-leads live] window=${windowStart}..${windowEnd} status=${status} rows=${rows.length} kept=${kept.length} placeholder_skipped=${kept.length - storable.length} stored=${storable.length}`,
       );
-      for (const lead of kept) {
+      for (const lead of storable) {
         console.log(
-          `[hauling-leads live]   ${lead.award_date} | ${lead.pop_state ?? "--"} | ${lead.prime_name.slice(0, 34)} | $${lead.amount} | ${lead.scope_kind} | ${lead.prime_kind}`,
+          `[hauling-leads live]   ${lead.award_date} | ${lead.pop_state ?? "--"} | ${lead.prime_name.slice(0, 34)} | ${lead.amount} | ${lead.scope_kind} | ${lead.prime_kind}`,
         );
       }
     });

@@ -142,6 +142,66 @@ export const HAULING_SERVICE_NAICS_RE =
 export const HAULING_FLEET_NAME_RE =
   /\b(truck(?:s|ing|er|ers)?|haul(?:s|ing|er|ers)?|freight|transport(?:s|ation|er|ers)?|logistic(?:s)?|drayage|cartage|disposal|waste|recycl(?:e|s|ing|er|ers)?|towing|sanitation|salvage|junk|scrap|excavat(?:e|es|ing|ion|or|ors)?|earthwork(?:s)?|demolition)\b/i;
 
+/**
+ * USAspending publishes a few PLACEHOLDER recipient names in place of a company name,
+ * for aggregated / foreign / undisclosed award rows. Such a row is an honest record but
+ * it is not an approachable company to take to about hauling work, so the sync declines
+ * to STORE one (owner-approved 2026-10-16, after browser QA found
+ * "MISCELLANEOUS FOREIGN AWARDEES" rendered verbatim as the prime contractor of a
+ * $38,697 lead on /subcontracts).
+ *
+ * THIS IS A PRESENTATION / APPROACHABILITY GUARD, NOT PART OF DEFINITION R. The ladder
+ * above (`toHaulingLead` / `haulsScopePipeline`) is the MEASURED definition and is left
+ * exactly as the proposal endorsed it: the census reference number stays 99 awards/yr
+ * because it counted the rows the API returned and the ladder kept — do NOT
+ * "re-reconcile" R against the number of rows stored. The write path (see
+ * `syncHaulingLeads`) applies R and then withholds these rows, so the stored / displayed
+ * set is R minus placeholder-named rows (measured 2026-10-16: 99 -> 98 on the 12-month
+ * capture, 7 -> 6 on the live 30-day window).
+ *
+ * MINIMAL LIST — only values actually observed in the shipped evidence, each with the
+ * place it was found. Deliberately NOT a "looks generic" pattern: real winners look odd
+ * too ("SNS" is a real DoD moving-contract recipient; "KRÄTZ GMBH" a real German firm),
+ * and dropping a real company is worse than showing an odd one.
+ *   - "MISCELLANEOUS FOREIGN AWARDEES":
+ *       shared/trucking-4-hauling-leads-proposal-2026-10-16/lexicon-raw.json (the
+ *       10-term keyword arm) 13 rows; census-raw.json (the hauls census) 143 rows. One
+ *       of them is inside the measured R set (award 19RS5026F0169, $38,697, no place of
+ *       performance) and is the row QA saw stored.
+ *   - "DOMESTIC AWARDEES (UNDISCLOSED)":
+ *       census-raw.json, 1 row. It is not reachable through today's keyword arm (0 rows
+ *       in lexicon-raw.json) and it is a 484210 carrier row the ladder already drops on
+ *       K3 — listed so the guard stays right if the arm is ever widened.
+ * Blank / whitespace recipient names need no entry: they already fail the identity check
+ * in `toHaulingLead` and are counted as `missing_identity`.
+ */
+export const HAULING_PLACEHOLDER_RECIPIENT_NAMES = [
+  "MISCELLANEOUS FOREIGN AWARDEES",
+  "DOMESTIC AWARDEES (UNDISCLOSED)",
+] as const;
+
+/**
+ * Is this recipient name a USAspending placeholder rather than a company? A WHOLE-name
+ * match (case- and whitespace-insensitive), never a substring test — so a real firm
+ * whose name merely contains one of these words is never dropped.
+ */
+export function isPlaceholderRecipientName(name: unknown): boolean {
+  const normalized = String(name ?? "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toUpperCase();
+  if (!normalized) return false;
+  return (HAULING_PLACEHOLDER_RECIPIENT_NAMES as readonly string[]).includes(normalized);
+}
+
+/**
+ * The write gate: may the sync store this lead? Definition R above is unchanged; this is
+ * the extra approachability test the STORE boundary applies (see the list's comment).
+ */
+export function isStorableHaulingLead(lead: { prime_name: string }): boolean {
+  return !isPlaceholderRecipientName(lead.prime_name);
+}
+
 /** Precomputed scope families, in the precedence the classifier applies them. */
 const SCOPE_FAMILIES: readonly [Exclude<HaulingScopeKind, "other/hauling">, RegExp][] = [
   [

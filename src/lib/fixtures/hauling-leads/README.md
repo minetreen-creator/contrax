@@ -25,5 +25,12 @@ whole owner-endorsed definition "R" with NO network access.
   `src/lib/hauling-leads.ts` keeps 99 of 1,775 (drops: 650 under $25k, 379 outside the
   window, 320 carrier NAICS, 159 non-service NAICS, 160 no scope wording, 8 winner name)
   — identical to the proposal's R. This slice pins the same 99 plus the controls.
+* **Placeholder recipients (2026-10-16 write gate).** One of those 99 carries a
+  USAspending PLACEHOLDER recipient name — `MISCELLANEOUS FOREIGN AWARDEES` (award
+  19RS5026F0169, $38,697). Definition R still keeps it (so the measured 99 is unchanged
+  and this fixture still pins 99), but the sync's write gate withholds placeholder-named
+  rows, so the set the sync stores out of this capture is **98**. See
+  `HAULING_PLACEHOLDER_RECIPIENT_NAMES` in `src/lib/hauling-leads.ts`; do not
+  re-reconcile R against stored row counts.
 
 Nothing here is edited: the JSON is the source's own rows, keys unchanged.

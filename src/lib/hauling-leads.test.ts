@@ -18,12 +18,15 @@ import {
   HAULING_LEAD_FIELDS,
   HAULING_LEAD_MIN_AMOUNT,
   HAULING_LEAD_WINDOW_DAYS,
+  HAULING_PLACEHOLDER_RECIPIENT_NAMES,
   HAULING_SCOPE_KINDS,
   buildHaulingSearchBody,
   classifyPrimeKind,
   classifyScopeKind,
   descriptionHasHaulingScope,
   haulsScopePipeline,
+  isPlaceholderRecipientName,
+  isStorableHaulingLead,
   naicsCode,
   normalizeDescription,
   toHaulingLead,
@@ -155,6 +158,60 @@ describe("definition R over the captured slice", () => {
       expect(lead.description_snippet.length).toBeGreaterThan(0);
       expect(lead.description_snippet.length).toBeLessThanOrEqual(500);
       expect(/\s{2,}/.test(lead.description_snippet)).toBe(false);
+    }
+  });
+});
+
+describe("the placeholder-recipient write gate (definition R itself is untouched)", () => {
+  const PLACEHOLDER_AWARD_KEY = "CONT_AWD_19RS5026F0169_1900_19RS5026D0002_1900";
+
+  test("the captured slice carries exactly one placeholder-named R row — the one QA saw stored", () => {
+    const placeholderLeads = pipeline.kept.filter((l) => isPlaceholderRecipientName(l.prime_name));
+    expect(placeholderLeads.map((l) => l.prime_name)).toEqual(["MISCELLANEOUS FOREIGN AWARDEES"]);
+    expect(placeholderLeads[0]!.award_key).toBe(PLACEHOLDER_AWARD_KEY);
+    expect(placeholderLeads[0]!.award_id).toBe("19RS5026F0169");
+    expect(placeholderLeads[0]!.amount).toBe(38_697);
+    expect(placeholderLeads[0]!.pop_state).toBeNull();
+  });
+
+  test("that fixture row is dropped by the write gate, while R still keeps all 99", () => {
+    expect(pipeline.kept.length).toBe(99); // definition R: the measured set, unchanged
+    const storable = pipeline.kept.filter(isStorableHaulingLead);
+    expect(storable.length).toBe(98); // R minus the placeholder row — what the sync stores
+    expect(storable.some((l) => l.award_key === PLACEHOLDER_AWARD_KEY)).toBe(false);
+    expect(storable.some((l) => l.prime_name === "MISCELLANEOUS FOREIGN AWARDEES")).toBe(false);
+    // Nothing else moved: every other R row is storable.
+    expect(pipeline.kept.filter((l) => !isStorableHaulingLead(l)).length).toBe(1);
+  });
+
+  test("a placeholder row the ladder keeps still fails the store gate, and is never written", () => {
+    const row = FIXTURE.rows.find((r) => r["Recipient Name"] === "MISCELLANEOUS FOREIGN AWARDEES")!;
+    const lead = toHaulingLead(row, { windowStart: WINDOW_START });
+    expect(lead).not.toBeNull(); // definition R keeps it — the census counted it
+    expect(isStorableHaulingLead(lead!)).toBe(false); // the write path does not
+  });
+
+  test("the guard is a WHOLE-name match, case/space-insensitive, and touches nothing else", () => {
+    expect(HAULING_PLACEHOLDER_RECIPIENT_NAMES).toEqual([
+      "MISCELLANEOUS FOREIGN AWARDEES",
+      "DOMESTIC AWARDEES (UNDISCLOSED)",
+    ]);
+    expect(isPlaceholderRecipientName("MISCELLANEOUS FOREIGN AWARDEES")).toBe(true);
+    expect(isPlaceholderRecipientName("  miscellaneous   foreign awardees ")).toBe(true);
+    expect(isPlaceholderRecipientName("DOMESTIC AWARDEES (UNDISCLOSED)")).toBe(true);
+    // Negative controls — real captured winners, and near-misses that must NOT match.
+    expect(isPlaceholderRecipientName("SNS")).toBe(false);
+    expect(isPlaceholderRecipientName("KRÄTZ GMBH")).toBe(false);
+    expect(isPlaceholderRecipientName("FISHER B HAULING LLC")).toBe(false);
+    expect(isPlaceholderRecipientName("MISCELLANEOUS FOREIGN AWARDEES LLC")).toBe(false);
+    expect(isPlaceholderRecipientName("MISCELLANEOUS REPAIRS.")).toBe(false);
+    expect(isPlaceholderRecipientName("")).toBe(false);
+    expect(isPlaceholderRecipientName(null)).toBe(false);
+    expect(isPlaceholderRecipientName(undefined)).toBe(false);
+    // And no R row of the capture is dropped for any other reason than the placeholder.
+    for (const lead of pipeline.kept) {
+      if (lead.award_key === PLACEHOLDER_AWARD_KEY) continue;
+      expect(isStorableHaulingLead(lead)).toBe(true);
     }
   });
 });

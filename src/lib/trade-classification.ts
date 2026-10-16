@@ -282,6 +282,17 @@ const TRANSPORTATION_EXPLICIT_PHRASES: RegExp[] = [
   // "transport(ation)" are NOT re-used as product nouns.
   /\btransport/,
   /\btowing\b/,
+  // Trucking #2a (owner 2026-10-16, measured): an explicit "hauling and
+  // disposal" contract IS hauling service work even when the title names the
+  // commodity it hauls — "Hauling and Disposal Services of Scrap Tires"
+  // (bids.id=330861, VA, open) was vetoed by the product word "tires". The
+  // phrase stays narrow on purpose: it demands "and|&" + "disposal" between the
+  // service words, so it cannot rescue the pinned product titles
+  // ("39--CART, GENERAL HAULING", "HAULING EQUIPMENT PARTS" — no "disposal"),
+  // and a bare "disposal" or "tires disposal" is untouched (no "hauling and").
+  // Measured blast radius over the whole open corpus: 4 title hits, exactly 1
+  // verdict flip (330861), 0 rows lose Transportation.
+  /\bhaul(?:ing)?\s+(?:and|&)\s+disposal\b/,
 ];
 
 /** Does the text spell out a transportation SERVICE phrase (not just the trade word)? */

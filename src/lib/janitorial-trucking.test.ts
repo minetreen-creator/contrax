@@ -259,6 +259,67 @@ describe("R4 (QA F3) — the transportation branch applies BOTH negative guards"
   });
 });
 
+describe("Trucking #2a — the 'hauling and disposal' service escape (owner 2026-10-16)", () => {
+  /**
+   * COUNT.md §4/§6 (measured 2026-10-16 over the whole open corpus): a contract
+   * whose title spells out "hauling and disposal" IS hauling service work, even
+   * when the title names the commodity being hauled — the live row
+   * bids.id=330861 "Hauling and Disposal Services of Scrap Tires" (VA, open) was
+   * vetoed by the product word "tires". The phrase added to
+   * TRANSPORTATION_EXPLICIT_PHRASES buys exactly that one row: 4 title hits,
+   * verdict_flips=1 of 10,174, and 0 rows lose Transportation.
+   */
+  test("the live scrap-tire hauling contract is Transportation", () => {
+    const title = "Hauling and Disposal Services of Scrap Tires";
+    expect(hasExplicitTransportationServicePhrase(title)).toBe(true);
+    expect(isTransportationWork(title, "")).toBe(true);
+    expect(mapCategory("", title, "")).toBe("Transportation");
+    // the '&' form of the same phrase (and its own boilerplate description)
+    expect(
+      isTransportationWork("Hauling & Disposal of Scrap Tires", "hauling and disposal services"),
+    ).toBe(true);
+    // the second title hit keeps what it already had (it was never vetoed)
+    expect(
+      isTransportationWork("Hauling and Disposal Services GS-27-04", ""),
+    ).toBe(true);
+    // a genuine hauling contract is no longer refused by the pass gate either
+    expect(tradePassExclusion("trucking", title, "")).toBe(null);
+  });
+
+  test("the product guards are untouched — no product context gains the phrase", () => {
+    // The pinned QA F4b/F3 product titles still carry NO explicit service phrase,
+    // are still not Transportation, and are still refused by the trade-pass gate
+    // (the reason is the row's own pre-existing guard — #2a changes neither).
+    const pinned: Array<[string, "product_buy" | "dump_truck"]> = [
+      ["FREIGHT TIRES", "product_buy"],
+      ["HAULING EQUIPMENT PARTS", "product_buy"],
+      ["TRUCK TIRES AND WHEELS", "product_buy"],
+      // the pre-existing /\bpurchase\b.*\btruck\b/ vehicle guard fires first here
+      ["Purchase of tires for the freight truck", "dump_truck"],
+      ["Freight vehicle parts procurement", "product_buy"],
+      ["39--CART, GENERAL HAULING", "product_buy"],
+    ];
+    for (const [title, reason] of pinned) {
+      expect(`${title} → ${hasExplicitTransportationServicePhrase(title)}`).toBe(`${title} → false`);
+      expect(`${title} → ${isTransportationWork(title, "")}`).toBe(`${title} → false`);
+      expect(`${title} → ${tradePassExclusion("trucking", title, "")}`).toBe(
+        `${title} → ${reason}`,
+      );
+    }
+    // …and a bare "disposal" / tire-disposal notice is still not hauling service
+    // work (no "hauling and" — the phrase demands the service words around it).
+    for (const title of [
+      "Scrap Tire Disposal Services",
+      "Tires disposal",
+      "Disposal of Surplus Property",
+      "Solid Waste Disposal and Recycling Services",
+    ]) {
+      expect(`${title} → ${hasExplicitTransportationServicePhrase(title)}`).toBe(`${title} → false`);
+      expect(`${title} → ${isTransportationWork(title, "")}`).toBe(`${title} → false`);
+    }
+  });
+});
+
 describe("R4 (QA F4b) — the trade-pass purchased-service gate", () => {
   test("the live naics=484110 false positives are refused, with a reason", () => {
     expect(tradePassExclusion("trucking", "Depot Consumable Parts Processing & Disposal (DEMIL)", "")).toBe("product_buy");

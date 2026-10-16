@@ -134,6 +134,8 @@ export const FEDERAL_TRADE_LABELS: readonly string[] = [
   "sam_naics_492110",
   "sam_psc_v112",
   "sam_psc_r602",
+  "sam_naics_491110",
+  "sam_psc_v119",
 ];
 
 /**

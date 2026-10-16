@@ -88,6 +88,9 @@ describe("R1 — the structured filters the API actually honours", () => {
       "naics=492110",
       "psc=V112",
       "psc=R602",
+      // USPS Contract Delivery Service mail routes (owner 2026-10-16).
+      "naics=491110",
+      "psc=V119",
     ]);
   });
 

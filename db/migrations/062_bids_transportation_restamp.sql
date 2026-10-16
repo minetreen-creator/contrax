@@ -1,0 +1,57 @@
+-- Migration 062 — re-stamp the 11 stale trucking category stamps (trucking item #2a,
+-- owner-endorsed 2026-10-16 after the measured count in
+-- shared/trucking-local-hauling-count-2026-10-16/COUNT.md §5).
+--
+-- WHY: 12 open rows are classified `Transportation` by the shared classifier today
+-- (isTransportationWork / mapCategory) while their STORED `category` still shows an
+-- older stamp (they were stamped by an earlier mapping or a per-source mapper, e.g.
+-- a PSC-derived "Personal Services"). runner.ts overwrites category on upsert, so
+-- such a row self-heals on its next refresh — but nothing re-stamps it in place, so
+-- these rows have been invisible to every `category='Transportation'` view.
+-- 10 of the 12 are genuine trucking/hauling work. This migration re-stamps exactly
+-- those 10 ids, PLUS the one row the shipped hauling phrase itself unlocks:
+--
+--   * 5112    Transportation Overflow Services Master Agreement
+--   * 130817  Disaster Overseas Transportation Support (DOTS) – AS/GU/CNMI
+--   * 135667  Hawaii – Hilo Vet Center – Relocation
+--   * 136838  SIOP Industrial and Office Relocation Services Move 2 (PSNS&IMF)
+--   * 138509  DLA Energy Fuel Transportation Services – Progreso, Mexico (JP5)
+--   * 139059  LAPD Standard- and Medium-Duty Towing and Storage, Service Area 3
+--   * 139060  LAPD Standard- and Medium-Duty Towing and Storage, Service Area 17
+--   * 152895  Noatak Airport Relocation – Alaska DOT&PF
+--   * 152953  LAPD Standard- and Medium-Duty Towing and Storage, Service Area 5
+--   * 152954  LAPD Standard- and Medium-Duty Towing and Storage, Service Area 12
+--   * 330861  Hauling and Disposal Services of Scrap Tires GS-27-05 (Louisa County
+--             Landfill, va_eva / eva-IV130098) — ADDED PER OWNER ORDER 2026-10-16.
+--
+-- WHY 330861 IS HERE AND NOT "AFTER ITS NEXT REFRESH": it is the +1 classifier flip
+-- the hauling-and-disposal phrase shipped in the same PR produces — the row's stamp
+-- is still the pre-fix `Other`, so until it is re-stamped the very work this PR was
+-- measured to unlock stays invisible to `category='Transportation'` views. Waiting
+-- on its next per-source refresh would leave the fix unobservable and is not
+-- guaranteed to happen (a closed/re-advertised row may never re-upsert). The owner
+-- therefore ordered it into the same re-stamp. It is not a false positive: the buy
+-- is literally "providing hauling and disposal services of scrap tires".
+--
+-- EXPLICITLY EXCLUDED (the 2 classifier false positives among the 12):
+--   * 152951  "Professional Surface Transportation Planning Studies – Federally Funded"
+--   * 133179  "FTA Broad Agency Announcement (FY26) — Research Initiatives in Support
+--             of Safety, Accessibility, and Mobility in Public Transportation"
+-- They are caught by the shipped /\btransport/ service signal although they are
+-- PLANNING and RESEARCH buys. Re-stamping them would not fix that error, it would
+-- move it: the wrong label would become visible as trucking work in every
+-- category-based view instead of only in the classifier's verdict. They stay where
+-- they are, and a separate narrow planning/research guard is the future fix. That
+-- reasoning is unchanged by the owner's order, which named 330861 only.
+--
+-- ADDITIVE / IDEMPOTENT: one UPDATE, restricted to the 11 ids above. `category` is
+-- the ONLY column written (no updated_at bump, no deletes, no inserts, no DDL), and
+-- `category IS DISTINCT FROM 'Transportation'` makes a re-run a 0-row no-op — which
+-- is also what makes this file correct on a database where the first 10 ids have
+-- already been re-stamped (a 10-row run on 2026-10-16 moved exactly those 10; the
+-- 11-row run then moved exactly 330861 and skipped the rest).
+UPDATE bids
+   SET category = 'Transportation'
+ WHERE id IN (5112, 130817, 135667, 136838, 138509, 139059, 139060, 152895, 152953, 152954, 330861)
+   AND category IS DISTINCT FROM 'Transportation'
+RETURNING id

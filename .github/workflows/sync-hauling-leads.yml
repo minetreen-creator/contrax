@@ -1,0 +1,38 @@
+name: Sync hauling leads
+# Trucking queue item #4 (owner-endorsed 2026-10-16, definition R / placement A):
+# newly made federal contract awards whose published scope plausibly involves hauling,
+# from USAspending.gov into hauling_leads, for the /subcontracts section.
+#
+# CADENCE — one weekly run, Monday 13:30 UTC, exactly as the owner asked. The job always
+# re-reads a ROLLING 30-DAY window (not 10): published award records arrive with a lag
+# (measured 2026-10-16: 30 d = 73 keyword-matching awards, 10 d = 6, 7 d = 0), so the
+# repeated window is the delayed-publication guarantee. The insert is idempotent
+# (ON CONFLICT (award_key) DO NOTHING), so re-scanning costs one API call and no churn.
+# GitHub Actions, never Vercel cron (the repo's Hobby plan caps cron at 10 s).
+on:
+  schedule:
+    - cron: "30 13 * * 1"
+  workflow_dispatch:
+concurrency:
+  group: sync-hauling-leads
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  sync:
+    name: Sync hauling leads
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Sync hauling leads
+        run: bun run sync-hauling-leads

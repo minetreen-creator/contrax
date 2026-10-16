@@ -33,6 +33,7 @@ import {
   shouldFireNoticeView,
   trackSubcontractsEvent,
 } from "~/lib/subcontracts/subcontracts-analytics";
+import type { HaulingLead } from "~/lib/hauling-leads";
 
 /**
  * /subcontracts — SUBCONTRACTING OPPORTUNITIES, from the stored SBA SUBNet board
@@ -574,6 +575,172 @@ function GsaPrimeDirectory({
   );
 }
 
+type HaulingLeadRow = HaulingLead & { id: number };
+
+interface HaulingLeadsResponse {
+  rows: HaulingLeadRow[];
+  stored: number;
+  inState: number;
+  state: string | null;
+  nationalFallback: boolean;
+  newestAwardDate: string | null;
+}
+
+/**
+ * The owner-locked label for the hauling-leads section (verbatim, block-level, above
+ * the list). It says what the rows ARE (published award records), what they are NOT
+ * (a confirmed need, a subcontract offer, an open solicitation) and what to do (verify
+ * the award at the source). No contact details are published for these winners.
+ */
+const HAULING_LEADS_LABEL =
+  "Potential hauling lead identified from a published federal award. Hauling needs and subcontract availability are unconfirmed. This is not an open solicitation. Verify the award on USAspending.gov.";
+
+/** How the precomputed scope wording is described — the wording, never a claim about the winner. */
+const HAULING_SCOPE_LABELS: Record<HaulingLead["scope_kind"], string> = {
+  "waste/refuse": "waste/refuse wording",
+  "debris/emergency": "debris/emergency wording",
+  "road/aggregate": "road/aggregate wording",
+  "other/hauling": "hauling wording only",
+};
+
+/** The winner kind chip: a statement about the NAME on the record, nothing more. */
+const HAULING_PRIME_LABELS: Record<HaulingLead["prime_kind"], string> = {
+  "work prime": "winner's name does not read as a hauling or waste firm",
+  "carrier/waste firm": "winner's name reads as a hauling or waste business (name-based)",
+};
+
+/** The award's own date, verbatim-safe: an unstated or unreadable date says so. */
+function awardDateText(iso: string | null): string {
+  if (!iso || !/^\d{4}-\d{2}-\d{2}$/.test(iso)) return "award date not stated";
+  const date = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return "award date not stated";
+  return date.toLocaleDateString("en-US", { timeZone: "UTC", month: "short", day: "numeric", year: "numeric" });
+}
+
+/** Place of performance as the record states it, and an explicit statement when it states none. */
+function haulingLocationText(lead: HaulingLead): string {
+  if (lead.pop_city && lead.pop_state) return `${lead.pop_city}, ${lead.pop_state}`;
+  if (lead.pop_state) return lead.pop_state;
+  return "place of performance not stated in the record";
+}
+
+/**
+ * HAULING LEADS — the section the owner endorsed for trucking queue item #4 (placement A,
+ * definition R): recent federal awards whose PUBLISHED SCOPE WORDING plausibly involves
+ * hauling. It sits below the SUBNet board and is a separate read of its own endpoint, so
+ * it has its own loading, fail-closed and empty states.
+ *
+ * It follows the page's honesty rules: nothing is invented (every date, name, location and
+ * snippet is a stored field of the award record), an unreadable store shows NO list rather
+ * than an empty one, an empty store says plainly that there are no current leads instead of
+ * showing an example, and the label states the limits of the inference. Free and public, no
+ * CTA, no tier, no email — this is a supporting surface, not a product.
+ */
+function HaulingLeads({ state }: { state: string }) {
+  const [data, setData] = useState<HaulingLeadsResponse | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (state) params.set("state", state);
+    fetch(`/api/hauling-leads?${params.toString()}`, { headers: { accept: "application/json" } })
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(String(response.status)))))
+      .then((payload: HaulingLeadsResponse) => {
+        if (cancelled) return;
+        setData(payload);
+        setFailed(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setData(null);
+        setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [state]);
+
+  return (
+    <section className="mt-10 max-w-3xl" data-testid="hauling-leads">
+      <h2 className="mt-2 text-2xl font-bold">Recent awards that may involve hauling</h2>
+      <p className="mt-3 text-sm text-slate-600" data-testid="hauling-leads-label">
+        {HAULING_LEADS_LABEL}
+      </p>
+      <p className="mt-2 text-xs text-slate-500">
+        Source: published federal contract awards (USAspending.gov), read on a weekly sync over a rolling 30-day window.
+        An award record appears days to weeks after the award is made, so a lead is days-to-weeks old.
+        {data && !failed ? ` Leads stored for the whole country: ${data.stored}.` : ""}
+      </p>
+
+      {failed ? (
+        <p className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+          Contrax could not read the stored hauling leads (the request failed), so it shows none rather than an
+          unverified list.
+        </p>
+      ) : !data ? (
+        <p className="mt-4 text-sm text-slate-500">Reading the stored hauling leads&hellip;</p>
+      ) : (
+        <>
+          {data.state && data.nationalFallback ? (
+            <p className="mt-3 text-sm text-slate-600" data-testid="hauling-leads-fallback">
+              No stored hauling lead has a place of performance in {data.state}. All states are shown instead.
+            </p>
+          ) : data.state ? (
+            <p className="mt-3 text-sm text-slate-600">
+              {data.rows.length} of {data.inState} stored lead{data.inState === 1 ? "" : "s"} have a place of performance
+              in {data.state}.
+            </p>
+          ) : null}
+
+          {data.rows.length === 0 ? (
+            <p className="mt-4 rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
+              There are no current hauling leads: nothing matching this definition is stored right now. Contrax shows no
+              example in its place. Leads appear as federal award records publish, so this list fills in on the next
+              sync.
+            </p>
+          ) : (
+            <ul className="mt-4 grid gap-4">
+              {data.rows.map((lead) => (
+                <li
+                  key={lead.award_key}
+                  className="rounded-2xl border border-slate-200 bg-white p-5"
+                  data-testid="hauling-lead"
+                >
+                  <p className="text-xs font-semibold text-slate-500">
+                    Awarded {awardDateText(lead.award_date)} &middot; {haulingLocationText(lead)} &middot;{" "}
+                    {HAULING_SCOPE_LABELS[lead.scope_kind]}
+                  </p>
+                  <h3 className="mt-1 text-base font-bold text-slate-900">{lead.prime_name}</h3>
+                  <p className="mt-2 text-sm text-slate-700" data-testid="hauling-lead-snippet">
+                    {lead.description_snippet}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500">
+                    The description as the award record publishes it &mdash; the wording that matched hauling.
+                    {lead.naics_code ? ` Award NAICS: ${lead.naics_code}.` : ""}
+                    {lead.agency ? ` Awarding agency: ${lead.agency}.` : ""}
+                  </p>
+                  <p className="mt-2 text-xs text-slate-500">
+                    Prime contractor: {HAULING_PRIME_LABELS[lead.prime_kind]}.
+                  </p>
+                  <a
+                    href={lead.usa_spending_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-block text-sm font-semibold text-blue-700 underline"
+                  >
+                    Verify this award on USAspending.gov &rarr;
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 function SubcontractsPage() {
   const [data, setData] = useState<SubcontractsResponse | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -881,6 +1048,11 @@ function SubcontractsPage() {
             </div>
           </>
         ) : null}
+
+        {/* Trucking queue item #4 (owner-endorsed definition R, placement A): the hauling
+            section sits BELOW the SUBNet board. It reads the page's own State filter and
+            falls back to all states when the chosen state has no stored lead. */}
+        <HaulingLeads state={state} />
 
         <PrimeDirectory
           payload={primes}

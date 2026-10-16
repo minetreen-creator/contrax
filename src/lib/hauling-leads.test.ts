@@ -279,3 +279,20 @@ describe("the request the job sends (pinned so the arm cannot drift silently)", 
     }
   });
 });
+
+describe("the amount column the write path stores", () => {
+  test("cents are rounded to whole dollars, so a BIGINT column never rejects a real award", () => {
+    const row = FIXTURE.rows.find((r) => Number(r["Award Amount"]) % 1 !== 0)!;
+    const lead = toHaulingLead(
+      { ...row, "Award Amount": 639_047.35, "Base Obligation Date": "2026-09-23" },
+      { windowStart: "2026-09-16" },
+    );
+    expect(lead?.amount).toBe(639_047);
+    expect(Number.isInteger(lead?.amount)).toBe(true);
+    const rounded = toHaulingLead(
+      { ...row, "Award Amount": 639_047.61, "Base Obligation Date": "2026-09-23" },
+      { windowStart: "2026-09-16" },
+    );
+    expect(rounded?.amount).toBe(639_048);
+  });
+});

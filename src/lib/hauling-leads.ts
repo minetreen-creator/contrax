@@ -275,7 +275,9 @@ export function toHaulingLead(
     pop_city: popCity,
     prime_name: primeName,
     prime_uei: text(row["Recipient UEI"]),
-    amount,
+    // Stored as whole dollars (the column is BIGINT, like award_leads): USAspending
+    // publishes cents ("639047.35") and the cents carry no meaning for a lead list.
+    amount: Math.round(amount),
     naics_code: code ? code.slice(0, 6) : null,
     naics_description: null,
     agency: text(row["Awarding Agency"]),

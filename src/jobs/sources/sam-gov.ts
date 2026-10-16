@@ -485,6 +485,37 @@ export async function mapSamItem(
   };
 }
 
+/**
+ * The v1 search URL for ONE page of the national or the state-scoped pass.
+ *
+ * `states` is the already-validated, comma-joined USPS code list (undefined for
+ * the national pass) — the value logic is unchanged.
+ *
+ * THE STATE FILTER PARAMETER (bug fixed 2026-10-16)
+ * -------------------------------------------------
+ * This used to send `placeOfPerformance.state=<codes>`. That is the RESPONSE
+ * field path, not a query parameter: SAM's v1 search SILENTLY IGNORES it, so the
+ * "regional" pass returned the unfiltered national pool (measured live
+ * 2026-10-16: `placeOfPerformance.state=VA` → `totalElements` 228,710, byte-
+ * identical to the no-parameter baseline, 0/25 returned rows with a VA
+ * place-of-performance). The parameter SAM actually honours is `state=`
+ * (`state=VA` → 539 with 25/25 rows Virginia; `state=NY` → 264 with 24/25 rows
+ * New York; the invalid code `state=ZZ` → 0, which is what proves it is a real
+ * filter). Comma lists are honoured too — the regional pass's own 51-code value
+ * returns 9,767 instead of the 228,710 baseline.
+ *
+ * Exported so a deterministic (zero-network) test can pin the EXACT parameters
+ * — including that the ignored `placeOfPerformance.state=` spelling never comes
+ * back.
+ */
+export function buildSamSearchUrl(states: string | undefined, page: number): string {
+  const stateFilter = states ? `&state=${states}` : "";
+  return (
+    `${SAM_API}?page=${page}&size=${PAGE_SIZE}&sort=-modifiedDate` +
+    `&mode=opportunities&q=&is_active=true${stateFilter}`
+  );
+}
+
 export async function fetchBids(options: { states?: string[] } = {}): Promise<RawBid[]> {
   const states = options.states?.filter((state) => /^[A-Z]{2}$/.test(state)).join(",");
   const sourceLabel = states ? "sam_gov_regional" : "sam_gov";
@@ -497,8 +528,7 @@ export async function fetchBids(options: { states?: string[] } = {}): Promise<Ra
 
   for (let page = 0; page < MAX_PAGES; page++) {
     try {
-      const stateFilter = states ? `&placeOfPerformance.state=${states}` : "";
-      const url = `${SAM_API}?page=${page}&size=${PAGE_SIZE}&sort=-modifiedDate&mode=opportunities&q=&is_active=true${stateFilter}`;
+      const url = buildSamSearchUrl(states, page);
       console.log(`  SAM.gov: fetching page ${page + 1}/${MAX_PAGES}...`);
 
       const resp = await fetch(url, { headers: SAM_HEADERS });

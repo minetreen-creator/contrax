@@ -146,6 +146,11 @@ export const PRODUCT_BUY_PATTERNS: RegExp[] = [
   /\bdispensers?\b/,
   /\bsoap\b/,
   /\bpaper towels?\b/,
+  // Owner 2026-10-17: "Janitorial Paper Products" / "IFB Janitorial Cleaning
+  // Products" are supply orders that slipped into the janitorial set.
+  /\bpaper products?\b/,
+  /\bcleaning products?\b/,
+  /\bjanitorial products?\b/,
   /\bsanitizers?\b/,
   /\bappliances?\b/,
   /\bscrubbers?\b/,
@@ -541,4 +546,54 @@ export function tradePassExclusion(
   description: string,
 ): TradeGateReason | null {
   return tradeGateForNotice(title, description)[trade];
+}
+
+/**
+ * HVAC precision (owner 2026-10-17, HVAC audit). An "HVAC" search matched
+ * "HVAC Filters", "Air Conditioning Units Purchase", "Mechanical Engineering
+ * Design Services" and "Mechanical Seals and Parts" — purchases and A/E design
+ * work, not contractor jobs. Two narrow rules, TITLE only:
+ *
+ *   1. Never HVAC work: mechanical ENGINEERING (design services) and mechanical
+ *      seals/parts (component buys). Bare "mechanical" stays a search term —
+ *      "Mechanical Services Contract" / "Mechanical Upgrades" are real HVAC jobs.
+ *   2. A product title is a purchase UNLESS it also names service work. Most
+ *      HVAC jobs carry the equipment ("Rooftop Unit Replacement", "Chiller
+ *      Replacement"), so any install/replace/repair/maintenance/service word
+ *      keeps the title as a job.
+ *
+ * Plumbing deliberately stays in the HVAC search (owner decision: NAICS 238220
+ * covers both and many public bids bundle them).
+ */
+const HVAC_NEVER_WORK_PATTERNS: RegExp[] = [
+  /\bmechanical engineering\b/,
+  /\bmechanical seals?\b/,
+  /\bmechanical parts\b/,
+];
+
+const HVAC_PRODUCT_PATTERNS: RegExp[] = [
+  /\bfilters?\b/,
+  /\bunits? purchase\b/,
+  /\bpurchase\b/,
+  /\bequipment only\b/,
+];
+
+const HVAC_SERVICE_PATTERNS: RegExp[] = [
+  /\binstall/,
+  /\breplac/,
+  /\brepair/,
+  /\bmaint/,
+  /\bservices?\b/,
+  /\bretrofit/,
+  /\bupgrade/,
+  /\brenovat/,
+  /\bconstruction\b/,
+];
+
+/** Is this TITLE a purchase or design job rather than HVAC contractor work? */
+export function isHvacNonWork(title: string): boolean {
+  const t = (title || "").toLowerCase();
+  if (anyMatch(HVAC_NEVER_WORK_PATTERNS, t)) return true;
+  const product = isProductBuy(t) || anyMatch(HVAC_PRODUCT_PATTERNS, t);
+  return product && !anyMatch(HVAC_SERVICE_PATTERNS, t);
 }

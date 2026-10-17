@@ -280,6 +280,33 @@ export async function sendRadarLeadConfirmationEmail(
   }
 }
 
+/**
+ * Launchpad: the visitor's own capability statement, sent only to the business
+ * email they entered (owner 2026-10-17). Returns false on any failure (logged
+ * without the address) so the caller can tell the visitor it didn't send.
+ */
+export async function sendLaunchpadStatementEmail(to: string, subject: string, html: string): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send Launchpad statement — RESEND_API_KEY not set");
+      return false;
+    }
+    await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
+      to: [to],
+      subject,
+      html,
+    });
+    console.log("Launchpad statement email sent (1 statement)");
+    return true;
+  } catch (err) {
+    console.error("Failed to send Launchpad statement email:", (err as Error).message);
+    return false;
+  }
+}
+
 function radarLeadConfirmationHtml(confirmUrl: string, unsubscribeUrl: string): string {
   return `<!DOCTYPE html>
 <html lang="en">

@@ -104,6 +104,88 @@ function ResendConfirmButton({ id }: { id: number }) {
   );
 }
 
+interface LaunchpadStatementRow {
+  id: number;
+  maskedEmail: string | null;
+  company: string;
+  trade: string | null;
+  state: string | null;
+  alerts: boolean;
+  sent: boolean;
+  createdAt: string;
+}
+
+/**
+ * Owner 2026-10-17: who emailed themselves a Launchpad capability statement.
+ * Masked email like the lead table above; alert opt-ins also appear there.
+ */
+function LaunchpadStatements({ days }: { days: number }) {
+  const [rows, setRows] = useState<LaunchpadStatementRow[] | null>(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    setRows(null);
+    setError("");
+    fetch(`/api/admin/launchpad-statements?days=${days}`)
+      .then(async (res) => {
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || "Failed to load Launchpad statements");
+        if (!cancelled) setRows(body.rows ?? []);
+      })
+      .catch((err) => { if (!cancelled) setError(err instanceof Error ? err.message : "Failed to load Launchpad statements"); });
+    return () => { cancelled = true; };
+  }, [days]);
+
+  return (
+    <section>
+      <h2 className="text-lg font-semibold text-slate-800 mb-1">Launchpad statements ({rows?.length ?? 0} in range)</h2>
+      <p className="mb-3 text-xs text-slate-500">
+        Visitors who emailed themselves their capability statement from /launchpad. Emails are masked. "Bid alerts" means
+        they also asked for weekly matches; those addresses join the lead table above once captured. Admin and test
+        addresses excluded.
+      </p>
+      {error ? (
+        <SectionError message={error} />
+      ) : !rows ? (
+        <SectionLoading message="Loading Launchpad statements…" />
+      ) : rows.length === 0 ? (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <p className="text-sm font-medium text-slate-700">No Launchpad statements emailed in this range.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-slate-400 uppercase tracking-wider">
+                <th className="px-5 py-3 font-medium">Company</th>
+                <th className="px-5 py-3 font-medium">Trade</th>
+                <th className="px-5 py-3 font-medium">State</th>
+                <th className="px-5 py-3 font-medium">Email (masked)</th>
+                <th className="px-5 py-3 font-medium">Bid alerts</th>
+                <th className="px-5 py-3 font-medium">Email sent</th>
+                <th className="px-5 py-3 font-medium">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id} className="border-t border-slate-100 text-slate-700 hover:bg-slate-50/60">
+                  <td className="px-5 py-3 font-medium text-slate-900">{r.company}</td>
+                  <td className="px-5 py-3">{r.trade ?? "—"}</td>
+                  <td className="px-5 py-3">{r.state ?? "—"}</td>
+                  <td className="px-5 py-3">{r.maskedEmail ?? "—"}</td>
+                  <td className="px-5 py-3">{r.alerts ? "Yes" : "No"}</td>
+                  <td className="px-5 py-3">{r.sent ? "Yes" : <span className="text-red-600">Failed</span>}</td>
+                  <td className="px-5 py-3 text-xs text-slate-500">{timeFmt(r.createdAt)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
+
 function RadarLeadsPage() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState<RadarLeadsResult | null>(null);
@@ -242,6 +324,8 @@ function RadarLeadsPage() {
             </div>
           )}
         </section>
+
+        <LaunchpadStatements days={days} />
       </main>
     </div>
   );

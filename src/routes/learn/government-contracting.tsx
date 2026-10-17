@@ -128,6 +128,7 @@ function CoursePage() {
   return (
     <main className="min-h-screen bg-slate-50">
       <section className="mx-auto max-w-2xl px-4 pb-6 pt-10">
+        <a href="/launchpad" className="mb-5 inline-block text-sm font-semibold text-blue-700 underline">← My Launchpad</a>
         <p className="text-sm font-semibold uppercase tracking-wide text-amber-700">Free course · {COURSE_MINUTES} minutes</p>
         <h1 className="mt-2 text-3xl font-extrabold leading-tight text-slate-900">{COURSE_TITLE}</h1>
         <p className="mt-2 text-slate-700">{COURSE_SUBTITLE}</p>
@@ -475,3 +476,4 @@ function Complete({ initialState }: { initialState: string }) {
     </form>
   );
 }
+

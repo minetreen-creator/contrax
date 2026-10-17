@@ -1,3 +1,4 @@
+import { LaunchpadLink } from "./LaunchpadLink";
 import { useState } from "react";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { TRADE_SUGGESTIONS } from "~/lib/trade-suggestions";
@@ -27,6 +28,8 @@ export function CourseOpportunity({courseId,initialState="",initialTrade="",next
       <button type="submit" disabled={!trade.trim()} className="w-full rounded-xl bg-blue-700 px-5 py-3 font-bold text-white hover:bg-blue-800 disabled:opacity-50 sm:w-auto">Find matching bids →</button>
       <p className="text-xs leading-relaxed text-slate-600">Radar’s free preview has usage limits. Create a free account to save an opportunity within your free plan’s allowance. AI briefs and bid drafting are available with the relevant paid plans. These courses remain free.</p>
     </form>
+    <LaunchpadLink />
     {nextHref && <p className="mt-5 border-t border-blue-200 pt-4 text-sm"><a href={learnNextCourseHref(nextHref,{state,trade})} className="font-semibold text-blue-700 underline">Continue learning: {nextTitle} →</a></p>}
   </section>;
 }
+

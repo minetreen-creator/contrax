@@ -1,3 +1,4 @@
+import { LaunchpadLink } from "~/components/LaunchpadLink";
 import { trackEvent } from "~/lib/track";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -60,6 +61,7 @@ function LearnPage() {
       <h1 className="mx-auto mt-4 max-w-4xl text-4xl font-extrabold tracking-tight sm:text-6xl">Free Government Contracting Courses & Resources</h1>
       <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-blue-100">Free, practical guides and templates to help small businesses register, find opportunities, and submit stronger federal proposals.</p>
     </section>
+    <div className="mx-auto max-w-7xl px-6"><LaunchpadLink /></div>
     <nav aria-label="Free course levels" className="mx-auto max-w-7xl px-6 pt-8">
       <h2 className="text-2xl font-bold text-slate-900">Choose your free course</h2>
       <p className="mt-2 text-slate-600">No payment required. Pick a level and begin learning.</p>
@@ -129,3 +131,4 @@ function LearnPage() {
     {selected && <div className="fixed inset-0 z-[60] overflow-y-auto bg-slate-950/60 p-4" onClick={() => setSelected(null)}><article className="mx-auto my-10 max-w-3xl rounded-2xl bg-white p-7 shadow-2xl sm:p-10" onClick={e => e.stopPropagation()}><div className="flex justify-between gap-4"><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold uppercase text-blue-700">{(selected.doc_type || "").replace(/_/g, " ")}</span><button onClick={() => setSelected(null)} aria-label="Close">✕</button></div><h2 className="mt-5 text-3xl font-bold text-slate-900">{selected.title || ""}</h2><p className="mt-2 text-slate-600">{selected.description || ""}</p><div className="mt-8 whitespace-pre-line text-base leading-8 text-slate-700">{selected.content || ""}</div></article></div>}
   </main>;
 }
+

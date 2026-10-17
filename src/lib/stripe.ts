@@ -595,6 +595,9 @@ export async function handleStripeWebhook(
     return { success: false, error: "Invalid signature" };
   }
 
+  const { handleFoundingBusinessEvent } = await import("~/lib/founding-business.server");
+  await handleFoundingBusinessEvent(event);
+
   const { handleReviewPaymentEvent } = await import("~/lib/bid-fit-review-flow.server");
   if (await handleReviewPaymentEvent(event)) return { success: true };
 
@@ -652,11 +655,14 @@ export async function handleStripeWebhook(
   }
 
   // Only handle checkout.session.completed
-  if (event.type !== "checkout.session.completed") {
+  if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") {
     return { success: true }; // Acknowledge but no action needed
   }
 
   const session = event.data.object as Stripe.Checkout.Session;
+
+  // Promotion checkouts can complete before a delayed payment settles.
+  if (session.metadata?.founding_business && session.payment_status !== "paid") return { success: true };
 
   // Extract customer details
   const customerEmail = session.customer_details?.email;

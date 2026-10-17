@@ -230,6 +230,10 @@ function Home() {
       {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the
           edge-cached homepage stays session-free; hidden when no spots remain. */}
       <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <a href="/founding-businesses" className="mt-10 flex flex-col gap-5 rounded-2xl border border-blue-200 bg-[#0c1c36] p-7 text-white shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="text-xs font-bold uppercase tracking-widest text-amber-200">Founding Business launch · 10 places</p><h2 className="mt-2 text-2xl font-bold">Find opportunities. Get your business featured.</h2><p className="mt-2 text-sm leading-relaxed text-slate-300">A year of Starter, a 12-month company feature and one Facebook spotlight. $99 first year; renews at $190/year.</p></div>
+          <span className="shrink-0 rounded-xl bg-amber-300 px-5 py-3 text-center font-bold text-slate-950">Meet our founding businesses →</span>
+        </a>
         <FoundingOffer source="home" />
       </div>
       <LaunchpadPromo />

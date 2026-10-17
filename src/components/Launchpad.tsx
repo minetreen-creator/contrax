@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Rocket,
   ArrowRight,
@@ -24,10 +24,12 @@ import {
   capabilityText,
   capabilityPrintHtml,
   safeOpportunityUrl,
+  type LaunchpadData,
   type LaunchpadProfile,
   type LaunchpadBidPlan,
 } from "~/lib/launchpad";
 import type { launchpadLearning } from "~/lib/launchpad-learning";
+import { pickLaunchpad, sanitizeWorkspace } from "~/lib/launchpad-sync";
 
 const FIELD =
   "mt-2 block w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-950 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600";
@@ -47,6 +49,9 @@ export function Launchpad() {
   const [alerts, setAlerts] = useState(false);
   const [emailState, setEmailState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [emailNote, setEmailNote] = useState("");
+  // Account sync (owner 2026-10-17): "unknown" until /api/launchpad/workspace answers.
+  const [account, setAccount] = useState<"unknown" | "signed-in" | "signed-out">("unknown");
+  const dirtyRef = useRef(false);
 
   useEffect(() => {
     if (!dirty) return;
@@ -59,14 +64,37 @@ export function Launchpad() {
 
   useEffect(() => {
     let alive = true;
+    let local = emptyLaunchpad();
     try {
-      setData(parseLaunchpad(localStorage.getItem(LAUNCHPAD_KEY)));
+      local = parseLaunchpad(localStorage.getItem(LAUNCHPAD_KEY));
+      setData(local);
     } catch {
       setError(
         "Saved data could not be read. You can work here, but saving will replace the unreadable draft. Download your statement before leaving if storage is unavailable.",
       );
     }
     setReady(true);
+    async function syncFromAccount() {
+      try {
+        const response = await fetch("/api/launchpad/workspace", { credentials: "same-origin" });
+        if (!alive) return;
+        if (response.status === 401) { setAccount("signed-out"); return; }
+        if (!response.ok) return;
+        const body = (await response.json()) as { data?: unknown };
+        if (!alive) return;
+        setAccount("signed-in");
+        const { use, push } = pickLaunchpad(local, sanitizeWorkspace(body.data));
+        // Never replace edits the visitor started before the account answered.
+        if (use !== local && !dirtyRef.current) {
+          setData(use);
+          try { localStorage.setItem(LAUNCHPAD_KEY, JSON.stringify(use)); } catch {}
+        }
+        if (push) void saveToAccount(local);
+      } catch {
+        // Offline or blocked: the device copy keeps working.
+      }
+    }
+    void syncFromAccount();
     async function refreshCourses() {
       try {
         const { launchpadLearning } = await import("~/lib/launchpad-learning");
@@ -90,7 +118,21 @@ export function Launchpad() {
     };
   }, []);
 
+  async function saveToAccount(workspace: LaunchpadData): Promise<boolean> {
+    try {
+      const response = await fetch("/api/launchpad/workspace", {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: workspace }),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
   function changed() {
+    dirtyRef.current = true;
     setDirty(true);
     setMessage("");
   }
@@ -111,22 +153,35 @@ export function Launchpad() {
       bid: { ...previous.bid, [field]: value },
     }));
   }
-  function save(event?: FormEvent) {
+  async function save(event?: FormEvent) {
     event?.preventDefault();
     if (!ready) return;
+    const next = { ...data, updatedAt: new Date().toISOString() };
+    let onDevice = true;
     try {
-      const next = { ...data, updatedAt: new Date().toISOString() };
       localStorage.setItem(LAUNCHPAD_KEY, JSON.stringify(next));
-      setData(next);
-      setDirty(false);
-      setError("");
-      setMessage("Launchpad saved on this device.");
-      trackEvent("launchpad_saved");
     } catch {
+      onDevice = false;
+    }
+    const inAccount = account === "signed-in" && (await saveToAccount(next));
+    if (!onDevice && !inAccount) {
       setError(
         "This browser could not save your changes. Keep this page open and download your capability statement to preserve it.",
       );
+      return;
     }
+    setData(next);
+    dirtyRef.current = false;
+    setDirty(false);
+    setError("");
+    setMessage(
+      inAccount
+        ? "Launchpad saved to your Contrax account. Open it on any device."
+        : account === "signed-in"
+          ? "Saved on this device. We couldn't reach your account, so we'll try again on your next save."
+          : "Launchpad saved on this device.",
+    );
+    trackEvent("launchpad_saved", inAccount ? "account" : "device");
   }
   function download() {
     const url = URL.createObjectURL(
@@ -220,10 +275,22 @@ export function Launchpad() {
               opportunity.
             </p>
             <p className="mt-4 text-sm text-slate-400">
-              No account or payment required. Drafts and course progress stay in
-              this browser on this device, unless you choose to email your
-              statement to yourself. Save your changes before leaving.
+              {account === "signed-in"
+                ? "Your Launchpad saves to your Contrax account, so it follows you to any device. Course progress stays in this browser."
+                : "No account or payment required. Drafts and course progress stay in this browser on this device, unless you choose to email your statement to yourself. Save your changes before leaving."}
             </p>
+            {account === "signed-out" && (
+              <p className="mt-3 text-sm text-slate-200">
+                <a href="/signup?next=/launchpad" className="font-semibold text-amber-300 underline">
+                  Create a free account
+                </a>{" "}
+                to keep your Launchpad on every device, or{" "}
+                <a href="/login" className="font-semibold text-amber-300 underline">
+                  sign in
+                </a>
+                . Your work here comes with you.
+              </p>
+            )}
           </div>
           <div className="self-center rounded-2xl border border-blue-400/30 bg-blue-400/10 p-6">
             <p className="text-xs font-bold uppercase tracking-widest text-blue-200">

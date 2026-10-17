@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { sql } from "~/db";
 import { expandTrade } from "~/lib/trade-registry";
 import { normalizeStateInput } from "~/lib/location-state";
 import { z } from "zod";
-import { sendRadarLeadConfirmationEmail } from "~/lib/email";
+import { captureRadarLead, isBotUa } from "~/lib/radar-lead-capture.server";
 import { resolveAttribution, type Attribution } from "~/lib/attribution";
 import {
   checkEmailLimit,
@@ -61,16 +60,6 @@ const LEAD_SCHEMA = z.object({
   visit_id: z.string().trim().max(64).optional(),
 });
 
-/** Bot user-agents never get a confirmation email (still stored — fail-closed
- *  on deliverability, fail-open on capture). Mirrors the funnel bot filter. */
-function isBotUa(ua: string | null): boolean {
-  if (!ua) return false;
-  const s = ua.toLowerCase();
-  return (
-    ["bot", "crawler", "spider", "headlesschrome", "puppeteer", "playwright", "python", "curl", "wget", "go-http-client"].some((t) => s.includes(t))
-  );
-}
-
 async function handler({ request }: { request: Request }) {
   // Throttle a known hostile IP before any write. Exact-match only; generic 403.
   if (isBlockedIp(request)) {
@@ -114,60 +103,16 @@ async function handler({ request }: { request: Request }) {
       referer: request.headers.get("referer"),
     });
 
-    // Self-healing DDL — identical to db/migrations/031_radar_leads.sql, so any
-    // environment gets the table even before the migration runner touches it.
-    await sql()`
-      CREATE TABLE IF NOT EXISTS radar_leads (
-        id BIGSERIAL PRIMARY KEY,
-        email TEXT NOT NULL UNIQUE,
-        visitor_id TEXT,
-        radar_profile JSONB,
-        source TEXT NOT NULL DEFAULT 'radar',
-        consent BOOLEAN NOT NULL DEFAULT TRUE,
-        confirmed_at TIMESTAMPTZ,
-        unsubscribed_at TIMESTAMPTZ,
-        unsubscribe_token TEXT NOT NULL UNIQUE,
-        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-      )
-    `;
-
-    // Idempotent upsert keyed on email. A repeat submit refreshes the radar
-    // profile + visitor link only — confirmed_at / unsubscribed_at /
-    // unsubscribe_token are NEVER touched (no double-confirm, no resurrection).
-    const rows = (await sql()`
-      INSERT INTO radar_leads (email, visitor_id, radar_profile, source, consent, unsubscribe_token)
-      VALUES (${d.email}, ${d.visitor_id || null}, CAST(${radarProfile} AS JSONB), ${attr.source || "radar"}, TRUE, ${crypto.randomUUID()})
-      ON CONFLICT (email) DO UPDATE SET
-        radar_profile = COALESCE(EXCLUDED.radar_profile, radar_leads.radar_profile),
-        visitor_id = COALESCE(EXCLUDED.visitor_id, radar_leads.visitor_id),
-        updated_at = NOW()
-      RETURNING confirmed_at, unsubscribed_at, unsubscribe_token
-    `) as Array<{ confirmed_at: string | null; unsubscribed_at: string | null; unsubscribe_token: string }>;
-    const lead = rows[0];
-
-    const confirmed = !!lead?.confirmed_at;
-    const unsubscribed = !!lead?.unsubscribed_at;
-
-    // ONE confirmation email — ONLY to the person who just submitted; only when
-    // the address is new/pending (never after confirmation, never for an
-    // unsubscribed address, never for a bot UA). Fire-and-forget, fail-open:
-    // an email failure logs but never fails the capture.
-    if (!confirmed && !unsubscribed && !isBotUa(request.headers.get("user-agent"))) {
-      try {
-        await sendRadarLeadConfirmationEmail(d.email, String(lead?.unsubscribe_token ?? ""));
-      } catch (e) {
-        console.error(
-          "[api/radar/lead] confirmation email failed (capture still saved):",
-          (e as Error)?.message,
-        );
-      }
-    }
-
-    return Response.json({
-      success: true,
-      status: unsubscribed ? "unsubscribed" : confirmed ? "confirmed" : "pending",
+    // Upsert + the ONE confirmation email (shared with Launchpad's opt-in).
+    const status = await captureRadarLead({
+      email: d.email,
+      visitorId: d.visitor_id || null,
+      radarProfile,
+      source: attr.source || "radar",
+      sendConfirmation: !isBotUa(request.headers.get("user-agent")),
     });
+
+    return Response.json({ success: true, status });
   } catch (error) {
     console.error("[api/radar/lead] error:", error);
     return Response.json({ error: "Something went wrong. Please try again." }, { status: 500 });

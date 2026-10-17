@@ -7,9 +7,11 @@ import {
   FileText,
   Printer,
   Download,
+  Mail,
 } from "lucide-react";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { trackEvent } from "~/lib/track";
+import { trackingIds } from "~/lib/visitor";
 import {
   LAUNCHPAD_KEY,
   REGISTRATION_TASKS,
@@ -42,6 +44,9 @@ export function Launchpad() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [courses, setCourses] = useState<CourseProgress>([]);
+  const [alerts, setAlerts] = useState(false);
+  const [emailState, setEmailState] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [emailNote, setEmailNote] = useState("");
 
   useEffect(() => {
     if (!dirty) return;
@@ -163,6 +168,29 @@ export function Launchpad() {
     trackEvent("launchpad_statement_printed");
   }
 
+  async function emailStatement() {
+    setEmailState("sending");
+    setEmailNote("");
+    try {
+      const response = await fetch("/api/launchpad/email-statement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ profile: data.profile, alerts, visitor_id: trackingIds().visitor_id || undefined }),
+      });
+      const value = (await response.json().catch(() => ({}))) as { error?: string; alertStatus?: string | null };
+      if (!response.ok) throw new Error(value.error || "We couldn't send the email. Download or print your statement instead.");
+      setEmailState("sent");
+      setEmailNote(
+        `Sent to ${data.profile.email}.` +
+          (value.alertStatus === "pending" ? " Check your inbox to confirm your bid alerts." : value.alertStatus === "confirmed" ? " Your bid alerts are already on." : ""),
+      );
+      trackEvent("launchpad_statement_emailed", alerts ? "alerts" : "statement_only");
+    } catch (err) {
+      setEmailState("error");
+      setEmailNote(err instanceof Error ? err.message : "We couldn't send the email.");
+    }
+  }
+
   const steps = launchpadSteps(
     data,
     !!courses[0] && courses[0].done === courses[0].total,
@@ -193,7 +221,8 @@ export function Launchpad() {
             </p>
             <p className="mt-4 text-sm text-slate-400">
               No account or payment required. Drafts and course progress stay in
-              this browser on this device. Save your changes before leaving.
+              this browser on this device, unless you choose to email your
+              statement to yourself. Save your changes before leaving.
             </p>
           </div>
           <div className="self-center rounded-2xl border border-blue-400/30 bg-blue-400/10 p-6">
@@ -806,6 +835,43 @@ export function Launchpad() {
                 Print / Save PDF
               </button>
             </div>
+          </div>
+          <div className="mb-5 rounded-2xl border border-blue-100 bg-blue-50 p-5">
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={emailStatement}
+                disabled={!statementReady || emailState === "sending"}
+                className={BUTTON}
+              >
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                {emailState === "sending" ? "Sending…" : "Email me my capability statement"}
+              </button>
+              <label className="flex items-start gap-2 text-sm text-slate-800">
+                <input
+                  type="checkbox"
+                  checked={alerts}
+                  onChange={(event) => setAlerts(event.target.checked)}
+                  className="mt-1 h-4 w-4"
+                />
+                <span>
+                  Also email me open bids that match my trade and state, once a
+                  week. Unsubscribe anytime.
+                </span>
+              </label>
+            </div>
+            <p className="mt-3 text-xs text-slate-600">
+              Sent only to the business email in your profile. Contrax keeps
+              your business name, trade, state and email to send it.
+            </p>
+            {emailNote && (
+              <p
+                role="status"
+                className={`mt-3 text-sm font-semibold ${emailState === "error" ? "text-red-700" : "text-emerald-800"}`}
+              >
+                {emailNote}
+              </p>
+            )}
           </div>
           {!statementReady && (
             <p className="mb-4 text-sm text-slate-600">

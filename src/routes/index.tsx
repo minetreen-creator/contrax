@@ -232,7 +232,7 @@ function Home() {
         <FoundingOffer source="home" />
       </div>
       <Steps />
-      <FreeCoursesPromo />
+      <LaunchpadPromo />
       <FromTheCEO />
       <BidScoutCallout />
       {/* Compact grants introduction; full plan comparison lives on pricing. */}
@@ -285,36 +285,56 @@ function EndingSoonPromo({ count, total }: { count: number; total: number }) {
   );
 }
 
-function FreeCoursesPromo() {
+// Contrax Launchpad (owner 2026-10-17): the courses and the Launchpad tools
+// presented as one section under the Launchpad name.
+const LAUNCHPAD_TOOLS = [
+  { title: "Capability statement builder", body: "Build it with a live preview, then print it, save a PDF or email it to yourself." },
+  { title: "Registration checklist", body: "Track the registrations, records and certifications your buyers require." },
+  { title: "Bid plan", body: "Size up a real opportunity, decide to bid or pass, and set your next step." },
+];
+const LAUNCHPAD_COURSES = [
+  { level: "Introductory · 15 minutes", title: "Government Contracting Basics", body: "Five short lessons on finding bids, set-asides and sizing up opportunities.", href: "/learn/government-contracting", accent: "text-amber-700 dark:text-amber-300", button: "bg-amber-500 text-slate-950 hover:bg-amber-400" },
+  { level: "Intermediate · About 65 minutes", title: "Preparing a Government Contract Bid", body: "Eight lessons on capability statements, compliance, pricing and submission.", href: "/learn/intermediate-government-contracting", accent: "text-blue-700 dark:text-blue-300", button: "bg-blue-700 text-white hover:bg-blue-800" },
+  { level: "Advanced · About 70 minutes", title: "Government Contracting Strategy and Management", body: "Six lessons on pursuit strategy, teaming, pricing risk and contract performance.", href: "/learn/advanced-government-contracting", accent: "text-emerald-700 dark:text-emerald-300", button: "bg-emerald-700 text-white hover:bg-emerald-800" },
+];
+
+function LaunchpadPromo() {
   return (
-    <section aria-labelledby="free-courses-title" className="mx-auto mt-12 max-w-[1120px] px-4 sm:px-6">
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 sm:p-8 dark:border-amber-500/30 dark:bg-slate-900">
-        <p className="text-xs font-bold uppercase tracking-widest text-amber-800 dark:text-amber-300">Free for everyone · Self-paced · Completion certificates</p>
-        <h2 id="free-courses-title" className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Free Government Contracting Courses</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-700 dark:text-slate-300">Three free courses: learn the basics, prepare your bid, and strengthen your contracting strategy and management. Study at your own pace without an account or payment.</p>
-        <a href="/launchpad" className="mt-5 inline-flex rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">New: Open your free Contrax Launchpad →</a>
-        <div className="mt-6 grid gap-5 lg:grid-cols-3">
-          <article className="flex flex-col rounded-xl border border-amber-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950">
-            <p className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300">Introductory · 15 minutes</p>
-            <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">Getting Started with Government Contracting</h3>
-            <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">Five short lessons on finding bids, understanding set-asides, and evaluating opportunities. Includes quizzes and a printable completion certificate.</p>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Choose your state and construction trade for relevant live bid examples.</p>
-            <a href="/learn/government-contracting" aria-label="Start free introductory government contracting course" className="mt-5 self-start rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-400 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-600">Start free course →</a>
-          </article>
-          <article className="flex flex-col rounded-xl border border-blue-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950">
-            <p className="text-xs font-bold uppercase tracking-wide text-blue-700 dark:text-blue-300">Intermediate · About 65 minutes</p>
-            <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">Preparing a Government Contract Bid</h3>
-            <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">Eight practical lessons on finding opportunities, capability statements, bid decisions, compliance, pricing, evidence, submission, and follow-up. Includes quizzes and a printable completion certificate.</p>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">For all trades, with saved progress and a downloadable bid-planning worksheet.</p>
-            <a href="/learn/intermediate-government-contracting" aria-label="Start free intermediate government contracting course" className="mt-5 self-start rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Start free course →</a>
-          </article>
-          <article className="flex flex-col rounded-xl border border-emerald-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950">
-            <p className="text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-300">Advanced · About 70 minutes</p>
-            <h3 className="mt-2 text-xl font-bold text-slate-900 dark:text-white">Government Contracting Strategy and Management</h3>
-            <p className="mt-3 text-sm leading-relaxed text-slate-700 dark:text-slate-300">Six lessons on pursuit strategy, evaluated value, teaming, pricing risk, contract performance, and continuous improvement. Includes quizzes and a printable completion certificate.</p>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">For all trades, with saved progress and a downloadable strategy and management plan.</p>
-            <a href="/learn/advanced-government-contracting" aria-label="Start free advanced government contracting course" className="mt-5 self-start rounded-xl bg-emerald-700 px-5 py-3 text-sm font-bold text-white transition hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-emerald-600">Start free course →</a>
-          </article>
+    <section aria-labelledby="launchpad-title" className="mx-auto mt-12 max-w-[1120px] px-4 sm:px-6">
+      <div className="overflow-hidden rounded-2xl border border-[#dde3ec] bg-white dark:border-[#24334f] dark:bg-slate-900">
+        <div className="bg-gradient-to-br from-[#0b1f45] via-[#12357a] to-[#0b1f45] p-6 text-white sm:p-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-amber-300">Free · Self-paced · No account needed</p>
+          <h2 id="launchpad-title" className="mt-2 text-3xl font-bold">Contrax Launchpad</h2>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-200">
+            Everything you need to go after your first government contract, in one place: three courses with completion
+            certificates, a capability statement builder, a registration checklist and a bid plan.
+          </p>
+          <a href="/launchpad" onClick={() => trackEvent("launchpad_home_click")} className="mt-5 inline-flex rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300">
+            Open Contrax Launchpad →
+          </a>
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {LAUNCHPAD_TOOLS.map((t) => (
+              <div key={t.title} className="rounded-xl border border-white/15 bg-white/5 p-4">
+                <h3 className="font-bold text-white">{t.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-slate-300">{t.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="p-6 sm:p-8">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Courses</h3>
+          <div className="mt-4 grid gap-5 lg:grid-cols-3">
+            {LAUNCHPAD_COURSES.map((c) => (
+              <article key={c.href} className="flex flex-col rounded-xl border border-slate-200 p-5 dark:border-slate-700">
+                <p className={`text-xs font-bold uppercase tracking-wide ${c.accent}`}>{c.level}</p>
+                <h4 className="mt-2 text-lg font-bold text-slate-900 dark:text-white">{c.title}</h4>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{c.body} Includes quizzes and a printable certificate.</p>
+                <a href={c.href} aria-label={`Start course: ${c.title}`} className={`mt-4 self-start rounded-xl px-5 py-3 text-sm font-bold transition ${c.button}`}>
+                  Start course →
+                </a>
+              </article>
+            ))}
+          </div>
         </div>
       </div>
     </section>

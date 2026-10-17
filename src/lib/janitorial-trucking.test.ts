@@ -8,7 +8,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { GENERIC_TRADE_TERMS, expandTrade, isStrongTradeMatch, tradeTextIncludes } from "~/lib/trade-registry";
+import { GENERIC_TRADE_TERMS, MAX_EXPANDED_TERMS, expandTrade, isStrongTradeMatch, tradeTextIncludes } from "~/lib/trade-registry";
 import { inferNaics } from "~/lib/naics-infer";
 import {
   hasExplicitTransportationServicePhrase,
@@ -94,7 +94,8 @@ describe("R3 — trade-registry completeness (audit §2.2 gaps)", () => {
       expect(JANITORIAL.terms).toContain(t);
     }
     expect(JANITORIAL.terms).not.toContain("cleaning");
-    expect(JANITORIAL.terms.length).toBeLessThanOrEqual(16);
+    // Bounded by the shared cap (raised 16 → 28 on 2026-10-17 for the new phrasings).
+    expect(JANITORIAL.terms.length).toBeLessThanOrEqual(MAX_EXPANDED_TERMS);
   });
 
   test("specialty cleaning is NOT a janitorial text match", () => {
@@ -675,5 +676,32 @@ describe("USPS mail routes on trucking searches (owner 2026-10-16)", () => {
     expect(expandTrade("mail route").naicsCodes).toEqual(["491110"]);
     // A bare "delivery" search stays courier-only (owner 09-15 rule).
     expect(expandTrade("delivery").naicsCodes).not.toContain("491110");
+  });
+});
+
+describe("janitorial audit (owner 2026-10-17)", () => {
+  test("everyday cleaning phrasings resolve to the janitorial search", async () => {
+    const { expandTrade } = await import("./trade-registry");
+    const terms = expandTrade("janitorial").terms;
+    for (const title of [
+      "Window Washing Services",
+      "Day Porter Services",
+      "Disinfection and Sanitizing Services",
+      "Post-Construction Cleaning",
+      "Restroom Cleaning and Trash Removal",
+      "Pressure Washing Services",
+    ]) {
+      expect(terms.some((t) => title.toLowerCase().includes(t))).toBe(true);
+    }
+    // The earlier curated terms survive the raised cap.
+    for (const t of ["janitor", "office cleaning", "floor cleaning"]) expect(terms).toContain(t);
+  });
+
+  test("janitorial supply orders are purchases, real service contracts are not", async () => {
+    const { tradeGateForNotice } = await import("./trade-classification");
+    expect(tradeGateForNotice("Janitorial Paper Products", "").janitorial).toBe("product_buy");
+    expect(tradeGateForNotice("IFB Janitorial Cleaning Products", "").janitorial).toBe("product_buy");
+    expect(tradeGateForNotice("Janitorial Services and Supplies", "").janitorial).toBeNull();
+    expect(tradeGateForNotice("Day Porter Services", "").janitorial).toBeNull();
   });
 });

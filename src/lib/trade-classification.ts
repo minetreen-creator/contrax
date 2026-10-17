@@ -146,6 +146,11 @@ export const PRODUCT_BUY_PATTERNS: RegExp[] = [
   /\bdispensers?\b/,
   /\bsoap\b/,
   /\bpaper towels?\b/,
+  // Owner 2026-10-17: "Janitorial Paper Products" / "IFB Janitorial Cleaning
+  // Products" are supply orders that slipped into the janitorial set.
+  /\bpaper products?\b/,
+  /\bcleaning products?\b/,
+  /\bjanitorial products?\b/,
   /\bsanitizers?\b/,
   /\bappliances?\b/,
   /\bscrubbers?\b/,

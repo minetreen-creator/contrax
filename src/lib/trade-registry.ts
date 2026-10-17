@@ -66,8 +66,12 @@ export const MAX_TRADE_LENGTH = 120;
  *  registry: a "trucking" scan lost "dry van", "flatbed" and "long haul", and a
  *  "janitorial" scan lost "janitor", "floor cleaning" and "office cleaning".
  *  Raising the cap therefore only ADDS match terms (recall can only grow); it
- *  never removes one, and 16 still bounds the OR-branch count. */
-export const MAX_EXPANDED_TERMS = 16;
+ *  never removes one, and 16 still bounds the OR-branch count.
+ *
+ *  RAISED 16 → 28 (owner 2026-10-17): the janitorial entry gained eight
+ *  everyday phrasings (window washing, day porter, …), taking it to 26 terms;
+ *  at 16 they would have been silently dropped, exactly as above. */
+export const MAX_EXPANDED_TERMS = 28;
 
 /**
  * OWNER PRECISION CONSTRAINT (09-07) — structurally enforced.
@@ -262,6 +266,19 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       // vetoed by purchasedServiceVeto below exactly like "cleaning services".
       "sanitation",
       "window cleaning",
+      // OWNER 2026-10-17 (janitorial audit): everyday city / school-district
+      // phrasings that matched nothing before ("Window Washing Services", "Day
+      // Porter Services", "Disinfection and Sanitizing Services", "Post-
+      // Construction Cleaning", "Restroom Cleaning and Trash Removal",
+      // "Pressure Washing Services").
+      "window washing",
+      "day porter",
+      "disinfection",
+      "sanitizing",
+      "post-construction cleaning",
+      "restroom cleaning",
+      "pressure washing",
+      "power washing",
     ],
     naics: ["561720"],
   },

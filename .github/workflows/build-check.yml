@@ -54,6 +54,8 @@ jobs:
           bun-version: 1.4.2
       - name: Install dependencies (frozen lockfile)
         run: bun install --frozen-lockfile
+      - name: Founding Business pricing and fulfillment tests
+        run: bun test src/lib/founding-business.test.ts
       - name: Route JSX syntax check
         run: bun run check:routes
       - name: Build .vercel/output (Build Output API v3)

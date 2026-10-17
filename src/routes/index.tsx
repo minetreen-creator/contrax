@@ -5,6 +5,7 @@ import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, GraduationCap } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { MoneyCounter } from "~/components/MoneyCounter";
+import { WinCalculator } from "~/components/WinCalculator";
 
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -224,6 +225,7 @@ function Home() {
       <HomeContractFinder sample={sample} />
       <Stats bidStats={bidStats} contractMap={contractMap} />
       <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} />
+      <WinCalculator />
       <PlatformShowcase />
       {endingSoon && <EndingSoonPromo count={endingSoon.count} total={endingSoon.total} />}
       {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the

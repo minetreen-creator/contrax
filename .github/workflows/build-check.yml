@@ -60,6 +60,8 @@ jobs:
         run: |
           bun test src/lib/annual-billing.test.ts
           bun test src/lib/weekly-digest.test.ts
+      - name: Local award accounting and calculator tests
+        run: bun test src/lib/local-awards/model.test.ts src/lib/win-calculator.test.ts
       - name: Route JSX syntax check
         run: bun run check:routes
       - name: Build .vercel/output (Build Output API v3)

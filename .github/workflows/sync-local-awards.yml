@@ -1,0 +1,41 @@
+name: Sync local federal award figures
+on:
+  schedule:
+    - cron: "15 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - src/lib/local-awards/**
+      - src/jobs/local-awards-sync.ts
+      - .github/workflows/sync-local-awards.yml
+  pull_request:
+    paths:
+      - src/lib/local-awards/**
+      - src/jobs/local-awards-sync.ts
+      - .github/workflows/sync-local-awards.yml
+permissions:
+  contents: read
+concurrency:
+  group: local-awards-${{ github.event_name == 'pull_request' && github.event.pull_request.number || 'production' }}
+  cancel-in-progress: false
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - run: bun install --frozen-lockfile
+      - name: County aggregation tests
+        run: bun test src/lib/local-awards/model.test.ts
+      - name: Live three-city reconciliation (no DB writes)
+        if: github.event_name == 'pull_request'
+        run: bun run src/jobs/local-awards-sync.ts --dry-run
+      - name: Refresh requested counties and seed launch cities
+        if: github.event_name != 'pull_request'
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: bun run src/jobs/local-awards-sync.ts

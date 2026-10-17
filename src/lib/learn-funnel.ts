@@ -19,7 +19,8 @@ export function learningCounts(rows: LearnVisitor[]) {
     visitors.add(row.visitor_id);
     const after = (value?: string | null) => !!value && Date.parse(value) >= since;
     if (after(row.opened_at)) opened.add(row.visitor_id);
-    if (after(row.engaged_at)) started.add(row.visitor_id);
+    // A recorded completion proves engagement even if an earlier beacon was lost.
+    if ([row.engaged_at, row.lesson_at, row.finished_at, row.completed_at].some(after)) started.add(row.visitor_id);
     if (after(row.lesson_at)) lesson.add(row.visitor_id);
     if (after(row.finished_at)) finished.add(row.visitor_id);
     if (after(row.completed_at)) completed.add(row.visitor_id);

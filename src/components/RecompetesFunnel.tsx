@@ -19,6 +19,7 @@ export function RecompetesFunnel({ days = 30 }: { days?: number }) {
       subtitle={`homepage section → /recompetes → signup (${days} days)`}
       url={`/api/admin/recompetes-funnel?days=${days}`}
       labels={labels}
+      compactZeros
       note={<>Clicks count distinct visitors per button. Signup, activation and subscriptions must follow a /recompetes visit in this period; they show association, not proof the page caused them. Signups made through the page's button also carry signup source "recompetes" on the Signups tab. QA/admin/bot/test traffic excluded. Tracking began 2026-10-13.</>}
     />
   );

@@ -14,6 +14,7 @@ export function FunnelStrip<K extends string>({
   emptyKey,
   emptyText,
   note,
+  compactZeros = false,
 }: {
   id: string;
   title: string;
@@ -24,6 +25,7 @@ export function FunnelStrip<K extends string>({
   emptyKey?: K;
   emptyText?: string;
   note: ReactNode;
+  compactZeros?: boolean;
 }) {
   const [counts, setCounts] = useState<Record<K, number> | null>(null);
   const [error, setError] = useState("");
@@ -61,12 +63,16 @@ export function FunnelStrip<K extends string>({
         <p className="mt-2 rounded-xl bg-white p-3 text-sm text-slate-500">Loading…</p>
       ) : (
         <div className="mt-2 flex flex-wrap gap-2">
-          {labels.map(([key, label]) => (
+          {labels.filter(([key]) => !compactZeros || counts[key] > 0).map(([key, label]) => (
             <div key={key} className="min-w-[7.5rem] flex-1 rounded-lg border border-slate-200 bg-white px-3 py-2">
               <p className="text-[11px] leading-tight text-slate-500">{label}</p>
               <p className="text-lg font-bold text-slate-900">{counts[key]}</p>
             </div>
           ))}
+          {compactZeros && labels.some(([key]) => counts[key] === 0) && <details className="w-full text-xs text-slate-500">
+            <summary className="cursor-pointer py-2">{labels.filter(([key]) => counts[key] === 0).length} stages with no recorded activity — show counts</summary>
+            <ul className="flex flex-wrap gap-x-5 gap-y-2 py-2">{labels.filter(([key]) => counts[key] === 0).map(([key, label]) => <li key={key}>{label}: <strong>0</strong></li>)}</ul>
+          </details>}
         </div>
       )}
       <details className="mt-1 text-xs text-slate-500">

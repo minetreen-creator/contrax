@@ -130,12 +130,8 @@ export async function countFoundingMembers(): Promise<number> {
 
 /** Founding spots left (0..LIMIT), or null when Stripe cannot be read. */
 export async function foundingSpotsRemaining(): Promise<number | null> {
-  try {
-    return Math.max(0, FOUNDING_MEMBER_LIMIT - (await countFoundingMembers()));
-  } catch (err) {
-    console.error("[founding] spot count unavailable:", (err as Error).message);
-    return null;
-  }
+  // Retired for new purchases. Existing subscriptions keep their Stripe price.
+  return 0;
 }
 
 /** Monthly price in whole dollars per tier (the catalog prices above). */
@@ -444,18 +440,7 @@ export async function createCheckoutSession(
       return { success: false, error: "Yearly billing is not available for this plan." };
     }
     const founding = opts.founding === true;
-    if (founding) {
-      if (planTier !== "starter" || interval !== "month" || isVad || (opts.mode ?? "subscription") !== "subscription") {
-        return { success: false, error: "The founding-member price is for monthly Starter only." };
-      }
-      const remaining = await foundingSpotsRemaining();
-      if (remaining === null) {
-        return { success: false, error: "The founding-member offer is unavailable right now. Please try again shortly." };
-      }
-      if (remaining <= 0) {
-        return { success: false, error: "All founding-member spots have been taken." };
-      }
-    }
+    if (founding) return { success: false, error: "The $9 founding-member offer has ended. See /founding-businesses for the current launch offer." };
     const priceId = isVad
       ? await getVadPriceIdForPlanTier(planTier)
       : await getPriceIdForPlanTier(planTier);

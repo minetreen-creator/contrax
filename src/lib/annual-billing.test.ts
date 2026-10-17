@@ -103,53 +103,24 @@ describe("MRR counts a yearly price per month", () => {
   });
 });
 
-describe("founding-member offer (owner 2026-10-03)", () => {
-  test("$9/month, 10 spots", () => {
-    expect(stripeLib.FOUNDING_MEMBER_UNIT_AMOUNT).toBe(900);
-    expect(stripeLib.FOUNDING_MEMBER_LIMIT).toBe(10);
-  });
-
-  test("spots: canceled subscriptions free a spot; a failed count is null (fail closed)", async () => {
-    foundingSubs = [{ status: "active" }, { status: "active" }, { status: "canceled" }, { status: "past_due" }];
-    expect(await stripeLib.foundingSpotsRemaining()).toBe(7);
-    foundingSearchFails = true;
-    expect(await stripeLib.foundingSpotsRemaining()).toBeNull();
-    foundingSearchFails = false;
-    foundingSubs = [];
-  });
-
-  test("a founding checkout bills $9/month on the Starter product with founding metadata", async () => {
+describe("retired $9 founding-member offer", () => {
+  test("old checkout requests fail closed without creating a payment session", async () => {
     created.length = 0;
-    const r = await stripeLib.createCheckoutSession("starter", { userId: 7, founding: true });
-    expect(r.success).toBe(true);
-    const params = created[0];
-    expect(params.line_items).toEqual([
-      { price_data: { currency: "usd", product: "prod_starter", unit_amount: 900, recurring: { interval: "month" } }, quantity: 1 },
-    ]);
-    expect(params.metadata).toEqual({ plan_tier: "starter", user_id: "7", founding_member: "true" });
-    expect(params.subscription_data.metadata.founding_member).toBe("true");
-  });
-
-  test("refused when full, when the count fails, and for other tiers / yearly / VAD", async () => {
-    foundingSubs = Array.from({ length: 10 }, () => ({ status: "active" }));
-    expect((await stripeLib.createCheckoutSession("starter", { founding: true })).success).toBe(false);
-    foundingSubs = [];
-    foundingSearchFails = true;
-    expect((await stripeLib.createCheckoutSession("starter", { founding: true })).success).toBe(false);
-    foundingSearchFails = false;
-    expect((await stripeLib.createCheckoutSession("professional", { founding: true })).success).toBe(false);
-    expect((await stripeLib.createCheckoutSession("starter", { founding: true, interval: "year" })).success).toBe(false);
-    expect((await stripeLib.createCheckoutSession("starter", { founding: true, promoCode: "VAD26" })).success).toBe(false);
+    expect(await stripeLib.foundingSpotsRemaining()).toBe(0);
+    for (const options of [{ founding: true }, { founding: true, interval: "year" as const }, { founding: true, promoCode: "VAD26" }]) {
+      const result = await stripeLib.createCheckoutSession("starter", options);
+      expect(result.success).toBe(false);
+      expect(result.error).toContain("has ended");
+    }
+    expect(created).toHaveLength(0);
   });
 });
-
 
 describe("legacy shared Agency product", () => {
   test("repairs founding, monthly and yearly names without changing charges or attribution", async () => {
     legacyProduct = true;
     try {
       for (const [tier, options, amount, name] of [
-        ["starter", { founding: true }, 900, "Contrax Starter"],
         ["starter", {}, 1900, "Contrax Starter"],
         ["professional", {}, 7900, "Contrax Professional"],
         ["professional", { interval: "year" }, 79000, "Contrax Professional"],

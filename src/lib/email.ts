@@ -519,7 +519,7 @@ export function radarMatchAlertHtml(
           <p style="margin:16px 0 0;color:#6b7280;font-size:13px;line-height:1.5;">
             Free match alerts arrive once a week. Want every new bid each morning?
             ${foundingOfferOpen(foundingSpots)
-              ? `Starter is ${starterPriceHtml(foundingSpots)}. <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;">Claim a founding spot →</a>`
+              ? `Starter is ${starterPriceHtml(foundingSpots)}. <a href="https://www.contrax.company/founding-businesses" style="color:#2563eb;font-weight:600;">Claim a founding spot →</a>`
               : `<a href="https://www.contrax.company/pricing" style="color:#2563eb;">Starter is $19/month</a>.`}
           </p>
         </td>
@@ -827,10 +827,9 @@ export async function sendAwardResultsEmail(to: string, items: AwardEmailItem[])
   }
 }
 
-// ── Founding-member offer line (owner 2026-10-03) ──────────────────────────────
-// The free emails pitch Starter at the founding price while spots remain
-// (Starter at $9/month for life, first 10 members, src/lib/stripe.ts). The
-// caller passes foundingSpotsRemaining(): null (count unavailable) or 0 falls
+// ── Founding Business launch offer (owner 2026-10-17) ──────────────────────────────
+// The free emails pitch the $99 Founding Business bundle while places remain.
+// The caller passes live Founding Business inventory: null or 0 falls
 // back to the regular $19/month line, so a full or unknown offer is never sold.
 
 /** True when the founding price should be shown. */
@@ -838,12 +837,12 @@ export function foundingOfferOpen(spots: number | null | undefined): spots is nu
   return typeof spots === "number" && Number.isFinite(spots) && spots > 0;
 }
 
-/** "$9/month for life … (3 spots left)" while founding spots remain, else "$19/month". */
+/** First-year bundle and renewal terms, or the ordinary Starter monthly price. */
 export function starterPriceHtml(spots: number | null | undefined): string {
   if (!foundingOfferOpen(spots)) return "$19/month";
   // No "10 spots left" while none are taken (owner 2026-10-04): it reads as "nobody bought".
   const left = spots >= 10 ? "" : ` (only ${spots} spot${spots === 1 ? "" : "s"} left)`;
-  return `<strong>$9/month for life</strong> as one of our first 10 founding members${left}`;
+  return `<strong>$99 for your first year</strong> of Starter, with a 12-month company feature and one Facebook spotlight${left}. Renews at $190/year unless canceled; the feature does not renew automatically`
 }
 
 // ── Bid Digest HTML Template ───────────────────────────────────────────────────
@@ -970,7 +969,7 @@ export function bidDigestHtml(
           <p style="margin:0;color:#374151;font-size:14px;line-height:1.6;">
             ${weekly.headStartCount ? `<strong>+ ${weekly.headStartCount} newer bid${weekly.headStartCount === 1 ? " was" : "s were"} posted in the last ${HEAD_START_DAYS} days.</strong> Starter members already have ${weekly.headStartCount === 1 ? "it" : "them"}; free accounts see new bids after a ${HEAD_START_DAYS}-day head start.<br>` : ""}
             You get this once a week on the free Basic plan. <strong>Starter</strong> sends every new bid at 6 AM Eastern, every morning, for ${starterPriceHtml(weekly.foundingSpots)}.
-            <a href="https://www.contrax.company/pricing" style="color:#2563eb;font-weight:600;text-decoration:none;">${foundingOfferOpen(weekly.foundingSpots) ? "Claim a founding spot →" : "See Starter →"}</a>
+            <a href="https://www.contrax.company/${foundingOfferOpen(weekly.foundingSpots) ? "founding-businesses" : "pricing"}" style="color:#2563eb;font-weight:600;text-decoration:none;">${foundingOfferOpen(weekly.foundingSpots) ? "Claim a founding spot →" : "See Starter →"}</a>
           </p>
         </td>
       </tr>` : ""}

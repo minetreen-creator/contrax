@@ -1,3 +1,7 @@
+import { launchpadLearning } from "./launchpad-learning";
+import { LESSONS } from "./course-construction";
+import { INTERMEDIATE_COURSE } from "./course-intermediate";
+import { ADVANCED_COURSE } from "./course-advanced";
 import { test } from "bun:test";
 import assert from "node:assert/strict";
 import {
@@ -6,6 +10,7 @@ import {
   capabilityReady,
   launchpadSteps,
   launchpadRadarHref,
+  launchpadCourseHref,
   safeOpportunityUrl,
   capabilityPrintHtml,
   capabilityText,
@@ -74,4 +79,57 @@ test("Launchpad restores safe drafts, computes preparation steps and exports onl
   console.log(
     "PASS: 22 Launchpad domain assertions (draft parsing, unsafe links, progress decisions, statement readiness, print escaping, Radar criteria, save round-trip).",
   );
+});
+
+test("Course links keep the chosen state and only pass supported business criteria", () => {
+  const profile = {
+    ...emptyLaunchpad().profile,
+    state: "VA",
+    trade: "janitorial",
+  };
+  assert.equal(
+    launchpadCourseHref("/learn/government-contracting", profile, false),
+    "/learn/government-contracting?state=VA",
+  );
+  assert.equal(
+    launchpadCourseHref("/learn/intermediate-government-contracting", profile),
+    "/learn/intermediate-government-contracting?state=VA&trade=janitorial",
+  );
+});
+
+test("Launchpad uses actual course quiz progress, not page views or unknown lesson IDs", () => {
+  const stored = new Map<string, string>();
+  const get = (key: string) => stored.get(key) ?? null;
+  assert(launchpadLearning(get).every((course) => course.done === 0));
+  stored.set(
+    "contrax_course_construction_v1",
+    JSON.stringify([...LESSONS.map((lesson) => lesson.id), "unknown"]),
+  );
+  for (const course of [INTERMEDIATE_COURSE, ADVANCED_COURSE])
+    stored.set(
+      course.key,
+      JSON.stringify({
+        answers: Object.fromEntries(
+          course.lessons.map((lesson) => [
+            lesson.id,
+            lesson.quiz.map((question) => question.answer),
+          ]),
+        ),
+      }),
+    );
+  assert(
+    launchpadLearning(get).every((course) => course.done === course.total),
+  );
+  const course = INTERMEDIATE_COURSE;
+  stored.set(
+    course.key,
+    JSON.stringify({
+      answers: {
+        [course.lessons[0].id]: course.lessons[0].quiz.map(
+          (question) => (question.answer + 1) % question.options.length,
+        ),
+      },
+    }),
+  );
+  assert.equal(launchpadLearning(get)[1].done, 0);
 });

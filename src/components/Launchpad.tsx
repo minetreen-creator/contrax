@@ -17,6 +17,7 @@ import {
   parseLaunchpad,
   launchpadSteps,
   launchpadRadarHref,
+  launchpadCourseHref,
   capabilityReady,
   capabilityText,
   capabilityPrintHtml,
@@ -44,7 +45,9 @@ export function Launchpad() {
 
   useEffect(() => {
     if (!dirty) return;
-    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
@@ -211,7 +214,9 @@ export function Launchpad() {
                 href={next?.href ?? radarHref}
                 className="mt-5 inline-flex items-center gap-2 rounded-xl bg-blue-500 px-5 py-3 font-bold text-white hover:bg-blue-600"
               >
-                {next?.action ?? "Explore opportunities"}
+                {next?.id === "learn" && courses[0]?.done
+                  ? "Continue the free course"
+                  : (next?.action ?? "Explore opportunities")}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </a>
             )}
@@ -326,7 +331,11 @@ export function Launchpad() {
                     className="mt-3 h-2 w-full accent-blue-600"
                   />
                   <a
-                    href={`${course.href}${data.profile.state && course.id !== "beginner" ? `?${new URLSearchParams({ state: data.profile.state, trade: data.profile.trade })}` : ""}`}
+                    href={launchpadCourseHref(
+                      course.href,
+                      data.profile,
+                      course.id !== "beginner",
+                    )}
                     className="mt-4 inline-block text-sm font-bold text-blue-700 underline underline-offset-4"
                   >
                     {course.done === course.total

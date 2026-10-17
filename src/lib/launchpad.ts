@@ -174,7 +174,11 @@ export function launchpadSteps(data: LaunchpadData, beginnerComplete: boolean) {
       id: "learn",
       title: "Learn the fundamentals",
       detail: "Complete the free beginner course and its quizzes.",
-      href: "/learn/government-contracting",
+      href: launchpadCourseHref(
+        "/learn/government-contracting",
+        data.profile,
+        false,
+      ),
       done: beginnerComplete,
       action: "Start the free course",
     },
@@ -264,4 +268,16 @@ function escapeHtml(value: string): string {
 }
 export function capabilityPrintHtml(profile: LaunchpadProfile): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escapeHtml(profile.company || "Capability statement")}</title><style>@page{size:letter;margin:18mm}body{font:11pt/1.5 Arial,sans-serif;color:#14233b;margin:0}h1{font-size:26pt;line-height:1.15;margin:0 0 6px;color:#123a73}p{margin:8px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit;margin:24px 0}footer{font-size:8pt;color:#536174;border-top:1px solid #dce4ef;padding-top:10px}h1,footer{break-inside:avoid}</style></head><body><h1>${escapeHtml(profile.company || "Your company")}</h1><p>CAPABILITY STATEMENT</p><pre>${escapeHtml(capabilityText(profile).split("\n").slice(3, -2).join("\n"))}</pre><footer>Prepared using Contrax Launchpad. Business-provided information; verify all claims before sharing.</footer></body></html>`;
+}
+
+export function launchpadCourseHref(
+  path: string,
+  profile: LaunchpadProfile,
+  includeTrade = true,
+): string {
+  const params = new URLSearchParams();
+  if (profile.state) params.set("state", profile.state);
+  if (includeTrade && profile.trade.trim())
+    params.set("trade", profile.trade.trim().slice(0, 120));
+  return params.size ? `${path}?${params}` : path;
 }

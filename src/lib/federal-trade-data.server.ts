@@ -332,3 +332,15 @@ export async function recompeteTotals(months: number): Promise<{ count: number; 
     ) d`) as { n: number; total: number }[];
   return { count: r[0]?.n ?? 0, total: r[0]?.total ?? 0 };
 }
+
+/** Homepage counter: the same window as recompeteTotals, split by place-of-performance state. */
+export async function recompeteTotalsByState(months: number): Promise<Record<string, { count: number; total: number }>> {
+  await ensureFederalTradeTables();
+  const until = addMonths(new Date().toISOString().slice(0, 10), months);
+  const rows = (await sql()`
+    SELECT pop_state AS state, COUNT(*)::int AS n, COALESCE(SUM(amount),0)::float AS total FROM (
+      SELECT DISTINCT ON (award_key) award_key, amount, pop_state FROM recompete_contracts
+      WHERE end_date >= CURRENT_DATE AND end_date <= ${until}
+    ) d WHERE pop_state IS NOT NULL GROUP BY pop_state`) as { state: string; n: number; total: number }[];
+  return Object.fromEntries(rows.map((r) => [r.state, { count: r.n, total: r.total }]));
+}

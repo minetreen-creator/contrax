@@ -4,6 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, GraduationCap } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
+import { MoneyCounter } from "~/components/MoneyCounter";
 
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -86,7 +87,7 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, bidStats, contractMap, endingSoon] = await Promise.all([
+  const [businessName, bidStats, contractMap, endingSoon, endingByState] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -110,8 +111,18 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
         return null;
       }
     })(),
+    // Money counter (owner 2026-10-17): per-state split of the same USAspending
+    // window; {} hides the counter's state picker.
+    (async () => {
+      try {
+        const { recompeteTotalsByState } = await import("~/lib/federal-trade-data.server");
+        return await recompeteTotalsByState(12);
+      } catch {
+        return {};
+      }
+    })(),
   ]);
-  return { businessName, bidStats, contractMap, endingSoon };
+  return { businessName, bidStats, contractMap, endingSoon, endingByState };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -188,7 +199,7 @@ const BTN =
 
 function Home() {
 
-  const { bidStats, contractMap, endingSoon } = Route.useLoaderData();
+  const { bidStats, contractMap, endingSoon, endingByState } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -212,6 +223,7 @@ function Home() {
       <Navbar />
       <HomeContractFinder sample={sample} />
       <Stats bidStats={bidStats} contractMap={contractMap} />
+      <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} />
       <PlatformShowcase />
       {endingSoon && <EndingSoonPromo count={endingSoon.count} total={endingSoon.total} />}
       {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the

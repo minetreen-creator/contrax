@@ -108,15 +108,17 @@ function CoursePage() {
     if (next) setOpenId(next.id);
   }, []);
 
+  const engage = () => {
+    if (engagedRef.current) return;
+    engagedRef.current = true;
+    trackEvent("course_engaged", COURSE_ID, "/learn/government-contracting");
+  };
   const finish = (id: string) => {
     if (done.includes(id)) return;
     const next = [...done, id];
     setDone(next);
     saveProgress(next);
-    if (!engagedRef.current) {
-      engagedRef.current = true;
-      trackEvent("course_engaged", COURSE_ID, "/learn/government-contracting");
-    }
+    engage();
     trackEvent("course_lesson_complete", `${COURSE_ID}:${id}`, "/learn/government-contracting");
     if (LESSONS.every((l) => next.includes(l.id))) trackEvent("course_all_lessons_complete", COURSE_ID, "/learn/government-contracting");
     const upcoming = LESSONS.find((l) => !next.includes(l.id));
@@ -166,6 +168,7 @@ function CoursePage() {
             open={openId === l.id}
             done={done.includes(l.id)}
             onOpen={() => setOpenId(openId === l.id ? "" : l.id)}
+            onEngage={engage}
             onFinish={() => finish(l.id)}
             live={live}
             stateName={stateName}
@@ -189,6 +192,7 @@ function LessonCard(props: {
   open: boolean;
   done: boolean;
   onOpen: () => void;
+  onEngage: () => void;
   onFinish: () => void;
   live: Live | null;
   stateName: string;
@@ -229,7 +233,7 @@ function LessonCard(props: {
               </span>
             ))}
           </p>
-          <Quiz lesson={lesson} done={done} onPass={onFinish} />
+          <Quiz lesson={lesson} done={done} onPass={onFinish} onEngage={props.onEngage} />
           <Ask lessonId={lesson.id} />
         </div>
       )}
@@ -311,7 +315,7 @@ function LiveBids({ kind, live, stateName }: { kind: NonNullable<Lesson["live"]>
   );
 }
 
-function Quiz({ lesson, done, onPass }: { lesson: Lesson; done: boolean; onPass: () => void }) {
+function Quiz({ lesson, done, onPass, onEngage }: { lesson: Lesson; done: boolean; onPass: () => void; onEngage: () => void }) {
   const [picked, setPicked] = useState<(number | null)[]>(() => lesson.quiz.map(() => null));
   const answered = picked.every((p) => p !== null);
   const allRight = answered && picked.every((p, i) => p === lesson.quiz[i].answer);
@@ -339,7 +343,7 @@ function Quiz({ lesson, done, onPass }: { lesson: Lesson; done: boolean; onPass:
                     type="radio"
                     name={`${lesson.id}-${qi}`}
                     checked={chosen}
-                    onChange={() => setPicked((p) => p.map((v, i) => (i === qi ? oi : v)))}
+                    onChange={() => { onEngage(); setPicked((p) => p.map((v, i) => (i === qi ? oi : v))); }}
                     className="mt-0.5"
                   />
                   {o}

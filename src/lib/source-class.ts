@@ -534,6 +534,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  va_botetourt_bonfire: {
+    class: "local",
+    city: "Botetourt County",
+    scopeState: "VA",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   va_alexandria_bonfire: {
     class: "local",
     city: "Alexandria",

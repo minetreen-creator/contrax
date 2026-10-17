@@ -268,8 +268,12 @@ describe("Radar: a search link scans at once; only trade and state are asked", (
   });
 
   test("the homepage search sends no SDVOSB-only filter", () => {
-    expect(home).not.toContain('cert: "sdvosb", size: "any"');
-    expect(home).toContain('navigate({ to: "/radar", search: search as never });');
+    expect(home).toContain("<HomeContractFinder sample={sample} />");
+    const finder = readFileSync(join(REPO_SRC, "components", "HomeContractFinder.tsx"), "utf8");
+    expect(finder).toContain('cert: "sb"');
+    expect(finder).not.toContain('cert: "sdvosb"');
+    expect(finder).toContain("radar.runRadarScan({ data: answers })");
+    expect(finder).toContain("free: true");
   });
 });
 

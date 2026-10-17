@@ -1,3 +1,33 @@
+const whatsNew = [
+  {
+    heading: "🧭 Contrax Launchpad: your step-by-step path to your first government contract",
+    items: [
+      "Build a professional capability statement in minutes, with a live preview. Print it, save it as a PDF, or email it straight to your inbox in one click.",
+      "A registration checklist so nothing slips through the cracks.",
+      "A bid-planning worksheet to decide what to bid and what to pass on.",
+      "Three courses (basics, preparing your bid, strategy), each with quizzes and a printable completion certificate.",
+      "Matching bids in your inbox every week: tick one box when you email your statement. No account needed, unsubscribe anytime.",
+      "Sign in and your Launchpad follows you to every device, with your progress right on your Contrax dashboard.",
+    ],
+  },
+  {
+    heading: "🏠 A brand-new homepage, built from your feedback",
+    items: ["You told us what you wanted, and we listened. Type your trade and state and see real, open contracts right away, no account needed. Launchpad now has its own spot right on the homepage."],
+  },
+  {
+    heading: "🧹 More janitorial work",
+    items: ["We now catch window washing, day porters, disinfection, restroom cleaning, post-construction cleanup, and pressure and power washing."],
+  },
+  {
+    heading: "❄️ Better HVAC matches",
+    items: ["Rooftop units, cooling towers, heat pumps, mini-splits, refrigeration and building automation now land in your matches. Bids that are only for buying filters or equipment get screened out, so you see real work."],
+  },
+  {
+    heading: "⏳ Contracts Ending Soon",
+    items: ["See which federal contracts are about to end, who holds them now, and get ready before the rebid is posted."],
+  },
+];
+
 const trialMessage = [
   "🚀 Big change at Contrax: every new account now starts with a 7-day Professional trial.",
   "Why are we doing this? Most people who signed up only ever saw the basic version of Contrax. They never saw the tools that actually help you win: the daily bid emails, the match scores and the past winners and award prices. You can’t know if something is worth paying for until you’ve used it. So now everyone gets the whole thing for a week, and you decide based on real results.",
@@ -46,6 +76,25 @@ export function CEOPosts() {
         <div className="mx-auto max-w-[680px]">
           <h2 id="from-the-ceo-title" className="text-2xl font-bold text-slate-900 dark:text-white">From the CEO</h2>
           <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">Nathaniel Minetree · Founder &amp; CEO, Contrax</p>
+          <article className="mt-6 border-b border-slate-200 pb-8 dark:border-slate-700" aria-labelledby="ceo-whats-new-title">
+            <p className="text-xs font-bold uppercase tracking-widest text-blue-700 dark:text-blue-300">What&apos;s new · October 2026</p>
+            <h3 id="ceo-whats-new-title" className="mt-2 text-xl font-bold text-slate-900 dark:text-white">A big week at Contrax</h3>
+            <p className="mt-3 text-base leading-relaxed text-slate-700 dark:text-slate-300">Here is everything that just went live.</p>
+            <div className="mt-5 space-y-5">
+              {whatsNew.map(section => (
+                <div key={section.heading}>
+                  <h4 className="font-bold text-slate-900 dark:text-white">{section.heading}</h4>
+                  {section.items.length > 1 ? (
+                    <ul className="mt-2 space-y-1.5 text-base leading-relaxed text-slate-700 dark:text-slate-300">{section.items.map(item => <li key={item}>✅ {item}</li>)}</ul>
+                  ) : (
+                    <p className="mt-2 text-base leading-relaxed text-slate-700 dark:text-slate-300">{section.items[0]}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <p className="mt-5 text-base leading-relaxed text-slate-700 dark:text-slate-300">Government contracts aren&apos;t just for the big guys. Small businesses win them every day, and Contrax helps you find yours.</p>
+            <a href="/launchpad" className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">Open Contrax Launchpad →</a>
+          </article>
           <article className="mt-6 border-b border-slate-200 pb-8 dark:border-slate-700" aria-labelledby="ceo-trial-title">
             <h3 id="ceo-trial-title" className="text-xl font-bold text-slate-900 dark:text-white">Every account now starts with a 7-day trial</h3>
             <p className="mt-3 text-base leading-relaxed text-slate-700 dark:text-slate-300">Most people only ever saw the basic version of Contrax. Now everyone gets the full Professional tools for a week, and decides based on real results.</p>

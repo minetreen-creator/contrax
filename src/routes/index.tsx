@@ -333,7 +333,7 @@ function Stats({
     { value: "Every 4 hours", label: "on weekdays, contract data refreshed" },
   ];
   return (
-    <div className="-mt-11">
+    <div className="pt-6 sm:pt-8">
       <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
         <div className={`${CARD} grid border border-[#dde3ec] md:grid-cols-3 dark:border-[#24334f]`}>
           {stats.map((s, i) => (

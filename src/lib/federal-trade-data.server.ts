@@ -344,3 +344,12 @@ export async function recompeteTotalsByState(months: number): Promise<Record<str
     ) d WHERE pop_state IS NOT NULL GROUP BY pop_state`) as { state: string; n: number; total: number }[];
   return Object.fromEntries(rows.map((r) => [r.state, { count: r.n, total: r.total }]));
 }
+
+/** "What could you win?" calculator: values of this trade's contracts in a state that are still running (each award once). */
+export async function activeContractAmounts(trade: string, state: string): Promise<number[]> {
+  await ensureFederalTradeTables();
+  const rows = (await sql()`
+    SELECT DISTINCT ON (award_key) amount FROM recompete_contracts
+    WHERE trade_slug = ${trade} AND pop_state = ${state} AND end_date >= CURRENT_DATE`) as { amount: number }[];
+  return rows.map((r) => Number(r.amount)).filter((n) => Number.isFinite(n) && n > 0);
+}

@@ -56,6 +56,10 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Founding Business pricing and fulfillment tests
         run: bun test src/lib/founding-business.test.ts
+      - name: Retired founders checkout and email offer tests
+        run: |
+          bun test src/lib/annual-billing.test.ts
+          bun test src/lib/weekly-digest.test.ts
       - name: Route JSX syntax check
         run: bun run check:routes
       - name: Build .vercel/output (Build Output API v3)

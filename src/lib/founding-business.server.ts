@@ -31,12 +31,13 @@ export async function foundingBusinessPageData() {
     await ensureFoundingBusinesses();
     await releaseExpiredFoundingReservations();
     const counts =
-      await sql()`SELECT COUNT(*) FILTER (WHERE user_id IS NULL)::int AS remaining FROM founding_businesses`;
+      await sql()`SELECT COUNT(*) FILTER (WHERE user_id IS NULL)::int AS remaining, COUNT(*) FILTER (WHERE paid_at IS NOT NULL)::int AS purchased FROM founding_businesses`;
     const rows = await sql()`SELECT slot, profile FROM founding_businesses
       WHERE paid_at IS NOT NULL AND published_at IS NOT NULL AND NOT hidden AND feature_expires_at > NOW() ORDER BY slot`;
     return {
       available: true,
       remaining: Number(counts[0].remaining),
+      purchased: Number(counts[0].purchased),
       listings: rows.map((r) => ({
         slot: Number(r.slot),
         company: r.profile.company as string,
@@ -48,7 +49,7 @@ export async function foundingBusinessPageData() {
     };
   } catch (e) {
     console.error("[founding-business] public read unavailable", e);
-    return { available: false, remaining: null, listings: [] };
+    return { available: false, remaining: null, purchased: 0, listings: [] };
   }
 }
 
@@ -288,4 +289,16 @@ export async function getOwnFoundingBusiness(userId: number) {
     featureEnds: r.feature_expires_at ? String(r.feature_expires_at) : null,
     spotlight: !!r.spotlight_at,
   };
+}
+
+/** Email promotions share the same live inventory as the public showcase. */
+export async function foundingBusinessSpotsRemaining(): Promise<number | null> {
+  const data = await foundingBusinessPageData();
+  return data.available
+    ? data.remaining === 0
+      ? 0
+      : data.purchased === 0
+        ? FOUNDING_BUSINESS_LIMIT
+        : data.remaining
+    : null;
 }

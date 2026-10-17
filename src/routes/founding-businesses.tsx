@@ -291,9 +291,10 @@ function FoundingBusinesses() {
             Real businesses. A place to be seen.
           </h2>
           <p className="mt-4 max-w-2xl leading-relaxed text-slate-600">
-            Company profiles are paid promotional placements. Each business
-            supplies its own information; membership is not a certification or
-            government endorsement.
+            Featured businesses are paid Contrax members. A listing is not an
+            endorsement by Contrax or any government agency and does not
+            guarantee leads or contracts. Certifications and other business
+            claims are self-reported unless explicitly marked verified.
           </p>
           {data.listings.length > 0 ? (
             <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -307,7 +308,7 @@ function FoundingBusinesses() {
                 sample
                 listing={{
                   slot: 0,
-                  company: "Your Business, Introduced",
+                  company: "Your Company Name",
                   services:
                     "Use this space to tell visitors what you do, who you serve and what makes your team a good fit. This example shows the layout your company will receive.",
                   serviceArea: "Your cities, counties or region",
@@ -328,6 +329,32 @@ function FoundingBusinesses() {
               </div>
             </div>
           )}
+        </section>
+        <section className="mx-auto max-w-6xl px-5 pb-12">
+          <div className="rounded-2xl border border-blue-100 bg-blue-50 p-6">
+            <h2 className="text-xl font-bold">
+              A showcase beyond the Supplier Directory
+            </h2>
+            <p className="mt-3 leading-relaxed text-slate-600">
+              The{" "}
+              <a
+                href="/suppliers"
+                className="font-semibold text-blue-700 underline"
+              >
+                Supplier Directory
+              </a>{" "}
+              lets businesses list free so prime contractors can find them.
+              Founding Businesses adds a dedicated paid company showcase, one
+              Facebook spotlight and a year of Starter. These are separate
+              placements; buying this offer does not create a Supplier Directory
+              listing.
+            </p>
+            <p className="mt-3 text-sm text-slate-600">
+              Your showcase ends 12 months after publication following approval,
+              even if Starter renews. Any further promotional placement requires
+              a separate agreement.
+            </p>
+          </div>
         </section>
         <section
           id="join"
@@ -383,7 +410,9 @@ function FoundingBusinesses() {
                   ? "Checkout temporarily unavailable. Please check again shortly."
                   : data.remaining === 0
                     ? "All 10 places are purchased or temporarily reserved. You can resume an existing checkout below."
-                    : "Limited to 10 businesses. Availability is checked again at checkout."}
+                    : data.purchased > 0
+                      ? `${data.remaining} founding spots available for checkout.`
+                      : "Limited to 10 founding businesses. Availability is checked again at checkout."}
               </p>
               <div className="space-y-5">
                 {(
@@ -473,7 +502,7 @@ function FoundingBusinesses() {
                 >
                   {busy
                     ? "Opening secure checkout…"
-                    : "Join for $99 · first year"}
+                    : "Claim a founding spot · $99 first year"}
                   <ArrowRight size={18} />
                 </button>
                 <p className="text-center text-xs text-slate-500">

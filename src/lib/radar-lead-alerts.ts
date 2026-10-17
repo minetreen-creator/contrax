@@ -5,7 +5,7 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 // historical intel, never an opportunity — it may not enter a lead alert scan.
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { sendRadarMatchAlertEmail, type NewBidSummary } from "~/lib/email";
-import { foundingSpotsRemaining } from "~/lib/stripe";
+import { foundingBusinessSpotsRemaining } from "~/lib/founding-business.server";
 import { ensureRadarLeadsClickLog, buildOpportunityClickUrl, hashClickToken } from "~/lib/radar-lead-clicks";
 import { expandTrade, tradeProvenanceFor } from "~/lib/trade-registry";
 
@@ -399,7 +399,7 @@ export async function sendRadarLeadMatchAlerts(): Promise<RadarAlertRunResult> {
   }
 
   // One Stripe count per run (null when unreadable: emails show $19/month).
-  const foundingSpots = await foundingSpotsRemaining();
+  const foundingSpots = await foundingBusinessSpotsRemaining();
   for (const lead of leadRows) {
     try {
       const sent = await sendForOneLead(lead, foundingSpots);

@@ -18,6 +18,7 @@ const action = createServerFn({ method: "POST" })
       .object({
         slot: z.number().int().min(1).max(10),
         action: z.enum(["publish", "hide", "spotlight"]),
+        reviewed: z.boolean().default(false),
       })
       .parse(d),
   )
@@ -26,6 +27,10 @@ const action = createServerFn({ method: "POST" })
     if (!user?.is_admin) throw new Error("Admin access required.");
     const { updateFoundingBusiness } =
       await import("~/lib/founding-business.server");
+    if (data.action === "publish" && !data.reviewed)
+      throw new Error(
+        "Review the logo, website and business claims before publishing.",
+      );
     await updateFoundingBusiness(data.slot, data.action);
     return { ok: true };
   });
@@ -49,11 +54,14 @@ function AdminFoundingBusinesses() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [reviewed, setReviewed] = useState<Record<number, boolean>>({});
   async function update(slot: number, kind: "publish" | "hide" | "spotlight") {
     setBusy(true);
     setError("");
     try {
-      await action({ data: { slot, action: kind } });
+      await action({
+        data: { slot, action: kind, reviewed: !!reviewed[slot] },
+      });
       await router.invalidate();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Update failed.");
@@ -134,6 +142,20 @@ function AdminFoundingBusinesses() {
                 · Facebook: {r.spotlight_at ? "Completed" : "Pending"}
               </p>
               {r.paid_at && (
+                <label className="mt-4 flex items-start gap-3 text-sm text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={!!reviewed[r.slot]}
+                    onChange={(e) =>
+                      setReviewed({ ...reviewed, [r.slot]: e.target.checked })
+                    }
+                  />
+                  I reviewed the logo, website and business claims.
+                  Certifications remain self-reported unless verified; the
+                  profile must not imply Contrax or government endorsement.
+                </label>
+              )}
+              {r.paid_at && (
                 <div className="mt-5 flex flex-wrap gap-3">
                   {(
                     [
@@ -145,7 +167,9 @@ function AdminFoundingBusinesses() {
                     <button
                       key={kind}
                       disabled={
-                        busy || (kind === "spotlight" && !!r.spotlight_at)
+                        busy ||
+                        (kind === "spotlight" && !!r.spotlight_at) ||
+                        (kind === "publish" && !reviewed[r.slot])
                       }
                       onClick={() => update(Number(r.slot), kind)}
                       className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold disabled:opacity-40"

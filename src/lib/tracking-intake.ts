@@ -191,6 +191,8 @@ export const EVENT_LABELS: Record<string, string> = {
   launchpad_statement_emailed: "Launchpad: capability statement emailed",
   money_counter_state: "Homepage money counter: state picked",
   money_counter_click: "Homepage money counter: button clicked",
+  win_calculator_pick: "What could you win?: trade and state picked",
+  win_calculator_click: "What could you win?: button clicked",
   subcontracts_page_viewed: "Subcontracts page viewed",
   subcontracts_notice_viewed: "Subcontracting notice viewed",
   subcontract_source_open: "Subcontracting notice source opened",

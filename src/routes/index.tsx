@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { MoneyCounter } from "~/components/MoneyCounter";
+import { WinCalculator } from "~/components/WinCalculator";
 
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -224,6 +225,7 @@ function Home() {
           money counter, and its "contracts ending" figure replaces the
           separate Contracts Ending Soon box. */}
       <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
+      <WinCalculator />
       <HowItWorks />
       {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the
           edge-cached homepage stays session-free; hidden when no spots remain. */}

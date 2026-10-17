@@ -60,6 +60,7 @@ import { fetchLouisvilleBonfireBids } from "./sources/ky-louisville-bonfire";
 import { fetchVaFairfaxBonfireBids } from "./sources/va-fairfax-bonfire";
 import { fetchVaAlexandriaBonfireBids } from "./sources/va-alexandria-bonfire";
 import { fetchVaBotetourtBonfireBids } from "./sources/va-botetourt-bonfire";
+import { fetchVaVtJaggaerBids, fetchVaGmuBonfireBids, fetchVaNsuBonfireBids } from "./sources/va-university-portals";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import { fetchVaEvaBids } from "./sources/va-eva";
 import { fetchTxEsbdBids } from "./sources/tx-esbd";
@@ -478,6 +479,9 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "va_fairfax_bonfire", fetchFn: fetchVaFairfaxBonfireBids },
   { name: "va_alexandria_bonfire", fetchFn: fetchVaAlexandriaBonfireBids },
   { name: "va_botetourt_bonfire", fetchFn: fetchVaBotetourtBonfireBids },
+  { name: "va_vt_jaggaer", fetchFn: fetchVaVtJaggaerBids },
+  { name: "va_gmu_bonfire", fetchFn: fetchVaGmuBonfireBids },
+  { name: "va_nsu_bonfire", fetchFn: fetchVaNsuBonfireBids },
   // South Dakota (owner 2026-10-12, "not grants, state bids"): the state's central
   // procurement portal is a ServiceNow SPA whose listings are Knowledge Base
   // articles (no dated solicitation records — see

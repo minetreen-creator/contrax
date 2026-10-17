@@ -1,9 +1,9 @@
 import { FromTheCEO } from "~/components/FromTheCEO";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
-import { useState } from "react";
-import { Radar, Users, Bot, KanbanSquare, ArrowRight } from "lucide-react";
+import { Radar, KanbanSquare, ArrowRight, GraduationCap } from "lucide-react";
+import { HomeContractFinder } from "~/components/HomeContractFinder";
 
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -12,11 +12,9 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
   buildContractMap,
-  STATE_NAMES,
   type ContractMapAggregate,
 } from "~/lib/contract-map";
-import { getSdvosbSample, type SampleBid } from "~/lib/sample-bids";
-import { US_STATES } from "~/lib/states";
+import { getSdvosbSample } from "~/lib/sample-bids";
 import { formatDollars } from "~/lib/federal-trade-data";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
@@ -118,9 +116,9 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
 
 // ── Route ─────────────────────────────────────────────────────────────────────
 
-const PAGE_TITLE = "Contrax | Find government contracts your business can actually win";
+const PAGE_TITLE = "Contrax | Your next government customer starts here";
 const PAGE_DESCRIPTION =
-  "Tell us your trade and state. Contrax searches federal, state, and local solicitations and shows you the ones that fit, with source links and real deadlines. Free to search, no account required.";
+  "Describe your business and preview real government contract matches with clear reasons, requirements to verify, and next steps. Create a free account to keep your shortlist.";
 
 export const Route = createFileRoute("/")({
   loader: async () => {
@@ -212,9 +210,9 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
-      <PlatformShowcase />
-      <Hero sample={sample} />
+      <HomeContractFinder sample={sample} />
       <Stats bidStats={bidStats} contractMap={contractMap} />
+      <PlatformShowcase />
       {endingSoon && <EndingSoonPromo count={endingSoon.count} total={endingSoon.total} />}
       {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the
           edge-cached homepage stays session-free; hidden when no spots remain. */}
@@ -236,39 +234,22 @@ function Home() {
   );
 }
 
-// Knack-inspired product overview: keep the working Radar search immediately below.
+// Three clear paths after the visitor's first search.
 function PlatformShowcase() {
-  const features = [
-    { title: "Contract Radar", description: "Find opportunities that fit your business", href: "/radar", Icon: Radar },
-    { title: "Built-in CRM", description: "Organize contacts and follow-ups", href: "/pipeline#contacts", Icon: Users },
-    { title: "AI Bid Tools", description: "Understand requirements faster", href: "/example-brief", Icon: Bot },
-    { title: "Bid Pipeline", description: "Keep pursuits and deadlines on track", href: "/pipeline", Icon: KanbanSquare },
+  const paths = [
+    { title: "Find contracts", description: "Search live opportunities with reasons you can inspect.", href: "/radar", Icon: Radar },
+    { title: "Track opportunities", description: "Keep bids, contacts and follow-ups moving in one workspace.", href: "/pipeline", Icon: KanbanSquare },
+    { title: "Learn for free", description: "Build your contracting knowledge, one lesson at a time.", href: "/learn", Icon: GraduationCap },
   ];
   return (
-    <section aria-labelledby="platform-heading" className="px-4 pt-10 pb-8 sm:px-6 sm:pt-16">
-      <div className="mx-auto max-w-[1120px] rounded-[28px] bg-[#eef2ff] px-5 py-10 text-center text-[#203671] shadow-sm sm:px-12 sm:py-14 dark:bg-[#142343] dark:text-white">
-        <p className="text-xs font-bold uppercase tracking-[.22em] text-[#3656b6] dark:text-[#9ebaff]">Your government contracting command center</p>
-        <h1 id="platform-heading" className="mt-4 text-4xl font-extrabold tracking-tight sm:text-6xl">Find. Manage. Win.</h1>
-        <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#4b5875] sm:text-xl dark:text-slate-300">
-          Discover government opportunities, manage your bids, and grow your business — all in one place.
-        </p>
-        <p className="mx-auto mt-2 max-w-xl text-sm text-[#53617c] dark:text-slate-300">
-          Built with veteran-owned and service-disabled veteran-owned businesses in mind. Open to every small business.
-        </p>
-        <div className="mt-9 grid grid-cols-2 gap-3 sm:gap-5">
-          {features.map(({ title, description, href, Icon }) => (
-            <a key={title} href={href} className="group flex min-h-40 flex-col items-center justify-center rounded-2xl border border-[#e2e8fa] bg-white p-4 text-[#203671] transition hover:-translate-y-0.5 hover:border-[#3656b6] hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3656b6] dark:border-slate-600 dark:bg-[#1d3052] dark:text-white">
-              <Icon aria-hidden="true" className="mb-3 h-8 w-8 text-[#3656b6] dark:text-[#a6c4ff]" />
-              <span className="text-base font-bold sm:text-xl">{title}</span>
-              <span className="mt-1 text-xs leading-snug text-[#5a6680] sm:text-sm dark:text-slate-300">{description}</span>
-            </a>
-          ))}
-        </div>
-        <a href="/radar" onClick={() => trackEvent("homepage_radar_cta_clicked", "platform_showcase")} className="mt-8 flex min-h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#3656c7] px-5 py-4 text-base font-bold text-white transition hover:bg-[#2846a8] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3656c7]">
-          Find Government Contracts <ArrowRight aria-hidden="true" className="h-5 w-5" />
+    <section aria-label="Explore Contrax" className="mx-auto grid max-w-[1120px] gap-4 px-4 pt-12 sm:px-6 md:grid-cols-3">
+      {paths.map(({ title, description, href, Icon }) => (
+        <a key={title} href={href} className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-[#131f35]">
+          <Icon aria-hidden="true" className="h-7 w-7 text-blue-600 dark:text-blue-300" />
+          <h2 className="mt-4 flex items-center justify-between gap-3 text-lg font-bold">{title}<ArrowRight aria-hidden="true" className="h-4 w-4 text-blue-600 dark:text-blue-300" /></h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{description}</p>
         </a>
-        <p className="mt-3 text-xs text-[#5a6680] dark:text-slate-300">Explore opportunities for free. No account needed to start.</p>
-      </div>
+      ))}
     </section>
   );
 }
@@ -336,148 +317,6 @@ function Navbar() {
   return <SiteHeader />;
 }
 
-// ── Hero: search form + live SDVOSB sample ────────────────────────────────────
-
-// Each option's `q` is what /radar's trade box receives (?trade=); /radar
-// expands it to NAICS codes. "Other" sends no trade so Radar asks for a NAICS.
-const TRADES = [
-  { label: "Janitorial", q: "janitorial" },
-  { label: "Landscaping", q: "landscaping" },
-  { label: "Trucking and hauling", q: "trucking" },
-  { label: "Construction", q: "construction" },
-  { label: "Security guards", q: "security guard" },
-  { label: "IT services", q: "IT services" },
-  { label: "Other (type your trade on the next step)", q: "" },
-];
-
-const SORTED_STATES = [...US_STATES].sort((a, b) =>
-  (STATE_NAMES[a] ?? a).localeCompare(STATE_NAMES[b] ?? b),
-);
-
-function formatDue(due: string | null): string {
-  if (!due) return "";
-  const d = new Date(due);
-  if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
-}
-
-function Hero({ sample }: { sample: SampleBid[] }) {
-  const navigate = useNavigate();
-  const [trade, setTrade] = useState(TRADES[0].q);
-  const [state, setState] = useState("");
-
-  const onSearch = () => {
-    trackEvent("homepage_radar_cta_clicked", "hero_primary");
-    // Results first (owner 2026-10-02): /radar scans as soon as it receives a
-    // trade, with its broad defaults (Small Business, any size). No cert is
-    // sent: an SDVOSB-only filter hides the unrestricted and state/local bids a
-    // veteran-owned firm can also bid; the visitor narrows it on the results.
-    const search: Record<string, string> = {};
-    if (trade) search.trade = trade;
-    if (state) search.state = state;
-    navigate({ to: "/radar", search: search as never });
-  };
-
-  const select =
-    "w-full rounded-lg border border-[#dde3ec] bg-[#f5f7fa] px-2.5 py-3 text-base text-[#0f1f38] focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-[#8fbaf5] dark:border-[#24334f] dark:bg-[#0b1424] dark:text-[#e7edf7]";
-
-  return (
-    <section className="bg-gradient-to-b from-[#0f2747] to-[#173763] pt-11 pb-20 text-white md:pt-16 md:pb-22 dark:from-[#0a1930] dark:to-[#10264a]">
-      <div
-        className={`mx-auto grid max-w-[1120px] items-center gap-9 px-4 sm:px-6 ${
-          sample.length ? "md:grid-cols-[1.05fr_.95fr] md:gap-14" : ""
-        }`}
-      >
-        <div>
-          <h1 className={`${SERIF} text-[clamp(34px,4.6vw,52px)] leading-[1.15] font-bold tracking-[-.015em]`}>
-            Find government contracts your business can actually win
-          </h1>
-          <p className="mt-5 mb-7 max-w-[31em] text-lg text-[#b9c7dc]">
-            Federal, state and local bids in 46 states and DC. Type your trade and state to see what's open
-            now, with source links and real deadlines.
-          </p>
-          <form
-            className={`${CARD} max-w-[500px] p-[22px]`}
-            aria-label="Contract search"
-            onSubmit={(e) => {
-              e.preventDefault();
-              onSearch();
-            }}
-          >
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label htmlFor="home-trade" className="mb-1.5 block text-[13px] font-semibold">Your trade</label>
-                <select id="home-trade" className={select} value={trade} onChange={(e) => setTrade(e.target.value)}>
-                  {TRADES.map((t) => (
-                    <option key={t.label} value={t.q}>{t.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label htmlFor="home-state" className="mb-1.5 block text-[13px] font-semibold">Your state</label>
-                <select id="home-state" className={select} value={state} onChange={(e) => setState(e.target.value)}>
-                  <option value="">Any state</option>
-                  {SORTED_STATES.map((code) => (
-                    <option key={code} value={code}>{STATE_NAMES[code] ?? code}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <button type="submit" className={BTN}>See my matches</button>
-            <small className="mt-3 block text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
-              Sources linked on every result. No invented deadlines or eligibility. Free to search, no
-              account required.
-            </small>
-          </form>
-          <p className="mt-4 text-[15px] text-[#b9c7dc]">
-            Looking for local opportunities?{" "}
-            <a href="/local-bids" className="font-semibold text-white underline underline-offset-4 hover:text-[#b9c7dc] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
-              Browse City &amp; County Bids →
-            </a>
-          </p>
-          <p className="mt-4 text-[15px] text-[#b9c7dc]">
-            Prefer it delivered?{" "}
-            <a href="#scout" className="text-white underline">Get Friday picks</a>
-          </p>
-        </div>
-
-        {sample.length > 0 && (
-          <aside className={`${CARD} overflow-hidden`} aria-label="New SDVOSB set-asides">
-            <div className="border-b border-[#dde3ec] px-[22px] py-[18px] dark:border-[#24334f]">
-              <h2 className={`${SERIF} text-xl leading-[1.15] font-bold`}>
-                New SDVOSB set-asides
-              </h2>
-              <div className="mt-1 text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
-                Newest first, live from today's data · free to search
-                <span className="ml-1.5 inline-block rounded-full bg-[#f6eed9] px-2 py-0.5 text-xs font-semibold text-[#8a6a1d] dark:bg-[#2b2413] dark:text-[#e0c078]">
-                  SDVOSB set-aside
-                </span>
-              </div>
-            </div>
-            {sample.map((bid) => (
-              <a
-                key={bid.id}
-                href={`/bid/${bid.id}`}
-                className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-0.5 border-b border-[#dde3ec] px-[22px] py-3.5 no-underline last:border-b-0 hover:bg-[#f5f7fa] dark:border-[#24334f] dark:hover:bg-[#0b1424]"
-              >
-                <b className="line-clamp-2 font-semibold">{bid.title}</b>
-                <span className="text-sm font-semibold whitespace-nowrap text-[#b4321f] dark:text-[#f08a76]">
-                  {formatDue(bid.due_date) && `Due ${formatDue(bid.due_date)}`}
-                </span>
-                <span className="col-span-2 text-[13px] text-[#56647a] dark:text-[#9fb0c8]">
-                  {[formatDue(bid.created_at) && `Added ${formatDue(bid.created_at)}`, bid.agency, bid.location]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </span>
-              </a>
-            ))}
-          </aside>
-        )}
-      </div>
-    </section>
-  );
-}
-
 // ── Live stats (same aggregation as /map; see getLandingData) ─────────────────
 
 function Stats({
@@ -494,7 +333,7 @@ function Stats({
     { value: "Every 4 hours", label: "on weekdays, contract data refreshed" },
   ];
   return (
-    <div className="-mt-11">
+    <div className="pt-6 sm:pt-8">
       <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
         <div className={`${CARD} grid border border-[#dde3ec] md:grid-cols-3 dark:border-[#24334f]`}>
           {stats.map((s, i) => (
@@ -687,3 +526,4 @@ export function ContraxGrantsPromo() {
     </section>
   );
 }
+

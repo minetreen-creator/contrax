@@ -1,8 +1,7 @@
-import { FromTheCEO } from "~/components/FromTheCEO";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
-import { Radar, KanbanSquare, ArrowRight, GraduationCap } from "lucide-react";
+import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { MoneyCounter } from "~/components/MoneyCounter";
 
@@ -16,7 +15,6 @@ import {
   type ContractMapAggregate,
 } from "~/lib/contract-map";
 import { getSdvosbSample } from "~/lib/sample-bids";
-import { formatDollars } from "~/lib/federal-trade-data";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
@@ -222,23 +220,19 @@ function Home() {
       />
       <Navbar />
       <HomeContractFinder sample={sample} />
-      <Stats bidStats={bidStats} contractMap={contractMap} />
-      <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} />
-      <PlatformShowcase />
-      {endingSoon && <EndingSoonPromo count={endingSoon.count} total={endingSoon.total} />}
+      {/* Shorter homepage (owner 2026-10-17): the stats row folds into the
+          money counter, and its "contracts ending" figure replaces the
+          separate Contracts Ending Soon box. */}
+      <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
+      <HowItWorks />
       {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the
           edge-cached homepage stays session-free; hidden when no spots remain. */}
       <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
         <FoundingOffer source="home" />
       </div>
-      <Steps />
       <LaunchpadPromo />
-      <FromTheCEO />
       <BidScoutCallout />
-      {/* Compact grants introduction; full plan comparison lives on pricing. */}
-      <div className="mt-10 bg-[#f5f7fa] py-8 text-slate-900">
-        <ContraxGrantsPromo />
-      </div>
+      <MoreFromContrax />
       {/* Moved from the very top (owner 2026-10-04) so the headline is the first thing people read. */}
       <PartnershipBanner />
       <Footer />
@@ -246,41 +240,52 @@ function Home() {
   );
 }
 
-// Three clear paths after the visitor's first search.
-function PlatformShowcase() {
+// What Contrax does, in three cards (owner 2026-10-17: the former "Find /
+// Track / Learn" cards and "three steps" section merged; learning now lives in
+// the Launchpad section).
+function HowItWorks() {
   const paths = [
-    { title: "Find contracts", description: "Search live opportunities with reasons you can inspect.", href: "/radar", Icon: Radar },
-    { title: "Track opportunities", description: "Keep bids, contacts and follow-ups moving in one workspace.", href: "/pipeline", Icon: KanbanSquare },
-    { title: "Learn for free", description: "Build your contracting knowledge, one lesson at a time.", href: "/learn", Icon: GraduationCap },
+    { title: "Find contracts", description: "Search live opportunities by trade and state, with reasons you can check.", href: "/radar", Icon: Radar },
+    { title: "Decide before you bid", description: "Read the AI brief: requirements, milestones and red flags, cited to the solicitation.", href: "/example-brief", Icon: FileSearch },
+    { title: "Track your bids", description: "Keep bids, contacts and follow-ups moving in one workspace.", href: "/pipeline", Icon: KanbanSquare },
   ];
   return (
-    <section aria-label="Explore Contrax" className="mx-auto grid max-w-[1120px] gap-4 px-4 pt-12 sm:px-6 md:grid-cols-3">
-      {paths.map(({ title, description, href, Icon }) => (
-        <a key={title} href={href} className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-[#131f35]">
-          <Icon aria-hidden="true" className="h-7 w-7 text-blue-600 dark:text-blue-300" />
-          <h2 className="mt-4 flex items-center justify-between gap-3 text-lg font-bold">{title}<ArrowRight aria-hidden="true" className="h-4 w-4 text-blue-600 dark:text-blue-300" /></h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{description}</p>
-        </a>
-      ))}
+    <section aria-labelledby="how-it-works-title" className="mx-auto max-w-[1120px] px-4 pt-12 sm:px-6">
+      <h2 id="how-it-works-title" className={`${SERIF} text-[clamp(24px,3vw,30px)] leading-[1.15] font-bold`}>How Contrax works</h2>
+      <div className="mt-5 grid gap-4 md:grid-cols-3">
+        {paths.map(({ title, description, href, Icon }, i) => (
+          <a key={title} href={href} className="group rounded-2xl border border-slate-200 bg-white p-6 transition hover:-translate-y-1 hover:border-blue-400 hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:border-slate-700 dark:bg-slate-900">
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-300">{i + 1}</span>
+              <Icon aria-hidden="true" className="h-6 w-6 text-blue-600 dark:text-blue-300" />
+            </div>
+            <h3 className="mt-4 flex items-center justify-between gap-3 text-lg font-bold">{title}<ArrowRight aria-hidden="true" className="h-4 w-4 text-blue-600 dark:text-blue-300" /></h3>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{description}</p>
+          </a>
+        ))}
+      </div>
     </section>
   );
 }
 
-function EndingSoonPromo({ count, total }: { count: number; total: number }) {
+// From the CEO and Contrax Grants, one line each (owner 2026-10-17: shorter
+// homepage; the full pages are one click away).
+function MoreFromContrax() {
+  const items = [
+    { label: "From the CEO", body: "A big week at Contrax: Launchpad upgrades, a new homepage and better matches.", href: "/from-the-ceo", cta: "See what's new" },
+    { label: "Contrax Grants", body: "Find federal grants your organization qualifies for. No cost for verified nonprofits.", href: "/grants", cta: "Search grants" },
+  ];
   return (
-    <section aria-labelledby="ending-soon-title" className="mx-auto mt-12 max-w-[1120px] px-4 sm:px-6">
-      <div className={`${CARD} p-6 sm:p-8`}>
-        <p className="text-xs font-bold uppercase tracking-widest text-[#1c5fbf] dark:text-[#8fbaf5]">New · Contracts Ending Soon</p>
-        <h2 id="ending-soon-title" className={`mt-2 text-2xl font-bold ${SERIF}`}>See which federal contracts are about to end</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-700 dark:text-slate-300">
-          {count.toLocaleString("en-US")} federal contracts in janitorial, security, construction, HVAC and other trades end in the next 12 months,
-          worth {formatDollars(total)} together. See who holds them now and prepare before the rebid is posted.
-        </p>
-        <a href="/recompetes" onClick={() => trackEvent("recompetes_home_click")} className="mt-5 inline-block rounded-lg bg-[#1c5fbf] px-5 py-3 text-sm font-semibold text-white hover:brightness-110 dark:bg-[#6aa3f0] dark:text-[#08172e]">
-          See contracts ending soon →
+    <section aria-label="More from Contrax" className="mx-auto mt-12 mb-12 grid max-w-[1120px] gap-4 px-4 sm:px-6 md:grid-cols-2">
+      {items.map((it) => (
+        <a key={it.label} href={it.href} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-blue-400 dark:border-slate-700 dark:bg-slate-900">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{it.label}</p>
+            <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{it.body}</p>
+          </div>
+          <span className="shrink-0 text-sm font-semibold text-blue-700 dark:text-blue-300">{it.cta} →</span>
         </a>
-        <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">From public USAspending.gov records, refreshed every weekday.</p>
-      </div>
+      ))}
     </section>
   );
 }
@@ -348,85 +353,6 @@ function Navbar() {
   // No `user` prop: SiteHeader resolves the viewer client-side after mount, so
   // the server render is session-free and edge-cacheable.
   return <SiteHeader />;
-}
-
-// ── Live stats (same aggregation as /map; see getLandingData) ─────────────────
-
-function Stats({
-  bidStats,
-  contractMap,
-}: {
-  bidStats: { activeCount: number; agencyCount: number };
-  contractMap: ContractMapAggregate | null;
-}) {
-  if (!contractMap) return null;
-  const stats = [
-    { value: contractMap.totals.totalOpen.toLocaleString("en-US"), label: "open opportunities" },
-    { value: bidStats.agencyCount.toLocaleString("en-US"), label: "agencies represented" },
-    { value: "Every 4 hours", label: "on weekdays, contract data refreshed" },
-  ];
-  return (
-    <div className="pt-6 sm:pt-8">
-      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
-        <div className={`${CARD} grid border border-[#dde3ec] md:grid-cols-3 dark:border-[#24334f]`}>
-          {stats.map((s, i) => (
-            <div
-              key={s.label}
-              className={`px-[26px] py-[22px] ${
-                i > 0 ? "border-t border-[#dde3ec] md:border-t-0 md:border-l dark:border-[#24334f]" : ""
-              }`}
-            >
-              <b className="block font-[Georgia,serif] text-[30px]">{s.value}</b>
-              <span className="text-sm text-[#56647a] dark:text-[#9fb0c8]">{s.label}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── How it works ──────────────────────────────────────────────────────────────
-
-function Steps() {
-  const steps = [
-    {
-      title: "Search your trade",
-      body: "Enter your trade and state to see live set-aside solicitations matched to your certification.",
-      href: "/radar",
-    },
-    {
-      title: "Read the AI brief",
-      body: "Get the mandatory requirements, milestones, and red flags, with citations to the solicitation text.",
-      href: "/example-brief",
-    },
-    {
-      title: "Decide before you bid",
-      body: "Check the job against your capacity, licensing, and bonding before spending hours on a proposal.",
-      href: "/bid-fit-review",
-    },
-  ];
-  return (
-    <section className="pt-18">
-      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
-        <h2 className={`${SERIF} max-w-[20em] text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold`}>
-          From search to bid decision in three steps
-        </h2>
-        <div className="mt-7 grid gap-5 md:grid-cols-3">
-          {steps.map((s) => (
-            <a
-              key={s.title}
-              href={s.href}
-              className="block rounded-xl border border-[#dde3ec] bg-white p-6 no-underline hover:border-[#1c5fbf] dark:border-[#24334f] dark:bg-[#131f35] dark:hover:border-[#6aa3f0]"
-            >
-              <h3 className={`${SERIF} mb-2 text-[19px] leading-[1.15] font-bold`}>{s.title}</h3>
-              <p className="m-0 text-[15px] text-[#56647a] dark:text-[#9fb0c8]">{s.body}</p>
-            </a>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
 }
 
 // ── Bid Scout callout ($99/month, same price as /bid-scout) ───────────────────
@@ -516,47 +442,3 @@ function Footer() {
     </footer>
   );
 }
-
-// ── Contrax Grants — homepage section (owner order 2026-09-16; three-tier
-//    pricing table owner-locked 2026-09-23, business plan revs 305/306) ───────
-// The third product line on the homepage, slotted between the Radar hero (and
-// its Bid Scout callout) and the Award Autopsy front door. Presentational only:
-// no data fetch, no server fn, no analytics event, no DB — it renders instantly
-// in the server HTML and links out to the existing /grants page.
-//
-// The tier names, prices, "best for" lines and "Included" text below are the
-// owner's verbatim wording (rev 306) — do NOT reword them. The three boundaries
-// the presentation must respect: (1) Nonprofit Free is genuinely useful, not a
-// disguised trial; (2) Grants Plus sells convenience, monitoring and deeper
-// tools — not access to something nonprofits were promised free; (3) the $49
-// report is OPTIONAL human assistance, never required, and its row states that
-// matches and funding are NOT guaranteed and that it does NOT include writing
-// or submitting the grant application.
-//
-// The $49 CTA points at the LIVE Stripe payment link for the Personalized Grant
-// Opportunity Report (product prod_VJT6jJs5GSmzjH / price price_1UIqApR…), as an
-// external link in a new tab. The shared grants price-label constant still lives
-// in ~/lib/grants and is still imported by /grants (both untouched) — this
-// homepage block no longer renders that label, so its import was dropped here
-// only, and it is gone from this file's import list entirely.
-export function ContraxGrantsPromo() {
-  return (
-    <section aria-label="Contrax Grants" className="py-2">
-      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
-        <p className="text-sm font-semibold uppercase tracking-widest text-[#8a6a1d]">Contrax Grants</p>
-        <h2 className={`${SERIF} mt-3 text-[clamp(26px,3.4vw,34px)] leading-[1.15] font-bold text-[#0f1f38]`}>
-          Find grants your organization actually qualifies for.
-        </h2>
-        <p className="mt-4 max-w-2xl text-lg leading-relaxed text-[#56647a]">
-          Search federal grant opportunities on Grants.gov with official source details and application links.
-        </p>
-        <p className="mt-4 font-semibold text-slate-900">Free for verified nonprofits</p>
-        <div className="mt-6 flex flex-wrap gap-4">
-          <a href="/grants" className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800">Search grants →</a>
-          <a href="/pricing#grants" className="rounded-xl border-2 border-slate-900 px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-slate-900 hover:text-white">View plans →</a>
-        </div>
-      </div>
-    </section>
-  );
-}
-

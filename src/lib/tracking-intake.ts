@@ -187,6 +187,8 @@ export const EVENT_LABELS: Record<string, string> = {
   recompetes_home_click: "Homepage Contracts Ending Soon clicked",
   recompetes_signup_click: "Contracts Ending Soon: create-account clicked",
   recompetes_upgrade_click: "Contracts Ending Soon: upgrade clicked",
+  money_counter_state: "Homepage money counter: state picked",
+  money_counter_click: "Homepage money counter: button clicked",
   subcontracts_page_viewed: "Subcontracts page viewed",
   subcontracts_notice_viewed: "Subcontracting notice viewed",
   subcontract_source_open: "Subcontracting notice source opened",

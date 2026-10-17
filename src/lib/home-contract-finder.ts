@@ -13,7 +13,12 @@ const TRADES: [RegExp, string][] = [
 
 export function suggestHomepageTrade(description: string): string {
   // These need their own specific search, not a general janitorial suggestion.
-  if (/\b(sell|supplies|equipment|products|window|carpet|pressure wash|power wash|laundry|dry clean)\b/i.test(description)) return "";
+  if (
+    /\b(sell|supplies|equipment|products|window|carpet|pressure wash|power wash|laundry|dry clean)\b/i.test(
+      description,
+    )
+  )
+    return "";
   const matches = TRADES.filter(([pattern]) => pattern.test(description));
   // Multiple services need an explicit choice; never silently discard a trade.
   if (matches.length === 1) return matches[0][1];

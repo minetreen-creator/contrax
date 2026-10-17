@@ -32,10 +32,13 @@ export function MoneyCounter({
   contractMap,
   ending,
   endingByState,
+  agencyCount = 0,
 }: {
   contractMap: ContractMapAggregate | null;
   ending: { count: number; total: number } | null;
   endingByState: EndingByState;
+  /** Former homepage stats row (owner 2026-10-17), shown as a footnote here. */
+  agencyCount?: number;
 }) {
   const [state, setState] = useState("US");
   const f = counterFigures(state, contractMap, ending, endingByState);
@@ -78,11 +81,14 @@ export function MoneyCounter({
           <a href={state === "US" ? "/radar" : `/radar?state=${state}`} onClick={() => trackEvent("money_counter_click", "radar")} className="rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:brightness-105">
             Find bids for my business →
           </a>
-          <a href="/recompetes" onClick={() => trackEvent("money_counter_click", "recompetes")} className="rounded-xl border border-white/30 px-5 py-3 text-sm font-bold text-white hover:bg-white/10">
+          <a href="/recompetes" onClick={() => { trackEvent("money_counter_click", "recompetes"); trackEvent("recompetes_home_click"); }} className="rounded-xl border border-white/30 px-5 py-3 text-sm font-bold text-white hover:bg-white/10">
             See contracts ending soon
           </a>
         </div>
-        <p className="relative mt-4 text-xs text-slate-400">Contract values from public USAspending.gov records. Open bids from the sources Contrax tracks.</p>
+        <p className="relative mt-4 text-xs text-slate-400">
+          {agencyCount > 0 && <>Open bids from {agencyCount.toLocaleString("en-US")} agencies, refreshed every 4 hours on weekdays. </>}
+          Contract values from public USAspending.gov records.
+        </p>
       </div>
     </section>
   );

@@ -58,6 +58,7 @@ export function SelfPacedCoursePage({ course, business = {state:"",trade:""} }: 
   return <><SiteHeader /><main className="min-h-screen bg-slate-50 pb-16">
     <section className="mx-auto max-w-3xl px-4 py-10 sm:py-14">
       <a href="/learn" className="text-sm font-semibold text-blue-700 underline">← All learning resources</a>
+      <a href="/launchpad" className="ml-5 inline-block text-sm font-semibold text-blue-700 underline">My Launchpad →</a>
       <p className="mt-6 text-sm font-bold uppercase tracking-wide text-amber-700">{course.level} · Free for everyone · About {course.minutes} minutes</p>
       <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl">{course.title}</h1>
       <p className="mt-4 text-lg leading-relaxed text-slate-700">{course.summary}</p>
@@ -134,3 +135,4 @@ function CertificateForm({ course, answers }: { course: SelfPacedCourse; answers
     <button disabled={busy} type="submit" className="rounded-xl bg-amber-500 px-5 py-3 font-bold text-slate-950 disabled:opacity-60">{busy ? "Saving…" : "Get my certificate"}</button>
   </form>;
 }
+

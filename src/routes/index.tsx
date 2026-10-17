@@ -280,6 +280,7 @@ function FreeCoursesPromo() {
         <p className="text-xs font-bold uppercase tracking-widest text-amber-800 dark:text-amber-300">Free for everyone · Self-paced · Completion certificates</p>
         <h2 id="free-courses-title" className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">Free Government Contracting Courses</h2>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-700 dark:text-slate-300">Three free courses: learn the basics, prepare your bid, and strengthen your contracting strategy and management. Study at your own pace without an account or payment.</p>
+        <a href="/launchpad" className="mt-5 inline-flex rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800">New: Open your free Contrax Launchpad →</a>
         <div className="mt-6 grid gap-5 lg:grid-cols-3">
           <article className="flex flex-col rounded-xl border border-amber-200 bg-white p-5 dark:border-slate-700 dark:bg-slate-950">
             <p className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300">Introductory · 15 minutes</p>

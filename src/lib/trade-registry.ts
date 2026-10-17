@@ -46,6 +46,7 @@ import { NAICS_NAMES } from "~/lib/naics-names";
 import { NAICS_INFER_MAP } from "~/lib/naics-infer";
 import {
   hasExplicitJanitorialServicePhrase,
+  isHvacNonWork,
   isProductBuy,
   isSpecialtyCleaningOnly,
 } from "~/lib/trade-classification";
@@ -281,6 +282,34 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "power washing",
     ],
     naics: ["561720"],
+  },
+  /**
+   * OWNER 2026-10-17 — HVAC (audit). Until now an "HVAC" scan used only the
+   * NAICS 238220 infer keywords, which miss the equipment words public bids are
+   * titled with: "Rooftop Unit Replacement", "RTU Replacement", "Cooling Tower
+   * Maintenance", "Air Handler Replacement", "Furnace Replacement", "Heat Pump
+   * Installation", "Mini-Split Installation", "Refrigeration Maintenance",
+   * "Building Automation System Upgrade", "Geothermal Heat Pump". Same NAICS;
+   * the 238220 keywords still ride along (recall can only grow).
+   */
+  "hvac-mechanical": {
+    label: "HVAC",
+    synonyms: [
+      "hvac",
+      "heating and cooling",
+      "rooftop unit",
+      "rtu",
+      "cooling tower",
+      "air handler",
+      "furnace",
+      "heat pump",
+      "mini-split",
+      "mini split",
+      "refrigeration",
+      "building automation",
+      "geothermal",
+    ],
+    naics: ["238220"],
   },
   /**
    * OWNER 09-15/09-16 — LANDSCAPING → NAICS 561730 Landscaping Services
@@ -854,6 +883,8 @@ export function expandTrade(original: string): TradeExpansion {
  * untouched — the veto can never remove a NAICS-corroborated match.
  */
 function purchasedServiceVeto(text: string, expansion: TradeExpansion): boolean {
+  // HVAC (owner 2026-10-17): purchases and design work are not HVAC jobs.
+  if (expansion.naicsCodes.includes("238220") && isHvacNonWork(text)) return true;
   if (!expansion.naicsCodes.includes("561720")) return false;
   return isSpecialtyCleaningOnly(text);
 }
@@ -908,6 +939,7 @@ function purchasedServiceVeto(text: string, expansion: TradeExpansion): boolean 
  *     retrieval.
  */
 function strongTitleVeto(titleText: string, expansion: TradeExpansion): boolean {
+  if (expansion.naicsCodes.includes("238220") && isHvacNonWork(titleText)) return true;
   if (!expansion.naicsCodes.includes("561720")) return false;
   if (isSpecialtyCleaningOnly(titleText)) return true;
   return isProductBuy(titleText) && !hasExplicitJanitorialServicePhrase(titleText);

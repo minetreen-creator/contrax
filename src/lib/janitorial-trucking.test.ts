@@ -705,3 +705,60 @@ describe("janitorial audit (owner 2026-10-17)", () => {
     expect(tradeGateForNotice("Day Porter Services", "").janitorial).toBeNull();
   });
 });
+describe("HVAC audit (owner 2026-10-17)", () => {
+  test("equipment-titled HVAC bids match an HVAC search", async () => {
+    const { expandTrade, tradeTextIncludes } = await import("./trade-registry");
+    const hvac = expandTrade("HVAC");
+    expect(hvac.naicsCodes).toEqual(["238220"]);
+    for (const title of [
+      "Rooftop Unit Replacement",
+      "RTU Replacement - City Hall",
+      "Cooling Tower Maintenance",
+      "Air Handler Replacement",
+      "Furnace Replacement",
+      "Heat Pump Installation",
+      "Mini-Split Installation",
+      "Refrigeration Maintenance",
+      "Building Automation System Upgrade",
+      "Geothermal Heat Pump",
+    ]) {
+      expect(tradeTextIncludes(title, hvac)).toBe(true);
+    }
+    // The 238220 keywords still ride along, and every term fits under the cap.
+    for (const t of ["boiler", "chiller", "air conditioning"]) expect(hvac.terms).toContain(t);
+    // "duct" stays word-start only: no "product" / "conduct" / "aqueduct" hits.
+    for (const title of ["Paper Products for Schools", "Conduct a Traffic Study", "Aqueduct Repair"]) {
+      expect(tradeTextIncludes(title, hvac)).toBe(false);
+    }
+  });
+});
+
+describe("HVAC precision (owner 2026-10-17)", () => {
+  test("purchases and design work are not HVAC matches; real jobs still are", async () => {
+    const { expandTrade, tradeTextIncludes } = await import("./trade-registry");
+    const hvac = expandTrade("HVAC");
+    for (const title of [
+      "HVAC Filters",
+      "Air Conditioning Units Purchase",
+      "Mechanical Engineering Design Services",
+      "Mechanical Seals and Parts",
+    ]) {
+      expect(tradeTextIncludes(title, hvac)).toBe(false);
+    }
+    for (const title of [
+      "HVAC Filter Replacement Services",
+      "Purchase and Installation of HVAC Units",
+      "Mechanical Services Contract",
+      "Mechanical Upgrades - Fire Station 2",
+      "Chiller Replacement",
+      "Plumbing and HVAC Repairs",
+    ]) {
+      expect(tradeTextIncludes(title, hvac)).toBe(true);
+    }
+  });
+
+  test("the HVAC rule never touches other trades", async () => {
+    const { expandTrade, tradeTextIncludes } = await import("./trade-registry");
+    expect(tradeTextIncludes("Janitorial Services Purchase Order", expandTrade("janitorial"))).toBe(true);
+  });
+});

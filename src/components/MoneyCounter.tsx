@@ -55,9 +55,9 @@ export function MoneyCounter({
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0b1f45] via-[#12357a] to-[#0b1f45] p-6 text-center text-white shadow-xl sm:p-10">
         <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-amber-400/20 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-sky-400/20 blur-3xl" />
-        <p id="money-counter-title" className="relative text-xs font-bold uppercase tracking-[0.2em] text-amber-300">
+        <h2 id="money-counter-title" className="relative text-xs font-bold uppercase tracking-[0.2em] text-amber-300">
           Government money on the move {where}
-        </p>
+        </h2>
         <p className="relative mt-4 break-words font-[Georgia,serif] text-5xl font-extrabold tabular-nums text-amber-300 drop-shadow sm:text-7xl" aria-live="polite">
           ${dollars.toLocaleString("en-US")}
         </p>

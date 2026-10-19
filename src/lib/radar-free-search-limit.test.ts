@@ -12,7 +12,7 @@
  * keyed by whichever identity came first — the client IP, FALLING BACK to the
  * visitor cookie — so switching VPN servers handed out a fresh quota. It is now
  * counted by network address AND browser id, and whichever runs out first
- * blocks. The anonymous allowance is one search, with up to three matches.
+ * blocks. The anonymous allowance is one search, showing the top match.
  */
 import { describe, expect, test } from "bun:test";
 import { createHash } from "node:crypto";
@@ -80,10 +80,10 @@ async function attemptTimes(
 }
 
 describe("one anonymous preview", () => {
-  test("one search, three matches", () => {
+  test("one search, one match", () => {
     expect(FREE_RADAR_SEARCH_LIMIT).toBe(1);
     expect(FREE_RADAR_SEARCH_LIMIT).toBe(FREE_RADAR_PREVIEW_SCANS);
-    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(3);
+    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(1);
   });
 });
 

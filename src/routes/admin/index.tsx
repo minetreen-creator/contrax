@@ -562,11 +562,11 @@ function AdminOverviewPage() {
                   Anonymous results viewed: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.anonymousResultsViewed ?? 0}</span>
                 </p>
                 <p>
-                  More than 3 matches · free signup card: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.lockedShown ?? 0}</span> shown ·{" "}
+                  More than 1 match · free signup card: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.lockedShown ?? 0}</span> shown ·{" "}
                   <span className="font-semibold text-slate-700">{radarConv.diagnostics?.lockedClicked ?? 0}</span> clicked
                 </p>
                 <p>
-                  1–3 matches · free signup CTA: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.smallCtaShown ?? 0}</span> shown ·{" "}
+                  1 match · free signup CTA: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.smallCtaShown ?? 0}</span> shown ·{" "}
                   <span className="font-semibold text-slate-700">{radarConv.diagnostics?.smallCtaClicked ?? 0}</span> clicked
                 </p>
               </div>

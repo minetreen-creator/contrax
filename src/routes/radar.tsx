@@ -158,7 +158,7 @@ export function radarOpening({
     return {
       headline: `Your ${certLabel}matches${forTrade}${inState}`,
       intro: fromLearn ? "Your course selections are ready. Review the current matches, then save an opportunity with a free account. AI briefs and drafting are available with the relevant paid plans." :
-        "We've filled in what you picked on the homepage. See your matches now — your first 3 are free, each with a real match score and full Incumbent Intelligence (previous winner & award price). Certification and contract size are optional; set them under Refine.",
+        "We've filled in what you picked on the homepage. See your matches now — your top match is free, with a real match score and full Incumbent Intelligence (previous winner & award price). Certification and contract size are optional; set them under Refine.",
     };
   }
   // Ad visitors (owner 2026-10-06): most aren't SDVOSBs, so lead with every
@@ -173,7 +173,7 @@ export function radarOpening({
   // Everyone else (owner 2026-10-19): most visitors aren't SDVOSBs either, so
   // the default leads with every business, like the ad headline.
   return {
-    headline: "Find government contracts your business can win. Your first 3 matches are free.",
+    headline: "Find government contracts your business can win. Your top match is free.",
     intro:
       "Tell us your trade and state and we'll show your strongest live matches, with a real match score and full Incumbent Intelligence (previous winner & award price). Veteran-owned (SDVOSB), 8(a), WOSB and HUBZone set-asides included.",
   };
@@ -1171,14 +1171,14 @@ export const Route = createFileRoute("/radar")({
       {
         name: "description",
         content:
-          "Not sure which set-asides your certification qualifies you for? Contract Radar shows your strongest live matches — the first 3 free, with full Incumbent Intelligence (previous winner and award price).",
+          "Not sure which set-asides your certification qualifies you for? Contract Radar shows your strongest live matches — the top match free, with full Incumbent Intelligence (previous winner and award price).",
       },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: "Contract Radar — Find contracts you can actually win | Contrax" },
       {
         property: "og:description",
         content:
-          "Tell us your trade and state. Contract Radar scans live federal, state and local solicitations and reveals your strongest matches one at a time — the first 3 are free, with full incumbent intel.",
+          "Tell us your trade and state. Contract Radar scans live federal, state and local solicitations and reveals your strongest matches one at a time — the top match is free, with full incumbent intel.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
@@ -1967,7 +1967,7 @@ function RadarLanding() {
                   onClick={() => trackEvent("radar_restored_signup_clicked", scan.certLabel)}
                   className="mt-3 inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-500 px-4 py-3 text-sm font-bold text-white hover:bg-blue-400 sm:mt-0"
                 >
-                  Save these matches and get your next 3 free →
+                  Save these matches with a free account →
                 </a>
               </div>
             )}
@@ -1990,7 +1990,7 @@ function RadarLanding() {
                     server gate enforces, so the wall is still never a surprise. */}
                 {isAnonymous && (
                   <p className="mt-1 text-xs font-semibold text-amber-300">
-                    Without an account: {FREE_RADAR_PREVIEW_SCANS} search, up to {FREE_ANONYMOUS_RADAR_RESULTS} matches.
+                    Without an account: {FREE_RADAR_PREVIEW_SCANS} search, {FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.
                   </p>
                 )}
               </div>
@@ -2072,9 +2072,9 @@ function RadarLanding() {
             {scan.matches.length > 0 && (
               <p className="mt-3 text-xs font-medium text-slate-500">
                 {isAnonymous
-                  ? `Here are your strongest ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} ${
-                      Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1 ? "match" : "matches"
-                    } — every one with full incumbent intel`
+                  ? Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1
+                    ? "Here's your strongest match, with full incumbent intel"
+                    : `Here are your strongest ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} matches — every one with full incumbent intel`
                   : state !== ""
                     ? `${(scan.sections?.local ?? []).length} local · ${(scan.sections?.nationwide ?? []).length} nationwide opportunities`
                     : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
@@ -2950,7 +2950,7 @@ export function SignupGate({
         We found {totalFound} opportunities for your business.
       </p>
       <h3 className="mt-1.5 text-lg font-bold text-white">
-        You can see {FREE_ANONYMOUS_RADAR_RESULTS} now.
+        {FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "Here's your top one." : `You can see ${FREE_ANONYMOUS_RADAR_RESULTS} now.`}
       </h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-300">
         🔒 {locked} more matching {locked === 1 ? "opportunity" : "opportunities"}

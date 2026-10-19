@@ -20,7 +20,7 @@
  * a radar-sourced signup can display the actual open bids the visitor scanned
  * as compact read-only cards (title, agency, score/score_label, original
  * notice link). Never fabricated — the page passes whatever getRadarSeen()
- * returned (up to 3 free matches); an absent/empty list simply omits the block.
+ * returned (up to FREE_ANONYMOUS_RADAR_RESULTS free matches); an absent/empty list simply omits the block.
  */
 import type { RadarSeenMatch } from "~/lib/radar-session";
 

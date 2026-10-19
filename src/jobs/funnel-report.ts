@@ -203,6 +203,25 @@ async function signupBreakdown(days: number, human: string): Promise<void> {
     console.log("Exits without signing up (cohort | exits | median seconds on page):");
     for (const d of dwell) console.log(`  ${d.label} | ${d.exits} | ${d.median_seconds == null ? "-" : Math.round(Number(d.median_seconds))}`);
   }
+
+  // Where the people who left without typing came from (the signup page's own
+  // acquisition bucket on the exit beacon), so the fix targets the right door.
+  const from = (await db`
+    SELECT COALESCE(path::jsonb ->> 'from', '(unknown)') AS came_from,
+           COUNT(*)::int AS exits,
+           PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (path::jsonb ->> 'seconds_on_page')::numeric) AS median_seconds
+    FROM funnel_events
+    WHERE created_at > NOW() - make_interval(days => ${days})
+      AND event_name = 'signup_exit'
+      AND label = 'view'
+      AND path LIKE '{%'
+      AND ${db.unsafe(human)}
+    GROUP BY 1 ORDER BY 2 DESC
+  `.catch(() => [])) as { came_from: string; exits: number; median_seconds: number | null }[];
+  if (from.length) {
+    console.log("Left without typing, by where they came from (from | exits | median seconds):");
+    for (const f of from) console.log(`  ${f.came_from} | ${f.exits} | ${f.median_seconds == null ? "-" : Math.round(Number(f.median_seconds))}`);
+  }
 }
 
 /** Plan buy-button outcomes (tracked from 2026-10-19). */

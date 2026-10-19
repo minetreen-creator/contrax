@@ -33,6 +33,7 @@ interface LiveData {
   sources: SourceHealth[];
   map: StateSearchStat[];
   onlineCount: number;
+  scannersHidden?: number;
   online: OnlineVisitor[];
   feed: FeedItem[];
   trials: TrialCard[];
@@ -282,13 +283,18 @@ function SearchMap({ stats, visitors, now }: { stats: StateSearchStat[]; visitor
   );
 }
 
-function OnlineNow({ count, visitors, now }: { count: number; visitors: OnlineVisitor[]; now: number }) {
+function OnlineNow({ count, visitors, now, hidden }: { count: number; visitors: OnlineVisitor[]; now: number; hidden: number }) {
   return (
     <div className="live-online">
       <div className="flex items-baseline gap-3">
         <span className="live-online-count">{count}</span>
         <span className="text-sm text-slate-300">on the site now<br /><span className="text-xs text-slate-500">seen in the last 5 minutes</span></span>
       </div>
+      {hidden > 0 ? (
+        <p className="mt-2 text-xs text-slate-500">
+          {hidden} email link scanner{hidden === 1 ? "" : "s"} hidden (same page, same minute, or a data-center town)
+        </p>
+      ) : null}
       {visitors.length ? (
         <ul className="mt-3 space-y-1.5">
           {visitors.map((v) => (
@@ -483,7 +489,7 @@ function LivePage() {
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                   <Users size={15} aria-hidden="true" /> On the site now
                 </h2>
-                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} />
+                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} />
               </div>
             </div>
           ) : null}

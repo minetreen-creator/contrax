@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { MatchAlertsCard, RadarCard, RequirementsFallback, SaveTrackingPrompt, type RadarMatch } from "~/routes/radar";
+import { LockedMatchPreview, MatchAlertsCard, RadarCard, RequirementsFallback, SaveTrackingPrompt, type RadarMatch } from "~/routes/radar";
 import { BEST_MATCH_BADGE, SAVE_TRACKING_PROMPT } from "~/lib/funnel-ux";
 
 const REPO_SRC = join(import.meta.dir, "..", "src");
@@ -368,5 +368,16 @@ describe("Radar signup context", () => {
     expect(html).toContain("2d 4h");
     expect(html).toContain("AI Executive Briefs");
     expect(html).not.toContain("a draft");
+  });
+});
+
+describe("LockedMatchPreview — blurred stand-ins for locked matches", () => {
+  test("one blurred row per locked match, capped at three, with the real count", () => {
+    const many = renderToStaticMarkup(<LockedMatchPreview locked={13} />);
+    expect(many.match(/data-locked-preview/g)?.length).toBe(3);
+    expect(many).toContain("13 more matches");
+    const one = renderToStaticMarkup(<LockedMatchPreview locked={1} />);
+    expect(one.match(/data-locked-preview/g)?.length).toBe(1);
+    expect(one).toContain("1 more match");
   });
 });

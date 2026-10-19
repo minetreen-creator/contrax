@@ -2190,6 +2190,7 @@ function RadarLanding() {
                     bestMatch={m.id === bestMatchId}
                   />
                 ))}
+                {locked > 0 && <LockedMatchPreview locked={locked} />}
                 {locked > 0 && (
                   <SignupGate
                     certLabel={scan.certLabel}
@@ -2880,6 +2881,44 @@ function IncumbentBlock({
         Choose a plan for Incumbent Intelligence &amp; past pricing
         and full contract history on Professional.
       </p>
+    </div>
+  );
+}
+
+/**
+ * Blurred stand-ins for the locked matches (owner 2026-10-19, item 5): one per
+ * locked match up to three, so the visitor sees there is more behind the
+ * signup card. Plain grey bars only — no titles, agencies or amounts are sent
+ * to the browser for locked matches, so nothing here is made up.
+ */
+export function LockedMatchPreview({ locked }: { locked: number }) {
+  const rows = Math.min(locked, 3);
+  return (
+    <div aria-hidden="true" className="relative flex flex-col gap-3">
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          key={i}
+          data-locked-preview
+          className="pointer-events-none select-none rounded-2xl border border-slate-800 bg-slate-900 p-5 blur-[3px]"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="h-3 w-24 rounded bg-emerald-500/40" />
+            <div className="h-6 w-12 rounded-full bg-amber-500/40" />
+          </div>
+          <div className="mt-3 h-4 w-11/12 rounded bg-slate-600" />
+          <div className="mt-2 h-4 w-2/3 rounded bg-slate-700" />
+          <div className="mt-4 flex gap-2">
+            <div className="h-3 w-20 rounded bg-slate-700" />
+            <div className="h-3 w-16 rounded bg-slate-700" />
+            <div className="h-3 w-24 rounded bg-slate-700" />
+          </div>
+        </div>
+      ))}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-amber-300 ring-1 ring-amber-500/40">
+          🔒 {locked} more {locked === 1 ? "match" : "matches"}
+        </span>
+      </div>
     </div>
   );
 }

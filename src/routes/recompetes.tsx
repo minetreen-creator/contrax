@@ -7,6 +7,8 @@ import { formatDollars, RECOMPETE_MONTH_CHOICES, type Recompete } from "~/lib/fe
 import { RADAR_PRO_HREF, RADAR_PRO_PRICE_NOTE } from "~/lib/plan-gates";
 import { SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { trackEvent } from "~/lib/track";
+import { BidAlertCapture } from "~/components/BidAlertCapture";
+import { tradeAlertProfile } from "~/lib/bid-alert";
 
 /**
  * /recompetes — Contracts Ending Soon (owner 2026-10-13, USAspending idea #1).
@@ -193,6 +195,15 @@ function RecompetesPage() {
                 {d.signedIn && <p className="mt-2 text-xs text-slate-500">{RADAR_PRO_PRICE_NOTE}</p>}
               </div>
             )}
+            {/* Owner 2026-10-19: a lighter ask than an account for visitors who
+                browse ending contracts. Hidden for signed-in users. */}
+            <BidAlertCapture
+              alertProfile={tradeAlertProfile(trade, d.state ?? null)}
+              source="recompetes"
+              heading="Not ready for an account? Get new bids by email"
+              note="When one of these contracts is rebid, the new solicitation is the kind of bid we'll send."
+              tone="light"
+            />
           </>
         )}
         <p className="mt-8 text-xs text-slate-500">

@@ -72,11 +72,16 @@ describe("trial board", () => {
 });
 
 describe("live search map + on the site now", () => {
-  test("51 tiles, each state once, no two on the same square", async () => {
-    const { STATE_TILES } = await import("./live-console");
-    expect(STATE_TILES.length).toBe(51);
-    expect(new Set(STATE_TILES.map((t) => t[0])).size).toBe(51);
-    expect(new Set(STATE_TILES.map((t) => `${t[1]}:${t[2]}`)).size).toBe(51);
+  test("the map file draws 50 states + DC, each with a label point", () => {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const map = JSON.parse(readFileSync(new URL("../../public/us-states-albers.json", import.meta.url), "utf8"));
+    const codes = Object.keys(map.states);
+    expect(codes.length).toBe(51);
+    for (const c of ["TX", "CO", "DC", "AK", "HI", "ME"]) expect(codes).toContain(c);
+    for (const c of codes) {
+      expect(map.states[c].startsWith("M")).toBe(true);
+      expect(map.label[c]).toHaveLength(2);
+    }
   });
 
   test("tone: found / mixed / empty / none", async () => {

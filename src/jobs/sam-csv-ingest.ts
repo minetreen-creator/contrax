@@ -319,7 +319,7 @@ export async function upsertBatch(batch: readonly SamCsvBidRow[]): Promise<Batch
       row.archive_date,
     ];
     const placeholders = values
-      .map((_, j) => `${params.length + j + 1}${CASTS[j] ?? ""}`)
+      .map((_, j) => `$${params.length + j + 1}${CASTS[j] ?? ""}`)
       .join(", ");
     valueRows.push(`(${placeholders})`);
     params.push(...values);

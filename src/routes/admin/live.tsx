@@ -5,7 +5,6 @@ import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
 import {
-  STATE_TILES,
   agoLabel,
   isRecentSearch,
   mapTone,
@@ -183,42 +182,77 @@ function Ticker({ entries }: { entries: TickerEntry[] }) {
 }
 
 const TONE_COLOR: Record<MapTone, string> = {
-  none: "rgba(148,163,184,0.10)",
+  none: "#1e293b",
   found: "#10b981",
   mixed: "#f59e0b",
   empty: "#f43f5e",
 };
 
-/** One tile per state; color = how its searches went, pulse = searched in the last 15 minutes. */
+interface UsMapData {
+  viewBox: string;
+  states: Record<string, string>;
+  label: Record<string, [number, number]>;
+}
+
+/** State outlines from /us-states-albers.json (us-atlas, US Census shapes), fetched once. */
+function useUsMap() {
+  const [map, setMap] = useState<UsMapData | null>(null);
+  useEffect(() => {
+    let stop = false;
+    fetch("/us-states-albers.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!stop && d) setMap(d as UsMapData); })
+      .catch(() => {});
+    return () => { stop = true; };
+  }, []);
+  return map;
+}
+
+/** A real US map; color = how each state's searches went, pulse = searched in the last 15 minutes. */
 function SearchMap({ stats, now }: { stats: StateSearchStat[]; now: number }) {
+  const us = useUsMap();
   const byState = new Map(stats.map((s) => [s.state, s]));
   return (
     <div>
-      <div className="live-map" role="img" aria-label="Searches by state, last 48 hours">
-        {STATE_TILES.map(([code, row, col]) => {
-          const stat = byState.get(code);
-          const tone = mapTone(stat);
-          const title = stat
-            ? `${code}: ${stat.searches} search${stat.searches === 1 ? "" : "es"}, ${stat.zero} with 0 matches, last ${agoLabel(stat.lastAt, now)}`
-            : `${code}: no searches`;
-          return (
-            <span
-              key={code}
-              title={title}
-              className={`live-tile ${tone !== "none" ? "is-on" : ""} ${isRecentSearch(stat, now) ? "is-recent" : ""}`}
-              style={{ gridRow: row + 1, gridColumn: col + 1, ["--tone" as string]: TONE_COLOR[tone] }}
-            >
-              {code}
-              {stat ? <small>{stat.searches}</small> : null}
-            </span>
-          );
-        })}
-      </div>
+      {us ? (
+        <svg viewBox={us.viewBox} className="live-usmap" role="img" aria-label="Searches by state, last 48 hours">
+          {Object.entries(us.states).map(([code, d]) => {
+            const stat = byState.get(code);
+            const tone = mapTone(stat);
+            return (
+              <path
+                key={code}
+                d={d}
+                className={`live-state ${tone !== "none" ? "is-on" : ""} ${isRecentSearch(stat, now) ? "is-recent" : ""}`}
+                style={{ ["--tone" as string]: TONE_COLOR[tone] }}
+              >
+                <title>
+                  {stat
+                    ? `${code}: ${stat.searches} search${stat.searches === 1 ? "" : "es"}, ${stat.zero} with 0 matches, last ${agoLabel(stat.lastAt, now)}`
+                    : `${code}: no searches`}
+                </title>
+              </path>
+            );
+          })}
+          {stats.map((s) => {
+            const at = us.label[s.state];
+            if (!at) return null;
+            return (
+              <g key={s.state} className="live-state-badge" transform={`translate(${at[0]} ${at[1]})`}>
+                <circle r="15" />
+                <text y="1" textAnchor="middle" dominantBaseline="middle">{s.searches}</text>
+              </g>
+            );
+          })}
+        </svg>
+      ) : (
+        <div className="live-usmap-loading">Loading map…</div>
+      )}
       <p className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-400">
         <span><i className="live-key" style={{ background: TONE_COLOR.found }} /> found bids</span>
         <span><i className="live-key" style={{ background: TONE_COLOR.mixed }} /> some empty</span>
         <span><i className="live-key" style={{ background: TONE_COLOR.empty }} /> all 0 matches</span>
-        <span>Pulsing: searched in the last 15 min · hover a state for details</span>
+        <span>Number = searches · pulsing = last 15 min · hover a state for details</span>
       </p>
     </div>
   );

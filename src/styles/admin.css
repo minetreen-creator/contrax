@@ -94,16 +94,16 @@
   0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); }
   100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(0.4); }
 }
-.admin-console .live-map { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); grid-template-rows: repeat(8, auto); gap: 4px; }
-.admin-console .live-tile {
-  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; aspect-ratio: 1;
-  border-radius: 6px; font-size: 10px; font-weight: 700; color: rgba(226,232,240,0.45); background: var(--tone);
-  border: 1px solid rgba(148,163,184,0.12); transition: background 0.4s ease;
-}
-.admin-console .live-tile small { font-size: 9px; font-weight: 600; opacity: 0.85; }
-.admin-console .live-tile.is-on { color: #fff; box-shadow: 0 0 12px var(--tone); }
-.admin-console .live-tile.is-recent::after { content: ""; position: absolute; inset: -3px; border-radius: 8px; border: 2px solid var(--tone); animation: live-ping 1.6s ease-out infinite; }
-@keyframes live-ping { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(1.35); } }
+.admin-console .live-usmap { width: 100%; height: auto; display: block; }
+.admin-console .live-state { fill: var(--tone); stroke: #0b1220; stroke-width: 1; transition: fill 0.4s ease; }
+.admin-console .live-state:hover { stroke: #e2e8f0; stroke-width: 1.5; }
+.admin-console .live-state.is-on { filter: drop-shadow(0 0 6px var(--tone)); }
+.admin-console .live-state.is-recent { animation: live-glow 1.6s ease-in-out infinite; }
+@keyframes live-glow { 0%, 100% { filter: drop-shadow(0 0 4px var(--tone)); } 50% { filter: drop-shadow(0 0 16px var(--tone)) brightness(1.25); } }
+.admin-console .live-state-badge { pointer-events: none; }
+.admin-console .live-state-badge circle { fill: rgba(2,6,23,0.85); stroke: rgba(255,255,255,0.7); stroke-width: 1.5; }
+.admin-console .live-state-badge text { fill: #fff; font-size: 14px; font-weight: 800; }
+.admin-console .live-usmap-loading { aspect-ratio: 975 / 610; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 13px; border-radius: 12px; background: rgba(15,23,42,0.5); }
 .admin-console .live-key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; }
 .admin-console .live-online { padding: 16px; border-radius: 14px; background: rgba(15,23,42,0.75); border: 1px solid rgba(148,163,184,0.12); }
 .admin-console .live-online-count { font-size: 48px; line-height: 1; font-weight: 800; color: #34d399; text-shadow: 0 0 18px rgba(52,211,153,0.55); font-variant-numeric: tabular-nums; }

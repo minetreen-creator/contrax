@@ -104,10 +104,9 @@ function TrialTile({ t, now }: { t: TrialCard; now: number }) {
     <article className="live-trial">
       <div className="relative shrink-0">
         <CountdownRing fraction={fraction} color={ringColor} />
-        <span className="absolute inset-0 flex items-center justify-center text-center text-[11px] font-bold leading-tight text-white">
-          {timeLeftLabel(msLeft).replace(" left", "")}
-          <br />
-          <span className="font-normal text-slate-400">left</span>
+        <span className="absolute inset-0 flex flex-col items-center justify-center text-center text-[11px] font-bold leading-tight text-white">
+          <span>{timeLeftLabel(msLeft).replace(" left", "")}</span>
+          {msLeft > 0 ? <span className="font-normal text-slate-400">left</span> : null}
         </span>
       </div>
       <div className="min-w-0 flex-1 space-y-1">

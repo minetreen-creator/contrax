@@ -644,6 +644,8 @@ jobs:
       # FAILED scan never consuming a free search.
       - name: Anonymous Radar free-search limit (dual dimension) tests (unit, deterministic, zero network)
         run: bun test src/lib/radar-free-search-limit.test.ts
+      - name: Upgrade page personal pitch helpers (unit, deterministic, zero network)
+        run: bun test src/lib/upgrade-pitch.test.ts
       - name: Mobile public bid source tests
         run: |
           node --input-type=module -e 'import {build} from "esbuild"; await build({entryPoints:["tests/mobile-source.test.ts"],bundle:true,platform:"node",format:"esm",packages:"external",outfile:".mobile-source-test.mjs"})'

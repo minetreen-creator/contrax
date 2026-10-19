@@ -3,10 +3,10 @@ import { describe, expect, test } from "bun:test";
 import { radarOpening } from "~/routes/radar";
 
 describe("radarOpening — Radar step-1 headline", () => {
-  test("no deep link: SDVOSB-first copy that still welcomes other certifications", () => {
+  test("no deep link: every business first; the set-asides follow in the intro", () => {
     const o = radarOpening({ trade: "", stateCode: "", cert: null });
-    expect(o.headline).toContain("SDVOSB");
-    expect(o.headline).toContain("first 3 matches are free");
+    expect(o.headline).toBe("Find government contracts your business can win. Your first 3 matches are free.");
+    expect(o.intro).toContain("SDVOSB");
     expect(o.intro).toContain("8(a), WOSB and HUBZone");
   });
 
@@ -66,7 +66,7 @@ describe("paid-ad visitors get a broader opening (owner 2026-10-06)", () => {
     const ad = radarOpening({ trade: "", stateCode: "", cert: null, fromAd: true });
     expect(ad.headline).toBe("Find government contracts your business can win.");
     expect(ad.intro).toContain("SDVOSB");
-    expect(radarOpening({ trade: "", stateCode: "", cert: null }).headline).toContain("SDVOSB");
+    expect(radarOpening({ trade: "", stateCode: "", cert: null }).headline).not.toContain("SDVOSB");
     expect(radarOpening({ trade: "HVAC", stateCode: "VA", cert: null, fromAd: true }).headline).toBe("Your matches for HVAC work in Virginia");
   });
 });

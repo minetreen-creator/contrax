@@ -80,7 +80,10 @@ function FeedRow({ item, now, fresh }: { item: FeedItem; now: number; fresh: boo
   const zero = item.kind === "search" && item.detail === "0 matches";
   return (
     <li className={`live-row ${fresh ? "is-fresh" : ""} ${item.money ? "is-money" : ""}`} style={{ ["--kind" as string]: s.color }}>
-      <span className="live-icon"><Icon size={16} aria-hidden="true" /></span>
+      <span className="live-icon relative">
+        <Icon size={16} aria-hidden="true" />
+        {fresh && item.money ? <Confetti /> : null}
+      </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold text-white">
           {item.place ? <span className="text-slate-300">{item.place} · </span> : null}
@@ -92,6 +95,81 @@ function FeedRow({ item, now, fresh }: { item: FeedItem; now: number; fresh: boo
       </div>
       <span className="shrink-0 text-xs text-slate-500" title={new Date(item.at).toLocaleString()}>{agoLabel(item.at, now)}</span>
     </li>
+  );
+}
+
+const CONFETTI = ["#fbbf24", "#f472b6", "#34d399", "#38bdf8", "#a78bfa", "#fb7185", "#facc15", "#22d3ee"];
+
+/** A one-shot confetti burst for a money row that just arrived. */
+function Confetti() {
+  return (
+    <span className="live-confetti" aria-hidden="true">
+      {CONFETTI.concat(CONFETTI).map((c, i) => (
+        <i key={i} style={{ background: c, ["--a" as string]: `${(i * 360) / 16}deg`, ["--d" as string]: `${28 + (i % 4) * 10}px` }} />
+      ))}
+    </span>
+  );
+}
+
+interface TickerEntry {
+  key: string;
+  color: string;
+  icon: typeof Search;
+  text: string;
+  sub: string | null;
+  alert: boolean;
+}
+
+/** Feed items plus each trial's countdown, as one scrolling band. */
+function tickerEntries(data: LiveData, now: number): TickerEntry[] {
+  const fromFeed = data.feed.slice(0, 20).map((f) => {
+    const s = KIND_STYLE[f.kind];
+    return {
+      key: f.id,
+      color: s.color,
+      icon: s.icon,
+      text: `${f.place ? `${f.place} · ` : ""}${f.title}`,
+      sub: [f.detail, agoLabel(f.at, now)].filter(Boolean).join(" · "),
+      alert: f.kind === "search" && f.detail === "0 matches",
+    };
+  });
+  const fromTrials = data.trials.map((t) => ({
+    key: `trial-${t.userId}`,
+    color: HEAT_STYLE[t.heat].color,
+    icon: Timer,
+    text: `${t.email.split("@")[0]} trial`,
+    sub: `${timeLeftLabel(new Date(t.endsAt).getTime() - now)} · ${HEAT_STYLE[t.heat].label}`,
+    alert: false,
+  }));
+  return [...fromFeed, ...fromTrials];
+}
+
+function Ticker({ entries }: { entries: TickerEntry[] }) {
+  if (!entries.length) return null;
+  // The band holds the list twice and slides left by one copy, so it loops
+  // seamlessly. A short list repeats within each copy so the band is always
+  // wider than the screen. Speed: about 4 seconds per entry.
+  const repeat = Math.ceil(8 / entries.length);
+  const base = Array.from({ length: repeat }, (_, r) => entries.map((e) => ({ ...e, key: `${r}-${e.key}` }))).flat();
+  const seconds = Math.max(20, base.length * 4);
+  const row = (copy: number) =>
+    base.map((e) => {
+      const Icon = e.icon;
+      return (
+        <span key={`${copy}-${e.key}`} className="live-tick" style={{ ["--kind" as string]: e.color }} aria-hidden={copy === 1 ? true : undefined}>
+          <Icon size={14} aria-hidden="true" />
+          <span className="font-semibold text-white">{e.text}</span>
+          {e.sub ? <span className={e.alert ? "font-semibold text-rose-400" : "text-slate-400"}>{e.sub}</span> : null}
+        </span>
+      );
+    });
+  return (
+    <div className="live-ticker" role="marquee" aria-label="Live activity">
+      <div className="live-ticker-track" style={{ animationDuration: `${seconds}s` }}>
+        {row(0)}
+        {row(1)}
+      </div>
+    </div>
   );
 }
 
@@ -209,6 +287,8 @@ function LivePage() {
               </div>
             ) : null}
           </div>
+
+          {data ? <Ticker entries={tickerEntries(data, now)} /> : null}
 
           {error ? <SectionError message={error} /> : !data ? <SectionLoading message="Tuning in…" /> : (
             <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">

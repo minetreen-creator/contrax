@@ -44,7 +44,7 @@ const trialFeatures = [
 ];
 
 const trialClosing = [
-  "We cover federal, state and local bids in 45 states and DC, and every bid links straight to the official government posting.",
+  "We cover federal, state and local bids in 50 states + DC, and every bid links straight to the official government posting.",
   "After 7 days, pick the plan that fits. Starter is just $19/month. Or keep searching on Basic at no cost.",
   "Already have an account? Your 7-day trial starts the next time you log in.",
 ];

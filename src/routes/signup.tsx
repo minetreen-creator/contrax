@@ -43,6 +43,7 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
   OPEN_BID_SQL,
   AWARD_NOTICE_EXCLUSION_SQL,
+  CLOSED_EXCLUSION_SQL,
 } from "~/lib/open-bids";
 import { getGoogleAuthUrl } from "~/lib/google-oauth";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
@@ -274,7 +275,8 @@ const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () =>
             WHERE ${sql().unsafe(OPEN_BID_SQL)}
               AND ${sql().unsafe(LOW_CONTENT_SQL)}
               AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
-              AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}`,
+              AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
+              AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}`,
     ]);
     return {
       tracked: Number((trackedRows[0] as any)?.count || 0),

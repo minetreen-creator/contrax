@@ -14,6 +14,7 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
   OPEN_BID_SQL,
   AWARD_NOTICE_EXCLUSION_SQL,
+  CLOSED_EXCLUSION_SQL,
 } from "~/lib/open-bids";
 import {
   buildContractMap,
@@ -50,6 +51,7 @@ const getContractMapAggregate = createServerFn({ method: "GET" }).handler(
           AND ${sql().unsafe(LOW_CONTENT_SQL)}
           AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
           AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
+          AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}
       `;
       return buildContractMap(rows as any);
     } catch {

@@ -5,6 +5,7 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
   OPEN_BID_SQL,
   AWARD_NOTICE_EXCLUSION_SQL,
+  CLOSED_EXCLUSION_SQL,
 } from "~/lib/open-bids";
 import { deriveStateCode, STATE_NAMES } from "~/lib/contract-map";
 import { US_STATES } from "~/lib/states";
@@ -36,6 +37,7 @@ async function handler({ request }: { request: Request }) {
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
+        AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}
       ORDER BY due_date ASC NULLS LAST
     `;
     const bids = (rows as any[])

@@ -1,0 +1,53 @@
+-- Migration 064 — bids: the nightly SAM.gov CSV ingest's three additive columns.
+--
+-- OWNER-APPROVED BUILD (2026-10-19), spec shared/sam-csv-ingest-spec-2026-10-19.md
+-- §Close-out: "if a migration is needed to add a nullable closed flag, keep it
+-- additive + idempotent". A nullable flag is needed, because the schema has no
+-- lifecycle column at all (verified against production 2026-10-19:
+-- information_schema.columns for `bids` lists 30 columns, none of them a
+-- status/active/closed field) — the existing convention for "not open" is the
+-- `due_date` predicate alone, which cannot express "cancelled / withdrawn from
+-- SAM's active extract while its deadline is still ahead".
+--
+-- ALL THREE COLUMNS ARE ADDITIVE AND NULLABLE. Every pre-existing row keeps
+-- NULL, so every existing read path is byte-identical until the nightly job
+-- starts writing them:
+--
+--   closed_at    TIMESTAMPTZ  NULL  — when the nightly job closed the notice out
+--                                     (deadline passed, or the notice left SAM's
+--                                     active extract). Read by the open-counter
+--                                     family as `closed_at IS NULL`
+--                                     (src/lib/open-bids.ts CLOSED_EXCLUSION_SQL).
+--                                     NULL = "not closed", the state of every row
+--                                     before this ingest exists.
+--   posted_date  DATE         NULL  — the notice's own `PostedDate`. No existing
+--                                     column carries it (created_at is when WE
+--                                     stored the row, not when SAM posted it), and
+--                                     the ingest's change detection compares it so
+--                                     a re-post that keeps its deadline is seen.
+--   archive_date DATE         NULL  — the notice's own `ArchiveDate` (SAM's own
+--                                     "this notice stops being advertised" date).
+--                                     Recorded for the same reason; read by nobody
+--                                     today.
+--
+-- NO INDEX IS ADDED: the counter's query already scans the open population
+-- (52,165-row table, no due_date index today), and the close-out runs once a
+-- night scoped to `source = 'sam_gov'`. Adding an index would be shape churn for
+-- no measured gain — deliberately not done.
+--
+-- IDEMPOTENT BY CONSTRUCTION: every statement is ADD COLUMN IF NOT EXISTS, so a
+-- re-run is a no-op and the proof is that re-running it changes nothing.
+--
+-- ROLLBACK: `ALTER TABLE bids DROP COLUMN closed_at, DROP COLUMN posted_date,
+-- DROP COLUMN archive_date;` — the read path degrades to its pre-064 behavior
+-- (nothing is filtered by closed_at once the column is gone, and the nightly job
+-- must be paused first, since it writes all three columns).
+--
+-- APPLY ORDER: PROD-FIRST, BEFORE the code that reads `closed_at` deploys (the
+-- 047/051/052/053/058/059/060/062/063 protocol — a read path referencing a
+-- missing column is a hard error, not a soft one). Run by hand, once:
+--   bun run db/migrations/run-064.ts
+
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS posted_date DATE;
+ALTER TABLE bids ADD COLUMN IF NOT EXISTS archive_date DATE;

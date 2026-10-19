@@ -241,6 +241,16 @@ export const AWARD_NOTICE_TYPES: readonly string[] = [
   "award notice",
   "award",
   "justification",
+  // Added 2026-10-19 with the nightly SAM.gov CSV ingest: SAM's daily extract
+  // spells the same family "Justification and Approval (J&A)" (its own `Type`
+  // column, alongside the bare "Justification" already stored). Measured against
+  // production 2026-10-19: zero stored rows carry this spelling, so the addition
+  // changes no number today — it closes the leak for the moment one is stored,
+  // exactly like the fragment's original purpose. The CSV ingest additionally
+  // refuses the whole "justification…" PREFIX (src/jobs/sam-csv.ts), so no other
+  // spelling of it can be ingested either.
+  "justification and approval (j&a)",
+  "justification & approval (j&a)",
 ];
 
 /**
@@ -252,6 +262,29 @@ export const AWARD_NOTICE_EXCLUSION_SQL = `(
   notice_type IS NULL
   OR LOWER(BTRIM(notice_type)) NOT IN (${AWARD_NOTICE_TYPES.map((t) => `'${t}'`).join(", ")})
 )`;
+
+/**
+ * TRUE for a row that has NOT been closed out by the nightly SAM.gov CSV ingest
+ * (owner-approved build 2026-10-19, spec shared/sam-csv-ingest-spec-2026-10-19.md
+ * §Close-out / §Counter behavior 5).
+ *
+ * `closed_at` is added nullable by migration 064, so every pre-existing row is
+ * NULL and this fragment is a no-op until the nightly job closes something — the
+ * counter's numbers cannot move because of the column's existence.
+ *
+ * WHAT IT ADDS OVER OPEN_BID_SQL: a notice that left SAM's active extract while
+ * its deadline is still ahead (cancelled / withdrawn / archived early) is stored
+ * with a future `due_date`, so rule 1 alone would keep advertising it as open.
+ * Measured 2026-10-19 (the day this fragment was added): zero rows exist, so the
+ * fragment is a guard against a future leak, not a correction of a present count.
+ *
+ * SCOPE: applied by the same contract-map family that applies OPEN_BID_SQL
+ * (homepage money counter, /api/contract-map, /map, /api/contract-map/bids, the
+ * state SEO region page, the signup social-proof line). It deliberately does NOT
+ * touch `LIVE_SQL` in ~/lib/bid-status (a user's own saved feed answers a
+ * different question) and it does NOT touch Radar.
+ */
+export const CLOSED_EXCLUSION_SQL = `(closed_at IS NULL)`;
 
 /**
  * Client-safe mirror of `AWARD_NOTICE_EXCLUSION_SQL` (same contract as

@@ -5,7 +5,7 @@ import { radarOpening } from "~/routes/radar";
 describe("radarOpening — Radar step-1 headline", () => {
   test("no deep link: every business first; the set-asides follow in the intro", () => {
     const o = radarOpening({ trade: "", stateCode: "", cert: null });
-    expect(o.headline).toBe("Find government contracts your business can win. Your first 3 matches are free.");
+    expect(o.headline).toBe("Find government contracts your business can win. Your top match is free.");
     expect(o.intro).toContain("SDVOSB");
     expect(o.intro).toContain("8(a), WOSB and HUBZone");
   });
@@ -33,7 +33,7 @@ describe("radarOpening — Radar step-1 headline", () => {
 
   test("a cert-only link (no trade/state) keeps the default opening", () => {
     expect(radarOpening({ trade: "", stateCode: "", cert: "wosb" }).headline).toContain(
-      "first 3 matches are free",
+      "top match is free",
     );
   });
 

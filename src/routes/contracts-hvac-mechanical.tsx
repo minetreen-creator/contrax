@@ -413,7 +413,7 @@ function ContractsHvacMechanical() {
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-sm text-blue-100/80">
             Contract Radar scans live solicitations for your trade and
-            certification in seconds. Your first 3 matches are free — no signup.
+            certification in seconds. Your top match is free — no signup.
           </p>
           <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <a

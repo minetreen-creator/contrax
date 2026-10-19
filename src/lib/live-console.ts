@@ -198,3 +198,12 @@ export function sortSources(rows: SourceHealth[]): SourceHealth[] {
   const rank: Record<FeedLight, number> = { red: 0, amber: 1, green: 2 };
   return [...rows].sort((a, b) => rank[a.light] - rank[b.light] || b.new24h - a.new24h || b.open - a.open);
 }
+
+/**
+ * Labels written once by a manual import and never again: the reviewed
+ * OhioBuys and PA eMarketplace exports of 2026-09-29 (scripts since removed;
+ * PA is now collected as pa_dgs_emarketplace). Their bids still show until
+ * they close, but they are not feeds, so the scoreboard leaves them out
+ * instead of flagging them red forever.
+ */
+export const ONE_TIME_IMPORT_SOURCES: ReadonlySet<string> = new Set(["pa_emarketplace", "ohiobuys"]);

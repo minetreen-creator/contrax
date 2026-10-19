@@ -15,6 +15,7 @@
     "bid-digest": "bun run src/jobs/send-bid-digest.ts",
     "weekly-digest": "bun run src/jobs/send-weekly-digest.ts",
     "trial-emails": "bun run src/jobs/send-trial-emails.ts",
+    "announcement": "bun run src/jobs/send-announcement.ts",
     "award-check": "bun run src/jobs/check-awards.ts",
     "crm-reminders": "bun run src/jobs/crm-reminder-send.ts",
     "purge-network-identifiers": "bun run src/jobs/purge-network-identifiers.ts",

@@ -221,11 +221,11 @@ const handleLinkedInAuth = createServerFn({ method: "POST" })
  * proper server scope. Best-effort / fail-open — never affects the OAuth result.
  */
 const linkOAuthVisitor = createServerFn({ method: "POST" })
-  .validator((data: unknown) => data as { userId: number; email: string })
+  .validator((data: unknown) => data as { userId: number; email: string; isNewUser?: boolean })
   .handler(async ({ data }) => {
     try {
       const { sql } = await import("~/db");
-      const { backfillVisitorIdentity } = await import("~/lib/identity-backfill");
+      const { backfillVisitorIdentity, linkVisitorConversion, recordOAuthSignup } = await import("~/lib/identity-backfill");
       const cookie = getRequest().headers.get("cookie") ?? "";
       const vid =
         cookie
@@ -235,6 +235,14 @@ const linkOAuthVisitor = createServerFn({ method: "POST" })
           ?.split("=")[1] ?? "";
       if (!vid) return { linked: false, reason: "no_visitor" };
       await backfillVisitorIdentity(sql, data.userId, data.email, vid);
+      // A NEW account made here is a signup (owner 2026-10-19: OAuth signups
+      // never reached the visitor record, so admin showed them as "not signed
+      // up"). Same summary-row link as /api/signup, plus the signup_success
+      // event the funnels count. Returning users only get the backfill above.
+      if (data.isNewUser) {
+        await linkVisitorConversion(sql, data.userId, vid);
+        await recordOAuthSignup(sql, { userId: data.userId, email: data.email, visitorId: vid, provider: "linkedin" });
+      }
       return { linked: true };
     } catch {
       return { linked: false, reason: "error" };
@@ -340,7 +348,7 @@ export const Route = createFileRoute("/auth/linkedin/callback")({
     // Tie this request's anonymous visitor journey (contrax_vid cookie) to the
     // authenticated account. Fail-open — never affects the redirect below.
     if (userId !== null && userEmail) {
-      linkOAuthVisitor({ data: { userId, email: userEmail } }).catch(() => {
+      linkOAuthVisitor({ data: { userId, email: userEmail, isNewUser } }).catch(() => {
         /* best-effort */
       });
     }

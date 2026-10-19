@@ -32,7 +32,15 @@
  *      returned count IS the blast radius;
  *   6. IDEMPOTENCY: both statements are run a SECOND time; they must return 0 ids, move
  *      nothing and leave the histogram identical. That is the proof the file is safe to
- *      re-run (the `set_aside = '8(a)'` guard plus the frozen created_at cut-off).
+ *      re-run (the `set_aside = '8(a)'` guard plus the frozen created_at cut-off);
+ *   7. THE LIST SHAPE (not a defect detector but the design, stated): statement 1's
+ *      exception list CONTAINS all 15 NONE ids on purpose and statement 2 then nulls
+ *      them. The shared rule in src/lib/set-aside-migration.ts therefore PASSES on the
+ *      shipped file — a check that failed on every correct run would train its reader
+ *      to ignore it (owner rule, 2026-10-19). It fails only on a real defect: a NONE id
+ *      missing from the exception list (statement 1 would relabel a notice SAM reports
+ *      as having no set-aside, and statement 2 could no longer reach it), or an extra
+ *      exception id that statement 1 would then keep reading '8(a)' forever.
  *
  * REPORTING: the BEFORE section prints the per-bucket counts and the per-group evidence
  * split (how many of the stored "8(a)" rows SAM's detail API recorded as SBA / 8A / 8AN
@@ -46,6 +54,7 @@
 import { readFileSync } from "node:fs";
 import { neon } from "@neondatabase/serverless";
 import { migrationStatements } from "./sql-statements";
+import { checkSetAsideListShape, setAsideListOverlap } from "../../src/lib/set-aside-migration";
 
 const url = process.env.DATABASE_URL;
 if (!url) {
@@ -74,22 +83,20 @@ if (statements.length !== 2) {
 const idLists = statements.map((s) => [...s.matchAll(/'(sam-[0-9a-f]{32})'/g)].map((m) => m[1]!));
 const EXCEPTION_IDS = idLists[0]!; // statement 1's NOT IN list: real 8(a)/8AN/other, kept
 const NONE_IDS = idLists[1]!; // statement 2's IN list: SAM says no set-aside at all
-/** Held as data so the drift is caught, not just documented. */
-const EXPECTED = { exception: 100, none: 15, statements: 2 };
 const TARGET_LABEL = "Small Business Set Aside - Total";
 
 const problems: string[] = [];
-if (EXCEPTION_IDS.length !== EXPECTED.exception) {
-  problems.push(`statement 1 names ${EXCEPTION_IDS.length} exception ids, expected ${EXPECTED.exception}`);
-}
-if (NONE_IDS.length !== EXPECTED.none) {
-  problems.push(`statement 2 names ${NONE_IDS.length} ids, expected ${EXPECTED.none}`);
-}
-if (new Set(EXCEPTION_IDS).size !== EXCEPTION_IDS.length) problems.push("statement 1's exception list repeats an id");
-if (new Set(NONE_IDS).size !== NONE_IDS.length) problems.push("statement 2's list repeats an id");
-if (NONE_IDS.some((id) => EXCEPTION_IDS.includes(id))) {
-  problems.push("an id is in BOTH lists (statement 2 would null a row statement 1 is told to keep)");
-}
+/**
+ * THE LIST SHAPE. The rule lives in src/lib/set-aside-migration.ts so the runner
+ * and src/jobs/sam-set-aside-migration.test.ts share ONE implementation, and it
+ * PASSES on the shipped file: statement 1's exception list deliberately CONTAINS
+ * the 15 NONE ids (so statement 1 does not relabel a notice SAM says has no
+ * set-aside) and statement 2 then nulls exactly them. The previous check asserted
+ * the two lists were disjoint and therefore failed on every correct run — see the
+ * module header.
+ */
+const listOverlap = setAsideListOverlap({ exceptionIds: EXCEPTION_IDS, noneIds: NONE_IDS });
+problems.push(...checkSetAsideListShape({ exceptionIds: EXCEPTION_IDS, noneIds: NONE_IDS }));
 for (const s of statements) {
   if (/\b(delete|insert|truncate|drop|alter|create)\b/i.test(s)) {
     problems.push(`statement is not an UPDATE-only record: ${s.slice(0, 80)}`);
@@ -144,6 +151,12 @@ console.log("[run-065]   stored '8(a)' rows by SAM's own record (detail API, 202
 for (const [what, n] of EVIDENCE_SPLIT) console.log(`[run-065]     ${String(n).padStart(6)}  ${what}`);
 console.log(
   `[run-065]   file names ${EXCEPTION_IDS.length} exception ids (kept) and ${NONE_IDS.length} NONE ids (nulled)`,
+);
+console.log(
+  `[run-065]   list shape: the two lists overlap on ${listOverlap.length}/${NONE_IDS.length} ids — ALL the NONE ids sit inside`,
+);
+console.log(
+  "[run-065]   statement 1's exception list BY DESIGN, so statement 1 keeps them '8(a)' and statement 2 then nulls them",
 );
 
 const beforeExceptionEightA = await countIn(EXCEPTION_IDS, "8(a)");
@@ -250,7 +263,8 @@ if (problems.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    `[run-065] OK — ${moved} row(s) relabelled; ${EXCEPTION_IDS.length} real 8(a)/8AN/other rows untouched; ` +
+    `[run-065] OK — ${moved} row(s) relabelled; ${EXCEPTION_IDS.length} real 8(a)/8AN/other rows untouched ` +
+      `(list shape OK: ${listOverlap.length}/${NONE_IDS.length} NONE ids protected by statement 1 by design); ` +
       `re-run moved ${secondRunMoved} rows with an unchanged histogram (idempotent)`,
   );
   if (moved === 0) console.log("[run-065] (re-run: nothing left to move — idempotent)");

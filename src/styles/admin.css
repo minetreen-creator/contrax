@@ -75,6 +75,25 @@
   border: 1px solid rgba(148,163,184,0.2); box-shadow: 0 10px 30px rgba(2,6,23,0.25); transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 .admin-console .live-banner:hover { transform: translateY(-1px); box-shadow: 0 14px 36px rgba(56,189,248,0.25); }
+.admin-console .live-ticker {
+  position: relative; overflow: hidden; margin-top: 18px; padding: 10px 0; border-radius: 12px;
+  background: rgba(2,6,23,0.6); border: 1px solid rgba(148,163,184,0.15);
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.admin-console .live-ticker-track { display: flex; width: max-content; animation: live-scroll linear infinite; }
+.admin-console .live-ticker:hover .live-ticker-track { animation-play-state: paused; }
+@keyframes live-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+.admin-console .live-tick { display: inline-flex; align-items: center; gap: 8px; padding: 0 22px; font-size: 13px; white-space: nowrap; color: var(--kind); border-right: 1px solid rgba(148,163,184,0.15); }
+.admin-console .live-confetti { position: absolute; left: 50%; top: 50%; pointer-events: none; }
+.admin-console .live-confetti i {
+  position: absolute; width: 6px; height: 6px; border-radius: 2px; opacity: 0;
+  animation: live-burst 1.4s ease-out 3;
+}
+@keyframes live-burst {
+  0% { opacity: 1; transform: rotate(var(--a)) translateY(0) scale(1); }
+  100% { opacity: 0; transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(0.4); }
+}
 .admin-console .live-dot { width: 9px; height: 9px; border-radius: 999px; background: #34d399; box-shadow: 0 0 0 0 rgba(52,211,153,0.7); animation: live-pulse 1.6s infinite; }
 @keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.7); } 70% { box-shadow: 0 0 0 10px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
 .admin-console .live-stat { display: flex; flex-direction: column; align-items: flex-start; padding: 8px 12px; border-radius: 12px; background: rgba(15,23,42,0.7); border: 1px solid color-mix(in srgb, var(--kind) 35%, transparent); min-width: 104px; }

@@ -1,15 +1,21 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
 import {
+  STATE_TILES,
   agoLabel,
+  isRecentSearch,
+  mapTone,
   timeLeftLabel,
   trialFractionLeft,
   type FeedItem,
   type FeedKind,
+  type MapTone,
+  type OnlineVisitor,
+  type StateSearchStat,
   type TrialCard,
   type TrialHeat,
 } from "~/lib/live-console";
@@ -22,6 +28,9 @@ import {
 
 interface LiveData {
   generatedAt: string;
+  map: StateSearchStat[];
+  onlineCount: number;
+  online: OnlineVisitor[];
   feed: FeedItem[];
   trials: TrialCard[];
 }
@@ -173,6 +182,73 @@ function Ticker({ entries }: { entries: TickerEntry[] }) {
   );
 }
 
+const TONE_COLOR: Record<MapTone, string> = {
+  none: "rgba(148,163,184,0.10)",
+  found: "#10b981",
+  mixed: "#f59e0b",
+  empty: "#f43f5e",
+};
+
+/** One tile per state; color = how its searches went, pulse = searched in the last 15 minutes. */
+function SearchMap({ stats, now }: { stats: StateSearchStat[]; now: number }) {
+  const byState = new Map(stats.map((s) => [s.state, s]));
+  return (
+    <div>
+      <div className="live-map" role="img" aria-label="Searches by state, last 48 hours">
+        {STATE_TILES.map(([code, row, col]) => {
+          const stat = byState.get(code);
+          const tone = mapTone(stat);
+          const title = stat
+            ? `${code}: ${stat.searches} search${stat.searches === 1 ? "" : "es"}, ${stat.zero} with 0 matches, last ${agoLabel(stat.lastAt, now)}`
+            : `${code}: no searches`;
+          return (
+            <span
+              key={code}
+              title={title}
+              className={`live-tile ${tone !== "none" ? "is-on" : ""} ${isRecentSearch(stat, now) ? "is-recent" : ""}`}
+              style={{ gridRow: row + 1, gridColumn: col + 1, ["--tone" as string]: TONE_COLOR[tone] }}
+            >
+              {code}
+              {stat ? <small>{stat.searches}</small> : null}
+            </span>
+          );
+        })}
+      </div>
+      <p className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-400">
+        <span><i className="live-key" style={{ background: TONE_COLOR.found }} /> found bids</span>
+        <span><i className="live-key" style={{ background: TONE_COLOR.mixed }} /> some empty</span>
+        <span><i className="live-key" style={{ background: TONE_COLOR.empty }} /> all 0 matches</span>
+        <span>Pulsing: searched in the last 15 min · hover a state for details</span>
+      </p>
+    </div>
+  );
+}
+
+function OnlineNow({ count, visitors, now }: { count: number; visitors: OnlineVisitor[]; now: number }) {
+  return (
+    <div className="live-online">
+      <div className="flex items-baseline gap-3">
+        <span className="live-online-count">{count}</span>
+        <span className="text-sm text-slate-300">on the site now<br /><span className="text-xs text-slate-500">seen in the last 5 minutes</span></span>
+      </div>
+      {visitors.length ? (
+        <ul className="mt-3 space-y-1.5">
+          {visitors.map((v) => (
+            <li key={v.visitorKey} className="flex items-center gap-2 text-xs">
+              <span className="live-dot shrink-0" aria-hidden="true" />
+              <span className="truncate text-slate-200">{v.place ?? "Unknown location"}</span>
+              <span className="truncate font-mono text-sky-300">{v.path}</span>
+              <span className="ml-auto shrink-0 text-slate-500">{agoLabel(v.at, now)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3 text-xs text-slate-500">Nobody right now.</p>
+      )}
+    </div>
+  );
+}
+
 function TrialTile({ t, now }: { t: TrialCard; now: number }) {
   const msLeft = new Date(t.endsAt).getTime() - now;
   const fraction = trialFractionLeft(msLeft, TRIAL_DAYS);
@@ -289,6 +365,23 @@ function LivePage() {
           </div>
 
           {data ? <Ticker entries={tickerEntries(data, now)} /> : null}
+
+          {data ? (
+            <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+              <div>
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                  <MapIcon size={15} aria-hidden="true" /> Live search map · 48 hours
+                </h2>
+                <SearchMap stats={data.map} now={now} />
+              </div>
+              <div>
+                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                  <Users size={15} aria-hidden="true" /> On the site now
+                </h2>
+                <OnlineNow count={data.onlineCount} visitors={data.online} now={now} />
+              </div>
+            </div>
+          ) : null}
 
           {error ? <SectionError message={error} /> : !data ? <SectionLoading message="Tuning in…" /> : (
             <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]">

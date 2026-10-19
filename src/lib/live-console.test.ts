@@ -70,3 +70,27 @@ describe("trial board", () => {
     expect(sortTrials([card(1, 5 * H, "cold"), card(2, 5 * H, "hot"), card(3, H, "warm")]).map((c) => c.userId)).toEqual([3, 2, 1]);
   });
 });
+
+describe("live search map + on the site now", () => {
+  test("51 tiles, each state once, no two on the same square", async () => {
+    const { STATE_TILES } = await import("./live-console");
+    expect(STATE_TILES.length).toBe(51);
+    expect(new Set(STATE_TILES.map((t) => t[0])).size).toBe(51);
+    expect(new Set(STATE_TILES.map((t) => `${t[1]}:${t[2]}`)).size).toBe(51);
+  });
+
+  test("tone: found / mixed / empty / none", async () => {
+    const { mapTone } = await import("./live-console");
+    const at = "2026-10-19T15:00:00Z";
+    expect(mapTone(undefined)).toBe("none");
+    expect(mapTone({ state: "TX", searches: 3, zero: 0, lastAt: at })).toBe("found");
+    expect(mapTone({ state: "TX", searches: 3, zero: 1, lastAt: at })).toBe("mixed");
+    expect(mapTone({ state: "TX", searches: 3, zero: 3, lastAt: at })).toBe("empty");
+  });
+
+  test("recent = searched in the last 15 minutes", async () => {
+    const { isRecentSearch } = await import("./live-console");
+    expect(isRecentSearch({ state: "CO", searches: 1, zero: 1, lastAt: new Date(NOW - 10 * 60_000).toISOString() }, NOW)).toBe(true);
+    expect(isRecentSearch({ state: "CO", searches: 1, zero: 1, lastAt: new Date(NOW - 20 * 60_000).toISOString() }, NOW)).toBe(false);
+  });
+});

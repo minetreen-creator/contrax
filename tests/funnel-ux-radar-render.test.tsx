@@ -194,8 +194,8 @@ describe("RadarCard — the requirements signup CTA is anonymous-only (F2 family
     const html = card({ match: match({ requirements: [] }) });
     expect(html).toContain("Full requirements are listed in the original solicitation");
     expect(html).toContain("choose a plan with AI briefs to analyze the complete document");
-    // radarSignupHref now hands off to the paid plan (owner 2026-10-06, bf01321).
-    expect(html).toContain('href="/upgrade?plan=starter');
+    // radarSignupHref goes to signup again (owner 2026-10-19, choice A).
+    expect(html).toContain('href="/signup?plan=basic');
   });
 
   test("a SIGNED-IN viewer's requirements block renders the pointer with NO create-account CTA", () => {

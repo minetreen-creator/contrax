@@ -404,6 +404,19 @@ function AdminOverviewPage() {
         </div>
         <AdminTabs active="overview" />
 
+        {/* Owner 2026-10-19: make /admin/live easy to find from the overview. */}
+        <a href="/admin/live" className="live-banner">
+          <span className="flex items-center gap-3">
+            <span className="live-dot" aria-hidden="true" />
+            <span>
+              <span className="block text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Live now</span>
+              <span className="block text-lg font-bold text-white">Mission control</span>
+              <span className="block text-sm text-slate-300">Watch searches, signups and checkouts as they happen, and every trial's countdown.</span>
+            </span>
+          </span>
+          <span className="shrink-0 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">Open →</span>
+        </a>
+
         {nonprofitQueue != null && nonprofitQueue > 0 && (
           <a href="/admin/nonprofits" className="block rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-800">
             {nonprofitQueue} nonprofit application{nonprofitQueue === 1 ? "" : "s"} waiting for review →

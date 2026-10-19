@@ -17,6 +17,7 @@
     "trial-emails": "bun run src/jobs/send-trial-emails.ts",
     "announcement": "bun run src/jobs/send-announcement.ts",
     "radar-search-usage": "bun run src/jobs/radar-search-usage.ts",
+    "funnel-report": "bun run src/jobs/funnel-report.ts",
     "account-search-profile": "bun run src/jobs/account-search-profile.ts",
     "account-set-trade": "bun run src/jobs/account-set-trade.ts",
     "award-check": "bun run src/jobs/check-awards.ts",

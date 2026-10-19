@@ -29,20 +29,31 @@ import {
   csvHeaderIndex,
   csvNoticeToBid,
   csvSetAsideLabel,
+  dedupeKeptRowsByNaturalKey,
   describeStateSetChange,
   isAwardOrJustificationType,
   isOpenDeadline,
   parseDeadline,
   parseSamCsvRecord,
   keptRowCounterStats,
+  NATURAL_KEY_INDEX,
+  NATURAL_KEY_SCOPE_SQL,
   projectStates,
   samCsvExternalId,
+  samCsvNaturalKey,
   stateOpenCountDeltas,
   shouldCloseOut,
   stateCodeFromLocation,
 } from "./sam-csv";
+import { NATURAL_KEY_GUARD_SQL, readSamCsv } from "./sam-csv-ingest";
 
 const FIXTURE = readFileSync(new URL("./fixtures/sam-csv-head.csv", import.meta.url), "utf8");
+
+/** Feed a whole CSV text to the job's own stream reader, chunked like `curl` does. */
+async function* chunks(text: string): AsyncIterable<Uint8Array> {
+  const bytes = new TextEncoder().encode(text);
+  for (let i = 0; i < bytes.length; i += 8192) yield bytes.slice(i, i + 8192);
+}
 
 /** Parse a whole fixture/string into notices, exactly as the job does. */
 function parseAll(text: string) {
@@ -348,6 +359,249 @@ describe("the owner's totalStates OBSERVATION — logged and alerted, never bloc
     expect(describeStateSetChange(["VA"], ["VA"]).changed).toBe(false);
   });
 });
+/**
+ * ── THE NATURAL-KEY REGRESSION SUITE (post-merge fix, 2026-10-19) ───────────
+ *
+ * The first real run was aborted by
+ * `duplicate key value violates unique constraint "idx_bids_natural_key_unique"`
+ * and wrote ZERO rows: the extract holds DISTINCT NoticeIds whose FIVE-column
+ * tuple (title, agency, notice_type, due_date, psc) is IDENTICAL, and the old
+ * (title, agency) pre-filter could not see a sibling row inside its OWN 500-row
+ * VALUES list. These tests pin the fix at the layer where it is decidable
+ * without a database:
+ *   (a) two distinct NoticeIds with the SAME five-column tuple in one stream →
+ *       ONE kept row, the duplicate counted (never an error);
+ *   (a2) the same tuple with a DIFFERENT due_date is NOT a duplicate → BOTH kept
+ *       (the five-column semantics, which the old title+agency filter got wrong);
+ *   (b) the key itself: identical tuples collapse, and EVERY one of the five
+ *       index columns changes it;
+ *   (c) the SQL guard names the index's five columns and its frozen predicate,
+ *       and the predicate literal is pinned against migration 048's own file so
+ *       the two can never drift apart silently.
+ */
+describe("natural-key dedupe (the migration-048 UNIQUE index's own tuple)", () => {
+  const now = new Date("2026-10-19T12:00:00Z");
+
+  /** A kept row with a controllable five-column tuple. */
+  function keptRow(over: Partial<Record<string, unknown>> = {}) {
+    const notice = {
+      noticeId: "a".repeat(32),
+      title: "Assorted Hardware",
+      solicitationNumber: null,
+      subTier: "DEFENSE LOGISTICS AGENCY",
+      office: "DLA MARITIME PORTSMOUTH",
+      postedDate: "2026-10-17 00:00:00",
+      noticeType: "Combined Synopsis/Solicitation",
+      archiveDate: "2026-11-06",
+      setAsideCode: null,
+      setAsideLabel: null,
+      responseDeadline: "2026-10-20T19:00:00-04:00",
+      naicsCode: "339999",
+      psc: "5340",
+      popCity: "Kittery",
+      popState: "ME",
+      officeState: "ME",
+      link: null,
+      description: "d",
+      ...over,
+    };
+    return csvNoticeToBid(notice as any, now)!;
+  }
+
+  test("the key collapses the three measured Kittery 'Assorted Hardware' NoticeIds", () => {
+    // The live case: three distinct NoticeIds, ONE deadline, one office, one
+    // title, one PSC — three rows, one natural key.
+    const a = keptRow({ noticeId: "67712fa924984c3ab258022508290082" });
+    const b = keptRow({ noticeId: "20c966d8831844479c8b235c4dd2171a" });
+    const c = keptRow({ noticeId: "af42504763914b868c633f42ac4635e9" });
+    expect(samCsvNaturalKey(a)).toBe(samCsvNaturalKey(b));
+    expect(samCsvNaturalKey(b)).toBe(samCsvNaturalKey(c));
+    expect(samCsvNaturalKey(a)).toBe(
+      [
+        "assorted hardware",
+        "dla maritime portsmouth",
+        "Combined Synopsis/Solicitation",
+        "2026-10-20T23:00:00.000Z",
+        "5340",
+      ].join("\u0001"),
+    );
+  });
+
+  test("each of the five index columns changes the key", () => {
+    const base = keptRow();
+    const baseKey = samCsvNaturalKey(base);
+    // title + agency are compared lower(btrim(…)) — case and padding are noise.
+    expect(samCsvNaturalKey({ ...base, title: "  ASSORTED   HARDWARE " })).not.toBe(baseKey);
+    expect(samCsvNaturalKey({ ...base, title: " assorted hardware" })).toBe(baseKey);
+    expect(samCsvNaturalKey({ ...base, agency: "DLA MARITIME PORTSMOUTH " })).toBe(baseKey);
+    expect(samCsvNaturalKey({ ...base, notice_type: "Solicitation" })).not.toBe(baseKey);
+    expect(samCsvNaturalKey({ ...base, due_date: "2026-10-21T23:00:00.000Z" })).not.toBe(baseKey);
+    expect(samCsvNaturalKey({ ...base, psc: "5341" })).not.toBe(baseKey);
+    // NULL notice_type / psc fold to '' exactly as COALESCE(x,'') does in SQL.
+    expect(samCsvNaturalKey({ ...base, notice_type: null, psc: null })).toBe(
+      ["assorted hardware", "dla maritime portsmouth", "", "2026-10-20T23:00:00.000Z", ""].join("\u0001"),
+    );
+  });
+
+  test("(a) two NoticeIds sharing one tuple → ONE row kept, the duplicate counted", () => {
+    const rows = [
+      keptRow({ noticeId: "b".repeat(32) }),
+      keptRow({ noticeId: "1".repeat(32) }),
+      keptRow({ noticeId: "f".repeat(32) }),
+    ];
+    const dedupe = dedupeKeptRowsByNaturalKey(rows);
+    expect(dedupe.rows.length).toBe(1);
+    expect(dedupe.dropped.length).toBe(2);
+    expect(dedupe.groups).toBe(1);
+    // TIEBREAK: the lowest NoticeId wins — `111…1`, not the stream's first row.
+    expect(dedupe.rows[0]!.external_id).toBe(`sam-${"1".repeat(32)}`);
+    // …and the input is never mutated.
+    expect(rows.length).toBe(3);
+  });
+
+  test("(a2) the same tuple with a DIFFERENT due_date is NOT a duplicate → both kept", () => {
+    // This is the case the old (title, agency) pre-filter wrongly refused: on the
+    // index's five columns these are two different notices.
+    const rows = [
+      keptRow({ noticeId: "a".repeat(32), responseDeadline: "2026-10-20T19:00:00-04:00" }),
+      keptRow({ noticeId: "b".repeat(32), responseDeadline: "2026-11-20T19:00:00-04:00" }),
+    ];
+    const dedupe = dedupeKeptRowsByNaturalKey(rows);
+    expect(dedupe.rows.length).toBe(2);
+    expect(dedupe.dropped.length).toBe(0);
+    expect(dedupe.rows.map((r) => r.external_id)).toEqual([
+      `sam-${"a".repeat(32)}`,
+      `sam-${"b".repeat(32)}`,
+    ]);
+  });
+
+  test("(c) the SQL guard is the index's five columns, scoped to its frozen predicate", () => {
+    const guard = NATURAL_KEY_GUARD_SQL.replace(/\s+/g, " ");
+    for (const column of [
+      "lower(btrim(b.title)) = lower(btrim(v.title))",
+      "lower(btrim(b.agency)) = lower(btrim(v.agency))",
+      "COALESCE(b.notice_type, '') = COALESCE(v.notice_type, '')",
+      "b.due_date IS NOT DISTINCT FROM v.due_date::timestamptz",
+      "COALESCE(b.psc, '') = COALESCE(v.psc, '')",
+    ]) {
+      expect(guard).toContain(column);
+    }
+    // The index's own scope — a pre-cutover duplicate must NOT refuse an insert
+    // the partial index would have allowed.
+    expect(guard).toContain(`b.created_at >= ${NATURAL_KEY_SCOPE_SQL}`);
+    // …and the self-exclusion that keeps a re-fetch refreshing in place.
+    expect(guard).toContain("NOT (b.source = v.source AND b.external_id = v.external_id)");
+    // THE DRIFT PIN: the scope literal is the one migration 048 froze.
+    expect(NATURAL_KEY_INDEX).toBe("idx_bids_natural_key_unique");
+    const migration = readFileSync(
+      new URL("../../db/migrations/048_bids_natural_key_unique.sql", import.meta.url),
+      "utf8",
+    );
+    for (const column of [
+      "lower(btrim(title))",
+      "lower(btrim(agency))",
+      "COALESCE(notice_type, '')",
+      "due_date",
+      "COALESCE(psc, '')",
+    ]) {
+      expect(migration).toContain(column);
+    }
+    expect(migration).toContain("NULLS NOT DISTINCT");
+    // The predicate literal itself, pinned verbatim.
+    const scopeLiteral = /'([^']+)'/.exec(NATURAL_KEY_SCOPE_SQL)?.[1]!;
+    expect(scopeLiteral).toBe("2026-09-22 00:00:00+00");
+    expect(migration).toContain(`TIMESTAMPTZ '${scopeLiteral}'`);
+  });
+});
+
+describe("stream-level natural-key dedupe (readSamCsv, no database)", () => {
+  const RECORDS = (() => {
+    const stream = createCsvRecordStream();
+    return [...stream.push(FIXTURE), ...stream.end()];
+  })();
+  const COLUMNS = RECORDS[0]!;
+  const HEADER = COLUMNS.join(",");
+
+  /** One 47-column record, defaulted to a live 2099 notice. */
+  function record(over: Record<string, string>): string {
+    const values = new Map<string, string>([
+      ["NoticeId", "0".repeat(32)],
+      ["Title", "Assorted Hardware"],
+      ["Department/Ind.Agency", "DEPT OF DEFENSE"],
+      ["Sub-Tier", "DEFENSE LOGISTICS AGENCY"],
+      ["Office", "DLA MARITIME PORTSMOUTH"],
+      ["PostedDate", "2026-10-17 00:00:00"],
+      ["Type", "Combined Synopsis/Solicitation"],
+      ["ArchiveDate", "2099-11-06"],
+      ["ResponseDeadLine", "2099-10-20T19:00:00-04:00"],
+      ["NaicsCode", "339999"],
+      ["ClassificationCode", "S201"],
+      ["PopCity", "Kittery"],
+      ["PopState", "ME"],
+      ["State", "ME"],
+      ["Description", "hardware"],
+    ]);
+    for (const [k, v] of Object.entries(over)) values.set(k, v);
+    return COLUMNS.map((c) => `"${values.get(c) ?? ""}"`).join(",");
+  }
+
+  test("(a) the run keeps ONE row for three NoticeIds sharing the index's tuple", async () => {
+    const csv = [
+      HEADER,
+      record({ NoticeId: "67712fa924984c3ab258022508290082" }),
+      record({ NoticeId: "20c966d8831844479c8b235c4dd2171a" }),
+      record({ NoticeId: "af42504763914b868c633f42ac4635e9" }),
+    ].join("\n");
+    const parsed = await readSamCsv(chunks(csv));
+    expect(parsed.rows.length).toBe(1);
+    expect(parsed.naturalKeyDuplicates).toBe(2);
+    expect(parsed.naturalKeyGroups).toBe(1);
+    expect(parsed.skipped.natural_key_duplicate).toBe(2);
+    expect(parsed.rows[0]!.external_id).toBe("sam-20c966d8831844479c8b235c4dd2171a");
+  });
+
+  test("(b) the same title+agency with a DIFFERENT deadline (and a different PSC) is kept too", async () => {
+    const csv = [
+      HEADER,
+      // a + b: one tuple (same deadline) → one row.
+      record({ NoticeId: "a".repeat(32), ResponseDeadLine: "2099-10-20T19:00:00-04:00" }),
+      record({ NoticeId: "b".repeat(32), ResponseDeadLine: "2099-10-20T19:00:00-04:00" }),
+      // c: the SAME title/agency, a different deadline → a DIFFERENT tuple.
+      record({ NoticeId: "c".repeat(32), ResponseDeadLine: "2099-12-01T19:00:00-04:00" }),
+      // d: same as c but a different PSC → also a different tuple.
+      record({
+        NoticeId: "d".repeat(32),
+        ResponseDeadLine: "2099-12-01T19:00:00-04:00",
+        ClassificationCode: "S202",
+      }),
+    ].join("\n");
+    const parsed = await readSamCsv(chunks(csv));
+    // The old (title, agency) filter would have kept ONE of these four; the index
+    // says three of them are distinct rows.
+    expect(parsed.rows.length).toBe(3);
+    expect(parsed.naturalKeyDuplicates).toBe(1);
+    expect(parsed.naturalKeyGroups).toBe(1);
+    expect(parsed.rows.map((r) => r.external_id)).toEqual([
+      `sam-${"a".repeat(32)}`,
+      `sam-${"c".repeat(32)}`,
+      `sam-${"d".repeat(32)}`,
+    ]);
+    expect(parsed.skipped).toEqual({ natural_key_duplicate: 1 }); // nothing dropped for any OTHER reason
+  });
+
+  test("a distinct tuple is untouched — no dedupe where the index would allow both", async () => {
+    const csv = [
+      HEADER,
+      record({ NoticeId: "a".repeat(32) }),
+      record({ NoticeId: "b".repeat(32), Title: "Vacuum Recovery Unit" }),
+    ].join("\n");
+    const parsed = await readSamCsv(chunks(csv));
+    expect(parsed.rows.length).toBe(2);
+    expect(parsed.naturalKeyDuplicates).toBe(0);
+    expect(parsed.skipped).toEqual({});
+  });
+});
+
 describe("close-out rule", () => {
   const extractTime = new Date("2026-10-19T03:30:00Z");
   const now = new Date("2026-10-20T04:30:00Z");

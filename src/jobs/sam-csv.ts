@@ -52,6 +52,7 @@
  */
 
 import { isAwardNoticeType } from "~/lib/open-bids";
+import { toIsoDueDate } from "~/lib/date";
 import { isLowContent } from "~/lib/low-content";
 import { normalizeStateInput } from "~/lib/location-state";
 import { US_STATES } from "~/lib/states";
@@ -491,6 +492,104 @@ export function csvBidChangeTuple(row: SamCsvBidRow): string {
     row.posted_date ?? "",
     row.archive_date ?? "",
   ].join("\u0001");
+}
+
+// ── NATURAL-KEY DEDUPE (the migration-048 UNIQUE index's OWN tuple) ─────────
+//
+// WHY THIS EXISTS (post-merge regression, first real run 2026-10-19 03:05 UTC).
+// The batch upsert was aborted by
+//   duplicate key value violates unique constraint "idx_bids_natural_key_unique"
+// and the run wrote ZERO rows. The index is a FIVE-column tuple
+//   (lower(btrim(title)), lower(btrim(agency)), COALESCE(notice_type,''),
+//    due_date, COALESCE(psc,''))  NULLS NOT DISTINCT
+//   WHERE created_at >= '2026-09-22 00:00:00+00'
+// (db/migrations/048_bids_natural_key_unique.sql) — NOT (title, agency). The
+// extract itself contains DISTINCT NoticeIds whose five-column tuple is
+// IDENTICAL (measured: 'Assorted Hardware' ×3, one deadline 2026-10-20T19:00,
+// Kittery ME — three NoticeIds, ONE natural key), and the upsert's
+// `WHERE NOT EXISTS (…)` pre-filter cannot see a sibling row inside its OWN
+// VALUES list, so two colliding rows in one 500-row statement aborted the batch.
+//
+// The key below is BYTE-IDENTICAL in semantics to `batchInsertNaturalKey` in
+// src/jobs/runner.ts (same `btrimLower` normalization: Postgres `lower(btrim(x))`
+// on the two text columns, raw `COALESCE(…,'')` on notice_type/psc, and
+// `toIsoDueDate` on the deadline) so SQL, the 4-hourly sync and this job enforce
+// ONE key — the invariant migration 048 documents. `source` is deliberately NOT
+// part of it: the index is cross-source, so a natural-key tuple may appear only
+// ONCE PER RUN whatever source wrote it.
+
+/** Mirrors Postgres `lower(btrim(x))` — verbatim from src/jobs/runner.ts. */
+function btrimLower(value: string | null | undefined): string {
+  return String(value ?? "")
+    .replace(/^\s+|\s+$/g, "")
+    .toLowerCase();
+}
+
+/** The UNIQUE index this job's guard/dedupe mirrors, by name (for 23505 attribution). */
+export const NATURAL_KEY_INDEX = "idx_bids_natural_key_unique";
+
+/**
+ * The frozen predicate of `idx_bids_natural_key_unique` — the ONLY rows the index
+ * enforces against. The cross-source SQL guard must scope to exactly this, or it
+ * would refuse inserts the index itself would have allowed (pre-cutover rows are
+ * grandfathered duplicates by design; 4,059 groups / 14,690 rows).
+ * Pinned against db/migrations/048_bids_natural_key_unique.sql by the test suite.
+ */
+export const NATURAL_KEY_SCOPE_SQL = "TIMESTAMPTZ '2026-09-22 00:00:00+00'";
+
+/** One row's natural key: the five tuple fields, unit-separator joined. */
+export function samCsvNaturalKey(row: SamCsvBidRow): string {
+  return [
+    btrimLower(row.title),
+    btrimLower(row.agency),
+    row.notice_type ?? "",
+    toIsoDueDate(row.due_date) ?? "",
+    row.psc ?? "",
+  ].join("\u0001");
+}
+
+export interface NaturalKeyDedupe {
+  /** One canonical row per natural key, in deterministic order. */
+  rows: SamCsvBidRow[];
+  /** The rows dropped as natural-key duplicates of a kept row (never silent). */
+  dropped: SamCsvBidRow[];
+  /** How many natural-key groups held more than one row. */
+  groups: number;
+}
+
+/**
+ * Collapse the KEPT stream on the index's exact five-column tuple, so no
+ * statement can ever carry two rows the UNIQUE index considers the same.
+ *
+ * TIEBREAK (deterministic, and the SAME rule the 4-hourly sync already applies in
+ * `dedupeBatchByNaturalKey`): the retained row is the one with the LOWEST
+ * `external_id` — for this job `sam-<32hex NoticeId>`, i.e. the lowest NoticeId.
+ * Rows are sorted by `external_id` first, so the winner does not depend on the
+ * file's row order. The input array is never mutated.
+ *
+ * NOT a change to what the run stores: a natural-key duplicate could never be
+ * stored anyway (the index would reject the second copy). This only decides which
+ * copy is attempted, and it happens BEFORE the VALUES list is built — which is
+ * exactly what the old title+agency pre-filter could not do.
+ */
+export function dedupeKeptRowsByNaturalKey(rows: readonly SamCsvBidRow[]): NaturalKeyDedupe {
+  const byExternalId = [...rows].sort((a, b) =>
+    a.external_id < b.external_id ? -1 : a.external_id > b.external_id ? 1 : 0,
+  );
+  const kept: SamCsvBidRow[] = [];
+  const dropped: SamCsvBidRow[] = [];
+  const seen = new Map<string, number>();
+  for (const row of byExternalId) {
+    const key = samCsvNaturalKey(row);
+    const n = seen.get(key) ?? 0;
+    seen.set(key, n + 1);
+    // The FIRST row of a group in external_id order wins (lowest NoticeId).
+    if (n === 0) kept.push(row);
+    else dropped.push(row);
+  }
+  let groups = 0;
+  for (const n of seen.values()) if (n > 1) groups++;
+  return { rows: kept, dropped, groups };
 }
 
 // ── TOTALSTATES PROJECTION (the owner's hard gate) ──────────────────────────

@@ -1,0 +1,39 @@
+name: Radar Search Usage
+
+# Read-only report (owner 2026-10-19): of the visitors who opened /radar, how
+# many ran a search and got results, split by paid ads vs other and phone vs
+# desktop. Prints counts only. Run by hand from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "How many days back"
+        type: number
+        default: 7
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Radar search usage
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DAYS: ${{ inputs.days }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Print the report
+        run: bun run radar-search-usage

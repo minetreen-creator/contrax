@@ -48,11 +48,19 @@
 -- (ASCII_CODE_TO_SET_ASIDE["8a"] = ["8(a)","8AN"]) and `cert-matching`
 -- ("8a": ["8(a)","8an"]) match the literals "8(a)"/"8AN", so a blanket relabel would
 -- silently delete real 8(a) opportunities from an 8(a) firm's Radar — inventing the
--- opposite error to the one this migration fixes. The 100 exception rows are the 65
--- real 8A/8AN rows, the 15 rows SAM reports as NONE (statement 2 nulls those), the 9
--- rows where SAM publishes no set-aside value at all, and the 3 rows carrying another
--- designation — i.e. exactly the rows that are NOT mislabels. So after the run,
--- set_aside = '8(a)' holds 85 rows, every one of them a real 8(a) opportunity.
+-- opposite error to the one this migration fixes. The 100 exception rows are the 73
+-- REAL 8A/8AN rows (63 8A + 10 8AN), the 15 rows SAM reports as NONE (statement 2
+-- nulls those), the 9 rows where SAM publishes no set-aside value at all, and the 3
+-- rows carrying another designation — 73 + 15 + 9 + 3 = 100, i.e. exactly the rows
+-- that are NOT mislabels. So after the run, set_aside = '8(a)' holds 85 rows
+-- (63 + 10 + 9 + 3), every one of them a real 8(a) opportunity.
+--
+-- FOLLOW-UP, SHIPPED AS MIGRATION 066 (2026-10-19): the 3 "another designation" rows
+-- are a WOSB, a WOSBSS and an SBP notice, and they are relabelled OUT of this bucket
+-- (statements 1 and 2 there write the label the 4-hourly sync's own normalizeSetAside
+-- returns for each notice's SAM code — "WOSB" for the first two, "SBP" for the third).
+-- After 066 the '8(a)' bucket this file leaves behind holds 82 rows, and the 15 NULLed
+-- rows plus this migration's 4,134 relabelled rows are unchanged.
 --
 -- TARGET LABEL = "Small Business Set Aside - Total", SAM's own words for the code and
 -- the string sam-csv.ts#csvSetAsideLabel ALREADY stores for the same notices (1,824
@@ -86,7 +94,8 @@
 --       sole-source rows kept as "8(a)" rather than the code spelling "8AN", and the 41
 --       rows in the wider corpus that already read "8AN". None of those is a FALSE claim
 --       of 8(a) eligibility the way "SBA" -> "8(a)" was; each is a vocabulary decision
---       for a separate change.
+--       for a separate change. THE 3 "ANOTHER DESIGNATION" ROWS ARE NO LONGER IN THIS
+--       LIST: migration 066 relabels them (see the FOLLOW-UP note above).
 --   (c) THE "md_dc" HYGIENE LINE PLANNED FOR THIS MIGRATION IS NOT HERE, on purpose.
 --       Production carries 226 rows under the retired md_dc source label (all 226 with a
 --       sam.gov source_url, so they ARE federal notices), and exactly 1 of them sits in
@@ -99,7 +108,9 @@
 --       to announce — and relabelling the other 225 has the same duplicate risk (26 of
 --       the 226 already have a sam_gov twin). So the md_dc rows are left exactly as they
 --       are and reported instead; the brief's own "if ambiguous, leave it and say so"
---       applies with evidence rather than by assumption.
+--       applies with evidence rather than by assumption. MIGRATION 066 THEN CLOSES id
+--       4384 (set_aside is not touched there — relabelling it to sam_gov would ADD a
+--       second row for that notice to the counter) and leaves the other 225 alone.
 --
 -- ROLLBACK. Reversible by hand from this file plus run-065.ts's own BEFORE output:
 --   UPDATE bids SET set_aside = '8(a)'

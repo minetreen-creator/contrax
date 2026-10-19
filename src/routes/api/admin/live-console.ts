@@ -4,6 +4,7 @@ import { sql } from "~/db";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { adminFunnelExclusionSQL, qaExternalUserSQL, qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { TRIAL_DAYS } from "~/lib/trial";
+import { dataCenterLocation, sameMinuteClusters } from "~/lib/visitor-intel";
 import { AWARD_EXCLUSION_SQL, isRetiredSource, sourceBadgeLabel } from "~/lib/source-class";
 import {
   FEED_EVENTS,
@@ -240,8 +241,44 @@ async function handler({ request }: { request: Request }) {
       LEFT JOIN visitors v ON v.visitor_id = t.visitor_id
       ORDER BY t.created_at DESC
     `) as { visitor_id: string; path: string; city: string | null; region: string | null; country: string | null; created_at: string }[];
+    // Email link scanners (owner 2026-10-19: ten "visitors" from San Jose,
+    // Phoenix and San Antonio all on /launchpad minutes after partner emails
+    // went out): the Visitors board's same-minute cluster rule and data-center
+    // town rule, applied here too. Signed-in visitors are never hidden.
+    let scanners = new Set<string>();
+    if (onlineRows.length) {
+      const ids = onlineRows.map((r) => r.visitor_id);
+      const spans = (await db`
+        SELECT DISTINCT ON (visitor_id) visitor_id, path AS landing,
+               MIN(created_at) OVER (PARTITION BY visitor_id) AS first_at,
+               MAX(created_at) OVER (PARTITION BY visitor_id) AS last_at,
+               BOOL_OR(user_id IS NOT NULL) OVER (PARTITION BY visitor_id) AS signed_in
+        FROM page_views
+        WHERE visitor_id = ANY(${ids}) AND created_at > NOW() - INTERVAL '60 minutes'
+        ORDER BY visitor_id, created_at ASC
+      `) as { visitor_id: string; landing: string | null; first_at: string; last_at: string; signed_in: boolean }[];
+      const clustered = sameMinuteClusters(
+        spans.map((r) => {
+          const first = Date.parse(r.first_at);
+          return {
+            id: r.visitor_id,
+            firstSeenMs: Number.isFinite(first) ? first : null,
+            visitSeconds: Number.isFinite(first) ? Math.max(0, (Date.parse(r.last_at) - first) / 1000) : null,
+            landing: r.landing ? String(r.landing).split("?")[0] : null,
+            exempt: !!r.signed_in,
+          };
+        }),
+      );
+      const signedIn = new Set(spans.filter((r) => r.signed_in).map((r) => r.visitor_id));
+      scanners = new Set([
+        ...clustered.keys(),
+        ...onlineRows.filter((r) => !signedIn.has(r.visitor_id) && dataCenterLocation(r.city, r.region)).map((r) => r.visitor_id),
+      ]);
+    }
+    const people = onlineRows.filter((r) => !scanners.has(r.visitor_id));
+
     // Up to 100 for the map dots; the list under the count shows the first 12.
-    const online: OnlineVisitor[] = onlineRows.slice(0, 100).map((r, i) => ({
+    const online: OnlineVisitor[] = people.slice(0, 100).map((r, i) => ({
       visitorKey: `v${i}-${new Date(r.created_at).getTime()}`,
       place: placeLabel(r.city, r.region),
       state: visitorState(r.region, r.country),
@@ -289,7 +326,8 @@ async function handler({ request }: { request: Request }) {
       generatedAt: new Date(now).toISOString(),
       sources,
       map,
-      onlineCount: onlineRows.length,
+      onlineCount: people.length,
+      scannersHidden: scanners.size,
       online,
       feed: sortFeed(feed).slice(0, 60),
       trials: sortTrials(trials),

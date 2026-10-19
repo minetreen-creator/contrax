@@ -105,7 +105,7 @@ export function bidPlaceStateCode(location: string | null | undefined): string |
   return m ? m[1]!.toUpperCase() : null;
 }
 
-interface BidRow {
+export interface BidRow {
   id: number;
   title: string;
   agency: string | null;

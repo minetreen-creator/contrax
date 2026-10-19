@@ -69,6 +69,12 @@
               radial-gradient(900px 400px at 100% 100%, rgba(167,139,250,0.14), transparent 60%), #0b1220;
   box-shadow: 0 20px 60px rgba(2,6,23,0.35); border: 1px solid rgba(148,163,184,0.15);
 }
+.admin-console .live-banner {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; border-radius: 16px; text-decoration: none;
+  background: radial-gradient(600px 200px at 0% 0%, rgba(56,189,248,0.25), transparent 60%), radial-gradient(500px 200px at 100% 100%, rgba(167,139,250,0.25), transparent 60%), #0b1220;
+  border: 1px solid rgba(148,163,184,0.2); box-shadow: 0 10px 30px rgba(2,6,23,0.25); transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.admin-console .live-banner:hover { transform: translateY(-1px); box-shadow: 0 14px 36px rgba(56,189,248,0.25); }
 .admin-console .live-dot { width: 9px; height: 9px; border-radius: 999px; background: #34d399; box-shadow: 0 0 0 0 rgba(52,211,153,0.7); animation: live-pulse 1.6s infinite; }
 @keyframes live-pulse { 0% { box-shadow: 0 0 0 0 rgba(52,211,153,0.7); } 70% { box-shadow: 0 0 0 10px rgba(52,211,153,0); } 100% { box-shadow: 0 0 0 0 rgba(52,211,153,0); } }
 .admin-console .live-stat { display: flex; flex-direction: column; align-items: flex-start; padding: 8px 12px; border-radius: 12px; background: rgba(15,23,42,0.7); border: 1px solid color-mix(in srgb, var(--kind) 35%, transparent); min-width: 104px; }

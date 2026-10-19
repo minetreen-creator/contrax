@@ -19,6 +19,7 @@ import {
   setAsidePred,
   OPEN_BID_SQL,
   AWARD_NOTICE_EXCLUSION_SQL,
+  CLOSED_EXCLUSION_SQL,
 } from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 // Raw close-date render gate (owner ruling 2026-10-08): a zone-unverified
@@ -168,6 +169,7 @@ export const getCertHubData = createServerFn({ method: "GET" })
             WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)} ${certPred(def.slug, sql)}
               AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
             AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
+            AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}
           ) d
         `;
         count = Number((c as any)[0]?.n ?? 0);

@@ -129,6 +129,7 @@ async function signupBreakdown(days: number, human: string): Promise<void> {
              BOOL_OR(f.event_name = 'signup_submit') AS submitted,
              BOOL_OR(f.event_name = 'signup_error') AS errored,
              BOOL_OR(f.event_name = 'signup_success') AS succeeded,
+             BOOL_OR(f.event_name = 'signup_google_click') AS google,
              BOOL_OR(f.event_name = 'signup_exit' AND f.label LIKE 'view%') AS left_before_typing
       FROM funnel_events f JOIN viewers v ON v.visitor_id = f.visitor_id
       WHERE f.created_at > NOW() - make_interval(days => ${days})
@@ -142,7 +143,8 @@ async function signupBreakdown(days: number, human: string): Promise<void> {
            COUNT(*) FILTER (WHERE submitted)::int AS submitted,
            COUNT(*) FILTER (WHERE errored)::int AS errored,
            COUNT(*) FILTER (WHERE succeeded)::int AS succeeded,
-           COUNT(*) FILTER (WHERE left_before_typing)::int AS left_before_typing
+           COUNT(*) FILTER (WHERE google)::int AS google,
+           COUNT(*) FILTER (WHERE left_before_typing AND NOT google)::int AS left_before_typing
     FROM ev
   `) as Record<string, number>[];
   console.log("");
@@ -156,10 +158,22 @@ async function signupBreakdown(days: number, human: string): Promise<void> {
     ["submitted", "Pressed submit"],
     ["errored", "Got an error"],
     ["succeeded", "Signed up"],
-    ["left_before_typing", "Left without typing anything"],
+    ["google", "Tapped Continue with Google (tracked from 2026-10-19)"],
+    ["left_before_typing", "Left without typing or tapping Google"],
   ] as const) {
     console.log(`${label} | ${s[k]}`);
   }
+
+  // Accounts created through Google in the window (google_accounts row within
+  // 10 minutes of the account), whether or not the visit was tracked.
+  const [g] = (await db`
+    SELECT COUNT(*)::int AS n
+    FROM users u JOIN google_accounts ga ON ga.user_id = u.id
+    WHERE u.created_at > NOW() - make_interval(days => ${days})
+      AND ga.created_at <= u.created_at + INTERVAL '10 minutes'
+      AND ${db.unsafe(qaExternalUserSQL("u."))}
+  `.catch(() => [{ n: 0 }])) as { n: number }[];
+  console.log(`New accounts made with Google | ${g?.n ?? 0}`);
 
   const errors = (await db`
     SELECT LEFT(COALESCE(label, '(none)'), 120) AS message, COUNT(DISTINCT visitor_id)::int AS visitors

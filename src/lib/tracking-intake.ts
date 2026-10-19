@@ -125,6 +125,7 @@ export const EVENT_LABELS: Record<string, string> = {
   signup_submit: "Signup submitted",
   signup_success: "Signup completed",
   signup_error: "Signup error",
+  signup_google_click: "Signup: Continue with Google tapped",
   plan_checkout_started: "Plan buy button clicked",
   plan_checkout_redirected: "Sent to Stripe checkout",
   plan_checkout_signin_required: "Buy click sent to signup (not signed in)",

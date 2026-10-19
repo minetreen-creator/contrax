@@ -136,20 +136,62 @@ export function extractLocation(orgHierarchy: any[], description: string): strin
 const DETAIL_API = "https://sam.gov/api/prod/opps/v2/opportunities/";
 
 /**
+ * The stored label for SAM's TOTAL small-business set-aside code (`SBA`).
+ *
+ * THE ONE STRING BOTH SAM INGESTS MUST AGREE ON. SAM's own words for
+ * `SetASideCode = "SBA"` are "Small Business Set Aside - Total" — measured on
+ * the 2026-10-18 nightly extract (17,702 of 69,674 rows; see
+ * `sam-gov-setaside.test.ts`) — and `sam-csv.ts#csvSetAsideLabel` already stores
+ * that verbatim label for the same notices. The 4-hourly sync therefore writes
+ * the same string, so the two jobs can no longer disagree about one notice.
+ *
+ * IT IS NOT "8(a)". `SBA` is Total Small Business; only `8A` is the 8(a)
+ * Business Development set-aside and `8AN` is its sole-source variant (extract:
+ * "8(a) Set-Aside (FAR 19.8)" / "8(a) Sole Source (FAR 19.8)"). Mapping `SBA` to
+ * "8(a)" told 8(a) firms they were eligible for set-asides they are not — the
+ * mislabel migration 065 cleans up (4,134 stored rows, measured per-NoticeId
+ * against SAM's own detail API).
+ *
+ * Kept as a named export so the CSV job, the migration SQL and the tests all
+ * read the label from ONE place.
+ */
+export const TOTAL_SMALL_BUSINESS_LABEL = "Small Business Set Aside - Total";
+
+/** SAM's sole-source 8(a) code — kept verbatim, see the map comment below. */
+export const EIGHT_A_SOLE_SOURCE_LABEL = "8AN";
+
+/**
  * Normalizes a raw SAM.gov set-aside value (code or label) into a display label.
- * Codes observed from SAM.gov: "SBA" (SBA Certified 8(a) Program), "SDVOSBC",
+ * Codes observed from SAM.gov: "SBA" (Total Small Business — NOT 8(a), see
+ * TOTAL_SMALL_BUSINESS_LABEL), "8A" (8(a)), "8AN" (8(a) sole source), "SDVOSBC",
  * "VOSBC", "WOSB", "EDWOSB", "HZC", "NONE". Accepts strings or {code, value}
  * objects (e.g. {code: "8a", value: "SBA Certified 8(a) Program"}).
  */
 export function normalizeSetAside(value: unknown): string | null {
   if (value === null || value === undefined) return null;
   let v = String(value).trim();
-  if (!v || /^(none|no|not set aside|n\/a|na)$/i.test(v)) return null;
+  // SAM occasionally hands back the code as a one-element JSON array — the
+  // 2026-10-18 extract carries `["SBA"]` on 184 rows (and `[""]` on 12), and the
+  // v2 detail API returned a LIST for one of them too. The array carries no
+  // extra information, so unwrap the bare code and resolve it normally; `[""]`
+  // falls through to the empty-value rule below.
+  if (/^\[\s*".*"\s*\]$/.test(v)) v = v.replace(/^\[\s*"/, "").replace(/"\s*\]$/, "").trim();
+  if (!v || /^(none|no|not set aside|no set[-\s]?aside(?: used)?|n\/a|na)$/i.test(v)) return null;
   const lower = v.toLowerCase();
   const map: Record<string, string> = {
-    sba: "8(a)",
+    sba: TOTAL_SMALL_BUSINESS_LABEL,
     "8a": "8(a)",
     "8(a)": "8(a)",
+    // The sole-source code stays the CODE, deliberately (owner-visible
+    // vocabulary, not an oversight): 41 production rows already carry "8AN"
+    // through this same function, `bids` predicates match it literally
+    // (open-bids `ASCII_CODE_TO_SET_ASIDE["8a"] = ["8(a)","8AN"]`,
+    // cert-matching `"8a": ["8(a)","8an"]`, sam-csv CANONICAL_SET_ASIDES), and
+    // the extract's human spelling is the much longer
+    // "8(a) Sole Source (FAR 19.8)" — abbreviating it to that phrase would split
+    // today's vocabulary for no user-visible gain. 8AN also still matches an
+    // 8(a) filter through the "8(a)" family pattern it is stored beside.
+    "8an": EIGHT_A_SOLE_SOURCE_LABEL,
     sdvosbc: "SDVOSB",
     sdvosb: "SDVOSB",
     "service-disabled": "SDVOSB",

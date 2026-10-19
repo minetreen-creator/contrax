@@ -77,6 +77,10 @@ jobs:
         if: steps.gate.outputs.send == 'true'
         run: bun run bid-digest
 
+      - name: Send trial-ending emails (2 days before, and when it ends)
+        if: always() && steps.gate.outputs.send == 'true'
+        run: bun run trial-emails
+
       - name: Send weekly bid email to Basic users (Mondays)
         if: always() && steps.gate.outputs.send == 'true'
         run: bun run weekly-digest

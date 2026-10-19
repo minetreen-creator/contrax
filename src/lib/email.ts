@@ -281,6 +281,33 @@ export async function sendRadarLeadConfirmationEmail(
 }
 
 /**
+ * Trial-ending notice (owner 2026-10-19): one of the two per-trial emails built
+ * by ~/lib/trial-emails. Returns false on any failure (logged without the
+ * address) so the job records nothing and retries the next morning.
+ */
+export async function sendTrialEmail(to: string, content: { subject: string; html: string; text: string }): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send trial email — RESEND_API_KEY not set");
+      return false;
+    }
+    await resend.emails.send({
+      from: "Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
+      to: [to],
+      subject: content.subject,
+      html: content.html,
+      text: content.text,
+    });
+    return true;
+  } catch (err) {
+    console.error("Failed to send trial email:", (err as Error).message);
+    return false;
+  }
+}
+
+/**
  * Launchpad: the visitor's own capability statement, sent only to the business
  * email they entered (owner 2026-10-17). Returns false on any failure (logged
  * without the address) so the caller can tell the visitor it didn't send.

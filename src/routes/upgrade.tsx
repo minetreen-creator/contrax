@@ -53,7 +53,6 @@ function Upgrade() {
               }. Choose a plan to keep going.`
             : "Choose a plan to keep going."}
         </p>
-        <FoundingOffer source="upgrade" />
         <div className="mt-8 flex justify-center">
           <div role="radiogroup" aria-label="Billing period" className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm font-semibold shadow-sm">
             {(["month", "year"] as const).map((v) => (
@@ -128,6 +127,9 @@ function Upgrade() {
             );
           })}
         </div>
+        {/* Below the plans (owner 2026-10-19): on a phone it pushed Starter more
+            than a screen down for people arriving from an upgrade link. */}
+        <FoundingOffer source="upgrade" />
       </div>
     </div>
   );

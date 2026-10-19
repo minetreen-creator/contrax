@@ -5,6 +5,8 @@
  * redirects the browser to the Stripe Checkout URL returned by the server.
  */
 
+import { trackEvent } from "~/lib/track";
+
 type PlanTier = "starter" | "professional" | "agency" | "savings_premium";
 
 /**
@@ -131,6 +133,10 @@ export async function redirectToCheckout(
   planTier: PlanTier,
   options?: { promoCode?: string; interval?: "month" | "year"; founding?: boolean },
 ): Promise<void> {
+  // Owner 2026-10-19 (funnel report): plan buy buttons recorded nothing, so a
+  // started-then-abandoned checkout was invisible. Label = "plan:interval".
+  const label = `${planTier}:${options?.interval === "year" ? "year" : "month"}${options?.founding ? ":founding" : ""}`;
+  trackEvent("plan_checkout_started", label);
   try {
     const payload: Record<string, unknown> = { planTier };
     if (options?.promoCode) {
@@ -152,6 +158,7 @@ export async function redirectToCheckout(
     if (response.ok) {
       const { url } = (await response.json()) as { url: string };
       if (url) {
+        trackEvent("plan_checkout_redirected", label);
         window.location.href = url;
         return;
       }
@@ -160,6 +167,7 @@ export async function redirectToCheckout(
     // Not signed in — no checkout was created. Send them to signup and bring
     // them back to the plans page.
     if (response.status === 401) {
+      trackEvent("plan_checkout_signin_required", label);
       window.location.href = "/signup?next=/upgrade";
       return;
     }
@@ -175,9 +183,11 @@ export async function redirectToCheckout(
     // API responded but not OK — log the error for debugging
     const body = await response.text().catch(() => "unknown error");
     console.error("Checkout API error:", response.status, body);
+    trackEvent("plan_checkout_failed", `${label}:${response.status}`);
     alert("Sorry, we couldn't start the checkout. Please try again or contact support.");
   } catch {
     // Network error — API unreachable
+    trackEvent("plan_checkout_failed", `${label}:network`);
     alert("Checkout is temporarily unavailable. Please check your connection and try again.");
   }
 }

@@ -227,7 +227,7 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   // Every other caller keeps source=radar — no behavior change there.
   const source = opts?.unlock ? "radar_results_unlock" : opts?.cta ? "radar_results_cta" : "radar";
   const p = new URLSearchParams({
-    plan: opts?.free ? "basic" : "starter",
+    plan: "basic",
     source,
     next: buildRadarFirstRunHref({
       trade: (answers.trade || "").trim(),
@@ -242,7 +242,11 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   if (st) p.set("state", st);
   if (answers.cert) p.set("cert", answers.cert);
   if (answers.sizePref) p.set("size", answers.sizePref);
-  return `${opts?.free ? "/signup" : "/upgrade"}?${p.toString()}`;
+  // Owner 2026-10-19 (choice A): every anonymous Radar CTA goes to signup —
+  // the account starts the 7-day trial and lands back on the matches. The
+  // Oct 6 hand-off to /upgrade made signed-out visitors pick a paid plan
+  // before they had an account (17 of 36 pricing views, 0 checkouts).
+  return `/signup?${p.toString()}`;
 }
 
 /**
@@ -1960,7 +1964,7 @@ function RadarLanding() {
               <div className="mb-5 rounded-2xl border border-blue-400/40 bg-blue-500/10 p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
                 <div>
                   <p className="font-bold text-white">Welcome back — your matches are still open.</p>
-                  <p className="mt-1 text-sm text-blue-100/80">Choose a paid plan to keep searching and tracking opportunities.</p>
+                  <p className="mt-1 text-sm text-blue-100/80">Create your account to keep searching. Your 7-day trial needs no credit card.</p>
                 </div>
                 <a
                   href={radarSignupHref({ trade, state, cert, sizePref }, { cta: true })}
@@ -2093,7 +2097,7 @@ function RadarLanding() {
               <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
                 <p className="text-sm leading-relaxed text-slate-200">
                   <span className="font-semibold text-amber-400">Keep these matches.</span>{" "}
-                  Choose a paid plan to save opportunities and get deadline alerts.
+                  Create your account to save opportunities and get deadline alerts.
                 </p>
                 <div className="flex shrink-0 items-center gap-2">
                   <a
@@ -2101,7 +2105,7 @@ function RadarLanding() {
                     onClick={() => trackEvent("radar_nudge_cta", scan.certLabel)}
                     className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 transition-colors hover:bg-amber-400"
                   >
-                    Choose a plan
+                    Create account
                   </a>
                   <button
                     type="button"
@@ -2190,6 +2194,7 @@ function RadarLanding() {
                     bestMatch={m.id === bestMatchId}
                   />
                 ))}
+                {locked > 0 && <LockedMatchPreview locked={locked} />}
                 {locked > 0 && (
                   <SignupGate
                     certLabel={scan.certLabel}
@@ -2885,6 +2890,44 @@ function IncumbentBlock({
 }
 
 /**
+ * Blurred stand-ins for the locked matches (owner 2026-10-19, item 5): one per
+ * locked match up to three, so the visitor sees there is more behind the
+ * signup card. Plain grey bars only — no titles, agencies or amounts are sent
+ * to the browser for locked matches, so nothing here is made up.
+ */
+export function LockedMatchPreview({ locked }: { locked: number }) {
+  const rows = Math.min(locked, 3);
+  return (
+    <div aria-hidden="true" className="relative flex flex-col gap-3">
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          key={i}
+          data-locked-preview
+          className="pointer-events-none select-none rounded-2xl border border-slate-800 bg-slate-900 p-5 blur-[3px]"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="h-3 w-24 rounded bg-emerald-500/40" />
+            <div className="h-6 w-12 rounded-full bg-amber-500/40" />
+          </div>
+          <div className="mt-3 h-4 w-11/12 rounded bg-slate-600" />
+          <div className="mt-2 h-4 w-2/3 rounded bg-slate-700" />
+          <div className="mt-4 flex gap-2">
+            <div className="h-3 w-20 rounded bg-slate-700" />
+            <div className="h-3 w-16 rounded bg-slate-700" />
+            <div className="h-3 w-24 rounded bg-slate-700" />
+          </div>
+        </div>
+      ))}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-amber-300 ring-1 ring-amber-500/40">
+          🔒 {locked} more {locked === 1 ? "match" : "matches"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
  * RADAR CONVERSION SPRINT PR1 (owner 2026-09-07) — ANONYMOUS RESULTS GATING.
  *
  * THREE rendering modes, driven by the real server-computed match count:
@@ -2974,10 +3017,10 @@ export function SignupGate({
         onClick={() => trackEvent("radar_results_unlock_clicked", certLabel)}
         className="mt-5 block w-full rounded-xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
       >
-        {locked > 0 ? `Unlock My ${locked} Matches →` : `Choose a paid plan →`}
+        {locked > 0 ? `Unlock My ${locked} Matches →` : `Create my account →`}
       </a>
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
-        Choose a paid plan to continue searching and tracking opportunities.
+        Create your account to see them all. Your 7-day trial needs no credit card.
       </p>
     </div>
   );
@@ -3056,7 +3099,7 @@ export function RadarResultsCta({
         onClick={handleClick}
         className="mt-4 block w-full rounded-xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
       >
-        Choose a paid plan
+        See all my matches
       </button>
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
         Save these matches and unlock full opportunity details.

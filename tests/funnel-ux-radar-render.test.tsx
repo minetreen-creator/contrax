@@ -22,7 +22,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { MatchAlertsCard, RadarCard, RequirementsFallback, SaveTrackingPrompt, type RadarMatch } from "~/routes/radar";
+import { LockedMatchPreview, MatchAlertsCard, RadarCard, RequirementsFallback, SaveTrackingPrompt, type RadarMatch } from "~/routes/radar";
 import { BEST_MATCH_BADGE, SAVE_TRACKING_PROMPT } from "~/lib/funnel-ux";
 
 const REPO_SRC = join(import.meta.dir, "..", "src");
@@ -194,8 +194,8 @@ describe("RadarCard — the requirements signup CTA is anonymous-only (F2 family
     const html = card({ match: match({ requirements: [] }) });
     expect(html).toContain("Full requirements are listed in the original solicitation");
     expect(html).toContain("choose a plan with AI briefs to analyze the complete document");
-    // radarSignupHref now hands off to the paid plan (owner 2026-10-06, bf01321).
-    expect(html).toContain('href="/upgrade?plan=starter');
+    // radarSignupHref goes to signup again (owner 2026-10-19, choice A).
+    expect(html).toContain('href="/signup?plan=basic');
   });
 
   test("a SIGNED-IN viewer's requirements block renders the pointer with NO create-account CTA", () => {
@@ -368,5 +368,16 @@ describe("Radar signup context", () => {
     expect(html).toContain("2d 4h");
     expect(html).toContain("AI Executive Briefs");
     expect(html).not.toContain("a draft");
+  });
+});
+
+describe("LockedMatchPreview — blurred stand-ins for locked matches", () => {
+  test("one blurred row per locked match, capped at three, with the real count", () => {
+    const many = renderToStaticMarkup(<LockedMatchPreview locked={13} />);
+    expect(many.match(/data-locked-preview/g)?.length).toBe(3);
+    expect(many).toContain("13 more matches");
+    const one = renderToStaticMarkup(<LockedMatchPreview locked={1} />);
+    expect(one.match(/data-locked-preview/g)?.length).toBe(1);
+    expect(one).toContain("1 more match");
   });
 });

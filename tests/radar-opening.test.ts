@@ -93,7 +93,10 @@ describe("exhausted anonymous preview handoff", () => {
     expect(url.searchParams.get("state")).toBe("VA");
     expect(url.searchParams.get("next")).toContain("/radar?first_run=1");
     expect(url.searchParams.get("next")).toContain("trade=janitorial");
-    expect(new URL(radarSignupHref({trade:"janitorial",state:"VA",cert:"sb",sizePref:"any"}),"https://www.contrax.company").pathname).toBe("/upgrade");
+    // Owner 2026-10-19 (choice A): the unlock CTA goes to signup too, never /upgrade.
+    const unlock = new URL(radarSignupHref({trade:"janitorial",state:"VA",cert:"sb",sizePref:"any"}, {unlock:true}),"https://www.contrax.company");
+    expect(unlock.pathname).toBe("/signup");
+    expect(unlock.searchParams.get("source")).toBe("radar_results_unlock");
   });
 });
 

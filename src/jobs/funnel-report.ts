@@ -103,6 +103,7 @@ export async function funnelReport(days: number): Promise<void> {
 
   await signupBreakdown(days, human);
   await checkoutBreakdown(days, human);
+  await pricingBreakdown(days, human);
 }
 
 /**
@@ -239,6 +240,66 @@ async function checkoutBreakdown(days: number, human: string): Promise<void> {
   console.log("💳 Plan buy buttons (event | plan | visitors)");
   if (!rows.length) console.log("  none yet");
   for (const r of rows) console.log(`  ${r.event_name} | ${r.label ?? "-"} | ${r.visitors}`);
+}
+
+/**
+ * What pricing-page visitors did (owner 2026-10-19: 34 saw pricing, 0 upgrade
+ * clicks). The plan cards link to /signup?plan=…, not to checkout, so a plan
+ * pick shows up as the next page, not as an upgrade click. Per view of
+ * /pricing or /upgrade: signed in or not, the page before and after, and
+ * seconds until the next page.
+ */
+async function pricingBreakdown(days: number, human: string): Promise<void> {
+  const db = sql();
+  const views = (await db`
+    WITH pv AS (
+      SELECT visitor_id, path, user_id, created_at,
+             LOWER(COALESCE(medium, '')) IN ('cpc', 'ppc', 'paid', 'paidsocial', 'display') AS paid,
+             LAG(path) OVER w AS prev_path,
+             LEAD(path) OVER w AS next_path,
+             EXTRACT(EPOCH FROM LEAD(created_at) OVER w - created_at) AS seconds
+      FROM page_views
+      WHERE created_at > NOW() - make_interval(days => ${days})
+        AND visitor_id IS NOT NULL
+        AND path NOT LIKE '/admin%'
+        AND ${db.unsafe(human)}
+      WINDOW w AS (PARTITION BY visitor_id ORDER BY created_at)
+    )
+    SELECT visitor_id,
+           SPLIT_PART(path, '?', 1) AS page,
+           user_id IS NOT NULL AS signed_in,
+           paid,
+           COALESCE(SPLIT_PART(prev_path, '?', 1), '(entered here)') AS prev_page,
+           COALESCE(CASE WHEN next_path LIKE '/signup?%plan=%' THEN '/signup?plan=' || SUBSTRING(next_path FROM 'plan=([a-z_]+)')
+                         ELSE SPLIT_PART(next_path, '?', 1) END, '(left the site)') AS next_page,
+           seconds
+    FROM pv
+    WHERE path = '/pricing' OR path LIKE '/pricing?%' OR path = '/upgrade' OR path LIKE '/upgrade?%'
+  `) as { visitor_id: string; page: string; signed_in: boolean; paid: boolean; prev_page: string; next_page: string; seconds: number | null }[];
+  console.log("");
+  console.log(`🏷️ Pricing / upgrade pages, last ${days} days`);
+  if (!views.length) {
+    console.log("  no views");
+    return;
+  }
+  const visitors = new Set(views.map((v) => v.visitor_id)).size;
+  const signedIn = new Set(views.filter((v) => v.signed_in).map((v) => v.visitor_id)).size;
+  const paid = new Set(views.filter((v) => v.paid).map((v) => v.visitor_id)).size;
+  console.log(`Views ${views.length} · visitors ${visitors} · signed in ${signedIn} · from paid ads ${paid}`);
+  const byPage = new Map<string, number>();
+  for (const v of views) byPage.set(v.page, (byPage.get(v.page) ?? 0) + 1);
+  console.log(`By page: ${[...byPage].map(([k, n]) => `${k} ${n}`).join(" · ")}`);
+  const secs = views.map((v) => v.seconds).filter((x): x is number => x != null).map(Number).sort((a, b) => a - b);
+  if (secs.length) console.log(`Median seconds before the next page (when there was one): ${Math.round(secs[Math.floor(secs.length / 2)])}`);
+  const top = (key: "prev_page" | "next_page") => {
+    const m = new Map<string, number>();
+    for (const v of views) m.set(v[key], (m.get(v[key]) ?? 0) + 1);
+    return [...m].sort((a, b) => b[1] - a[1]).slice(0, 10);
+  };
+  console.log("Came from (page | views):");
+  for (const [k, n] of top("prev_page")) console.log(`  ${k} | ${n}`);
+  console.log("Went next (page | views):");
+  for (const [k, n] of top("next_page")) console.log(`  ${k} | ${n}`);
 }
 
 if (import.meta.main) {

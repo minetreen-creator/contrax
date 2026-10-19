@@ -4,6 +4,7 @@ import { sql } from "~/db";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { adminFunnelExclusionSQL, qaExternalUserSQL, qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { TRIAL_DAYS } from "~/lib/trial";
+import { AWARD_EXCLUSION_SQL, isRetiredSource, sourceBadgeLabel } from "~/lib/source-class";
 import {
   FEED_EVENTS,
   FEED_EVENT_NAMES,
@@ -14,7 +15,11 @@ import {
   trialEnds,
   trialHeat,
   visitorState,
+  feedLight,
+  feedName,
+  sortSources,
   type FeedItem,
+  type SourceHealth,
   type OnlineVisitor,
   type StateSearchStat,
   type TrialCard,
@@ -243,8 +248,45 @@ async function handler({ request }: { request: Request }) {
       at: new Date(r.created_at).toISOString(),
     }));
 
+    // Data feeds: per bid source, open bids, bids first seen in the last 24
+    // hours and when its newest bid arrived. Award feeds and retired
+    // collectors are left out; a source is listed while it has open bids or
+    // added something in the last 90 days.
+    let sources: SourceHealth[] = [];
+    try {
+      const rows = (await db`
+        SELECT source,
+               COUNT(*) FILTER (WHERE due_date > NOW())::int AS open,
+               COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours')::int AS new24h,
+               MAX(created_at) AS last_new
+        FROM bids
+        WHERE ${db.unsafe(AWARD_EXCLUSION_SQL)}
+          AND (due_date > NOW() OR created_at > NOW() - INTERVAL '90 days')
+        GROUP BY source
+      `) as { source: string; open: number; new24h: number; last_new: string | null }[];
+      sources = sortSources(
+        rows
+          .filter((r) => r.source && !isRetiredSource(r.source))
+          .map((r) => {
+            const lastNewAt = r.last_new ? new Date(r.last_new).toISOString() : null;
+            return {
+              source: r.source,
+              name: feedName(r.source),
+              kind: sourceBadgeLabel(r.source),
+              open: Number(r.open),
+              new24h: Number(r.new24h),
+              lastNewAt,
+              light: feedLight(lastNewAt, now),
+            };
+          }),
+      );
+    } catch (e) {
+      console.error("[api/admin/live-console] data feeds unavailable:", e);
+    }
+
     return Response.json({
       generatedAt: new Date(now).toISOString(),
+      sources,
       map,
       onlineCount: onlineRows.length,
       online,

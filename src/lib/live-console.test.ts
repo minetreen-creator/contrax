@@ -109,4 +109,18 @@ describe("live search map + on the site now", () => {
     const spots = new Set([0, 1, 2, 3, 4, 5].map((i) => dotOffset(i).join(",")));
     expect(spots.size).toBe(6);
   });
+
+  test("data feeds: light by last new bid, names, red first", async () => {
+    const { feedLight, feedName, sortSources } = await import("./live-console");
+    expect(feedLight(new Date(NOW - 5 * H).toISOString(), NOW)).toBe("green");
+    expect(feedLight(new Date(NOW - 4 * 24 * H).toISOString(), NOW)).toBe("amber");
+    expect(feedLight(new Date(NOW - 10 * 24 * H).toISOString(), NOW)).toBe("red");
+    expect(feedLight(null, NOW)).toBe("red");
+    expect(feedName("tx_esbd")).toBe("TX ESBD");
+    const row = (source: string, light: "green" | "amber" | "red", new24h: number) => ({
+      source, name: source, kind: "", open: 1, new24h, lastNewAt: null, light,
+    });
+    expect(sortSources([row("a", "green", 5), row("b", "red", 0), row("c", "amber", 0), row("d", "green", 9)]).map((r) => r.source))
+      .toEqual(["b", "c", "d", "a"]);
+  });
 });

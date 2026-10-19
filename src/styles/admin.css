@@ -107,6 +107,13 @@
 .admin-console .live-visitor-dot circle { fill: #22d3ee; filter: drop-shadow(0 0 6px #22d3ee); }
 .admin-console .live-visitor-dot .live-visitor-ring { fill: none; stroke: #22d3ee; stroke-width: 2; filter: none; transform-box: fill-box; transform-origin: center; animation: live-ring 1.8s ease-out infinite; }
 @keyframes live-ring { from { transform: scale(1); opacity: 0.9; } to { transform: scale(3.2); opacity: 0; } }
+.admin-console .live-feeds { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 8px; }
+.admin-console .live-feed { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; background: rgba(15,23,42,0.75); border: 1px solid rgba(148,163,184,0.12); }
+.admin-console .live-feed.is-red { border-color: rgba(244,63,94,0.55); box-shadow: 0 0 14px rgba(244,63,94,0.25); }
+.admin-console .live-feed.is-amber { border-color: rgba(245,158,11,0.4); }
+.admin-console .live-light { display: inline-block; width: 10px; height: 10px; border-radius: 999px; background: var(--light); box-shadow: 0 0 8px var(--light); flex-shrink: 0; }
+.admin-console .live-light.is-red { animation: live-blink 1.2s ease-in-out infinite; }
+@keyframes live-blink { 50% { opacity: 0.35; } }
 .admin-console .live-usmap-loading { aspect-ratio: 975 / 610; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 13px; border-radius: 12px; background: rgba(15,23,42,0.5); }
 .admin-console .live-key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; }
 .admin-console .live-online { padding: 16px; border-radius: 14px; background: rgba(15,23,42,0.75); border: 1px solid rgba(148,163,184,0.12); }

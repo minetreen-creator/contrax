@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, Database } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -14,7 +14,9 @@ import {
   type FeedItem,
   type FeedKind,
   type MapTone,
+  type FeedLight,
   type OnlineVisitor,
+  type SourceHealth,
   type StateSearchStat,
   type TrialCard,
   type TrialHeat,
@@ -28,6 +30,7 @@ import {
 
 interface LiveData {
   generatedAt: string;
+  sources: SourceHealth[];
   map: StateSearchStat[];
   onlineCount: number;
   online: OnlineVisitor[];
@@ -304,6 +307,53 @@ function OnlineNow({ count, visitors, now }: { count: number; visitors: OnlineVi
   );
 }
 
+const LIGHT_COLOR: Record<FeedLight, string> = { green: "#22c55e", amber: "#f59e0b", red: "#f43f5e" };
+
+/** One row per bid source: a status light, open bids, new in 24 hours, last new bid. */
+function DataFeeds({ sources, now }: { sources: SourceHealth[]; now: number }) {
+  const [showAll, setShowAll] = useState(false);
+  const count = (l: FeedLight) => sources.filter((s) => s.light === l).length;
+  // Red and amber always show; green is trimmed to 12 until expanded.
+  const flagged = sources.filter((s) => s.light !== "green");
+  const green = sources.filter((s) => s.light === "green");
+  const shown = showAll ? sources : [...flagged, ...green.slice(0, 12)];
+  const newToday = sources.reduce((n, s) => n + s.new24h, 0);
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-slate-300">
+        <span className="font-semibold text-white">{sources.length} feeds</span>
+        {(["green", "amber", "red"] as const).map((l) => (
+          <span key={l} className="flex items-center gap-1.5">
+            <i className={`live-light is-${l}`} style={{ ["--light" as string]: LIGHT_COLOR[l] }} /> {count(l)}
+          </span>
+        ))}
+        <span className="text-slate-400">· +{newToday.toLocaleString()} new bids in 24h</span>
+      </div>
+      <div className="live-feeds">
+        {shown.map((s) => (
+          <div key={s.source} className={`live-feed is-${s.light}`} style={{ ["--light" as string]: LIGHT_COLOR[s.light] }}>
+            <i className={`live-light is-${s.light}`} aria-label={s.light} />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-bold text-white" title={s.source}>{s.name}</p>
+              <p className="truncate text-[11px] text-slate-400">{s.kind || "Source"} · {s.open.toLocaleString()} open</p>
+            </div>
+            <div className="shrink-0 text-right">
+              <p className={`text-xs font-bold ${s.new24h > 0 ? "text-emerald-300" : "text-slate-500"}`}>+{s.new24h}</p>
+              <p className="text-[10px] text-slate-500">new {agoLabel(s.lastNewAt, now)}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      {green.length > 12 ? (
+        <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-3 text-xs font-semibold text-sky-300 hover:text-sky-200">
+          {showAll ? "Show fewer" : `Show all ${sources.length} feeds`}
+        </button>
+      ) : null}
+      <p className="mt-2 text-[11px] text-slate-500">Green: a new bid in the last 2 days · amber: in the last week · red: none in over a week. Quiet weekends can turn small feeds amber.</p>
+    </div>
+  );
+}
+
 function TrialTile({ t, now }: { t: TrialCard; now: number }) {
   const msLeft = new Date(t.endsAt).getTime() - now;
   const fraction = trialFractionLeft(msLeft, TRIAL_DAYS);
@@ -466,6 +516,15 @@ function LivePage() {
               </div>
             </div>
           )}
+
+          {data ? (
+            <div className="mt-8">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                <Database size={15} aria-hidden="true" /> Data feeds
+              </h2>
+              <DataFeeds sources={data.sources} now={now} />
+            </div>
+          ) : null}
         </section>
       </main>
     </div>

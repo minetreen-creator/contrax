@@ -1,0 +1,46 @@
+name: Announcement Email
+
+# One-time product announcement to every signed-up account (owner 2026-10-19).
+# Run by hand from the Actions tab. Leave "send" unticked for a dry run that
+# only prints how many accounts would get it. Each address reached is logged in
+# announcement_log, so running it again never emails anyone twice.
+# Recipient rules and copy: src/lib/announcement-email.ts.
+
+on:
+  workflow_dispatch:
+    inputs:
+      send:
+        description: "Actually send (unticked = dry run, count only)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: announcement-email
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  announce:
+    name: Send announcement
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      SEND: ${{ inputs.send && 'true' || 'false' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Send (or count) the announcement
+        run: bun run announcement

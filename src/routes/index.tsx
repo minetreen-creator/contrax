@@ -285,7 +285,7 @@ function HowItWorks() {
 // homepage; the full pages are one click away).
 function MoreFromContrax() {
   const items = [
-    { label: "From the CEO", body: "A big week at Contrax: Launchpad upgrades, a new homepage and better matches.", href: "/from-the-ceo", cta: "See what's new" },
+    { label: "From the CEO", body: "Nearly 3× more federal bids: 5,700+ open, updated every night from SAM.gov.", href: "/from-the-ceo", cta: "See what's new" },
     { label: "Contrax Grants", body: "Find federal grants your organization qualifies for. No cost for verified nonprofits.", href: "/grants", cta: "Search grants" },
   ];
   return (

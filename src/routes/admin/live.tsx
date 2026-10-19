@@ -6,6 +6,7 @@ import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
 import {
   agoLabel,
+  dotOffset,
   isRecentSearch,
   mapTone,
   timeLeftLabel,
@@ -209,7 +210,7 @@ function useUsMap() {
 }
 
 /** A real US map; color = how each state's searches went, pulse = searched in the last 15 minutes. */
-function SearchMap({ stats, now }: { stats: StateSearchStat[]; now: number }) {
+function SearchMap({ stats, visitors, now }: { stats: StateSearchStat[]; visitors: OnlineVisitor[]; now: number }) {
   const us = useUsMap();
   const byState = new Map(stats.map((s) => [s.state, s]));
   return (
@@ -244,6 +245,25 @@ function SearchMap({ stats, now }: { stats: StateSearchStat[]; now: number }) {
               </g>
             );
           })}
+          {(() => {
+            // Live visitors: a glowing dot per person on their home state,
+            // spread in a small spiral when a state has several.
+            const seen = new Map<string, number>();
+            return visitors.map((v) => {
+              const at = v.state ? us.label[v.state] : undefined;
+              if (!v.state || !at) return null;
+              const i = seen.get(v.state) ?? 0;
+              seen.set(v.state, i + 1);
+              const [dx, dy] = dotOffset(i);
+              return (
+                <g key={v.visitorKey} className="live-visitor-dot" transform={`translate(${at[0] + dx} ${at[1] - 22 + dy})`}>
+                  <circle className="live-visitor-ring" r="7" />
+                  <circle r="6" />
+                  <title>{`${v.place ?? v.state} · on ${v.path} · ${agoLabel(v.at, now)}`}</title>
+                </g>
+              );
+            });
+          })()}
         </svg>
       ) : (
         <div className="live-usmap-loading">Loading map…</div>
@@ -252,7 +272,8 @@ function SearchMap({ stats, now }: { stats: StateSearchStat[]; now: number }) {
         <span><i className="live-key" style={{ background: TONE_COLOR.found }} /> found bids</span>
         <span><i className="live-key" style={{ background: TONE_COLOR.mixed }} /> some empty</span>
         <span><i className="live-key" style={{ background: TONE_COLOR.empty }} /> all 0 matches</span>
-        <span>Number = searches · pulsing = last 15 min · hover a state for details</span>
+        <span><i className="live-key" style={{ background: "#22d3ee", borderRadius: 999 }} /> on the site now</span>
+        <span>Number = searches · pulsing = last 15 min · hover for details</span>
       </p>
     </div>
   );
@@ -406,13 +427,13 @@ function LivePage() {
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                   <MapIcon size={15} aria-hidden="true" /> Live search map · 48 hours
                 </h2>
-                <SearchMap stats={data.map} now={now} />
+                <SearchMap stats={data.map} visitors={data.online} now={now} />
               </div>
               <div>
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                   <Users size={15} aria-hidden="true" /> On the site now
                 </h2>
-                <OnlineNow count={data.onlineCount} visitors={data.online} now={now} />
+                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} />
               </div>
             </div>
           ) : null}

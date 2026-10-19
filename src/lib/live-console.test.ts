@@ -98,4 +98,15 @@ describe("live search map + on the site now", () => {
     expect(isRecentSearch({ state: "CO", searches: 1, zero: 1, lastAt: new Date(NOW - 10 * 60_000).toISOString() }, NOW)).toBe(true);
     expect(isRecentSearch({ state: "CO", searches: 1, zero: 1, lastAt: new Date(NOW - 20 * 60_000).toISOString() }, NOW)).toBe(false);
   });
+
+  test("visitor dots: US state only, spread out within a state", async () => {
+    const { visitorState, dotOffset } = await import("./live-console");
+    expect(visitorState("co", "US")).toBe("CO");
+    expect(visitorState("ON", "CA")).toBeNull();
+    expect(visitorState("TX", null)).toBeNull();
+    expect(visitorState("ZZ", "US")).toBeNull();
+    expect(dotOffset(0)).toEqual([0, 0]);
+    const spots = new Set([0, 1, 2, 3, 4, 5].map((i) => dotOffset(i).join(",")));
+    expect(spots.size).toBe(6);
+  });
 });

@@ -1,0 +1,64 @@
+name: Account Set Trade
+
+# Owner 2026-10-19: set one account's trade, NAICS and states when onboarding
+# left them blank. Prints before/after; dry run unless apply is true. Run by
+# hand from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Account email (full address)"
+        type: string
+        required: true
+      industry:
+        description: "Trade, e.g. Trucking"
+        type: string
+        required: true
+      services:
+        description: "Services, comma-separated"
+        type: string
+        default: ""
+      naics:
+        description: "Six-digit NAICS codes, comma-separated"
+        type: string
+        default: ""
+      states:
+        description: "Two-letter state codes, comma-separated"
+        type: string
+        required: true
+      apply:
+        description: "Save the change (false = dry run)"
+        type: string
+        default: "false"
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    name: Account set trade
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EMAIL: ${{ inputs.email }}
+      INDUSTRY: ${{ inputs.industry }}
+      SERVICES: ${{ inputs.services }}
+      NAICS: ${{ inputs.naics }}
+      STATES: ${{ inputs.states }}
+      APPLY: ${{ inputs.apply }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Update the profile
+        run: bun run account-set-trade

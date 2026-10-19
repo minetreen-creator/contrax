@@ -41,7 +41,7 @@ import {
   type StateAggregate,
 } from "~/lib/contract-map";
 import { trackEvent } from "~/lib/track";
-import { expandTrade, tradeKeywordPred } from "~/lib/trade-registry";
+import { expandTrade, isStrongTradeMatch, tradeKeywordPred } from "~/lib/trade-registry";
 import { resolveBidState } from "~/lib/location-state";
 import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG } from "~/lib/seo-trades";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -313,6 +313,7 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
     let bids: SeoBid[] = [];
     if (valid) {
       const { sql } = await import("~/db");
+      const expansion = expandTrade(trade!.radarTerm);
       try {
         const rows = await sql()`
           SELECT id, title, agency, description, due_date, estimated_value,
@@ -324,12 +325,21 @@ export const getRegionTradeData = createServerFn({ method: "GET" })
             FROM bids
             WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)}
               AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
-              ${tradeKeywordPred(sql, expandTrade(trade!.radarTerm))}
+              ${tradeKeywordPred(sql, expansion)}
             ORDER BY ${sql().unsafe(noticeKeySql("bids"))}, created_at DESC NULLS LAST
           ) t
           LIMIT 5000
         `;
-        bids = filterBidsToState((rows as any[]).map(mapSeoBid), code!);
+        // Owner 2026-10-19: the page says it uses Radar's trade search, so keep
+        // only Radar's default matches (trade word in the title, or the trade's
+        // NAICS). "Custom Shipping Container Offices" matched trucking on a
+        // "Freight And Cargo Containers" code in its description.
+        bids = filterBidsToState(
+          (rows as any[])
+            .filter((r) => isStrongTradeMatch(r.title, null, r.description, r.naics_code, expansion))
+            .map(mapSeoBid),
+          code!,
+        );
       } catch (e) {
         console.error("[seo-landing] region-trade query failed:", e);
         bids = [];

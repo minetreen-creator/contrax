@@ -1,0 +1,39 @@
+name: Upgrade Pitch Preview
+
+# Read-only (owner 2026-10-19): print what one account's /upgrade page shows
+# in its "your matches" box (new matched bids, members-only count, typical
+# award). Run by hand from the Actions tab.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Account email, or the part before @"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Upgrade pitch preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      EMAIL: ${{ inputs.email }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Print the pitch
+        run: bun run upgrade-pitch-preview

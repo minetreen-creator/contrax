@@ -1,6 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+import {
+  OPEN_BID_SQL,
+  AWARD_NOTICE_EXCLUSION_SQL,
+} from "~/lib/open-bids";
 import { deriveStateCode, STATE_NAMES } from "~/lib/contract-map";
 import { US_STATES } from "~/lib/states";
 
@@ -27,8 +32,10 @@ async function handler({ request }: { request: Request }) {
     const rows = await sql()`
       SELECT id, title, agency, location, set_aside, estimated_value, due_date, source_url
       FROM bids
-      WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
+      WHERE ${sql().unsafe(OPEN_BID_SQL)}
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
+        AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+        AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
       ORDER BY due_date ASC NULLS LAST
     `;
     const bids = (rows as any[])

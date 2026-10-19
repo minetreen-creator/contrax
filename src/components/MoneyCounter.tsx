@@ -43,7 +43,8 @@ export function MoneyCounter({
   const [state, setState] = useState("US");
   const f = counterFigures(state, contractMap, ending, endingByState);
   const dollars = useCountUp(f.endingTotal);
-  const bids = useCountUp(f.openBids);
+  const federal = useCountUp(f.federalOpen);
+  const stateLocal = useCountUp(f.stateLocalOpen);
   if (!contractMap && !ending) return null;
   const where = state === "US" ? "nationwide" : `in ${STATE_NAMES[state] ?? state}`;
   // No per-state split (lookup failed): hide the picker rather than show $0 per state.
@@ -64,8 +65,19 @@ export function MoneyCounter({
         <p className="relative mt-3 text-base text-slate-200 sm:text-lg">
           in federal contracts ending in the next 12 months ({f.endingCount.toLocaleString("en-US")} contracts). Each one could be rebid.
         </p>
-        <p className="relative mt-6 font-[Georgia,serif] text-4xl font-bold tabular-nums sm:text-5xl">{bids.toLocaleString("en-US")}</p>
-        <p className="relative mt-1 text-sm text-slate-300 sm:text-base">open bids {where} right now</p>
+        {/* Owner 2026-10-19: TWO honest figures, never one blended all-source
+            count presented as federal. Federal rows are those whose source is a
+            federal feed (same classifier as the "Federal" badge). */}
+        <div className="relative mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <p className="font-[Georgia,serif] text-4xl font-bold tabular-nums sm:text-5xl" aria-live="polite">{federal.toLocaleString("en-US")}</p>
+            <p className="mt-1 text-sm text-slate-300 sm:text-base">open federal bids {where} right now</p>
+          </div>
+          <div>
+            <p className="font-[Georgia,serif] text-4xl font-bold tabular-nums sm:text-5xl" aria-live="polite">{stateLocal.toLocaleString("en-US")}</p>
+            <p className="mt-1 text-sm text-slate-300 sm:text-base">open state &amp; local bids {where} right now</p>
+          </div>
+        </div>
         {canPickState && <label className="relative mt-6 inline-flex flex-wrap items-center justify-center gap-2 text-sm font-semibold">
           See your state
           <select

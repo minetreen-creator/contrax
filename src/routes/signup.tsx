@@ -39,6 +39,11 @@ import { persistPendingDraft } from "~/lib/pending-draft";
 import { storeRememberedNext } from "~/lib/remember-next";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+import {
+  OPEN_BID_SQL,
+  AWARD_NOTICE_EXCLUSION_SQL,
+} from "~/lib/open-bids";
 import { getGoogleAuthUrl } from "~/lib/google-oauth";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 import { safeNext } from "~/lib/saved-matches";
@@ -266,8 +271,10 @@ const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () =>
       // Open count reuses the exact homepage /map definition so it matches the
       // homepage "open opportunities" number bit-for-bit.
       sql()`SELECT COUNT(*)::int AS count FROM bids
-            WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
-              AND ${sql().unsafe(LOW_CONTENT_SQL)}`,
+            WHERE ${sql().unsafe(OPEN_BID_SQL)}
+              AND ${sql().unsafe(LOW_CONTENT_SQL)}
+              AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+              AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}`,
     ]);
     return {
       tracked: Number((trackedRows[0] as any)?.count || 0),

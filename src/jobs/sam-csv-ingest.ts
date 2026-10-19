@@ -38,9 +38,11 @@
  * (parse + report + exit, write nothing — used for the dry run).
  */
 import {
+  APPROVED_COUNTER_STATES,
   createCsvRecordStream,
   csvHeaderIndex,
   csvNoticeToBid,
+  gateAgainstApprovedStates,
   isAwardOrJustificationType,
   isOpenDeadline,
   parseDeadline,
@@ -341,20 +343,27 @@ export async function runSamCsvIngest(
     `📊 counter population now: ${live.totalOpen} row(s) across ${projection.before.length} state(s)`,
   );
 
-  if (projection.added.length > 0 || projection.removed.length > 0) {
-    // THE OWNER'S GATE (spec §Counter behavior 5). A real run writes nothing and
-    // exits non-zero; a report-only run keeps going so the measurement is logged.
+  // THE OWNER'S GATE (spec §Counter behavior 5), tightened 2026-10-19: the
+  // counter's state set after this run must be EXACTLY APPROVED_COUNTER_STATES —
+  // default today's live set (50 jurisdictions, ME excluded). The job never
+  // writes a state set it computed for itself; the only way ME may join is the
+  // owner flipping that one-line constant. Fail-safe either way: a real run
+  // writes nothing and exits non-zero, a report-only run keeps going so the
+  // measurement is logged.
+  const gate = gateAgainstApprovedStates(projection.after);
+  if (!gate.ok) {
     console.error(
-      `⛔ FAIL SAFE: this run would change the counter's state set ` +
-        `(${projection.before.length} -> ${projection.after.length}; added ${JSON.stringify(projection.added)}, ` +
-        `removed ${JSON.stringify(projection.removed)}). ` +
+      `⛔ FAIL SAFE: this run's counter state set would not be the approved set ` +
+        `(${projection.before.length} -> ${projection.after.length}; would add ${JSON.stringify(gate.unexpected)}, ` +
+        `would drop ${JSON.stringify(gate.missing)}; approved = ${APPROVED_COUNTER_STATES.length} jurisdiction(s), ` +
+        `ME ${APPROVED_COUNTER_STATES.includes("ME") ? "INCLUDED" : "EXCLUDED"}). ` +
         `A changed state count is an owner decision, not a sync side effect.`,
     );
     if (!reportOnly) {
       console.error("⛔ nothing was written.");
       throw new Error(
-        `totalStates would change ${projection.before.length} -> ${projection.after.length} ` +
-          `(added: ${projection.added.join(",") || "-"}; removed: ${projection.removed.join(",") || "-"})`,
+        `counter state set would change to ${projection.after.length} (add: ${gate.unexpected.join(",") || "-"}; ` +
+          `drop: ${gate.missing.join(",") || "-"}) — approved set is ${APPROVED_COUNTER_STATES.length} jurisdictions`,
       );
     }
   }

@@ -68,6 +68,19 @@ export function buildDigestMatcher(profile: DigestProfile | null | undefined): D
     .filter(Boolean)
     .join(" ");
 
+  // The trade dimension — the ONE route allowed to qualify a bid that publishes
+  // no place-of-performance state (owner rule, spec §1). Kept as a named
+  // predicate so the no-state rule below reads as what it is: for such a bid,
+  // trade is not merely one of several dimensions, it is the only one.
+  const tradeMatches = (bid: DigestBidFields): boolean => {
+    const code = String(bid.naics_code ?? "").trim();
+    // A bid with a NAICS code is held to the profile's codes when it has
+    // some (same rule as the dashboard feed, profile-match.ts).
+    if (code && naicsCodes.length > 0) return naicsCodes.includes(code);
+    const text = `${bid.title ?? ""} ${bid.description ?? ""} ${bid.category ?? ""}`;
+    return expansions.some((e) => tradeTextIncludes(text, e));
+  };
+
   return {
     personal: stateFilter || tradeFilter,
     states,
@@ -88,9 +101,14 @@ export function buildDigestMatcher(profile: DigestProfile | null | undefined): D
       //     not admitted by a blank location, and not by a state read off the
       //     buyer/agency string either — an office is not a work site);
       //   • a state published   → the existing test, unchanged.
-      // A no-state bid still reaches the members whose TRADE it matches (the
-      // allowed route), and a member who selected states but no trade gets no
-      // no-state bids at all.
+      // A no-state bid is qualified by its TRADE/NAICS and by nothing else
+      // (owner rule, spec §1 — the same rule radar-lead-alerts.ts applies).
+      // This matcher has exactly two dimensions (states, trade), so the rule
+      // bites here as: the state dimension is refused outright for such a bid
+      // (never admitted by a blank location, and never by a state read off the
+      // buyer/agency string — an office is not a work site), which leaves trade
+      // as its only route; a member who selected states but no trade therefore
+      // receives no no-state bids at all.
       const hasPlaceState = !!resolveStateFromText(bid.location);
       if (stateFilter) {
         if (!hasPlaceState) {
@@ -100,12 +118,9 @@ export function buildDigestMatcher(profile: DigestProfile | null | undefined): D
         }
       }
       if (!tradeFilter) return true;
-      const code = String(bid.naics_code ?? "").trim();
-      // A bid with a NAICS code is held to the profile's codes when it has
-      // some (same rule as the dashboard feed, profile-match.ts).
-      if (code && naicsCodes.length > 0) return naicsCodes.includes(code);
-      const text = `${bid.title ?? ""} ${bid.description ?? ""} ${bid.category ?? ""}`;
-      return expansions.some((e) => tradeTextIncludes(text, e));
+      // The only remaining dimension for any bid: trade/NAICS (and, for a
+      // no-state bid, the only one it can ever arrive through).
+      return tradeMatches(bid);
     },
   };
 }

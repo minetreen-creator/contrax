@@ -550,6 +550,53 @@ export function projectStates(
     removed: before.filter((c) => !afterList.includes(c)),
   };
 }
+// ── THE APPROVED COUNTER STATE SET (the owner's hard gate) ──────────────────
+/**
+ * Every jurisdiction the counter can attribute a bid to — 50 states + DC.
+ * (US_STATES is the single source of truth; ME is the code the 2026-10-17 SAM
+ * extract would introduce, which is an open owner decision.)
+ */
+export const ALL_COUNTER_STATES: readonly string[] = [...US_STATES];
+/**
+ * The live counter's state set as measured on 2026-10-19: all 51 jurisdictions
+ * EXCEPT ME (this is the "50" the owner set as the unchangeable current value).
+ */
+export const LIVE_COUNTER_STATES_2026_10_19: readonly string[] =
+  ALL_COUNTER_STATES.filter((s) => s !== "ME");
+/**
+ * ── THE OWNER'S DECISION IS THIS ONE LINE ───────────────────────────────────
+ * `totalStates` may never change as a side effect of a sync (spec §Counter
+ * behavior 5: "the count of states on the homepage must NOT change; if it
+ * would, STOP and report back to the lead"). The job therefore only ever writes
+ * a state set that is EXACTLY this constant — never a set it computes for
+ * itself — so no run can ship an unapproved change.
+ *
+ * DEFAULT `LIVE_COUNTER_STATES_2026_10_19` = today's live set (50, no ME).
+ * ⬇︎ WHEN THE OWNER APPROVES THE 50 → 51 TRANSITION (ME joins: 10
+ *   future-deadline notices in the 2026-10-17 extract), change the value on the
+ *   line below to `ALL_COUNTER_STATES` and nothing else. Until then the nightly
+ *   run refuses (writes nothing, exits non-zero) rather than adding ME.
+ */
+export const APPROVED_COUNTER_STATES: readonly string[] = LIVE_COUNTER_STATES_2026_10_19;
+/**
+ * The fail-safe comparison behind the gate: is the counter's projected state
+ * set exactly the approved set? Returns the states that would be ADDED
+ * (`unexpected`) and DROPPED (`missing`) so the log names the change instead of
+ * just refusing. `approved` defaults to APPROVED_COUNTER_STATES; passing
+ * ALL_COUNTER_STATES models the owner's one-line change.
+ */
+export function gateAgainstApprovedStates(
+  projected: readonly string[],
+  approved: readonly string[] = APPROVED_COUNTER_STATES,
+): { ok: boolean; unexpected: string[]; missing: string[] } {
+  const have = new Set(projected.map((s) => String(s).toUpperCase()));
+  const want = new Set(approved.map((s) => String(s).toUpperCase()));
+  return {
+    ok: have.size === want.size && [...want].every((s) => have.has(s)),
+    unexpected: [...have].filter((s) => !want.has(s)).sort(),
+    missing: [...want].filter((s) => !have.has(s)).sort(),
+  };
+}
 
 // ── CLOSE-OUT RULE ─────────────────────────────────────────────────────────
 

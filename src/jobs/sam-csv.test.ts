@@ -23,13 +23,17 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
+  ALL_COUNTER_STATES,
+  APPROVED_COUNTER_STATES,
   createCsvRecordStream,
   csvBidChangeTuple,
   csvHeaderIndex,
   csvNoticeToBid,
   csvSetAsideLabel,
+  gateAgainstApprovedStates,
   isAwardOrJustificationType,
   isOpenDeadline,
+  LIVE_COUNTER_STATES_2026_10_19,
   parseDeadline,
   parseSamCsvRecord,
   projectStates,
@@ -291,6 +295,45 @@ describe("the owner's totalStates gate", () => {
     expect(stateCodeFromLocation("")).toBeNull();
     expect(stateCodeFromLocation(null)).toBeNull();
     expect(stateCodeFromLocation("Tokyo, JP-01")).toBeNull();
+  });
+
+  // THE APPROVED STATE SET — the owner's one-line decision. The gate never
+  // writes a state set it computed for itself; it only ever accepts EXACTLY
+  // APPROVED_COUNTER_STATES, which defaults to today's live set (50
+  // jurisdictions, ME excluded) and flips to all 51 in one line.
+  test("the default constant is today's live set: all 51 jurisdictions except ME", () => {
+    expect(ALL_COUNTER_STATES.length).toBe(51); // 50 states + DC
+    expect(LIVE_COUNTER_STATES_2026_10_19.length).toBe(50);
+    expect(LIVE_COUNTER_STATES_2026_10_19).not.toContain("ME");
+    expect(LIVE_COUNTER_STATES_2026_10_19).toContain("DC");
+    expect([...APPROVED_COUNTER_STATES]).toEqual([...LIVE_COUNTER_STATES_2026_10_19]);
+  });
+
+  test("a run that would add ME is refused under the default constant", () => {
+    const live = APPROVED_COUNTER_STATES;
+    const withME = [...live, "ME"];
+    const g = gateAgainstApprovedStates(withME);
+    expect(g.ok).toBe(false);
+    expect(g.unexpected).toEqual(["ME"]);
+    expect(g.missing).toEqual([]);
+    // and the current live set passes the gate untouched
+    expect(gateAgainstApprovedStates(live).ok).toBe(true);
+  });
+
+  test("the owner's one-line flip to the full set admits ME (and only then)", () => {
+    const withME = [...LIVE_COUNTER_STATES_2026_10_19, "ME"];
+    expect(gateAgainstApprovedStates(withME, ALL_COUNTER_STATES).ok).toBe(true);
+    expect(gateAgainstApprovedStates(withME, ALL_COUNTER_STATES).unexpected).toEqual([]);
+    // flipping the constant does not loosen anything else: a DROPPED state is
+    // refused under either constant — a sync may never shrink the counter.
+    const missingVA = APPROVED_COUNTER_STATES.filter((s) => s !== "VA");
+    expect(gateAgainstApprovedStates(missingVA).ok).toBe(false);
+    expect(gateAgainstApprovedStates(missingVA).missing).toEqual(["VA"]);
+    expect(gateAgainstApprovedStates(missingVA, ALL_COUNTER_STATES).ok).toBe(false);
+    // a hypothetical live set that already carries ME is also refused under the
+    // default constant (the job must never ratify an unapproved state set).
+    expect(gateAgainstApprovedStates(ALL_COUNTER_STATES).ok).toBe(false);
+    expect(gateAgainstApprovedStates(ALL_COUNTER_STATES).unexpected).toEqual(["ME"]);
   });
 });
 

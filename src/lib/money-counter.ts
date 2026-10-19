@@ -1,15 +1,25 @@
 /**
  * Homepage "money counter" (owner 2026-10-17). Pure and client-safe.
  *
- * HONESTY: only two complete figures are shown — the open-bid count from the
+ * HONESTY: only complete figures are shown — the open-bid counts from the
  * contract map, and the USAspending total of federal contracts ending in the
  * next 12 months. Bid `estimated_value` is NOT summed here: under 1% of open
  * bids list one, so a dollar total built from it would mislead.
+ *
+ * OPEN-BID SPLIT (owner 2026-10-19, Option ① of the federal-bids gap
+ * investigation): the counter shows TWO figures — open FEDERAL bids and open
+ * STATE & LOCAL bids — instead of one blended all-source number. The figures
+ * come from buildContractMap(), which classifies each row's `source` with the
+ * same classifier that renders the "Federal" badge, so the homepage can never
+ * present a state-board count as a federal one.
  */
 import type { ContractMapAggregate } from "~/lib/contract-map";
 
 export interface CounterFigures {
+  /** Federal + state & local. Kept as the canonical total. */
   openBids: number;
+  federalOpen: number;
+  stateLocalOpen: number;
   endingCount: number;
   endingTotal: number;
 }
@@ -24,10 +34,23 @@ export function counterFigures(
   endingByState: EndingByState,
 ): CounterFigures {
   if (!state || state === "US") {
-    return { openBids: map?.totals.totalOpen ?? 0, endingCount: ending?.count ?? 0, endingTotal: ending?.total ?? 0 };
+    return {
+      openBids: map?.totals.totalOpen ?? 0,
+      federalOpen: map?.totals.federalOpen ?? 0,
+      stateLocalOpen: map?.totals.stateLocalOpen ?? 0,
+      endingCount: ending?.count ?? 0,
+      endingTotal: ending?.total ?? 0,
+    };
   }
+  const a = map?.states[state];
   const e = endingByState[state];
-  return { openBids: map?.states[state]?.count ?? 0, endingCount: e?.count ?? 0, endingTotal: e?.total ?? 0 };
+  return {
+    openBids: a?.count ?? 0,
+    federalOpen: a?.federalCount ?? 0,
+    stateLocalOpen: a?.stateLocalCount ?? 0,
+    endingCount: e?.count ?? 0,
+    endingTotal: e?.total ?? 0,
+  };
 }
 
 /** Ease-out cubic: fast start, slow finish, so the last digits "land". */

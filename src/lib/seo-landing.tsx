@@ -15,7 +15,11 @@
 import { bidFitReviewHref } from "~/lib/bid-fit-review-link";
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
-import { setAsidePred } from "~/lib/open-bids";
+import {
+  setAsidePred,
+  OPEN_BID_SQL,
+  AWARD_NOTICE_EXCLUSION_SQL,
+} from "~/lib/open-bids";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 // Raw close-date render gate (owner ruling 2026-10-08): a zone-unverified
 // source's stored instant is the published Eastern wall-clock read as UTC, so
@@ -163,6 +167,7 @@ export const getCertHubData = createServerFn({ method: "GET" })
             FROM bids
             WHERE due_date > NOW() AND ${sql().unsafe(LOW_CONTENT_SQL)} ${certPred(def.slug, sql)}
               AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+            AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
           ) d
         `;
         count = Number((c as any)[0]?.n ?? 0);
@@ -247,7 +252,7 @@ export const getRegionData = createServerFn({ method: "GET" })
         const rows = await sql()`
           SELECT location, set_aside, estimated_value, agency, category, due_date, source
           FROM bids
-          WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
+          WHERE ${sql().unsafe(OPEN_BID_SQL)}
             AND ${sql().unsafe(LOW_CONTENT_SQL)}
             AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         `;

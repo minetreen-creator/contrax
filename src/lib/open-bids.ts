@@ -174,3 +174,90 @@ export function naicsPred(codes: string[], sql: any) {
   if (valid.length === 0) return sql()``;
   return sql()`AND naics_code = ANY(${valid})`;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The PUBLIC CONTRACT-MAP "open bid" definition (owner-approved 2026-10-19,
+// Option ① of the federal-bids gap investigation — see
+// /home/team/shared/federal-bids-gap-2026-10-17.md).
+//
+// BEFORE, every public open-opportunity counter and list used:
+//
+//   (due_date IS NULL OR due_date::date >= NOW()::date)
+//
+// which called a stored notice with NO deadline at all "open". On production
+// that made 9,355 of 52,165 rows open purely for lacking a date — including 702
+// federal award / justification notices — and produced a blended homepage
+// 14,152 where only ~1,100 federal rows had a real future deadline.
+//
+// AFTER — "real deadlines only, no award notices". Three fragments, applied
+// together by the contract-map family (the homepage money counter, /api/contract-map,
+// /map, the state SEO pages, the signup social-proof line):
+//
+//   OPEN_BID_SQL                a REAL deadline, still ahead
+//   AWARD_NOTICE_EXCLUSION_SQL  not an award / justification notice TYPE
+//   AWARD_EXCLUSION_SQL         not one of the four award-only city feeds
+//                               (src/lib/source-class.ts — unchanged, already
+//                                applied by these surfaces before this change)
+//   LOW_CONTENT_SQL             the existing title/location/set-aside guard
+//
+// Both halves of the owner's sentence are load-bearing:
+//  - `OPEN_BID_SQL` is what removes the award / justification rows TODAY (SAM
+//    gives an award notice no response date, so the NULL branch was the only
+//    reason 702 of them counted as open);
+//  - `AWARD_NOTICE_EXCLUSION_SQL` closes the leak rule 1 cannot see — an award /
+//    justification notice that DOES carry a future date. Measured against
+//    production 2026-10-19: zero such rows exist, so this fragment changes no
+//    number today; it is here so the count cannot silently regress the moment
+//    one appears.
+//
+// DELIBERATELY NOT EXCLUDED: `Collective Bargaining Agreement`,
+// `Davis-Bacon Act` and `Service Contract Act` are informational SAM notices,
+// not opportunities, but they are outside the owner's "no award notices"
+// instruction and are already removed by rule 1 (measured 2026-10-19: 0 rows of
+// each type carry a future due date). Flagged as an optional follow-up rather
+// than silently widening the filter.
+//
+// SCOPE: this is for the PUBLIC surfaces that advertise one shared definition.
+// It deliberately does NOT change `LIVE_SQL` in `~/lib/bid-status`, which
+// answers a different question for a user's own saved feed ("is this match
+// still actionable, given we may not have a deadline for it") — changing that
+// would hide rows from dashboards, not correct a public claim.
+//
+// The raw fragments are interpolated with `sql().unsafe(...)`; their contents
+// are hardcoded constants here, never user input, so this is injection-safe
+// (same contract as LOW_CONTENT_SQL / AWARD_EXCLUSION_SQL).
+
+/** TRUE for a row that has a real deadline still ahead of it. */
+export const OPEN_BID_SQL = `(due_date IS NOT NULL AND due_date::date >= NOW()::date)`;
+
+/**
+ * The award / justification notice-type family, normalized exactly as the SQL
+ * below compares it. Measured distinct `bids.notice_type` values on production
+ * 2026-10-19 that belong to it: `Award Notice` (1,379 rows) and `Justification`
+ * (302 rows); `award` is kept as a defensive spelling for a board that stores
+ * the bare SAM code word.
+ */
+export const AWARD_NOTICE_TYPES: readonly string[] = [
+  "award notice",
+  "award",
+  "justification",
+];
+
+/**
+ * TRUE for a row we KEEP — i.e. NOT an award / justification notice. A NULL
+ * notice_type is KEPT: an unknown type is not evidence of an award, and rule 1
+ * has already decided those rows on their deadline alone.
+ */
+export const AWARD_NOTICE_EXCLUSION_SQL = `(
+  notice_type IS NULL
+  OR LOWER(BTRIM(notice_type)) NOT IN (${AWARD_NOTICE_TYPES.map((t) => `'${t}'`).join(", ")})
+)`;
+
+/**
+ * Client-safe mirror of `AWARD_NOTICE_EXCLUSION_SQL` (same contract as
+ * `isLowContent`), so a JS-side filter and the SQL can never drift.
+ */
+export function isAwardNoticeType(noticeType: string | null | undefined): boolean {
+  if (noticeType == null) return false;
+  return AWARD_NOTICE_TYPES.includes(String(noticeType).toLowerCase().trim());
+}

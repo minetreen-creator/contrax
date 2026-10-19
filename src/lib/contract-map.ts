@@ -19,6 +19,7 @@
  *    treated as not-disclosed rather than subtracted from the stated total.
  */
 import { US_STATES } from "~/lib/states";
+import { isFederalLabel } from "~/lib/source-class";
 
 /** Canonical 2-letter codes we recognise (50 states + DC). */
 const CODES = new Set<string>(US_STATES);
@@ -122,6 +123,10 @@ function trimNum(x: number): string {
 export interface StateAggregate {
   code: string;
   count: number; // open bids attributed to this state
+  /** Of `count`: rows whose source is a FEDERAL feed (owner 2026-10-19 split). */
+  federalCount: number;
+  /** Of `count`: every other row (state portals, city boards, open data). */
+  stateLocalCount: number;
   setAsideCount: number; // of those, how many carry a set-aside tag
   closingSoon: number; // open bids due within the next 7 days
   statedValue: number; // summed parsed positive amounts (only where parseable)
@@ -133,6 +138,10 @@ export interface StateAggregate {
 
 export interface ContractMapTotals {
   totalOpen: number;
+  /** Of `totalOpen`: rows whose source is a FEDERAL feed (see isFederalLabel). */
+  federalOpen: number;
+  /** Of `totalOpen`: everything else — state portals, city boards, open data. */
+  stateLocalOpen: number;
   totalStates: number;
   totalStatedValue: number;
   totalWithValue: number;
@@ -173,6 +182,8 @@ export function buildContractMap(rows: readonly OpenBidRow[]): ContractMapAggreg
   const in7 = now + 7 * 24 * 60 * 60 * 1000;
 
   let totalOpen = 0;
+  let federalOpen = 0;
+  let stateLocalOpen = 0;
   let totalStatedValue = 0;
   let totalWithValue = 0;
   let setAsideCount = 0;
@@ -182,7 +193,7 @@ export function buildContractMap(rows: readonly OpenBidRow[]): ContractMapAggreg
     let a = acc.get(code);
     if (!a) {
       a = {
-        code, count: 0, setAsideCount: 0, closingSoon: 0,
+        code, count: 0, federalCount: 0, stateLocalCount: 0, setAsideCount: 0, closingSoon: 0,
         statedValue: 0, withValue: 0, agencies: [], industries: [], setAsideBreakdown: [],
       };
       acc.set(code, a);
@@ -192,12 +203,21 @@ export function buildContractMap(rows: readonly OpenBidRow[]): ContractMapAggreg
 
   for (const r of rows) {
     totalOpen++;
+    // Federal vs state/local (owner 2026-10-19). The classifier is the SAME one
+    // that renders the "Federal" badge on /radar and /alerts, so the two figures
+    // below can never disagree with the badge a visitor sees on the same bid.
+    // A row whose `source` the caller did not select (or an unclassified /
+    // internal label) is NOT federal, so it lands in the state & local figure —
+    // the honest "everything else" reading, never a fabricated federal claim.
+    const isFederal = isFederalLabel(r.source);
+    if (isFederal) federalOpen++; else stateLocalOpen++;
     const hasSetAside = !!(r.set_aside && String(r.set_aside).trim());
     if (hasSetAside) setAsideCount++;
     const code = deriveStateCode(r.location);
     if (!code) { unspecified++; continue; }
     const agg = ensure(code);
     agg.count++;
+    if (isFederal) agg.federalCount++; else agg.stateLocalCount++;
 
     if (hasSetAside) {
       agg.setAsideCount++;
@@ -270,6 +290,8 @@ export function buildContractMap(rows: readonly OpenBidRow[]): ContractMapAggreg
     states,
     totals: {
       totalOpen,
+      federalOpen,
+      stateLocalOpen,
       totalStates: acc.size,
       totalStatedValue,
       totalWithValue,

@@ -889,6 +889,15 @@ export const runRadarScan = createServerFn({ method: "POST" })
     if (!subscribed && !freeSearchKept && !(await claimRadarSearchBudget(budget.keys, budget.limit))) {
       return blockedResult();
     }
+    // Owner 2026-10-19: save what was searched so empty trade + state
+    // combinations show up (~/lib/radar-search-log.server). Never fails the scan.
+    const { recordRadarSearch } = await import("~/lib/radar-search-log.server");
+    await recordRadarSearch({
+      visitorId: scanVisitorId || null,
+      userId: scanner?.id ?? null,
+      trade, state, cert: certId, sizePref,
+      matched: matches.length, shown: visibleMatches.length, related: related.length,
+    });
     return {
       paidRequired: false,
       freeSearchKept,

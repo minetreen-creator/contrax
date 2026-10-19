@@ -49,6 +49,25 @@ export async function radarSearchUsage(days: number): Promise<void> {
     console.log(`${r.channel} | ${r.device} | ${r.visitors} | ${r.searched} (${pct(r.searched, r.visitors)}) | ${r.got_results} (${pct(r.got_results, r.visitors)})`);
   }
   console.log(`all | all | ${v} | ${s} (${pct(s, v)}) | ${c} (${pct(c, v)})`);
+
+  // Searches that found nothing, by trade + state (radar_search_log, saved
+  // from 2026-10-19 on). Search words only, never who searched.
+  try {
+    const empty = (await sql()`
+      SELECT LOWER(trade) AS trade, state, COUNT(*)::int AS searches
+      FROM radar_search_log
+      WHERE created_at > NOW() - make_interval(days => ${days}) AND matched = 0
+      GROUP BY 1, 2
+      ORDER BY searches DESC, trade
+      LIMIT 25
+    `) as { trade: string; state: string; searches: number }[];
+    console.log("");
+    console.log(`🕳️ Searches with zero matches, top ${empty.length}`);
+    console.log("trade | state | searches");
+    for (const r of empty) console.log(`${r.trade} | ${r.state || "any"} | ${r.searches}`);
+  } catch {
+    console.log("🕳️ Zero-match searches: none saved yet");
+  }
 }
 
 if (import.meta.main) {

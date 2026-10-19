@@ -163,3 +163,38 @@ export function dotOffset(i: number): [number, number] {
   const r = 11 * Math.sqrt(i);
   return [Math.round(r * Math.cos(angle) * 10) / 10, Math.round(r * Math.sin(angle) * 10) / 10];
 }
+
+/** Data-feed scoreboard: one row per bid source (owner 2026-10-19). */
+export type FeedLight = "green" | "amber" | "red";
+
+export interface SourceHealth {
+  source: string;
+  name: string;
+  kind: string;
+  open: number;
+  new24h: number;
+  lastNewAt: string | null;
+  light: FeedLight;
+}
+
+const DAY = 24 * HOUR;
+
+/** Green: a new bid in the last 2 days. Amber: in the last week. Red: older or never. */
+export function feedLight(lastNewAt: string | null, now: number): FeedLight {
+  if (!lastNewAt) return "red";
+  const ago = now - new Date(lastNewAt).getTime();
+  if (ago <= 2 * DAY) return "green";
+  if (ago <= 7 * DAY) return "amber";
+  return "red";
+}
+
+/** "tx_esbd" → "TX ESBD", "sam_gov" → "SAM GOV". */
+export function feedName(source: string): string {
+  return source.replace(/[_-]+/g, " ").trim().toUpperCase();
+}
+
+/** Red first, then amber, then green; busiest first within a color. */
+export function sortSources(rows: SourceHealth[]): SourceHealth[] {
+  const rank: Record<FeedLight, number> = { red: 0, amber: 1, green: 2 };
+  return [...rows].sort((a, b) => rank[a.light] - rank[b.light] || b.new24h - a.new24h || b.open - a.open);
+}

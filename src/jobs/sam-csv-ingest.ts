@@ -326,20 +326,17 @@ export async function upsertBatch(batch: readonly SamCsvBidRow[]): Promise<Batch
   }
 
   const text = `
-    WITH v(title, agency, description, location, category, due_date,
+    INSERT INTO bids (${WRITE_COLUMNS.join(", ")})
+    SELECT * FROM (VALUES ${valueRows.join(", ")})
+      AS v(title, agency, description, location, category, due_date,
            estimated_value, source_url, source, external_id, set_aside,
            naics_code, psc, notice_type, solicitation_number,
            source_jurisdiction, raw_location, normalized_state, posted_date,
-           archive_date) AS (
-      VALUES ${valueRows.join(", ")}
-    ),
-    colliding AS (
-      SELECT 1 FROM v WHERE EXISTS (SELECT 1 FROM bids b WHERE ${NATURAL_KEY_GUARD_SQL})
-    ),
-    ins AS (
-      INSERT INTO bids (${WRITE_COLUMNS.join(", ")})
-      SELECT * FROM v
-      WHERE NOT EXISTS (SELECT 1 FROM bids b WHERE ${NATURAL_KEY_GUARD_SQL})
+           archive_date)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM bids b
+      WHERE ${NATURAL_KEY_GUARD_SQL}
+    )
       ON CONFLICT (source, external_id) DO UPDATE SET
         title = EXCLUDED.title,
         description = CASE WHEN EXCLUDED.description <> '' THEN EXCLUDED.description ELSE bids.description END,
@@ -377,27 +374,64 @@ export async function upsertBatch(batch: readonly SamCsvBidRow[]): Promise<Batch
              COALESCE(EXCLUDED.notice_type, bids.notice_type),
              EXCLUDED.agency, EXCLUDED.source_url, EXCLUDED.normalized_state,
              EXCLUDED.posted_date, EXCLUDED.archive_date, NULL::timestamptz)
-      RETURNING (xmax = 0) AS inserted
-    )
-    SELECT (SELECT count(*)::int FROM ins) AS returned_count,
-           (SELECT count(*)::int FROM ins WHERE inserted) AS inserted_count,
-           (SELECT count(*)::int FROM colliding) AS collided_count`;
+      RETURNING (xmax = 0) AS inserted`;
 
-  const result = (await q.query(text, params)) as {
-    returned_count: number;
-    inserted_count: number;
-    collided_count: number;
-  }[];
-  const row = result[0] ?? { returned_count: 0, inserted_count: 0, collided_count: 0 };
-  const inserted = Number(row.inserted_count) || 0;
-  const returned = Number(row.returned_count) || 0;
-  const collided = Number(row.collided_count) || 0;
+  const returned = (await q.query(text, params)) as { inserted: boolean }[];
+  const inserted = returned.filter((r) => r.inserted).length;
+  // The rows the guard REFUSED never reach RETURNING, so the skip is counted by
+  // its own read over the same batch (a refused row and an unchanged row would
+  // otherwise be indistinguishable from the row count alone). One jsonb
+  // parameter, so the five-column predicate is planned against the columns it
+  // compares by name.
+  const skippedNaturalKey = await countNaturalKeyCollisions(batch);
   return {
     inserted,
-    updated: returned - inserted,
-    unchanged: batch.length - returned - collided,
-    skippedNaturalKey: collided,
+    updated: returned.length - inserted,
+    unchanged: batch.length - returned.length - skippedNaturalKey,
+    skippedNaturalKey,
   };
+}
+
+/**
+ * How many of this batch's rows have their natural-key tuple ALREADY held by an
+ * existing row (any source, inside the index's frozen scope). SELECT-only, and
+ * the same five columns/scopes as `NATURAL_KEY_GUARD_SQL` — which is what makes
+ * the run log's "skipped (natural-key collision)" count the predicate the writer
+ * itself applied.
+ */
+export async function countNaturalKeyCollisions(batch: readonly SamCsvBidRow[]): Promise<number> {
+  if (batch.length === 0) return 0;
+  const q = sql();
+  const payload = JSON.stringify(
+    batch.map((r) => ({
+      external_id: r.external_id,
+      title: r.title,
+      agency: r.agency,
+      notice_type: r.notice_type ?? "",
+      due_date: r.due_date,
+      psc: r.psc ?? "",
+    })),
+  );
+  const rows = (await q.query(
+    `WITH v AS (
+       SELECT * FROM jsonb_to_recordset($1::jsonb) AS t(
+         external_id text, title text, agency text, notice_type text,
+         due_date text, psc text)
+     )
+     SELECT count(*)::int AS n FROM v
+     WHERE EXISTS (
+       SELECT 1 FROM bids b
+       WHERE lower(btrim(b.title)) = lower(btrim(v.title))
+         AND lower(btrim(b.agency)) = lower(btrim(v.agency))
+         AND COALESCE(b.notice_type, '') = v.notice_type
+         AND b.due_date IS NOT DISTINCT FROM v.due_date::timestamptz
+         AND COALESCE(b.psc, '') = v.psc
+         AND b.created_at >= ${NATURAL_KEY_SCOPE_SQL}
+         AND NOT (b.source = ${SAM_CSV_SOURCE} AND b.external_id = v.external_id)
+     )`,
+    [payload],
+  )) as { n: number }[];
+  return Number(rows[0]?.n) || 0;
 }
 
 /**

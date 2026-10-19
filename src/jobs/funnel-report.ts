@@ -12,9 +12,8 @@
  * Then account-level: new accounts, trials started, paying now.
  * Each visitor step is split by paid ads vs other and phone vs desktop.
  *
- * Note: the /pricing and /upgrade plan buttons fire no event, so a Starter or
- * Professional checkout start cannot be counted; "clicked upgrade" counts the
- * *_upgrade_click events that do exist (bid contact, trial recap, …).
+ * "Clicked upgrade" counts *_upgrade_click and *checkout_started events; the
+ * plan buy buttons fire plan_checkout_started only from 2026-10-19 on.
  */
 import { sql } from "~/db";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
@@ -100,7 +99,113 @@ export async function funnelReport(days: number): Promise<void> {
   `) as { new_accounts: number; trials: number; paying: number }[];
   console.log("");
   console.log(`👤 Accounts: ${acct.new_accounts} new in ${days} days · ${acct.trials} trials started · ${acct.paying} paying now`);
-  console.log("ℹ️ The /pricing and /upgrade plan buttons fire no event, so Starter/Professional checkout starts are not countable yet.");
+  console.log("ℹ️ Plan buy buttons are tracked from 2026-10-19 (plan_checkout_*); earlier checkout starts are not countable.");
+
+  await signupBreakdown(days, human);
+  await checkoutBreakdown(days, human);
+}
+
+/**
+ * Where the signup page loses people (owner 2026-10-19: 27 saw it, 3 signed
+ * up). Per visitor who saw the page: did they start the form, which fields
+ * they reached, submit, errors, success, and how long non-starters stayed.
+ */
+async function signupBreakdown(days: number, human: string): Promise<void> {
+  const db = sql();
+  const [s] = (await db`
+    WITH viewers AS (
+      SELECT DISTINCT visitor_id FROM funnel_events
+      WHERE created_at > NOW() - make_interval(days => ${days})
+        AND visitor_id IS NOT NULL
+        AND event_name = ANY(${[...SIGNUP_VIEWED_EVENTS]})
+        AND ${db.unsafe(human)}
+    ),
+    ev AS (
+      SELECT f.visitor_id,
+             BOOL_OR(f.event_name = 'signup_start') AS started,
+             BOOL_OR(f.event_name = 'signup_field_reached' AND f.label = 'email') AS email,
+             BOOL_OR(f.event_name = 'signup_field_reached' AND f.label = 'password') AS password,
+             BOOL_OR(f.event_name = 'signup_field_reached' AND f.label = 'company') AS company,
+             BOOL_OR(f.event_name = 'signup_submit') AS submitted,
+             BOOL_OR(f.event_name = 'signup_error') AS errored,
+             BOOL_OR(f.event_name = 'signup_success') AS succeeded,
+             BOOL_OR(f.event_name = 'signup_exit' AND f.label LIKE 'view%') AS left_before_typing
+      FROM funnel_events f JOIN viewers v ON v.visitor_id = f.visitor_id
+      WHERE f.created_at > NOW() - make_interval(days => ${days})
+      GROUP BY f.visitor_id
+    )
+    SELECT COUNT(*)::int AS viewed,
+           COUNT(*) FILTER (WHERE started)::int AS started,
+           COUNT(*) FILTER (WHERE email)::int AS email,
+           COUNT(*) FILTER (WHERE password)::int AS password,
+           COUNT(*) FILTER (WHERE company)::int AS company,
+           COUNT(*) FILTER (WHERE submitted)::int AS submitted,
+           COUNT(*) FILTER (WHERE errored)::int AS errored,
+           COUNT(*) FILTER (WHERE succeeded)::int AS succeeded,
+           COUNT(*) FILTER (WHERE left_before_typing)::int AS left_before_typing
+    FROM ev
+  `) as Record<string, number>[];
+  console.log("");
+  console.log(`📝 Signup page, last ${days} days (visitors who saw it)`);
+  for (const [k, label] of [
+    ["viewed", "Saw the signup page"],
+    ["started", "Clicked into the form"],
+    ["email", "Reached email"],
+    ["password", "Reached password"],
+    ["company", "Reached company"],
+    ["submitted", "Pressed submit"],
+    ["errored", "Got an error"],
+    ["succeeded", "Signed up"],
+    ["left_before_typing", "Left without typing anything"],
+  ] as const) {
+    console.log(`${label} | ${s[k]}`);
+  }
+
+  const errors = (await db`
+    SELECT LEFT(COALESCE(label, '(none)'), 120) AS message, COUNT(DISTINCT visitor_id)::int AS visitors
+    FROM funnel_events
+    WHERE created_at > NOW() - make_interval(days => ${days})
+      AND event_name = 'signup_error'
+      AND ${db.unsafe(human)}
+    GROUP BY 1 ORDER BY 2 DESC LIMIT 10
+  `) as { message: string; visitors: number }[];
+  if (errors.length) {
+    console.log("Signup errors (message | visitors):");
+    for (const e of errors) console.log(`  ${e.message} | ${e.visitors}`);
+  }
+
+  const dwell = (await db`
+    SELECT label,
+           COUNT(*)::int AS exits,
+           PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY (path::jsonb ->> 'seconds_on_page')::numeric) AS median_seconds
+    FROM funnel_events
+    WHERE created_at > NOW() - make_interval(days => ${days})
+      AND event_name = 'signup_exit'
+      AND path LIKE '{%'
+      AND ${db.unsafe(human)}
+    GROUP BY label ORDER BY exits DESC
+  `.catch(() => [])) as { label: string; exits: number; median_seconds: number | null }[];
+  if (dwell.length) {
+    console.log("Exits without signing up (cohort | exits | median seconds on page):");
+    for (const d of dwell) console.log(`  ${d.label} | ${d.exits} | ${d.median_seconds == null ? "-" : Math.round(Number(d.median_seconds))}`);
+  }
+}
+
+/** Plan buy-button outcomes (tracked from 2026-10-19). */
+async function checkoutBreakdown(days: number, human: string): Promise<void> {
+  const db = sql();
+  const rows = (await db`
+    SELECT event_name, label, COUNT(DISTINCT visitor_id)::int AS visitors
+    FROM funnel_events
+    WHERE created_at > NOW() - make_interval(days => ${days})
+      AND event_name LIKE 'plan_checkout_%'
+      AND ${db.unsafe(human)}
+    GROUP BY 1, 2 ORDER BY 1, 3 DESC
+  `) as { event_name: string; label: string | null; visitors: number }[];
+  console.log("");
+  console.log("💳 Plan buy buttons (event | plan | visitors)");
+  if (!rows.length) console.log("  none yet");
+  for (const r of rows) console.log(`  ${r.event_name} | ${r.label ?? "-"} | ${r.visitors}`);
 }
 
 if (import.meta.main) {

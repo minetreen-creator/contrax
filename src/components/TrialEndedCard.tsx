@@ -34,7 +34,7 @@ export function TrialEndedCard() {
         {lines.length > 0 ? (
           <ul className="mt-2 space-y-1 text-sm text-slate-800">{lines.map((l) => <li key={l}>• {l}</li>)}</ul>
         ) : (
-          <p className="mt-2 text-sm text-slate-800">Search still works. Starter brings back the daily bid email, every state and trade, same-day new bids and unlimited saved bids.</p>
+          <p className="mt-2 text-sm text-slate-800">Search still works. Starter brings back the daily bid email, every state and trade, same-day new bids, unlimited saved bids and who to contact on federal bids.</p>
         )}
         {next.length > 0 && (
           <div className="mt-4 rounded-xl border border-amber-200 bg-white p-4">

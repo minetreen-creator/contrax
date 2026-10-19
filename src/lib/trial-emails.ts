@@ -98,8 +98,8 @@ export function trialEmailContent(stage: TrialEmailStage, r: TrialRecap): { subj
       : "Your 7-day trial ended, so your account is now on free Basic. Search still works, but your daily bid email is paused and you can keep only 1 saved bid.";
   const close =
     stage === "reminder"
-      ? "Keep the daily bid email, every state and trade, and unlimited saved bids with Starter for $19/month. Cancel anytime."
-      : "Starter brings back the daily bid email, every state and trade, and unlimited saved bids for $19/month. Cancel anytime.";
+      ? "Keep the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids with Starter for $19/month. Cancel anytime."
+      : "Starter brings back the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids for $19/month. Cancel anytime.";
   const cta = stage === "reminder" ? "Keep my bids coming" : "Pick up where I left off";
   const url = "https://www.contrax.company/upgrade?utm_source=email&utm_campaign=trial_" + stage;
   const list = lines.length ? `<ul style="margin:0 0 16px;padding-left:20px;color:#111827;font-size:15px;line-height:1.6;">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : "";

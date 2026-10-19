@@ -65,6 +65,7 @@ const plans = [
       "A 6 AM email of new bids in your trade and states",
       "Bid matches for every state and trade you work in",
       "Unlimited Saved Bids",
+      "Who to contact on federal bids: the contracting officer's name, email and phone",
       '"What did the winner bid last time?"',
       "Your saved bids' deadlines in Google Calendar or Outlook",
       "CRM: save contacts (up to 100) with notes, next actions and manual follow-up dates, and link them to your saved bids",
@@ -288,7 +289,7 @@ function PricingPage() {
           <div className="mt-10 space-y-6">
             {[
               { q: "Can I switch plans later?", a: "Yes — upgrade or downgrade anytime. Changes take effect at the start of your next billing cycle." },
-              { q: "How much does Basic cost?", a: "Basic is $0/mo and is where an account lands after its 7-day trial if no plan is chosen. It includes 2 Radar searches per account, basic solicitations search, standard set-aside filters, and 1 saved bid, with no bid emails. New bids open for free accounts after a 7-day head start for paying members. Basic matches bids for one state and one trade. Upgrade to Starter ($19/mo) to see new bids the day they post, match every state and trade you work in, get a 6 AM Eastern email of the new bids in your trade and states every morning, save unlimited bids, and get your saved bids' deadlines in your calendar. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
+              { q: "How much does Basic cost?", a: "Basic is $0/mo and is where an account lands after its 7-day trial if no plan is chosen. It includes 2 Radar searches per account, basic solicitations search, standard set-aside filters, and 1 saved bid, with no bid emails. New bids open for free accounts after a 7-day head start for paying members. Basic matches bids for one state and one trade. Upgrade to Starter ($19/mo) to see new bids the day they post, match every state and trade you work in, get a 6 AM Eastern email of the new bids in your trade and states every morning, save unlimited bids, see who to contact on federal bids (name, email and phone), and get your saved bids' deadlines in your calendar. AI briefs and bid scoring are part of Radar Pro (Professional), and proposal drafting plus pipeline CSV export are part of Bid Scout." },
               { q: "Is there a free trial?", a: "Yes. Every new account starts with a 7-day Professional trial, with no credit card. When it ends, choose a plan or keep searching on free Basic." },
               { q: "Is there a yearly plan?", a: "Yes. Pay yearly and get 2 months free: Starter is $190 a year instead of $228, Professional $790 instead of $948, and Agency $1,990 instead of $2,388. Choose Yearly on the upgrade page at checkout." },
               { q: "Can I cancel anytime?", a: "Yes. Cancel anytime and your access continues until the end of the billing period. No refunds for partial months." },

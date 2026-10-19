@@ -123,4 +123,11 @@ describe("live search map + on the site now", () => {
     expect(sortSources([row("a", "green", 5), row("b", "red", 0), row("c", "amber", 0), row("d", "green", 9)]).map((r) => r.source))
       .toEqual(["b", "c", "d", "a"]);
   });
+
+  test("one-time imports are not feeds", async () => {
+    const { ONE_TIME_IMPORT_SOURCES } = await import("./live-console");
+    expect(ONE_TIME_IMPORT_SOURCES.has("pa_emarketplace")).toBe(true);
+    expect(ONE_TIME_IMPORT_SOURCES.has("ohiobuys")).toBe(true);
+    expect(ONE_TIME_IMPORT_SOURCES.has("pa_dgs_emarketplace")).toBe(false);
+  });
 });

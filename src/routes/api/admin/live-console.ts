@@ -15,6 +15,7 @@ import {
   trialEnds,
   trialHeat,
   visitorState,
+  ONE_TIME_IMPORT_SOURCES,
   feedLight,
   feedName,
   sortSources,
@@ -250,7 +251,7 @@ async function handler({ request }: { request: Request }) {
 
     // Data feeds: per bid source, open bids, bids first seen in the last 24
     // hours and when its newest bid arrived. Award feeds and retired
-    // collectors are left out; a source is listed while it has open bids or
+    // collectors and one-time imports are left out; a source is listed while it has open bids or
     // added something in the last 90 days.
     let sources: SourceHealth[] = [];
     try {
@@ -266,7 +267,7 @@ async function handler({ request }: { request: Request }) {
       `) as { source: string; open: number; new24h: number; last_new: string | null }[];
       sources = sortSources(
         rows
-          .filter((r) => r.source && !isRetiredSource(r.source))
+          .filter((r) => r.source && !isRetiredSource(r.source) && !ONE_TIME_IMPORT_SOURCES.has(r.source))
           .map((r) => {
             const lastNewAt = r.last_new ? new Date(r.last_new).toISOString() : null;
             return {

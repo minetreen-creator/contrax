@@ -9,7 +9,7 @@ import {
   windowFor,
   type Snapshot,
 } from "./model";
-import { fetchSnapshot } from "./source.server";
+import { fetchSnapshot, reconciliationToleranceCents } from "./source.server";
 function fixture(fips: string) {
   return JSON.parse(
     gunzipSync(
@@ -183,6 +183,25 @@ describe("Complete fetching and reconciliation", () => {
         fetcher,
       ),
     ).rejects.toThrow("Reconciliation failed");
+  });
+  test("a category-rounding gap of a cent still publishes; a real gap does not", async () => {
+    const row = fixture("51570").rows[0];
+    const run = (categoryAmount: number) =>
+      fetchSnapshot(
+        countyFor("51570")!,
+        "2025-10-17",
+        "2026-10-16",
+        undefined,
+        async (path: string) =>
+          path.includes("spending_by_transaction")
+            ? { results: [row], page_metadata: { hasNext: false } }
+            : { results: [{ amount: categoryAmount }], page_metadata: { hasNext: false } },
+      );
+    const amount = row["Transaction Amount"] as number;
+    await expect(run(amount - 0.01)).resolves.toBeDefined();
+    await expect(run(amount - 1)).rejects.toThrow("Reconciliation failed");
+    expect(reconciliationToleranceCents(1)).toBe(1);
+    expect(reconciliationToleranceCents(40)).toBe(20);
   });
   test("truncated and missing pagination cannot masquerade as complete data", async () => {
     await expect(

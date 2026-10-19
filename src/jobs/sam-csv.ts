@@ -201,6 +201,10 @@ export interface SamCsvNotice {
   officeState: string | null;
   link: string | null;
   description: string;
+  /** Primary point of contact (owner 2026-10-19: shown to paid plans on /bid). */
+  contactName?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
 }
 
 const NOTICE_ID_RE = /^[0-9a-fA-F]{32}$/;
@@ -245,6 +249,9 @@ export function parseSamCsvRecord(
     officeState: cell(record, index, "State") || null,
     link: cell(record, index, "Link") || null,
     description: cell(record, index, "Description"),
+    contactName: cell(record, index, "PrimaryContactFullname") || null,
+    contactEmail: cell(record, index, "PrimaryContactEmail") || null,
+    contactPhone: cell(record, index, "PrimaryContactPhone") || null,
   };
 }
 
@@ -344,6 +351,10 @@ export interface SamCsvBidRow {
   posted_date: string | null;
   /** `YYYY-MM-DD` from `ArchiveDate`, or NULL. */
   archive_date: string | null;
+  /** The notice's primary point of contact, cleaned (csvContact); NULL when absent. */
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
 }
 
 /** The identity both SAM jobs agree on: `sam-<32-hex NoticeId>`. */
@@ -413,6 +424,29 @@ const CANONICAL_SET_ASIDES: ReadonlySet<string> = new Set([
   "DBE",
 ]);
 
+const EMAIL_RE = /^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
+
+/**
+ * The primary point of contact as stored (owner 2026-10-19). Only plausible
+ * values are kept: an email with one "@" and a dot after it, a phone with at
+ * least 10 digits, a name of 2-120 characters. Anything else is NULL, never a
+ * guess.
+ */
+export function csvContact(notice: Pick<SamCsvNotice, "contactName" | "contactEmail" | "contactPhone">): {
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+} {
+  const name = String(notice.contactName ?? "").replace(/\s+/g, " ").trim();
+  const email = String(notice.contactEmail ?? "").trim().toLowerCase();
+  const phone = String(notice.contactPhone ?? "").replace(/\s+/g, " ").trim();
+  return {
+    contact_name: name.length >= 2 && name.length <= 120 ? name : null,
+    contact_email: EMAIL_RE.test(email) && email.length <= 254 ? email : null,
+    contact_phone: (phone.match(/\d/g) ?? []).length >= 10 && phone.length <= 40 ? phone : null,
+  };
+}
+
 /** `PostedDate`/`ArchiveDate` arrive as "YYYY-MM-DD HH:mm:ss" — keep the date. */
 export function csvDateOnly(raw: string | null | undefined): string | null {
   const m = String(raw ?? "").trim().match(/^(\d{4}-\d{2}-\d{2})/);
@@ -467,6 +501,7 @@ export function csvNoticeToBid(
     raw_location: location || null,
     posted_date: csvDateOnly(notice.postedDate),
     archive_date: csvDateOnly(notice.archiveDate),
+    ...csvContact(notice),
   };
 }
 
@@ -492,6 +527,9 @@ export function csvBidChangeTuple(row: SamCsvBidRow): string {
     row.normalized_state ?? "",
     row.posted_date ?? "",
     row.archive_date ?? "",
+    row.contact_name ?? "",
+    row.contact_email ?? "",
+    row.contact_phone ?? "",
   ].join("\u0001");
 }
 

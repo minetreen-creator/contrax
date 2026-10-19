@@ -26,6 +26,7 @@ import {
   ALL_COUNTER_STATES,
   createCsvRecordStream,
   csvBidChangeTuple,
+  csvContact,
   csvHeaderIndex,
   csvNoticeToBid,
   csvSetAsideLabel,
@@ -667,5 +668,53 @@ describe("close-out rule", () => {
         now,
       }),
     ).toBe(false);
+  });
+});
+
+describe("point of contact (owner 2026-10-19: paid plans see it on /bid)", () => {
+  test("keeps plausible name, email and phone; drops anything else", () => {
+    expect(csvContact({ contactName: " Jane  Smith ", contactEmail: "Jane.Smith@USDA.gov", contactPhone: "(541) 523-1234" })).toEqual({
+      contact_name: "Jane Smith",
+      contact_email: "jane.smith@usda.gov",
+      contact_phone: "(541) 523-1234",
+    });
+    expect(csvContact({ contactName: "X", contactEmail: "not-an-email", contactPhone: "555-1234" })).toEqual({
+      contact_name: null,
+      contact_email: null,
+      contact_phone: null,
+    });
+    expect(csvContact({})).toEqual({ contact_name: null, contact_email: null, contact_phone: null });
+  });
+  test("the bid row carries the contact, and a contact change counts as a change", () => {
+    const now = new Date("2026-10-19T12:00:00Z");
+    const notice = {
+      noticeId: "6196197ae63848ce93a86870cb18e0cd",
+      title: "Janitorial services",
+      solicitationNumber: null,
+      subTier: null,
+      office: "WALLOWA WHITMAN NATIONAL FOREST",
+      postedDate: null,
+      noticeType: "Solicitation",
+      archiveDate: null,
+      setAsideCode: null,
+      setAsideLabel: null,
+      responseDeadline: "2026-10-22T13:00:00-06:00",
+      naicsCode: "561720",
+      psc: null,
+      popCity: null,
+      popState: "MT",
+      officeState: null,
+      link: null,
+      description: "Work",
+      contactName: "Jane Smith",
+      contactEmail: "jane.smith@usda.gov",
+      contactPhone: null,
+    };
+    const row = csvNoticeToBid(notice, now)!;
+    expect(row.contact_name).toBe("Jane Smith");
+    expect(row.contact_email).toBe("jane.smith@usda.gov");
+    expect(row.contact_phone).toBeNull();
+    const moved = csvNoticeToBid({ ...notice, contactEmail: "bob@usda.gov" }, now)!;
+    expect(csvBidChangeTuple(moved)).not.toBe(csvBidChangeTuple(row));
   });
 });

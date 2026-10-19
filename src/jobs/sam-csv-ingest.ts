@@ -262,7 +262,7 @@ export const NATURAL_KEY_GUARD_SQL = `
       lower(btrim(b.title)) = lower(btrim(v.title))
         AND lower(btrim(b.agency)) = lower(btrim(v.agency))
         AND COALESCE(b.notice_type, '') = COALESCE(v.notice_type, '')
-        AND b.due_date IS NOT DISTINCT FROM v.due_date
+        AND to_char(b.due_date AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') = lower(btrim(v.due_date::text))
         AND COALESCE(b.psc, '') = COALESCE(v.psc, '')
         AND b.created_at >= ${NATURAL_KEY_SCOPE_SQL}
         AND NOT (b.source = v.source AND b.external_id = v.external_id)`;
@@ -424,7 +424,7 @@ export async function countNaturalKeyCollisions(batch: readonly SamCsvBidRow[]):
        WHERE lower(btrim(b.title)) = lower(btrim(v.title))
          AND lower(btrim(b.agency)) = lower(btrim(v.agency))
          AND COALESCE(b.notice_type, '') = v.notice_type
-         AND b.due_date IS NOT DISTINCT FROM v.due_date::timestamptz
+         AND to_char(b.due_date AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') = v.due_date
          AND COALESCE(b.psc, '') = v.psc
          AND b.created_at >= ${NATURAL_KEY_SCOPE_SQL}
          AND NOT (b.source = ${SAM_CSV_SOURCE} AND b.external_id = v.external_id)

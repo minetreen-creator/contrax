@@ -481,7 +481,8 @@ describe("natural-key dedupe (the migration-048 UNIQUE index's own tuple)", () =
       "lower(btrim(b.title)) = lower(btrim(v.title))",
       "lower(btrim(b.agency)) = lower(btrim(v.agency))",
       "COALESCE(b.notice_type, '') = COALESCE(v.notice_type, '')",
-      "b.due_date IS NOT DISTINCT FROM v.due_date",
+      "btrim(v.due_date::text)",
+      "to_char(b.due_date",
       "COALESCE(b.psc, '') = COALESCE(v.psc, '')",
     ]) {
       expect(guard).toContain(column);

@@ -35,7 +35,8 @@
     "sync-hauling-leads": "bun run src/jobs/hauling-leads-sync.ts",
     "sync-federal-trade-data": "bun run src/jobs/federal-trade-sync.ts",
     "sync-dot-directory": "bun run src/jobs/dot-directory-sync.ts",
-    "seed-subcontract-primes": "bun run src/jobs/subcontract-primes-seed.ts"
+    "seed-subcontract-primes": "bun run src/jobs/subcontract-primes-seed.ts",
+    "sam-csv-ingest": "bun src/jobs/sam-csv-ingest.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

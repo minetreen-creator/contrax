@@ -5,6 +5,7 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
   OPEN_BID_SQL,
   AWARD_NOTICE_EXCLUSION_SQL,
+  CLOSED_EXCLUSION_SQL,
 } from "~/lib/open-bids";
 import { buildContractMap } from "~/lib/contract-map";
 
@@ -45,6 +46,7 @@ async function handler({ request: _request }: { request: Request }) {
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
+        AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}
     `;
     return Response.json(buildContractMap(rows as any), {
       headers: { "Content-Type": "application/json; charset=utf-8" },

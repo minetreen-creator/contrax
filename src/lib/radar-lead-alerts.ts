@@ -335,11 +335,29 @@ export function bidMatchesLeadProfile(p: RadarLeadRow["radar_profile"], bid: Bid
   }
 
   // state → locationMatchesStates semantics: an extractable state must be the
-  // lead's; nationwide/unknown-location bids always match (never dropped).
+  // lead's. NO-STATE GUARD (owner 2026-10-19, nightly SAM.gov CSV ingest spec
+  // §Owner's rules 1 — "Bids with no state match ONLY on trade (NAICS code),
+  // never by default"):
+  //
+  // BEFORE this fix the clause read `stateMatch = !m || m[1] === state`, i.e. a
+  // bid whose location carries NO state at all matched EVERY lead that had
+  // chosen a state — the "blank state means any state" default. That was
+  // tolerable while ~1,100 federal rows existed and 96% of them carried a
+  // location; it is not tolerable once the nightly CSV ingest stores ~12,000
+  // future-deadline federal notices of which 69% (8,439 of 12,232, measured on
+  // SAM's own 2026-10-17 extract) publish NO place-of-performance state: every
+  // such notice would be a state match for every lead and each lead's digest
+  // would fill with thousands of unrelated bids.
+  //
+  // AFTER: geography may only ever ADMIT a bid whose location names the lead's
+  // state. A no-state bid is never carried by this dimension; it still reaches a
+  // lead through the profile's real evidence — the trade/NAICS test (and its
+  // cert / size signals, which are explicit data, not a blank-field default).
+  // A bid that names a DIFFERENT state still does not match.
   let stateMatch = false;
   if (state) {
     const m = (bid.location || "").match(STATE_LOCATION_REGEX);
-    stateMatch = !m || m[1].toUpperCase() === state;
+    stateMatch = !!m && m[1]!.toUpperCase() === state;
   }
 
   // sizePref → ONLY when the bid carries a stated value (never fabricate);

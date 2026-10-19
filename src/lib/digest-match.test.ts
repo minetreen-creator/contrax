@@ -43,4 +43,35 @@ describe("personal daily email — matching a member's profile", () => {
     expect(m.personal).toBe(false);
     expect(m.matches(vaJanitorial)).toBe(true);
   });
+
+  // NO-STATE GUARD (owner 2026-10-19, nightly SAM.gov CSV ingest spec §Owner's
+  // rules 1): the nightly ingest stores ~12,000 future-deadline federal notices
+  // of which 69% publish no place-of-performance state. Such a bid may ONLY
+  // reach a member through the TRADE dimension — never by default, and never
+  // admitted by a blank-state clause.
+  describe("a bid with no place-of-performance state", () => {
+    const noStateMatchedTrade = { title: "Janitorial services nationwide", location: "", agency: "GSA", naics_code: "561720" };
+    const noStateUnmatchedTrade = { title: "Janitorial services nationwide", location: "", agency: "GSA", naics_code: "237310" };
+    // A blank location with an office string that happens to carry a state token
+    // ("CO") is still a no-state bid: an office is not a work site.
+    const noStateOfficeToken = { title: "Grounds maintenance", location: "", agency: "0906 AQ CO DET A CONTRACTI", naics_code: "561730" };
+
+    test("never matches a states-only member (it used to be a blank-state match would reach everyone)", () => {
+      const m = buildDigestMatcher({ locations: ["VA"] });
+      expect(m.personal).toBe(true);
+      expect(m.matches(noStateMatchedTrade)).toBe(false);
+      expect(m.matches(noStateOfficeToken)).toBe(false);
+    });
+
+    test("reaches a member only through the trade it matches", () => {
+      const m = buildDigestMatcher({ locations: ["VA"], naics_codes: ["561720"] });
+      expect(m.matches(noStateMatchedTrade)).toBe(true); // trade evidence
+      expect(m.matches(noStateUnmatchedTrade)).toBe(false); // no state, wrong trade
+    });
+
+    test("a bid that DOES publish another state still does not match", () => {
+      const m = buildDigestMatcher({ locations: ["VA"], naics_codes: ["561720"] });
+      expect(m.matches({ ...noStateMatchedTrade, location: "Denver, CO" })).toBe(false);
+    });
+  });
 });

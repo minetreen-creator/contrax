@@ -24,20 +24,20 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import {
   ALL_COUNTER_STATES,
-  APPROVED_COUNTER_STATES,
   createCsvRecordStream,
   csvBidChangeTuple,
   csvHeaderIndex,
   csvNoticeToBid,
   csvSetAsideLabel,
-  gateAgainstApprovedStates,
+  describeStateSetChange,
   isAwardOrJustificationType,
   isOpenDeadline,
-  LIVE_COUNTER_STATES_2026_10_19,
   parseDeadline,
   parseSamCsvRecord,
+  keptRowCounterStats,
   projectStates,
   samCsvExternalId,
+  stateOpenCountDeltas,
   shouldCloseOut,
   stateCodeFromLocation,
 } from "./sam-csv";
@@ -268,26 +268,54 @@ describe("change detection", () => {
   });
 });
 
-describe("the owner's totalStates gate", () => {
-  test("a run that would add a state is detected before anything is written", () => {
-    const rows = [
-      { normalized_state: "MD", location: "Baltimore, MD" },
-      { normalized_state: null, location: "" },
-    ] as any[];
-    const p = projectStates(["MD", "VA"], rows);
-    expect(p.before).toEqual(["MD", "VA"]);
-    expect(p.after).toEqual(["MD", "VA"]);
-    expect(p.added).toEqual([]);
-    expect(p.removed).toEqual([]);
+describe("the owner's totalStates OBSERVATION — logged and alerted, never blocked", () => {
+  // OWNER AMENDMENT 2026-10-19: the counter's state count FOLLOWS THE REAL DATA.
+  // The old block-gate (refuse to write, exit non-zero, whenever the set moved
+  // off a {n:50, includesME:false} constant) is gone. What is tested here is the
+  // replacement: a change is DETECTED in both directions, REPORTED with the
+  // exact sets and per-state deltas, and the import carries on either way.
+  test("a run whose state set does not move is a quiet success (changed=false)", () => {
+    const change = describeStateSetChange(["MD", "VA"], ["MD", "VA"]);
+    expect(change.changed).toBe(false);
+    expect(change.added).toEqual([]);
+    expect(change.removed).toEqual([]);
+    expect(change.before).toEqual(["MD", "VA"]);
+    expect(change.after).toEqual(["MD", "VA"]);
   });
-
-  test("ME appearing (the measured live case) is reported as an added state", () => {
-    const rows = [{ normalized_state: "ME", location: "Bangor, ME" }] as any[];
-    const p = projectStates(["MD", "VA"], rows);
-    expect(p.added).toEqual(["ME"]);
-    expect(p.after.length).toBe(3);
+  test("an ADDED state is detected (the measured live case: ME with 10 notices)", () => {
+    const change = describeStateSetChange(["CT", "MD"], ["CT", "MD", "ME"]);
+    expect(change.changed).toBe(true);
+    expect(change.added).toEqual(["ME"]);
+    expect(change.removed).toEqual([]);
+    expect(change.after.length).toBe(3);
   });
-
+  test("a REMOVED state is detected too — the count may move BOTH ways", () => {
+    const change = describeStateSetChange(["MD", "ME", "VA"], ["MD", "VA"]);
+    expect(change.changed).toBe(true);
+    expect(change.removed).toEqual(["ME"]);
+    expect(change.added).toEqual([]);
+  });
+  test("for a 50 -> 51 move that is only ME, the delta set names ME alone", () => {
+    const before = ALL_COUNTER_STATES.filter((c) => c !== "ME");
+    const after = [...before, "ME"];
+    expect(before.length).toBe(50); // 50 states + DC, minus ME
+    const change = describeStateSetChange(before, after);
+    expect(change.changed).toBe(true);
+    expect(change.added).toEqual(["ME"]);
+    expect(change.removed).toEqual([]);
+    expect(change.after.length).toBe(before.length + 1);
+  });
+  test("per-state open-count deltas cover additions AND removals, with numbers", () => {
+    const deltas = stateOpenCountDeltas({ VA: 215, MD: 31 }, { VA: 215, MD: 31, ME: 10 });
+    expect(deltas).toEqual([{ state: "ME", before: 0, after: 10, delta: 10, added: true, removed: false }]);
+    const lost = stateOpenCountDeltas({ VA: 215, ME: 10 }, { VA: 215 });
+    expect(lost).toEqual([{ state: "ME", before: 10, after: 0, delta: -10, added: false, removed: true }]);
+    // counts that move inside an existing state are reported too
+    const moved = stateOpenCountDeltas({ VA: 215 }, { VA: 304 });
+    expect(moved).toEqual([{ state: "VA", before: 215, after: 304, delta: 89, added: false, removed: false }]);
+    // an unchanged state is not a delta at all
+    expect(stateOpenCountDeltas({ VA: 1, MD: 2 }, { VA: 1, MD: 2 })).toEqual([]);
+  });
   test("the projection's state rule matches the map's deriveStateCode shape", () => {
     expect(stateCodeFromLocation("Stanford, MT")).toBe("MT");
     expect(stateCodeFromLocation("MT")).toBe("MT");
@@ -296,47 +324,30 @@ describe("the owner's totalStates gate", () => {
     expect(stateCodeFromLocation(null)).toBeNull();
     expect(stateCodeFromLocation("Tokyo, JP-01")).toBeNull();
   });
-
-  // THE APPROVED STATE SET — the owner's one-line decision. The gate never
-  // writes a state set it computed for itself; it only ever accepts EXACTLY
-  // APPROVED_COUNTER_STATES, which defaults to today's live set (50
-  // jurisdictions, ME excluded) and flips to all 51 in one line.
-  test("the default constant is today's live set: all 51 jurisdictions except ME", () => {
-    expect(ALL_COUNTER_STATES.length).toBe(51); // 50 states + DC
-    expect(LIVE_COUNTER_STATES_2026_10_19.length).toBe(50);
-    expect(LIVE_COUNTER_STATES_2026_10_19).not.toContain("ME");
-    expect(LIVE_COUNTER_STATES_2026_10_19).toContain("DC");
-    expect([...APPROVED_COUNTER_STATES]).toEqual([...LIVE_COUNTER_STATES_2026_10_19]);
+  test("the row stats use the counter's OWN low-content rule, not all kept rows", () => {
+    const rows = [
+      // real location + long title → the counter counts it
+      { title: "Window washing services for the Kittery annex", location: "Kittery, ME", set_aside: null, normalized_state: "ME", due_date: "2026-11-01T00:00:00Z" },
+      // short title + placeholder location + no set-aside → the counter refuses it
+      { title: "Tubas", location: "Unknown", set_aside: null, normalized_state: null, due_date: "2026-11-01T00:00:00Z" },
+    ] as any[];
+    const s = keptRowCounterStats(rows, new Date("2026-10-19T04:30:00Z"));
+    expect(s.counted).toBe(1);
+    expect(s.refusedLowContent).toBe(1);
+    expect(s.withPopState).toBe(1);
+    expect(s.withoutPopState).toBe(1);
   });
-
-  test("a run that would add ME is refused under the default constant", () => {
-    const live = APPROVED_COUNTER_STATES;
-    const withME = [...live, "ME"];
-    const g = gateAgainstApprovedStates(withME);
-    expect(g.ok).toBe(false);
-    expect(g.unexpected).toEqual(["ME"]);
-    expect(g.missing).toEqual([]);
-    // and the current live set passes the gate untouched
-    expect(gateAgainstApprovedStates(live).ok).toBe(true);
-  });
-
-  test("the owner's one-line flip to the full set admits ME (and only then)", () => {
-    const withME = [...LIVE_COUNTER_STATES_2026_10_19, "ME"];
-    expect(gateAgainstApprovedStates(withME, ALL_COUNTER_STATES).ok).toBe(true);
-    expect(gateAgainstApprovedStates(withME, ALL_COUNTER_STATES).unexpected).toEqual([]);
-    // flipping the constant does not loosen anything else: a DROPPED state is
-    // refused under either constant — a sync may never shrink the counter.
-    const missingVA = APPROVED_COUNTER_STATES.filter((s) => s !== "VA");
-    expect(gateAgainstApprovedStates(missingVA).ok).toBe(false);
-    expect(gateAgainstApprovedStates(missingVA).missing).toEqual(["VA"]);
-    expect(gateAgainstApprovedStates(missingVA, ALL_COUNTER_STATES).ok).toBe(false);
-    // a hypothetical live set that already carries ME is also refused under the
-    // default constant (the job must never ratify an unapproved state set).
-    expect(gateAgainstApprovedStates(ALL_COUNTER_STATES).ok).toBe(false);
-    expect(gateAgainstApprovedStates(ALL_COUNTER_STATES).unexpected).toEqual(["ME"]);
+  test("a state carried ONLY by a low-content row can never enter the counter", () => {
+    const rows = [
+      { title: "Tubas", location: "Unknown", set_aside: null, normalized_state: "ME", due_date: "2026-11-01T00:00:00Z" },
+    ] as any[];
+    const s = keptRowCounterStats(rows, new Date("2026-10-19T04:30:00Z"));
+    expect(s.counted).toBe(0); // refused by the counter's own low-content rule
+    expect(s.refusedLowContent).toBe(1);
+    // …so the state SET cannot move on the strength of that row alone
+    expect(describeStateSetChange(["VA"], ["VA"]).changed).toBe(false);
   });
 });
-
 describe("close-out rule", () => {
   const extractTime = new Date("2026-10-19T03:30:00Z");
   const now = new Date("2026-10-20T04:30:00Z");

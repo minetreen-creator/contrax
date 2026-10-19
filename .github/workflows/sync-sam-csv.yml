@@ -21,10 +21,16 @@ name: Sync SAM CSV (nightly Contract Opportunities extract)
 # `ON CONFLICT (source, external_id)` is the single dedupe point and one notice
 # can never become two rows.
 #
-# THE JOB FAILS SAFE ON A CHANGED STATE COUNT (spec §Counter behavior 5): before
-# writing anything it projects the state set the /map + homepage counter would
-# show, and if this run would change it the run exits non-zero having written
-# nothing — a changed state count is an owner decision, not a sync side effect.
+# THE STATE COUNT IS OBSERVED, NEVER GATED (owner amendment 2026-10-19): the
+# counter's state set FOLLOWS THE REAL DATA — 50 jurisdictions today, 51 once
+# Maine's notices enter the live counter, and back down when they close. The job
+# reads the counter's own state set before the write and again after it, and if
+# the set moved (either direction) it prints the before/after sets plus every
+# per-state open-count delta, emails the business inbox over the repo's existing
+# Resend channel, and uploads the same report as a run artifact. The import
+# ALWAYS proceeds: whatever happens, this job never fails or skips the write
+# because the state count moved. (The old block-gate that refused to write and
+# exited non-zero is gone.)
 #
 # THE FILE IS STREAMED, NEVER LOADED: `curl` is piped into the ingester, which
 # parses incrementally (memory stays at one record). A GitHub runner, not a
@@ -48,6 +54,7 @@ concurrency:
 
 permissions:
   contents: read
+  actions: write # required for actions/upload-artifact@v4
 
 jobs:
   ingest:
@@ -56,6 +63,13 @@ jobs:
     timeout-minutes: 30
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # The state-set alert email path (same repo secret the other email jobs use;
+      # without it the alert is skipped and logged, and the artifact below is the
+      # record — the import still runs either way).
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      # Where the state-change report is written so the upload step below can
+      # persist it (the runner's workspace is ephemeral).
+      SAM_CSV_STATE_CHANGE_FILE: ${{ github.workspace }}/sam-csv-state-change.md
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -88,3 +102,13 @@ jobs:
           set -o pipefail
           URL='https://s3.amazonaws.com/falextracts/Contract%20Opportunities/datagov/ContractOpportunitiesFullCSV.csv'
           curl -sSL "$URL" | bun run sam-csv-ingest
+      # The notification artifact: written ONLY when the counter's state set
+      # actually moved, so a normal night uploads nothing (warn, not fail).
+      - name: Upload the state-change report (only when the set moved)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sam-csv-state-change
+          path: sam-csv-state-change.md
+          if-no-files-found: ignore
+          retention-days: 30

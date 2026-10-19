@@ -52,6 +52,7 @@
  */
 
 import { isAwardNoticeType } from "~/lib/open-bids";
+import { isLowContent } from "~/lib/low-content";
 import { normalizeStateInput } from "~/lib/location-state";
 import { US_STATES } from "~/lib/states";
 import { mapCategory } from "~/lib/trade-classification";
@@ -526,11 +527,12 @@ export interface StateProjection {
 }
 
 /**
- * The owner's hard gate: "the count of states on the homepage must NOT change"
- * (spec §Counter behavior 5). Computed BEFORE anything is written, from the
- * live aggregate's state set plus the states this run would introduce. The job
- * aborts when `added` or `removed` is non-empty, so a changed totalStates can
- * never be shipped by a scheduled run.
+ * The KEPT-ROW upper bound on the counter's state set: the live set plus every
+ * state any kept row publishes (low-content rows included). Used by the dry-run
+ * measurement; the live run reports the counter's own counted arithmetic through
+ * `projectStateCounts` (which drops low-content rows exactly as the counter
+ * does). Nothing here gates or aborts anything — the state count follows the
+ * real data (owner 2026-10-19).
  */
 export function projectStates(
   liveStates: readonly string[],
@@ -550,54 +552,142 @@ export function projectStates(
     removed: before.filter((c) => !afterList.includes(c)),
   };
 }
-// ── THE APPROVED COUNTER STATE SET (the owner's hard gate) ──────────────────
+// ── TOTALSTATES IS OBSERVED, NOT GATED (owner 2026-10-19) ───────────────────
 /**
  * Every jurisdiction the counter can attribute a bid to — 50 states + DC.
- * (US_STATES is the single source of truth; ME is the code the 2026-10-17 SAM
- * extract would introduce, which is an open owner decision.)
+ * (US_STATES is the single source of truth.)
  */
 export const ALL_COUNTER_STATES: readonly string[] = [...US_STATES];
-/**
- * The live counter's state set as measured on 2026-10-19: all 51 jurisdictions
- * EXCEPT ME (this is the "50" the owner set as the unchangeable current value).
- */
-export const LIVE_COUNTER_STATES_2026_10_19: readonly string[] =
-  ALL_COUNTER_STATES.filter((s) => s !== "ME");
-/**
- * ── THE OWNER'S DECISION IS THIS ONE LINE ───────────────────────────────────
- * `totalStates` may never change as a side effect of a sync (spec §Counter
- * behavior 5: "the count of states on the homepage must NOT change; if it
- * would, STOP and report back to the lead"). The job therefore only ever writes
- * a state set that is EXACTLY this constant — never a set it computes for
- * itself — so no run can ship an unapproved change.
- *
- * DEFAULT `LIVE_COUNTER_STATES_2026_10_19` = today's live set (50, no ME).
- * ⬇︎ WHEN THE OWNER APPROVES THE 50 → 51 TRANSITION (ME joins: 10
- *   future-deadline notices in the 2026-10-17 extract), change the value on the
- *   line below to `ALL_COUNTER_STATES` and nothing else. Until then the nightly
- *   run refuses (writes nothing, exits non-zero) rather than adding ME.
- */
-export const APPROVED_COUNTER_STATES: readonly string[] = LIVE_COUNTER_STATES_2026_10_19;
-/**
- * The fail-safe comparison behind the gate: is the counter's projected state
- * set exactly the approved set? Returns the states that would be ADDED
- * (`unexpected`) and DROPPED (`missing`) so the log names the change instead of
- * just refusing. `approved` defaults to APPROVED_COUNTER_STATES; passing
- * ALL_COUNTER_STATES models the owner's one-line change.
- */
-export function gateAgainstApprovedStates(
-  projected: readonly string[],
-  approved: readonly string[] = APPROVED_COUNTER_STATES,
-): { ok: boolean; unexpected: string[]; missing: string[] } {
-  const have = new Set(projected.map((s) => String(s).toUpperCase()));
-  const want = new Set(approved.map((s) => String(s).toUpperCase()));
-  return {
-    ok: have.size === want.size && [...want].every((s) => have.has(s)),
-    unexpected: [...have].filter((s) => !want.has(s)).sort(),
-    missing: [...want].filter((s) => !have.has(s)).sort(),
-  };
+
+export interface StateSetChange {
+  /** Did the counter's open-bid state set change in EITHER direction? */
+  changed: boolean;
+  before: string[];
+  after: string[];
+  /** States this run would ADD to the counter. */
+  added: string[];
+  /** States this run would DROP from the counter (a close-out can do this). */
+  removed: string[];
 }
 
+/**
+ * ── THE OWNER'S DECISION (2026-10-19): THE STATE COUNT FOLLOWS THE REAL DATA ─
+ * A changed counter state set is an OBSERVATION, not an approval gate. The set
+ * was 50 on 2026-10-17 and becomes 51 the first time real Maine notices enter
+ * the live counter (10 of them in the 2026-10-17 extract); it may move back down
+ * when those notices close, and it must be free to move in BOTH directions. A
+ * stalled nightly import is worse than a count moving by one, so a change is
+ * LOGGED AND ALERTED (see `./sam-csv-state-alert.ts`) and the import ALWAYS
+ * PROCEEDS: the run never fails, and never writes nothing, because the count
+ * moved. (Supersedes the "approved state set" block-gate of the first build,
+ * which refused to write and exited non-zero on a set change.)
+ *
+ * Pure: no I/O, no opinion about which set is "right" — only what changed.
+ */
+export function describeStateSetChange(
+  before: readonly string[],
+  after: readonly string[],
+): StateSetChange {
+  const b = [...new Set(before.map((s) => String(s).toUpperCase()))].sort();
+  const a = [...new Set(after.map((s) => String(s).toUpperCase()))].sort();
+  const added = a.filter((c) => !b.includes(c));
+  const removed = b.filter((c) => !a.includes(c));
+  return { changed: added.length > 0 || removed.length > 0, before: b, after: a, added, removed };
+}
+
+export interface StateOpenCountDelta {
+  state: string;
+  /** Open rows the counter attributes to this state BEFORE the run. */
+  before: number;
+  /** …and after it, once this run's counted rows are stored. */
+  after: number;
+  delta: number;
+  /** Entering the counter for the first time in this run. */
+  added: boolean;
+  /** Leaving the counter (its last counted row closed out). */
+  removed: boolean;
+}
+
+/**
+ * Per-state open-count deltas over the UNION of both count maps — so a run that
+ * adds Maine says "ME 0 → 10" and a run that loses it says "ME 10 → 0", rather
+ * than only naming a code. Only states whose count actually moves are returned.
+ */
+export function stateOpenCountDeltas(
+  before: Readonly<Record<string, number>>,
+  after: Readonly<Record<string, number>>,
+): StateOpenCountDelta[] {
+  const keys = new Set([...Object.keys(before), ...Object.keys(after)]);
+  return [...keys]
+    .sort()
+    .map((state) => {
+      const b = before[state] ?? 0;
+      const a = after[state] ?? 0;
+      return {
+        state,
+        before: b,
+        after: a,
+        delta: a - b,
+        added: b === 0 && a > 0,
+        removed: a === 0 && b > 0,
+      };
+    })
+    .filter((d) => d.delta !== 0);
+}
+
+export interface CounterRowStats {
+  /** Kept rows that enter the counter (real deadline, not low-content). */
+  counted: number;
+  /** Kept rows the counter's OWN low-content rule refuses: counted by nobody. */
+  refusedLowContent: number;
+  /**
+   * Counted rows whose deadline is later TODAY. The counter's rule is
+   * date-granular (`due_date::date >= NOW()::date`) while a timestamp-strict
+   * count (`due_date > now`) excludes these; both are reported so a projection
+   * can never be out by an unexplained boundary.
+   */
+  countedTodayOnly: number;
+  /** Kept rows that publish a PopState — what the state picker can see. */
+  withPopState: number;
+  /** Kept rows that publish NO PopState (blank location, NULL normalized_state). */
+  withoutPopState: number;
+}
+
+/**
+ * The row-level half of the counter's arithmetic, over this run's kept rows:
+ * how many of them the counter will actually count, how many its OWN low-content
+ * rule refuses, and how many carry a PopState at all (a row with no PopState can
+ * never move the state picker, whatever else it does). Pure.
+ *
+ * The state SET itself is never guessed here: the live run reads the counter
+ * before and after the write (its own query) and reports the delta between those
+ * two real reads, which is the only way a REMOVAL (the last counted row in a
+ * state closing out) can be seen honestly.
+ */
+export function keptRowCounterStats(
+  rows: readonly SamCsvBidRow[],
+  now: Date = new Date(),
+): CounterRowStats {
+  let counted = 0;
+  let refusedLowContent = 0;
+  let countedTodayOnly = 0;
+  let withPopState = 0;
+  let withoutPopState = 0;
+  const nowMs = now.getTime();
+  for (const row of rows) {
+    const code = row.normalized_state ?? stateCodeFromLocation(row.location);
+    if (code) withPopState++;
+    else withoutPopState++;
+    if (isLowContent(row.title, row.location, row.set_aside)) {
+      refusedLowContent++; // the counter's LOW_CONTENT rule refuses it: nobody counts it
+      continue;
+    }
+    counted++;
+    const due = row.due_date ? new Date(row.due_date) : null;
+    if (due && !Number.isNaN(due.getTime()) && due.getTime() <= nowMs) countedTodayOnly++;
+  }
+  return { counted, refusedLowContent, countedTodayOnly, withPopState, withoutPopState };
+}
 // ── CLOSE-OUT RULE ─────────────────────────────────────────────────────────
 
 /**

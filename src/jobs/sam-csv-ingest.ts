@@ -16,11 +16,12 @@
  *  2. Keep only rows that are live opportunities under the counter's own
  *     definition: a parsable deadline whose UTC date is today or later, and not
  *     an award / justification notice (spec §Filters).
- *  3. THE OWNER'S GATE (spec §Counter behavior 5): BEFORE writing anything,
- *     compute the state set the /map + homepage counter would show now and the
- *     set it would show after this run. If the run would change it, print the
- *     exact states and EXIT NON-ZERO WITHOUT WRITING — a scheduled job may never
- *     ship a changed totalStates.
+ *  3. TOTALSTATES IS OBSERVED, NEVER GATED (owner 2026-10-19): compute the state
+ *     set the /map + homepage counter would show before and after this run, plus
+ *     each state's open-count delta in BOTH directions. A change is logged
+ *     prominently and alerted (email + notification artifact) and the import
+ *     ALWAYS CONTINUES — it never fails, and never writes nothing, because the
+ *     count moved. The count follows the REAL data.
  *  4. Batch-upsert (500/row statement) `ON CONFLICT (source, external_id)` — the
  *     SAME identity the 4-hourly sync writes (`sam-<NoticeId>`) — with the
  *     runner's no-op guard (`IS DISTINCT FROM`, extended with this job's two
@@ -38,21 +39,22 @@
  * (parse + report + exit, write nothing — used for the dry run).
  */
 import {
-  APPROVED_COUNTER_STATES,
   createCsvRecordStream,
   csvHeaderIndex,
   csvNoticeToBid,
-  gateAgainstApprovedStates,
+  describeStateSetChange,
   isAwardOrJustificationType,
   isOpenDeadline,
   parseDeadline,
   parseSamCsvRecord,
+  projectStateCounts,
   projectStates,
   SAM_CSV_SOURCE,
   stateCodeFromLocation,
   type SamCsvBidRow,
   type SamCsvNotice,
 } from "./sam-csv";
+import { alertCounterStateChange, counterStateChangeReport } from "./sam-csv-state-alert";
 import { sql } from "~/db";
 import { OPEN_BID_SQL, AWARD_NOTICE_EXCLUSION_SQL } from "~/lib/open-bids";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
@@ -169,7 +171,12 @@ function awardOrPast(notice: SamCsvNotice): string {
 }
 
 /** The live counter population's state set — the BEFORE side of the owner's gate. */
-export async function liveCounterStates(): Promise<{ states: string[]; totalOpen: number }> {
+export async function liveCounterStates(): Promise<{
+  states: string[];
+  /** Open rows per state code — the counter's OWN before-side counts. */
+  counts: Record<string, number>;
+  totalOpen: number;
+}> {
   const q = sql();
   const rows = (await q`
     SELECT location FROM bids
@@ -179,11 +186,15 @@ export async function liveCounterStates(): Promise<{ states: string[]; totalOpen
       AND ${q.unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
   `) as { location: string | null }[];
   const states = new Set<string>();
+  const counts: Record<string, number> = {};
   for (const r of rows) {
     const code = stateCodeFromLocation(r.location);
-    if (code) states.add(code);
+    if (code) {
+      states.add(code);
+      counts[code] = (counts[code] ?? 0) + 1;
+    }
   }
-  return { states: [...states], totalOpen: rows.length };
+  return { states: [...states], counts, totalOpen: rows.length };
 }
 
 /**
@@ -343,31 +354,21 @@ export async function runSamCsvIngest(
     `📊 counter population now: ${live.totalOpen} row(s) across ${projection.before.length} state(s)`,
   );
 
-  // THE OWNER'S GATE (spec §Counter behavior 5), tightened 2026-10-19: the
-  // counter's state set after this run must be EXACTLY APPROVED_COUNTER_STATES —
-  // default today's live set (50 jurisdictions, ME excluded). The job never
-  // writes a state set it computed for itself; the only way ME may join is the
-  // owner flipping that one-line constant. Fail-safe either way: a real run
-  // writes nothing and exits non-zero, a report-only run keeps going so the
-  // measurement is logged.
-  const gate = gateAgainstApprovedStates(projection.after);
-  if (!gate.ok) {
-    console.error(
-      `⛔ FAIL SAFE: this run's counter state set would not be the approved set ` +
-        `(${projection.before.length} -> ${projection.after.length}; would add ${JSON.stringify(gate.unexpected)}, ` +
-        `would drop ${JSON.stringify(gate.missing)}; approved = ${APPROVED_COUNTER_STATES.length} jurisdiction(s), ` +
-        `ME ${APPROVED_COUNTER_STATES.includes("ME") ? "INCLUDED" : "EXCLUDED"}). ` +
-        `A changed state count is an owner decision, not a sync side effect.`,
-    );
-    if (!reportOnly) {
-      console.error("⛔ nothing was written.");
-      throw new Error(
-        `counter state set would change to ${projection.after.length} (add: ${gate.unexpected.join(",") || "-"}; ` +
-          `drop: ${gate.missing.join(",") || "-"}) — approved set is ${APPROVED_COUNTER_STATES.length} jurisdictions`,
-      );
-    }
-  }
-
+  // ── TOTALSTATES IS OBSERVED, NEVER GATED (owner 2026-10-19) ─────────────
+  // The counter's state set follows the REAL data: 50 today, 51 the moment real
+  // Maine notices enter the live counter, and back DOWN again if the rows behind
+  // a state close out. So the run reads the counter's own state set before the
+  // write and again after it (its own query, no projection), and reports any
+  // move in either direction — prominently, by alert — while ALWAYS carrying on:
+  // a stalled import is worse than a count moving by one, so nothing below can
+  // fail, throw or skip the write because of this.
+  const stats = keptRowCounterStats(rows, now);
+  console.log(
+    `📊 kept rows: ${stats.counted} enter the counter (${stats.withPopState} carry a PopState, ` +
+      `${stats.withoutPopState} publish none; ${stats.refusedLowContent} refused as low-content; ` +
+      `${stats.countedTodayOnly} expire later today, counted by the counter's date rule only)`,
+  );
+  const beforeCounts = live.counts;
   if (reportOnly) {
     console.log("🧪 report-only: parsed, gated and reported — nothing written");
     return {
@@ -410,6 +411,32 @@ export async function runSamCsvIngest(
   console.log(
     `✅ SAM CSV ingest done — ${inserted} new, ${updated} refreshed, ${unchanged} identical, ${closed} closed out`,
   );
+  // THE STATE-SET OBSERVATION, on the counter's OWN two reads (both directions).
+  try {
+    const after = await liveCounterStates();
+    const change = describeStateSetChange(Object.keys(beforeCounts), Object.keys(after.counts));
+    const deltas = stateOpenCountDeltas(beforeCounts, after.counts);
+    if (!change.changed) {
+      console.log(
+        `✅ counter state set UNCHANGED (${change.after.length} jurisdiction(s), ` +
+          `${after.totalOpen} open row(s)) — no alert needed`,
+      );
+    } else {
+      const report = counterStateChangeReport(change, deltas, stats);
+      for (const line of report.lines) console.log(line);
+      const alert = await alertCounterStateChange(report);
+      console.log(
+        `📣 counter state-set change alerted (email=${alert.emailed}${
+          alert.artifact ? `, artifact=${alert.artifact}` : ""
+        }) — the import CONTINUES`,
+      );
+    }
+  } catch (e) {
+    // An observation failure is never an import failure: log it and finish.
+    console.warn(
+      `[sam-csv-ingest] counter state observation failed (the write above stands): ${(e as Error).message}`,
+    );
+  }
   return {
     csvRows,
     kept: rows.length,

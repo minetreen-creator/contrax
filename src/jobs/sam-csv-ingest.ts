@@ -427,7 +427,7 @@ export async function countNaturalKeyCollisions(batch: readonly SamCsvBidRow[]):
          AND to_char(b.due_date AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') = v.due_date
          AND COALESCE(b.psc, '') = v.psc
          AND b.created_at >= ${NATURAL_KEY_SCOPE_SQL}
-         AND NOT (b.source = ${SAM_CSV_SOURCE} AND b.external_id = v.external_id)
+         AND NOT (b.source = '${SAM_CSV_SOURCE}' AND b.external_id = v.external_id)
      )`,
     [payload],
   )) as { n: number }[];

@@ -36,22 +36,15 @@ export const Route = createFileRoute("/pricing/")({
   }),
 });
 
+// Owner 2026-10-19 (item 3): two choices up front. Basic, Agency and the
+// done-for-you services are one line below the cards. `headline` is what the
+// plan gets you, in one sentence; the feature list stays underneath.
 const plans = [
-  {
-    name: "Basic",
-    price: "0",
-    period: "/month",
-    description: PLAN_COPY.basic.description,
-    features: PLAN_COPY.basic.features,
-    cta: "Start 7-day trial",
-    slug: "basic",
-    featured: false,
-    free: true,
-  },
   {
     name: "Starter",
     price: "19",
     period: "/month",
+    headline: "Every new bid in your trade and states, emailed at 6 AM.",
     description: PLAN_COPY.starter.description,
     features: PLAN_COPY.starter.features,
     cta: "Choose Starter",
@@ -62,6 +55,7 @@ const plans = [
     name: "Professional",
     price: "79",
     period: "/month",
+    headline: "Everything in Starter, plus who won last time and for how much.",
     description: PLAN_COPY.professional.description,
     features: PLAN_COPY.professional.features,
     cta: "Choose Professional",
@@ -72,37 +66,6 @@ const plans = [
 
 // Agency ($199/mo) is NOT on the main grid: the page leads with three plans and
 // the done-for-you services, and Agency is a one-line link below them.
-
-// "Which is right for me?" — one row per common need, pointing at the single
-// product that fits. Prices mirror the cards below, /bid-scout and
-// /bid-fit-review. Agency, Grants and Payments are linked once at the bottom.
-const PLAN_GUIDE = [
-  { need: "I'm just starting to look at set-asides", pick: "Basic", price: "Free", href: "/signup?plan=basic" },
-  { need: "I want new bids emailed to me each morning", pick: "Starter", price: "$19/month", href: "/signup?plan=starter" },
-  { need: "I want AI briefs, incumbent pricing and match scores", pick: "Professional", price: "$79/month", href: "/signup?plan=professional" },
-  { need: "I want someone to find the bids for me", pick: "Bid Scout", price: "$99/month", href: "/bid-scout?source=pricing_guide" },
-  { need: "I'm deciding on one specific bid", pick: "Bid Fit Review", price: "$99 once", href: "/bid-fit-review" },
-];
-
-function WhichPlan() {
-  return (
-    <section aria-labelledby="which-plan-heading" className="mx-auto mt-10 max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-      <h3 id="which-plan-heading" className="text-xl font-bold text-slate-900">Which is right for me?</h3>
-      <ul className="mt-4 divide-y divide-slate-100">
-        {PLAN_GUIDE.map((row) => (
-          <li key={row.pick}>
-            <a href={row.href} className="flex flex-col gap-1 py-3 hover:bg-slate-50 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-              <span className="text-sm text-slate-600">{row.need}</span>
-              <span className="shrink-0 text-sm font-semibold text-slate-900">
-                {row.pick} <span className="font-normal text-slate-500">· {row.price}</span> <span aria-hidden="true" className="text-blue-700">→</span>
-              </span>
-            </a>
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
 
 function PricingPage() {
   const { grantsUpgradeEnabled } = Route.useLoaderData();
@@ -125,10 +88,8 @@ function PricingPage() {
 
           <FoundingOffer source="pricing" />
 
-          <WhichPlan />
-
           {/* Plan cards */}
-          <div className="mt-14 grid gap-8 lg:grid-cols-3">
+          <div className="mx-auto mt-14 grid max-w-4xl gap-8 md:grid-cols-2">
             {plans.map((plan) => (
               <div
                 key={plan.name}
@@ -145,6 +106,7 @@ function PricingPage() {
                 )}
                 <div className="mb-6">
                   <h3 className="text-xl font-bold text-slate-900">{plan.name}</h3>
+                  <p className="mt-2 text-base font-semibold text-slate-800">{plan.headline}</p>
                   <p className="mt-1 text-sm text-gray-500">{plan.description}</p>
                 </div>
                 <div className="mb-6">
@@ -168,7 +130,7 @@ function PricingPage() {
                   ))}
                 </ul>
                 <a
-                  href={plan.free ? "/signup" : `/signup?plan=${plan.slug}`}
+                  href={`/signup?plan=${plan.slug}`}
                   className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
                     plan.featured
                       ? "bg-amber-500 text-white"
@@ -177,64 +139,21 @@ function PricingPage() {
                 >
                   {plan.cta}
                 </a>
-                {/* Honest scope on free forever — Basic is free and never expires,
-                    but it is LIMITED (1 saved bid), with the premium
-                    features paywalled behind Professional. Small footnote on the
-                    Basic card only. */}
-                {plan.free && (
-                  <p className="mt-3 text-center text-xs text-gray-500">
-                    Every account starts with a 7-day Professional trial. Afterward, Basic stays free for searching: 2 Radar searches per account, 1 saved bid, no bid emails. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
-                  </p>
-                )}
               </div>
             ))}
           </div>
 
-          {/* Done-for-you services (priced separately from the software plans; same
-              prices as /bid-scout and /bid-fit-review, features per lib/plan-gates). */}
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
-            <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-              <h3 className="text-xl font-bold text-slate-900">Bid Scout</h3>
-              <p className="mt-1 text-sm text-gray-500">Five handpicked federal opportunities that fit your business, every Friday.</p>
-              <p className="mt-5 text-3xl font-extrabold text-slate-900">
-                $99<span className="text-base font-normal text-gray-500">/month</span>
-              </p>
-              <ul className="mt-5 flex-1 space-y-2 text-sm text-gray-700">
-                <li>Five matched opportunities with deadlines, requirements and risks</li>
-                <li>Proposal drafting</li>
-                <li>Pipeline CSV export</li>
-              </ul>
-              <a
-                href="/bid-scout?source=pricing"
-                className="mt-6 block w-full rounded-xl border-2 border-slate-900 px-6 py-3 text-center text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98]"
-              >
-                Start Bid Scout
-              </a>
-            </div>
-            <div className="flex flex-col rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
-              <h3 className="text-xl font-bold text-slate-900">Bid Fit Review</h3>
-              <p className="mt-1 text-sm text-gray-500">A one-page pursue/pass review of a single solicitation.</p>
-              <p className="mt-5 text-3xl font-extrabold text-slate-900">
-                $99<span className="text-base font-normal text-gray-500"> once</span>
-              </p>
-              <ul className="mt-5 flex-1 space-y-2 text-sm text-gray-700">
-                <li>Eligibility and fit against the stated requirements</li>
-                <li>Key deadlines, required forms and deal breakers</li>
-                <li>We confirm your request before you pay</li>
-              </ul>
-              <a
-                href="/bid-fit-review"
-                className="mt-6 block w-full rounded-xl border-2 border-slate-900 px-6 py-3 text-center text-sm font-semibold text-slate-900 transition-all hover:bg-slate-900 hover:text-white active:scale-[0.98]"
-              >
-                Request a review
-              </a>
-            </div>
-          </div>
-
           {/* Footer notes */}
           <p className="mt-8 text-center text-sm text-gray-500">Plans are billed monthly. Cancel anytime.</p>
+          <p className="mx-auto mt-6 max-w-2xl text-center text-sm text-gray-600">
+            Not ready to pay? Keep searching on{" "}
+            <a href="/signup?plan=basic" className="font-medium text-amber-600 hover:text-amber-500">free Basic</a>: one state and
+            one trade, 2 Radar searches, 1 saved bid, and new bids open to you after a 7-day head start for paying members.
+          </p>
           <p className="mt-3 text-center text-sm text-gray-500">
             Also available:{" "}
+            <a href="/bid-scout?source=pricing" className="font-medium text-amber-600 hover:text-amber-500">Bid Scout</a> ($99/month, five handpicked bids every Friday) ·{" "}
+            <a href="/bid-fit-review" className="font-medium text-amber-600 hover:text-amber-500">Bid Fit Review</a> ($99 once) ·{" "}
             <a href="/signup?plan=agency" className="font-medium text-amber-600 hover:text-amber-500">Agency</a> ($199/month, for teams and consultants) ·{" "}
             <a href="#grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits) ·{" "}
             <a href="/contract-payments" className="font-medium text-amber-600 hover:text-amber-500">Contrax Payments</a> ($9/month)

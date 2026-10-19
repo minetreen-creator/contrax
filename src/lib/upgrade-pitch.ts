@@ -42,8 +42,9 @@ export interface UpgradePitch {
   typicalAward: TypicalAward | null;
 }
 
-/** Fewest awards a median is shown over. */
-export const MIN_AWARDS_FOR_MEDIAN = 5;
+/** Fewest awards a median is shown over (preview run 2026-10-19: 9 national
+ * awards gave a janitorial median of $1.5M, not a fair "typical" yet). */
+export const MIN_AWARDS_FOR_MEDIAN = 20;
 
 /** Median of positive amounts, or null when fewer than MIN_AWARDS_FOR_MEDIAN. */
 export function medianAward(amounts: readonly number[]): number | null {

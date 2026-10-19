@@ -5,14 +5,17 @@ import { formatDollars, headStartSummary, medianAward, MIN_AWARDS_FOR_MEDIAN, tr
 
 describe("medianAward", () => {
   test("needs enough awards, ignores zero and bad amounts", () => {
-    expect(medianAward([100, 200, 300, 400])).toBeNull();
-    expect(medianAward([0, -5, NaN, 100, 200, 300, 400])).toBeNull();
-    expect(MIN_AWARDS_FOR_MEDIAN).toBe(5);
+    const few = Array.from({ length: MIN_AWARDS_FOR_MEDIAN - 1 }, (_, i) => (i + 1) * 100);
+    expect(medianAward(few)).toBeNull();
+    expect(medianAward([0, -5, NaN, ...few])).toBeNull();
+    expect(MIN_AWARDS_FOR_MEDIAN).toBe(20);
   });
 
   test("odd and even counts", () => {
-    expect(medianAward([500, 100, 300, 200, 400])).toBe(300);
-    expect(medianAward([100, 200, 300, 400, 500, 600])).toBe(350);
+    const odd = Array.from({ length: 21 }, (_, i) => (21 - i) * 10);
+    expect(medianAward(odd)).toBe(110);
+    const even = Array.from({ length: 20 }, (_, i) => (i + 1) * 10);
+    expect(medianAward(even)).toBe(105);
   });
 });
 

@@ -1,6 +1,6 @@
 const federalCoverage = [
-  { icon: "🇺🇸", text: "5,752 open federal bids nationwide" },
-  { icon: "🏛️", text: "7,352 open state & local bids on top of that" },
+  { icon: "🇺🇸", text: "5,893 open federal bids nationwide" },
+  { icon: "🏛️", text: "7,351 open state & local bids on top of that" },
   { icon: "📍", text: "All 50 states + DC. Yes, even Maine." },
 ];
 

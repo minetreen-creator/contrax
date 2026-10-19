@@ -162,6 +162,24 @@ jobs:
       # fetcher is INJECTED. No DATABASE_URL is required.
       - name: Janitorial + trucking ingestion tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/sam-gov-trades.test.ts src/lib/janitorial-trucking.test.ts
+      # THE NIGHTLY SAM CSV IMPORT + THE SET-ASIDE LABEL CONTRACT (engineer flag,
+      # 2026-10-19). Both suites existed and passed locally but NO workflow named them,
+      # so they ran nowhere — the same way runner.dedupe.test.ts went unrun for weeks.
+      # DETERMINISTIC, network-free and DATABASE-FREE by construction:
+      #   * sam-csv.test.ts — the nightly extract parser, csvSetAsideLabel, the
+      #     close-out/update gates and the CSV-vs-4-hourly-ingest agreement, over
+      #     verbatim fixture bytes; NO live S3 fetch (owner guardrail).
+      #   * sam-csv-state-alert.test.ts — the per-state new-notice alert it feeds.
+      #   * sam-gov-setaside.test.ts — THE REGRESSION PIN for the shipped bug that
+      #     mapped SAM's Total Small Business code "SBA" to "8(a)" (4,134 stored rows,
+      #     migration 065): every SetASideCode -> SetASide pair measured in the
+      #     2026-10-18 nightly extract is asserted here, plus "8A" -> 8(a) and
+      #     "8AN" -> 8(a) sole source.
+      #   * sam-set-aside-migration.test.ts — migration 065's own rule (two UPDATE
+      #     statements, the 100-row exception list, the frozen cut-off that makes a
+      #     re-run a no-op), read straight out of the shipped .sql file.
+      - name: SAM nightly CSV import + set-aside label contract tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sam-csv.test.ts src/jobs/sam-csv-state-alert.test.ts src/jobs/sources/sam-gov-setaside.test.ts src/jobs/sam-set-aside-migration.test.ts
       # Nationwide correctness FIX ④ (owner-locked scope, PR B2) — per-pass
       # outcome accounting + honest zero-yield trucking passes. DETERMINISTIC,
       # network-free and DATABASE-FREE by construction:

@@ -354,22 +354,23 @@ export function samCsvExternalId(noticeId: string): string {
 /**
  * The set-aside label this job stores.
  *
- * DELIBERATE DEVIATION FROM THE 4-HOURLY SYNC, measured and documented: the
- * shared `normalizeSetAside` maps the CODE "SBA" → "8(a)", but in SAM's daily
- * extract "SBA" is the **Total Small Business Set-Aside** code (its own human
- * label in the same row reads "Small Business Set Aside - Total"). Reusing the
- * code path would stamp "8(a)" on total-small-business notices and tell 8(a)
- * firms they are eligible for set-asides they are not — an honesty failure the
- * 10k new rows would spread widely. So the LABEL is authoritative here (it is
- * SAM's own words), and the code is used only when the label yields nothing:
+ * The LABEL is authoritative here (it is SAM's own words) and the code is used
+ * only when the label yields nothing:
  *
  *   "Service-Disabled Veteran-Owned Small Business" → SDVOSB   (label, via the
  *   shared normalizer's own phrase rules)
  *   "Small Business Set Aside - Total"              → the label, verbatim
  *   "8(a) Sole Source"                              → 8(a)
  *
- * The 4-hourly sync's behavior is UNTOUCHED (owner rule: keep that job as it is)
- * — this is reported as a separate finding, not silently "fixed" there.
+ * WHY THIS IS STILL NOT "normalizeSetAside(code)" FOR THE SMALL-BUSINESS CODES:
+ * when this job was written the shared normalizer resolved the CODE "SBA" to
+ * "8(a)" — the mislabel migration 065 now cleans up in `bids`. That mapping is
+ * FIXED at the source (`TOTAL_SMALL_BUSINESS_LABEL` in `sam-gov.ts` resolves
+ * "SBA" to "Small Business Set Aside - Total", the same string this job stores),
+ * so the two jobs now agree on every notice. The explicit SBA/SBP exclusion in
+ * step 2 below is deliberately kept anyway: it is what makes this job
+ * label-first for the two small-business codes, and with the shared mapping
+ * fixed it is now behaviour-identical to step 3 rather than a deviation.
  */
 export function csvSetAsideLabel(notice: SamCsvNotice): string | null {
   const code = String(notice.setAsideCode ?? "").trim();
@@ -385,8 +386,8 @@ export function csvSetAsideLabel(notice: SamCsvNotice): string | null {
   if (fromLabel && CANONICAL_SET_ASIDES.has(fromLabel)) return fromLabel;
   // 2) The code — the corpus convention the 4-hourly sync already stores
   //    (SDVOSBC→SDVOSB, HZC→HUBZone, ISBEE/IEE/VSA/LAS/BICiv verbatim) — EXCEPT
-  //    the two total/partial small-business codes, whose "SBA" spelling the
-  //    shared normalizer wrongly resolves to "8(a)" (see the block comment).
+  //    the two total/partial small-business codes, which stay label-first here
+  //    (see the block comment; the shared mapping for "SBA" is now fixed).
   if (
     /^[A-Za-z][A-Za-z0-9]{1,11}$/.test(code) &&
     !["SBA", "SBP"].includes(code.toUpperCase())

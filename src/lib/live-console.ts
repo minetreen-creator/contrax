@@ -134,6 +134,32 @@ export function isRecentSearch(stat: StateSearchStat | undefined, now: number): 
 export interface OnlineVisitor {
   visitorKey: string;
   place: string | null;
+  /** Two-letter US state for the map dot; null outside the US or when unknown. */
+  state: string | null;
   path: string;
   at: string;
+}
+
+export const US_STATE_CODES: ReadonlySet<string> = new Set([
+  "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "DC", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY",
+  "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH",
+  "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+]);
+
+/** The visitor's US state from the tracked region code, only when the country is the US. */
+export function visitorState(region: string | null | undefined, country: string | null | undefined): string | null {
+  const code = String(region ?? "").trim().toUpperCase();
+  if (String(country ?? "").trim().toUpperCase() !== "US") return null;
+  return US_STATE_CODES.has(code) ? code : null;
+}
+
+/**
+ * Where the i-th visitor dot in a state sits: a sunflower spiral around the
+ * state's label point, so several visitors in one state don't stack.
+ */
+export function dotOffset(i: number): [number, number] {
+  if (i === 0) return [0, 0];
+  const angle = i * 2.39996; // golden angle, radians
+  const r = 11 * Math.sqrt(i);
+  return [Math.round(r * Math.cos(angle) * 10) / 10, Math.round(r * Math.sin(angle) * 10) / 10];
 }

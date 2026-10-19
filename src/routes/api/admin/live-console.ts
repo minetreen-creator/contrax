@@ -13,6 +13,7 @@ import {
   sortTrials,
   trialEnds,
   trialHeat,
+  visitorState,
   type FeedItem,
   type OnlineVisitor,
   type StateSearchStat,
@@ -219,7 +220,7 @@ async function handler({ request }: { request: Request }) {
     // On the site now: each visitor's latest page in the last 5 minutes.
     // Admin pages and admin, QA and bot traffic are left out.
     const onlineRows = (await db`
-      SELECT * FROM (
+      SELECT t.*, v.country FROM (
         SELECT DISTINCT ON (visitor_id) visitor_id, path, city, region, created_at
         FROM page_views
         WHERE created_at > NOW() - INTERVAL '5 minutes'
@@ -230,11 +231,14 @@ async function handler({ request }: { request: Request }) {
           AND ${db.unsafe(adminFunnelExclusionSQL())}
         ORDER BY visitor_id, created_at DESC
       ) t
-      ORDER BY created_at DESC
-    `) as { visitor_id: string; path: string; city: string | null; region: string | null; created_at: string }[];
-    const online: OnlineVisitor[] = onlineRows.slice(0, 12).map((r, i) => ({
+      LEFT JOIN visitors v ON v.visitor_id = t.visitor_id
+      ORDER BY t.created_at DESC
+    `) as { visitor_id: string; path: string; city: string | null; region: string | null; country: string | null; created_at: string }[];
+    // Up to 100 for the map dots; the list under the count shows the first 12.
+    const online: OnlineVisitor[] = onlineRows.slice(0, 100).map((r, i) => ({
       visitorKey: `v${i}-${new Date(r.created_at).getTime()}`,
       place: placeLabel(r.city, r.region),
+      state: visitorState(r.region, r.country),
       path: String(r.path).split("?")[0].slice(0, 80),
       at: new Date(r.created_at).toISOString(),
     }));

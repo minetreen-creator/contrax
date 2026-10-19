@@ -103,6 +103,10 @@
 .admin-console .live-state-badge { pointer-events: none; }
 .admin-console .live-state-badge circle { fill: rgba(2,6,23,0.85); stroke: rgba(255,255,255,0.7); stroke-width: 1.5; }
 .admin-console .live-state-badge text { fill: #fff; font-size: 14px; font-weight: 800; }
+.admin-console .live-visitor-dot { pointer-events: auto; }
+.admin-console .live-visitor-dot circle { fill: #22d3ee; filter: drop-shadow(0 0 6px #22d3ee); }
+.admin-console .live-visitor-dot .live-visitor-ring { fill: none; stroke: #22d3ee; stroke-width: 2; filter: none; transform-box: fill-box; transform-origin: center; animation: live-ring 1.8s ease-out infinite; }
+@keyframes live-ring { from { transform: scale(1); opacity: 0.9; } to { transform: scale(3.2); opacity: 0; } }
 .admin-console .live-usmap-loading { aspect-ratio: 975 / 610; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 13px; border-radius: 12px; background: rgba(15,23,42,0.5); }
 .admin-console .live-key { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; }
 .admin-console .live-online { padding: 16px; border-radius: 14px; background: rgba(15,23,42,0.75); border: 1px solid rgba(148,163,184,0.12); }

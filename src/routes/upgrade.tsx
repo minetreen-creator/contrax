@@ -6,10 +6,15 @@ import { checkTrial } from "~/routes/dashboard";
 import { redirectToCheckout } from "~/lib/checkout";
 import { FoundingOffer } from "~/components/FoundingOffer";
 import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
+import { formatDollars, shortDate, tradePlace, type UpgradePitch } from "~/lib/upgrade-pitch";
+import { HEAD_START_DAYS, headStartOpensLabel } from "~/lib/head-start";
 
 const getStatus = createServerFn({ method: "GET" }).handler(async () => {
   const u = await getCurrentUser();
-  return u ? checkTrial() : null;
+  if (!u) return { status: null, pitch: null };
+  const { loadUpgradePitch } = await import("~/lib/upgrade-pitch.server");
+  const [status, pitch] = await Promise.all([checkTrial(), loadUpgradePitch(u.id, u.created_at)]);
+  return { status, pitch };
 });
 
 export const Route = createFileRoute("/upgrade")({
@@ -26,7 +31,7 @@ const plans = [
 ] as const;
 
 function Upgrade() {
-  const status = Route.useLoaderData();
+  const { status, pitch } = Route.useLoaderData();
   const [interval, setInterval] = useState<"month" | "year">("month");
   const endsLabel =
     status?.active && status.endsAt
@@ -53,6 +58,7 @@ function Upgrade() {
               }. Choose a plan to keep going.`
             : "Choose a plan to keep going."}
         </p>
+        {pitch && <YourMatches pitch={pitch} />}
         <div className="mt-8 flex justify-center">
           <div role="radiogroup" aria-label="Billing period" className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm font-semibold shadow-sm">
             {(["month", "year"] as const).map((v) => (
@@ -132,5 +138,53 @@ function Upgrade() {
         <FoundingOffer source="upgrade" />
       </div>
     </div>
+  );
+}
+
+/**
+ * Owner 2026-10-19 (items 1, 2 and 5): what this account actually matched,
+ * instead of a feature list. Real rows only; each part hides without data.
+ */
+function YourMatches({ pitch }: { pitch: UpgradePitch }) {
+  const where = tradePlace(pitch);
+  if (pitch.newMatches === 0 && !pitch.typicalAward) return null;
+  return (
+    <section className="mx-auto mt-8 max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-6">
+      {pitch.newMatches > 0 && (
+        <>
+          <h2 className="text-lg font-bold text-slate-900">
+            Since you joined on {shortDate(pitch.since)}, {pitch.newMatches} new{" "}
+            {pitch.newMatches === 1 ? "bid" : "bids"} matched {where}.
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {pitch.examples.map((b) => (
+              <li key={b.id}>
+                <a href={`/bid/${b.id}`} className="block rounded-lg border border-amber-200 bg-white px-3 py-2 hover:border-amber-400">
+                  <span className="block truncate text-sm font-semibold text-slate-900">{b.title}</span>
+                  <span className="block text-xs text-slate-500">
+                    {b.agency || "Government buyer"}
+                    {b.dueDate ? ` · due ${shortDate(b.dueDate)}` : ""}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {pitch.headStart.count > 0 && (
+        <p className="mt-4 text-sm font-semibold text-slate-800">
+          🔒 {pitch.headStart.count} of {pitch.headStart.count === 1 ? "them is" : "them are"} still members-only. Paid plans
+          open the official posting now; free accounts wait {HEAD_START_DAYS} days
+          {pitch.headStart.nextOpens ? ` (the next one opens to them ${headStartOpensLabel(pitch.headStart.nextOpens)})` : ""}.
+        </p>
+      )}
+      {pitch.typicalAward && (
+        <p className="mt-3 text-sm text-slate-700">
+          Recent federal contracts for {pitch.typicalAward.scope === "state" ? where : pitch.tradeLabel || "your trade"}{" "}
+          were awarded at a median of <strong>{formatDollars(pitch.typicalAward.median)}</strong> ({pitch.typicalAward.count}{" "}
+          awards, USAspending.gov). Starter is $19 a month.
+        </p>
+      )}
+    </section>
   );
 }

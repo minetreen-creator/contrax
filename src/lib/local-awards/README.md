@@ -10,7 +10,7 @@ Generated counties.json preserves the Census NAME (including Virginia independen
 
 The widget uses county-level **place of performance**, not recipient headquarters. Contract types A/B/C/D only. Each action is included once as returned by the transaction search API, preserving negative and zero actions. Award IDs are used for *grouping*, never to discard amendments. Unique recipients are counted by nonempty UEI; missing UEIs remain in dollar totals but not recipient counts.
 
-Every completed fetch is independently reconciled to the paginated NAICS category endpoint with `spending_level: transactions` and identical filters. Any mismatch or pagination/timeout failure prevents publication of replacement data. Dollars are accumulated as integer cents. Source record totals can be lifetime amounts; displayed award rankings aggregate actions *inside the selected county and date window*.
+Every completed fetch is independently reconciled to the paginated NAICS category endpoint with `spending_level: transactions` and identical filters. Any mismatch larger than category rounding (half a cent per NAICS category, since USAspending rounds each category's sum to the cent; at least 1 cent) or any pagination/timeout failure prevents publication of replacement data. Dollars are accumulated as integer cents. Source record totals can be lifetime amounts; displayed award rankings aggregate actions *inside the selected county and date window*.
 
 Live captures from 2026-10-17 use 2025-10-17 through 2026-10-16 inclusive:
 

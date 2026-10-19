@@ -91,6 +91,7 @@ export async function fetchSnapshot(
       "Transaction pagination cap exceeded; no partial totals published",
     );
   let categoryCents = 0;
+  let categoryRows = 0;
   complete = false;
   for (let page = 1; page <= 100; page++) {
     const data = await fetcher(
@@ -107,6 +108,7 @@ export async function fetchSnapshot(
       (sum: number, r: { amount: unknown }) => sum + cents(r.amount),
       0,
     );
+    categoryRows += data.results.length;
     if (!data.page_metadata.hasNext) {
       complete = true;
       break;
@@ -114,9 +116,14 @@ export async function fetchSnapshot(
   }
   if (!complete) throw new Error("Category pagination incomplete");
   const total = rows.reduce((sum, a) => sum + a.cents, 0);
-  if (total !== categoryCents)
+  const delta = total - categoryCents;
+  if (Math.abs(delta) > reconciliationToleranceCents(categoryRows))
     throw new Error(
       `Reconciliation failed: actions ${total}, categories ${categoryCents}; no figures published`,
+    );
+  if (delta !== 0)
+    console.log(
+      `[local-awards] ${county.fips} reconciled within category rounding: delta ${delta} cent(s) over ${categoryRows} categories`,
     );
   return {
     county,
@@ -126,4 +133,14 @@ export async function fetchSnapshot(
     actions: rows,
     categoryCents,
   };
+}
+
+/**
+ * How far the action total may sit from the category total (owner 2026-10-19).
+ * USAspending rounds each NAICS category's sum to the cent before we add the
+ * categories up, so each one can be off by up to half a cent. Anything beyond
+ * that is a real mismatch and still blocks publication.
+ */
+export function reconciliationToleranceCents(categoryRows: number): number {
+  return Math.max(1, Math.ceil(categoryRows / 2));
 }

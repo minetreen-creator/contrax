@@ -170,10 +170,12 @@ export function radarOpening({
         "Live federal, state and local bids matched to your trade, with a real match score and the previous winner and award price. Veteran-owned (SDVOSB), 8(a), WOSB and HUBZone set-asides included.",
     };
   }
+  // Everyone else (owner 2026-10-19): most visitors aren't SDVOSBs either, so
+  // the default leads with every business, like the ad headline.
   return {
-    headline: "Find the set-asides your SDVOSB can actually win. Your first 3 matches are free.",
+    headline: "Find government contracts your business can win. Your first 3 matches are free.",
     intro:
-      "Tell us your trade and state and we'll show your strongest live matches, with a real match score and full Incumbent Intelligence (previous winner & award price). Works for 8(a), WOSB and HUBZone firms too.",
+      "Tell us your trade and state and we'll show your strongest live matches, with a real match score and full Incumbent Intelligence (previous winner & award price). Veteran-owned (SDVOSB), 8(a), WOSB and HUBZone set-asides included.",
   };
 }
 
@@ -1695,14 +1697,6 @@ function RadarLanding() {
             <p className="mt-2 text-sm leading-relaxed text-slate-300 sm:hidden">
               Pick your trade and state. Free to search, no signup.
             </p>
-            {/* The offer, visible before the counter runs out (owner directive
-                2026-10-08) — the same constants the server gate enforces, so the
-                wall is never a surprise. */}
-            {isAnonymous && (
-              <p className="mt-2 text-xs font-semibold text-amber-300">
-                Free: {FREE_RADAR_PREVIEW_SCANS} search, up to {FREE_ANONYMOUS_RADAR_RESULTS} matches each — no account needed.
-              </p>
-            )}
 
             {!hasDeepLink && <LiveStateBids />}
 
@@ -1772,18 +1766,6 @@ function RadarLanding() {
                     </button>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={confirmScan}
-                  className="mt-3 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
-                >
-                  Find my matches →
-                </button>
-                <p className="mt-2 text-center text-xs text-slate-400">
-                  {trade.trim() ? `Selected: ${trade.trim()}. ` : "Choose a trade above or type one below. "}
-                  {state ? `Search area: ${state}.` : "Search area: all states."} Change your state below.
-                  {" "}Selecting a trade does not use a search.
-                </p>
                 <input
                   id="radar-trade"
                   list="radar-naics-list"
@@ -1993,6 +1975,15 @@ function RadarLanding() {
                 <p className="mt-1 text-sm text-slate-400">
                   {scan.certLabel}{stateLabel} · {tradeLabel(track)} · real scores
                 </p>
+                {/* The search limit, shown with the results rather than above the
+                    form (owner 2026-10-19: 87% of /radar visitors never searched;
+                    "1 search" up front made people hold back). Same constants the
+                    server gate enforces, so the wall is still never a surprise. */}
+                {isAnonymous && (
+                  <p className="mt-1 text-xs font-semibold text-amber-300">
+                    Without an account: {FREE_RADAR_PREVIEW_SCANS} search, up to {FREE_ANONYMOUS_RADAR_RESULTS} matches.
+                  </p>
+                )}
               </div>
               {state !== "" ? (
                 <span className="shrink-0 text-right text-xs font-semibold text-amber-400">

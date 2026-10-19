@@ -1310,6 +1310,9 @@ function SignupPage() {
           {googleAuthUrl ? (
             <a
               href={googleAuthUrl}
+              // Owner 2026-10-19: a Google tap leaves the page, so without this it
+              // read as "left without typing" in the funnel report.
+              onClick={() => trackEvent("signup_google_click")}
               className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-900 bg-white px-6 py-4 text-base font-bold text-slate-900 shadow-md transition-all hover:bg-slate-50 hover:shadow-lg active:scale-[0.98]"
             >
               <svg className="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">

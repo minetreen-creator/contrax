@@ -96,6 +96,9 @@ const WRITE_COLUMNS = [
   "normalized_state",
   "posted_date",
   "archive_date",
+  "contact_name",
+  "contact_email",
+  "contact_phone",
 ] as const;
 
 /** Postgres types the untyped VALUES list must be cast to (index → cast). */
@@ -317,6 +320,9 @@ export async function upsertBatch(batch: readonly SamCsvBidRow[]): Promise<Batch
       row.normalized_state,
       row.posted_date,
       row.archive_date,
+      row.contact_name,
+      row.contact_email,
+      row.contact_phone,
     ];
     const placeholders = values
       .map((_, j) => `$${params.length + j + 1}${CASTS[j] ?? ""}`)
@@ -332,7 +338,7 @@ export async function upsertBatch(batch: readonly SamCsvBidRow[]): Promise<Batch
            estimated_value, source_url, source, external_id, set_aside,
            naics_code, psc, notice_type, solicitation_number,
            source_jurisdiction, raw_location, normalized_state, posted_date,
-           archive_date)
+           archive_date, contact_name, contact_email, contact_phone)
     WHERE NOT EXISTS (
       SELECT 1 FROM bids b
       WHERE ${NATURAL_KEY_GUARD_SQL}
@@ -355,6 +361,9 @@ export async function upsertBatch(batch: readonly SamCsvBidRow[]): Promise<Batch
         normalized_state = EXCLUDED.normalized_state,
         posted_date = EXCLUDED.posted_date,
         archive_date = EXCLUDED.archive_date,
+        contact_name = COALESCE(EXCLUDED.contact_name, bids.contact_name),
+        contact_email = COALESCE(EXCLUDED.contact_email, bids.contact_email),
+        contact_phone = COALESCE(EXCLUDED.contact_phone, bids.contact_phone),
         -- A notice that is BACK in tonight's file is open again.
         closed_at = NULL,
         updated_at = NOW()
@@ -365,7 +374,8 @@ export async function upsertBatch(batch: readonly SamCsvBidRow[]): Promise<Batch
       WHERE (bids.title, bids.location, bids.category, bids.due_date,
              bids.set_aside, bids.naics_code, bids.psc, bids.notice_type,
              bids.agency, bids.source_url, bids.normalized_state,
-             bids.posted_date, bids.archive_date, bids.closed_at)
+             bids.posted_date, bids.archive_date, bids.closed_at,
+             bids.contact_name, bids.contact_email, bids.contact_phone)
           IS DISTINCT FROM
             (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date,
              COALESCE(EXCLUDED.set_aside, bids.set_aside),
@@ -373,7 +383,10 @@ export async function upsertBatch(batch: readonly SamCsvBidRow[]): Promise<Batch
              COALESCE(EXCLUDED.psc, bids.psc),
              COALESCE(EXCLUDED.notice_type, bids.notice_type),
              EXCLUDED.agency, EXCLUDED.source_url, EXCLUDED.normalized_state,
-             EXCLUDED.posted_date, EXCLUDED.archive_date, NULL::timestamptz)
+             EXCLUDED.posted_date, EXCLUDED.archive_date, NULL::timestamptz,
+             COALESCE(EXCLUDED.contact_name, bids.contact_name),
+             COALESCE(EXCLUDED.contact_email, bids.contact_email),
+             COALESCE(EXCLUDED.contact_phone, bids.contact_phone))
       RETURNING (xmax = 0) AS inserted`;
 
   const returned = (await q.query(text, params)) as { inserted: boolean }[];
@@ -570,6 +583,13 @@ export async function runSamCsvIngest(
       `${stats.countedTodayOnly} expire later today, counted by the counter's date rule only)`,
   );
   const beforeCounts = live.counts;
+  if (!reportOnly) {
+    // Contact columns (owner 2026-10-19): added here, idempotently, so the first
+    // nightly run after deploy creates them before writing.
+    await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS contact_name TEXT`;
+    await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS contact_email TEXT`;
+    await sql()`ALTER TABLE bids ADD COLUMN IF NOT EXISTS contact_phone TEXT`;
+  }
   if (reportOnly) {
     console.log("🧪 report-only: parsed, gated and reported — nothing written");
     return {

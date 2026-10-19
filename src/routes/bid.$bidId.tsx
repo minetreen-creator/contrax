@@ -17,6 +17,7 @@ import { getCurrentUser } from "~/lib/auth";
 import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
 import { HeadStartLock } from "~/components/HeadStartLock";
+import { trackEvent } from "~/lib/track";
 import {
   effectiveAutopsyTier,
   LEARNING_TIERS,
@@ -46,14 +47,46 @@ interface BidDetail {
   head_start_until: string | null;
   /** Contrax Learning ⚡ memory (PAID-ONLY, Professional+ — never Basic/Starter). */
   learned: PriorLossBadge | null;
+  /** Point of contact (owner 2026-10-19: paid plans only — never sent to anyone else). */
+  contact: BidContact | null;
+}
+
+interface BidContact {
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+}
+
+/**
+ * The bid's stored point of contact, or null. Its own query so a database
+ * without the contact columns yet (they arrive with the nightly SAM import)
+ * still loads the page.
+ */
+async function loadContact(id: number): Promise<BidContact | null> {
+  try {
+    const rows = (await sql()`
+      SELECT contact_name, contact_email, contact_phone FROM bids WHERE id = ${id} LIMIT 1
+    `) as any[];
+    const r = rows[0];
+    if (!r || !(r.contact_name || r.contact_email || r.contact_phone)) return null;
+    return {
+      name: r.contact_name ? String(r.contact_name) : null,
+      email: r.contact_email ? String(r.contact_email) : null,
+      phone: r.contact_phone ? String(r.contact_phone) : null,
+    };
+  } catch {
+    return null;
+  }
 }
 
 /** The public bid fields the page (and Google) sees. No user data. */
-interface PublicBid extends Omit<BidDetail, "learned"> {
+interface PublicBid extends Omit<BidDetail, "learned" | "contact"> {
   state_name: string | null;
   /** For the "Get bids like this by email" box. */
   state_code: string | null;
   naics_code: string | null;
+  /** True when a point of contact is on file — the details themselves are paid-only. */
+  has_contact: boolean;
 }
 
 /**
@@ -101,6 +134,7 @@ const getPublicBid = createServerFn({ method: "GET" })
         state_name: code ? (STATE_CODE_TO_NAME[code] ?? null) : null,
         state_code: code ?? null,
         naics_code: r.naics_code ? String(r.naics_code) : null,
+        has_contact: (await loadContact(id)) !== null,
       };
     } catch (e) {
       console.error("[bid/$id] public load failed:", e);
@@ -159,6 +193,7 @@ const getBid = createServerFn({ method: "GET" })
         source_url,
         head_start_until,
         learned,
+        contact: paid ? await loadContact(id) : null,
       };
     } catch (e) {
       console.error("[bid/$id] load failed:", e);
@@ -174,16 +209,22 @@ function BidDetailPage() {
   // A paying member's own view of the bid unlocks a head-start link the
   // public render withheld.
   const [unlockedUrl, setUnlockedUrl] = useState<string | null>(null);
+  // The point of contact, for paid plans only (fetched per user, never in the HTML).
+  // undefined until this viewer's own check returns, so a paying member never
+  // sees the locked teaser flash first.
+  const [contact, setContact] = useState<BidContact | null | undefined>(undefined);
 
   useEffect(() => {
     let active = true;
     setLearned(null);
     setUnlockedUrl(null);
+    setContact(undefined);
     if (bidId > 0) {
       getBid({ data: { id: bidId } }).then((b) => {
         if (!active) return;
         setLearned(b?.learned ?? null);
         setUnlockedUrl(b?.source_url ?? null);
+        setContact(b?.contact ?? null);
       });
     }
     return () => {
@@ -287,6 +328,7 @@ function BidDetailPage() {
                   )}
                 </div>
               )}
+              {bid.has_contact && contact !== undefined && <BidContactPanel contact={contact} bidId={bid.id} />}
             </article>
 
             {stateHref && bid.state_name && (
@@ -311,6 +353,48 @@ function BidDetailPage() {
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * Who to contact (owner 2026-10-19). Paid plans see the name, email and phone;
+ * everyone else sees that a contact is on file and how to unlock it.
+ */
+function BidContactPanel({ contact, bidId }: { contact: BidContact | null; bidId: number }) {
+  if (contact) {
+    return (
+      <div className="border-t border-slate-800 px-5 py-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">Who to contact</p>
+        {contact.name && <p className="mt-1 text-sm font-semibold text-white">{contact.name}</p>}
+        <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          {contact.email && (
+            <a href={`mailto:${contact.email}`} className="font-semibold text-amber-400 hover:text-amber-300">
+              {contact.email}
+            </a>
+          )}
+          {contact.phone && (
+            <a href={`tel:${contact.phone.replace(/[^\d+]/g, "")}`} className="font-semibold text-amber-400 hover:text-amber-300">
+              {contact.phone}
+            </a>
+          )}
+        </p>
+      </div>
+    );
+  }
+  return (
+    <div className="border-t border-slate-800 px-5 py-4">
+      <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">Who to contact</p>
+      <p className="mt-1 text-sm text-slate-300">
+        🔒 The contracting officer&apos;s name, email and phone are on file for this bid. Paid plans see them.
+      </p>
+      <a
+        href={`/upgrade?utm_source=bid&utm_campaign=contact&bid=${bidId}`}
+        onClick={() => trackEvent("bid_contact_upgrade_click", String(bidId))}
+        className="mt-2 inline-block text-sm font-semibold text-amber-400 hover:text-amber-300"
+      >
+        See who to contact: Starter, $19/month →
+      </a>
+    </div>
   );
 }
 

@@ -125,7 +125,7 @@ export function ExampleBriefView({
             Find Government Contracts →
           </a>
         </div>
-        <p className="mt-5 text-xs text-slate-400">Search by trade and location. Free to get started.</p>
+        <p className="mt-5 text-xs text-slate-400">Search by trade and location.</p>
       </div>
     ) : null;
 

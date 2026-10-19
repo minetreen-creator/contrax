@@ -113,11 +113,13 @@ describe("emails go out once a day, in the morning", () => {
 
   test("the daily workflow sends the digest and the Radar alerts each morning", () => {
     const daily = read(".github/workflows/daily-emails.yml");
-    // 6 AM Eastern: 10:00 UTC in summer, 11:00 UTC in winter; a gate keeps one
-    expect(daily).toContain('cron: "0 10 * * *"');
-    expect(daily).toContain('cron: "0 11 * * *"');
-    expect(daily).toContain("TZ=America/New_York date +%H");
-    expect(daily).toContain('[ "$hour" = "06" ]');
+    // Runs hourly from 10:07 UTC (owner 2026-10-12); the gate lets the first
+    // run at or after 6 AM New York time send, once a day.
+    expect(daily).toContain('cron: "7 10-23 * * *"');
+    expect(daily).toContain("run: bash .github/scripts/daily-emails-gate.sh");
+    const gate = read(".github/scripts/daily-emails-gate.sh");
+    expect(gate).toContain("TZ=America/New_York date +%-H");
+    expect(gate).toContain('if [ "${hour}" -lt 6 ]; then');
     expect(daily).toContain("run: bun run bid-digest");
     expect(daily).toContain("run: bun run radar-alerts");
     expect(read("package.json")).toContain('"bid-digest": "bun run src/jobs/send-bid-digest.ts"');

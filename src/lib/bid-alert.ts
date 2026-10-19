@@ -24,3 +24,15 @@ export function bidAlertProfile(bid: { naics_code: string | null; state_code: st
   const what = tradeName ? `${tradeName} bids` : naics ? `NAICS ${naics} bids` : "New bids";
   return { trade: naics, state, label: stateName ? `${what} in ${stateName}` : what };
 }
+
+/**
+ * The same alert profile for a trade page such as /recompetes (owner
+ * 2026-10-19): the trade's Radar search term (as a Radar scan stores it) and
+ * the state, if one is chosen.
+ */
+export function tradeAlertProfile(trade: { radarTerm: string; label: string } | null | undefined, stateCode: string | null): BidAlertProfile | null {
+  if (!trade) return null;
+  const state = stateCode && STATE_CODE_TO_NAME[stateCode] ? stateCode : null;
+  const stateName = state ? STATE_CODE_TO_NAME[state] : null;
+  return { trade: trade.radarTerm, state, label: `New ${trade.label.toLowerCase()} bids${stateName ? ` in ${stateName}` : ""}` };
+}

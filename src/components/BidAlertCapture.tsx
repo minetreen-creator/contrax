@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { resolveTrackingUser } from "~/lib/identity";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
-import { bidAlertProfile } from "~/lib/bid-alert";
+import { bidAlertProfile, type BidAlertProfile } from "~/lib/bid-alert";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -13,8 +13,28 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * a week, one-click unsubscribe. Hidden for signed-in users and rendered only
  * after mount, so the server HTML (what Google sees) is unchanged.
  */
-export function BidAlertCapture({ naicsCode, stateCode }: { naicsCode: string | null; stateCode: string | null }) {
-  const profile = bidAlertProfile({ naics_code: naicsCode, state_code: stateCode });
+export function BidAlertCapture({
+  naicsCode = null,
+  stateCode = null,
+  alertProfile,
+  source = "bid_page",
+  heading = "Get bids like this by email",
+  note,
+  tone = "dark",
+}: {
+  naicsCode?: string | null;
+  stateCode?: string | null;
+  /** A ready-made profile (e.g. a trade page's); otherwise built from naicsCode/stateCode. */
+  alertProfile?: BidAlertProfile | null;
+  /** Event label for where the offer appeared. */
+  source?: string;
+  heading?: string;
+  /** Extra sentence under the heading. */
+  note?: string;
+  tone?: "dark" | "light";
+}) {
+  const profile = alertProfile !== undefined ? alertProfile : bidAlertProfile({ naics_code: naicsCode, state_code: stateCode });
+  const light = tone === "light";
   const [show, setShow] = useState(false);
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
@@ -29,7 +49,7 @@ export function BidAlertCapture({ naicsCode, stateCode }: { naicsCode: string | 
       setShow(true);
       if (!shownRef.current) {
         shownRef.current = true;
-        trackEvent("radar_alert_offer_shown", "bid_page");
+        trackEvent("radar_alert_offer_shown", source);
       }
     });
     return () => {
@@ -41,9 +61,9 @@ export function BidAlertCapture({ naicsCode, stateCode }: { naicsCode: string | 
 
   if (status === "done") {
     return (
-      <div className="mt-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 text-center">
-        <p className="text-base font-bold text-emerald-300">You&apos;re on the list ✓</p>
-        <p className="mt-1 text-sm leading-relaxed text-slate-300">
+      <div className={`mt-5 rounded-2xl border p-5 text-center ${light ? "border-emerald-300 bg-emerald-50" : "border-emerald-500/40 bg-emerald-500/10"}`}>
+        <p className={`text-base font-bold ${light ? "text-emerald-800" : "text-emerald-300"}`}>You&apos;re on the list ✓</p>
+        <p className={`mt-1 text-sm leading-relaxed ${light ? "text-slate-700" : "text-slate-300"}`}>
           Check your inbox to confirm. No account required, and you can unsubscribe anytime with one click.
         </p>
       </div>
@@ -79,7 +99,7 @@ export function BidAlertCapture({ naicsCode, stateCode }: { naicsCode: string | 
         setError("Something went wrong. Please try again.");
         return;
       }
-      trackEvent("radar_lead_captured", "bid_page");
+      trackEvent("radar_lead_captured", source);
       setStatus("done");
     } catch {
       setStatus("error");
@@ -88,10 +108,10 @@ export function BidAlertCapture({ naicsCode, stateCode }: { naicsCode: string | 
   };
 
   return (
-    <section aria-label="Get bids like this by email" className="mt-5 rounded-2xl border border-slate-700 bg-slate-900 p-5">
-      <h2 className="text-base font-bold text-white">Get bids like this by email</h2>
-      <p className="mt-1 text-sm leading-relaxed text-slate-300">
-        {profile.label}, sent at most once a week when new ones open. No account required.
+    <section aria-label={heading} className={`mt-5 rounded-2xl border p-5 ${light ? "border-slate-200 bg-white" : "border-slate-700 bg-slate-900"}`}>
+      <h2 className={`text-base font-bold ${light ? "text-slate-900" : "text-white"}`}>{heading}</h2>
+      <p className={`mt-1 text-sm leading-relaxed ${light ? "text-slate-700" : "text-slate-300"}`}>
+        {profile.label}, sent at most once a week when new ones open. No account required.{note ? ` ${note}` : ""}
       </p>
       <form onSubmit={submit} className="mt-3 flex flex-col gap-2 sm:flex-row">
         <label htmlFor="bid-alert-email" className="sr-only">Email address</label>
@@ -104,7 +124,7 @@ export function BidAlertCapture({ naicsCode, stateCode }: { naicsCode: string | 
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
-          className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-base text-white placeholder:text-slate-500"
+          className={`w-full rounded-lg border px-3 py-3 text-base ${light ? "border-slate-300 bg-white text-slate-900 placeholder:text-slate-400" : "border-slate-700 bg-slate-950 text-white placeholder:text-slate-500"}`}
         />
         <button
           type="submit"
@@ -114,7 +134,7 @@ export function BidAlertCapture({ naicsCode, stateCode }: { naicsCode: string | 
           {status === "submitting" ? "Sending…" : "Email me"}
         </button>
       </form>
-      {error && <p role="alert" className="mt-2 text-sm text-red-400">{error}</p>}
+      {error && <p role="alert" className={`mt-2 text-sm ${light ? "text-red-700" : "text-red-400"}`}>{error}</p>}
     </section>
   );
 }

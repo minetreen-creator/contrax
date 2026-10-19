@@ -14,6 +14,8 @@ import {
   trialEnds,
   trialHeat,
   type FeedItem,
+  type OnlineVisitor,
+  type StateSearchStat,
   type TrialCard,
 } from "~/lib/live-console";
 
@@ -29,6 +31,10 @@ import {
  * Trials: every external account whose 7-day trial is running and that has not
  * paid, with when we last saw it, its 7-day visit count, its profile trade and
  * its last 3 searches.
+ *
+ * Map: searches per searched state (48 hours). Online: visitors seen in the
+ * last 5 minutes and the page each is on. The visitor id itself never leaves
+ * the server.
  */
 async function handler({ request }: { request: Request }) {
   const user = await getUserFromRequest(request);
@@ -191,8 +197,53 @@ async function handler({ request }: { request: Request }) {
       };
     });
 
+    // Live search map: searches per searched state over the same 48 hours.
+    let map: StateSearchStat[] = [];
+    try {
+      const rows = (await db`
+        SELECT s.state, COUNT(*)::int AS searches,
+               COUNT(*) FILTER (WHERE s.matched = 0)::int AS zero,
+               MAX(s.created_at) AS last_at
+        FROM radar_search_log s
+        LEFT JOIN users u ON u.id = s.user_id
+        WHERE s.created_at > NOW() - INTERVAL '48 hours'
+          AND s.state <> ''
+          AND COALESCE(u.is_admin, FALSE) = FALSE
+        GROUP BY s.state
+      `) as { state: string; searches: number; zero: number; last_at: string }[];
+      map = rows.map((r) => ({ state: r.state, searches: Number(r.searches), zero: Number(r.zero), lastAt: new Date(r.last_at).toISOString() }));
+    } catch {
+      // No searches saved yet.
+    }
+
+    // On the site now: each visitor's latest page in the last 5 minutes.
+    // Admin pages and admin, QA and bot traffic are left out.
+    const onlineRows = (await db`
+      SELECT * FROM (
+        SELECT DISTINCT ON (visitor_id) visitor_id, path, city, region, created_at
+        FROM page_views
+        WHERE created_at > NOW() - INTERVAL '5 minutes'
+          AND visitor_id IS NOT NULL
+          AND path NOT LIKE '/admin%'
+          AND NOT ${db.unsafe(BOT_EXCLUSION_SQL)}
+          AND ${db.unsafe(qaFunnelExclusionSQL())}
+          AND ${db.unsafe(adminFunnelExclusionSQL())}
+        ORDER BY visitor_id, created_at DESC
+      ) t
+      ORDER BY created_at DESC
+    `) as { visitor_id: string; path: string; city: string | null; region: string | null; created_at: string }[];
+    const online: OnlineVisitor[] = onlineRows.slice(0, 12).map((r, i) => ({
+      visitorKey: `v${i}-${new Date(r.created_at).getTime()}`,
+      place: placeLabel(r.city, r.region),
+      path: String(r.path).split("?")[0].slice(0, 80),
+      at: new Date(r.created_at).toISOString(),
+    }));
+
     return Response.json({
       generatedAt: new Date(now).toISOString(),
+      map,
+      onlineCount: onlineRows.length,
+      online,
       feed: sortFeed(feed).slice(0, 60),
       trials: sortTrials(trials),
     });

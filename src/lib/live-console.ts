@@ -107,3 +107,47 @@ export function sortTrials(cards: TrialCard[]): TrialCard[] {
   const rank: Record<TrialHeat, number> = { hot: 0, warm: 1, cold: 2 };
   return [...cards].sort((a, b) => a.msLeft - b.msLeft || rank[a.heat] - rank[b.heat]);
 }
+
+/**
+ * Live search map: one tile per state (50 + DC) in a rough US layout,
+ * [code, row, col] on an 8 × 12 grid.
+ */
+export const STATE_TILES: ReadonlyArray<readonly [string, number, number]> = [
+  ["AK", 0, 0], ["ME", 0, 11],
+  ["VT", 1, 10], ["NH", 1, 11],
+  ["WA", 2, 1], ["ID", 2, 2], ["MT", 2, 3], ["ND", 2, 4], ["MN", 2, 5], ["IL", 2, 6], ["WI", 2, 7], ["MI", 2, 8], ["NY", 2, 9], ["RI", 2, 10], ["MA", 2, 11],
+  ["OR", 3, 1], ["NV", 3, 2], ["WY", 3, 3], ["SD", 3, 4], ["IA", 3, 5], ["IN", 3, 6], ["OH", 3, 7], ["PA", 3, 8], ["NJ", 3, 9], ["CT", 3, 10],
+  ["CA", 4, 1], ["UT", 4, 2], ["CO", 4, 3], ["NE", 4, 4], ["MO", 4, 5], ["KY", 4, 6], ["WV", 4, 7], ["VA", 4, 8], ["MD", 4, 9], ["DE", 4, 10],
+  ["AZ", 5, 2], ["NM", 5, 3], ["KS", 5, 4], ["AR", 5, 5], ["TN", 5, 6], ["NC", 5, 7], ["SC", 5, 8], ["DC", 5, 9],
+  ["OK", 6, 4], ["LA", 6, 5], ["MS", 6, 6], ["AL", 6, 7], ["GA", 6, 8],
+  ["HI", 7, 0], ["TX", 7, 4], ["FL", 7, 9],
+];
+
+export interface StateSearchStat {
+  state: string;
+  searches: number;
+  zero: number;
+  lastAt: string;
+}
+
+export type MapTone = "none" | "found" | "mixed" | "empty";
+
+/** Green: every search found bids. Red: none did. Amber: some did. */
+export function mapTone(stat: StateSearchStat | undefined): MapTone {
+  if (!stat || stat.searches === 0) return "none";
+  if (stat.zero === 0) return "found";
+  if (stat.zero >= stat.searches) return "empty";
+  return "mixed";
+}
+
+/** A state searched in the last 15 minutes pulses. */
+export function isRecentSearch(stat: StateSearchStat | undefined, now: number): boolean {
+  return !!stat && now - new Date(stat.lastAt).getTime() <= 15 * 60_000;
+}
+
+export interface OnlineVisitor {
+  visitorKey: string;
+  place: string | null;
+  path: string;
+  at: string;
+}

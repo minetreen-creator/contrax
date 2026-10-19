@@ -27,6 +27,14 @@
  *     runner's no-op guard (`IS DISTINCT FROM`, extended with this job's two
  *     date columns and `closed_at`), so only genuinely new or changed rows are
  *     written and only genuinely new rows are counted as new.
+ *  4b. NATURAL-KEY SAFETY (post-merge fix, first real run 2026-10-19 03:05 UTC):
+ *     the kept stream is deduped on the FIVE-column tuple of
+ *     `idx_bids_natural_key_unique` BEFORE the VALUES list is built, and the
+ *     cross-source guard compares that same five-column tuple (scoped to the
+ *     index's frozen `created_at >= 2026-09-22` predicate). A row whose tuple an
+ *     existing row already holds is SKIPPED, counted and logged — never an
+ *     abort. Before this, two NoticeIds sharing one tuple inside a single
+ *     500-row statement killed the whole run with 23505 and wrote zero rows.
  *  5. CLOSE OUT rows whose deadline passed, or which vanished from tonight's
  *     file, without ever touching a row stored after the extract was generated
  *     (a same-day 4h-sync bid).
@@ -42,10 +50,13 @@ import {
   createCsvRecordStream,
   csvHeaderIndex,
   csvNoticeToBid,
+  dedupeKeptRowsByNaturalKey,
   describeStateSetChange,
   isAwardOrJustificationType,
   isOpenDeadline,
   keptRowCounterStats,
+  NATURAL_KEY_INDEX,
+  NATURAL_KEY_SCOPE_SQL,
   parseDeadline,
   parseSamCsvRecord,
   projectStates,
@@ -102,6 +113,10 @@ export interface IngestSummary {
   inserted: number;
   updated: number;
   unchanged: number;
+  /** Rows refused because an existing row already holds their natural-key tuple. */
+  skippedNaturalKey: number;
+  /** Rows collapsed in-stream because two NoticeIds share one natural-key tuple. */
+  naturalKeyDuplicates: number;
   closed: number;
   projectedStates: ReturnType<typeof projectStates>;
   reportOnly: boolean;
@@ -113,6 +128,10 @@ export async function readSamCsv(input: AsyncIterable<string | Uint8Array>): Pro
   csvRows: number;
   skipped: Record<string, number>;
   duplicateIds: number;
+  /** Rows collapsed because they share the UNIQUE index's 5-column tuple (post-merge fix). */
+  naturalKeyDuplicates: number;
+  /** How many natural-key groups held more than one NoticeId. */
+  naturalKeyGroups: number;
 }> {
   const stream = createCsvRecordStream();
   const decoder = new TextDecoder();
@@ -159,7 +178,27 @@ export async function readSamCsv(input: AsyncIterable<string | Uint8Array>): Pro
     handle(stream.push(typeof chunk === "string" ? chunk : decoder.decode(chunk, { stream: true })));
   }
   handle(stream.end());
-  return { rows, csvRows, skipped, duplicateIds };
+
+  // ── IN-STREAM NATURAL-KEY DEDUPE (post-merge regression fix, 2026-10-19) ───
+  // The extract holds DISTINCT NoticeIds whose (title, agency, notice_type,
+  // due_date, psc) tuple is IDENTICAL. The old title+agency pre-filter could not
+  // see a sibling row inside the SAME 500-row statement, so two colliders landed
+  // in one batch and the whole run aborted with 23505 on
+  // idx_bids_natural_key_unique — zero rows written. Collapsing the kept stream
+  // on the index's OWN tuple BEFORE the VALUES list is built makes that
+  // structurally impossible: a natural-key tuple appears at most once per run.
+  const dedupe = dedupeKeptRowsByNaturalKey(rows);
+  if (dedupe.dropped.length > 0) {
+    skipped.natural_key_duplicate = dedupe.dropped.length;
+  }
+  return {
+    rows: dedupe.rows,
+    csvRows,
+    skipped,
+    duplicateIds,
+    naturalKeyDuplicates: dedupe.dropped.length,
+    naturalKeyGroups: dedupe.groups,
+  };
 }
 
 /** The skip reason for a notice that produced no row (kept visible in the log). */
@@ -199,13 +238,60 @@ export async function liveCounterStates(): Promise<{
 }
 
 /**
- * One batch upsert. Returns how many rows were genuinely inserted, refreshed and
- * skipped-as-identical — the `xmax = 0` trick the runner uses, plus the no-op
- * guard's own silence for unchanged rows.
+ * ── THE CROSS-SOURCE NATURAL-KEY GUARD: THE INDEX'S OWN FIVE COLUMNS ─────────
+ *
+ * The pre-merge guard compared (title, agency) only. The UNIQUE index
+ * (db/migrations/048_bids_natural_key_unique.sql) is a FIVE-column tuple with a
+ * frozen `created_at >=` predicate, so a (title, agency) match was BOTH
+ * over-aggressive (a same title+agency row with a DIFFERENT due_date or psc is
+ * NOT a duplicate on the index and must be inserted) and under-guarded (it could
+ * not see a sibling in its own VALUES list). This predicate mirrors the index
+ * exactly:
+ *   lower(btrim(title)), lower(btrim(agency)), COALESCE(notice_type, ''),
+ *   due_date (IS NOT DISTINCT FROM — the index is NULLS NOT DISTINCT),
+ *   COALESCE(psc, '')
+ * scoped to `b.created_at >= NATURAL_KEY_SCOPE_SQL` (rows before the frozen
+ * cutover are grandfathered and are NOT enforced by the index — refusing an
+ * insert against one would lose a row the database would have accepted).
+ *
+ * SELF-EXCLUSION (owner fix 2026-10-10, eVA staleness): the row's OWN identity is
+ * excluded, so a re-fetch of an already-stored notice still reaches
+ * `ON CONFLICT (source, external_id) DO UPDATE` and refreshes in place.
  */
-export async function upsertBatch(
-  batch: readonly SamCsvBidRow[],
-): Promise<{ inserted: number; updated: number; unchanged: number }> {
+export const NATURAL_KEY_GUARD_SQL = `
+      lower(btrim(b.title)) = lower(btrim(v.title))
+        AND lower(btrim(b.agency)) = lower(btrim(v.agency))
+        AND COALESCE(b.notice_type, '') = COALESCE(v.notice_type, '')
+        AND b.due_date IS NOT DISTINCT FROM v.due_date
+        AND COALESCE(b.psc, '') = COALESCE(v.psc, '')
+        AND b.created_at >= ${NATURAL_KEY_SCOPE_SQL}
+        AND NOT (b.source = v.source AND b.external_id = v.external_id)`;
+
+export interface BatchOutcome {
+  inserted: number;
+  updated: number;
+  unchanged: number;
+  /**
+   * Rows the guard REFUSED because an existing row (any source, inside the
+   * index's scope) already holds their natural-key tuple. Logged and counted —
+   * never an error, never an abort.
+   */
+  skippedNaturalKey: number;
+}
+
+/**
+ * One batch upsert, in ONE statement. Returns how many rows were genuinely
+ * inserted, refreshed, skipped-as-identical and skipped as natural-key
+ * collisions — the `xmax = 0` trick the runner uses, plus the no-op guard's own
+ * silence for unchanged rows, plus the collision count the `colliding` CTE adds.
+ *
+ * The `colliding` CTE exists because a row refused by the WHERE NOT EXISTS never
+ * reaches RETURNING, so it would otherwise be indistinguishable from an
+ * unchanged row. Counting it in the same statement keeps one round trip per
+ * batch and reports the skip honestly.
+ */
+export async function upsertBatch(batch: readonly SamCsvBidRow[]): Promise<BatchOutcome> {
+  if (batch.length === 0) return { inserted: 0, updated: 0, unchanged: 0, skippedNaturalKey: 0 };
   const q = sql();
   const params: unknown[] = [];
   const valueRows: string[] = [];
@@ -233,74 +319,147 @@ export async function upsertBatch(
       row.archive_date,
     ];
     const placeholders = values
-      .map((_, j) => `$${params.length + j + 1}${CASTS[j] ?? ""}`)
+      .map((_, j) => `${params.length + j + 1}${CASTS[j] ?? ""}`)
       .join(", ");
     valueRows.push(`(${placeholders})`);
     params.push(...values);
   }
 
-  // Cross-source guard, VERBATIM from the runner (src/jobs/runner.ts): several
-  // SAM-family passes return the SAME notice (`sam_naics_561720` already stores
-  // `sam-<id>` for janitorial notices), and the natural-key UNIQUE index would
-  // reject the insert outright. The self-exclusion keeps this job's OWN rows
-  // reachable by the conflict clause so they can be refreshed.
   const text = `
-    INSERT INTO bids (${WRITE_COLUMNS.join(", ")})
-    SELECT * FROM (VALUES ${valueRows.join(", ")})
-      AS v(title, agency, description, location, category, due_date,
+    WITH v(title, agency, description, location, category, due_date,
            estimated_value, source_url, source, external_id, set_aside,
            naics_code, psc, notice_type, solicitation_number,
            source_jurisdiction, raw_location, normalized_state, posted_date,
-           archive_date)
-    WHERE NOT EXISTS (
-      SELECT 1 FROM bids b
-      WHERE lower(btrim(b.title)) = lower(btrim(v.title))
-        AND lower(btrim(b.agency)) = lower(btrim(v.agency))
-        AND NOT (b.source = v.source AND b.external_id = v.external_id)
+           archive_date) AS (
+      VALUES ${valueRows.join(", ")}
+    ),
+    colliding AS (
+      SELECT 1 FROM v WHERE EXISTS (SELECT 1 FROM bids b WHERE ${NATURAL_KEY_GUARD_SQL})
+    ),
+    ins AS (
+      INSERT INTO bids (${WRITE_COLUMNS.join(", ")})
+      SELECT * FROM v
+      WHERE NOT EXISTS (SELECT 1 FROM bids b WHERE ${NATURAL_KEY_GUARD_SQL})
+      ON CONFLICT (source, external_id) DO UPDATE SET
+        title = EXCLUDED.title,
+        description = CASE WHEN EXCLUDED.description <> '' THEN EXCLUDED.description ELSE bids.description END,
+        location = EXCLUDED.location,
+        category = EXCLUDED.category,
+        due_date = EXCLUDED.due_date,
+        set_aside = COALESCE(EXCLUDED.set_aside, bids.set_aside),
+        naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code),
+        psc = COALESCE(EXCLUDED.psc, bids.psc),
+        notice_type = COALESCE(EXCLUDED.notice_type, bids.notice_type),
+        solicitation_number = COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number),
+        agency = EXCLUDED.agency,
+        source_url = EXCLUDED.source_url,
+        source_jurisdiction = EXCLUDED.source_jurisdiction,
+        raw_location = EXCLUDED.raw_location,
+        normalized_state = EXCLUDED.normalized_state,
+        posted_date = EXCLUDED.posted_date,
+        archive_date = EXCLUDED.archive_date,
+        -- A notice that is BACK in tonight's file is open again.
+        closed_at = NULL,
+        updated_at = NOW()
+      -- NO-OP GUARD (the runner's compute saver, extended with this job's columns):
+      -- only rewrite a row when a value this statement would write actually
+      -- differs. Identical rows return nothing from RETURNING, so they are never
+      -- counted as new and cost no CU.
+      WHERE (bids.title, bids.location, bids.category, bids.due_date,
+             bids.set_aside, bids.naics_code, bids.psc, bids.notice_type,
+             bids.agency, bids.source_url, bids.normalized_state,
+             bids.posted_date, bids.archive_date, bids.closed_at)
+          IS DISTINCT FROM
+            (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date,
+             COALESCE(EXCLUDED.set_aside, bids.set_aside),
+             COALESCE(EXCLUDED.naics_code, bids.naics_code),
+             COALESCE(EXCLUDED.psc, bids.psc),
+             COALESCE(EXCLUDED.notice_type, bids.notice_type),
+             EXCLUDED.agency, EXCLUDED.source_url, EXCLUDED.normalized_state,
+             EXCLUDED.posted_date, EXCLUDED.archive_date, NULL::timestamptz)
+      RETURNING (xmax = 0) AS inserted
     )
-    ON CONFLICT (source, external_id) DO UPDATE SET
-      title = EXCLUDED.title,
-      description = CASE WHEN EXCLUDED.description <> '' THEN EXCLUDED.description ELSE bids.description END,
-      location = EXCLUDED.location,
-      category = EXCLUDED.category,
-      due_date = EXCLUDED.due_date,
-      set_aside = COALESCE(EXCLUDED.set_aside, bids.set_aside),
-      naics_code = COALESCE(EXCLUDED.naics_code, bids.naics_code),
-      psc = COALESCE(EXCLUDED.psc, bids.psc),
-      notice_type = COALESCE(EXCLUDED.notice_type, bids.notice_type),
-      solicitation_number = COALESCE(EXCLUDED.solicitation_number, bids.solicitation_number),
-      agency = EXCLUDED.agency,
-      source_url = EXCLUDED.source_url,
-      source_jurisdiction = EXCLUDED.source_jurisdiction,
-      raw_location = EXCLUDED.raw_location,
-      normalized_state = EXCLUDED.normalized_state,
-      posted_date = EXCLUDED.posted_date,
-      archive_date = EXCLUDED.archive_date,
-      -- A notice that is BACK in tonight's file is open again.
-      closed_at = NULL,
-      updated_at = NOW()
-    -- NO-OP GUARD (the runner's compute saver, extended with this job's columns):
-    -- only rewrite a row when a value this statement would write actually
-    -- differs. Identical rows return nothing from RETURNING, so they are never
-    -- counted as new and cost no CU.
-    WHERE (bids.title, bids.location, bids.category, bids.due_date,
-           bids.set_aside, bids.naics_code, bids.psc, bids.notice_type,
-           bids.agency, bids.source_url, bids.normalized_state,
-           bids.posted_date, bids.archive_date, bids.closed_at)
-        IS DISTINCT FROM
-          (EXCLUDED.title, EXCLUDED.location, EXCLUDED.category, EXCLUDED.due_date,
-           COALESCE(EXCLUDED.set_aside, bids.set_aside),
-           COALESCE(EXCLUDED.naics_code, bids.naics_code),
-           COALESCE(EXCLUDED.psc, bids.psc),
-           COALESCE(EXCLUDED.notice_type, bids.notice_type),
-           EXCLUDED.agency, EXCLUDED.source_url, EXCLUDED.normalized_state,
-           EXCLUDED.posted_date, EXCLUDED.archive_date, NULL::timestamptz)
-    RETURNING (xmax = 0) AS inserted`;
+    SELECT (SELECT count(*)::int FROM ins) AS returned_count,
+           (SELECT count(*)::int FROM ins WHERE inserted) AS inserted_count,
+           (SELECT count(*)::int FROM colliding) AS collided_count`;
 
-  const returned = (await q.query(text, params)) as { inserted: boolean }[];
-  const inserted = returned.filter((r) => r.inserted).length;
-  const updated = returned.length - inserted;
-  return { inserted, updated, unchanged: batch.length - returned.length };
+  const result = (await q.query(text, params)) as {
+    returned_count: number;
+    inserted_count: number;
+    collided_count: number;
+  }[];
+  const row = result[0] ?? { returned_count: 0, inserted_count: 0, collided_count: 0 };
+  const inserted = Number(row.inserted_count) || 0;
+  const returned = Number(row.returned_count) || 0;
+  const collided = Number(row.collided_count) || 0;
+  return {
+    inserted,
+    updated: returned - inserted,
+    unchanged: batch.length - returned - collided,
+    skippedNaturalKey: collided,
+  };
+}
+
+/**
+ * True when a failed statement was rejected by the natural-key UNIQUE INDEX
+ * (migration 048). Same two conditions as `isNaturalKeyViolation` in
+ * src/jobs/runner.ts (message-matched on purpose: the Neon HTTP driver's error
+ * shape is not guaranteed to carry `code`, and the index name is what identifies
+ * it). Kept local so this job does not import the whole 73-source runner graph.
+ */
+export function isNaturalKeyViolation(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err ?? "");
+  return (
+    /duplicate key value violates unique constraint/i.test(message) &&
+    message.includes(NATURAL_KEY_INDEX)
+  );
+}
+
+function combineOutcome(a: BatchOutcome, b: BatchOutcome): BatchOutcome {
+  return {
+    inserted: a.inserted + b.inserted,
+    updated: a.updated + b.updated,
+    unchanged: a.unchanged + b.unchanged,
+    skippedNaturalKey: a.skippedNaturalKey + b.skippedNaturalKey,
+  };
+}
+
+/**
+ * The batch writer the run uses: `upsertBatch`, plus a SAFETY NET for the one
+ * failure mode that took the first real run down.
+ *
+ * The in-stream dedupe makes a same-statement natural-key collision structurally
+ * impossible, and the SQL guard mirrors the index column-for-column. This wrapper
+ * exists so that a FUTURE divergence between the two (a new key dimension, a
+ * changed index predicate, a normalization difference between JS `trim()` and
+ * Postgres `btrim()`) degrades into "a few rows skipped and logged" instead of
+ * "the nightly ingest wrote NOTHING".
+ *
+ * It bisects the rejected batch until the surviving rows land; a one-row
+ * statement that still collides is counted as a natural-key skip (never silently
+ * dropped, never rethrown as a run failure).
+ */
+export async function upsertBatchResilient(batch: readonly SamCsvBidRow[]): Promise<BatchOutcome> {
+  if (batch.length === 0) return { inserted: 0, updated: 0, unchanged: 0, skippedNaturalKey: 0 };
+  try {
+    return await upsertBatch(batch);
+  } catch (e) {
+    if (!isNaturalKeyViolation(e)) throw e;
+    if (batch.length === 1) {
+      console.warn(
+        `   ⚠️ ${NATURAL_KEY_INDEX} refused a SINGLE row the guard did not predict ` +
+          `(${batch[0]!.external_id}) — counted as a natural-key skip`,
+      );
+      return { inserted: 0, updated: 0, unchanged: 0, skippedNaturalKey: 1 };
+    }
+    const mid = Math.ceil(batch.length / 2);
+    console.warn(
+      `   ⚠️ batch of ${batch.length} rejected by ${NATURAL_KEY_INDEX} — bisecting to isolate the collider`,
+    );
+    const left = await upsertBatchResilient(batch.slice(0, mid));
+    const right = await upsertBatchResilient(batch.slice(mid));
+    return combineOutcome(left, right);
+  }
 }
 
 /**
@@ -344,10 +503,17 @@ export async function runSamCsvIngest(
   const reportOnly = opts.reportOnly ?? process.env.SAM_CSV_REPORT_ONLY === "1";
   const extractTime = opts.extractTime ?? process.env.SAM_CSV_EXTRACT_TIME ?? now.toISOString();
 
-  const { rows, csvRows, skipped } = await readSamCsv(input);
+  const { rows, csvRows, skipped, naturalKeyDuplicates, naturalKeyGroups } = await readSamCsv(input);
   console.log(
     `📥 SAM CSV: ${csvRows} data row(s) read; ${rows.length} live opportunity(ies) kept; skipped ${JSON.stringify(skipped)}`,
   );
+  if (naturalKeyDuplicates > 0) {
+    console.log(
+      `🔑 in-stream natural-key dedupe: ${naturalKeyDuplicates} kept row(s) collapsed ` +
+        `(${naturalKeyGroups} tuple(s) held more than one NoticeId — the 5-column UNIQUE ` +
+        `index's own tuple, so those rows could never both be stored)`,
+    );
+  }
 
   const live = await liveCounterStates();
   const projection = projectStates(live.states, rows);
@@ -380,6 +546,8 @@ export async function runSamCsvIngest(
       inserted: 0,
       updated: 0,
       unchanged: 0,
+      skippedNaturalKey: 0,
+      naturalKeyDuplicates,
       closed: 0,
       projectedStates: projection,
       reportOnly: true,
@@ -389,17 +557,20 @@ export async function runSamCsvIngest(
   let inserted = 0;
   let updated = 0;
   let unchanged = 0;
+  let skippedNaturalKey = 0;
   let batches = 0;
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
     const batch = rows.slice(i, i + BATCH_SIZE);
-    const r = await upsertBatch(batch);
+    const r = await upsertBatchResilient(batch);
     inserted += r.inserted;
     updated += r.updated;
     unchanged += r.unchanged;
+    skippedNaturalKey += r.skippedNaturalKey;
     batches++;
     if (batches % 5 === 0) {
       console.log(
-        `   … ${batches} batch(es): +${inserted} new, ~${updated} changed, =${unchanged} identical`,
+        `   … ${batches} batch(es): +${inserted} new, ~${updated} changed, =${unchanged} identical, ` +
+          `⊘${skippedNaturalKey} natural-key collision(s)`,
       );
     }
   }
@@ -410,7 +581,8 @@ export async function runSamCsvIngest(
   });
 
   console.log(
-    `✅ SAM CSV ingest done — ${inserted} new, ${updated} refreshed, ${unchanged} identical, ${closed} closed out`,
+    `✅ SAM CSV ingest done — ${inserted} new, ${updated} refreshed, ${unchanged} identical, ` +
+      `${skippedNaturalKey} skipped (natural-key collision with an existing row), ${closed} closed out`,
   );
   // THE STATE-SET OBSERVATION, on the counter's OWN two reads (both directions).
   try {
@@ -446,6 +618,8 @@ export async function runSamCsvIngest(
     inserted,
     updated,
     unchanged,
+    skippedNaturalKey,
+    naturalKeyDuplicates,
     closed,
     projectedStates: projection,
     reportOnly: false,

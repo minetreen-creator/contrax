@@ -1,4 +1,4 @@
-import { describe, expect, mock, test } from "bun:test";
+import { afterAll, describe, expect, mock, test } from "bun:test";
 import { foundingBusinessSchema } from "./founding-business";
 let userRow: any = null;
 let reservedRows: any[] = [];
@@ -19,26 +19,26 @@ mock.module("~/db", () => ({
       return text.includes("RETURNING slot") ? [{ slot: 1 }] : [];
     },
 }));
-mock.module("~/lib/stripe", () => ({
-  getStripe: () => ({
-    coupons: {
-      retrieve: async () => ({
-        amount_off: 9100,
-        currency: "usd",
-        duration: "once",
-        valid: true,
-      }),
-    },
-    checkout: {
-      sessions: {
-        create: async (params: any, options: any) => {
-          checkouts.push({ params, options });
-          return { id: "cs_new", url: "https://checkout.stripe.com/test" };
-        },
+const { setStripeClientForTests } = await import("~/lib/stripe");
+setStripeClientForTests({
+  coupons: {
+    retrieve: async () => ({
+      amount_off: 9100,
+      currency: "usd",
+      duration: "once",
+      valid: true,
+    }),
+  },
+  checkout: {
+    sessions: {
+      create: async (params: any, options: any) => {
+        checkouts.push({ params, options });
+        return { id: "cs_new", url: "https://checkout.stripe.com/test" };
       },
     },
-  }),
-}));
+  },
+} as any);
+afterAll(() => setStripeClientForTests(null));
 const {
   foundingBusinessCheckoutParams,
   isPaidFoundingBusinessSession,

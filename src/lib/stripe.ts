@@ -17,6 +17,16 @@ import { hashPassword } from "~/lib/password";
 
 let stripeClient: Stripe | null = null;
 
+/**
+ * Tests only: use a fake client, or `null` to go back to building the real one.
+ * Mocking this whole module with `mock.module` replaces it for every later test
+ * file in the same `bun test` run (the registry is process-global), which broke
+ * annual-billing.test.ts; injecting the client keeps the module real.
+ */
+export function setStripeClientForTests(client: Stripe | null): void {
+  stripeClient = client;
+}
+
 export function getStripe(): Stripe {
   if (stripeClient) return stripeClient;
 

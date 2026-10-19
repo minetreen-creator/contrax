@@ -53,6 +53,8 @@ let stripeLib: typeof import("./stripe");
 beforeAll(async () => {
   process.env.STRIPE_SECRET_KEY = "sk_test_fake";
   stripeLib = await import("./stripe");
+  // Another suite in the same run may have left a client cached; build ours.
+  stripeLib.setStripeClientForTests(null);
 });
 
 describe("yearly checkout", () => {

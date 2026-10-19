@@ -5,6 +5,7 @@ import { getCurrentUser } from "~/lib/auth";
 import { checkTrial } from "~/routes/dashboard";
 import { redirectToCheckout } from "~/lib/checkout";
 import { FoundingOffer } from "~/components/FoundingOffer";
+import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
 
 const getStatus = createServerFn({ method: "GET" }).handler(async () => {
   const u = await getCurrentUser();
@@ -22,7 +23,7 @@ const plans = [
   { id: "starter", name: "Starter", price: 19, yearly: 190 },
   { id: "professional", name: "Professional", price: 79, yearly: 790 },
   { id: "agency", name: "Agency", price: 199, yearly: 1990 },
-];
+] as const;
 
 function Upgrade() {
   const status = Route.useLoaderData();
@@ -89,6 +90,7 @@ function Upgrade() {
                   </div>
                 )}
                 <h2 className="text-xl font-bold text-slate-900">{p.name}</h2>
+                <p className="mt-1 text-sm text-slate-600">{PLAN_COPY[p.id].description}</p>
                 {interval === "month" ? (
                   <p className="mt-4 text-4xl font-extrabold text-slate-900">
                     ${p.price}
@@ -105,6 +107,15 @@ function Upgrade() {
                     </p>
                   </>
                 )}
+                {/* What the plan includes (owner 2026-10-19): the same list as /pricing. */}
+                <ul className="mt-5 space-y-2 text-sm text-slate-700">
+                  {upgradeFeatures(PLAN_COPY[p.id].features).map((f) => (
+                    <li key={f} className="flex gap-2">
+                      <span aria-hidden="true" className="text-emerald-600">✓</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
                 <button
                   onClick={() => redirectToCheckout(p.id as any, { interval })}
                   className={`mt-8 w-full rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 ${

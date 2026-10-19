@@ -4,6 +4,7 @@ import { GrantsPricing } from "~/components/GrantsPricing";
 import { resolveGrantsUpgradeEnabled } from "~/lib/grants-upgrade-signal";
 import { SiteHeader } from "~/components/SiteHeader";
 import { FoundingOffer } from "~/components/FoundingOffer";
+import { PLAN_COPY } from "~/lib/plan-features";
 
 const getGrantsPricingData = createServerFn({ method: "GET" }).handler(async () => {
   const grantsUpgradeEnabled = resolveGrantsUpgradeEnabled(
@@ -40,15 +41,8 @@ const plans = [
     name: "Basic",
     price: "0",
     period: "/month",
-    description: "Where your account lands after the 7-day trial if you don't choose a plan: search only.",
-    features: [
-      "Search every open solicitation (new bids after a 7-day head start)",
-      "2 Radar searches per account",
-      "Bid matches for 1 state and 1 trade",
-      "1 Saved Bid",
-      "Standard Set-Aside Filters",
-      "No bid emails",
-    ],
+    description: PLAN_COPY.basic.description,
+    features: PLAN_COPY.basic.features,
     cta: "Start 7-day trial",
     slug: "basic",
     featured: false,
@@ -58,20 +52,8 @@ const plans = [
     name: "Starter",
     price: "19",
     period: "/month",
-    description: "The new bids in your trade and states, in your inbox each morning, 7 days before free accounts see them.",
-    features: [
-      "Everything in Basic",
-      "New bids the day they post, 7 days before free accounts",
-      "A 6 AM email of new bids in your trade and states",
-      "Bid matches for every state and trade you work in",
-      "Unlimited Saved Bids",
-      "Who to contact on federal bids: the contracting officer's name, email and phone",
-      '"What did the winner bid last time?"',
-      "Your saved bids' deadlines in Google Calendar or Outlook",
-      "CRM: save contacts (up to 100) with notes, next actions and manual follow-up dates, and link them to your saved bids",
-      "Or $190 a year: 2 months free",
-      "Cancel anytime",
-    ],
+    description: PLAN_COPY.starter.description,
+    features: PLAN_COPY.starter.features,
     cta: "Choose Starter",
     slug: "starter",
     featured: false,
@@ -80,17 +62,8 @@ const plans = [
     name: "Professional",
     price: "79",
     period: "/month",
-    description: "For growing businesses that win more with full RFP intelligence — 50 AI Executive Briefs a month, incumbent pricing, and AI match scoring.",
-    features: [
-      "Everything in Starter",
-      "Contracts Ending Soon: full access to contract holders, agencies, values and end dates — prepare before the next bid is posted",
-      "50 AI Executive Briefs a month — requirements, milestones & red flags",
-      "Full Incumbent Intelligence & Past Pricing",
-      "AI Match Scoring",
-      "CRM: 1,000 contacts, full relationship history (notes, calls, meetings, emails), and email reminders for your follow-up dates — opt-in, one email per follow-up date",
-      "AI follow-up drafts written from a contact's notes and history — drafts only, never auto-sent",
-      "Or $790 a year: 2 months free",
-    ],
+    description: PLAN_COPY.professional.description,
+    features: PLAN_COPY.professional.features,
     cta: "Choose Professional",
     slug: "professional",
     featured: true,

@@ -45,6 +45,22 @@ export async function accountSearchProfile(email: string): Promise<void> {
         console.log(`  ${k}: ${v === null || v === undefined ? "-" : typeof v === "object" && !(v instanceof Date) ? JSON.stringify(v) : v}`);
       }
     }
+    // Searches saved from 2026-10-19 on (radar_search_log); none before that.
+    try {
+      const searches = (await sql()`
+        SELECT created_at, trade, state, cert, matched, shown, related
+        FROM radar_search_log
+        WHERE user_id = ${u.id as number}
+        ORDER BY created_at DESC
+        LIMIT 25
+      `) as Record<string, unknown>[];
+      console.log(`🔎 Recent searches (${searches.length})`);
+      for (const s of searches) {
+        console.log(`  ${s.created_at} | ${s.trade} | ${s.state || "any state"} | ${s.cert} | matches ${s.matched} (shown ${s.shown}) | related ${s.related}`);
+      }
+    } catch {
+      console.log("🔎 Recent searches: none saved yet");
+    }
   }
 }
 

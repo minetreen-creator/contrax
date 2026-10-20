@@ -81,6 +81,13 @@ export default function WorkspaceSwitcher() {
         return false;
       }
       await load();
+      // Phase 2: tell the cross-client dashboard (AgencyClientOverview, rendered
+      // directly below) that the client list changed, so a newly created or renamed
+      // client appears there without a page reload. A DOM event, not shared state:
+      // the two components stay independently mountable.
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("agency-workspaces-changed"));
+      }
       return true;
     } catch {
       setError("Could not save that change.");

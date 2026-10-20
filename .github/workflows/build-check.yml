@@ -650,6 +650,8 @@ jobs:
         run: bun test src/lib/path-checks.test.ts
       - name: Founder live chat rules (unit, deterministic, zero network)
         run: bun test src/lib/live-chat.test.ts
+      - name: Mission Control live alerts rules (unit, deterministic, zero network)
+        run: bun test src/lib/live-push.test.ts
       - name: Mobile public bid source tests
         run: |
           node --input-type=module -e 'import {build} from "esbuild"; await build({entryPoints:["tests/mobile-source.test.ts"],bundle:true,platform:"node",format:"esm",packages:"external",outfile:".mobile-source-test.mjs"})'

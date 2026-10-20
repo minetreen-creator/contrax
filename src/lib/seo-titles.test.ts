@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import partTitles from "../data/far-part-titles.json";
 import {
   clampToBudget,
   makeBlogTitle,
   makeClauseTitle,
   makeNaicsTitle,
+  makePartTitle,
 } from "./seo-titles";
 
 const inRange = (s: string) => s.length >= 30 && s.length <= 60;
@@ -45,6 +47,51 @@ describe("seo-titles (c_title finding: every rendered title in 30-60 chars)", ()
     );
     expect(inRange(long), `"${long}" (${long.length})`).toBe(true);
     expect(long.includes("…")).toBe(true);
+  });
+
+  // /clauses/{part} part pages (FAR Part 3 was served at 85 rendered chars).
+  // Real acquisition.gov part names from src/data/far-part-titles.json.
+  test("clause PART titles are pinned and stay ≤60 rendered chars", () => {
+    const pinned: Array<[string, string, string]> = [
+      // [label, part, expected rendered title]
+      ["FAR", "1", "FAR Part 1 — Federal Acquisition Regulations… | Contrax"], // was 61 chars
+      ["FAR", "3", "FAR Part 3 — Improper Business Practices and… | Contrax"], // was 85 chars
+      ["FAR", "4", "FAR Part 4 — Administrative and Information… | Contrax"], // was 61 chars
+      ["FAR", "5", "FAR Part 5 — Publicizing Contract Actions | Contrax"], // short name, no clamp
+      ["DFARS", "203", "DFARS Part 203 — Improper Business Practices and… | Contrax"],
+      ["DFARS", "252", "DFARS Part 252 — Solicitation Provisions and… | Contrax"],
+    ];
+    for (const [label, part, expected] of pinned) {
+      const title = makePartTitle(label, part, (partTitles as Record<string, string>)[part] ?? null);
+      expect(title, `part ${part}`).toBe(expected);
+      expect(title.length, `part ${part}: "${title}"`).toBeLessThanOrEqual(60);
+    }
+  });
+
+  test("part titles with no acquisition.gov name fall back to the short heading", () => {
+    for (const [label, part] of [
+      ["FAR", "20"], // curated name is "Reserved"
+      ["DFARS", "220"], // curated name is "Reserved"
+      ["FAR", "999"], // no curated name at all
+    ] as Array<[string, string]>) {
+      for (const name of [null, "Reserved"]) {
+        const title = makePartTitle(label, part, name);
+        expect(title).toBe(`${label} Part ${part} | Contrax`);
+        expect(title.length).toBeLessThanOrEqual(60);
+      }
+    }
+  });
+
+  test("every curated part title renders ≤60 chars (all 107 acquisition.gov parts)", () => {
+    const titles = partTitles as Record<string, string>;
+    const parts = Object.keys(titles);
+    expect(parts.length).toBeGreaterThan(100);
+    for (const part of parts) {
+      // Same regulation split as partLabel(): DFARS parts are numbered 200+.
+      const label = Number(part) >= 200 ? "DFARS" : "FAR";
+      const title = makePartTitle(label, part, titles[part]);
+      expect(title.length, `part ${part}: "${title}" (${title.length})`).toBeLessThanOrEqual(60);
+    }
   });
 
   test("blog titles stay in range even for long post titles", () => {

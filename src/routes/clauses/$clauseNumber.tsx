@@ -4,7 +4,7 @@ import { sql } from "~/db";
 import { ClauseCtaCard } from "~/components/ClauseCtaCard";
 import { ClausePartPage } from "~/components/ClausePartPage";
 import { buildClauseMetaDescription } from "~/lib/clause-meta";
-import { makeClauseTitle } from "~/lib/seo-titles";
+import { makeClauseTitle, makePartTitle } from "~/lib/seo-titles";
 import {
   getPartPageData,
   partLabel,
@@ -119,7 +119,9 @@ export const Route = createFileRoute("/clauses/$clauseNumber")({
       const label = d.label;
       const name = d.name && d.name !== "Reserved" ? d.name : null;
       const heading = `${label} Part ${d.part}`;
-      const title = name ? `${heading} — ${name} | Contrax` : `${heading} | Contrax`;
+      // Title-length budget (SEO audit): route the part heading through the
+      // shared clamp so long acquisition.gov part names stay ≤60 chars rendered.
+      const title = makePartTitle(label, d.part, name);
       const description = d.notFound
         ? "The requested FAR or DFARS part could not be found."
         : d.failed

@@ -40,6 +40,18 @@ export function makeClauseTitle(prefix: string, clauseTitle: string, flagKey: st
   return `${prefix} — ${clamped}${CONTRAX_SUFFIX}`;
 }
 
+/**
+ * clauses/{part}: own part `${label} Part ${n} — ${partName}` ≤ 50 (+ " | Contrax").
+ * `name` is null when the part has no curated acquisition.gov title ("Reserved"
+ * or unknown), in which case the bare heading `${label} Part ${n}` is used —
+ * already well under budget, so nothing to clamp.
+ */
+export function makePartTitle(label: string, part: string, name: string | null): string {
+  const heading = `${label} Part ${part}`;
+  if (!name || name === "Reserved") return `${heading}${CONTRAX_SUFFIX}`;
+  return makeClauseTitle(heading, name, `clause part ${part}`);
+}
+
 /** blog/{slug}: post title ≤ 45 so " — Contrax Blog" (15) keeps the rendered title ≤ 60. */
 export function makeBlogTitle(postTitle: string, slug: string): string {
   const clamped = clampToBudget(postTitle, 45, `blog ${slug}`);

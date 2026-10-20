@@ -50,9 +50,26 @@ export const PLAN_COPY = {
       "Or $790 a year: 2 months free",
     ],
   },
+  // Owner 2026-10-20: Agency ships multi-client workspaces (workspaces table +
+  // workspace_create() cap, migration 068 prod-applied; cross-client dashboard
+  // and per-client CSV export shipped in #801/#802), so the shared description
+  // and bullet list now say exactly what ships. Claimed: one login, up to 10
+  // client workspaces each with its own matches/saved bids/CRM, CRM Pro across
+  // every workspace (2,500 contacts total), cross-client dashboard, per-client
+  // CSV export, everything in Professional. NOT claimed: team seats (a
+  // workspace belongs to a login, it is not a multi-user seat) or any cap
+  // beyond 10 workspaces / 2,500 contacts.
   agency: {
-    description: "For teams and consultants.",
-    features: ["Everything in Professional"],
+    description: "For consultants and agencies managing multiple government-contracting clients: one login for up to 10 client workspaces, each with its own Radar matches, saved bids and CRM pipeline — plus a cross-client dashboard.",
+    features: [
+      "Everything in Professional",
+      "Up to 10 client workspaces — each with its own states, trades, Radar matches, saved bids and CRM pipeline",
+      "CRM Pro features across every workspace (up to 2,500 contacts total)",
+      "Cross-client dashboard: deadlines and advancing pipelines for all clients at a glance",
+      "Per-client CSV export of each workspace's saved bids and contacts",
+      "Or $1,990 a year: 2 months free",
+      "Cancel anytime",
+    ],
   },
 } as const satisfies Record<string, PlanCopy>;
 

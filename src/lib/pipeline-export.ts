@@ -16,6 +16,14 @@
  * see WORKFLOW/PR notes; bun's mock registry is process-global and leaks).
  */
 import { sql } from "~/db";
+import { csvCell, csvDocument } from "~/lib/csv-writer";
+
+/**
+ * The RFC-4180 writer itself moved to src/lib/csv-writer.ts when the Agency tier's
+ * per-client export (phase 3) needed the SAME rules for different columns; it is
+ * re-exported here so this module's public API and behaviour are unchanged.
+ */
+export { csvCell };
 
 /** One exported pipeline row (column order = PIPELINE_CSV_COLUMNS). */
 export interface PipelineExportRow {
@@ -48,21 +56,11 @@ export const PIPELINE_CSV_COLUMNS: readonly string[] = [
 ];
 
 /**
- * One CSV cell. RFC-4180: a value containing a quote, comma, CR or LF is
- * wrapped in double quotes with inner quotes doubled. Values are exported
- * verbatim (no trimming/invention) so the file always matches what the pipeline
- * page shows.
+ * The row's RAW values, in PIPELINE_CSV_COLUMNS order. The shared writer
+ * (src/lib/csv-writer.ts) escapes them, so escaping happens exactly once — a cell
+ * is never quoted twice.
  */
-export function csvCell(value: unknown): string {
-  if (value == null) return "";
-  const s = String(value);
-  if (s === "") return "";
-  if (/[",\r\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
-
-/** The row as an array of cells, in PIPELINE_CSV_COLUMNS order. */
-export function pipelineRowCells(row: PipelineExportRow): string[] {
+export function pipelineRowValues(row: PipelineExportRow): Array<string | null> {
   return [
     String(row.bid_id),
     row.title,
@@ -75,7 +73,12 @@ export function pipelineRowCells(row: PipelineExportRow): string[] {
     row.status,
     row.saved_at,
     row.source_url,
-  ].map(csvCell);
+  ];
+}
+
+/** The row as an array of escaped cells, in PIPELINE_CSV_COLUMNS order. */
+export function pipelineRowCells(row: PipelineExportRow): string[] {
+  return pipelineRowValues(row).map(csvCell);
 }
 
 /**
@@ -84,9 +87,10 @@ export function pipelineRowCells(row: PipelineExportRow): string[] {
  * header-only file — never a fabricated row.
  */
 export function toPipelineCsv(rows: readonly PipelineExportRow[]): string {
-  const lines = [PIPELINE_CSV_COLUMNS.map(csvCell).join(",")];
-  for (const row of rows) lines.push(pipelineRowCells(row).join(","));
-  return lines.join("\r\n") + "\r\n";
+  return csvDocument(
+    PIPELINE_CSV_COLUMNS,
+    rows.map((row) => pipelineRowValues(row)),
+  );
 }
 
 /** The download filename (date-stamped; the user's own data only). */

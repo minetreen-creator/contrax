@@ -130,3 +130,12 @@
 .admin-console .live-money { padding: 16px; border-radius: 16px; background: rgba(15,23,42,0.75); border: 1px solid rgba(251,191,36,0.35); box-shadow: 0 0 18px rgba(251,191,36,0.12); }
 .admin-console .live-money-paying { display: flex; flex-direction: column; justify-content: center; min-width: 96px; padding: 8px 14px; border-radius: 12px; background: rgba(251,191,36,0.08); }
 .admin-console .live-money-step { display: inline-block; padding: 4px 10px; border-radius: 999px; background: rgba(148,163,184,0.12); font-size: 13px; color: #cbd5e1; }
+.admin-console .live-sayhi { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; color: #fde68a; background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.35); }
+.admin-console .live-sayhi:hover { background: rgba(251,191,36,0.25); }
+.admin-console .live-chat-thread { display: flex; width: 100%; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(15,23,42,0.75); border: 1px solid rgba(148,163,184,0.12); }
+.admin-console .live-chat-thread.is-unread { border-color: rgba(251,191,36,0.6); box-shadow: 0 0 14px rgba(251,191,36,0.25); }
+.admin-console .live-chat-badge { min-width: 20px; padding: 1px 6px; border-radius: 999px; background: #f59e0b; color: #0f172a; font-size: 11px; font-weight: 800; text-align: center; }
+.admin-console .live-chat-drawer { position: fixed; right: 16px; bottom: 16px; z-index: 60; display: flex; flex-direction: column; width: 360px; max-width: calc(100vw - 32px); height: min(520px, calc(100dvh - 32px)); border-radius: 18px; background: #0b1220; border: 1px solid rgba(251,191,36,0.45); box-shadow: 0 20px 60px rgba(0,0,0,0.55), 0 0 24px rgba(251,191,36,0.15); }
+.admin-console .live-chat-bubble { max-width: 85%; white-space: pre-wrap; word-break: break-word; padding: 8px 12px; border-radius: 14px; font-size: 13px; }
+.admin-console .live-chat-bubble.is-owner { background: #f59e0b; color: #0f172a; border-bottom-right-radius: 4px; }
+.admin-console .live-chat-bubble.is-visitor { background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; }

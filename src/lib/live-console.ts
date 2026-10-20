@@ -136,6 +136,8 @@ export function isRecentSearch(stat: StateSearchStat | undefined, now: number): 
 
 export interface OnlineVisitor {
   visitorKey: string;
+  /** The visitor's contrax_vid, for the founder live chat (admin only). */
+  vid: string;
   place: string | null;
   /** Two-letter US state for the map dot; null outside the US or when unknown. */
   state: string | null;

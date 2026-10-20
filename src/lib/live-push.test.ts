@@ -3,11 +3,15 @@ import { readFileSync } from "node:fs";
 
 import { alertEligible, alertText, parseSubscription, subscriptionExpired } from "./live-push";
 
-const visit = { ip: "73.12.34.56", path: "/radar", city: "Denver", region: "CO", internal: false };
+const visit = { ip: "73.12.34.56", path: "/radar", city: "Denver", region: "CO", internal: false, verifiedHuman: true };
 
 describe("alertEligible", () => {
   test("a real visitor on a public page qualifies", () => {
     expect(alertEligible(visit)).toBe(true);
+  });
+
+  test("unclassified visitors never alert, including when BotID is unavailable", () => {
+    expect(alertEligible({ ...visit, verifiedHuman: false })).toBe(false);
   });
 
   test("admins, test accounts and admin pages never alert", () => {
@@ -25,6 +29,13 @@ describe("alertEligible", () => {
     expect(alertEligible({ ...visit, city: "Boardman", region: "OR" })).toBe(false);
     expect(alertEligible({ ...visit, city: "Ashburn", region: "VA" })).toBe(false);
   });
+});
+
+test("intake shares the verified verdict across a batch and gates pushes on it", () => {
+  const src = readFileSync("src/lib/tracking-intake.ts", "utf8");
+  expect(src).toContain("botState.verifiedHuman = result.isBot === false");
+  expect(src).toContain("verifiedHuman: botState.verifiedHuman");
+  expect(src).toContain("handleIntake(itemRequest, undefined, i > 0, botState)");
 });
 
 describe("alertText", () => {

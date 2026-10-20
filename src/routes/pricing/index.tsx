@@ -78,13 +78,13 @@ const plans = [
     cta: "Choose Professional",
     featured: true,
   },
-  // Owner 2026-10-19 (item 2): Agency is a real plan card now, not just a
-  // footer link. HONESTY: nothing in the product distinguishes Agency from
-  // Professional today — no team seats, no shared pipeline, no separate contact
-  // caps (crm-access.server.ts maps agency → the professional CRM tier, its top
-  // tier). So the card claims only what ships: everything in Professional, plus
-  // who it is for. Deliberately NOT claimed: shared pipeline, team seats, more
-  // contacts.
+  // Owner 2026-10-20: Agency now ships multi-client workspaces (owner decision
+  // 10-20; migration 068 prod-applied) — up to 10 client workspaces each with
+  // own matches/saved bids/CRM, CRM Pro across all workspaces (2,500 cap),
+  // cross-client dashboard (P2 #801), per-client CSV export (P3 #802). The card
+  // claims only shipped features. Deliberately NOT claimed: team seats
+  // (workspaces are per-login, not multi-user seats), anything beyond the
+  // 10-workspace / 2,500-contact caps.
   {
     name: "Agency",
     price: 199,
@@ -92,8 +92,10 @@ const plans = [
     slug: "agency",
     href: "/signup?plan=agency",
     headline: null,
-    description: null,
-    features: ["Everything in Professional", "Cancel anytime"],
+    description: PLAN_COPY.agency.description,
+    // Same shared copy and the same yearly-line strip as Starter/Professional:
+    // the Monthly/Yearly switch above carries the yearly price.
+    features: upgradeFeatures(PLAN_COPY.agency.features),
     cta: "Choose Agency",
     featured: false,
   },

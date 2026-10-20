@@ -67,8 +67,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // from this branch (nh_bidnet) = 159.
     // + 2 USPS mail-route trade passes (owner 2026-10-16).
     // Count measured from the real merged module (rebase of #669 onto main @ #718).
-    // + Botetourt County public Bonfire board (2026-10-17).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(171);
+    // + Botetourt County and three Virginia university portals (2026-10-17).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(174);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -129,8 +129,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + City of Dallas Bonfire portal — 2026-10-12.
     // + Worthington OH current municipal RFP page — 2026-10-12.
     // Count measured from the real merged module (rebase of #669 onto main @ #718).
-    // + Botetourt County public Bonfire board (2026-10-17).
-    expect(TAIL_SOURCES.length).toBe(94);
+    // + Botetourt County and three Virginia university portals (2026-10-17).
+    expect(TAIL_SOURCES.length).toBe(97);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

@@ -281,6 +281,10 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // university's OWN portal, so all four are STATE with home jurisdiction TX, not LOCAL.
   // A university is not a state agency, and the badge says the class, never the
   // buyer string (the buyer is the portal's own name and is kept verbatim).
+  // Virginia public universities: direct boards, separate from the eVA feed.
+  va_vt_jaggaer: { class: "state", scopeState: "VA", searchScope: "state-portal", recordType: "opportunity" },
+  va_gmu_bonfire: { class: "state", scopeState: "VA", searchScope: "state-portal", recordType: "opportunity" },
+  va_nsu_bonfire: { class: "state", scopeState: "VA", searchScope: "state-portal", recordType: "opportunity" },
   tx_uh_jaggaer: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
   tx_tamu_jaggaer: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
   tx_texastech_jaggaer: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },

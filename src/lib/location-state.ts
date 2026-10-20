@@ -1118,6 +1118,9 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   // publishing through it is a Texas public body — provable by construction, never
   // text-derived from the free-text buyer name (policy R7; TAMU's portal carries
   // system-unit codes such as "TAMUG" and "AG-RSCH" in its event numbers).
+  va_vt_jaggaer: "VA",
+  va_gmu_bonfire: "VA",
+  va_nsu_bonfire: "VA",
   tx_uh_jaggaer: "TX",
   tx_tamu_jaggaer: "TX",
   tx_texastech_jaggaer: "TX",

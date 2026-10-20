@@ -1,0 +1,36 @@
+name: Daily Path Check
+
+# Owner 2026-10-20: fetch the pages a visitor passes through on the way to
+# paying (homepage, search, signup, sign in, pricing, plan page, checkout)
+# every morning. Results show on /admin; a failed check also turns this run
+# red. Run by hand from the Actions tab to re-check after a fix.
+
+on:
+  schedule:
+    - cron: "47 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Money path check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Check the money path
+        run: bun run path-check

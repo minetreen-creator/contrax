@@ -33,8 +33,8 @@ export const qaFunnelExclusionSQL = (alias = "") =>
  * The `visitors` SUMMARY cache shares NO `user_agent` column with the detail
  * tables (see db/migrations/021_visitors.sql), so the shared BOT_EXCLUSION_SQL
  * fragment cannot be inlined verbatim against it. This mirrors the SAME arms
- * BOT_EXCLUSION_SQL applies to ip/referrer (test/QA IPs 34.214.71.218 +
- * 73.40.36.204 always; crawler + social-preview IP prefixes; AWS/Meta link-
+ * BOT_EXCLUSION_SQL applies to ip/referrer (test/QA IP 34.214.71.218
+ * always; crawler + social-preview IP prefixes; AWS/Meta link-
  * preview IPs only when the referrer is a Facebook host), with the
  * user_agent-only arms intentionally omitted since the column does not exist.
  * Additionally drops self-evident QA probe/manual-exit visitor_ids (`qa-*`),
@@ -47,8 +47,8 @@ export const qaFunnelExclusionSQL = (alias = "") =>
 export const visitorsBotExclusionSQL = () => `
   (
     -- Our own test / scraper IPs (exclude always).
-    first_ip IN ('34.214.71.218','73.40.36.204')
-    OR last_ip IN ('34.214.71.218','73.40.36.204')
+    first_ip IN ('34.214.71.218')
+    OR last_ip IN ('34.214.71.218')
     -- Search-engine crawler IP prefixes: Googlebot + common Bing ranges.
     OR first_ip LIKE '66.249.%' OR last_ip LIKE '66.249.%'
     OR first_ip LIKE '40.77.%' OR last_ip LIKE '40.77.%'

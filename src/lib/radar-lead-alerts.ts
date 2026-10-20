@@ -1,13 +1,36 @@
 import { sql } from "~/db";
-import { US_STATES } from "~/lib/states";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 // D15/Q8 AWARD-EXCLUSION SWEEP (owner-approved 2026-09-23): an award row is
 // historical intel, never an opportunity — it may not enter a lead alert scan.
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { sendRadarMatchAlertEmail, type NewBidSummary } from "~/lib/email";
-import { foundingSpotsRemaining } from "~/lib/stripe";
+import { foundingBusinessSpotsRemaining } from "~/lib/founding-business.server";
 import { ensureRadarLeadsClickLog, buildOpportunityClickUrl, hashClickToken } from "~/lib/radar-lead-clicks";
-import { expandTrade, tradeProvenanceFor } from "~/lib/trade-registry";
+
+// The PURE matcher (profile matching + why-line) lives in ./radar-lead-match so
+// it can be unit-tested without pulling this module's database/email stack;
+// every symbol it used to export is re-exported here, so importers (and
+// tests/radar-lead-weekly.test.ts) are unaffected. The owner's no-state rule —
+// a bid with no place-of-performance state matches on trade/NAICS alone — is
+// implemented in that file, in both the matcher and the why-line.
+import {
+  bidMatchesLeadProfile,
+  bidPlaceStateCode,
+  parseRadarValue,
+  renderMatchWhyLine,
+  whyBidMatchesLeadProfile,
+  type BidRow,
+  type MatchWhyFlags,
+  type RadarLeadProfile,
+} from "./radar-lead-match";
+export {
+  bidMatchesLeadProfile,
+  bidPlaceStateCode,
+  parseRadarValue,
+  renderMatchWhyLine,
+  whyBidMatchesLeadProfile,
+};
+export type { BidRow, MatchWhyFlags, RadarLeadProfile };
 
 /**
  * Periodic match-alert sender for CONFIRMED Radar leads (owner 2026-09-06;
@@ -31,8 +54,13 @@ import { expandTrade, tradeProvenanceFor } from "~/lib/trade-registry";
  *              6-digit NAICS → exact naics_code equality (radar's isNaics rule)
  *   cert     → bid `set_aside` OR the same text fields, using the cert →
  *              literal set-aside map from open-bids.ts (8(a)/8AN, SDVOSB, …)
- *   state    → bids.location state-code match (STATE_LOCATION_REGEX +
- *              locationMatchesStates semantics: nationwide bids always match)
+ *   state    → bids.location state-code match (STATE_LOCATION_REGEX): the bid's
+ *              own place-of-performance state must be the lead's. A bid that
+ *              publishes NO state is never admitted by this dimension, nor by
+ *              its cert/size signals — trade/NAICS is its ONLY route into an
+ *              alert (owner 2026-10-19, nightly-CSV-ingest spec §1: "Bids with
+ *              no state should only match on trade (NAICS code), never by
+ *              default").
  *   sizePref → only applied when the bid carries a stated value (never
  *              fabricated): under250k/under1m/under10m caps on the parsed
  *              estimated value (radar's SIZE_OPTS caps). Unknown value → no
@@ -75,42 +103,6 @@ import { expandTrade, tradeProvenanceFor } from "~/lib/trade-registry";
  *   since the last run (the sync itself just produced them).
  */
 
-// The cert → literal set-aside map mirrors open-bids.ts setAsidePredMulti, so
-// the email matcher's cert semantics are IDENTICAL to every listing surface.
-const CERT_TO_SET_ASIDE: Record<string, string[]> = {
-  "8a": ["8(a)", "8AN"],
-  sdvosb: ["SDVOSB"],
-  wosb: ["WOSB", "EDWOSB"],
-  hubzone: ["HUBZone"],
-  vosb: ["VOSB"],
-};
-const CERT_KEYS = Object.keys(CERT_TO_SET_ASIDE);
-
-/** Honest human label per lead cert key — used ONLY for a reason that fired. */
-const CERT_LABELS: Record<string, string> = {
-  "8a": "8(a)",
-  sdvosb: "SDVOSB",
-  wosb: "WOSB",
-  hubzone: "HUBZone",
-  vosb: "VOSB",
-  sb: "Small-business",
-};
-
-/** Honest human cap label per sizePref — shown ONLY when a stated bid value
- *  actually fell within the cap (never fabricated, never for "any"). */
-const SIZE_CAP_LABELS: Record<string, string> = {
-  under250k: "Under $250K",
-  under1m: "Under $1M",
-  under10m: "Under $10M",
-};
-
-const SIZE_PREFS = new Set(["under250k", "under1m", "under10m", "any"]);
-const SIZE_CAPS: Record<string, number> = {
-  under250k: 250_000,
-  under1m: 1_000_000,
-  under10m: 10_000_000,
-};
-
 /** Bids per email (the rest ride as a truncation note). */
 const MAX_MATCHES_PER_EMAIL = 10;
 
@@ -124,59 +116,14 @@ export const LEAD_ALERT_INTERVAL_DAYS = 7;
 /** Cap on the per-lead sent_bid_ids JSONB array (oldest half rotated when past). */
 const SENT_LIST_CAP = 512;
 
-const STATE_LOCATION_REGEX = new RegExp(
-  `(?:^|,\\s*)(${US_STATES.join("|")})(?:$|\\s|,)`,
-  "i",
-);
-
-/**
- * Parse "$185,000", "185000", "1.2M", "800K" … → number or null. Mirrors the
- * radar route's parseValue (single source of truth stays in radar.tsx; this is
- * the same deterministic logic used by the sync-time matcher).
- */
-export function parseRadarValue(v: string | null | undefined): number | null {
-  if (!v) return null;
-  const s = String(v).trim().toUpperCase();
-  if (!s) return null;
-  let mult = 1;
-  if (s.endsWith("M")) mult = 1_000_000;
-  else if (s.endsWith("K")) mult = 1_000;
-  const digits = s.replace(/[^0-9.]/g, "");
-  if (!digits) return null;
-  const n = parseFloat(digits);
-  if (Number.isNaN(n)) return null;
-  return Math.round(n * mult);
-}
-
 export interface RadarLeadRow {
   id: number;
   email: string;
   visitor_id: string | null;
-  radar_profile: {
-    trade: string | null;
-    state: string | null;
-    cert: string | null;
-    sizePref: string | null;
-    /** Expansion snapshot (migration 034); sender recomputes fresh (single source of truth). */
-    expanded?: { terms: string[]; naicsCodes: string[] } | null;
-  } | null;
+  radar_profile: RadarLeadProfile | null;
   unsubscribe_token: string;
   /** Per-lead already-alerted bid id array (migration 032) — the sender's dedupe. */
   sent_bid_ids?: unknown[] | null;
-}
-
-interface BidRow {
-  id: number;
-  title: string;
-  agency: string | null;
-  category: string | null;
-  description: string | null;
-  location: string | null;
-  set_aside: string | null;
-  naics_code: string | null;
-  due_date: string | null;
-  estimated_value: string | null;
-  source_url: string | null;
 }
 
 export interface RadarAlertRunResult {
@@ -208,149 +155,6 @@ export async function ensureRadarLeadsAlertColumns(): Promise<void> {
     )`;
     await sql()`CREATE INDEX IF NOT EXISTS radar_leads_alerts_sent_lead_idx ON radar_leads_alerts_sent (lead_id)`;
   }
-}
-
-/**
- * Per-bid WHY flags — the ACTUAL match reasons that fired for one bid against
- * one lead profile (owner 2026-09-06; "Why it matches: CERT · Category ·
- * Size"). Each flag recomputes the EXACT same predicate as
- * bidMatchesLeadProfile below (same text blob, same cert map, same size rule):
- * a reason appears ONLY when it genuinely fired. Omits reasons that did not
- * fire; the email falls back to the honest "your Radar profile" ONLY when no
- * concrete flag fired. NEVER invent a reason that did not fire.
- *
- *   cert     → e.g. "SDVOSB" (the lead's cert label, via the cert→set-aside map)
- *   category → the lead's trade text as searched (or the 6-digit NAICS code)
- *   size     → e.g. "Under $1M" (only when the bid STATED a value within cap)
- */
-export interface MatchWhyFlags {
-  cert: string | null;
-  category: string | null;
-  size: string | null;
-}
-
-export function whyBidMatchesLeadProfile(
-  p: RadarLeadRow["radar_profile"],
-  bid: BidRow,
-): MatchWhyFlags {
-  const why: MatchWhyFlags = { cert: null, category: null, size: null };
-  if (!p) return why;
-  const trade = (p.trade ?? "").trim();
-  const cert = (p.cert ?? "").trim();
-  const sizePref = (p.sizePref ?? "").trim();
-
-  const text = `${bid.title || ""} ${bid.agency || ""} ${bid.category || ""} ${bid.description || ""}`.toLowerCase();
-
-  // trade → substring against the EXPANDED term set (trade-registry); exact
-  // NAICS equality for a 6-digit code (expansion never touches NAICS input).
-  const isNaics = /^\d{6}$/.test(trade);
-  const tradeFired = isNaics
-    ? !!bid.naics_code && bid.naics_code.trim() === trade
-    : trade.length > 0 && expandTrade(trade).terms.some((t) => t.length >= 2 && text.includes(t));
-  if (tradeFired) {
-    // HONEST provenance: the register synonym that actually hit (e.g. "freight
-    // hauling") or the literal original term - never a fabricated reason.
-    const prov = tradeProvenanceFor(text, expandTrade(trade), bid.naics_code);
-    why.category = prov ? prov.matchedConcept : trade;
-  }
-
-  // cert → literal set-aside map against set_aside OR the bid text.
-  if (cert && (CERT_KEYS.includes(cert) || cert === "sb")) {
-    let fired = false;
-    if (cert === "sb") {
-      fired = !!bid.set_aside && String(bid.set_aside).trim().length > 0;
-    } else {
-      const pats = CERT_TO_SET_ASIDE[cert] ?? [];
-      fired = pats.some((pat) => {
-        const pLow = pat.toLowerCase();
-        return (
-          text.includes(pLow) ||
-          (!!bid.set_aside && String(bid.set_aside).toLowerCase().includes(pLow))
-        );
-      });
-    }
-    if (fired) why.cert = CERT_LABELS[cert] ?? cert;
-  }
-
-  // sizePref → ONLY when the bid carries a stated value within the cap (never
-  // fabricated; "any" has no cap so it never produces a size reason).
-  if (sizePref && SIZE_PREFS.has(sizePref) && SIZE_CAPS[sizePref] != null) {
-    const ev = parseRadarValue(bid.estimated_value);
-    if (ev != null && ev <= (SIZE_CAPS[sizePref] ?? 0)) {
-      why.size = SIZE_CAP_LABELS[sizePref] ?? null;
-    }
-  }
-
-  return why;
-}
-
-/** Render the WHY flags as the owner-exact "CERT · Category · Size" line, or
- *  null when nothing concrete fired (caller falls back to the honest
- *  "your Radar profile"). */
-export function renderMatchWhyLine(why: MatchWhyFlags): string | null {
-  const parts: string[] = [];
-  if (why.cert) parts.push(why.cert);
-  if (why.category) parts.push(why.category);
-  if (why.size) parts.push(why.size);
-  return parts.length > 0 ? parts.join(" · ") : null;
-}
-
-/**
- * Whether a single bid matches a lead's radar profile. OR semantics — ANY
- * populated profile field that matches wins (like bid-alerts). Unknown/gated
- * signals never fabricate a match (sizePref only when the bid states a value;
- * a cert we don't map never matches).
- */
-export function bidMatchesLeadProfile(p: RadarLeadRow["radar_profile"], bid: BidRow): boolean {
-  if (!p) return false;
-  const trade = (p.trade ?? "").trim();
-  const state = (p.state ?? "").trim();
-  const cert = (p.cert ?? "").trim();
-  const sizePref = (p.sizePref ?? "").trim();
-
-  const text = `${bid.title || ""} ${bid.agency || ""} ${bid.category || ""} ${bid.description || ""}`.toLowerCase();
-
-  // trade → substring against the EXPANDED term set (trade-registry); exact
-  // NAICS equality for a 6-digit code (expansion never touches NAICS input).
-  const isNaics = /^\d{6}$/.test(trade);
-  const tradeMatch = isNaics
-    ? !!bid.naics_code && bid.naics_code.trim() === trade
-    : trade.length > 0 && expandTrade(trade).terms.some((t) => t.length >= 2 && text.includes(t));
-
-  // cert → literal set-aside map against set_aside OR the bid text.
-  let certMatch = false;
-  if (cert && (CERT_KEYS.includes(cert) || cert === "sb")) {
-    if (cert === "sb") {
-      certMatch = !!bid.set_aside && String(bid.set_aside).trim().length > 0;
-    } else {
-      const pats = CERT_TO_SET_ASIDE[cert] ?? [];
-      certMatch = pats.some((pat) => {
-        const pLow = pat.toLowerCase();
-        return (
-          text.includes(pLow) ||
-          (!!bid.set_aside && String(bid.set_aside).toLowerCase().includes(pLow))
-        );
-      });
-    }
-  }
-
-  // state → locationMatchesStates semantics: an extractable state must be the
-  // lead's; nationwide/unknown-location bids always match (never dropped).
-  let stateMatch = false;
-  if (state) {
-    const m = (bid.location || "").match(STATE_LOCATION_REGEX);
-    stateMatch = !m || m[1].toUpperCase() === state;
-  }
-
-  // sizePref → ONLY when the bid carries a stated value (never fabricate);
-  // unknown value → no size signal → neutral (never a false negative).
-  let sizeMatch = false;
-  if (sizePref && SIZE_PREFS.has(sizePref)) {
-    const ev = parseRadarValue(bid.estimated_value);
-    if (ev != null) sizeMatch = ev <= (SIZE_CAPS[sizePref] ?? 0);
-  }
-
-  return tradeMatch || certMatch || stateMatch || sizeMatch;
 }
 
 /**
@@ -399,7 +203,7 @@ export async function sendRadarLeadMatchAlerts(): Promise<RadarAlertRunResult> {
   }
 
   // One Stripe count per run (null when unreadable: emails show $19/month).
-  const foundingSpots = await foundingSpotsRemaining();
+  const foundingSpots = await foundingBusinessSpotsRemaining();
   for (const lead of leadRows) {
     try {
       const sent = await sendForOneLead(lead, foundingSpots);

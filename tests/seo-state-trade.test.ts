@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
 import { RELATED_SEO_TRADES, SEO_TRADES, SEO_TRADE_BY_SLUG, radarHrefFor } from "~/lib/seo-trades";
-import { expandTrade } from "~/lib/trade-registry";
+import { expandTrade, isStrongTradeMatch } from "~/lib/trade-registry";
 import { filterBidsToState, type SeoBid } from "~/lib/seo-landing";
 
 const bid = (id: number, location: string | null, agency: string | null, due: string | null): SeoBid => ({
@@ -54,6 +54,18 @@ describe("state + trade SEO pages", () => {
     expect(params.get("trade")).toBe("janitorial");
     expect(params.get("state")).toBe("VA");
     expect(new URL(radarHrefFor(SEO_TRADE_BY_SLUG["trucking"], null), "https://x").searchParams.has("state")).toBe(false);
+  });
+
+  test("trade pages keep only Radar's default matches (owner 2026-10-19, Texas trucking)", () => {
+    const trucking = expandTrade(SEO_TRADE_BY_SLUG["trucking"].radarTerm);
+    const desc = "Commodity codes (NIGP): 10021-Freight And Cargo Containers (Shipping)";
+    // Container purchases matched on the description's freight code only.
+    expect(isStrongTradeMatch("IFB-27-004 Custom Shipping Container Offices", null, desc, null, trucking)).toBe(false);
+    expect(isStrongTradeMatch("Cargo Container Office", null, desc, null, trucking)).toBe(false);
+    expect(isStrongTradeMatch("Freight Hauling Services", null, null, null, trucking)).toBe(true);
+    expect(isStrongTradeMatch("Office Move", null, null, "484210", trucking)).toBe(true);
+    const src = readFileSync(new URL("../src/lib/seo-landing.tsx", import.meta.url), "utf8");
+    expect(src).toContain(".filter((r) => isStrongTradeMatch(r.title, null, r.description, r.naics_code, expansion))");
   });
 
   test("filterBidsToState keeps only that state's bids, soonest deadline first", () => {

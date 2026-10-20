@@ -5,6 +5,11 @@ import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
+  OPEN_BID_SQL,
+  AWARD_NOTICE_EXCLUSION_SQL,
+  CLOSED_EXCLUSION_SQL,
+} from "~/lib/open-bids";
+import {
   buildContractMap,
   deriveStateCode,
   formatCompactMoney,
@@ -58,9 +63,11 @@ const getContractMap = createServerFn({ method: "GET" }).handler(
     const rows = await sql()`
       SELECT location, set_aside, estimated_value, agency, category, due_date, source
       FROM bids
-      WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
+      WHERE ${sql().unsafe(OPEN_BID_SQL)}
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+        AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
+        AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}
     `;
     return buildContractMap(rows as any);
   },
@@ -78,9 +85,11 @@ const getStateBids = createServerFn({ method: "GET" })
     const rows = await sql()`
       SELECT id, title, agency, location, set_aside, estimated_value, due_date, source_url, source
       FROM bids
-      WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
+      WHERE ${sql().unsafe(OPEN_BID_SQL)}
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+        AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
+        AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}
       ORDER BY due_date ASC NULLS LAST
     `;
     const bids = (rows as any[])
@@ -397,6 +406,13 @@ function MapPage() {
     return () => el?.removeEventListener("mouseleave", onLeave);
   }, []);
 
+  // OWNER COPY RULE (2026-10-19): the counter's jurisdiction count follows the
+  // REAL data — 50 jurisdictions today, 51 once Maine's notices land (50 states
+  // + D.C.), and back down if they close. The tile names D.C. SEPARATELY, so it
+  // may never render "51 states + DC": the state figure is capped at 50 and the
+  // reading stays "50 states + DC" at full coverage (same rule as the state
+  // grants registry's "50 states, plus D.C.", which never says "51 states").
+  const statesShown = totals.states >= 51 ? 50 : totals.states;
   const hoverAgg = hovered ? aggregate.states[hovered.code] : null;
   const hoverCount = hovered ? stateCountUnderFilter(hovered.code) : 0;
 
@@ -424,7 +440,7 @@ function MapPage() {
             </div>
           </div>
           <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-center">
-            <div className="text-2xl font-extrabold text-white">{totals.states}</div>
+            <div className="text-2xl font-extrabold text-white">{statesShown}</div>
             <div className="mt-1 text-xs text-slate-400">states + DC</div>
           </div>
           <div className="rounded-xl border border-slate-700 bg-slate-900 p-4 text-center">

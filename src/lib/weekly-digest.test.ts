@@ -121,9 +121,12 @@ describe("founding offer in the free emails (owner 2026-10-03)", () => {
   const bid = { bid_id: 1, title: "Snow plowing", agency: "City", source_url: "https://x", location: "Ohio", due_date: null };
   const unsub = weeklyUnsubscribeUrl("t");
 
-  test("weekly email pitches $9 for life while spots remain", () => {
+  test("weekly email pitches the $99 bundle with renewal terms while spots remain", () => {
     const html = bidDigestHtml([bid], 1, { unsubscribeUrl: unsub, foundingSpots: 7 });
-    expect(html).toContain("$9/month for life");
+    expect(html).toContain("$99 for your first year");
+    expect(html).toContain("$190/year");
+    expect(html).toContain("https://www.contrax.company/founding-businesses");
+    expect(html).not.toContain("$9/month for life");
     expect(html).toContain("7 spots left");
     expect(html).toContain("Claim a founding spot");
     expect(html).not.toContain("$19/month");

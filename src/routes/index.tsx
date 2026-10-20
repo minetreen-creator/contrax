@@ -4,13 +4,18 @@ import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { MoneyCounter } from "~/components/MoneyCounter";
-import { WinCalculator } from "~/components/WinCalculator";
+import { OpportunityExplorer } from "~/components/OpportunityExplorer";
 
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
 import { FoundingOffer } from "~/components/FoundingOffer";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+import {
+  OPEN_BID_SQL,
+  AWARD_NOTICE_EXCLUSION_SQL,
+  CLOSED_EXCLUSION_SQL,
+} from "~/lib/open-bids";
 import {
   buildContractMap,
   type ContractMapAggregate,
@@ -25,9 +30,13 @@ import { getSdvosbSample } from "~/lib/sample-bids";
 // counter is backed by the SAME real numbers as the full page -- never a
 // separate or fabricated figure. State attribution + stated-value honesty rules
 // are enforced inside buildContractMap (see lib/contract-map.ts).
+// "Open" = a REAL deadline still ahead (OPEN_BID_SQL) and no award / justification
+// notice: owner-approved 2026-10-19, so the counter can never again present a
+// deadline-less notice (or a blended all-source figure) as an open federal bid.
 // NOTE (owner order 2026-09-23): the compact homepage map EMBED was removed;
 // this aggregation stays because the homepage counter reads totals.totalOpen
-// from it. /map keeps using the same aggregation on its own.
+// (and its federalOpen / stateLocalOpen split) from it. /map keeps using the
+// same aggregation on its own.
 // Returns null when the query fails (DB unreachable, bids table missing) so a
 // database blip hides the stats row instead of 500-ing the public homepage.
 // Never substitute a zero or made-up count: the row is simply omitted.
@@ -38,9 +47,11 @@ const getContractMapAggregate = createServerFn({ method: "GET" }).handler(
       const rows = await sql()`
         SELECT location, set_aside, estimated_value, agency, category, due_date, source
         FROM bids
-        WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
+        WHERE ${sql().unsafe(OPEN_BID_SQL)}
           AND ${sql().unsafe(LOW_CONTENT_SQL)}
           AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+          AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
+          AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}
       `;
       return buildContractMap(rows as any);
     } catch {
@@ -225,7 +236,7 @@ function Home() {
           money counter, and its "contracts ending" figure replaces the
           separate Contracts Ending Soon box. */}
       <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
-      <WinCalculator />
+      <OpportunityExplorer />
       <HowItWorks />
       {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the
           edge-cached homepage stays session-free; hidden when no spots remain. */}
@@ -274,7 +285,7 @@ function HowItWorks() {
 // homepage; the full pages are one click away).
 function MoreFromContrax() {
   const items = [
-    { label: "From the CEO", body: "A big week at Contrax: Launchpad upgrades, a new homepage and better matches.", href: "/from-the-ceo", cta: "See what's new" },
+    { label: "From the CEO", body: "Nearly 3× more federal bids: 5,700+ open, updated every night from SAM.gov.", href: "/from-the-ceo", cta: "See what's new" },
     { label: "Contrax Grants", body: "Find federal grants your organization qualifies for. No cost for verified nonprofits.", href: "/grants", cta: "Search grants" },
   ];
   return (

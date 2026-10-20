@@ -1,3 +1,9 @@
+const federalCoverage = [
+  { icon: "🇺🇸", text: "5,893 open federal bids nationwide" },
+  { icon: "🏛️", text: "7,351 open state & local bids on top of that" },
+  { icon: "📍", text: "All 50 states + DC. Yes, even Maine." },
+];
+
 const whatsNew = [
   {
     heading: "🧭 Contrax Launchpad: your step-by-step path to your first government contract",
@@ -44,7 +50,7 @@ const trialFeatures = [
 ];
 
 const trialClosing = [
-  "We cover federal, state and local bids in 45 states and DC, and every bid links straight to the official government posting.",
+  "We cover federal, state and local bids in 50 states + DC, and every bid links straight to the official government posting.",
   "After 7 days, pick the plan that fits. Starter is just $19/month. Or keep searching on Basic at no cost.",
   "Already have an account? Your 7-day trial starts the next time you log in.",
 ];
@@ -76,6 +82,19 @@ export function CEOPosts() {
         <div className="mx-auto max-w-[680px]">
           <h2 id="from-the-ceo-title" className="text-2xl font-bold text-slate-900 dark:text-white">From the CEO</h2>
           <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-300">Nathaniel Minetree · Founder &amp; CEO, Contrax</p>
+          <article className="mt-6 border-b border-slate-200 pb-8 dark:border-slate-700" aria-labelledby="ceo-federal-title">
+            <p className="text-xs font-bold uppercase tracking-widest text-blue-700 dark:text-blue-300">What&apos;s new · October 19, 2026</p>
+            <h3 id="ceo-federal-title" className="mt-2 text-xl font-bold text-slate-900 dark:text-white">🚨 Big upgrade: Contrax now tracks nearly 3× more federal bids</h3>
+            <ul className="mt-4 space-y-1.5 text-base font-semibold leading-relaxed text-slate-900 dark:text-white">
+              {federalCoverage.map(line => <li key={line.text}>{line.icon} {line.text}</li>)}
+            </ul>
+            <p className="mt-4 text-base leading-relaxed text-slate-700 dark:text-slate-300">That&apos;s 13,104 open contracts, and every single one has a real, future deadline. No expired listings. No award notices dressed up as bids. No filler.</p>
+            <p className="mt-4 text-base leading-relaxed text-slate-700 dark:text-slate-300">⚡ Updated every night straight from SAM.gov, the federal government&apos;s official contract source, plus state and local boards across the country.</p>
+            <p className="mt-4 text-base leading-relaxed text-slate-700 dark:text-slate-300">🔨 Janitorial. HVAC. Roofing. Landscaping. Trucking. IT. Construction. Whatever your trade, there&apos;s government work out there with your name on it, and now you&apos;ll actually see it.</p>
+            <p className="mt-4 text-base leading-relaxed text-slate-700 dark:text-slate-300">💰 Pick your trade and your state, and see what&apos;s open near you in seconds.</p>
+            <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">Counts as of October 19, 2026. The live numbers on our homepage change daily as bids open and close.</p>
+            <a href="/" className="mt-5 inline-block rounded-xl bg-blue-700 px-5 py-3 text-sm font-bold text-white hover:bg-blue-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600">See what&apos;s open near you →</a>
+          </article>
           <article className="mt-6 border-b border-slate-200 pb-8 dark:border-slate-700" aria-labelledby="ceo-whats-new-title">
             <p className="text-xs font-bold uppercase tracking-widest text-blue-700 dark:text-blue-300">What&apos;s new · October 2026</p>
             <h3 id="ceo-whats-new-title" className="mt-2 text-xl font-bold text-slate-900 dark:text-white">A big week at Contrax</h3>

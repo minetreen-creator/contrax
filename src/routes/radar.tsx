@@ -158,7 +158,7 @@ export function radarOpening({
     return {
       headline: `Your ${certLabel}matches${forTrade}${inState}`,
       intro: fromLearn ? "Your course selections are ready. Review the current matches, then save an opportunity with a free account. AI briefs and drafting are available with the relevant paid plans." :
-        "We've filled in what you picked on the homepage. See your matches now — your first 3 are free, each with a real match score and full Incumbent Intelligence (previous winner & award price). Certification and contract size are optional; set them under Refine.",
+        "We've filled in what you picked on the homepage. See your matches now — your top match is free, with a real match score and full Incumbent Intelligence (previous winner & award price). Certification and contract size are optional; set them under Refine.",
     };
   }
   // Ad visitors (owner 2026-10-06): most aren't SDVOSBs, so lead with every
@@ -170,10 +170,12 @@ export function radarOpening({
         "Live federal, state and local bids matched to your trade, with a real match score and the previous winner and award price. Veteran-owned (SDVOSB), 8(a), WOSB and HUBZone set-asides included.",
     };
   }
+  // Everyone else (owner 2026-10-19): most visitors aren't SDVOSBs either, so
+  // the default leads with every business, like the ad headline.
   return {
-    headline: "Find the set-asides your SDVOSB can actually win. Your first 3 matches are free.",
+    headline: "Find government contracts your business can win. Your top match is free.",
     intro:
-      "Tell us your trade and state and we'll show your strongest live matches, with a real match score and full Incumbent Intelligence (previous winner & award price). Works for 8(a), WOSB and HUBZone firms too.",
+      "Tell us your trade and state and we'll show your strongest live matches, with a real match score and full Incumbent Intelligence (previous winner & award price). Veteran-owned (SDVOSB), 8(a), WOSB and HUBZone set-asides included.",
   };
 }
 
@@ -225,7 +227,7 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   // Every other caller keeps source=radar — no behavior change there.
   const source = opts?.unlock ? "radar_results_unlock" : opts?.cta ? "radar_results_cta" : "radar";
   const p = new URLSearchParams({
-    plan: opts?.free ? "basic" : "starter",
+    plan: "basic",
     source,
     next: buildRadarFirstRunHref({
       trade: (answers.trade || "").trim(),
@@ -240,7 +242,11 @@ export function radarSignupHref(answers: { trade: string; state: string; cert: R
   if (st) p.set("state", st);
   if (answers.cert) p.set("cert", answers.cert);
   if (answers.sizePref) p.set("size", answers.sizePref);
-  return `${opts?.free ? "/signup" : "/upgrade"}?${p.toString()}`;
+  // Owner 2026-10-19 (choice A): every anonymous Radar CTA goes to signup —
+  // the account starts the 7-day trial and lands back on the matches. The
+  // Oct 6 hand-off to /upgrade made signed-out visitors pick a paid plan
+  // before they had an account (17 of 36 pricing views, 0 checkouts).
+  return `/signup?${p.toString()}`;
 }
 
 /**
@@ -453,9 +459,12 @@ export const getLiveStateBids = createServerFn({ method: "GET" }).handler(
       const { AWARD_EXCLUSION_SQL } = await import("~/lib/source-class");
       const s = sql();
       const [rows, count] = await Promise.all([
+        // Notices of intent to award / sole source are announcements nobody can
+        // bid on, so the proof box leaves them out (owner 2026-10-20 audit).
         s`SELECT id, title, agency, due_date FROM bids
           WHERE normalized_state = ${state} AND due_date > NOW() + INTERVAL '3 days'
             AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
+            AND title !~* '(intent to (sole[ -]source|award)|sole[ -]source)'
           ORDER BY created_at DESC LIMIT 3`,
         s`SELECT COUNT(*)::int AS n FROM bids
           WHERE normalized_state = ${state} AND due_date > NOW()
@@ -887,6 +896,15 @@ export const runRadarScan = createServerFn({ method: "POST" })
     if (!subscribed && !freeSearchKept && !(await claimRadarSearchBudget(budget.keys, budget.limit))) {
       return blockedResult();
     }
+    // Owner 2026-10-19: save what was searched so empty trade + state
+    // combinations show up (~/lib/radar-search-log.server). Never fails the scan.
+    const { recordRadarSearch } = await import("~/lib/radar-search-log.server");
+    await recordRadarSearch({
+      visitorId: scanVisitorId || null,
+      userId: scanner?.id ?? null,
+      trade, state, cert: certId, sizePref,
+      matched: matches.length, shown: visibleMatches.length, related: related.length,
+    });
     return {
       paidRequired: false,
       freeSearchKept,
@@ -1160,14 +1178,14 @@ export const Route = createFileRoute("/radar")({
       {
         name: "description",
         content:
-          "Not sure which set-asides your certification qualifies you for? Contract Radar shows your strongest live matches — the first 3 free, with full Incumbent Intelligence (previous winner and award price).",
+          "Not sure which set-asides your certification qualifies you for? Contract Radar shows your strongest live matches — the top match free, with full Incumbent Intelligence (previous winner and award price).",
       },
       { name: "robots", content: "index, follow" },
       { property: "og:title", content: "Contract Radar — Find contracts you can actually win | Contrax" },
       {
         property: "og:description",
         content:
-          "Tell us your trade and state. Contract Radar scans live federal, state and local solicitations and reveals your strongest matches one at a time — the first 3 are free, with full incumbent intel.",
+          "Tell us your trade and state. Contract Radar scans live federal, state and local solicitations and reveals your strongest matches one at a time — the top match is free, with full incumbent intel.",
       },
       { property: "og:type", content: "website" },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
@@ -1695,16 +1713,6 @@ function RadarLanding() {
             <p className="mt-2 text-sm leading-relaxed text-slate-300 sm:hidden">
               Pick your trade and state. Free to search, no signup.
             </p>
-            {/* The offer, visible before the counter runs out (owner directive
-                2026-10-08) — the same constants the server gate enforces, so the
-                wall is never a surprise. */}
-            {isAnonymous && (
-              <p className="mt-2 text-xs font-semibold text-amber-300">
-                Free: {FREE_RADAR_PREVIEW_SCANS} search, up to {FREE_ANONYMOUS_RADAR_RESULTS} matches each — no account needed.
-              </p>
-            )}
-
-            {!hasDeepLink && <LiveStateBids />}
 
             {/* FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2):
                 ONE clear sentence + the two inputs the scan asks for + the note
@@ -1772,18 +1780,6 @@ function RadarLanding() {
                     </button>
                   ))}
                 </div>
-                <button
-                  type="button"
-                  onClick={confirmScan}
-                  className="mt-3 w-full rounded-2xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 shadow-lg transition-all hover:bg-amber-400 active:scale-[0.98]"
-                >
-                  Find my matches →
-                </button>
-                <p className="mt-2 text-center text-xs text-slate-400">
-                  {trade.trim() ? `Selected: ${trade.trim()}. ` : "Choose a trade above or type one below. "}
-                  {state ? `Search area: ${state}.` : "Search area: all states."} Change your state below.
-                  {" "}Selecting a trade does not use a search.
-                </p>
                 <input
                   id="radar-trade"
                   list="radar-naics-list"
@@ -1904,6 +1900,10 @@ function RadarLanding() {
               <p className="text-center text-xs text-slate-500">
                 Scans live federal, state and local solicitations.
               </p>
+              {/* Below the form (owner 2026-10-20, phone audit): above it, the box
+                  arrived ~4s after the page and pushed the trade buttons and
+                  "See my matches" off a phone screen (layout shift 0.225). */}
+              {!hasDeepLink && <LiveStateBids />}
             </div>
           </section>
         )}
@@ -1969,14 +1969,14 @@ function RadarLanding() {
               <div className="mb-5 rounded-2xl border border-blue-400/40 bg-blue-500/10 p-4 sm:flex sm:items-center sm:justify-between sm:gap-4">
                 <div>
                   <p className="font-bold text-white">Welcome back — your matches are still open.</p>
-                  <p className="mt-1 text-sm text-blue-100/80">Choose a paid plan to keep searching and tracking opportunities.</p>
+                  <p className="mt-1 text-sm text-blue-100/80">Create your account to keep searching. Your 7-day trial needs no credit card.</p>
                 </div>
                 <a
                   href={radarSignupHref({ trade, state, cert, sizePref }, { cta: true })}
                   onClick={() => trackEvent("radar_restored_signup_clicked", scan.certLabel)}
                   className="mt-3 inline-flex shrink-0 items-center justify-center rounded-xl bg-blue-500 px-4 py-3 text-sm font-bold text-white hover:bg-blue-400 sm:mt-0"
                 >
-                  Save these matches and get your next 3 free →
+                  Save these matches with a free account →
                 </a>
               </div>
             )}
@@ -1993,6 +1993,15 @@ function RadarLanding() {
                 <p className="mt-1 text-sm text-slate-400">
                   {scan.certLabel}{stateLabel} · {tradeLabel(track)} · real scores
                 </p>
+                {/* The search limit, shown with the results rather than above the
+                    form (owner 2026-10-19: 87% of /radar visitors never searched;
+                    "1 search" up front made people hold back). Same constants the
+                    server gate enforces, so the wall is still never a surprise. */}
+                {isAnonymous && (
+                  <p className="mt-1 text-xs font-semibold text-amber-300">
+                    Without an account: {FREE_RADAR_PREVIEW_SCANS} search, {FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "your top match" : `up to ${FREE_ANONYMOUS_RADAR_RESULTS} matches`}.
+                  </p>
+                )}
               </div>
               {state !== "" ? (
                 <span className="shrink-0 text-right text-xs font-semibold text-amber-400">
@@ -2072,9 +2081,9 @@ function RadarLanding() {
             {scan.matches.length > 0 && (
               <p className="mt-3 text-xs font-medium text-slate-500">
                 {isAnonymous
-                  ? `Here are your strongest ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} ${
-                      Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1 ? "match" : "matches"
-                    } — every one with full incumbent intel`
+                  ? Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS) === 1
+                    ? "Here's your strongest match, with full incumbent intel"
+                    : `Here are your strongest ${Math.min(scan.matches.length, FREE_ANONYMOUS_RADAR_RESULTS)} matches — every one with full incumbent intel`
                   : state !== ""
                     ? `${(scan.sections?.local ?? []).length} local · ${(scan.sections?.nationwide ?? []).length} nationwide opportunities`
                     : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
@@ -2093,7 +2102,7 @@ function RadarLanding() {
               <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
                 <p className="text-sm leading-relaxed text-slate-200">
                   <span className="font-semibold text-amber-400">Keep these matches.</span>{" "}
-                  Choose a paid plan to save opportunities and get deadline alerts.
+                  Create your account to save opportunities and get deadline alerts.
                 </p>
                 <div className="flex shrink-0 items-center gap-2">
                   <a
@@ -2101,7 +2110,7 @@ function RadarLanding() {
                     onClick={() => trackEvent("radar_nudge_cta", scan.certLabel)}
                     className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 transition-colors hover:bg-amber-400"
                   >
-                    Choose a plan
+                    Create account
                   </a>
                   <button
                     type="button"
@@ -2190,6 +2199,7 @@ function RadarLanding() {
                     bestMatch={m.id === bestMatchId}
                   />
                 ))}
+                {locked > 0 && <LockedMatchPreview locked={locked} />}
                 {locked > 0 && (
                   <SignupGate
                     certLabel={scan.certLabel}
@@ -2885,6 +2895,44 @@ function IncumbentBlock({
 }
 
 /**
+ * Blurred stand-ins for the locked matches (owner 2026-10-19, item 5): one per
+ * locked match up to three, so the visitor sees there is more behind the
+ * signup card. Plain grey bars only — no titles, agencies or amounts are sent
+ * to the browser for locked matches, so nothing here is made up.
+ */
+export function LockedMatchPreview({ locked }: { locked: number }) {
+  const rows = Math.min(locked, 3);
+  return (
+    <div aria-hidden="true" className="relative flex flex-col gap-3">
+      {Array.from({ length: rows }, (_, i) => (
+        <div
+          key={i}
+          data-locked-preview
+          className="pointer-events-none select-none rounded-2xl border border-slate-800 bg-slate-900 p-5 blur-[3px]"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="h-3 w-24 rounded bg-emerald-500/40" />
+            <div className="h-6 w-12 rounded-full bg-amber-500/40" />
+          </div>
+          <div className="mt-3 h-4 w-11/12 rounded bg-slate-600" />
+          <div className="mt-2 h-4 w-2/3 rounded bg-slate-700" />
+          <div className="mt-4 flex gap-2">
+            <div className="h-3 w-20 rounded bg-slate-700" />
+            <div className="h-3 w-16 rounded bg-slate-700" />
+            <div className="h-3 w-24 rounded bg-slate-700" />
+          </div>
+        </div>
+      ))}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="rounded-full bg-slate-950/90 px-4 py-2 text-sm font-bold text-amber-300 ring-1 ring-amber-500/40">
+          🔒 {locked} more {locked === 1 ? "match" : "matches"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/**
  * RADAR CONVERSION SPRINT PR1 (owner 2026-09-07) — ANONYMOUS RESULTS GATING.
  *
  * THREE rendering modes, driven by the real server-computed match count:
@@ -2950,7 +2998,7 @@ export function SignupGate({
         We found {totalFound} opportunities for your business.
       </p>
       <h3 className="mt-1.5 text-lg font-bold text-white">
-        You can see {FREE_ANONYMOUS_RADAR_RESULTS} now.
+        {FREE_ANONYMOUS_RADAR_RESULTS === 1 ? "Here's your top one." : `You can see ${FREE_ANONYMOUS_RADAR_RESULTS} now.`}
       </h3>
       <p className="mt-2 text-sm leading-relaxed text-slate-300">
         🔒 {locked} more matching {locked === 1 ? "opportunity" : "opportunities"}
@@ -2974,10 +3022,10 @@ export function SignupGate({
         onClick={() => trackEvent("radar_results_unlock_clicked", certLabel)}
         className="mt-5 block w-full rounded-xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
       >
-        {locked > 0 ? `Unlock My ${locked} Matches →` : `Choose a paid plan →`}
+        {locked > 0 ? `Unlock My ${locked} Matches →` : `Create my account →`}
       </a>
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
-        Choose a paid plan to continue searching and tracking opportunities.
+        Create your account to see them all. Your 7-day trial needs no credit card.
       </p>
     </div>
   );
@@ -3056,7 +3104,7 @@ export function RadarResultsCta({
         onClick={handleClick}
         className="mt-4 block w-full rounded-xl bg-amber-500 px-6 py-4 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98]"
       >
-        Choose a paid plan
+        See all my matches
       </button>
       <p className="mt-3 text-xs leading-relaxed text-slate-400">
         Save these matches and unlock full opportunity details.
@@ -3483,8 +3531,13 @@ function LiveStateBids() {
   }, []);
   if (!data || !data.state || data.bids.length === 0) return null;
   const stateName = STATE_NAMES[data.state] ?? data.state;
-  const due = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : null;
+  // The year shows when it isn't this year: "due Sep 8" for Sep 8 next year read as long past.
+  const due = (iso: string | null) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    const otherYear = d.getUTCFullYear() !== new Date().getUTCFullYear();
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(otherYear ? { year: "numeric" } : {}), timeZone: "UTC" });
+  };
   return (
     <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
@@ -3507,7 +3560,7 @@ function LiveStateBids() {
           </li>
         ))}
       </ul>
-      <p className="mt-1 text-xs text-slate-400">Pick your trade below to see the ones that fit your business.</p>
+      <p className="mt-1 text-xs text-slate-400">Pick your trade above to see the ones that fit your business.</p>
     </div>
   );
 }

@@ -40,7 +40,9 @@ export const SHOW_FREE_INCUMBENT = true;
  * ALWAYS the real ones, and AUTHENTICATED users of any tier never see any gating
  * (they keep normal entitlement — see /radar).
  */
-export const FREE_ANONYMOUS_RADAR_RESULTS = 3;
+// Owner 2026-10-19 ("do B"): tightened from 3 to 1. Visitors see their single
+// strongest match in full and the real count of the rest behind a free account.
+export const FREE_ANONYMOUS_RADAR_RESULTS = 1;
 
 /** One anonymous Radar search across browser and network before signup. */
 export const FREE_RADAR_PREVIEW_SCANS = 1;

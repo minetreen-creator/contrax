@@ -316,7 +316,8 @@ describe("example brief — homepage embed empty state (owner: never on the home
     const html = renderToStaticMarkup(
       <ExampleBriefView brief={null} variant="page" />,
     );
-    expect(html).toContain("No example brief is available right now.");
+    expect(html).toContain("A verified example AI brief is temporarily unavailable.");
+    expect(html).toContain('href="/radar"');
   });
 
   test("the embed still renders the loading shell before the loader resolves", () => {

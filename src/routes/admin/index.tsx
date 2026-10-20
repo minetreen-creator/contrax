@@ -3,6 +3,7 @@ import { LearnFunnel } from "~/components/LearnFunnel";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "~/lib/auth";
+import { siteCheckState, type PathCheckResult } from "~/lib/path-checks";
 import type { RadarConversionFunnelResult } from "~/lib/radar-conversion-funnel";
 import { countryLabel, isUsVisitor, visitorCountry } from "~/lib/visitor-geo";
 import {
@@ -404,6 +405,21 @@ function AdminOverviewPage() {
         </div>
         <AdminTabs active="overview" />
 
+        {/* Owner 2026-10-19: make /admin/live easy to find from the overview. */}
+        <a href="/admin/live" className="live-banner">
+          <span className="flex items-center gap-3">
+            <span className="live-dot" aria-hidden="true" />
+            <span>
+              <span className="block text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Live now</span>
+              <span className="block text-lg font-bold text-white">Mission control</span>
+              <span className="block text-sm text-slate-300">Watch searches, signups and checkouts as they happen, and every trial's countdown.</span>
+            </span>
+          </span>
+          <span className="shrink-0 rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white">Open →</span>
+        </a>
+
+        <SiteChecks />
+
         {nonprofitQueue != null && nonprofitQueue > 0 && (
           <a href="/admin/nonprofits" className="block rounded-xl border border-violet-200 bg-violet-50 px-4 py-2.5 text-sm font-medium text-violet-800">
             {nonprofitQueue} nonprofit application{nonprofitQueue === 1 ? "" : "s"} waiting for review →
@@ -549,11 +565,11 @@ function AdminOverviewPage() {
                   Anonymous results viewed: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.anonymousResultsViewed ?? 0}</span>
                 </p>
                 <p>
-                  More than 3 matches · free signup card: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.lockedShown ?? 0}</span> shown ·{" "}
+                  More than 1 match · free signup card: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.lockedShown ?? 0}</span> shown ·{" "}
                   <span className="font-semibold text-slate-700">{radarConv.diagnostics?.lockedClicked ?? 0}</span> clicked
                 </p>
                 <p>
-                  1–3 matches · free signup CTA: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.smallCtaShown ?? 0}</span> shown ·{" "}
+                  1 match · free signup CTA: <span className="font-semibold text-slate-700">{radarConv.diagnostics?.smallCtaShown ?? 0}</span> shown ·{" "}
                   <span className="font-semibold text-slate-700">{radarConv.diagnostics?.smallCtaClicked ?? 0}</span> clicked
                 </p>
               </div>
@@ -614,6 +630,53 @@ function AdminOverviewPage() {
           </div>
         </details>
       </main>
+    </div>
+  );
+}
+
+/**
+ * Daily money-path check (owner 2026-10-20): one line when everything passed,
+ * a red box naming each broken step otherwise. Loads on its own so a slow or
+ * missing table never holds up the overview.
+ */
+function SiteChecks() {
+  const [run, setRun] = useState<{ runAt: string | null; results: PathCheckResult[] } | null>(null);
+  useEffect(() => {
+    fetch("/api/admin/path-checks")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => d && setRun(d))
+      .catch(() => {});
+  }, []);
+  if (!run) return null;
+  const failed = run.results.filter((r) => !r.ok);
+  const state = siteCheckState(run.runAt, failed.length);
+  const when = run.runAt ? new Date(run.runAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "";
+  if (state === "ok") {
+    return (
+      <p className="text-sm text-emerald-700">
+        ✅ Site check {when}: all {run.results.length} steps to checkout work.
+      </p>
+    );
+  }
+  if (state === "never") {
+    return <p className="text-sm text-slate-500">Site check: no run yet. It runs every morning.</p>;
+  }
+  return (
+    <div className="rounded-xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-900">
+      {state === "stale" ? (
+        <p className="font-semibold">⚠️ The daily site check hasn't run since {when}.</p>
+      ) : (
+        <>
+          <p className="font-semibold">❌ Site check {when}: {failed.length} of {run.results.length} steps are broken.</p>
+          <ul className="mt-1 list-disc pl-5">
+            {failed.map((r) => (
+              <li key={r.name}>
+                <b>{r.name}</b> ({r.path}): {r.detail}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

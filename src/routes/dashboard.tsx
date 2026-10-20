@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { LaunchpadDashboardCard } from "~/components/LaunchpadDashboardCard";
+import { TrialEndedCard } from "~/components/TrialEndedCard";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { sql } from "~/db";
@@ -917,19 +918,6 @@ function TrialBanner({ daysLeft, planTier: _planTier, endsAt }: { daysLeft: numb
             </>
           )}
           {endsAt ? <span className={endingSoon ? "text-red-700" : "text-amber-700"}> · ends {fmtDate(endsAt)}</span> : null}
-        </div>
-        <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">Choose a plan →</a>
-      </div>
-    </div>
-  );
-}
-/** Owner 2026-10-12: shown on Basic after a trial ran out (the account is not locked). */
-function TrialEndedBanner() {
-  return (
-    <div className="mx-auto max-w-5xl px-4 pt-4">
-      <div className="flex flex-col gap-3 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <strong>Your trial has ended — you're on free Basic.</strong> Search still works. Starter brings back the daily bid email, every state and trade, same-day new bids and unlimited saved bids for $19/month.
         </div>
         <a href="/upgrade" className="shrink-0 font-semibold text-blue-700 underline hover:text-blue-800">Choose a plan →</a>
       </div>
@@ -1861,7 +1849,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
         )}
 
         {trial?.active && <TrialBanner daysLeft={trial.daysLeft} planTier={trial.planTier} endsAt={trial.endsAt} />}
-        {trial?.trialEnded && <TrialEndedBanner />}
+        {trial?.trialEnded && <TrialEndedCard />}
         {trial?.active && <div className="mx-auto max-w-5xl px-4 pt-4"><TrialChecklist /></div>}
 
         {/* Bid Matches */}

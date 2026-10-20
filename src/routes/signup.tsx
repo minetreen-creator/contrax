@@ -39,6 +39,12 @@ import { persistPendingDraft } from "~/lib/pending-draft";
 import { storeRememberedNext } from "~/lib/remember-next";
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+import {
+  OPEN_BID_SQL,
+  AWARD_NOTICE_EXCLUSION_SQL,
+  CLOSED_EXCLUSION_SQL,
+} from "~/lib/open-bids";
 import { getGoogleAuthUrl } from "~/lib/google-oauth";
 import { getLinkedInAuthUrl } from "~/lib/linkedin-oauth";
 import { safeNext } from "~/lib/saved-matches";
@@ -266,8 +272,11 @@ const getTrackedBidCount = createServerFn({ method: "GET" }).handler(async () =>
       // Open count reuses the exact homepage /map definition so it matches the
       // homepage "open opportunities" number bit-for-bit.
       sql()`SELECT COUNT(*)::int AS count FROM bids
-            WHERE (due_date IS NULL OR due_date::date >= NOW()::date)
-              AND ${sql().unsafe(LOW_CONTENT_SQL)}`,
+            WHERE ${sql().unsafe(OPEN_BID_SQL)}
+              AND ${sql().unsafe(LOW_CONTENT_SQL)}
+              AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
+              AND ${sql().unsafe(AWARD_NOTICE_EXCLUSION_SQL)}
+              AND ${sql().unsafe(CLOSED_EXCLUSION_SQL)}`,
     ]);
     return {
       tracked: Number((trackedRows[0] as any)?.count || 0),
@@ -1275,23 +1284,6 @@ function SignupPage() {
               We'll save this bid to your pipeline automatically and return you to your results.
             </p>
           )}
-          <p className="mt-1.5 text-sm text-gray-500">
-            {save_bid
-              ? "Your account includes a 7-day Professional trial, with no credit card or automatic charge. After the trial, keep your free Basic account with 1 saved bid, or choose a paid plan."
-              : "Your 7-day Professional trial starts when you create your account — no credit card required. After it, choose a plan or keep searching on free Basic."}
-          </p>
-
-          {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
-          {!save_bid && trackedBids > 0 && (
-            <p className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
-              <span className="relative flex h-2 w-2 shrink-0">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-              </span>
-              Tracking {trackedBids.toLocaleString()} solicitations{openBids > 0 ? `, including ${openBids.toLocaleString()} currently open` : ""} — updated every 4 hours on weekdays
-            </p>
-          )}
-
           {/* ONE-TAP PRIMARY — Continue with Google, gated at runtime. The big
               primary CTA only renders as a live link when the loader's
               getGoogleAuthUrl() returned a fully-configured URL (both
@@ -1301,7 +1293,10 @@ function SignupPage() {
           {googleAuthUrl ? (
             <a
               href={googleAuthUrl}
-              className="mt-6 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-900 bg-white px-6 py-4 text-base font-bold text-slate-900 shadow-md transition-all hover:bg-slate-50 hover:shadow-lg active:scale-[0.98]"
+              // Owner 2026-10-19: a Google tap leaves the page, so without this it
+              // read as "left without typing" in the funnel report.
+              onClick={() => trackEvent("signup_google_click")}
+              className="mt-5 flex w-full items-center justify-center gap-3 rounded-xl border-2 border-slate-900 bg-white px-6 py-4 text-base font-bold text-slate-900 shadow-md transition-all hover:bg-slate-50 hover:shadow-lg active:scale-[0.98]"
             >
               <svg className="h-6 w-6" viewBox="0 0 24 24" aria-hidden="true">
                 <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58v3h3.86c2.26-2.09 3.56-5.17 3.56-8.82z" />
@@ -1350,6 +1345,26 @@ function SignupPage() {
               Continue with LinkedIn
             </a>
           ) : null}
+
+          {/* Owner 2026-10-19 (item 6): most visitors left /signup within
+              seconds without typing, so the one-tap Google button now sits
+              right under the headline and the trial details follow it. */}
+          <p className="mt-4 text-sm text-gray-500">
+            {save_bid
+              ? "Your account includes a 7-day Professional trial, with no credit card or automatic charge. After the trial, keep your free Basic account with 1 saved bid, or choose a paid plan."
+              : "Your 7-day Professional trial starts when you create your account — no credit card required. After it, choose a plan or keep searching on free Basic."}
+          </p>
+
+          {/* Social proof — live tracked-solicitation count (mirrors the homepage counter) */}
+          {!save_bid && trackedBids > 0 && (
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+              </span>
+              Tracking {trackedBids.toLocaleString()} solicitations{openBids > 0 ? `, including ${openBids.toLocaleString()} currently open` : ""} — updated every 4 hours on weekdays
+            </p>
+          )}
 
           {/* Divider */}
           <div className="relative mt-5">

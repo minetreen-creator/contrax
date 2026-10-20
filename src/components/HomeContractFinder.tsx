@@ -307,7 +307,7 @@ export function HomeContractFinder({ sample }: { sample: SampleBid[] }) {
               )}
             </button>
             <p className="text-center text-xs leading-relaxed text-slate-500">
-              Preview up to three matches without an account. Search limits
+              Preview your top match without an account. Search limits
               apply. A match is a starting point; verify eligibility in the
               official notice.
             </p>

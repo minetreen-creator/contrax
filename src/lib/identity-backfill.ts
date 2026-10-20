@@ -131,3 +131,22 @@ export async function linkVisitorConversion(
       signup = 'Success'
   `;
 }
+
+/**
+ * The `signup_success` funnel event for an account created through Google or
+ * LinkedIn sign-in (owner 2026-10-19). Email signups send this event from the
+ * browser; OAuth signups never did, so the funnels and visitor records missed
+ * them. Written server-side, tied to the visitor and the new account.
+ * BEST-EFFORT like the rest of this file: callers wrap it in try/catch.
+ */
+export async function recordOAuthSignup(
+  db: SqlFactory,
+  o: { userId: number | string; email: string; visitorId: string; provider: "google" | "linkedin" },
+): Promise<void> {
+  if (!o.visitorId) return;
+  await db()`
+    INSERT INTO funnel_events (event_name, label, path, user_agent, visitor_id, user_id, user_email)
+    VALUES ('signup_success', ${o.provider}, ${"/auth/" + o.provider + "/callback"}, ${o.provider + "-oauth-callback"},
+            ${o.visitorId}, ${String(o.userId)}, ${o.email})
+  `;
+}

@@ -150,8 +150,8 @@ describe("committed baseline (.github/typecheck-baseline.txt)", () => {
   test("fingerprinting preserves every baseline line (no loss, no false collapse)", () => {
     const set = fingerprintSet(raw);
     expect(set).toHaveLength(rawLines.length);
-    // spot-check the item that used to need a manual edit in #394
-    expect(set).toContain(FP.radar);
+    // spot-check a committed item (the radar.tsx one from #394 has since been fixed)
+    expect(set).toContain(FP.learnings);
   });
 
   test("the normalized baseline is a fixed point (running the normalizer twice changes nothing)", () => {

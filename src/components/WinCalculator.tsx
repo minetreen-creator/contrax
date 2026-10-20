@@ -8,7 +8,7 @@ import { trackEvent } from "~/lib/track";
 
 const DURATION = 1200;
 
-function useCountUp(target: number): number {
+export function useCountUp(target: number): number {
   const [value, setValue] = useState(target);
   const fromRef = useRef(0);
   useEffect(() => {
@@ -31,7 +31,7 @@ function useCountUp(target: number): number {
 
 const money = (n: number) => `$${Math.round(n).toLocaleString("en-US")}`;
 
-export function WinCalculator() {
+export function WinCalculator({ embedded = false }: { embedded?: boolean } = {}) {
   const [trade, setTrade] = useState("");
   const [state, setState] = useState("");
   const [wins, setWins] = useState(3);
@@ -63,7 +63,7 @@ export function WinCalculator() {
   const select = "rounded-lg border border-white/30 bg-white/10 px-3 py-2.5 text-white focus-visible:outline-2 focus-visible:outline-amber-300 [&>option]:text-slate-900";
 
   return (
-    <section aria-labelledby="win-calculator-title" className="mx-auto mt-10 max-w-[1120px] px-4 sm:px-6">
+    <section aria-labelledby="win-calculator-title" className={embedded ? "" : "mx-auto mt-10 max-w-[1120px] px-4 sm:px-6"}>
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#14213d] via-[#1f3a6b] to-[#0b1f45] p-6 text-white shadow-xl sm:p-10">
         <div aria-hidden="true" className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-emerald-400/20 blur-3xl" />
         <p className="relative text-xs font-bold uppercase tracking-[0.2em] text-emerald-300">Try it</p>

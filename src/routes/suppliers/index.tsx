@@ -109,6 +109,7 @@ function DirectoryPage() {
         </div>
       </section>
 
+      <aside className="mx-auto max-w-5xl px-4 pb-6"><p className="rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm text-slate-700">Supplier listings are free. Looking for paid promotion as well as bid tools? <a href="/founding-businesses" className="font-semibold text-blue-700 underline">Founding Businesses</a> includes a separate 12-month company showcase, one Facebook spotlight and a year of Starter. It does not replace or automatically create this free directory listing.</p></aside>
       <section className="mx-auto max-w-5xl px-4 pb-10">
         <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-4">
           <label className="text-sm font-medium text-slate-700">

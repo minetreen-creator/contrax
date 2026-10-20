@@ -302,8 +302,8 @@ describe("the admin panel — owner copy + the four cohorts", () => {
 
   test("the three summary lines use the owner's wording", () => {
     expect(panel).toContain("Anonymous results viewed:");
-    expect(panel).toContain("More than 3 matches \u00b7 free signup card:");
-    expect(panel).toContain("1\u20133 matches \u00b7 free signup CTA:");
+    expect(panel).toContain("More than 1 match \u00b7 free signup card:");
+    expect(panel).toContain("1 match \u00b7 free signup CTA:");
     // Each line shows a "shown" × "clicked" pair from the diagnostics map.
     expect(panel).toContain("radarConv.diagnostics?.lockedShown ?? 0");
     expect(panel).toContain("radarConv.diagnostics?.lockedClicked ?? 0");

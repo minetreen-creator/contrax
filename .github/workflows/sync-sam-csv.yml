@@ -1,0 +1,114 @@
+name: Sync SAM CSV (nightly Contract Opportunities extract)
+
+# NIGHTLY SAM.GOV CSV INGEST (owner-approved build 2026-10-19, "Build it.";
+# spec shared/sam-csv-ingest-spec-2026-10-19.md).
+#
+# SAM.gov regenerates ONE rolling keyless extract of every ACTIVE Contract
+# Opportunity per day at ~03:30 UTC:
+#   https://s3.amazonaws.com/falextracts/Contract%20Opportunities/datagov/ContractOpportunitiesFullCSV.csv
+# 201.8 MB, 47 columns, no API key, no quota, no paging cap. It carries the
+# response deadline, notice type, set-aside code + label, NAICS, PSC and the
+# place-of-performance state — measured 2026-10-19: 12,232 future-deadline
+# non-award rows, against the 1,114 federal rows with a real future deadline
+# stored in production.
+#
+# Scheduled 04:30 UTC = one hour after SAM rebuilds the file, and well before the
+# 06:00 Eastern morning emails (daily-emails.yml is gated from 10:07 UTC).
+#
+# THE EVERY-4-HOURS SAM SEARCH SYNC IS DELIBERATELY UNTOUCHED (owner rule 2):
+# it keeps finding same-day new bids. Both jobs write the SAME identity
+# (`source = 'sam_gov'`, `external_id = 'sam-<NoticeId>'`), so
+# `ON CONFLICT (source, external_id)` is the single dedupe point and one notice
+# can never become two rows.
+#
+# THE STATE COUNT IS OBSERVED, NEVER GATED (owner amendment 2026-10-19): the
+# counter's state set FOLLOWS THE REAL DATA — 50 jurisdictions today, 51 once
+# Maine's notices enter the live counter, and back down when they close. The job
+# reads the counter's own state set before the write and again after it, and if
+# the set moved (either direction) it prints the before/after sets plus every
+# per-state open-count delta, emails the business inbox over the repo's existing
+# Resend channel, and uploads the same report as a run artifact. The import
+# ALWAYS proceeds: whatever happens, this job never fails or skips the write
+# because the state count moved. (The old block-gate that refused to write and
+# exited non-zero is gone.)
+#
+# THE FILE IS STREAMED, NEVER LOADED: `curl` is piped into the ingester, which
+# parses incrementally (memory stays at one record). A GitHub runner, not a
+# Vercel function, because 200 MB does not fit a Hobby function (spec §3).
+#
+# Required secrets: DATABASE_URL (same value as the Vercel project env var).
+
+on:
+  schedule:
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+    inputs:
+      report_only:
+        description: "Parse + gate + report, write nothing (dry run)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: sync-sam-csv
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: write # required for actions/upload-artifact@v4
+
+jobs:
+  ingest:
+    name: Stream + upsert SAM's nightly CSV
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      # The state-set alert email path (same repo secret the other email jobs use;
+      # without it the alert is skipped and logged, and the artifact below is the
+      # record — the import still runs either way).
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      # Where the state-change report is written so the upload step below can
+      # persist it (the runner's workspace is ephemeral).
+      SAM_CSV_STATE_CHANGE_FILE: ${{ github.workspace }}/sam-csv-state-change.md
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      # The extract's Last-Modified is the close-out fence: a row stored AFTER it
+      # (a same-day bid the 4-hourly sync found, which last night's file cannot
+      # contain yet) is never closed out.
+      - name: Read the extract's own Last-Modified
+        id: extract
+        run: |
+          URL='https://s3.amazonaws.com/falextracts/Contract%20Opportunities/datagov/ContractOpportunitiesFullCSV.csv'
+          LM=$(curl -sSLI "$URL" | tr -d '\r' | awk -F': ' 'tolower($1)=="last-modified"{print $2}')
+          echo "last_modified=$LM" >> "$GITHUB_OUTPUT"
+          echo "SAM extract Last-Modified: $LM"
+          test -n "$LM"
+
+      - name: Stream the extract into the ingester
+        env:
+          SAM_CSV_EXTRACT_TIME: ${{ steps.extract.outputs.last_modified }}
+          SAM_CSV_REPORT_ONLY: ${{ inputs.report_only && '1' || '0' }}
+        run: |
+          set -o pipefail
+          URL='https://s3.amazonaws.com/falextracts/Contract%20Opportunities/datagov/ContractOpportunitiesFullCSV.csv'
+          curl -sSL "$URL" | bun run sam-csv-ingest
+      # The notification artifact: written ONLY when the counter's state set
+      # actually moved, so a normal night uploads nothing (warn, not fail).
+      - name: Upload the state-change report (only when the set moved)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sam-csv-state-change
+          path: sam-csv-state-change.md
+          if-no-files-found: ignore
+          retention-days: 30

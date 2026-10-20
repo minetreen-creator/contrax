@@ -3,10 +3,10 @@ import { describe, expect, test } from "bun:test";
 import { radarOpening } from "~/routes/radar";
 
 describe("radarOpening — Radar step-1 headline", () => {
-  test("no deep link: SDVOSB-first copy that still welcomes other certifications", () => {
+  test("no deep link: every business first; the set-asides follow in the intro", () => {
     const o = radarOpening({ trade: "", stateCode: "", cert: null });
-    expect(o.headline).toContain("SDVOSB");
-    expect(o.headline).toContain("first 3 matches are free");
+    expect(o.headline).toBe("Find government contracts your business can win. Your top match is free.");
+    expect(o.intro).toContain("SDVOSB");
     expect(o.intro).toContain("8(a), WOSB and HUBZone");
   });
 
@@ -33,7 +33,7 @@ describe("radarOpening — Radar step-1 headline", () => {
 
   test("a cert-only link (no trade/state) keeps the default opening", () => {
     expect(radarOpening({ trade: "", stateCode: "", cert: "wosb" }).headline).toContain(
-      "first 3 matches are free",
+      "top match is free",
     );
   });
 
@@ -66,7 +66,7 @@ describe("paid-ad visitors get a broader opening (owner 2026-10-06)", () => {
     const ad = radarOpening({ trade: "", stateCode: "", cert: null, fromAd: true });
     expect(ad.headline).toBe("Find government contracts your business can win.");
     expect(ad.intro).toContain("SDVOSB");
-    expect(radarOpening({ trade: "", stateCode: "", cert: null }).headline).toContain("SDVOSB");
+    expect(radarOpening({ trade: "", stateCode: "", cert: null }).headline).not.toContain("SDVOSB");
     expect(radarOpening({ trade: "HVAC", stateCode: "VA", cert: null, fromAd: true }).headline).toBe("Your matches for HVAC work in Virginia");
   });
 });
@@ -93,7 +93,10 @@ describe("exhausted anonymous preview handoff", () => {
     expect(url.searchParams.get("state")).toBe("VA");
     expect(url.searchParams.get("next")).toContain("/radar?first_run=1");
     expect(url.searchParams.get("next")).toContain("trade=janitorial");
-    expect(new URL(radarSignupHref({trade:"janitorial",state:"VA",cert:"sb",sizePref:"any"}),"https://www.contrax.company").pathname).toBe("/upgrade");
+    // Owner 2026-10-19 (choice A): the unlock CTA goes to signup too, never /upgrade.
+    const unlock = new URL(radarSignupHref({trade:"janitorial",state:"VA",cert:"sb",sizePref:"any"}, {unlock:true}),"https://www.contrax.company");
+    expect(unlock.pathname).toBe("/signup");
+    expect(unlock.searchParams.get("source")).toBe("radar_results_unlock");
   });
 });
 

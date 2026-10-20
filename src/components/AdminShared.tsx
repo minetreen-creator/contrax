@@ -103,13 +103,14 @@ export function MrrScoreboard() {
 }
 
 // ── Tab bar ──────────────────────────────────────────────────────────────────
-export type AdminTab = "overview" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "payments" | "bid-scout" | "bid-fit-reviews" | "nonprofits" | "data-access";
+export type AdminTab = "overview" | "live" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "payments" | "bid-scout" | "bid-fit-reviews" | "nonprofits" | "data-access" | "founding-businesses";
 
 export type AdminSection = "Overview" | "Visitors" | "Leads & Signups" | "Revenue" | "Operations";
 
 /** Every admin page, grouped into five sections (owner 2026-10-06: 11 tabs was too many). */
 export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: AdminSection }[] = [
   { key: "overview", label: "Overview", href: "/admin", group: "Overview" },
+  { key: "live", label: "Live", href: "/admin/live", group: "Overview" },
   { key: "visitors", label: "Visitors", href: "/admin/journeys", group: "Visitors" },
   { key: "signups", label: "Signups", href: "/admin/signups", group: "Leads & Signups" },
   { key: "radar-leads", label: "Radar Leads", href: "/admin/radar-leads", group: "Leads & Signups" },
@@ -117,6 +118,7 @@ export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: Ad
   { key: "customers", label: "Customers", href: "/admin/customers", group: "Revenue" },
   { key: "payments", label: "Contrax Payments", href: "/admin/payments", group: "Revenue" },
   { key: "bid-scout", label: "Bid Scout", href: "/admin/bid-scout", group: "Revenue" },
+  { key: "founding-businesses", label: "Founding Businesses", href: "/admin/founding-businesses", group: "Revenue" },
   { key: "data-access", label: "Data API", href: "/admin/data-access", group: "Revenue" },
   { key: "bid-fit-reviews", label: "Bid Fit Reviews", href: "/admin/bid-fit-reviews", group: "Operations" },
   // Nonprofit Free phase 2 unit B — the human review queue. A review surface nobody can

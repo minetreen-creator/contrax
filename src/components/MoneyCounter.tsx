@@ -43,7 +43,8 @@ export function MoneyCounter({
   const [state, setState] = useState("US");
   const f = counterFigures(state, contractMap, ending, endingByState);
   const dollars = useCountUp(f.endingTotal);
-  const bids = useCountUp(f.openBids);
+  const federal = useCountUp(f.federalOpen);
+  const stateLocal = useCountUp(f.stateLocalOpen);
   if (!contractMap && !ending) return null;
   const where = state === "US" ? "nationwide" : `in ${STATE_NAMES[state] ?? state}`;
   // No per-state split (lookup failed): hide the picker rather than show $0 per state.
@@ -55,17 +56,28 @@ export function MoneyCounter({
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#0b1f45] via-[#12357a] to-[#0b1f45] p-6 text-center text-white shadow-xl sm:p-10">
         <div aria-hidden="true" className="pointer-events-none absolute -left-24 -top-24 h-72 w-72 rounded-full bg-amber-400/20 blur-3xl" />
         <div aria-hidden="true" className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-sky-400/20 blur-3xl" />
-        <p id="money-counter-title" className="relative text-xs font-bold uppercase tracking-[0.2em] text-amber-300">
+        <h2 id="money-counter-title" className="relative text-xs font-bold uppercase tracking-[0.2em] text-amber-300">
           Government money on the move {where}
-        </p>
+        </h2>
         <p className="relative mt-4 break-words font-[Georgia,serif] text-5xl font-extrabold tabular-nums text-amber-300 drop-shadow sm:text-7xl" aria-live="polite">
           ${dollars.toLocaleString("en-US")}
         </p>
         <p className="relative mt-3 text-base text-slate-200 sm:text-lg">
           in federal contracts ending in the next 12 months ({f.endingCount.toLocaleString("en-US")} contracts). Each one could be rebid.
         </p>
-        <p className="relative mt-6 font-[Georgia,serif] text-4xl font-bold tabular-nums sm:text-5xl">{bids.toLocaleString("en-US")}</p>
-        <p className="relative mt-1 text-sm text-slate-300 sm:text-base">open bids {where} right now</p>
+        {/* Owner 2026-10-19: TWO honest figures, never one blended all-source
+            count presented as federal. Federal rows are those whose source is a
+            federal feed (same classifier as the "Federal" badge). */}
+        <div className="relative mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <p className="font-[Georgia,serif] text-4xl font-bold tabular-nums sm:text-5xl" aria-live="polite">{federal.toLocaleString("en-US")}</p>
+            <p className="mt-1 text-sm text-slate-300 sm:text-base">open federal bids {where} right now</p>
+          </div>
+          <div>
+            <p className="font-[Georgia,serif] text-4xl font-bold tabular-nums sm:text-5xl" aria-live="polite">{stateLocal.toLocaleString("en-US")}</p>
+            <p className="mt-1 text-sm text-slate-300 sm:text-base">open state &amp; local bids {where} right now</p>
+          </div>
+        </div>
         {canPickState && <label className="relative mt-6 inline-flex flex-wrap items-center justify-center gap-2 text-sm font-semibold">
           See your state
           <select

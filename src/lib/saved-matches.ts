@@ -17,6 +17,26 @@ import { createServerFn } from "@tanstack/react-start";
 import { workspaceScopeClause } from "~/lib/workspaces";
 
 /**
+ * The caller's ACTIVE client workspace id, or null (no workspace = the account's own
+ * context). Fail-soft: a lookup error reads "none" (see resolveActiveWorkspaceId).
+ *
+ * SCOPE MATTERS (build): this lookup lives in a createServerFn HANDLER body on purpose.
+ * `~/lib/workspaces.server` is a `*.server.*` module and the import-protection plugin
+ * denies it in the CLIENT environment; this module is reachable from client code
+ * (router.tsx -> routeTree.gen.ts -> routes/awards.tsx -> lib/saved-matches), so the
+ * import fails the build from anywhere else in the file — even as a dynamic
+ * `await import(...)`. Server-fn handler bodies are stripped from the client bundle,
+ * which is why the import is safe here (the same shape routes/awards.tsx uses for its
+ * own head-start lookup).
+ */
+const getActiveWorkspaceId = createServerFn({ method: "GET" })
+  .validator((d: unknown) => d as { userId: number })
+  .handler(async ({ data }: { data: { userId: number } }): Promise<number | null> => {
+    const { resolveActiveWorkspaceId } = await import("~/lib/workspaces.server");
+    return resolveActiveWorkspaceId(data.userId);
+  });
+
+/**
  * Upsert a saved match. Idempotent — safe to call repeatedly.
  *
  * WORKSPACE (Agency tier, migration 068): the row is filed under the caller's ACTIVE
@@ -33,8 +53,7 @@ import { workspaceScopeClause } from "~/lib/workspaces";
  */
 export async function saveMatch(userId: number, bidId: number): Promise<void> {
   const { sql } = await import("~/db");
-  const { resolveActiveWorkspaceId } = await import("~/lib/workspaces.server");
-  const workspaceId = await resolveActiveWorkspaceId(userId);
+  const workspaceId = await getActiveWorkspaceId({ data: { userId } });
   await sql()`
     INSERT INTO saved_matches (user_id, bid_id, status, workspace_id)
     VALUES (${userId}, ${bidId}, 'saved', ${workspaceId})

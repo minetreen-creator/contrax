@@ -3,7 +3,10 @@
  * branch → status code) with an in-memory store, no database and no `mock.module`
  * (bun's mock registry is process-global and leaks across test files in one run — the
  * pathology documented in src/routes/api/subcontracts/primes.ts). Same shape as the
- * CRM route tests.
+ * CRM route tests — and, like src/lib/crm-route.test.ts and
+ * src/lib/subcontracts/gsa-primes-route.test.ts, it lives in src/lib on purpose: a
+ * `*.test.ts` under src/routes is scanned by the route-tree generator, which warns
+ * that it exports no Route and that it will not be included in the route tree.
  *
  * This is where the brief's behavioural pins live:
  *   * a non-Agency account cannot create a workspace (403, and the store is never
@@ -16,7 +19,7 @@
  *     404, never a silent success.
  */
 import { describe, expect, test } from "bun:test";
-import { workspaceRouteHandlers, type WorkspaceRouteUser } from "./workspaces";
+import { workspaceRouteHandlers, type WorkspaceRouteUser } from "~/routes/api/workspaces";
 import type { WorkspaceAccess } from "~/lib/workspaces";
 import type { WorkspaceRow, WorkspaceStore } from "~/lib/workspaces.server";
 

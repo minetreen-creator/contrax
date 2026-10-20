@@ -275,6 +275,7 @@ async function handler({ request }: { request: Request }) {
     // Up to 100 for the map dots; the list under the count shows the first 12.
     const online: OnlineVisitor[] = people.slice(0, 100).map((r, i) => ({
       visitorKey: `v${i}-${new Date(r.created_at).getTime()}`,
+      vid: r.visitor_id,
       place: placeLabel(r.city, r.region),
       state: visitorState(r.region, r.country),
       path: String(r.path).split("?")[0].slice(0, 80),

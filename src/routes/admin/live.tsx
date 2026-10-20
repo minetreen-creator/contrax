@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign } from "lucide-react";
+import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -215,7 +216,7 @@ function useUsMap() {
 }
 
 /** A real US map; color = how each state's searches went, pulse = searched in the last 15 minutes. */
-function SearchMap({ stats, visitors, now }: { stats: StateSearchStat[]; visitors: OnlineVisitor[]; now: number }) {
+function SearchMap({ stats, visitors, now, onChat }: { stats: StateSearchStat[]; visitors: OnlineVisitor[]; now: number; onChat: (v: OnlineVisitor) => void }) {
   const us = useUsMap();
   const byState = new Map(stats.map((s) => [s.state, s]));
   return (
@@ -261,10 +262,15 @@ function SearchMap({ stats, visitors, now }: { stats: StateSearchStat[]; visitor
               seen.set(v.state, i + 1);
               const [dx, dy] = dotOffset(i);
               return (
-                <g key={v.visitorKey} className="live-visitor-dot" transform={`translate(${at[0] + dx} ${at[1] - 22 + dy})`}>
+                <g
+                  key={v.visitorKey}
+                  className="live-visitor-dot cursor-pointer"
+                  transform={`translate(${at[0] + dx} ${at[1] - 22 + dy})`}
+                  onClick={() => onChat(v)}
+                >
                   <circle className="live-visitor-ring" r="7" />
                   <circle r="6" />
-                  <title>{`${v.place ?? v.state} · on ${v.path} · ${agoLabel(v.at, now)}`}</title>
+                  <title>{`${v.place ?? v.state} · on ${v.path} · ${agoLabel(v.at, now)} · click to say hi`}</title>
                 </g>
               );
             });
@@ -284,7 +290,7 @@ function SearchMap({ stats, visitors, now }: { stats: StateSearchStat[]; visitor
   );
 }
 
-function OnlineNow({ count, visitors, now, hidden }: { count: number; visitors: OnlineVisitor[]; now: number; hidden: number }) {
+function OnlineNow({ count, visitors, now, hidden, onChat }: { count: number; visitors: OnlineVisitor[]; now: number; hidden: number; onChat: (v: OnlineVisitor) => void }) {
   return (
     <div className="live-online">
       <div className="flex items-baseline gap-3">
@@ -304,6 +310,9 @@ function OnlineNow({ count, visitors, now, hidden }: { count: number; visitors: 
               <span className="truncate text-slate-200">{v.place ?? "Unknown location"}</span>
               <span className="truncate font-mono text-sky-300">{v.path}</span>
               <span className="ml-auto shrink-0 text-slate-500">{agoLabel(v.at, now)}</span>
+              <button type="button" onClick={() => onChat(v)} className="live-sayhi" title="Send this visitor a message">
+                <MessageCircle size={12} aria-hidden="true" /> Say hi
+              </button>
             </li>
           ))}
         </ul>
@@ -311,6 +320,174 @@ function OnlineNow({ count, visitors, now, hidden }: { count: number; visitors: 
         <p className="mt-3 text-xs text-slate-500">Nobody right now.</p>
       )}
     </div>
+  );
+}
+
+interface ChatThread {
+  visitorId: string;
+  lastAt: string;
+  lastBody: string;
+  lastSender: "owner" | "visitor";
+  unread: number;
+}
+
+/** Last 24 hours of founder chats; unread replies glow. */
+function Conversations({ threads, online, onOpen }: { threads: ChatThread[]; online: OnlineVisitor[]; onOpen: (vid: string, label: string) => void }) {
+  if (!threads.length) return null;
+  const here = new Map(online.map((v) => [v.vid, v]));
+  return (
+    <div className="mt-4">
+      <p className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+        <MessageCircle size={12} aria-hidden="true" /> Your chats · 24 hours
+      </p>
+      <ul className="space-y-1.5">
+        {threads.map((t) => {
+          const v = here.get(t.visitorId);
+          const label = v ? `${v.place ?? "Unknown location"} · ${v.path}` : "Visitor (left the site)";
+          return (
+            <li key={t.visitorId}>
+              <button type="button" onClick={() => onOpen(t.visitorId, label)} className={`live-chat-thread ${t.unread ? "is-unread" : ""}`}>
+                <span className="min-w-0 flex-1 text-left">
+                  <span className="block truncate text-xs font-semibold text-white">
+                    {v ? <span className="live-dot mr-1.5 inline-block align-middle" aria-hidden="true" /> : null}
+                    {label}
+                  </span>
+                  <span className="block truncate text-[11px] text-slate-400">
+                    {t.lastSender === "owner" ? "You: " : ""}
+                    {t.lastBody}
+                  </span>
+                </span>
+                {t.unread ? <span className="live-chat-badge">{t.unread}</span> : null}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+const OPENER = "Hi, I'm Nathaniel, the founder of Contrax. Can I help you find bids for your business?";
+
+/** One conversation: polls every 5 seconds while open. */
+function ChatDrawer({ vid, label, onClose }: { vid: string; label: string; onClose: () => void }) {
+  const [messages, setMessages] = useState<ChatMessage[] | null>(null);
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let stop = false;
+    const load = () =>
+      fetch(`/api/admin/live-chat?vid=${encodeURIComponent(vid)}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (stop || !d.messages) return;
+          setMessages(d.messages);
+          setInput((cur) => (cur || d.messages.length ? cur : OPENER));
+        })
+        .catch(() => {});
+    load();
+    const t = setInterval(load, OWNER_POLL_MS);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, [vid]);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [messages]);
+
+  const send = async () => {
+    const body = cleanBody(input);
+    if (!body || sending) return;
+    setSending(true);
+    setError("");
+    try {
+      const res = await fetch("/api/admin/live-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vid, body }),
+      });
+      const d = await res.json();
+      if (!res.ok || !d.message) throw new Error(d.error || "Could not send");
+      setMessages((prev) => [...(prev ?? []), d.message]);
+      setInput("");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not send");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <aside className="live-chat-drawer" aria-label="Chat with a visitor">
+      <header className="flex items-start justify-between gap-2 border-b border-slate-700/60 px-4 py-3">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-bold text-white">
+            <MessageCircle size={15} aria-hidden="true" /> Live chat
+          </p>
+          <p className="truncate text-xs text-slate-400">{label}</p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close chat" className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white">
+          <X size={18} />
+        </button>
+      </header>
+      <div ref={scrollRef} className="flex-1 space-y-2 overflow-y-auto px-4 py-3">
+        {messages === null ? (
+          <p className="text-xs text-slate-500">Loading…</p>
+        ) : messages.length === 0 ? (
+          <p className="text-xs text-slate-400">
+            Say hi. They'll see a small card from you on whatever page they're on (checked every 15 seconds), and can reply here.
+          </p>
+        ) : (
+          messages.map((m) => (
+            <div key={m.id} className={`flex ${m.sender === "owner" ? "justify-end" : "justify-start"}`}>
+              <div className={`live-chat-bubble ${m.sender === "owner" ? "is-owner" : "is-visitor"}`}>
+                {m.body}
+                <span className="mt-0.5 block text-[10px] opacity-60">
+                  {new Date(m.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      {error ? <p className="px-4 text-xs text-rose-300">{error}</p> : null}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send();
+        }}
+        className="flex items-end gap-2 border-t border-slate-700/60 px-3 py-3"
+      >
+        <textarea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              send();
+            }
+          }}
+          rows={2}
+          maxLength={1000}
+          placeholder="Write a message…"
+          className="flex-1 resize-none rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:border-amber-400 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={sending || !input.trim()}
+          aria-label="Send"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+        >
+          <Send size={16} />
+        </button>
+      </form>
+    </aside>
   );
 }
 
@@ -415,6 +592,25 @@ function LivePage() {
   const [error, setError] = useState("");
   const seen = useRef<Set<string> | null>(null);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
+  const [chat, setChat] = useState<{ vid: string; label: string } | null>(null);
+  const [threads, setThreads] = useState<ChatThread[]>([]);
+  const openChat = (v: OnlineVisitor) => setChat({ vid: v.vid, label: `${v.place ?? "Unknown location"} · ${v.path}` });
+
+  // Founder live chat: conversations with unread replies, on the same 15s beat.
+  useEffect(() => {
+    let stop = false;
+    const load = () =>
+      fetch("/api/admin/live-chat")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => !stop && d?.threads && setThreads(d.threads))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, POLL_MS);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, []);
   const now = useNow(1000);
 
   useEffect(() => {
@@ -499,13 +695,14 @@ function LivePage() {
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                   <MapIcon size={15} aria-hidden="true" /> Live search map · 48 hours
                 </h2>
-                <SearchMap stats={data.map} visitors={data.online} now={now} />
+                <SearchMap stats={data.map} visitors={data.online} now={now} onChat={openChat} />
               </div>
               <div>
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                   <Users size={15} aria-hidden="true" /> On the site now
                 </h2>
-                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} />
+                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} onChat={openChat} />
+                <Conversations threads={threads} online={data.online} onOpen={(vid, label) => setChat({ vid, label })} />
               </div>
             </div>
           ) : null}
@@ -541,6 +738,7 @@ function LivePage() {
 
         </section>
       </main>
+      {chat ? <ChatDrawer vid={chat.vid} label={chat.label} onClose={() => setChat(null)} /> : null}
     </div>
   );
 }

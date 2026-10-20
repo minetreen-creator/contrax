@@ -9,6 +9,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { initBotId } from "botid/client/core";
 
 import { ChatWidget } from "~/components/ChatWidget";
+import { FounderChat } from "~/components/FounderChat";
 import {
   ATTR_COOKIE_NAME,
   attributionCookieSetHeader,
@@ -238,6 +239,7 @@ function RootComponent() {
       <AttributionCookie />
       <PageViewTracker />
       <ChatWidget />
+      <FounderChat />
     </RootDocument>
   );
 }

@@ -5,6 +5,7 @@ import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { MoneyCounter } from "~/components/MoneyCounter";
 import { OpportunityExplorer } from "~/components/OpportunityExplorer";
+import { ExampleBrief } from "~/components/ExampleBrief";
 
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -276,6 +277,24 @@ function HowItWorks() {
             <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{description}</p>
           </a>
         ))}
+      </div>
+      {/* Owner 2026-10-19 (item 5): step 2's real after-state, directly under the
+          three cards. This is the EXISTING example-brief embed (variant="embed"):
+          it renders the real cached AI Executive Brief from the database, labels
+          every word of it EXAMPLE, and renders NOTHING when no currently-valid
+          cached example exists — that honesty contract is untouched and nothing
+          here is fabricated or screenshotted. When it hides itself, only the
+          link to the standalone page (which has an honest empty state) remains. */}
+      <div className="mt-6">
+        <ExampleBrief variant="embed" />
+        <p className="mt-4 text-center text-sm">
+          <a
+            href="/example-brief"
+            className="font-semibold text-blue-700 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:text-blue-300"
+          >
+            See the full example brief →
+          </a>
+        </p>
       </div>
     </section>
   );

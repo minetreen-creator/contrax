@@ -130,7 +130,7 @@ function PricingPage() {
                   ))}
                 </ul>
                 <a
-                  href={`/signup?plan=${plan.slug}`}
+                  href={`/signup?plan=${plan.slug}&next=${encodeURIComponent(`/upgrade?plan=${plan.slug}`)}`}
                   className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
                     plan.featured
                       ? "bg-amber-500 text-white"

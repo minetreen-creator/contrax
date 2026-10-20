@@ -1,3 +1,4 @@
+import { paidPlanReturn } from "~/lib/purchase-intent";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 // Server-only module (tanstack-start-server-imports skill, rule 1): a route
@@ -484,13 +485,16 @@ function SignupPage() {
   const { currentUser, trackedBids, openBids, linkedInAuthUrl, googleAuthUrl: baseGoogleAuthUrl, attemptToken: loaderAttemptToken } =
     Route.useLoaderData();
   const navigate = useNavigate();
-  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next, closes, source, title, agency, trade, cert, state, size, value } =
+  const { plan, ticker_bid, ticker_agency, score_rec, save_bid, next: requestedNext, closes, source, title, agency, trade, cert, state, size, value } =
     Route.useSearch();
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<Plan>(plan as Plan);
+  const next = paidPlanReturn(requestedNext)
+    ? selectedPlan === "basic" ? undefined : `/upgrade?plan=${selectedPlan}`
+    : requestedNext;
   // Browser-tab title matches the selected plan (P2): Basic is genuinely free
   // forever (no card), paid tiers carry the 7-day trial. Kept in sync client-
   // side so the tab reads truthfully however the visitor arrived.
@@ -498,7 +502,7 @@ function SignupPage() {
     document.title =
       selectedPlan === "basic"
         ? "Contrax — Free, No Card Required"
-        : "Contrax — Start Your 14-Day Professional Trial";
+        : "Contrax — Start Your 7-Day Professional Trial";
   }, [selectedPlan]);
 
   // Live countdown for the Closing Soon → signup urgency panel. Initial value is
@@ -961,7 +965,7 @@ function SignupPage() {
             window.location.assign(safeNext(next) ?? "/dashboard");
           });
       } else {
-        navigate({ to: "/dashboard" });
+        window.location.assign(paidPlanReturn(safeNext(next)) ?? safeNext(next) ?? "/dashboard");
       }
     }
   }, [currentUser, navigate, save_bid, next]);
@@ -1191,7 +1195,7 @@ function SignupPage() {
       // how Google OAuth carries `next` through state, and using the same
       // sessionStorage pattern as the pending-draft promise. Fail-open: a
       // storage failure must never block the redirect.
-      storeRememberedNext(next);
+      if (!paidPlanReturn(next)) storeRememberedNext(next);
       // OWNER REWORK 2026-09-26 (PR-A, item 1) — THE ONE LANDING RULE:
       // a radar-family signup and a cold signup both land DIRECTLY on /radar
       // with `first_run=1` + the visitor's criteria pre-filled (was /dashboard
@@ -1203,7 +1207,9 @@ function SignupPage() {
         resolveSignupRadarCriteria({ trade, state, cert, size, handoff: unlockHandoff }),
         safeNext,
       );
-      if (destination.kind === "radar") {
+      if (destination.kind === "purchase") {
+        window.location.assign(destination.href);
+      } else if (destination.kind === "radar") {
         // Funnel: the new account's landing is Radar (item 9 — every step is
         // tracked). Label = the signup source that produced the landing.
         trackEvent("signup_landed_radar", source ?? "direct");
@@ -1513,7 +1519,7 @@ function SignupPage() {
                 (takes under 30 seconds). Paid plans keep honest 14-day-trial
                 framing instead of the "free forever" claim. */}
             {!save_bid && <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-gray-500">
-              {selectedPlan === "basic" ? <span>No credit card required</span> : <span>Card required at checkout</span>}
+              {selectedPlan === "basic" ? <span>No credit card required</span> : <span>No credit card required for the trial</span>}
               {selectedPlan !== "basic" && (
                 <>
                   <span aria-hidden="true" className="text-gray-300">·</span>

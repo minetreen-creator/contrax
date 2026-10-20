@@ -170,7 +170,22 @@ export default function WorkspaceSwitcher() {
                       </div>
                       <div className="flex shrink-0 items-center gap-3 text-xs">
                         {active ? (
-                          <span className="font-semibold text-emerald-700">Active</span>
+                          <>
+                            <span className="font-semibold text-emerald-700">Active</span>
+                            {/* Phase 3: this client's saved bids + CRM contacts as one
+                                client-ready CSV. A plain link, not a fetch: the endpoint
+                                answers with Content-Disposition, so the browser saves the
+                                file and a failure surfaces as a status, never as a
+                                silently empty download. Only the ACTIVE client is exported
+                                — "View this client" first, then export. */}
+                            <a
+                              href={`/api/workspace-export?workspace=${workspace.id}`}
+                              title="Download this client's saved bids and CRM contacts as a CSV file"
+                              className="font-semibold text-blue-600 hover:underline"
+                            >
+                              Export CSV
+                            </a>
+                          </>
                         ) : (
                           <button
                             disabled={busy}

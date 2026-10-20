@@ -3,6 +3,7 @@ import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
+import { subcontractOutboundTimelineLabel } from "~/lib/subcontracts/outbound";
 import { EVENT_LABELS } from "~/lib/tracking-intake";
 
 /**
@@ -59,7 +60,7 @@ async function handler({ request }: { request: Request }) {
         ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}
       ORDER BY created_at ASC`;
     const eventRows: any[] = await sql()`
-      SELECT created_at, event_name FROM funnel_events
+      SELECT created_at, event_name, label FROM funnel_events
       WHERE visitor_id = ${visitorId} AND visitor_id <> ''
         ${sql().unsafe(humanFilter)} ${sql().unsafe(qaFilter)} ${sql().unsafe(adminFilter)}
       ORDER BY created_at ASC`;
@@ -76,6 +77,7 @@ async function handler({ request }: { request: Request }) {
       events.push({
         t: new Date(r.created_at).toISOString(),
         label:
+          subcontractOutboundTimelineLabel(r.event_name, r.label) ??
           EVENT_LABELS[r.event_name] ??
           r.event_name.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
         kind: "event",

@@ -32,6 +32,7 @@ import {
   SUBCONTRACTS_EVENTS,
   shouldFireNoticeView,
   trackSubcontractsEvent,
+  trackSubcontractSource,
 } from "~/lib/subcontracts/subcontracts-analytics";
 import type { HaulingLead } from "~/lib/hauling-leads";
 
@@ -334,12 +335,14 @@ function PrimeDirectory({
                 {row.dot ? (
                   <p className="mt-2 text-sm text-slate-600">
                     <a href={row.dot.sourceUrl} target="_blank" rel="noreferrer"
+                      onClick={() => trackSubcontractSource("DOT directory", row.legalName, row.dot!.sourceUrl)}
                       className="font-semibold text-blue-700 hover:underline">DOT-published; unverified</a>
                     {row.dot.services ? ` · ${row.dot.services}` : ""} · Directory listing, not an open bid
                   </p>
                 ) : null}
                 <a
                   href={row.sourceUrl ?? payload?.sourceUrl ?? SUBNET_SOURCE_URL}
+                  onClick={() => trackSubcontractSource("SBA directory", row.legalName, row.sourceUrl ?? payload?.sourceUrl ?? SUBNET_SOURCE_URL)}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-2 inline-block text-sm font-semibold text-blue-700 hover:underline"
@@ -526,6 +529,7 @@ function GsaPrimeDirectory({
                 </p>
                 <a
                   href={row.sourceUrl ?? payload?.sourceUrl ?? GSA_PRIME_DIRECTORY_SOURCE_URL}
+                  onClick={() => trackSubcontractSource("GSA directory", row.legalName, row.sourceUrl ?? payload?.sourceUrl ?? GSA_PRIME_DIRECTORY_SOURCE_URL)}
                   target="_blank"
                   rel="noreferrer"
                   className="mt-2 inline-block text-sm font-semibold text-blue-700 hover:underline"
@@ -535,6 +539,7 @@ function GsaPrimeDirectory({
                 {row.dot ? (
                   <p className="mt-2 text-sm text-slate-600">
                     <a href={row.dot.sourceUrl} target="_blank" rel="noreferrer"
+                      onClick={() => trackSubcontractSource("DOT directory", row.legalName, row.dot!.sourceUrl)}
                       className="font-semibold text-blue-700 hover:underline">DOT-published; unverified</a>
                     {row.dot.services ? ` · ${row.dot.services}` : ""} · Directory listing, not an open bid
                   </p>
@@ -725,6 +730,7 @@ function HaulingLeads({ state }: { state: string }) {
                   </p>
                   <a
                     href={lead.usa_spending_url}
+                    onClick={() => trackSubcontractSource("USAspending", lead.prime_name, lead.usa_spending_url)}
                     target="_blank"
                     rel="noreferrer"
                     className="mt-3 inline-block text-sm font-semibold text-blue-700 underline"
@@ -930,6 +936,7 @@ function SubcontractsPage() {
             </p>
             <a
               href={SUBNET_SOURCE_URL}
+              onClick={() => trackSubcontractSource("SBA SUBNet", "Browse notices", SUBNET_SOURCE_URL)}
               target="_blank"
               rel="noreferrer"
               className="mt-3 inline-block font-semibold text-blue-700 underline"
@@ -946,6 +953,7 @@ function SubcontractsPage() {
             <p className="mt-2 text-sm text-amber-900">{unavailable.explanation}</p>
             <a
               href={unavailable.sourceUrl}
+              onClick={() => trackSubcontractSource("SBA SUBNet", "Browse notices", unavailable.sourceUrl)}
               target="_blank"
               rel="noreferrer"
               className="mt-3 inline-block font-semibold text-blue-700 underline"
@@ -1033,6 +1041,7 @@ function SubcontractsPage() {
                   No currently open notice matches these filters.{" "}
                   <a
                     href={SUBNET_SOURCE_URL}
+                    onClick={() => trackSubcontractSource("SBA SUBNet", "Browse notices", SUBNET_SOURCE_URL)}
                     target="_blank"
                     rel="noreferrer"
                     className="font-semibold text-blue-700 underline"

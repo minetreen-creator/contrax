@@ -28,13 +28,15 @@
  * INERT_SUBCONTRACTS_EVENTS so the test can prove it is unreferenced by the client.
  */
 import { trackEvent } from "~/lib/track";
+import { flushTracking } from "~/lib/track-queue";
+import { subcontractOutboundLabel, type SubcontractSource } from "./outbound";
 
 export const SUBCONTRACTS_EVENTS = {
   /** Page view. NO label (the page is the label). */
   pageViewed: "subcontracts_page_viewed",
   /** One notice entered the viewport — fired ONCE per notice, label = external_id. */
   noticeViewed: "subcontracts_notice_viewed",
-  /** The draft's own name, kept: "View original SBA notice →", label = external_id. */
+  /** Source links: legacy notices use external_id; directories/awards use bounded outbound metadata. */
   sourceOpen: "subcontract_source_open",
   /** The draft's own name, kept: the prime's mailto link, label = external_id. */
   contactClick: "subcontract_contact_click",
@@ -78,4 +80,13 @@ export function shouldFireNoticeView(seen: Set<string>, externalId: string | nul
   if (seen.has(id)) return false;
   seen.add(id);
   return true;
+}
+
+/** Reuse the display-only source event for directories, awards, and fallback links.
+ * Flush the existing keepalive transport before the visitor leaves the tab. */
+export function trackSubcontractSource(source: SubcontractSource, listing: string, href: string): void {
+  const label = subcontractOutboundLabel(source, listing, href);
+  if (!label) return;
+  trackSubcontractsEvent(SUBCONTRACTS_EVENTS.sourceOpen, label);
+  flushTracking();
 }

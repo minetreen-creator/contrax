@@ -459,9 +459,12 @@ export const getLiveStateBids = createServerFn({ method: "GET" }).handler(
       const { AWARD_EXCLUSION_SQL } = await import("~/lib/source-class");
       const s = sql();
       const [rows, count] = await Promise.all([
+        // Notices of intent to award / sole source are announcements nobody can
+        // bid on, so the proof box leaves them out (owner 2026-10-20 audit).
         s`SELECT id, title, agency, due_date FROM bids
           WHERE normalized_state = ${state} AND due_date > NOW() + INTERVAL '3 days'
             AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
+            AND title !~* '(intent to (sole[ -]source|award)|sole[ -]source)'
           ORDER BY created_at DESC LIMIT 3`,
         s`SELECT COUNT(*)::int AS n FROM bids
           WHERE normalized_state = ${state} AND due_date > NOW()
@@ -1711,8 +1714,6 @@ function RadarLanding() {
               Pick your trade and state. Free to search, no signup.
             </p>
 
-            {!hasDeepLink && <LiveStateBids />}
-
             {/* FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2):
                 ONE clear sentence + the two inputs the scan asks for + the note
                 that search is free. Sits ABOVE the unchanged scan form; gone
@@ -1899,6 +1900,10 @@ function RadarLanding() {
               <p className="text-center text-xs text-slate-500">
                 Scans live federal, state and local solicitations.
               </p>
+              {/* Below the form (owner 2026-10-20, phone audit): above it, the box
+                  arrived ~4s after the page and pushed the trade buttons and
+                  "See my matches" off a phone screen (layout shift 0.225). */}
+              {!hasDeepLink && <LiveStateBids />}
             </div>
           </section>
         )}
@@ -3526,8 +3531,13 @@ function LiveStateBids() {
   }, []);
   if (!data || !data.state || data.bids.length === 0) return null;
   const stateName = STATE_NAMES[data.state] ?? data.state;
-  const due = (iso: string | null) =>
-    iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : null;
+  // The year shows when it isn't this year: "due Sep 8" for Sep 8 next year read as long past.
+  const due = (iso: string | null) => {
+    if (!iso) return null;
+    const d = new Date(iso);
+    const otherYear = d.getUTCFullYear() !== new Date().getUTCFullYear();
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(otherYear ? { year: "numeric" } : {}), timeZone: "UTC" });
+  };
   return (
     <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3">
       <p className="text-xs font-semibold uppercase tracking-widest text-emerald-400">
@@ -3550,7 +3560,7 @@ function LiveStateBids() {
           </li>
         ))}
       </ul>
-      <p className="mt-1 text-xs text-slate-400">Pick your trade below to see the ones that fit your business.</p>
+      <p className="mt-1 text-xs text-slate-400">Pick your trade above to see the ones that fit your business.</p>
     </div>
   );
 }

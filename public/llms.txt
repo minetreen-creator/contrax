@@ -1,0 +1,34 @@
+# Contrax
+
+> Contrax is a contract intelligence platform for US small businesses pursuing government set-aside contracts (8(a), SDVOSB, WOSB, HUBZone). It tracks federal, state and local procurement notices, matches them to a business's trade and states, and explains each opportunity with an AI Executive Brief.
+
+Contrax is operated by Contrax LLC (Virginia). Plans range from a free Basic plan to paid plans from $19 to $199 a month, with a 7-day Professional trial that needs no credit card. Grant search is free for verified 501(c)(3) nonprofits. Everything below is a public page; no account is needed to read them, though some tools ask you to sign up before you use them.
+
+## Main pages
+
+- [Contrax](https://www.contrax.company/): Homepage — what Contrax does, the live federal contract money counter, and a "what could you win?" calculator by trade and state.
+- [Pricing](https://www.contrax.company/pricing): Plan cards for Basic (free), Starter ($19/month), Professional ($79/month) and Agency ($199/month), monthly or yearly billing, and frequently asked questions.
+- [Contract Radar](https://www.contrax.company/radar): Search live government bids by trade, certification and state, with a written reason for each match.
+- [Subcontracting opportunities](https://www.contrax.company/subcontracts): Open subcontracting notices from the SBA SUBNet board, plus directories of prime contractors that subcontract.
+- [Contrax Grants](https://www.contrax.company/grants): Search federal grants an organization may qualify for. Free for verified nonprofits.
+- [Example AI Executive Brief](https://www.contrax.company/example-brief): A real cached AI Executive Brief for a government solicitation, showing requirements, milestones and red flags with sources.
+- [Bid Scout](https://www.contrax.company/bid-scout): $99/month — five matched government opportunities every Friday with plain-English requirements, deadlines and risks.
+- [Compare Contrax](https://www.contrax.company/compare): Side-by-side comparison of Contrax with GovWin/Deltek, BidNet/Bonfire, GovSpend, manual SAM.gov searching and consultants.
+- [Contrax Launchpad](https://www.contrax.company/launchpad): Free, self-paced starting point: courses, a capability statement builder, a registration checklist and a bid plan.
+
+## Learn
+
+- [Learning center](https://www.contrax.company/learn): All Contrax courses and guides on government contracting.
+- [Government Contracting Basics](https://www.contrax.company/learn/government-contracting): Introductory course on finding bids, set-asides and sizing up opportunities.
+- [Preparing a Government Contract Bid](https://www.contrax.company/learn/intermediate-government-contracting): Intermediate course on capability statements, compliance, pricing and submission.
+- [Government Contracting Strategy and Management](https://www.contrax.company/learn/advanced-government-contracting): Advanced course on pursuit strategy, teaming, pricing risk and contract performance.
+- [8(a) certification guide](https://www.contrax.company/learn/8a-certification-guide): Guide to the SBA 8(a) Business Development program.
+- [HUBZone guide](https://www.contrax.company/learn/hubzone-guide): Guide to the SBA HUBZone program.
+- [SDVOSB guide](https://www.contrax.company/learn/sdvosb-guide): Guide to service-disabled veteran-owned small business certification.
+- [WOSB / EDWOSB guide](https://www.contrax.company/learn/wosb-edwosb-guide): Guide to women-owned small business certification.
+
+## Optional
+
+- [About Contrax](https://www.contrax.company/about): Who builds Contrax and why.
+- [Security](https://www.contrax.company/security): How Contrax handles data.
+- [Privacy policy](https://www.contrax.company/privacy) and [Terms of service](https://www.contrax.company/terms).

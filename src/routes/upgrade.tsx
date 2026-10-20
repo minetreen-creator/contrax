@@ -19,6 +19,11 @@ const getStatus = createServerFn({ method: "GET" }).handler(async () => {
 
 export const Route = createFileRoute("/upgrade")({
   head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
+  // A canceled Stripe checkout returns here with the plan it was for (#441).
+  validateSearch: (search: Record<string, unknown>) => ({
+    checkout: search.checkout === "cancelled" ? ("cancelled" as const) : undefined,
+    plan: ["starter", "professional", "agency"].includes(String(search.plan)) ? String(search.plan) : undefined,
+  }),
   loader: () => getStatus(),
   component: Upgrade,
 });
@@ -32,6 +37,7 @@ const plans = [
 
 function Upgrade() {
   const { status, pitch } = Route.useLoaderData();
+  const { checkout, plan } = Route.useSearch();
   const [interval, setInterval] = useState<"month" | "year">("month");
   const endsLabel =
     status?.active && status.endsAt
@@ -58,6 +64,11 @@ function Upgrade() {
               }. Choose a plan to keep going.`
             : "Choose a plan to keep going."}
         </p>
+        {checkout === "cancelled" && (
+          <p role="status" className="mx-auto mt-6 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-center text-sm text-amber-900">
+            Checkout was canceled. No payment was made. You can choose a plan below whenever you’re ready.
+          </p>
+        )}
         {pitch && <YourMatches pitch={pitch} />}
         <div className="mt-8 flex justify-center">
           <div role="radiogroup" aria-label="Billing period" className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm font-semibold shadow-sm">
@@ -80,6 +91,7 @@ function Upgrade() {
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {plans.map((p) => {
             const isCurrent = status?.planTier === p.id;
+            const wasSelected = checkout === "cancelled" && plan === p.id;
             return (
               <div
                 key={p.id}
@@ -94,6 +106,7 @@ function Upgrade() {
                     Your plan
                   </div>
                 )}
+                {wasSelected && <div className="mb-3 text-sm font-semibold text-amber-700">Your previous selection</div>}
                 <h2 className="text-xl font-bold text-slate-900">{p.name}</h2>
                 <p className="mt-1 text-sm text-slate-600">{PLAN_COPY[p.id].description}</p>
                 {interval === "month" ? (

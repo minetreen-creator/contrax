@@ -771,3 +771,20 @@ jobs:
       # EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
       - name: CRM route handler end-to-end tests (unit, deterministic, zero network)
         run: bun test src/lib/crm-route.test.ts
+      # AGENCY MULTI-CLIENT WORKSPACES (owner decision 2026-10-20) — all three
+      # phases shipped their suites LOCAL-ONLY: this workflow's test list is
+      # EXPLICIT, so until this step the whole workspace/agency suite ran nowhere
+      # in CI. Five files, DETERMINISTIC, network-free and DATABASE-FREE by
+      # construction (in-memory stores + frozen clocks, no DB, no fetch):
+      #   * workspaces-route.test.ts — GET/POST /api/workspaces + the entitlement
+      #     (P1: migration 068 workspace table, 10-workspace / 2,500-CRM caps).
+      #   * agency-overview.test.ts + agency-overview-route.test.ts — the
+      #     cross-client dashboard's pure math + the route (P2: anon 401, counts).
+      #   * workspace-export.test.ts + workspace-export-route.test.ts — the
+      #     per-client CSV export (P3: anon 401, bad id 400, foreign id 404 with
+      #     NO data, store failure 500 never an empty file, RFC-4180 writer).
+      # NO mock.module anywhere — bun's mock registry is process-global and leaks
+      # across files in one run (skill contrax-bun-mock-module-leak). Named
+      # EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
+      - name: Agency workspace tests (unit + route, deterministic, zero network)
+        run: bun test src/lib/workspaces-route.test.ts src/lib/agency-overview.test.ts src/lib/agency-overview-route.test.ts src/lib/workspace-export.test.ts src/lib/workspace-export-route.test.ts

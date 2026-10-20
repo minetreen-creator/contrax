@@ -771,6 +771,17 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
       }
     }
 
+    // Mission Control live alert (issue #788): one iPhone push per real visit.
+    // Runs after the page view is stored and the bot/QA filters above; the
+    // alert itself dedupes per (visitor_id, visit_id) and never throws.
+    if (kind === "page" && visitorId && visitId && pagePath) {
+      const { alertEligible } = await import("~/lib/live-push");
+      if (alertEligible({ ip, path: pagePath, city: ctx.city, region: ctx.region, internal: isTestOrAdminEmail(userEmail) })) {
+        const { alertNewVisit } = await import("~/lib/live-push.server");
+        await alertNewVisit({ visitorId, visitId, path: pagePath, city: ctx.city, region: ctx.region, device: ctx.device_type });
+      }
+    }
+
     return Response.json({ ok: true });
   } catch (err) {
     // Unexpected failure — events keep the strict visible 500 (never crashes

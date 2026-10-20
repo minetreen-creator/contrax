@@ -175,3 +175,10 @@
   .admin-console .live-shell .live-usmap { height: auto; }
   .admin-console .live-shell .live-stat { min-width: 0; }
 }
+.admin-console .live-alerts { padding: 12px 14px; border-radius: 14px; background: rgba(15,23,42,0.75); border: 1px solid rgba(56,189,248,0.35); }
+.admin-console .live-alerts-pill { margin-left: 4px; padding: 1px 8px; border-radius: 999px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+.admin-console .live-alerts-pill.is-on { background: rgba(34,197,94,0.2); color: #86efac; }
+.admin-console .live-alerts-pill.is-paused { background: rgba(148,163,184,0.2); color: #cbd5e1; }
+.admin-console .live-alerts-btn { padding: 6px 12px; border-radius: 10px; font-size: 12px; font-weight: 700; color: #e2e8f0; background: rgba(148,163,184,0.15); border: 1px solid rgba(148,163,184,0.3); }
+.admin-console .live-alerts-btn.is-primary { color: #0b1220; background: #38bdf8; border-color: #38bdf8; }
+.admin-console .live-alerts-btn:disabled { opacity: 0.5; }

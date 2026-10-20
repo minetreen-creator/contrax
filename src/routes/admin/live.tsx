@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Bell } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -491,6 +491,145 @@ function ChatDrawer({ vid, label, onClose }: { vid: string; label: string; onClo
   );
 }
 
+/** Base64url VAPID key → bytes for PushManager.subscribe. */
+function vapidKeyBytes(key: string): ArrayBuffer {
+  const pad = "=".repeat((4 - (key.length % 4)) % 4);
+  const raw = atob((key + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from(raw, (c) => c.charCodeAt(0)).buffer as ArrayBuffer;
+}
+
+type AlertState =
+  | { kind: "loading" }
+  | { kind: "unsupported"; ios: boolean }
+  | { kind: "ready"; on: boolean; paused: boolean; devices: number; lastOkAt: string | null; lastError: string | null; permission: NotificationPermission };
+
+/**
+ * Live alerts (issue #788): an iPhone/desktop push for each new real visitor
+ * session. Permission is asked only when the owner taps "Turn on".
+ */
+function LiveAlerts() {
+  const [state, setState] = useState<AlertState>({ kind: "loading" });
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState("");
+
+  const supported = () =>
+    typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+  const currentSub = async (): Promise<PushSubscription | null> => {
+    const reg = await navigator.serviceWorker.getRegistration("/");
+    return reg ? reg.pushManager.getSubscription() : null;
+  };
+
+  const refresh = async () => {
+    if (!supported()) {
+      setState({ kind: "unsupported", ios: /iPhone|iPad|iPod/.test(navigator.userAgent) });
+      return;
+    }
+    const sub = await currentSub().catch(() => null);
+    const q = sub ? `?endpoint=${encodeURIComponent(sub.endpoint)}` : "";
+    const d = await fetch(`/api/admin/push${q}`).then((r) => r.json()).catch(() => null);
+    setState({
+      kind: "ready",
+      on: !!d?.thisDevice,
+      paused: d?.thisDevice ? !d.thisDevice.enabled : false,
+      devices: d?.devices ?? 0,
+      lastOkAt: d?.thisDevice?.lastOkAt ?? null,
+      lastError: d?.thisDevice?.lastError ?? null,
+      permission: Notification.permission,
+    });
+  };
+
+  useEffect(() => {
+    refresh();
+  }, []);
+
+  const post = (body: unknown) =>
+    fetch("/api/admin/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
+
+  const act = async (fn: () => Promise<string | void>) => {
+    setBusy(true);
+    setNote("");
+    try {
+      const msg = await fn();
+      if (msg) setNote(msg);
+    } catch (e) {
+      setNote(e instanceof Error ? e.message : "Something went wrong");
+    } finally {
+      setBusy(false);
+      refresh();
+    }
+  };
+
+  const turnOn = () =>
+    act(async () => {
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") return "Notifications are blocked. Allow them for Contrax in Settings, then try again.";
+      const reg = await navigator.serviceWorker.register("/mission-control-sw.js", { scope: "/" });
+      await navigator.serviceWorker.ready;
+      const { publicKey } = await fetch("/api/admin/push").then((r) => r.json());
+      const sub =
+        (await reg.pushManager.getSubscription()) ??
+        (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes(publicKey) }));
+      const res = await post({ action: "subscribe", subscription: sub.toJSON() });
+      if (!res.ok) throw new Error(res.error || "Could not turn on alerts");
+      return "Live alerts are on for this device.";
+    });
+
+  const withSub = (action: "enable" | "disable" | "unsubscribe") =>
+    act(async () => {
+      const sub = await currentSub();
+      if (!sub) return;
+      await post({ action, endpoint: sub.endpoint });
+      if (action === "unsubscribe") await sub.unsubscribe();
+    });
+
+  const test = () =>
+    act(async () => {
+      const res = await post({ action: "test" });
+      return res.delivered ? `Test sent to ${res.delivered} device${res.delivered === 1 ? "" : "s"}.` : "No device accepted the test. Turn alerts on first.";
+    });
+
+  if (state.kind === "loading") return null;
+  return (
+    <div className="live-alerts">
+      <p className="flex items-center gap-2 text-sm font-bold text-white">
+        <Bell size={15} aria-hidden="true" /> Live alerts
+        {state.kind === "ready" && state.on ? (
+          <span className={`live-alerts-pill ${state.paused ? "is-paused" : "is-on"}`}>{state.paused ? "Paused" : "On"}</span>
+        ) : null}
+      </p>
+      <p className="mt-1 text-xs text-slate-400">A phone notification for every new real visitor, once per visit. Bots, scanners and you don't count.</p>
+      {state.kind === "unsupported" ? (
+        <p className="mt-3 text-xs text-amber-200">
+          {state.ios
+            ? "On iPhone (iOS 16.4+): tap Share → Add to Home Screen, open Contrax from your Home Screen, sign in, and come back to this page to turn alerts on."
+            : "This browser doesn't support push notifications."}
+        </p>
+      ) : (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          {!state.on ? (
+            <button type="button" disabled={busy} onClick={turnOn} className="live-alerts-btn is-primary">Turn on for this device</button>
+          ) : (
+            <>
+              <button type="button" disabled={busy} onClick={test} className="live-alerts-btn is-primary">Send a test</button>
+              <button type="button" disabled={busy} onClick={() => withSub(state.paused ? "enable" : "disable")} className="live-alerts-btn">
+                {state.paused ? "Resume" : "Pause"}
+              </button>
+              <button type="button" disabled={busy} onClick={() => withSub("unsubscribe")} className="live-alerts-btn">Turn off here</button>
+            </>
+          )}
+          <span className="text-[11px] text-slate-500">
+            {state.devices} device{state.devices === 1 ? "" : "s"} signed up
+            {state.on && state.lastOkAt ? ` · last alert ${new Date(state.lastOkAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : ""}
+          </span>
+        </div>
+      )}
+      {state.kind === "ready" && state.lastError ? <p className="mt-2 text-[11px] text-rose-300">Last delivery problem: {state.lastError}</p> : null}
+      {note ? <p className="mt-2 text-xs text-emerald-300">{note}</p> : null}
+    </div>
+  );
+}
+
 /**
  * Money panel (owner 2026-10-20): who pays now, which trials end in the next
  * 3 days, and the last 7 days from the plan pages to Stripe checkout.
@@ -680,6 +819,10 @@ function LivePage() {
 
           {data ? <Ticker entries={tickerEntries(data, now)} /> : null}
 
+          <div className="mt-4">
+            <LiveAlerts />
+          </div>
+
           {data?.money ? (
             <div className="mt-6">
               <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
@@ -751,5 +894,18 @@ export const Route = createFileRoute("/admin/live")({
     return { user };
   },
   component: LivePage,
-  head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }, { title: "Live | Admin | Contrax" }] }),
+  head: () => ({
+    meta: [
+      { name: "robots", content: "noindex, nofollow" },
+      { title: "Live | Admin | Contrax" },
+      // iPhone Home Screen app, needed for web push on iOS 16.4+ (issue #788).
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-title", content: "Contrax" },
+      { name: "theme-color", content: "#0b1220" },
+    ],
+    links: [
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      { rel: "apple-touch-icon", href: "/logo-square.png" },
+    ],
+  }),
 });

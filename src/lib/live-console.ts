@@ -25,6 +25,9 @@ export const FEED_EVENTS: Record<string, { kind: FeedKind; title: string }> = {
   founding_business_checkout_started: { kind: "checkout", title: "Opened Founding Business checkout" },
   subcontracts_checkout_started: { kind: "checkout", title: "Opened subcontracts checkout" },
   bid_scout_purchased: { kind: "purchase", title: "Bought Bid Scout" },
+  // Plan buy buttons (tracked from 2026-10-19, src/lib/checkout.ts).
+  plan_checkout_started: { kind: "checkout", title: "Clicked a plan" },
+  plan_checkout_redirected: { kind: "checkout", title: "Opened plan checkout" },
 };
 
 export const FEED_EVENT_NAMES = Object.keys(FEED_EVENTS);
@@ -164,46 +167,41 @@ export function dotOffset(i: number): [number, number] {
   return [Math.round(r * Math.cos(angle) * 10) / 10, Math.round(r * Math.sin(angle) * 10) / 10];
 }
 
-/** Data-feed scoreboard: one row per bid source (owner 2026-10-19). */
-export type FeedLight = "green" | "amber" | "red";
-
-export interface SourceHealth {
-  source: string;
-  name: string;
-  kind: string;
-  open: number;
-  new24h: number;
-  lastNewAt: string | null;
-  light: FeedLight;
-}
-
-const DAY = 24 * HOUR;
-
-/** Green: a new bid in the last 2 days. Amber: in the last week. Red: older or never. */
-export function feedLight(lastNewAt: string | null, now: number): FeedLight {
-  if (!lastNewAt) return "red";
-  const ago = now - new Date(lastNewAt).getTime();
-  if (ago <= 2 * DAY) return "green";
-  if (ago <= 7 * DAY) return "amber";
-  return "red";
-}
-
-/** "tx_esbd" → "TX ESBD", "sam_gov" → "SAM GOV". */
-export function feedName(source: string): string {
-  return source.replace(/[_-]+/g, " ").trim().toUpperCase();
-}
-
-/** Red first, then amber, then green; busiest first within a color. */
-export function sortSources(rows: SourceHealth[]): SourceHealth[] {
-  const rank: Record<FeedLight, number> = { red: 0, amber: 1, green: 2 };
-  return [...rows].sort((a, b) => rank[a.light] - rank[b.light] || b.new24h - a.new24h || b.open - a.open);
-}
-
 /**
- * Labels written once by a manual import and never again: the reviewed
- * OhioBuys and PA eMarketplace exports of 2026-09-29 (scripts since removed;
- * PA is now collected as pa_dgs_emarketplace). Their bids still show until
- * they close, but they are not feeds, so the scoreboard leaves them out
- * instead of flagging them red forever.
+ * Money panel (owner 2026-10-20): the path from a trial to a sale over the
+ * last 7 days, counted in unique visitors, plus who pays now. Every step is a
+ * tracked event or a users row; nothing is estimated.
  */
-export const ONE_TIME_IMPORT_SOURCES: ReadonlySet<string> = new Set(["pa_emarketplace", "ohiobuys"]);
+export interface MoneyStats {
+  payingNow: number;
+  /** Unique visitors who opened /pricing or /upgrade. */
+  sawPlans: number;
+  /** Clicked a plan's buy button. */
+  clickedBuy: number;
+  /** Reached Stripe checkout. */
+  openedCheckout: number;
+  /** Clicked buy while signed out and were sent to sign up. */
+  signinRequired: number;
+  /** Checkout could not be created. */
+  failed: number;
+}
+
+/** Trials ending within `days` of `now`, soonest first. */
+export function trialsEndingWithin(trials: readonly TrialCard[], days: number, now: number): TrialCard[] {
+  const limit = now + days * 24 * HOUR;
+  return trials
+    .filter((t) => {
+      const end = new Date(t.endsAt).getTime();
+      return end > now && end <= limit;
+    })
+    .sort((a, b) => new Date(a.endsAt).getTime() - new Date(b.endsAt).getTime());
+}
+
+/** The money panel's steps, in order. */
+export function moneySteps(m: MoneyStats): { label: string; value: number }[] {
+  return [
+    { label: "Saw the plans", value: m.sawPlans },
+    { label: "Clicked buy", value: m.clickedBuy },
+    { label: "Opened checkout", value: m.openedCheckout },
+  ];
+}

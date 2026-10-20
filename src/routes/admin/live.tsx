@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, Database } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -8,15 +8,16 @@ import {
   agoLabel,
   dotOffset,
   isRecentSearch,
+  moneySteps,
+  trialsEndingWithin,
   mapTone,
   timeLeftLabel,
   trialFractionLeft,
   type FeedItem,
   type FeedKind,
   type MapTone,
-  type FeedLight,
+  type MoneyStats,
   type OnlineVisitor,
-  type SourceHealth,
   type StateSearchStat,
   type TrialCard,
   type TrialHeat,
@@ -30,13 +31,13 @@ import {
 
 interface LiveData {
   generatedAt: string;
-  sources: SourceHealth[];
   map: StateSearchStat[];
   onlineCount: number;
   scannersHidden?: number;
   online: OnlineVisitor[];
   feed: FeedItem[];
   trials: TrialCard[];
+  money?: MoneyStats | null;
 }
 
 const POLL_MS = 15_000;
@@ -313,49 +314,55 @@ function OnlineNow({ count, visitors, now, hidden }: { count: number; visitors: 
   );
 }
 
-const LIGHT_COLOR: Record<FeedLight, string> = { green: "#22c55e", amber: "#f59e0b", red: "#f43f5e" };
-
-/** One row per bid source: a status light, open bids, new in 24 hours, last new bid. */
-function DataFeeds({ sources, now }: { sources: SourceHealth[]; now: number }) {
-  const [showAll, setShowAll] = useState(false);
-  const count = (l: FeedLight) => sources.filter((s) => s.light === l).length;
-  // Red and amber always show; green is trimmed to 12 until expanded.
-  const flagged = sources.filter((s) => s.light !== "green");
-  const green = sources.filter((s) => s.light === "green");
-  const shown = showAll ? sources : [...flagged, ...green.slice(0, 12)];
-  const newToday = sources.reduce((n, s) => n + s.new24h, 0);
+/**
+ * Money panel (owner 2026-10-20): who pays now, which trials end in the next
+ * 3 days, and the last 7 days from the plan pages to Stripe checkout.
+ */
+function MoneyPanel({ money, trials, now }: { money: MoneyStats; trials: TrialCard[]; now: number }) {
+  const ending = trialsEndingWithin(trials, 3, now);
+  const steps = moneySteps(money);
   return (
-    <div>
-      <div className="mb-3 flex flex-wrap items-center gap-3 text-xs text-slate-300">
-        <span className="font-semibold text-white">{sources.length} feeds</span>
-        {(["green", "amber", "red"] as const).map((l) => (
-          <span key={l} className="flex items-center gap-1.5">
-            <i className={`live-light is-${l}`} style={{ ["--light" as string]: LIGHT_COLOR[l] }} /> {count(l)}
-          </span>
-        ))}
-        <span className="text-slate-400">· +{newToday.toLocaleString()} new bids in 24h</span>
-      </div>
-      <div className="live-feeds">
-        {shown.map((s) => (
-          <div key={s.source} className={`live-feed is-${s.light}`} style={{ ["--light" as string]: LIGHT_COLOR[s.light] }}>
-            <i className={`live-light is-${s.light}`} aria-label={s.light} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-bold text-white" title={s.source}>{s.name}</p>
-              <p className="truncate text-[11px] text-slate-400">{s.kind || "Source"} · {s.open.toLocaleString()} open</p>
-            </div>
-            <div className="shrink-0 text-right">
-              <p className={`text-xs font-bold ${s.new24h > 0 ? "text-emerald-300" : "text-slate-500"}`}>+{s.new24h}</p>
-              <p className="text-[10px] text-slate-500">new {agoLabel(s.lastNewAt, now)}</p>
-            </div>
+    <div className="live-money">
+      <div className="flex flex-wrap items-stretch gap-3">
+        <div className="live-money-paying">
+          <span className="text-3xl font-extrabold text-amber-300">{money.payingNow}</span>
+          <span className="text-[11px] uppercase tracking-wide text-slate-400">paying now</span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Last 7 days · unique visitors</p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {steps.map((st, i) => (
+              <span key={st.label} className="flex items-center gap-2">
+                {i > 0 ? <span aria-hidden="true" className="text-slate-500">→</span> : null}
+                <span className="live-money-step">
+                  <b className={st.value > 0 ? "text-white" : "text-slate-500"}>{st.value}</b> {st.label}
+                </span>
+              </span>
+            ))}
           </div>
-        ))}
+          {money.signinRequired || money.failed ? (
+            <p className="mt-2 text-xs text-slate-400">
+              {money.signinRequired ? `${money.signinRequired} clicked buy signed out and were sent to sign up. ` : ""}
+              {money.failed ? <span className="text-rose-300">{money.failed} hit a checkout error.</span> : null}
+            </p>
+          ) : null}
+        </div>
       </div>
-      {green.length > 12 ? (
-        <button type="button" onClick={() => setShowAll((v) => !v)} className="mt-3 text-xs font-semibold text-sky-300 hover:text-sky-200">
-          {showAll ? "Show fewer" : `Show all ${sources.length} feeds`}
-        </button>
-      ) : null}
-      <p className="mt-2 text-[11px] text-slate-500">Green: a new bid in the last 2 days · amber: in the last week · red: none in over a week. Quiet weekends can turn small feeds amber.</p>
+      <div className="mt-4">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Trials ending in the next 3 days</p>
+        {ending.length ? (
+          <ul className="mt-2 space-y-1">
+            {ending.map((t) => (
+              <li key={t.userId} className="flex items-center justify-between gap-3 text-sm">
+                <span className="truncate text-white">{t.email}</span>
+                <span className="shrink-0 font-semibold text-amber-300">{timeLeftLabel(new Date(t.endsAt).getTime() - now)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-1 text-sm text-slate-500">None.</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -477,6 +484,15 @@ function LivePage() {
 
           {data ? <Ticker entries={tickerEntries(data, now)} /> : null}
 
+          {data?.money ? (
+            <div className="mt-6">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                <DollarSign size={15} aria-hidden="true" /> Money
+              </h2>
+              <MoneyPanel money={data.money} trials={data.trials} now={now} />
+            </div>
+          ) : null}
+
           {data ? (
             <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
               <div>
@@ -523,14 +539,6 @@ function LivePage() {
             </div>
           )}
 
-          {data ? (
-            <div className="mt-8">
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
-                <Database size={15} aria-hidden="true" /> Data feeds
-              </h2>
-              <DataFeeds sources={data.sources} now={now} />
-            </div>
-          ) : null}
         </section>
       </main>
     </div>

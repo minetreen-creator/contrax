@@ -22,11 +22,13 @@ export interface VisitFacts {
   region: string | null;
   /** True when the signed-in user is an admin or test account. */
   internal: boolean;
+  /** Successful server-side BotID human verdict; unknown traffic must not push. */
+  verifiedHuman: boolean;
 }
 
 /** Does this first page of a visit deserve an alert? Bots and QA are already dropped before intake. */
 export function alertEligible(v: VisitFacts): boolean {
-  if (v.internal) return false;
+  if (!v.verifiedHuman || v.internal) return false;
   if (v.path.startsWith("/admin") || v.path.startsWith("/api/")) return false;
   const ip = v.ip ?? "";
   if (EXCLUDED_IPS.has(ip) || EXCLUDED_IP_PREFIXES.some((p) => ip.startsWith(p))) return false;

@@ -1,3 +1,4 @@
+import { paidPlanReturn } from "~/lib/purchase-intent";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { setCookie, getRequest } from "@tanstack/react-start/server";
@@ -374,7 +375,9 @@ export const Route = createFileRoute("/auth/linkedin/callback")({
     const dest =
       saveBid !== null
         ? safeNext(next) ?? "/dashboard"
-        : isNewUser
+        : paidPlanReturn(safeNext(next))
+          ? paidPlanReturn(safeNext(next))!
+          : isNewUser
           ? "/onboarding"
           : safeNext(next) ?? "/dashboard";
     throw redirect({ href: dest });

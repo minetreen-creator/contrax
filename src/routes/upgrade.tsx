@@ -38,6 +38,7 @@ const plans = [
 function Upgrade() {
   const { status, pitch } = Route.useLoaderData();
   const { checkout, plan } = Route.useSearch();
+  const [pendingPlan, setPendingPlan] = useState<string | null>(null);
   const [interval, setInterval] = useState<"month" | "year">("month");
   const endsLabel =
     status?.active && status.endsAt
@@ -58,7 +59,7 @@ function Upgrade() {
           Keep going with Contrax
         </h1>
         <p className="mt-3 text-center text-slate-600">
-          {status?.active
+          {plan && checkout !== "cancelled" ? "Continue with your selected plan, or explore Contrax first." : status?.active
             ? `Your trial ends in ${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"}${
                 endsLabel ? ` (${endsLabel})` : ""
               }. Choose a plan to keep going.`
@@ -68,6 +69,14 @@ function Upgrade() {
           <p role="status" className="mx-auto mt-6 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-center text-sm text-amber-900">
             Checkout was canceled. No payment was made. You can choose a plan below whenever you’re ready.
           </p>
+        )}
+        {plan && checkout !== "cancelled" && (
+          <div className="mt-5 text-center">
+            <p className="text-sm text-slate-600">Subscribing starts paid billing now. You can also continue without subscribing.</p>
+            <a href="/radar?first_run=1" className="mt-3 inline-block font-semibold text-blue-700 underline">
+              {status?.active ? "Explore my free trial first →" : "Continue without subscribing →"}
+            </a>
+          </div>
         )}
         {pitch && <YourMatches pitch={pitch} />}
         <div className="mt-8 flex justify-center">
@@ -91,7 +100,7 @@ function Upgrade() {
         <div className="mt-8 grid gap-6 md:grid-cols-3">
           {plans.map((p) => {
             const isCurrent = status?.planTier === p.id;
-            const wasSelected = checkout === "cancelled" && plan === p.id;
+            const wasSelected = plan === p.id;
             return (
               <div
                 key={p.id}
@@ -106,7 +115,7 @@ function Upgrade() {
                     Your plan
                   </div>
                 )}
-                {wasSelected && <div className="mb-3 text-sm font-semibold text-amber-700">Your previous selection</div>}
+                {wasSelected && <div className="mb-3 text-sm font-semibold text-amber-700">{checkout === "cancelled" ? "Your previous selection" : "Your selected plan"}</div>}
                 <h2 className="text-xl font-bold text-slate-900">{p.name}</h2>
                 <p className="mt-1 text-sm text-slate-600">{PLAN_COPY[p.id].description}</p>
                 {interval === "month" ? (
@@ -135,12 +144,17 @@ function Upgrade() {
                   ))}
                 </ul>
                 <button
-                  onClick={() => redirectToCheckout(p.id as any, { interval })}
+                  disabled={pendingPlan !== null}
+                  onClick={async () => {
+                    setPendingPlan(p.id);
+                    try { await redirectToCheckout(p.id, { interval }); }
+                    finally { setPendingPlan(null); }
+                  }}
                   className={`mt-8 w-full rounded-xl px-4 py-3 font-semibold text-white transition hover:opacity-90 ${
                     isCurrent ? "bg-amber-500" : "bg-slate-900 hover:bg-slate-800"
                   }`}
                 >
-                  {isCurrent ? "Subscribe now" : "Subscribe"}
+                  {pendingPlan === p.id ? "Opening secure checkout…" : `Subscribe to ${p.name}`}
                 </button>
               </div>
             );

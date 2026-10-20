@@ -1,3 +1,4 @@
+import { paidPlanReturn } from "./purchase-intent";
 /**
  * FUNNEL UX — the post-signup → Radar first-run path (owner rework 2026-09-26, PR-A).
  *
@@ -114,6 +115,7 @@ export function isRadarFamilySource(source: unknown): boolean {
 export type PostSignupDestination =
   /** save_bid intent: save the bid, then land per today (unchanged). */
   | { kind: "save_then_next"; href: string }
+  | { kind: "purchase"; href: string }
   /** source=autopsy: the gifted first autopsy (unchanged). */
   | { kind: "autopsy" }
   /** an explicit `next` on a non-radar source: onboarding, which routes onward (unchanged). */
@@ -144,6 +146,8 @@ export function resolvePostSignupDestination(
   if (/^\d{1,10}$/.test(saveBid)) {
     return { kind: "save_then_next", href: safeNext(intent.next) ?? "/dashboard" };
   }
+  const purchase = paidPlanReturn(safeNext(intent.next));
+  if (purchase) return { kind: "purchase", href: purchase };
   if (intent.source === "autopsy") return { kind: "autopsy" };
   const radar = (): PostSignupDestination => ({
     kind: "radar",
@@ -173,6 +177,8 @@ export function resolveGoogleCallbackDestination(
   safeNext: (value: unknown) => string | null,
 ): string {
   if (input.saveBid !== null) return safeNext(input.next) ?? "/dashboard";
+  const purchase = paidPlanReturn(safeNext(input.next));
+  if (purchase) return purchase;
   if (input.isNewUser) return input.next ? "/onboarding" : RADAR_FIRST_RUN_HREF;
   return safeNext(input.next) ?? "/dashboard";
 }

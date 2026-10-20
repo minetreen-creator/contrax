@@ -168,13 +168,14 @@ export async function redirectToCheckout(
     // them back to the plans page.
     if (response.status === 401) {
       trackEvent("plan_checkout_signin_required", label);
-      window.location.href = "/signup?next=/upgrade";
+      window.location.href = `/signup?plan=${planTier}&next=${encodeURIComponent(`/upgrade?plan=${planTier}`)}`;
       return;
     }
 
     // A refused founding checkout (spots taken / count unavailable) carries a
     // message the visitor should see as-is.
     if (options?.founding) {
+      trackEvent("plan_checkout_failed", `${label}:${response.status}`);
       const err = (await response.json().catch(() => null)) as { error?: string } | null;
       alert(err?.error ?? "The founding-member offer is unavailable right now.");
       return;

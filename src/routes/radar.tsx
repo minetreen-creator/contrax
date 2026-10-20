@@ -1174,14 +1174,14 @@ export const Route = createFileRoute("/radar")({
   ),
   head: () => ({
     meta: [
-      { title: "Contract Radar — Live SDVOSB & Set-Aside Contract Matches | Contrax" },
+      { title: "Radar: Live Set-Aside Contract Matches | Contrax" },
       {
         name: "description",
         content:
           "Not sure which set-asides your certification qualifies you for? Contract Radar shows your strongest live matches — the top match free, with full Incumbent Intelligence (previous winner and award price).",
       },
       { name: "robots", content: "index, follow" },
-      { property: "og:title", content: "Contract Radar — Find contracts you can actually win | Contrax" },
+      { property: "og:title", content: "Radar: Live Set-Aside Contract Matches | Contrax" },
       {
         property: "og:description",
         content:

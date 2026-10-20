@@ -18,12 +18,12 @@ const rows = [
 export const Route = createFileRoute("/compare/")({
   head: () => ({
     meta: [
-      { title: "Contrax vs GovWin, BidNet & More | Government Contract Software Comparison" },
+      { title: "Government Contract Software Comparison | Contrax" },
       { name: "description", content: "Compare Contrax vs GovWin, BidNet, GovSpend, SAM.gov manual bidding, and consultants. See pricing, proposal tools, bid coverage, and the best government contract software for small businesses." },
       { name: "robots", content: "index, follow" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "https://www.contrax.company/compare" },
-      { property: "og:title", content: "Contrax vs GovWin, BidNet & More" },
+      { property: "og:title", content: "Government Contract Software Comparison | Contrax" },
       { property: "og:description", content: "A clear government contract software comparison for small businesses choosing between Contrax, GovWin, BidNet, SAM.gov, and consultants." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
       { property: "og:image:type", content: "image/png" },
@@ -32,7 +32,7 @@ export const Route = createFileRoute("/compare/")({
       { property: "og:image:height", content: "630" },
       { property: "og:site_name", content: "Contrax" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Contrax vs GovWin, BidNet & More" },
+      { name: "twitter:title", content: "Government Contract Software Comparison | Contrax" },
       { name: "twitter:description", content: "Compare pricing, coverage, proposal drafting, and collaboration across government contracting tools." },
       { name: "twitter:image", content: "https://www.contrax.company/logo-square.png" },
     ],

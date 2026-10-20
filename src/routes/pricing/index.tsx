@@ -17,7 +17,7 @@ const getGrantsPricingData = createServerFn({ method: "GET" }).handler(async () 
 // Owner 2026-10-19 (item 6): descriptive title (prices in the title itself);
 // og:title / twitter:title read the same string. The meta descriptions are
 // unchanged — they already carry the prices.
-const PAGE_TITLE = "Contrax Pricing - Government Bid Alerts from $19/mo, Free Trial";
+const PAGE_TITLE = "Pricing: Government Bid Alerts from $19/Month";
 const META_DESCRIPTION =
   "Contrax plans for every stage of growth. Every new account starts with a 7-day Professional trial, no credit card. After it, choose a plan or keep searching on free Basic.";
 

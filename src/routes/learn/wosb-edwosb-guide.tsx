@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CertGuidePage } from "~/components/CertGuideLayout";
 
-const TITLE = "WOSB/EDWOSB Set-Aside Guide: Winning as a Women-Owned Business";
+const TITLE = "WOSB/EDWOSB Set-Aside Guide: How Women-Owned Businesses Win";
 const DESC =
   "WOSB vs EDWOSB explained: who qualifies, how to get certified through the SBA, and where to find women-owned small business set-aside contracts in eligible NAICS codes.";
 

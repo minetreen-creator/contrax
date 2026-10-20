@@ -5,7 +5,7 @@ import { isHttpUrl } from "~/lib/bid-fit-review-link";
 
 export const Route = createFileRoute("/bid-fit-review")({
   head: () => ({ meta: [
-    { title: "Bid Fit Review | Contrax" },
+    { title: "Bid Fit Review: Is This Bid a Good Fit? | Contrax" },
     { name: "description", content: "A $99 one-time, source-cited review of one government solicitation for your business." },
     { name: "robots", content: "index, follow" },
   ] }),

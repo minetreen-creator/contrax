@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CertGuidePage } from "~/components/CertGuideLayout";
 
-const TITLE = "How to Get 8(a) Certified: The Complete Guide (Eligibility, Timeline & Benefits)";
+const TITLE = "8(a) Certification Guide: Eligibility, Timeline and Benefits";
 const DESC =
   "Everything you need to know about SBA 8(a) certification: eligibility requirements, the application process, the 9-year program timeline, and the contracting benefits for disadvantaged small businesses.";
 

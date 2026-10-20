@@ -23,7 +23,7 @@ export const Route = createFileRoute("/bid-scout")({
     meta: [
       {
         title:
-          "Contrax Bid Scout — Five Government Opportunities Matched to Your Business Every Friday",
+          "Bid Scout: Five Set-Aside Matches Weekly | Contrax",
       },
       {
         name: "description",

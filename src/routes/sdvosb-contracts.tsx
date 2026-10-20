@@ -10,7 +10,7 @@ export const Route = createFileRoute("/sdvosb-contracts")({
   loader: () => getCertHubData({ data: { slug: "sdvosb" } }),
   head: () =>
     seoHead({
-      title: "SDVOSB Contracts & Set-Aside Solicitations Open Now | Contrax",
+      title: "SDVOSB Set-Aside Contracts Open Now | Contrax",
       description:
         "View live SDVOSB (service-disabled veteran-owned small business) set-aside solicitations open now — real counts, titles, agencies, estimated values and close dates from federal procurement sources.",
       canonical: "https://www.contrax.company/sdvosb-contracts",

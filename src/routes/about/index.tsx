@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 
 const PROD_URL = "https://www.contrax.company";
-const TITLE = "About Contrax";
+const TITLE = "Contrax: Government Contract Intelligence for Small Business";
 const DESC =
   "Contrax was founded by Nathaniel Minetree to help 8(a), SDVOSB, WOSB, and HUBZone small businesses find government contracts: tell Contrax what your business does and Radar finds the opportunities that match.";
 

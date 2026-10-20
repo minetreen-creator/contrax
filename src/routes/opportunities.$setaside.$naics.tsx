@@ -6,6 +6,7 @@ import { SaveToPipeline } from "~/components/SaveToPipeline";
 import { getCurrentUser } from "~/lib/auth";
 import { getSavedBidIds } from "~/lib/saved-matches";
 import { NAICS_NAMES } from "~/lib/naics-names";
+import { makeNaicsTitle } from "~/lib/seo-titles";
 
 // ── Set-aside normalization ────────────────────────────────────────────────────
 // URL slug -> canonical DB label. The `bids.set_aside` column stores the label
@@ -198,7 +199,7 @@ export const Route = createFileRoute("/opportunities/$setaside/$naics")({
     }
     const title = d.notFound
       ? "Set-Aside Opportunities | Contrax"
-      : `${d.setAside} ${d.industryName} Contracts — Set-Aside Opportunities | Contrax`;
+      : makeNaicsTitle(d.setAside, d.industryName);
     const description = d.notFound
       ? "Browse active set-aside contract opportunities for 8(a), SDVOSB, WOSB, and HUBZone-certified small businesses."
       : `Browse active ${d.setAside} set-aside contract opportunities in NAICS ${d.naics} (${d.industryName}). Incumbent pricing, award history, and solicitation details for certified small businesses.`;

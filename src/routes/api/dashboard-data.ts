@@ -15,6 +15,8 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
 import type { BusinessProfile } from "~/components/CompanyProfile";
+import { workspaceScopeClause } from "~/lib/workspaces";
+import { resolveActiveWorkspaceId } from "~/lib/workspaces.server";
 
 // Interfaces mirror src/routes/dashboard.tsx (kept local so this route is
 // self-contained; the client casts the JSON response).
@@ -110,6 +112,12 @@ async function handler({ request }: { request: Request }) {
     const userRows = await sql()`SELECT active_profile_id FROM users WHERE id = ${user.id}`;
     activeProfileId = (userRows[0] as any)?.active_profile_id ?? null;
   } catch { /* column may not exist yet */ }
+  // The ACTIVE CLIENT WORKSPACE (Agency tier, migration 068), or null. The same
+  // `active_profile_id` above already makes the FEED follow the active client's
+  // states/trades; this id is what makes the SAVED-BID rows follow it too. Fail-soft:
+  // an unresolvable workspace reads unscoped, exactly like a non-Agency account.
+  const activeWorkspaceId = await resolveActiveWorkspaceId(Number(user.id));
+  const workspaceScope = sql().unsafe(workspaceScopeClause(activeWorkspaceId, "saved_matches"));
 
   // Lazy migration guards for healthcare staffing + profile enrichment columns.
   try { await sql()`ALTER TABLE business_profiles ADD COLUMN IF NOT EXISTS naics_codes JSONB DEFAULT '[]'::jsonb`; } catch {}
@@ -202,7 +210,7 @@ async function handler({ request }: { request: Request }) {
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         AND id NOT IN (
-          SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES})
+          SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES}) AND ${workspaceScope}
         )
         ${setAsideFrag} ${naicsFrag}
       ORDER BY ${sql().unsafe(noticeKeySql("bids"))}
@@ -224,7 +232,7 @@ async function handler({ request }: { request: Request }) {
       role_matches: countRoleMatches(b as any, userSpecialties),
     }, paid));
 
-  const matchRows = await sql()`SELECT bid_id, status FROM saved_matches WHERE user_id = ${user.id}`;
+  const matchRows = await sql()`SELECT bid_id, status FROM saved_matches WHERE user_id = ${user.id} AND ${workspaceScope}`;
   const savedMatches: SavedMatch[] = (matchRows as any[]).map((m) => ({
     bid_id: m.bid_id, status: m.status,
   }));
@@ -313,7 +321,7 @@ async function handler({ request }: { request: Request }) {
       SELECT DISTINCT ON (${sql().unsafe(noticeKeySql("bids"))}) title, agency, location
       FROM bids
       WHERE (${sql().unsafe(DEAD_SQL)}
-         OR id IN (SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES})))
+         OR id IN (SELECT bid_id FROM saved_matches WHERE user_id = ${user.id} AND status = ANY(${ARCHIVED_STATUSES}) AND ${workspaceScope}))
         AND ${sql().unsafe(LOW_CONTENT_SQL)}
         ${setAsideFrag} ${naicsFrag}
       ORDER BY ${sql().unsafe(noticeKeySql("bids"))}`;

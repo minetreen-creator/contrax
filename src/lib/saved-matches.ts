@@ -14,14 +14,33 @@
  */
 
 import { createServerFn } from "@tanstack/react-start";
+import { workspaceScopeClause } from "~/lib/workspaces";
 
-/** Upsert a saved match. Idempotent — safe to call repeatedly. */
+/**
+ * Upsert a saved match. Idempotent — safe to call repeatedly.
+ *
+ * WORKSPACE (Agency tier, migration 068): the row is filed under the caller's ACTIVE
+ * client workspace, resolved here so every save path (dashboard, Radar, bulk save-all)
+ * stamps it with no call-site change. `workspace_id` stays NULL for an account with no
+ * active workspace — every Starter/Professional account, whose behaviour is unchanged.
+ *
+ * The `ON CONFLICT (user_id, bid_id)` unique key is the pre-existing one, so a bid is
+ * still saved at most once per account. `COALESCE(workspace_id, EXCLUDED.workspace_id)`
+ * means re-saving an UNSCOPED (legacy/NULL) row while a workspace is active files it
+ * under that workspace, and a row already filed under a client is never silently
+ * moved to another client. (Saving the same bid under two clients at once needs a
+ * per-workspace unique key — a phase-2 change to the constraint.)
+ */
 export async function saveMatch(userId: number, bidId: number): Promise<void> {
   const { sql } = await import("~/db");
+  const { resolveActiveWorkspaceId } = await import("~/lib/workspaces.server");
+  const workspaceId = await resolveActiveWorkspaceId(userId);
   await sql()`
-    INSERT INTO saved_matches (user_id, bid_id, status)
-    VALUES (${userId}, ${bidId}, 'saved')
-    ON CONFLICT (user_id, bid_id) DO UPDATE SET status = 'saved'
+    INSERT INTO saved_matches (user_id, bid_id, status, workspace_id)
+    VALUES (${userId}, ${bidId}, 'saved', ${workspaceId})
+    ON CONFLICT (user_id, bid_id) DO UPDATE SET
+      status = 'saved',
+      workspace_id = COALESCE(saved_matches.workspace_id, EXCLUDED.workspace_id)
   `;
 }
 
@@ -57,9 +76,15 @@ export const getSavedBidIds = createServerFn({ method: "GET" })
   async ({ data }: { data: { userId: number } }): Promise<number[]> => {
     try {
       const { sql } = await import("~/db");
+      const { resolveActiveWorkspaceId } = await import("~/lib/workspaces.server");
+      // Scoped to the caller's ACTIVE client workspace (null = the account's own
+      // context), so the "saved" state the pages render follows the same client the
+      // rest of the page is showing.
+      const workspaceId = await resolveActiveWorkspaceId(data.userId);
       const rows = await sql()`
         SELECT bid_id FROM saved_matches
         WHERE user_id = ${data.userId} AND status = 'saved'
+          AND ${sql().unsafe(workspaceScopeClause(workspaceId))}
       `;
       return (rows as any[]).map((r) => Number(r.bid_id));
     } catch (err) {

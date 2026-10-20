@@ -583,6 +583,10 @@ jobs:
       # Listed EXPLICITLY because a new deterministic suite that no workflow names runs
       # nowhere (the reason runner.dedupe.test.ts went unrun for weeks): `bun test
       # src/lib/subcontracts` is what makes this suite visible in the CI step list.
+      - name: Subcontracting outbound tracking and timeline tests
+        run: |
+          node --experimental-strip-types --test tests/subcontract-outbound.test.mjs
+          bun test src/lib/subcontracts/subcontracts-analytics.test.ts
       - name: Subcontracting preview data layer tests (unit, deterministic, zero network)
         run: bun test src/lib/subcontracts
       - name: Free course progression and certificate identity tests

@@ -3,6 +3,8 @@ import { getUserFromRequest } from "~/lib/api-auth";
 import { dateOnly } from "~/lib/brief-source";
 import { crmContactLink } from "~/lib/pipeline-contacts";
 import { sql } from "~/db";
+import { workspaceScopeClause } from "~/lib/workspaces";
+import { resolveActiveWorkspaceId } from "~/lib/workspaces.server";
 
 /**
  * GET /api/my-pipeline
@@ -35,6 +37,11 @@ async function handler({ request }: { request: Request }) {
   const user = await getUserFromRequest(request);
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
   try {
+    // The caller's ACTIVE client workspace (Agency tier, migration 068) or null: the
+    // pipeline shows only the saved bids filed under the client being viewed. A
+    // Starter/Professional account (and any account in its own context) is null, so
+    // its pipeline is exactly what it always was.
+    const workspaceId = await resolveActiveWorkspaceId(user.id);
     const rows = await sql()`
       SELECT sm.id, sm.bid_id, sm.status, sm.created_at, sm.notes,
              sm.pursuit_status, sm.next_action, sm.follow_up_date,
@@ -47,6 +54,7 @@ async function handler({ request }: { request: Request }) {
       JOIN bids b ON b.id = sm.bid_id
       LEFT JOIN crm_contacts c ON c.id = sm.crm_contact_id AND c.user_id = sm.user_id
       WHERE sm.user_id = ${user.id} AND sm.status = 'saved'
+        AND ${sql().unsafe(workspaceScopeClause(workspaceId, "sm"))}
       ORDER BY sm.created_at DESC NULLS LAST, b.due_date ASC NULLS LAST
     `;
     const data = (rows as any[]).map((r) => ({

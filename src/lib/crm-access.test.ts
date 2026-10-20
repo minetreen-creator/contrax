@@ -15,6 +15,7 @@
  */
 import { describe, expect, test } from "bun:test";
 import {
+  AGENCY_CONTACT_LIMIT,
   computeCrmAccess,
   getCrmAccess,
   type CrmAccessDeps,
@@ -92,11 +93,28 @@ describe("computeCrmAccess — the tier ladder", () => {
     expect(access.aiDrafts).toBe(true);
   });
 
-  test("a live agency trial → professional (the CRM's top tier is professional)", () => {
+  test("a live agency trial → professional FEATURES with the raised 2500 contact cap", () => {
+    // Owner decision 2026-10-20 (Agency multi-client workspaces): the Agency plan keeps
+    // every Professional CRM feature and raises the contact cap from 1000 to 2500. It is
+    // still the "professional" TIER — nothing about what Agency can DO changes, only the
+    // cap it is held to.
     const access = computeCrmAccess(activeTrial("agency"), null);
     expect(access.tier).toBe("professional");
-    expect(access.contactLimit).toBe(1000);
+    expect(access.contactLimit).toBe(2500);
+    expect(access.contactLimit).toBe(AGENCY_CONTACT_LIMIT);
     expect(access.relationshipHistory).toBe(true);
+  });
+
+  test("Agency 2500 vs Professional 1000 vs Starter 100 — the caps move ONLY for Agency", () => {
+    expect(computeCrmAccess(activeTrial("agency"), null).contactLimit).toBe(2500);
+    expect(computeCrmAccess(activeTrial("professional"), null).contactLimit).toBe(1000);
+    expect(computeCrmAccess(activeTrial("starter"), null).contactLimit).toBe(100);
+    // A paid Agency subscription (no trial) takes the same cap, and a downgrade to
+    // Starter drops it back to 100 — the SIZE changes, the account's data never does.
+    expect(computeCrmAccess(noTrial("agency"), "active").contactLimit).toBe(2500);
+    expect(computeCrmAccess(noTrial("starter"), "active").contactLimit).toBe(100);
+    // The internal bypass is NOT an Agency customer: it keeps Professional's 1000.
+    expect(computeCrmAccess(noTrial("professional"), null, { is_admin: true }).contactLimit).toBe(1000);
   });
 
   test("an ACTIVE subscription entitles without a trial (checkout cleared trial_started_at)", () => {
@@ -239,6 +257,9 @@ describe("getCrmAccess — the DB seam", () => {
   test("the paid-active path flows through the subscription read, not the trial", async () => {
     const access = await getCrmAccess({ id: 8 }, deps(noTrial("agency"), "active"));
     expect(access.tier).toBe("professional");
-    expect(access.contactLimit).toBe(1000);
+    // An agency account paying with no trial is still an AGENCY plan → 2500
+    // (owner decision 2026-10-20); a professional plan on the same path stays 1000.
+    expect(access.contactLimit).toBe(2500);
+    expect((await getCrmAccess({ id: 8 }, deps(noTrial("professional"), "active"))).contactLimit).toBe(1000);
   });
 });

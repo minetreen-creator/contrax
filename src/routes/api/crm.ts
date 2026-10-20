@@ -11,6 +11,7 @@ import {
   saveCrmReminderPrefs,
 } from "~/lib/crm-reminders.server";
 import type { CrmDraftOutcome } from "~/lib/crm-drafts-run";
+import { resolveActiveWorkspaceId } from "~/lib/workspaces.server";
 
 /**
  * GET/POST /api/crm — the CRM (contacts + activity history) backend, phase 1 of
@@ -149,6 +150,14 @@ export interface CrmRouteDeps {
   ) => Promise<CrmDraftOutcome>;
   /** Injectable clock (the reminder lists are classified against the user's local day). */
   now?: () => Date;
+  /**
+   * The caller's ACTIVE client workspace (Agency tier, migration 068), or null. It
+   * scopes contact reads/writes to one client; null (every Starter/Professional
+   * account, and every Agency account viewing its own context) is unscoped, exactly
+   * as before this feature. Fail-soft by default: an unknown workspace reads
+   * unscoped rather than breaking the CRM.
+   */
+  getActiveWorkspaceId?: (userId: number) => Promise<number | null>;
 }
 
 /** The same dependencies with production defaults filled in. */
@@ -162,6 +171,7 @@ interface CrmRouteDepsResolved {
     body: { contactId?: unknown; instructions?: unknown },
   ) => Promise<CrmDraftOutcome>;
   now: () => Date;
+  getActiveWorkspaceId: (userId: number) => Promise<number | null>;
 }
 
 /**
@@ -182,6 +192,7 @@ export function crmRouteHandlers(deps: CrmRouteDeps = {}) {
     },
     generateDraft: deps.generateDraft ?? generateCrmDraft,
     now: deps.now ?? (() => new Date()),
+    getActiveWorkspaceId: deps.getActiveWorkspaceId ?? resolveActiveWorkspaceId,
   };
   return {
     GET: ({ request }: { request: Request }) => get(resolved, { request }),
@@ -198,8 +209,9 @@ async function get(deps: CrmRouteDepsResolved, { request }: { request: Request }
     const access = await deps.getAccess(user);
     if (resource === "contacts") {
       // Owner-scoped in the store (`user_id = userId`); NO tier check — a
-      // downgraded account KEEPS its own data.
-      const rows = await deps.store.listContacts(user.id);
+      // downgraded account KEEPS its own data. The active client workspace scopes
+      // which rows belong to THIS context (Agency tier); null = the account's own.
+      const rows = await deps.store.listContacts(user.id, await deps.getActiveWorkspaceId(user.id));
       return Response.json(
         { access, contacts: rows.map(contactRow) },
         { headers: { "Cache-Control": "private, no-store" } },
@@ -267,6 +279,10 @@ async function post(deps: CrmRouteDepsResolved, { request }: { request: Request 
   if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
   try {
     const access = await deps.getAccess(user);
+    // The caller's ACTIVE client workspace (Agency tier, migration 068), or null for
+    // the account's own context. Every contact write below is scoped to it, so an
+    // Agency account can never edit one client's contact from another client's view.
+    const workspaceId = await deps.getActiveWorkspaceId(user.id);
     const body = await plainBody(request);
     const action = body?.action;
 
@@ -336,27 +352,37 @@ async function post(deps: CrmRouteDepsResolved, { request }: { request: Request 
       if (rawId !== undefined && rawId !== null) {
         const id = positiveInt(rawId);
         if (id === null) return Response.json({ error: "Invalid contact id" }, { status: 400 });
-        const updated = await deps.store.updateContact(user.id, id, {
+        const updated = await deps.store.updateContact(
+          user.id,
+          id,
+          {
+            name,
+            organization,
+            role,
+            email,
+            phone,
+            notes,
+          },
+          workspaceId,
+        );
+        if (updated === null) return Response.json({ error: "Contact not found" }, { status: 404 });
+        return Response.json({ id: updated });
+      }
+      // Creation goes through the migration-059 function so the per-account cap is
+      // enforced atomically (a NULL return means the cap was hit).
+      const id = await deps.store.createContact(
+        user.id,
+        access.contactLimit,
+        {
           name,
           organization,
           role,
           email,
           phone,
           notes,
-        });
-        if (updated === null) return Response.json({ error: "Contact not found" }, { status: 404 });
-        return Response.json({ id: updated });
-      }
-      // Creation goes through the migration-059 function so the per-account cap is
-      // enforced atomically (a NULL return means the cap was hit).
-      const id = await deps.store.createContact(user.id, access.contactLimit, {
-        name,
-        organization,
-        role,
-        email,
-        phone,
-        notes,
-      });
+        },
+        workspaceId,
+      );
       if (id === null) {
         return Response.json(
           {
@@ -372,7 +398,7 @@ async function post(deps: CrmRouteDepsResolved, { request }: { request: Request 
     if (action === "archiveContact") {
       const id = positiveInt(body.id);
       if (id === null) return Response.json({ error: "Invalid contact id" }, { status: 400 });
-      const archived = await deps.store.archiveContact(user.id, id);
+      const archived = await deps.store.archiveContact(user.id, id, workspaceId);
       if (archived === null) return Response.json({ error: "Contact not found" }, { status: 404 });
       return Response.json({ success: true });
     }

@@ -58,9 +58,18 @@ export interface CrmAccess {
   reminders: boolean;
   /** AI-assisted follow-up drafts (Professional only; the endpoint is phase 3). */
   aiDrafts: boolean;
-  /** Maximum number of non-archived contacts a Basic/Starter user may hold. */
+  /**
+   * Maximum number of non-archived contacts this account may hold: 0 (Basic), 100
+   * (Starter), 1000 (Professional / internal), 2500 (Agency — the Agency tier's
+   * raised cap, owner decision 2026-10-20). Enforced atomically by the migration-059
+   * `crm_create_contact(user_id, limit, …)` function, so this number is the ONLY
+   * place the cap is written.
+   */
   contactLimit: number;
 }
+
+/** The Agency plan's CRM contact cap (owner decision 2026-10-20 — Agency workspaces). */
+export const AGENCY_CONTACT_LIMIT = 2500;
 
 /**
  * Storage seams — both entitlement reads go through an injectable store so the
@@ -116,13 +125,25 @@ export function computeCrmAccess(
       : entitled && trial.planTier === "starter"
         ? "starter"
         : "basic";
+  // The Agency PLAN (paid, in trial, or an active plan_tier with a live
+  // subscription) holds the raised cap. Starter and Professional are untouched, and
+  // the internal bypass keeps Professional's 1000 — an internal account is not an
+  // Agency customer.
+  const agencyPlan = !internal && entitled && trial.planTier === "agency";
   return {
     tier,
     canEdit: tier !== "basic",
     relationshipHistory: tier === "professional",
     reminders: tier === "professional",
     aiDrafts: tier === "professional",
-    contactLimit: tier === "professional" ? 1000 : tier === "starter" ? 100 : 0,
+    contactLimit:
+      tier === "professional"
+        ? agencyPlan
+          ? AGENCY_CONTACT_LIMIT
+          : 1000
+        : tier === "starter"
+          ? 100
+          : 0,
   };
 }
 

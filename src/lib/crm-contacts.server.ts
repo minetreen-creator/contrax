@@ -27,6 +27,7 @@
  * need only the phase-1 tables (migration 059).
  */
 import { sql } from "~/db";
+import { workspaceScopeClause } from "~/lib/workspaces";
 
 /** The six writable contact columns, in the order every statement uses them. */
 export interface CrmContactFields {
@@ -43,20 +44,44 @@ export interface CrmContactFields {
  * the caller's own id, never a client-supplied value.
  */
 export interface CrmContactsStore {
-  /** The caller's own, non-archived contacts, newest-updated first (cap 1000). */
-  listContacts(userId: number): Promise<Array<Record<string, unknown>>>;
+  /**
+   * The caller's own, non-archived contacts, newest-updated first (cap 1000).
+   *
+   * `workspaceId` is the caller's ACTIVE client workspace (Agency tier, migration
+   * 068) or null when the account itself is the context. It scopes the read the
+   * same way the saved-bid reads are scoped: a contact filed under client A never
+   * appears under client B, and an account with no workspace (every Starter /
+   * Professional account, forever) reads exactly the rows it read before.
+   */
+  listContacts(userId: number, workspaceId?: number | null): Promise<Array<Record<string, unknown>>>;
   /** The caller's own activities for one of their own contacts (cap 200). */
   listActivities(userId: number, contactId: number): Promise<Array<Record<string, unknown>>>;
-  /** UPDATE an owned, non-archived contact; null when no row matched (→ 404). */
-  updateContact(userId: number, id: number, fields: CrmContactFields): Promise<number | null>;
+  /**
+   * UPDATE an owned, non-archived contact; null when no row matched (→ 404).
+   * `workspaceId` scopes the write to the caller's ACTIVE client workspace (see
+   * `listContacts`), so a contact filed under one client cannot be edited from
+   * another client's context.
+   */
+  updateContact(
+    userId: number,
+    id: number,
+    fields: CrmContactFields,
+    workspaceId?: number | null,
+  ): Promise<number | null>;
   /**
    * Create through the migration-059 cap function. `limit` is the tier's
-   * `contactLimit` (1000 / 100), never a client value. null ⇒ the cap was hit →
-   * the route's 409.
+   * `contactLimit` (2500 Agency / 1000 Professional / 100 Starter), never a client
+   * value. null ⇒ the cap was hit → the route's 409. `workspaceId` files the new
+   * contact under the caller's ACTIVE client workspace (migration 068).
    */
-  createContact(userId: number, limit: number, fields: CrmContactFields): Promise<number | null>;
+  createContact(
+    userId: number,
+    limit: number,
+    fields: CrmContactFields,
+    workspaceId?: number | null,
+  ): Promise<number | null>;
   /** Soft-archive an owned contact; null when no row matched (→ 404). */
-  archiveContact(userId: number, id: number): Promise<number | null>;
+  archiveContact(userId: number, id: number, workspaceId?: number | null): Promise<number | null>;
   /** Log an activity on an OWNED contact (the INSERT…SELECT is the check); null → 404. */
   addActivity(
     userId: number,
@@ -67,11 +92,12 @@ export interface CrmContactsStore {
 }
 
 export const neonCrmContactsStore: CrmContactsStore = {
-  async listContacts(userId) {
+  async listContacts(userId, workspaceId = null) {
     return (await sql()`
       SELECT id, name, organization, role, email, phone, notes, created_at, updated_at
       FROM crm_contacts
       WHERE user_id = ${userId} AND archived_at IS NULL
+        AND ${sql().unsafe(workspaceScopeClause(workspaceId))}
       ORDER BY updated_at DESC, id DESC
       LIMIT 1000
     `) as Array<Record<string, unknown>>;
@@ -87,18 +113,19 @@ export const neonCrmContactsStore: CrmContactsStore = {
     `) as Array<Record<string, unknown>>;
   },
 
-  async updateContact(userId, id, fields) {
+  async updateContact(userId, id, fields, workspaceId = null) {
     const rows = (await sql()`
       UPDATE crm_contacts SET
         name = ${fields.name}, organization = ${fields.organization}, role = ${fields.role},
         email = ${fields.email}, phone = ${fields.phone}, notes = ${fields.notes}, updated_at = NOW()
       WHERE id = ${id} AND user_id = ${userId} AND archived_at IS NULL
+        AND ${sql().unsafe(workspaceScopeClause(workspaceId))}
       RETURNING id
     `) as Array<{ id: number }>;
     return rows.length ? Number(rows[0]!.id) : null;
   },
 
-  async createContact(userId, limit, fields) {
+  async createContact(userId, limit, fields, workspaceId = null) {
     const rows = (await sql()`
       SELECT crm_create_contact(
         ${userId}, ${limit}, ${fields.name}, ${fields.organization},
@@ -106,13 +133,27 @@ export const neonCrmContactsStore: CrmContactsStore = {
       ) AS id
     `) as Array<{ id: number | null }>;
     const id = rows[0]?.id ?? null;
-    return id === null ? null : Number(id);
+    if (id === null) return null;
+    // File the new contact under the caller's ACTIVE client workspace. The cap
+    // function above (migration 059) is left UNCHANGED on purpose: it is the single
+    // atomic cap-enforcement point, and re-writing it to carry a workspace would mean
+    // duplicating its locked count. This stamp is a second statement scoped to the row
+    // the first one just created — if it failed, the contact would stay in the
+    // account's own (unscoped) context, never in another client's.
+    if (workspaceId !== null) {
+      await sql()`
+        UPDATE crm_contacts SET workspace_id = ${workspaceId}
+        WHERE id = ${id} AND user_id = ${userId}
+      `;
+    }
+    return Number(id);
   },
 
-  async archiveContact(userId, id) {
+  async archiveContact(userId, id, workspaceId = null) {
     const rows = (await sql()`
       UPDATE crm_contacts SET archived_at = NOW(), updated_at = NOW()
       WHERE id = ${id} AND user_id = ${userId} AND archived_at IS NULL
+        AND ${sql().unsafe(workspaceScopeClause(workspaceId))}
       RETURNING id
     `) as Array<{ id: number }>;
     return rows.length ? Number(rows[0]!.id) : null;

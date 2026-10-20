@@ -18,8 +18,10 @@
  */
 export const BOT_EXCLUSION_SQL = `
   (
-    -- Our own test / scraper IPs (exclude always).
-    ip IN ('34.214.71.218','73.40.36.204')
+    -- Our own test / scraper IP (exclude always). The owner's home address
+    -- 73.40.36.204 was removed 2026-10-20 (owner: count household visits);
+    -- the owner's own browsing stays out through the admin-email exclusion.
+    ip IN ('34.214.71.218')
     -- Anthropic's outbound range 160.79.104.0/21 (160.79.104.x–160.79.111.x):
     -- Claude's own site checks (owner 2026-10-06: a "Columbus, OH" Pixel 7
     -- signup abandon was a Claude Code mobile screenshot run). Never a customer.

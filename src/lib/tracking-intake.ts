@@ -511,7 +511,7 @@ async function upsertVisitor(v: VisitorUpsertInput): Promise<void> {
  */
 let botIdWarningLogged = false;
 
-export async function handleIntake(request: Request, kindOverride?: IntakeKind, skipBotId = false): Promise<Response> {
+export async function handleIntake(request: Request, kindOverride?: IntakeKind, skipBotId = false, botState: { verifiedHuman: boolean } = { verifiedHuman: false }): Promise<Response> {
   // Declared outside the try so failure logs can include context even when
   // parsing or the DB write itself throws.
   let kind: IntakeKind = kindOverride ?? "event";
@@ -543,6 +543,7 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
         const result = await checkBotId({
           advancedOptions: { headers: Object.fromEntries(request.headers), checkLevel: "basic" },
         });
+        botState.verifiedHuman = result.isBot === false;
         if (result.isBot) {
           return Response.json({ ok: true, bot: true });
         }
@@ -776,7 +777,7 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
     // alert itself dedupes per (visitor_id, visit_id) and never throws.
     if (kind === "page" && visitorId && visitId && pagePath) {
       const { alertEligible } = await import("~/lib/live-push");
-      if (alertEligible({ ip, path: pagePath, city: ctx.city, region: ctx.region, internal: isTestOrAdminEmail(userEmail) })) {
+      if (alertEligible({ ip, path: pagePath, city: ctx.city, region: ctx.region, internal: isTestOrAdminEmail(userEmail), verifiedHuman: botState.verifiedHuman })) {
         const { alertNewVisit } = await import("~/lib/live-push.server");
         await alertNewVisit({ visitorId, visitId, path: pagePath, city: ctx.city, region: ctx.region, device: ctx.device_type });
       }
@@ -813,6 +814,7 @@ export async function handleIntakeBatch(request: Request, items: unknown[]): Pro
   const list = items.slice(0, MAX_INTAKE_BATCH).filter(
     (i): i is Record<string, unknown> => !!i && typeof i === "object" && !Array.isArray(i),
   );
+  const botState = { verifiedHuman: false };
   let recorded = 0;
   for (let i = 0; i < list.length; i++) {
     const { href, ...item } = list[i];
@@ -820,7 +822,7 @@ export async function handleIntakeBatch(request: Request, items: unknown[]): Pro
     headers.delete("content-length");
     if (typeof href === "string" && /^https?:\/\//.test(href)) headers.set("referer", href.slice(0, 2048));
     const itemRequest = new Request(request.url, { method: "POST", headers, body: JSON.stringify(item) });
-    const res = await handleIntake(itemRequest, undefined, i > 0);
+    const res = await handleIntake(itemRequest, undefined, i > 0, botState);
     if (i === 0) {
       const verdict = (await res.clone().json().catch(() => null)) as { bot?: boolean } | null;
       if (verdict?.bot) return Response.json({ ok: true, bot: true });

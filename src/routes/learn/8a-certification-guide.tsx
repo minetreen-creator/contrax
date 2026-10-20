@@ -108,6 +108,35 @@ function GuidePage() {
           Eligibility rules and thresholds change, so always confirm current requirements on the SBA's official site before applying. When you're certified, tools like Contrax can match your 8(a) status to set-aside opportunities the moment they're posted — and track your program clock so you maximize every one of the nine years.
         </p>
       </Section>
+
+      <Section n={5} title="The numbers SBA actually checks">
+        <p className="leading-relaxed text-slate-600">"Economically disadvantaged" is not a judgement call in practice — SBA tests it against three published financial thresholds (13 CFR 124.104):</p>
+        <ul className="mt-4 space-y-2">
+          <Bullet><strong className="text-slate-800">Net worth below $850,000.</strong> SBA excludes your ownership interest in the applicant firm and the equity in your primary residence when it runs this test.</Bullet>
+          <Bullet><strong className="text-slate-800">Income.</strong> If your adjusted gross income averaged over the three preceding years exceeds $400,000, SBA presumes you are not economically disadvantaged. The presumption can be rebutted, but you should plan on proving it rather than assuming it.</Bullet>
+          <Bullet><strong className="text-slate-800">Total assets.</strong> If the fair market value of all your assets — including your primary residence and the value of the firm — exceeds $6.5 million, you generally will not be considered economically disadvantaged. Your IRA or other qualified retirement account is the main exclusion here.</Bullet>
+          <Bullet><strong className="text-slate-800">Recent transfers.</strong> Assets you moved to an immediate family member or family trust for less than fair market value within two years before applying are attributed back to you.</Bullet>
+        </ul>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          Take a hypothetical owner with $300,000 in retirement savings, $180,000 of home equity in a $550,000 house, and 100% of a janitorial firm doing $1.4M in revenue. Her net worth test leaves the firm, the home equity, and the retirement account out; her total-asset test puts the house back in at its full $550,000. Owners routinely clear one test and fail the other.
+        </p>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          The full rule text is at <a href="https://www.ecfr.gov/current/title-13/section-124.104" className="font-semibold text-blue-700 underline">eCFR 13 CFR 124.104</a>.
+        </p>
+      </Section>
+
+      <Section n={6} title="Clock, caps, and the mistakes that end applications">
+        <p className="leading-relaxed text-slate-600">Four operational rules decide whether a good application survives its first year:</p>
+        <ul className="mt-4 space-y-2">
+          <Bullet><strong className="text-slate-800">Complete means complete.</strong> SBA tells you within 15 days whether your package is complete, and processes a complete package within 90 days — but the clock pauses every time SBA asks for more information (124.204). A document you have to send twice is a month you lose.</Bullet>
+          <Bullet><strong className="text-slate-800">The business plan is due within 60 days of admission.</strong> SBA can suspend your access to 8(a) benefits, contracts included, if the plan is not with your servicing office by then (124.402).</Bullet>
+          <Bullet><strong className="text-slate-800">Excessive withdrawals can terminate you.</strong> Aggregate withdrawals above $250,000 in a fiscal year (sales up to $1M), $300,000 (sales of $1M–$2M), or $400,000 (sales over $2M) put your eligibility at risk (124.112).</Bullet>
+          <Bullet><strong className="text-slate-800">Sole-source has a dollar edge.</strong> Agencies must compete an 8(a) requirement when two or more eligible participants are expected to offer at a fair market price and the anticipated award, including options, exceeds $4,500,000 — or $7,000,000 in manufacturing NAICS codes (124.506). Below that line, sole source is on the table.</Bullet>
+        </ul>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          The step-by-step application walkthrough is in our <a href="/blog/8a-certification-guide" className="font-semibold text-blue-700 underline">8(a) certification guide for small businesses</a>. If your owner is also a woman or a veteran, compare the <a href="/learn/wosb-edwosb-guide" className="font-semibold text-blue-700 underline">WOSB/EDWOSB</a> and <a href="/learn/sdvosb-guide" className="font-semibold text-blue-700 underline">SDVOSB</a> guides — certifications stack, and the <a href="/learn/hubzone-guide" className="font-semibold text-blue-700 underline">HUBZone</a> preference can apply to the same bid.
+        </p>
+      </Section>
     </CertGuidePage>
   );
 }

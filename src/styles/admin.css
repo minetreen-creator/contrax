@@ -139,3 +139,39 @@
 .admin-console .live-chat-bubble { max-width: 85%; white-space: pre-wrap; word-break: break-word; padding: 8px 12px; border-radius: 14px; font-size: 13px; }
 .admin-console .live-chat-bubble.is-owner { background: #f59e0b; color: #0f172a; border-bottom-right-radius: 4px; }
 .admin-console .live-chat-bubble.is-visitor { background: #1e293b; color: #e2e8f0; border-bottom-left-radius: 4px; }
+
+/* Mission Control: allow grid children to shrink to the phone viewport.
+   A min-content grid track was widening the entire page on iOS. */
+.admin-console .live-shell,
+.admin-console .live-shell > *,
+.admin-console .live-shell .grid > *,
+.admin-console .live-shell .live-online,
+.admin-console .live-shell .live-money,
+.admin-console .live-shell .live-row,
+.admin-console .live-shell .live-chat-thread {
+  min-width: 0;
+  max-width: 100%;
+}
+.admin-console .live-shell .live-usmap {
+  max-width: 100%;
+}
+.admin-console .live-shell .live-feed,
+.admin-console .live-shell .live-ticker {
+  min-width: 0;
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .admin-console { width: 100%; max-width: 100%; overflow-x: clip; }
+  .admin-console .admin-header-inner { min-width: 0; }
+  .admin-console .admin-header-actions { min-width: 0; max-width: 100%; }
+  .admin-console > main { width: 100%; min-width: 0; max-width: 100%; }
+  .admin-console .live-shell { padding: 16px 12px; border-radius: 16px; }
+  .admin-console .live-shell .grid { min-width: 0; }
+  .admin-console .live-shell .live-row { gap: 8px; padding: 10px 8px; }
+  .admin-console .live-shell .live-row > span:last-child { white-space: nowrap; }
+  .admin-console .live-shell .live-online { padding: 12px; }
+  .admin-console .live-shell .live-money { padding: 12px; }
+  .admin-console .live-shell .live-chat-thread { overflow: hidden; }
+  .admin-console .live-shell .live-usmap { height: auto; }
+  .admin-console .live-shell .live-stat { min-width: 0; }
+}

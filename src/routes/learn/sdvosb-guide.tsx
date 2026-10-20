@@ -105,6 +105,34 @@ function GuidePage() {
           Contrax is built for exactly this: it matches your SDVOSB certification to set-aside bids the moment they post, scores your win probability, and drafts compliant proposals — so verified status turns into submitted bids, not just eligibility.
         </p>
       </Section>
+
+      <Section n={5} title="What verification actually checks">
+        <p className="leading-relaxed text-slate-600">Most SDVOSB denials are not about the disability rating — they are about control. SBA looks for one qualifying veteran controlling both the long-term decisions and the day-to-day operations (13 CFR 128.203), which in practice means:</p>
+        <ul className="mt-4 space-y-2">
+          <Bullet><strong className="text-slate-800">The highest officer position</strong> — usually president or CEO — is held by the qualifying veteran, who also controls the board of directors (by voting stock or weighted voting where the board is small).</Bullet>
+          <Bullet><strong className="text-slate-800">No non-qualifying veteran takes more compensation</strong> than the qualifying veteran in the highest officer role, and a certified firm must notify SBA within 30 calendar days if that changes.</Bullet>
+          <Bullet><strong className="text-slate-800">Full-time attention</strong> — outside employment that keeps the qualifying veteran from controlling the business is treated as a loss of control unless the firm can prove otherwise.</Bullet>
+          <Bullet><strong className="text-slate-800">A documented exception</strong> exists for a veteran with a permanent and total VA disability who cannot manage daily operations: the spouse or permanent caregiver may own and control the firm instead (128.200).</Bullet>
+        </ul>
+      </Section>
+
+      <Section n={6} title="VA's order of priority — and the $5 million line">
+        <p className="leading-relaxed text-slate-600">
+          At the VA, contracting officers work down a fixed ladder (VAAR 819.7005): SDVOSB first, then VOSB, then 8(a) and HUBZone awards, then any other small-business set-aside, with deference to women-owned businesses. That ladder is why a verified SDVOSB can win an award at the VA that would have gone to an 8(a) firm anywhere else.
+        </p>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          The VA can also award a sole-source contract to a verified SDVOSB when the anticipated award price, including options, does not exceed $5 million, the requirement is synopsized with the required justification, and the price is fair and reasonable (VAAR 819.7008). A requirement above $5 million cannot be split or subdivided to fit under the line. Source: <a href="https://www.ecfr.gov/current/title-48/chapter-8/subchapter-H/part-819/subpart-819.70" className="font-semibold text-blue-700 underline">VAAR part 819, subpart 819.70</a>.
+        </p>
+      </Section>
+
+      <Section n={7} title="Winning means performing">
+        <p className="leading-relaxed text-slate-600">
+          A VA SDVOSB award requires a signed limitations-on-subcontracting certification submitted with your bid or proposal — offers without it are ineligible for evaluation, no matter how strong the technical volume (VAAR 819.7004). If you bid through a joint venture, the certified SDVOSB partner must perform at least 40% of the work the joint venture performs (13 CFR 128.402). And if your firm merges, is acquired, or sells a controlling interest, you must recertify within 30 calendar days of the transaction (13 CFR 125.12).
+        </p>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          Next: the <a href="/learn/8a-certification-guide" className="font-semibold text-blue-700 underline">8(a) guide</a> if your firm is also socially and economically disadvantaged, the <a href="/learn/wosb-edwosb-guide" className="font-semibold text-blue-700 underline">WOSB/EDWOSB guide</a> for woman-owned firms, and the <a href="/learn/hubzone-guide" className="font-semibold text-blue-700 underline">HUBZone guide</a> for the location-based preference. To see how to read a notice once you find one, read the <a href="/blog/find-set-aside-contracts" className="font-semibold text-blue-700 underline">set-aside search guide</a>.
+        </p>
+      </Section>
     </CertGuidePage>
   );
 }

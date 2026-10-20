@@ -103,6 +103,40 @@ function GuidePage() {
           Requirements and NAICS eligibility lists change periodically — confirm the current rules on the SBA's official program pages before applying.
         </p>
       </Section>
+
+      <Section n={5} title="What EDWOSB status actually requires">
+        <p className="leading-relaxed text-slate-600">EDWOSB economic disadvantage is tested against three published financial thresholds (13 CFR 127.203):</p>
+        <ul className="mt-4 space-y-2">
+          <Bullet><strong className="text-slate-800">Net worth below $850,000</strong> — excluding your ownership interest in the firm and your equity in your primary residence.</Bullet>
+          <Bullet><strong className="text-slate-800">Income:</strong> an adjusted gross income averaged over the three preceding years above $400,000 creates a presumption that you are not economically disadvantaged.</Bullet>
+          <Bullet><strong className="text-slate-800">Total assets:</strong> a fair market value above $6.5 million, counting your home and the business, generally disqualifies you.</Bullet>
+          <Bullet><strong className="text-slate-800">Transfers:</strong> assets moved to an immediate family member for less than fair market value within two years of certification are attributed back to you.</Bullet>
+        </ul>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          A woman-owned engineering firm with $900,000 in revenue and a clean financial picture on all three tests is EDWOSB-eligible — which opens work a plain WOSB cannot bid. The rule text is at <a href="https://www.ecfr.gov/current/title-13/section-127.203" className="font-semibold text-blue-700 underline">eCFR 13 CFR 127.203</a>.
+        </p>
+      </Section>
+
+      <Section n={6} title="Who can actually compete for a set-aside">
+        <p className="leading-relaxed text-slate-600">
+          SBA designates eligible industries by NAICS code, and the designation decides which pool a requirement goes into (127.503): where women are <em>under</em>represented, competition can be restricted to EDWOSBs; where women are <em>substantially</em> underrepresented, the pool includes WOSBs and EDWOSBs.
+        </p>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          Two details change how you bid. An agency cannot stack certifications — it may not limit a WOSB or EDWOSB competition to firms that are also 8(a), HUBZone, or SDVOSB (127.503(e)). And you do not have to wait for the certificate to bid: a firm with a complete application pending, no negative determination, and small size under the contract's NAICS code may submit an offer, and if it becomes the apparent successful offeror SBA must decide within 15 calendar days (127.504). Sole-source authority, where it exists, is capped at an anticipated award — including options — of $4,500,000, or $7,000,000 in manufacturing NAICS codes.
+        </p>
+      </Section>
+
+      <Section n={7} title="Staying eligible — and the performance trap">
+        <p className="leading-relaxed text-slate-600">
+          Certification runs on a three-year cycle: SBA or your third-party certifier conducts a program examination every three years, and you must recertify or notify SBA within 90 calendar days of the end of your eligibility period. Miss that window and you are decertified — though recertifying within 30 days of the end date can reinstate you (127.400).
+        </p>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          Then the limitations on subcontracting take over. On a services contract above the simplified acquisition threshold, a WOSB prime may not pay more than 50% of what the government pays it to firms that are not similarly situated; general construction caps that at 85%, and specialty trade construction at 75% (13 CFR 125.6). Work done by a certified WOSB subcontractor does not count against the cap — a subcontract to an SDVOSB that is not also a WOSB does.
+        </p>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          Next: the <a href="/learn/8a-certification-guide" className="font-semibold text-blue-700 underline">8(a) guide</a> if your owner may also qualify as economically disadvantaged, the <a href="/learn/sdvosb-guide" className="font-semibold text-blue-700 underline">SDVOSB guide</a> for veteran-owned firms, and the <a href="/learn/hubzone-guide" className="font-semibold text-blue-700 underline">HUBZone guide</a> for the location-based preference. Our <a href="/blog/find-set-aside-contracts" className="font-semibold text-blue-700 underline">set-aside search guide</a> shows how to find the notices in SAM.gov.
+        </p>
+      </Section>
     </CertGuidePage>
   );
 }

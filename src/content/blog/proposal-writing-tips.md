@@ -37,6 +37,30 @@ A red team should read the proposal as a skeptical evaluator who has never heard
 
 Reserve time to resolve findings, proofread, validate files, and perform a final submission check. A polished proposal submitted late or in the wrong format is still a losing response. Strong proposal writing is a process: interpret, map, prove, test, and submit exactly as instructed.
 
+## A sample outline that mirrors Section L
+Use the solicitation's own order. A workable skeleton for a services bid:
+
+1. Cover letter and compliance statement — solicitation number, amendments acknowledged by number, point of contact.
+2. Understanding of the requirement — two paragraphs in the customer's language, not yours.
+3. Technical approach — one subsection per evaluation factor, each opening with the requirement quoted.
+4. Management and staffing — organization chart, key personnel resumes, labor mix against the price volume.
+5. Past performance — three references, each with scope, period, value, your role, and an outcome.
+6. Transition or start-up plan — the first 30 days, stated in days.
+7. Price volume — basis of estimate, assumptions, and any options.
+
+## Make the compliance matrix earn its keep
+Six columns are enough: solicitation reference, requirement text, where you answered it, who owns the section, evidence attached, status. Fill the "where answered" column with page and paragraph, not "technical volume." A reviewer who cannot find your answer in ten seconds scores it as missing.
+
+## Run a red team that scores
+Give two reviewers the solicitation, the evaluation criteria, and a single sheet with five questions scored 1–5: is every requirement answered, is the proof specific, could I find it quickly, are claims supported, does the price match the staffing? Then compare their scores against the writer's expectations. Wide gaps identify where the proposal is written for the author rather than the evaluator.
+
+## The last 72 hours
+Freeze content 72 hours before the deadline. Use the remaining time to check that every amendment is acknowledged, page limits and formatting comply, all required forms are signed, file names follow the instructions, and past performance references know they may be contacted. Submit a day early if the portal allows it; last-hour submission failures are the most avoidable loss in government contracting. Keep a one-page submission checklist for each portal you use, and record the receipt confirmation — an unsuccessful upload is not a bid.
+
+One habit worth building: after every submission, write a short internal debrief while the details are fresh. Note what the solicitation punished, which sections took longest, and what you would reuse next time. Two or three debriefs turn a one-off proposal effort into a repeatable process.
+
+If you are still choosing what to bid, read [How to Find Government Set-Aside Contracts](/blog/find-set-aside-contracts) first — a disciplined search pipeline is what makes a strong proposal possible. Our certification guides cover the eligibility side: [8(a)](/learn/8a-certification-guide), [WOSB/EDWOSB](/learn/wosb-edwosb-guide), [SDVOSB](/learn/sdvosb-guide), and [HUBZone](/learn/hubzone-guide).
+
 ## Related articles
 
 - [How to Find Government Set-Aside Contracts in 2026](/blog/find-set-aside-contracts)

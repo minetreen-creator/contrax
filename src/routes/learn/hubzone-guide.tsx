@@ -101,6 +101,39 @@ function GuidePage() {
           When you're certified, put the preference to work: target HUBZone-designated solicitations in your NAICS codes, and use your 10% cushion strategically on full-and-open bids. Contrax does the surveillance for you — its set-aside-first matching surfaces HUBZone opportunities the day they post, with win-probability scoring and proposal drafting so your certification actually converts into submitted bids.
         </p>
       </Section>
+
+      <Section n={5} title="The 35% math, done properly">
+        <p className="leading-relaxed text-slate-600">The residency test is a headcount ratio, and SBA rounds it (13 CFR 126.200(d)):</p>
+        <ul className="mt-4 space-y-2">
+          <Bullet><strong className="text-slate-800">Round to the nearest whole number.</strong> A firm with 25 employees needs 9 HUBZone residents (35% is 8.75, rounded to 9). A firm with 95 employees needs 33 (33.25 rounded down).</Bullet>
+          <Bullet><strong className="text-slate-800">A one-person firm</strong> does not get to round at all — that single employee must live in a HUBZone.</Bullet>
+          <Bullet><strong className="text-slate-800">Legacy employees</strong> are the exception: up to four employees who lived in a HUBZone for at least 180 days after your certification date can keep counting even after they move, provided they work at least 30 hours a week and at least one other employee still lives in a HUBZone.</Bullet>
+        </ul>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          Hiring is the lever most firms miss. Adding three employees in a qualified tract can take a 20-person firm from 6 residents (30%, failing) to 9 residents (45%, passing) — which is often cheaper than moving the office.
+        </p>
+      </Section>
+
+      <Section n={6} title="The price preference, precisely">
+        <p className="leading-relaxed text-slate-600">
+          The 10% preference does not apply to every bid you submit (13 CFR 126.613). It applies only when the lowest responsive offer came from a business that is <em>not</em> small: the contracting officer then adds 10% to that company's price and compares it with yours.
+        </p>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          SBA's own example makes it concrete: a large business bids $93, your HUBZone firm bids $98, and another small business bids $95. The large business is the lowest initial offer, so the preference applies — 10% of $93 is $102.30, and your $98 now beats it. Bid $103 instead and you lose. If the lowest initial offer had come from a small business, the preference would not have applied at all.
+        </p>
+      </Section>
+
+      <Section n={7} title="Recertification, the 20% floor, and a moving map">
+        <ul className="mt-4 space-y-2">
+          <Bullet><strong className="text-slate-800">Every three years.</strong> Recertify inside the 90 calendar days before your triennial anniversary. Miss it and SBA decertifies you at the end of your eligibility period — though recertifying within 30 days can restore your status (126.500). SBA also examines each certified firm at least once every three years.</Bullet>
+          <Bullet><strong className="text-slate-800">The 20% floor.</strong> While performing a HUBZone contract you must "attempt to maintain" 35%, but a firm that drops below 20% of total employees has failed the attempt and faces proposed decertification (126.602). A firm performing a HUBZone contract that sits between 20% and 35% can still recertify with documented, substantive recruiting efforts.</Bullet>
+          <Bullet><strong className="text-slate-800">Ownership changes.</strong> If you merge with, acquire, or are acquired by another company, you must give SBA evidence within 30 calendar days that you still meet the requirements (126.501).</Bullet>
+          <Bullet><strong className="text-slate-800">A map that moves.</strong> Qualified census tracts and non-metropolitan counties are updated every five years, areas that lose their designation stay on the map as Redesignated Areas for three years, and base-closure areas drop off after eight (126.105). A purchased building or a lease of at least 10 years in a HUBZone can protect your principal-office location for up to 10 years.</Bullet>
+        </ul>
+        <p className="mt-4 leading-relaxed text-slate-600">
+          Next: the <a href="/learn/8a-certification-guide" className="font-semibold text-blue-700 underline">8(a) guide</a>, the <a href="/learn/wosb-edwosb-guide" className="font-semibold text-blue-700 underline">WOSB/EDWOSB guide</a>, and the <a href="/learn/sdvosb-guide" className="font-semibold text-blue-700 underline">SDVOSB guide</a> for the other set-asides — and our <a href="/blog/find-set-aside-contracts" className="font-semibold text-blue-700 underline">set-aside search guide</a> for finding the notices in SAM.gov.
+        </p>
+      </Section>
     </CertGuidePage>
   );
 }

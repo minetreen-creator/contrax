@@ -31,6 +31,18 @@ Set a weekly review cadence. For each candidate, record the agency, contracting 
 
 The best search is one you revisit consistently. Contrax helps set-aside businesses surface matching opportunities, summarize the documents, and keep certification deadlines visible—so your team can spend less time sorting and more time preparing a compliant response.
 
+## Know which pool you are actually eligible for
+A set-aside designation tells you who the contracting officer created the pool for, not whether your firm fits it. The pools are not interchangeable: at the VA, contracts are ordered SDVOSB first, then VOSB, then 8(a) and HUBZone, then any other small-business set-aside, with deference to women-owned businesses (VAAR 819.7005). At civilian agencies there is no order of precedence among 8(a), HUBZone, SDVOSB, and WOSB set-asides — the contracting officer considers those programs before setting a requirement aside for small business generally, and documents why the chosen program was used (13 CFR 127.503). Translation: the same janitorial requirement can surface as four different notices depending on the agency and market research.
+
+## Check your size standard, not just your certification
+Your certification is worthless on a specific notice if you are no longer small under that notice's NAICS code. Size is measured against the code assigned to the contract, and growth can disqualify you mid-stream: after a merger, acquisition, or sale that changes controlling interest you must recertify within 30 calendar days, and a disqualifying recertification inside 180 days of an offer makes you ineligible for that pending set-aside award (13 CFR 125.12). Track your revenue and headcount against every NAICS code you bid, not just your primary one.
+
+## Read the limitations on subcontracting before you bid
+Every set-aside contract above the simplified acquisition threshold carries a performance cap. A services prime may not pay more than 50% of what the government pays it to firms that are not similarly situated; supplies cap at 50% (materials excluded); general construction at 85%; specialty trade construction at 75% (13 CFR 125.6). Work subcontracted to another certified firm of the same status can be excluded from the math — a WOSB subcontract does not help an SDVOSB prime. Build the teaming structure before you price the bid, not after you win it.
+
+## Work a real week
+Run the search like a shift, not a hobby. Monday: review new notices from your saved searches and flag anything with a response date inside 21 days. Tuesday and Wednesday: download documents for the three best fits, confirm the size standard and set-aside eligibility, and note the place of performance. Thursday: decide bid or no-bid and log the reason — the discipline of writing down why you passed is what stops you from re-litigating the same marginal notices every week. Friday: watch for amendments and Q&A answers on everything you are bidding.
+
 ## Related articles
 
 - [Government Contracting for Beginners: How to Start Federal Contracting](/blog/government-contracting-beginners)

@@ -5,7 +5,6 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { adminFunnelExclusionSQL, qaExternalUserSQL, qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { dataCenterLocation, sameMinuteClusters } from "~/lib/visitor-intel";
-import { AWARD_EXCLUSION_SQL, isRetiredSource, sourceBadgeLabel } from "~/lib/source-class";
 import {
   FEED_EVENTS,
   FEED_EVENT_NAMES,
@@ -16,12 +15,8 @@ import {
   trialEnds,
   trialHeat,
   visitorState,
-  ONE_TIME_IMPORT_SOURCES,
-  feedLight,
-  feedName,
-  sortSources,
   type FeedItem,
-  type SourceHealth,
+  type MoneyStats,
   type OnlineVisitor,
   type StateSearchStat,
   type TrialCard,
@@ -286,45 +281,50 @@ async function handler({ request }: { request: Request }) {
       at: new Date(r.created_at).toISOString(),
     }));
 
-    // Data feeds: per bid source, open bids, bids first seen in the last 24
-    // hours and when its newest bid arrived. Award feeds and retired
-    // collectors and one-time imports are left out; a source is listed while it has open bids or
-    // added something in the last 90 days.
-    let sources: SourceHealth[] = [];
+    // Money panel: the last 7 days from the plans to checkout, unique
+    // visitors, same bot/QA/admin exclusions as the feed; paying = active
+    // subscriptions among real accounts.
+    let money: MoneyStats | null = null;
     try {
-      const rows = (await db`
-        SELECT source,
-               COUNT(*) FILTER (WHERE due_date > NOW())::int AS open,
-               COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours')::int AS new24h,
-               MAX(created_at) AS last_new
-        FROM bids
-        WHERE ${db.unsafe(AWARD_EXCLUSION_SQL)}
-          AND (due_date > NOW() OR created_at > NOW() - INTERVAL '90 days')
-        GROUP BY source
-      `) as { source: string; open: number; new24h: number; last_new: string | null }[];
-      sources = sortSources(
-        rows
-          .filter((r) => r.source && !isRetiredSource(r.source) && !ONE_TIME_IMPORT_SOURCES.has(r.source))
-          .map((r) => {
-            const lastNewAt = r.last_new ? new Date(r.last_new).toISOString() : null;
-            return {
-              source: r.source,
-              name: feedName(r.source),
-              kind: sourceBadgeLabel(r.source),
-              open: Number(r.open),
-              new24h: Number(r.new24h),
-              lastNewAt,
-              light: feedLight(lastNewAt, now),
-            };
-          }),
-      );
+      const human = `NOT ${BOT_EXCLUSION_SQL} AND ${qaFunnelExclusionSQL()} AND ${adminFunnelExclusionSQL()}`;
+      const [pv] = (await db`
+        SELECT COUNT(DISTINCT visitor_id)::int AS saw
+        FROM page_views
+        WHERE created_at > NOW() - INTERVAL '7 days'
+          AND visitor_id IS NOT NULL
+          AND (path = '/pricing' OR path LIKE '/pricing?%' OR path = '/upgrade' OR path LIKE '/upgrade?%')
+          AND ${db.unsafe(human)}
+      `) as { saw: number }[];
+      const [ev] = (await db`
+        SELECT COUNT(DISTINCT visitor_id) FILTER (WHERE event_name LIKE '%checkout_started')::int AS clicked,
+               COUNT(DISTINCT visitor_id) FILTER (WHERE event_name = 'plan_checkout_redirected')::int AS opened,
+               COUNT(DISTINCT visitor_id) FILTER (WHERE event_name = 'plan_checkout_signin_required')::int AS signin,
+               COUNT(DISTINCT visitor_id) FILTER (WHERE event_name = 'plan_checkout_failed')::int AS failed
+        FROM funnel_events
+        WHERE created_at > NOW() - INTERVAL '7 days'
+          AND visitor_id IS NOT NULL
+          AND event_name LIKE '%checkout%'
+          AND ${db.unsafe(human)}
+      `) as { clicked: number; opened: number; signin: number; failed: number }[];
+      const [paying] = (await db`
+        SELECT COUNT(*)::int AS n FROM users
+        WHERE subscription_status = 'active' AND ${db.unsafe(qaExternalUserSQL())}
+      `) as { n: number }[];
+      money = {
+        payingNow: Number(paying?.n ?? 0),
+        sawPlans: Number(pv?.saw ?? 0),
+        clickedBuy: Number(ev?.clicked ?? 0),
+        openedCheckout: Number(ev?.opened ?? 0),
+        signinRequired: Number(ev?.signin ?? 0),
+        failed: Number(ev?.failed ?? 0),
+      };
     } catch (e) {
-      console.error("[api/admin/live-console] data feeds unavailable:", e);
+      console.error("[api/admin/live-console] money panel unavailable:", e);
     }
 
     return Response.json({
       generatedAt: new Date(now).toISOString(),
-      sources,
+      money,
       map,
       onlineCount: people.length,
       scannersHidden: scanners.size,

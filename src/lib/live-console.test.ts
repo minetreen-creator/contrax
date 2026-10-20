@@ -110,24 +110,14 @@ describe("live search map + on the site now", () => {
     expect(spots.size).toBe(6);
   });
 
-  test("data feeds: light by last new bid, names, red first", async () => {
-    const { feedLight, feedName, sortSources } = await import("./live-console");
-    expect(feedLight(new Date(NOW - 5 * H).toISOString(), NOW)).toBe("green");
-    expect(feedLight(new Date(NOW - 4 * 24 * H).toISOString(), NOW)).toBe("amber");
-    expect(feedLight(new Date(NOW - 10 * 24 * H).toISOString(), NOW)).toBe("red");
-    expect(feedLight(null, NOW)).toBe("red");
-    expect(feedName("tx_esbd")).toBe("TX ESBD");
-    const row = (source: string, light: "green" | "amber" | "red", new24h: number) => ({
-      source, name: source, kind: "", open: 1, new24h, lastNewAt: null, light,
+  test("money panel: trials ending soon, soonest first; steps in order", async () => {
+    const { trialsEndingWithin, moneySteps } = await import("./live-console");
+    const trial = (userId: number, hoursLeft: number) => ({
+      userId, email: `${userId}@x.test`, startedAt: "", endsAt: new Date(NOW + hoursLeft * H).toISOString(), msLeft: hoursLeft * H,
+      lastSeen: null, heat: "cold" as const, visits7d: 0, trade: null, stateCount: 0, searches: [],
     });
-    expect(sortSources([row("a", "green", 5), row("b", "red", 0), row("c", "amber", 0), row("d", "green", 9)]).map((r) => r.source))
-      .toEqual(["b", "c", "d", "a"]);
-  });
-
-  test("one-time imports are not feeds", async () => {
-    const { ONE_TIME_IMPORT_SOURCES } = await import("./live-console");
-    expect(ONE_TIME_IMPORT_SOURCES.has("pa_emarketplace")).toBe(true);
-    expect(ONE_TIME_IMPORT_SOURCES.has("ohiobuys")).toBe(true);
-    expect(ONE_TIME_IMPORT_SOURCES.has("pa_dgs_emarketplace")).toBe(false);
+    expect(trialsEndingWithin([trial(1, 60), trial(2, 5), trial(3, 100), trial(4, -1)], 3, NOW).map((t) => t.userId)).toEqual([2, 1]);
+    const steps = moneySteps({ payingNow: 0, sawPlans: 9, clickedBuy: 2, openedCheckout: 1, signinRequired: 1, failed: 0 });
+    expect(steps.map((x) => x.value)).toEqual([9, 2, 1]);
   });
 });

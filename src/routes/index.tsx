@@ -431,45 +431,70 @@ function BidScoutCallout() {
 
 // ── Footer ────────────────────────────────────────────────────────────────────
 
-const BUSINESS_LINKS = [
-  { href: "/data", label: "Bid Data API" },
-  { href: "/leads", label: "Award Leads" },
-  { href: "/suppliers", label: "Supplier Directory" },
+const FOOTER_GROUPS = [
+  {
+    title: "Explore",
+    links: [
+      { href: "/local-bids", label: "City & County Bids" },
+      { href: "/grants", label: "Grants" },
+      { href: "/contract-payments", label: "Payments Tracker" },
+      { href: "/blog", label: "Blog" },
+    ],
+  },
+  {
+    title: "For Businesses",
+    links: [
+      { href: "/pricing", label: "Pricing" },
+      { href: "/data", label: "Bid Data API" },
+      { href: "/leads", label: "Award Leads" },
+      { href: "/suppliers", label: "Supplier Directory" },
+    ],
+  },
+  {
+    title: "About Contrax",
+    links: [
+      { href: "/about", label: "About" },
+      { href: "/our-story", label: "Our Story" },
+      { href: "/from-the-ceo", label: "From the CEO" },
+      { href: "/vad", label: "Veterans Against Diabetes" },
+      { href: "mailto:contrax.companyllc@gmail.com", label: "Contact" },
+    ],
+  },
+];
+
+const FOOTER_LEGAL_LINKS = [
+  { href: "/security", label: "Security" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/terms", label: "Terms" },
 ];
 
 function Footer() {
-  const links = [
-    { href: "/local-bids", label: "City & County Bids" },
-    { href: "/grants", label: "Grants" },
-    { href: "/contract-payments", label: "Payments tracker" },
-    { href: "/blog", label: "Blog" },
-    { href: "/about", label: "About" },
-    { href: "/vad", label: "Veterans Against Diabetes Pricing" },
-    { href: "/security", label: "Security" },
-    { href: "/privacy", label: "Privacy" },
-    { href: "/terms", label: "Terms" },
-    { href: "/from-the-ceo", label: "From the CEO" },
-    { href: "/our-story", label: "Our story" },
-    { href: "mailto:contrax.companyllc@gmail.com", label: "contrax.companyllc@gmail.com" },
-  ];
+  const linkClass = "inline-block rounded-sm py-1 leading-6 hover:text-[#0f1f38] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-current dark:hover:text-white";
   return (
     <footer className="pt-14 pb-9 text-sm text-[#56647a] dark:text-[#9fb0c8]">
-      <div className="mx-auto flex max-w-[1120px] flex-wrap gap-x-6 gap-y-2 border-t border-[#dde3ec] px-4 pt-6 sm:px-6 dark:border-[#24334f]">
-        <span>&copy; {new Date().getFullYear()} Contrax LLC</span>
-        {links.map((l) => (
-          <a key={l.href} href={l.href} className="hover:text-[#0f1f38] dark:hover:text-white">
-            {l.label}
-          </a>
-        ))}
-      </div>
-      {/* For businesses (owner 2026-10-06): the data and directory products, kept low-key. */}
-      <div className="mx-auto mt-3 flex max-w-[1120px] flex-wrap gap-x-6 gap-y-2 px-4 sm:px-6">
-        <span className="font-semibold">For businesses</span>
-        {BUSINESS_LINKS.map((l) => (
-          <a key={l.href} href={l.href} className="hover:text-[#0f1f38] dark:hover:text-white">
-            {l.label}
-          </a>
-        ))}
+      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <nav aria-label="Footer" className="grid grid-cols-1 gap-8 border-t border-[#dde3ec] py-8 sm:grid-cols-3 sm:gap-10 dark:border-[#24334f]">
+          {FOOTER_GROUPS.map((group) => (
+            <div key={group.title} className="min-w-0">
+              <h2 className="mb-3 font-semibold text-[#0f1f38] dark:text-white">{group.title}</h2>
+              <ul className="m-0 list-none space-y-1 p-0">
+                {group.links.map((link) => (
+                  <li key={link.href}>
+                    <a href={link.href} className={linkClass}>{link.label}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </nav>
+        <div className="flex flex-col gap-4 border-t border-[#dde3ec] pt-5 sm:flex-row sm:items-center sm:justify-between dark:border-[#24334f]">
+          <span>&copy; {new Date().getFullYear()} Contrax LLC</span>
+          <nav aria-label="Legal" className="flex flex-wrap gap-x-6 gap-y-1">
+            {FOOTER_LEGAL_LINKS.map((link) => (
+              <a key={link.href} href={link.href} className={linkClass}>{link.label}</a>
+            ))}
+          </nav>
+        </div>
       </div>
     </footer>
   );

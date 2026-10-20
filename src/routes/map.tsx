@@ -145,14 +145,14 @@ export const Route = createFileRoute("/map")({
   component: MapPage,
   head: () => ({
     meta: [
-      { title: "U.S. Contract Map — See where government money is moving | Contrax" },
+      { title: "U.S. Contract Map: Open Bids in Every State | Contrax" },
       {
         name: "description",
         content:
           "Explore open federal, state and local contract opportunities across the country. Select a state to see what agencies are buying and which contracts match your business.",
       },
       { property: "og:type", content: "website" },
-      { property: "og:title", content: "U.S. Contract Map — Contrax" },
+      { property: "og:title", content: "U.S. Contract Map: Open Bids in Every State | Contrax" },
       { property: "og:description", content: "Explore open contract opportunities across all 50 states. Select a state to see what agencies are buying and which contracts match your business." },
       { property: "og:image", content: "https://www.contrax.company/logo-square.png" },
     ],

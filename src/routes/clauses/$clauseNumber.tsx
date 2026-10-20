@@ -4,6 +4,7 @@ import { sql } from "~/db";
 import { ClauseCtaCard } from "~/components/ClauseCtaCard";
 import { ClausePartPage } from "~/components/ClausePartPage";
 import { buildClauseMetaDescription } from "~/lib/clause-meta";
+import { makeClauseTitle } from "~/lib/seo-titles";
 import {
   getPartPageData,
   partLabel,
@@ -148,7 +149,7 @@ export const Route = createFileRoute("/clauses/$clauseNumber")({
     const sourceLabel = d.clause?.source === "dfars" ? "DFARS" : "FAR";
     const title = d.notFound
       ? "Clause Not Found | Contrax"
-      : `${sourceLabel} ${clauseNumber} — ${d.clause!.title} | Contrax`;
+      : makeClauseTitle(`${sourceLabel} ${clauseNumber}`, d.clause!.title, `clause ${clauseNumber}`);
     const description = d.notFound
       ? "The requested FAR or DFARS clause could not be found."
       : buildClauseMetaDescription({

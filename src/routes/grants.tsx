@@ -67,7 +67,7 @@ const LABEL_CLASS = "mb-1.5 block text-sm font-semibold text-slate-800";
 export const Route = createFileRoute("/grants")({
   head: () => ({
     meta: [
-      { title: "Contrax Grants — Find Federal Grants Your Organization Qualifies For" },
+      { title: "Grants: Find Federal Grants Your Business Qualifies For" },
       {
         name: "description",
         content:

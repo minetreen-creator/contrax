@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { CertGuidePage } from "~/components/CertGuideLayout";
 
-const TITLE = "HUBZone Explained: Contracting Advantages for Underutilized Areas";
+const TITLE = "HUBZone Explained: Contracting Advantages for Your Area";
 const DESC =
   "How the SBA HUBZone program works: the HUBZone map, certification requirements, the 10% price evaluation preference, and set-aside and sole-source contracting advantages.";
 

@@ -10,7 +10,7 @@ export const Route = createFileRoute("/hubzone-contracts")({
   loader: () => getCertHubData({ data: { slug: "hubzone" } }),
   head: () =>
     seoHead({
-      title: "HUBZone Contracts & Set-Aside Solicitations Open Now | Contrax",
+      title: "HUBZone Set-Aside Contracts Open Now | Contrax",
       description:
         "View live HUBZone set-aside solicitations open now — real counts, titles, agencies, estimated values and close dates from federal procurement sources for businesses in historically underutilized zones.",
       canonical: "https://www.contrax.company/hubzone-contracts",

@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { getBlogPost, formatBlogDate, type BlogPost } from "~/lib/blog";
 import { SiteHeader } from "~/components/SiteHeader";
+import { makeBlogTitle } from "~/lib/seo-titles";
 
 const PROD_URL = "https://www.contrax.company";
 
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/blog/$slug")({
     if (!post) {
       return { meta: [{ title: "Contrax Blog" }], links: [] };
     }
-    const title = `${post.title} — Contrax Blog`;
+    const title = makeBlogTitle(post.title, post.slug);
     const url = `${PROD_URL}/blog/${post.slug}`;
     return {
       meta: [

@@ -352,6 +352,8 @@ export async function ensurePageViewsTable(): Promise<void> {
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS region TEXT`;
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS device_type TEXT`;
   await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS browser_label TEXT`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS lat REAL`;
+  await sql()`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS lon REAL`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_created_at ON page_views (created_at)`;
   await sql()`CREATE INDEX IF NOT EXISTS idx_page_views_source ON page_views (source)`;
 }
@@ -719,8 +721,8 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
       }
     } else {
       const insert = () =>
-        sql()`INSERT INTO page_views (path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email, city, region, device_type, browser_label)
-          VALUES (${pagePath}, ${userAgent}, ${ip}, ${storedReferrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail}, ${ctx.city}, ${ctx.region}, ${ctx.device_type}, ${ctx.browser_label})`;
+        sql()`INSERT INTO page_views (path, user_agent, ip, referrer, source, medium, campaign, click_id, visitor_id, visit_id, user_id, user_email, city, region, device_type, browser_label, lat, lon)
+          VALUES (${pagePath}, ${userAgent}, ${ip}, ${storedReferrer}, ${attr.source}, ${attr.medium}, ${attr.campaign}, ${attr.click_id}, ${visitorId}, ${visitId}, ${userId}, ${userEmail}, ${ctx.city}, ${ctx.region}, ${ctx.device_type}, ${ctx.browser_label}, ${ctx.lat}, ${ctx.lon})`;
 
       try {
         await ensurePageViewsTable();

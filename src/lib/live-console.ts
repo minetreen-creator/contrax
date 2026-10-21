@@ -141,8 +141,36 @@ export interface OnlineVisitor {
   place: string | null;
   /** Two-letter US state for the map dot; null outside the US or when unknown. */
   state: string | null;
+  /** The city's spot on /us-states-albers.json (lower 48 only); null falls back to the state's center. */
+  point?: [number, number] | null;
   path: string;
   at: string;
+}
+
+// The projection /us-states-albers.json was drawn with (us-atlas: d3
+// geoAlbersUsa, scale 1300, translate [487.5, 305]), lower 48 only: conic
+// equal-area, parallels 29.5° and 45.5°, rotated 96° W, centered on 38.7° N.
+const RAD = Math.PI / 180;
+const SIN0 = Math.sin(29.5 * RAD);
+const CONE_N = (SIN0 + Math.sin(45.5 * RAD)) / 2;
+const CONE_C = 1 + SIN0 * (2 * CONE_N - SIN0);
+const CONE_R0 = Math.sqrt(CONE_C) / CONE_N;
+function conic(lambda: number, phi: number): [number, number] {
+  const r = Math.sqrt(CONE_C - 2 * CONE_N * Math.sin(phi)) / CONE_N;
+  return [r * Math.sin(lambda * CONE_N), CONE_R0 - r * Math.cos(lambda * CONE_N)];
+}
+const CENTER = conic(-0.6 * RAD, 38.7 * RAD);
+
+/**
+ * A lower-48 coordinate on the map's 975×610 drawing, or null for Alaska,
+ * Hawaii, anywhere outside the lower 48's box, or bad input (those dots stay
+ * on the state's center).
+ */
+export function mapPoint(lat: number | null | undefined, lon: number | null | undefined): [number, number] | null {
+  if (lat == null || lon == null || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < 24 || lat > 50 || lon < -125 || lon > -66) return null;
+  const [x, y] = conic((lon + 96) * RAD, lat * RAD);
+  return [Math.round((487.5 + 1300 * (x - CENTER[0])) * 10) / 10, Math.round((305 - 1300 * (y - CENTER[1])) * 10) / 10];
 }
 
 export const US_STATE_CODES: ReadonlySet<string> = new Set([

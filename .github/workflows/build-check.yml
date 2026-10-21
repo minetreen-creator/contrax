@@ -311,6 +311,27 @@ jobs:
       # deadline rule.
       - name: BidNet New Hampshire connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/nh-bidnet.test.ts
+      # BidNet Direct Virginia & DC Purchasing Group (va_bidnet) — the THIRD config
+      # of the same engine, and the complementary GENERAL-procurement surface next to
+      # Virginia's own portal (`va_eva`, the Commonwealth's eVA) and the federal SAM
+      # pass scoped to Virginia (`va_evirginia`) — it is neither of those and its own
+      # `vabidnet-` prefix keeps the three apart. BidNet denied Contrax API access
+      # 2026-10-20; the product only ever needed its PUBLIC, login-free open-bids
+      # list, so THIRD-PARTY aggregator, public pages only. DETERMINISTIC and
+      # network-free by construction: every byte comes from a committed capture of
+      # the live list pages (src/jobs/sources/fixtures/va-bidnet/, sha256-indexed in
+      # its README), the parse is a PURE function and the ONE fetch the pagination
+      # loop makes is STUBBED from those same bytes. No DATABASE_URL. It also pins
+      # the registration (TAIL_SOURCES 97→98, SOURCE_CLASSES 174→175, va_bidnet →
+      # state/VA) that src/lib/source-class.test.ts counts, the thousands-comma
+      # heading total ("1,176 Open Solicitations"), the page cap covering the 48
+      # pages the group advertises today, per-row region text (District of Columbia
+      # rows stay DC, Virginia rows stay VA), the fail-closed shape gates (a
+      # reshape, and a heading claiming rows the parse did not deliver), the
+      # members-only cells never being claimed, and the Eastern-time date-only
+      # deadline rule.
+      - name: BidNet Virginia & DC connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/va-bidnet.test.ts
       # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
       # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
       # construction: every byte it reads is a committed capture of the live Solr

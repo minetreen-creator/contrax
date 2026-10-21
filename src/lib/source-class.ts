@@ -249,6 +249,27 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // connector header and on every row description; it never claims the state
   // operates BidNet.
   nh_bidnet: { class: "state", scopeState: "NH", searchScope: "state-portal", recordType: "opportunity" },
+  // BidNet Direct's Virginia & DC Purchasing Group (src/jobs/sources/va-bidnet.ts)
+  // — the THIRD config of the same engine as `sd_bidnet`/`nh_bidnet` (BidNet denied
+  // Contrax API access 2026-10-20; the product only ever needed its PUBLIC,
+  // login-free open-bids list). It is the complementary GENERAL-procurement surface
+  // next to Virginia's own portal `va_eva` (eVA, the Commonwealth's) — it is NOT
+  // that portal and is NOT `va_evirginia` (the federal SAM.gov pass restricted to
+  // Virginia place of performance, `va-` prefix). Same treatment as `sd_bidnet`
+  // above, for the same reasons: BidNet is a THIRD-PARTY aggregator
+  // (bidnetdirect.com — not a .gov host; agencies self-post), and the class
+  // vocabulary has no "aggregator" value (R8's four classes only), so it is
+  // recorded as STATE with the group's home jurisdiction VA — the same treatment
+  // this table gives the other vendor-hosted, state-scoped marketplaces (`pennbid`
+  // ruling b, the six Periscope S2G marketplaces). The badge therefore reads
+  // "State (VA)" and the aggregator honesty is carried on the connector header and
+  // on every row description; it never claims the state operates BidNet.
+  // REGION TEXT IS PER ROW: the group covers Virginia AND the District of Columbia,
+  // so the source class stays STATE/VA (the surface's scope) while a row whose own
+  // `sol-region-item` reads "District of Columbia" keeps that text as its
+  // `location` and derives DC as its normalized state — a DC-located solicitation
+  // is never relabelled Virginia and never dropped.
+  va_bidnet: { class: "state", scopeState: "VA", searchScope: "state-portal", recordType: "opportunity" },
   mn_mndot: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_connex: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_questcdn: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },

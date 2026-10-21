@@ -245,18 +245,38 @@ function clean(value: string | null | undefined): string {
  *   - text that already reads as Virginia is kept verbatim;
  *   - text naming no state (e.g. "HRSD", "Norfolk Airport Authority") gets
  *     ", Virginia" appended;
- *   - a placeholder ("See attached solicitation"), or text the resolver would
- *     misread as another state ("201 W. Washington Street, Petersburg, VA"),
- *     becomes plain "Virginia".
+ *   - text the resolver would misread as another state ("201 W. Washington
+ *     Street, Petersburg, VA 23803", "Southwest Virginia ... Wytheville, VA")
+ *     keeps just its closing city, state and ZIP ("Petersburg, VA 23803");
+ *   - a placeholder ("See attached solicitation"), or misread text with no
+ *     closing city, becomes plain "Virginia".
  */
 export function evaLocation(workloc: string | null | undefined): string {
   const text = clean(workloc).slice(0, 200).trim();
   if (!text || PLACEHOLDER_WORKLOC.test(text)) return "Virginia";
   const state = resolveStateFromText(text);
   if (state === "VA") return text;
-  if (state) return "Virginia";
+  if (state) return evaCityTail(text) ?? "Virginia";
   const appended = `${text.replace(/[,;.\s]+$/, "")}, Virginia`;
   return resolveStateFromText(appended) === "VA" ? appended : "Virginia";
+}
+
+/** Street words that end the street part of an address with no comma before the city. */
+const STREET_END = /^.*\b(street|st|road|rd|avenue|ave|drive|dr|boulevard|blvd|lane|ln|way|parkway|pkwy|highway|hwy|court|ct|circle|cir|place|pl|pike|turnpike|ne|nw|se|sw)\.?\s+/i;
+
+/**
+ * "Wytheville, VA 24382" from an address ending in a Virginia city, state and
+ * optional ZIP, for text the resolver misreads as another state
+ * ("Southwest Virginia Housing Center 105 East Main Street Wytheville, VA
+ * 24382" reads as West Virginia). Null when the text does not end that way.
+ */
+export function evaCityTail(text: string): string | null {
+  const m = text.match(/([^,]+),\s*(?:VA|Virginia)\.?\s*(\d{5})?(?:-\d{4})?\s*\.?$/i);
+  if (!m) return null;
+  const city = m[1].replace(STREET_END, "").trim();
+  if (!city || /\d/.test(city) || city.split(/\s+/).length > 4) return null;
+  const tail = `${city}, VA${m[2] ? ` ${m[2]}` : ""}`;
+  return resolveStateFromText(tail) === "VA" ? tail : null;
 }
 
 /** eVA's SWaM priority, labelled as what it is (a Virginia state preference). */

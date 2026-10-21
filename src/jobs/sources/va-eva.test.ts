@@ -135,9 +135,11 @@ describe("va_eva — helpers", () => {
     expect(evaLocation("See attached solicitation")).toBe("Virginia");
     expect(evaLocation("")).toBe("Virginia");
     expect(evaLocation(null)).toBe("Virginia");
-    // street/county names the shared resolver misreads as another state
-    expect(evaLocation("Petersburg Public Library201 W. Washington Street, Petersburg, VA 23803")).toBe("Virginia");
-    expect(evaLocation("Tinker Creek Transfer Station, 1020 Hollins RD NE, Roanoke, VA 24012")).toBe("Virginia");
+    // street/county names the shared resolver misreads as another state keep
+    // only their closing city, state and ZIP
+    expect(evaLocation("Petersburg Public Library201 W. Washington Street, Petersburg, VA 23803")).toBe("Petersburg, VA 23803");
+    expect(evaLocation("Tinker Creek Transfer Station, 1020 Hollins RD NE, Roanoke, VA 24012")).toBe("Roanoke, VA 24012");
+    expect(evaLocation("Southwest Virginia Housing Center 105 East Main Street Wytheville, VA 24382")).toBe("Wytheville, VA 24382");
     expect(evaLocation("Washington & Smyth Counties.")).toBe("Virginia");
   });
 

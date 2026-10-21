@@ -113,6 +113,7 @@ import { fetchSdDotBids } from "./sources/sd-dot";
 import { fetchSdBidnetBids } from "./sources/sd-bidnet";
 import { fetchNhBidnetBids } from "./sources/nh-bidnet";
 import { fetchVaBidnetBids } from "./sources/va-bidnet";
+import { fetchCaBidnetBids } from "./sources/ca-bidnet";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -531,6 +532,22 @@ export const TAIL_SOURCES: SyncSource[] = [
   // the same work republished by different publishers stays two listings, exactly
   // as `va_eva` coexists with the Virginia locality boards.
   { name: "va_bidnet", fetchFn: () => fetchVaBidnetBids() },
+  // CALIFORNIA (owner-directed 2026-10-21, the SD/NH/VA pattern extended). BidNet
+  // Direct runs a *California Purchasing Group* — the complementary
+  // general-procurement surface next to Cal eProcure (`ca_eprocure`, the State of
+  // California's own portal): a surface on which California state, county, city
+  // and special-district agencies self-post, carrying solicitations eProcure does
+  // not list. THIRD-PARTY aggregator (bidnetdirect.com, not a .gov host, agencies
+  // self-post); it is NOT the state's portal and no row or badge claims it is —
+  // only its public, login-free open-bids list is read (99 GETs on 2026-10-21:
+  // the list plus the 98 pages it advertises; this is the LARGEST group the
+  // engine reads, so src/jobs/sources/ca-bidnet.ts raises both the page cap and
+  // the per-pass abort, and a pass that overruns still FAILS CLOSED). Tail-source
+  // shape unchanged: no migration, no new cron, its own `collector_run_log` rows,
+  // no SAM.gov load. Its own `cabidnet-` prefix keeps it a SEPARATE source from
+  // `ca_eprocure`: the same work republished by different publishers stays two
+  // listings, exactly as `va_eva` coexists with `va_bidnet`.
+  { name: "ca_bidnet", fetchFn: () => fetchCaBidnetBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

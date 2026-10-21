@@ -332,6 +332,30 @@ jobs:
       # deadline rule.
       - name: BidNet Virginia & DC connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/va-bidnet.test.ts
+      # BidNet Direct California Purchasing Group (ca_bidnet) — the FOURTH config
+      # of the same engine, and the complementary GENERAL-procurement surface next
+      # to California's own portal (`ca_eprocure`, Cal eProcure) — it is not that
+      # portal, and its own `cabidnet-` prefix keeps the two apart. THIRD-PARTY
+      # aggregator, public login-free open-bids pages only. This is the LARGEST
+      # group the engine reads: 2,468 open solicitations over 99 pages on
+      # 2026-10-21 (vs SD 2, NH 4, VA 48), so its config raises BOTH the page cap
+      # (150) and its own per-pass abort (240 s; the engine default stays 120 s for
+      # the other three) — and a pass that overruns still FAILS CLOSED rather than
+      # reporting a partial group. DETERMINISTIC and network-free by construction:
+      # every byte comes from a committed capture of the live list pages
+      # (src/jobs/sources/fixtures/ca-bidnet/, sha256-indexed in its README), the
+      # parse is a PURE function and the ONE fetch the pagination loop makes is
+      # STUBBED from those same bytes. No DATABASE_URL. It also pins the
+      # registration (TAIL_SOURCES 98→99, SOURCE_CLASSES 175→176, ca_bidnet →
+      # state/CA) that src/lib/source-class.test.ts counts, the thousands-comma
+      # heading total ("2,468 Open Solicitations"), the page cap AND the pass
+      # budget covering the 99 pages the group advertises today, per-row region
+      # text (every row keeps `California`), the fail-closed shape gates (a
+      # reshape, and a heading claiming rows the parse did not deliver), the
+      # members-only cells never being claimed, and the Eastern-time date-only
+      # deadline rule.
+      - name: BidNet California connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/ca-bidnet.test.ts
       # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
       # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
       # construction: every byte it reads is a committed capture of the live Solr

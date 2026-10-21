@@ -68,7 +68,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + 2 USPS mail-route trade passes (owner 2026-10-16).
     // Count measured from the real merged module (rebase of #669 onto main @ #718).
     // + Botetourt County and three Virginia university portals (2026-10-17).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(175);
+    // + BidNet Direct's California Purchasing Group (ca_bidnet) — the fourth
+    //   config of the shared BidNet engine, 2026-10-21 (175 → 176).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(176);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -130,7 +132,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + Worthington OH current municipal RFP page — 2026-10-12.
     // Count measured from the real merged module (rebase of #669 onto main @ #718).
     // + Botetourt County and three Virginia university portals (2026-10-17).
-    expect(TAIL_SOURCES.length).toBe(98);
+    // + BidNet Direct's California Purchasing Group (ca_bidnet) — the fourth
+    //   config of the shared BidNet engine, 2026-10-21 (98 → 99).
+    expect(TAIL_SOURCES.length).toBe(99);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

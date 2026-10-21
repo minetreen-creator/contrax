@@ -239,7 +239,7 @@ jobs:
       - name: USAspending federal trade data tests (unit, deterministic, zero network)
         run: bun test src/lib/federal-trade-data.test.ts
       - name: Source provenance class map tests (unit, deterministic, zero network)
-        run: bun test src/lib/source-class.test.ts src/lib/location-foreign-pop.test.ts
+        run: bun test src/lib/source-class.test.ts src/lib/location-foreign-pop.test.ts src/lib/place-of-performance.test.ts
       # D14 CORPUS-LABEL ALARM — the post-PR-1 metrics layer (owner-locked order
       # step "metrics"; measurement only, no classifier-order product change).
       # DETERMINISTIC and network-free by construction: the helper is PURE and reads

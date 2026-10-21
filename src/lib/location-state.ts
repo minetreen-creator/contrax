@@ -825,8 +825,12 @@ function extractCityState(
   text: string | null | undefined,
 ): string | null {
   const t = String(text ?? "");
+  // The code must be written in capitals: matching ignores case for the city
+  // words, so "Multiple Buildings in and around…" would otherwise read "in"
+  // as Indiana (owner 2026-10-21, Richmond DGS custodial bid).
   const bad = (city: string, code: string) =>
-    !STATE_CODES.has(code) ||
+    code !== code.toUpperCase() ||
+    !STATE_CODES.has(code.toUpperCase()) ||
     city.length < 2 ||
     /\d/.test(city) ||
     // "Services, VA" / "X VA Medical" are Veterans Affairs designators.
@@ -838,14 +842,14 @@ function extractCityState(
   let m: RegExpExecArray | null;
   while ((m = spaceRe.exec(t)) !== null) {
     const city = m[1].trim();
-    const code = m[2].toUpperCase();
+    const code = m[2];
     if (!bad(city, code)) return `${city}, ${code}`;
   }
   // Comma-form: "Hardin County, OH" / "Norfolk, VA".
   const commaRe = /([A-Za-z][A-Za-z .'-]{1,40}?)\s*,\s*([A-Z]{2})(?=$|[\s,.)/])/gi;
   while ((m = commaRe.exec(t)) !== null) {
     const city = m[1].trim();
-    const code = m[2].toUpperCase();
+    const code = m[2];
     if (!bad(city, code)) return `${city}, ${code}`;
   }
   return null;

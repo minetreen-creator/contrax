@@ -35,7 +35,7 @@ export function siteHost(url: string): string | null {
 
 const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
 const FILE_TLDS = /\.(png|jpe?g|gif|svg|webp|css|js|ico|bmp|tiff?)$/i;
-const JUNK_DOMAINS = /(^|\.)(example\.(com|org)|domain\.com|email\.com|yourdomain\.com|yoursite\.com|sentry\.io|sentry-next\.wixpress\.com|wixpress\.com|wix\.com|godaddy\.com|squarespace\.com|mysite\.com|test\.com)$/i;
+const JUNK_DOMAINS = /(^|\.)(example\.(com|org)|domain\.com|(your)?company\.com|website\.com|email\.com|yourdomain\.com|yoursite\.com|sentry\.io|sentry-next\.wixpress\.com|wixpress\.com|wix\.com|godaddy\.com|squarespace\.com|mysite\.com|test\.com)$/i;
 const JUNK_LOCALS = /^(name|user|username|your\.?name|yourname|email|first\.?last|john\.?doe|jane\.?doe|someone|noreply|no-reply|donotreply|do-not-reply)$/i;
 
 /**

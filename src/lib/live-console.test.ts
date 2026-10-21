@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   firstMonthStats,
+  mapPoint,
   FEED_EVENTS,
   agoLabel,
   placeLabel,
@@ -140,5 +141,41 @@ describe("firstMonthStats", () => {
       ),
     ).toEqual({ started: 4, payingNow: 3, pastMonthOne: 1, canceled: 1 });
     expect(firstMonthStats([], now)).toEqual({ started: 0, payingNow: 0, pastMonthOne: 0, canceled: 0 });
+  });
+});
+
+describe("mapPoint", () => {
+  test("lands cities inside their state on the map drawing", () => {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const map = JSON.parse(readFileSync(new URL("../../public/us-states-albers.json", import.meta.url), "utf8"));
+    const bbox = (code: string) => {
+      const n = (map.states[code] as string).match(/-?\d+\.?\d*/g)!.map(Number);
+      const xs = n.filter((_, i) => i % 2 === 0);
+      const ys = n.filter((_, i) => i % 2 === 1);
+      return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+    };
+    for (const [code, lat, lon] of [
+      ["CA", 37.3, -121.9], // San Jose
+      ["WA", 47.6, -122.3], // Seattle
+      ["FL", 25.8, -80.2], // Miami
+      ["ME", 43.7, -70.3], // Portland
+      ["TX", 29.8, -95.4], // Houston
+    ] as const) {
+      const [x, y] = mapPoint(lat, lon)!;
+      const [x0, y0, x1, y1] = bbox(code);
+      expect(x).toBeGreaterThanOrEqual(x0);
+      expect(x).toBeLessThanOrEqual(x1);
+      expect(y).toBeGreaterThanOrEqual(y0);
+      expect(y).toBeLessThanOrEqual(y1);
+    }
+    // San Jose sits west of the old dot at California's center.
+    expect(mapPoint(37.3, -121.9)![0]).toBeLessThan(map.label.CA[0]);
+  });
+
+  test("Alaska, Hawaii, abroad and missing coordinates fall back", () => {
+    expect(mapPoint(61.2, -149.9)).toBeNull();
+    expect(mapPoint(21.3, -157.9)).toBeNull();
+    expect(mapPoint(51.5, -0.1)).toBeNull();
+    expect(mapPoint(null, -100)).toBeNull();
   });
 });

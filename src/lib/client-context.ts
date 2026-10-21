@@ -18,7 +18,8 @@
  * a thrown error. The beacon endpoints must never break because of a missing or
  * odd header.
  *
- * HYGIENE: this module exposes ONLY city / region / device / browser labels. It
+ * HYGIENE: this module exposes ONLY city / region / device / browser labels and
+ * the city's coordinates rounded to 0.1° (live map dots, owner 2026-10-21). It
  * never reads, stores, or returns a raw IP or full user-agent string. The short
  * per-visitor hash is derived elsewhere from the visitor_id, not the UA.
  *
@@ -38,6 +39,18 @@ export interface ClientContext {
   device_type: "Desktop" | "Mobile" | null;
   /** Human-readable browser + OS label, e.g. "Chrome · Windows". Null if unknown. */
   browser_label: string | null;
+  /** Approximate latitude / longitude of the city (Vercel headers), rounded to
+   *  0.1° (about 10 km) so it says no more than the city does. Null if absent. */
+  lat: number | null;
+  lon: number | null;
+}
+
+/** A Vercel coordinate header rounded to 0.1°, or null when absent or out of range. */
+export function roundedCoordinate(value: string | null, limit: number): number | null {
+  if (!value) return null;
+  const n = Number(value);
+  if (!Number.isFinite(n) || Math.abs(n) > limit) return null;
+  return Math.round(n * 10) / 10;
 }
 
 const GEO_HEADERS = ["x-vercel-ip-city", "x-vercel-ip-country-region"] as const;
@@ -134,5 +147,7 @@ export function parseClientContext(request: Request): ClientContext {
       // Defensive: a weird UA must never break the beacon.
     }
   }
-  return { city, region, country, device_type, browser_label };
+  const lat = roundedCoordinate(request.headers.get("x-vercel-ip-latitude"), 90);
+  const lon = roundedCoordinate(request.headers.get("x-vercel-ip-longitude"), 180);
+  return { city, region, country, device_type, browser_label, lat: lat != null && lon != null ? lat : null, lon: lat != null && lon != null ? lon : null };
 }

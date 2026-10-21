@@ -9,6 +9,7 @@ import { getStripe } from "~/lib/stripe";
 import { STARTER_FIRST_MONTH_COUPON } from "~/lib/starter-offer";
 import {
   firstMonthStats,
+  mapPoint,
   FEED_EVENTS,
   FEED_EVENT_NAMES,
   placeLabel,
@@ -226,7 +227,7 @@ async function handler({ request }: { request: Request }) {
     // Admin pages and admin, QA and bot traffic are left out.
     const onlineRows = (await db`
       SELECT t.*, v.country FROM (
-        SELECT DISTINCT ON (visitor_id) visitor_id, path, city, region, created_at
+        SELECT DISTINCT ON (visitor_id) visitor_id, path, city, region, lat, lon, created_at
         FROM page_views
         WHERE created_at > NOW() - INTERVAL '5 minutes'
           AND visitor_id IS NOT NULL
@@ -238,7 +239,7 @@ async function handler({ request }: { request: Request }) {
       ) t
       LEFT JOIN visitors v ON v.visitor_id = t.visitor_id
       ORDER BY t.created_at DESC
-    `) as { visitor_id: string; path: string; city: string | null; region: string | null; country: string | null; created_at: string }[];
+    `) as { visitor_id: string; path: string; city: string | null; region: string | null; lat: number | null; lon: number | null; country: string | null; created_at: string }[];
     // Email link scanners (owner 2026-10-19: ten "visitors" from San Jose,
     // Phoenix and San Antonio all on /launchpad minutes after partner emails
     // went out): the Visitors board's same-minute cluster rule and data-center
@@ -281,6 +282,7 @@ async function handler({ request }: { request: Request }) {
       vid: r.visitor_id,
       place: placeLabel(r.city, r.region),
       state: visitorState(r.region, r.country),
+      point: visitorState(r.region, r.country) ? mapPoint(r.lat == null ? null : Number(r.lat), r.lon == null ? null : Number(r.lon)) : null,
       path: String(r.path).split("?")[0].slice(0, 80),
       at: new Date(r.created_at).toISOString(),
     }));

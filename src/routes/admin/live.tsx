@@ -252,20 +252,24 @@ function SearchMap({ stats, visitors, now, onChat }: { stats: StateSearchStat[];
             );
           })}
           {(() => {
-            // Live visitors: a glowing dot per person on their home state,
-            // spread in a small spiral when a state has several.
+            // Live visitors: a glowing dot per person at their city when the
+            // coordinates are known (owner 2026-10-21: San Jose sat in the
+            // middle of California), else above their state's center; dots on
+            // the same spot spread in a small spiral.
             const seen = new Map<string, number>();
             return visitors.map((v) => {
-              const at = v.state ? us.label[v.state] : undefined;
-              if (!v.state || !at) return null;
-              const i = seen.get(v.state) ?? 0;
-              seen.set(v.state, i + 1);
+              const center = v.state ? us.label[v.state] : undefined;
+              if (!v.state || (!v.point && !center)) return null;
+              const [x, y] = v.point ?? [center![0], center![1] - 22];
+              const spot = v.point ? `${Math.round(x / 8)},${Math.round(y / 8)}` : v.state;
+              const i = seen.get(spot) ?? 0;
+              seen.set(spot, i + 1);
               const [dx, dy] = dotOffset(i);
               return (
                 <g
                   key={v.visitorKey}
                   className="live-visitor-dot cursor-pointer"
-                  transform={`translate(${at[0] + dx} ${at[1] - 22 + dy})`}
+                  transform={`translate(${x + dx} ${y + dy})`}
                   onClick={() => onChat(v)}
                 >
                   <circle className="live-visitor-ring" r="7" />

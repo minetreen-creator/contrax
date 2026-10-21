@@ -112,6 +112,7 @@ import { fetchIdItdBids } from "./sources/id-itd";
 import { fetchSdDotBids } from "./sources/sd-dot";
 import { fetchSdBidnetBids } from "./sources/sd-bidnet";
 import { fetchNhBidnetBids } from "./sources/nh-bidnet";
+import { fetchVaBidnetBids } from "./sources/va-bidnet";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -514,6 +515,22 @@ export const TAIL_SOURCES: SyncSource[] = [
   // migration, no new cron, its own `collector_run_log` rows, no SAM.gov load.
   // Its own `nhbidnet-` prefix keeps it a separate source from `sd_bidnet`.
   { name: "nh_bidnet", fetchFn: () => fetchNhBidnetBids() },
+  // VIRGINIA & DC (owner-directed 2026-10-20, BidNet API access denied — the
+  // product reads BidNet's PUBLIC, login-free list instead, so no API was ever
+  // needed). BidNet Direct runs a *Virginia & DC Purchasing Group* — the
+  // complementary general-procurement surface next to Virginia's own portal
+  // (`va_eva`, the Commonwealth's eVA) and to the federal SAM pass restricted to
+  // Virginia (`va_evirginia`). THIRD-PARTY aggregator (bidnetdirect.com, not a
+  // .gov host, agencies self-post); it is NOT the state's portal and no row or
+  // badge claims it is — only its public, login-free open-bids list is read (48
+  // GETs on 2026-10-21: the list plus the 47 pages it advertises; this group is
+  // far larger than SD/NH, so its page cap is raised in src/jobs/sources/
+  // va-bidnet.ts). Tail-source shape unchanged: no migration, no new cron, its
+  // own `collector_run_log` rows, no SAM.gov load. Its own `vabidnet-` prefix
+  // keeps it a SEPARATE source from `va_eva` (`eva-`) and `va_evirginia` (`va-`):
+  // the same work republished by different publishers stays two listings, exactly
+  // as `va_eva` coexists with the Virginia locality boards.
+  { name: "va_bidnet", fetchFn: () => fetchVaBidnetBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

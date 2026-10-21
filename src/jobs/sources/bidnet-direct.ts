@@ -157,11 +157,16 @@ export function bidNetListShapeOk(html: string): boolean {
   );
 }
 
-/** The total the page's own heading claims ("44 Open Solicitations"), or null. */
+/**
+ * The total the page's own heading claims ("44 Open Solicitations"), or null.
+ * The heading groups thousands with a comma on a large group ("1,176 Open
+ * Solicitations" — the Virginia & DC group), so the comma form is read as one
+ * number; without it the count would silently read as the last three digits.
+ */
 export function bidNetStatedOpenCount(html: string): number | null {
   const flat = html.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ");
-  const m = /(\d+)\s*Open Solicitations/.exec(flat);
-  return m ? Number(m[1]) : null;
+  const m = /([\d,]+)\s*Open Solicitations/.exec(flat);
+  return m ? Number(m[1].replace(/,/g, "")) : null;
 }
 
 /** Absolute URL for a link the page itself printed. */

@@ -1,0 +1,60 @@
+name: Prospect Finder
+
+# Owner 2026-10-21 (outreach option 3): for open bids in one state and trade,
+# find local businesses in that trade with Google Places and list the email
+# each one publishes on its own website. Sends nothing. Needs the
+# GOOGLE_PLACES_API_KEY secret; without it the run does nothing. Run by hand
+# from the Actions tab; the list is in the log and in the prospects artifact.
+
+on:
+  workflow_dispatch:
+    inputs:
+      state:
+        description: "State, two letters (e.g. NC)"
+        type: string
+        required: true
+      trade:
+        description: "Trade word to match in bid titles (e.g. janitorial)"
+        type: string
+        required: true
+      bids:
+        description: "How many bids to look around (1-25)"
+        type: string
+        default: "8"
+
+permissions:
+  contents: read
+
+jobs:
+  find:
+    name: Find prospects
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+      STATE: ${{ inputs.state }}
+      TRADE: ${{ inputs.trade }}
+      BIDS: ${{ inputs.bids }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Find prospects
+        run: bun run prospect-finder
+
+      - name: Upload list
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prospects
+          path: prospects.csv
+          if-no-files-found: ignore

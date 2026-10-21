@@ -33,11 +33,13 @@
  *
  * MAX PAGES: this group is far larger than the SD (2 pages) or NH (4 pages)
  * groups, and the engine's default cap of 20 pages would silently truncate it
- * to the first 500 rows, so the cap is raised to 60 here (≈1,500 rows of
- * headroom over the 48 pages measured, and ≈60-80 s of reads at the ≈1 s/page
- * this network measures, inside the engine's 120 s per-pass budget). The
- * pagination is self-describing: a page's own selector lists every page number,
- * so this only bounds a pathological or looping page — it never invents pages.
+ * to the first 500 rows, so the cap is raised to 150 here (≈3,750 rows of
+ * headroom over the 48 pages measured today; reads at the ≈1 s/page this
+ * network measures would reach the engine's 120 s per-pass budget near ~110
+ * pages, and a pass that large FAILS CLOSED rather than truncating silently).
+ * The pagination is self-describing: a page's own selector lists every page
+ * number, so this only bounds a pathological or looping page — it never
+ * invents pages.
  *
  * HONESTY — see `bidnet-direct.ts` for the binding contract. In short: BidNet is
  * a THIRD-PARTY aggregator (bidnetdirect.com, not a .gov host; agencies
@@ -85,7 +87,7 @@ export const VA_BIDNET_ID_PREFIX = "vabidnet";
  * page — the group held 1,176 open solicitations over 48 pages on 2026-10-21,
  * far past the engine default (`BIDNET_MAX_PAGES` = 20), which would truncate it.
  */
-export const VA_BIDNET_MAX_PAGES = 60;
+export const VA_BIDNET_MAX_PAGES = 150;
 /** The buyer-side fact the public page actually supports (see the engine header). */
 export const VA_BIDNET_AGENCY =
   "Virginia & DC Purchasing Group (BidNet Direct)";

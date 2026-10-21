@@ -12,6 +12,7 @@ import { sql } from "~/db";
 import { handleBidScoutSubscriptionEvent } from "~/lib/bid-scout";
 import { sendWelcomeEmail } from "~/lib/email";
 import { hashPassword } from "~/lib/password";
+import { STARTER_FIRST_MONTH_AMOUNT_OFF, STARTER_FIRST_MONTH_COUPON, starterFirstMonthApplies } from "~/lib/starter-offer";
 
 // ── Client Initialization ──────────────────────────────────────────────────────
 
@@ -438,6 +439,39 @@ export interface CreateCheckoutSessionOptions {
  * `checkout.session.completed` event with `metadata.plan_tier` (and
  * `metadata.user_id` when the buyer was logged in) set.
  */
+/**
+ * The one-time "$5 first month" Starter coupon (see starter-offer.ts), created
+ * on first use and checked on every use so a hand-edited coupon can never
+ * discount more than intended.
+ */
+async function ensureStarterFirstMonthCoupon(): Promise<void> {
+  const stripe = getStripe();
+  let coupon: Stripe.Coupon;
+  try {
+    coupon = await stripe.coupons.retrieve(STARTER_FIRST_MONTH_COUPON);
+  } catch (e) {
+    if ((e as { code?: string }).code !== "resource_missing") throw e;
+    try {
+      coupon = await stripe.coupons.create(
+        {
+          id: STARTER_FIRST_MONTH_COUPON,
+          amount_off: STARTER_FIRST_MONTH_AMOUNT_OFF,
+          currency: "usd",
+          duration: "once",
+          name: "Starter: $5 first month",
+        },
+        { idempotencyKey: STARTER_FIRST_MONTH_COUPON },
+      );
+    } catch (error) {
+      if ((error as { code?: string }).code !== "resource_already_exists") throw error;
+      coupon = await stripe.coupons.retrieve(STARTER_FIRST_MONTH_COUPON);
+    }
+  }
+  if (coupon.amount_off !== STARTER_FIRST_MONTH_AMOUNT_OFF || coupon.currency !== "usd" || coupon.duration !== "once" || !coupon.valid) {
+    throw new Error("Starter first-month coupon does not match the offer.");
+  }
+}
+
 export async function createCheckoutSession(
   planTier: PlanTier,
   opts: CreateCheckoutSessionOptions = {},
@@ -533,9 +567,16 @@ export async function createCheckoutSession(
       metadata.promo_code = "VAD26";
     }
 
+    const firstMonth = starterFirstMonthApplies({ planTier, interval, mode, vad: isVad });
+    if (firstMonth) {
+      metadata.first_month_offer = STARTER_FIRST_MONTH_COUPON;
+      await ensureStarterFirstMonthCoupon();
+    }
+
     const session = await getStripe().checkout.sessions.create({
       mode,
       line_items: [lineItem],
+      ...(firstMonth ? { discounts: [{ coupon: STARTER_FIRST_MONTH_COUPON }] } : {}),
       metadata,
       // Carry the SAME attribution metadata on the SUBSCRIPTION (not just the
       // checkout session) so the lifecycle webhook can attribute

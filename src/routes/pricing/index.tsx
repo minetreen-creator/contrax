@@ -4,8 +4,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { GrantsPricing } from "~/components/GrantsPricing";
 import { resolveGrantsUpgradeEnabled } from "~/lib/grants-upgrade-signal";
 import { SiteHeader } from "~/components/SiteHeader";
-import { FoundingOffer } from "~/components/FoundingOffer";
 import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
+import { STARTER_FIRST_MONTH_NOTE, STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 const getGrantsPricingData = createServerFn({ method: "GET" }).handler(async () => {
   const grantsUpgradeEnabled = resolveGrantsUpgradeEnabled(
@@ -64,7 +64,9 @@ const plans = [
     // carries it now (owner 2026-10-19, item 3) — same helper /upgrade uses.
     features: upgradeFeatures(PLAN_COPY.starter.features),
     cta: "Choose Starter",
-    featured: false,
+    // CEO pricing call 2026-10-21: Starter, with its $5 first month, is the
+    // recommended card; Professional stays beside it at $79.
+    featured: true,
   },
   {
     name: "Professional",
@@ -76,7 +78,7 @@ const plans = [
     description: PLAN_COPY.professional.description,
     features: upgradeFeatures(PLAN_COPY.professional.features),
     cta: "Choose Professional",
-    featured: true,
+    featured: false,
   },
   // Owner 2026-10-20: Agency now ships multi-client workspaces (owner decision
   // 10-20; migration 068 prod-applied) — up to 10 client workspaces each with
@@ -219,8 +221,6 @@ function PricingPage() {
             </p>
           </div>
 
-          <FoundingOffer source="pricing" />
-
           {/* Billing period (owner 2026-10-19, item 3) — mirrors /upgrade. */}
           <div className="mt-10 flex justify-center">
             <div
@@ -258,7 +258,7 @@ function PricingPage() {
               >
                 {plan.featured && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-white shadow-md">
-                    Recommended
+                    {plan.slug === "starter" && interval === "month" ? "$5 first month" : "Recommended"}
                   </div>
                 )}
                 <div className="mb-6">
@@ -278,6 +278,9 @@ function PricingPage() {
                     ${interval === "month" ? plan.price : plan.yearly.toLocaleString("en-US")}
                   </span>
                   <span className="text-gray-500">{interval === "month" ? "/month" : "/year"}</span>
+                  {interval === "month" && plan.slug === "starter" && (
+                    <p className="mt-1 text-sm font-semibold text-emerald-700">{STARTER_FIRST_MONTH_NOTE}</p>
+                  )}
                   {interval === "year" && (
                     <p className="mt-1 text-sm text-emerald-700">
                       ${(plan.price * 12).toLocaleString("en-US")} if paid monthly. You save $
@@ -313,7 +316,7 @@ function PricingPage() {
                       : "border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white"
                   }`}
                 >
-                  {plan.cta}
+                  {plan.slug === "starter" && interval === "month" ? `Start Starter for $${STARTER_FIRST_MONTH_PRICE}` : plan.cta}
                 </a>
               </div>
             ))}
@@ -329,7 +332,7 @@ function PricingPage() {
           <p className="mt-3 text-center text-sm text-gray-500">
             Also available:{" "}
             <a href="/bid-scout?source=pricing" className="font-medium text-amber-600 hover:text-amber-500">Bid Scout</a> ($99/month, five handpicked bids every Friday) ·{" "}
-            <a href="/bid-fit-review" className="font-medium text-amber-600 hover:text-amber-500">Bid Fit Review</a> ($99 once) ·{" "}
+            <a href="/bid-fit-review" className="font-medium text-amber-600 hover:text-amber-500">Bid Fit Review</a> ($49 once) ·{" "}
             <a href="/signup?plan=agency" className="font-medium text-amber-600 hover:text-amber-500">Agency</a> ($199/month, for teams and consultants) ·{" "}
             <a href="#grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits) ·{" "}
             <a href="/contract-payments" className="font-medium text-amber-600 hover:text-amber-500">Contrax Payments</a> ($9/month)

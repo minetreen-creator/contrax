@@ -5,7 +5,10 @@ import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
 import { adminFunnelExclusionSQL, qaExternalUserSQL, qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { dataCenterLocation, sameMinuteClusters } from "~/lib/visitor-intel";
+import { getStripe } from "~/lib/stripe";
+import { STARTER_FIRST_MONTH_COUPON } from "~/lib/starter-offer";
 import {
+  firstMonthStats,
   FEED_EVENTS,
   FEED_EVENT_NAMES,
   placeLabel,
@@ -318,6 +321,7 @@ async function handler({ request }: { request: Request }) {
         openedCheckout: Number(ev?.opened ?? 0),
         signinRequired: Number(ev?.signin ?? 0),
         failed: Number(ev?.failed ?? 0),
+        firstMonth: await loadFirstMonthStats(now),
       };
     } catch (e) {
       console.error("[api/admin/live-console] money panel unavailable:", e);
@@ -342,3 +346,25 @@ async function handler({ request }: { request: Request }) {
 export const Route = createFileRoute("/api/admin/live-console")({
   server: { handlers: { GET: handler } },
 });
+
+/** $5 first-month Starter subscriptions, read live from Stripe; null on any error. */
+async function loadFirstMonthStats(now: number) {
+  try {
+    const subs: { status: string; created: number }[] = [];
+    let page: string | undefined;
+    for (let i = 0; i < 5; i++) {
+      const res = await getStripe().subscriptions.search({
+        query: `metadata['first_month_offer']:'${STARTER_FIRST_MONTH_COUPON}'`,
+        limit: 100,
+        ...(page ? { page } : {}),
+      });
+      for (const sub of res.data) subs.push({ status: sub.status, created: sub.created });
+      if (!res.has_more || !res.next_page) break;
+      page = res.next_page;
+    }
+    return firstMonthStats(subs, now);
+  } catch (e) {
+    console.error("[api/admin/live-console] first-month stats unavailable:", e);
+    return null;
+  }
+}

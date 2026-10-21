@@ -1,5 +1,5 @@
 /**
- * "Get a $99 Bid Fit Review of this bid" — the link shown next to an open bid.
+ * "Get a $49 Bid Fit Review of this bid" — the link shown next to an open bid.
  *
  * It points to /bid-fit-review with the bid's official notice link and its
  * deadline date pre-filled, so the visitor only adds their own details.

@@ -654,6 +654,8 @@ jobs:
         run: bun test src/lib/path-checks.test.ts
       - name: Prospect finder email extraction (unit, deterministic, zero network)
         run: bun test src/lib/prospect-finder.test.ts
+      - name: Starter $5 first month offer (unit, deterministic, zero network)
+        run: bun test src/lib/starter-offer.test.ts
       - name: Founder live chat rules (unit, deterministic, zero network)
         run: bun test src/lib/live-chat.test.ts
       - name: Mission Control live alerts rules (unit, deterministic, zero network)

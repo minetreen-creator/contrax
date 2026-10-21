@@ -51,7 +51,7 @@ async function handler({ request }: { request: Request }) {
       to: ["contrax.companyllc@gmail.com"],
       replyTo: data.email,
       subject: "Bid Fit Review request",
-      text: ["New $99 review request (unpaid; qualify before sending payment link)", `Name: ${data.name}`, `Business: ${data.business}`, `Email: ${data.email}`, `Solicitation: ${data.solicitationUrl}`, `Capabilities: ${data.capabilities}`, `Deadline: ${data.deadline}`, `Document access: ${data.documentsAvailable}`].join("\n\n"),
+      text: ["New $49 review request (unpaid; qualify before sending payment link)", `Name: ${data.name}`, `Business: ${data.business}`, `Email: ${data.email}`, `Solicitation: ${data.solicitationUrl}`, `Capabilities: ${data.capabilities}`, `Deadline: ${data.deadline}`, `Document access: ${data.documentsAvailable}`].join("\n\n"),
     });
     if (result.error) throw result.error;
     notificationStatus = "sent";

@@ -10,7 +10,6 @@ import { ExampleBrief } from "~/components/ExampleBrief";
 
 import { trackEvent } from "~/lib/track";
 import { SiteHeader } from "~/components/SiteHeader";
-import { FoundingOffer } from "~/components/FoundingOffer";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import {
@@ -243,11 +242,6 @@ function Home() {
       <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
       <OpportunityExplorer />
       <HowItWorks />
-      {/* Founding-member offer (owner 2026-10-03). Fetched client-side, so the
-          edge-cached homepage stays session-free; hidden when no spots remain. */}
-      <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
-        <FoundingOffer source="home" />
-      </div>
       <LaunchpadPromo />
       <BidScoutCallout />
       <MoreFromContrax />
@@ -420,7 +414,7 @@ function BidScoutCallout() {
             </a>
             <div className="mt-3.5 text-sm text-[#56647a] dark:text-[#9fb0c8]">
               Want a second opinion on one bid? A one-page{" "}
-              <a href="/bid-fit-review" className="underline">Bid Fit Review</a> is $99 once.
+              <a href="/bid-fit-review" className="underline">Bid Fit Review</a> is $49 once.
             </div>
             <div className="mt-2 text-sm text-[#56647a] dark:text-[#9fb0c8]">
               Get found by prime contractors:{" "}

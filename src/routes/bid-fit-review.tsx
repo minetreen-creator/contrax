@@ -6,10 +6,10 @@ import { isHttpUrl } from "~/lib/bid-fit-review-link";
 export const Route = createFileRoute("/bid-fit-review")({
   head: () => ({ meta: [
     { title: "Bid Fit Review: Is This Bid a Good Fit? | Contrax" },
-    { name: "description", content: "A $99 one-time, source-cited review of one government solicitation for your business." },
+    { name: "description", content: "A $49 one-time, source-cited review of one government solicitation for your business." },
     { name: "robots", content: "index, follow" },
   ] }),
-  // Optional pre-fill from a bid's "Get a $99 Bid Fit Review" link.
+  // Optional pre-fill from a bid's "Get a $49 Bid Fit Review" link.
   validateSearch: (search: Record<string, unknown>): { url?: string; deadline?: string; payment?: string } => ({
     payment: search.payment === "submitted" ? "submitted" : undefined,
     url: typeof search.url === "string" && isHttpUrl(search.url) ? search.url.slice(0, 2000) : undefined,
@@ -47,7 +47,7 @@ function BidFitReview() {
   return <main className="min-h-screen bg-slate-50 text-slate-900">
     <div className="mx-auto max-w-4xl px-5 py-12 sm:py-20">
       {prefill.payment === "submitted" && <p role="status" className="mb-5 rounded-lg bg-blue-50 p-4">Checkout submitted. Payment confirmation may take time. Use your private request link to check status; work starts after confirmed payment and receipt of the required documents and business details.</p>}
-      <p className="text-sm font-bold uppercase tracking-widest text-blue-700">One-time service · $99 introductory price</p>
+      <p className="text-sm font-bold uppercase tracking-widest text-blue-700">One-time service · $49</p>
       <h1 className="mt-3 text-4xl font-bold tracking-tight sm:text-5xl">Know whether this bid is worth your time.</h1>
       <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600">Send us one government solicitation and your business details. Get a one-page, source-cited pursue/pass assessment before you invest hours in a response.</p>
       <div className="mt-10 grid gap-6 md:grid-cols-2">
@@ -104,7 +104,7 @@ function BidFitReview() {
             <label className="block text-sm font-medium">Full documents accessible? <select name="documentsAvailable" required className="mt-1 w-full rounded-lg border border-slate-300 p-3"><option value="">Select one</option><option value="yes">Yes, through the link</option><option value="login">Account or login required</option><option value="unsure">Not sure</option></select></label>
             <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
             {state === "error" && <p role="alert" className="text-sm text-red-700">Could not send your request. Please email contrax.companyllc@gmail.com.</p>}
-            <button disabled={state === "sending"} className="w-full rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white hover:bg-blue-800 disabled:opacity-60">{state === "sending" ? "Sending…" : "Request my $99 review"}</button>
+            <button disabled={state === "sending"} className="w-full rounded-lg bg-blue-700 px-5 py-3 font-semibold text-white hover:bg-blue-800 disabled:opacity-60">{state === "sending" ? "Sending…" : "Request my $49 review"}</button>
           </form>}
         </section>
       </div>

@@ -4,10 +4,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { getCurrentUser } from "~/lib/auth";
 import { checkTrial } from "~/routes/dashboard";
 import { redirectToCheckout } from "~/lib/checkout";
-import { FoundingOffer } from "~/components/FoundingOffer";
 import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
 import { formatDollars, shortDate, tradePlace, type UpgradePitch } from "~/lib/upgrade-pitch";
 import { HEAD_START_DAYS, headStartOpensLabel } from "~/lib/head-start";
+import { STARTER_FIRST_MONTH_NOTE, STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 const getStatus = createServerFn({ method: "GET" }).handler(async () => {
   const u = await getCurrentUser();
@@ -119,10 +119,13 @@ function Upgrade() {
                 <h2 className="text-xl font-bold text-slate-900">{p.name}</h2>
                 <p className="mt-1 text-sm text-slate-600">{PLAN_COPY[p.id].description}</p>
                 {interval === "month" ? (
-                  <p className="mt-4 text-4xl font-extrabold text-slate-900">
-                    ${p.price}
-                    <span className="text-sm font-normal text-slate-500">/mo</span>
-                  </p>
+                  <>
+                    <p className="mt-4 text-4xl font-extrabold text-slate-900">
+                      ${p.price}
+                      <span className="text-sm font-normal text-slate-500">/mo</span>
+                    </p>
+                    {p.id === "starter" && <p className="mt-1 text-sm font-semibold text-emerald-700">{STARTER_FIRST_MONTH_NOTE}</p>}
+                  </>
                 ) : (
                   <>
                     <p className="mt-4 text-4xl font-extrabold text-slate-900">
@@ -154,15 +157,16 @@ function Upgrade() {
                     isCurrent ? "bg-amber-500" : "bg-slate-900 hover:bg-slate-800"
                   }`}
                 >
-                  {pendingPlan === p.id ? "Opening secure checkout…" : `Subscribe to ${p.name}`}
+                  {pendingPlan === p.id
+                    ? "Opening secure checkout…"
+                    : p.id === "starter" && interval === "month"
+                      ? `Start Starter for $${STARTER_FIRST_MONTH_PRICE}`
+                      : `Subscribe to ${p.name}`}
                 </button>
               </div>
             );
           })}
         </div>
-        {/* Below the plans (owner 2026-10-19): on a phone it pushed Starter more
-            than a screen down for people arriving from an upgrade link. */}
-        <FoundingOffer source="upgrade" />
       </div>
     </div>
   );

@@ -186,6 +186,33 @@ export interface MoneyStats {
   signinRequired: number;
   /** Checkout could not be created. */
   failed: number;
+  /** "$5 first month" Starter subscriptions (Stripe), or null when Stripe could not be read. */
+  firstMonth?: FirstMonthStats | null;
+}
+
+/** The $5 first-month Starter offer, read from Stripe subscription metadata. */
+export interface FirstMonthStats {
+  /** Subscriptions started on the offer. */
+  started: number;
+  /** Still active or past due now. */
+  payingNow: number;
+  /** Older than one billing month and still active: they paid the full $19. */
+  pastMonthOne: number;
+  canceled: number;
+}
+
+/** Days after the start before a subscription counts as past month one. */
+export const FIRST_MONTH_DAYS = 32;
+
+/** Counts for the Money panel from Stripe subscriptions (`created` in seconds). */
+export function firstMonthStats(subs: readonly { status: string; created: number }[], now: number): FirstMonthStats {
+  const paying = (s: string) => s === "active" || s === "past_due";
+  return {
+    started: subs.filter((s) => s.status !== "incomplete" && s.status !== "incomplete_expired").length,
+    payingNow: subs.filter((s) => paying(s.status)).length,
+    pastMonthOne: subs.filter((s) => s.status === "active" && now - s.created * 1000 > FIRST_MONTH_DAYS * 24 * HOUR).length,
+    canceled: subs.filter((s) => s.status === "canceled").length,
+  };
 }
 
 /** Trials ending within `days` of `now`, soonest first. */

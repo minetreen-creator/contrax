@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  firstMonthStats,
   FEED_EVENTS,
   agoLabel,
   placeLabel,
@@ -119,5 +120,25 @@ describe("live search map + on the site now", () => {
     expect(trialsEndingWithin([trial(1, 60), trial(2, 5), trial(3, 100), trial(4, -1)], 3, NOW).map((t) => t.userId)).toEqual([2, 1]);
     const steps = moneySteps({ payingNow: 0, sawPlans: 9, clickedBuy: 2, openedCheckout: 1, signinRequired: 1, failed: 0 });
     expect(steps.map((x) => x.value)).toEqual([9, 2, 1]);
+  });
+});
+
+describe("firstMonthStats", () => {
+  test("counts starts, paying, past month one and canceled from Stripe statuses", () => {
+    const now = Date.parse("2026-12-01T00:00:00Z");
+    const daysAgo = (d: number) => Math.floor((now - d * 86_400_000) / 1000);
+    expect(
+      firstMonthStats(
+        [
+          { status: "active", created: daysAgo(3) },
+          { status: "active", created: daysAgo(40) },
+          { status: "past_due", created: daysAgo(35) },
+          { status: "canceled", created: daysAgo(20) },
+          { status: "incomplete", created: daysAgo(1) },
+        ],
+        now,
+      ),
+    ).toEqual({ started: 4, payingNow: 3, pastMonthOne: 1, canceled: 1 });
+    expect(firstMonthStats([], now)).toEqual({ started: 0, payingNow: 0, pastMonthOne: 0, canceled: 0 });
   });
 });

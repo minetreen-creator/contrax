@@ -4,7 +4,10 @@ import { sql } from "~/db";
 import { ensureBidFitReviewTable } from "./bid-fit-review.server";
 import { getStripe } from "./stripe";
 
-export const REVIEW_PRICE = 9900;
+// CEO pricing call 2026-10-21: $49 (was $99). A $99 link sent before the change
+// still confirms as paid, at the amount Stripe actually charged.
+export const REVIEW_PRICE = 4900;
+const ACCEPTED_REVIEW_AMOUNTS = new Set([REVIEW_PRICE, 9900]);
 export const DOCUMENT_BUDGET = 3_000_000;
 export function tokenHash(token: string) { return createHash("sha256").update(token).digest("hex"); }
 export function validReviewToken(token: string) { return /^[a-f0-9]{64}$/.test(token); }
@@ -29,7 +32,7 @@ export async function getReviewByToken(token: string) {
 
 export function isPaidReviewSession(session: Stripe.Checkout.Session) {
   return session.metadata?.product === "bid_fit_review" && session.mode === "payment"
-    && session.payment_status === "paid" && session.amount_total === REVIEW_PRICE && session.currency === "usd";
+    && session.payment_status === "paid" && session.amount_total != null && ACCEPTED_REVIEW_AMOUNTS.has(session.amount_total) && session.currency === "usd";
 }
 
 export async function createReviewCheckout(id: number, deps?: { db: ReturnType<typeof sql>; stripe: Stripe }) {
@@ -86,7 +89,7 @@ export async function handleReviewPaymentEvent(event: Stripe.Event, db?: ReturnT
   if (isPaidReviewSession(session)) {
     const intent = typeof session.payment_intent === "string" ? session.payment_intent : session.payment_intent?.id;
     await query`UPDATE bid_fit_review_requests SET payment_status='paid', paid_at=COALESCE(paid_at,NOW()),
-      paid_amount=${REVIEW_PRICE}, payment_intent_id=${intent ?? null},
+      paid_amount=${session.amount_total}, payment_intent_id=${intent ?? null},
       status=CASE WHEN status='awaiting_payment' THEN 'in_progress' ELSE status END, updated_at=NOW()
       WHERE id=${id} AND checkout_session_id=${session.id}`;
   } else if (session.payment_status !== "paid") {

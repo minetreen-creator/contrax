@@ -716,7 +716,7 @@ export function BidCard({ b }: { b: SeoBid }) {
       </a>
       {reviewHref && (
         <a href={reviewHref} className="mt-2 block text-xs font-medium text-amber-700 hover:text-amber-600">
-          Not sure it fits? Get a $99 Bid Fit Review →
+          Not sure it fits? Get a $49 Bid Fit Review →
         </a>
       )}
     </li>

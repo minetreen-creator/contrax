@@ -83,7 +83,7 @@ function BidFitReviewsPage() {
       <AdminTabs active="bid-fit-reviews" />
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div><h1 className="text-3xl font-bold">Bid Fit Reviews</h1>
-          <p className="mt-2 text-sm text-slate-600">One-time $99 reviews. Payment is confirmed by Stripe separately from work status.</p></div>
+          <p className="mt-2 text-sm text-slate-600">One-time $49 reviews. Payment is confirmed by Stripe separately from work status.</p></div>
         <button onClick={() => { setError(""); refresh().catch((e) => setError(e.message)); }} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold hover:bg-slate-100">Refresh</button>
       </div>
       {error && <SectionError message={error} />}
@@ -106,8 +106,8 @@ function BidFitReviewsPage() {
               {r.documents?.length ? <ul>{r.documents.map(d=><li key={d.id}><a className="text-blue-700 underline" href={`/api/bid-fit-review/documents?id=${d.id}`}>{d.filename}</a> · {Math.ceil(d.size/1000)} KB</li>)}</ul> : <p>No documents uploaded.</p>}
               <div className="flex flex-wrap gap-2">
                 <button disabled={saving===r.id} onClick={()=>action(r.id,"access")} className="rounded-lg border px-3 py-2">Generate private upload link</button>
-                {["new","reviewing","awaiting_information"].includes(r.status) && <button disabled={saving===r.id} onClick={()=>action(r.id,"accept")} className="rounded-lg border px-3 py-2">Accept review — ready to offer $99 payment</button>}
-                {r.status==="awaiting_payment" && r.payment_status!=="paid" && <button disabled={saving===r.id} onClick={()=>action(r.id,"checkout")} className="rounded-lg bg-blue-700 px-3 py-2 text-white">Generate $99 payment link</button>}
+                {["new","reviewing","awaiting_information"].includes(r.status) && <button disabled={saving===r.id} onClick={()=>action(r.id,"accept")} className="rounded-lg border px-3 py-2">Accept review — ready to offer $49 payment</button>}
+                {r.status==="awaiting_payment" && r.payment_status!=="paid" && <button disabled={saving===r.id} onClick={()=>action(r.id,"checkout")} className="rounded-lg bg-blue-700 px-3 py-2 text-white">Generate $49 payment link</button>}
               </div>
               <p className="text-xs text-slate-500">Accept only after checking business fit, full documents, deadline, and availability. Generating an upload link replaces the previous link; share it privately. Links are not emailed automatically.</p>
               {shareLink?.id===r.id && <label className="block font-semibold">Link to share<input readOnly value={shareLink.url} onFocus={e=>e.currentTarget.select()} className="mt-1 w-full rounded border p-2 font-normal" /></label>}

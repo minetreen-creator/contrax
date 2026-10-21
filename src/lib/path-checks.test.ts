@@ -7,14 +7,14 @@ const checkout = PATH_CHECKS.find((c) => c.method === "POST")!;
 
 describe("judge", () => {
   test("passes on the expected status with the marker text", () => {
-    expect(judge(page, 200, "<button>Choose Starter</button>", 120).ok).toBe(true);
+    expect(judge(page, 200, "<button>Start Starter for $5</button>", 120).ok).toBe(true);
     expect(judge(checkout, 401, '{"error":"Sign in to choose a Contrax plan."}', 90).ok).toBe(true);
   });
 
   test("fails on a wrong status, a missing marker or no response", () => {
     expect(judge(page, 500, "", 50)).toMatchObject({ ok: false, detail: "Expected 200, got 500" });
     expect(judge(checkout, 200, "{}", 50).ok).toBe(false);
-    expect(judge(page, 200, "<html></html>", 50).detail).toContain("Choose Starter");
+    expect(judge(page, 200, "<html></html>", 50).detail).toContain("Start Starter for $");
     expect(judge(page, null, "", null, "timeout")).toMatchObject({ ok: false, detail: "timeout" });
   });
 });

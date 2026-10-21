@@ -656,6 +656,12 @@ function MoneyPanel({ money, trials, now }: { money: MoneyStats; trials: TrialCa
               </span>
             ))}
           </div>
+          {money.firstMonth ? (
+            <p className="mt-2 text-xs text-slate-300">
+              <b className="text-emerald-300">$5 first month:</b> {money.firstMonth.started} started · {money.firstMonth.payingNow} paying now ·{" "}
+              {money.firstMonth.pastMonthOne} past month one at $19 · {money.firstMonth.canceled} canceled
+            </p>
+          ) : null}
           {money.signinRequired || money.failed ? (
             <p className="mt-2 text-xs text-slate-400">
               {money.signinRequired ? `${money.signinRequired} clicked buy signed out and were sent to sign up. ` : ""}

@@ -323,7 +323,7 @@ function BidDetailPage() {
                       href={bidFitReviewHref({ ...bid, source_url: sourceUrl })!}
                       className="ml-4 text-sm font-semibold text-slate-200 hover:text-white"
                     >
-                      Not sure it fits? Get a $99 Bid Fit Review →
+                      Not sure it fits? Get a $49 Bid Fit Review →
                     </a>
                   )}
                 </div>

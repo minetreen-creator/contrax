@@ -299,17 +299,35 @@ describe("va_bidnet — fetch loop (stubbed from the fixtures, zero network)", (
   /**
    * The real page 1 advertises 48 pages; serving all 48 here would cost 47 × the
    * engine's politeness delay, and the cap itself is pinned above. So this stub
-   * trims each captured page's own page selector down to pages 1–3 and serves
-   * three pages: the captured page 1, the captured page 9, and an empty-shaped
-   * page (page 1 minus its rows). That exercises the loop's real wiring — the
-   * list, then each page it advertises, in order, exactly once — on real bytes.
+   * trims each captured page's own pagination down to pages 1–3 and serves three
+   * pages: the captured page 1, the captured page 9, and an empty-shaped page
+   * (page 1 minus its rows). That exercises the loop's real wiring — the list,
+   * then each page it advertises, in order, exactly once — on real bytes.
+   *
+   * The trim must cover EVERY page number a served page prints, or the engine
+   * will walk off the stub: the reader takes its queue from the page selector's
+   * `data-page-number` options AND from the `<link rel="next">` control, and the
+   * captured page 9 carries `rel="next" href="…/page10"` (it really is page 9 of
+   * a 48-page group). Trimming the options alone left that link pointing at a
+   * page this stub never serves. So the next control is clamped to the last
+   * served page too — every URL discoverable in the bytes handed out here is one
+   * of the three pages mapped below.
    */
+  const SERVED_PAGES = 3;
   const threePages = (html: string): string =>
-    html.replace(
-      /(<option\b[^>]*?)data-page-number="(\d+)"/g,
-      (all, head: string, n: string) =>
-        Number(n) <= 3 ? all : `${head}data-page-number-trimmed="${n}"`,
-    );
+    html
+      .replace(
+        /(<option\b[^>]*?)data-page-number="(\d+)"/g,
+        (all, head: string, n: string) =>
+          Number(n) <= SERVED_PAGES
+            ? all
+            : `${head}data-page-number-trimmed="${n}"`,
+      )
+      .replace(
+        /(<link\b[^>]*rel="next"[^>]*href="[^"]*\/page)(\d+)"/g,
+        (all, head: string, n: string) =>
+          Number(n) <= SERVED_PAGES ? all : `${head}${SERVED_PAGES}"`,
+      );
   const EMPTY_PAGE = threePages(
     PAGE1.replace(/<tr\s+data-index="\d+"[\s\S]*?<\/tr>/g, ""),
   );
@@ -428,10 +446,11 @@ describe("va_bidnet — helpers", () => {
     expect(VA_BIDNET_AGENCY).toBe(
       "Virginia & DC Purchasing Group (BidNet Direct)",
     );
+    // Registered as a tail source, so the daily sync runs it. Presence is all
+    // that is asserted: `runner.ts` registers `fetchFn: () => fetchVaBidnetBids()`
+    // (a wrapping arrow, so that the job can pass its own clock), so the entry is
+    // never the exported function by identity — same as sd_bidnet / nh_bidnet.
     expect(TAIL_SOURCES.some((s) => s.name === "va_bidnet")).toBe(true);
-    expect(TAIL_SOURCES.find((s) => s.name === "va_bidnet")!.fetchFn).toBe(
-      fetchVaBidnetBids,
-    );
     expect(SOURCE_CLASSES.va_bidnet).toEqual({
       class: "state",
       scopeState: "VA",

@@ -12,6 +12,10 @@ const created: any[] = [];
 let foundingSubs: { status: string }[] = [];
 let foundingSearchFails = false;
 let legacyProduct = false;
+// Starter "$5 first month" coupon state, driven per test.
+let couponMissing = false;
+let couponAmountOff = 1400;
+const couponsCreated: any[] = [];
 mock.module("stripe", () => ({
   default: class FakeStripe {
     subscriptions = {
@@ -37,6 +41,17 @@ mock.module("stripe", () => ({
           tax_code: "txcd_10103001",
         } : id === "price_pro_monthly" ? "prod_pro" : "prod_starter",
       }),
+    };
+    coupons = {
+      retrieve: async (id: string) => {
+        if (couponMissing) throw Object.assign(new Error("No such coupon"), { code: "resource_missing" });
+        return { id, amount_off: couponAmountOff, currency: "usd", duration: "once", valid: true };
+      },
+      create: async (params: any) => {
+        couponsCreated.push(params);
+        couponMissing = false;
+        return { ...params, valid: true };
+      },
     };
     checkout = {
       sessions: {
@@ -141,5 +156,44 @@ describe("legacy shared Agency product", () => {
         expect(session.subscription_data.metadata).toEqual(session.metadata);
       }
     } finally { legacyProduct = false; }
+  });
+});
+
+describe("Starter $5 first month", () => {
+  test("monthly Starter gets the one-time coupon; the price stays $19", async () => {
+    created.length = 0;
+    couponsCreated.length = 0;
+    couponMissing = true;
+    expect((await stripeLib.createCheckoutSession("starter", { userId: 42 })).success).toBe(true);
+    expect(couponsCreated).toEqual([
+      { id: "contrax_starter_first_month_5_v1", amount_off: 1400, currency: "usd", duration: "once", name: "Starter: $5 first month" },
+    ]);
+    const session = created[0];
+    expect(session.line_items).toEqual([{ price: "price_starter_monthly", quantity: 1 }]);
+    expect(session.discounts).toEqual([{ coupon: "contrax_starter_first_month_5_v1" }]);
+    expect(session.metadata.first_month_offer).toBe("contrax_starter_first_month_5_v1");
+    expect(session.subscription_data.metadata).toEqual(session.metadata);
+  });
+
+  test("not on yearly Starter, Professional or the VAD price", async () => {
+    for (const [tier, options] of [
+      ["starter", { interval: "year" }],
+      ["professional", {}],
+    ] as const) {
+      created.length = 0;
+      expect((await stripeLib.createCheckoutSession(tier, options)).success).toBe(true);
+      expect(created[0].discounts).toBeUndefined();
+      expect(created[0].metadata.first_month_offer).toBeUndefined();
+    }
+  });
+
+  test("a coupon edited to discount more fails closed", async () => {
+    created.length = 0;
+    couponAmountOff = 1900;
+    try {
+      const r = await stripeLib.createCheckoutSession("starter", {});
+      expect(r.success).toBe(false);
+      expect(created).toHaveLength(0);
+    } finally { couponAmountOff = 1400; }
   });
 });

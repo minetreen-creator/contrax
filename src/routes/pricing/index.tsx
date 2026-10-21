@@ -6,6 +6,7 @@ import { resolveGrantsUpgradeEnabled } from "~/lib/grants-upgrade-signal";
 import { SiteHeader } from "~/components/SiteHeader";
 import { FoundingOffer } from "~/components/FoundingOffer";
 import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
+import { STARTER_FIRST_MONTH_NOTE } from "~/lib/starter-offer";
 
 const getGrantsPricingData = createServerFn({ method: "GET" }).handler(async () => {
   const grantsUpgradeEnabled = resolveGrantsUpgradeEnabled(
@@ -278,6 +279,9 @@ function PricingPage() {
                     ${interval === "month" ? plan.price : plan.yearly.toLocaleString("en-US")}
                   </span>
                   <span className="text-gray-500">{interval === "month" ? "/month" : "/year"}</span>
+                  {interval === "month" && plan.slug === "starter" && (
+                    <p className="mt-1 text-sm font-semibold text-emerald-700">{STARTER_FIRST_MONTH_NOTE}</p>
+                  )}
                   {interval === "year" && (
                     <p className="mt-1 text-sm text-emerald-700">
                       ${(plan.price * 12).toLocaleString("en-US")} if paid monthly. You save $

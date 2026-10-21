@@ -13,7 +13,7 @@ function fakeDb(row: any) {
   return {db:db as any,writes};
 }
 function event(overrides:Record<string,unknown>={},type="checkout.session.completed") {
-  return {type,data:{object:{id:"cs_review",mode:"payment",payment_status:"paid",currency:"usd",amount_total:9900,
+  return {type,data:{object:{id:"cs_review",mode:"payment",payment_status:"paid",currency:"usd",amount_total:4900,
     metadata:{product:"bid_fit_review",review_request_id:"1"},payment_intent:"pi_review",...overrides}}} as any;
 }
 test("private tokens reject short guesses and PDFs enforce signature and size",()=>{
@@ -33,10 +33,15 @@ test("only the accepted request's exact session may confirm payment",async()=>{
   for(const row of [null,{accepted_at:null,checkout_session_id:"cs_review"},{accepted_at:"now",checkout_session_id:"cs_other"}]) {
     const f=fakeDb(row);await assert.rejects(()=>handleReviewPaymentEvent(event(),f.db));assert.equal(f.writes.length,0);
   }
-  for(const amount of [4900,0,9901]) {
+  for(const amount of [1900,0,4901,9901]) {
     const f=fakeDb({accepted_at:"now",checkout_session_id:"cs_review"});
     await assert.rejects(()=>handleReviewPaymentEvent(event({amount_total:amount}),f.db));assert.equal(f.writes.length,0);
   }
+});
+test("a $99 link sent before the $49 price still confirms, at the amount charged",async()=>{
+  const f=fakeDb({accepted_at:"now",checkout_session_id:"cs_review"});
+  assert.equal(await handleReviewPaymentEvent(event({amount_total:9900}),f.db),true);
+  assert.ok(f.writes[0].query.includes("payment_status='paid'"));assert.ok(f.writes[0].values.includes(9900));
 });
 test("delayed payment waits for paid confirmation; repeated/late events cannot undo payment",async()=>{
   const f=fakeDb({accepted_at:"now",checkout_session_id:"cs_review"});
@@ -49,14 +54,14 @@ test("delayed payment waits for paid confirmation; repeated/late events cannot u
   await handleReviewPaymentEvent(event({payment_status:"unpaid"},"checkout.session.expired"),f.db);
   assert.ok(f.writes[2].query.includes("payment_status<>'paid'"));
 });
-test("checkout refuses unaccepted and paid requests; accepted review is exactly $99 once",async()=>{
+test("checkout refuses unaccepted and paid requests; accepted review is exactly $49 once",async()=>{
   let params:any,options:any;let creates=0;
   const stripe={checkout:{sessions:{create:async(p:any,o:any)=>{params=p;options=o;creates++;return {id:"cs_review",url:"https://checkout.stripe.com/review"};},retrieve:async()=>({status:"open",url:"https://checkout.stripe.com/reuse"})}}} as any;
   for(const row of [{accepted_at:null,status:"new",payment_status:"unpaid"},{accepted_at:"now",status:"awaiting_payment",payment_status:"paid"}])
     await assert.rejects(()=>createReviewCheckout(1,{db:fakeDb(row).db,stripe}));
   const f=fakeDb({id:1,email:"applicant@example.com",accepted_at:"now",status:"awaiting_payment",payment_status:"unpaid"});
   await createReviewCheckout(1,{db:f.db,stripe});
-  assert.equal(params.mode,"payment");assert.equal(params.line_items[0].price_data.unit_amount,9900);
+  assert.equal(params.mode,"payment");assert.equal(params.line_items[0].price_data.unit_amount,4900);
   assert.equal(params.metadata.review_request_id,"1");assert.equal(params.payment_method_types,undefined);
   assert.ok(options.idempotencyKey);assert.equal(creates,1);
   await createReviewCheckout(1,{db:fakeDb({...f,accepted_at:"now",status:"awaiting_payment",payment_status:"unpaid",checkout_session_id:"cs_existing"}).db,stripe});

@@ -1,14 +1,15 @@
 /**
  * BidNet Direct — shared reader for the public, login-free "open bids" lists of
  * BidNet's state *Purchasing Groups* (the third-party aggregator behind
- * `sd_bidnet` and `nh_bidnet`).
+ * `sd_bidnet`, `nh_bidnet`, `va_bidnet` and `ca_bidnet`).
  *
  * WHY THIS MODULE EXISTS: BidNet Direct (International Data Base Corp.,
  * bidnetdirect.com — not a .gov host) runs one "open bids" list per purchasing
  * group at `/{state-slug}/solicitations/open-bids`. Every group's list is the
  * SAME server-rendered "mets" markup, paginates by URL the same way and exposes
  * the same cells, so the reader is one engine configured per group rather than a
- * copy per state. `sd-bidnet.ts` and `nh-bidnet.ts` are the two configs.
+ * copy per state. `sd-bidnet.ts`, `nh-bidnet.ts`, `va-bidnet.ts` and
+ * `ca-bidnet.ts` are the four configs.
  *
  * SOURCE (no login, no CAPTCHA, no JavaScript, no cookies, no POST):
  *   GET https://www.bidnetdirect.com/{slug}/solicitations/open-bids
@@ -82,6 +83,12 @@ export const BIDNET_ORIGIN = "https://www.bidnetdirect.com";
 export const BIDNET_MAX_PAGES = 20;
 /** Politeness delay between pagination reads. */
 export const BIDNET_PAGE_DELAY_MS = 300;
+/**
+ * Per-pass abort (default). A pass that runs past it FAILS CLOSED — it never
+ * reports a partial group as the whole group. A group too large to finish inside
+ * it raises `passTimeoutMs` in its own config (`ca_bidnet`, 99 pages → 240 s).
+ */
+export const BIDNET_PASS_TIMEOUT_MS = 120_000;
 
 const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
@@ -102,6 +109,13 @@ export interface BidNetGroupConfig {
   maxPages?: number;
   /** Politeness delay between pagination reads (default `BIDNET_PAGE_DELAY_MS`). */
   pageDelayMs?: number;
+  /**
+   * Per-pass abort (default `BIDNET_PASS_TIMEOUT_MS` = 120 s). A pass that runs
+   * past it FAILS CLOSED — it never reports a partial group as the whole group.
+   * Raised only by a group too large to finish inside the default (`ca_bidnet`
+   * reads 99 pages); every other group keeps the default.
+   */
+  passTimeoutMs?: number;
 }
 
 /** One solicitation row of the list page, exactly as the page prints it. */
@@ -360,6 +374,8 @@ export interface BidNetGroup {
   readonly listUrl: string;
   readonly agency: string;
   readonly maxPages: number;
+  /** Per-pass abort in ms (the config's `passTimeoutMs`, or the engine default). */
+  readonly passTimeoutMs: number;
   /** The list URL plus its own page-2..N URLs, absolutized. */
   readonly listShapeOk: (html: string) => boolean;
   readonly statedOpenCount: (html: string) => number | null;
@@ -388,6 +404,7 @@ export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
   const listUrl = `${BIDNET_ORIGIN}/${cfg.slug}/solicitations/open-bids`;
   const maxPages = cfg.maxPages ?? BIDNET_MAX_PAGES;
   const pageDelayMs = cfg.pageDelayMs ?? BIDNET_PAGE_DELAY_MS;
+  const passTimeoutMs = cfg.passTimeoutMs ?? BIDNET_PASS_TIMEOUT_MS;
 
   async function getHtml(url: string, signal: AbortSignal): Promise<string> {
     const resp = await fetch(url, {
@@ -415,7 +432,7 @@ export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
    */
   async function fetchBids(now: number = Date.now()): Promise<FetchResult> {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 120000);
+    const timer = setTimeout(() => controller.abort(), passTimeoutMs);
     const pages: string[] = [];
     let stated: number | null = null;
     try {
@@ -484,6 +501,7 @@ export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
     listUrl,
     agency: `${cfg.groupName} (BidNet Direct)`,
     maxPages,
+    passTimeoutMs,
     listShapeOk: bidNetListShapeOk,
     statedOpenCount: bidNetStatedOpenCount,
     absoluteUrl: bidNetAbsoluteUrl,

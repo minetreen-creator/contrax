@@ -224,7 +224,11 @@ async function handler({ request }: { request: Request }) {
     }
 
     // On the site now: each visitor's latest page in the last 5 minutes.
-    // Admin pages and admin, QA and bot traffic are left out.
+    // Admin pages and admin, QA and bot traffic are left out. The map's lat/lon
+    // columns are added by page-view intake; make sure they exist before
+    // reading them so a fresh deploy can't fail this whole console.
+    await db`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS lat REAL`;
+    await db`ALTER TABLE page_views ADD COLUMN IF NOT EXISTS lon REAL`;
     const onlineRows = (await db`
       SELECT t.*, v.country FROM (
         SELECT DISTINCT ON (visitor_id) visitor_id, path, city, region, lat, lon, created_at

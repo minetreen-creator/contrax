@@ -70,7 +70,6 @@
  */
 import {
   createBidNetGroup,
-  BIDNET_MAX_PAGES,
   BIDNET_ORIGIN,
   type BidNetGroupConfig,
   type BidNetParseResult,

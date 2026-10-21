@@ -652,6 +652,8 @@ jobs:
         run: bun test src/lib/upgrade-pitch.test.ts
       - name: Daily path check rules (unit, deterministic, zero network)
         run: bun test src/lib/path-checks.test.ts
+      - name: Prospect finder email extraction (unit, deterministic, zero network)
+        run: bun test src/lib/prospect-finder.test.ts
       - name: Founder live chat rules (unit, deterministic, zero network)
         run: bun test src/lib/live-chat.test.ts
       - name: Mission Control live alerts rules (unit, deterministic, zero network)

@@ -9,7 +9,7 @@ describe("extractEmails", () => {
   });
 
   test("undoes encoded @ and drops images, placeholders and no-reply", () => {
-    const html = `info&#64;acme.com bob%40acme.com logo@2x.png name@example.com noreply@acme.com you@domain.com x@sentry.io`;
+    const html = `info&#64;acme.com bob%40acme.com logo@2x.png name@example.com noreply@acme.com you@domain.com x@sentry.io jane@company.com`;
     expect(extractEmails(html, "acme.com").sort()).toEqual(["bob@acme.com", "info@acme.com"]);
   });
 

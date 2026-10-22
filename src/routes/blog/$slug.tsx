@@ -130,7 +130,7 @@ function BlogPostPage() {
         <div className="mt-12 rounded-2xl border border-slate-200 bg-slate-50 p-6 sm:p-8">
           <h2 className="text-lg font-bold text-slate-900">Turn this insight into wins</h2>
           <p className="mt-2 text-sm text-slate-600">
-            Contrax finds set-aside opportunities you qualify for, summarizes the bid documents, and drafts compliant
+            Contrax finds set-aside opportunities you qualify for, summarizes each opportunity, and drafts compliant
             proposals — so certified small businesses spend less time sorting and more time winning.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">

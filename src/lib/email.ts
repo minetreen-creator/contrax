@@ -658,7 +658,7 @@ export function welcomeEmailHtml(email: string, setPasswordToken?: string): stri
               </p>
               <p style="margin:0 0 16px;color:#4b5563;font-size:15px;line-height:1.6;">
                 Contrax is your AI-powered government contract discovery platform. We monitor
-                procurement sites, summarize bid documents, and draft proposals so you can
+                procurement sites, summarize each opportunity, and draft proposals so you can
                 find and win government contracts faster than ever.
               </p>
 

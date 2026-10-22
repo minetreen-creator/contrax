@@ -237,6 +237,79 @@ function CalendarFeedSection() {
   );
 }
 
+/**
+ * "Connect with Thumbtack" (thumbtack.server.ts). Hidden until the Thumbtack
+ * credentials are configured; reads ?thumbtack=<status> after the callback.
+ */
+const THUMBTACK_MESSAGES: Record<string, string> = {
+  connected: "Thumbtack connected. Your services and service area are now linked.",
+  denied: "Thumbtack connection was cancelled.",
+  invalid: "That Thumbtack link expired. Please try connecting again.",
+  error: "Thumbtack couldn't be connected right now. Please try again.",
+  unavailable: "Thumbtack connection isn't available yet.",
+};
+
+function ThumbtackSection() {
+  const [state, setState] = useState<{ available: boolean; connected: boolean; connectedAt: string | null } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    const status = new URLSearchParams(window.location.search).get("thumbtack");
+    if (status && THUMBTACK_MESSAGES[status]) setNotice(THUMBTACK_MESSAGES[status]!);
+    fetch("/api/thumbtack/connection")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setState(j))
+      .catch(() => setState(null));
+  }, []);
+
+  if (!state?.available) return null;
+
+  const disconnect = async () => {
+    setBusy(true);
+    try {
+      const r = await fetch("/api/thumbtack/connection", { method: "DELETE" });
+      if (r.ok) {
+        setState({ ...state, connected: false, connectedAt: null });
+        setNotice("Thumbtack disconnected. We deleted the Thumbtack data we stored.");
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-semibold text-slate-900 mb-1">Thumbtack</h2>
+          <p className="text-sm text-slate-500">
+            Link your Thumbtack Pro account so Contrax can match government bids to the services and area you already list there.
+          </p>
+        </div>
+        {state.connected ? (
+          <button
+            type="button"
+            disabled={busy}
+            onClick={disconnect}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            Disconnect
+          </button>
+        ) : (
+          <a href="/api/thumbtack/connect" className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700">
+            Connect Thumbtack
+          </a>
+        )}
+      </div>
+      {state.connected && state.connectedAt && (
+        <p className="mt-3 text-xs text-slate-400">Connected {new Date(state.connectedAt).toLocaleDateString()}. We read only your business profile, never leads or messages.</p>
+      )}
+      {notice && <p className="mt-3 text-sm text-slate-700">{notice}</p>}
+    </section>
+  );
+}
+
 function SettingsRoute() {
   const currentUser = Route.useLoaderData();
   const navigate = useNavigate();
@@ -612,6 +685,8 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
         </section>
 
         <CalendarFeedSection />
+
+        <ThumbtackSection />
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Error */}

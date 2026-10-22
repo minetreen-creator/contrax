@@ -229,6 +229,7 @@ function changeTypeIcon(type: string) {
   if (type === "deadline") return "📅";
   if (type === "description") return "📝";
   if (type === "value") return "💰";
+  if (type === "title") return "🏷️";
   return "📋";
 }
 
@@ -236,6 +237,7 @@ function changeTypeLabel(type: string) {
   if (type === "deadline") return "Deadline changed";
   if (type === "description") return "Description updated";
   if (type === "value") return "Value changed";
+  if (type === "title") return "Title changed";
   return "Amendment posted";
 }
 

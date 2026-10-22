@@ -37,6 +37,13 @@ import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { US_STATES } from "../lib/states";
 import { deriveInsertLocationColumns } from "../lib/location-state";
 import { toIsoDueDate } from "../lib/date";
+import {
+  CREATE_BID_AMENDMENTS_TABLE,
+  detectAmendments,
+  dropBulkDescriptionChanges,
+  type DetectedAmendment,
+  type StoredBidFields,
+} from "../lib/bid-amendments";
 import { fetchBids as fetchSamGov } from "./sources/sam-gov";
 import {
   createSamTradeSource,
@@ -994,6 +1001,11 @@ async function insertBidsBatch(
     params.push(...row);
   }
 
+  // Amendment history (bid-amendments.ts): read the stored versions of this
+  // chunk's already-known rows BEFORE the upsert rewrites them. Best-effort: a
+  // failed read only means no amendments are recorded for this chunk.
+  const prior = await readStoredVersions(sql, batch, source);
+
   const result = (await sql.query(
     `INSERT INTO bids (${BID_COLUMNS.join(", ")})
      SELECT * FROM (VALUES ${valueRows.join(", ")})
@@ -1142,7 +1154,84 @@ async function insertBidsBatch(
       source: bid.source_label ?? source.name,
     });
   }
+  await recordAmendments(sql, source, result, bidByExternalId, prior);
   return { newCount, newBids };
+}
+
+/** Stored title/description/due date/value of the chunk's existing rows, by `source|external_id`. */
+async function readStoredVersions(
+  sql: Sql,
+  batch: RawBid[],
+  source: SyncSource,
+): Promise<Map<string, StoredBidFields>> {
+  const prior = new Map<string, StoredBidFields>();
+  try {
+    const sources = [...new Set(batch.map((b) => b.source_label ?? source.name))];
+    const rows = (await sql.query(
+      `SELECT source, external_id, title, description, due_date, estimated_value
+         FROM bids WHERE external_id = ANY($1::text[]) AND source = ANY($2::text[])`,
+      [batch.map((b) => b.external_id), sources],
+    )) as any[];
+    for (const r of rows) prior.set(`${r.source}|${r.external_id}`, r);
+  } catch {
+    // No amendment history for this chunk; the upsert itself is unaffected.
+  }
+  return prior;
+}
+
+let amendmentsTableReady: Promise<unknown> | null = null;
+
+/**
+ * Write one bid_amendments row per real change on rows the upsert actually
+ * rewrote (`inserted = false` in RETURNING; no-op refreshes return no row).
+ * Never throws: amendment history must not fail a sync.
+ */
+async function recordAmendments(
+  sql: Sql,
+  source: SyncSource,
+  result: any[],
+  bidByExternalId: Map<string, RawBid>,
+  prior: Map<string, StoredBidFields>,
+): Promise<void> {
+  if (prior.size === 0) return;
+  try {
+    const perRow: (DetectedAmendment & { bid_id: string })[][] = [];
+    for (const row of result) {
+      if (row.inserted) continue;
+      const bid = bidByExternalId.get(row.external_id);
+      const stored = bid && prior.get(`${bid.source_label ?? source.name}|${bid.external_id}`);
+      if (!bid || !stored) continue;
+      const found = detectAmendments(stored, {
+        title: bid.title,
+        description: bid.description,
+        due_date: toIsoDueDate(bid.due_date),
+        estimated_value: bid.estimated_value,
+      });
+      if (found.length) perRow.push(found.map((a) => ({ ...a, bid_id: String(row.id) })));
+    }
+    const { kept, dropped } = dropBulkDescriptionChanges(perRow, prior.size);
+    if (dropped) {
+      console.log(`  ${source.name}: ${dropped} description change(s) look like a source reformat, not recorded as amendments`);
+    }
+    const rows = kept.flat();
+    if (!rows.length) return;
+    amendmentsTableReady ??= sql.query(CREATE_BID_AMENDMENTS_TABLE, []);
+    await amendmentsTableReady;
+    const params: unknown[] = [];
+    const values = rows.map((a) => {
+      params.push(a.bid_id, a.change_type, a.old_value, a.new_value);
+      const n = params.length;
+      return `($${n - 3}, $${n - 2}, $${n - 1}, $${n})`;
+    });
+    await sql.query(
+      `INSERT INTO bid_amendments (bid_id, change_type, old_value, new_value) VALUES ${values.join(", ")}`,
+      params,
+    );
+    console.log(`  ${source.name}: recorded ${rows.length} amendment(s) on ${kept.filter((r) => r.length).length} bid(s)`);
+  } catch (e) {
+    amendmentsTableReady = null;
+    console.warn(`  ${source.name}: amendment history not recorded: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 /** One-at-a-time fallback insert (batch failures only) with per-bid error isolation. */

@@ -288,6 +288,12 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // `ca_eprocure`: the same work republished by different publishers stays two
   // listings.
   ca_bidnet: { class: "state", scopeState: "CA", searchScope: "state-portal", recordType: "opportunity" },
+  // BidNet Direct's Empire State Purchasing Group (src/jobs/sources/ny-bidnet.ts)
+  // — the FIFTH config of the same engine, 2026-10-22. Same treatment as
+  // `ca_bidnet` above for the same reasons: a third-party aggregator recorded as
+  // STATE with the group's home jurisdiction NY; it is NOT New York's own board
+  // `ny_nyscr`, and its own `nybidnet-` prefix keeps the two apart.
+  ny_bidnet: { class: "state", scopeState: "NY", searchScope: "state-portal", recordType: "opportunity" },
   mn_mndot: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_connex: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_questcdn: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },

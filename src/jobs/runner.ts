@@ -114,6 +114,7 @@ import { fetchSdBidnetBids } from "./sources/sd-bidnet";
 import { fetchNhBidnetBids } from "./sources/nh-bidnet";
 import { fetchVaBidnetBids } from "./sources/va-bidnet";
 import { fetchCaBidnetBids } from "./sources/ca-bidnet";
+import { fetchNyBidnetBids } from "./sources/ny-bidnet";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -548,6 +549,13 @@ export const TAIL_SOURCES: SyncSource[] = [
   // `ca_eprocure`: the same work republished by different publishers stays two
   // listings, exactly as `va_eva` coexists with `va_bidnet`.
   { name: "ca_bidnet", fetchFn: () => fetchCaBidnetBids() },
+  // NEW YORK (owner-directed 2026-10-22, the SD/NH/VA/CA pattern extended):
+  // BidNet Direct's *Empire State Purchasing Group*, next to (never instead of)
+  // NYSCR (`ny_nyscr`, the state's own board). THIRD-PARTY aggregator, public
+  // login-free open-bids list only (436 open over 18 pages on 2026-10-22, inside
+  // the engine's default page cap and pass timeout). Its own `nybidnet-` prefix
+  // keeps it a SEPARATE source from `ny_nyscr`.
+  { name: "ny_bidnet", fetchFn: () => fetchNyBidnetBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

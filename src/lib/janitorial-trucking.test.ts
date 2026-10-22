@@ -203,6 +203,9 @@ describe("R4 — purchased-service-only classification", () => {
       "Abandonment and Relocation of the San Diego Country Club Pipeline",
       "Oyster Point Sanitary Sewer Pump Station Relocation",
       "CR 32A Railroad Crossing Relocation & Grade Separation Project",
+      // ny_bidnet 2026-10-22
+      "Vertical Transportation Preventive Maintenance, Testing, and Repair Services",
+      "SENIOR DOOR TO DOOR TRANSPORTATION SERVICES",
     ])
       expect([title, isTransportationWork(title, "")]).toEqual([title, false]);
     for (const title of [

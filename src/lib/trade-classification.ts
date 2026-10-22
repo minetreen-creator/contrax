@@ -391,15 +391,16 @@ export function isTransportationWork(title: string, _full: string): boolean {
  * (live az_app + ca_bidnet rows, 2026-10-22):
  *  - people, not goods: ambulance, patient, medical/NEMT, healthcare, student,
  *    pupil, school, youth, special-needs, paratransit, passenger, senior/older
- *    adult, wheelchair, bus and shuttle transportation;
+ *    adult, wheelchair, door-to-door, bus and shuttle transportation;
+ *  - "Vertical Transportation" (elevators and escalators, ny_bidnet);
  *  - planning, engineering and infrastructure: "Transportation Planning",
  *    "Regional Transportation Impact Fee Study", "Active Transportation Design",
  *    "Intelligent Transportation System", "Department of Transportation", a
  *    transportation center, yard, fleet or vehicle.
  */
 const NOT_TRUCKING_PHRASES: RegExp[] = [
-  /\b(?:ambulance|patient|medical|non-emergency medical|nemt|healthcare|health care|student|pupil|school|youth|special needs|passenger|paratransit|senior|older adults?|wheelchair[- ]accessible|bus|shuttle)\s+transport(?:ation|s)?(?:\s+services?)?\b/g,
-  /\b(?:active|intelligent|regional|public|multimodal|sustainable)\s+transportation\b/g,
+  /\b(?:ambulance|patient|medical|non-emergency medical|nemt|healthcare|health care|student|pupil|school|youth|special needs|passenger|paratransit|senior|older adults?|wheelchair[- ]accessible|door[- ]to[- ]door|bus|shuttle)\s+transport(?:ation|s)?(?:\s+services?)?\b/g,
+  /\b(?:active|intelligent|regional|public|multimodal|sustainable|vertical)\s+transportation\b/g,
   /\b(?:department|dept\.?|division|bureau|office|agency|authority|commission)\s+of\s+transportation\b/g,
   /\btransportation\s+(?:planning|plans?|study|studies|impact|safety|engineering|design|improvements?|projects?|programs?|programming|policy|demand|systems?|center|centre|yard|facility|fleet|vehicles?|infrastructure|corridor|master)\b/g,
 ];

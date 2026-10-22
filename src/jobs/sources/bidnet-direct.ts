@@ -221,11 +221,20 @@ export function parseBidNetPageLinks(
   return out;
 }
 
-/** BidNet's own solicitation id from a detail URL, or null. */
+/**
+ * BidNet's own solicitation id from a detail URL, or null. Two shapes:
+ *  - `/public/supplier/solicitations/<scope>/<id>/abstract` (SD, NH, VA, CA);
+ *  - `/<group>/solicitations/open-bids/<title-slug>/<id>` or, for a buyer's own
+ *    page, `/<group>/<buyer>/solicitations/<title-slug>/<id>` (the Empire State
+ *    Purchasing Group, `ny_bidnet`, 2026-10-22: e.g.
+ *    `…/open-bids/Fuel-Generator-and-Off-Road/0000441194`,
+ *    `/new-york/onondaga-county/solicitations/Furnishing-Spider-Control/0000409056`).
+ * The id is kept verbatim, leading zeros included.
+ */
 export function bidNetDetailId(href: string): string | null {
-  const m = /\/public\/supplier\/solicitations\/[a-z-]+\/(\d+)\/abstract/.exec(
-    href,
-  );
+  const m =
+    /\/public\/supplier\/solicitations\/[a-z-]+\/(\d+)\/abstract/.exec(href) ??
+    /\/[a-z-]+(?:\/[a-z0-9-]+)?\/solicitations\/(?:open-bids\/)?[^/?#]+\/(\d+)(?:[?#]|$)/.exec(href);
   return m ? m[1] : null;
 }
 

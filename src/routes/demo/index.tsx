@@ -50,7 +50,7 @@ const jsonLd = {
   name: "Contrax",
   legalName: "Contrax LLC",
   description:
-    "Tell Contrax what your business does. Radar finds government opportunities that match — live set-asides for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses, with bid documents explained and proposals drafted so certified firms can compete and win.",
+    "Tell Contrax what your business does. Radar finds government opportunities that match — live set-asides for 8(a), SDVOSB, WOSB, and HUBZone-certified businesses, with each opportunity explained and proposals drafted so certified firms can compete and win.",
   url: PROD_URL,
   logo: `${PROD_URL}/logo-square.png`,
   email: "contrax.companyllc@gmail.com",

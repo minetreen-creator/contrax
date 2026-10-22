@@ -2,12 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { addMissingWebhookEvents, dataFeedWebhookStatus } from "~/lib/data-feed-billing.server";
 import { grantDataAccess, listDataAccess, revokeDataAccess } from "~/lib/data-feed.server";
+import { fixStripeSetup, stripeSetupStatus } from "~/lib/stripe-setup.server";
 
 /**
  * GET  /api/admin/data-access → data feed access requests + active grants
  * POST /api/admin/data-access → { action: "grant", email, note? } issues a key
  *                               (returned once) | { action: "revoke", userId }
  *                               | { action: "webhook-check" | "webhook-fix" }
+ *                               | { action: "stripe-setup-check" | "stripe-setup-fix" }
+ *                                 (stripe-setup.server.ts; owner 2026-10-22)
  * Admin only (owner 2026-10-06).
  */
 async function guard(request: Request) {
@@ -51,6 +54,14 @@ async function post({ request }: { request: Request }) {
         return Response.json({ endpoints });
       } catch (err) {
         console.error("[api/admin/data-access] stripe webhook error:", err);
+        return Response.json({ error: `Stripe: ${err instanceof Error ? err.message : "request failed"}` }, { status: 502 });
+      }
+    }
+    if (body.action === "stripe-setup-check" || body.action === "stripe-setup-fix") {
+      try {
+        return Response.json(body.action === "stripe-setup-fix" ? await fixStripeSetup() : await stripeSetupStatus());
+      } catch (err) {
+        console.error("[api/admin/data-access] stripe setup error:", err);
         return Response.json({ error: `Stripe: ${err instanceof Error ? err.message : "request failed"}` }, { status: 502 });
       }
     }

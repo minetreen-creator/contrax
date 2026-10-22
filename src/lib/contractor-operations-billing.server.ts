@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { sql } from "~/db";
 import { getStripe } from "~/lib/stripe";
+import { portalSessionParams } from "~/lib/stripe-setup.server";
 
 export const PRODUCT = "contrax_payments";
 const BASE_URL = process.env.PROD_URL || "https://www.contrax.company";
@@ -79,8 +80,9 @@ export async function createOperationsCheckout(userId: number, interval: Billing
 export async function createOperationsPortal(userId: number): Promise<string> {
   const state = await getOperationsSubscription(userId);
   if (!state.customerId) throw new Error("No billing profile for this product");
-  const session = await getStripe().billingPortal.sessions.create({
-    customer: state.customerId, return_url: `${BASE_URL}/contract-payments`,
+  const stripe = getStripe();
+  const session = await stripe.billingPortal.sessions.create({
+    customer: state.customerId, return_url: `${BASE_URL}/contract-payments`, ...(await portalSessionParams(stripe)),
   });
   if (!session.url) throw new Error("Billing portal unavailable");
   return session.url;

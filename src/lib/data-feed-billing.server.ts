@@ -19,6 +19,7 @@ import { sql } from "~/db";
 import { getStripe } from "~/lib/stripe";
 import { ensureDataFeedTables } from "~/lib/data-feed.server";
 import { parseFeedQuery } from "~/lib/data-feed";
+import { portalSessionParams } from "~/lib/stripe-setup.server";
 
 export const DATA_FEED_PRODUCT = "contrax_data_feed";
 const BASE_URL = process.env.PROD_URL || "https://www.contrax.company";
@@ -105,7 +106,8 @@ export async function createDataFeedPortal(userId: number): Promise<string> {
   const rows = (await sql()`SELECT stripe_customer_id FROM data_feed_access WHERE user_id = ${userId}`) as { stripe_customer_id: string | null }[];
   const customer = rows[0]?.stripe_customer_id;
   if (!customer) throw new Error("No data feed billing profile for this account");
-  const session = await getStripe().billingPortal.sessions.create({ customer, return_url: `${BASE_URL}/data` });
+  const stripe = getStripe();
+  const session = await stripe.billingPortal.sessions.create({ customer, return_url: `${BASE_URL}/data`, ...(await portalSessionParams(stripe)) });
   if (!session.url) throw new Error("Billing portal unavailable");
   return session.url;
 }

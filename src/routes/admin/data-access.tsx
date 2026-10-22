@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { getCurrentUser } from "~/lib/auth";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading, timeFmt } from "~/components/AdminShared";
 
@@ -135,51 +135,67 @@ function DataAccessPage() {
   );
 }
 
-interface WebhookEndpoint { id: string; url: string; status: string; missing: string[] }
+interface StripeSetup {
+  keyMode: "live" | "test" | "missing";
+  webhookSecretSet: boolean;
+  endpoints: { id: string; url: string; status: string; missing: string[] }[];
+  portal: { ready: boolean; isDefault: boolean; configurationId: string | null };
+}
 
-/** Paid plans only switch on if the Stripe webhook sends the right events; check and fix in one click. */
+/**
+ * Paid plans only switch on when Stripe is set up end to end: live key, webhook
+ * secret, a webhook sending the right events, and a customer portal. One click
+ * fixes what the site can fix itself (stripe-setup.server.ts, owner 2026-10-22).
+ */
 function StripeWebhookCheck() {
-  const [endpoints, setEndpoints] = useState<WebhookEndpoint[] | null>(null);
+  const [setup, setSetup] = useState<StripeSetup | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const run = async (action: "webhook-check" | "webhook-fix") => {
+  const run = async (action: "stripe-setup-check" | "stripe-setup-fix") => {
     setBusy(true);
     setError("");
     try {
       const r = await fetch("/api/admin/data-access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action }) });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error || "Stripe check failed");
-      setEndpoints(j.endpoints);
+      setSetup(j);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Stripe check failed");
     } finally {
       setBusy(false);
     }
   };
-  useEffect(() => { run("webhook-check"); }, []);
+  useEffect(() => { run("stripe-setup-check"); }, []);
 
-  const missing = endpoints?.some((e) => e.missing.length > 0) ?? false;
+  const fixable = setup ? setup.endpoints.some((e) => e.missing.length > 0) || !setup.portal.ready : false;
+  const row = (ok: boolean, text: ReactNode) => (
+    <p className={`mt-2 ${ok ? "text-emerald-700" : "text-amber-800"}`}>{ok ? "✓ " : "⚠ "}{text}</p>
+  );
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
-      <h2 className="text-base font-semibold text-slate-900">Stripe webhook</h2>
+      <h2 className="text-base font-semibold text-slate-900">Stripe setup</h2>
       {error && <p className="mt-2 text-red-700">{error}</p>}
-      {!endpoints && !error && <p className="mt-2 text-slate-500">Checking Stripe…</p>}
-      {endpoints && endpoints.length === 0 && (
-        <p className="mt-2 text-red-700">No Stripe webhook points at contrax.company/api/stripe/webhook. Paid plans won&rsquo;t switch on until one does.</p>
-      )}
-      {endpoints?.map((e) => (
-        <p key={e.id} className={`mt-2 ${e.missing.length ? "text-amber-800" : "text-emerald-700"}`}>
-          {e.missing.length ? "⚠ " : "✓ "}
-          <span className="break-all">{e.url}</span>
-          {e.status !== "enabled" && <span className="font-semibold"> ({e.status})</span>}
-          {e.missing.length ? ` is missing: ${e.missing.join(", ")}` : " sends every event the data feed needs."}
-        </p>
-      ))}
-      {missing && (
-        <button disabled={busy} onClick={() => run("webhook-fix")} className="mt-3 rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white disabled:opacity-50">
-          Add missing events
-        </button>
+      {!setup && !error && <p className="mt-2 text-slate-500">Checking Stripe…</p>}
+      {setup && (
+        <>
+          {row(setup.keyMode === "live", setup.keyMode === "live" ? "Live secret key is set." : setup.keyMode === "test" ? "The secret key is a TEST key: real cards won't be charged. Put the live key (sk_live_…) in Vercel." : "No Stripe secret key is set in Vercel.")}
+          {row(setup.webhookSecretSet, setup.webhookSecretSet ? "Webhook signing secret is set." : "STRIPE_WEBHOOK_SECRET is not set in Vercel: payments won't switch plans on.")}
+          {setup.endpoints.length === 0 && row(false, "No Stripe webhook points at contrax.company/api/stripe/webhook. Paid plans won't switch on until one does.")}
+          {setup.endpoints.map((e) =>
+            <div key={e.id}>{row(e.missing.length === 0 && e.status === "enabled", <>
+              <span className="break-all">{e.url}</span>
+              {e.status !== "enabled" && <span className="font-semibold"> ({e.status})</span>}
+              {e.missing.length ? ` is missing: ${e.missing.join(", ")}` : " sends every event the plans need."}
+            </>)}</div>,
+          )}
+          {row(setup.portal.ready, setup.portal.ready ? "Customer portal is set up (customers can update their card, see invoices and cancel)." : "Customer portal is not set up: customers can't manage or cancel their plan.")}
+          {fixable && (
+            <button disabled={busy} onClick={() => run("stripe-setup-fix")} className="mt-3 rounded-lg bg-slate-900 px-4 py-2 font-semibold text-white disabled:opacity-50">
+              {busy ? "Fixing…" : "Fix Stripe setup"}
+            </button>
+          )}
+        </>
       )}
     </section>
   );

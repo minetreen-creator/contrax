@@ -36,10 +36,11 @@ describe("dashboard auto-scoring is capped (owner 2026-10-02)", () => {
 });
 
 describe("Radar match cap (owner 2026-10-02)", () => {
-  test("a scan returns up to 25 default matches; the free preview stays 3", async () => {
+  test("a scan returns up to 25 default matches; the free preview is 1", async () => {
     const { RADAR_MATCH_CAP, FREE_ANONYMOUS_RADAR_RESULTS } = await import("./radar-config");
     expect(RADAR_MATCH_CAP).toBe(25);
-    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(3);
+    // Owner 2026-10-19 (#778): tightened from 3 to 1.
+    expect(FREE_ANONYMOUS_RADAR_RESULTS).toBe(1);
     const radar = readFileSync(join(import.meta.dir, "..", "routes", "radar.tsx"), "utf8");
     expect(radar).toContain("const ranked = scored.filter((m) => m.strong).slice(0, RADAR_MATCH_CAP);");
     expect(radar).not.toContain(".filter((m) => m.strong).slice(0, 5)");

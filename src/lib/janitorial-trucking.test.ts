@@ -172,6 +172,76 @@ describe("R4 — purchased-service-only classification", () => {
     expect(mapCategory("", "Courier services for the medical center", "")).toBe("Transportation");
   });
 
+  test("ambulance / patient / medical transport is not trucking work", () => {
+    // Live az_app row 2026-10-22 (BPM007818).
+    expect(
+      mapCategory(
+        "",
+        "Request for Proposals - City of Chandler Debt Collection Services for Fire Department Ambulance Transportation; FR7-946-5062",
+        "Commodity: Debt collection services.",
+      ),
+    ).toBe("Other");
+    expect(isTransportationWork("Non-Emergency Medical Transportation (NEMT) Services", "")).toBe(false);
+    expect(isTransportationWork("Patient Transport Services", "")).toBe(false);
+    // The rest of the title still decides.
+    expect(isTransportationWork("Freight hauling and ambulance transport", "")).toBe(true);
+    expect(isTransportationWork("Transportation of Vehicles, Parts and Supplies", "")).toBe(true);
+  });
+
+  test("planning, passenger transport and utility relocations are not trucking (live ca_bidnet 2026-10-22)", () => {
+    for (const title of [
+      "On-Call Transportation Planning and Support Services",
+      "Comprehensive Public Facilities Fee (PFF) and Regional Transportation Impact Fee (RTIF) Study",
+      "Country Club Drive Pavement Rehabilitation and Active Transportation Design Services",
+      "NORTH-SOUTH CORRIDOR INTELLIGENT TRANSPORTATION SYSTEM DEPLOYMENT PROJECT",
+      "ALTERNATE STUDENT TRANSPORTATION SERVICES",
+      "Youth Transportation Services",
+      "Healthcare Transportation Services",
+      "Wheelchair-Accessible Transportation Services for Older Adults and Adults with Disabilities",
+      "JG Bus Transportation- Santa Barbara",
+      "Transportation Fleet Maintenance",
+      "Abandonment and Relocation of the San Diego Country Club Pipeline",
+      "Oyster Point Sanitary Sewer Pump Station Relocation",
+      "CR 32A Railroad Crossing Relocation & Grade Separation Project",
+      // ny_bidnet 2026-10-22
+      "Vertical Transportation Preventive Maintenance, Testing, and Repair Services",
+      "SENIOR DOOR TO DOOR TRANSPORTATION SERVICES",
+      // tx/pa_bidnet 2026-10-22
+      "Maintenance, Transportation, and Security General Services",
+      "Maintenance, Operations, and Transportation Supplies, Parts, Equipment and Related Services",
+      "Job Order Contract (JOC) for Installation for Maintenance/Facilities/Transportation/Food Service",
+      "Transportation Fluids, Parts and Supplies",
+      "Transportation-Automotive Parts, Equipment, Services and Supplies - Continuous Solicitation",
+      "Texas Charter Bus and Motor Coach Transportation Services",
+      "Hospital-Based ECMO, Specialty Care, Critical Care and Interfacility Transport-EMS Partnership",
+      "Medicaid Fee for Service; Transportation for Indigent Cancer Patients",
+      "Wide Area Network (WAN) transport services",
+      "Restaurant/Catering and Delivery Services",
+      "BUS (including wheelchair bus(es)) TRANSPORTATION",
+      "SPECIALIZED (Vans and Wheelchair vans) TRANSPORTATION",
+      "Transportation Facilities Master Plan (TCDI Project Category 5 – Transportation and Infrastructure Planning)",
+    ])
+      expect([title, isTransportationWork(title, "")]).toEqual([title, false]);
+    for (const title of [
+      "North Facilities Unit Office Moving Services",
+      "Bldgs 1469, 1475 METC Furniture Relocation and Storage",
+      "Towing and Relocation of District/Non-District Vehicles",
+      "Biosolids Transportation and Management Services",
+      "Hazardous and Non-Hazardous Waste Removal, Transport and Destruction Services",
+      "Daily Courier Services - DDSD Oakland Branch",
+      "Bulk Fuel and Lubricant Delivery Services",
+      "2027 Septage Transport Services",
+      "Collection, Transportation, and Disposal of Municipal Solid Waste - 2027",
+      "Montgomery County Board of Elections Voting Equipment Transportation",
+    ])
+      expect([title, isTransportationWork(title, "")]).toEqual([title, true]);
+  });
+
+  test("an HVAC hail guard is not a security guard", () => {
+    expect(mapCategory("", "HVAC Condenser Coil, Compressor, & Hail Guard Repair Bldg. 1", "")).toBe("HVAC");
+    expect(mapCategory("", "Unarmed guard services", "")).toBe("Security");
+  });
+
   test("ingest NAICS inference drops the bare-'cleaning' FPs and keeps services", () => {
     // negatives (all three were inferred 561720 in production)
     expect(inferNaics("10--ROD,CLEANING,SMALL ARM", "")).toBe(null);

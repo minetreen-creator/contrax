@@ -356,6 +356,32 @@ jobs:
       # deadline rule.
       - name: BidNet California connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/ca-bidnet.test.ts
+      # BidNet Direct Empire State Purchasing Group (ny_bidnet) — the FIFTH config
+      # of the same engine, next to New York's own board (`ny_nyscr`). Its rows
+      # link with BidNet's second detail-URL shape (`/new-york/solicitations/
+      # open-bids/<title-slug>/<id>`), which the engine's `bidNetDetailId` reads
+      # alongside the SD/NH/VA/CA `/public/supplier/…/abstract` shape.
+      # DETERMINISTIC and network-free: every byte comes from the committed
+      # captures in src/jobs/sources/fixtures/ny-bidnet/; no DATABASE_URL.
+      - name: BidNet New York connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/ny-bidnet.test.ts
+      # BidNet Direct Florida Purchasing Group (fl_bidnet) — the SIXTH config, next
+      # to Florida's own board (`fl_mfmp`); same link shape and treatment as
+      # ny_bidnet. Committed captures only (fixtures/fl-bidnet/); no DATABASE_URL.
+      - name: BidNet Florida connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/fl-bidnet.test.ts
+      # BidNet Direct North Carolina Purchasing Group (nc_bidnet) — the SEVENTH
+      # config, next to North Carolina's own board (`nc_evp`); a one-page group.
+      # Committed capture only (fixtures/nc-bidnet/); no DATABASE_URL.
+      - name: BidNet North Carolina connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/nc-bidnet.test.ts
+      # BidNet Direct Texas / Ohio / Pennsylvania Purchasing Groups (tx_bidnet,
+      # oh_bidnet, pa_bidnet) — the EIGHTH to TENTH configs, each next to the
+      # state's own board and each past the default page cap (77 / 59 / 51 pages
+      # on 2026-10-22), so each sets its own cap (150) and pass budget (240 s).
+      # Committed captures only (fixtures/{tx,oh,pa}-bidnet/); no DATABASE_URL.
+      - name: BidNet Texas, Ohio and Pennsylvania connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/tx-bidnet.test.ts src/jobs/sources/oh-bidnet.test.ts src/jobs/sources/pa-bidnet.test.ts
       # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
       # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
       # construction: every byte it reads is a committed capture of the live Solr

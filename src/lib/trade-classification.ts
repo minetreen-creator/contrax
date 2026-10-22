@@ -377,8 +377,51 @@ export function isTransportationWork(title: string, _full: string): boolean {
   const titleLc = (title || "").toLowerCase();
   if (isDumpTruckLike(titleLc)) return false;
   if (isProductBuy(titleLc) && !hasExplicitTransportationServicePhrase(titleLc)) return false;
-  return isTransportationService(titleLc);
+  // Drop the phrases that use a trucking word for something else, so the rest
+  // of the title still decides ("Freight hauling and ambulance transport" stays
+  // Transportation). See NOT_TRUCKING_PHRASES.
+  // Parenthetical asides ("SPECIALIZED (Vans and Wheelchair vans)
+  // TRANSPORTATION", "(TCDI Project Category 5 – Transportation and
+  // Infrastructure Planning)") are dropped first, innermost first.
+  let text = titleLc.replace(/\([^()]*\)/g, " ").replace(/\([^()]*\)/g, " ");
+  for (const re of NOT_TRUCKING_PHRASES) text = text.replace(re, " ");
+  if (!RELOCATION_MOVE_CONTEXT.test(titleLc)) text = text.replace(/\brelocation\b/g, " ");
+  return isTransportationService(text);
 }
+
+/**
+ * Title phrases where "transport(ation)" is not trucking/hauling/moving work
+ * (live az_app + ca_bidnet rows, 2026-10-22):
+ *  - people, not goods: ambulance, patient, medical/NEMT, healthcare, student,
+ *    pupil, school, youth, special-needs, paratransit, passenger, senior/older
+ *    adult, wheelchair, door-to-door, bus and shuttle transportation;
+ *  - "Vertical Transportation" (elevators and escalators, ny_bidnet);
+ *  - a district's transportation DEPARTMENT named in a list of departments
+ *    ("Maintenance, Transportation, and Security General Services", Texas
+ *    school co-ops) or buying its parts, supplies, fluids or uniforms;
+ *  - charter / motor-coach / interfacility / specialized transportation,
+ *    "transportation for … patients", network ("WAN") transport and meal /
+ *    catering delivery (tx/pa_bidnet, 2026-10-22);
+ *  - planning, engineering and infrastructure: "Transportation Planning",
+ *    "Regional Transportation Impact Fee Study", "Active Transportation Design",
+ *    "Intelligent Transportation System", "Department of Transportation", a
+ *    transportation center, yard, fleet or vehicle.
+ */
+const NOT_TRUCKING_PHRASES: RegExp[] = [
+  /\b(?:ambulance|patient|medical|non-emergency medical|nemt|healthcare|health care|student|pupil|school|youth|special needs|passenger|paratransit|senior|older adults?|wheelchair[- ]accessible|door[- ]to[- ]door|bus|shuttle|charter bus|motor coach|interfacility|specialized|microtransit)\s+transport(?:ation|s)?(?:\s+services?)?\b/g,
+  /\b(?:active|intelligent|regional|public|multimodal|sustainable|vertical)\s+transportation\b/g,
+  /\b(?:department|dept\.?|division|bureau|office|agency|authority|commission)\s+of\s+transportation\b/g,
+  /\btransportation[\s-]+(?:planning|plans?|study|studies|impact|safety|engineering|design|improvements?|projects?|programs?|programming|policy|demand|systems?|center|centre|yard|facility|facilities|fleet|vehicles?|infrastructure|and infrastructure|corridor|master|research|department|dept|parts|supplies|supply|fluids|uniforms?|aftermarket|automotive)\b/g,
+  /\b(?:maintenance|operations|facilities|security|it)\s*(?:,|&|\/|\band\b)\s*(?:(?:and|&)\s+)?transportation\b/g,
+  /\btransportation\s+for\s+[^,;]*\b(?:patients?|students?|seniors?|veterans?|clients?|residents?)\b/g,
+  /\b(?:wan|network|data|fiber|ethernet)\s+transport(?:ation)?\b/g,
+  /\b(?:meal|food|catering|restaurant)\s+(?:ordering\s+)?(?:and\s+)?delivery\b/g,
+];
+
+/** "Relocation" is a moving job only next to what gets moved (office,
+ *  furniture, household goods, records, storage); otherwise it is a utility,
+ *  pipeline, road or rail relocation, i.e. construction. */
+const RELOCATION_MOVE_CONTEXT = /\b(?:furniture|office|household|employee|personnel|records?|files|storage|moving|move|movers?)\b/;
 
 /**
  * The shared ingest `category` stamp (was duplicated, with a bare-"cleaning"
@@ -455,7 +498,8 @@ export function mapCategory(typeValue: string, title: string, description: strin
   // "permit" and "unit", so VDOT snow-removal notices ("how to submit via …
   // Services") were labeled IT Services. Require real IT wording.
   if (isItWork(full)) return "IT Services";
-  if (full.includes("security") || full.includes("guard ")) return "Security";
+  // "Hail Guard" (an HVAC coil part, ca_bidnet 2026-10-22) is not a guard service.
+  if (full.includes("security") || full.replace(/\bhail guards?\b/g, " ").includes("guard ")) return "Security";
   if (full.includes("hvac") || full.includes("heating") || full.includes("cooling") || HVAC_TITLE_WORDS.test(titleLc)) return "HVAC";
   if (full.includes("electrical") || full.includes("plumbing") || ELECTRICAL_WORDS.test(full) || ELECTRICAL_TITLE_WORDS.test(titleLc)) return "Plumbing & Electrical";
 

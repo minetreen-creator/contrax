@@ -79,8 +79,12 @@ import {
 import type { RawBid } from "./sam-gov";
 
 export const BIDNET_ORIGIN = "https://www.bidnetdirect.com";
-/** Hard cap on pages read in one pass (bounds a pathological/looping page). */
-export const BIDNET_MAX_PAGES = 20;
+/**
+ * Hard cap on pages read in one pass (bounds a pathological/looping page).
+ * 40 pages = 1,000 rows (owner 2026-10-22, raised from 20 so a growing group is
+ * not cut off); groups larger than that set their own `maxPages` (VA, CA: 150).
+ */
+export const BIDNET_MAX_PAGES = 40;
 /** Politeness delay between pagination reads. */
 export const BIDNET_PAGE_DELAY_MS = 300;
 /**
@@ -217,11 +221,20 @@ export function parseBidNetPageLinks(
   return out;
 }
 
-/** BidNet's own solicitation id from a detail URL, or null. */
+/**
+ * BidNet's own solicitation id from a detail URL, or null. Two shapes:
+ *  - `/public/supplier/solicitations/<scope>/<id>/abstract` (SD, NH, VA, CA);
+ *  - `/<group>/solicitations/open-bids/<title-slug>/<id>` or, for a buyer's own
+ *    page, `/<group>/<buyer>/solicitations/<title-slug>/<id>` (the Empire State
+ *    Purchasing Group, `ny_bidnet`, 2026-10-22: e.g.
+ *    `…/open-bids/Fuel-Generator-and-Off-Road/0000441194`,
+ *    `/new-york/onondaga-county/solicitations/Furnishing-Spider-Control/0000409056`).
+ * The id is kept verbatim, leading zeros included.
+ */
 export function bidNetDetailId(href: string): string | null {
-  const m = /\/public\/supplier\/solicitations\/[a-z-]+\/(\d+)\/abstract/.exec(
-    href,
-  );
+  const m =
+    /\/public\/supplier\/solicitations\/[a-z-]+\/(\d+)\/abstract/.exec(href) ??
+    /\/[a-z-]+(?:\/[a-z0-9-]+)?\/solicitations\/(?:open-bids\/)?[^/?#]+\/(\d+)(?:[?#]|$)/.exec(href);
   return m ? m[1] : null;
 }
 

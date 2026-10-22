@@ -114,6 +114,12 @@ import { fetchSdBidnetBids } from "./sources/sd-bidnet";
 import { fetchNhBidnetBids } from "./sources/nh-bidnet";
 import { fetchVaBidnetBids } from "./sources/va-bidnet";
 import { fetchCaBidnetBids } from "./sources/ca-bidnet";
+import { fetchNyBidnetBids } from "./sources/ny-bidnet";
+import { fetchFlBidnetBids } from "./sources/fl-bidnet";
+import { fetchNcBidnetBids } from "./sources/nc-bidnet";
+import { fetchTxBidnetBids } from "./sources/tx-bidnet";
+import { fetchOhBidnetBids } from "./sources/oh-bidnet";
+import { fetchPaBidnetBids } from "./sources/pa-bidnet";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -548,6 +554,32 @@ export const TAIL_SOURCES: SyncSource[] = [
   // `ca_eprocure`: the same work republished by different publishers stays two
   // listings, exactly as `va_eva` coexists with `va_bidnet`.
   { name: "ca_bidnet", fetchFn: () => fetchCaBidnetBids() },
+  // NEW YORK (owner-directed 2026-10-22, the SD/NH/VA/CA pattern extended):
+  // BidNet Direct's *Empire State Purchasing Group*, next to (never instead of)
+  // NYSCR (`ny_nyscr`, the state's own board). THIRD-PARTY aggregator, public
+  // login-free open-bids list only (436 open over 18 pages on 2026-10-22, inside
+  // the engine's default page cap and pass timeout). Its own `nybidnet-` prefix
+  // keeps it a SEPARATE source from `ny_nyscr`.
+  { name: "ny_bidnet", fetchFn: () => fetchNyBidnetBids() },
+  // FLORIDA (owner-directed 2026-10-22): BidNet Direct's *Florida Purchasing
+  // Group*, next to (never instead of) MFMP (`fl_mfmp`, the state's own board).
+  // Same treatment as `ny_bidnet` (74 open over 3 pages on 2026-10-22); its own
+  // `flbidnet-` prefix keeps it a SEPARATE source from `fl_mfmp`.
+  { name: "fl_bidnet", fetchFn: () => fetchFlBidnetBids() },
+  // NORTH CAROLINA (owner-directed 2026-10-22): BidNet Direct's *North Carolina
+  // Purchasing Group*, next to (never instead of) eVP (`nc_evp`) and the NC
+  // locality boards. Same treatment as `ny_bidnet` (14 open on one page on
+  // 2026-10-22); its own `ncbidnet-` prefix keeps it a SEPARATE source.
+  { name: "nc_bidnet", fetchFn: () => fetchNcBidnetBids() },
+  // TEXAS, OHIO, PENNSYLVANIA (owner-directed 2026-10-22, "do all 3"): the three
+  // largest BidNet groups after California, each next to (never instead of) the
+  // state's own board. Like `ca_bidnet`, each is past the engine's default page
+  // cap, so its config sets its own cap (150) and per-pass abort (240 s); a pass
+  // that overruns still FAILS CLOSED. Own `txbidnet-`/`ohbidnet-`/`pabidnet-`
+  // prefixes keep them SEPARATE sources from the state boards.
+  { name: "tx_bidnet", fetchFn: () => fetchTxBidnetBids() }, // 1,915 open over 77 pages; beside `tx_esbd`
+  { name: "oh_bidnet", fetchFn: () => fetchOhBidnetBids() }, // 1,452 open over 59 pages; beside `oh_odot`
+  { name: "pa_bidnet", fetchFn: () => fetchPaBidnetBids() }, // 1,263 open over 51 pages; beside `pa_dgs_emarketplace`
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

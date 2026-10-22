@@ -66,7 +66,8 @@ describe("client tracking queue (owner 2026-10-02)", () => {
     const route = readFileSync(join(import.meta.dir, "..", "routes", "api", "track-visitor.ts"), "utf8");
     const intake = readFileSync(join(import.meta.dir, "tracking-intake.ts"), "utf8");
     expect(route).toContain("if (Array.isArray(batch)) return handleIntakeBatch(request, batch);");
-    expect(intake).toContain("const res = await handleIntake(itemRequest, undefined, i > 0);");
+    // `botState` joined the call on 2026-10-20 (#792: one BotID verdict per batch).
+    expect(intake).toContain("const res = await handleIntake(itemRequest, undefined, i > 0, botState);");
     expect(intake).toContain("export const MAX_INTAKE_BATCH = 20;");
   });
 });

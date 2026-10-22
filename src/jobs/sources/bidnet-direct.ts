@@ -79,8 +79,12 @@ import {
 import type { RawBid } from "./sam-gov";
 
 export const BIDNET_ORIGIN = "https://www.bidnetdirect.com";
-/** Hard cap on pages read in one pass (bounds a pathological/looping page). */
-export const BIDNET_MAX_PAGES = 20;
+/**
+ * Hard cap on pages read in one pass (bounds a pathological/looping page).
+ * 40 pages = 1,000 rows (owner 2026-10-22, raised from 20 so a growing group is
+ * not cut off); groups larger than that set their own `maxPages` (VA, CA: 150).
+ */
+export const BIDNET_MAX_PAGES = 40;
 /** Politeness delay between pagination reads. */
 export const BIDNET_PAGE_DELAY_MS = 300;
 /**

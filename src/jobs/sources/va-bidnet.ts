@@ -32,7 +32,7 @@
  * is proven live for SD/NH in production.
  *
  * MAX PAGES: this group is far larger than the SD (2 pages) or NH (4 pages)
- * groups, and the engine's default cap of 20 pages would silently truncate it
+ * groups, and the engine's default cap (20 pages then, 40 now) would silently truncate it
  * to the first 500 rows, so the cap is raised to 150 here (≈3,750 rows of
  * headroom over the 48 pages measured today; reads at the ≈1 s/page this
  * network measures would reach the engine's 120 s per-pass budget near ~110
@@ -85,7 +85,7 @@ export const VA_BIDNET_ID_PREFIX = "vabidnet";
  * Hard cap on pages read in one pass. Pagination is self-describing (the page
  * lists its own page numbers), so this only bounds a pathological or looping
  * page — the group held 1,176 open solicitations over 48 pages on 2026-10-21,
- * far past the engine default (`BIDNET_MAX_PAGES` = 20), which would truncate it.
+ * far past the engine default (`BIDNET_MAX_PAGES` = 40), which would truncate it.
  */
 export const VA_BIDNET_MAX_PAGES = 150;
 /** The buyer-side fact the public page actually supports (see the engine header). */

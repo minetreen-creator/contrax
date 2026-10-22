@@ -32,7 +32,7 @@
  *
  * MAX PAGES: this is the LARGEST group the engine reads — 2,468 open
  * solicitations over 99 pages on 2026-10-21, against SD's 2 pages, NH's 4 and
- * Virginia's 48 — and the engine's default cap of 20 pages would silently
+ * Virginia's 48 — and the engine's default cap (20 pages then, 40 now) would silently
  * truncate it to the first 500 rows, so the cap is raised to 150 here (≈3,750
  * rows of headroom over the 99 pages measured today). The cap never invents
  * pages: the pagination is self-describing (a page's own selector lists every
@@ -83,7 +83,7 @@ export const CA_BIDNET_ID_PREFIX = "cabidnet";
  * Hard cap on pages read in one pass. Pagination is self-describing (the page
  * lists its own page numbers), so this only bounds a pathological or looping
  * page — the group held 2,468 open solicitations over 99 pages on 2026-10-21,
- * far past the engine default (`BIDNET_MAX_PAGES` = 20), which would truncate it.
+ * far past the engine default (`BIDNET_MAX_PAGES` = 40), which would truncate it.
  */
 export const CA_BIDNET_MAX_PAGES = 150;
 /**

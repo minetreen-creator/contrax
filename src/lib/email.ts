@@ -67,7 +67,10 @@ function getResend(): Resend | null {
  * This is fire-and-forget — errors are logged but never thrown so they don't
  * block the webhook response.
  */
-export async function sendWelcomeEmail(to: string): Promise<void> {
+export async function sendWelcomeEmail(
+  to: string,
+  opts: { setPasswordToken?: string } = {},
+): Promise<void> {
   try {
     const resend = getResend();
     if (!resend) {
@@ -80,7 +83,7 @@ export async function sendWelcomeEmail(to: string): Promise<void> {
       replyTo: "contrax.companyllc@gmail.com",
       to: [to],
       subject: "Welcome to Contrax — let's find your first contract",
-      html: welcomeEmailHtml(to),
+      html: welcomeEmailHtml(to, opts.setPasswordToken),
     });
 
     console.log(`Welcome email sent to ${to}`);
@@ -608,7 +611,26 @@ export function radarMatchAlertHtml(
 
 // ── HTML Template ──────────────────────────────────────────────────────────────
 
-function welcomeEmailHtml(email: string): string {
+/**
+ * `setPasswordToken`: the account was just created by a paid checkout and has
+ * no password the buyer knows, so the CTA sets one (/reset-password redeems
+ * the token). Without it the buyer already has a password and just logs in.
+ */
+export function welcomeEmailHtml(email: string, setPasswordToken?: string): string {
+  const setPasswordUrl = setPasswordToken
+    ? `https://www.contrax.company/reset-password?token=${encodeURIComponent(setPasswordToken)}`
+    : null;
+  const ctaHref = setPasswordUrl ?? "https://www.contrax.company/login";
+  const ctaLabel = setPasswordUrl ? "Set your password" : "Log in to Contrax";
+  const ctaNote = setPasswordUrl
+    ? `Choose a password so you can log in from any device. This link works for 7 days; after that, use
+                <a href="https://www.contrax.company/forgot-password" style="color:#2563eb;">Forgot password</a>
+                to get a new one.`
+    : `Log in with your email and password. Forgot it? Reset it at
+                <a href="https://www.contrax.company/forgot-password" style="color:#2563eb;">www.contrax.company/forgot-password</a>.`;
+  const firstStep = setPasswordUrl
+    ? `<li>Set your password with the button above</li>`
+    : `<li>Log in at <a href="https://www.contrax.company/login" style="color:#2563eb;">www.contrax.company/login</a></li>`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -644,16 +666,16 @@ function welcomeEmailHtml(email: string): string {
               <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="margin:24px 0;">
                 <tr>
                   <td align="center">
-                    <a href="https://www.contrax.company/login"
+                    <a href="${ctaHref}"
                        style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 32px;border-radius:8px;font-size:15px;font-weight:600;text-align:center;">
-                      Log in to Contrax
+                      ${ctaLabel}
                     </a>
                   </td>
                 </tr>
               </table>
 
               <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.5;">
-                Your account is ready — head to the login page and set your password to get started.
+                ${ctaNote}
               </p>
 
               <!-- Divider -->
@@ -661,7 +683,7 @@ function welcomeEmailHtml(email: string): string {
 
               <p style="margin:0 0 8px;color:#374151;font-size:15px;font-weight:600;">What's next?</p>
               <ol style="margin:0;padding:0 0 0 20px;color:#4b5563;font-size:14px;line-height:1.7;">
-                <li>Log in at <a href="https://www.contrax.company/login" style="color:#2563eb;">www.contrax.company/login</a></li>
+                ${firstStep}
                 <li>Complete your onboarding — tell us about your services and locations</li>
                 <li>Browse live government contracts matched to your profile</li>
                 <li>Use AI to summarize bids and draft proposals in seconds</li>

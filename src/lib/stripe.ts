@@ -12,7 +12,13 @@ import { sql } from "~/db";
 import { handleBidScoutSubscriptionEvent } from "~/lib/bid-scout";
 import { sendWelcomeEmail } from "~/lib/email";
 import { hashPassword } from "~/lib/password";
-import { STARTER_FIRST_MONTH_AMOUNT_OFF, STARTER_FIRST_MONTH_COUPON, starterFirstMonthApplies } from "~/lib/starter-offer";
+import { issuePasswordResetToken, SET_PASSWORD_TOKEN_TTL_MS } from "~/lib/password-reset-tokens";
+import {
+  checkoutCreatedAccount,
+  STARTER_FIRST_MONTH_AMOUNT_OFF,
+  STARTER_FIRST_MONTH_COUPON,
+  starterFirstMonthApplies,
+} from "~/lib/starter-offer";
 
 // ── Client Initialization ──────────────────────────────────────────────────────
 
@@ -746,6 +752,10 @@ export async function handleStripeWebhook(
     const db = sql();
 
     let userId: number | null = null;
+    // This checkout created the account (here, or a moment ago on
+    // /post-checkout): its password is random, so the welcome email must let
+    // the buyer set one (pay first, account after — starter-offer.ts).
+    let createdByCheckout = false;
 
     if (metadataUserId && Number.isInteger(metadataUserId)) {
       // Prefer the account captured at checkout time (most reliable).
@@ -764,11 +774,16 @@ export async function handleStripeWebhook(
 
     if (userId == null) {
       // Look for existing user by email
-      const existing = await db`
-        SELECT id FROM users WHERE email = ${email} LIMIT 1
-      `;
+      const existing = (await db`
+        SELECT id, created_at FROM users WHERE email = ${email} LIMIT 1
+      `) as { id: number; created_at: Date | string }[];
       if (existing.length > 0) {
-        userId = (existing[0] as { id: number }).id;
+        userId = existing[0].id;
+        createdByCheckout = checkoutCreatedAccount({
+          metadataUserId,
+          sessionCreatedMs: session.created * 1000,
+          account: { id: existing[0].id, createdAtMs: new Date(existing[0].created_at).getTime() },
+        });
       }
     }
 
@@ -794,6 +809,7 @@ export async function handleStripeWebhook(
         RETURNING id
       `;
       userId = (inserted[0] as { id: number }).id;
+      createdByCheckout = true;
     }
 
     // Create session token
@@ -807,8 +823,15 @@ export async function handleStripeWebhook(
       VALUES (${userId}, ${token}, ${expiresAt.toISOString()})
     `;
 
-    // Fire-and-forget welcome email — don't block the webhook response
-    sendWelcomeEmail(email).catch((err) => {
+    // Fire-and-forget welcome email — don't block the webhook response. A
+    // token failure still sends the email, just without the set-password link.
+    const setPasswordToken = createdByCheckout
+      ? await issuePasswordResetToken(email, SET_PASSWORD_TOKEN_TTL_MS).catch((err) => {
+          console.error("Failed to issue set-password token:", (err as Error).message);
+          return undefined;
+        })
+      : undefined;
+    sendWelcomeEmail(email, { setPasswordToken }).catch((err) => {
       console.error("Failed to send welcome email:", (err as Error).message);
     });
 

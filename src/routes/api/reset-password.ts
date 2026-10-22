@@ -3,12 +3,10 @@ import { sql } from "~/db";
 import { hashPassword } from "~/lib/password";
 import { isBlockedIp } from "~/lib/request-ip";
 import { checkIpLimit, rateLimitedResponse } from "~/lib/rate-limit";
-// Per-IP cap on password-reset submissions (token + admin-secret paths).
+// Per-IP cap on password-reset submissions.
 // Fail-open; runs before any token claim / password write.
 const RESET_IP_LIMIT = 20;
 const RESET_IP_WINDOW = 15 * 60;
-
-const RESET_SECRET = "contrax-reset-2026";
 
 async function handler({ request }: { request: Request }) {
   // Throttle a known hostile IP from resetting passwords. Exact-match only;
@@ -21,9 +19,7 @@ async function handler({ request }: { request: Request }) {
   if (!resetLimit.allowed) return rateLimitedResponse(resetLimit);
   try {
     const body = (await request.json()) as {
-      email?: string;
       newPassword?: string;
-      secret?: string;
       token?: string;
     };
 
@@ -32,35 +28,17 @@ async function handler({ request }: { request: Request }) {
       return Response.json({ error: "Password must be at least 6 characters." }, { status: 400 });
     }
 
-    // Self-service path: a one-time token issued by /api/forgot-password.
+    // The only way in: a one-time token from /api/forgot-password or the
+    // welcome email. (A shared admin secret that reset any email's password
+    // used to live here; it was public in this repo, so it was removed.)
     const token = (body.token || "").trim();
-    if (token) {
-      return await handleTokenReset(token, newPassword);
+    if (!token) {
+      return Response.json(
+        { error: "This reset link has expired or has already been used." },
+        { status: 401 },
+      );
     }
-
-    // Admin path: shared secret.
-    if (body.secret !== RESET_SECRET) {
-      return Response.json({ error: "Invalid reset secret." }, { status: 401 });
-    }
-
-    const email = (body.email || "").trim().toLowerCase();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return Response.json({ error: "Please enter a valid email address." }, { status: 400 });
-    }
-
-    const passwordHash = await hashPassword(newPassword);
-    const updated = await sql()`
-      UPDATE users
-      SET password_hash = ${passwordHash}
-      WHERE email = ${email}
-      RETURNING id
-    `;
-
-    if (updated.length === 0) {
-      return Response.json({ error: "No account found for that email." }, { status: 404 });
-    }
-
-    return Response.json({ success: true });
+    return await handleTokenReset(token, newPassword);
   } catch (err) {
     console.error("[api/reset-password] error:", err);
     return Response.json({ error: "Something went wrong. Please try again." }, { status: 500 });

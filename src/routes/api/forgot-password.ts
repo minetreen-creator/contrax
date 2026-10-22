@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { sendPasswordResetEmail } from "~/lib/email";
+import { issuePasswordResetToken, RESET_TOKEN_TTL_MS } from "~/lib/password-reset-tokens";
 import { isBlockedIp } from "~/lib/request-ip";
 import {
   checkEmailLimit,
@@ -16,20 +17,6 @@ const FORGOT_IP_WINDOW = 15 * 60;
 const FORGOT_EMAIL_LIMIT = 5; // requests per email per 15 min
 const FORGOT_EMAIL_WINDOW = 15 * 60;
 
-// Migration-style DDL — idempotent, runs on every request so the table
-// self-heals on any environment that hasn't applied it yet.
-const CREATE_RESET_TOKENS_TABLE = `
-  CREATE TABLE IF NOT EXISTS password_reset_tokens (
-    id SERIAL PRIMARY KEY,
-    email TEXT NOT NULL,
-    token TEXT NOT NULL UNIQUE,
-    expires_at TIMESTAMPTZ NOT NULL,
-    used BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-  )
-`;
-
-const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
 
 async function handler({ request }: { request: Request }) {
   // Throttle a known hostile IP from requesting a password reset. Exact-match
@@ -50,20 +37,11 @@ async function handler({ request }: { request: Request }) {
     if (!ipLimit.allowed) return rateLimitedResponse(ipLimit);
     const acctLimit = await checkEmailLimit(email, "forgot_email", FORGOT_EMAIL_LIMIT, FORGOT_EMAIL_WINDOW);
     if (!acctLimit.allowed) return rateLimitedResponse(acctLimit);
-    const db = sql();
-    // db.unsafe() is a fragment factory — inlines DDL safely when interpolated
-    await db`${db.unsafe(CREATE_RESET_TOKENS_TABLE)}`;
-
-    const user = await db`SELECT id FROM users WHERE email = ${email}`;
+    const user = await sql()`SELECT id FROM users WHERE email = ${email}`;
 
     let token: string | undefined;
     if (user.length > 0) {
-      token = crypto.randomUUID();
-      const expiresAt = new Date(Date.now() + TOKEN_TTL_MS);
-      await db`
-        INSERT INTO password_reset_tokens (email, token, expires_at)
-        VALUES (${email}, ${token}, ${expiresAt.toISOString()})
-      `;
+      token = await issuePasswordResetToken(email, RESET_TOKEN_TTL_MS);
 
       if (process.env.RESEND_API_KEY) {
         // Email delivery configured — send the reset link (never throws).

@@ -115,6 +115,7 @@ import { fetchNhBidnetBids } from "./sources/nh-bidnet";
 import { fetchVaBidnetBids } from "./sources/va-bidnet";
 import { fetchCaBidnetBids } from "./sources/ca-bidnet";
 import { fetchNyBidnetBids } from "./sources/ny-bidnet";
+import { fetchFlBidnetBids } from "./sources/fl-bidnet";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -556,6 +557,11 @@ export const TAIL_SOURCES: SyncSource[] = [
   // the engine's default page cap and pass timeout). Its own `nybidnet-` prefix
   // keeps it a SEPARATE source from `ny_nyscr`.
   { name: "ny_bidnet", fetchFn: () => fetchNyBidnetBids() },
+  // FLORIDA (owner-directed 2026-10-22): BidNet Direct's *Florida Purchasing
+  // Group*, next to (never instead of) MFMP (`fl_mfmp`, the state's own board).
+  // Same treatment as `ny_bidnet` (74 open over 3 pages on 2026-10-22); its own
+  // `flbidnet-` prefix keeps it a SEPARATE source from `fl_mfmp`.
+  { name: "fl_bidnet", fetchFn: () => fetchFlBidnetBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

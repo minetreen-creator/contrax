@@ -294,6 +294,10 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // STATE with the group's home jurisdiction NY; it is NOT New York's own board
   // `ny_nyscr`, and its own `nybidnet-` prefix keeps the two apart.
   ny_bidnet: { class: "state", scopeState: "NY", searchScope: "state-portal", recordType: "opportunity" },
+  // BidNet Direct's Florida Purchasing Group (src/jobs/sources/fl-bidnet.ts) —
+  // the SIXTH config, 2026-10-22; same treatment as `ny_bidnet`. It is NOT
+  // Florida's own board `fl_mfmp`.
+  fl_bidnet: { class: "state", scopeState: "FL", searchScope: "state-portal", recordType: "opportunity" },
   mn_mndot: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_connex: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_questcdn: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },

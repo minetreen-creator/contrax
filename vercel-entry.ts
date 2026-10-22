@@ -599,13 +599,6 @@ async function handleCreateCheckoutSession(
     // handleGrantsBillingRoute below.
     const cookieHeader = (req.headers.cookie as string | undefined) ?? null;
     const userId = await resolveUserIdFromCookie(cookieHeader);
-    if (userId == null) {
-      return {
-        status: 401,
-        body: JSON.stringify({ error: "Sign in to choose a Contrax plan." }),
-      };
-    }
-
     const rawBody = await readRawBody(req);
     const parsed = JSON.parse(rawBody || "{}") as {
       planTier?: string;
@@ -614,6 +607,15 @@ async function handleCreateCheckoutSession(
       interval?: string;
       founding?: boolean;
     };
+    // Except the monthly Starter checkout: pay first, account after (CEO
+    // 2026-10-22, src/lib/starter-offer.ts guestCheckoutAllowed).
+    const { guestCheckoutAllowed } = await import("./src/lib/starter-offer.ts");
+    if (userId == null && !guestCheckoutAllowed(parsed)) {
+      return {
+        status: 401,
+        body: JSON.stringify({ error: "Sign in to choose a Contrax plan." }),
+      };
+    }
 
     const validTiers = ["starter", "professional", "agency", "savings_premium"];
     if (!parsed.planTier || !validTiers.includes(parsed.planTier)) {
@@ -636,7 +638,7 @@ async function handleCreateCheckoutSession(
     const normalized = (parsed.promoCode ?? "").trim().toLowerCase();
     const promoCode = normalized === "vad26" ? "VAD26" : undefined;
     const result = await createCheckoutSession(parsed.planTier as any, {
-      userId,
+      ...(userId != null ? { userId } : {}),
       mode: parsed.mode ?? "subscription",
       interval: parsed.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),

@@ -49,6 +49,9 @@ function getRedirectTarget(plan: string | undefined | null): string {
 interface ResolveResult {
   email: string;
   plan: string;
+  /** The email already had an account before this checkout: the plan is on
+   *  it, but the buyer must sign in the normal way (starter-offer.ts). */
+  signInRequired?: boolean;
 }
 
 const resolveCheckoutSession = createServerFn({ method: "POST" })
@@ -77,6 +80,8 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
           retrieve(
             id: string,
           ): Promise<{
+            status?: string | null;
+            created: number;
             customer_details?: { email?: string | null } | null;
             metadata?: Record<string, string> | null;
           }>;
@@ -87,6 +92,9 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
     // Retrieve the Stripe Checkout Session
     const session = await stripe.checkout.sessions.retrieve(data.sessionId);
 
+    // Only a finished checkout signs anyone in.
+    if (session.status !== "complete") throw new Error("This checkout is not complete yet.");
+
     const email = session.customer_details?.email?.trim().toLowerCase();
     if (!email) throw new Error("No customer email found in checkout session");
 
@@ -95,17 +103,37 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
     // Look up or create user (idempotent — webhook may have already fired)
     const dbModule = await import("~/db");
     const db = dbModule.sql();
+    const { postCheckoutAccess } = await import("~/lib/starter-offer");
 
-    const existing = await db`
-      SELECT id, email, plan_tier FROM users WHERE email = ${email}
-    `;
+    const metaId = Number(session.metadata?.user_id);
+    const metadataUserId = Number.isInteger(metaId) && metaId > 0 ? metaId : null;
+    const existing = (await db`
+      SELECT id, plan_tier, created_at FROM users WHERE email = ${email}
+    `) as { id: number; plan_tier: string | null; created_at: Date | string }[];
+    const byId = metadataUserId
+      ? ((await db`SELECT id FROM users WHERE id = ${metadataUserId}`) as { id: number }[])
+      : [];
+
+    // Who may be signed in (starter-offer.ts): the account that started the
+    // checkout, or an account this pay-first checkout created — never an older
+    // account that merely shares the email typed on Stripe's page.
+    const access = postCheckoutAccess({
+      metadataUserId,
+      sessionCreatedMs: session.created * 1000,
+      account: existing[0] ? { id: existing[0].id, createdAtMs: new Date(existing[0].created_at).getTime() } : null,
+      metadataAccount: byId[0] ?? null,
+    });
+
+    if (access.kind === "sign_in_required") {
+      return { email, plan: planTier ?? "starter", signInRequired: true };
+    }
 
     let userId: number;
-
-    if (existing.length > 0) {
-      userId = existing[0].id as number;
+    if (access.kind === "login") {
+      userId = access.userId;
       // Update plan_tier if the webhook didn't set it yet
-      if (planTier && !existing[0].plan_tier) {
+      const row = access.userId === existing[0]?.id ? existing[0] : null;
+      if (planTier && row && !row.plan_tier) {
         await db`
           UPDATE users SET plan_tier = ${planTier}, subscription_status = 'active', trial_started_at = NULL
           WHERE id = ${userId}
@@ -116,12 +144,16 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
       const passwordHash = await hashPassword(
         crypto.randomUUID() + crypto.randomUUID(),
       );
-      const inserted = await db`
+      const inserted = (await db`
         INSERT INTO users (email, password_hash, subscription_status, plan_tier, trial_started_at)
         VALUES (${email}, ${passwordHash}, 'active', ${planTier}, NULL)
+        ON CONFLICT (email) DO NOTHING
         RETURNING id
-      `;
-      userId = inserted[0].id as number;
+      `) as { id: number }[];
+      // The webhook created it a moment ago (same checkout): use that row.
+      const row = inserted[0] ?? ((await db`SELECT id FROM users WHERE email = ${email}`) as { id: number }[])[0];
+      if (!row) throw new Error("Could not set up your account. Please contact support.");
+      userId = row.id;
     }
 
     // Create session token
@@ -213,7 +245,7 @@ function SuccessIcon() {
 function PostCheckoutPage() {
   const { session_id, plan } = Route.useSearch();
   const navigate = useNavigate();
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
+  const [status, setStatus] = useState<"loading" | "success" | "signin" | "error">(
     "loading",
   );
   const [errorMessage, setErrorMessage] = useState("");
@@ -249,6 +281,10 @@ function PostCheckoutPage() {
         if (cancelled) return;
         setResolvedPlan(result.plan);
         setResolvedEmail(result.email);
+        if (result.signInRequired) {
+          setStatus("signin");
+          return;
+        }
         setStatus("success");
 
         // Auto-redirect after 1.5s
@@ -371,6 +407,32 @@ function PostCheckoutPage() {
                   />
                 </svg>
               </button>
+            </div>
+          )}
+
+          {/* Paid with an email that already has an account: sign in normally */}
+          {status === "signin" && (
+            <div className="text-center">
+              <div className="mb-5">
+                <SuccessIcon />
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900">Payment received</h1>
+              <p className="mt-2 text-sm text-gray-500">
+                {planLabel} is now on the Contrax account for{" "}
+                <span className="font-semibold text-slate-700">{resolvedEmail}</span>. That email already had an
+                account, so please sign in to it to continue.
+              </p>
+              <div className="mt-6 space-y-3">
+                <a
+                  href="/login"
+                  className="block w-full rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white hover:bg-slate-800 transition-colors"
+                >
+                  Sign in
+                </a>
+                <a href="/forgot-password" className="block text-sm font-medium text-blue-600 hover:text-blue-500">
+                  Forgot your password?
+                </a>
+              </div>
             </div>
           )}
 

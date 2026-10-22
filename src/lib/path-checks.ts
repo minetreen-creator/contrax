@@ -30,9 +30,20 @@ export const PATH_CHECKS: readonly PathCheck[] = [
     name: "Checkout (signed out is refused)",
     path: "/api/stripe/create-checkout-session",
     method: "POST",
-    body: JSON.stringify({ plan: "starter", interval: "month" }),
+    body: JSON.stringify({ planTier: "professional", interval: "month" }),
     expectStatus: 401,
     mustContain: "Sign in",
+  },
+  // Pay first, account after (CEO 2026-10-22): the $5 Starter checkout opens a
+  // real Stripe payment page for a signed-out visitor. The session is never
+  // paid and expires on its own.
+  {
+    name: "Checkout opens ($5 Starter, signed out)",
+    path: "/api/stripe/create-checkout-session",
+    method: "POST",
+    body: JSON.stringify({ planTier: "starter", interval: "month" }),
+    expectStatus: 200,
+    mustContain: "checkout.stripe.com",
   },
 ];
 

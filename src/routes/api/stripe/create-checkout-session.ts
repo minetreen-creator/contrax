@@ -4,6 +4,7 @@ import {
   resolveUserIdFromCookie,
   type PlanTier,
 } from "~/lib/stripe";
+import { guestCheckoutAllowed } from "~/lib/starter-offer";
 
 /**
  * POST /api/stripe/create-checkout-session
@@ -46,15 +47,7 @@ const VALID_TIERS: PlanTier[] = [
 
 async function handler({ request }: { request: Request }) {
   try {
-    // SIGN-IN REQUIRED before anything else — mirror grants-checkout-session.ts.
     const userId = await resolveUserIdFromCookie(request.headers.get("cookie"));
-    if (userId == null) {
-      return Response.json(
-        { error: "Sign in to choose a Contrax plan." },
-        { status: 401 },
-      );
-    }
-
     const body = (await request.json().catch(() => ({}))) as {
       planTier?: string;
       mode?: "payment" | "subscription";
@@ -62,6 +55,14 @@ async function handler({ request }: { request: Request }) {
       interval?: string;
       founding?: boolean;
     };
+    // SIGN-IN REQUIRED except for the monthly Starter checkout (pay first,
+    // account after — CEO 2026-10-22, starter-offer.ts guestCheckoutAllowed).
+    if (userId == null && !guestCheckoutAllowed(body)) {
+      return Response.json(
+        { error: "Sign in to choose a Contrax plan." },
+        { status: 401 },
+      );
+    }
 
     if (!body.planTier || !(VALID_TIERS as string[]).includes(body.planTier)) {
       return Response.json(
@@ -84,7 +85,7 @@ async function handler({ request }: { request: Request }) {
     const normalized = (body.promoCode ?? "").trim().toLowerCase();
     const promoCode = normalized === "vad26" ? "VAD26" : undefined;
     const result = await createCheckoutSession(body.planTier as PlanTier, {
-      userId,
+      ...(userId != null ? { userId } : {}),
       mode: body.mode ?? "subscription",
       interval: body.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),

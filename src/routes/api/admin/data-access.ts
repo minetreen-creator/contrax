@@ -35,11 +35,21 @@ async function post({ request }: { request: Request }) {
   const denied = await guard(request);
   if (denied) return denied;
   try {
-    const body = (await request.json().catch(() => ({}))) as { action?: string; email?: string; note?: string; userId?: number };
+    const body = (await request.json().catch(() => ({}))) as {
+      action?: string;
+      email?: string;
+      note?: string;
+      userId?: number;
+      governmentOnly?: boolean;
+      dailyLimit?: number | null;
+    };
     if (body.action === "grant") {
       const email = String(body.email ?? "").trim();
       if (!email) return Response.json({ error: "Email is required." }, { status: 400 });
-      const r = await grantDataAccess(email, body.note ? String(body.note).slice(0, 300) : null);
+      const r = await grantDataAccess(email, body.note ? String(body.note).slice(0, 300) : null, {
+        governmentOnly: body.governmentOnly === true,
+        dailyLimit: body.dailyLimit == null ? null : Number(body.dailyLimit),
+      });
       return r.ok ? Response.json(r) : Response.json({ error: r.error }, { status: 404 });
     }
     if (body.action === "revoke") {

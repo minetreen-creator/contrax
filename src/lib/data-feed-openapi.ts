@@ -3,7 +3,7 @@
  * /openapi.json so API marketplaces (RapidAPI, AWS Data Exchange) and developers can
  * import it. Kept in step with parseFeedQuery / toFeedRow in data-feed.ts (tests pin it).
  */
-import { FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT } from "./data-feed";
+import { FEED_CATEGORIES, FEED_DEFAULT_LIMIT, FEED_MAX_LIMIT } from "./data-feed";
 
 const str = { type: "string" };
 const nstr = { type: "string", nullable: true };
@@ -44,6 +44,27 @@ export const DATA_FEED_OPENAPI = {
           source: str,
           first_seen_at: { type: "string", format: "date-time", nullable: true },
           updated_at: { type: "string", format: "date-time", nullable: true },
+          contrax_url: { ...str, description: "This bid on Contrax (carries your referral code when your plan has one)" },
+        },
+      },
+      Amendment: {
+        type: "object",
+        properties: {
+          id: { type: "integer" },
+          bid_id: { type: "integer" },
+          change_type: { type: "string", enum: ["deadline", "title", "description", "value"] },
+          old_value: nstr,
+          new_value: nstr,
+          detected_at: { type: "string", format: "date-time", nullable: true },
+          contrax_url: str,
+        },
+      },
+      AmendmentPage: {
+        type: "object",
+        properties: {
+          data: { type: "array", items: { $ref: "#/components/schemas/Amendment" } },
+          next_after: { type: "integer", nullable: true },
+          count: { type: "integer" },
         },
       },
       FeedPage: {
@@ -67,6 +88,7 @@ export const DATA_FEED_OPENAPI = {
           { name: "updated_since", in: "query", schema: { type: "string", format: "date-time" }, description: "Only bids new or changed since this time" },
           { name: "naics", in: "query", schema: str, description: "Comma-separated NAICS prefixes (2–6 digits), e.g. 2382,561720" },
           { name: "set_aside", in: "query", schema: str, description: "Set-aside text to match, e.g. SDVOSB" },
+          { name: "category", in: "query", schema: str, description: `Comma-separated Contrax trades: ${FEED_CATEGORIES.join(", ")}` },
           { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: FEED_MAX_LIMIT, default: FEED_DEFAULT_LIMIT } },
           { name: "after", in: "query", schema: { type: "integer", minimum: 0 }, description: "next_after from the previous page" },
         ],
@@ -75,6 +97,25 @@ export const DATA_FEED_OPENAPI = {
           "400": { description: "Invalid parameter", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           "401": { description: "Missing or invalid API key", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
           "403": { description: "Key has no feed access, or a state outside the plan", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "429": { description: "Daily request limit reached", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+    "/api/v1/amendments": {
+      get: {
+        summary: "Changes to open bids (deadline moved, retitled, description or value changed)",
+        operationId: "listAmendments",
+        parameters: [
+          { name: "since", in: "query", schema: { type: "string", format: "date-time" }, description: "Only changes detected since this time" },
+          { name: "state", in: "query", schema: str, description: "Comma-separated USPS codes" },
+          { name: "limit", in: "query", schema: { type: "integer", minimum: 1, maximum: FEED_MAX_LIMIT, default: FEED_DEFAULT_LIMIT } },
+          { name: "after", in: "query", schema: { type: "integer", minimum: 0 }, description: "next_after from the previous page" },
+        ],
+        responses: {
+          "200": { description: "A page of listing changes", content: { "application/json": { schema: { $ref: "#/components/schemas/AmendmentPage" } } } },
+          "400": { description: "Invalid parameter", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "401": { description: "Missing or invalid API key", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "429": { description: "Daily request limit reached", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
         },
       },
     },

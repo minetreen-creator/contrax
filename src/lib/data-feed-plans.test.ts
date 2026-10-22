@@ -36,7 +36,7 @@ describe("OpenAPI matches the feed", () => {
 
   test("documented parameters are the ones parseFeedQuery reads", () => {
     const names = DATA_FEED_OPENAPI.paths["/api/v1/feed"].get.parameters.map((p) => p.name).sort();
-    expect(names).toEqual(["after", "limit", "naics", "set_aside", "state", "updated_since"]);
+    expect(names).toEqual(["after", "category", "limit", "naics", "set_aside", "state", "updated_since"]);
   });
 });
 

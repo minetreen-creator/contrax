@@ -5,6 +5,49 @@
  */
 
 export const FEED_MAX_LIMIT = 500;
+
+/** Contrax's trade categories (trade-classification.ts mapCategory), filterable with ?category=. */
+export const FEED_CATEGORIES = [
+  "Construction",
+  "Janitorial",
+  "HVAC",
+  "Plumbing & Electrical",
+  "Landscaping",
+  "Transportation",
+  "Security",
+  "IT Services",
+  "Other",
+] as const;
+export type FeedCategory = (typeof FEED_CATEGORIES)[number];
+
+/**
+ * Partner access rules (owner 2026-10-22, Settle data licensing): sources a key
+ * may not receive, as SQL LIKE patterns on `bids.source` (e.g. "%_bidnet" for
+ * government sources only), and the referral code put on each row's Contrax
+ * link for attribution.
+ */
+export const GOVERNMENT_ONLY_EXCLUSIONS = ["%_bidnet"];
+
+export function parseSourceExclusions(stored: string | null | undefined): string[] {
+  return (stored ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => /^[a-z0-9_%]+$/.test(s));
+}
+
+/** The row's page on Contrax, with the partner's referral code when it has one. */
+export function contraxBidUrl(id: number, ref: string | null): string {
+  const base = `https://www.contrax.company/bid/${id}`;
+  return ref ? `${base}?ref=${encodeURIComponent(ref)}` : base;
+}
+
+/** A readable referral code from the partner's email domain ("dilan@usesettle.com" → "usesettle"). */
+export function refCodeForEmail(email: string): string | null {
+  const domain = email.split("@")[1]?.toLowerCase() ?? "";
+  const label = domain.split(".")[0] ?? "";
+  if (!label || ["gmail", "yahoo", "outlook", "hotmail", "icloud", "aol", "proton", "protonmail"].includes(label)) return null;
+  return label.replace(/[^a-z0-9-]/g, "").slice(0, 32) || null;
+}
 export const FEED_DEFAULT_LIMIT = 100;
 
 const USPS = new Set([
@@ -22,6 +65,8 @@ export interface FeedQuery {
   naics: string[];
   /** Case-insensitive substring of the set-aside label, e.g. "SDVOSB". */
   setAside: string | null;
+  /** Contrax trade categories (FEED_CATEGORIES); empty = any. */
+  categories: string[];
   limit: number;
   /** Return rows with id greater than this (keyset paging). */
   after: number;
@@ -57,6 +102,10 @@ export function parseFeedQuery(params: URLSearchParams): FeedQueryResult {
   const setAsideRaw = (params.get("set_aside") ?? "").trim();
   if (setAsideRaw.length > 40) return { ok: false, error: "set_aside is too long." };
 
+  const categories = list(params.get("category"));
+  const badCategory = categories.find((c) => !FEED_CATEGORIES.includes(c as FeedCategory));
+  if (badCategory) return { ok: false, error: `Unknown category "${badCategory}". Use: ${FEED_CATEGORIES.join(", ")}.` };
+
   const limitRaw = params.get("limit");
   const limit = limitRaw == null ? FEED_DEFAULT_LIMIT : Number(limitRaw);
   if (!Number.isInteger(limit) || limit < 1 || limit > FEED_MAX_LIMIT) {
@@ -67,7 +116,7 @@ export function parseFeedQuery(params: URLSearchParams): FeedQueryResult {
   const after = afterRaw == null ? 0 : Number(afterRaw);
   if (!Number.isInteger(after) || after < 0) return { ok: false, error: "after must be a bid id from a previous page (next_after)." };
 
-  return { ok: true, query: { states, updatedSince, naics, setAside: setAsideRaw || null, limit, after } };
+  return { ok: true, query: { states, updatedSince, naics, setAside: setAsideRaw || null, categories, limit, after } };
 }
 
 /**
@@ -101,6 +150,8 @@ export interface FeedRow {
   source: string;
   first_seen_at: string | null;
   updated_at: string | null;
+  /** This bid on Contrax (with the partner's referral code). */
+  contrax_url: string;
 }
 
 const iso = (v: unknown): string | null => {
@@ -111,7 +162,7 @@ const iso = (v: unknown): string | null => {
 const str = (v: unknown): string | null => (v == null || v === "" ? null : String(v));
 
 /** One DB row → the documented feed shape (field names are the public contract). */
-export function toFeedRow(r: Record<string, unknown>): FeedRow {
+export function toFeedRow(r: Record<string, unknown>, ref: string | null = null): FeedRow {
   return {
     id: Number(r.id),
     title: String(r.title ?? ""),
@@ -131,6 +182,7 @@ export function toFeedRow(r: Record<string, unknown>): FeedRow {
     source: String(r.source ?? ""),
     first_seen_at: iso(r.created_at),
     updated_at: iso(r.updated_at),
+    contrax_url: contraxBidUrl(Number(r.id), ref),
   };
 }
 

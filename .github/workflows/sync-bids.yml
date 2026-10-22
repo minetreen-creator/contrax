@@ -61,7 +61,10 @@ jobs:
     needs: gate
     if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 60 (was 30, 2026-10-22): a full run took ~20 min before the BidNet
+    # groups were added; NY/FL/NC/TX/OH/PA add ~4–5 min (the first run with
+    # them reached the 30-minute cap) and the 38 remaining groups ~10 more.
+    timeout-minutes: 60
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}

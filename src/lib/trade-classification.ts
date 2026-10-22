@@ -377,8 +377,17 @@ export function isTransportationWork(title: string, _full: string): boolean {
   const titleLc = (title || "").toLowerCase();
   if (isDumpTruckLike(titleLc)) return false;
   if (isProductBuy(titleLc) && !hasExplicitTransportationServicePhrase(titleLc)) return false;
-  return isTransportationService(titleLc);
+  // Ambulance / patient / medical transport moves people, not freight: the
+  // City of Chandler's "Debt Collection Services for Fire Department Ambulance
+  // Transportation" (az_app, 2026-10-22) was stamped Transportation. Drop those
+  // phrases so the rest of the title still decides ("Freight hauling and
+  // ambulance transport" stays Transportation).
+  return isTransportationService(titleLc.replace(PASSENGER_MEDICAL_TRANSPORT, " "));
 }
+
+/** Ambulance / patient / medical (incl. non-emergency medical) transport. */
+const PASSENGER_MEDICAL_TRANSPORT =
+  /\b(?:ambulance|patient|medical|non-emergency medical|nemt)\s+transport(?:ation|s)?\b/g;
 
 /**
  * The shared ingest `category` stamp (was duplicated, with a bare-"cleaning"

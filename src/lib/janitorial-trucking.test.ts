@@ -172,6 +172,22 @@ describe("R4 — purchased-service-only classification", () => {
     expect(mapCategory("", "Courier services for the medical center", "")).toBe("Transportation");
   });
 
+  test("ambulance / patient / medical transport is not trucking work", () => {
+    // Live az_app row 2026-10-22 (BPM007818).
+    expect(
+      mapCategory(
+        "",
+        "Request for Proposals - City of Chandler Debt Collection Services for Fire Department Ambulance Transportation; FR7-946-5062",
+        "Commodity: Debt collection services.",
+      ),
+    ).toBe("Other");
+    expect(isTransportationWork("Non-Emergency Medical Transportation (NEMT) Services", "")).toBe(false);
+    expect(isTransportationWork("Patient Transport Services", "")).toBe(false);
+    // The rest of the title still decides.
+    expect(isTransportationWork("Freight hauling and ambulance transport", "")).toBe(true);
+    expect(isTransportationWork("Transportation of Vehicles, Parts and Supplies", "")).toBe(true);
+  });
+
   test("ingest NAICS inference drops the bare-'cleaning' FPs and keeps services", () => {
     // negatives (all three were inferred 561720 in production)
     expect(inferNaics("10--ROD,CLEANING,SMALL ARM", "")).toBe(null);

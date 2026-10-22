@@ -206,6 +206,20 @@ describe("R4 — purchased-service-only classification", () => {
       // ny_bidnet 2026-10-22
       "Vertical Transportation Preventive Maintenance, Testing, and Repair Services",
       "SENIOR DOOR TO DOOR TRANSPORTATION SERVICES",
+      // tx/pa_bidnet 2026-10-22
+      "Maintenance, Transportation, and Security General Services",
+      "Maintenance, Operations, and Transportation Supplies, Parts, Equipment and Related Services",
+      "Job Order Contract (JOC) for Installation for Maintenance/Facilities/Transportation/Food Service",
+      "Transportation Fluids, Parts and Supplies",
+      "Transportation-Automotive Parts, Equipment, Services and Supplies - Continuous Solicitation",
+      "Texas Charter Bus and Motor Coach Transportation Services",
+      "Hospital-Based ECMO, Specialty Care, Critical Care and Interfacility Transport-EMS Partnership",
+      "Medicaid Fee for Service; Transportation for Indigent Cancer Patients",
+      "Wide Area Network (WAN) transport services",
+      "Restaurant/Catering and Delivery Services",
+      "BUS (including wheelchair bus(es)) TRANSPORTATION",
+      "SPECIALIZED (Vans and Wheelchair vans) TRANSPORTATION",
+      "Transportation Facilities Master Plan (TCDI Project Category 5 – Transportation and Infrastructure Planning)",
     ])
       expect([title, isTransportationWork(title, "")]).toEqual([title, false]);
     for (const title of [
@@ -216,6 +230,9 @@ describe("R4 — purchased-service-only classification", () => {
       "Hazardous and Non-Hazardous Waste Removal, Transport and Destruction Services",
       "Daily Courier Services - DDSD Oakland Branch",
       "Bulk Fuel and Lubricant Delivery Services",
+      "2027 Septage Transport Services",
+      "Collection, Transportation, and Disposal of Municipal Solid Waste - 2027",
+      "Montgomery County Board of Elections Voting Equipment Transportation",
     ])
       expect([title, isTransportationWork(title, "")]).toEqual([title, true]);
   });

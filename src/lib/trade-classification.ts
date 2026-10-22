@@ -380,7 +380,10 @@ export function isTransportationWork(title: string, _full: string): boolean {
   // Drop the phrases that use a trucking word for something else, so the rest
   // of the title still decides ("Freight hauling and ambulance transport" stays
   // Transportation). See NOT_TRUCKING_PHRASES.
-  let text = titleLc;
+  // Parenthetical asides ("SPECIALIZED (Vans and Wheelchair vans)
+  // TRANSPORTATION", "(TCDI Project Category 5 – Transportation and
+  // Infrastructure Planning)") are dropped first, innermost first.
+  let text = titleLc.replace(/\([^()]*\)/g, " ").replace(/\([^()]*\)/g, " ");
   for (const re of NOT_TRUCKING_PHRASES) text = text.replace(re, " ");
   if (!RELOCATION_MOVE_CONTEXT.test(titleLc)) text = text.replace(/\brelocation\b/g, " ");
   return isTransportationService(text);
@@ -393,16 +396,26 @@ export function isTransportationWork(title: string, _full: string): boolean {
  *    pupil, school, youth, special-needs, paratransit, passenger, senior/older
  *    adult, wheelchair, door-to-door, bus and shuttle transportation;
  *  - "Vertical Transportation" (elevators and escalators, ny_bidnet);
+ *  - a district's transportation DEPARTMENT named in a list of departments
+ *    ("Maintenance, Transportation, and Security General Services", Texas
+ *    school co-ops) or buying its parts, supplies, fluids or uniforms;
+ *  - charter / motor-coach / interfacility / specialized transportation,
+ *    "transportation for … patients", network ("WAN") transport and meal /
+ *    catering delivery (tx/pa_bidnet, 2026-10-22);
  *  - planning, engineering and infrastructure: "Transportation Planning",
  *    "Regional Transportation Impact Fee Study", "Active Transportation Design",
  *    "Intelligent Transportation System", "Department of Transportation", a
  *    transportation center, yard, fleet or vehicle.
  */
 const NOT_TRUCKING_PHRASES: RegExp[] = [
-  /\b(?:ambulance|patient|medical|non-emergency medical|nemt|healthcare|health care|student|pupil|school|youth|special needs|passenger|paratransit|senior|older adults?|wheelchair[- ]accessible|door[- ]to[- ]door|bus|shuttle)\s+transport(?:ation|s)?(?:\s+services?)?\b/g,
+  /\b(?:ambulance|patient|medical|non-emergency medical|nemt|healthcare|health care|student|pupil|school|youth|special needs|passenger|paratransit|senior|older adults?|wheelchair[- ]accessible|door[- ]to[- ]door|bus|shuttle|charter bus|motor coach|interfacility|specialized|microtransit)\s+transport(?:ation|s)?(?:\s+services?)?\b/g,
   /\b(?:active|intelligent|regional|public|multimodal|sustainable|vertical)\s+transportation\b/g,
   /\b(?:department|dept\.?|division|bureau|office|agency|authority|commission)\s+of\s+transportation\b/g,
-  /\btransportation\s+(?:planning|plans?|study|studies|impact|safety|engineering|design|improvements?|projects?|programs?|programming|policy|demand|systems?|center|centre|yard|facility|fleet|vehicles?|infrastructure|corridor|master)\b/g,
+  /\btransportation[\s-]+(?:planning|plans?|study|studies|impact|safety|engineering|design|improvements?|projects?|programs?|programming|policy|demand|systems?|center|centre|yard|facility|facilities|fleet|vehicles?|infrastructure|and infrastructure|corridor|master|research|department|dept|parts|supplies|supply|fluids|uniforms?|aftermarket|automotive)\b/g,
+  /\b(?:maintenance|operations|facilities|security|it)\s*(?:,|&|\/|\band\b)\s*(?:(?:and|&)\s+)?transportation\b/g,
+  /\btransportation\s+for\s+[^,;]*\b(?:patients?|students?|seniors?|veterans?|clients?|residents?)\b/g,
+  /\b(?:wan|network|data|fiber|ethernet)\s+transport(?:ation)?\b/g,
+  /\b(?:meal|food|catering|restaurant)\s+(?:ordering\s+)?(?:and\s+)?delivery\b/g,
 ];
 
 /** "Relocation" is a moving job only next to what gets moved (office,

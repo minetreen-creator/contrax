@@ -298,6 +298,10 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // the SIXTH config, 2026-10-22; same treatment as `ny_bidnet`. It is NOT
   // Florida's own board `fl_mfmp`.
   fl_bidnet: { class: "state", scopeState: "FL", searchScope: "state-portal", recordType: "opportunity" },
+  // BidNet Direct's North Carolina Purchasing Group (src/jobs/sources/nc-bidnet.ts)
+  // — the SEVENTH config, 2026-10-22; same treatment as `ny_bidnet`. It is NOT
+  // North Carolina's own board `nc_evp`.
+  nc_bidnet: { class: "state", scopeState: "NC", searchScope: "state-portal", recordType: "opportunity" },
   mn_mndot: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_connex: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_questcdn: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },

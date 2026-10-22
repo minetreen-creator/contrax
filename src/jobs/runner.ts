@@ -116,6 +116,7 @@ import { fetchVaBidnetBids } from "./sources/va-bidnet";
 import { fetchCaBidnetBids } from "./sources/ca-bidnet";
 import { fetchNyBidnetBids } from "./sources/ny-bidnet";
 import { fetchFlBidnetBids } from "./sources/fl-bidnet";
+import { fetchNcBidnetBids } from "./sources/nc-bidnet";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -562,6 +563,11 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Same treatment as `ny_bidnet` (74 open over 3 pages on 2026-10-22); its own
   // `flbidnet-` prefix keeps it a SEPARATE source from `fl_mfmp`.
   { name: "fl_bidnet", fetchFn: () => fetchFlBidnetBids() },
+  // NORTH CAROLINA (owner-directed 2026-10-22): BidNet Direct's *North Carolina
+  // Purchasing Group*, next to (never instead of) eVP (`nc_evp`) and the NC
+  // locality boards. Same treatment as `ny_bidnet` (14 open on one page on
+  // 2026-10-22); its own `ncbidnet-` prefix keeps it a SEPARATE source.
+  { name: "nc_bidnet", fetchFn: () => fetchNcBidnetBids() },
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

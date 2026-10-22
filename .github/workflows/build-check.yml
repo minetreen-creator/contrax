@@ -370,6 +370,11 @@ jobs:
       # ny_bidnet. Committed captures only (fixtures/fl-bidnet/); no DATABASE_URL.
       - name: BidNet Florida connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/fl-bidnet.test.ts
+      # BidNet Direct North Carolina Purchasing Group (nc_bidnet) — the SEVENTH
+      # config, next to North Carolina's own board (`nc_evp`); a one-page group.
+      # Committed capture only (fixtures/nc-bidnet/); no DATABASE_URL.
+      - name: BidNet North Carolina connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/nc-bidnet.test.ts
       # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
       # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
       # construction: every byte it reads is a committed capture of the live Solr

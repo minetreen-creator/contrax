@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { guestCheckoutAllowed, postCheckoutAccess, STARTER_FIRST_MONTH_AMOUNT_OFF, STARTER_FIRST_MONTH_PRICE, starterFirstMonthApplies } from "./starter-offer";
+import { checkoutCreatedAccount, guestCheckoutAllowed, postCheckoutAccess, STARTER_FIRST_MONTH_AMOUNT_OFF, STARTER_FIRST_MONTH_PRICE, starterFirstMonthApplies } from "./starter-offer";
+import { welcomeEmailHtml } from "./email";
 import { MONTHLY_PRICE_USD } from "./stripe";
 
 describe("Starter $5 first month", () => {
@@ -39,5 +40,20 @@ describe("pay first, account after", () => {
     expect(postCheckoutAccess({ metadataUserId: null, sessionCreatedMs: created, account: null, metadataAccount: null })).toEqual({ kind: "create" });
     expect(postCheckoutAccess({ metadataUserId: null, sessionCreatedMs: created, account: { id: 3, createdAtMs: created + 5_000 }, metadataAccount: null })).toEqual({ kind: "login", userId: 3 });
     expect(postCheckoutAccess({ metadataUserId: null, sessionCreatedMs: created, account: { id: 3, createdAtMs: created - 86_400_000 }, metadataAccount: null })).toEqual({ kind: "sign_in_required" });
+  });
+
+  test("only an account this pay-first checkout created gets a set-password link", () => {
+    expect(checkoutCreatedAccount({ metadataUserId: null, sessionCreatedMs: created, account: { id: 3, createdAtMs: created + 5_000 } })).toBe(true);
+    expect(checkoutCreatedAccount({ metadataUserId: null, sessionCreatedMs: created, account: { id: 3, createdAtMs: created - 86_400_000 } })).toBe(false);
+    expect(checkoutCreatedAccount({ metadataUserId: 3, sessionCreatedMs: created, account: { id: 3, createdAtMs: created + 5_000 } })).toBe(false);
+  });
+
+  test("the welcome email's button sets the password only when given a token", () => {
+    const withToken = welcomeEmailHtml("buyer@example.com", "tok-123");
+    expect(withToken).toContain("https://www.contrax.company/reset-password?token=tok-123");
+    expect(withToken).toContain("Set your password");
+    const without = welcomeEmailHtml("buyer@example.com");
+    expect(without).not.toContain("reset-password");
+    expect(without).toContain("Log in to Contrax");
   });
 });

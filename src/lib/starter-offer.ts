@@ -84,3 +84,21 @@ export function postCheckoutAccess(args: {
     ? { kind: "login", userId: args.account.id }
     : { kind: "sign_in_required" };
 }
+
+/**
+ * Did this paid checkout create the account it is matched to by email (the
+ * webhook found the row /post-checkout inserted a moment earlier)? Such an
+ * account's password is random, so the welcome email lets the buyer set one.
+ * A checkout started while signed in never did; same one-minute rule as
+ * postCheckoutAccess, so an older account sharing the email never gets a link.
+ */
+export function checkoutCreatedAccount(args: {
+  metadataUserId: number | null;
+  sessionCreatedMs: number;
+  account: { id: number; createdAtMs: number };
+}): boolean {
+  return (
+    args.metadataUserId == null &&
+    postCheckoutAccess({ ...args, metadataUserId: null, metadataAccount: null }).kind === "login"
+  );
+}

@@ -382,6 +382,11 @@ jobs:
       # Committed captures only (fixtures/{tx,oh,pa}-bidnet/); no DATABASE_URL.
       - name: BidNet Texas, Ohio and Pennsylvania connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/tx-bidnet.test.ts src/jobs/sources/oh-bidnet.test.ts src/jobs/sources/pa-bidnet.test.ts
+      # The 38 remaining BidNet Direct purchasing groups (<st>_bidnet, 2026-10-22),
+      # each a config of the same engine. Committed captures only
+      # (fixtures/<st>-bidnet/); no DATABASE_URL.
+      - name: BidNet remaining-states connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/al-bidnet.test.ts src/jobs/sources/ak-bidnet.test.ts src/jobs/sources/az-bidnet.test.ts src/jobs/sources/ar-bidnet.test.ts src/jobs/sources/co-bidnet.test.ts src/jobs/sources/ct-bidnet.test.ts src/jobs/sources/de-bidnet.test.ts src/jobs/sources/ga-bidnet.test.ts src/jobs/sources/hi-bidnet.test.ts src/jobs/sources/id-bidnet.test.ts src/jobs/sources/il-bidnet.test.ts src/jobs/sources/in-bidnet.test.ts src/jobs/sources/ia-bidnet.test.ts src/jobs/sources/ks-bidnet.test.ts src/jobs/sources/ky-bidnet.test.ts src/jobs/sources/la-bidnet.test.ts src/jobs/sources/me-bidnet.test.ts src/jobs/sources/md-bidnet.test.ts src/jobs/sources/ma-bidnet.test.ts src/jobs/sources/mn-bidnet.test.ts src/jobs/sources/ms-bidnet.test.ts src/jobs/sources/mo-bidnet.test.ts src/jobs/sources/mt-bidnet.test.ts src/jobs/sources/ne-bidnet.test.ts src/jobs/sources/nv-bidnet.test.ts src/jobs/sources/nj-bidnet.test.ts src/jobs/sources/nm-bidnet.test.ts src/jobs/sources/nd-bidnet.test.ts src/jobs/sources/ok-bidnet.test.ts src/jobs/sources/or-bidnet.test.ts src/jobs/sources/ri-bidnet.test.ts src/jobs/sources/sc-bidnet.test.ts src/jobs/sources/tn-bidnet.test.ts src/jobs/sources/ut-bidnet.test.ts src/jobs/sources/vt-bidnet.test.ts src/jobs/sources/wa-bidnet.test.ts src/jobs/sources/wv-bidnet.test.ts src/jobs/sources/wi-bidnet.test.ts
       # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
       # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
       # construction: every byte it reads is a committed capture of the live Solr

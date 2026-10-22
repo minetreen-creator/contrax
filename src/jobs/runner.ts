@@ -120,6 +120,44 @@ import { fetchNcBidnetBids } from "./sources/nc-bidnet";
 import { fetchTxBidnetBids } from "./sources/tx-bidnet";
 import { fetchOhBidnetBids } from "./sources/oh-bidnet";
 import { fetchPaBidnetBids } from "./sources/pa-bidnet";
+import { fetchAlBidnetBids } from "./sources/al-bidnet";
+import { fetchAkBidnetBids } from "./sources/ak-bidnet";
+import { fetchAzBidnetBids } from "./sources/az-bidnet";
+import { fetchArBidnetBids } from "./sources/ar-bidnet";
+import { fetchCoBidnetBids } from "./sources/co-bidnet";
+import { fetchCtBidnetBids } from "./sources/ct-bidnet";
+import { fetchDeBidnetBids } from "./sources/de-bidnet";
+import { fetchGaBidnetBids } from "./sources/ga-bidnet";
+import { fetchHiBidnetBids } from "./sources/hi-bidnet";
+import { fetchIdBidnetBids } from "./sources/id-bidnet";
+import { fetchIlBidnetBids } from "./sources/il-bidnet";
+import { fetchInBidnetBids } from "./sources/in-bidnet";
+import { fetchIaBidnetBids } from "./sources/ia-bidnet";
+import { fetchKsBidnetBids } from "./sources/ks-bidnet";
+import { fetchKyBidnetBids } from "./sources/ky-bidnet";
+import { fetchLaBidnetBids } from "./sources/la-bidnet";
+import { fetchMeBidnetBids } from "./sources/me-bidnet";
+import { fetchMdBidnetBids } from "./sources/md-bidnet";
+import { fetchMaBidnetBids } from "./sources/ma-bidnet";
+import { fetchMnBidnetBids } from "./sources/mn-bidnet";
+import { fetchMsBidnetBids } from "./sources/ms-bidnet";
+import { fetchMoBidnetBids } from "./sources/mo-bidnet";
+import { fetchMtBidnetBids } from "./sources/mt-bidnet";
+import { fetchNeBidnetBids } from "./sources/ne-bidnet";
+import { fetchNvBidnetBids } from "./sources/nv-bidnet";
+import { fetchNjBidnetBids } from "./sources/nj-bidnet";
+import { fetchNmBidnetBids } from "./sources/nm-bidnet";
+import { fetchNdBidnetBids } from "./sources/nd-bidnet";
+import { fetchOkBidnetBids } from "./sources/ok-bidnet";
+import { fetchOrBidnetBids } from "./sources/or-bidnet";
+import { fetchRiBidnetBids } from "./sources/ri-bidnet";
+import { fetchScBidnetBids } from "./sources/sc-bidnet";
+import { fetchTnBidnetBids } from "./sources/tn-bidnet";
+import { fetchUtBidnetBids } from "./sources/ut-bidnet";
+import { fetchVtBidnetBids } from "./sources/vt-bidnet";
+import { fetchWaBidnetBids } from "./sources/wa-bidnet";
+import { fetchWvBidnetBids } from "./sources/wv-bidnet";
+import { fetchWiBidnetBids } from "./sources/wi-bidnet";
 import { fetchOmahaBids } from "./sources/ne-omaha-ionwave";
 import { fetchNeDasBids } from "./sources/ne-das";
 import { fetchWiVendornetBids } from "./sources/wi-vendornet";
@@ -580,6 +618,50 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "tx_bidnet", fetchFn: () => fetchTxBidnetBids() }, // 1,915 open over 77 pages; beside `tx_esbd`
   { name: "oh_bidnet", fetchFn: () => fetchOhBidnetBids() }, // 1,452 open over 59 pages; beside `oh_odot`
   { name: "pa_bidnet", fetchFn: () => fetchPaBidnetBids() }, // 1,263 open over 51 pages; beside `pa_dgs_emarketplace`
+  // 38 MORE STATES (owner 2026-10-22, "we need more states if we are going to do
+  // this deal"): every remaining BidNet Direct purchasing group (Michigan and
+  // Wyoming have none; Colorado's group also lists Wyoming rows, each kept as its
+  // own region). Same engine, same treatment as `ny_bidnet`; each next to (never
+  // instead of) any state or local board Contrax already reads, under its own
+  // `<st>bidnet-` prefix. Open counts on 2026-10-22 in the trailing comments.
+  { name: "al_bidnet", fetchFn: () => fetchAlBidnetBids() }, // 15
+  { name: "ak_bidnet", fetchFn: () => fetchAkBidnetBids() }, // 92
+  { name: "az_bidnet", fetchFn: () => fetchAzBidnetBids() }, // 251
+  { name: "ar_bidnet", fetchFn: () => fetchArBidnetBids() }, // 180
+  { name: "co_bidnet", fetchFn: () => fetchCoBidnetBids() }, // 397
+  { name: "ct_bidnet", fetchFn: () => fetchCtBidnetBids() }, // 212
+  { name: "de_bidnet", fetchFn: () => fetchDeBidnetBids() }, // 73
+  { name: "ga_bidnet", fetchFn: () => fetchGaBidnetBids() }, // 509
+  { name: "hi_bidnet", fetchFn: () => fetchHiBidnetBids() }, // 246
+  { name: "id_bidnet", fetchFn: () => fetchIdBidnetBids() }, // 88
+  { name: "il_bidnet", fetchFn: () => fetchIlBidnetBids() }, // 909
+  { name: "in_bidnet", fetchFn: () => fetchInBidnetBids() }, // 212
+  { name: "ia_bidnet", fetchFn: () => fetchIaBidnetBids() }, // 236
+  { name: "ks_bidnet", fetchFn: () => fetchKsBidnetBids() }, // 160
+  { name: "ky_bidnet", fetchFn: () => fetchKyBidnetBids() }, // 172
+  { name: "la_bidnet", fetchFn: () => fetchLaBidnetBids() }, // 303
+  { name: "me_bidnet", fetchFn: () => fetchMeBidnetBids() }, // 93
+  { name: "md_bidnet", fetchFn: () => fetchMdBidnetBids() }, // 451
+  { name: "ma_bidnet", fetchFn: () => fetchMaBidnetBids() }, // 910
+  { name: "mn_bidnet", fetchFn: () => fetchMnBidnetBids() }, // 355
+  { name: "ms_bidnet", fetchFn: () => fetchMsBidnetBids() }, // 183
+  { name: "mo_bidnet", fetchFn: () => fetchMoBidnetBids() }, // 428
+  { name: "mt_bidnet", fetchFn: () => fetchMtBidnetBids() }, // 97
+  { name: "ne_bidnet", fetchFn: () => fetchNeBidnetBids() }, // 106
+  { name: "nv_bidnet", fetchFn: () => fetchNvBidnetBids() }, // 127
+  { name: "nj_bidnet", fetchFn: () => fetchNjBidnetBids() }, // 70
+  { name: "nm_bidnet", fetchFn: () => fetchNmBidnetBids() }, // 17
+  { name: "nd_bidnet", fetchFn: () => fetchNdBidnetBids() }, // 61
+  { name: "ok_bidnet", fetchFn: () => fetchOkBidnetBids() }, // 22
+  { name: "or_bidnet", fetchFn: () => fetchOrBidnetBids() }, // 318
+  { name: "ri_bidnet", fetchFn: () => fetchRiBidnetBids() }, // 48
+  { name: "sc_bidnet", fetchFn: () => fetchScBidnetBids() }, // 577
+  { name: "tn_bidnet", fetchFn: () => fetchTnBidnetBids() }, // 212
+  { name: "ut_bidnet", fetchFn: () => fetchUtBidnetBids() }, // 294
+  { name: "vt_bidnet", fetchFn: () => fetchVtBidnetBids() }, // 61
+  { name: "wa_bidnet", fetchFn: () => fetchWaBidnetBids() }, // 594
+  { name: "wv_bidnet", fetchFn: () => fetchWvBidnetBids() }, // 104
+  { name: "wi_bidnet", fetchFn: () => fetchWiBidnetBids() }, // 250
   ...CITY_SOURCES.map((s) => ({ name: s.name, fetchFn: s.fetch })),
 ];
 

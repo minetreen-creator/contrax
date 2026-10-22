@@ -79,6 +79,7 @@ import { fetchOhOdotBids } from "./sources/oh-odot";
 import { fetchNyNyscrBids } from "./sources/ny-nyscr";
 import { fetchMiSigmaBids } from "./sources/mi-sigma";
 import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
+import { isBidnetSource, planBidnetSources } from "./bidnet-cadence";
 import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
@@ -1612,6 +1613,15 @@ export async function runSync(): Promise<SyncResult> {
   const startTime = Date.now();
   const results: Record<string, SyncSourceResult> = {};
 
+  // BidNet cadence (bidnet-cadence.ts): each <st>_bidnet group at most once a
+  // day, at most a dozen per sync; every other tail source runs every sync.
+  const bidnetNames = TAIL_SOURCES.map((s) => s.name).filter(isBidnetSource);
+  const bidnetThisRun = await planBidnetSources(sql, bidnetNames);
+  const tailSources = TAIL_SOURCES.filter((s) => !isBidnetSource(s.name) || bidnetThisRun.has(s.name));
+  console.log(
+    `   BidNet this sync: ${bidnetThisRun.size} of ${bidnetNames.length} groups${bidnetThisRun.size ? ` (${[...bidnetThisRun].join(", ")})` : ""}`,
+  );
+
   // NATIONWIDE CORRECTNESS FIX ⑤ (owner-locked scope, PR B1): ONE notice-identity
   // guard for the WHOLE run, shared by every SAM.gov-family source (the 11 trade
   // passes + Phase 1's national/regional and city passes, then Phase 2's 51
@@ -1640,8 +1650,8 @@ export async function runSync(): Promise<SyncResult> {
     const batch = STATE_KEYWORD_SOURCES.slice(i, i + PARALLEL_BATCH_SIZE);
     const jobs = batch.map((source) => syncSource(sql, source, noticeGuard));
     let tailSource: SyncSource | null = null;
-    if (tailIndex < TAIL_SOURCES.length) {
-      tailSource = TAIL_SOURCES[tailIndex++];
+    if (tailIndex < tailSources.length) {
+      tailSource = tailSources[tailIndex++];
       jobs.push(syncSource(sql, tailSource, noticeGuard));
     }
     const batchResults = await Promise.all(jobs);
@@ -1656,8 +1666,8 @@ export async function runSync(): Promise<SyncResult> {
     }
   }
   // Safety net for any tail sources left after the final state batch.
-  for (; tailIndex < TAIL_SOURCES.length; tailIndex++) {
-    const source = TAIL_SOURCES[tailIndex];
+  for (; tailIndex < tailSources.length; tailIndex++) {
+    const source = tailSources[tailIndex];
     results[source.name] = await syncSource(sql, source, noticeGuard);
     await sleep(INTER_SOURCE_DELAY_MS);
   }

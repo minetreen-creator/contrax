@@ -19,13 +19,28 @@ export const Route = createFileRoute("/admin/data-access")({
 });
 
 interface RequestRow { id: number; name: string; email: string; company: string; use_case: string | null; states: string | null; message: string | null; status: string; created_at: string }
-interface GrantRow { user_id: number; email: string; granted_at: string; active: boolean; note: string | null; last_used_at: string | null }
+interface GrantRow {
+  user_id: number;
+  email: string;
+  granted_at: string;
+  active: boolean;
+  note: string | null;
+  last_used_at: string | null;
+  source_exclusions: string | null;
+  daily_request_limit: number | null;
+  ref_code: string | null;
+  requests_30d: number;
+  rows_30d: number;
+}
 
 function DataAccessPage() {
   const [data, setData] = useState<{ requests: RequestRow[]; grants: GrantRow[] } | null>(null);
   const [error, setError] = useState("");
   const [email, setEmail] = useState("");
   const [note, setNote] = useState("");
+  // Partner terms (owner 2026-10-22): government sources only + a daily cap.
+  const [governmentOnly, setGovernmentOnly] = useState(false);
+  const [dailyLimit, setDailyLimit] = useState("");
   const [issued, setIssued] = useState<{ key: string; userEmail: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -73,9 +88,29 @@ function DataAccessPage() {
           <div className="mt-3 flex flex-wrap gap-2">
             <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Customer's Contrax account email" className="min-w-[16rem] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
             <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Note (plan, price)" className="min-w-[12rem] flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm" />
-            <button disabled={busy || !email.trim()} onClick={() => act({ action: "grant", email, note })} className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
+            <button
+              disabled={busy || !email.trim()}
+              onClick={() => act({ action: "grant", email, note, governmentOnly, dailyLimit: dailyLimit.trim() ? Number(dailyLimit) : null })}
+              className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            >
               Grant and issue key
             </button>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm text-slate-700">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={governmentOnly} onChange={(e) => setGovernmentOnly(e.target.checked)} />
+              Government sources only (no BidNet listings)
+            </label>
+            <label className="flex items-center gap-2">
+              Daily request limit
+              <input
+                value={dailyLimit}
+                onChange={(e) => setDailyLimit(e.target.value.replace(/[^0-9]/g, ""))}
+                placeholder="none"
+                inputMode="numeric"
+                className="w-24 rounded-lg border border-slate-300 px-2 py-1"
+              />
+            </label>
           </div>
           {issued && (
             <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
@@ -118,6 +153,12 @@ function DataAccessPage() {
                   <span className="font-semibold text-slate-900">{g.email}</span>
                   {g.note && <span className="text-slate-500">{g.note}</span>}
                   <span className="text-xs text-slate-400">granted {timeFmt(g.granted_at)} · last used {g.last_used_at ? timeFmt(g.last_used_at) : "never"}</span>
+                  <span className="text-xs text-slate-500">
+                    30 days: {g.requests_30d.toLocaleString()} requests · {g.rows_30d.toLocaleString()} rows
+                    {g.daily_request_limit != null && ` · cap ${g.daily_request_limit.toLocaleString()}/day`}
+                    {g.source_exclusions && " · government sources only"}
+                    {g.ref_code && ` · ref=${g.ref_code}`}
+                  </span>
                   <span className="ml-auto">
                     {g.active ? (
                       <button disabled={busy} onClick={() => act({ action: "revoke", userId: g.user_id })} className="rounded-lg border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50">Revoke</button>

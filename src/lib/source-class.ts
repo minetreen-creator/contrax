@@ -302,6 +302,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   // — the SEVENTH config, 2026-10-22; same treatment as `ny_bidnet`. It is NOT
   // North Carolina's own board `nc_evp`.
   nc_bidnet: { class: "state", scopeState: "NC", searchScope: "state-portal", recordType: "opportunity" },
+  // BidNet Direct's Texas, Ohio and Pennsylvania Purchasing Groups
+  // (src/jobs/sources/{tx,oh,pa}-bidnet.ts), 2026-10-22; same treatment as
+  // `ca_bidnet`. They are NOT the states' own boards (`tx_esbd`, `oh_odot`,
+  // `pa_dgs_emarketplace`).
+  tx_bidnet: { class: "state", scopeState: "TX", searchScope: "state-portal", recordType: "opportunity" },
+  oh_bidnet: { class: "state", scopeState: "OH", searchScope: "state-portal", recordType: "opportunity" },
+  pa_bidnet: { class: "state", scopeState: "PA", searchScope: "state-portal", recordType: "opportunity" },
   mn_mndot: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_connex: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },
   mn_questcdn: { class: "state", scopeState: "MN", searchScope: "state-portal", recordType: "opportunity" },

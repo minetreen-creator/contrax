@@ -375,6 +375,13 @@ jobs:
       # Committed capture only (fixtures/nc-bidnet/); no DATABASE_URL.
       - name: BidNet North Carolina connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/nc-bidnet.test.ts
+      # BidNet Direct Texas / Ohio / Pennsylvania Purchasing Groups (tx_bidnet,
+      # oh_bidnet, pa_bidnet) — the EIGHTH to TENTH configs, each next to the
+      # state's own board and each past the default page cap (77 / 59 / 51 pages
+      # on 2026-10-22), so each sets its own cap (150) and pass budget (240 s).
+      # Committed captures only (fixtures/{tx,oh,pa}-bidnet/); no DATABASE_URL.
+      - name: BidNet Texas, Ohio and Pennsylvania connector tests (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/tx-bidnet.test.ts src/jobs/sources/oh-bidnet.test.ts src/jobs/sources/pa-bidnet.test.ts
       # eVA — Virginia's procurement portal (va_eva), the state + LOCAL source for
       # Virginia (owner spec 2026-10-08). DETERMINISTIC and network-free by
       # construction: every byte it reads is a committed capture of the live Solr

@@ -74,7 +74,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     //   config of the shared BidNet engine, 2026-10-22 (176 → 177).
     // + BidNet Direct's Florida Purchasing Group (fl_bidnet), 2026-10-22 (177 → 178).
     // + BidNet Direct's North Carolina Purchasing Group (nc_bidnet), 2026-10-22 (178 → 179).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(179);
+    // + BidNet Direct's Texas, Ohio and Pennsylvania Purchasing Groups
+    //   (tx_bidnet, oh_bidnet, pa_bidnet), 2026-10-22 (179 → 182).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(182);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -142,7 +144,9 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     //   config of the shared BidNet engine, 2026-10-22 (99 → 100).
     // + BidNet Direct's Florida Purchasing Group (fl_bidnet), 2026-10-22 (100 → 101).
     // + BidNet Direct's North Carolina Purchasing Group (nc_bidnet), 2026-10-22 (101 → 102).
-    expect(TAIL_SOURCES.length).toBe(102);
+    // + BidNet Direct's Texas, Ohio and Pennsylvania Purchasing Groups
+    //   (tx_bidnet, oh_bidnet, pa_bidnet), 2026-10-22 (102 → 105).
+    expect(TAIL_SOURCES.length).toBe(105);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

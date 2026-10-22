@@ -62,6 +62,7 @@
  */
 import type Stripe from "stripe";
 import { sql } from "~/db";
+import { portalSessionParams } from "~/lib/stripe-setup.server";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -516,6 +517,7 @@ export async function createTierPortalSession(
     const session = await stripe.billingPortal.sessions.create({
       customer,
       return_url: `${BASE_URL}/settings`,
+      ...(await portalSessionParams(stripe)),
     });
     if (!session.url) {
       return { success: false, code: "stripe_error", error: "Stripe did not return a portal URL" };

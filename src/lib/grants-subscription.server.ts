@@ -33,6 +33,7 @@
  */
 import type Stripe from "stripe";
 import { sql } from "~/db";
+import { portalSessionParams } from "~/lib/stripe-setup.server";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -416,6 +417,7 @@ export async function createGrantsPortalSession(
     const session = await stripe.billingPortal.sessions.create({
       customer,
       return_url: `${BASE_URL}/grants`,
+      ...(await portalSessionParams(stripe)),
     });
     if (!session.url) {
       return { success: false, error: "Stripe did not return a portal URL" };

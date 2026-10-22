@@ -382,6 +382,11 @@ jobs:
       # Committed captures only (fixtures/{tx,oh,pa}-bidnet/); no DATABASE_URL.
       - name: BidNet Texas, Ohio and Pennsylvania connector tests (unit, deterministic, zero network)
         run: bun test src/jobs/sources/tx-bidnet.test.ts src/jobs/sources/oh-bidnet.test.ts src/jobs/sources/pa-bidnet.test.ts
+      # Bid amendment history (owner 2026-10-22): the detector's rules and the
+      # sync's batch upsert writing bid_amendments, through a fake sql (zero
+      # network, no DATABASE_URL).
+      - name: Bid amendment history tests (unit, deterministic, zero network)
+        run: bun test src/lib/bid-amendments.test.ts src/jobs/runner.amendments.test.ts
       # The 38 remaining BidNet Direct purchasing groups (<st>_bidnet, 2026-10-22),
       # each a config of the same engine. Committed captures only
       # (fixtures/<st>-bidnet/); no DATABASE_URL.

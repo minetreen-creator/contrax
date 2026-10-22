@@ -188,6 +188,40 @@ describe("R4 — purchased-service-only classification", () => {
     expect(isTransportationWork("Transportation of Vehicles, Parts and Supplies", "")).toBe(true);
   });
 
+  test("planning, passenger transport and utility relocations are not trucking (live ca_bidnet 2026-10-22)", () => {
+    for (const title of [
+      "On-Call Transportation Planning and Support Services",
+      "Comprehensive Public Facilities Fee (PFF) and Regional Transportation Impact Fee (RTIF) Study",
+      "Country Club Drive Pavement Rehabilitation and Active Transportation Design Services",
+      "NORTH-SOUTH CORRIDOR INTELLIGENT TRANSPORTATION SYSTEM DEPLOYMENT PROJECT",
+      "ALTERNATE STUDENT TRANSPORTATION SERVICES",
+      "Youth Transportation Services",
+      "Healthcare Transportation Services",
+      "Wheelchair-Accessible Transportation Services for Older Adults and Adults with Disabilities",
+      "JG Bus Transportation- Santa Barbara",
+      "Transportation Fleet Maintenance",
+      "Abandonment and Relocation of the San Diego Country Club Pipeline",
+      "Oyster Point Sanitary Sewer Pump Station Relocation",
+      "CR 32A Railroad Crossing Relocation & Grade Separation Project",
+    ])
+      expect([title, isTransportationWork(title, "")]).toEqual([title, false]);
+    for (const title of [
+      "North Facilities Unit Office Moving Services",
+      "Bldgs 1469, 1475 METC Furniture Relocation and Storage",
+      "Towing and Relocation of District/Non-District Vehicles",
+      "Biosolids Transportation and Management Services",
+      "Hazardous and Non-Hazardous Waste Removal, Transport and Destruction Services",
+      "Daily Courier Services - DDSD Oakland Branch",
+      "Bulk Fuel and Lubricant Delivery Services",
+    ])
+      expect([title, isTransportationWork(title, "")]).toEqual([title, true]);
+  });
+
+  test("an HVAC hail guard is not a security guard", () => {
+    expect(mapCategory("", "HVAC Condenser Coil, Compressor, & Hail Guard Repair Bldg. 1", "")).toBe("HVAC");
+    expect(mapCategory("", "Unarmed guard services", "")).toBe("Security");
+  });
+
   test("ingest NAICS inference drops the bare-'cleaning' FPs and keeps services", () => {
     // negatives (all three were inferred 561720 in production)
     expect(inferNaics("10--ROD,CLEANING,SMALL ARM", "")).toBe(null);

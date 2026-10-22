@@ -194,7 +194,9 @@ describe("sd_bidnet — rows (captured)", () => {
     for (const row of rows)
       expect(row.category).toBe(mapCategory("", row.title, ""));
     expect(rows.some((x) => x.category === "Construction")).toBe(true);
-    expect(rows.some((x) => x.category === "Transportation")).toBe(true);
+    // The capture's only trucking-word title is a data center move, which is IT
+    // work, not trucking (bare "relocation" needs a moving context, 2026-10-22).
+    expect(rows.find((x) => x.title.includes("Data Center Relocation"))!.category).not.toBe("Transportation");
   });
 
   test("the deadline is stored in the source's own Eastern time (DST aware)", () => {

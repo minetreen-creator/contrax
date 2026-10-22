@@ -377,17 +377,37 @@ export function isTransportationWork(title: string, _full: string): boolean {
   const titleLc = (title || "").toLowerCase();
   if (isDumpTruckLike(titleLc)) return false;
   if (isProductBuy(titleLc) && !hasExplicitTransportationServicePhrase(titleLc)) return false;
-  // Ambulance / patient / medical transport moves people, not freight: the
-  // City of Chandler's "Debt Collection Services for Fire Department Ambulance
-  // Transportation" (az_app, 2026-10-22) was stamped Transportation. Drop those
-  // phrases so the rest of the title still decides ("Freight hauling and
-  // ambulance transport" stays Transportation).
-  return isTransportationService(titleLc.replace(PASSENGER_MEDICAL_TRANSPORT, " "));
+  // Drop the phrases that use a trucking word for something else, so the rest
+  // of the title still decides ("Freight hauling and ambulance transport" stays
+  // Transportation). See NOT_TRUCKING_PHRASES.
+  let text = titleLc;
+  for (const re of NOT_TRUCKING_PHRASES) text = text.replace(re, " ");
+  if (!RELOCATION_MOVE_CONTEXT.test(titleLc)) text = text.replace(/\brelocation\b/g, " ");
+  return isTransportationService(text);
 }
 
-/** Ambulance / patient / medical (incl. non-emergency medical) transport. */
-const PASSENGER_MEDICAL_TRANSPORT =
-  /\b(?:ambulance|patient|medical|non-emergency medical|nemt)\s+transport(?:ation|s)?\b/g;
+/**
+ * Title phrases where "transport(ation)" is not trucking/hauling/moving work
+ * (live az_app + ca_bidnet rows, 2026-10-22):
+ *  - people, not goods: ambulance, patient, medical/NEMT, healthcare, student,
+ *    pupil, school, youth, special-needs, paratransit, passenger, senior/older
+ *    adult, wheelchair, bus and shuttle transportation;
+ *  - planning, engineering and infrastructure: "Transportation Planning",
+ *    "Regional Transportation Impact Fee Study", "Active Transportation Design",
+ *    "Intelligent Transportation System", "Department of Transportation", a
+ *    transportation center, yard, fleet or vehicle.
+ */
+const NOT_TRUCKING_PHRASES: RegExp[] = [
+  /\b(?:ambulance|patient|medical|non-emergency medical|nemt|healthcare|health care|student|pupil|school|youth|special needs|passenger|paratransit|senior|older adults?|wheelchair[- ]accessible|bus|shuttle)\s+transport(?:ation|s)?(?:\s+services?)?\b/g,
+  /\b(?:active|intelligent|regional|public|multimodal|sustainable)\s+transportation\b/g,
+  /\b(?:department|dept\.?|division|bureau|office|agency|authority|commission)\s+of\s+transportation\b/g,
+  /\btransportation\s+(?:planning|plans?|study|studies|impact|safety|engineering|design|improvements?|projects?|programs?|programming|policy|demand|systems?|center|centre|yard|facility|fleet|vehicles?|infrastructure|corridor|master)\b/g,
+];
+
+/** "Relocation" is a moving job only next to what gets moved (office,
+ *  furniture, household goods, records, storage); otherwise it is a utility,
+ *  pipeline, road or rail relocation, i.e. construction. */
+const RELOCATION_MOVE_CONTEXT = /\b(?:furniture|office|household|employee|personnel|records?|files|storage|moving|move|movers?)\b/;
 
 /**
  * The shared ingest `category` stamp (was duplicated, with a bare-"cleaning"
@@ -464,7 +484,8 @@ export function mapCategory(typeValue: string, title: string, description: strin
   // "permit" and "unit", so VDOT snow-removal notices ("how to submit via …
   // Services") were labeled IT Services. Require real IT wording.
   if (isItWork(full)) return "IT Services";
-  if (full.includes("security") || full.includes("guard ")) return "Security";
+  // "Hail Guard" (an HVAC coil part, ca_bidnet 2026-10-22) is not a guard service.
+  if (full.includes("security") || full.replace(/\bhail guards?\b/g, " ").includes("guard ")) return "Security";
   if (full.includes("hvac") || full.includes("heating") || full.includes("cooling") || HVAC_TITLE_WORDS.test(titleLc)) return "HVAC";
   if (full.includes("electrical") || full.includes("plumbing") || ELECTRICAL_WORDS.test(full) || ELECTRICAL_TITLE_WORDS.test(titleLc)) return "Plumbing & Electrical";
 

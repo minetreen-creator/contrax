@@ -5,6 +5,7 @@ import { GrantsPricing } from "~/components/GrantsPricing";
 import { resolveGrantsUpgradeEnabled } from "~/lib/grants-upgrade-signal";
 import { SiteHeader } from "~/components/SiteHeader";
 import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
+import { redirectToCheckout } from "~/lib/checkout";
 import { STARTER_FIRST_MONTH_NOTE, STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 
 const getGrantsPricingData = createServerFn({ method: "GET" }).handler(async () => {
@@ -310,6 +311,13 @@ function PricingPage() {
                 </ul>
                 <a
                   href={plan.href}
+                  onClick={(e) => {
+                    // Pay first, account after (CEO 2026-10-22): monthly Starter
+                    // opens Stripe directly; the link stays as the no-script path.
+                    if (plan.slug !== "starter" || interval !== "month") return;
+                    e.preventDefault();
+                    void redirectToCheckout("starter");
+                  }}
                   className={`block w-full rounded-xl px-6 py-3 text-center text-sm font-semibold transition-all active:scale-[0.98] ${
                     plan.featured
                       ? "bg-amber-500 text-white"

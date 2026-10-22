@@ -72,13 +72,6 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
     // src/routes/api/stripe/create-checkout-session.ts and to
     // handleGrantsBilling below.
     const userId = await resolveUserIdFromCookie(req.headers.get("cookie"));
-    if (userId == null) {
-      return new Response(
-        JSON.stringify({ error: "Sign in to choose a Contrax plan." }),
-        { status: 401, headers: jsonHeaders },
-      );
-    }
-
     const body = (await req.json().catch(() => ({}))) as {
       planTier?: string;
       mode?: "payment" | "subscription";
@@ -86,6 +79,15 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
       interval?: string;
       founding?: boolean;
     };
+    // Except the monthly Starter checkout: pay first, account after (CEO
+    // 2026-10-22, src/lib/starter-offer.ts guestCheckoutAllowed).
+    const { guestCheckoutAllowed } = await import("./src/lib/starter-offer.ts");
+    if (userId == null && !guestCheckoutAllowed(body)) {
+      return new Response(
+        JSON.stringify({ error: "Sign in to choose a Contrax plan." }),
+        { status: 401, headers: jsonHeaders },
+      );
+    }
 
     const validTiers = ["starter", "professional", "agency", "savings_premium"];
     if (!body.planTier || !validTiers.includes(body.planTier)) {
@@ -112,7 +114,7 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
     const normalized = (body.promoCode ?? "").trim().toLowerCase();
     const promoCode = normalized === "vad26" ? "VAD26" : undefined;
     const result = await createCheckoutSession(body.planTier as any, {
-      userId,
+      ...(userId != null ? { userId } : {}),
       mode: body.mode ?? "subscription",
       interval: body.interval === "year" ? "year" : "month",
       ...(promoCode ? { promoCode } : {}),

@@ -562,6 +562,9 @@ export async function createCheckoutSession(
     }
     if (opts.userId != null) {
       metadata.user_id = String(opts.userId);
+    } else {
+      // Pay first, account after (starter-offer.ts guestCheckoutAllowed).
+      metadata.guest_checkout = "true";
     }
     if (isVad) {
       metadata.promo_code = "VAD26";

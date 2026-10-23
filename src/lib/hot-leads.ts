@@ -162,6 +162,13 @@ export type AnnounceTone = "money" | "hot" | "blip";
 export interface Announcement {
   text: string;
   tone: AnnounceTone;
+  /** The visitor a hot-lead line is about (Red Alert's "Say hi"). */
+  vid?: string;
+}
+
+/** Red Alert Mode: a sale, a checkout, or a visitor who just turned hot. */
+export function isRedAlert(a: Announcement): boolean {
+  return a.tone === "money" || a.tone === "hot";
 }
 export interface AnnounceState {
   feedIds: Set<string>;
@@ -199,7 +206,7 @@ export function announcements(
   const money = newFeed.filter((f) => f.money).map((f) => ({ text: feedLine(f), tone: "money" as const }));
   const hot = online
     .filter((v) => v.lead?.level === "hot" && !prev.hotVids.has(v.vid))
-    .map((v) => ({ text: hotLine(v.place, v.path), tone: "hot" as const }));
+    .map((v) => ({ text: hotLine(v.place, v.path), tone: "hot" as const, vid: v.vid }));
   const other = newFeed.filter((f) => !f.money).map((f) => ({ text: feedLine(f), tone: "blip" as const }));
   const arrivals = online
     .filter((v) => !prev.vids.has(v.vid) && !(v.lead?.level === "hot" && !prev.hotVids.has(v.vid)))

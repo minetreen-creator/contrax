@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { announcements, feedLine, hotLine, MAX_LINES_PER_POLL, pageName, radarSpot, scoreLead, visitorLine } from "./hot-leads";
+import { announcements, isRedAlert, feedLine, hotLine, MAX_LINES_PER_POLL, pageName, radarSpot, scoreLead, visitorLine } from "./hot-leads";
 
 const base = { currentPath: "/", pathsHour: ["/"], viewsHour: 1, visitDays: 1, signedIn: false };
 
@@ -88,7 +88,9 @@ describe("announcements", () => {
   test("a visitor already here who turns hot is announced once", () => {
     const first = announcements(null, [], [{ vid: "a", place: null, path: "/radar" }]);
     const turned = announcements(first.state, [], [{ vid: "a", place: null, path: "/pricing", lead: hotLead }]);
-    expect(turned.lines).toEqual([{ text: "Hot lead, on the pricing page. Now's a good time to say hi.", tone: "hot" }]);
+    expect(turned.lines).toEqual([{ text: "Hot lead, on the pricing page. Now's a good time to say hi.", tone: "hot", vid: "a" }]);
+    expect(isRedAlert(turned.lines[0])).toBe(true);
+    expect(isRedAlert({ text: "New visitor, on the homepage.", tone: "blip" })).toBe(false);
   });
   test("a busy poll is capped with a summary line", () => {
     const first = announcements(null, [], []);

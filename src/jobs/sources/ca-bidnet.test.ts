@@ -5,7 +5,11 @@
  * sha256s) and `now` is injected. The ONE fetch the fetch-loop test exercises is
  * stubbed from those same bytes.
  */
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, setDefaultTimeout, test } from "bun:test";
+
+// The fetch-loop tests run the real reader, which waits BIDNET_PAGE_DELAY_MS
+// (3 s, owner 2026-10-23) between pages.
+setDefaultTimeout(30_000);
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { deriveInsertLocationColumns } from "~/lib/location-state";

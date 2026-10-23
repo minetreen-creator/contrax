@@ -62,3 +62,12 @@ export async function planBidnetSources(
     return new Set();
   }
 }
+
+/**
+ * A BidNet refusal (owner 2026-10-23): an HTTP 403/429 from one group means the
+ * site is refusing us right now, so the rest of BidNet waits until the next
+ * day's turn instead of knocking on every remaining group. PURE.
+ */
+export function isBidnetRefusal(errors: readonly string[]): boolean {
+  return errors.some((e) => /\bHTTP (403|429)\b/.test(e));
+}

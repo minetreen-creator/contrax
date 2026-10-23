@@ -5,6 +5,8 @@ import {
   encryptToken,
   exchangeCode,
   fetchBusinessProfile,
+  needsRefresh,
+  refreshTokens,
   signState,
   thumbtackConfig,
   verifyState,
@@ -90,5 +92,33 @@ describe("Connect with Thumbtack (owner 2026-10-22)", () => {
     expect(await fetchBusinessProfile(cfg, "at", down)).toBeNull();
     const ok = (async () => new Response(JSON.stringify({ data: [{ businessID: "b1" }] }), { status: 200 })) as unknown as typeof fetch;
     expect(await fetchBusinessProfile(cfg, "at", ok)).toEqual({ data: [{ businessID: "b1" }] });
+  });
+});
+
+describe("automatic token refresh", () => {
+  const now = Date.parse("2026-10-23T21:00:00Z");
+  test("renews only when the access token has expired or is about to", () => {
+    expect(needsRefresh(null, now)).toBe(false);
+    expect(needsRefresh(new Date(now + 60 * 60_000), now)).toBe(false);
+    expect(needsRefresh(new Date(now + 60_000), now)).toBe(true); // inside the 2-minute margin
+    expect(needsRefresh(new Date(now - 1), now)).toBe(true);
+    expect(needsRefresh("2026-10-23T20:00:00Z", now)).toBe(true);
+    expect(needsRefresh("not a date", now)).toBe(false);
+  });
+
+  test("the refresh request sends the refresh token with client Basic auth", async () => {
+    const cfg = thumbtackConfig({ THUMBTACK_CLIENT_ID: "client-1", THUMBTACK_CLIENT_SECRET: "secret-1" })!;
+    let seen: { url: string; init: RequestInit } | null = null;
+    const fake = (async (url: string, init: RequestInit) => {
+      seen = { url, init };
+      return new Response(JSON.stringify({ access_token: "new-at", refresh_token: "new-rt", expires_in: 3600 }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const t = await refreshTokens(cfg, "old-rt", fake);
+    expect(t.access_token).toBe("new-at");
+    expect(seen!.url).toBe("https://staging-auth.thumbtack.com/oauth2/token");
+    const body = new URLSearchParams(String(seen!.init.body));
+    expect(body.get("grant_type")).toBe("refresh_token");
+    expect(body.get("refresh_token")).toBe("old-rt");
+    expect((seen!.init.headers as Record<string, string>).Authorization).toBe(`Basic ${Buffer.from("client-1:secret-1").toString("base64")}`);
   });
 });

@@ -2,6 +2,8 @@ import { describe, expect, test } from "bun:test";
 import {
   CONTACTED_BY_HAND,
   daysUntil,
+  emailFitsSite,
+  placeIsLocal,
   followupDue,
   outreachEmail,
   validPostalAddress,
@@ -83,5 +85,24 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
   test("the businesses emailed by hand are never emailed again", () => {
     expect(CONTACTED_BY_HAND).toHaveLength(19);
     expect(CONTACTED_BY_HAND.every((e) => e === e.toLowerCase() && e.includes("@"))).toBe(true);
+  });
+
+  test("only addresses that belong to the business are used", () => {
+    expect(emailFitsSite("info@acmecleaning.com", "acmecleaning.com")).toBe(true);
+    expect(emailFitsSite("office@mail.acmecleaning.com", "acmecleaning.com")).toBe(true);
+    expect(emailFitsSite("acmecleaning@gmail.com", "acmecleaning.com")).toBe(true);
+    expect(emailFitsSite("team@latofonts.com", "texasranchlandscaping.com")).toBe(false);
+    expect(emailFitsSite("hello@webdesigner.io", "acmecleaning.com")).toBe(false);
+    expect(emailFitsSite("broken", "acmecleaning.com")).toBe(false);
+  });
+
+  test("a place must be a town, county or agency, not a state or purchasing group", () => {
+    expect(placeIsLocal("Texas")).toBe(false);
+    expect(placeIsLocal("TX")).toBe(false);
+    expect(placeIsLocal("Texas Purchasing Group (BidNet Direct)")).toBe(false);
+    expect(placeIsLocal("")).toBe(false);
+    expect(placeIsLocal("Bigfork, MT")).toBe(true);
+    expect(placeIsLocal("City of Huntsville")).toBe(true);
+    expect(placeIsLocal("Smith Mountain, Virginia")).toBe(true);
   });
 });

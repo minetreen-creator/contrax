@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
-import { outreachOverview, renderContact, sendDrafts, setPostalAddress, skipDraft, suppress } from "~/lib/outreach.server";
+import { outreachOverview, renderContact, sendDrafts, setPostalAddress, skipAllDrafts, skipDraft, suppress } from "~/lib/outreach.server";
 
 /**
  * GET  /api/admin/outreach → today's drafts (with rendered previews), recent
  *                            sends, stats and the mailing address
- * POST /api/admin/outreach → { action: "send", ids } | { action: "skip", id }
+ * POST /api/admin/outreach → { action: "send", ids } | { action: "skip", id } | { action: "skip_all" }
  *                            | { action: "suppress", email } | { action: "address", address }
  * Admin only (owner 2026-10-23; see src/lib/outreach.ts).
  */
@@ -43,6 +43,8 @@ async function post({ request }: { request: Request }) {
       case "skip":
         await skipDraft(Number(body.id));
         return Response.json({ ok: true });
+      case "skip_all":
+        return Response.json({ skipped: await skipAllDrafts("skipped from admin") });
       case "suppress":
         if (typeof body.email !== "string" || !body.email.includes("@")) return Response.json({ error: "Email required" }, { status: 400 });
         await suppress(body.email, "manual");

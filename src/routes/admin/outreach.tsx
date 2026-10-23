@@ -147,6 +147,17 @@ function OutreachPage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-bold text-slate-900">Today's emails</h2>
+            <div className="flex gap-2">
+            <button
+              disabled={busy || !data?.drafts.length}
+              onClick={() => {
+                if (!confirm("Skip every waiting email? None of them will be sent.")) return;
+                act({ action: "skip_all" }, (j) => `Skipped ${j.skipped}.`);
+              }}
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 disabled:opacity-50"
+            >
+              Skip all
+            </button>
             <button
               disabled={busy || !hasAddress || picked.size === 0}
               onClick={() => {
@@ -157,6 +168,7 @@ function OutreachPage() {
             >
               Send selected ({picked.size})
             </button>
+            </div>
           </div>
           {!data ? (
             <SectionLoading message="Loading…" />

@@ -1,3 +1,4 @@
+import { scoreLead } from "~/lib/hot-leads";
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { sql } from "~/db";
@@ -280,6 +281,27 @@ async function handler({ request }: { request: Request }) {
     }
     const people = onlineRows.filter((r) => !scanners.has(r.visitor_id));
 
+    // Hot Lead Radar (owner 2026-10-23): what each visitor did this hour and
+    // how many days they've visited, scored in src/lib/hot-leads.ts.
+    const leadSignals = new Map<string, { paths: string[]; views: number; days: number; signedIn: boolean }>();
+    if (people.length) {
+      try {
+        const sig = (await db`
+          SELECT visitor_id,
+                 ARRAY_AGG(DISTINCT split_part(path, '?', 1)) FILTER (WHERE created_at > NOW() - INTERVAL '60 minutes') AS paths,
+                 COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '60 minutes')::int AS views,
+                 COUNT(DISTINCT (created_at AT TIME ZONE 'America/New_York')::date)::int AS days,
+                 BOOL_OR(user_id IS NOT NULL) AS signed_in
+          FROM page_views
+          WHERE visitor_id = ANY(${people.slice(0, 100).map((r) => r.visitor_id)}) AND created_at > NOW() - INTERVAL '30 days'
+          GROUP BY visitor_id
+        `) as { visitor_id: string; paths: string[] | null; views: number; days: number; signed_in: boolean }[];
+        for (const r of sig) leadSignals.set(r.visitor_id, { paths: r.paths ?? [], views: r.views, days: r.days, signedIn: !!r.signed_in });
+      } catch (err) {
+        console.error("[live-console] lead signals failed:", err);
+      }
+    }
+
     // Up to 100 for the map dots; the list under the count shows the first 12.
     const online: OnlineVisitor[] = people.slice(0, 100).map((r, i) => ({
       visitorKey: `v${i}-${new Date(r.created_at).getTime()}`,
@@ -289,6 +311,16 @@ async function handler({ request }: { request: Request }) {
       point: visitorState(r.region, r.country) ? mapPoint(r.lat == null ? null : Number(r.lat), r.lon == null ? null : Number(r.lon)) : null,
       path: String(r.path).split("?")[0].slice(0, 80),
       at: new Date(r.created_at).toISOString(),
+      lead: (() => {
+        const g = leadSignals.get(r.visitor_id);
+        return scoreLead({
+          currentPath: String(r.path).split("?")[0],
+          pathsHour: g?.paths ?? [String(r.path).split("?")[0]],
+          viewsHour: g?.views ?? 1,
+          visitDays: g?.days ?? 1,
+          signedIn: g?.signedIn ?? false,
+        });
+      })(),
     }));
 
     // Money panel: the last 7 days from the plans to checkout, unique

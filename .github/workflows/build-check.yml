@@ -749,6 +749,8 @@ jobs:
         run: bun test src/lib/outreach.test.ts
       - name: What's Your Town Buying ZIP lookup and town matching (unit, deterministic, zero network)
         run: bun test src/lib/town/town.test.ts
+      - name: Mission Control hot lead scoring and voice announcer lines (unit, deterministic, zero network)
+        run: bun test src/lib/hot-leads.test.ts
       - name: Starter $5 first month offer (unit, deterministic, zero network)
         run: bun test src/lib/starter-offer.test.ts
       - name: Founder live chat rules (unit, deterministic, zero network)

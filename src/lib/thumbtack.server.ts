@@ -170,18 +170,27 @@ export async function fetchBusinessProfile(
   accessToken: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<unknown | null> {
+  return (await readBusinessProfile(cfg, accessToken, fetchImpl)).profile;
+}
+
+/** Like fetchBusinessProfile, plus the HTTP status (0 = network error) so callers can tell a 401 from an outage. Never throws. */
+export async function readBusinessProfile(
+  cfg: ThumbtackConfig,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ status: number; profile: unknown | null }> {
   try {
     const res = await fetchImpl(`${cfg.apiBase}${cfg.businessesPath}`, {
       headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/json" },
     });
     if (!res.ok) {
       console.warn(`[thumbtack] business profile read failed: HTTP ${res.status}`);
-      return null;
+      return { status: res.status, profile: null };
     }
-    return await res.json();
+    return { status: res.status, profile: await res.json() };
   } catch (e) {
     console.warn("[thumbtack] business profile read failed:", e instanceof Error ? e.message : e);
-    return null;
+    return { status: 0, profile: null };
   }
 }
 
@@ -249,29 +258,81 @@ export function needsRefresh(expiresAt: Date | string | null | undefined, now = 
   return Number.isFinite(t) && t - now <= skewMs;
 }
 
-/** Store a refreshed token set. UPDATE only, so a disconnect in between is never undone. */
-async function updateTokens(userId: number, tokens: ThumbtackTokens): Promise<string | null> {
-  const expiresAt = tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null;
-  const access = encryptToken(tokens.access_token);
-  // Thumbtack may rotate the refresh token; keep the old one when it doesn't send a new one.
-  const refresh = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null;
-  await sql()`
-    UPDATE thumbtack_connections SET
-      access_token_enc = ${access},
-      refresh_token_enc = COALESCE(${refresh}, refresh_token_enc),
-      expires_at = ${expiresAt},
-      scopes = COALESCE(${tokens.scope ?? null}, scopes),
-      updated_at = NOW()
-    WHERE user_id = ${userId}`;
-  return expiresAt;
+export interface StoredTokens {
+  access_token_enc: string;
+  refresh_token_enc: string | null;
+  expires_at: Date | string | null;
 }
+
+/**
+ * Where token sets live. The database store is the default; tests pass an
+ * in-memory one (no database, no mock.module).
+ */
+export interface ThumbtackTokenStore {
+  read(userId: number): Promise<StoredTokens | null>;
+  /**
+   * Store a renewed token set only if the row still holds `expectedRefreshEnc`
+   * (compare-and-swap). false = another request renewed first, or the user
+   * disconnected; nothing was written. UPDATE only, so a disconnect is never undone.
+   */
+  swap(userId: number, expectedRefreshEnc: string, tokens: ThumbtackTokens): Promise<{ updated: boolean; expiresAt: string | null }>;
+  saveProfile(userId: number, profile: unknown): Promise<void>;
+}
+
+export const dbTokenStore: ThumbtackTokenStore = {
+  async read(userId) {
+    await ensureTable();
+    const rows = (await sql()`
+      SELECT access_token_enc, refresh_token_enc, expires_at FROM thumbtack_connections WHERE user_id = ${userId}
+    `) as StoredTokens[];
+    return rows[0] ?? null;
+  },
+  async swap(userId, expectedRefreshEnc, tokens) {
+    const expiresAt = tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null;
+    const access = encryptToken(tokens.access_token);
+    // Thumbtack may rotate the refresh token; keep the old one when it doesn't send a new one.
+    const refresh = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null;
+    const rows = (await sql()`
+      UPDATE thumbtack_connections SET
+        access_token_enc = ${access},
+        refresh_token_enc = COALESCE(${refresh}, refresh_token_enc),
+        expires_at = ${expiresAt},
+        scopes = COALESCE(${tokens.scope ?? null}, scopes),
+        updated_at = NOW()
+      WHERE user_id = ${userId} AND refresh_token_enc = ${expectedRefreshEnc}
+      RETURNING user_id`) as { user_id: number }[];
+    return { updated: rows.length > 0, expiresAt };
+  },
+  async saveProfile(userId, profile) {
+    await sql()`UPDATE thumbtack_connections SET profile = ${JSON.stringify(profile)}::jsonb, updated_at = NOW() WHERE user_id = ${userId}`;
+  },
+};
 
 export interface AccessTokenResult {
   accessToken: string;
+  /** Was the token renewed during this call (by this request or one running alongside it)? */
   refreshed: boolean;
-  /** Did Thumbtack send a new refresh token (rotation)? */
+  /** Did Thumbtack issue a new refresh token (rotation)? */
   rotated: boolean;
   expiresAt: string | null;
+}
+
+interface TokenOpts {
+  force?: boolean;
+  fetchImpl?: typeof fetch;
+  store?: ThumbtackTokenStore;
+}
+
+/** Renewals in progress in this server instance, one per user, so parallel calls share one token request. */
+const renewalsInFlight = new Map<number, Promise<AccessTokenResult | null>>();
+
+function fromStored(row: StoredTokens, refreshed: boolean, rotated: boolean): AccessTokenResult {
+  return {
+    accessToken: decryptToken(row.access_token_enc),
+    refreshed,
+    rotated,
+    expiresAt: row.expires_at ? new Date(row.expires_at).toISOString() : null,
+  };
 }
 
 /**
@@ -279,49 +340,73 @@ export interface AccessTokenResult {
  * when it has expired or is about to (or always, with `force`). null when the
  * user has no connection. Throws when a renewal is needed but fails (the user
  * must reconnect).
+ *
+ * Safe under concurrency: parallel calls in one instance share one renewal;
+ * across instances the write is a compare-and-swap on the refresh token, and a
+ * renewal that loses the race (or is refused because another instance already
+ * rotated the refresh token) uses the token the winner stored.
  */
-export async function thumbtackAccessToken(
+export async function thumbtackAccessToken(cfg: ThumbtackConfig, userId: number, opts: TokenOpts = {}): Promise<AccessTokenResult | null> {
+  const store = opts.store ?? dbTokenStore;
+  const row = await store.read(userId);
+  if (!row) return null;
+  if (!opts.force && !needsRefresh(row.expires_at)) return fromStored(row, false, false);
+  if (!row.refresh_token_enc) throw new Error("Thumbtack connection has no refresh token; reconnect to renew it");
+
+  const running = renewalsInFlight.get(userId);
+  if (running) return running;
+  const renewal = renew(cfg, userId, row as StoredTokens & { refresh_token_enc: string }, opts.fetchImpl ?? fetch, store).finally(() =>
+    renewalsInFlight.delete(userId),
+  );
+  renewalsInFlight.set(userId, renewal);
+  return renewal;
+}
+
+async function renew(
   cfg: ThumbtackConfig,
   userId: number,
-  opts: { force?: boolean; fetchImpl?: typeof fetch } = {},
+  row: StoredTokens & { refresh_token_enc: string },
+  fetchImpl: typeof fetch,
+  store: ThumbtackTokenStore,
 ): Promise<AccessTokenResult | null> {
-  await ensureTable();
-  const rows = (await sql()`
-    SELECT access_token_enc, refresh_token_enc, expires_at FROM thumbtack_connections WHERE user_id = ${userId}
-  `) as { access_token_enc: string; refresh_token_enc: string | null; expires_at: Date | string | null }[];
-  const r = rows[0];
-  if (!r) return null;
-  const expiresAt = r.expires_at ? new Date(r.expires_at).toISOString() : null;
-  if (!opts.force && !needsRefresh(r.expires_at)) {
-    return { accessToken: decryptToken(r.access_token_enc), refreshed: false, rotated: false, expiresAt };
+  let tokens: ThumbtackTokens;
+  try {
+    tokens = await refreshTokens(cfg, decryptToken(row.refresh_token_enc), fetchImpl);
+  } catch (e) {
+    // Another instance may have renewed (and rotated) first, retiring the refresh token we used.
+    const latest = await store.read(userId);
+    if (!latest) return null;
+    if (latest.refresh_token_enc !== row.refresh_token_enc && !needsRefresh(latest.expires_at)) return fromStored(latest, true, true);
+    throw e;
   }
-  if (!r.refresh_token_enc) throw new Error("Thumbtack connection has no refresh token; reconnect to renew it");
-  const tokens = await refreshTokens(cfg, decryptToken(r.refresh_token_enc), opts.fetchImpl);
-  const newExpiry = await updateTokens(userId, tokens);
-  return { accessToken: tokens.access_token, refreshed: true, rotated: Boolean(tokens.refresh_token), expiresAt: newExpiry };
+  const { updated, expiresAt } = await store.swap(userId, row.refresh_token_enc, tokens);
+  if (updated) return { accessToken: tokens.access_token, refreshed: true, rotated: Boolean(tokens.refresh_token), expiresAt };
+  // Lost the race (or the user disconnected): use what the winner stored.
+  const latest = await store.read(userId);
+  return latest ? fromStored(latest, true, latest.refresh_token_enc !== row.refresh_token_enc) : null;
 }
 
 /**
  * Re-read the business profile with a current token (renewing first when
  * needed, or always with `forceRefresh`) and store it. A 401 on a token that
- * wasn't just renewed renews once and retries.
+ * wasn't just renewed renews once and retries; other failures (Thumbtack down,
+ * network) don't trigger a renewal.
  */
 export async function refreshBusinessProfile(
   cfg: ThumbtackConfig,
   userId: number,
-  opts: { forceRefresh?: boolean; fetchImpl?: typeof fetch } = {},
+  opts: { forceRefresh?: boolean; fetchImpl?: typeof fetch; store?: ThumbtackTokenStore } = {},
 ): Promise<{ token: AccessTokenResult; profileRead: boolean } | null> {
   const fetchImpl = opts.fetchImpl ?? fetch;
-  let token = await thumbtackAccessToken(cfg, userId, { force: opts.forceRefresh, fetchImpl });
+  const store = opts.store ?? dbTokenStore;
+  let token = await thumbtackAccessToken(cfg, userId, { force: opts.forceRefresh, fetchImpl, store });
   if (!token) return null;
-  let profile = await fetchBusinessProfile(cfg, token.accessToken, fetchImpl);
-  if (profile == null && !token.refreshed) {
-    token = await thumbtackAccessToken(cfg, userId, { force: true, fetchImpl });
+  let read = await readBusinessProfile(cfg, token.accessToken, fetchImpl);
+  if (read.status === 401 && !token.refreshed) {
+    token = await thumbtackAccessToken(cfg, userId, { force: true, fetchImpl, store });
     if (!token) return null;
-    profile = await fetchBusinessProfile(cfg, token.accessToken, fetchImpl);
+    read = await readBusinessProfile(cfg, token.accessToken, fetchImpl);
   }
-  if (profile != null) {
-    await sql()`UPDATE thumbtack_connections SET profile = ${JSON.stringify(profile)}::jsonb, updated_at = NOW() WHERE user_id = ${userId}`;
-  }
-  return { token, profileRead: profile != null };
+  if (read.profile != null) await store.saveProfile(userId, read.profile);
+  return { token, profileRead: read.profile != null };
 }

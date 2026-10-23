@@ -5,6 +5,7 @@ import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { MoneyCounter } from "~/components/MoneyCounter";
 import { NearYouCard } from "~/components/NearYouCard";
+import { TownBuyingCallout } from "~/components/TownBuyingCallout";
 import { OpportunityExplorer } from "~/components/OpportunityExplorer";
 import { ExampleBrief } from "~/components/ExampleBrief";
 
@@ -236,6 +237,8 @@ function Home() {
       {/* "What's open near you?" (owner 2026-10-21): real open-bid count for the
           visitor's state, client-fetched; renders nothing until it has one. */}
       <NearYouCard />
+      {/* "What's Your Town Buying?" (owner 2026-10-23). */}
+      <TownBuyingCallout />
       {/* Shorter homepage (owner 2026-10-17): the stats row folds into the
           money counter, and its "contracts ending" figure replaces the
           separate Contracts Ending Soon box. */}

@@ -16,7 +16,6 @@ import {
   sanitizeHistory,
   simulateFunnel,
   VISUAL_TOOL,
-  type JarvisChannel,
   type JarvisReply,
   type JarvisServerStats,
   type JarvisSnapshot,
@@ -26,8 +25,7 @@ import {
 } from "~/lib/jarvis";
 
 /**
- * Jarvis's brain (src/lib/jarvis.ts), shared by Mission Control
- * (/api/admin/jarvis) and the phone line (/api/phone/jarvis). Answers with
+ * Jarvis's brain (src/lib/jarvis.ts) for /api/admin/jarvis. Answers with
  * OpenAI function calling: the model sees the console's data plus today's
  * counts, and can look up more through the read-only tools below.
  */
@@ -290,19 +288,6 @@ async function simBaseline(): Promise<SimBaseline> {
   };
 }
 
-/** Visitors seen in the last 5 minutes (the phone has no Mission Control page to ask). */
-export async function onlineCount(): Promise<number> {
-  try {
-    const [r] = (await sql().query(
-      `SELECT COUNT(DISTINCT visitor_id)::int AS n FROM page_views
-       WHERE created_at > NOW() - INTERVAL '5 minutes' AND visitor_id IS NOT NULL AND path NOT LIKE '/admin%' AND ${human()}`,
-    )) as { n: number }[];
-    return Number(r?.n ?? 0);
-  } catch {
-    return 0;
-  }
-}
-
 /** What a display shows: the server's own lookup, never the model's numbers. */
 export interface JarvisDisplay {
   kind: JarvisVisual | "simulation";
@@ -313,7 +298,7 @@ export interface JarvisDisplay {
 const SORRY = "My apologies, sir. I couldn't reach my thinking circuits just now. Try me again in a moment.";
 
 /** One question in, Jarvis's reply (and a display for the console) out. */
-export async function askJarvis(input: { question: string; snapshot: unknown; history: unknown; channel: JarvisChannel }): Promise<JarvisReply & { visual?: JarvisDisplay }> {
+export async function askJarvis(input: { question: string; snapshot: unknown; history: unknown }): Promise<JarvisReply & { visual?: JarvisDisplay }> {
   const question = input.question.trim().slice(0, MAX_QUESTION_CHARS);
   const snapshot = (input.snapshot && typeof input.snapshot === "object" ? input.snapshot : {}) as JarvisSnapshot;
   const online = Array.isArray(snapshot.online) ? snapshot.online.slice(0, 20) : [];
@@ -325,7 +310,7 @@ export async function askJarvis(input: { question: string; snapshot: unknown; hi
     money: snapshot.money ?? null,
   };
   const messages: ChatMsg[] = [
-    { role: "system", content: jarvisPrompt(safe, await serverStats(), input.channel) },
+    { role: "system", content: jarvisPrompt(safe, await serverStats()) },
     ...sanitizeHistory(input.history),
     { role: "user", content: question },
   ];
@@ -343,7 +328,6 @@ export async function askJarvis(input: { question: string; snapshot: unknown; hi
     out = await answer(FALLBACK_MODEL, [...messages]).catch(() => ({ raw: "", sim: null }));
   }
   const reply = parseJarvisReply(out.raw, new Set(online.map((v) => String(v.vid))));
-  if (input.channel === "phone") return { say: reply.say, action: null };
   // "Run a simulation" (owner 2026-10-23): the projection goes up on screen.
   if (out.sim) return { say: reply.say, action: null, visual: { kind: "simulation", days: 30, rows: out.sim } };
   // "Show me…" (owner 2026-10-23): the display's numbers come from the same

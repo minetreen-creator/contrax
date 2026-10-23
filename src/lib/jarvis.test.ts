@@ -132,14 +132,3 @@ describe("simulateFunnel (what if)", () => {
     expect(simulateFunnel({ ...base, days: 0, visitors: 0, searched: 0 }, {}).today.signups).toBe(0);
   });
 });
-
-describe("phone prompt", () => {
-  test("the phone has no actions or displays", () => {
-    const stats = { now: "Friday", visitorsToday: 1, visitorsYesterday: 2, week: null, outreach: null };
-    const snap = { onlineCount: 0, online: [], feed: [], trials: [], money: null };
-    const phone = jarvisPrompt(snap, stats, "phone");
-    expect(phone).toContain("on the phone");
-    expect(phone).not.toContain("use a show action");
-    expect(jarvisPrompt(snap, stats)).toContain("use a show action");
-  });
-});

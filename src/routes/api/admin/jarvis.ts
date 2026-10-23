@@ -15,7 +15,7 @@ async function handler({ request }: { request: Request }) {
   const body = (await request.json().catch(() => ({}))) as { question?: unknown; snapshot?: unknown; history?: unknown };
   const question = String(body.question ?? "").trim();
   if (!question) return Response.json({ error: "Ask me something" }, { status: 400 });
-  return Response.json(await askJarvis({ question, snapshot: body.snapshot, history: body.history, channel: "console" }));
+  return Response.json(await askJarvis({ question, snapshot: body.snapshot, history: body.history }));
 }
 
 /** GET: the counts for the "wake up" boot sequence (no AI call). */

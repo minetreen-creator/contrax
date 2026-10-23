@@ -253,6 +253,8 @@ function ThumbtackSection() {
   const [state, setState] = useState<{ available: boolean; connected: boolean; connectedAt: string | null } | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
+  const [check, setCheck] = useState<Record<string, unknown> | null>(null);
+  const [checking, setChecking] = useState(false);
 
   useEffect(() => {
     const status = new URLSearchParams(window.location.search).get("thumbtack");
@@ -275,6 +277,19 @@ function ThumbtackSection() {
       }
     } finally {
       setBusy(false);
+    }
+  };
+
+  // Proves automatic token refresh (Thumbtack PINT-4484): renews the token now and re-reads the profile with it.
+  const testRefresh = async () => {
+    setChecking(true);
+    try {
+      const r = await fetch("/api/thumbtack/refresh-check", { method: "POST" });
+      setCheck(await r.json().catch(() => ({ error: `HTTP ${r.status}` })));
+    } catch (e) {
+      setCheck({ error: e instanceof Error ? e.message : "Request failed" });
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -306,6 +321,37 @@ function ThumbtackSection() {
         <p className="mt-3 text-xs text-slate-400">Connected {new Date(state.connectedAt).toLocaleDateString()}. We read only your business profile, never leads or messages.</p>
       )}
       {notice && <p className="mt-3 text-sm text-slate-700">{notice}</p>}
+      {state.connected && (
+        <div className="mt-4 border-t border-slate-100 pt-4">
+          <button
+            type="button"
+            disabled={checking}
+            onClick={testRefresh}
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+          >
+            {checking ? "Testing…" : "Test token refresh"}
+          </button>
+          {check && (
+            <div className="mt-3 rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+              <p className={`mb-2 font-semibold ${check.refreshed && check.profileReadWithNewToken ? "text-emerald-700" : "text-red-700"}`}>
+                {check.refreshed && check.profileReadWithNewToken
+                  ? "Token refresh works: renewed and used the new token."
+                  : check.connected === false
+                    ? "No Thumbtack connection found."
+                    : "Token refresh check failed."}
+              </p>
+              <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1 break-all">
+                {Object.entries(check).map(([k, v]) => (
+                  <div key={k} className="contents">
+                    <dt className="text-slate-500">{k}</dt>
+                    <dd className="font-mono">{String(v)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

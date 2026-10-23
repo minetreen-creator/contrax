@@ -28,7 +28,7 @@ interface Place {
   address: string | null;
 }
 
-async function searchPlaces(key: string, query: string): Promise<Place[]> {
+export async function searchPlaces(key: string, query: string): Promise<Place[]> {
   const res = await fetch(PLACES_URL, {
     method: "POST",
     headers: {
@@ -59,7 +59,7 @@ async function fetchPage(url: string): Promise<string> {
 }
 
 /** Emails published on the homepage, or failing that on up to two contact/about pages. */
-async function siteEmails(website: string): Promise<{ emails: string[]; page: string }> {
+export async function siteEmails(website: string): Promise<{ emails: string[]; page: string }> {
   const host = siteHost(website);
   const home = await fetchPage(website);
   const found = extractEmails(home, host);

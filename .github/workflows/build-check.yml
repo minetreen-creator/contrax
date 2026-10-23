@@ -745,6 +745,8 @@ jobs:
         run: bun test src/lib/path-checks.test.ts
       - name: Prospect finder email extraction (unit, deterministic, zero network)
         run: bun test src/lib/prospect-finder.test.ts
+      - name: Daily bid outreach emails and unsubscribe links (unit, deterministic, zero network)
+        run: bun test src/lib/outreach.test.ts
       - name: Starter $5 first month offer (unit, deterministic, zero network)
         run: bun test src/lib/starter-offer.test.ts
       - name: Founder live chat rules (unit, deterministic, zero network)

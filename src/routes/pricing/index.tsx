@@ -215,10 +215,10 @@ function PricingPage() {
           <div className="mx-auto max-w-2xl text-center">
             <h1 className="text-sm font-semibold uppercase tracking-widest text-amber-600">Pricing</h1>
             <h2 className="mt-3 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Plans for every stage of growth
+              Never miss a bid in your trade again
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Every new account starts with a 7-day Professional trial, no credit card. When it ends, choose the plan that fits or keep searching on free Basic. No long-term contracts required.
+              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM, for $5 your first month. Every new account also gets a 7-day Professional trial, no credit card. Cancel anytime.
             </p>
           </div>
 
@@ -246,9 +246,11 @@ function PricingPage() {
             </div>
           </div>
 
-          {/* Plan cards */}
-          <div className="mx-auto mt-10 grid max-w-6xl gap-8 md:grid-cols-3">
-            {plans.map((plan) => (
+          {/* Plan cards. Owner 2026-10-23: two cards, Starter first, so the page
+              leads with one easy choice; Agency stays in `plans` (structured
+              data, checkout) and is linked under "Also available". */}
+          <div className="mx-auto mt-10 grid max-w-4xl gap-8 md:grid-cols-2">
+            {plans.filter((plan) => plan.slug !== "agency").map((plan) => (
               <div
                 key={plan.name}
                 className={`relative flex flex-col rounded-2xl border bg-white p-8 shadow-sm transition-all hover:shadow-lg ${
@@ -339,7 +341,7 @@ function PricingPage() {
           </p>
           <p className="mt-3 text-center text-sm text-gray-500">
             Also available:{" "}
-            <a href="/bid-scout?source=pricing" className="font-medium text-amber-600 hover:text-amber-500">Bid Scout</a> ($99/month, five handpicked bids every Friday) ·{" "}
+            <a href="/bid-scout?source=pricing" className="font-medium text-amber-600 hover:text-amber-500">Bid Scout</a> ($99/month, five handpicked bids every Friday, done for you) ·{" "}
             <a href="/bid-fit-review" className="font-medium text-amber-600 hover:text-amber-500">Bid Fit Review</a> ($49 once) ·{" "}
             <a href="/signup?plan=agency" className="font-medium text-amber-600 hover:text-amber-500">Agency</a> ($199/month, for teams and consultants) ·{" "}
             <a href="#grants" className="font-medium text-amber-600 hover:text-amber-500">Contrax Grants</a> (free for verified nonprofits) ·{" "}

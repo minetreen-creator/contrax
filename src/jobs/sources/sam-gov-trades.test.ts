@@ -22,6 +22,7 @@ import {
   JANITORIAL_TRADE_FILTERS,
   SAM_TRADE_FILTERS,
   TRUCKING_TRADE_FILTERS,
+  VA_IT_TRADE_FILTERS,
   TradeResponseShapeError,
   buildTradeSearchUrl,
   fetchTradeFilter,
@@ -70,7 +71,7 @@ function pageFetcher(page: any) {
 
 describe("R1 — the structured filters the API actually honours", () => {
   test("every registered filter is valid and the names are unique", () => {
-    expect(SAM_TRADE_FILTERS.length).toBe(JANITORIAL_TRADE_FILTERS.length + TRUCKING_TRADE_FILTERS.length);
+    expect(SAM_TRADE_FILTERS.length).toBe(JANITORIAL_TRADE_FILTERS.length + TRUCKING_TRADE_FILTERS.length + VA_IT_TRADE_FILTERS.length);
     expect(new Set(SAM_TRADE_FILTERS.map((f) => f.name)).size).toBe(SAM_TRADE_FILTERS.length);
     // janitorial = NAICS 561720 + PSC S201 (the CORRECTED mapping — live SAM data
     // shows S201 is the janitorial set and R602 is courier/delivery)
@@ -671,5 +672,24 @@ describe("FIX ④ — zero-yield passes report WHY, never a success-looking zero
         skip_reasons: {},
       }).outcome,
     ).toBe("ok");
+  });
+});
+
+describe("Virginia IT passes (owner 2026-10-23)", () => {
+  test("one pass per IT NAICS code, each asking SAM for Virginia only", () => {
+    expect(VA_IT_TRADE_FILTERS.map((f) => f.code)).toEqual(["541511", "541512", "541513", "541519", "518210"]);
+    for (const f of VA_IT_TRADE_FILTERS) {
+      expect(f.trade).toBe("it");
+      expect(f.state).toBe("VA");
+      const url = buildTradeSearchUrl(f, 0);
+      expect(url).toContain(`&naics=${f.code}`);
+      expect(url).toContain("&state=VA");
+      expect(url).not.toContain("placeOfPerformance.state");
+    }
+  });
+  test("nationwide passes send no state filter", () => {
+    for (const f of [...JANITORIAL_TRADE_FILTERS, ...TRUCKING_TRADE_FILTERS]) {
+      expect(buildTradeSearchUrl(f, 0)).not.toContain("&state=");
+    }
   });
 });

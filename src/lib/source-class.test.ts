@@ -77,7 +77,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + BidNet Direct's Texas, Ohio and Pennsylvania Purchasing Groups
     //   (tx_bidnet, oh_bidnet, pa_bidnet), 2026-10-22 (179 → 182).
     // + the 38 remaining BidNet Direct purchasing groups (<st>_bidnet), 2026-10-22 (182 → 220).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(220);
+    // + the five Virginia IT SAM.gov passes (sam_naics_*_va), 2026-10-23 (220 → 225).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(225);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -178,10 +179,11 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
   });
 
   test("the derived federal set is the policy's 66 labels", () => {
-    // 66 + the two USPS mail-route trade passes (owner 2026-10-16).
-    expect(FEDERAL_LABELS.size).toBe(68);
+    // 66 + the two USPS mail-route trade passes (owner 2026-10-16) + the five
+    // Virginia IT passes (owner 2026-10-23).
+    expect(FEDERAL_LABELS.size).toBe(73);
     // cert-matching derives FEDERAL_SOURCE_LABELS from FEDERAL_TRADE + FEDERAL
-    expect(FEDERAL_SOURCE_LABELS.size).toBe(68);
+    expect(FEDERAL_SOURCE_LABELS.size).toBe(73);
     for (const label of FEDERAL_LABELS) expect(FEDERAL_SOURCE_LABELS.has(label)).toBe(true);
     // …and the 53 SAM-derived "state" collectors are inside it (owner ruling f)
     for (const label of [...DOORS, "cities", "va_evirginia"]) {
@@ -308,8 +310,9 @@ describe("the certificate rule-3 defect — BEFORE and AFTER (owner ruling f)", 
     // SUPERSET contract: the window's deny-list must cover the 66 federal + the
     // 5 internal labels, so the JS rule (authoritative) never sees a federal
     // NULL row it would have to drop one by one.
-    // 68 federal (incl. the two USPS mail-route passes, 2026-10-16) + 5 internal.
-    expect(NON_STATE_LOCAL_SOURCES.size).toBe(73);
+    // 68 federal (incl. the two USPS mail-route passes, 2026-10-16) + 5 internal
+    // + the five Virginia IT passes (2026-10-23).
+    expect(NON_STATE_LOCAL_SOURCES.size).toBe(78);
     for (const label of FEDERAL_SOURCE_LABELS) expect(NON_STATE_LOCAL_SOURCES.has(label)).toBe(true);
     for (const label of INTERNAL_SOURCE_LABELS) expect(NON_STATE_LOCAL_SOURCES.has(label)).toBe(true);
     expect(NON_STATE_LOCAL_SOURCES.has("pennbid")).toBe(false);

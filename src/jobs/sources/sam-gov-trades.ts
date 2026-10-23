@@ -88,7 +88,9 @@ export interface SamTradeFilter {
   /** `naics` = 6 digits, `psc` = letter + 3 digits. Validated at module load. */
   code: string;
   /** The owner-facing trade this pass serves. */
-  trade: "janitorial" | "trucking";
+  trade: "janitorial" | "trucking" | "it";
+  /** Two-letter state: SAM's honoured `state=` filter (see sam-gov.ts buildSamSearchUrl). Nationwide when absent. */
+  state?: string;
   /** Human label (run-log / PR description). */
   label: string;
 }
@@ -133,9 +135,27 @@ export const TRUCKING_TRADE_FILTERS: SamTradeFilter[] = [
   { name: "sam_psc_v119", kind: "psc", code: "V119", trade: "trucking", label: "Other Motor Transportation (USPS mail routes)" },
 ];
 
+/**
+ * VIRGINIA IT (owner 2026-10-23: "add the SAM.gov IT pulls for Virginia"). The
+ * Virginia IT services page listed 11 open bids although Northern Virginia is
+ * the country's biggest federal IT market: federal IT notices reached Contrax
+ * only through the national recency window and the state keyword doors. These
+ * passes ask SAM for each IT NAICS code with `state=VA` (live 2026-10-16:
+ * `state=VA` returns Virginia rows only). No purchased-service gate: hardware
+ * and license buys are real work for IT resellers.
+ */
+export const VA_IT_TRADE_FILTERS: SamTradeFilter[] = [
+  { name: "sam_naics_541511_va", kind: "naics", code: "541511", trade: "it", state: "VA", label: "Custom Computer Programming (Virginia)" },
+  { name: "sam_naics_541512_va", kind: "naics", code: "541512", trade: "it", state: "VA", label: "Computer Systems Design (Virginia)" },
+  { name: "sam_naics_541513_va", kind: "naics", code: "541513", trade: "it", state: "VA", label: "Computer Facilities Management (Virginia)" },
+  { name: "sam_naics_541519_va", kind: "naics", code: "541519", trade: "it", state: "VA", label: "Other Computer Related Services (Virginia)" },
+  { name: "sam_naics_518210_va", kind: "naics", code: "518210", trade: "it", state: "VA", label: "Computing Infrastructure, Data Processing and Hosting (Virginia)" },
+];
+
 export const SAM_TRADE_FILTERS: SamTradeFilter[] = [
   ...JANITORIAL_TRADE_FILTERS,
   ...TRUCKING_TRADE_FILTERS,
+  ...VA_IT_TRADE_FILTERS,
 ];
 
 /** Fail fast on a malformed code or a duplicate source name (module load). */
@@ -149,6 +169,9 @@ function validateTradeFilters(filters: SamTradeFilter[]): void {
     }
     if (seen.has(f.name)) {
       throw new Error(`[sam-gov-trades] duplicate source name: "${f.name}"`);
+    }
+    if (f.state !== undefined && !/^[A-Z]{2}$/.test(f.state)) {
+      throw new Error(`[sam-gov-trades] bad state for ${f.name}: "${f.state}"`);
     }
     // QA re-verification N2 (PR #414): every pass's `name` IS the stored `source`
     // value, so it must be registered as a FEDERAL source label. Otherwise the
@@ -179,7 +202,8 @@ export function buildTradeSearchUrl(filter: SamTradeFilter, page: number): strin
   return (
     `https://sam.gov/api/prod/sgs/v1/search/?page=${page}&size=${TRADE_PAGE_SIZE}` +
     `&sort=-modifiedDate&mode=opportunities&q=&is_active=true` +
-    `&${param}=${encodeURIComponent(filter.code)}`
+    `&${param}=${encodeURIComponent(filter.code)}` +
+    (filter.state ? `&state=${encodeURIComponent(filter.state)}` : "")
   );
 }
 
@@ -380,7 +404,7 @@ export async function fetchTradeFilterDetailed(
         // stores (identical extraction: item.title + stripped description).
         const title = String(item?.title ?? "");
         const description = stripHtml(item?.descriptions?.[0]?.content || "").substring(0, 2000);
-        const exclusion = tradePassExclusion(filter.trade, title, description);
+        const exclusion = filter.trade === "it" ? null : tradePassExclusion(filter.trade, title, description);
         if (exclusion) {
           skipped[exclusion] = (skipped[exclusion] ?? 0) + 1;
           skippedRows.push({

@@ -6,7 +6,6 @@ import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { MoneyCounter } from "~/components/MoneyCounter";
 import { NearYouCard } from "~/components/NearYouCard";
 import { TownBuyingCallout } from "~/components/TownBuyingCallout";
-import { OpportunityExplorer } from "~/components/OpportunityExplorer";
 import { ExampleBrief } from "~/components/ExampleBrief";
 
 import { trackEvent } from "~/lib/track";
@@ -176,30 +175,6 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-// ── Official Partnership Announcement (Veterans Against Diabetes) ──────────────
-// Static, self-contained announcement band rendered just above the footer
-// (moved from the top of the page, owner 2026-10-04). Pure presentational copy — no buttons, no
-// checkout wiring, no pricing/gating changes.
-function PartnershipBanner() {
-  return (
-    <section className="border-b border-amber-500/20 bg-slate-900">
-      <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-x-2 gap-y-1 px-4 py-2.5 text-center sm:px-6">
-        <p className="text-xs font-medium leading-snug text-slate-200 sm:text-sm">
-          <span className="font-bold text-amber-300">Official Partnership:</span>{" "}
-          Veterans Against Diabetes members get ~25% off paid plans for their first
-          12 months —{" "}
-          <a
-            href="/vad"
-            className="font-semibold text-amber-300 underline decoration-amber-400/40 underline-offset-2 transition-colors hover:text-amber-200"
-          >
-            Learn more →
-          </a>
-        </p>
-      </div>
-    </section>
-  );
-}
-
 // ── Page Component ────────────────────────────────────────────────────────────
 
 // Shared page tokens (2026 redesign). Light values first, dark via `dark:`.
@@ -243,13 +218,12 @@ function Home() {
           money counter, and its "contracts ending" figure replaces the
           separate Contracts Ending Soon box. */}
       <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
-      <OpportunityExplorer />
       <HowItWorks />
-      <LaunchpadPromo />
       <BidScoutCallout />
-      <MoreFromContrax />
-      {/* Moved from the very top (owner 2026-10-04) so the headline is the first thing people read. */}
-      <PartnershipBanner />
+      {/* Shorter homepage (owner 2026-10-23): the Launchpad section and the
+          "More from Contrax" cards fold into one strip of links; the Opportunity
+          Explorer and the partnership banner left the page (their pages stay). */}
+      <FreeToolsStrip />
       <Footer />
     </div>
   );
@@ -301,79 +275,30 @@ function HowItWorks() {
   );
 }
 
-// From the CEO and Contrax Grants, one line each (owner 2026-10-17: shorter
-// homepage; the full pages are one click away).
-function MoreFromContrax() {
-  const items = [
-    { label: "From the CEO", body: "Nearly 3× more federal bids: 5,700+ open, updated every night from SAM.gov.", href: "/from-the-ceo", cta: "See what's new" },
-    { label: "Contrax Grants", body: "Find federal grants your organization qualifies for. No cost for verified nonprofits.", href: "/grants", cta: "Search grants" },
-  ];
-  return (
-    <section aria-label="More from Contrax" className="mx-auto mt-12 mb-12 grid max-w-[1120px] gap-4 px-4 sm:px-6 md:grid-cols-2">
-      {items.map((it) => (
-        <a key={it.label} href={it.href} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-blue-400 dark:border-slate-700 dark:bg-slate-900">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">{it.label}</p>
-            <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{it.body}</p>
-          </div>
-          <span className="shrink-0 text-sm font-semibold text-blue-700 dark:text-blue-300">{it.cta} →</span>
-        </a>
-      ))}
-    </section>
-  );
-}
-
-// Contrax Launchpad (owner 2026-10-17): the courses and the Launchpad tools
-// presented as one section under the Launchpad name.
-const LAUNCHPAD_TOOLS = [
-  { title: "Capability statement builder", body: "Build it with a live preview, then print it, save a PDF or email it to yourself." },
-  { title: "Registration checklist", body: "Track the registrations, records and certifications your buyers require." },
-  { title: "Bid plan", body: "Size up a real opportunity, decide to bid or pass, and set your next step." },
-];
-const LAUNCHPAD_COURSES = [
-  { level: "Introductory · 15 minutes", title: "Government Contracting Basics", body: "Five short lessons on finding bids, set-asides and sizing up opportunities.", href: "/learn/government-contracting", accent: "text-amber-700 dark:text-amber-300", button: "bg-amber-500 text-slate-950 hover:bg-amber-400" },
-  { level: "Intermediate · About 65 minutes", title: "Preparing a Government Contract Bid", body: "Eight lessons on capability statements, compliance, pricing and submission.", href: "/learn/intermediate-government-contracting", accent: "text-blue-700 dark:text-blue-300", button: "bg-blue-700 text-white hover:bg-blue-800" },
-  { level: "Advanced · About 70 minutes", title: "Government Contracting Strategy and Management", body: "Six lessons on pursuit strategy, teaming, pricing risk and contract performance.", href: "/learn/advanced-government-contracting", accent: "text-emerald-700 dark:text-emerald-300", button: "bg-emerald-700 text-white hover:bg-emerald-800" },
+// Free courses and tools, one strip (owner 2026-10-23: shorter homepage).
+const FREE_TOOLS = [
+  { label: "Free courses", body: "Three self-paced courses with certificates", href: "/learn" },
+  { label: "Contrax Launchpad", body: "Capability statement builder, checklists, bid plan", href: "/launchpad" },
+  { label: "What's your town buying?", body: "Open contracts near any ZIP code", href: "/town" },
+  { label: "Contrax Grants", body: "Federal grants, free for verified nonprofits", href: "/grants" },
 ];
 
-function LaunchpadPromo() {
+function FreeToolsStrip() {
   return (
-    <section aria-labelledby="launchpad-title" className="mx-auto mt-12 max-w-[1120px] px-4 sm:px-6">
-      <div className="overflow-hidden rounded-2xl border border-[#dde3ec] bg-white dark:border-[#24334f] dark:bg-slate-900">
-        <div className="bg-gradient-to-br from-[#0b1f45] via-[#12357a] to-[#0b1f45] p-6 text-white sm:p-8">
-          <p className="text-xs font-bold uppercase tracking-widest text-amber-300">Free · Self-paced · No account needed</p>
-          <h2 id="launchpad-title" className="mt-2 text-3xl font-bold">Contrax Launchpad</h2>
-          <p className="mt-3 max-w-2xl text-base leading-relaxed text-slate-200">
-            Everything you need to go after your first government contract, in one place: three courses with completion
-            certificates, a capability statement builder, a registration checklist and a bid plan.
-          </p>
-          <a href="/launchpad" onClick={() => trackEvent("launchpad_home_click")} className="mt-5 inline-flex rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 hover:brightness-105 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-300">
-            Open Contrax Launchpad →
+    <section aria-label="Free courses and tools" className="mx-auto mt-12 mb-12 max-w-[1120px] px-4 sm:px-6">
+      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Free from Contrax</p>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {FREE_TOOLS.map((t) => (
+          <a
+            key={t.href}
+            href={t.href}
+            onClick={() => trackEvent("home_free_tool_click", t.href)}
+            className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-blue-400 dark:border-slate-700 dark:bg-slate-900"
+          >
+            <p className="font-bold text-slate-900 dark:text-white">{t.label} →</p>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{t.body}</p>
           </a>
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {LAUNCHPAD_TOOLS.map((t) => (
-              <div key={t.title} className="rounded-xl border border-white/15 bg-white/5 p-4">
-                <h3 className="font-bold text-white">{t.title}</h3>
-                <p className="mt-1 text-sm leading-relaxed text-slate-300">{t.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="p-6 sm:p-8">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Courses</h3>
-          <div className="mt-4 grid gap-5 lg:grid-cols-3">
-            {LAUNCHPAD_COURSES.map((c) => (
-              <article key={c.href} className="flex flex-col rounded-xl border border-slate-200 p-5 dark:border-slate-700">
-                <p className={`text-xs font-bold uppercase tracking-wide ${c.accent}`}>{c.level}</p>
-                <h4 className="mt-2 text-lg font-bold text-slate-900 dark:text-white">{c.title}</h4>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-slate-700 dark:text-slate-300">{c.body} Includes quizzes and a printable certificate.</p>
-                <a href={c.href} aria-label={`Start course: ${c.title}`} className={`mt-4 self-start rounded-xl px-5 py-3 text-sm font-bold transition ${c.button}`}>
-                  Start course →
-                </a>
-              </article>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
     </section>
   );

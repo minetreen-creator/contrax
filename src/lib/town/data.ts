@@ -28,9 +28,31 @@ export interface TownData {
   stateOpen: number;
 }
 
-let zipTable: ZipTable | null = null;
+/**
+ * The ZIP table (41,689 ZIPs, ~1.6 MB) is a static file, public/data/town-zips.json,
+ * fetched once per server instance from the site serving this request. Bundling
+ * it pushed the render function past its 12 MB ceiling.
+ */
+let zipTable: Promise<ZipTable> | null = null;
 async function zips(): Promise<ZipTable> {
-  if (!zipTable) zipTable = (await import("./zips.json")).default as unknown as ZipTable;
+  if (!zipTable) {
+    zipTable = (async () => {
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const here = new URL(getRequest().url).origin;
+      for (const origin of [...new Set([here, "https://www.contrax.company"])]) {
+        try {
+          const res = await fetch(`${origin}/data/town-zips.json`, { signal: AbortSignal.timeout(10_000) });
+          if (res.ok) return (await res.json()) as ZipTable;
+        } catch {
+          /* try the next origin */
+        }
+      }
+      throw new Error("town-zips.json unavailable");
+    })();
+    zipTable.catch(() => {
+      zipTable = null;
+    });
+  }
   return zipTable;
 }
 

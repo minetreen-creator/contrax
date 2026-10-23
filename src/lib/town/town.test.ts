@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import zipsJson from "./zips.json";
+import { readFileSync } from "node:fs";
 import { categoryEmoji, lookupZip, milesBetween, nearbyTowns, normalizeZip, shareText, townRegex, type ZipTable } from "./town";
 
-const zips = zipsJson as unknown as ZipTable;
+const zips = JSON.parse(readFileSync("public/data/town-zips.json", "utf8")) as ZipTable;
 
 describe("What's Your Town Buying? (owner 2026-10-23)", () => {
   test("ZIP input is normalized; ZIP+4 accepted, junk rejected", () => {

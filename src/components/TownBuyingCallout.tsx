@@ -6,8 +6,8 @@ import { TownZipForm } from "~/components/TownZipForm";
  */
 export function TownBuyingCallout() {
   return (
-    <section aria-labelledby="town-buying-title" className="mx-auto mt-12 max-w-[1120px] px-4 sm:px-6">
-      <div className="rounded-3xl bg-gradient-to-br from-[#0a1f44] to-[#1d4f99] px-6 py-10 text-center text-white shadow-xl sm:px-10">
+    <section aria-labelledby="town-buying-title" className="mx-auto mt-4 max-w-[1120px] px-4 sm:px-6">
+      <div className="rounded-3xl bg-gradient-to-br from-[#0a1f44] to-[#1d4f99] px-6 py-8 text-center text-white shadow-xl sm:px-10">
         <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">New · Free · No signup</p>
         <h2 id="town-buying-title" className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
           What&apos;s your town <span className="text-amber-400">buying?</span> 👀

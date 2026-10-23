@@ -8,8 +8,8 @@
  * Schools, "Chesterfield, VA"…), in that town's state. Statewide bids are
  * counted separately and never presented as local.
  *
- * PURE: ZIP data comes in as an argument (zips.json, from the BSD-licensed
- * `zipcodes` package; see ZIPS-LICENSE.txt).
+ * PURE: ZIP data comes in as an argument (public/data/town-zips.json, from the
+ * BSD-licensed `zipcodes` package; see public/data/town-zips-LICENSE.txt).
  */
 
 /** zip → [town, state, lat, lon] */

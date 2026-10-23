@@ -136,6 +136,13 @@ export const FEDERAL_TRADE_LABELS: readonly string[] = [
   "sam_psc_r602",
   "sam_naics_491110",
   "sam_psc_v119",
+  // Owner 2026-10-23 ("add the SAM.gov IT pulls for Virginia"): the IT NAICS
+  // codes, filtered to Virginia (state=VA).
+  "sam_naics_541511_va",
+  "sam_naics_541512_va",
+  "sam_naics_541513_va",
+  "sam_naics_541519_va",
+  "sam_naics_518210_va",
 ];
 
 /**

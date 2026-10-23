@@ -642,8 +642,9 @@ describe("QA N1/F8 — the Radar DEFAULT (strong) decision applies the purchased
 // ─────────────────────────────────────────────────────────────────────────────
 describe("QA N2 — the 11 new federal trade labels are federal, not state/local", () => {
   test("every registered trade pass is a registered FEDERAL source label", () => {
-    // 11 + the two USPS mail-route passes (owner 2026-10-16).
-    expect(SAM_TRADE_FILTERS.length).toBe(13);
+    // 11 + the two USPS mail-route passes (owner 2026-10-16) + the five
+    // Virginia IT passes (owner 2026-10-23).
+    expect(SAM_TRADE_FILTERS.length).toBe(18);
     for (const f of SAM_TRADE_FILTERS) {
       expect(FEDERAL_TRADE_SOURCE_LABELS).toContain(f.name);
       expect(NON_STATE_LOCAL_SOURCES.has(f.name)).toBe(true);

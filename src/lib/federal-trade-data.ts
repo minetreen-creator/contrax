@@ -43,9 +43,20 @@ export const RECOMPETE_ACTIVITY_YEARS = 4;
  */
 const CONSTRUCTION_NAICS = ["236210", "236220", "237110", "237310", "237990", "238990"];
 
+/**
+ * Cybersecurity is a phrase-only trade in Radar (owner 2026-10-23); agencies
+ * buy it under the IT services codes.
+ */
+const CYBERSECURITY_NAICS = ["541512", "541519"];
+
+const FIXED_TRADE_NAICS: Readonly<Record<string, readonly string[]>> = {
+  construction: CONSTRUCTION_NAICS,
+  cybersecurity: CYBERSECURITY_NAICS,
+};
+
 /** NAICS codes per SEO trade slug, from the same registry Radar uses. */
 export const FEDERAL_TRADE_NAICS: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
-  SEO_TRADES.map((t) => [t.slug, t.slug === "construction" ? CONSTRUCTION_NAICS : expandTrade(t.radarTerm).naicsCodes]),
+  SEO_TRADES.map((t) => [t.slug, FIXED_TRADE_NAICS[t.slug] ?? expandTrade(t.radarTerm).naicsCodes]),
 );
 
 /**

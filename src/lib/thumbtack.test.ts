@@ -32,6 +32,14 @@ describe("Connect with Thumbtack (owner 2026-10-22)", () => {
     expect(u.searchParams.get("redirect_uri")).toBe(cfg.redirectUri);
     expect(u.searchParams.get("scope")).toBe("supply::businesses.list");
     expect(u.searchParams.get("state")).toBe("STATE");
+    expect(u.searchParams.get("audience")).toBe("urn:partner-api");
+  });
+
+  test("without THUMBTACK_SCOPES, asks only for the read-only scopes", () => {
+    const { THUMBTACK_SCOPES: _drop, ...rest } = ENV as Record<string, string | undefined>;
+    const scopes = thumbtackConfig(rest)!.scopes.split(" ");
+    expect(scopes).toEqual(["offline_access", "supply::businesses.list", "supply::businesses/profile.read", "supply::users.read"]);
+    expect(scopes.some((sc) => /write|messages|negotiations/.test(sc))).toBe(false);
   });
 
   test("state: only the signed, unexpired value with the matching nonce cookie names a user", () => {

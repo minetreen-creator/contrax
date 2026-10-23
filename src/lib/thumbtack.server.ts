@@ -12,7 +12,8 @@
  * Env (Vercel project settings; nothing is hard-coded):
  *   THUMBTACK_CLIENT_ID, THUMBTACK_CLIENT_SECRET — issued by Thumbtack
  *   THUMBTACK_ENV            — "staging" (default) or "production"
- *   THUMBTACK_SCOPES         — space-separated scopes Thumbtack granted
+ *   THUMBTACK_SCOPES         — space-separated scopes to request; default
+ *                              THUMBTACK_DEFAULT_SCOPES (read-only, below)
  *   THUMBTACK_REDIRECT_URI   — defaults to https://www.contrax.company/auth/thumbtack/callback
  *   THUMBTACK_BUSINESSES_PATH — profile endpoint path (default /api/v4/businesses);
  *                              confirm against the partner API reference
@@ -23,6 +24,16 @@
  */
 import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { sql } from "~/db";
+
+/**
+ * The scopes Contrax asks for: the read-only subset of what Thumbtack enabled
+ * on our client (Gabe Isidro, Thumbtack, 2026-10-23). profile.read is the one
+ * for business profile data; offline_access gives a refresh token. No write,
+ * message or negotiation scopes: the partner application promises read-only.
+ */
+export const THUMBTACK_DEFAULT_SCOPES = "offline_access supply::businesses.list supply::businesses/profile.read supply::users.read";
+/** Thumbtack requires this audience on the authorization request (same reply). */
+export const THUMBTACK_AUDIENCE = "urn:partner-api";
 
 export interface ThumbtackConfig {
   clientId: string;
@@ -44,7 +55,7 @@ export function thumbtackConfig(env: Record<string, string | undefined> = proces
     clientSecret,
     authBase: prod ? "https://auth.thumbtack.com" : "https://staging-auth.thumbtack.com",
     apiBase: prod ? "https://api.thumbtack.com" : "https://staging-api.thumbtack.com",
-    scopes: (env.THUMBTACK_SCOPES ?? "").trim(),
+    scopes: (env.THUMBTACK_SCOPES ?? "").trim() || THUMBTACK_DEFAULT_SCOPES,
     redirectUri: env.THUMBTACK_REDIRECT_URI || "https://www.contrax.company/auth/thumbtack/callback",
     businessesPath: env.THUMBTACK_BUSINESSES_PATH || "/api/v4/businesses",
   };
@@ -86,6 +97,7 @@ export function authorizeUrl(cfg: ThumbtackConfig, state: string): string {
     redirect_uri: cfg.redirectUri,
     response_type: "code",
     state,
+    audience: THUMBTACK_AUDIENCE,
   });
   if (cfg.scopes) q.set("scope", cfg.scopes);
   return `${cfg.authBase}/oauth2/auth?${q.toString()}`;

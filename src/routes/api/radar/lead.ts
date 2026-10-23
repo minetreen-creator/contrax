@@ -58,6 +58,8 @@ const LEAD_SCHEMA = z.object({
   sizePref: z.string().trim().max(16).optional(),
   visitor_id: z.string().trim().max(64).optional(),
   visit_id: z.string().trim().max(64).optional(),
+  /** Email unlock on the Radar results screen: also unlock this scan's locked matches. */
+  unlock: z.boolean().optional(),
 });
 
 async function handler({ request }: { request: Request }) {
@@ -112,6 +114,24 @@ async function handler({ request }: { request: Request }) {
       sendConfirmation: !isBotUa(request.headers.get("user-agent")),
     });
 
+    // Email unlock (owner 2026-10-23): sign the unlock cookie for this
+    // browser's visitor id; runRadarScan honors it for the scan it belongs to.
+    if (d.unlock && status !== "unsubscribed") {
+      try {
+        const { visitorIdFromCookieHeader } = await import("~/lib/free-score-limit.server");
+        const vid = visitorIdFromCookieHeader(request.headers.get("cookie"));
+        if (vid) {
+          const { signRadarUnlock, RADAR_UNLOCK_COOKIE, RADAR_UNLOCK_MAX_AGE_S } = await import("~/lib/radar-handoff.server");
+          const cookie = `${RADAR_UNLOCK_COOKIE}=${signRadarUnlock(vid)}; Path=/; Max-Age=${RADAR_UNLOCK_MAX_AGE_S}; HttpOnly; Secure; SameSite=Lax`;
+          return Response.json({ success: true, status, unlocked: true }, { headers: { "Set-Cookie": cookie } });
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message.includes("RADAR_HANDOFF_SECRET is required")) {
+          console.error("[api/radar/lead] unlock unavailable: missing server configuration (RADAR_HANDOFF_SECRET)");
+        }
+      }
+      return Response.json({ success: true, status, unlocked: false });
+    }
     return Response.json({ success: true, status });
   } catch (error) {
     console.error("[api/radar/lead] error:", error);

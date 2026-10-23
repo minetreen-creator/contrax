@@ -501,6 +501,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
       state: normalizeStateInput(String(v.state ?? "").trim()),
       cert: (RADAR_CERTS as readonly string[]).includes(cert) ? cert : "sb",
       sizePref: (SIZE_OPTS as readonly { id: string }[]).some((s) => s.id === sizePref) ? sizePref : "any",
+      unlock: v.unlock === true,
     };
   })
   .handler(async ({ data }) => {
@@ -572,7 +573,23 @@ export const runRadarScan = createServerFn({ method: "POST" })
       intelTicket: null,
       freeSearchLimit: budget.limit,
     });
-    if (!subscribed) {
+    // Email unlock (owner 2026-10-23): an anonymous visitor who left an email on
+    // the results screen re-runs THAT scan (its signed handoff cookie names the
+    // same visitor and criteria) and sees every match. It is the same search,
+    // so it neither needs nor uses another free search.
+    let emailUnlocked = false;
+    if (!subscribed && !scanner && data.unlock && scanVisitorId) {
+      try {
+        const { getCookie } = await import("@tanstack/react-start/server");
+        const h = await import("~/lib/radar-handoff.server");
+        emailUnlocked =
+          h.verifyRadarUnlock(getCookie(h.RADAR_UNLOCK_COOKIE), scanVisitorId) &&
+          h.handoffMatchesScan(h.verifyRadarHandoff(getCookie(h.RADAR_HANDOFF_COOKIE)), { visitorId: scanVisitorId, trade, state, cert: certId, sizePref });
+      } catch {
+        emailUnlocked = false;
+      }
+    }
+    if (!subscribed && !emailUnlocked) {
       const gate = await evaluateRadarSearchGate(budget.keys, neonRadarSearchStore, budget.limit);
       if (!gate.allowed) return blockedResult();
     }
@@ -885,7 +902,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
     } catch (e) {
       console.error("[radar] head-start lookup failed (cards unchanged):", e);
     }
-    const visibleMatches = subscribed ? matches : matches.slice(0, FREE_ANONYMOUS_RADAR_RESULTS);
+    const visibleMatches = subscribed || emailUnlocked ? matches : matches.slice(0, FREE_ANONYMOUS_RADAR_RESULTS);
     const visibleIds = new Set(visibleMatches.map((match) => match.id));
     // Claim only after results are assembled. Conditional writes close the
     // concurrent pre-check race before any matches are returned.
@@ -893,13 +910,14 @@ export const runRadarScan = createServerFn({ method: "POST" })
     // back): a search that shows no bids does not use the free search, so the
     // zero screen's "every state" retry still runs instead of hitting the wall.
     const freeSearchKept = !subscribed && visibleMatches.length === 0;
-    if (!subscribed && !freeSearchKept && !(await claimRadarSearchBudget(budget.keys, budget.limit))) {
+    if (!subscribed && !emailUnlocked && !freeSearchKept && !(await claimRadarSearchBudget(budget.keys, budget.limit))) {
       return blockedResult();
     }
     // Owner 2026-10-19: save what was searched so empty trade + state
     // combinations show up (~/lib/radar-search-log.server). Never fails the scan.
+    // An email unlock re-runs a search already logged; don't count it twice.
     const { recordRadarSearch } = await import("~/lib/radar-search-log.server");
-    await recordRadarSearch({
+    if (!emailUnlocked) await recordRadarSearch({
       visitorId: scanVisitorId || null,
       userId: scanner?.id ?? null,
       trade, state, cert: certId, sizePref,
@@ -911,6 +929,7 @@ export const runRadarScan = createServerFn({ method: "POST" })
       matches: visibleMatches,
       // Owner 2026-10-15: admin's "Matches found" showed the free 3, not the real count.
       totalMatched: matches.length,
+      emailUnlocked,
       certLabel: CERT_LABEL[certId],
       sections: {
         local: local.filter((match) => visibleIds.has(match.id)),
@@ -1211,7 +1230,7 @@ export interface RadarSections {
 type ScanState =
   | { status: "idle" }
   | { status: "loading" }
-  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean; totalMatched?: number }
+  | { status: "done"; matches: RadarMatch[]; certLabel: string; sections: RadarSections; intelTicket: string | null; freeSearchKept?: boolean; totalMatched?: number; emailUnlocked?: boolean }
   | { status: "paid_required"; limit?: number; signupRequired?: boolean }
   | { status: "error" };
 /** Resolved payload of a successful runRadarScan call (handler return shape).
@@ -1230,6 +1249,8 @@ type ScanResult = {
   freeSearchKept?: boolean;
   /** Every match found, including those past the free limit (matches holds only the shown ones). */
   totalMatched?: number;
+  /** An email unlocked this scan: matches holds all of them. */
+  emailUnlocked?: boolean;
   /** Present ONLY on the paidRequired (free searches exhausted) result: the
    *  server-side allowance, so the block screen states the real number. */
   freeSearchLimit?: number;
@@ -1373,9 +1394,10 @@ function RadarLanding() {
   // so count from its real total; otherwise every scan read "Found 3" and the
   // locked card never showed. Restored browser results fall back to the list.
   const totalMatches = scan.status === "done" ? Math.max(scan.totalMatched ?? 0, scan.matches.length) : 0;
-  const visibleCount = Math.min(totalMatches, FREE_ANONYMOUS_RADAR_RESULTS);
+  const emailUnlocked = scan.status === "done" && scan.emailUnlocked === true;
+  const visibleCount = emailUnlocked ? scan.matches.length : Math.min(totalMatches, FREE_ANONYMOUS_RADAR_RESULTS);
   /** Real locked count — ONLY non-zero when genuine matches exceed the free cap. */
-  const locked = Math.max(totalMatches - FREE_ANONYMOUS_RADAR_RESULTS, 0);
+  const locked = emailUnlocked ? 0 : Math.max(totalMatches - FREE_ANONYMOUS_RADAR_RESULTS, 0);
 
   // PR1 funnel: fires exactly once when an ANONYMOUS visitor's results screen
   // first renders after a completed scan (guarded so a refresh/re-render cannot
@@ -1513,7 +1535,7 @@ function RadarLanding() {
 
   const runScan = (
     input: { trade: string; state: string; cert: RadarCert; sizePref: SizeId },
-    opts?: { timeoutMs?: number },
+    opts?: { timeoutMs?: number; unlock?: boolean },
   ) => {
     // A visitor-initiated scan is real activity — from here on the save effect
     // may persist the criteria (and runScan itself persists the SEEN matches).
@@ -1606,6 +1628,7 @@ function RadarLanding() {
         intelTicket: res.intelTicket ?? null,
         freeSearchKept: res.freeSearchKept === true,
         totalMatched: res.totalMatched,
+        emailUnlocked: res.emailUnlocked === true,
       });
       setRestoredResults(false);
       setStep(3);
@@ -1644,6 +1667,7 @@ function RadarLanding() {
                 state: input.state,
                 cert: input.cert,
                 sizePref: input.sizePref,
+                unlock: opts?.unlock === true,
               },
             }),
           opts?.timeoutMs ?? RADAR_SCAN_TIMEOUT_MS,
@@ -2200,14 +2224,19 @@ function RadarLanding() {
                   />
                 ))}
                 {locked > 0 && <LockedMatchPreview locked={locked} />}
+                {/* Email unlock (owner 2026-10-23): of 28 visitors sent from
+                    here to the full signup page in 30 days, 2 signed up. An
+                    email alone now shows every match of this search, on this
+                    page; the account comes after they have seen the bids. */}
                 {locked > 0 && (
-                  <SignupGate
-                    certLabel={scan.certLabel}
-                    totalFound={totalMatches}
+                  <EmailUnlockCard
+                    locked={locked}
                     trade={trade}
                     state={state}
-                    cert={cert}
-                    sizePref={sizePref}
+                    cert={cert ?? ""}
+                    sizePref={sizePref ?? ""}
+                    signupHref={radarSignupHref({ trade, state, cert, sizePref }, { unlock: true })}
+                    onUnlocked={() => runScan({ trade: trade.trim(), state, cert: cert!, sizePref: sizePref! }, { unlock: true })}
                   />
                 )}
                 {/* Owner 09-09 (the ONE authorized exception to the frozen
@@ -2271,24 +2300,9 @@ function RadarLanding() {
                 matchedCount={scan.matches.length}
               />
             )}
-            {/* "Want new matches when we find them?" — anonymous match-ALERT
-                capture (owner 2026-09-06). ONLY for anonymous visitors, ONLY after
-                a COMPLETED scan with matches. SECONDARY in the PR1 results
-                hierarchy under the locked-card CTA (phrased as the
-                "by email instead?" alternative, per owner 09-07). Optional,
-                dismissible, never a wall — a voluntary email with explicit
-                consent to be alerted when new matching opportunities open (no
-                account required). Sends only the ONE confirmation email; the
-                periodic match-alert sender is a separately queued follow-up. */}
-            {isAnonymous && scan.matches.length > 0 && locked > 0 && (
-              <MatchAlertsCard
-                certLabel={scan.certLabel}
-                trade={trade}
-                state={state}
-                cert={cert ?? ""}
-                sizePref={sizePref ?? ""}
-              />
-            )}
+            {/* The email unlock card above already asks for the email (and
+                signs it up for new-match emails), so the separate "by email
+                instead?" alert card no longer shows under locked results. */}
             {/* RELATED opportunities (owner v6.1) — adjacent work in the
                 requested state, explicitly labeled, NEVER default matches. An
                 empty section is an honest, documented outcome (current data/
@@ -3349,6 +3363,134 @@ function ShareResultsButton({ trade, state }: { trade: string; state: string }) 
         Share on Facebook
       </a>
     </div>
+  );
+}
+
+/**
+ * EMAIL UNLOCK (owner 2026-10-23): the anonymous results screen's main unlock.
+ * An email (no password, no account) shows every match of this search right
+ * here and signs the visitor up for new-match emails (the same opt-in capture
+ * as MatchAlertsCard, /api/radar/lead with unlock: true). The full signup stays
+ * as a smaller second option.
+ */
+function EmailUnlockCard({
+  locked,
+  trade,
+  state,
+  cert,
+  sizePref,
+  signupHref,
+  onUnlocked,
+}: {
+  locked: number;
+  trade: string;
+  state: string;
+  cert: string;
+  sizePref: string;
+  signupHref: string;
+  onUnlocked: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
+  const [error, setError] = useState("");
+  const shownRef = useRef(false);
+  useEffect(() => {
+    if (shownRef.current) return;
+    shownRef.current = true;
+    trackEvent("radar_email_unlock_shown", String(locked));
+  }, [locked]);
+
+  const submit = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    const normalized = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) || normalized.length > 254) {
+      setError("Please enter a valid email address.");
+      setStatus("error");
+      return;
+    }
+    setError("");
+    setStatus("submitting");
+    const ids = trackingIds();
+    try {
+      const res = await fetch("/api/radar/lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: normalized,
+          trade: trade || undefined,
+          state: state || undefined,
+          cert: cert || undefined,
+          sizePref: sizePref || undefined,
+          visitor_id: ids.visitor_id || undefined,
+          visit_id: ids.visit_id || undefined,
+          unlock: true,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as { success?: boolean; unlocked?: boolean } | null;
+      if (!res.ok || !data?.success) {
+        setStatus("error");
+        setError(res.status === 429 ? "Too many tries. Please wait a few minutes." : "Something went wrong. Please try again.");
+        return;
+      }
+      trackEvent("radar_lead_captured", "email_unlock");
+      if (!data.unlocked) {
+        // Saved for alerts, but this browser couldn't be unlocked (no visitor
+        // cookie, or an unsubscribed address): the account is the way in.
+        window.location.href = signupHref;
+        return;
+      }
+      trackEvent("radar_email_unlocked", String(locked));
+      onUnlocked();
+    } catch {
+      setStatus("error");
+      setError("Something went wrong. Please try again.");
+    }
+  };
+
+  return (
+    <section aria-label="Unlock your matches" className="rounded-2xl border-2 border-amber-400/70 bg-gradient-to-b from-amber-500/15 to-slate-900 p-5 shadow-lg shadow-amber-500/10">
+      <h3 className="text-lg font-extrabold text-white">
+        🔓 {locked} more matching bid{locked === 1 ? " is" : "s are"} ready
+      </h3>
+      <p className="mt-1 text-sm leading-relaxed text-slate-300">
+        Enter your email and we&apos;ll show {locked === 1 ? "it" : "them"} right now, then send you new ones as they post.
+      </p>
+      <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <label htmlFor="radar-unlock-email" className="sr-only">
+          Email address
+        </label>
+        <input
+          id="radar-unlock-email"
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@company.com"
+          className="min-w-0 flex-1 rounded-xl border border-slate-600 bg-slate-800 px-4 py-3 text-base text-white placeholder-slate-500 outline-none focus:border-amber-400"
+        />
+        <button
+          type="submit"
+          disabled={status === "submitting"}
+          className="rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:opacity-60"
+        >
+          {status === "submitting" ? "Unlocking…" : "Show my bids →"}
+        </button>
+      </form>
+      {status === "error" && error ? (
+        <p className="mt-2 text-sm font-medium text-red-400" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <p className="mt-3 text-xs text-slate-400">No password. No credit card. Unsubscribe anytime.</p>
+      <p className="mt-2 text-xs text-slate-500">
+        Rather have an account?{" "}
+        <a href={signupHref} className="font-semibold text-slate-300 underline">
+          Start a free 7-day trial
+        </a>
+      </p>
+    </section>
   );
 }
 

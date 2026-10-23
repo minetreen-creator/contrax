@@ -169,6 +169,35 @@ async function runTool(name: string, args: Record<string, unknown>): Promise<unk
          ORDER BY created_at DESC LIMIT 20`,
         [days],
       );
+    case "bid_details": {
+      const id = Math.round(Number(args.id));
+      if (!Number.isFinite(id) || id <= 0) return { error: "a bid id is required" };
+      const [b] = (await db.query(
+        `SELECT id, title, agency, location, normalized_state AS state, category, to_char(due_date, 'Dy Mon DD YYYY') AS due,
+                estimated_value, LEFT(regexp_replace(COALESCE(description, ''), '\\s+', ' ', 'g'), 600) AS description
+         FROM bids WHERE id = $1`,
+        [id],
+      )) as Record<string, unknown>[];
+      return b ?? { error: "no bid with that id" };
+    }
+    case "visitor_journey": {
+      const vid = String(args.vid ?? "").slice(0, 64);
+      if (!vid) return { error: "vid is required" };
+      const pages = await db.query(
+        `SELECT to_char(created_at AT TIME ZONE '${ET}', 'Dy HH12:MI AM') AS at, path,
+                NULLIF(COALESCE(NULLIF(source, ''), split_part(regexp_replace(COALESCE(referrer, ''), '^https?://(www\\.)?', ''), '/', 1)), '') AS came_from,
+                device_type AS device, city, region
+         FROM page_views WHERE visitor_id = $1 AND created_at > NOW() - INTERVAL '7 days' AND path NOT LIKE '/admin%'
+         ORDER BY created_at ASC LIMIT 60`,
+        [vid],
+      );
+      const searches = await db.query(
+        `SELECT to_char(created_at AT TIME ZONE '${ET}', 'Dy HH12:MI AM') AS at, trade, state, matched
+         FROM radar_search_log WHERE visitor_id = $1 AND created_at > NOW() - INTERVAL '7 days' ORDER BY created_at ASC LIMIT 20`,
+        [vid],
+      );
+      return { pages, searches };
+    }
     case "open_bids": {
       const keyword = String(args.keyword ?? "").trim().slice(0, 60);
       const state = String(args.state ?? "").trim().toUpperCase().slice(0, 2);

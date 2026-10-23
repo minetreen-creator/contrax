@@ -106,6 +106,53 @@ export function verifyRadarHandoff(raw: string | null | undefined): RadarHandoff
 }
 
 export const RADAR_HANDOFF_COOKIE = COOKIE;
+
+/**
+ * Email unlock (owner 2026-10-23): an anonymous visitor who leaves an email on
+ * the Radar results screen sees every match of THAT scan without an account.
+ * The cookie only names the visitor; runRadarScan also requires the scan's own
+ * handoff cookie for the same visitor and criteria, so it unlocks one search,
+ * not unlimited ones. Signed with a key derived from RADAR_HANDOFF_SECRET so it
+ * can never be replayed as a handoff cookie (or the reverse).
+ */
+export const RADAR_UNLOCK_COOKIE = "contrax_radar_unlock";
+export const RADAR_UNLOCK_MAX_AGE_S = 30 * 24 * 60 * 60;
+
+function unlockKey(): string {
+  return `${getRadarHandoffSecret()}:email-unlock`;
+}
+
+export function signRadarUnlock(visitorId: string, now = Date.now()): string {
+  const body = b64url(Buffer.from(JSON.stringify({ v: visitorId.slice(0, 64), k: now }), "utf8"));
+  const sig = b64url(crypto.createHmac("sha256", unlockKey()).update(body).digest());
+  return `${body}.${sig}`;
+}
+
+/** True when `raw` is a valid, unexpired unlock cookie for this visitor. Fail-closed. */
+export function verifyRadarUnlock(raw: string | null | undefined, visitorId: string, now = Date.now()): boolean {
+  try {
+    if (!raw || !visitorId) return false;
+    const dot = raw.lastIndexOf(".");
+    if (dot <= 0) return false;
+    const body = raw.slice(0, dot);
+    const a = Buffer.from(raw.slice(dot + 1));
+    const b = Buffer.from(b64url(crypto.createHmac("sha256", unlockKey()).update(body).digest()));
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+    const p = JSON.parse(unb64url(body).toString("utf8")) as { v?: unknown; k?: unknown };
+    const k = typeof p.k === "number" ? p.k : 0;
+    return p.v === visitorId && k > 0 && k <= now + ALLOWED_SKEW_MS && now - k <= RADAR_UNLOCK_MAX_AGE_S * 1000;
+  } catch {
+    return false;
+  }
+}
+
+/** The handoff cookie belongs to this visitor's search with these exact criteria. */
+export function handoffMatchesScan(
+  h: RadarHandoffPayload | null,
+  scan: { visitorId: string; trade: string; state: string; cert: string; sizePref: string },
+): boolean {
+  return !!h && !!scan.visitorId && h.v === scan.visitorId && h.t === scan.trade.slice(0, 120) && h.s === scan.state.slice(0, 2) && h.c === scan.cert && h.z === scan.sizePref.slice(0, 24);
+}
 export const RADAR_HANDOFF_MAX_AGE_S = MAX_AGE_S;
 
 /**

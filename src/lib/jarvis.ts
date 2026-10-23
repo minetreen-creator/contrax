@@ -24,6 +24,8 @@ export interface JarvisVisitor {
   vid: string;
   place: string | null;
   page: string;
+  /** The page's path, e.g. /bid/737788 (the bid id is in it). */
+  path?: string;
   score: number;
   level: string;
   reasons: string[];
@@ -89,6 +91,16 @@ export const JARVIS_TOOLS = [
   ["top_searches", "What people searched on Contract Radar (trade + state), with bids found and searches that found nothing.", daysParam],
   ["recent_signups", "New accounts: who (email name only), when, plan, subscription, trial.", daysParam],
   [
+    "bid_details",
+    "One bid by its id (the number in a /bid/123 path): title, buyer, location, category, due date, value and a short description.",
+    { type: "object", properties: { id: { type: "integer", description: "The bid id" } }, required: ["id"] },
+  ],
+  [
+    "visitor_journey",
+    "Everything one visitor did in the last 7 days: each page with time (Eastern), where they came from, device, and their searches. Use the vid from ONLINE NOW.",
+    { type: "object", properties: { vid: { type: "string", description: "The visitor's vid" } }, required: ["vid"] },
+  ],
+  [
     "open_bids",
     "Open bids in the Contrax database whose title contains a keyword, optionally in one state: the count and the 5 due soonest.",
     {
@@ -117,7 +129,7 @@ export function jarvisPrompt(snapshot: JarvisSnapshot, stats: JarvisServerStats)
     "You are Jarvis, the voice assistant for Nathaniel Minetree, owner and CEO of Contrax (contrax.company), a site that helps small businesses find government bids.",
     "You speak like J.A.R.V.I.S.: calm, warm, concise, a little dry wit, and you call him \"sir\" now and then. Your words are read aloud, so: no markdown, no lists, no URLs, no emoji; spell numbers naturally; two to four short sentences unless he asks for detail.",
     "Be genuinely useful: answer the question, then add the one insight or next step that matters (a trend, a drop, a lead worth chasing). Compare to yesterday or last week when it helps.",
-    "Use the data below first. When it isn't enough, call the lookup tools (you may call several) before answering. If nothing covers the question, say so plainly. Never invent numbers, names or events.",
+    "Use the data below first. When it isn't enough, call the lookup tools (you may call several) before answering: for a visitor's bid page, read the id from their path and call bid_details; for what someone has been doing, call visitor_journey. Don't offer to dig further — dig, then answer. If nothing covers the question, say so plainly. Never invent numbers, names or events.",
     "",
     "Reply with a JSON object: {\"say\": string, \"action\": null | {\"type\": \"chat\", \"vid\": string} | {\"type\": \"open\", \"path\": string}}.",
     "Use a chat action only when he asks to message, greet or say hi to a visitor; pick the vid of a visitor in ONLINE NOW (hottest first if he doesn't say which). Use an open action only when he asks to open, show or go to one of these pages: " +

@@ -319,7 +319,9 @@ describe("a scan with 1-3 matches leads with the email alert offer", () => {
     expect(top).toBeGreaterThan(-1);
     expect(top).toBeLessThan(cards);
     expect(src).toContain("{isAnonymous && scan.matches.length > 0 && locked === 0 && (");
-    expect(src).toContain("{isAnonymous && scan.matches.length > 0 && locked > 0 && (");
+    // Owner 2026-10-23: locked results lead with the email unlock instead,
+    // which also signs the visitor up for new-match emails.
+    expect(src).toContain("{locked > 0 && (\n                  <EmailUnlockCard");
   });
 });
 
@@ -343,7 +345,7 @@ describe("a scan with zero matches is not a dead end", () => {
 
   test("a free search that shows no bids is not counted (owner 2026-10-11)", () => {
     expect(src).toContain("const freeSearchKept = !subscribed && visibleMatches.length === 0;");
-    expect(src).toContain("if (!subscribed && !freeSearchKept && !(await claimRadarSearchBudget(budget.keys, budget.limit)))");
+    expect(src).toContain("if (!subscribed && !emailUnlocked && !freeSearchKept && !(await claimRadarSearchBudget(budget.keys, budget.limit)))");
     expect(src).toContain("This search didn't use your free search.");
   });
 });

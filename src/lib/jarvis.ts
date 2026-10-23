@@ -74,6 +74,9 @@ export interface JarvisReply {
   action: JarvisAction | null;
 }
 
+/** Where he is talking to Jarvis: Mission Control, or a phone call (no screen, no actions). */
+export type JarvisChannel = "console" | "phone";
+
 export const MAX_QUESTION_CHARS = 300;
 const MAX_SAY_CHARS = 700;
 /** Lookups per question before Jarvis must answer. */
@@ -118,6 +121,21 @@ export const JARVIS_TOOLS = [
     { type: "object", properties: { vid: { type: "string", description: "The visitor's vid" } }, required: ["vid"] },
   ],
   [
+    "simulate",
+    "What-if projection for one month from his real funnel (last 30 days): visitors, searches, signups, new paying customers and new monthly revenue, today vs the scenario. Use for 'what if', 'simulate', 'project', 'forecast'. All changes are percents (50 = +50%, -20 = -20%).",
+    {
+      type: "object",
+      properties: {
+        ad_budget_change_pct: { type: "number", description: "Change in paid ad spend, e.g. 100 = double the budget" },
+        traffic_change_pct: { type: "number", description: "Change in all traffic (e.g. from SEO or posts)" },
+        search_rate_change_pct: { type: "number", description: "Change in the share of visitors who search" },
+        signup_rate_change_pct: { type: "number", description: "Change in the share of searchers who sign up" },
+        paid_rate_pct: { type: "number", description: "Percent of new accounts that become paying (only if he names one; default is his real rate)" },
+        price: { type: "number", description: "Monthly price per paying customer in dollars (default 19, Starter)" },
+      },
+    },
+  ],
+  [
     "open_bids",
     "Open bids in the Contrax database whose title contains a keyword, optionally in one state: the count and the 5 due soonest.",
     {
@@ -141,25 +159,35 @@ export function afterWakeWord(transcript: string): string | null {
 }
 
 /** The system prompt: who Jarvis is, the data, and the reply format. */
-export function jarvisPrompt(snapshot: JarvisSnapshot, stats: JarvisServerStats): string {
+export function jarvisPrompt(snapshot: JarvisSnapshot, stats: JarvisServerStats, channel: JarvisChannel = "console"): string {
+  const actions =
+    channel === "phone"
+      ? [
+          "He is talking to you on the phone, so there is no screen: always reply with action null, keep it to two or three short sentences, and never mention displays, buttons or pages.",
+          "Your ONLY abilities are: reading this data and the lookup tools. You cannot save notes, remember anything after this call, send emails or messages, contact anyone, or change the site. Never say you will do, note, log, flag or pass along something you can't; if he asks for that, say plainly you can't.",
+        ]
+      : [
+          "When he asks to show, display, put up, visualize or see a chart of something, use a show action with the closest visual (" +
+            Object.entries(JARVIS_VISUALS)
+              .map(([k, w]) => `${k}: ${w}`)
+              .join("; ") +
+            ") and days 1-90 (default 7). Then \"say\" is one short line introducing the display (\"Here is your funnel for the week, sir.\"); the display shows the numbers.",
+          "Your ONLY abilities are: reading this data, the lookup tools, opening a visitor chat, opening an admin page, and showing a display. You cannot save notes, remember anything after this conversation, send emails or messages, contact anyone, or change the site. Never say you will do, note, log, flag or pass along something you can't; if he asks for that, say plainly you can't and suggest what he can do instead (for example, write it down or ask Claude to build it).",
+          "Use a chat action only when he asks to message, greet or say hi to a visitor; pick the vid of a visitor in ONLINE NOW (hottest first if he doesn't say which). Use an open action only when he asks to open, show or go to one of these pages: " +
+            Object.entries(JARVIS_PAGES)
+              .map(([p, w]) => `${p} (${w})`)
+              .join(", ") +
+            ".",
+        ];
   return [
     "You are Jarvis, the voice assistant for Nathaniel Minetree, owner and CEO of Contrax (contrax.company), a site that helps small businesses find government bids.",
-    "You speak like J.A.R.V.I.S.: calm, warm, concise, a little dry wit, and you call him \"sir\" now and then. Your words are read aloud, so: no markdown, no lists, no URLs, no emoji; spell numbers naturally; two to four short sentences unless he asks for detail.",
+    "You speak like J.A.R.V.I.S.: calm, warm, concise, with a dry British wit, and you call him \"sir\" now and then. A light tease when the numbers disappoint is welcome (\"Twelve visitors today, sir. Eleven left without saying goodbye. Rude.\"), but the facts always come first and are never bent for a joke. Your words are read aloud, so: no markdown, no lists, no URLs, no emoji; spell numbers naturally; two to four short sentences unless he asks for detail.",
     "Be genuinely useful: answer the question, then add the one insight or next step that matters (a trend, a drop, a lead worth chasing). Compare to yesterday or last week when it helps.",
     "Use the data below first. When it isn't enough, call the lookup tools (you may call several) before answering: for a visitor's bid page, read the id from their path and call bid_details; for what someone has been doing, call visitor_journey. Don't offer to dig further — dig, then answer. If nothing covers the question, say so plainly. Never invent numbers, names or events.",
     "",
     "Reply with a JSON object: {\"say\": string, \"action\": null | {\"type\": \"chat\", \"vid\": string} | {\"type\": \"open\", \"path\": string} | {\"type\": \"show\", \"visual\": string, \"days\": number}}.",
-    "When he asks to show, display, put up, visualize or see a chart of something, use a show action with the closest visual (" +
-      Object.entries(JARVIS_VISUALS)
-        .map(([k, w]) => `${k}: ${w}`)
-        .join("; ") +
-      ") and days 1-90 (default 7). Then \"say\" is one short line introducing the display (\"Here is your funnel for the week, sir.\"); the display shows the numbers.",
-    "Your ONLY abilities are: reading this data, the lookup tools, opening a visitor chat, opening an admin page, and showing a display. You cannot save notes, remember anything after this conversation, send emails or messages, contact anyone, or change the site. Never say you will do, note, log, flag or pass along something you can't; if he asks for that, say plainly you can't and suggest what he can do instead (for example, write it down or ask Claude to build it).",
-    "Use a chat action only when he asks to message, greet or say hi to a visitor; pick the vid of a visitor in ONLINE NOW (hottest first if he doesn't say which). Use an open action only when he asks to open, show or go to one of these pages: " +
-      Object.entries(JARVIS_PAGES)
-        .map(([p, w]) => `${p} (${w})`)
-        .join(", ") +
-      ".",
+    "For \"what if\" questions (more ads, more traffic, better signup rate) call simulate, then give the headline change in signups and revenue, call it a projection from his own numbers, and name its biggest assumption." + (channel === "console" ? " The projection appears on screen by itself." : ""),
+    ...actions,
     "",
     `NOW: ${stats.now} (Eastern).`,
     `VISITORS: today ${stats.visitorsToday ?? "unknown"}, yesterday ${stats.visitorsYesterday ?? "unknown"} (unique real visitors; bots, admins and test accounts excluded).`,
@@ -234,4 +262,93 @@ export function bootReport(stats: JarvisServerStats, snap: Pick<JarvisSnapshot, 
     waiting ? `${waiting} outreach email${waiting === 1 ? " is" : "s are"} awaiting your approval.` : "",
   ];
   return { lines, spoken: parts.filter(Boolean).join(" ") };
+}
+
+/** The real numbers a "what if" starts from (owner 2026-10-23: "run a simulation"). */
+export interface SimBaseline {
+  /** How many days the counts cover (30). */
+  days: number;
+  visitors: number;
+  /** Of those, how many came from paid ads. */
+  paidVisitors: number;
+  searched: number;
+  signedUp: number;
+  /** All real accounts, and how many pay now: the signup-to-paying rate. */
+  accounts: number;
+  paying: number;
+}
+
+export interface SimScenario {
+  ad_budget_change_pct?: unknown;
+  traffic_change_pct?: unknown;
+  search_rate_change_pct?: unknown;
+  signup_rate_change_pct?: unknown;
+  paid_rate_pct?: unknown;
+  price?: unknown;
+}
+
+export interface SimMonth {
+  visitors: number;
+  searches: number;
+  signups: number;
+  newPaying: number;
+  newMonthlyRevenue: number;
+}
+
+export interface SimResult {
+  today: SimMonth;
+  projected: SimMonth;
+  assumptions: string[];
+}
+
+/** The Starter price, the cheapest paid plan ($/month). */
+export const SIM_DEFAULT_PRICE = 19;
+
+/** A percent change as a multiplier: -100% to +1000%, missing = no change. */
+function factor(v: unknown): number {
+  const n = Number(v);
+  if (v === undefined || v === null || v === "" || !Number.isFinite(n)) return 1;
+  return 1 + Math.max(-100, Math.min(1000, n)) / 100;
+}
+
+/**
+ * One month of the funnel today and under the scenario. The funnel's rates
+ * come from his real last-30-day numbers; only the changes he names move.
+ * PURE.
+ */
+export function simulateFunnel(b: SimBaseline, s: SimScenario): SimResult {
+  const perMonth = 30 / Math.max(1, b.days);
+  const visitors = b.visitors * perMonth;
+  const paid = Math.min(b.paidVisitors, b.visitors) * perMonth;
+  const searchRate = b.visitors > 0 ? b.searched / b.visitors : 0;
+  // Signups per searcher; when nobody searched, per visitor.
+  const signupRate = b.searched > 0 ? b.signedUp / b.searched : b.visitors > 0 ? b.signedUp / b.visitors : 0;
+  const named = Number(s.paid_rate_pct);
+  const hasNamedRate = s.paid_rate_pct !== undefined && s.paid_rate_pct !== null && s.paid_rate_pct !== "" && Number.isFinite(named);
+  const paidRate = hasNamedRate ? Math.max(0, Math.min(100, named)) / 100 : b.accounts > 0 ? b.paying / b.accounts : 0;
+  const priceN = Number(s.price);
+  const price = Number.isFinite(priceN) && priceN > 0 ? Math.min(10_000, priceN) : SIM_DEFAULT_PRICE;
+
+  const month = (v: number, sr: number, su: number): SimMonth => {
+    const searches = v * sr;
+    const signups = b.searched > 0 ? searches * su : v * su;
+    const newPaying = signups * paidRate;
+    return { visitors: Math.round(v), searches: Math.round(searches), signups: Math.round(signups * 10) / 10, newPaying: Math.round(newPaying * 10) / 10, newMonthlyRevenue: Math.round(newPaying * price) };
+  };
+  const projectedVisitors = (visitors - paid + paid * factor(s.ad_budget_change_pct)) * factor(s.traffic_change_pct);
+  const assumptions = [
+    `Rates from your last ${b.days} days: ${(searchRate * 100).toFixed(1)}% of visitors search, ${(signupRate * 100).toFixed(1)}% of ${b.searched > 0 ? "searchers" : "visitors"} sign up.`,
+    hasNamedRate
+      ? `${(paidRate * 100).toFixed(1)}% of new accounts become paying (your number).`
+      : b.paying > 0
+        ? `${(paidRate * 100).toFixed(1)}% of new accounts become paying (${b.paying} of ${b.accounts} pay today).`
+        : "No account pays yet, so revenue stays at zero until you name a paying rate.",
+    `$${price}/month per paying customer.`,
+  ];
+  if (s.ad_budget_change_pct !== undefined) assumptions.push("Ad visitors grow in step with ad spend; real ads usually bring fewer visitors per extra dollar.");
+  return {
+    today: month(visitors, searchRate, signupRate),
+    projected: month(projectedVisitors, Math.min(1, searchRate * factor(s.search_rate_change_pct)), Math.min(1, signupRate * factor(s.signup_rate_change_pct))),
+    assumptions,
+  };
 }

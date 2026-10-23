@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { afterWakeWord, bootReport, isWakePhrase, VISUAL_TOOL, clampDays, JARVIS_PAGES, JARVIS_TOOLS, sanitizeHistory, jarvisPrompt, parseJarvisReply, type JarvisServerStats, type JarvisSnapshot } from "./jarvis";
+import { simulateFunnel } from "./jarvis";
 
 describe("afterWakeWord", () => {
   test("takes the question after the wake word", () => {
@@ -99,5 +100,46 @@ describe("show me displays and wake up (owner 2026-10-23)", () => {
     const morning = bootReport({ ...stats, now: "Saturday, October 24, 8:10 AM", outreach: null }, { onlineCount: 0, online: [], trials: [] });
     expect(morning.spoken).toStartWith("Good morning, sir.");
     expect(morning.spoken).toContain("Nobody on the site at the moment.");
+  });
+});
+
+describe("simulateFunnel (what if)", () => {
+  const base = { days: 30, visitors: 1200, paidVisitors: 744, searched: 60, signedUp: 3, accounts: 40, paying: 2 };
+  test("no change: projected equals today", () => {
+    const r = simulateFunnel(base, {});
+    expect(r.projected).toEqual(r.today);
+    expect(r.today).toEqual({ visitors: 1200, searches: 60, signups: 3, newPaying: 0.2, newMonthlyRevenue: 3 });
+  });
+  test("doubling ads doubles only the paid visitors", () => {
+    const r = simulateFunnel(base, { ad_budget_change_pct: 100 });
+    expect(r.projected.visitors).toBe(1944);
+    expect(r.assumptions.some((a) => a.includes("fewer visitors per extra dollar"))).toBe(true);
+  });
+  test("rate changes, a named paying rate and price", () => {
+    const r = simulateFunnel(base, { signup_rate_change_pct: 100, paid_rate_pct: 10, price: 79 });
+    expect(r.projected.signups).toBe(6);
+    expect(r.projected.newPaying).toBe(0.6);
+    expect(r.projected.newMonthlyRevenue).toBe(47);
+  });
+  test("no paying accounts yet: revenue stays zero and says why", () => {
+    const r = simulateFunnel({ ...base, paying: 0 }, { traffic_change_pct: 50 });
+    expect(r.projected.newMonthlyRevenue).toBe(0);
+    expect(r.assumptions.join(" ")).toContain("No account pays yet");
+  });
+  test("bad inputs are clamped, not trusted", () => {
+    const r = simulateFunnel(base, { traffic_change_pct: -500, search_rate_change_pct: "x" });
+    expect(r.projected.visitors).toBe(0);
+    expect(simulateFunnel({ ...base, days: 0, visitors: 0, searched: 0 }, {}).today.signups).toBe(0);
+  });
+});
+
+describe("phone prompt", () => {
+  test("the phone has no actions or displays", () => {
+    const stats = { now: "Friday", visitorsToday: 1, visitorsYesterday: 2, week: null, outreach: null };
+    const snap = { onlineCount: 0, online: [], feed: [], trials: [], money: null };
+    const phone = jarvisPrompt(snap, stats, "phone");
+    expect(phone).toContain("on the phone");
+    expect(phone).not.toContain("use a show action");
+    expect(jarvisPrompt(snap, stats)).toContain("use a show action");
   });
 });

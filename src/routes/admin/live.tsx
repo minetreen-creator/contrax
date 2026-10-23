@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
-import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual } from "~/lib/jarvis";
+import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual, type SimMonth, type SimResult } from "~/lib/jarvis";
 import { announcements, isRedAlert, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
 import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Volume2, VolumeX, Crosshair } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
@@ -859,12 +859,13 @@ function jarvisVoice(): SpeechSynthesisVoice | null {
  */
 /** A "show me" display: what the server looked up (map draws from the page's data). */
 interface HoloVisual {
-  kind: JarvisVisual;
+  kind: JarvisVisual | "simulation";
   days: number;
   rows?: unknown;
 }
 
-const HOLO_TITLES: Record<JarvisVisual, string> = {
+const HOLO_TITLES: Record<HoloVisual["kind"], string> = {
+  simulation: "Simulation",
   map: "Live map",
   funnel: "Funnel",
   traffic: "Visitors per day",
@@ -939,6 +940,47 @@ function HoloColumns({ rows }: { rows: { day: string; visitors: number; from_pai
   );
 }
 
+/** "Jarvis, what if…": one month today vs the scenario, side by side. */
+function HoloSimulation({ sim }: { sim: SimResult }) {
+  const rows: [keyof SimMonth, string, (n: number) => string][] = [
+    ["visitors", "Visitors", (n) => n.toLocaleString("en-US")],
+    ["searches", "Searches", (n) => n.toLocaleString("en-US")],
+    ["signups", "Signups", (n) => n.toLocaleString("en-US")],
+    ["newPaying", "New paying customers", (n) => n.toLocaleString("en-US")],
+    ["newMonthlyRevenue", "New monthly revenue", (n) => `$${n.toLocaleString("en-US")}`],
+  ];
+  return (
+    <div>
+      <div className="grid grid-cols-[1fr_auto_auto_auto] items-baseline gap-x-4 gap-y-2 text-sm">
+        <span />
+        <span className="text-xs uppercase tracking-widest text-cyan-400">Today</span>
+        <span className="text-xs uppercase tracking-widest text-cyan-400">Projected</span>
+        <span />
+        {rows.map(([k, label, fmt]) => {
+          const a = sim.today[k];
+          const b = sim.projected[k];
+          const pct = a > 0 ? Math.round(((b - a) / a) * 100) : b > 0 ? null : 0;
+          return (
+            <div key={k} className="contents">
+              <span className="text-cyan-50">{label}</span>
+              <span className="text-right text-cyan-200">{fmt(a)}</span>
+              <span className="text-right text-lg font-extrabold text-cyan-50">{fmt(b)}</span>
+              <span className={`text-right text-xs font-bold ${b > a ? "text-emerald-300" : b < a ? "text-rose-300" : "text-cyan-400"}`}>
+                {pct === null ? "new" : pct === 0 ? "=" : `${pct > 0 ? "+" : ""}${pct}%`}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <ul className="mt-4 space-y-1 border-t border-cyan-400/20 pt-3 text-xs text-cyan-300">
+        {sim.assumptions.map((a) => (
+          <li key={a}>▸ {a}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** "Jarvis, show me…": a hologram-style display over Mission Control. */
 function HoloDisplay({ visual, data, now, onChat, onClose }: { visual: HoloVisual; data: LiveData; now: number; onChat: (v: OnlineVisitor) => void; onClose: () => void }) {
   useEffect(() => {
@@ -949,7 +991,8 @@ function HoloDisplay({ visual, data, now, onChat, onClose }: { visual: HoloVisua
   const rows = visual.rows;
   const list = (Array.isArray(rows) ? rows : []) as Record<string, unknown>[];
   let body: ReactNode;
-  if (visual.kind === "map") body = <SearchMap stats={data.map} visitors={data.online} now={now} onChat={onChat} />;
+  if (visual.kind === "simulation") body = <HoloSimulation sim={rows as SimResult} />;
+  else if (visual.kind === "map") body = <SearchMap stats={data.map} visitors={data.online} now={now} onChat={onChat} />;
   else if (visual.kind === "funnel") body = <HoloFunnel rows={(rows ?? {}) as Record<string, number>} />;
   else if (visual.kind === "traffic") body = <HoloColumns rows={list as { day: string; visitors: number }[]} />;
   else if (visual.kind === "sources")
@@ -972,13 +1015,13 @@ function HoloDisplay({ visual, data, now, onChat, onClose }: { visual: HoloVisua
         <div className="flex items-baseline justify-between gap-3">
           <p className="holo-title">
             {HOLO_TITLES[visual.kind]}
-            {visual.kind !== "map" ? <span className="ml-2 text-sm font-normal text-cyan-300">last {visual.days} day{visual.days === 1 ? "" : "s"}</span> : null}
+            {visual.kind === "simulation" ? <span className="ml-2 text-sm font-normal text-cyan-300">one month, projected</span> : visual.kind !== "map" ? <span className="ml-2 text-sm font-normal text-cyan-300">last {visual.days} day{visual.days === 1 ? "" : "s"}</span> : null}
           </p>
           <button type="button" onClick={onClose} className="text-cyan-300 hover:text-white" aria-label="Close display">
             ✕
           </button>
         </div>
-        <p className="mb-4 text-xs text-cyan-400">{JARVIS_VISUALS[visual.kind]}</p>
+        <p className="mb-4 text-xs text-cyan-400">{visual.kind === "simulation" ? "A projection from your own last 30 days, not a promise." : JARVIS_VISUALS[visual.kind]}</p>
         <div className="holo-body">{body}</div>
       </div>
     </div>
@@ -1072,8 +1115,14 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
   const [display, setDisplay] = useState<HoloVisual | null>(null);
   const [boot, setBoot] = useState<{ lines: string[]; done: boolean } | null>(null);
   const closeDisplay = useCallback(() => setDisplay(null), []);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const stopSpeaking = () => {
+    window.speechSynthesis?.cancel();
+    audioRef.current?.pause();
+  };
   const closeBoot = useCallback(() => {
     window.speechSynthesis?.cancel();
+    audioRef.current?.pause();
     setBoot(null);
   }, []);
 
@@ -1087,7 +1136,8 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
     if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
   }, []);
 
-  const speak = (text: string) =>
+  /** The browser's own voice: the fallback when the AI voice can't play. */
+  const speakBrowser = (text: string) =>
     new Promise<void>((done) => {
       if (!("speechSynthesis" in window)) return done();
       const u = new SpeechSynthesisUtterance(text);
@@ -1098,6 +1148,36 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
       u.onend = u.onerror = () => done();
       window.speechSynthesis.speak(u);
     });
+
+  /** Jarvis's real voice (owner 2026-10-23, "1,2,5"): /api/admin/jarvis-voice, else the browser's. */
+  const speak = async (text: string) => {
+    stopSpeaking();
+    let src = "";
+    try {
+      const res = await fetch("/api/admin/jarvis-voice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+      if (res.ok) src = URL.createObjectURL(await res.blob());
+    } catch {
+      /* fall back below */
+    }
+    if (!src) return speakBrowser(text);
+    const audio = new Audio(src);
+    audioRef.current = audio;
+    await new Promise<void>((done) => {
+      const end = () => {
+        URL.revokeObjectURL(src);
+        if (audioRef.current === audio) audioRef.current = null;
+        done();
+      };
+      audio.onended = audio.onerror = audio.onpause = end;
+      audio.play().catch(() => {
+        // Autoplay blocked: say it with the browser's voice instead.
+        audio.onended = audio.onerror = audio.onpause = null;
+        URL.revokeObjectURL(src);
+        if (audioRef.current === audio) audioRef.current = null;
+        speakBrowser(text).then(done);
+      });
+    });
+  };
 
   const act = (a: JarvisAction | null, visual?: HoloVisual | null) => {
     if (!a) return;
@@ -1161,6 +1241,7 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
       const j = (await res.json().catch(() => ({}))) as { say?: string; action?: JarvisAction | null; visual?: HoloVisual | null; error?: string };
       const say = j.say ?? j.error ?? "Sorry, sir, something went wrong.";
       setTurns((t) => [...t, { role: "assistant" as const, content: say }].slice(-12));
+      if (j.visual?.kind === "simulation") setDisplay(j.visual);
       act(j.action ?? null, j.visual ?? null);
       setState("speaking");
       wakeRef.current?.stop();
@@ -1179,7 +1260,7 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
   /** Push to talk: one question. */
   const listenOnce = () => {
     if (busy.current) {
-      window.speechSynthesis?.cancel();
+      stopSpeaking();
       return;
     }
     const r = makeRecognizer();
@@ -1306,7 +1387,7 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-sm text-slate-400">Try: "Jarvis, wake up", "Show me the funnel", "Show me where visitors are", "Any hot leads?", "Say hi to the hottest lead".</p>
+          <p className="mt-2 text-sm text-slate-400">Try: "Jarvis, wake up", "Show me the funnel", "What if I double the ad budget?", "Any hot leads?", "Say hi to the hottest lead".</p>
         )}
         {note ? <p className="mt-2 text-xs font-semibold text-amber-300">{note}</p> : null}
         <form

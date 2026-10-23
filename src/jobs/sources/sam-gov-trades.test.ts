@@ -683,13 +683,14 @@ describe("Virginia IT passes (owner 2026-10-23)", () => {
       expect(f.state).toBe("VA");
       const url = buildTradeSearchUrl(f, 0);
       expect(url).toContain(`&naics=${f.code}`);
-      expect(url).toContain("&state=VA");
+      expect(url).toContain("&pop_state=VA");
+      expect(url).not.toContain("&state=");
       expect(url).not.toContain("placeOfPerformance.state");
     }
   });
   test("nationwide passes send no state filter", () => {
     for (const f of [...JANITORIAL_TRADE_FILTERS, ...TRUCKING_TRADE_FILTERS]) {
-      expect(buildTradeSearchUrl(f, 0)).not.toContain("&state=");
+      expect(buildTradeSearchUrl(f, 0)).not.toContain("state=");
     }
   });
 });

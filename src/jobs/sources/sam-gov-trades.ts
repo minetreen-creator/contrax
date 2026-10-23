@@ -203,7 +203,11 @@ export function buildTradeSearchUrl(filter: SamTradeFilter, page: number): strin
     `https://sam.gov/api/prod/sgs/v1/search/?page=${page}&size=${TRADE_PAGE_SIZE}` +
     `&sort=-modifiedDate&mode=opportunities&q=&is_active=true` +
     `&${param}=${encodeURIComponent(filter.code)}` +
-    (filter.state ? `&state=${encodeURIComponent(filter.state)}` : "")
+    // Place-of-performance state. `state=` works alone (sam-gov.ts) but returns
+    // 0 once combined with naics=/psc=; `pop_state=` is the one that composes
+    // (probe 2026-10-23 on GitHub's runners: naics=541512 + state=VA → 0,
+    // + pop_state=VA → 32).
+    (filter.state ? `&pop_state=${encodeURIComponent(filter.state)}` : "")
   );
 }
 

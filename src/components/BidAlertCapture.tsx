@@ -3,6 +3,7 @@ import { resolveTrackingUser } from "~/lib/identity";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
 import { bidAlertProfile, type BidAlertProfile } from "~/lib/bid-alert";
+import { markEmailGiven } from "~/lib/return-visitor";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -100,6 +101,7 @@ export function BidAlertCapture({
         return;
       }
       trackEvent("radar_lead_captured", source);
+      markEmailGiven();
       setStatus("done");
     } catch {
       setStatus("error");

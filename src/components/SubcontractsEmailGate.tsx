@@ -3,6 +3,7 @@ import { resolveTrackingUser } from "~/lib/identity";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
 import { SUBS_UNLOCK_KEY } from "~/lib/subcontracts/email-gate";
+import { hasGivenEmail, markEmailGiven } from "~/lib/return-visitor";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -15,7 +16,7 @@ export function useSubcontractsUnlock(): { unlocked: boolean; unlock: () => void
   const [unlocked, setUnlocked] = useState(false);
   useEffect(() => {
     try {
-      if (localStorage.getItem(SUBS_UNLOCK_KEY) === "1") setUnlocked(true);
+      if (localStorage.getItem(SUBS_UNLOCK_KEY) === "1" || hasGivenEmail()) setUnlocked(true);
     } catch {
       /* storage blocked */
     }
@@ -84,6 +85,7 @@ export function SubcontractsEmailGate({
       }
       trackEvent("radar_lead_captured", source);
       trackEvent("subcontracts_gate_unlocked", source);
+      markEmailGiven();
       onUnlocked();
     } catch {
       setStatus("error");

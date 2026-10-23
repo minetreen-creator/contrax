@@ -9,6 +9,7 @@ import { US_STATES } from "~/lib/states";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
+import { markEmailGiven } from "~/lib/return-visitor";
 import { getTrackingUser } from "~/lib/identity";
 import { getCurrentUser, type AuthUser } from "~/lib/auth";
 import { SaveToPipeline } from "~/components/SaveToPipeline";
@@ -3433,6 +3434,7 @@ function EmailUnlockCard({
         return;
       }
       trackEvent("radar_lead_captured", "email_unlock");
+      markEmailGiven();
       if (!data.unlocked) {
         // Saved for alerts, but this browser couldn't be unlocked (no visitor
         // cookie, or an unsubscribed address): the account is the way in.
@@ -3575,6 +3577,7 @@ export function MatchAlertsCard({
       // Funnel event — measured against the anonymous-bounce drop-off. The
       // display label lives in tracking-intake EVENT_LABELS.
       trackEvent("radar_lead_captured", certLabel);
+      markEmailGiven();
       setStatus("done");
     } catch {
       setStatus("error");

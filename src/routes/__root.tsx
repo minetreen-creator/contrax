@@ -10,6 +10,7 @@ import { initBotId } from "botid/client/core";
 
 import { ChatWidget } from "~/components/ChatWidget";
 import { FounderChat } from "~/components/FounderChat";
+import { ReturnVisitorCatch } from "~/components/ReturnVisitorCatch";
 import {
   ATTR_COOKIE_NAME,
   attributionCookieSetHeader,
@@ -240,6 +241,7 @@ function RootComponent() {
       <PageViewTracker />
       <ChatWidget />
       <FounderChat />
+      <ReturnVisitorCatch />
     </RootDocument>
   );
 }

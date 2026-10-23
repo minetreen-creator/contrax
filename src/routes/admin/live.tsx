@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
+import { afterWakeWord, type JarvisAction, type JarvisSnapshot } from "~/lib/jarvis";
 import { announcements, isRedAlert, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
 import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Volume2, VolumeX, Crosshair } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
@@ -791,6 +792,302 @@ function RedAlert({ alert, more, visitor, onSayHi, onClose }: { alert: Announcem
   );
 }
 
+/** What Mission Control shows, trimmed for Jarvis. */
+function jarvisSnapshot(data: LiveData, now: number): JarvisSnapshot {
+  return {
+    onlineCount: data.onlineCount,
+    online: data.online
+      .filter((v) => v.lead)
+      .sort((a, b) => b.lead!.score - a.lead!.score)
+      .slice(0, 15)
+      .map((v) => ({ vid: v.vid, place: v.place, page: pageName(v.path), score: v.lead!.score, level: v.lead!.level, reasons: v.lead!.reasons })),
+    feed: data.feed.slice(0, 25).map((f) => ({ kind: f.kind, title: f.title, place: f.place, detail: f.detail, minutesAgo: Math.round((now - new Date(f.at).getTime()) / 60_000) })),
+    trials: data.trials.slice(0, 15).map((t) => ({
+      who: t.email.split("@")[0],
+      hoursLeft: Math.round((new Date(t.endsAt).getTime() - now) / 3_600_000),
+      heat: t.heat,
+      trade: t.trade,
+      visits7d: t.visits7d,
+    })),
+    money: data.money ? { payingNow: data.money.payingNow, sawPlans: data.money.sawPlans, clickedBuy: data.money.clickedBuy, openedCheckout: data.money.openedCheckout } : null,
+  };
+}
+
+type JarvisState = "idle" | "listening" | "thinking" | "speaking";
+interface JarvisTurn {
+  role: "user" | "assistant";
+  content: string;
+}
+type Recognizer = {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((e: { resultIndex: number; results: ArrayLike<ArrayLike<{ transcript: string }> & { isFinal: boolean }> }) => void) | null;
+  onend: (() => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  start: () => void;
+  stop: () => void;
+};
+const WAKE_KEY = "contrax_jarvis_wake";
+
+function makeRecognizer(): Recognizer | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as { SpeechRecognition?: new () => Recognizer; webkitSpeechRecognition?: new () => Recognizer };
+  const R = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+  if (!R) return null;
+  const r = new R();
+  r.lang = "en-US";
+  r.interimResults = false;
+  return r;
+}
+
+/** A British male voice when the browser has one, for the full J.A.R.V.I.S. effect. */
+function jarvisVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  return (
+    voices.find((v) => /daniel|google uk english male|arthur|george|ryan.*(uk|gb)/i.test(v.name)) ??
+    voices.find((v) => v.lang === "en-GB") ??
+    voices.find((v) => v.lang.startsWith("en")) ??
+    null
+  );
+}
+
+/**
+ * Jarvis: ask Mission Control anything out loud (or type it). Click the
+ * reactor (or press J) to talk; "Wake word" keeps listening for "Jarvis…".
+ * Answers come from /api/admin/jarvis and are spoken back.
+ */
+function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v: OnlineVisitor) => void }) {
+  const [state, setState] = useState<JarvisState>("idle");
+  const [turns, setTurns] = useState<JarvisTurn[]>([]);
+  const [typed, setTyped] = useState("");
+  const [wake, setWake] = useState(false);
+  const [note, setNote] = useState("");
+  const dataRef = useRef({ data, now });
+  dataRef.current = { data, now };
+  const turnsRef = useRef<JarvisTurn[]>([]);
+  turnsRef.current = turns;
+  const wakeRef = useRef<Recognizer | null>(null);
+  const wakeOn = useRef(false);
+  const busy = useRef(false);
+  const [hasMic, setHasMic] = useState(false);
+
+  useEffect(() => {
+    setHasMic(!!makeRecognizer());
+    try {
+      if (localStorage.getItem(WAKE_KEY) === "on") setWake(true);
+    } catch {
+      /* storage blocked */
+    }
+    if ("speechSynthesis" in window) window.speechSynthesis.getVoices();
+  }, []);
+
+  const speak = (text: string) =>
+    new Promise<void>((done) => {
+      if (!("speechSynthesis" in window)) return done();
+      const u = new SpeechSynthesisUtterance(text);
+      const v = jarvisVoice();
+      if (v) u.voice = v;
+      u.rate = 1.02;
+      u.pitch = 0.9;
+      u.onend = u.onerror = () => done();
+      window.speechSynthesis.speak(u);
+    });
+
+  const act = (a: JarvisAction | null) => {
+    if (!a) return;
+    if (a.type === "chat") {
+      const v = dataRef.current.data.online.find((o) => o.vid === a.vid);
+      if (v) onChat(v);
+    } else {
+      window.open(a.path, "_blank", "noopener");
+    }
+  };
+
+  const ask = async (question: string) => {
+    const q = question.trim();
+    if (!q || busy.current) return;
+    busy.current = true;
+    setNote("");
+    const history = turnsRef.current.slice(-8);
+    setTurns((t) => [...t, { role: "user" as const, content: q }].slice(-12));
+    setState("thinking");
+    try {
+      const res = await fetch("/api/admin/jarvis", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ question: q, snapshot: jarvisSnapshot(dataRef.current.data, dataRef.current.now), history }),
+      });
+      const j = (await res.json().catch(() => ({}))) as { say?: string; action?: JarvisAction | null; error?: string };
+      const say = j.say ?? j.error ?? "Sorry, sir, something went wrong.";
+      setTurns((t) => [...t, { role: "assistant" as const, content: say }].slice(-12));
+      act(j.action ?? null);
+      setState("speaking");
+      wakeRef.current?.stop();
+      await speak(say);
+    } catch {
+      setNote("Couldn't reach Jarvis. Check the connection.");
+    } finally {
+      busy.current = false;
+      setState("idle");
+      if (wakeOn.current) startWake();
+    }
+  };
+  const askRef = useRef(ask);
+  askRef.current = ask;
+
+  /** Push to talk: one question. */
+  const listenOnce = () => {
+    if (busy.current) {
+      window.speechSynthesis?.cancel();
+      return;
+    }
+    const r = makeRecognizer();
+    if (!r) {
+      setNote("Voice needs Chrome or Edge. You can type below.");
+      return;
+    }
+    wakeRef.current?.stop();
+    r.continuous = false;
+    let heard = "";
+    r.onresult = (e) => {
+      heard = Array.from(e.results).map((x) => x[0].transcript).join(" ");
+    };
+    r.onerror = (e) => e.error === "not-allowed" && setNote("Allow the microphone for this site to talk to Jarvis.");
+    r.onend = () => {
+      if (heard.trim()) askRef.current(afterWakeWord(heard) || heard);
+      else {
+        setState("idle");
+        if (wakeOn.current) startWake();
+      }
+    };
+    setState("listening");
+    try {
+      r.start();
+    } catch {
+      setState("idle");
+    }
+  };
+
+  /** Wake word: keep listening; anything after "Jarvis" is a question. */
+  const startWake = () => {
+    if (!wakeOn.current || busy.current) return;
+    const r = makeRecognizer();
+    if (!r) return;
+    r.continuous = true;
+    let pending = false;
+    r.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (!e.results[i].isFinal) continue;
+        const text = e.results[i][0].transcript;
+        const q = afterWakeWord(text);
+        if (q === null) continue;
+        pending = true;
+        r.stop();
+        if (q) askRef.current(q);
+        else {
+          speak("Yes, sir?").then(listenOnce);
+        }
+        return;
+      }
+    };
+    r.onerror = (e) => {
+      if (e.error === "not-allowed") {
+        wakeOn.current = false;
+        setWake(false);
+        setNote("Allow the microphone for this site to use the wake word.");
+      }
+    };
+    // Browsers end continuous listening every so often; pick it back up.
+    r.onend = () => {
+      if (!pending && wakeOn.current && !busy.current) setTimeout(startWake, 300);
+    };
+    wakeRef.current = r;
+    try {
+      r.start();
+    } catch {
+      /* already running */
+    }
+  };
+
+  useEffect(() => {
+    wakeOn.current = wake;
+    try {
+      localStorage.setItem(WAKE_KEY, wake ? "on" : "off");
+    } catch {
+      /* storage blocked */
+    }
+    if (wake) startWake();
+    else wakeRef.current?.stop();
+    return () => wakeRef.current?.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wake]);
+
+  // Press J (outside a text box) to talk.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      if (e.key.toLowerCase() !== "j" || e.metaKey || e.ctrlKey || e.altKey || t?.closest("input, textarea, [contenteditable]")) return;
+      e.preventDefault();
+      listenOnce();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  const label = { idle: hasMic ? "Click the reactor or press J to talk" : "Type a question below", listening: "Listening…", thinking: "Thinking…", speaking: "Speaking… (click to stop)" }[state];
+  const last = turns.slice(-4);
+
+  return (
+    <div className="live-jarvis">
+      <button type="button" className={`live-jarvis-core is-${state}`} onClick={listenOnce} aria-label="Talk to Jarvis">
+        <span className="live-jarvis-ring r1" />
+        <span className="live-jarvis-ring r2" />
+        <span className="live-jarvis-ring r3" />
+        <span className="live-jarvis-heart">J</span>
+      </button>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-lg font-extrabold tracking-[0.25em] text-cyan-200">J.A.R.V.I.S.</p>
+          <span className="text-xs text-slate-400">{label}</span>
+          {hasMic ? (
+            <label className="ml-auto flex items-center gap-1.5 text-xs text-slate-300">
+              <input type="checkbox" checked={wake} onChange={(e) => setWake(e.target.checked)} />
+              Always listening for "Jarvis"
+            </label>
+          ) : null}
+        </div>
+        {last.length ? (
+          <ul className="mt-2 space-y-1.5">
+            {last.map((t, i) => (
+              <li key={i} className={t.role === "user" ? "text-xs text-slate-400" : "text-sm text-cyan-50"}>
+                {t.role === "user" ? `You: ${t.content}` : t.content}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-slate-400">Try: "How many visitors today?", "Any hot leads?", "Where is my traffic coming from this week?", "Say hi to the hottest lead".</p>
+        )}
+        {note ? <p className="mt-2 text-xs font-semibold text-amber-300">{note}</p> : null}
+        <form
+          className="mt-3 flex flex-wrap gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            ask(typed);
+            setTyped("");
+          }}
+        >
+          <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="Ask Jarvis…" className="live-jarvis-input min-w-0 flex-1" maxLength={300} />
+          <button type="submit" className="live-jarvis-btn" disabled={state === "thinking"}>Ask</button>
+          <button type="button" className="live-jarvis-btn" disabled={state === "thinking"} onClick={() => ask("Give me my briefing: how things are going today versus yesterday, anything hot right now, and the one thing I should do next.")}>
+            Briefing
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 function LivePage() {
   const [data, setData] = useState<LiveData | null>(null);
   const [error, setError] = useState("");
@@ -920,6 +1217,12 @@ function LivePage() {
                 <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} onChat={openChat} />
                 <Conversations threads={threads} online={data.online} onOpen={(vid, label) => setChat({ vid, label })} />
               </div>
+            </div>
+          ) : null}
+
+          {data ? (
+            <div className="mt-6">
+              <Jarvis data={data} now={now} onChat={openChat} />
             </div>
           ) : null}
 

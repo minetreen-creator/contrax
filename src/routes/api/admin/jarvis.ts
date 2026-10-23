@@ -1,0 +1,272 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { getUserFromRequest } from "~/lib/api-auth";
+import { sql } from "~/db";
+import { fetchOpenAIWithRetry, sanitizeLogString } from "~/lib/ai";
+import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
+import { adminFunnelExclusionSQL, qaExternalUserSQL, qaFunnelExclusionSQL } from "~/lib/qa-exclusion";
+import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+import { SIGNUP_VIEWED_EVENTS } from "~/lib/tracking-intake";
+import { outreachOverview } from "~/lib/outreach.server";
+import {
+  clampDays,
+  JARVIS_TOOLS,
+  jarvisPrompt,
+  MAX_QUESTION_CHARS,
+  MAX_TOOL_ROUNDS,
+  parseJarvisReply,
+  sanitizeHistory,
+  type JarvisServerStats,
+  type JarvisSnapshot,
+} from "~/lib/jarvis";
+
+/**
+ * POST /api/admin/jarvis — Mission Control's voice assistant (src/lib/jarvis.ts).
+ * Admin only. Body: { question, snapshot, history }. Answers with OpenAI
+ * function calling: the model sees what Mission Control shows plus today's
+ * counts, and can look up more (traffic by day, sources, pages, the funnel,
+ * searches, signups, open bids) through the read-only tools below. Returns
+ * { say, action }.
+ */
+
+const OPENAI_URL = "https://api.openai.com/v1/chat/completions";
+/** A stronger model than the site default: Jarvis has to reason over the data. */
+const SMART_MODEL = process.env.JARVIS_MODEL || "gpt-4.1";
+const FALLBACK_MODEL = "gpt-4o-mini";
+const ET = "America/New_York";
+
+const human = () => `NOT ${BOT_EXCLUSION_SQL} AND ${qaFunnelExclusionSQL()} AND ${adminFunnelExclusionSQL()}`;
+const PAID = `LOWER(COALESCE(medium, '')) IN ('cpc', 'ppc', 'paid', 'paidsocial', 'display')`;
+
+async function serverStats(): Promise<JarvisServerStats> {
+  const now = new Date().toLocaleString("en-US", { timeZone: ET, weekday: "long", month: "long", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const stats: JarvisServerStats = { now, visitorsToday: null, visitorsYesterday: null, week: null, outreach: null };
+  const db = sql();
+  try {
+    const [v] = (await db.query(
+      `SELECT COUNT(DISTINCT visitor_id) FILTER (WHERE (created_at AT TIME ZONE '${ET}')::date = (NOW() AT TIME ZONE '${ET}')::date)::int AS today,
+              COUNT(DISTINCT visitor_id) FILTER (WHERE (created_at AT TIME ZONE '${ET}')::date = (NOW() AT TIME ZONE '${ET}')::date - 1)::int AS yesterday
+       FROM page_views
+       WHERE created_at > NOW() - INTERVAL '50 hours' AND visitor_id IS NOT NULL AND path NOT LIKE '/admin%' AND ${human()}`,
+    )) as { today: number; yesterday: number }[];
+    stats.visitorsToday = Number(v?.today ?? 0);
+    stats.visitorsYesterday = Number(v?.yesterday ?? 0);
+  } catch (err) {
+    console.error("[jarvis] visitor counts failed:", sanitizeLogString(err));
+  }
+  try {
+    const f = await funnel(7);
+    const [a] = (await db.query(
+      `SELECT COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '7 days')::int AS new_accounts,
+              COUNT(*) FILTER (WHERE trial_started_at > NOW() - INTERVAL '7 days')::int AS trials,
+              COUNT(*) FILTER (WHERE subscription_status = 'active')::int AS paying
+       FROM users WHERE ${qaExternalUserSQL()}`,
+    )) as { new_accounts: number; trials: number; paying: number }[];
+    stats.week = {
+      visitors: f.visited,
+      searches: f.searched,
+      signups: f.signed_up,
+      newAccounts: Number(a?.new_accounts ?? 0),
+      trialsStarted: Number(a?.trials ?? 0),
+      payingNow: Number(a?.paying ?? 0),
+    };
+  } catch (err) {
+    console.error("[jarvis] week stats failed:", sanitizeLogString(err));
+  }
+  try {
+    const o = await outreachOverview();
+    stats.outreach = { waiting: o.stats.drafts, sentToday: o.stats.sentToday, sentFirst: o.stats.sentFirst, sentFollowup: o.stats.sentFollowup, unsubscribed: o.stats.suppressed };
+  } catch (err) {
+    console.error("[jarvis] outreach stats failed:", sanitizeLogString(err));
+  }
+  return stats;
+}
+
+async function funnel(days: number) {
+  const [r] = (await sql().query(
+    `WITH pv AS (
+       SELECT visitor_id, BOOL_OR(path ~ '^/(pricing|upgrade)([/?]|$)') AS pricing
+       FROM page_views
+       WHERE created_at > NOW() - make_interval(days => $1) AND visitor_id IS NOT NULL AND path NOT LIKE '/admin%' AND ${human()}
+       GROUP BY visitor_id
+     ), fe AS (
+       SELECT visitor_id,
+              BOOL_OR(event_name = 'radar_scan_start') AS searched,
+              BOOL_OR(event_name IN ('radar_scan_signed_in_matches', 'radar_scan_anonymous_matches')) AS matched,
+              BOOL_OR(event_name = ANY($2::text[])) AS saw_signup,
+              BOOL_OR(event_name = 'signup_success') AS signed_up,
+              BOOL_OR(event_name LIKE '%upgrade_click%' OR event_name LIKE '%checkout_started%') AS clicked_buy
+       FROM funnel_events
+       WHERE created_at > NOW() - make_interval(days => $1) AND visitor_id IS NOT NULL AND ${human()}
+       GROUP BY visitor_id
+     )
+     SELECT COUNT(*)::int AS visited,
+            COUNT(*) FILTER (WHERE fe.searched)::int AS searched,
+            COUNT(*) FILTER (WHERE fe.matched)::int AS search_found_bids,
+            COUNT(*) FILTER (WHERE fe.saw_signup)::int AS saw_signup,
+            COUNT(*) FILTER (WHERE fe.signed_up)::int AS signed_up,
+            COUNT(*) FILTER (WHERE pv.pricing)::int AS saw_pricing,
+            COUNT(*) FILTER (WHERE fe.clicked_buy)::int AS clicked_buy
+     FROM pv LEFT JOIN fe ON fe.visitor_id = pv.visitor_id`,
+    [days, [...SIGNUP_VIEWED_EVENTS]],
+  )) as Record<string, number>[];
+  return Object.fromEntries(Object.entries(r ?? {}).map(([k, v]) => [k, Number(v)])) as Record<string, number>;
+}
+
+/** Read-only lookups the model may call. Each returns plain JSON. */
+async function runTool(name: string, args: Record<string, unknown>): Promise<unknown> {
+  const db = sql();
+  const days = clampDays(args.days);
+  const visitorWhere = `created_at > NOW() - make_interval(days => $1) AND visitor_id IS NOT NULL AND path NOT LIKE '/admin%' AND ${human()}`;
+  switch (name) {
+    case "visitors_by_day":
+      return db.query(
+        `SELECT to_char((created_at AT TIME ZONE '${ET}')::date, 'Dy Mon DD') AS day,
+                COUNT(DISTINCT visitor_id)::int AS visitors,
+                COUNT(DISTINCT visitor_id) FILTER (WHERE ${PAID})::int AS from_paid_ads
+         FROM page_views WHERE ${visitorWhere}
+         GROUP BY (created_at AT TIME ZONE '${ET}')::date ORDER BY (created_at AT TIME ZONE '${ET}')::date`,
+        [days],
+      );
+    case "traffic_sources":
+      return db.query(
+        `SELECT COALESCE(NULLIF(source, ''), NULLIF(split_part(regexp_replace(COALESCE(referrer, ''), '^https?://(www\\.)?', ''), '/', 1), ''), 'direct') AS source,
+                COALESCE(NULLIF(medium, ''), '-') AS medium,
+                COUNT(DISTINCT visitor_id)::int AS visitors
+         FROM page_views WHERE ${visitorWhere}
+         GROUP BY 1, 2 ORDER BY visitors DESC LIMIT 15`,
+        [days],
+      );
+    case "top_pages":
+      return db.query(
+        `SELECT split_part(path, '?', 1) AS page, COUNT(*)::int AS views, COUNT(DISTINCT visitor_id)::int AS visitors
+         FROM page_views WHERE ${visitorWhere}
+         GROUP BY 1 ORDER BY visitors DESC LIMIT 15`,
+        [days],
+      );
+    case "visitor_locations":
+      return db.query(
+        `SELECT COALESCE(NULLIF(city, ''), '?') AS city, COALESCE(NULLIF(region, ''), '?') AS region, COUNT(DISTINCT visitor_id)::int AS visitors
+         FROM page_views WHERE ${visitorWhere}
+         GROUP BY 1, 2 ORDER BY visitors DESC LIMIT 15`,
+        [days],
+      );
+    case "funnel":
+      return funnel(days);
+    case "top_searches":
+      return db.query(
+        `SELECT trade, state, COUNT(*)::int AS searches, ROUND(AVG(matched))::int AS avg_bids_found,
+                COUNT(*) FILTER (WHERE matched = 0)::int AS found_nothing
+         FROM radar_search_log WHERE created_at > NOW() - make_interval(days => $1)
+         GROUP BY 1, 2 ORDER BY searches DESC LIMIT 15`,
+        [days],
+      );
+    case "recent_signups":
+      return db.query(
+        `SELECT split_part(email, '@', 1) AS who, to_char(created_at AT TIME ZONE '${ET}', 'Dy Mon DD HH12:MI AM') AS joined,
+                plan_tier, COALESCE(subscription_status, 'none') AS subscription, trial_started_at IS NOT NULL AS started_trial
+         FROM users WHERE ${qaExternalUserSQL()} AND created_at > NOW() - make_interval(days => $1)
+         ORDER BY created_at DESC LIMIT 20`,
+        [days],
+      );
+    case "open_bids": {
+      const keyword = String(args.keyword ?? "").trim().slice(0, 60);
+      const state = String(args.state ?? "").trim().toUpperCase().slice(0, 2);
+      if (!keyword) return { error: "keyword is required" };
+      const where = `due_date > NOW() AND title ILIKE '%' || $1 || '%' AND ($2 = '' OR normalized_state = $2) AND ${LOW_CONTENT_SQL} AND ${AWARD_EXCLUSION_SQL}`;
+      const [c] = (await db.query(`SELECT COUNT(*)::int AS n FROM bids WHERE ${where}`, [keyword, state])) as { n: number }[];
+      const soonest = await db.query(
+        `SELECT title, agency, normalized_state AS state, to_char(due_date, 'Mon DD') AS due FROM bids WHERE ${where} ORDER BY due_date ASC LIMIT 5`,
+        [keyword, state],
+      );
+      return { open: Number(c?.n ?? 0), soonest_due: soonest };
+    }
+    default:
+      return { error: `unknown tool ${name}` };
+  }
+}
+
+interface ChatMsg {
+  role: "system" | "user" | "assistant" | "tool";
+  content: string | null;
+  tool_calls?: { id: string; type: "function"; function: { name: string; arguments: string } }[];
+  tool_call_id?: string;
+}
+
+async function chat(model: string, messages: ChatMsg[]) {
+  const res = await fetchOpenAIWithRetry(OPENAI_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+    body: JSON.stringify({ model, messages, tools: JARVIS_TOOLS, temperature: 0.4, max_tokens: 500, response_format: { type: "json_object" } }),
+  });
+  if (!res.ok) {
+    const err = new Error(`OpenAI ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
+  }
+  const j = (await res.json()) as { choices?: { message?: ChatMsg }[] };
+  const msg = j.choices?.[0]?.message;
+  if (!msg) throw new Error("OpenAI returned no message");
+  return msg;
+}
+
+async function answer(model: string, messages: ChatMsg[]): Promise<string> {
+  for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
+    const msg = await chat(model, messages);
+    if (!msg.tool_calls?.length || round === MAX_TOOL_ROUNDS) return msg.content ?? "";
+    messages.push({ role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls });
+    for (const call of msg.tool_calls) {
+      let result: unknown;
+      try {
+        result = await runTool(call.function.name, JSON.parse(call.function.arguments || "{}"));
+      } catch (err) {
+        console.error(`[jarvis] tool ${call.function.name} failed:`, sanitizeLogString(err));
+        result = { error: "lookup failed" };
+      }
+      messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result).slice(0, 6000) });
+    }
+  }
+  return "";
+}
+
+async function handler({ request }: { request: Request }) {
+  const user = await getUserFromRequest(request);
+  if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
+  if (!user.is_admin) return Response.json({ error: "Admin access required" }, { status: 403 });
+  if (!process.env.OPENAI_API_KEY) return Response.json({ error: "Jarvis needs OPENAI_API_KEY" }, { status: 503 });
+  const body = (await request.json().catch(() => ({}))) as { question?: unknown; snapshot?: unknown; history?: unknown };
+  const question = String(body.question ?? "").trim().slice(0, MAX_QUESTION_CHARS);
+  if (!question) return Response.json({ error: "Ask me something" }, { status: 400 });
+  const snapshot = (body.snapshot && typeof body.snapshot === "object" ? body.snapshot : {}) as JarvisSnapshot;
+  const online = Array.isArray(snapshot.online) ? snapshot.online.slice(0, 20) : [];
+  const safe: JarvisSnapshot = {
+    onlineCount: Number(snapshot.onlineCount) || 0,
+    online,
+    feed: Array.isArray(snapshot.feed) ? snapshot.feed.slice(0, 25) : [],
+    trials: Array.isArray(snapshot.trials) ? snapshot.trials.slice(0, 15) : [],
+    money: snapshot.money ?? null,
+  };
+  const messages: ChatMsg[] = [
+    { role: "system", content: jarvisPrompt(safe, await serverStats()) },
+    ...sanitizeHistory(body.history),
+    { role: "user", content: question },
+  ];
+  let raw: string;
+  try {
+    raw = await answer(SMART_MODEL, [...messages]);
+  } catch (err) {
+    // An unknown or unavailable model id: answer with the site's default model.
+    const status = (err as { status?: number }).status;
+    if (status !== 400 && status !== 404) {
+      console.error("[jarvis] failed:", sanitizeLogString(err));
+      return Response.json({ say: "My apologies, sir. I couldn't reach my thinking circuits just now. Try me again in a moment.", action: null });
+    }
+    console.error(`[jarvis] ${SMART_MODEL} unavailable, falling back:`, sanitizeLogString(err));
+    raw = await answer(FALLBACK_MODEL, [...messages]).catch(() => "");
+  }
+  return Response.json(parseJarvisReply(raw, new Set(online.map((v) => String(v.vid)))));
+}
+
+export const Route = createFileRoute("/api/admin/jarvis")({
+  server: { handlers: { POST: handler } },
+});

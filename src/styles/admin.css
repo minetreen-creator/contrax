@@ -227,3 +227,23 @@
 @media (prefers-reduced-motion: reduce) {
   .live-redalert, .live-redalert::before, .live-redalert-card { animation: none; }
 }
+/* Jarvis (src/lib/jarvis.ts). */
+.admin-console .live-jarvis { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; padding: 18px; border-radius: 16px; background: radial-gradient(circle at 10% 50%, rgba(8,145,178,0.25), rgba(15,23,42,0.85) 60%); border: 1px solid rgba(34,211,238,0.35); box-shadow: 0 0 30px rgba(34,211,238,0.12) inset; }
+.admin-console .live-jarvis-core { position: relative; width: 120px; height: 120px; flex-shrink: 0; margin: 0 auto; border-radius: 50%; background: radial-gradient(circle, rgba(165,243,252,0.9) 0 14%, rgba(34,211,238,0.35) 15% 32%, rgba(8,47,73,0.9) 33%); box-shadow: 0 0 30px rgba(34,211,238,0.5); }
+.admin-console .live-jarvis-ring { position: absolute; border-radius: 50%; border: 2px solid rgba(103,232,249,0.55); inset: 10px; border-left-color: transparent; border-right-color: transparent; animation: live-jarvis-spin 6s linear infinite; }
+.admin-console .live-jarvis-ring.r2 { inset: 22px; border-color: rgba(103,232,249,0.4); border-top-color: transparent; animation-duration: 4s; animation-direction: reverse; }
+.admin-console .live-jarvis-ring.r3 { inset: 2px; border-style: dashed; border-color: rgba(34,211,238,0.3); animation-duration: 12s; }
+.admin-console .live-jarvis-heart { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 900; color: #083344; }
+@keyframes live-jarvis-spin { to { transform: rotate(360deg); } }
+.admin-console .live-jarvis-core.is-listening { box-shadow: 0 0 50px rgba(74,222,128,0.8); animation: live-jarvis-pulse 1s ease-in-out infinite; }
+.admin-console .live-jarvis-core.is-listening .live-jarvis-ring { border-top-color: rgba(134,239,172,0.9); border-bottom-color: rgba(134,239,172,0.9); }
+.admin-console .live-jarvis-core.is-thinking .live-jarvis-ring { animation-duration: 0.8s; }
+.admin-console .live-jarvis-core.is-speaking { animation: live-jarvis-pulse 0.5s ease-in-out infinite; box-shadow: 0 0 55px rgba(34,211,238,0.9); }
+@keyframes live-jarvis-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+.admin-console .live-jarvis-input { padding: 8px 12px; border-radius: 10px; font-size: 14px; color: #e2e8f0; background: rgba(2,6,23,0.7); border: 1px solid rgba(34,211,238,0.35); }
+.admin-console .live-jarvis-input::placeholder { color: #64748b; }
+.admin-console .live-jarvis-btn { padding: 8px 14px; border-radius: 10px; font-size: 13px; font-weight: 800; color: #083344; background: #67e8f9; }
+.admin-console .live-jarvis-btn:disabled { opacity: 0.5; }
+@media (prefers-reduced-motion: reduce) {
+  .admin-console .live-jarvis-ring, .admin-console .live-jarvis-core { animation: none !important; }
+}

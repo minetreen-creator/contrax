@@ -689,6 +689,29 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     ],
     naics: ["493110"],
   },
+  // Owner 2026-10-23: Virginia's Executive Directive 6 (statewide cyber plan,
+  // Cyber Consortium) makes cybersecurity work a trade worth its own pages.
+  // Phrase-only (no NAICS: cyber work is billed under the general IT codes,
+  // which would pull in every IT bid) and exactOnly, so a "security guard" or
+  // "information technology" search never stems into these terms.
+  "cybersecurity": {
+    label: "Cybersecurity",
+    synonyms: [
+      "cybersecurity",
+      "cyber security",
+      "cyber",
+      "information security",
+      "penetration testing",
+      "vulnerability assessment",
+      "vulnerability scanning",
+      "managed security services",
+      "intrusion detection",
+      "endpoint protection",
+      "zero trust",
+    ],
+    naics: [],
+    exactOnly: true,
+  },
 };
 
 /** 6-digit NAICS code (strict, per the existing /^\d{6}$/ convention). */

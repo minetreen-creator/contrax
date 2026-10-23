@@ -757,6 +757,8 @@ jobs:
         run: bun test src/lib/radar-unlock.test.ts
       - name: Subcontracts by state page (unit, deterministic, zero network)
         run: bun test src/lib/subcontracts/state-page.test.ts src/lib/subcontracts/email-gate.test.ts
+      - name: Returning-visitor email catch (unit, deterministic, zero network)
+        run: bun test src/lib/return-visitor.test.ts
       - name: Starter $5 first month offer (unit, deterministic, zero network)
         run: bun test src/lib/starter-offer.test.ts
       - name: Founder live chat rules (unit, deterministic, zero network)

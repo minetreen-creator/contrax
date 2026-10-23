@@ -689,6 +689,43 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     ],
     naics: ["493110"],
   },
+  // Owner 2026-10-23 ("we need more IT contracts in VA"): /contracts-in/virginia/
+  // it-services listed 11 bids. Buyers title IT work "software", "cloud",
+  // "help desk", "network services", "ERP"…, none of which the 541512/541519
+  // keyword lists carried, so eVA rows (no NAICS) never matched; the federal
+  // IT codes 541511/541513/518210 were missing too. exactOnly: only an IT
+  // search resolves here, never a stem of another trade.
+  "it-services": {
+    label: "IT services",
+    synonyms: [
+      "it services",
+      "information technology",
+      "information technology services",
+      "it support",
+      "managed it services",
+      "it managed services",
+      "it staffing",
+      "it consulting",
+      "software",
+      "software development",
+      "software maintenance",
+      "cloud services",
+      "cloud computing",
+      "cloud migration",
+      "saas",
+      "erp",
+      "help desk",
+      "service desk",
+      "network services",
+      "network infrastructure",
+      "systems integration",
+      "data center",
+      "computer services",
+      "technology services",
+    ],
+    naics: ["541511", "541512", "541513", "541519", "518210"],
+    exactOnly: true,
+  },
   // Owner 2026-10-23: Virginia's Executive Directive 6 (statewide cyber plan,
   // Cyber Consortium) makes cybersecurity work a trade worth its own pages.
   // Phrase-only (no NAICS: cyber work is billed under the general IT codes,

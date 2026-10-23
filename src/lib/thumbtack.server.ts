@@ -236,3 +236,92 @@ export async function deleteConnection(userId: number): Promise<void> {
   await ensureTable();
   await sql()`DELETE FROM thumbtack_connections WHERE user_id = ${userId}`;
 }
+
+// ── Automatic token refresh ──────────────────────────────────────────────────
+
+/** Renew this long before the access token expires, so a call never races the expiry. */
+export const REFRESH_SKEW_MS = 2 * 60 * 1000;
+
+/** PURE: does a token expiring at `expiresAt` need renewing now? Unknown expiry = no (a 401 still renews). */
+export function needsRefresh(expiresAt: Date | string | null | undefined, now = Date.now(), skewMs = REFRESH_SKEW_MS): boolean {
+  if (!expiresAt) return false;
+  const t = new Date(expiresAt).getTime();
+  return Number.isFinite(t) && t - now <= skewMs;
+}
+
+/** Store a refreshed token set. UPDATE only, so a disconnect in between is never undone. */
+async function updateTokens(userId: number, tokens: ThumbtackTokens): Promise<string | null> {
+  const expiresAt = tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null;
+  const access = encryptToken(tokens.access_token);
+  // Thumbtack may rotate the refresh token; keep the old one when it doesn't send a new one.
+  const refresh = tokens.refresh_token ? encryptToken(tokens.refresh_token) : null;
+  await sql()`
+    UPDATE thumbtack_connections SET
+      access_token_enc = ${access},
+      refresh_token_enc = COALESCE(${refresh}, refresh_token_enc),
+      expires_at = ${expiresAt},
+      scopes = COALESCE(${tokens.scope ?? null}, scopes),
+      updated_at = NOW()
+    WHERE user_id = ${userId}`;
+  return expiresAt;
+}
+
+export interface AccessTokenResult {
+  accessToken: string;
+  refreshed: boolean;
+  /** Did Thumbtack send a new refresh token (rotation)? */
+  rotated: boolean;
+  expiresAt: string | null;
+}
+
+/**
+ * The user's current Thumbtack access token, renewed with the refresh token
+ * when it has expired or is about to (or always, with `force`). null when the
+ * user has no connection. Throws when a renewal is needed but fails (the user
+ * must reconnect).
+ */
+export async function thumbtackAccessToken(
+  cfg: ThumbtackConfig,
+  userId: number,
+  opts: { force?: boolean; fetchImpl?: typeof fetch } = {},
+): Promise<AccessTokenResult | null> {
+  await ensureTable();
+  const rows = (await sql()`
+    SELECT access_token_enc, refresh_token_enc, expires_at FROM thumbtack_connections WHERE user_id = ${userId}
+  `) as { access_token_enc: string; refresh_token_enc: string | null; expires_at: Date | string | null }[];
+  const r = rows[0];
+  if (!r) return null;
+  const expiresAt = r.expires_at ? new Date(r.expires_at).toISOString() : null;
+  if (!opts.force && !needsRefresh(r.expires_at)) {
+    return { accessToken: decryptToken(r.access_token_enc), refreshed: false, rotated: false, expiresAt };
+  }
+  if (!r.refresh_token_enc) throw new Error("Thumbtack connection has no refresh token; reconnect to renew it");
+  const tokens = await refreshTokens(cfg, decryptToken(r.refresh_token_enc), opts.fetchImpl);
+  const newExpiry = await updateTokens(userId, tokens);
+  return { accessToken: tokens.access_token, refreshed: true, rotated: Boolean(tokens.refresh_token), expiresAt: newExpiry };
+}
+
+/**
+ * Re-read the business profile with a current token (renewing first when
+ * needed, or always with `forceRefresh`) and store it. A 401 on a token that
+ * wasn't just renewed renews once and retries.
+ */
+export async function refreshBusinessProfile(
+  cfg: ThumbtackConfig,
+  userId: number,
+  opts: { forceRefresh?: boolean; fetchImpl?: typeof fetch } = {},
+): Promise<{ token: AccessTokenResult; profileRead: boolean } | null> {
+  const fetchImpl = opts.fetchImpl ?? fetch;
+  let token = await thumbtackAccessToken(cfg, userId, { force: opts.forceRefresh, fetchImpl });
+  if (!token) return null;
+  let profile = await fetchBusinessProfile(cfg, token.accessToken, fetchImpl);
+  if (profile == null && !token.refreshed) {
+    token = await thumbtackAccessToken(cfg, userId, { force: true, fetchImpl });
+    if (!token) return null;
+    profile = await fetchBusinessProfile(cfg, token.accessToken, fetchImpl);
+  }
+  if (profile != null) {
+    await sql()`UPDATE thumbtack_connections SET profile = ${JSON.stringify(profile)}::jsonb, updated_at = NOW() WHERE user_id = ${userId}`;
+  }
+  return { token, profileRead: profile != null };
+}

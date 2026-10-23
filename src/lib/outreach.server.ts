@@ -234,6 +234,13 @@ export async function outreachOverview(): Promise<{
   };
 }
 
+/** Skip every waiting draft (they can be re-queued later; skipped rows never send). */
+export async function skipAllDrafts(reason: string): Promise<number> {
+  await ensureOutreach();
+  const rows = (await sql()`UPDATE outreach_contacts SET status = 'skipped', error = ${reason} WHERE status = 'draft' RETURNING id`) as unknown[];
+  return rows.length;
+}
+
 export async function skipDraft(id: number): Promise<void> {
   await ensureOutreach();
   await sql()`UPDATE outreach_contacts SET status = 'skipped' WHERE id = ${id} AND status = 'draft'`;

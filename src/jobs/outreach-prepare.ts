@@ -17,16 +17,21 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import {
   BUSINESSES_PER_BID,
   DAILY_FIRST_EMAILS,
+  emailFitsSite,
+  MAX_DAYS_TO_DUE,
   MIN_DAYS_TO_DUE,
   OUTREACH_TRADES,
+  placeIsLocal,
 } from "~/lib/outreach";
-import { ensureOutreach, isNewAddress, queueFirst, queueFollowups } from "~/lib/outreach.server";
+import { ensureOutreach, isNewAddress, queueFirst, queueFollowups, skipAllDrafts } from "~/lib/outreach.server";
 import { bidPlace, placesQuery, siteHost } from "~/lib/prospect-finder";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { searchPlaces, siteEmails } from "./prospect-finder";
 
 /** Bids looked at per trade per day; spreads the 30 drafts across trades. */
 const BIDS_PER_TRADE = 3;
+/** Candidates read per trade before the "is this local?" filter. */
+const CANDIDATES_PER_TRADE = 25;
 
 interface BidRow {
   id: number;
@@ -37,6 +42,19 @@ interface BidRow {
   due_date: Date | string;
 }
 
+/**
+ * Where to look for businesses near a bid: its location when that names a
+ * town or county, else the buyer ("City of Huntsville, TX") unless the buyer
+ * is a statewide purchasing group; null when neither is local.
+ */
+function outreachPlace(b: BidRow): string | null {
+  const loc = (b.location ?? "").trim();
+  if (placeIsLocal(loc)) return bidPlace(loc, null, b.normalized_state);
+  const agency = (b.agency ?? "").trim();
+  if (agency && placeIsLocal(agency)) return `${agency}, ${b.normalized_state}`;
+  return null;
+}
+
 async function freshBids(match: string, limit: number): Promise<BidRow[]> {
   const s = sql();
   const like = `%${match.toLowerCase()}%`;
@@ -44,8 +62,9 @@ async function freshBids(match: string, limit: number): Promise<BidRow[]> {
     SELECT id, title, agency, location, normalized_state, due_date FROM bids
     WHERE normalized_state ~ '^[A-Z]{2}$'
       AND due_date >= NOW() + ${`${MIN_DAYS_TO_DUE} days`}::interval
+      AND due_date <= NOW() + ${`${MAX_DAYS_TO_DUE} days`}::interval
       AND created_at >= NOW() - INTERVAL '3 days'
-      AND (LOWER(title) LIKE ${like} OR LOWER(COALESCE(description, '')) LIKE ${like})
+      AND LOWER(title) LIKE ${like}
       AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
       AND NOT EXISTS (SELECT 1 FROM outreach_contacts c WHERE c.bid_id = bids.id)
     ORDER BY created_at DESC
@@ -55,6 +74,10 @@ async function freshBids(match: string, limit: number): Promise<BidRow[]> {
 
 async function main() {
   await ensureOutreach();
+  if (process.env.RESET_DRAFTS === "true") {
+    const n = await skipAllDrafts("reset by owner run");
+    console.log(`Reset: ${n} waiting draft(s) skipped.`);
+  }
   const followups = await queueFollowups();
   console.log(`Follow-ups queued: ${followups}`);
 
@@ -68,12 +91,16 @@ async function main() {
   const seenHosts = new Set<string>();
   for (const trade of OUTREACH_TRADES) {
     if (queued >= DAILY_FIRST_EMAILS) break;
-    const bids = await freshBids(trade.match, BIDS_PER_TRADE);
-    console.log(`\n${trade.label}: ${bids.length} fresh bid(s)`);
+    // Only bids whose place is a real town, county or agency: a statewide
+    // purchasing group or a bare state name would make "near you" untrue.
+    const bids = (await freshBids(trade.match, CANDIDATES_PER_TRADE))
+      .filter((b) => outreachPlace(b) !== null)
+      .slice(0, BIDS_PER_TRADE);
+    console.log(`\n${trade.label}: ${bids.length} fresh local bid(s)`);
     for (const b of bids) {
       if (queued >= DAILY_FIRST_EMAILS) break;
       const due = new Date(b.due_date).toISOString().slice(0, 10);
-      const query = placesQuery(trade.places, bidPlace(b.location, b.agency, b.normalized_state));
+      const query = placesQuery(trade.places, outreachPlace(b)!);
       console.log(`  #${b.id} ${b.title} (${b.agency ?? "-"}, due ${due}) → ${query}`);
       let places;
       try {
@@ -89,7 +116,7 @@ async function main() {
         if (!p.website || !host || seenHosts.has(host)) continue;
         seenHosts.add(host);
         const { emails } = await siteEmails(p.website);
-        const email = emails[0];
+        const email = emails.find((e) => emailFitsSite(e, host));
         if (!email || !(await isNewAddress(email))) continue;
         const ok = await queueFirst({
           email,

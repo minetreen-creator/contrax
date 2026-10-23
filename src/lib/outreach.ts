@@ -46,8 +46,41 @@ export const OUTREACH_TRADES: readonly OutreachTrade[] = [
 export const DAILY_FIRST_EMAILS = 30;
 /** Businesses emailed per bid. */
 export const BUSINESSES_PER_BID = 2;
-/** A bid must be due at least this far out to be worth a cold email. */
+/** A bid must be due at least this far out to be worth a cold email... */
 export const MIN_DAYS_TO_DUE = 10;
+/** ...and no further out than this (standing lists and multi-year
+ * prequalifications are not "an open bid near you"). */
+export const MAX_DAYS_TO_DUE = 120;
+const FREE_MAIL = /^(gmail|googlemail|yahoo|ymail|outlook|hotmail|live|msn|aol|icloud|me|mac|comcast|verizon|att|sbcglobal|bellsouth|cox|charter|earthlink|protonmail|proton)\.(com|net|me)$/;
+
+/**
+ * True when an address plausibly belongs to the business: on its own website's
+ * domain (or a subdomain of it), or a personal mailbox provider small
+ * businesses commonly use. Rejects addresses scraped from a site that belong
+ * to someone else (a font vendor, a web designer…).
+ */
+export function emailFitsSite(email: string, siteHost: string | null): boolean {
+  const domain = email.trim().toLowerCase().split("@")[1] ?? "";
+  if (!domain) return false;
+  if (FREE_MAIL.test(domain)) return true;
+  const host = (siteHost ?? "").toLowerCase().replace(/^www\./, "");
+  return !!host && (domain === host || domain.endsWith(`.${host}`) || host.endsWith(`.${domain}`));
+}
+
+const STATE_WORDS = /^(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|district of columbia|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming|[a-z]{2})$/;
+
+/**
+ * True when a Places search location names somewhere specific (a city,
+ * county or agency), not just a state or a statewide purchasing group, so
+ * the businesses found are actually near the work.
+ */
+export function placeIsLocal(place: string): boolean {
+  const p = place.trim().toLowerCase().replace(/[.,]+$/g, "");
+  if (!p || /purchasing group|bidnet/.test(p)) return false;
+  if (STATE_WORDS.test(p)) return false;
+  return true;
+}
+
 /** Follow-up is queued this many days after the first email... */
 export const FOLLOWUP_AFTER_DAYS = 4;
 /** ...and only while the bid is still at least this far from due. */

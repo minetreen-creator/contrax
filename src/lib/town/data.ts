@@ -99,7 +99,19 @@ export const getTownData = createServerFn({ method: "GET" })
            LIMIT 200`,
           [states, regex],
         )) as { id: number; title: string; agency: string | null; location: string | null; category: string | null; due_date: Date | string }[];
-        result.nearbyOpen = rows.length;
+        // The list stops at 200 rows; the headline count must not.
+        if (rows.length >= 200) {
+          const [c] = (await s.query(
+            `SELECT COUNT(*)::int AS n FROM bids
+             WHERE normalized_state = ANY($1::text[]) AND due_date > NOW()
+               AND (COALESCE(agency, '') || ' ' || COALESCE(location, '')) ~* $2
+               AND ${LOW_CONTENT_SQL} AND ${AWARD_EXCLUSION_SQL}`,
+            [states, regex],
+          )) as { n: number }[];
+          result.nearbyOpen = Number(c?.n ?? rows.length);
+        } else {
+          result.nearbyOpen = rows.length;
+        }
         result.bids = rows.slice(0, 60).map((r) => ({
           id: r.id,
           title: r.title,

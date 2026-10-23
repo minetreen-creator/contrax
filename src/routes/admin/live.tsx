@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
 import { announcements, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Bell, Volume2, VolumeX, Crosshair } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Volume2, VolumeX, Crosshair } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -124,68 +124,6 @@ function Confetti() {
         <i key={i} style={{ background: c, ["--a" as string]: `${(i * 360) / 16}deg`, ["--d" as string]: `${28 + (i % 4) * 10}px` }} />
       ))}
     </span>
-  );
-}
-
-interface TickerEntry {
-  key: string;
-  color: string;
-  icon: typeof Search;
-  text: string;
-  sub: string | null;
-  alert: boolean;
-}
-
-/** Feed items plus each trial's countdown, as one scrolling band. */
-function tickerEntries(data: LiveData, now: number): TickerEntry[] {
-  const fromFeed = data.feed.slice(0, 20).map((f) => {
-    const s = KIND_STYLE[f.kind];
-    return {
-      key: f.id,
-      color: s.color,
-      icon: s.icon,
-      text: `${f.place ? `${f.place} · ` : ""}${f.title}`,
-      sub: [f.detail, agoLabel(f.at, now)].filter(Boolean).join(" · "),
-      alert: f.kind === "search" && f.detail === "0 matches",
-    };
-  });
-  const fromTrials = data.trials.map((t) => ({
-    key: `trial-${t.userId}`,
-    color: HEAT_STYLE[t.heat].color,
-    icon: Timer,
-    text: `${t.email.split("@")[0]} trial`,
-    sub: `${timeLeftLabel(new Date(t.endsAt).getTime() - now)} · ${HEAT_STYLE[t.heat].label}`,
-    alert: false,
-  }));
-  return [...fromFeed, ...fromTrials];
-}
-
-function Ticker({ entries }: { entries: TickerEntry[] }) {
-  if (!entries.length) return null;
-  // The band holds the list twice and slides left by one copy, so it loops
-  // seamlessly. A short list repeats within each copy so the band is always
-  // wider than the screen. Speed: about 4 seconds per entry.
-  const repeat = Math.ceil(8 / entries.length);
-  const base = Array.from({ length: repeat }, (_, r) => entries.map((e) => ({ ...e, key: `${r}-${e.key}` }))).flat();
-  const seconds = Math.max(20, base.length * 4);
-  const row = (copy: number) =>
-    base.map((e) => {
-      const Icon = e.icon;
-      return (
-        <span key={`${copy}-${e.key}`} className="live-tick" style={{ ["--kind" as string]: e.color }} aria-hidden={copy === 1 ? true : undefined}>
-          <Icon size={14} aria-hidden="true" />
-          <span className="font-semibold text-white">{e.text}</span>
-          {e.sub ? <span className={e.alert ? "font-semibold text-rose-400" : "text-slate-400"}>{e.sub}</span> : null}
-        </span>
-      );
-    });
-  return (
-    <div className="live-ticker" role="marquee" aria-label="Live activity">
-      <div className="live-ticker-track" style={{ animationDuration: `${seconds}s` }}>
-        {row(0)}
-        {row(1)}
-      </div>
-    </div>
   );
 }
 
@@ -493,145 +431,6 @@ function ChatDrawer({ vid, label, onClose }: { vid: string; label: string; onClo
         </button>
       </form>
     </aside>
-  );
-}
-
-/** Base64url VAPID key → bytes for PushManager.subscribe. */
-function vapidKeyBytes(key: string): ArrayBuffer {
-  const pad = "=".repeat((4 - (key.length % 4)) % 4);
-  const raw = atob((key + pad).replace(/-/g, "+").replace(/_/g, "/"));
-  return Uint8Array.from(raw, (c) => c.charCodeAt(0)).buffer as ArrayBuffer;
-}
-
-type AlertState =
-  | { kind: "loading" }
-  | { kind: "unsupported"; ios: boolean }
-  | { kind: "ready"; on: boolean; paused: boolean; devices: number; lastOkAt: string | null; lastError: string | null; permission: NotificationPermission };
-
-/**
- * Live alerts (issue #788): an iPhone/desktop push for each new real visitor
- * session. Permission is asked only when the owner taps "Turn on".
- */
-function LiveAlerts() {
-  const [state, setState] = useState<AlertState>({ kind: "loading" });
-  const [busy, setBusy] = useState(false);
-  const [note, setNote] = useState("");
-
-  const supported = () =>
-    typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
-
-  const currentSub = async (): Promise<PushSubscription | null> => {
-    const reg = await navigator.serviceWorker.getRegistration("/");
-    return reg ? reg.pushManager.getSubscription() : null;
-  };
-
-  const refresh = async () => {
-    if (!supported()) {
-      setState({ kind: "unsupported", ios: /iPhone|iPad|iPod/.test(navigator.userAgent) });
-      return;
-    }
-    const sub = await currentSub().catch(() => null);
-    const q = sub ? `?endpoint=${encodeURIComponent(sub.endpoint)}` : "";
-    const d = await fetch(`/api/admin/push${q}`).then((r) => r.json()).catch(() => null);
-    setState({
-      kind: "ready",
-      on: !!d?.thisDevice,
-      paused: d?.thisDevice ? !d.thisDevice.enabled : false,
-      devices: d?.devices ?? 0,
-      lastOkAt: d?.thisDevice?.lastOkAt ?? null,
-      lastError: d?.thisDevice?.lastError ?? null,
-      permission: Notification.permission,
-    });
-  };
-
-  useEffect(() => {
-    refresh();
-  }, []);
-
-  const post = (body: unknown) =>
-    fetch("/api/admin/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json());
-
-  const act = async (fn: () => Promise<string | void>) => {
-    setBusy(true);
-    setNote("");
-    try {
-      const msg = await fn();
-      if (msg) setNote(msg);
-    } catch (e) {
-      setNote(e instanceof Error ? e.message : "Something went wrong");
-    } finally {
-      setBusy(false);
-      refresh();
-    }
-  };
-
-  const turnOn = () =>
-    act(async () => {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") return "Notifications are blocked. Allow them for Contrax in Settings, then try again.";
-      const reg = await navigator.serviceWorker.register("/mission-control-sw.js", { scope: "/" });
-      await navigator.serviceWorker.ready;
-      const { publicKey } = await fetch("/api/admin/push").then((r) => r.json());
-      const sub =
-        (await reg.pushManager.getSubscription()) ??
-        (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes(publicKey) }));
-      const res = await post({ action: "subscribe", subscription: sub.toJSON() });
-      if (!res.ok) throw new Error(res.error || "Could not turn on alerts");
-      return "Live alerts are on for this device.";
-    });
-
-  const withSub = (action: "enable" | "disable" | "unsubscribe") =>
-    act(async () => {
-      const sub = await currentSub();
-      if (!sub) return;
-      await post({ action, endpoint: sub.endpoint });
-      if (action === "unsubscribe") await sub.unsubscribe();
-    });
-
-  const test = () =>
-    act(async () => {
-      const res = await post({ action: "test" });
-      return res.delivered ? `Test sent to ${res.delivered} device${res.delivered === 1 ? "" : "s"}.` : "No device accepted the test. Turn alerts on first.";
-    });
-
-  if (state.kind === "loading") return null;
-  return (
-    <div className="live-alerts">
-      <p className="flex items-center gap-2 text-sm font-bold text-white">
-        <Bell size={15} aria-hidden="true" /> Live alerts
-        {state.kind === "ready" && state.on ? (
-          <span className={`live-alerts-pill ${state.paused ? "is-paused" : "is-on"}`}>{state.paused ? "Paused" : "On"}</span>
-        ) : null}
-      </p>
-      <p className="mt-1 text-xs text-slate-400">A phone notification for every new real visitor, once per visit. Bots, scanners and you don't count.</p>
-      {state.kind === "unsupported" ? (
-        <p className="mt-3 text-xs text-amber-200">
-          {state.ios
-            ? "On iPhone (iOS 16.4+): tap Share → Add to Home Screen, open Contrax from your Home Screen, sign in, and come back to this page to turn alerts on."
-            : "This browser doesn't support push notifications."}
-        </p>
-      ) : (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {!state.on ? (
-            <button type="button" disabled={busy} onClick={turnOn} className="live-alerts-btn is-primary">Turn on for this device</button>
-          ) : (
-            <>
-              <button type="button" disabled={busy} onClick={test} className="live-alerts-btn is-primary">Send a test</button>
-              <button type="button" disabled={busy} onClick={() => withSub(state.paused ? "enable" : "disable")} className="live-alerts-btn">
-                {state.paused ? "Resume" : "Pause"}
-              </button>
-              <button type="button" disabled={busy} onClick={() => withSub("unsubscribe")} className="live-alerts-btn">Turn off here</button>
-            </>
-          )}
-          <span className="text-[11px] text-slate-500">
-            {state.devices} device{state.devices === 1 ? "" : "s"} signed up
-            {state.on && state.lastOkAt ? ` · last alert ${new Date(state.lastOkAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}` : ""}
-          </span>
-        </div>
-      )}
-      {state.kind === "ready" && state.lastError ? <p className="mt-2 text-[11px] text-rose-300">Last delivery problem: {state.lastError}</p> : null}
-      {note ? <p className="mt-2 text-xs text-emerald-300">{note}</p> : null}
-    </div>
   );
 }
 
@@ -1015,12 +814,6 @@ function LivePage() {
                 ))}
               </div>
             ) : null}
-          </div>
-
-          {data ? <Ticker entries={tickerEntries(data, now)} /> : null}
-
-          <div className="mt-4">
-            <LiveAlerts />
           </div>
 
           {data?.money ? (

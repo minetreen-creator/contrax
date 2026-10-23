@@ -37,6 +37,8 @@ import {
 import type { HaulingLead } from "~/lib/hauling-leads";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { stateSlug } from "~/lib/subcontracts/state-page";
+import { FREE_NOTICES, gateSplit } from "~/lib/subcontracts/email-gate";
+import { SubcontractsEmailGate, useSubcontractsUnlock } from "~/components/SubcontractsEmailGate";
 
 /**
  * /subcontracts — SUBCONTRACTING OPPORTUNITIES, from the stored SBA SUBNet board
@@ -899,6 +901,10 @@ function SubcontractsPage() {
       ),
     [openRows, trade, state],
   );
+  // Email gate (owner 2026-10-23): the first few notices are free, the rest
+  // unlock with an email or an account.
+  const gate = useSubcontractsUnlock();
+  const gated = gateSplit(shown, FREE_NOTICES, gate.unlocked);
 
   const payload = data && !isUnavailable(data) ? data : null;
   const unavailable = data && isUnavailable(data) ? data.unavailable : null;
@@ -1054,9 +1060,18 @@ function SubcontractsPage() {
                   .
                 </div>
               ) : null}
-              {shown.map((notice) => (
+              {gated.shown.map((notice) => (
                 <NoticeCard key={notice.externalId} notice={notice} onSeen={onNoticeSeen} />
               ))}
+              {gated.locked > 0 ? (
+                <SubcontractsEmailGate
+                  locked={gated.locked}
+                  what={gated.locked === 1 ? "subcontract notice" : "subcontract notices"}
+                  stateCode={state && /^[A-Z]{2}$/.test(state) ? state : null}
+                  source="subcontracts_page"
+                  onUnlocked={gate.unlock}
+                />
+              ) : null}
             </div>
           </>
         ) : null}

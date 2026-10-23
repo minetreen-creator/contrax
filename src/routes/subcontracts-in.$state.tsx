@@ -4,6 +4,8 @@ import { BidAlertCapture } from "~/components/BidAlertCapture";
 import { getStateSubcontracts, type StateSubcontractsData } from "~/lib/subcontracts/state-data";
 import { moneyText, titleCase, WINNER_DAYS, WINNERS_SHOWN } from "~/lib/subcontracts/state-page";
 import { trackEvent } from "~/lib/track";
+import { FREE_NOTICES, FREE_WINNERS, gateSplit } from "~/lib/subcontracts/email-gate";
+import { SubcontractsEmailGate, useSubcontractsUnlock } from "~/components/SubcontractsEmailGate";
 
 /**
  * /subcontracts-in/:state — one state's subcontracting work: open SBA SUBNet
@@ -41,6 +43,7 @@ function day(d: string | null): string {
 
 function StateSubcontractsPage() {
   const d: StateSubcontractsData = Route.useLoaderData();
+  const gate = useSubcontractsUnlock();
   if (!d.state) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -59,6 +62,11 @@ function StateSubcontractsPage() {
   const winners = d.winners ?? [];
   const primes = d.primes ?? [];
   const isNevada = code === "NV";
+  // Email gate (owner 2026-10-23): a few notices and winners are free, the rest
+  // unlock with an email or an account. The primes directory stays open.
+  const gNotices = gateSplit(notices, FREE_NOTICES, gate.unlocked);
+  const gWinners = gateSplit(winners, FREE_WINNERS, gate.unlocked);
+  const lockedTotal = gNotices.locked + gWinners.locked;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -90,7 +98,7 @@ function StateSubcontractsPage() {
             </p>
           ) : (
             <ul className="mt-4 space-y-3">
-              {notices.map((n) => (
+              {gNotices.shown.map((n) => (
                 <li key={n.externalId} className="rounded-2xl border border-slate-200 bg-white p-5">
                   <p className="text-lg font-bold text-slate-900">{n.title}</p>
                   <p className="mt-1 text-sm text-slate-600">
@@ -127,7 +135,7 @@ function StateSubcontractsPage() {
           ) : (
             <>
               <ul className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                {winners.map((w) => (
+                {gWinners.shown.map((w) => (
                   <li key={w.award_key} className="p-4">
                     <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <p className="font-bold text-slate-900">{titleCase(w.recipient_name)}</p>
@@ -140,7 +148,7 @@ function StateSubcontractsPage() {
                   </li>
                 ))}
               </ul>
-              {d.winnersTotal > WINNERS_SHOWN ? (
+              {gate.unlocked && d.winnersTotal > WINNERS_SHOWN ? (
                 <p className="mt-3 text-sm text-slate-600">
                   Showing the {WINNERS_SHOWN} biggest of {d.winnersTotal}.{" "}
                   <a href="/leads" onClick={() => trackEvent("subcontracts_state_leads_click", code)} className="font-semibold text-blue-700 underline">
@@ -151,6 +159,16 @@ function StateSubcontractsPage() {
             </>
           )}
         </section>
+
+        {lockedTotal > 0 ? (
+          <SubcontractsEmailGate
+            locked={lockedTotal}
+            what={`${name} subcontract leads`}
+            stateCode={code}
+            source="subcontracts_state"
+            onUnlocked={gate.unlock}
+          />
+        ) : null}
 
         <section id="primes">
           <h2 className="text-2xl font-extrabold text-slate-900">🏢 Primes based in {name} with subcontracting plans</h2>

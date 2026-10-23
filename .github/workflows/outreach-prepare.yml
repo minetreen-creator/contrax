@@ -1,0 +1,43 @@
+name: Outreach Prepare
+
+# Owner 2026-10-23: daily bid outreach. Each weekday morning, queue follow-ups
+# and up to 30 "Open bid near you" drafts (src/jobs/outreach-prepare.ts).
+# SENDS NOTHING: the owner approves and sends on /admin/outreach.
+# Needs DATABASE_URL and GOOGLE_PLACES_API_KEY (without the key only
+# follow-ups are queued).
+
+on:
+  schedule:
+    # 10:17 UTC weekdays = 6:17 AM Eastern (EDT), after the overnight syncs.
+    - cron: "17 10 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: outreach-prepare
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    name: Queue outreach drafts
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Queue drafts
+        run: bun run outreach-prepare

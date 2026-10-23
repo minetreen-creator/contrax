@@ -103,7 +103,7 @@ export function MrrScoreboard() {
 }
 
 // ── Tab bar ──────────────────────────────────────────────────────────────────
-export type AdminTab = "overview" | "live" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "payments" | "bid-scout" | "bid-fit-reviews" | "nonprofits" | "data-access" | "founding-businesses";
+export type AdminTab = "overview" | "live" | "radar-leads" | "autopsy" | "visitors" | "signups" | "customers" | "payments" | "bid-scout" | "bid-fit-reviews" | "nonprofits" | "data-access" | "founding-businesses" | "outreach";
 
 export type AdminSection = "Overview" | "Visitors" | "Leads & Signups" | "Revenue" | "Operations";
 
@@ -115,6 +115,7 @@ export const ADMIN_TABS: { key: AdminTab; label: string; href: string; group: Ad
   { key: "signups", label: "Signups", href: "/admin/signups", group: "Leads & Signups" },
   { key: "radar-leads", label: "Radar Leads", href: "/admin/radar-leads", group: "Leads & Signups" },
   { key: "autopsy", label: "Autopsy", href: "/admin/autopsy", group: "Leads & Signups" },
+  { key: "outreach", label: "Outreach", href: "/admin/outreach", group: "Leads & Signups" },
   { key: "customers", label: "Customers", href: "/admin/customers", group: "Revenue" },
   { key: "payments", label: "Contrax Payments", href: "/admin/payments", group: "Revenue" },
   { key: "bid-scout", label: "Bid Scout", href: "/admin/bid-scout", group: "Revenue" },

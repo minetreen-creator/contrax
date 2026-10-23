@@ -247,3 +247,46 @@
 @media (prefers-reduced-motion: reduce) {
   .admin-console .live-jarvis-ring, .admin-console .live-jarvis-core { animation: none !important; }
 }
+/* Jarvis "show me" hologram displays. */
+.holo-overlay { position: fixed; inset: 0; z-index: 65; display: flex; align-items: center; justify-content: center; padding: 16px; background: radial-gradient(circle at 50% 50%, rgba(8,145,178,0.25), rgba(2,6,23,0.88) 65%); animation: holo-fade 0.3s ease-out; }
+@keyframes holo-fade { from { opacity: 0; } to { opacity: 1; } }
+.holo-panel { position: relative; width: 100%; max-width: 760px; max-height: 88vh; overflow: auto; padding: 22px 24px; border-radius: 18px; background: rgba(8,47,73,0.45); border: 1px solid rgba(103,232,249,0.6); box-shadow: 0 0 50px rgba(34,211,238,0.35), inset 0 0 40px rgba(34,211,238,0.12); backdrop-filter: blur(6px); animation: holo-in 0.5s cubic-bezier(.2,1.2,.4,1); transform-origin: center bottom; }
+@keyframes holo-in { from { opacity: 0; transform: perspective(900px) rotateX(35deg) scale(0.8); } to { opacity: 1; transform: perspective(900px) rotateX(0) scale(1); } }
+.holo-scan { pointer-events: none; position: absolute; inset: 0; border-radius: 18px; background: repeating-linear-gradient(to bottom, rgba(103,232,249,0.06) 0 1px, transparent 1px 4px); animation: holo-flicker 3s linear infinite; }
+@keyframes holo-flicker { 0%, 100% { opacity: 0.8; } 50% { opacity: 0.5; } }
+.holo-title { font-size: 22px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; color: #cffafe; text-shadow: 0 0 14px rgba(34,211,238,0.9); }
+.holo-body { position: relative; }
+.holo-row { opacity: 0; animation: holo-row 0.4s ease-out forwards; }
+@keyframes holo-row { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: none; } }
+.holo-track { margin-top: 4px; height: 10px; border-radius: 999px; background: rgba(103,232,249,0.12); overflow: hidden; }
+.holo-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #0891b2, #67e8f9); box-shadow: 0 0 12px rgba(103,232,249,0.8); transform-origin: left; animation: holo-grow 0.8s ease-out both; }
+@keyframes holo-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.holo-funnel-step { margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 14px; border-radius: 10px; font-size: 14px; color: #ecfeff; background: linear-gradient(90deg, rgba(8,145,178,0.55), rgba(103,232,249,0.45)); border: 1px solid rgba(103,232,249,0.6); box-shadow: 0 0 16px rgba(34,211,238,0.35); white-space: nowrap; overflow: hidden; transform-origin: center; animation: holo-grow 0.7s ease-out both; }
+.holo-funnel-step strong { font-size: 16px; }
+.holo-columns { display: flex; align-items: flex-end; gap: 6px; height: 260px; padding-top: 10px; }
+.holo-col { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 4px; }
+.holo-col-bar { width: 100%; border-radius: 6px 6px 2px 2px; background: linear-gradient(to top, #0891b2, #67e8f9); box-shadow: 0 0 14px rgba(103,232,249,0.7); transform-origin: bottom; animation: holo-rise 0.7s ease-out both; }
+@keyframes holo-rise { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.holo-col-label { font-size: 10px; color: #67e8f9; white-space: nowrap; }
+/* Jarvis "wake up" boot sequence. */
+.boot-overlay { position: fixed; inset: 0; z-index: 75; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 16px; background: #01040c; cursor: pointer; animation: holo-fade 0.4s ease-out; overflow: hidden; }
+.boot-grid { position: absolute; inset: -50%; background-image: linear-gradient(rgba(34,211,238,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(34,211,238,0.08) 1px, transparent 1px); background-size: 46px 46px; transform: perspective(600px) rotateX(60deg); animation: boot-grid 6s linear infinite; }
+@keyframes boot-grid { to { background-position: 0 46px; } }
+.boot-core { position: relative; width: 190px; height: 190px; border-radius: 50%; animation: boot-power 1.6s ease-out both; }
+@keyframes boot-power { from { transform: scale(0.2); opacity: 0; filter: blur(8px); } to { transform: scale(1); opacity: 1; filter: none; } }
+.boot-ring { position: absolute; border-radius: 50%; border: 3px solid rgba(103,232,249,0.8); border-left-color: transparent; border-right-color: transparent; animation: live-jarvis-spin 2.4s linear infinite; }
+.boot-ring.b1 { inset: 0; }
+.boot-ring.b2 { inset: 22px; animation-duration: 1.6s; animation-direction: reverse; border-top-color: transparent; border-bottom-color: rgba(165,243,252,0.9); }
+.boot-ring.b3 { inset: 44px; border-style: dashed; animation-duration: 4s; }
+.boot-ring.b4 { inset: 66px; border-color: rgba(207,250,254,0.6); animation-duration: 1s; }
+.boot-heart { position: absolute; inset: 78px; border-radius: 50%; background: radial-gradient(circle, #fff 0 25%, #67e8f9 60%, transparent 70%); box-shadow: 0 0 60px 20px rgba(34,211,238,0.8); animation: live-jarvis-pulse 1.2s ease-in-out infinite; }
+.boot-title { position: relative; font-size: 34px; font-weight: 900; letter-spacing: 0.5em; color: #cffafe; text-shadow: 0 0 20px rgba(34,211,238,1); }
+.boot-lines { position: relative; width: 100%; max-width: 520px; min-height: 230px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; color: #a5f3fc; }
+.boot-lines li { animation: holo-row 0.3s ease-out forwards; text-shadow: 0 0 8px rgba(34,211,238,0.6); }
+.boot-tick { color: #22d3ee; }
+.boot-check { color: #4ade80; }
+.boot-ok { margin-top: 6px; color: #4ade80; font-weight: 800; letter-spacing: 0.1em; }
+.boot-hint { position: relative; font-size: 12px; color: #64748b; }
+@media (prefers-reduced-motion: reduce) {
+  .holo-overlay, .holo-panel, .holo-scan, .holo-row, .holo-fill, .holo-funnel-step, .holo-col-bar, .boot-overlay, .boot-grid, .boot-core, .boot-ring, .boot-heart, .boot-lines li { animation: none !important; opacity: 1 !important; }
+}

@@ -16,6 +16,7 @@ import {
   MAX_TOOL_ROUNDS,
   parseJarvisReply,
   sanitizeHistory,
+  VISUAL_TOOL,
   type JarvisServerStats,
   type JarvisSnapshot,
 } from "~/lib/jarvis";
@@ -293,9 +294,29 @@ async function handler({ request }: { request: Request }) {
     console.error(`[jarvis] ${SMART_MODEL} unavailable, falling back:`, sanitizeLogString(err));
     raw = await answer(FALLBACK_MODEL, [...messages]).catch(() => "");
   }
-  return Response.json(parseJarvisReply(raw, new Set(online.map((v) => String(v.vid)))));
+  const reply = parseJarvisReply(raw, new Set(online.map((v) => String(v.vid))));
+  // "Show me…" (owner 2026-10-23): the display's numbers come from the same
+  // read-only lookups, never from the model.
+  if (reply.action?.type === "show" && reply.action.visual !== "map") {
+    try {
+      const rows = await runTool(VISUAL_TOOL[reply.action.visual], { days: reply.action.days });
+      return Response.json({ ...reply, visual: { kind: reply.action.visual, days: reply.action.days, rows } });
+    } catch (err) {
+      console.error("[jarvis] display data failed:", sanitizeLogString(err));
+      return Response.json({ say: "My apologies, sir, I couldn't pull that display together just now.", action: null });
+    }
+  }
+  return Response.json(reply);
+}
+
+/** GET: the counts for the "wake up" boot sequence (no AI call). */
+async function statsHandler({ request }: { request: Request }) {
+  const user = await getUserFromRequest(request);
+  if (!user) return Response.json({ error: "Not authenticated" }, { status: 401 });
+  if (!user.is_admin) return Response.json({ error: "Admin access required" }, { status: 403 });
+  return Response.json(await serverStats());
 }
 
 export const Route = createFileRoute("/api/admin/jarvis")({
-  server: { handlers: { POST: handler } },
+  server: { handlers: { POST: handler, GET: statsHandler } },
 });

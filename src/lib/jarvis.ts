@@ -50,7 +50,24 @@ export interface JarvisServerStats {
   outreach: { waiting: number; sentToday: number; sentFirst: number; sentFollowup: number; unsubscribed: number } | null;
 }
 
-export type JarvisAction = { type: "chat"; vid: string } | { type: "open"; path: string };
+/**
+ * "Jarvis, show me…" hologram displays (owner 2026-10-23, "do 2,3"). Each maps
+ * to a lookup the server already runs (map uses what Mission Control shows).
+ */
+export const JARVIS_VISUALS = {
+  map: "where visitors are right now and where searches come from (US map)",
+  funnel: "the funnel: visited, searched, found bids, saw signup, signed up, saw pricing, clicked buy",
+  traffic: "visitors per day",
+  sources: "where visitors come from (sources)",
+  pages: "the most visited pages",
+  searches: "what people search for (trade + state)",
+} as const;
+export type JarvisVisual = keyof typeof JARVIS_VISUALS;
+
+export type JarvisAction =
+  | { type: "chat"; vid: string }
+  | { type: "open"; path: string }
+  | { type: "show"; visual: JarvisVisual; days: number };
 
 export interface JarvisReply {
   say: string;
@@ -131,8 +148,13 @@ export function jarvisPrompt(snapshot: JarvisSnapshot, stats: JarvisServerStats)
     "Be genuinely useful: answer the question, then add the one insight or next step that matters (a trend, a drop, a lead worth chasing). Compare to yesterday or last week when it helps.",
     "Use the data below first. When it isn't enough, call the lookup tools (you may call several) before answering: for a visitor's bid page, read the id from their path and call bid_details; for what someone has been doing, call visitor_journey. Don't offer to dig further — dig, then answer. If nothing covers the question, say so plainly. Never invent numbers, names or events.",
     "",
-    "Reply with a JSON object: {\"say\": string, \"action\": null | {\"type\": \"chat\", \"vid\": string} | {\"type\": \"open\", \"path\": string}}.",
-    "Your ONLY abilities are: reading this data, the lookup tools, opening a visitor chat, and opening an admin page. You cannot save notes, remember anything after this conversation, send emails or messages, contact anyone, or change the site. Never say you will do, note, log, flag or pass along something you can't; if he asks for that, say plainly you can't and suggest what he can do instead (for example, write it down or ask Claude to build it).",
+    "Reply with a JSON object: {\"say\": string, \"action\": null | {\"type\": \"chat\", \"vid\": string} | {\"type\": \"open\", \"path\": string} | {\"type\": \"show\", \"visual\": string, \"days\": number}}.",
+    "When he asks to show, display, put up, visualize or see a chart of something, use a show action with the closest visual (" +
+      Object.entries(JARVIS_VISUALS)
+        .map(([k, w]) => `${k}: ${w}`)
+        .join("; ") +
+      ") and days 1-90 (default 7). Then \"say\" is one short line introducing the display (\"Here is your funnel for the week, sir.\"); the display shows the numbers.",
+    "Your ONLY abilities are: reading this data, the lookup tools, opening a visitor chat, opening an admin page, and showing a display. You cannot save notes, remember anything after this conversation, send emails or messages, contact anyone, or change the site. Never say you will do, note, log, flag or pass along something you can't; if he asks for that, say plainly you can't and suggest what he can do instead (for example, write it down or ask Claude to build it).",
     "Use a chat action only when he asks to message, greet or say hi to a visitor; pick the vid of a visitor in ONLINE NOW (hottest first if he doesn't say which). Use an open action only when he asks to open, show or go to one of these pages: " +
       Object.entries(JARVIS_PAGES)
         .map(([p, w]) => `${p} (${w})`)
@@ -160,9 +182,56 @@ export function parseJarvisReply(raw: string, onlineVids: Set<string>): JarvisRe
   }
   const o = (obj && typeof obj === "object" ? obj : {}) as { say?: unknown; action?: unknown };
   const say = typeof o.say === "string" && o.say.trim() ? o.say.trim().slice(0, MAX_SAY_CHARS) : "Sorry, sir, I lost my train of thought.";
-  const a = (o.action && typeof o.action === "object" ? o.action : null) as { type?: unknown; vid?: unknown; path?: unknown } | null;
+  const a = (o.action && typeof o.action === "object" ? o.action : null) as { type?: unknown; vid?: unknown; path?: unknown; visual?: unknown; days?: unknown } | null;
   let action: JarvisAction | null = null;
   if (a?.type === "chat" && typeof a.vid === "string" && onlineVids.has(a.vid)) action = { type: "chat", vid: a.vid };
   if (a?.type === "open" && typeof a.path === "string" && a.path in JARVIS_PAGES) action = { type: "open", path: a.path };
+  if (a?.type === "show" && typeof a.visual === "string" && a.visual in JARVIS_VISUALS) {
+    action = { type: "show", visual: a.visual as JarvisVisual, days: clampDays(a.days) };
+  }
   return { say, action };
+}
+
+/** The lookup each "show me" display draws from (map uses the page's own data). */
+export const VISUAL_TOOL: Record<Exclude<JarvisVisual, "map">, string> = {
+  funnel: "funnel",
+  traffic: "visitors_by_day",
+  sources: "traffic_sources",
+  pages: "top_pages",
+  searches: "top_searches",
+};
+
+/** "Jarvis, wake up" (owner 2026-10-23): the phrases that start the boot sequence. */
+export function isWakePhrase(text: string): boolean {
+  return /\b(wake up|boot up|start ?up|power up|systems? (on|online)|good morning)\b/i.test(text);
+}
+
+/**
+ * The boot sequence's status lines and the summary Jarvis speaks, from the
+ * numbers the page already has plus the server's counts. PURE.
+ */
+export function bootReport(stats: JarvisServerStats, snap: Pick<JarvisSnapshot, "onlineCount" | "online" | "trials">): { lines: string[]; spoken: string } {
+  const n = (v: number | null | undefined) => (v === null || v === undefined ? "unknown" : String(v));
+  const hot = snap.online.filter((v) => v.level === "hot").length;
+  const waiting = stats.outreach?.waiting ?? null;
+  const hour = Number(/(\d+):\d+\s*(AM|PM)/i.exec(stats.now)?.[1] ?? 9) % 12 + (/PM/i.test(stats.now) ? 12 : 0);
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const lines = [
+    "Initializing J.A.R.V.I.S.",
+    "Neural link: online",
+    "Contrax website: online",
+    `Visitors today: ${n(stats.visitorsToday)} (yesterday ${n(stats.visitorsYesterday)})`,
+    `On the site now: ${snap.onlineCount}${hot ? ` (${hot} hot)` : ""}`,
+    `Trials running: ${snap.trials.length}`,
+    `Paying customers: ${n(stats.week?.payingNow)}`,
+    `Outreach emails awaiting approval: ${n(waiting)}`,
+    "All systems nominal",
+  ];
+  const parts = [
+    `${greeting}, sir. All systems are online.`,
+    stats.visitorsToday !== null ? `${stats.visitorsToday} visitor${stats.visitorsToday === 1 ? "" : "s"} so far today${stats.visitorsYesterday !== null ? `, against ${stats.visitorsYesterday} yesterday` : ""}.` : "",
+    snap.onlineCount ? `${snap.onlineCount} on the site right now${hot ? `, ${hot} of them hot` : ""}.` : "Nobody on the site at the moment.",
+    waiting ? `${waiting} outreach email${waiting === 1 ? " is" : "s are"} awaiting your approval.` : "",
+  ];
+  return { lines, spoken: parts.filter(Boolean).join(" ") };
 }

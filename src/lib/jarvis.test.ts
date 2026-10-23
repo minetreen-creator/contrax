@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { afterWakeWord, clampDays, JARVIS_PAGES, JARVIS_TOOLS, sanitizeHistory, jarvisPrompt, parseJarvisReply, type JarvisServerStats, type JarvisSnapshot } from "./jarvis";
+import { afterWakeWord, bootReport, isWakePhrase, VISUAL_TOOL, clampDays, JARVIS_PAGES, JARVIS_TOOLS, sanitizeHistory, jarvisPrompt, parseJarvisReply, type JarvisServerStats, type JarvisSnapshot } from "./jarvis";
 
 describe("afterWakeWord", () => {
   test("takes the question after the wake word", () => {
@@ -71,5 +71,33 @@ describe("lookups and memory", () => {
   test("every tool is a well-formed function", () => {
     expect(JARVIS_TOOLS.map((t) => t.function.name)).toContain("open_bids");
     for (const t of JARVIS_TOOLS) expect(t.type).toBe("function");
+  });
+});
+
+describe("show me displays and wake up (owner 2026-10-23)", () => {
+  test("a show action keeps only known displays, with days clamped", () => {
+    expect(parseJarvisReply('{"say":"Here is your funnel, sir.","action":{"type":"show","visual":"funnel","days":30}}', new Set()).action).toEqual({ type: "show", visual: "funnel", days: 30 });
+    expect(parseJarvisReply('{"say":"x","action":{"type":"show","visual":"map","days":999}}', new Set()).action).toEqual({ type: "show", visual: "map", days: 90 });
+    expect(parseJarvisReply('{"say":"x","action":{"type":"show","visual":"launch codes"}}', new Set()).action).toBeNull();
+  });
+  test("every display but the map draws from a real lookup tool", () => {
+    const tools = new Set(JARVIS_TOOLS.map((t) => t.function.name));
+    for (const tool of Object.values(VISUAL_TOOL)) expect(tools.has(tool)).toBe(true);
+  });
+  test("wake phrases", () => {
+    for (const p of ["wake up", "Jarvis wake up", "boot up", "systems online", "Good morning"]) expect(isWakePhrase(p)).toBe(true);
+    for (const p of ["how many visitors today", "show me the funnel"]) expect(isWakePhrase(p)).toBe(false);
+  });
+  test("the boot report reads the day's numbers and greets by time of day", () => {
+    const stats = { now: "Friday, October 23, 3:05 PM", visitorsToday: 23, visitorsYesterday: 19, week: { visitors: 185, searches: 14, signups: 0, newAccounts: 0, trialsStarted: 1, payingNow: 0 }, outreach: { waiting: 30, sentToday: 0, sentFirst: 0, sentFollowup: 0, unsubscribed: 0 } };
+    const r = bootReport(stats, { onlineCount: 2, online: [{ vid: "a", place: null, page: "x", score: 70, level: "hot", reasons: [] }], trials: [] });
+    expect(r.lines).toContain("Visitors today: 23 (yesterday 19)");
+    expect(r.lines).toContain("On the site now: 2 (1 hot)");
+    expect(r.lines).toContain("Outreach emails awaiting approval: 30");
+    expect(r.spoken).toStartWith("Good afternoon, sir.");
+    expect(r.spoken).toContain("30 outreach emails are awaiting your approval.");
+    const morning = bootReport({ ...stats, now: "Saturday, October 24, 8:10 AM", outreach: null }, { onlineCount: 0, online: [], trials: [] });
+    expect(morning.spoken).toStartWith("Good morning, sir.");
+    expect(morning.spoken).toContain("Nobody on the site at the moment.");
   });
 });

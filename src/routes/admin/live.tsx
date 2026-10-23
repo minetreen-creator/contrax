@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
-import { afterWakeWord, type JarvisAction, type JarvisSnapshot } from "~/lib/jarvis";
+import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual } from "~/lib/jarvis";
 import { announcements, isRedAlert, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
 import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Volume2, VolumeX, Crosshair } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
@@ -857,6 +857,204 @@ function jarvisVoice(): SpeechSynthesisVoice | null {
  * reactor (or press J) to talk; "Wake word" keeps listening for "Jarvis…".
  * Answers come from /api/admin/jarvis and are spoken back.
  */
+/** A "show me" display: what the server looked up (map draws from the page's data). */
+interface HoloVisual {
+  kind: JarvisVisual;
+  days: number;
+  rows?: unknown;
+}
+
+const HOLO_TITLES: Record<JarvisVisual, string> = {
+  map: "Live map",
+  funnel: "Funnel",
+  traffic: "Visitors per day",
+  sources: "Traffic sources",
+  pages: "Top pages",
+  searches: "Top searches",
+};
+
+/** Horizontal glowing bars, growing in one after another. */
+function HoloBars({ items }: { items: { label: string; value: number; sub?: string }[] }) {
+  const max = Math.max(1, ...items.map((i) => i.value));
+  if (!items.length) return <p className="text-center text-cyan-200">No data for this period.</p>;
+  return (
+    <ul className="space-y-2.5">
+      {items.map((it, i) => (
+        <li key={it.label + i} className="holo-row" style={{ animationDelay: `${i * 90}ms` }}>
+          <div className="flex justify-between gap-3 text-sm">
+            <span className="truncate text-cyan-50">{it.label}</span>
+            <span className="shrink-0 font-bold text-cyan-200">{it.value.toLocaleString("en-US")}{it.sub ? <span className="ml-1 font-normal text-cyan-400">{it.sub}</span> : null}</span>
+          </div>
+          <div className="holo-track">
+            <div className="holo-fill" style={{ width: `${Math.max(2, (it.value / max) * 100)}%`, animationDelay: `${i * 90}ms` }} />
+          </div>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function HoloFunnel({ rows }: { rows: Record<string, number> }) {
+  const steps: [string, string][] = [
+    ["visited", "Visited"],
+    ["searched", "Searched"],
+    ["search_found_bids", "Found bids"],
+    ["saw_signup", "Saw signup"],
+    ["signed_up", "Signed up"],
+    ["saw_pricing", "Saw pricing"],
+    ["clicked_buy", "Clicked buy"],
+  ];
+  const top = Math.max(1, Number(rows.visited) || 0);
+  return (
+    <div className="space-y-1.5">
+      {steps.map(([k, label], i) => {
+        const v = Number(rows[k]) || 0;
+        const w = Math.max(6, (v / top) * 100);
+        return (
+          <div key={k} className="holo-row" style={{ animationDelay: `${i * 120}ms` }}>
+            <div className="holo-funnel-step" style={{ width: `${w}%`, animationDelay: `${i * 120}ms` }}>
+              <span>{label}</span>
+              <strong>{v.toLocaleString("en-US")}</strong>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function HoloColumns({ rows }: { rows: { day: string; visitors: number; from_paid_ads?: number }[] }) {
+  const max = Math.max(1, ...rows.map((r) => Number(r.visitors) || 0));
+  if (!rows.length) return <p className="text-center text-cyan-200">No visitors in this period.</p>;
+  return (
+    <div className="holo-columns">
+      {rows.map((r, i) => (
+        <div key={r.day} className="holo-col" title={`${r.day}: ${r.visitors}`}>
+          <span className="text-xs font-bold text-cyan-100">{r.visitors}</span>
+          <div className="holo-col-bar" style={{ height: `${Math.max(3, (Number(r.visitors) / max) * 100)}%`, animationDelay: `${i * 60}ms` }} />
+          <span className="holo-col-label">{r.day.split(" ").slice(1).join(" ")}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** "Jarvis, show me…": a hologram-style display over Mission Control. */
+function HoloDisplay({ visual, data, now, onChat, onClose }: { visual: HoloVisual; data: LiveData; now: number; onChat: (v: OnlineVisitor) => void; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const rows = visual.rows;
+  const list = (Array.isArray(rows) ? rows : []) as Record<string, unknown>[];
+  let body: ReactNode;
+  if (visual.kind === "map") body = <SearchMap stats={data.map} visitors={data.online} now={now} onChat={onChat} />;
+  else if (visual.kind === "funnel") body = <HoloFunnel rows={(rows ?? {}) as Record<string, number>} />;
+  else if (visual.kind === "traffic") body = <HoloColumns rows={list as { day: string; visitors: number }[]} />;
+  else if (visual.kind === "sources")
+    body = <HoloBars items={list.map((r) => ({ label: `${r.source}${r.medium && r.medium !== "-" ? ` · ${r.medium}` : ""}`, value: Number(r.visitors) || 0 }))} />;
+  else if (visual.kind === "pages") body = <HoloBars items={list.map((r) => ({ label: String(r.page), value: Number(r.visitors) || 0, sub: "visitors" }))} />;
+  else
+    body = (
+      <HoloBars
+        items={list.map((r) => ({
+          label: `${r.trade} · ${r.state || "any state"}`,
+          value: Number(r.searches) || 0,
+          sub: Number(r.found_nothing) ? `${r.found_nothing} found nothing` : undefined,
+        }))}
+      />
+    );
+  return (
+    <div className="holo-overlay" role="dialog" aria-label={HOLO_TITLES[visual.kind]} onClick={onClose}>
+      <div className="holo-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="holo-scan" aria-hidden="true" />
+        <div className="flex items-baseline justify-between gap-3">
+          <p className="holo-title">
+            {HOLO_TITLES[visual.kind]}
+            {visual.kind !== "map" ? <span className="ml-2 text-sm font-normal text-cyan-300">last {visual.days} day{visual.days === 1 ? "" : "s"}</span> : null}
+          </p>
+          <button type="button" onClick={onClose} className="text-cyan-300 hover:text-white" aria-label="Close display">
+            ✕
+          </button>
+        </div>
+        <p className="mb-4 text-xs text-cyan-400">{JARVIS_VISUALS[visual.kind]}</p>
+        <div className="holo-body">{body}</div>
+      </div>
+    </div>
+  );
+}
+
+/** "Jarvis, wake up": a full-screen boot sequence that reads the day's status. */
+function BootSequence({ lines, done, onClose }: { lines: string[]; done: boolean; onClose: () => void }) {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    setShown(0);
+    const t = setInterval(() => setShown((n) => (n >= lines.length ? n : n + 1)), 420);
+    return () => clearInterval(t);
+  }, [lines]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="boot-overlay" role="dialog" aria-label="Jarvis start-up" onClick={onClose}>
+      <div className="boot-grid" aria-hidden="true" />
+      <div className="boot-core" aria-hidden="true">
+        <span className="boot-ring b1" />
+        <span className="boot-ring b2" />
+        <span className="boot-ring b3" />
+        <span className="boot-ring b4" />
+        <span className="boot-heart" />
+      </div>
+      <p className="boot-title">J.A.R.V.I.S.</p>
+      <ul className="boot-lines">
+        {lines.slice(0, shown).map((l, i) => (
+          <li key={i} className={i === lines.length - 1 ? "boot-ok" : ""}>
+            <span className="boot-tick">{i === lines.length - 1 ? "◆" : "▸"}</span> {l}
+            {i > 1 && i < lines.length - 1 ? <span className="boot-check"> ✓</span> : null}
+          </li>
+        ))}
+      </ul>
+      <p className="boot-hint">{done ? "Click anywhere to continue" : " "}</p>
+    </div>
+  );
+}
+
+/** Start-up sound: a rising sweep and a chime (WebAudio, after a click or voice command). */
+function playBootSound() {
+  try {
+    const ctx = new AudioContext();
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(110, t);
+    osc.frequency.exponentialRampToValueAtTime(880, t + 1.6);
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.12, t + 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 1.85);
+    for (const [f, d] of [[1318, 1.7], [1760, 1.85]] as const) {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.frequency.value = f;
+      g.gain.setValueAtTime(0.0001, t + d);
+      g.gain.exponentialRampToValueAtTime(0.1, t + d + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + d + 0.6);
+      o.connect(g).connect(ctx.destination);
+      o.start(t + d);
+      o.stop(t + d + 0.65);
+    }
+    setTimeout(() => ctx.close().catch(() => {}), 3000);
+  } catch {
+    /* no WebAudio */
+  }
+}
+
 function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v: OnlineVisitor) => void }) {
   const [state, setState] = useState<JarvisState>("idle");
   const [turns, setTurns] = useState<JarvisTurn[]>([]);
@@ -871,6 +1069,13 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
   const wakeOn = useRef(false);
   const busy = useRef(false);
   const [hasMic, setHasMic] = useState(false);
+  const [display, setDisplay] = useState<HoloVisual | null>(null);
+  const [boot, setBoot] = useState<{ lines: string[]; done: boolean } | null>(null);
+  const closeDisplay = useCallback(() => setDisplay(null), []);
+  const closeBoot = useCallback(() => {
+    window.speechSynthesis?.cancel();
+    setBoot(null);
+  }, []);
 
   useEffect(() => {
     setHasMic(!!makeRecognizer());
@@ -894,14 +1099,38 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
       window.speechSynthesis.speak(u);
     });
 
-  const act = (a: JarvisAction | null) => {
+  const act = (a: JarvisAction | null, visual?: HoloVisual | null) => {
     if (!a) return;
     if (a.type === "chat") {
       const v = dataRef.current.data.online.find((o) => o.vid === a.vid);
       if (v) onChat(v);
+    } else if (a.type === "show") {
+      setDisplay(a.visual === "map" ? { kind: "map", days: a.days } : visual ?? null);
     } else {
       window.open(a.path, "_blank", "noopener");
     }
+  };
+
+  /** "Jarvis, wake up": the boot sequence, then the day's status out loud. */
+  const runBoot = async () => {
+    setState("thinking");
+    playBootSound();
+    setBoot({ lines: ["Initializing J.A.R.V.I.S."], done: false });
+    let stats: JarvisServerStats = { now: new Date().toLocaleString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit" }), visitorsToday: null, visitorsYesterday: null, week: null, outreach: null };
+    try {
+      const res = await fetch("/api/admin/jarvis");
+      if (res.ok) stats = (await res.json()) as JarvisServerStats;
+    } catch {
+      /* boot with what the page has */
+    }
+    const report = bootReport(stats, jarvisSnapshot(dataRef.current.data, dataRef.current.now));
+    setBoot({ lines: report.lines, done: false });
+    setTurns((t) => [...t, { role: "assistant" as const, content: report.spoken }].slice(-12));
+    await new Promise((r) => setTimeout(r, 420 * report.lines.length + 300));
+    setState("speaking");
+    wakeRef.current?.stop();
+    await speak(report.spoken);
+    setBoot((b) => (b ? { ...b, done: true } : b));
   };
 
   const ask = async (question: string) => {
@@ -909,6 +1138,17 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
     if (!q || busy.current) return;
     busy.current = true;
     setNote("");
+    if (isWakePhrase(q)) {
+      setTurns((t) => [...t, { role: "user" as const, content: q }].slice(-12));
+      try {
+        await runBoot();
+      } finally {
+        busy.current = false;
+        setState("idle");
+        if (wakeOn.current) startWake();
+      }
+      return;
+    }
     const history = turnsRef.current.slice(-8);
     setTurns((t) => [...t, { role: "user" as const, content: q }].slice(-12));
     setState("thinking");
@@ -918,10 +1158,10 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ question: q, snapshot: jarvisSnapshot(dataRef.current.data, dataRef.current.now), history }),
       });
-      const j = (await res.json().catch(() => ({}))) as { say?: string; action?: JarvisAction | null; error?: string };
+      const j = (await res.json().catch(() => ({}))) as { say?: string; action?: JarvisAction | null; visual?: HoloVisual | null; error?: string };
       const say = j.say ?? j.error ?? "Sorry, sir, something went wrong.";
       setTurns((t) => [...t, { role: "assistant" as const, content: say }].slice(-12));
-      act(j.action ?? null);
+      act(j.action ?? null, j.visual ?? null);
       setState("speaking");
       wakeRef.current?.stop();
       await speak(say);
@@ -1066,7 +1306,7 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
             ))}
           </ul>
         ) : (
-          <p className="mt-2 text-sm text-slate-400">Try: "How many visitors today?", "Any hot leads?", "Where is my traffic coming from this week?", "Say hi to the hottest lead".</p>
+          <p className="mt-2 text-sm text-slate-400">Try: "Jarvis, wake up", "Show me the funnel", "Show me where visitors are", "Any hot leads?", "Say hi to the hottest lead".</p>
         )}
         {note ? <p className="mt-2 text-xs font-semibold text-amber-300">{note}</p> : null}
         <form
@@ -1082,8 +1322,13 @@ function Jarvis({ data, now, onChat }: { data: LiveData; now: number; onChat: (v
           <button type="button" className="live-jarvis-btn" disabled={state === "thinking"} onClick={() => ask("Give me my briefing: how things are going today versus yesterday, anything hot right now, and the one thing I should do next.")}>
             Briefing
           </button>
+          <button type="button" className="live-jarvis-btn" disabled={state === "thinking"} onClick={() => ask("Wake up")}>
+            Wake up
+          </button>
         </form>
       </div>
+      {boot ? <BootSequence lines={boot.lines} done={boot.done} onClose={closeBoot} /> : null}
+      {display ? <HoloDisplay visual={display} data={data} now={now} onChat={onChat} onClose={closeDisplay} /> : null}
     </div>
   );
 }

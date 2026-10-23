@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
-import { announcements, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
+import { announcements, isRedAlert, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
 import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Volume2, VolumeX, Crosshair } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
@@ -557,6 +557,26 @@ function playTone(ctx: AudioContext, tone: Announcement["tone"]) {
   }
 }
 
+/** Red Alert siren: two rising-and-falling wails, about 1.6 seconds. */
+function playSiren(ctx: AudioContext) {
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = "sawtooth";
+  const t = ctx.currentTime;
+  for (let i = 0; i < 2; i++) {
+    osc.frequency.setValueAtTime(620, t + i * 0.8);
+    osc.frequency.linearRampToValueAtTime(1180, t + i * 0.8 + 0.4);
+    osc.frequency.linearRampToValueAtTime(620, t + i * 0.8 + 0.8);
+  }
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.12, t + 0.05);
+  gain.gain.setValueAtTime(0.12, t + 1.5);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 1.6);
+  osc.connect(gain).connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 1.65);
+}
+
 /**
  * Voice Announcer: Mission Control reads new activity out loud. Off until the
  * owner clicks the button (browsers only allow sound after a click); the
@@ -598,7 +618,16 @@ function useVoiceAnnouncer() {
     if (!on || !supported || !lines.length) return;
     // A tab left open in the background shouldn't build up a backlog.
     queue.current = [...queue.current, ...lines].slice(-8);
-    if (!speaking.current) next();
+    if (speaking.current) return;
+    // Red Alert: the siren first, then the words.
+    if (audio.current && lines.some(isRedAlert)) {
+      speaking.current = true;
+      if (audio.current.state === "suspended") audio.current.resume().catch(() => {});
+      playSiren(audio.current);
+      setTimeout(next, 1700);
+    } else {
+      next();
+    }
   };
 
   const toggle = () => {
@@ -715,6 +744,53 @@ function HotLeadRadar({ visitors, onChat }: { visitors: OnlineVisitor[]; onChat:
   );
 }
 
+/**
+ * Red Alert Mode: a sale, a checkout or a visitor who just turned hot flashes
+ * the whole screen red with an INCOMING banner (siren too when the voice is
+ * on). Closes itself after 30 seconds.
+ */
+function RedAlert({ alert, more, visitor, onSayHi, onClose }: { alert: Announcement; more: number; visitor: OnlineVisitor | null; onSayHi: (v: OnlineVisitor) => void; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 30_000);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    const title = document.title;
+    let flip = false;
+    const blink = setInterval(() => {
+      flip = !flip;
+      document.title = flip ? "🚨 INCOMING" : title;
+    }, 900);
+    return () => {
+      clearTimeout(t);
+      clearInterval(blink);
+      document.title = title;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [alert, onClose]);
+  const money = alert.tone === "money";
+  return (
+    <div className={`live-redalert ${money ? "live-redalert-money" : ""}`} role="alertdialog" aria-live="assertive" aria-label="Red alert">
+      <div className="live-redalert-card">
+        <p className="live-redalert-kicker">🚨 {money ? "Money incoming" : "Hot lead incoming"} 🚨</p>
+        <p className="live-redalert-title">INCOMING</p>
+        <p className="live-redalert-text">{alert.text}</p>
+        {visitor?.lead?.reasons.length ? <p className="live-redalert-sub">{visitor.lead.reasons.join(" · ")}</p> : null}
+        {more > 0 ? <p className="live-redalert-sub">+{more} more alert{more === 1 ? "" : "s"}</p> : null}
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          {visitor ? (
+            <button type="button" className="live-redalert-go" onClick={() => onSayHi(visitor)}>
+              <MessageCircle size={16} aria-hidden="true" /> Say hi now
+            </button>
+          ) : null}
+          <button type="button" className="live-redalert-close" onClick={onClose}>
+            {visitor ? "Not now" : "Got it"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LivePage() {
   const [data, setData] = useState<LiveData | null>(null);
   const [error, setError] = useState("");
@@ -727,6 +803,8 @@ function LivePage() {
   const sayRef = useRef(voice.say);
   sayRef.current = voice.say;
   const heard = useRef<AnnounceState | null>(null);
+  const [redAlert, setRedAlert] = useState<{ alert: Announcement; more: number } | null>(null);
+  const closeRedAlert = useCallback(() => setRedAlert(null), []);
 
   // Founder live chat: conversations with unread replies, on the same 15s beat.
   useEffect(() => {
@@ -760,6 +838,8 @@ function LivePage() {
         const said = announcements(heard.current, d.feed, d.online);
         heard.current = said.state;
         sayRef.current(said.lines);
+        const red = said.lines.filter(isRedAlert);
+        if (red.length) setRedAlert({ alert: red[0], more: red.length - 1 });
         setData(d);
         setError("");
       } catch (e) {
@@ -883,6 +963,18 @@ function LivePage() {
 
         </section>
       </main>
+      {redAlert ? (
+        <RedAlert
+          alert={redAlert.alert}
+          more={redAlert.more}
+          visitor={(redAlert.alert.vid && data?.online.find((v) => v.vid === redAlert.alert.vid)) || null}
+          onSayHi={(v) => {
+            setRedAlert(null);
+            openChat(v);
+          }}
+          onClose={closeRedAlert}
+        />
+      ) : null}
       {chat ? <ChatDrawer vid={chat.vid} label={chat.label} onClose={() => setChat(null)} /> : null}
     </div>
   );

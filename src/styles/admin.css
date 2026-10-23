@@ -206,3 +206,24 @@
 @media (prefers-reduced-motion: reduce) {
   .admin-console .live-radar-sweep, .admin-console .live-radar-ping, .admin-console .live-voice-bars i { animation: none; }
 }
+/* Red Alert Mode. */
+.live-redalert { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(69,10,10,0.55); animation: live-redalert-flash 0.9s ease-in-out infinite; }
+.live-redalert::before { content: ""; position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px 30px rgba(239,68,68,0.85); animation: live-redalert-flash 0.9s ease-in-out infinite; }
+.live-redalert-money { background: rgba(66,32,6,0.55); }
+.live-redalert-money::before { box-shadow: inset 0 0 120px 30px rgba(251,191,36,0.85); }
+@keyframes live-redalert-flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.55; } }
+.live-redalert-card { position: relative; width: 100%; max-width: 520px; padding: 28px 24px; border-radius: 20px; text-align: center; background: #0b1220; border: 2px solid #ef4444; box-shadow: 0 0 60px rgba(239,68,68,0.6); animation: live-redalert-in 0.35s cubic-bezier(.2,1.4,.4,1); }
+.live-redalert-money .live-redalert-card { border-color: #fbbf24; box-shadow: 0 0 60px rgba(251,191,36,0.6); }
+@keyframes live-redalert-in { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.live-redalert-kicker { font-size: 12px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #fca5a5; }
+.live-redalert-money .live-redalert-kicker { color: #fde68a; }
+.live-redalert-title { margin-top: 6px; font-size: 44px; line-height: 1; font-weight: 900; letter-spacing: 0.08em; color: #ef4444; text-shadow: 0 0 24px rgba(239,68,68,0.8); }
+.live-redalert-money .live-redalert-title { color: #fbbf24; text-shadow: 0 0 24px rgba(251,191,36,0.8); }
+.live-redalert-text { margin-top: 14px; font-size: 18px; font-weight: 700; color: #f8fafc; }
+.live-redalert-sub { margin-top: 6px; font-size: 13px; color: #94a3b8; }
+.live-redalert-go { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; border-radius: 999px; font-weight: 800; color: #0b1220; background: #fbbf24; }
+.live-redalert-go:hover { background: #fde68a; }
+.live-redalert-close { padding: 10px 20px; border-radius: 999px; font-weight: 700; color: #e2e8f0; background: rgba(148,163,184,0.15); border: 1px solid rgba(148,163,184,0.35); }
+@media (prefers-reduced-motion: reduce) {
+  .live-redalert, .live-redalert::before, .live-redalert-card { animation: none; }
+}

@@ -3,6 +3,8 @@ import { fetchSnapshot } from "./source.server";
 import { windowFor, summarize, type County, type Snapshot } from "./model";
 export async function ensureLocalAwards() {
   await sql()`CREATE TABLE IF NOT EXISTS local_award_snapshots (fips TEXT PRIMARY KEY, snapshot JSONB, fetched_at TIMESTAMPTZ, requested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), refresh_started_at TIMESTAMPTZ, last_error TEXT)`;
+  // Consecutive scheduled-sync runs in which this county still failed after its retry.
+  await sql()`ALTER TABLE local_award_snapshots ADD COLUMN IF NOT EXISTS failed_runs INTEGER NOT NULL DEFAULT 0`;
 }
 export async function refreshCounty(
   county: County,
@@ -16,7 +18,7 @@ export async function refreshCounty(
   }).format(new Date());
   const { start, end } = windowFor(today);
   const snapshot = await fetchSnapshot(county, start, end, signal);
-  await sql()`UPDATE local_award_snapshots SET snapshot=${JSON.stringify(snapshot)}::jsonb, fetched_at=NOW(), refresh_started_at=NULL, last_error=NULL WHERE fips=${county.fips}`;
+  await sql()`UPDATE local_award_snapshots SET snapshot=${JSON.stringify(snapshot)}::jsonb, fetched_at=NOW(), refresh_started_at=NULL, last_error=NULL, failed_runs=0 WHERE fips=${county.fips}`;
   return snapshot;
 }
 export async function localAwards(

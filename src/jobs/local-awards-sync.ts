@@ -7,6 +7,7 @@ import {
 import { fetchSnapshot } from "~/lib/local-awards/source.server";
 const dry = process.argv.includes("--dry-run");
 const seeds = ["51570", "51760", "51730"];
+const FAILED_RUNS_TO_ALERT = 3;
 if (dry) {
   const { start, end } = windowFor(
     new Intl.DateTimeFormat("en-CA", {
@@ -36,8 +37,10 @@ if (dry) {
   // USAspending sometimes drops connections for a minute or two (owner
   // 2026-10-22: two red runs in one day, each a burst of "socket connection was
   // closed" a few seconds apart). The per-request retries in source.server.ts
-  // span ~1.5 s, so counties that fail get one more pass after a pause; the run
-  // only fails when a county still fails then.
+  // span ~1.5 s, so counties that fail get one more pass after a pause. A
+  // county that still fails is retried by the next hourly run; the run fails
+  // only when a county has failed FAILED_RUNS_TO_ALERT runs in a row (owner
+  // 2026-10-23: no red run for a single USAspending outage).
   const refresh = async (county: NonNullable<ReturnType<typeof countyFor>>, final: boolean) => {
     try {
       const s = await refreshCounty(county);
@@ -62,10 +65,17 @@ if (dry) {
     if (!county) continue;
     if (!(await refresh(county, false))) retry.push(county);
   }
-  let failed = 0;
+  let persistent = 0;
   if (retry.length) {
     await new Promise((resolve) => setTimeout(resolve, 60_000));
-    for (const county of retry) if (!(await refresh(county, true))) failed++;
+    for (const county of retry) {
+      if (await refresh(county, true)) continue;
+      const [row] =
+        await sql()`UPDATE local_award_snapshots SET failed_runs=failed_runs+1 WHERE fips=${county.fips} RETURNING failed_runs`;
+      const runs = Number(row?.failed_runs ?? 0);
+      console.error(`[local-awards-sync] ${county.fips} failed ${runs} run(s) in a row`);
+      if (runs >= FAILED_RUNS_TO_ALERT) persistent++;
+    }
   }
-  if (failed) process.exitCode = 1;
+  if (persistent) process.exitCode = 1;
 }

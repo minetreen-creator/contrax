@@ -6,10 +6,15 @@ import {
   exchangeCode,
   fetchBusinessProfile,
   needsRefresh,
+  readBusinessProfile,
+  refreshBusinessProfile,
   refreshTokens,
   signState,
+  thumbtackAccessToken,
   thumbtackConfig,
   verifyState,
+  type StoredTokens,
+  type ThumbtackTokenStore,
 } from "./thumbtack.server";
 
 const ENV = { THUMBTACK_CLIENT_ID: "client-1", THUMBTACK_CLIENT_SECRET: "secret-1", THUMBTACK_SCOPES: "supply::businesses.list" };
@@ -120,5 +125,112 @@ describe("automatic token refresh", () => {
     expect(body.get("grant_type")).toBe("refresh_token");
     expect(body.get("refresh_token")).toBe("old-rt");
     expect((seen!.init.headers as Record<string, string>).Authorization).toBe(`Basic ${Buffer.from("client-1:secret-1").toString("base64")}`);
+  });
+});
+
+describe("token refresh under concurrency (no database)", () => {
+  process.env.TOKEN_ENCRYPTION_KEY ??= "k".repeat(40);
+
+  /** In-memory stand-in for thumbtack_connections, with the same compare-and-swap rule as the SQL. */
+  function memoryStore(row: StoredTokens | null) {
+    const saved: unknown[] = [];
+    const store: ThumbtackTokenStore = {
+      async read() {
+        return row ? { ...row } : null;
+      },
+      async swap(_userId, expected, tokens) {
+        const expiresAt = tokens.expires_in ? new Date(Date.now() + tokens.expires_in * 1000).toISOString() : null;
+        if (!row || row.refresh_token_enc !== expected) return { updated: false, expiresAt };
+        row = {
+          access_token_enc: encryptToken(tokens.access_token),
+          refresh_token_enc: tokens.refresh_token ? encryptToken(tokens.refresh_token) : row.refresh_token_enc,
+          expires_at: expiresAt,
+        };
+        return { updated: true, expiresAt };
+      },
+      async saveProfile(_userId, profile) {
+        saved.push(profile);
+      },
+    };
+    return { store, saved, current: () => row };
+  }
+
+  const soon = () => new Date(Date.now() + 30_000).toISOString(); // inside the 2-minute margin
+
+  test("two calls at once share one renewal", async () => {
+    const m = memoryStore({ access_token_enc: encryptToken("old-at"), refresh_token_enc: encryptToken("rt-1"), expires_at: soon() });
+    let calls = 0;
+    const fake = (async () => {
+      calls++;
+      await new Promise((r) => setTimeout(r, 20));
+      return new Response(JSON.stringify({ access_token: "new-at", refresh_token: "rt-2", expires_in: 3600 }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const [a, b] = await Promise.all([
+      thumbtackAccessToken(cfg, 7, { fetchImpl: fake, store: m.store }),
+      thumbtackAccessToken(cfg, 7, { fetchImpl: fake, store: m.store }),
+    ]);
+    expect(calls).toBe(1);
+    expect(a!.accessToken).toBe("new-at");
+    expect(b!.accessToken).toBe("new-at");
+    expect(decryptToken(m.current()!.refresh_token_enc!)).toBe("rt-2");
+  });
+
+  test("a renewal refused because another server already rotated uses the stored token", async () => {
+    const m = memoryStore({ access_token_enc: encryptToken("old-at"), refresh_token_enc: encryptToken("rt-1"), expires_at: soon() });
+    const fake = (async () => {
+      // Another instance wins while our request is out, then Thumbtack rejects our (now retired) refresh token.
+      await m.store.swap(8, m.current()!.refresh_token_enc!, { access_token: "winner-at", refresh_token: "rt-2", expires_in: 3600 });
+      return new Response(JSON.stringify({ error: "invalid_grant" }), { status: 400 });
+    }) as unknown as typeof fetch;
+    const t = await thumbtackAccessToken(cfg, 8, { fetchImpl: fake, store: m.store });
+    expect(t!.accessToken).toBe("winner-at");
+    expect(t!.refreshed).toBe(true);
+  });
+
+  test("a write that loses the race keeps the winner's tokens", async () => {
+    const m = memoryStore({ access_token_enc: encryptToken("old-at"), refresh_token_enc: encryptToken("rt-1"), expires_at: soon() });
+    const fake = (async () => {
+      await m.store.swap(9, m.current()!.refresh_token_enc!, { access_token: "winner-at", refresh_token: "rt-2", expires_in: 3600 });
+      return new Response(JSON.stringify({ access_token: "loser-at", refresh_token: "rt-3", expires_in: 3600 }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const t = await thumbtackAccessToken(cfg, 9, { fetchImpl: fake, store: m.store });
+    expect(t!.accessToken).toBe("winner-at");
+    expect(decryptToken(m.current()!.refresh_token_enc!)).toBe("rt-2");
+  });
+
+  test("a valid token is returned without a renewal; no connection returns null", async () => {
+    const m = memoryStore({ access_token_enc: encryptToken("at"), refresh_token_enc: encryptToken("rt"), expires_at: new Date(Date.now() + 3_600_000).toISOString() });
+    const never = (async () => {
+      throw new Error("should not renew");
+    }) as unknown as typeof fetch;
+    expect((await thumbtackAccessToken(cfg, 10, { fetchImpl: never, store: m.store }))!.refreshed).toBe(false);
+    expect(await thumbtackAccessToken(cfg, 11, { fetchImpl: never, store: memoryStore(null).store })).toBeNull();
+  });
+
+  test("the profile retry renews only on a 401, not when Thumbtack is down", async () => {
+    const valid = () => new Date(Date.now() + 3_600_000).toISOString();
+    for (const [status, expectRenewals] of [[401, 1], [503, 0]] as const) {
+      const m = memoryStore({ access_token_enc: encryptToken("at"), refresh_token_enc: encryptToken("rt"), expires_at: valid() });
+      let renewals = 0;
+      let profileReads = 0;
+      const fake = (async (url: string) => {
+        if (url.endsWith("/oauth2/token")) {
+          renewals++;
+          return new Response(JSON.stringify({ access_token: "at-2", expires_in: 3600 }), { status: 200 });
+        }
+        profileReads++;
+        return profileReads === 1 ? new Response("{}", { status }) : new Response(JSON.stringify({ data: [] }), { status: 200 });
+      }) as unknown as typeof fetch;
+      const r = await refreshBusinessProfile(cfg, 20 + status, { fetchImpl: fake, store: m.store });
+      expect(renewals).toBe(expectRenewals);
+      expect(r!.profileRead).toBe(status === 401);
+    }
+  });
+
+  test("readBusinessProfile reports the status, 0 for a network error", async () => {
+    const down = (async () => {
+      throw new Error("offline");
+    }) as unknown as typeof fetch;
+    expect(await readBusinessProfile(cfg, "at", down)).toEqual({ status: 0, profile: null });
   });
 });

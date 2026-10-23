@@ -132,6 +132,7 @@ export function jarvisPrompt(snapshot: JarvisSnapshot, stats: JarvisServerStats)
     "Use the data below first. When it isn't enough, call the lookup tools (you may call several) before answering: for a visitor's bid page, read the id from their path and call bid_details; for what someone has been doing, call visitor_journey. Don't offer to dig further — dig, then answer. If nothing covers the question, say so plainly. Never invent numbers, names or events.",
     "",
     "Reply with a JSON object: {\"say\": string, \"action\": null | {\"type\": \"chat\", \"vid\": string} | {\"type\": \"open\", \"path\": string}}.",
+    "Your ONLY abilities are: reading this data, the lookup tools, opening a visitor chat, and opening an admin page. You cannot save notes, remember anything after this conversation, send emails or messages, contact anyone, or change the site. Never say you will do, note, log, flag or pass along something you can't; if he asks for that, say plainly you can't and suggest what he can do instead (for example, write it down or ask Claude to build it).",
     "Use a chat action only when he asks to message, greet or say hi to a visitor; pick the vid of a visitor in ONLINE NOW (hottest first if he doesn't say which). Use an open action only when he asks to open, show or go to one of these pages: " +
       Object.entries(JARVIS_PAGES)
         .map(([p, w]) => `${p} (${w})`)

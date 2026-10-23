@@ -49,6 +49,8 @@ describe("jarvisPrompt", () => {
     expect(p).toContain("today 42, yesterday 38");
     expect(p).toContain("Richmond, VA");
     for (const path of Object.keys(JARVIS_PAGES)) expect(p).toContain(path);
+    // It must not promise actions it can't take ("I'll note that for your engineer").
+    expect(p).toContain("You cannot save notes");
   });
 });
 

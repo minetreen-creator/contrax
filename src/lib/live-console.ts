@@ -1,3 +1,4 @@
+import type { Lead } from "./hot-leads";
 /**
  * Owner console: live activity feed + trial countdown board (owner 2026-10-19:
  * "something flashy, cool and awesome for my admin owner console" → "do 2,3").
@@ -145,6 +146,8 @@ export interface OnlineVisitor {
   point?: [number, number] | null;
   path: string;
   at: string;
+  /** Hot Lead Radar score (src/lib/hot-leads.ts). */
+  lead?: Lead;
 }
 
 // The projection /us-states-albers.json was drawn with (us-atlas: d3

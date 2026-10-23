@@ -1,7 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Bell } from "lucide-react";
+import { announcements, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Bell, Volume2, VolumeX, Crosshair } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -736,6 +737,185 @@ function TrialTile({ t, now }: { t: TrialCard; now: number }) {
   );
 }
 
+const VOICE_KEY = "contrax_live_voice";
+
+/** Short tones before each spoken line (WebAudio, no sound files). */
+function playTone(ctx: AudioContext, tone: Announcement["tone"]) {
+  const notes: [number, number][] =
+    tone === "money" ? [[1318, 0], [1760, 0.09], [2093, 0.18]] : tone === "hot" ? [[523, 0], [784, 0.12]] : [[880, 0]];
+  for (const [freq, delay] of notes) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = tone === "money" ? "triangle" : "sine";
+    osc.frequency.value = freq;
+    const t = ctx.currentTime + delay;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.18, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.25);
+  }
+}
+
+/**
+ * Voice Announcer: Mission Control reads new activity out loud. Off until the
+ * owner clicks the button (browsers only allow sound after a click); the
+ * choice is remembered on this device.
+ */
+function useVoiceAnnouncer() {
+  const [on, setOn] = useState(false);
+  const audio = useRef<AudioContext | null>(null);
+  const queue = useRef<Announcement[]>([]);
+  const speaking = useRef(false);
+  const supported = typeof window !== "undefined" && "speechSynthesis" in window;
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(VOICE_KEY) === "on") setOn(true);
+    } catch {
+      /* storage blocked */
+    }
+  }, []);
+
+  const next = () => {
+    const line = queue.current.shift();
+    if (!line) {
+      speaking.current = false;
+      return;
+    }
+    speaking.current = true;
+    if (audio.current) {
+      if (audio.current.state === "suspended") audio.current.resume().catch(() => {});
+      playTone(audio.current, line.tone);
+    }
+    const u = new SpeechSynthesisUtterance(line.text);
+    u.rate = 1.05;
+    u.onend = u.onerror = () => setTimeout(next, 400);
+    setTimeout(() => window.speechSynthesis.speak(u), 350);
+  };
+
+  const say = (lines: Announcement[]) => {
+    if (!on || !supported || !lines.length) return;
+    // A tab left open in the background shouldn't build up a backlog.
+    queue.current = [...queue.current, ...lines].slice(-8);
+    if (!speaking.current) next();
+  };
+
+  const toggle = () => {
+    const v = !on;
+    setOn(v);
+    try {
+      localStorage.setItem(VOICE_KEY, v ? "on" : "off");
+    } catch {
+      /* storage blocked */
+    }
+    if (v) {
+      try {
+        audio.current ??= new AudioContext();
+        audio.current.resume().catch(() => {});
+      } catch {
+        /* no WebAudio */
+      }
+      queue.current = [{ text: "Voice announcer on. I'll tell you when something happens.", tone: "blip" }];
+      speaking.current = false;
+      next();
+    } else {
+      queue.current = [];
+      speaking.current = false;
+      if (supported) window.speechSynthesis.cancel();
+    }
+  };
+
+  return { on, toggle, say, supported };
+}
+
+function VoiceToggle({ on, onToggle, supported }: { on: boolean; onToggle: () => void; supported: boolean }) {
+  if (!supported) return null;
+  return (
+    <button type="button" onClick={onToggle} className={`live-voice ${on ? "live-voice-on" : ""}`} aria-pressed={on} title="Mission Control reads new activity out loud">
+      {on ? <Volume2 size={15} aria-hidden="true" /> : <VolumeX size={15} aria-hidden="true" />}
+      {on ? "Voice on" : "Turn on voice"}
+      {on ? <span className="live-voice-bars" aria-hidden="true"><i /><i /><i /></span> : null}
+    </button>
+  );
+}
+
+const LEAD_COLOR: Record<LeadLevel, string> = { hot: "#f97316", warm: "#facc15", cold: "#38bdf8" };
+
+/** Hot Lead Radar: everyone on the site now, hottest at the center. */
+function HotLeadRadar({ visitors, onChat }: { visitors: OnlineVisitor[]; onChat: (v: OnlineVisitor) => void }) {
+  const scored = visitors.filter((v) => v.lead).sort((a, b) => b.lead!.score - a.lead!.score);
+  const hot = scored.filter((v) => v.lead!.level === "hot").length;
+  return (
+    <div className="live-radar">
+      <div className="live-radar-scope">
+        <svg viewBox="0 0 100 100" role="img" aria-label={`${scored.length} visitors on the radar, ${hot} hot`}>
+          <defs>
+            <radialGradient id="radar-bg" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#14532d" stopOpacity="0.55" />
+              <stop offset="100%" stopColor="#022c22" stopOpacity="0.15" />
+            </radialGradient>
+            <linearGradient id="radar-sweep" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#4ade80" stopOpacity="0" />
+              <stop offset="100%" stopColor="#4ade80" stopOpacity="0.45" />
+            </linearGradient>
+          </defs>
+          <circle cx="50" cy="50" r="48" fill="url(#radar-bg)" stroke="#22c55e" strokeOpacity="0.5" strokeWidth="0.6" />
+          {[36, 24, 12].map((r) => (
+            <circle key={r} cx="50" cy="50" r={r} fill="none" stroke="#22c55e" strokeOpacity="0.25" strokeWidth="0.4" />
+          ))}
+          <line x1="2" y1="50" x2="98" y2="50" stroke="#22c55e" strokeOpacity="0.2" strokeWidth="0.3" />
+          <line x1="50" y1="2" x2="50" y2="98" stroke="#22c55e" strokeOpacity="0.2" strokeWidth="0.3" />
+          <g className="live-radar-sweep">
+            <path d="M50 50 L98 50 A48 48 0 0 0 83.9 16.1 Z" fill="url(#radar-sweep)" />
+            <line x1="50" y1="50" x2="98" y2="50" stroke="#4ade80" strokeWidth="0.6" />
+          </g>
+          {scored.map((v) => {
+            const p = radarSpot(v.vid, v.lead!.score);
+            const c = LEAD_COLOR[v.lead!.level];
+            return (
+              <g key={v.visitorKey} className={`live-radar-blip live-radar-${v.lead!.level}`} onClick={() => onChat(v)} style={{ cursor: "pointer" }}>
+                <title>{`${v.place ?? "Unknown location"} · ${pageName(v.path)} · score ${v.lead!.score}`}</title>
+                {v.lead!.level === "hot" ? <circle cx={p.x} cy={p.y} r="4" fill={c} className="live-radar-ping" /> : null}
+                <circle cx={p.x} cy={p.y} r={v.lead!.level === "hot" ? 2.4 : 1.7} fill={c} />
+              </g>
+            );
+          })}
+        </svg>
+        <span className="live-radar-center" aria-hidden="true">BUY</span>
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-slate-400">
+          Closer to the center = closer to buying. <span style={{ color: LEAD_COLOR.hot }}>● hot</span> {HOT_SCORE}+ ·{" "}
+          <span style={{ color: LEAD_COLOR.warm }}>● warm</span> · <span style={{ color: LEAD_COLOR.cold }}>● just looking</span>
+        </p>
+        {scored.length ? (
+          <ul className="mt-2 space-y-1.5">
+            {scored.slice(0, 6).map((v) => (
+              <li key={v.visitorKey} className={`live-lead live-lead-${v.lead!.level}`}>
+                <span className="live-lead-score" style={{ color: LEAD_COLOR[v.lead!.level] }}>{v.lead!.score}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs text-slate-100">
+                    {v.lead!.level === "hot" ? "🔥 " : ""}
+                    {v.place ?? "Unknown location"} · <span className="text-sky-300">{pageName(v.path)}</span>
+                  </span>
+                  {v.lead!.reasons.length ? <span className="block truncate text-[11px] text-slate-400">{v.lead!.reasons.join(" · ")}</span> : null}
+                </span>
+                <button type="button" onClick={() => onChat(v)} className="live-sayhi" title="Send this visitor a message">
+                  <MessageCircle size={12} aria-hidden="true" /> Say hi
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-xs text-slate-500">Nobody on the radar right now.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function LivePage() {
   const [data, setData] = useState<LiveData | null>(null);
   const [error, setError] = useState("");
@@ -744,6 +924,10 @@ function LivePage() {
   const [chat, setChat] = useState<{ vid: string; label: string } | null>(null);
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const openChat = (v: OnlineVisitor) => setChat({ vid: v.vid, label: `${v.place ?? "Unknown location"} · ${v.path}` });
+  const voice = useVoiceAnnouncer();
+  const sayRef = useRef(voice.say);
+  sayRef.current = voice.say;
+  const heard = useRef<AnnounceState | null>(null);
 
   // Founder live chat: conversations with unread replies, on the same 15s beat.
   useEffect(() => {
@@ -774,6 +958,9 @@ function LivePage() {
         // Rows not in the previous poll slide in; nothing glows on first load.
         if (seen.current) setFresh(new Set(d.feed.filter((f) => !seen.current!.has(f.id)).map((f) => f.id)));
         seen.current = new Set(d.feed.map((f) => f.id));
+        const said = announcements(heard.current, d.feed, d.online);
+        heard.current = said.state;
+        sayRef.current(said.lines);
         setData(d);
         setError("");
       } catch (e) {
@@ -809,6 +996,9 @@ function LivePage() {
                 <span className="live-dot" aria-hidden="true" /> Live · last 48 hours
               </p>
               <h1 className="text-2xl font-bold text-white">Mission control</h1>
+              <div className="mt-2">
+                <VoiceToggle on={voice.on} onToggle={voice.toggle} supported={voice.supported} />
+              </div>
             </div>
             {counts ? (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -857,6 +1047,15 @@ function LivePage() {
                 <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} onChat={openChat} />
                 <Conversations threads={threads} online={data.online} onOpen={(vid, label) => setChat({ vid, label })} />
               </div>
+            </div>
+          ) : null}
+
+          {data ? (
+            <div className="mt-6">
+              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
+                <Crosshair size={15} aria-hidden="true" /> Hot lead radar
+              </h2>
+              <HotLeadRadar visitors={data.online} onChat={openChat} />
             </div>
           ) : null}
 

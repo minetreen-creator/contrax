@@ -35,6 +35,8 @@ import {
   trackSubcontractSource,
 } from "~/lib/subcontracts/subcontracts-analytics";
 import type { HaulingLead } from "~/lib/hauling-leads";
+import { STATE_NAMES } from "~/lib/contract-map";
+import { stateSlug } from "~/lib/subcontracts/state-page";
 
 /**
  * /subcontracts — SUBCONTRACTING OPPORTUNITIES, from the stored SBA SUBNet board
@@ -925,6 +927,7 @@ function SubcontractsPage() {
             Source: {SUBNET_SOURCE_LABEL} · {LAST_CHECKED_LABEL} {freshness ?? "—"} ·{" "}
             {payload ? noticeCountText(payload.counts.total) : "reading the stored notices"}
           </p>
+          <StatePicker />
         </div>
 
         {loadFailed ? (
@@ -1125,6 +1128,36 @@ function SubcontractsPage() {
         </p>
       </div>
     </main>
+  );
+}
+
+/**
+ * One state's subcontracting page (/subcontracts-in/:state, owner 2026-10-23):
+ * that state's notices, the primes based there and its recent federal winners.
+ */
+function StatePicker() {
+  return (
+    <label className="mt-4 flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-700">
+      Subcontract work in your state:
+      <select
+        defaultValue=""
+        onChange={(e) => {
+          if (e.target.value) window.location.href = `/subcontracts-in/${e.target.value}`;
+        }}
+        className="rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal"
+      >
+        <option value="" disabled>
+          Pick a state…
+        </option>
+        {Object.values(STATE_NAMES)
+          .sort()
+          .map((n) => (
+            <option key={n} value={stateSlug(n)}>
+              {n}
+            </option>
+          ))}
+      </select>
+    </label>
   );
 }
 

@@ -39,7 +39,7 @@ export const OUTREACH_TRADES: readonly OutreachTrade[] = [
   { match: "pest control", places: "pest control", label: "pest control" },
   { match: "plumbing", places: "plumbing contractor", label: "plumbing" },
   { match: "snow removal", places: "snow removal", label: "snow removal" },
-  { match: "moving services", places: "moving company", label: "moving" },
+  { match: "moving services", places: "moving", label: "moving" },
 ];
 
 /** Drafts the daily job may queue (first emails), across all trades. */
@@ -53,18 +53,42 @@ export const MIN_DAYS_TO_DUE = 10;
 export const MAX_DAYS_TO_DUE = 120;
 const FREE_MAIL = /^(gmail|googlemail|yahoo|ymail|outlook|hotmail|live|msn|aol|icloud|me|mac|comcast|verizon|att|sbcglobal|bellsouth|cox|charter|earthlink|protonmail|proton)\.(com|net|me)$/;
 
+const HIRING_BOX = /^(jobs?|careers?|hr|hiring|resumes?|employment|recruiting)$/;
+
+/** Word stems a mailbox name may share with the business: name words and the site's name. */
+function nameWords(business: string, siteHost: string | null): string[] {
+  const words = business.toLowerCase().replace(/['’]/g, "").split(/[^a-z0-9]+/);
+  const site = (siteHost ?? "").toLowerCase().replace(/^www\./, "").split(".")[0] ?? "";
+  return [...words, site].filter((w) => w.length >= 4 && !/^(company|services?|inc|llc|corp)$/.test(w));
+}
+
 /**
  * True when an address plausibly belongs to the business: on its own website's
  * domain (or a subdomain of it), or a personal mailbox provider small
- * businesses commonly use. Rejects addresses scraped from a site that belong
- * to someone else (a font vendor, a web designer…).
+ * businesses commonly use whose name shares a word with the business (so a
+ * font designer's gmail credited on the site is not used). Rejects addresses
+ * scraped from a site that belong to someone else (a font vendor, a web
+ * designer…) and hiring mailboxes (jobs@).
  */
-export function emailFitsSite(email: string, siteHost: string | null): boolean {
-  const domain = email.trim().toLowerCase().split("@")[1] ?? "";
-  if (!domain) return false;
-  if (FREE_MAIL.test(domain)) return true;
+export function emailFitsSite(email: string, siteHost: string | null, business?: string): boolean {
+  const [local = "", domain = ""] = email.trim().toLowerCase().split("@");
+  if (!domain || !local || HIRING_BOX.test(local)) return false;
+  if (FREE_MAIL.test(domain)) {
+    if (business === undefined) return true;
+    const box = local.replace(/[^a-z0-9]/g, "");
+    return nameWords(business, siteHost).some((w) => box.includes(w));
+  }
   const host = (siteHost ?? "").toLowerCase().replace(/^www\./, "");
   return !!host && (domain === host || domain.endsWith(`.${host}`) || host.endsWith(`.${domain}`));
+}
+
+/**
+ * True when a bid hires someone to do the work. Supply, materials and parts
+ * purchases and prequalified-pool-only calls are not "an open bid" a local
+ * contractor can win from a cold email.
+ */
+export function bidIsServiceJob(title: string): boolean {
+  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|pool only|pre-?qualif\w*)\b/i.test(title);
 }
 
 const STATE_WORDS = /^(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|district of columbia|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming|[a-z]{2})$/;
@@ -77,6 +101,10 @@ const STATE_WORDS = /^(alabama|alaska|arizona|arkansas|california|colorado|conne
 export function placeIsLocal(place: string): boolean {
   const p = place.trim().toLowerCase().replace(/[.,]+$/g, "");
   if (!p || /purchasing group|bidnet/.test(p)) return false;
+  // Internal district codes ("PRO_North_East") and statewide agencies
+  // ("Texas Department of Transportation", "Office of Injured Employee
+  // Counsel") don't say where the work is.
+  if (/_/.test(p) || /\b(department|dept|office of|central management|state of|commonwealth of)\b/.test(p)) return false;
   if (STATE_WORDS.test(p)) return false;
   return true;
 }

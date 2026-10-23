@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   CONTACTED_BY_HAND,
   daysUntil,
+  bidIsServiceJob,
   emailFitsSite,
   placeIsLocal,
   followupDue,
@@ -96,6 +97,25 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(emailFitsSite("broken", "acmecleaning.com")).toBe(false);
   });
 
+  test("a personal mailbox must share a word with the business; no hiring mailboxes", () => {
+    // 2026-10-23 batch: a font designer's gmail credited on a cleaner's site.
+    expect(emailFitsSite("impallari@gmail.com", "marketreadycleaning.com", "Market-Ready Cleaning LLC")).toBe(false);
+    expect(emailFitsSite("geauxjanitorial@gmail.com", "geauxjanitorial.com", "Geaux Janitorial")).toBe(true);
+    expect(emailFitsSite("phillipslandscaping74@gmail.com", "phillipslandscapingaz.com", "Phillip's Landscaping Services")).toBe(true);
+    expect(emailFitsSite("kylejaworski@comcast.net", "kmbjaworski.com", "KMB Jaworski Plumbing & Remodeling LLc")).toBe(true);
+    expect(emailFitsSite("jobs@southtexasplumbing.com", "southtexasplumbing.com", "D P South Texas Plumbing")).toBe(false);
+    expect(emailFitsSite("info@southtexasplumbing.com", "southtexasplumbing.com", "D P South Texas Plumbing")).toBe(true);
+  });
+
+  test("supply, materials, parts and prequalified-pool bids are not service jobs", () => {
+    expect(bidIsServiceJob("Paper Products and Janitorial Supplies")).toBe(false);
+    expect(bidIsServiceJob("Landscape Materials (Annual Contract)")).toBe(false);
+    expect(bidIsServiceJob("Plumbing Parts for Scott Unit")).toBe(false);
+    expect(bidIsServiceJob("Steinmetz HS - Hallway & Stairwell Painting Project - Prequalified Various Trades POOL ONLY")).toBe(false);
+    expect(bidIsServiceJob("A26-1115 - Janitorial Services for DOM")).toBe(true);
+    expect(bidIsServiceJob("Invitation for Bids for On-Call Plumbing Services")).toBe(true);
+  });
+
   test("a place must be a town, county or agency, not a state or purchasing group", () => {
     expect(placeIsLocal("Texas")).toBe(false);
     expect(placeIsLocal("TX")).toBe(false);
@@ -104,5 +124,12 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(placeIsLocal("Bigfork, MT")).toBe(true);
     expect(placeIsLocal("City of Huntsville")).toBe(true);
     expect(placeIsLocal("Smith Mountain, Virginia")).toBe(true);
+    expect(placeIsLocal("PRO_North_East")).toBe(false);
+    expect(placeIsLocal("Texas Department of Transportation")).toBe(false);
+    expect(placeIsLocal("Tx Dept Crim. Justice/inst Div")).toBe(false);
+    expect(placeIsLocal("Office of Injured Employee Counsel")).toBe(false);
+    expect(placeIsLocal("CMS - Central Management Services")).toBe(false);
+    expect(placeIsLocal("Town of Raynham")).toBe(true);
+    expect(placeIsLocal("Brazos River Authority")).toBe(true);
   });
 });

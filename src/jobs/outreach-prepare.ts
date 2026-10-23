@@ -17,6 +17,7 @@ import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import {
   BUSINESSES_PER_BID,
   DAILY_FIRST_EMAILS,
+  bidIsServiceJob,
   emailFitsSite,
   MAX_DAYS_TO_DUE,
   MIN_DAYS_TO_DUE,
@@ -94,7 +95,7 @@ async function main() {
     // Only bids whose place is a real town, county or agency: a statewide
     // purchasing group or a bare state name would make "near you" untrue.
     const bids = (await freshBids(trade.match, CANDIDATES_PER_TRADE))
-      .filter((b) => outreachPlace(b) !== null)
+      .filter((b) => bidIsServiceJob(b.title) && outreachPlace(b) !== null)
       .slice(0, BIDS_PER_TRADE);
     console.log(`\n${trade.label}: ${bids.length} fresh local bid(s)`);
     for (const b of bids) {
@@ -116,7 +117,7 @@ async function main() {
         if (!p.website || !host || seenHosts.has(host)) continue;
         seenHosts.add(host);
         const { emails } = await siteEmails(p.website);
-        const email = emails.find((e) => emailFitsSite(e, host));
+        const email = emails.find((e) => emailFitsSite(e, host, p.name));
         if (!email || !(await isNewAddress(email))) continue;
         const ok = await queueFirst({
           email,

@@ -753,6 +753,8 @@ jobs:
         run: bun test src/lib/hot-leads.test.ts
       - name: Jarvis wake word, reply parsing and lookup limits (unit, deterministic, zero network)
         run: bun test src/lib/jarvis.test.ts
+      - name: Radar email unlock cookie (unit, deterministic, zero network)
+        run: bun test src/lib/radar-unlock.test.ts
       - name: Starter $5 first month offer (unit, deterministic, zero network)
         run: bun test src/lib/starter-offer.test.ts
       - name: Founder live chat rules (unit, deterministic, zero network)

@@ -800,7 +800,7 @@ function jarvisSnapshot(data: LiveData, now: number): JarvisSnapshot {
       .filter((v) => v.lead)
       .sort((a, b) => b.lead!.score - a.lead!.score)
       .slice(0, 15)
-      .map((v) => ({ vid: v.vid, place: v.place, page: pageName(v.path), score: v.lead!.score, level: v.lead!.level, reasons: v.lead!.reasons })),
+      .map((v) => ({ vid: v.vid, place: v.place, page: pageName(v.path), path: v.path.slice(0, 120), score: v.lead!.score, level: v.lead!.level, reasons: v.lead!.reasons })),
     feed: data.feed.slice(0, 25).map((f) => ({ kind: f.kind, title: f.title, place: f.place, detail: f.detail, minutesAgo: Math.round((now - new Date(f.at).getTime()) / 60_000) })),
     trials: data.trials.slice(0, 15).map((t) => ({
       who: t.email.split("@")[0],

@@ -79,7 +79,7 @@ import { fetchOhOdotBids } from "./sources/oh-odot";
 import { fetchNyNyscrBids } from "./sources/ny-nyscr";
 import { fetchMiSigmaBids } from "./sources/mi-sigma";
 import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
-import { isBidnetSource, planBidnetSources } from "./bidnet-cadence";
+import { isBidnetRefusal, isBidnetSource, planBidnetSources } from "./bidnet-cadence";
 import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
 import { fetchKyVssBids } from "./sources/ky-vss";
@@ -1646,12 +1646,32 @@ export async function runSync(): Promise<SyncResult> {
   // (NYS + city open-data portals, different APIs) interleave one at a time
   // between state batches so they progress without ever running two at once.
   let tailIndex = 0;
+  // Owner 2026-10-23: after the first BidNet refusal (403/429) this sync, the
+  // remaining BidNet groups are skipped (not run, so not logged: they stay the
+  // most overdue for the next sync's daily turn).
+  let bidnetRefused = false;
+  const nextTailSource = (): SyncSource | null => {
+    while (tailIndex < tailSources.length) {
+      const s = tailSources[tailIndex++];
+      if (bidnetRefused && isBidnetSource(s.name)) {
+        console.log(`   ${s.name}: skipped this sync (BidNet refused an earlier group)`);
+        continue;
+      }
+      return s;
+    }
+    return null;
+  };
+  const noteTailResult = (s: SyncSource, r: SyncSourceResult) => {
+    if (isBidnetSource(s.name) && !bidnetRefused && isBidnetRefusal(r.errors)) {
+      bidnetRefused = true;
+      console.log(`   ⚠ BidNet refused ${s.name}; the rest of BidNet waits for its next daily turn.`);
+    }
+  };
   for (let i = 0; i < STATE_KEYWORD_SOURCES.length; i += PARALLEL_BATCH_SIZE) {
     const batch = STATE_KEYWORD_SOURCES.slice(i, i + PARALLEL_BATCH_SIZE);
     const jobs = batch.map((source) => syncSource(sql, source, noticeGuard));
-    let tailSource: SyncSource | null = null;
-    if (tailIndex < tailSources.length) {
-      tailSource = tailSources[tailIndex++];
+    const tailSource = nextTailSource();
+    if (tailSource) {
       jobs.push(syncSource(sql, tailSource, noticeGuard));
     }
     const batchResults = await Promise.all(jobs);
@@ -1663,12 +1683,13 @@ export async function runSync(): Promise<SyncResult> {
       // result sits at index batch.length — record it so its new bids count
       // toward totals, alerts and digests.
       results[tailSource.name] = batchResults[batch.length];
+      noteTailResult(tailSource, batchResults[batch.length]);
     }
   }
   // Safety net for any tail sources left after the final state batch.
-  for (; tailIndex < tailSources.length; tailIndex++) {
-    const source = tailSources[tailIndex];
+  for (let source = nextTailSource(); source; source = nextTailSource()) {
     results[source.name] = await syncSource(sql, source, noticeGuard);
+    noteTailResult(source, results[source.name]);
     await sleep(INTER_SOURCE_DELAY_MS);
   }
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { TAIL_SOURCES } from "./runner";
-import { BIDNET_MIN_HOURS, BIDNET_PER_RUN, chooseBidnetSources, isBidnetSource, planBidnetSources } from "./bidnet-cadence";
+import { BIDNET_MIN_HOURS, BIDNET_PER_RUN, chooseBidnetSources, isBidnetSource, planBidnetSources , isBidnetRefusal } from "./bidnet-cadence";
 
 const NOW = Date.parse("2026-10-23T03:00:00Z");
 const hoursAgo = (h: number) => new Date(NOW - h * 3_600_000);
@@ -35,5 +35,25 @@ describe("BidNet cadence (owner 2026-10-22: once a day)", () => {
     expect((await planBidnetSources(sql, ["a_bidnet"], NOW)).size).toBe(0);
     const ok = { query: async () => [{ source: "a_bidnet", last: hoursAgo(1).toISOString() }] } as any;
     expect([...(await planBidnetSources(ok, ["a_bidnet", "b_bidnet"], NOW))]).toEqual(["b_bidnet"]);
+  });
+});
+
+describe("isBidnetRefusal (owner 2026-10-23)", () => {
+  test("a 403 or 429 from BidNet is a refusal; other failures are not", () => {
+    expect(isBidnetRefusal(["tx_bidnet unreachable: HTTP 403 for https://www.bidnetdirect.com/texas/solicitations/open-bids"])).toBe(true);
+    expect(isBidnetRefusal(["HTTP 429 for https://www.bidnetdirect.com/x"])).toBe(true);
+    expect(isBidnetRefusal(["page shape changed", "HTTP 500 for x"])).toBe(false);
+    expect(isBidnetRefusal(["HTTP 4030 nope"])).toBe(false);
+    expect(isBidnetRefusal([])).toBe(false);
+  });
+});
+
+describe("BidNet pacing (owner 2026-10-23)", () => {
+  test("3 seconds between pages and at most 15 pages a pass, even for groups allowed more", async () => {
+    const { BIDNET_PAGE_DELAY_MS, BIDNET_PAGES_PER_PASS, BIDNET_PASS_TIMEOUT_MS } = await import("./sources/bidnet-direct");
+    expect(BIDNET_PAGE_DELAY_MS).toBe(3_000);
+    expect(BIDNET_PAGES_PER_PASS).toBe(15);
+    // 15 pages at 3 s apart still finish well inside the default pass timeout.
+    expect(BIDNET_PAGES_PER_PASS * BIDNET_PAGE_DELAY_MS).toBeLessThan(BIDNET_PASS_TIMEOUT_MS);
   });
 });

@@ -85,8 +85,16 @@ export const BIDNET_ORIGIN = "https://www.bidnetdirect.com";
  * not cut off); groups larger than that set their own `maxPages` (VA, CA: 150).
  */
 export const BIDNET_MAX_PAGES = 40;
-/** Politeness delay between pagination reads. */
-export const BIDNET_PAGE_DELAY_MS = 300;
+/** Politeness delay between pagination reads (owner 2026-10-23: 300 ms → 3 s). */
+export const BIDNET_PAGE_DELAY_MS = 3_000;
+/**
+ * Pages read per pass, whatever a group's own `maxPages` allows (owner
+ * 2026-10-23, after the 403s that followed a ~430-page first read). BidNet
+ * lists the newest-published solicitations first and each group is read once
+ * a day, so 15 pages (375 rows) take in every new posting; rows already stored
+ * stay until their own due date.
+ */
+export const BIDNET_PAGES_PER_PASS = 15;
 /**
  * Per-pass abort (default). A pass that runs past it FAILS CLOSED — it never
  * reports a partial group as the whole group. A group too large to finish inside
@@ -416,6 +424,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
   const listUrl = `${BIDNET_ORIGIN}/${cfg.slug}/solicitations/open-bids`;
   const maxPages = cfg.maxPages ?? BIDNET_MAX_PAGES;
+  const pagesThisPass = Math.min(maxPages, BIDNET_PAGES_PER_PASS);
   const pageDelayMs = cfg.pageDelayMs ?? BIDNET_PAGE_DELAY_MS;
   const passTimeoutMs = cfg.passTimeoutMs ?? BIDNET_PASS_TIMEOUT_MS;
 
@@ -462,7 +471,7 @@ export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
         .filter((l) => l.pageNumber > 1)
         .map((l) => l.href)
         .filter((href) => !seen.has(href));
-      while (queue.length > 0 && pages.length < maxPages) {
+      while (queue.length > 0 && pages.length < pagesThisPass) {
         const href = queue.shift()!;
         if (seen.has(href)) continue;
         seen.add(href);

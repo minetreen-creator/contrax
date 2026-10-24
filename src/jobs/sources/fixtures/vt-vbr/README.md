@@ -7,6 +7,7 @@ vt-vbr.ts). No login, no CAPTCHA.
 | File | Contents |
 |---|---|
 | `lists-2026-10-02.json.gz` | `{ "5": <BidSearch.aspx?type=5 page>, "7": <BidSearch.aspx?type=7 page> }`: open state (44) and municipal (35) bids, verbatim, gzipped |
+| `paged-state-list-2026-10-24.json.gz` | `{ "5:1": <BidSearch.aspx?type=5 GET>, "5:2": <its Page$2 postback> }`: the state list after it grew past 50 bids (50 + 3), captured 2026-10-24 ~16:20 UTC, verbatim, gzipped |
 | `bid-details-2026-10-02.json.gz` | `{ "<BidID>": "<BidPreview.aspx?BidID=… page>" }` for all 79 bids, verbatim, gzipped |
 
 Some listed bids had already passed their close date (18 at capture); the
@@ -19,4 +20,5 @@ md5 (uncompressed):
 ```
 6bf5ba4ed9496fca3992f09b88db35ef  lists-2026-10-02.json
 e2de8b4e69666ec29c505b90a1b1acd1  bid-details-2026-10-02.json
+26d1d89c0ba2728318998a029b98ecda  paged-state-list-2026-10-24.json
 ```

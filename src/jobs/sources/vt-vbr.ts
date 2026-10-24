@@ -18,8 +18,12 @@
  *   2. GET BidPreview.aspx?BidID=<id> — the bid's public detail page:
  *      closing date, RFQ number, estimated dollar value, bid type, work
  *      locations (counties), keywords and the bid description.
- * A list page that grows a second page (an ASP.NET pager) fails loudly
- * rather than ingesting only the first page.
+ * A list longer than 50 bids pages with an ASP.NET pager (state list, 53
+ * open on 2026-10-24): each further page is a POST back to the same URL with
+ * the page's hidden form fields and `__EVENTTARGET=gvResults`,
+ * `__EVENTARGUMENT=Page$N`, sent with the session and firewall cookies the
+ * first GET set (without them the site answers 302). A page that should exist
+ * but lists no bids fails loudly rather than ingesting a partial list.
  *
  * WHAT A ROW BECOMES (data honesty — never manufacture, relabel, or loosen):
  *   - `title` = the bid title; `agency` = the authoring entity.
@@ -48,6 +52,8 @@ export const VT_VBR_ORIGIN = "https://www.vermontbusinessregistry.com";
 /** BidSearch.aspx list types that are public buyers. */
 export const VT_VBR_LIST_TYPES = { state: "5", municipal: "7" } as const;
 const DETAIL_CONCURRENCY = 4;
+/** Hard ceiling on list pages per type, so a pager bug can never loop forever. */
+export const VBR_MAX_PAGES = 10;
 const MAX_DESCRIPTION = 1500;
 
 const UA =
@@ -117,9 +123,31 @@ export function vbrDateToIso(text: string): string | null {
   return new Date(Date.UTC(year, month - 1, day, hour, minute) - easternOffset(year, month, day) * 3_600_000).toISOString();
 }
 
-/** True when a list page has an ASP.NET pager (more than one page). */
-export function vbrListHasMorePages(html: string): boolean {
-  return /__doPostBack\(&#39;gvResults&#39;,&#39;Page\$\d+&#39;\)|__doPostBack\('gvResults','Page\$\d+'\)/.test(html);
+/** True when a list page links to page `n` of its results. */
+export function vbrHasPageLink(html: string, n: number): boolean {
+  return html.includes(`__doPostBack(&#39;gvResults&#39;,&#39;Page$${n}&#39;)`) || html.includes(`__doPostBack('gvResults','Page$${n}')`);
+}
+
+/** The hidden ASP.NET form fields on a list page (view state, validation…), decoded. */
+export function vbrHiddenFields(html: string): Record<string, string> {
+  const fields: Record<string, string> = {};
+  for (const m of html.matchAll(/<input\b[^>]*\btype="hidden"[^>]*>/gi)) {
+    const name = m[0].match(/\bname="([^"]*)"/i)?.[1];
+    if (!name) continue;
+    const value = m[0].match(/\bvalue="([^"]*)"/i)?.[1] ?? "";
+    fields[decodeAttr(name)] = decodeAttr(value);
+  }
+  return fields;
+}
+
+function decodeAttr(s: string): string {
+  return s
+    .replace(/&#(\d+);/g, (_m, n: string) => String.fromCharCode(Number(n)))
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&amp;/gi, "&");
 }
 
 /** The bids on one BidSearch.aspx list page, in page order. */
@@ -226,11 +254,32 @@ function fail(detail: string): never {
   throw new SourceUnreachableError(VT_VBR_SOURCE, [detail]);
 }
 
-async function getText(url: string): Promise<string> {
+/** Cookies by name, carried from a list GET into its paging POSTs. */
+type CookieJar = Map<string, string>;
+
+function cookieHeader(jar: CookieJar): string {
+  return [...jar].map(([k, v]) => `${k}=${v}`).join("; ");
+}
+
+async function getText(url: string, opts: { jar?: CookieJar; form?: Record<string, string> } = {}): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 60000);
   try {
-    const resp = await fetch(url, { headers: { "User-Agent": UA, Accept: "text/html" }, signal: controller.signal });
+    const headers: Record<string, string> = { "User-Agent": UA, Accept: "text/html" };
+    if (opts.jar && opts.jar.size > 0) headers.Cookie = cookieHeader(opts.jar);
+    let body: string | undefined;
+    if (opts.form) {
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+      body = new URLSearchParams(opts.form).toString();
+    }
+    const resp = await fetch(url, { method: opts.form ? "POST" : "GET", headers, body, redirect: opts.form ? "manual" : "follow", signal: controller.signal });
+    if (opts.jar) {
+      for (const c of resp.headers.getSetCookie()) {
+        const [pair] = c.split(";");
+        const eq = pair!.indexOf("=");
+        if (eq > 0) opts.jar.set(pair!.slice(0, eq).trim(), pair!.slice(eq + 1).trim());
+      }
+    }
     if (resp.status !== 200) fail(httpFailureDetail(resp.status, url));
     return await resp.text();
   } catch (e) {
@@ -245,13 +294,22 @@ async function getText(url: string): Promise<string> {
 export async function fetchVtVbrBids(now: number = Date.now()): Promise<FetchResult> {
   const list: VbrListBid[] = [];
   for (const [kind, type] of Object.entries(VT_VBR_LIST_TYPES) as [VbrListBid["kind"], string][]) {
-    const html = await getText(`${VT_VBR_ORIGIN}/BidSearch.aspx?type=${type}`);
-    if (vbrListHasMorePages(html)) fail(`list type ${type} now has more than one page; paging is not implemented`);
+    const url = `${VT_VBR_ORIGIN}/BidSearch.aspx?type=${type}`;
+    const jar: CookieJar = new Map();
+    let html = await getText(url, { jar });
     const bids = readVbrList(html, kind);
     if (bids.length === 0 && !/No (records|bids)/i.test(decode(html))) {
       fail(`page shape changed: list type ${type} has no bids and no "no bids" message`);
     }
     list.push(...bids);
+    for (let page = 2; vbrHasPageLink(html, page); page++) {
+      if (page > VBR_MAX_PAGES) fail(`list type ${type} has more than ${VBR_MAX_PAGES} pages`);
+      const form = { ...vbrHiddenFields(html), __EVENTTARGET: "gvResults", __EVENTARGUMENT: `Page$${page}` };
+      html = await getText(url, { jar, form });
+      const more = readVbrList(html, kind);
+      if (more.length === 0) fail(`list type ${type} page ${page} listed no bids`);
+      list.push(...more);
+    }
   }
   const details: Record<string, VbrDetail | null> = {};
   const ids = [...new Set(list.map((b) => b.id))];

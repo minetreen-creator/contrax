@@ -141,7 +141,7 @@ export function MegaProjectView({ data }: { data: MegaProjectData }) {
         </p>
         {p.knownFirms.length > 0 && (
           <>
-            <h3 className="mt-4 text-sm font-bold text-slate-900">Firms already on the job</h3>
+            <h3 className="mt-4 text-sm font-bold text-slate-900">{p.knownFirmsHeading ?? "Firms already on the job"}</h3>
             <ul className="mt-1 space-y-1 text-sm text-slate-700">
               {p.knownFirms.map((f) => (
                 <li key={f.name}>

@@ -43,6 +43,8 @@ export interface MegaProject {
    * each with the source that names it. Only firms a source names; never inferred.
    */
   knownFirms: { name: string; role: string; sourceUrl: string }[];
+  /** Heading over `knownFirms`; default "Firms already on the job". */
+  knownFirmsHeading?: string;
   /** Trades a build of this kind needs; general to the building type, not a bid list. */
   trades: string[];
   /** How a small contractor gets onto the job, in order. */
@@ -145,6 +147,77 @@ export const MEGA_PROJECTS: MegaProject[] = [
       },
       { label: "ENR: no design or contracting partners named", url: "https://www.enr.com/articles/61440-virginia-wins-5b-eli-lilly-biomanufacturing-facility" },
       { label: "WRIC 8News", url: "https://www.wric.com/news/local-news/goochland-county/groundbreaking-drug-manufacturing-facility/" },
+    ],
+    verifiedOn: "2026-10-24",
+  },
+  {
+    slug: "rappahannock-general-hospital-kilmarnock-va",
+    name: "Rappahannock General Hospital upgrades, Kilmarnock",
+    owner: "Bon Secours Mercy Health",
+    summary:
+      "Modernized patient rooms and updated clinical and support areas at Rappahannock General Hospital in the Northern Neck: about 25,300 square feet of renovation and 18,900 square feet of new construction, phased so the hospital stays open.",
+    place: "Kilmarnock",
+    stateCode: "VA",
+    investment: 73_300_000,
+    status: "announced",
+    groundbreaking: null,
+    expectedOpen: null,
+    constructionJobs: null,
+    permanentJobs: null,
+    generalContractor: null,
+    address: null,
+    knownFirms: [
+      {
+        name: "W.M. Jordan Company",
+        role: "General contractor on this hospital's 2021–2023 emergency department renovation and expansion (Hummel Associates, architect); not yet named for this project",
+        sourceUrl: "https://wmjordan.com/projects/rappahannock-general-hospital-emergency-department-renovation/",
+      },
+      {
+        name: "Connemara Corporation",
+        role: "Builder of this hospital's cancer clinic and infusion center, completed 2025; not yet named for this project",
+        sourceUrl: "https://rrecord.com/rgh-begins-construction-of-new-infusion-center-and-cancer-clinic/",
+      },
+    ],
+    knownFirmsHeading: "Firms that built this hospital's earlier projects",
+    trades: [
+      "Selective demolition with infection-control barriers",
+      "Framing, drywall and ceilings",
+      "Healthcare HVAC and controls",
+      "Plumbing and medical gas",
+      "Electrical, nurse call and low voltage",
+      "Fire protection and life safety",
+      "Flooring and finishes",
+      "Site work and foundations for the new construction",
+    ],
+    howToGetIn: [
+      "Construction is expected to start in summer 2027, so trade packages will likely be bid in late 2026 and the first half of 2027.",
+      "Contact the firms that built this hospital's last two projects, named on this page. Health systems often return to builders who already know the building, and those firms keep subcontractor lists.",
+      "Hospital work inside an open building usually requires infection-control (ICRA) training and healthcare experience. Have your certifications, safety record (EMR) and similar past work ready.",
+      "Get certified as a Virginia small, women- or minority-owned business (SWaM) if you qualify, and bid the public work in the Northern Neck listed below.",
+    ],
+    nearbyAgencySlugs: ["westmoreland-county-public-schools"],
+    statewideAgencies: [
+      {
+        source: "va_eva",
+        agencyName: "Virginia Department of Transportation",
+        slug: "virginia-department-of-transportation",
+        name: "Virginia Department of Transportation (VDOT)",
+        via: "eVA, Virginia's procurement portal",
+      },
+    ],
+    // Kilmarnock, the Northern Neck's counties, and VDOT's Fredericksburg District (which covers them).
+    areaTerms: ["Kilmarnock", "Northern Neck", "Lancaster", "Northumberland", "Westmoreland", "Richmond County", "Fredericksburg District"],
+    sources: [
+      { label: "Virginia Business", url: "https://virginiabusiness.com/bon-secours-rappahannock-hospital-73-million-investment/" },
+      {
+        label: "Becker's Hospital Review",
+        url: "https://www.beckershospitalreview.com/capital/bon-secours-plans-73-3m-modernization-at-virginia-critical-access-hospital/",
+      },
+      {
+        label: "W.M. Jordan: the 2021–2023 emergency department project",
+        url: "https://wmjordan.com/projects/rappahannock-general-hospital-emergency-department-renovation/",
+      },
+      { label: "Rappahannock Record: the 2025 cancer clinic and infusion center", url: "https://rrecord.com/rgh-begins-construction-of-new-infusion-center-and-cancer-clinic/" },
     ],
     verifiedOn: "2026-10-24",
   },

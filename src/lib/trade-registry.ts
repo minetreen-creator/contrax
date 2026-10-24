@@ -726,6 +726,43 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
     naics: ["541511", "541512", "541513", "541519", "518210"],
     exactOnly: true,
   },
+  // Owner 2026-10-24: a Huntsville, AL visitor searched "construction" and got
+  // 0 matches while the Alabama page counted 32 open construction-tagged bids.
+  // Bare "construction" matched only titles containing the word, and the
+  // category tag alone is too weak to trust, so Army work titled "Replace
+  // Switchgear" or "Roof Replacement Bldg 5405" (Redstone Arsenal) never
+  // matched. The federal construction NAICS codes (the same set the
+  // construction spending pages use) plus the words buyers title construction
+  // work with. exactOnly, so "construction cleaning" never stems into it.
+  // Single specialty-trade words (roofing, paving, demolition, masonry) are
+  // left out: a roofer searching "roofing" must not get every construction bid.
+  "construction": {
+    label: "Construction",
+    synonyms: [
+      "construction",
+      "general construction",
+      "general contractor",
+      "general contracting",
+      "building construction",
+      "new construction",
+      "renovation",
+      "renovations",
+      "building renovation",
+      "design-build",
+      "design build",
+      "roof replacement",
+      "reroofing",
+      "repaving",
+      "road construction",
+      "bridge replacement",
+      "site work",
+      "sitework",
+      "building repairs",
+      "facility repairs",
+    ],
+    naics: ["236210", "236220", "237110", "237310", "237990", "238990"],
+    exactOnly: true,
+  },
   // Owner 2026-10-23: Virginia's Executive Directive 6 (statewide cyber plan,
   // Cyber Consortium) makes cybersecurity work a trade worth its own pages.
   // Phrase-only (no NAICS: cyber work is billed under the general IT codes,

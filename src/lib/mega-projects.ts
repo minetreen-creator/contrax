@@ -48,6 +48,12 @@ export interface MegaProject {
    * their own section labeled statewide, never mixed into the nearby count.
    */
   statewideAgencies: LocalAgency[];
+  /**
+   * Place names that flag a statewide bid as possibly near the site (owner
+   * 2026-10-24). A text match, shown as one: the card says which word matched
+   * and where, and it only reorders the statewide list, never the nearby count.
+   */
+  areaTerms: string[];
   sources: MegaProjectSource[];
   /** ISO date the entry was last checked against its sources. */
   verifiedOn: string;
@@ -103,6 +109,9 @@ export const MEGA_PROJECTS: MegaProject[] = [
         via: "eVA, Virginia's procurement portal",
       },
     ],
+    // The site's county, its business park, the neighbors on the nearby list, and
+    // VDOT's Richmond District (which covers Goochland), as eVA work locations name it.
+    areaTerms: ["Goochland", "West Creek", "Henrico", "Powhatan", "Hanover", "Louisa", "Richmond District"],
     sources: [
       {
         label: "Lilly press release (PR Newswire)",
@@ -133,3 +142,37 @@ export const STATUS_LABEL: Record<MegaProject["status"], string> = {
   under_construction: "Under construction",
   complete: "Complete",
 };
+
+export interface AreaMention {
+  term: string;
+  /** Where it matched: eVA's stated work location is the strongest. */
+  field: "location" | "title" | "description";
+}
+
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * First area term a bid names, checking the work location, then the title, then
+ * the description. Whole words, any case ("Goochland" matches "GOOCHLAND CO",
+ * not "Goochlandia"). Null when none match.
+ */
+export function areaMention(
+  b: { location: string | null; title: string; description: string | null },
+  terms: readonly string[],
+): AreaMention | null {
+  if (terms.length === 0) return null;
+  const fields: [AreaMention["field"], string | null][] = [
+    ["location", b.location],
+    ["title", b.title],
+    ["description", b.description],
+  ];
+  for (const [field, text] of fields) {
+    if (!text) continue;
+    for (const term of terms) {
+      if (new RegExp(`\\b${escapeRe(term)}\\b`, "i").test(text)) return { term, field };
+    }
+  }
+  return null;
+}

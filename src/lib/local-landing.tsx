@@ -236,7 +236,7 @@ export function BidList({ count, bids, who }: { count: number; bids: SeoBid[]; w
         Soonest deadline first{count > bids.length ? ` · showing ${bids.length}` : ""}
         {soon > 0 ? ` · ${soon} closing in the next 7 days` : ""}. Each links to its official notice.
       </p>
-      <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+      <ul className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         {bids.map((b) => (
           <BidCard key={b.id} b={b} />
         ))}

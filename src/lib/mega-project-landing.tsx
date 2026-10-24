@@ -5,17 +5,24 @@
  * honest zeros, never a 500.
  */
 import { createServerFn } from "@tanstack/react-start";
-import { formatCompactMoney, type SeoBid } from "~/lib/seo-landing";
+import { BidCard, formatCompactMoney, type SeoBid } from "~/lib/seo-landing";
 import { agencyHref } from "~/lib/local-agencies";
 import { BidList, EmptyState, openBids, openCountsByAgency, type AgencyCount } from "~/lib/local-landing";
 import {
   MEGA_PROJECTS,
   MEGA_PROJECT_BY_SLUG,
   STATUS_LABEL,
+  areaMention,
   megaProjectHref,
   nearbyAgencies,
+  type AreaMention,
   type MegaProject,
 } from "~/lib/mega-projects";
+
+/** Statewide bids read per page load; VDOT has ~100 open, so this is all of them. */
+const STATEWIDE_SCAN = 300;
+/** Statewide bids shown that don't mention the area. */
+const STATEWIDE_OTHER_SHOWN = 12;
 
 export interface MegaProjectData {
   project: MegaProject | null;
@@ -25,6 +32,9 @@ export interface MegaProjectData {
   /** Statewide buyers, kept apart: their rows don't say where the work is. */
   statewide: AgencyCount[];
   statewideCount: number;
+  /** Statewide bids that name the area, soonest first, each with what matched. */
+  statewideNearby: { bid: SeoBid; mention: AreaMention }[];
+  /** The rest of the statewide bids, soonest first, capped. */
   statewideBids: SeoBid[];
   generatedAt: string;
 }
@@ -33,7 +43,7 @@ export const getMegaProjectData = createServerFn({ method: "GET" })
   .validator((d: unknown) => String((d as any)?.slug ?? "").toLowerCase())
   .handler(async ({ data }): Promise<MegaProjectData> => {
     const project = MEGA_PROJECT_BY_SLUG[data] ?? null;
-    const empty = { agencies: [], count: 0, bids: [], statewide: [], statewideCount: 0, statewideBids: [] };
+    const empty = { agencies: [], count: 0, bids: [], statewide: [], statewideCount: 0, statewideNearby: [], statewideBids: [] };
     if (!project) return { project: null, ...empty, generatedAt: new Date().toISOString() };
     const near = nearbyAgencies(project);
     const wide = project.statewideAgencies;
@@ -52,12 +62,19 @@ export const getMegaProjectData = createServerFn({ method: "GET" })
     if (wide.length > 0) {
       try {
         wideCounts = await openCountsByAgency(wide);
-        wideBids = await openBids(wide, 12);
+        wideBids = await openBids(wide, STATEWIDE_SCAN);
       } catch (e) {
         console.error("[mega-projects] statewide query failed:", e);
         wideCounts = {};
         wideBids = [];
       }
+    }
+    const statewideNearby: { bid: SeoBid; mention: AreaMention }[] = [];
+    const statewideOther: SeoBid[] = [];
+    for (const b of wideBids) {
+      const mention = areaMention(b, project.areaTerms);
+      if (mention) statewideNearby.push({ bid: b, mention });
+      else statewideOther.push(b);
     }
     const sum = (c: Record<string, number>) => Object.values(c).reduce((s, n) => s + n, 0);
     return {
@@ -67,7 +84,8 @@ export const getMegaProjectData = createServerFn({ method: "GET" })
       bids,
       statewide: wide.map((a) => ({ slug: a.slug, name: a.name, count: wideCounts[a.slug] ?? 0 })),
       statewideCount: sum(wideCounts),
-      statewideBids: wideBids,
+      statewideNearby,
+      statewideBids: statewideOther.slice(0, STATEWIDE_OTHER_SHOWN),
       generatedAt: new Date().toISOString(),
     };
   });
@@ -173,15 +191,50 @@ export function MegaProjectView({ data }: { data: MegaProjectData }) {
           <h2 className="mt-1 text-xl font-bold text-slate-900">{data.statewide.map((a) => a.name).join(", ")}</h2>
           <p className="mt-1 text-sm text-slate-600">
             Road and bridge work around a project this size usually comes from the state, not the county. These listings cover all of{" "}
-            {p.stateCode === "VA" ? "Virginia" : p.stateCode} and don't say where the work is, so check each notice for the location.
+            {p.stateCode === "VA" ? "Virginia" : p.stateCode}. The ones that name a place near the site come first; check each notice for the
+            exact location.
           </p>
-          <div className="mt-5">
-            {data.statewideCount === 0 ? (
-              <p className="text-sm text-slate-500">No open solicitations right now.</p>
-            ) : (
-              <BidList count={data.statewideCount} bids={data.statewideBids} who={data.statewide.map((a) => a.name).join(", ")} />
-            )}
-          </div>
+          {data.statewideCount === 0 ? (
+            <p className="mt-5 text-sm text-slate-500">No open solicitations right now.</p>
+          ) : (
+            <>
+              <h3 className="mt-6 text-lg font-bold text-slate-900">
+                {data.statewideNearby.length} of {data.statewideCount.toLocaleString("en-US")} mention the area
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Matched on place names ({p.areaTerms.join(", ")}) in the work location, title or description. A name match is a lead, not a
+                confirmed location.
+              </p>
+              {data.statewideNearby.length > 0 && (
+                <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {data.statewideNearby.map(({ bid, mention }) => (
+                    <li key={bid.id} className="min-w-0">
+                      <p className="mb-1.5 inline-block rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-900">
+                        Mentions “{mention.term}” in the {mention.field === "location" ? "work location" : mention.field}
+                      </p>
+                      <ul>
+                        <BidCard b={bid} />
+                      </ul>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {data.statewideBids.length > 0 && (
+                <>
+                  <h3 className="mt-8 text-lg font-bold text-slate-900">Elsewhere or location not stated</h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    Soonest deadline first
+                    {data.statewideCount - data.statewideNearby.length > data.statewideBids.length ? ` · showing ${data.statewideBids.length}` : ""}.
+                  </p>
+                  <ul className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {data.statewideBids.map((b) => (
+                      <BidCard key={b.id} b={b} />
+                    ))}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
         </section>
       )}
 

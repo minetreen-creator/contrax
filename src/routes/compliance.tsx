@@ -276,7 +276,6 @@ const severityStyles: Record<string, string> = {
   MEDIUM: "bg-amber-100 text-amber-700 border-amber-200",
   LOW: "bg-blue-100 text-blue-700 border-blue-200",
 };
-const severityBadge = (s: string) => severityStyles[s] || "bg-slate-100 text-slate-600";
 const severityOrder: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
 
 function ScoreCard({ score, passCount, failCount, warningCount }: { score: number; passCount: number; failCount: number; warningCount: number }) {

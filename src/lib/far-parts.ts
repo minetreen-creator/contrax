@@ -105,7 +105,6 @@ export const getPartPageData = createServerFn({ method: "GET" })
       related: [],
     };
     if (!/^\d{1,3}$/.test(part)) return { ...empty, notFound: true };
-    let rows;
     try {
       const db = sql();
       const [countRows, clauseRows, partRows] = await Promise.all([

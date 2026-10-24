@@ -1,7 +1,7 @@
-import { createFileRoute, useNavigate, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, useEffect } from "react";
-import { getCurrentUser, type AuthUser } from "~/lib/auth";
+import { getCurrentUser } from "~/lib/auth";
 import { TrialGate } from "~/components/TrialGate";
 import { getUserPatterns, generateInsights, getImplicitPreferences, type UserPatterns, type ImplicitPreference } from "~/lib/learning";
 
@@ -28,6 +28,7 @@ export const Route = createFileRoute("/learnings")({
     if (!user) throw redirect({ to: "/login" });
     return fetchLearnings();
   },
+  component: LearningsPageGated,
 
   head: () => ({
     meta: [{ name: "robots", content: "noindex, nofollow" },
@@ -64,7 +65,6 @@ function winRateBg(rate: number): string {
 // ── Component ────────────────────────────────────────────────────────────────
 
 function LearningsPage() {
-  const navigate = useNavigate();
   const data = Route.useLoaderData() as { patterns: UserPatterns; insights: string[]; preferences: ImplicitPreference[] } | null;
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<ImplicitPreference[]>(data?.preferences ?? []);
@@ -86,7 +86,7 @@ function LearningsPage() {
   const refreshInsights = async () => {
     setInsightsLoading(true);
     try {
-      const fresh = await generateInsights(/* will be called via fetchLearnings */);
+      // fetchLearnings regenerates the insights server-side.
       const d = await fetchLearnings();
       setInsights(d.insights);
       setPatterns(d.patterns);

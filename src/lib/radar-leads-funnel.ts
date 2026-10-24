@@ -102,11 +102,6 @@ export function maskLeadEmail(email: string | null | undefined): string | null {
   return `${local.slice(0, 1)}•••@${domain}`;
 }
 
-function pct(n: number, d: number): number | null {
-  if (d <= 0) return null;
-  const p = Math.round((1 - n / d) * 100);
-  return p > 0 ? p : 0;
-}
 
 export function emptyRadarLeadsFunnel(days: number): RadarLeadsFunnelResult {
   return {

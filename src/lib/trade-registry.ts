@@ -738,22 +738,24 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
   // left out: a roofer searching "roofing" must not get every construction bid.
   "construction": {
     label: "Construction",
+    // Title matching is by substring, so "construction" already covers "road
+    // construction" etc. and "renovation" covers "renovations": no slot is
+    // spent on those (the expansion is capped at MAX_EXPANDED_TERMS).
     synonyms: [
       "construction",
-      "general construction",
       "general contractor",
-      "general contracting",
-      "building construction",
-      "new construction",
       "renovation",
-      "renovations",
-      "building renovation",
       "design-build",
       "design build",
       "roof replacement",
       "reroofing",
       "repaving",
-      "road construction",
+      "resurfacing",
+      "widening",
+      "intersection improvement",
+      "drainage improvement",
+      "storm shelter",
+      "barracks",
       "bridge replacement",
       "site work",
       "sitework",

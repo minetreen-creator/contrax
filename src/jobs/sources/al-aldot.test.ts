@@ -10,14 +10,7 @@ import { gunzipSync } from "node:zlib";
 import { deriveInsertLocationColumns, SOURCE_HOME_JURISDICTIONS } from "~/lib/location-state";
 import { isStateLocalSource, sourceBadgeLabel } from "~/lib/cert-matching";
 import { TAIL_SOURCES } from "../runner";
-import {
-  aldotLettingToIso,
-  aldotLocation,
-  aldotWork,
-  parseAldotLettingList,
-  readAldotIndex,
-  readAldotLettingList,
-} from "./al-aldot";
+import { aldotLettingToIso, aldotLocation, aldotWork, parseAldotLettingList, readAldotIndex, readAldotLettingList, curlText, isMalformedResponse, splitCurlOutput } from "./al-aldot";
 
 const fixture = (name: string) =>
   gunzipSync(readFileSync(new URL(`./fixtures/al-aldot/${name}`, import.meta.url))).toString("utf8");
@@ -123,5 +116,23 @@ describe("al_aldot — registration", () => {
     expect(SOURCE_HOME_JURISDICTIONS["al_aldot"]).toBe("AL");
     expect(isStateLocalSource(["al_aldot"])).toBe(true);
     expect(sourceBadgeLabel("al_aldot")).toBe("State (AL)");
+  });
+});
+
+describe("al_aldot — malformed header fallback (2026-10-24)", () => {
+  test("only Bun's Malformed_HTTP_Response triggers the curl retry", () => {
+    expect(isMalformedResponse(new Error('Malformed_HTTP_Response fetching "https://alletting.aldot.gov/"'))).toBe(true);
+    expect(isMalformedResponse(new Error("ECONNRESET: The socket connection was closed unexpectedly"))).toBe(false);
+    expect(isMalformedResponse(new Error("The operation was aborted."))).toBe(false);
+  });
+
+  test("curl output splits into body and status; a non-200 still fails", async () => {
+    expect(splitCurlOutput("<html>Letting List</html>\n200")).toEqual({ body: "<html>Letting List</html>", status: 200 });
+    const ok = async () => ({ stdout: "<html>Letting List</html>\n200" });
+    expect(await curlText("https://alletting.aldot.gov/", ok)).toBe("<html>Letting List</html>");
+    const blocked = async () => ({ stdout: "Web Page Blocked!\n500" });
+    await expect(curlText("https://alletting.aldot.gov/", blocked)).rejects.toThrow(/al_aldot unreachable/);
+    const broken = async () => { throw new Error("curl: (6) Could not resolve host"); };
+    await expect(curlText("https://alletting.aldot.gov/", broken)).rejects.toThrow(/curl fallback failed/);
   });
 });

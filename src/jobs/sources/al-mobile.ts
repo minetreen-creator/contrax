@@ -39,12 +39,22 @@ export function parseMobileHtml(html: string, now = Date.now()): FetchResult {
   const blocks = [...body.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)];
   if (!blocks.length && !/no (?:open |current )?(?:bids|records|results)/i.test(text(body))) fail("no rows or explicit empty-board message");
   const seen = new Set<string>();
+  let rowNumber = 0;
   for (const block of blocks) {
+    rowNumber++;
     const cells = [...block[1].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(m => m[1]);
     if (cells.length !== 6) fail("bid row columns changed");
     const [department, date, time, number, title] = cells.map(text);
     const link = cells[3].match(/href="([^"]+)"/)?.[1];
-    if (!department || !number || !title || !link) fail("required bid identity missing");
+    if (!department || !number || !title || !link) {
+      // One half-entered notice skips that row (owner 2026-10-24: the board briefly carried a row
+      // missing one of these, which sank every Mobile bid); a board with no complete row still fails below.
+      const missing = Object.entries({department, number, title, link}).filter(([, v]) => !v).map(([k]) => k);
+      console.warn(`  al_mobile: row ${rowNumber} skipped, missing ${missing.join(", ")} (number "${number}", title "${title.slice(0, 80)}")`);
+      result.skipped.missing_fields = (result.skipped.missing_fields ?? 0) + 1;
+      result.skippedRows.push({id: `mobile-row-${rowNumber}`, reason: "missing_fields"});
+      continue;
+    }
     const url = new URL(text(link), MOBILE_URL);
     const id = url.searchParams.get("bid");
     if (url.origin !== new URL(MOBILE_URL).origin || url.pathname !== "/bids/" || !id || !/^\d+$/.test(id)) fail("unexpected source link");
@@ -58,7 +68,8 @@ export function parseMobileHtml(html: string, now = Date.now()): FetchResult {
     const description = `City of Mobile ${department} public bid notice. Published closing: ${date} ${time}, Mobile local time (America/Chicago). Refer to the official notice and attachments for full scope, submission requirements and amendments.`;
     result.rows.push({external_id, title, agency: "City of Mobile", description, location: "Mobile, AL", category: mapCategory("", title, description), due_date: due!, source_url: `${MOBILE_URL}?bid=${id}`, estimated_value: "", solicitation_number: number.replace(/\s*\*+$/, ""), naics_code: null, psc: null, set_aside: null, notice_type: null});
   }
-  if (blocks.length > 0 && result.skipped.bad_date === blocks.length) fail("no bid row has a readable closing time; the date or time format changed");
+  if (blocks.length > 0 && (result.skipped.missing_fields ?? 0) === blocks.length) fail("required bid identity missing on every row");
+  if (blocks.length > 0 && (result.skipped.missing_fields ?? 0) + (result.skipped.bad_date ?? 0) === blocks.length) fail("no bid row has a readable closing time; the date or time format changed");
   return result;
 }
 

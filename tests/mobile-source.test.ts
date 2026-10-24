@@ -48,3 +48,10 @@ test("one unreadable closing time skips that notice instead of sinking the board
   assert.equal(result.skipped.bad_date, 1);
   assert.equal(result.skippedRows.find(r => r.reason === "bad_date")!.id, "mobile-4257");
 });
+test("one row missing its bid number or link is skipped; a board with none complete still fails", () => {
+  const result = parseMobileHtml(html.replace(/href="[^"]*\?bid=\d+"/, ""), now);
+  assert.equal(result.rows.length, 3);
+  assert.equal(result.skipped.missing_fields, 1);
+  assert.match(result.skippedRows.find(r => r.reason === "missing_fields")!.id, /^mobile-row-\d+$/);
+  assert.throws(() => parseMobileHtml(html.replace(/href="[^"]*\?bid=\d+"/g, ""), now), /identity missing on every row/);
+});

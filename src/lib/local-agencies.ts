@@ -85,6 +85,8 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "va_eva", agencyName: "Hanover County", slug: "hanover-county", name: "Hanover County", place: "Hanover County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
   { source: "va_eva", agencyName: "Powhatan County", slug: "powhatan-county", name: "Powhatan County", place: "Powhatan County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
   { source: "va_eva", agencyName: "Louisa County", slug: "louisa-county", name: "Louisa County", place: "Louisa County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  // Northern Neck, around Rappahannock General Hospital (owner 2026-10-24); exact eVA buyer name.
+  { source: "va_eva", agencyName: "Westmoreland County Public Schools", slug: "westmoreland-county-public-schools", name: "Westmoreland County Public Schools", place: "Westmoreland County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
 ];
 
 export function slugify(s: string): string {

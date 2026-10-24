@@ -66,3 +66,22 @@ describe("areaMention", () => {
     expect(areaMention(bid("Goochland County"), [])).toBeNull();
   });
 });
+
+describe("Rappahannock General Hospital", () => {
+  const rgh = MEGA_PROJECT_BY_SLUG["rappahannock-general-hospital-kilmarnock-va"];
+
+  test("announced, contractor not named, earlier builders listed with sources", () => {
+    expect(rgh.status).toBe("announced");
+    expect(rgh.generalContractor).toBeNull();
+    expect(rgh.knownFirms.map((f) => f.name)).toEqual(["W.M. Jordan Company", "Connemara Corporation"]);
+    for (const f of rgh.knownFirms) expect(f.role).toContain("not yet named for this project");
+    expect(rgh.knownFirmsHeading).toBe("Firms that built this hospital's earlier projects");
+  });
+
+  test("Westmoreland schools are the nearby buyer; VDOT bids naming the Northern Neck rank first", () => {
+    expect(nearbyAgencies(rgh).map((a) => a.agencyName)).toEqual(["Westmoreland County Public Schools"]);
+    const bid = (location: string) => ({ location, title: "Paving", description: null });
+    expect(areaMention(bid("Fredericksburg District-Lancaster County and Northumberland County"), rgh.areaTerms)?.term).toBe("Lancaster");
+    expect(areaMention(bid("Richmond District-Goochland County"), rgh.areaTerms)).toBeNull();
+  });
+});

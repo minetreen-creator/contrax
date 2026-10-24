@@ -10,7 +10,7 @@ import { gunzipSync } from "node:zlib";
 import { deriveInsertLocationColumns, SOURCE_HOME_JURISDICTIONS } from "~/lib/location-state";
 import { isStateLocalSource, sourceBadgeLabel } from "~/lib/cert-matching";
 import { TAIL_SOURCES } from "../runner";
-import { parseVbrBids, readVbrDetail, readVbrList, vbrDateToIso, vbrListHasMorePages, type VbrDetail } from "./vt-vbr";
+import { parseVbrBids, readVbrDetail, readVbrList, vbrDateToIso, vbrHasPageLink, vbrHiddenFields, type VbrDetail } from "./vt-vbr";
 
 const gz = (name: string) => JSON.parse(gunzipSync(readFileSync(new URL(`./fixtures/vt-vbr/${name}`, import.meta.url))).toString("utf8")) as Record<string, string>;
 const LISTS = gz("lists-2026-10-02.json.gz");
@@ -23,9 +23,33 @@ describe("vt_vbr — lists", () => {
   test("44 state and 35 municipal bids, one page each", () => {
     expect(readVbrList(LISTS["5"]!, "state").length).toBe(44);
     expect(readVbrList(LISTS["7"]!, "municipal").length).toBe(35);
-    expect(vbrListHasMorePages(LISTS["5"]!)).toBe(false);
-    expect(vbrListHasMorePages(LISTS["7"]!)).toBe(false);
-    expect(vbrListHasMorePages(`<a href="javascript:__doPostBack(&#39;gvResults&#39;,&#39;Page$2&#39;)">2</a>`)).toBe(true);
+    expect(vbrHasPageLink(LISTS["5"]!, 2)).toBe(false);
+    expect(vbrHasPageLink(LISTS["7"]!, 2)).toBe(false);
+    expect(vbrHasPageLink(`<a href="javascript:__doPostBack(&#39;gvResults&#39;,&#39;Page$2&#39;)">2</a>`, 2)).toBe(true);
+  });
+});
+
+describe("vt_vbr — paged list (state list past 50 bids, 2026-10-24)", () => {
+  const PAGED = gz("paged-state-list-2026-10-24.json.gz");
+  const p1 = PAGED["5:1"]!;
+  const p2 = PAGED["5:2"]!;
+
+  test("page 1 lists 50 and links to page 2; page 2 lists the other 3 and links only back", () => {
+    expect(readVbrList(p1, "state").length).toBe(50);
+    expect(vbrHasPageLink(p1, 2)).toBe(true);
+    expect(readVbrList(p2, "state").length).toBe(3);
+    expect(vbrHasPageLink(p2, 3)).toBe(false);
+    expect(vbrHasPageLink(p2, 1)).toBe(true);
+    const ids1 = new Set(readVbrList(p1, "state").map((b) => b.id));
+    expect(readVbrList(p2, "state").some((b) => ids1.has(b.id))).toBe(false);
+  });
+
+  test("the postback carries page 1's view state and validation, decoded", () => {
+    const f = vbrHiddenFields(p1);
+    expect(f.__VIEWSTATE!.length).toBeGreaterThan(1000);
+    expect(f.__EVENTVALIDATION!.length).toBeGreaterThan(50);
+    expect(f.__VIEWSTATEGENERATOR).toMatch(/^[0-9A-F]{8}$/);
+    expect(Object.values(f).some((v) => v.includes("&#"))).toBe(false);
   });
 });
 

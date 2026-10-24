@@ -6,13 +6,19 @@ export const MOBILE_URL = "https://www.cityofmobile.gov/bids/";
 function fail(message: string): never { throw new SourceUnreachableError("al_mobile", [message]); }
 const text = (value: string) => value.replace(/<[^>]*>/g, " ").replace(/&amp;/g, "&").replace(/&nbsp;/g, " ").replace(/&quot;/g, '"').replace(/&#0?39;/g, "'").replace(/\s+/g, " ").trim();
 
-/** Published local closing time: Mobile uses America/Chicago, including DST. */
+/**
+ * Published local closing time: Mobile uses America/Chicago, including DST.
+ * The board types times by hand ("12:01pm", owner 2026-10-24: also "10:00 am",
+ * "10 A.M.", "Noon"), so the meridiem may be spaced, dotted or upper case and
+ * the minutes may be missing.
+ */
 export function mobileDeadline(date: string, time: string): string | null {
   const d = date.match(/^(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), ([A-Z][a-z]{2}) (\d{1,2}), (\d{4})$/);
-  const t = time.match(/^(\d{1,2}):(\d{2})(am|pm)$/i);
+  const t = /^(?:12:00\s*)?noon$/i.test(time.trim()) ? ["", "12", "00", "p"] : time.trim().match(/^(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s*m\.?$/i);
   const month = d ? "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(" ").indexOf(d[1]) + 1 : 0;
-  if (!d || !t || !month || +t[1] < 1 || +t[1] > 12 || +t[2] > 59) return null;
-  const target = {year: +d[3], month, day: +d[2], hour: +t[1] % 12 + (t[3].toLowerCase() === "pm" ? 12 : 0), minute: +t[2]};
+  const minute = t ? +(t[2] ?? "0") : 0;
+  if (!d || !t || !month || +t[1] < 1 || +t[1] > 12 || minute > 59) return null;
+  const target = {year: +d[3], month, day: +d[2], hour: +t[1] % 12 + (t[3].toLowerCase() === "p" ? 12 : 0), minute};
   const local = Date.UTC(target.year, month - 1, target.day, target.hour, target.minute);
   const fmt = new Intl.DateTimeFormat("en-US", {timeZone: "America/Chicago", year: "numeric", month: "numeric", day: "numeric", hour: "numeric", minute: "numeric", hourCycle: "h23"});
   const matches = [5, 6].map(offset => new Date(local + offset * 3600000)).filter(value => {
@@ -43,14 +49,16 @@ export function parseMobileHtml(html: string, now = Date.now()): FetchResult {
     const id = url.searchParams.get("bid");
     if (url.origin !== new URL(MOBILE_URL).origin || url.pathname !== "/bids/" || !id || !/^\d+$/.test(id)) fail("unexpected source link");
     const due = mobileDeadline(date, time);
-    if (!due) fail(`invalid closing time for bid ${id}`);
     const external_id = `mobile-${id}`;
-    const reason = Date.parse(due) <= now ? "closed" : seen.has(id) ? "duplicate" : null;
+    // One hand-typed closing time we can't read skips that notice (owner 2026-10-24: bid
+    // 4244 alone used to sink the whole board); a board where none parse still fails below.
+    const reason = !due ? "bad_date" : Date.parse(due) <= now ? "closed" : seen.has(id) ? "duplicate" : null;
     if (reason) { result.skipped[reason] = (result.skipped[reason] ?? 0) + 1; result.skippedRows.push({id: external_id, reason}); continue; }
     seen.add(id);
     const description = `City of Mobile ${department} public bid notice. Published closing: ${date} ${time}, Mobile local time (America/Chicago). Refer to the official notice and attachments for full scope, submission requirements and amendments.`;
-    result.rows.push({external_id, title, agency: "City of Mobile", description, location: "Mobile, AL", category: mapCategory("", title, description), due_date: due, source_url: `${MOBILE_URL}?bid=${id}`, estimated_value: "", solicitation_number: number.replace(/\s*\*+$/, ""), naics_code: null, psc: null, set_aside: null, notice_type: null});
+    result.rows.push({external_id, title, agency: "City of Mobile", description, location: "Mobile, AL", category: mapCategory("", title, description), due_date: due!, source_url: `${MOBILE_URL}?bid=${id}`, estimated_value: "", solicitation_number: number.replace(/\s*\*+$/, ""), naics_code: null, psc: null, set_aside: null, notice_type: null});
   }
+  if (blocks.length > 0 && result.skipped.bad_date === blocks.length) fail("no bid row has a readable closing time; the date or time format changed");
   return result;
 }
 

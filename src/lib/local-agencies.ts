@@ -78,6 +78,13 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "va_eva", agencyName: "Hampton City Schools", slug: "hampton-city-schools", name: "Hampton City Schools", place: "Hampton", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
   { source: "va_eva", agencyName: "Arlington County Government", slug: "arlington-county", name: "Arlington County", place: "Arlington County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
   { source: "va_eva", agencyName: "City of Chesapeake", slug: "city-of-chesapeake", name: "City of Chesapeake", place: "Chesapeake", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  // Goochland County and its neighbors around the Lilly site in West Creek (owner 2026-10-24),
+  // exact eVA buyer names from the agencyname facets.
+  { source: "va_eva", agencyName: "Goochland County Government", slug: "goochland-county", name: "Goochland County", place: "Goochland County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "Goochland County Public Schools", slug: "goochland-county-public-schools", name: "Goochland County Public Schools", place: "Goochland County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "Hanover County", slug: "hanover-county", name: "Hanover County", place: "Hanover County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "Powhatan County", slug: "powhatan-county", name: "Powhatan County", place: "Powhatan County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
+  { source: "va_eva", agencyName: "Louisa County", slug: "louisa-county", name: "Louisa County", place: "Louisa County", stateCode: "VA", via: "eVA, Virginia's procurement portal" },
 ];
 
 export function slugify(s: string): string {

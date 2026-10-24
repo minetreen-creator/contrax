@@ -77,7 +77,7 @@ export async function openCountsByAgency(agencies: readonly LocalAgency[]): Prom
 }
 
 /** Open bids from the given agencies, soonest deadline first. */
-async function openBids(agencies: readonly LocalAgency[], limit: number): Promise<SeoBid[]> {
+export async function openBids(agencies: readonly LocalAgency[], limit: number): Promise<SeoBid[]> {
   const { sql } = await import("~/db");
   const rows = await sql()`
     SELECT ${sql().unsafe(BID_COLS)} FROM (
@@ -211,7 +211,7 @@ export const getLocalIndex = createServerFn({ method: "GET" }).handler(async ():
 const chipCls =
   "rounded-lg bg-white px-3.5 py-2 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-100 hover:text-slate-900";
 
-function EmptyState({ who }: { who: string }) {
+export function EmptyState({ who }: { who: string }) {
   return (
     <section className="rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-10 text-center">
       <h2 className="text-xl font-bold text-slate-900">No open solicitations from {who} right now</h2>
@@ -225,7 +225,7 @@ function EmptyState({ who }: { who: string }) {
   );
 }
 
-function BidList({ count, bids, who }: { count: number; bids: SeoBid[]; who: string }) {
+export function BidList({ count, bids, who }: { count: number; bids: SeoBid[]; who: string }) {
   const soon = closingWithinWeek(bids);
   return (
     <section>

@@ -84,6 +84,16 @@ describe("buyers inside a state portal", () => {
     expect(findPlace("virginia", "chesapeake")?.agencies[0].name).toBe("City of Chesapeake");
   });
 
+  test("Goochland groups the county and its schools; neighbors get their own pages", () => {
+    expect(findPlace("virginia", "goochland-county")?.agencies.map((a) => a.agencyName)).toEqual([
+      "Goochland County Government",
+      "Goochland County Public Schools",
+    ]);
+    for (const slug of ["hanover-county", "powhatan-county", "louisa-county"]) {
+      expect(findPlace("virginia", slug)?.agencies[0].source).toBe("va_eva");
+    }
+  });
+
   test("every exact-name buyer sits on its own state's portal and resolves", () => {
     const named = LOCAL_AGENCIES.filter((a) => a.agencyName);
     expect(named.length).toBeGreaterThan(0);

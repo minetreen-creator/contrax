@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { RESOLVED_AGENCIES, LOCAL_PLACES, agencyHref, placeHref } from "~/lib/local-agencies";
 import { buildLocalSitemapXml } from "~/lib/local-sitemap";
+import { MEGA_PROJECTS, megaProjectHref } from "~/lib/mega-projects";
 
 /**
  * /sitemap-local.xml — the city/county and agency pages that have at least one
@@ -15,6 +16,8 @@ async function handler() {
       "/local-bids",
       ...LOCAL_PLACES.filter((p) => p.agencies.some((a) => (counts[a.slug] ?? 0) > 0)).map(placeHref),
       ...RESOLVED_AGENCIES.filter((a) => (counts[a.slug] ?? 0) > 0).map(agencyHref),
+      "/mega-projects",
+      ...MEGA_PROJECTS.map(megaProjectHref),
     ];
     return new Response(buildLocalSitemapXml(paths), {
       status: 200,

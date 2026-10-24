@@ -58,7 +58,11 @@ export function parseMobileHtml(html: string, now = Date.now()): FetchResult {
     const url = new URL(text(link), MOBILE_URL);
     const id = url.searchParams.get("bid");
     if (url.origin !== new URL(MOBILE_URL).origin || url.pathname !== "/bids/" || !id || !/^\d+$/.test(id)) fail("unexpected source link");
-    const due = mobileDeadline(date, time);
+    // A blank Bid Time (owner 2026-10-24: bids 4259-4264 were posted with a date only) is due
+    // at the END of that day, 11:59 PM Mobile time, the late bound, as BidNet date-only rows are;
+    // the description says no time was published. Unreadable text ("TBD") is still bad_date.
+    const dateOnly = time.trim() === "";
+    const due = mobileDeadline(date, dateOnly ? "11:59pm" : time);
     const external_id = `mobile-${id}`;
     if (!due) console.warn(`  al_mobile: bid ${id} closing time unreadable: date "${date}", time "${time}"`);
     // One hand-typed closing time we can't read skips that notice (owner 2026-10-24: bid
@@ -66,7 +70,10 @@ export function parseMobileHtml(html: string, now = Date.now()): FetchResult {
     const reason = !due ? "bad_date" : Date.parse(due) <= now ? "closed" : seen.has(id) ? "duplicate" : null;
     if (reason) { result.skipped[reason] = (result.skipped[reason] ?? 0) + 1; result.skippedRows.push({id: external_id, reason}); continue; }
     seen.add(id);
-    const description = `City of Mobile ${department} public bid notice. Published closing: ${date} ${time}, Mobile local time (America/Chicago). Refer to the official notice and attachments for full scope, submission requirements and amendments.`;
+    const closing = dateOnly
+      ? `Published closing date: ${date}. No closing time was published, so Contrax lists it as due by the end of that day (11:59 PM Mobile local time); check the official notice for the exact time.`
+      : `Published closing: ${date} ${time}, Mobile local time (America/Chicago).`;
+    const description = `City of Mobile ${department} public bid notice. ${closing} Refer to the official notice and attachments for full scope, submission requirements and amendments.`;
     result.rows.push({external_id, title, agency: "City of Mobile", description, location: "Mobile, AL", category: mapCategory("", title, description), due_date: due!, source_url: `${MOBILE_URL}?bid=${id}`, estimated_value: "", solicitation_number: number.replace(/\s*\*+$/, ""), naics_code: null, psc: null, set_aside: null, notice_type: null});
   }
   if (blocks.length > 0 && (result.skipped.missing_fields ?? 0) === blocks.length) fail("required bid identity missing on every row");

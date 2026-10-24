@@ -55,3 +55,13 @@ test("one row missing its bid number or link is skipped; a board with none compl
   assert.match(result.skippedRows.find(r => r.reason === "missing_fields")!.id, /^mobile-row-\d+$/);
   assert.throws(() => parseMobileHtml(html.replace(/href="[^"]*\?bid=\d+"/g, ""), now), /identity missing on every row/);
 });
+test("a blank closing time is date-only: due 11:59 PM Mobile time, said so in the description", () => {
+  const result = parseMobileHtml(html.replace("12:01pm", ""), now);
+  assert.equal(result.rows.length, 4);
+  assert.equal(result.skipped.bad_date, undefined);
+  const tires = result.rows.find(r => r.solicitation_number === "6077")!;
+  assert.equal(tires.due_date, "2026-10-24T04:59:00.000Z"); // Fri Oct 23, 11:59 PM CDT
+  assert.match(tires.description, /No closing time was published/);
+  assert.equal(mobileDeadline("Wed, Nov 04, 2026", "11:59pm"), "2026-11-05T05:59:00.000Z"); // CST after Nov 1
+  assert.equal(parseMobileHtml(html.replace("12:01pm", "TBD"), now).skipped.bad_date, 1);
+});

@@ -41,9 +41,19 @@
  * Proposals whose letting has opened are skipped (`closed`), and proposals
  * ALDOT marked "WITHDRAWN FROM LETTING" are skipped (`withdrawn`).
  *
+ * MALFORMED HEADER (2026-10-24): since about 2026-10-23 the server sends an
+ * invalid header line ("Cache Control: no-cache", a space in the name). Bun's
+ * fetch rejects the whole response (Malformed_HTTP_Response); curl reads the
+ * same response normally. So a Malformed_HTTP_Response is retried once with
+ * curl: the same GET, User-Agent and Accept, nothing else changed. (A headless
+ * browser is NOT used: ALDOT's firewall blocks it, and Contrax never gets
+ * around a block.) Any other failure, or a non-200 from curl, still fails.
+ *
  * IDENTITY: `external_id = aldot-<YYYYMMDD letting>-<call number>` — the call
  * number is unique within a letting, and a project re-let later is a new bid.
  */
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { mapCategory } from "~/lib/trade-classification";
 import type { FetchResult } from "../runner";
 import { httpFailureDetail, requestFailureDetail, SourceUnreachableError } from "../fetch-failure";
@@ -269,6 +279,35 @@ function fail(detail: string): never {
   throw new SourceUnreachableError(ALDOT_SOURCE, [detail]);
 }
 
+/** Bun's fetch error for a response it can't parse (here: a header name with a space). */
+export function isMalformedResponse(e: unknown): boolean {
+  return /Malformed_HTTP_Response/i.test(e instanceof Error ? `${e.name} ${e.message} ${(e as { code?: string }).code ?? ""}` : String(e));
+}
+
+/** Splits curl's `-w "\n%{http_code}"` output into body and status. */
+export function splitCurlOutput(out: string): { body: string; status: number } {
+  const nl = out.lastIndexOf("\n");
+  return { body: out.slice(0, Math.max(nl, 0)), status: Number(out.slice(nl + 1).trim()) || 0 };
+}
+
+type Run = (cmd: string, args: string[], opts: { timeout: number; maxBuffer: number }) => Promise<{ stdout: string }>;
+
+/** The same GET through curl, which tolerates the malformed header. */
+export async function curlText(url: string, run: Run = promisify(execFile) as unknown as Run): Promise<string> {
+  let out: string;
+  try {
+    ({ stdout: out } = await run("curl", ["-sS", "--max-time", "60", "-A", UA, "-H", "Accept: text/html,*/*", "-w", "\n%{http_code}", url], {
+      timeout: 70_000,
+      maxBuffer: 20_000_000,
+    }));
+  } catch (e) {
+    fail(`curl fallback failed: ${requestFailureDetail(e)}`);
+  }
+  const { body, status } = splitCurlOutput(out);
+  if (status !== 200) fail(httpFailureDetail(status, url));
+  return body;
+}
+
 async function getText(url: string): Promise<string> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 60000);
@@ -278,6 +317,10 @@ async function getText(url: string): Promise<string> {
     return await resp.text();
   } catch (e) {
     if (e instanceof SourceUnreachableError) throw e;
+    if (isMalformedResponse(e)) {
+      console.warn(`  ${ALDOT_SOURCE}: malformed response header from ${url}; retrying with curl`);
+      return await curlText(url);
+    }
     fail(requestFailureDetail(e));
   } finally {
     clearTimeout(timer);

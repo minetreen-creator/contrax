@@ -60,6 +60,7 @@ export function parseMobileHtml(html: string, now = Date.now()): FetchResult {
     if (url.origin !== new URL(MOBILE_URL).origin || url.pathname !== "/bids/" || !id || !/^\d+$/.test(id)) fail("unexpected source link");
     const due = mobileDeadline(date, time);
     const external_id = `mobile-${id}`;
+    if (!due) console.warn(`  al_mobile: bid ${id} closing time unreadable: date "${date}", time "${time}"`);
     // One hand-typed closing time we can't read skips that notice (owner 2026-10-24: bid
     // 4244 alone used to sink the whole board); a board where none parse still fails below.
     const reason = !due ? "bad_date" : Date.parse(due) <= now ? "closed" : seen.has(id) ? "duplicate" : null;

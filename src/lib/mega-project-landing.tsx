@@ -115,6 +115,7 @@ export function MegaProjectView({ data }: { data: MegaProjectData }) {
     <>
       <dl className="grid gap-3 sm:grid-cols-3">
         <Fact label="Owner" value={p.owner} />
+        {p.address && <Fact label="Site" value={p.address} />}
         <Fact label="Investment" value={formatCompactMoney(p.investment)} />
         <Fact label="Status" value={STATUS_LABEL[p.status]} />
         <Fact label="Groundbreaking" value={p.groundbreaking ? fmtDate(p.groundbreaking) : "Not yet"} />
@@ -138,6 +139,21 @@ export function MegaProjectView({ data }: { data: MegaProjectData }) {
             </>
           )}
         </p>
+        {p.knownFirms.length > 0 && (
+          <>
+            <h3 className="mt-4 text-sm font-bold text-slate-900">Firms already on the job</h3>
+            <ul className="mt-1 space-y-1 text-sm text-slate-700">
+              {p.knownFirms.map((f) => (
+                <li key={f.name}>
+                  <strong>{f.name}</strong>: {f.role}.{" "}
+                  <a href={f.sourceUrl} rel="noopener" className="text-blue-600 hover:text-blue-800">
+                    Source ↗
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
       </section>
 
       <div className="mt-8 grid gap-8 lg:grid-cols-2">

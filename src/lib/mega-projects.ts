@@ -36,6 +36,13 @@ export interface MegaProject {
   permanentJobs: number | null;
   /** General contractor / construction manager, only when publicly named. */
   generalContractor: string | null;
+  /** Street address of the site, when reported. */
+  address: string | null;
+  /**
+   * Other firms publicly tied to the job (engineer on the permits, site contractor…),
+   * each with the source that names it. Only firms a source names; never inferred.
+   */
+  knownFirms: { name: string; role: string; sourceUrl: string }[];
   /** Trades a build of this kind needs; general to the building type, not a bid list. */
   trades: string[];
   /** How a small contractor gets onto the job, in order. */
@@ -75,6 +82,15 @@ export const MEGA_PROJECTS: MegaProject[] = [
     constructionJobs: 1800,
     permanentJobs: 650,
     generalContractor: null,
+    address: "12575 West Creek Parkway, Goochland County, VA",
+    knownFirms: [
+      {
+        name: "Dewberry",
+        role: "Engineering firm that filed the stormwater and land-disturbance permit applications with Lilly (June 2026)",
+        sourceUrl:
+          "https://richmondbizsense.com/2026/06/24/massive-eli-lilly-project-in-goochland-awaits-scc-approval-of-new-dominion-transmission-line/",
+      },
+    ],
     trades: [
       "Site work, grading and utilities",
       "Concrete and structural steel",
@@ -86,6 +102,7 @@ export const MEGA_PROJECTS: MegaProject[] = [
       "Commissioning and validation support",
     ],
     howToGetIn: [
+      "Site work (clearing, grading, underground utilities) was set to start in August 2026 under Goochland's land-disturbance permit. Site and utility work may already be under way, so contact the firms named on this page now instead of waiting.",
       "Watch for the general contractor or construction manager to be named. On a plant this size, almost every trade package is bought by that firm, not by Lilly.",
       "Once it is named, get on its subcontractor prequalification list early. Expect to show safety records (EMR, OSHA logs), bonding capacity, insurance, and similar past work.",
       "Get certified as a Virginia small, women- or minority-owned business (SWaM) through the Virginia Department of Small Business and Supplier Diversity if you qualify. Large owners and their contractors often track local and diverse spend.",
@@ -118,6 +135,15 @@ export const MEGA_PROJECTS: MegaProject[] = [
         url: "https://www.prnewswire.com/news-releases/lilly-breaks-ground-in-richmond-to-expand-american-manufacturing-of-next-generation-cancer-medicines-advancing-its-build-out-of-10-new-us-sites-since-2020-302916266.html",
       },
       { label: "Virginia Business", url: "https://virginiabusiness.com/eli-lilly-5b-virginia-manufacturing-site-groundbreaking/" },
+      {
+        label: "Richmond BizSense: site address and land purchase",
+        url: "https://richmondbizsense.com/2026/07/23/breaking-news-eli-lilly-pays-38m-to-secure-land-for-massive-west-creek-pharma-facility",
+      },
+      {
+        label: "Richmond BizSense: permits filed with Dewberry",
+        url: "https://richmondbizsense.com/2026/06/24/massive-eli-lilly-project-in-goochland-awaits-scc-approval-of-new-dominion-transmission-line/",
+      },
+      { label: "ENR: no design or contracting partners named", url: "https://www.enr.com/articles/61440-virginia-wins-5b-eli-lilly-biomanufacturing-facility" },
       { label: "WRIC 8News", url: "https://www.wric.com/news/local-news/goochland-county/groundbreaking-drug-manufacturing-facility/" },
     ],
     verifiedOn: "2026-10-24",

@@ -21,12 +21,14 @@ describe("mega-project registry", () => {
       expect(p.sources.length).toBeGreaterThan(0);
       for (const s of p.sources) expect(s.url.startsWith("https://")).toBe(true);
       expect(p.verifiedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      for (const f of p.knownFirms) expect(f.sourceUrl.startsWith("https://")).toBe(true);
     }
   });
 
   test("Lilly Goochland lists Goochland County's bids and leaves the GC unnamed", () => {
     const lilly = MEGA_PROJECT_BY_SLUG["eli-lilly-goochland-va"];
     expect(lilly.generalContractor).toBeNull();
+    expect(lilly.address).toContain("12575 West Creek Parkway");
     expect(nearbyAgencies(lilly).map((a) => a.agencyName)).toContain("Goochland County Government");
     expect(megaProjectHref(lilly)).toBe("/mega-projects/eli-lilly-goochland-va");
   });

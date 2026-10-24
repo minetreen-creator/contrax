@@ -22,6 +22,10 @@ export interface MegaProjectData {
   agencies: AgencyCount[];
   count: number;
   bids: SeoBid[];
+  /** Statewide buyers, kept apart: their rows don't say where the work is. */
+  statewide: AgencyCount[];
+  statewideCount: number;
+  statewideBids: SeoBid[];
   generatedAt: string;
 }
 
@@ -29,10 +33,14 @@ export const getMegaProjectData = createServerFn({ method: "GET" })
   .validator((d: unknown) => String((d as any)?.slug ?? "").toLowerCase())
   .handler(async ({ data }): Promise<MegaProjectData> => {
     const project = MEGA_PROJECT_BY_SLUG[data] ?? null;
-    if (!project) return { project: null, agencies: [], count: 0, bids: [], generatedAt: new Date().toISOString() };
+    const empty = { agencies: [], count: 0, bids: [], statewide: [], statewideCount: 0, statewideBids: [] };
+    if (!project) return { project: null, ...empty, generatedAt: new Date().toISOString() };
     const near = nearbyAgencies(project);
+    const wide = project.statewideAgencies;
     let counts: Record<string, number> = {};
     let bids: SeoBid[] = [];
+    let wideCounts: Record<string, number> = {};
+    let wideBids: SeoBid[] = [];
     try {
       counts = await openCountsByAgency(near);
       bids = await openBids(near, 30);
@@ -41,11 +49,25 @@ export const getMegaProjectData = createServerFn({ method: "GET" })
       counts = {};
       bids = [];
     }
+    if (wide.length > 0) {
+      try {
+        wideCounts = await openCountsByAgency(wide);
+        wideBids = await openBids(wide, 12);
+      } catch (e) {
+        console.error("[mega-projects] statewide query failed:", e);
+        wideCounts = {};
+        wideBids = [];
+      }
+    }
+    const sum = (c: Record<string, number>) => Object.values(c).reduce((s, n) => s + n, 0);
     return {
       project,
       agencies: near.map((a) => ({ slug: a.slug, name: a.name, count: counts[a.slug] ?? 0 })),
-      count: Object.values(counts).reduce((s, n) => s + n, 0),
+      count: sum(counts),
       bids,
+      statewide: wide.map((a) => ({ slug: a.slug, name: a.name, count: wideCounts[a.slug] ?? 0 })),
+      statewideCount: sum(wideCounts),
+      statewideBids: wideBids,
       generatedAt: new Date().toISOString(),
     };
   });
@@ -144,6 +166,24 @@ export function MegaProjectView({ data }: { data: MegaProjectData }) {
           <BidList count={data.count} bids={data.bids} who="buyers around the site" />
         )}
       </div>
+
+      {data.statewide.length > 0 && (
+        <section className="mt-12 rounded-2xl border border-slate-200 bg-white p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Statewide · may include work near the site</p>
+          <h2 className="mt-1 text-xl font-bold text-slate-900">{data.statewide.map((a) => a.name).join(", ")}</h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Road and bridge work around a project this size usually comes from the state, not the county. These listings cover all of{" "}
+            {p.stateCode === "VA" ? "Virginia" : p.stateCode} and don't say where the work is, so check each notice for the location.
+          </p>
+          <div className="mt-5">
+            {data.statewideCount === 0 ? (
+              <p className="text-sm text-slate-500">No open solicitations right now.</p>
+            ) : (
+              <BidList count={data.statewideCount} bids={data.statewideBids} who={data.statewide.map((a) => a.name).join(", ")} />
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="mt-10 text-sm text-slate-600">
         <h3 className="font-bold text-slate-900">Sources</h3>

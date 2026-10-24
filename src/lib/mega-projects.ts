@@ -9,7 +9,7 @@
  * src/lib/local-agencies.ts): the county work a project this size sets off —
  * roads, water and sewer, schools — does post publicly, and the page lists it live.
  */
-import { AGENCY_BY_SLUG } from "~/lib/local-agencies";
+import { AGENCY_BY_SLUG, type LocalAgency } from "~/lib/local-agencies";
 
 export interface MegaProjectSource {
   label: string;
@@ -42,6 +42,12 @@ export interface MegaProject {
   howToGetIn: string[];
   /** Public buyers around the site whose open bids the page lists. */
   nearbyAgencySlugs: string[];
+  /**
+   * Statewide buyers that also build around the site (owner 2026-10-24: VDOT for
+   * the roads). Their rows don't say where the work is, so the page lists them in
+   * their own section labeled statewide, never mixed into the nearby count.
+   */
+  statewideAgencies: LocalAgency[];
   sources: MegaProjectSource[];
   /** ISO date the entry was last checked against its sources. */
   verifiedOn: string;
@@ -87,6 +93,15 @@ export const MEGA_PROJECTS: MegaProject[] = [
       "hanover-county",
       "louisa-county",
       "city-of-richmond",
+    ],
+    statewideAgencies: [
+      {
+        source: "va_eva",
+        agencyName: "Virginia Department of Transportation",
+        slug: "virginia-department-of-transportation",
+        name: "Virginia Department of Transportation (VDOT)",
+        via: "eVA, Virginia's procurement portal",
+      },
     ],
     sources: [
       {

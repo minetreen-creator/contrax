@@ -30,4 +30,16 @@ describe("mega-project registry", () => {
     expect(nearbyAgencies(lilly).map((a) => a.agencyName)).toContain("Goochland County Government");
     expect(megaProjectHref(lilly)).toBe("/mega-projects/eli-lilly-goochland-va");
   });
+
+  test("statewide buyers are exact eVA names and stay out of the local registry", () => {
+    const lilly = MEGA_PROJECT_BY_SLUG["eli-lilly-goochland-va"];
+    expect(lilly.statewideAgencies.map((a) => a.agencyName)).toEqual(["Virginia Department of Transportation"]);
+    for (const p of MEGA_PROJECTS) {
+      for (const a of p.statewideAgencies) {
+        expect(a.source).toBe("va_eva");
+        expect(AGENCY_BY_SLUG[a.slug]).toBeUndefined();
+        expect(p.nearbyAgencySlugs).not.toContain(a.slug);
+      }
+    }
+  });
 });

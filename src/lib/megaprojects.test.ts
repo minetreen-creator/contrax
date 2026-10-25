@@ -47,6 +47,15 @@ describe("megaprojects helpers", () => {
 });
 
 describe("megaprojects data", () => {
+  test("no duplicates: one card per company per city (owner 2026-10-25)", () => {
+    const seen = new Map<string, string>();
+    const norm = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+    for (const p of MEGAPROJECTS) {
+      const key = `${norm(p.company)}|${norm(p.city)}|${p.state}`;
+      expect(seen.get(key) ?? null).toBeNull();
+      seen.set(key, p.slug);
+    }
+  });
   test("every entry is complete and sourced", () => {
     const slugs = new Set<string>();
     for (const p of MEGAPROJECTS) {

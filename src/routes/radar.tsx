@@ -1500,6 +1500,7 @@ function RadarLanding() {
       // Entitlement tickets are short-lived server proofs and are deliberately
       // never persisted in localStorage. Cards fail closed to "unavailable".
       intelTicket: null,
+      totalMatched: seen.total,
     });
     setRevealed(seen.seenCount);
     setStep(3);
@@ -1598,7 +1599,10 @@ function RadarLanding() {
         savedAt: new Date().toISOString(),
         answers: { trade: input.trade, state: input.state, cert: input.cert, sizePref: input.sizePref },
         certLabel: res.certLabel,
-        total: res.matches.length,
+        // The real total (owner 2026-10-25: a Salt Lake City visitor came
+        // back to 3 matches, 1 shown; the restore counted only the saved 1 and
+        // dropped the "2 more bids, unlock with email" card).
+        total: Math.max(res.totalMatched ?? 0, res.matches.length),
         seenCount: seenCap,
         matches: res.matches,
         sections: res.sections,

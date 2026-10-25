@@ -126,9 +126,12 @@ export function freshRadarSeen(seen: RadarSeen | null, now = Date.now()): RadarS
   const matches = seen.matches.filter((m) => deadlineStillOpen(m.due_date, now));
   if (matches.length === 0) return null;
   const keep = (rows: RadarSeenMatch[]) => rows.filter((m) => deadlineStillOpen(m.due_date, now));
+  // The total can exceed the saved list (an anonymous visitor is sent only the
+  // free matches; the rest stay locked). Closed saved cards come off it.
+  const closed = seen.matches.length - matches.length;
   return {
     ...seen,
-    total: matches.length,
+    total: Math.max(matches.length, (Number(seen.total) || 0) - closed),
     seenCount: Math.min(seen.seenCount, matches.length),
     matches,
     sections: {

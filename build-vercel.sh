@@ -76,7 +76,10 @@ cp -R dist/client .vercel/output/static
 rm -f .vercel/output/static/index.html   # SSR owns "/", not a static shell
 
 echo "[5/5] bundle SSR handler + deps into the render function"
-bun build vercel-entry.ts --target node \
+# --minify-whitespace (2026-10-25): the bundle had grown to the CI 12 MB ceiling
+# (build-check.yml). Stripping whitespace only (no renaming, no syntax rewrites)
+# cuts it by about 20% and keeps function names in stack traces.
+bun build vercel-entry.ts --target node --minify-whitespace \
   --external '#tanstack-router-entry' --external '#tanstack-start-entry' \
   --external 'tanstack-start-manifest:v' \
   --outfile .vercel/output/functions/render.func/index.mjs

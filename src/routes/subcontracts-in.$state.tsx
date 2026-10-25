@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { BidAlertCapture } from "~/components/BidAlertCapture";
-import { megaprojectsIn } from "~/lib/megaprojects";
+import { MEGAPROJECTS_URL, type Megaproject } from "~/lib/megaprojects";
 import { getStateSubcontracts, type StateSubcontractsData } from "~/lib/subcontracts/state-data";
 import { moneyText, PRIMES_SHOWN, searchPrimes, titleCase, WINNER_DAYS, WINNERS_SHOWN } from "~/lib/subcontracts/state-page";
 import { trackEvent } from "~/lib/track";
@@ -48,6 +48,7 @@ function StateSubcontractsPage() {
   const gate = useSubcontractsUnlock();
   const [primeQuery, setPrimeQuery] = useState("");
   const [showAllPrimes, setShowAllPrimes] = useState(false);
+  const megaCount = useMegaCount(d.state?.code ?? "");
   if (!d.state) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -69,7 +70,6 @@ function StateSubcontractsPage() {
   const foundPrimes = searchPrimes(primes, primeQuery);
   const listedPrimes = primeQuery.trim() || showAllPrimes ? foundPrimes : foundPrimes.slice(0, PRIMES_SHOWN);
   const isNevada = code === "NV";
-  const megaCount = megaprojectsIn(code).length;
   // Email gate (owner 2026-10-23): a few notices and winners are free, the rest
   // unlock with an email or an account. The primes directory stays open.
   const gNotices = gateSplit(notices, FREE_NOTICES, gate.unlocked);
@@ -263,4 +263,21 @@ function StateSubcontractsPage() {
       </main>
     </div>
   );
+}
+
+/** How many megaprojects are in this state (src/lib/megaprojects.ts); 0 until the list loads. */
+function useMegaCount(state: string): number {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!state) return;
+    let alive = true;
+    fetch(MEGAPROJECTS_URL)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: Megaproject[]) => alive && setN(Array.isArray(d) ? d.filter((p) => p.state === state).length : 0))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [state]);
+  return n;
 }

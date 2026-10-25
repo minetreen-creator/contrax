@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { BidAlertCapture } from "~/components/BidAlertCapture";
-import { LOCAL_WORK, MEGA_SECTORS, MEGAPROJECTS, megaMoney, megaStateCounts, megaTotals, sortMegaprojects, type Megaproject } from "~/lib/megaprojects";
+import { LOCAL_WORK, MEGA_SECTORS, MEGAPROJECTS_URL, megaMoney, megaStateCounts, megaTotals, sortMegaprojects, type Megaproject } from "~/lib/megaprojects";
 import { STATE_CODE_TO_NAME } from "~/lib/location-state";
 import { trackEvent } from "~/lib/track";
 
@@ -34,7 +34,16 @@ function checkedLabel(d: string): string {
 }
 
 function MegaprojectsPage() {
-  const all = useMemo(() => sortMegaprojects(MEGAPROJECTS), []);
+  // The list loads from /data/megaprojects.json (kept out of the server bundle).
+  const [list, setList] = useState<Megaproject[] | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    fetch(MEGAPROJECTS_URL)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: Megaproject[]) => setList(Array.isArray(d) ? d : []))
+      .catch(() => setFailed(true));
+  }, []);
+  const all = useMemo(() => sortMegaprojects(list ?? []), [list]);
   const [state, setState] = useState("");
   // /megaprojects?state=TX (links from the state pages) opens on that state.
   useEffect(() => {
@@ -56,7 +65,7 @@ function MegaprojectsPage() {
           Chip fabs, factories and pharma campuses are going up across the country. They aren&apos;t government bids, but every one hires local small businesses for construction, services and supplies. Here&apos;s where they are, who&apos;s building them, and how to get on the list.
         </p>
         <div className="mx-auto mt-8 flex max-w-xl flex-wrap justify-center gap-6 text-left">
-          <Stat big={String(totals.projects)} label={`project${totals.projects === 1 ? "" : "s"}${stateName ? ` in ${stateName}` : ""}`} />
+          <Stat big={list ? String(totals.projects) : "…"} label={`project${totals.projects === 1 ? "" : "s"}${stateName ? ` in ${stateName}` : ""}`} />
           {totals.amount ? <Stat big={megaMoney(totals.amount) ?? ""} label="announced investment" /> : null}
           {totals.jobs ? <Stat big={totals.jobs.toLocaleString("en-US")} label="promised jobs" /> : null}
         </div>
@@ -85,7 +94,11 @@ function MegaprojectsPage() {
           </select>
         </div>
 
-        {shown.length === 0 ? (
+        {failed ? (
+          <p className="rounded-xl bg-white p-4 text-sm text-slate-600">The project list couldn&apos;t load just now. Please refresh in a moment.</p>
+        ) : list === null ? (
+          <p className="rounded-xl bg-white p-4 text-sm text-slate-600">Loading projects…</p>
+        ) : shown.length === 0 ? (
           <p className="rounded-xl bg-white p-4 text-sm text-slate-600">No megaprojects listed here yet. We add them as they&apos;re announced.</p>
         ) : (
           <ul className="space-y-4">

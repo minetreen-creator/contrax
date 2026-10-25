@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { MEGAPROJECTS, MEGA_SECTORS, megaMoney, megaStateCounts, megaTotals, sortMegaprojects, type Megaproject } from "./megaprojects";
+import { readFileSync } from "node:fs";
+import { MEGA_SECTORS, megaMoney, megaStateCounts, megaTotals, sortMegaprojects, type Megaproject } from "./megaprojects";
 import { US_STATES } from "./states";
 
 const base: Megaproject = {
@@ -46,15 +47,25 @@ describe("megaprojects helpers", () => {
   });
 });
 
+// The list the page loads (public/data/megaprojects.json).
+const MEGAPROJECTS: Megaproject[] = JSON.parse(readFileSync(new URL("../../public/data/megaprojects.json", import.meta.url), "utf8"));
+
 describe("megaprojects data", () => {
-  test("no duplicates: one card per company per city (owner 2026-10-25)", () => {
-    const seen = new Map<string, string>();
-    const norm = (x: string) => x.toLowerCase().replace(/[^a-z0-9]/g, "");
+  test("no duplicates (owner 2026-10-25): one card per company + site", () => {
+    const norm = (x: string) => x.toLowerCase().replace(/\b(inc|corp|corporation|co|llc|technology|the)\b/g, "").replace(/[^a-z0-9]/g, "");
+    const seen = new Map<string, Megaproject>();
     for (const p of MEGAPROJECTS) {
-      const key = `${norm(p.company)}|${norm(p.city)}|${p.state}`;
-      expect(seen.get(key) ?? null).toBeNull();
-      seen.set(key, p.slug);
+      const site = `${norm(p.company)}|${norm(p.city)}|${p.state}`;
+      const prior = seen.get(site);
+      // Two projects at one site are allowed only when they're plainly different
+      // (different name AND different amount), e.g. U.S. Steel's mill and iron plant.
+      if (prior) {
+        expect(norm(prior.project)).not.toBe(norm(p.project));
+        expect(prior.amount).not.toBe(p.amount);
+      }
+      seen.set(site, p);
     }
+    expect(MEGAPROJECTS.length).toBeGreaterThan(20);
   });
   test("every entry is complete and sourced", () => {
     const slugs = new Set<string>();

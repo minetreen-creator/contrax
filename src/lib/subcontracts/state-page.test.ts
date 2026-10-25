@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { AwardLead } from "~/lib/award-leads";
-import { moneyText, pickWinners, stateFromSlug, titleCase, WINNER_MIN_AMOUNT } from "./state-page";
+import { moneyText, pickWinners, primeNameKey, searchPrimes, stateFromSlug, titleCase, WINNER_MIN_AMOUNT, type StatePrime } from "./state-page";
 
 const lead = (over: Partial<AwardLead>): AwardLead => ({
   award_key: "k",
@@ -57,5 +57,20 @@ describe("text", () => {
   });
   test("company names", () => {
     expect(titleCase("ACME BUILDERS LLC")).toBe("Acme Builders LLC");
+  });
+});
+
+describe("prime search", () => {
+  const primes: StatePrime[] = [
+    { legalName: "M. C. DEAN, INC.", uei: "RD55NEXJ5EW4", naicsLabel: "Electrical Contractors", agencies: [] },
+    { legalName: "ACCENTURE FEDERAL SERVICES LLC", uei: "A1", naicsLabel: null, agencies: [] },
+  ];
+  test("punctuation and spaces don't matter", () => {
+    expect(primeNameKey("M. C. DEAN, INC.")).toBe("mcdeaninc");
+    for (const q of ["mc dean", "M.C. Dean", "dean"]) expect(searchPrimes(primes, q).map((p) => p.uei)).toEqual(["RD55NEXJ5EW4"]);
+  });
+  test("an empty query keeps everyone; no match is empty", () => {
+    expect(searchPrimes(primes, "  ")).toHaveLength(2);
+    expect(searchPrimes(primes, "lockheed")).toEqual([]);
   });
 });

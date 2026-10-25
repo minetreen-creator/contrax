@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import type { AwardLead } from "~/lib/award-leads";
-import type { PrimeRowView, SubcontractNoticeView } from "./read";
-import { pickWinners, stateFromSlug, WINNER_DAYS, WINNER_MIN_AMOUNT, type StateRef } from "./state-page";
+import type { SubcontractNoticeView } from "./read";
+import { pickWinners, PRIMES_MAX_PAGES, stateFromSlug, WINNER_DAYS, WINNER_MIN_AMOUNT, type StatePrime, type StateRef } from "./state-page";
 
 /** Server side of /subcontracts-in/:state (state-page.ts). */
 
@@ -10,7 +10,8 @@ export interface StateSubcontractsData {
   /** Open SBA SUBNet notices in the state; null when the store couldn't be read. */
   notices: SubcontractNoticeView[] | null;
   /** Primes in the SBA FY24 directory (they hold subcontracting plans) based in the state. */
-  primes: PrimeRowView[] | null;
+  /** Every prime based there (trimmed), alphabetical; the page searches and pages them. */
+  primes: StatePrime[] | null;
   primesTotal: number;
   /** Biggest recent federal winners there, one per company. */
   winners: AwardLead[] | null;
@@ -27,7 +28,20 @@ export const getStateSubcontracts = createServerFn({ method: "GET" })
     const { isUnavailable, isPrimesQueryError } = await import("./read");
     const [notices, primes, winners] = await Promise.allSettled([
       readSubcontractsPayload(),
-      readPrimesPayload({ naics: null, state: state.name.toUpperCase(), page: 1, limit: 25 }),
+      // Every prime in the state, not just the first page (owner 2026-10-25: M.C. Dean
+      // was past the first 25 of Virginia's 449).
+      (async () => {
+        const rows: StatePrime[] = [];
+        let filtered = 0;
+        for (let page = 1; page <= PRIMES_MAX_PAGES; page++) {
+          const res = await readPrimesPayload({ naics: null, state: state.name.toUpperCase(), page, limit: 100 });
+          if (isPrimesQueryError(res) || isUnavailable(res)) return page === 1 ? res : { rows, filtered };
+          filtered = res.counts.filtered;
+          rows.push(...res.rows.map((p) => ({ legalName: p.legalName, uei: p.uei, naicsLabel: p.naicsLabels[0] ?? null, agencies: p.agencies.slice(0, 3) })));
+          if (!res.hasMore) break;
+        }
+        return { rows, filtered };
+      })(),
       (async () => {
         const { queryAwardLeads } = await import("~/lib/award-leads.server");
         const since = new Date(Date.now() - WINNER_DAYS * 86_400_000).toISOString().slice(0, 10);
@@ -39,9 +53,9 @@ export const getStateSubcontracts = createServerFn({ method: "GET" })
     } else if (notices.status === "rejected") {
       console.error("[subcontracts-in] notices failed:", notices.reason);
     }
-    if (primes.status === "fulfilled" && !isPrimesQueryError(primes.value) && !isUnavailable(primes.value)) {
+    if (primes.status === "fulfilled" && "filtered" in primes.value) {
       out.primes = primes.value.rows;
-      out.primesTotal = primes.value.counts.filtered;
+      out.primesTotal = primes.value.filtered;
     } else if (primes.status === "rejected") {
       console.error("[subcontracts-in] primes failed:", primes.reason);
     }

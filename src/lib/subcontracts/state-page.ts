@@ -62,3 +62,29 @@ export function titleCase(s: string): string {
     .replace(/\b([a-z])/g, (m) => m.toUpperCase())
     .replace(/\b(Llc|Inc|Lp|Llp|Pllc|Usa|Us|Jv|Ii|Iii|Iv)\b/g, (m) => m.toUpperCase());
 }
+
+
+/** A prime as the state page lists it (trimmed from the directory row). */
+export interface StatePrime {
+  legalName: string;
+  uei: string;
+  naicsLabel: string | null;
+  agencies: string[];
+}
+
+/** Primes listed before "Show all" (owner 2026-10-25: M.C. Dean was #250+ of 449). */
+export const PRIMES_SHOWN = 24;
+/** Directory pages read for one state (100 rows each). */
+export const PRIMES_MAX_PAGES = 10;
+
+/** Letters and digits only, lowercase: "M. C. DEAN, INC." and "mc dean" meet as "mcdean". */
+export function primeNameKey(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+/** Primes whose name contains the query (punctuation and spaces ignored). */
+export function searchPrimes(primes: StatePrime[], q: string): StatePrime[] {
+  const key = primeNameKey(q);
+  if (!key) return primes;
+  return primes.filter((p) => primeNameKey(p.legalName).includes(key));
+}

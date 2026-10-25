@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { BidAlertCapture } from "~/components/BidAlertCapture";
 import { getStateSubcontracts, type StateSubcontractsData } from "~/lib/subcontracts/state-data";
-import { moneyText, titleCase, WINNER_DAYS, WINNERS_SHOWN } from "~/lib/subcontracts/state-page";
+import { moneyText, PRIMES_SHOWN, searchPrimes, titleCase, WINNER_DAYS, WINNERS_SHOWN } from "~/lib/subcontracts/state-page";
 import { trackEvent } from "~/lib/track";
 import { FREE_NOTICES, FREE_WINNERS, gateSplit } from "~/lib/subcontracts/email-gate";
 import { SubcontractsEmailGate, useSubcontractsUnlock } from "~/components/SubcontractsEmailGate";
@@ -44,6 +45,8 @@ function day(d: string | null): string {
 function StateSubcontractsPage() {
   const d: StateSubcontractsData = Route.useLoaderData();
   const gate = useSubcontractsUnlock();
+  const [primeQuery, setPrimeQuery] = useState("");
+  const [showAllPrimes, setShowAllPrimes] = useState(false);
   if (!d.state) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -61,6 +64,9 @@ function StateSubcontractsPage() {
   const notices = d.notices ?? [];
   const winners = d.winners ?? [];
   const primes = d.primes ?? [];
+  // Search every prime in the state by name; otherwise the first PRIMES_SHOWN until "Show all".
+  const foundPrimes = searchPrimes(primes, primeQuery);
+  const listedPrimes = primeQuery.trim() || showAllPrimes ? foundPrimes : foundPrimes.slice(0, PRIMES_SHOWN);
   const isNevada = code === "NV";
   // Email gate (owner 2026-10-23): a few notices and winners are free, the rest
   // unlock with an email or an account. The primes directory stays open.
@@ -180,15 +186,45 @@ function StateSubcontractsPage() {
           ) : primes.length === 0 ? (
             <p className="mt-4 rounded-xl bg-white p-4 text-sm text-slate-600">No primes in the directory are based in {name}.</p>
           ) : (
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-              {primes.map((p) => (
-                <li key={p.uei} className="rounded-2xl border border-slate-200 bg-white p-4">
-                  <p className="font-bold text-slate-900">{titleCase(p.legalName)}</p>
-                  {p.naicsLabels[0] ? <p className="mt-0.5 text-sm text-slate-600">{p.naicsLabels[0]}</p> : null}
-                  {p.agencies.length ? <p className="mt-0.5 text-xs text-slate-500">Works for: {p.agencies.slice(0, 3).map(titleCase).join(", ")}</p> : null}
-                </li>
-              ))}
-            </ul>
+            <>
+              <label htmlFor="prime-search" className="sr-only">
+                Search primes by name
+              </label>
+              <input
+                id="prime-search"
+                type="search"
+                value={primeQuery}
+                onChange={(e) => setPrimeQuery(e.target.value)}
+                onBlur={() => primeQuery.trim() && trackEvent("subcontracts_state_prime_search", `${code}|${primeQuery.trim().slice(0, 40)}`)}
+                placeholder={`Search all ${primes.length} primes by name`}
+                className="mt-4 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 outline-none focus:border-blue-500"
+              />
+              {foundPrimes.length === 0 ? (
+                <p className="mt-4 rounded-xl bg-white p-4 text-sm text-slate-600">No prime in {name} matches &ldquo;{primeQuery.trim()}&rdquo;.</p>
+              ) : (
+                <ul className="mt-4 grid gap-3 sm:grid-cols-2">
+                  {listedPrimes.map((p) => (
+                    <li key={p.uei} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <p className="font-bold text-slate-900">{titleCase(p.legalName)}</p>
+                      {p.naicsLabel ? <p className="mt-0.5 text-sm text-slate-600">{p.naicsLabel}</p> : null}
+                      {p.agencies.length ? <p className="mt-0.5 text-xs text-slate-500">Works for: {p.agencies.map(titleCase).join(", ")}</p> : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {!primeQuery.trim() && !showAllPrimes && foundPrimes.length > PRIMES_SHOWN ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAllPrimes(true);
+                    trackEvent("subcontracts_state_primes_all", code);
+                  }}
+                  className="mt-4 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-800 hover:border-blue-400"
+                >
+                  Show all {foundPrimes.length} primes
+                </button>
+              ) : null}
+            </>
           )}
         </section>
 

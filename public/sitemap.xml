@@ -49,6 +49,12 @@
     <priority>0.7</priority>
   </url>
   <url>
+    <loc>https://www.contrax.company/industry-days</loc>
+    <lastmod>2026-10-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
     <loc>https://www.contrax.company/forecasts</loc>
     <lastmod>2026-09-30</lastmod>
     <changefreq>weekly</changefreq>

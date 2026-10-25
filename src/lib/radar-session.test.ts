@@ -79,6 +79,17 @@ describe("freshRadarSeen", () => {
     expect(restored?.seenCount).toBe(1);
   });
 
+  test("keeps the real total when locked matches were never saved", () => {
+    // An anonymous visitor is sent 1 of 3 matches; the other 2 stay locked.
+    const restored = freshRadarSeen({ ...seen(), total: 3 }, NOW);
+    expect(restored?.matches).toHaveLength(1);
+    expect(restored?.total).toBe(3);
+    const open = match(1, "2026-09-25");
+    const closed = match(2, "2026-09-22");
+    const partlyClosed = freshRadarSeen({ ...seen(), total: 5, matches: [open, closed], sections: { local: [open, closed], nationwide: [], related: [] } }, NOW);
+    expect(partlyClosed?.total).toBe(4);
+  });
+
   test("does not restore when every cached result has closed", () => {
     const closed = match(2, "2026-09-22");
     expect(freshRadarSeen({ ...seen(), matches: [closed], sections: { local: [closed], nationwide: [], related: [] } }, NOW)).toBeNull();

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { BidAlertCapture } from "~/components/BidAlertCapture";
+import { megaprojectsIn } from "~/lib/megaprojects";
 import { getStateSubcontracts, type StateSubcontractsData } from "~/lib/subcontracts/state-data";
 import { moneyText, PRIMES_SHOWN, searchPrimes, titleCase, WINNER_DAYS, WINNERS_SHOWN } from "~/lib/subcontracts/state-page";
 import { trackEvent } from "~/lib/track";
@@ -68,6 +69,7 @@ function StateSubcontractsPage() {
   const foundPrimes = searchPrimes(primes, primeQuery);
   const listedPrimes = primeQuery.trim() || showAllPrimes ? foundPrimes : foundPrimes.slice(0, PRIMES_SHOWN);
   const isNevada = code === "NV";
+  const megaCount = megaprojectsIn(code).length;
   // Email gate (owner 2026-10-23): a few notices and winners are free, the rest
   // unlock with an email or an account. The primes directory stays open.
   const gNotices = gateSplit(notices, FREE_NOTICES, gate.unlocked);
@@ -89,6 +91,11 @@ function StateSubcontractsPage() {
           <a href="#notices" className="rounded-full bg-white/10 px-4 py-2">📣 {notices.length} open subcontract notice{notices.length === 1 ? "" : "s"}</a>
           <a href="#winners" className="rounded-full bg-white/10 px-4 py-2">🏆 {d.winnersTotal} recent winner{d.winnersTotal === 1 ? "" : "s"}</a>
           <a href="#primes" className="rounded-full bg-white/10 px-4 py-2">🏢 {d.primesTotal} prime{d.primesTotal === 1 ? "" : "s"} with sub plans</a>
+          {megaCount ? (
+            <a href={`/megaprojects?state=${code}`} className="rounded-full bg-amber-400/20 px-4 py-2 text-amber-200">
+              🏗️ {megaCount} megaproject{megaCount === 1 ? "" : "s"} hiring local subs
+            </a>
+          ) : null}
         </div>
       </section>
 

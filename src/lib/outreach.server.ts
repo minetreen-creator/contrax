@@ -247,8 +247,9 @@ export async function skipDraft(id: number): Promise<void> {
 }
 
 /** The email a draft row would send (for the admin preview and for sending). */
-export function renderContact(row: ContactRow, postalAddress: string) {
+export function renderContact(row: ContactRow, postalAddress: string, sourceUrl: string | null = null) {
   return outreachEmail({
+    sourceUrl,
     kind: row.kind,
     business: row.business,
     bidId: row.bid_id,
@@ -260,6 +261,19 @@ export function renderContact(row: ContactRow, postalAddress: string) {
     unsubscribeUrl: unsubscribeUrl(row.email),
     contactId: row.id,
   });
+}
+
+/** Each bid's official posting link, for the drafts that point at it. Fail-open: empty map. */
+export async function postingUrls(bidIds: number[]): Promise<Map<number, string>> {
+  const ids = [...new Set(bidIds.filter((n) => Number.isSafeInteger(n) && n > 0))];
+  if (!ids.length) return new Map();
+  try {
+    const rows = (await sql()`SELECT id, source_url FROM bids WHERE id = ANY(${ids}) AND source_url IS NOT NULL`) as { id: number; source_url: string }[];
+    return new Map(rows.map((r) => [Number(r.id), String(r.source_url)]));
+  } catch (err) {
+    console.error("[outreach] posting links lookup failed (emails link the Contrax summary):", (err as Error)?.message);
+    return new Map();
+  }
 }
 
 /**
@@ -289,7 +303,7 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
       continue;
     }
     const row = normalize(claimed[0]!);
-    const mail = renderContact(row, postal!);
+    const mail = renderContact(row, postal!, (await postingUrls([row.bid_id])).get(row.bid_id) ?? null);
     const unsub = unsubscribeUrl(row.email);
     try {
       const { data, error } = await resend.emails.send({

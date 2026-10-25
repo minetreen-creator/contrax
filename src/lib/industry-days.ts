@@ -28,12 +28,16 @@ export interface IndustryDayRow {
   url: string | null;
 }
 
-/** One row per event: the same notice often arrives twice (federal + regional passes). */
+/**
+ * One row per event: the same notice often arrives twice (federal + regional
+ * passes), with the agency written differently ("USACE" vs "W07V ENDIST NEW
+ * ORLEANS"), so the key is the title and the date, not the agency.
+ */
 export function dedupeEvents(rows: IndustryDayRow[]): IndustryDayRow[] {
   const seen = new Set<string>();
   const out: IndustryDayRow[] = [];
   for (const r of rows) {
-    const key = `${r.title.trim().toLowerCase()}|${r.agency.trim().toLowerCase()}`;
+    const key = `${r.title.replace(/\s+/g, " ").trim().toLowerCase()}|${r.date ?? ""}`;
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(r);

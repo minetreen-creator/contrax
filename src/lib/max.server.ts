@@ -21,8 +21,10 @@ import {
   rankFit,
   sanitizeMaxHistory,
   stateCode,
+  MAX_TIER_LIMITS,
   type MaxLang,
   type MaxPick,
+  type MaxTier,
   type MaxReply,
 } from "~/lib/max";
 
@@ -81,7 +83,7 @@ async function searchOpenBids(query: string, state: string | null, setAside: str
 
 type ToolOut = { result: unknown; cards?: MaxBidCard[] };
 
-async function runTool(name: string, args: Record<string, unknown>): Promise<ToolOut> {
+async function runTool(name: string, args: Record<string, unknown>, tier: MaxTier = "free"): Promise<ToolOut> {
   const db = sql();
   const state = stateCode(args.state);
   switch (name) {
@@ -100,8 +102,10 @@ async function runTool(name: string, args: Record<string, unknown>): Promise<Too
       if (!trade) return { result: { error: "trade is required" } };
       const certs = fitCerts(args.certifications);
       const bids = await searchOpenBids(trade, state, "any");
-      const ranked = rankFit(bids, certs);
-      const top = ranked.top.map((x) => x.bid);
+      const ranked = rankFit(bids, certs, Date.now(), MAX_TIER_LIMITS.paid.fitPicks);
+      const shownFits = ranked.top.slice(0, MAX_TIER_LIMITS[tier].fitPicks);
+      const hidden = ranked.top.length - shownFits.length;
+      const top = shownFits.map((x) => x.bid);
       return {
         result: {
           trade,
@@ -110,7 +114,8 @@ async function runTool(name: string, args: Record<string, unknown>): Promise<Too
           open_bids_found: ranked.total,
           they_can_bid_on: ranked.eligible,
           set_aside_for_certifications_they_lack: ranked.notEligible,
-          best_fits: ranked.top.map((x) => ({ ...card(x.bid), why: x.reasons })),
+          best_fits: shownFits.map((x) => ({ ...card(x.bid), why: x.reasons })),
+          ...(hidden > 0 ? (tier === "free" ? { more_with_email: hidden } : { more_on_a_paid_plan: hidden }) : {}),
         },
         cards: top.map(card),
       };
@@ -263,7 +268,7 @@ async function chat(model: string, messages: ChatMsg[]) {
   return msg;
 }
 
-async function answer(model: string, messages: ChatMsg[]): Promise<{ raw: string; cards: MaxBidCard[] }> {
+async function answer(model: string, messages: ChatMsg[], tier: MaxTier): Promise<{ raw: string; cards: MaxBidCard[] }> {
   let cards: MaxBidCard[] = [];
   for (let round = 0; round <= MAX_TOOL_ROUNDS; round++) {
     const msg = await chat(model, messages);
@@ -272,7 +277,7 @@ async function answer(model: string, messages: ChatMsg[]): Promise<{ raw: string
     for (const call of msg.tool_calls) {
       let out: ToolOut;
       try {
-        out = await runTool(call.function.name, JSON.parse(call.function.arguments || "{}"));
+        out = await runTool(call.function.name, JSON.parse(call.function.arguments || "{}"), tier);
       } catch (err) {
         console.error(`[max] tool ${call.function.name} failed:`, sanitizeLogString(err));
         out = { result: { error: "lookup failed" } };
@@ -285,7 +290,8 @@ async function answer(model: string, messages: ChatMsg[]): Promise<{ raw: string
 }
 
 /** One visitor question in, Max's reply and the bid cards to show out. */
-export async function askMax(input: { question: string; history: unknown; lang?: MaxLang; bidId?: unknown }): Promise<MaxReply & { bids: MaxBidCard[] }> {
+export async function askMax(input: { question: string; history: unknown; lang?: MaxLang; bidId?: unknown; tier?: MaxTier }): Promise<MaxReply & { bids: MaxBidCard[] }> {
+  const tier: MaxTier = input.tier ?? "free";
   const lang: MaxLang = input.lang === "es" ? "es" : "en";
   const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York", weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const messages: ChatMsg[] = [
@@ -295,7 +301,7 @@ export async function askMax(input: { question: string; history: unknown; lang?:
   ];
   let out: { raw: string; cards: MaxBidCard[] };
   try {
-    out = await answer(SMART_MODEL, [...messages]);
+    out = await answer(SMART_MODEL, [...messages], tier);
   } catch (err) {
     const status = (err as { status?: number }).status;
     if (status !== 400 && status !== 404) {
@@ -303,7 +309,7 @@ export async function askMax(input: { question: string; history: unknown; lang?:
       const say = lang === "es" ? "Perdón, no puedo conectarme ahora mismo. Inténtalo de nuevo en un momento." : "Sorry, I'm having trouble reaching my brain right now. Try me again in a moment.";
       return { say, cta: null, trade: null, state: null, remindBid: null, lang, capability: null, bids: [] };
     }
-    out = await answer(FALLBACK_MODEL, [...messages]).catch(() => ({ raw: "", cards: [] }));
+    out = await answer(FALLBACK_MODEL, [...messages], tier).catch(() => ({ raw: "", cards: [] }));
   }
   return { ...parseMaxReply(out.raw, lang), bids: out.cards };
 }
@@ -355,4 +361,29 @@ export async function maxPickOfTheDay(state: string | null): Promise<MaxPick | n
     value: b.estimated_value ? (/^\d+(\.\d+)?$/.test(b.estimated_value) ? `$${Math.round(Number(b.estimated_value)).toLocaleString("en-US")}` : b.estimated_value.slice(0, 40)) : null,
     postedDaysAgo: r.posted_days_ago == null ? null : Number(r.posted_days_ago),
   };
+}
+
+/**
+ * The asker's tier: a paid plan (or admin) by their session; "email" for a
+ * signed-in free account or a visitor holding the signed email-unlock cookie
+ * Radar's email capture sets; everyone else "free". Fail-closed to "free".
+ */
+export async function resolveMaxTier(request: Request): Promise<MaxTier> {
+  try {
+    const { getUserFromRequest } = await import("~/lib/api-auth");
+    const user = await getUserFromRequest(request);
+    if (user) {
+      const { hasPaidBidAccess } = await import("~/lib/head-start.server");
+      return (await hasPaidBidAccess(user)) ? "paid" : "email";
+    }
+    const cookie = request.headers.get("cookie");
+    const { visitorIdFromCookieHeader } = await import("~/lib/free-score-limit.server");
+    const vid = visitorIdFromCookieHeader(cookie);
+    if (!vid) return "free";
+    const { RADAR_UNLOCK_COOKIE, verifyRadarUnlock } = await import("~/lib/radar-handoff.server");
+    const raw = (cookie ?? "").split(";").map((c) => c.trim()).find((c) => c.startsWith(`${RADAR_UNLOCK_COOKIE}=`))?.slice(RADAR_UNLOCK_COOKIE.length + 1);
+    return verifyRadarUnlock(raw ? decodeURIComponent(raw) : null, vid) ? "email" : "free";
+  } catch {
+    return "free";
+  }
 }

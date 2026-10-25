@@ -90,6 +90,8 @@ const T = {
     remind: "⏰ Remind me",
     disclaimer: "Max answers from live Contrax data and can make mistakes. Always check the official notice.",
     limit: "I've answered a lot of questions for you today. Search Contract Radar for the full list, or come back in a little while.",
+    limitEmail: "I'm having fun! Pop your email in below and I'll keep going, free. I'll also send you new bids that match.",
+    limitPaid: "That's all my free answers for today. Paid plans get me without limits, plus every match. Or come back tomorrow!",
     oops: "Sorry, something went wrong.",
     offline: "I couldn't connect. Check your internet and try again.",
     noMic: "Voice works in Chrome, Edge and Safari. You can type below.",
@@ -111,6 +113,8 @@ const T = {
     remind: "⏰ Recordarme",
     disclaimer: "Max responde con datos en vivo de Contrax y puede equivocarse. Revisa siempre el aviso oficial.",
     limit: "Ya respondí muchas preguntas hoy. Busca en Contract Radar la lista completa, o vuelve en un rato.",
+    limitEmail: "¡Me estoy divirtiendo! Escribe tu correo abajo y sigo ayudándote, gratis. También te envío las nuevas ofertas.",
+    limitPaid: "Esas son todas mis respuestas gratis de hoy. Los planes pagados me tienen sin límites. ¡O vuelve mañana!",
     oops: "Perdón, algo salió mal.",
     offline: "No pude conectarme. Revisa tu internet e inténtalo de nuevo.",
     noMic: "La voz funciona en Chrome, Edge y Safari. Puedes escribir abajo.",
@@ -259,8 +263,17 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
       trackEvent("max_ask", q.slice(0, 80));
       setState("thinking");
       const res = await fetch("/api/max/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: q, history, lang, bid_id: bid?.id }) });
-      const j = (await res.json().catch(() => ({}))) as { say?: string; error?: string; bids?: BidCard[]; cta?: MaxCta; remindBid?: number | null; capability?: MaxCapability | null; trade?: string | null; state?: string | null; lang?: MaxLang };
-      const say = j.say ?? (res.status === 429 ? t.limit : j.error ?? t.oops);
+      const j = (await res.json().catch(() => ({}))) as { say?: string; error?: string; gate?: "email" | "paid" | "wait"; bids?: BidCard[]; cta?: MaxCta; remindBid?: number | null; capability?: MaxCapability | null; trade?: string | null; state?: string | null; lang?: MaxLang };
+      const gate = res.status === 429 ? j.gate ?? "wait" : null;
+      const say = j.say ?? (gate === "email" ? t.limitEmail : gate === "paid" ? t.limitPaid : gate ? t.limit : j.error ?? t.oops);
+      if (gate) {
+        trackEvent("max_gate", gate);
+        setTurns((t) => [...t, { role: "assistant" as const, content: say }].slice(-8));
+        setCta({ kind: gate === "email" ? "email" : gate === "paid" ? "trial" : null, trade: cta.trade, state: cta.state, bid: null });
+        setRemindFor(null);
+        await speak(say);
+        return;
+      }
       const replyLang: MaxLang = j.lang === "es" || j.lang === "en" ? j.lang : lang;
       if (replyLang !== lang) {
         setLang(replyLang);
@@ -485,7 +498,7 @@ function MaxEmail({ trade, state, lang }: { trade: string | null; state: string 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   if (status === "done")
-    return <p className="mt-4 rounded-xl bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200">{es ? "¡Listo! Las nuevas ofertas llegarán a tu correo. Revísalo para confirmar." : "Done! New matching bids will come to your inbox. Check it to confirm."}</p>;
+    return <p className="mt-4 rounded-xl bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200">{es ? "¡Listo! Sigue preguntando. Las nuevas ofertas llegarán a tu correo; revísalo para confirmar." : "Done! Keep asking. New matching bids will come to your inbox; check it to confirm."}</p>;
   return (
     <form
       className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4"
@@ -499,7 +512,8 @@ function MaxEmail({ trade, state, lang }: { trade: string | null; state: string 
           const res = await fetch("/api/radar/lead", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: v, trade: trade || undefined, state: state || undefined, visitor_id: ids.visitor_id || undefined, visit_id: ids.visit_id || undefined }),
+            // unlock: also signs this browser's email-unlock cookie, which lifts Max to the email tier.
+            body: JSON.stringify({ email: v, trade: trade || undefined, state: state || undefined, visitor_id: ids.visitor_id || undefined, visit_id: ids.visit_id || undefined, unlock: true }),
           });
           const j = (await res.json().catch(() => null)) as { success?: boolean } | null;
           if (!res.ok || !j?.success) return setStatus("error");

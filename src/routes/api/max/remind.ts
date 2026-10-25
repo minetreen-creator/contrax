@@ -4,6 +4,8 @@ import { checkEmailLimit, checkIpLimit, rateLimitedResponse } from "~/lib/rate-l
 import { isBlockedIp } from "~/lib/request-ip";
 import { isBotUa } from "~/lib/radar-lead-capture.server";
 import { createBidReminder } from "~/lib/max-reminders.server";
+import { MAX_TIER_LIMITS } from "~/lib/max";
+import { resolveMaxTier } from "~/lib/max.server";
 
 /**
  * POST /api/max/remind — "remind me before it closes" from Max's bid cards
@@ -22,6 +24,7 @@ const REASONS = {
   no_bid: "That bid is closed or no longer listed.",
   too_soon: "That bid closes in less than a day, so it's too late for a reminder. Go for it now!",
   unsubscribed: "This email unsubscribed from Contrax emails, so I can't send reminders to it.",
+  limit: "Free accounts can keep 3 reminders waiting at a time. Paid plans get unlimited reminders.",
 };
 
 async function handler({ request }: { request: Request }) {
@@ -34,8 +37,11 @@ async function handler({ request }: { request: Request }) {
   const em = await checkEmailLimit(d.email, "max_remind_email", 15, 3600);
   if (!em.allowed) return rateLimitedResponse(em);
   try {
-    const r = await createBidReminder({ email: d.email, bidId: d.bid_id, visitorId: d.visitor_id || null, sendConfirmation: !isBotUa(request.headers.get("user-agent")) });
-    if (!r.ok) return Response.json({ error: REASONS[r.reason] }, { status: 400 });
+    // Giving an email makes a visitor "email" tier at least; paid plans have no cap.
+    const tier = await resolveMaxTier(request);
+    const maxActive = MAX_TIER_LIMITS[tier === "paid" ? "paid" : "email"].reminders;
+    const r = await createBidReminder({ email: d.email, bidId: d.bid_id, visitorId: d.visitor_id || null, sendConfirmation: !isBotUa(request.headers.get("user-agent")), maxActive });
+    if (!r.ok) return Response.json({ error: REASONS[r.reason], gate: r.reason === "limit" ? "paid" : undefined }, { status: 400 });
     return Response.json({ success: true, lead: r.lead, remindAt: r.remindAt, due: r.due });
   } catch (err) {
     console.error("[api/max/remind] error:", (err as Error)?.message);

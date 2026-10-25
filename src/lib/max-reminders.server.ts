@@ -29,9 +29,10 @@ export async function ensureMaxRemindersTable(): Promise<void> {
 
 export type CreateReminderResult =
   | { ok: true; lead: RadarLeadStatus; remindAt: string; due: string }
-  | { ok: false; reason: "no_bid" | "too_soon" | "unsubscribed" };
+  | { ok: false; reason: "no_bid" | "too_soon" | "unsubscribed" | "limit" };
 
-export async function createBidReminder(input: { email: string; bidId: number; visitorId: string | null; sendConfirmation: boolean }): Promise<CreateReminderResult> {
+/** maxActive: reminders an address may have waiting at once (MAX_TIER_LIMITS; Infinity on paid plans). */
+export async function createBidReminder(input: { email: string; bidId: number; visitorId: string | null; sendConfirmation: boolean; maxActive?: number }): Promise<CreateReminderResult> {
   const [bid] = (await sql().query(`SELECT id, due_date FROM bids WHERE id = $1 AND due_date > NOW() AND ${AWARD_EXCLUSION_SQL}`, [input.bidId])) as { id: number; due_date: string }[];
   if (!bid) return { ok: false, reason: "no_bid" };
   const at = reminderAt(new Date(bid.due_date).toISOString());
@@ -39,6 +40,12 @@ export async function createBidReminder(input: { email: string; bidId: number; v
   const lead = await captureRadarLead({ email: input.email, visitorId: input.visitorId, radarProfile: null, source: "max_reminder", sendConfirmation: input.sendConfirmation });
   if (lead === "unsubscribed") return { ok: false, reason: "unsubscribed" };
   await ensureMaxRemindersTable();
+  if (Number.isFinite(input.maxActive)) {
+    const [c] = (await sql()`
+      SELECT COUNT(*)::int AS n FROM max_bid_reminders
+      WHERE email = ${input.email} AND sent_at IS NULL AND bid_id <> ${bid.id}`) as { n: number }[];
+    if ((c?.n ?? 0) >= (input.maxActive as number)) return { ok: false, reason: "limit" };
+  }
   await sql()`
     INSERT INTO max_bid_reminders (email, bid_id, remind_at) VALUES (${input.email}, ${bid.id}, ${at.toISOString()})
     ON CONFLICT (email, bid_id) DO UPDATE SET remind_at = EXCLUDED.remind_at WHERE max_bid_reminders.sent_at IS NULL`;

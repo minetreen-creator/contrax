@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   KONAMI,
+  MAX_TIER_LIMITS,
   MAX_TOOLS,
   certEligible,
   fitCerts,
@@ -212,5 +213,22 @@ describe("Max: pick of the day and bid pages", () => {
     expect(maxBidContext(123)).toContain('explain_bid with ref "123"');
     expect(maxBidContext("x")).toBe("");
     expect(maxBidContext(undefined)).toBe("");
+  });
+});
+
+describe("Max: tiers", () => {
+  test("free < email < paid, and the free daily limit is the gate", () => {
+    expect(MAX_TIER_LIMITS.free.perDay).toBe(5);
+    expect(MAX_TIER_LIMITS.email.perDay).toBe(20);
+    expect(MAX_TIER_LIMITS.paid.perDay).toBeGreaterThan(MAX_TIER_LIMITS.email.perDay);
+    expect([MAX_TIER_LIMITS.free.fitPicks, MAX_TIER_LIMITS.email.fitPicks, MAX_TIER_LIMITS.paid.fitPicks]).toEqual([1, 3, 10]);
+    expect(MAX_TIER_LIMITS.email.reminders).toBe(3);
+    expect(Number.isFinite(MAX_TIER_LIMITS.paid.reminders)).toBe(false);
+  });
+  test("rankFit returns up to the limit asked", () => {
+    const now = Date.parse("2026-10-25T12:00:00Z");
+    const bids = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, due_date: new Date(now + (10 + i) * 86_400_000).toISOString(), set_aside: null, estimated_value: null }));
+    expect(rankFit(bids, [], now).top).toHaveLength(3);
+    expect(rankFit(bids, [], now, 10).top).toHaveLength(10);
   });
 });

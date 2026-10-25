@@ -315,7 +315,8 @@ export async function askMax(input: { question: string; history: unknown; lang?:
 }
 
 /** Max's voice (owner 2026-10-25: "give it an american accent too"). */
-const MAX_VOICE = process.env.MAX_VOICE || "ash";
+// Owner 2026-10-25: "echo" (picked over "ash").
+const MAX_VOICE = process.env.MAX_VOICE || "echo";
 const MAX_STYLE =
   "Voice: a friendly, confident American guy in his thirties with a relaxed General American accent. Sound like a real person talking to a friend over coffee, not an announcer or an assistant: warm, easygoing, a little smile in the voice. Vary your pitch and pace naturally, take small breaths between thoughts, and lean into the interesting part. Never sound flat, clipped or robotic.";
 

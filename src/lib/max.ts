@@ -39,6 +39,18 @@ export function sanitizeMaxHistory(v: unknown): { role: "user" | "assistant"; co
     .map((m) => ({ role: m.role as "user" | "assistant", content: m.content.slice(0, 600) }));
 }
 
+/**
+ * Who's asking (owner 2026-10-25: "Should Max only be available for paid
+ * plans?" → free with a limit). Free visitors get a taste, an email keeps the
+ * conversation going, paid plans get Max without limits (fair use).
+ */
+export type MaxTier = "free" | "email" | "paid";
+export const MAX_TIER_LIMITS: Record<MaxTier, { perDay: number; perHour: number; fitPicks: number; reminders: number }> = {
+  free: { perDay: 5, perHour: 5, fitPicks: 1, reminders: 0 },
+  email: { perDay: 20, perHour: 20, fitPicks: 3, reminders: 3 },
+  paid: { perDay: 300, perHour: 60, fitPicks: 10, reminders: Infinity },
+};
+
 /** Certifications a visitor can claim for best_fit_bids. */
 export const FIT_CERTS = ["small_business", "8a", "sdvosb", "vosb", "wosb", "edwosb", "hubzone"] as const;
 export type FitCert = (typeof FIT_CERTS)[number];
@@ -151,6 +163,7 @@ export function maxPrompt(now: string): string {
     "- Infer what you can: a city means its state; 'cleaning' means janitorial; 'mowing' means landscaping; 'my roofing company' means roofing. If they don't say a state, ask which state, or search nationwide if that clearly helps.",
     "- If a search finds nothing, try a broader or related term once before saying so, then suggest a nearby option (another state, a related trade, subcontracting with a prime, or the industry days).",
     "- Add the one insight that matters: a deadline coming up fast, a set-aside that fits, a big incumbent whose contract is ending, a prime to approach.",
+    "- If a tool result has more_on_a_paid_plan or more_with_email, mention once, briefly and without pressure, that more matches are there (free with an email, or all of them on a paid plan).",
     "- When they tell you about their business (trade, state, certifications like woman-owned, veteran-owned, 8(a), HUBZone), use best_fit_bids and explain in a sentence why the top one fits them.",
     "- When they paste a bid link or number, use explain_bid and give a plain-English verdict: what the buyer wants, when it's due, who can bid (set-aside), who already does similar work there, and whether it looks worth chasing for a small business. Say 'similar work', never claim a company won this exact contract unless the tool says so.",
     "- Capability statement coach: when they want help with a capability statement, interview them a little at a time (two questions per turn, short): company name, what they do and where; their core services; what sets them apart; past jobs or customers; certifications. Once you have at least the company name, trade and core services, set cta to \"capability\" and fill capability with THEIR answers, lightly polished into professional wording (summary: 2 sentences; competencies and experience: short lines separated by newlines). Never add a claim, number, customer, certification or year they didn't give you; leave a field out if they didn't cover it. Tell them it's ready to finish in Launchpad, where they add contact details and print it. Answer in their language but write the capability fields in English.",
@@ -376,10 +389,10 @@ export function scoreFit(bid: FitBid, certs: readonly FitCert[], now: number = D
 }
 
 /** The visitor's best 3, plus how many they can and can't bid on. */
-export function rankFit<T extends FitBid>(bids: T[], certs: readonly FitCert[], now: number = Date.now()) {
+export function rankFit<T extends FitBid>(bids: T[], certs: readonly FitCert[], now: number = Date.now(), limit = 3) {
   const scored = bids.map((b) => ({ bid: b, ...scoreFit(b, certs, now) }));
   const eligible = scored.filter((x) => x.eligible).sort((a, b) => b.score - a.score || String(a.bid.due_date ?? "9999").localeCompare(String(b.bid.due_date ?? "9999")));
-  return { total: bids.length, eligible: eligible.length, notEligible: scored.length - eligible.length, top: eligible.slice(0, 3) };
+  return { total: bids.length, eligible: eligible.length, notEligible: scored.length - eligible.length, top: eligible.slice(0, limit) };
 }
 
 /** Certifications from the model's arguments (unknown values dropped). */

@@ -199,11 +199,24 @@ interface FunnelStage {
   count: number;
   dropOffPct: number | null; // % lost from previous stage
 }
+/**
+ * Max (owner 2026-10-25: "Yes" to counting Max in the funnel). Asking Max a
+ * question is a visitor trying the product, like a Radar search, so the board
+ * shows it next to the frozen funnel without changing those five stages.
+ */
+interface MaxFunnel {
+  askedMax: number;
+  /** Ran Radar OR asked Max: everyone who tried the product. */
+  triedProduct: number;
+  /** Gave Max an email (bid alerts or a deadline reminder). */
+  emailFromMax: number;
+}
 interface JourneysResult {
   rangeDays: number;
   from: string;
   to: string;
   funnel: FunnelStage[];
+  maxFunnel?: MaxFunnel;
   journeys: Journey[];
   /** Radar-leads stage per visitor_id (read-side enrichment; absent → no lead). */
   radarLeadStages?: Record<string, "captured" | "confirmed" | "alerted" | "clicked">;
@@ -1138,6 +1151,31 @@ async function handler({ request }: { request: Request }) {
     const signup = people.filter((j) => j.signup === "Success").length;
     const activated = people.filter((j) => j.activated).length;
     const paid = people.filter((j) => j.paid).length;
+
+    // Max: the same people, from their funnel events in the window. Fail-open.
+    let maxFunnel: MaxFunnel = { askedMax: 0, triedProduct: radar, emailFromMax: 0 };
+    try {
+      const ids = people.map((j) => j.visitor_id);
+      if (ids.length) {
+        const rows = (await sql().query(
+          `SELECT visitor_id,
+                  BOOL_OR(event_name = 'max_ask') AS asked,
+                  BOOL_OR(event_name IN ('max_email', 'max_remind')) AS emailed
+           FROM funnel_events
+           WHERE created_at >= $1 AND visitor_id = ANY($2) AND event_name IN ('max_ask', 'max_email', 'max_remind')
+           GROUP BY visitor_id`,
+          [fromIso, ids],
+        )) as { visitor_id: string; asked: boolean; emailed: boolean }[];
+        const asked = new Set(rows.filter((r) => r.asked).map((r) => r.visitor_id));
+        maxFunnel = {
+          askedMax: asked.size,
+          triedProduct: people.filter((j) => j.radar || asked.has(j.visitor_id)).length,
+          emailFromMax: rows.filter((r) => r.emailed).length,
+        };
+      }
+    } catch (maxErr) {
+      console.error("[api/admin/journeys] max funnel failed (continuing):", maxErr);
+    }
     const funnel: FunnelStage[] = [
       { stage: "qualified", label: "Active Visitors", count: total, dropOffPct: null },
       { stage: "radar", label: "Radar completed", count: radar, dropOffPct: pct(radar, total) },
@@ -1171,6 +1209,7 @@ async function handler({ request }: { request: Request }) {
       from: fromIso,
       to: now.toISOString(),
       funnel,
+      maxFunnel,
       radarLeadStages,
       journeys: all.map((j) => ({ ...j, radar_lead_stage: radarLeadStagesMap.get(j.visitor_id) ?? null })),
       watched_returned: watchedReturned,

@@ -4,7 +4,7 @@ import { askMax } from "~/lib/max.server";
 
 /**
  * POST /api/max/ask — Max, the public homepage assistant (src/lib/max.ts).
- * Body: { question, history }. Returns { say, cta, trade, state, bids }.
+ * Body: { question, history, lang? }. Returns { say, cta, remindBid, trade, state, lang, bids }.
  * Public, so rate limited per IP (an hour and a day) to bound the AI bill.
  */
 async function handler({ request }: { request: Request }) {
@@ -13,10 +13,10 @@ async function handler({ request }: { request: Request }) {
     const r = await checkIpLimit(request, scope, limit, windowSec);
     if (!r.allowed) return rateLimitedResponse(r);
   }
-  const body = (await request.json().catch(() => ({}))) as { question?: unknown; history?: unknown };
+  const body = (await request.json().catch(() => ({}))) as { question?: unknown; history?: unknown; lang?: unknown };
   const question = String(body.question ?? "").trim();
   if (!question) return Response.json({ error: "Ask me something" }, { status: 400 });
-  return Response.json(await askMax({ question, history: body.history }));
+  return Response.json(await askMax({ question, history: body.history, lang: body.lang === "es" ? "es" : "en" }));
 }
 
 export const Route = createFileRoute("/api/max/ask")({ server: { handlers: { POST: handler } } });

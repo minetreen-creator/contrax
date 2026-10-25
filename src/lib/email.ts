@@ -1384,3 +1384,49 @@ ${rows}
     return false;
   }
 }
+
+/**
+ * Max deadline reminder (owner 2026-10-25, "remind me before it closes"): one
+ * email per reminder the visitor asked Max for, only to a CONFIRMED Radar lead
+ * (src/lib/max-reminders.server.ts). Returns false on any failure (logged
+ * without the address) so the job leaves it unsent and retries next morning.
+ */
+export async function sendBidReminderEmail(
+  to: string,
+  bid: { id: number; title: string; agency: string | null; due: string },
+  unsubscribeUrl: string,
+): Promise<boolean> {
+  try {
+    const resend = getResend();
+    if (!resend) {
+      console.warn("Cannot send bid reminder — RESEND_API_KEY not set");
+      return false;
+    }
+    const url = `https://www.contrax.company/bid/${bid.id}`;
+    const title = escapeHtml(bid.title);
+    const agency = bid.agency ? escapeHtml(bid.agency) : "";
+    await resend.emails.send({
+      from: "Max at Contrax <hello@contrax.company>",
+      replyTo: "contrax.companyllc@gmail.com",
+      to: [to],
+      subject: `⏰ Closes ${bid.due}: ${bid.title.slice(0, 80)}`,
+      html: `<div style="background:#050d1f;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <div style="max-width:560px;margin:0 auto;background:#0b1730;border:1px solid rgba(34,211,238,.3);border-radius:16px;padding:28px;color:#e2e8f0;">
+    <p style="margin:0 0 8px;font-size:12px;font-weight:700;letter-spacing:.3em;color:#67e8f9;text-transform:uppercase;">Max · Contrax AI</p>
+    <h1 style="margin:0 0 14px;font-size:22px;color:#fff;">Heads up: this bid closes ${escapeHtml(bid.due)}</h1>
+    <p style="margin:0 0 4px;font-size:16px;font-weight:700;color:#fff;">${title}</p>
+    ${agency ? `<p style="margin:0 0 18px;font-size:14px;color:#94a3b8;">${agency}</p>` : ""}
+    <p style="margin:0 0 22px;font-size:15px;line-height:1.6;">You asked me to remind you before the deadline. Check the official notice for the exact submission time and any amendments.</p>
+    <a href="${url}" style="display:inline-block;background:#22d3ee;color:#020617;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;">Open the bid →</a>
+    <p style="margin:28px 0 0;font-size:12px;color:#64748b;">You're getting this because you asked Max for a reminder on contrax.company. <a href="${unsubscribeUrl}" style="color:#94a3b8;">Unsubscribe</a></p>
+  </div>
+</div>`,
+      text: `Heads up: this bid closes ${bid.due}.\n\n${bid.title}${bid.agency ? `\n${bid.agency}` : ""}\n\nYou asked Max to remind you before the deadline. Check the official notice for the exact submission time and any amendments.\n\n${url}\n\nUnsubscribe: ${unsubscribeUrl}`,
+      headers: { "List-Unsubscribe": `<${unsubscribeUrl}>` },
+    });
+    return true;
+  } catch (err) {
+    console.error("Failed to send bid reminder:", (err as Error).message);
+    return false;
+  }
+}

@@ -13,10 +13,14 @@ import {
   MAX_RECOMPETE_TRADES,
   MAX_TOOL_ROUNDS,
   MAX_TOOLS,
+  fitCerts,
   maxPrompt,
+  parseBidRef,
   parseMaxReply,
+  rankFit,
   sanitizeMaxHistory,
   stateCode,
+  type MaxLang,
   type MaxReply,
 } from "~/lib/max";
 
@@ -87,6 +91,68 @@ async function runTool(name: string, args: Record<string, unknown>): Promise<Too
       return {
         result: { query, state: state ? STATE_CODE_TO_NAME[state] ?? state : "nationwide", total_open: bids.length, soonest_due: top },
         cards: top,
+      };
+    }
+    case "best_fit_bids": {
+      const trade = String(args.trade ?? "").trim().slice(0, 60);
+      if (!trade) return { result: { error: "trade is required" } };
+      const certs = fitCerts(args.certifications);
+      const bids = await searchOpenBids(trade, state, "any");
+      const ranked = rankFit(bids, certs);
+      const top = ranked.top.map((x) => x.bid);
+      return {
+        result: {
+          trade,
+          state: state ? STATE_CODE_TO_NAME[state] ?? state : "nationwide",
+          certifications: certs.length ? certs : "none stated",
+          open_bids_found: ranked.total,
+          they_can_bid_on: ranked.eligible,
+          set_aside_for_certifications_they_lack: ranked.notEligible,
+          best_fits: ranked.top.map((x) => ({ ...card(x.bid), why: x.reasons })),
+        },
+        cards: top.map(card),
+      };
+    }
+    case "explain_bid": {
+      const ref = parseBidRef(String(args.ref ?? ""));
+      if (!ref) return { result: { error: "That doesn't look like a bid link or number." } };
+      const cols = `id, title, agency, location, normalized_state AS state, to_char(due_date, 'Dy Mon DD YYYY') AS due, due_date,
+                    (due_date > NOW()) AS still_open, estimated_value, set_aside, naics_code, notice_type, solicitation_number,
+                    LEFT(regexp_replace(COALESCE(description, ''), '\\s+', ' ', 'g'), 1500) AS description`;
+      const where =
+        ref.kind === "id" ? ["id = $1", ref.id] : ref.kind === "sam" ? ["source_url ILIKE $1", `%${ref.noticeId}%`] : ["LOWER(solicitation_number) = LOWER($1)", ref.number];
+      const [b] = (await db.query(`SELECT ${cols} FROM bids WHERE ${where[0]} AND ${AWARD_EXCLUSION_SQL} ORDER BY due_date DESC NULLS LAST LIMIT 1`, [where[1]])) as Record<string, any>[];
+      if (!b) return { result: { error: "I couldn't find that bid in Contrax. It may be too new, or from a source we don't cover yet." } };
+      const { moneyText } = await import("~/lib/subcontracts/state-page");
+      const naics = /^\d{6}$/.test(String(b.naics_code ?? "")) ? String(b.naics_code) : null;
+      const agencyWord = String(b.agency ?? "").split(/[\s,.-]+/).find((w) => w.length >= 4) ?? null;
+      const [incumbents, awards] = naics
+        ? ((await Promise.all([
+            db.query(
+              `SELECT DISTINCT ON (recipient_name) recipient_name AS company, amount, COALESCE(sub_agency, agency) AS agency, end_date AS ends, LEFT(COALESCE(description, ''), 120) AS what
+               FROM recompete_contracts WHERE naics_code = $1 AND ($2::text IS NULL OR pop_state = $2) AND end_date >= CURRENT_DATE
+                 AND ($3::text IS NULL OR COALESCE(sub_agency, '') || ' ' || COALESCE(agency, '') ILIKE '%' || $3 || '%')
+               ORDER BY recipient_name, amount DESC LIMIT 5`,
+              [naics, b.state ?? null, agencyWord],
+            ).catch(() => []),
+            db.query(
+              `SELECT recipient_name AS company, amount, COALESCE(sub_agency, agency) AS agency, awarded_on, LEFT(COALESCE(description, ''), 120) AS what
+               FROM award_leads WHERE naics_code = $1 AND ($2::text IS NULL OR pop_state = $2 OR recipient_state = $2)
+               ORDER BY awarded_on DESC NULLS LAST LIMIT 5`,
+              [naics, b.state ?? null],
+            ).catch(() => []),
+          ])) as [Record<string, any>[], Record<string, any>[]])
+        : [[], []];
+      const daysLeft = b.due_date ? Math.floor((Date.parse(String(b.due_date)) - Date.now()) / 86_400_000) : null;
+      const { due_date: _due, ...bid } = b;
+      return {
+        result: {
+          bid: { ...bid, days_left: daysLeft },
+          companies_doing_similar_work_for_this_buyer: incumbents.map((r) => ({ ...r, amount: moneyText(Number(r.amount)) })),
+          recent_similar_awards_nearby: awards.map((r) => ({ ...r, amount: moneyText(Number(r.amount)) })),
+          note: "These are similar contracts (same NAICS code), not necessarily this exact one.",
+        },
+        cards: b.still_open ? [{ id: b.id, title: b.title, agency: b.agency, location: b.location, due: b.due_date ? new Date(b.due_date).toISOString().slice(0, 10) : null, setAside: b.set_aside }] : [],
       };
     }
     case "bid_details": {
@@ -217,10 +283,11 @@ async function answer(model: string, messages: ChatMsg[]): Promise<{ raw: string
 }
 
 /** One visitor question in, Max's reply and the bid cards to show out. */
-export async function askMax(input: { question: string; history: unknown }): Promise<MaxReply & { bids: MaxBidCard[] }> {
+export async function askMax(input: { question: string; history: unknown; lang?: MaxLang }): Promise<MaxReply & { bids: MaxBidCard[] }> {
+  const lang: MaxLang = input.lang === "es" ? "es" : "en";
   const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York", weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const messages: ChatMsg[] = [
-    { role: "system", content: maxPrompt(now) },
+    { role: "system", content: maxPrompt(now) + (lang === "es" ? "\nThe visitor chose Spanish on the page." : "") },
     ...sanitizeMaxHistory(input.history),
     { role: "user", content: input.question.trim().slice(0, MAX_QUESTION_CHARS) },
   ];
@@ -231,11 +298,12 @@ export async function askMax(input: { question: string; history: unknown }): Pro
     const status = (err as { status?: number }).status;
     if (status !== 400 && status !== 404) {
       console.error("[max] failed:", sanitizeLogString(err));
-      return { say: "Sorry, I'm having trouble reaching my brain right now. Try me again in a moment.", cta: null, trade: null, state: null, bids: [] };
+      const say = lang === "es" ? "Perdón, no puedo conectarme ahora mismo. Inténtalo de nuevo en un momento." : "Sorry, I'm having trouble reaching my brain right now. Try me again in a moment.";
+      return { say, cta: null, trade: null, state: null, remindBid: null, lang, bids: [] };
     }
     out = await answer(FALLBACK_MODEL, [...messages]).catch(() => ({ raw: "", cards: [] }));
   }
-  return { ...parseMaxReply(out.raw), bids: out.cards };
+  return { ...parseMaxReply(out.raw, lang), bids: out.cards };
 }
 
 /** Max's voice (owner 2026-10-25: "give it an american accent too"). */
@@ -243,6 +311,9 @@ const MAX_VOICE = process.env.MAX_VOICE || "ash";
 const MAX_STYLE =
   "Voice: a friendly, confident American man in his thirties with a natural General American accent. Upbeat, warm and clear, like a sharp business advisor talking to a small business owner. Natural pace, conversational.";
 
-export function maxSpeech(text: string): Promise<ArrayBuffer | null> {
-  return jarvisSpeech(text, { voice: MAX_VOICE, style: MAX_STYLE });
+const MAX_STYLE_ES =
+  "Voice: a friendly, confident man in his thirties speaking natural, neutral Latin American Spanish. Upbeat, warm and clear, like a sharp business advisor talking to a small business owner. Natural pace, conversational.";
+
+export function maxSpeech(text: string, lang: MaxLang = "en"): Promise<ArrayBuffer | null> {
+  return jarvisSpeech(text, { voice: MAX_VOICE, style: lang === "es" ? MAX_STYLE_ES : MAX_STYLE });
 }

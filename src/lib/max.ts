@@ -6,7 +6,10 @@
  * and shows the real bids. Max is Jarvis's public cousin: he never sees
  * private data (visitors, signups, revenue), only what the public site shows.
  *
- * PURE: the tools, the prompt, and reply parsing.
+ * Owner 2026-10-25 "1,2,5,7": best-fit scoring, the bid explainer, deadline
+ * reminders, and Spanish.
+ *
+ * PURE: the tools, the prompt, reply parsing, fit scoring.
  */
 import { US_STATES } from "./states";
 
@@ -33,6 +36,10 @@ export function sanitizeMaxHistory(v: unknown): { role: "user" | "assistant"; co
     .slice(-MAX_HISTORY_TURNS)
     .map((m) => ({ role: m.role as "user" | "assistant", content: m.content.slice(0, 600) }));
 }
+
+/** Certifications a visitor can claim for best_fit_bids. */
+export const FIT_CERTS = ["small_business", "8a", "sdvosb", "vosb", "wosb", "edwosb", "hubzone"] as const;
+export type FitCert = (typeof FIT_CERTS)[number];
 
 const stateProp = { type: "string", description: "Two-letter US state code, e.g. VA. Infer it from a city the visitor names (Salt Lake City → UT)." };
 
@@ -81,13 +88,36 @@ export const MAX_TOOLS = [
     { type: "object", properties: { state: stateProp } },
   ],
   [
+    "best_fit_bids",
+    "The open bids a visitor is BEST suited for, scored on their trade, state and certifications: bids set aside for a certification they hold rank first, bids they are not eligible for (set aside for a certification they lack) are left out, and very close deadlines rank lower. Each comes with its reasons. Use when they describe their business (\"I'm a woman-owned janitorial company in Ohio\") or ask what they should bid on.",
+    {
+      type: "object",
+      properties: {
+        trade: { type: "string", description: "Their trade, e.g. janitorial" },
+        state: stateProp,
+        certifications: {
+          type: "array",
+          items: { type: "string", enum: [...FIT_CERTS] },
+          description: "Certifications they said they hold. small_business = a small business with no special certification. Empty if they didn't say.",
+        },
+      },
+      required: ["trade"],
+    },
+  ],
+  [
+    "explain_bid",
+    "Look up one bid from a link or number the visitor pasted (a contrax.company/bid/... link, a SAM.gov link, a Contrax bid number or a solicitation number) and return its details plus the companies already doing similar work for that buyer (current contracts) and recent similar awards, to judge whether it's worth chasing.",
+    { type: "object", properties: { ref: { type: "string", description: "The link or number exactly as pasted" } }, required: ["ref"] },
+  ],
+  [
     "prime_contractors",
     "Big federal prime contractors based in a state (they must subcontract to small businesses). Optional name finds one company.",
     { type: "object", properties: { state: stateProp, name: { type: "string", description: "Optional company name, e.g. M.C. Dean" } }, required: ["state"] },
   ],
 ].map(([name, description, parameters]) => ({ type: "function" as const, function: { name: name as string, description: description as string, parameters } }));
 
-export type MaxCta = "email" | "radar" | "trial" | null;
+export type MaxCta = "email" | "radar" | "trial" | "remind" | null;
+export type MaxLang = "en" | "es";
 
 export interface MaxReply {
   say: string;
@@ -96,6 +126,10 @@ export interface MaxReply {
   /** The trade and state the conversation is about (for the CTA and the email capture). */
   trade: string | null;
   state: string | null;
+  /** The bid to offer a deadline reminder for (cta "remind"). */
+  remindBid: number | null;
+  /** The language Max answered in (the page speaks and listens in it). */
+  lang: MaxLang;
 }
 
 export function maxPrompt(now: string): string {
@@ -109,31 +143,182 @@ export function maxPrompt(now: string): string {
     "- Infer what you can: a city means its state; 'cleaning' means janitorial; 'mowing' means landscaping; 'my roofing company' means roofing. If they don't say a state, ask which state, or search nationwide if that clearly helps.",
     "- If a search finds nothing, try a broader or related term once before saying so, then suggest a nearby option (another state, a related trade, subcontracting with a prime, or the industry days).",
     "- Add the one insight that matters: a deadline coming up fast, a set-aside that fits, a big incumbent whose contract is ending, a prime to approach.",
+    "- When they tell you about their business (trade, state, certifications like woman-owned, veteran-owned, 8(a), HUBZone), use best_fit_bids and explain in a sentence why the top one fits them.",
+    "- When they paste a bid link or number, use explain_bid and give a plain-English verdict: what the buyer wants, when it's due, who can bid (set-aside), who already does similar work there, and whether it looks worth chasing for a small business. Say 'similar work', never claim a company won this exact contract unless the tool says so.",
     "- General how-to questions (SAM.gov registration, UEI, NAICS codes, set-asides like 8(a), HUBZone, SDVOSB, WOSB, capability statements, subcontracting, how bidding works) you answer from your own knowledge, briefly and practically. Don't quote exact dollar thresholds or deadlines unless a tool gave them.",
     "",
     "Honesty is non-negotiable: never invent a bid, company, amount, date or event. Only state facts the tools returned. If you don't know, say so. You cannot submit bids, contact agencies, save anything, or see the visitor's account. Never ask for or repeat personal details beyond an email.",
     "",
-    "Moving them forward: when you found bids they care about, set cta to \"email\" so the page offers to send them new matching bids (free). Set cta to \"radar\" when a full search would help, \"trial\" only if they ask about pricing or plans. Otherwise null.",
+    "Moving them forward: when you found bids they care about, set cta to \"email\" so the page offers to send them new matching bids (free). Set cta to \"remind\" with remind_bid set to the bid's id when they ask to be reminded about a deadline (the page asks for their email and emails them before it closes; you can't set it yourself, so say 'pop your email in below'). Set cta to \"radar\" when a full search would help, \"trial\" only if they ask about pricing or plans. Otherwise null.",
     "",
-    "Reply with a JSON object: {\"say\": string, \"cta\": \"email\" | \"radar\" | \"trial\" | null, \"trade\": string | null, \"state\": string | null}. trade is the plain trade word the conversation is about (e.g. janitorial), state the two-letter code.",
+    "Language: if the visitor writes in Spanish, or the page says the visitor chose Spanish, answer entirely in natural, friendly Latin American Spanish and set lang to \"es\". Otherwise answer in English with lang \"en\". Bid titles stay as published.",
+    "",
+    "Reply with a JSON object: {\"say\": string, \"cta\": \"email\" | \"remind\" | \"radar\" | \"trial\" | null, \"remind_bid\": number | null, \"trade\": string | null, \"state\": string | null, \"lang\": \"en\" | \"es\"}. trade is the plain English trade word the conversation is about (e.g. janitorial), state the two-letter code.",
     `Today is ${now} (Eastern).`,
   ].join("\n");
 }
 
 /** Parse the model's JSON; anything malformed degrades to plain text with no CTA. */
-export function parseMaxReply(raw: string): MaxReply {
-  const fallback = "Sorry, I lost my train of thought. Could you ask that again?";
+export function parseMaxReply(raw: string, lang: MaxLang = "en"): MaxReply {
+  const fallback = lang === "es" ? "Perdón, perdí el hilo. ¿Me lo preguntas otra vez?" : "Sorry, I lost my train of thought. Could you ask that again?";
   let obj: unknown;
   try {
     obj = JSON.parse(raw);
   } catch {
-    return { say: raw.trim().slice(0, MAX_SAY_CHARS) || fallback, cta: null, trade: null, state: null };
+    return { say: raw.trim().slice(0, MAX_SAY_CHARS) || fallback, cta: null, trade: null, state: null, remindBid: null, lang };
   }
   const o = (obj && typeof obj === "object" ? obj : {}) as Record<string, unknown>;
   const say = typeof o.say === "string" && o.say.trim() ? o.say.trim().slice(0, MAX_SAY_CHARS) : fallback;
-  const cta = o.cta === "email" || o.cta === "radar" || o.cta === "trial" ? o.cta : null;
+  const remindBid = Number.isInteger(o.remind_bid) && (o.remind_bid as number) > 0 ? (o.remind_bid as number) : null;
+  let cta: MaxCta = o.cta === "email" || o.cta === "radar" || o.cta === "trial" || o.cta === "remind" ? o.cta : null;
+  if (cta === "remind" && !remindBid) cta = "email";
   const trade = typeof o.trade === "string" && o.trade.trim() ? o.trade.trim().slice(0, 60) : null;
-  return { say, cta, trade, state: stateCode(o.state) };
+  const outLang: MaxLang = o.lang === "es" ? "es" : o.lang === "en" ? "en" : lang;
+  return { say, cta, trade, state: stateCode(o.state), remindBid, lang: outLang };
+}
+
+/**
+ * Best fit (owner 2026-10-25, "1": "Am I a fit?"): which program a bid's
+ * set-aside text restricts it to. "open" = full and open competition (or none
+ * stated); "other" = a restriction we can't read, which is never excluded.
+ */
+export type SetAsideProgram = "open" | "small" | "8a" | "sdvosb" | "vosb" | "wosb" | "edwosb" | "hubzone" | "other";
+
+export function setAsideProgram(text: string | null | undefined): SetAsideProgram {
+  const t = String(text ?? "").toLowerCase().trim();
+  if (!t || /^(none|n\/a|na|no set.?aside( used)?|full and open.*|unrestricted)$/.test(t)) return "open";
+  if (/8\s*\(?a\)?|\b8an\b/.test(t)) return "8a";
+  if (/sdvosb|service.?disabled/.test(t)) return "sdvosb";
+  if (/edwosb|economically disadvantaged wom/.test(t)) return "edwosb";
+  if (/wosb|wom[ae]n.?owned/.test(t)) return "wosb";
+  if (/hubzone/.test(t)) return "hubzone";
+  if (/\bvosb\b|veteran.?owned/.test(t)) return "vosb";
+  if (/small business|\bsba\b|\bsbp\b|\bsb\b|total small/.test(t)) return "small";
+  return "other";
+}
+
+/** Whether a business with these certifications can bid on that program. */
+export function certEligible(program: SetAsideProgram, certs: readonly FitCert[]): boolean {
+  const has = (c: FitCert) => certs.includes(c);
+  switch (program) {
+    case "open":
+    case "other":
+      return true;
+    case "small":
+      // Any of these certifications is a small business; with none stated, assume they're small (Max's audience).
+      return true;
+    case "8a":
+      return has("8a");
+    case "sdvosb":
+      return has("sdvosb");
+    case "vosb":
+      return has("vosb") || has("sdvosb");
+    case "wosb":
+      return has("wosb") || has("edwosb");
+    case "edwosb":
+      return has("edwosb");
+    case "hubzone":
+      return has("hubzone");
+  }
+}
+
+const PROGRAM_NAME: Record<SetAsideProgram, string> = {
+  open: "open to everyone",
+  small: "small business",
+  "8a": "8(a)",
+  sdvosb: "service-disabled veteran-owned",
+  vosb: "veteran-owned",
+  wosb: "woman-owned",
+  edwosb: "economically disadvantaged woman-owned",
+  hubzone: "HUBZone",
+  other: "restricted",
+};
+
+export interface FitBid {
+  id: number;
+  due_date: string | null;
+  set_aside: string | null;
+  estimated_value: string | null;
+}
+
+/** Score one bid for a visitor; ineligible bids are flagged, not scored. */
+export function scoreFit(bid: FitBid, certs: readonly FitCert[], now: number = Date.now()): { eligible: boolean; score: number; reasons: string[] } {
+  const program = setAsideProgram(bid.set_aside);
+  if (!certEligible(program, certs)) return { eligible: false, score: 0, reasons: [`set aside for ${PROGRAM_NAME[program]} businesses`] };
+  const reasons: string[] = [];
+  let score = 0;
+  if (program === "small") {
+    score += 25;
+    reasons.push("small business set-aside, so big firms can't bid");
+  } else if (program === "open" || program === "other") {
+    score += 5;
+    reasons.push(program === "open" ? "open to everyone" : `set-aside: ${bid.set_aside}`);
+  } else {
+    score += 45;
+    reasons.push(`set aside for ${PROGRAM_NAME[program]} businesses, which you are, so far fewer competitors`);
+  }
+  const days = bid.due_date ? Math.floor((Date.parse(bid.due_date) - now) / 86_400_000) : null;
+  if (days == null) reasons.push("no deadline listed");
+  else if (days < 3) {
+    score -= 30;
+    reasons.push(`closes in ${Math.max(days, 0)} day${days === 1 ? "" : "s"}, very tight`);
+  } else if (days < 7) reasons.push(`closes in ${days} days`);
+  else if (days <= 45) {
+    score += 20;
+    reasons.push(`${days} days to prepare`);
+  } else {
+    score += 10;
+    reasons.push(`${days} days away`);
+  }
+  if (bid.estimated_value) {
+    score += 5;
+    reasons.push(`value listed: ${bid.estimated_value}`);
+  }
+  return { eligible: true, score, reasons };
+}
+
+/** The visitor's best 3, plus how many they can and can't bid on. */
+export function rankFit<T extends FitBid>(bids: T[], certs: readonly FitCert[], now: number = Date.now()) {
+  const scored = bids.map((b) => ({ bid: b, ...scoreFit(b, certs, now) }));
+  const eligible = scored.filter((x) => x.eligible).sort((a, b) => b.score - a.score || String(a.bid.due_date ?? "9999").localeCompare(String(b.bid.due_date ?? "9999")));
+  return { total: bids.length, eligible: eligible.length, notEligible: scored.length - eligible.length, top: eligible.slice(0, 3) };
+}
+
+/** Certifications from the model's arguments (unknown values dropped). */
+export function fitCerts(v: unknown): FitCert[] {
+  return Array.isArray(v) ? [...new Set(v.map(String).filter((c): c is FitCert => (FIT_CERTS as readonly string[]).includes(c)))] : [];
+}
+
+/**
+ * Bid explainer (owner 2026-10-25, "2"): what a pasted reference points at.
+ * A Contrax link or bare number is our id; a SAM.gov link carries the notice
+ * id; anything else is tried as a solicitation number.
+ */
+export type BidRef = { kind: "id"; id: number } | { kind: "sam"; noticeId: string } | { kind: "solicitation"; number: string } | null;
+
+export function parseBidRef(ref: string): BidRef {
+  const r = String(ref ?? "").trim().slice(0, 300);
+  if (!r) return null;
+  const contrax = r.match(/contrax\.company\/bid\/(\d+)/i) ?? r.match(/^\/?bid\/(\d+)/i);
+  if (contrax) return { kind: "id", id: Number(contrax[1]) };
+  const sam = r.match(/sam\.gov\/(?:opp|workspace\/contract\/opp)\/([0-9a-f]{32})/i);
+  if (sam) return { kind: "sam", noticeId: sam[1].toLowerCase() };
+  if (/^#?\d{1,9}$/.test(r)) return { kind: "id", id: Number(r.replace("#", "")) };
+  const sol = r.replace(/^(solicitation|sol\.?|rfp|rfq|ifb|no\.?|number|#)\s*:?\s*/i, "").trim();
+  if (/^[A-Za-z0-9][A-Za-z0-9\-_.\/]{3,59}$/.test(sol)) return { kind: "solicitation", number: sol };
+  return null;
+}
+
+/**
+ * Deadline reminder (owner 2026-10-25, "5"): when to email, 3 days before the
+ * deadline (or now, if it's closer than that). Null when the bid closes in
+ * under a day or has no deadline: too late to be useful.
+ */
+export const REMIND_DAYS_BEFORE = 3;
+export function reminderAt(dueDate: string | null | undefined, now: number = Date.now()): Date | null {
+  const due = dueDate ? Date.parse(dueDate) : NaN;
+  if (!Number.isFinite(due) || due - now < 86_400_000) return null;
+  return new Date(Math.max(now, due - REMIND_DAYS_BEFORE * 86_400_000));
 }
 
 /**
@@ -149,8 +334,20 @@ const JOKES = [
   "My favorite kind of contract? The one with a set-aside for you and only two other bidders.",
 ];
 
+const CHISTES = [
+  "¿Por qué el contratista llevó una escalera a la apertura de ofertas? Porque oyó que los precios iban a subir.",
+  "Intenté contar un chiste sobre el reglamento federal de compras, pero tenía dos mil páginas y nadie se rió.",
+  "¿Mi contrato favorito? El que está reservado para ti y solo dos competidores más.",
+];
+
 export function maxEasterEgg(text: string, pick: number = Math.random()): { say: string; effect: MaxEffect } | null {
-  const t = text.toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  const t = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+  // Spanish (owner 2026-10-25, "7"): the same fun, en español.
+  if (/\bmuestrame el dinero\b/.test(t)) return { say: "¡Así se habla! Vamos a buscar contratos con tu nombre.", effect: "money" };
+  if (/\balerta roja\b/.test(t)) return { say: "¡Alerta roja! Todos a sus puestos. Hay una fecha límite que no va a esperar.", effect: "redalert" };
+  if (/\byo soy iron ?man\b/.test(t)) return { say: "Bienvenido de vuelta. El traje está listo, y los contratos del gobierno también.", effect: "ironman" };
+  if (/\bquien te (hizo|creo|construyo)\b/.test(t)) return { say: "Me construyó el equipo de Contrax en Virginia, para ayudar a los pequeños negocios a ganar contratos del gobierno. ¿A qué se dedica tu negocio?", effect: null };
+  if (/\bcuentame un chiste\b|\bhazme reir\b/.test(t)) return { say: CHISTES[Math.floor(pick * CHISTES.length) % CHISTES.length], effect: null };
   if (/\bshow me the money\b/.test(t)) return { say: "Now we're talking! Let's go find some contracts with your name on them.", effect: "money" };
   if (/\b(do a )?barrel roll\b/.test(t)) return { say: "Whee! Okay, I'm dizzy. What are we looking for?", effect: "barrel" };
   if (/\bi am iron ?man\b/.test(t)) return { say: "Welcome back. The suit is ready, and so are the government contracts.", effect: "ironman" };

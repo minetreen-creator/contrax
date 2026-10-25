@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
+import { MaxAssistant } from "~/components/MaxAssistant";
 import { MoneyCounter } from "~/components/MoneyCounter";
 import { NearYouCard } from "~/components/NearYouCard";
 import { TownBuyingCallout } from "~/components/TownBuyingCallout";
@@ -209,6 +210,8 @@ function Home() {
       />
       <Navbar />
       <HomeContractFinder sample={sample} />
+      {/* Max, the public AI assistant (owner 2026-10-25: "something high tech"). */}
+      <MaxAssistant />
       {/* "What's open near you?" (owner 2026-10-21): real open-bid count for the
           visitor's state, client-fetched; renders nothing until it has one. */}
       <NearYouCard />

@@ -128,7 +128,7 @@ export interface SeoBid {
   head_start_until: string | null;
 }
 
-function mapSeoBid(r: any): SeoBid {
+export function mapSeoBid(r: any): SeoBid {
   return applyHeadStart({
     id: Number(r.id),
     title: String(r.title ?? ""),

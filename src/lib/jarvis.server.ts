@@ -356,17 +356,17 @@ export const MAX_TTS_CHARS = 800;
  * Falls back to tts-1 when the newer model is unavailable. null on failure, so
  * the page can fall back to the browser's own voice.
  */
-export async function jarvisSpeech(text: string): Promise<ArrayBuffer | null> {
+export async function jarvisSpeech(text: string, voice: { voice?: string; style?: string } = {}): Promise<ArrayBuffer | null> {
   const input = text.trim().slice(0, MAX_TTS_CHARS);
   if (!input || !process.env.OPENAI_API_KEY) return null;
   const call = (body: Record<string, unknown>) =>
     fetchOpenAIWithRetry(TTS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
-      body: JSON.stringify({ input, voice: TTS_VOICE, response_format: "mp3", ...body }),
+      body: JSON.stringify({ input, voice: voice.voice ?? TTS_VOICE, response_format: "mp3", ...body }),
     });
   try {
-    let res = await call({ model: "gpt-4o-mini-tts", instructions: TTS_STYLE });
+    let res = await call({ model: "gpt-4o-mini-tts", instructions: voice.style ?? TTS_STYLE });
     if (res.status === 400 || res.status === 404) res = await call({ model: "tts-1" });
     if (!res.ok) {
       console.error(`[jarvis] speech ${res.status}:`, sanitizeLogString((await res.text().catch(() => "")).slice(0, 200)));

@@ -357,24 +357,39 @@ export const MAX_TTS_CHARS = 800;
  * the page can fall back to the browser's own voice.
  */
 export async function jarvisSpeech(text: string, voice: { voice?: string; style?: string } = {}): Promise<ArrayBuffer | null> {
+  return (await speechWithStatus(text, voice)).audio;
+}
+
+/**
+ * Speech plus why it failed (owner 2026-10-25: "max sounds too robotic" — the
+ * AI voice was failing and the page fell back to the browser's voice). Tries
+ * gpt-4o-mini-tts, then tts-1 on ANY failure (not only 400/404: a project
+ * without access to the newer model answers 401/403). `status` is OpenAI's
+ * last HTTP status (0 = network error), never its message.
+ */
+export async function speechWithStatus(
+  text: string,
+  voice: { voice?: string; style?: string } = {},
+): Promise<{ audio: ArrayBuffer | null; status: number | null }> {
   const input = text.trim().slice(0, MAX_TTS_CHARS);
-  if (!input || !process.env.OPENAI_API_KEY) return null;
+  if (!input || !process.env.OPENAI_API_KEY) return { audio: null, status: null };
   const call = (body: Record<string, unknown>) =>
     fetchOpenAIWithRetry(TTS_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
       body: JSON.stringify({ input, voice: voice.voice ?? TTS_VOICE, response_format: "mp3", ...body }),
     });
-  try {
-    let res = await call({ model: "gpt-4o-mini-tts", instructions: voice.style ?? TTS_STYLE });
-    if (res.status === 400 || res.status === 404) res = await call({ model: "tts-1" });
-    if (!res.ok) {
-      console.error(`[jarvis] speech ${res.status}:`, sanitizeLogString((await res.text().catch(() => "")).slice(0, 200)));
-      return null;
+  let status = 0;
+  for (const body of [{ model: "gpt-4o-mini-tts", instructions: voice.style ?? TTS_STYLE }, { model: "tts-1" }]) {
+    try {
+      const res = await call(body);
+      if (res.ok) return { audio: await res.arrayBuffer(), status: res.status };
+      status = res.status;
+      console.error(`[jarvis] speech ${body.model} ${res.status}:`, sanitizeLogString((await res.text().catch(() => "")).slice(0, 200)));
+    } catch (err) {
+      status = 0;
+      console.error(`[jarvis] speech ${body.model} failed:`, sanitizeLogString(err));
     }
-    return await res.arrayBuffer();
-  } catch (err) {
-    console.error("[jarvis] speech failed:", sanitizeLogString(err));
-    return null;
   }
+  return { audio: null, status };
 }

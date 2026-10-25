@@ -209,9 +209,13 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
       if (!("speechSynthesis" in window)) return done();
       const u = new SpeechSynthesisUtterance(text);
       u.lang = l === "es" ? "es-US" : "en-US";
-      const voices = window.speechSynthesis.getVoices();
-      const v = l === "es" ? voices.find((x) => x.lang === "es-US") ?? voices.find((x) => x.lang.startsWith("es")) : voices.find((x) => x.lang === "en-US");
+      // Backup voice: the most natural one the browser has (Edge's "Natural"
+      // voices, Chrome's Google voices, Apple's Siri/Samantha), not the first.
+      const voices = window.speechSynthesis.getVoices().filter((x) => (l === "es" ? x.lang.startsWith("es") : x.lang === "en-US"));
+      const rank = (x: SpeechSynthesisVoice) => (/natural|neural|online/i.test(x.name) ? 0 : /google/i.test(x.name) ? 1 : /siri|samantha|alex|aaron|nicky/i.test(x.name) ? 2 : 3);
+      const v = voices.sort((a, b) => rank(a) - rank(b))[0];
       if (v) u.voice = v;
+      u.rate = 1.03;
       u.onend = u.onerror = () => done();
       window.speechSynthesis.speak(u);
     });

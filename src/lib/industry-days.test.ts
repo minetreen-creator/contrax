@@ -23,8 +23,12 @@ describe("isIndustryDayTitle", () => {
 const row = (over: Partial<IndustryDayRow>): IndustryDayRow => ({ id: 1, title: "Industry Day", agency: "USACE", location: null, state: "SC", date: "2026-11-19", url: null, ...over });
 
 describe("grouping", () => {
-  test("the same notice twice is one event", () => {
-    const out = dedupeEvents([row({ id: 1 }), row({ id: 2, title: " industry day " }), row({ id: 3, agency: "USCG" })]);
+  test("the same notice twice is one event, whatever the agency is called", () => {
+    const out = dedupeEvents([
+      row({ id: 1, title: "USACE New Orleans Industry Day 2026", agency: "USACE" }),
+      row({ id: 2, title: "USACE  New Orleans Industry Day 2026 ", agency: "W07V ENDIST NEW ORLEANS" }),
+      row({ id: 3, title: "USACE New Orleans Industry Day 2026", date: "2026-12-01" }),
+    ]);
     expect(out.map((r) => r.id)).toEqual([1, 3]);
   });
   test("state counts, busiest first", () => {

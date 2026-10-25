@@ -12,6 +12,7 @@
     "db:setup": "bun run db/setup.ts",
     "sync-bids": "bun run src/jobs/runner.ts",
     "radar-alerts": "bun run src/jobs/send-radar-lead-alerts.ts",
+    "max-reminders": "bun run src/jobs/send-max-reminders.ts",
     "bid-digest": "bun run src/jobs/send-bid-digest.ts",
     "weekly-digest": "bun run src/jobs/send-weekly-digest.ts",
     "trial-emails": "bun run src/jobs/send-trial-emails.ts",

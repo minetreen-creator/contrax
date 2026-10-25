@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { KONAMI, maxEasterEgg, type MaxCta, type MaxEffect } from "~/lib/max";
+import { KONAMI, maxEasterEgg, type MaxCta, type MaxEffect, type MaxLang } from "~/lib/max";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
 import { markEmailGiven } from "~/lib/return-visitor";
@@ -7,7 +7,9 @@ import { markEmailGiven } from "~/lib/return-visitor";
 /**
  * Max on the homepage (src/lib/max.ts): ask out loud or type, Max searches live
  * Contrax data (/api/max/ask), answers in his own voice (/api/max/voice), and
- * shows the real bids. Secret phrases trigger effects (maxEasterEgg).
+ * shows the real bids. Secret phrases trigger effects (maxEasterEgg). Every
+ * bid card has "Remind me" (/api/max/remind), and the EN/ES switch makes Max
+ * listen, answer and speak in Spanish.
  */
 
 interface BidCard {
@@ -34,37 +36,93 @@ type Recognizer = {
   start: () => void;
   stop: () => void;
 };
-function makeRecognizer(): Recognizer | null {
+function makeRecognizer(lang: MaxLang = "en"): Recognizer | null {
   if (typeof window === "undefined") return null;
   const W = window as unknown as { SpeechRecognition?: new () => Recognizer; webkitSpeechRecognition?: new () => Recognizer };
   const C = W.SpeechRecognition ?? W.webkitSpeechRecognition;
   if (!C) return null;
   const r = new C();
-  r.lang = "en-US";
+  r.lang = lang === "es" ? "es-US" : "en-US";
   r.interimResults = false;
   r.continuous = false;
   return r;
 }
 
-const SUGGESTIONS = [
-  "Any cleaning contracts in Virginia?",
-  "Who's winning construction work in Texas?",
-  "Industry days in South Carolina?",
-  "How do I get started with government contracts?",
-];
+const SUGGESTIONS: Record<MaxLang, string[]> = {
+  en: [
+    "Any cleaning contracts in Virginia?",
+    "I'm a woman-owned landscaping company in Ohio. What should I bid on?",
+    "Who's winning construction work in Texas?",
+    "Industry days in South Carolina?",
+  ],
+  es: [
+    "¿Hay contratos de limpieza en Virginia?",
+    "Tengo una compañía de construcción en Texas. ¿A qué debo ofertar?",
+    "¿Quién está ganando contratos de jardinería en Florida?",
+    "¿Cómo empiezo con los contratos del gobierno?",
+  ],
+};
+
+const T = {
+  en: {
+    idleMic: "Tap the core to talk, or type",
+    idle: "Type a question",
+    listening: "Listening…",
+    thinking: "Searching live government data…",
+    speaking: "Speaking… tap to stop",
+    speaks: "Max speaks out loud",
+    title: ["Meet ", "Max", ". Ask him anything about government contracts."],
+    sub: "He searches live bids, winners and events across all 50 states, tells you what fits your business, and explains any bid you paste.",
+    you: "You",
+    placeholder: "e.g. Any landscaping bids near Richmond? Or paste a bid link",
+    ask: "Ask",
+    remind: "⏰ Remind me",
+    disclaimer: "Max answers from live Contrax data and can make mistakes. Always check the official notice.",
+    limit: "I've answered a lot of questions for you today. Search Contract Radar for the full list, or come back in a little while.",
+    oops: "Sorry, something went wrong.",
+    offline: "I couldn't connect. Check your internet and try again.",
+    noMic: "Voice works in Chrome, Edge and Safari. You can type below.",
+    micBlocked: "Allow the microphone to talk to Max, or type below.",
+    due: "Due",
+  },
+  es: {
+    idleMic: "Toca el núcleo para hablar, o escribe",
+    idle: "Escribe una pregunta",
+    listening: "Escuchando…",
+    thinking: "Buscando datos del gobierno en vivo…",
+    speaking: "Hablando… toca para parar",
+    speaks: "Max habla en voz alta",
+    title: ["Conoce a ", "Max", ". Pregúntale lo que sea sobre contratos del gobierno."],
+    sub: "Busca ofertas abiertas, ganadores y eventos en los 50 estados, te dice cuáles le convienen a tu negocio y te explica cualquier oferta que pegues.",
+    you: "Tú",
+    placeholder: "p. ej. ¿Hay contratos de jardinería cerca de Richmond?",
+    ask: "Preguntar",
+    remind: "⏰ Recordarme",
+    disclaimer: "Max responde con datos en vivo de Contrax y puede equivocarse. Revisa siempre el aviso oficial.",
+    limit: "Ya respondí muchas preguntas hoy. Busca en Contract Radar la lista completa, o vuelve en un rato.",
+    oops: "Perdón, algo salió mal.",
+    offline: "No pude conectarme. Revisa tu internet e inténtalo de nuevo.",
+    noMic: "La voz funciona en Chrome, Edge y Safari. Puedes escribir abajo.",
+    micBlocked: "Permite el micrófono para hablar con Max, o escribe abajo.",
+    due: "Vence",
+  },
+} as const;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function dueLabel(d: string | null): string {
+function dueLabel(d: string | null, lang: MaxLang = "en"): string {
   if (!d) return "";
-  return `Due ${new Date(`${d}T12:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
+  return `${T[lang].due} ${new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
 }
 
 export function MaxAssistant() {
   const [state, setState] = useState<MaxState>("idle");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [bids, setBids] = useState<BidCard[]>([]);
-  const [cta, setCta] = useState<{ kind: MaxCta; trade: string | null; state: string | null }>({ kind: null, trade: null, state: null });
+  const [cta, setCta] = useState<{ kind: MaxCta; trade: string | null; state: string | null; bid: number | null }>({ kind: null, trade: null, state: null, bid: null });
+  const [lang, setLang] = useState<MaxLang>("en");
+  const [remindFor, setRemindFor] = useState<number | null>(null);
+  const [email, setEmail] = useState("");
   const [typed, setTyped] = useState("");
   const [voiceOn, setVoiceOn] = useState(true);
   const [hasMic, setHasMic] = useState(false);
@@ -74,6 +132,12 @@ export function MaxAssistant() {
   const busy = useRef(false);
   const turnsRef = useRef<Turn[]>([]);
   turnsRef.current = turns;
+  const t = T[lang];
+
+  // A Spanish-speaking browser starts in Spanish.
+  useEffect(() => {
+    if (typeof navigator !== "undefined" && navigator.language?.toLowerCase().startsWith("es")) setLang("es");
+  }, []);
 
   useEffect(() => setHasMic(!!makeRecognizer()), []);
 
@@ -105,28 +169,30 @@ export function MaxAssistant() {
     if ("speechSynthesis" in window) window.speechSynthesis.cancel();
   };
 
-  const speakBrowser = (text: string) =>
+  const speakBrowser = (text: string, l: MaxLang) =>
     new Promise<void>((done) => {
       if (!("speechSynthesis" in window)) return done();
       const u = new SpeechSynthesisUtterance(text);
-      const v = window.speechSynthesis.getVoices().find((x) => x.lang === "en-US");
+      u.lang = l === "es" ? "es-US" : "en-US";
+      const voices = window.speechSynthesis.getVoices();
+      const v = l === "es" ? voices.find((x) => x.lang === "es-US") ?? voices.find((x) => x.lang.startsWith("es")) : voices.find((x) => x.lang === "en-US");
       if (v) u.voice = v;
       u.onend = u.onerror = () => done();
       window.speechSynthesis.speak(u);
     });
 
-  const speak = async (text: string) => {
+  const speak = async (text: string, l: MaxLang = lang) => {
     if (!voiceOn) return;
     stopSpeaking();
     setState("speaking");
     let src = "";
     try {
-      const res = await fetch("/api/max/voice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text }) });
+      const res = await fetch("/api/max/voice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, lang: l }) });
       if (res.ok) src = URL.createObjectURL(await res.blob());
     } catch {
       /* fall back */
     }
-    if (!src) return speakBrowser(text);
+    if (!src) return speakBrowser(text, l);
     const audio = new Audio(src);
     audioRef.current = audio;
     await new Promise<void>((done) => {
@@ -138,7 +204,7 @@ export function MaxAssistant() {
       audio.play().catch(() => {
         audio.onended = audio.onerror = audio.onpause = null;
         URL.revokeObjectURL(src);
-        speakBrowser(text).then(done);
+        speakBrowser(text, l).then(done);
       });
     });
   };
@@ -156,20 +222,26 @@ export function MaxAssistant() {
         trackEvent("max_easter_egg", egg.effect ?? q.slice(0, 30));
         fire(egg.effect);
         setTurns((t) => [...t, { role: "assistant" as const, content: egg.say }].slice(-8));
-        await speak(egg.say);
+        await speak(egg.say, /[¿¡ñáéíóú]/.test(egg.say) ? "es" : lang);
         return;
       }
       trackEvent("max_ask", q.slice(0, 80));
       setState("thinking");
-      const res = await fetch("/api/max/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: q, history }) });
-      const j = (await res.json().catch(() => ({}))) as { say?: string; error?: string; bids?: BidCard[]; cta?: MaxCta; trade?: string | null; state?: string | null };
-      const say = j.say ?? (res.status === 429 ? "I've answered a lot of questions for you today. Search Contract Radar for the full list, or come back in a little while." : j.error ?? "Sorry, something went wrong.");
+      const res = await fetch("/api/max/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: q, history, lang }) });
+      const j = (await res.json().catch(() => ({}))) as { say?: string; error?: string; bids?: BidCard[]; cta?: MaxCta; remindBid?: number | null; trade?: string | null; state?: string | null; lang?: MaxLang };
+      const say = j.say ?? (res.status === 429 ? t.limit : j.error ?? t.oops);
+      const replyLang: MaxLang = j.lang === "es" || j.lang === "en" ? j.lang : lang;
+      if (replyLang !== lang) {
+        setLang(replyLang);
+        trackEvent("max_lang", replyLang);
+      }
       setTurns((t) => [...t, { role: "assistant" as const, content: say }].slice(-8));
       if (j.bids?.length) setBids(j.bids.slice(0, 4));
-      setCta({ kind: j.cta ?? null, trade: j.trade ?? null, state: j.state ?? null });
-      await speak(say);
+      setCta({ kind: j.cta ?? null, trade: j.trade ?? null, state: j.state ?? null, bid: j.remindBid ?? null });
+      if (j.cta === "remind" && j.remindBid) setRemindFor(j.remindBid);
+      await speak(say, replyLang);
     } catch {
-      setNote("I couldn't connect. Check your internet and try again.");
+      setNote(t.offline);
     } finally {
       busy.current = false;
       setState("idle");
@@ -179,16 +251,16 @@ export function MaxAssistant() {
   const listen = () => {
     if (state === "speaking") return stopSpeaking();
     if (busy.current) return;
-    const r = makeRecognizer();
+    const r = makeRecognizer(lang);
     if (!r) {
-      setNote("Voice works in Chrome, Edge and Safari. You can type below.");
+      setNote(t.noMic);
       return;
     }
     let heard = "";
     r.onresult = (e) => {
       heard = Array.from(e.results).map((x) => x[0].transcript).join(" ");
     };
-    r.onerror = (e) => e.error === "not-allowed" && setNote("Allow the microphone to talk to Max, or type below.");
+    r.onerror = (e) => e.error === "not-allowed" && setNote(t.micBlocked);
     r.onend = () => {
       setState("idle");
       if (heard.trim()) ask(heard);
@@ -203,7 +275,8 @@ export function MaxAssistant() {
   };
 
   const last = turns.slice(-4);
-  const label = { idle: hasMic ? "Tap the core to talk, or type" : "Type a question", listening: "Listening…", thinking: "Searching live government data…", speaking: "Speaking… tap to stop" }[state];
+  const label = { idle: hasMic ? t.idleMic : t.idle, listening: t.listening, thinking: t.thinking, speaking: t.speaking }[state];
+  const remindBid = remindFor ? bids.find((b) => b.id === remindFor) ?? null : null;
 
   return (
     <section aria-label="Ask Max, the Contrax AI" className={`max-wrap fx-${effect ?? "none"} relative overflow-hidden bg-[#050d1f] px-4 py-14 text-white sm:px-8`}>
@@ -223,27 +296,45 @@ export function MaxAssistant() {
           <p className="mt-1 text-sm text-slate-400">{label}</p>
           <label className="mt-3 flex items-center gap-2 text-xs text-slate-400">
             <input type="checkbox" checked={voiceOn} onChange={(e) => { setVoiceOn(e.target.checked); if (!e.target.checked) stopSpeaking(); }} />
-            Max speaks out loud
+            {t.speaks}
           </label>
+          <div className="mt-3 inline-flex rounded-full border border-cyan-400/30 p-0.5 text-xs font-bold" role="group" aria-label="Language">
+            {(["en", "es"] as const).map((l) => (
+              <button
+                key={l}
+                type="button"
+                aria-pressed={lang === l}
+                onClick={() => {
+                  setLang(l);
+                  trackEvent("max_lang", l);
+                }}
+                className={`rounded-full px-3 py-1 ${lang === l ? "bg-cyan-400 text-slate-950" : "text-cyan-200"}`}
+              >
+                {l === "en" ? "English" : "Español"}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="min-w-0">
-          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-            Meet <span className="text-cyan-300">Max</span>. Ask him anything about government contracts.
+          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl" lang={lang}>
+            {t.title[0]}
+            <span className="text-cyan-300">{t.title[1]}</span>
+            {t.title[2]}
           </h2>
-          <p className="mt-2 text-slate-300">He searches live bids, winners and events across all 50 states, and tells you what matters.</p>
+          <p className="mt-2 text-slate-300">{t.sub}</p>
 
           {last.length ? (
             <ul className="mt-5 space-y-2" aria-live="polite">
-              {last.map((t, i) => (
-                <li key={i} className={t.role === "user" ? "text-sm text-slate-400" : "max-say rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 text-base text-cyan-50"}>
-                  {t.role === "user" ? `You: ${t.content}` : t.content}
+              {last.map((m, i) => (
+                <li key={i} className={m.role === "user" ? "text-sm text-slate-400" : "max-say rounded-2xl border border-cyan-400/20 bg-cyan-400/5 p-4 text-base text-cyan-50"}>
+                  {m.role === "user" ? `${t.you}: ${m.content}` : m.content}
                 </li>
               ))}
             </ul>
           ) : (
             <div className="mt-5 flex flex-wrap gap-2">
-              {SUGGESTIONS.map((s) => (
+              {SUGGESTIONS[lang].map((s) => (
                 <button key={s} type="button" onClick={() => ask(s)} className="rounded-full border border-cyan-400/30 bg-cyan-400/5 px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-400/15">
                   {s}
                 </button>
@@ -254,19 +345,35 @@ export function MaxAssistant() {
           {bids.length ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {bids.map((b, i) => (
-                <a key={b.id} href={`/bid/${b.id}`} onClick={() => trackEvent("max_bid_click", String(b.id))} className="max-card rounded-2xl border border-cyan-400/25 bg-white/5 p-4 hover:border-cyan-300" style={{ animationDelay: `${i * 110}ms` }}>
-                  <p className="line-clamp-2 font-bold text-white">{b.title}</p>
-                  <p className="mt-1 text-xs text-slate-400">{[b.agency, b.location].filter(Boolean).join(" · ")}</p>
-                  <p className="mt-2 text-xs font-semibold text-amber-300">
-                    {dueLabel(b.due)}
-                    {b.setAside ? ` · ${b.setAside}` : ""}
-                  </p>
-                </a>
+                <div key={b.id} className={`max-card flex flex-col rounded-2xl border bg-white/5 p-4 ${remindFor === b.id ? "border-amber-300" : "border-cyan-400/25 hover:border-cyan-300"}`} style={{ animationDelay: `${i * 110}ms` }}>
+                  <a href={`/bid/${b.id}`} onClick={() => trackEvent("max_bid_click", String(b.id))} className="block flex-1">
+                    <p className="line-clamp-2 font-bold text-white">{b.title}</p>
+                    <p className="mt-1 text-xs text-slate-400">{[b.agency, b.location].filter(Boolean).join(" · ")}</p>
+                    <p className="mt-2 text-xs font-semibold text-amber-300">
+                      {dueLabel(b.due, lang)}
+                      {b.setAside ? ` · ${b.setAside}` : ""}
+                    </p>
+                  </a>
+                  {b.due ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRemindFor(remindFor === b.id ? null : b.id);
+                        trackEvent("max_remind_open", String(b.id));
+                      }}
+                      className="mt-3 self-start rounded-lg border border-amber-300/40 px-2.5 py-1 text-xs font-bold text-amber-200 hover:bg-amber-300/10"
+                    >
+                      {t.remind}
+                    </button>
+                  ) : null}
+                </div>
               ))}
             </div>
           ) : null}
 
-          {cta.kind === "email" ? <MaxEmail trade={cta.trade} state={cta.state} /> : null}
+          {remindFor ? <MaxRemind key={remindFor} bidId={remindFor} title={remindBid?.title ?? null} lang={lang} email={email} onEmail={setEmail} /> : null}
+
+          {cta.kind === "email" && !remindFor ? <MaxEmail trade={cta.trade} state={cta.state} lang={lang} /> : null}
           {cta.kind === "radar" ? (
             <a href={`/radar?${new URLSearchParams({ cert: "sdvosb", size: "any", ...(cta.trade ? { trade: cta.trade } : {}), ...(cta.state ? { state: cta.state } : {}) })}`} onClick={() => trackEvent("max_cta_radar", cta.trade ?? "")} className="mt-4 inline-block rounded-xl bg-amber-500 px-5 py-3 font-bold text-slate-950">
               See every match in Contract Radar →
@@ -289,23 +396,25 @@ export function MaxAssistant() {
             <label htmlFor="max-input" className="sr-only">
               Ask Max
             </label>
-            <input id="max-input" value={typed} onChange={(e) => setTyped(e.target.value)} maxLength={300} placeholder="e.g. Any landscaping bids near Richmond?" className="min-w-0 flex-1 rounded-xl border border-cyan-400/30 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-500 outline-none focus:border-cyan-300" />
+            <input id="max-input" value={typed} onChange={(e) => setTyped(e.target.value)} maxLength={300} placeholder={t.placeholder} className="min-w-0 flex-1 rounded-xl border border-cyan-400/30 bg-white/5 px-4 py-3 text-base text-white placeholder:text-slate-500 outline-none focus:border-cyan-300" />
             <button type="submit" disabled={state === "thinking"} className="rounded-xl bg-cyan-400 px-5 py-3 font-bold text-slate-950 disabled:opacity-60">
-              Ask
+              {t.ask}
             </button>
           </form>
           {note ? <p className="mt-2 text-sm text-amber-300">{note}</p> : null}
-          <p className="mt-3 text-xs text-slate-500">Max answers from live Contrax data and can make mistakes. Always check the official notice.</p>
+          <p className="mt-3 text-xs text-slate-500">{t.disclaimer}</p>
         </div>
       </div>
     </section>
   );
 }
 
-function MaxEmail({ trade, state }: { trade: string | null; state: string | null }) {
+function MaxEmail({ trade, state, lang }: { trade: string | null; state: string | null; lang: MaxLang }) {
+  const es = lang === "es";
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
-  if (status === "done") return <p className="mt-4 rounded-xl bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200">Done! New matching bids will come to your inbox. Check it to confirm.</p>;
+  if (status === "done")
+    return <p className="mt-4 rounded-xl bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200">{es ? "¡Listo! Las nuevas ofertas llegarán a tu correo. Revísalo para confirmar." : "Done! New matching bids will come to your inbox. Check it to confirm."}</p>;
   return (
     <form
       className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4"
@@ -331,17 +440,83 @@ function MaxEmail({ trade, state }: { trade: string | null; state: string | null
         }
       }}
     >
-      <p className="text-sm font-bold text-amber-200">📬 Want Max to send you new {trade ?? "matching"} bids{state ? ` in ${state}` : ""} as they post? Free.</p>
+      <p className="text-sm font-bold text-amber-200">
+        {es ? `📬 ¿Quieres que Max te envíe las nuevas ofertas${trade ? ` de ${trade}` : ""}${state ? ` en ${state}` : ""} cuando se publiquen? Gratis.` : `📬 Want Max to send you new ${trade ?? "matching"} bids${state ? ` in ${state}` : ""} as they post? Free.`}
+      </p>
       <div className="mt-2 flex gap-2">
         <label htmlFor="max-email" className="sr-only">
           Email
         </label>
         <input id="max-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-white placeholder:text-slate-400" />
         <button type="submit" disabled={status === "sending"} className="rounded-xl bg-amber-500 px-4 py-2.5 font-bold text-slate-950">
-          {status === "sending" ? "…" : "Send them"}
+          {status === "sending" ? "…" : es ? "Envíamelas" : "Send them"}
         </button>
       </div>
-      {status === "error" ? <p className="mt-2 text-xs text-red-300">Please enter a valid email and try again.</p> : null}
+      {status === "error" ? <p className="mt-2 text-xs text-red-300">{es ? "Escribe un correo válido e inténtalo de nuevo." : "Please enter a valid email and try again."}</p> : null}
+    </form>
+  );
+}
+
+/** "Remind me before it closes" (src/lib/max-reminders.server.ts). */
+function MaxRemind({ bidId, title, lang, email, onEmail }: { bidId: number; title: string | null; lang: MaxLang; email: string; onEmail: (v: string) => void }) {
+  const es = lang === "es";
+  const [status, setStatus] = useState<"idle" | "sending" | "pending" | "confirmed" | "error">("idle");
+  const [msg, setMsg] = useState("");
+  const [when, setWhen] = useState("");
+  if (status === "pending" || status === "confirmed") {
+    const confirm = status === "pending" ? (es ? " Primero confirma tu correo (te acabo de enviar el enlace)." : " First confirm your email (I just sent you the link).") : "";
+    return (
+      <p className="mt-4 rounded-xl bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200">
+        {es ? `⏰ ¡Hecho! Te enviaré un recordatorio el ${when}.${confirm}` : `⏰ Got it! I'll email you a reminder on ${when}.${confirm}`}
+      </p>
+    );
+  }
+  return (
+    <form
+      className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        const v = email.trim().toLowerCase();
+        if (!EMAIL_PATTERN.test(v)) {
+          setMsg(es ? "Escribe un correo válido." : "Please enter a valid email.");
+          return setStatus("error");
+        }
+        setStatus("sending");
+        try {
+          const res = await fetch("/api/max/remind", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: v, bid_id: bidId, visitor_id: trackingIds().visitor_id || undefined }),
+          });
+          const j = (await res.json().catch(() => null)) as { success?: boolean; lead?: string; remindAt?: string; error?: string } | null;
+          if (!res.ok || !j?.success || !j.remindAt) {
+            setMsg(j?.error ?? (es ? "Algo salió mal. Inténtalo de nuevo." : "Something went wrong. Please try again."));
+            return setStatus("error");
+          }
+          setWhen(new Date(j.remindAt).toLocaleDateString(es ? "es-US" : "en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/New_York" }));
+          markEmailGiven();
+          trackEvent("max_remind", String(bidId));
+          setStatus(j.lead === "confirmed" ? "confirmed" : "pending");
+        } catch {
+          setMsg(es ? "No pude conectarme. Inténtalo de nuevo." : "I couldn't connect. Please try again.");
+          setStatus("error");
+        }
+      }}
+    >
+      <p className="text-sm font-bold text-amber-200">
+        {es ? "⏰ Te aviso 3 días antes de que cierre" : "⏰ I'll email you 3 days before it closes"}
+        {title ? <span className="block font-normal text-amber-100/80">{title}</span> : null}
+      </p>
+      <div className="mt-2 flex gap-2">
+        <label htmlFor="max-remind-email" className="sr-only">
+          Email
+        </label>
+        <input id="max-remind-email" type="email" autoComplete="email" value={email} onChange={(e) => onEmail(e.target.value)} placeholder="you@company.com" className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-white placeholder:text-slate-400" />
+        <button type="submit" disabled={status === "sending"} className="rounded-xl bg-amber-500 px-4 py-2.5 font-bold text-slate-950">
+          {status === "sending" ? "…" : es ? "Recordarme" : "Remind me"}
+        </button>
+      </div>
+      {status === "error" ? <p className="mt-2 text-xs text-red-300">{msg}</p> : null}
     </form>
   );
 }

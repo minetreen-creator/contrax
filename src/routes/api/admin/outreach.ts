@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
-import { outreachOverview, renderContact, sendDrafts, setPostalAddress, skipAllDrafts, skipDraft, suppress } from "~/lib/outreach.server";
+import { outreachOverview, postingUrls, renderContact, sendDrafts, setPostalAddress, skipAllDrafts, skipDraft, suppress } from "~/lib/outreach.server";
 
 /**
  * GET  /api/admin/outreach → today's drafts (with rendered previews), recent
@@ -22,7 +22,8 @@ async function get({ request }: { request: Request }) {
   try {
     const o = await outreachOverview();
     const address = o.postalAddress ?? "[mailing address not set]";
-    const drafts = o.drafts.map((d) => ({ ...d, preview: renderContact(d, address) }));
+    const postings = await postingUrls(o.drafts.map((d) => d.bid_id));
+    const drafts = o.drafts.map((d) => ({ ...d, preview: renderContact(d, address, postings.get(d.bid_id) ?? null) }));
     return Response.json({ ...o, drafts });
   } catch (err) {
     console.error("[api/admin/outreach] load error:", err);

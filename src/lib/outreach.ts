@@ -131,6 +131,27 @@ export interface OutreachEmailInput {
   unsubscribeUrl: string;
   /** Row id, carried on links for attribution. */
   contactId: number;
+  /**
+   * The buyer's official posting. Owner 2026-10-25 review: outreach bids are
+   * new, so on Contrax their official link is still behind the paid head
+   * start; a cold email has to hand over the posting itself, or the first
+   * click lands on a lock.
+   */
+  sourceUrl?: string | null;
+}
+
+/** Only a plain http(s) link goes in an email. */
+export function safePostingUrl(u: string | null | undefined): string | null {
+  const s = (u ?? "").trim();
+  return /^https?:\/\/[^\s"<>]+$/i.test(s) && s.length <= 500 ? s : null;
+}
+
+/** "Open landscaping bid from City of Huntsville, due Nov 12" (shared by the follow-up's "Re:"). */
+export function outreachSubject(i: Pick<OutreachEmailInput, "tradeLabel" | "buyer" | "due">): string {
+  const buyer = (i.buyer ?? "").trim();
+  const from = buyer && buyer.length <= 45 ? ` from ${buyer}` : "";
+  const due = formatDue(i.due).replace(/, \d{4}$/, "");
+  return `Open ${i.tradeLabel} bid${from}, due ${due}`;
 }
 
 const SITE = "https://www.contrax.company";
@@ -163,36 +184,41 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
     `You're receiving this because ${i.business} lists this address on its website. Unsubscribe: ${i.unsubscribeUrl}`,
   ];
 
+  const posting = safePostingUrl(i.sourceUrl);
+  const postingLines = posting ? [`Official posting: ${posting}`, `Summary on Contrax: ${bidUrl}`] : [`Details: ${bidUrl}`];
+  const firstSubject = outreachSubject(i);
   let subject: string;
   let body: string[];
   if (i.kind === "first") {
-    subject = `Open bid near you: ${i.bidTitle}`.slice(0, 140);
+    // Owner 2026-10-25 review: one ask (reply "yes"), no prices in a cold
+    // first email, and the official posting itself.
+    subject = firstSubject.slice(0, 140);
     body = [
       "Hi,",
       "",
-      `I came across an open bid that looks like a fit for ${i.business}:`,
+      `${i.buyer ? i.buyer : "A local government buyer"} has an open bid that looks like a fit for ${i.business}:`,
       "",
       i.bidTitle,
-      ...(i.buyer ? [`Buyer: ${i.buyer}`] : []),
       `Due: ${due}`,
-      `Details: ${bidUrl}`,
+      ...postingLines,
       "",
-      `Contrax finds bids like this every morning (federal, state and local) matched to your trade and area, with a link to the official posting. If you'd like the other open ${i.tradeLabel} bids near you, just reply "yes" and I'll send them, no charge. Or get them every morning with Contrax Starter, $5 for your first month, then $19/month, cancel anytime: ${link("/pricing", i.kind, i.contactId)}`,
+      `I'm Nathaniel, and I run Contrax, a small company that finds government bids for local contractors. If you'd like the other open ${i.tradeLabel} bids near you, just reply "yes" and I'll send them over. No charge, no catch.`,
       "",
-      "Either way, I hope this one is useful.",
+      "Good luck if you go for it.",
     ];
   } else {
-    subject = `Re: Open bid near you: ${i.bidTitle}`.slice(0, 140);
+    subject = `Re: ${firstSubject}`.slice(0, 140);
     body = [
       "Hi,",
       "",
-      `Quick follow-up on the ${i.bidTitle} bid. It's due ${due}, so there's still time if you want to go for it: ${bidUrl}`,
+      `Quick follow-up on the ${i.bidTitle} bid. It's due ${due}, so there's still time if you want to go for it.`,
+      ...postingLines,
       "",
-      `If finding these isn't something you have time for, that's what Bid Scout is for. Every Friday I send you 5 government bids handpicked for ${i.business}, each with the requirements in plain English, the deadline, the main risks, and what to do next. You just decide which ones to chase.`,
+      `My offer stands: reply "yes" and I'll send you the other open ${i.tradeLabel} bids near you, free.`,
       "",
-      `It's normally $99/month, with the first month $49 for our first founding customers: ${link("/bid-scout?source=outreach", i.kind, i.contactId)}`,
+      `If you'd rather have them every morning, Contrax Starter is $5 for the first month, then $19/month, cancel anytime: ${link("/pricing", i.kind, i.contactId)}`,
       "",
-      `Or search on your own with Starter, $5 for the first month: ${link("/pricing", i.kind, i.contactId)}`,
+      `Or, if you don't have time to dig through bids at all, Bid Scout sends you 5 handpicked for ${i.business} every Friday, each with the requirements in plain English and what to do next. First month $49 for our founding customers: ${link("/bid-scout?source=outreach", i.kind, i.contactId)}`,
       "",
       "Either way, good luck on the bid.",
     ];

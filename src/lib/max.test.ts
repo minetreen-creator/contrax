@@ -4,8 +4,12 @@ import {
   MAX_TOOLS,
   certEligible,
   fitCerts,
+  maxBidContext,
   maxEasterEgg,
+  maxPickGreeting,
   maxPrompt,
+  mergeCapability,
+  parseCapability,
   parseBidRef,
   parseMaxReply,
   rankFit,
@@ -18,8 +22,8 @@ import {
 
 describe("Max replies", () => {
   test("parses the JSON reply and keeps only known CTAs and states", () => {
-    expect(parseMaxReply(JSON.stringify({ say: "Found 3.", cta: "email", trade: "janitorial", state: "ut" }))).toEqual({ say: "Found 3.", cta: "email", trade: "janitorial", state: "UT", remindBid: null, lang: "en" });
-    expect(parseMaxReply(JSON.stringify({ say: "Hi", cta: "buy now", state: "ZZ" }))).toEqual({ say: "Hi", cta: null, trade: null, state: null, remindBid: null, lang: "en" });
+    expect(parseMaxReply(JSON.stringify({ say: "Found 3.", cta: "email", trade: "janitorial", state: "ut" }))).toEqual({ say: "Found 3.", cta: "email", trade: "janitorial", state: "UT", remindBid: null, lang: "en", capability: null });
+    expect(parseMaxReply(JSON.stringify({ say: "Hi", cta: "buy now", state: "ZZ" }))).toEqual({ say: "Hi", cta: null, trade: null, state: null, remindBid: null, lang: "en", capability: null });
     expect(parseMaxReply("plain text").say).toBe("plain text");
     expect(parseMaxReply("").say).toMatch(/lost my train/);
   });
@@ -152,5 +156,61 @@ describe("Max: reminder timing", () => {
     expect(reminderAt("2026-10-27T12:00:00Z", now)?.getTime()).toBe(now);
     expect(reminderAt("2026-10-26T06:00:00Z", now)).toBeNull();
     expect(reminderAt(null, now)).toBeNull();
+  });
+});
+
+describe("Max: capability statement coach", () => {
+  test("keeps known fields, needs a company and trade", () => {
+    expect(parseCapability({ company: " Acme Clean ", trade: "Janitorial", state: "va", competencies: ["Floors", "Windows"], bogus: "x" })).toEqual({
+      company: "Acme Clean",
+      trade: "Janitorial",
+      state: "VA",
+      competencies: "Floors\nWindows",
+    });
+    expect(parseCapability({ company: "Acme" })).toBeNull();
+    expect(parseCapability("nope")).toBeNull();
+  });
+  test("a capability CTA without a usable draft is dropped", () => {
+    expect(parseMaxReply(JSON.stringify({ say: "Ready", cta: "capability", capability: { company: "Acme", trade: "HVAC" } }))).toMatchObject({ cta: "capability", capability: { company: "Acme", trade: "HVAC" } });
+    expect(parseMaxReply(JSON.stringify({ say: "Ready", cta: "capability" }))).toMatchObject({ cta: null, capability: null });
+    expect(parseMaxReply(JSON.stringify({ say: "Hi", cta: null, capability: { company: "Acme", trade: "HVAC" } })).capability).toBeNull();
+  });
+  test("fills only Launchpad's empty fields", async () => {
+    const { emptyLaunchpad } = await import("./launchpad");
+    const base = emptyLaunchpad();
+    base.profile.company = "Typed By Me LLC";
+    const { data, filled } = mergeCapability(base, { company: "Acme", trade: "HVAC", summary: "We fix HVAC." });
+    expect(data.profile.company).toBe("Typed By Me LLC");
+    expect(data.profile.trade).toBe("HVAC");
+    expect(data.profile.summary).toBe("We fix HVAC.");
+    expect(filled).toEqual(["trade", "summary"]);
+    expect(base.profile.trade).toBe("");
+  });
+  test("the prompt forbids inventing claims", () => {
+    expect(maxPrompt("Sunday")).toMatch(/Never add a claim, number, customer, certification or year they didn't give you/);
+  });
+});
+
+describe("Max: pick of the day and bid pages", () => {
+  const now = Date.parse("2026-10-25T12:00:00Z");
+  const pick = { id: 7, title: "Janitorial services for the county courthouse", agency: "Henrico County", location: "Henrico, VA", due: "2026-11-12", setAside: "Total Small Business", value: "$250,000", postedDaysAgo: 1 };
+  test("greets with reasons from the bid's own facts", () => {
+    const g = maxPickGreeting(pick, "Virginia", "en", now);
+    expect(g).toContain('My pick of the day in Virginia: "Janitorial services for the county courthouse" from Henrico County.');
+    expect(g).toContain("closes in 19 days");
+    expect(g).toContain("it's set aside for small businesses");
+    expect(g).not.toContain("business businesses");
+    expect(g).toContain("the listed value is $250,000");
+    expect(g).toContain("it just posted");
+  });
+  test("no state and no reasons still reads well; Spanish too", () => {
+    const g = maxPickGreeting({ ...pick, due: null, setAside: null, value: null, postedDaysAgo: 20 }, null, "en", now);
+    expect(g).toBe('Hi, I\'m Max. My pick of the day: "Janitorial services for the county courthouse" from Henrico County. Tell me what your business does and I\'ll find more like it.');
+    expect(maxPickGreeting(pick, "Virginia", "es", now)).toMatch(/^¡Hola! Soy Max\. Mi selección del día en Virginia/);
+  });
+  test("bid context only for a real id", () => {
+    expect(maxBidContext(123)).toContain('explain_bid with ref "123"');
+    expect(maxBidContext("x")).toBe("");
+    expect(maxBidContext(undefined)).toBe("");
   });
 });

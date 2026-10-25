@@ -7,11 +7,13 @@
  * private data (visitors, signups, revenue), only what the public site shows.
  *
  * Owner 2026-10-25 "1,2,5,7": best-fit scoring, the bid explainer, deadline
- * reminders, and Spanish.
+ * reminders, and Spanish. Owner 2026-10-25 "1,3" + "and 4": Max on every bid
+ * page, Max's pick of the day, and the capability statement coach.
  *
  * PURE: the tools, the prompt, reply parsing, fit scoring.
  */
 import { US_STATES } from "./states";
+import type { LaunchpadData, LaunchpadProfile } from "./launchpad";
 
 export const MAX_QUESTION_CHARS = 300;
 export const MAX_HISTORY_TURNS = 8;
@@ -116,7 +118,7 @@ export const MAX_TOOLS = [
   ],
 ].map(([name, description, parameters]) => ({ type: "function" as const, function: { name: name as string, description: description as string, parameters } }));
 
-export type MaxCta = "email" | "radar" | "trial" | "remind" | null;
+export type MaxCta = "email" | "radar" | "trial" | "remind" | "capability" | null;
 export type MaxLang = "en" | "es";
 
 export interface MaxReply {
@@ -130,7 +132,13 @@ export interface MaxReply {
   remindBid: number | null;
   /** The language Max answered in (the page speaks and listens in it). */
   lang: MaxLang;
+  /** A capability statement draft from the visitor's own answers (cta "capability"). */
+  capability: MaxCapability | null;
 }
+
+/** The Launchpad fields Max's interview fills (src/lib/launchpad.ts). */
+export const CAPABILITY_FIELDS = ["company", "trade", "state", "summary", "competencies", "differentiators", "experience", "certifications", "naics"] as const;
+export type MaxCapability = Partial<Record<(typeof CAPABILITY_FIELDS)[number], string>>;
 
 export function maxPrompt(now: string): string {
   return [
@@ -145,6 +153,7 @@ export function maxPrompt(now: string): string {
     "- Add the one insight that matters: a deadline coming up fast, a set-aside that fits, a big incumbent whose contract is ending, a prime to approach.",
     "- When they tell you about their business (trade, state, certifications like woman-owned, veteran-owned, 8(a), HUBZone), use best_fit_bids and explain in a sentence why the top one fits them.",
     "- When they paste a bid link or number, use explain_bid and give a plain-English verdict: what the buyer wants, when it's due, who can bid (set-aside), who already does similar work there, and whether it looks worth chasing for a small business. Say 'similar work', never claim a company won this exact contract unless the tool says so.",
+    "- Capability statement coach: when they want help with a capability statement, interview them a little at a time (two questions per turn, short): company name, what they do and where; their core services; what sets them apart; past jobs or customers; certifications. Once you have at least the company name, trade and core services, set cta to \"capability\" and fill capability with THEIR answers, lightly polished into professional wording (summary: 2 sentences; competencies and experience: short lines separated by newlines). Never add a claim, number, customer, certification or year they didn't give you; leave a field out if they didn't cover it. Tell them it's ready to finish in Launchpad, where they add contact details and print it. Answer in their language but write the capability fields in English.",
     "- General how-to questions (SAM.gov registration, UEI, NAICS codes, set-asides like 8(a), HUBZone, SDVOSB, WOSB, capability statements, subcontracting, how bidding works) you answer from your own knowledge, briefly and practically. Don't quote exact dollar thresholds or deadlines unless a tool gave them.",
     "",
     "Honesty is non-negotiable: never invent a bid, company, amount, date or event. Only state facts the tools returned. If you don't know, say so. You cannot submit bids, contact agencies, save anything, or see the visitor's account. Never ask for or repeat personal details beyond an email.",
@@ -153,7 +162,7 @@ export function maxPrompt(now: string): string {
     "",
     "Language: if the visitor writes in Spanish, or the page says the visitor chose Spanish, answer entirely in natural, friendly Latin American Spanish and set lang to \"es\". Otherwise answer in English with lang \"en\". Bid titles stay as published.",
     "",
-    "Reply with a JSON object: {\"say\": string, \"cta\": \"email\" | \"remind\" | \"radar\" | \"trial\" | null, \"remind_bid\": number | null, \"trade\": string | null, \"state\": string | null, \"lang\": \"en\" | \"es\"}. trade is the plain English trade word the conversation is about (e.g. janitorial), state the two-letter code.",
+    "Reply with a JSON object: {\"say\": string, \"cta\": \"email\" | \"remind\" | \"capability\" | \"radar\" | \"trial\" | null, \"remind_bid\": number | null, \"capability\": {\"company\", \"trade\", \"state\", \"summary\", \"competencies\", \"differentiators\", \"experience\", \"certifications\", \"naics\"} | null, \"trade\": string | null, \"state\": string | null, \"lang\": \"en\" | \"es\"}. trade is the plain English trade word the conversation is about (e.g. janitorial), state the two-letter code.",
     `Today is ${now} (Eastern).`,
   ].join("\n");
 }
@@ -165,16 +174,105 @@ export function parseMaxReply(raw: string, lang: MaxLang = "en"): MaxReply {
   try {
     obj = JSON.parse(raw);
   } catch {
-    return { say: raw.trim().slice(0, MAX_SAY_CHARS) || fallback, cta: null, trade: null, state: null, remindBid: null, lang };
+    return { say: raw.trim().slice(0, MAX_SAY_CHARS) || fallback, cta: null, trade: null, state: null, remindBid: null, lang, capability: null };
   }
   const o = (obj && typeof obj === "object" ? obj : {}) as Record<string, unknown>;
   const say = typeof o.say === "string" && o.say.trim() ? o.say.trim().slice(0, MAX_SAY_CHARS) : fallback;
   const remindBid = Number.isInteger(o.remind_bid) && (o.remind_bid as number) > 0 ? (o.remind_bid as number) : null;
-  let cta: MaxCta = o.cta === "email" || o.cta === "radar" || o.cta === "trial" || o.cta === "remind" ? o.cta : null;
+  let cta: MaxCta = o.cta === "email" || o.cta === "radar" || o.cta === "trial" || o.cta === "remind" || o.cta === "capability" ? o.cta : null;
   if (cta === "remind" && !remindBid) cta = "email";
+  const capability = parseCapability(o.capability);
+  if (cta === "capability" && !capability) cta = null;
   const trade = typeof o.trade === "string" && o.trade.trim() ? o.trade.trim().slice(0, 60) : null;
   const outLang: MaxLang = o.lang === "es" ? "es" : o.lang === "en" ? "en" : lang;
-  return { say, cta, trade, state: stateCode(o.state), remindBid, lang: outLang };
+  return { say, cta, trade, state: stateCode(o.state), remindBid, lang: outLang, capability: cta === "capability" ? capability : null };
+}
+
+const CAP_LIMITS: Record<(typeof CAPABILITY_FIELDS)[number], number> = {
+  company: 120,
+  trade: 80,
+  state: 2,
+  summary: 700,
+  competencies: 900,
+  differentiators: 700,
+  experience: 900,
+  certifications: 300,
+  naics: 120,
+};
+
+/** The model's capability draft: known fields only, trimmed; null without a company and trade. */
+export function parseCapability(v: unknown): MaxCapability | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  const out: MaxCapability = {};
+  for (const f of CAPABILITY_FIELDS) {
+    const raw = o[f];
+    const text = Array.isArray(raw) ? raw.filter((x) => typeof x === "string").join("\n") : typeof raw === "string" ? raw : "";
+    const val = f === "state" ? stateCode(text) ?? "" : text.trim().slice(0, CAP_LIMITS[f]);
+    if (val) out[f] = val;
+  }
+  return out.company && out.trade ? out : null;
+}
+
+/**
+ * Hand Max's draft to Launchpad (its localStorage workspace): fills only the
+ * fields that are still empty, so nothing the visitor typed is ever replaced.
+ */
+export function mergeCapability(data: LaunchpadData, cap: MaxCapability): { data: LaunchpadData; filled: string[] } {
+  const profile: LaunchpadProfile = { ...data.profile };
+  const filled: string[] = [];
+  for (const f of CAPABILITY_FIELDS) {
+    const v = cap[f];
+    if (v && !profile[f].trim()) {
+      profile[f] = v;
+      filled.push(f);
+    }
+  }
+  return { data: { ...data, profile, updatedAt: filled.length ? new Date().toISOString() : data.updatedAt }, filled };
+}
+
+/**
+ * Max's pick of the day (owner 2026-10-25, "3"): one open bid near the
+ * visitor, greeted with reasons built only from the bid's own facts (no AI
+ * call, nothing invented).
+ */
+export interface MaxPick {
+  id: number;
+  title: string;
+  agency: string | null;
+  location: string | null;
+  due: string | null;
+  setAside: string | null;
+  value: string | null;
+  postedDaysAgo: number | null;
+}
+
+export function maxPickGreeting(pick: MaxPick, stateName: string | null, lang: MaxLang = "en", now: number = Date.now()): string {
+  const days = pick.due ? Math.ceil((Date.parse(`${pick.due}T23:59:00Z`) - now) / 86_400_000) : null;
+  const program = setAsideProgram(pick.setAside);
+  const es = lang === "es";
+  const why: string[] = [];
+  if (days != null && days > 0) why.push(es ? `cierra en ${days} días, tiempo de sobra para prepararte` : `it closes in ${days} days, so there's time to prepare`);
+  if (program !== "open" && program !== "other") why.push(es ? `está reservado para ${program === "small" ? "pequeños negocios" : `negocios ${PROGRAM_NAME[program]}`}` : `it's set aside for ${program === "small" ? "small businesses" : `${PROGRAM_NAME[program]} businesses`}`);
+  if (pick.value) why.push(es ? `el valor publicado es ${pick.value}` : `the listed value is ${pick.value}`);
+  if (pick.postedDaysAgo != null && pick.postedDaysAgo <= 3) why.push(es ? "se publicó hace poco" : "it just posted");
+  const where = stateName ? (es ? ` en ${stateName}` : ` in ${stateName}`) : "";
+  const buyer = pick.agency ? (es ? ` de ${pick.agency}` : ` from ${pick.agency}`) : "";
+  const reason = why.length ? (es ? ` Me gusta porque ${joinList(why, "y")}.` : ` I like it because ${joinList(why, "and")}.`) : "";
+  return es
+    ? `¡Hola! Soy Max. Mi selección del día${where}: "${pick.title}"${buyer}.${reason} ¿A qué se dedica tu negocio? Te busco más.`
+    : `Hi, I'm Max. My pick of the day${where}: "${pick.title}"${buyer}.${reason} Tell me what your business does and I'll find more like it.`;
+}
+
+function joinList(items: string[], and: string): string {
+  return items.length <= 1 ? items.join("") : `${items.slice(0, -1).join(", ")} ${and} ${items[items.length - 1]}`;
+}
+
+/** Bid pages (owner 2026-10-25, "1"): tell Max which bid "this" is. */
+export function maxBidContext(bidId: unknown): string {
+  const id = Number(bidId);
+  if (!Number.isInteger(id) || id <= 0) return "";
+  return `\nThe visitor is reading the Contrax page for bid #${id}. "This bid", "this one" or "it" means that bid: call explain_bid with ref "${id}" before answering about it. To offer a reminder for it, use remind_bid ${id}.`;
 }
 
 /**

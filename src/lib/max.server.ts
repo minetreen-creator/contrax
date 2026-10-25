@@ -14,6 +14,7 @@ import {
   MAX_TOOL_ROUNDS,
   MAX_TOOLS,
   fitCerts,
+  maxBidContext,
   maxPrompt,
   parseBidRef,
   parseMaxReply,
@@ -21,6 +22,7 @@ import {
   sanitizeMaxHistory,
   stateCode,
   type MaxLang,
+  type MaxPick,
   type MaxReply,
 } from "~/lib/max";
 
@@ -130,14 +132,14 @@ async function runTool(name: string, args: Record<string, unknown>): Promise<Too
         ? ((await Promise.all([
             db.query(
               `SELECT DISTINCT ON (recipient_name) recipient_name AS company, amount, COALESCE(sub_agency, agency) AS agency, end_date AS ends, LEFT(COALESCE(description, ''), 120) AS what
-               FROM recompete_contracts WHERE naics_code = $1 AND ($2::text IS NULL OR pop_state = $2) AND end_date >= CURRENT_DATE
-                 AND ($3::text IS NULL OR COALESCE(sub_agency, '') || ' ' || COALESCE(agency, '') ILIKE '%' || $3 || '%')
+               FROM recompete_contracts WHERE naics_code = $1 AND ($2::text IS NULL OR pop_state = $2::text) AND end_date >= CURRENT_DATE
+                 AND ($3::text IS NULL OR COALESCE(sub_agency, '') || ' ' || COALESCE(agency, '') ILIKE '%' || $3::text || '%')
                ORDER BY recipient_name, amount DESC LIMIT 5`,
               [naics, b.state ?? null, agencyWord],
             ).catch(() => []),
             db.query(
               `SELECT recipient_name AS company, amount, COALESCE(sub_agency, agency) AS agency, awarded_on, LEFT(COALESCE(description, ''), 120) AS what
-               FROM award_leads WHERE naics_code = $1 AND ($2::text IS NULL OR pop_state = $2 OR recipient_state = $2)
+               FROM award_leads WHERE naics_code = $1 AND ($2::text IS NULL OR pop_state = $2::text OR recipient_state = $2::text)
                ORDER BY awarded_on DESC NULLS LAST LIMIT 5`,
               [naics, b.state ?? null],
             ).catch(() => []),
@@ -283,11 +285,11 @@ async function answer(model: string, messages: ChatMsg[]): Promise<{ raw: string
 }
 
 /** One visitor question in, Max's reply and the bid cards to show out. */
-export async function askMax(input: { question: string; history: unknown; lang?: MaxLang }): Promise<MaxReply & { bids: MaxBidCard[] }> {
+export async function askMax(input: { question: string; history: unknown; lang?: MaxLang; bidId?: unknown }): Promise<MaxReply & { bids: MaxBidCard[] }> {
   const lang: MaxLang = input.lang === "es" ? "es" : "en";
   const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York", weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const messages: ChatMsg[] = [
-    { role: "system", content: maxPrompt(now) + (lang === "es" ? "\nThe visitor chose Spanish on the page." : "") },
+    { role: "system", content: maxPrompt(now) + (lang === "es" ? "\nThe visitor chose Spanish on the page." : "") + maxBidContext(input.bidId) },
     ...sanitizeMaxHistory(input.history),
     { role: "user", content: input.question.trim().slice(0, MAX_QUESTION_CHARS) },
   ];
@@ -299,7 +301,7 @@ export async function askMax(input: { question: string; history: unknown; lang?:
     if (status !== 400 && status !== 404) {
       console.error("[max] failed:", sanitizeLogString(err));
       const say = lang === "es" ? "Perdón, no puedo conectarme ahora mismo. Inténtalo de nuevo en un momento." : "Sorry, I'm having trouble reaching my brain right now. Try me again in a moment.";
-      return { say, cta: null, trade: null, state: null, remindBid: null, lang, bids: [] };
+      return { say, cta: null, trade: null, state: null, remindBid: null, lang, capability: null, bids: [] };
     }
     out = await answer(FALLBACK_MODEL, [...messages]).catch(() => ({ raw: "", cards: [] }));
   }
@@ -316,4 +318,41 @@ const MAX_STYLE_ES =
 
 export function maxSpeech(text: string, lang: MaxLang = "en"): Promise<ArrayBuffer | null> {
   return jarvisSpeech(text, { voice: MAX_VOICE, style: lang === "es" ? MAX_STYLE_ES : MAX_STYLE });
+}
+
+/**
+ * Max's pick of the day (src/lib/max.ts maxPickGreeting): one open bid in the
+ * state, due in 7 to 45 days, favoring set-asides, a listed value and fresh
+ * postings. The tie-break hashes the bid id with today's date, so the pick
+ * holds all day and changes tomorrow. Nationwide when the state is unknown.
+ */
+export async function maxPickOfTheDay(state: string | null): Promise<MaxPick | null> {
+  const day = new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" });
+  const rows = (await sql().query(
+    `SELECT id, title, agency, location, set_aside, estimated_value, due_date,
+            FLOOR(EXTRACT(EPOCH FROM (NOW() - created_at)) / 86400)::int AS posted_days_ago
+     FROM bids
+     WHERE ${OPEN()} AND due_date > NOW() + INTERVAL '7 days' AND due_date < NOW() + INTERVAL '45 days'
+       AND ($1::text IS NULL OR normalized_state = $1::text)
+       AND length(title) BETWEEN 20 AND 160
+     ORDER BY (CASE WHEN set_aside IS NOT NULL AND set_aside::text !~* '^(none|n/a|na|)$' THEN 2 ELSE 0 END)
+            + (CASE WHEN NULLIF(estimated_value::text, '') IS NOT NULL THEN 1 ELSE 0 END)
+            + (CASE WHEN created_at > NOW() - INTERVAL '3 days' THEN 1 ELSE 0 END) DESC,
+            md5(id::text || $2)
+     LIMIT 1`,
+    [state, day],
+  )) as Record<string, any>[];
+  const r = rows[0];
+  if (!r) return null;
+  const b = mapSeoBid(r);
+  return {
+    id: b.id,
+    title: b.title,
+    agency: b.agency,
+    location: b.location,
+    due: b.due_date ? new Date(b.due_date).toISOString().slice(0, 10) : null,
+    setAside: b.set_aside,
+    value: b.estimated_value ? (/^\d+(\.\d+)?$/.test(b.estimated_value) ? `$${Math.round(Number(b.estimated_value)).toLocaleString("en-US")}` : b.estimated_value.slice(0, 40)) : null,
+    postedDaysAgo: r.posted_days_ago == null ? null : Number(r.posted_days_ago),
+  };
 }

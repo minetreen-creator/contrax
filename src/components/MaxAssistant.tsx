@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { KONAMI, maxEasterEgg, type MaxCta, type MaxEffect, type MaxLang } from "~/lib/max";
+import { KONAMI, maxEasterEgg, mergeCapability, type MaxCapability, type MaxCta, type MaxEffect, type MaxLang } from "~/lib/max";
+import { LAUNCHPAD_KEY, emptyLaunchpad, parseLaunchpad } from "~/lib/launchpad";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
 import { markEmailGiven } from "~/lib/return-visitor";
@@ -10,6 +11,11 @@ import { markEmailGiven } from "~/lib/return-visitor";
  * shows the real bids. Secret phrases trigger effects (maxEasterEgg). Every
  * bid card has "Remind me" (/api/max/remind), and the EN/ES switch makes Max
  * listen, answer and speak in Spanish.
+ *
+ * On the homepage Max opens with his pick of the day (/api/max/pick). On a bid
+ * page (`bid` prop) he starts collapsed as "Ask Max about this bid" and knows
+ * which bid "this" is. A capability statement interview ends with a draft
+ * handed to Launchpad (mergeCapability).
  */
 
 interface BidCard {
@@ -53,14 +59,19 @@ const SUGGESTIONS: Record<MaxLang, string[]> = {
     "Any cleaning contracts in Virginia?",
     "I'm a woman-owned landscaping company in Ohio. What should I bid on?",
     "Who's winning construction work in Texas?",
-    "Industry days in South Carolina?",
+    "Help me write my capability statement",
   ],
   es: [
     "¿Hay contratos de limpieza en Virginia?",
     "Tengo una compañía de construcción en Texas. ¿A qué debo ofertar?",
     "¿Quién está ganando contratos de jardinería en Florida?",
-    "¿Cómo empiezo con los contratos del gobierno?",
+    "Ayúdame a escribir mi declaración de capacidades",
   ],
+};
+
+const BID_SUGGESTIONS: Record<MaxLang, string[]> = {
+  en: ["Explain this bid in plain English", "Is this worth bidding on for a small business?", "Who already does this kind of work?", "What do I need to bid on this?"],
+  es: ["Explícame esta oferta en palabras simples", "¿Vale la pena para un pequeño negocio?", "¿Quién ya hace este tipo de trabajo?", "¿Qué necesito para ofertar?"],
 };
 
 const T = {
@@ -115,7 +126,8 @@ function dueLabel(d: string | null, lang: MaxLang = "en"): string {
   return `${T[lang].due} ${new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
 }
 
-export function MaxAssistant() {
+export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = {}) {
+  const [open, setOpen] = useState(!bid);
   const [state, setState] = useState<MaxState>("idle");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [bids, setBids] = useState<BidCard[]>([]);
@@ -123,6 +135,7 @@ export function MaxAssistant() {
   const [lang, setLang] = useState<MaxLang>("en");
   const [remindFor, setRemindFor] = useState<number | null>(null);
   const [email, setEmail] = useState("");
+  const [capability, setCapability] = useState<MaxCapability | null>(null);
   const [typed, setTyped] = useState("");
   const [voiceOn, setVoiceOn] = useState(true);
   const [hasMic, setHasMic] = useState(false);
@@ -134,9 +147,27 @@ export function MaxAssistant() {
   turnsRef.current = turns;
   const t = T[lang];
 
-  // A Spanish-speaking browser starts in Spanish.
+  // A Spanish-speaking browser starts in Spanish. On the homepage Max then
+  // greets with his pick of the day (shown, not spoken: browsers block sound
+  // until the visitor interacts).
   useEffect(() => {
-    if (typeof navigator !== "undefined" && navigator.language?.toLowerCase().startsWith("es")) setLang("es");
+    const l: MaxLang = typeof navigator !== "undefined" && navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
+    if (l === "es") setLang("es");
+    if (bid) return;
+    let alive = true;
+    fetch(`/api/max/pick?lang=${l}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { pick?: BidCard & { value?: string | null }; say?: string } | null) => {
+        if (!alive || !j?.pick || !j.say || turnsRef.current.length) return;
+        const p = j.pick;
+        setTurns([{ role: "assistant", content: j.say }]);
+        setBids([{ id: p.id, title: p.title, agency: p.agency, location: p.location, due: p.due, setAside: p.setAside }]);
+        trackEvent("max_pick_view", String(p.id));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => setHasMic(!!makeRecognizer()), []);
@@ -227,8 +258,8 @@ export function MaxAssistant() {
       }
       trackEvent("max_ask", q.slice(0, 80));
       setState("thinking");
-      const res = await fetch("/api/max/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: q, history, lang }) });
-      const j = (await res.json().catch(() => ({}))) as { say?: string; error?: string; bids?: BidCard[]; cta?: MaxCta; remindBid?: number | null; trade?: string | null; state?: string | null; lang?: MaxLang };
+      const res = await fetch("/api/max/ask", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ question: q, history, lang, bid_id: bid?.id }) });
+      const j = (await res.json().catch(() => ({}))) as { say?: string; error?: string; bids?: BidCard[]; cta?: MaxCta; remindBid?: number | null; capability?: MaxCapability | null; trade?: string | null; state?: string | null; lang?: MaxLang };
       const say = j.say ?? (res.status === 429 ? t.limit : j.error ?? t.oops);
       const replyLang: MaxLang = j.lang === "es" || j.lang === "en" ? j.lang : lang;
       if (replyLang !== lang) {
@@ -239,6 +270,10 @@ export function MaxAssistant() {
       if (j.bids?.length) setBids(j.bids.slice(0, 4));
       setCta({ kind: j.cta ?? null, trade: j.trade ?? null, state: j.state ?? null, bid: j.remindBid ?? null });
       if (j.cta === "remind" && j.remindBid) setRemindFor(j.remindBid);
+      if (j.cta === "capability" && j.capability) {
+        setCapability(j.capability);
+        trackEvent("max_capability_ready", j.capability.trade ?? "");
+      }
       await speak(say, replyLang);
     } catch {
       setNote(t.offline);
@@ -275,16 +310,40 @@ export function MaxAssistant() {
   };
 
   const last = turns.slice(-4);
+  const asked = turns.some((m) => m.role === "user");
+  const suggestions = (bid ? BID_SUGGESTIONS : SUGGESTIONS)[lang];
+
+  if (!open) {
+    return (
+      <section aria-label="Ask Max about this bid" className="mt-6">
+        <style>{MAX_CSS}</style>
+        <button
+          type="button"
+          onClick={() => {
+            setOpen(true);
+            trackEvent("max_bid_open", String(bid?.id ?? ""));
+          }}
+          className="max-wrap flex w-full items-center gap-4 rounded-2xl border border-cyan-400/40 bg-[#050d1f] p-4 text-left text-white hover:border-cyan-300"
+        >
+          <span className="max-heart max-mini" aria-hidden="true">MAX</span>
+          <span className="min-w-0">
+            <span className="block text-lg font-extrabold">Ask Max about this bid 🤖</span>
+            <span className="block text-sm text-slate-400">Plain-English summary, who can bid, who already does this work, and whether it's worth chasing.</span>
+          </span>
+        </button>
+      </section>
+    );
+  }
   const label = { idle: hasMic ? t.idleMic : t.idle, listening: t.listening, thinking: t.thinking, speaking: t.speaking }[state];
   const remindBid = remindFor ? bids.find((b) => b.id === remindFor) ?? null : null;
 
   return (
-    <section aria-label="Ask Max, the Contrax AI" className={`max-wrap fx-${effect ?? "none"} relative overflow-hidden bg-[#050d1f] px-4 py-14 text-white sm:px-8`}>
+    <section aria-label="Ask Max, the Contrax AI" className={`max-wrap fx-${effect ?? "none"} relative overflow-hidden bg-[#050d1f] px-4 text-white sm:px-8 ${bid ? "mt-6 rounded-3xl border border-cyan-400/30 py-6" : "py-14"}`}>
       <style>{MAX_CSS}</style>
       <div className="max-grid" aria-hidden="true" />
       {effect === "money" || effect === "konami" ? <Rain glyph={effect === "money" ? "$" : "★"} /> : null}
       {effect === "beam" ? <div className="max-beam" aria-hidden="true" /> : null}
-      <div className={`max-panel relative mx-auto grid max-w-6xl gap-10 lg:grid-cols-[320px_1fr] lg:items-center`}>
+      <div className={`max-panel relative mx-auto grid max-w-6xl gap-10 ${bid ? "max-compact gap-4" : "lg:grid-cols-[320px_1fr]"} lg:items-center`}>
         <div className="flex flex-col items-center text-center">
           <button type="button" onClick={listen} className={`max-core is-${state}`} aria-label="Talk to Max">
             <span className="max-ring r1" />
@@ -317,12 +376,22 @@ export function MaxAssistant() {
         </div>
 
         <div className="min-w-0">
-          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl" lang={lang}>
-            {t.title[0]}
-            <span className="text-cyan-300">{t.title[1]}</span>
-            {t.title[2]}
-          </h2>
-          <p className="mt-2 text-slate-300">{t.sub}</p>
+          {bid ? (
+            <h2 className="text-2xl font-extrabold tracking-tight" lang={lang}>
+              {lang === "es" ? "Pregúntale a " : "Ask "}
+              <span className="text-cyan-300">Max</span>
+              {lang === "es" ? " sobre esta oferta" : " about this bid"}
+            </h2>
+          ) : (
+            <>
+              <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl" lang={lang}>
+                {t.title[0]}
+                <span className="text-cyan-300">{t.title[1]}</span>
+                {t.title[2]}
+              </h2>
+              <p className="mt-2 text-slate-300">{t.sub}</p>
+            </>
+          )}
 
           {last.length ? (
             <ul className="mt-5 space-y-2" aria-live="polite">
@@ -332,15 +401,16 @@ export function MaxAssistant() {
                 </li>
               ))}
             </ul>
-          ) : (
+          ) : null}
+          {!asked ? (
             <div className="mt-5 flex flex-wrap gap-2">
-              {SUGGESTIONS[lang].map((s) => (
+              {suggestions.map((s) => (
                 <button key={s} type="button" onClick={() => ask(s)} className="rounded-full border border-cyan-400/30 bg-cyan-400/5 px-4 py-2 text-sm text-cyan-100 hover:bg-cyan-400/15">
                   {s}
                 </button>
               ))}
             </div>
-          )}
+          ) : null}
 
           {bids.length ? (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -373,6 +443,7 @@ export function MaxAssistant() {
 
           {remindFor ? <MaxRemind key={remindFor} bidId={remindFor} title={remindBid?.title ?? null} lang={lang} email={email} onEmail={setEmail} /> : null}
 
+          {capability ? <MaxCapabilityCard cap={capability} lang={lang} /> : null}
           {cta.kind === "email" && !remindFor ? <MaxEmail trade={cta.trade} state={cta.state} lang={lang} /> : null}
           {cta.kind === "radar" ? (
             <a href={`/radar?${new URLSearchParams({ cert: "sdvosb", size: "any", ...(cta.trade ? { trade: cta.trade } : {}), ...(cta.state ? { state: cta.state } : {}) })}`} onClick={() => trackEvent("max_cta_radar", cta.trade ?? "")} className="mt-4 inline-block rounded-xl bg-amber-500 px-5 py-3 font-bold text-slate-950">
@@ -457,6 +528,43 @@ function MaxEmail({ trade, state, lang }: { trade: string | null; state: string 
   );
 }
 
+/** The capability statement coach's handoff: fill Launchpad's empty fields, then open it. */
+function MaxCapabilityCard({ cap, lang }: { cap: MaxCapability; lang: MaxLang }) {
+  const es = lang === "es";
+  const [error, setError] = useState(false);
+  const open = () => {
+    try {
+      let current = emptyLaunchpad();
+      try {
+        current = parseLaunchpad(localStorage.getItem(LAUNCHPAD_KEY));
+      } catch {
+        /* unreadable draft: start fresh rather than lose Max's */
+      }
+      const { data, filled } = mergeCapability(current, cap);
+      localStorage.setItem(LAUNCHPAD_KEY, JSON.stringify(data));
+      trackEvent("max_capability_open", String(filled.length));
+      window.location.href = "/launchpad#capability-builder";
+    } catch {
+      setError(true);
+    }
+  };
+  return (
+    <div className="mt-4 rounded-2xl border border-emerald-400/40 bg-emerald-400/10 p-4">
+      <p className="text-sm font-bold text-emerald-200">📄 {es ? "Tu borrador de declaración de capacidades está listo" : "Your capability statement draft is ready"}</p>
+      <p className="mt-1 text-sm text-emerald-100/80">
+        <b>{cap.company}</b>
+        {cap.trade ? ` · ${cap.trade}` : ""}
+        {cap.summary ? ` — ${cap.summary.slice(0, 160)}${cap.summary.length > 160 ? "…" : ""}` : ""}
+      </p>
+      <button type="button" onClick={open} className="mt-3 rounded-xl bg-emerald-400 px-4 py-2.5 font-bold text-slate-950">
+        {es ? "Terminarla en Launchpad →" : "Finish it in Launchpad →"}
+      </button>
+      <p className="mt-2 text-xs text-emerald-100/60">{es ? "Gratis. Agregas tus datos de contacto y la imprimes. Nada de lo que ya escribiste se reemplaza." : "Free. Add your contact details and print it. Anything you already typed there is kept."}</p>
+      {error ? <p className="mt-2 text-xs text-red-300">{es ? "Tu navegador bloqueó el guardado. Abre Launchpad y copia el borrador." : "Your browser blocked saving. Open Launchpad and copy the draft in."}</p> : null}
+    </div>
+  );
+}
+
 /** "Remind me before it closes" (src/lib/max-reminders.server.ts). */
 function MaxRemind({ bidId, title, lang, email, onEmail }: { bidId: number; title: string | null; lang: MaxLang; email: string; onEmail: (v: string) => void }) {
   const es = lang === "es";
@@ -538,6 +646,9 @@ const MAX_CSS = `
 .max-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(34,211,238,.06) 1px,transparent 1px),linear-gradient(90deg,rgba(34,211,238,.06) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at 30% 40%,#000 30%,transparent 75%)}
 .max-core{position:relative;width:190px;height:190px;border-radius:9999px;display:grid;place-items:center;cursor:pointer;background:radial-gradient(circle,rgba(34,211,238,.35),rgba(8,47,73,.2) 60%,transparent 70%);transition:transform .3s}
 .max-core:hover{transform:scale(1.04)}
+.max-compact .max-core{width:150px;height:150px}
+.max-compact .max-heart{width:64px;height:64px;font-size:13px}
+.max-heart.max-mini{flex:none;width:56px;height:56px;font-size:12px}
 .max-ring{position:absolute;inset:0;border-radius:9999px;border:2px solid rgba(34,211,238,.55);animation:maxspin 9s linear infinite}
 .max-ring.r1{border-style:dashed}
 .max-ring.r2{inset:18px;border-color:rgba(165,243,252,.45);animation-duration:6s;animation-direction:reverse;border-width:3px;border-left-color:transparent}

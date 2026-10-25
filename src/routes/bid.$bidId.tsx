@@ -6,6 +6,7 @@ import { sql } from "~/db";
 import { RfpSummaryCard } from "~/components/RfpSummaryCard";
 import { resolveBidState, STATE_CODE_TO_NAME } from "~/lib/location-state";
 import { BidAlertCapture } from "~/components/BidAlertCapture";
+import { MaxAssistant } from "~/components/MaxAssistant";
 import {
   bidCanonicalUrl,
   bidSeoDescription,
@@ -338,6 +339,8 @@ function BidDetailPage() {
                 </a>
               </p>
             )}
+
+            <MaxAssistant bid={{ id: bid.id, title: bid.title }} />
 
             <BidAlertCapture naicsCode={bid.naics_code} stateCode={bid.state_code} />
 

@@ -7,7 +7,7 @@ import { noticeKeySql } from "~/lib/notice-dedupe";
 import { expandTrade, isStrongTradeMatch, tradeKeywordPred } from "~/lib/trade-registry";
 import { filterBidsToState, mapSeoBid, type SeoBid } from "~/lib/seo-landing";
 import { STATE_CODE_TO_NAME } from "~/lib/location-state";
-import { jarvisSpeech } from "~/lib/jarvis.server";
+import { speechWithStatus } from "~/lib/jarvis.server";
 import {
   MAX_QUESTION_CHARS,
   MAX_RECOMPETE_TRADES,
@@ -317,13 +317,13 @@ export async function askMax(input: { question: string; history: unknown; lang?:
 /** Max's voice (owner 2026-10-25: "give it an american accent too"). */
 const MAX_VOICE = process.env.MAX_VOICE || "ash";
 const MAX_STYLE =
-  "Voice: a friendly, confident American man in his thirties with a natural General American accent. Upbeat, warm and clear, like a sharp business advisor talking to a small business owner. Natural pace, conversational.";
+  "Voice: a friendly, confident American guy in his thirties with a relaxed General American accent. Sound like a real person talking to a friend over coffee, not an announcer or an assistant: warm, easygoing, a little smile in the voice. Vary your pitch and pace naturally, take small breaths between thoughts, and lean into the interesting part. Never sound flat, clipped or robotic.";
 
 const MAX_STYLE_ES =
   "Voice: a friendly, confident man in his thirties speaking natural, neutral Latin American Spanish. Upbeat, warm and clear, like a sharp business advisor talking to a small business owner. Natural pace, conversational.";
 
-export function maxSpeech(text: string, lang: MaxLang = "en"): Promise<ArrayBuffer | null> {
-  return jarvisSpeech(text, { voice: MAX_VOICE, style: lang === "es" ? MAX_STYLE_ES : MAX_STYLE });
+export function maxSpeech(text: string, lang: MaxLang = "en") {
+  return speechWithStatus(text, { voice: MAX_VOICE, style: lang === "es" ? MAX_STYLE_ES : MAX_STYLE });
 }
 
 /**

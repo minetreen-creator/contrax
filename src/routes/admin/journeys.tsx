@@ -92,6 +92,8 @@ interface JourneysResult {
   from: string;
   to: string;
   funnel: FunnelStage[];
+  /** Max: asked a question / tried the product (Radar or Max) / gave Max an email. */
+  maxFunnel?: { askedMax: number; triedProduct: number; emailFromMax: number };
   journeys: Journey[];
   watched_returned: WatchedReturned[];
 }
@@ -751,6 +753,29 @@ function JourneysPage() {
             </div>
           )}
         </section>
+
+        {data?.maxFunnel && data.funnel.length > 0 ? (
+          <section>
+            <h2 className="text-base font-semibold text-slate-900 mb-2">
+              Max <span className="text-xs font-normal text-slate-400">· the homepage AI; asking him counts as trying the product, like a Radar search</span>
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {[
+                { label: "Asked Max a question", count: data.maxFunnel.askedMax },
+                { label: "Tried the product (Radar or Max)", count: data.maxFunnel.triedProduct },
+                { label: "Gave Max an email", count: data.maxFunnel.emailFromMax },
+              ].map((m) => (
+                <div key={m.label} className="rounded-xl border border-cyan-200 bg-white px-4 py-3">
+                  <p className="text-xs font-medium text-slate-500">{m.label}</p>
+                  <p className="mt-0.5 text-2xl font-bold text-slate-900">{m.count}</p>
+                  {data.funnel[0]?.count ? (
+                    <p className="mt-0.5 text-[11px] text-slate-500">{Math.round((m.count / data.funnel[0].count) * 1000) / 10}% of visitors</p>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <LearnFunnel days={days} />
         <RecompetesFunnel days={days} />

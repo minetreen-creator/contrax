@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { SiteHeader } from "~/components/SiteHeader";
 import { BidAlertCapture } from "~/components/BidAlertCapture";
+import { MEGAPROJECTS_URL, type Megaproject } from "~/lib/megaprojects";
 import { getStateSubcontracts, type StateSubcontractsData } from "~/lib/subcontracts/state-data";
 import { moneyText, PRIMES_SHOWN, searchPrimes, titleCase, WINNER_DAYS, WINNERS_SHOWN } from "~/lib/subcontracts/state-page";
 import { trackEvent } from "~/lib/track";
@@ -47,6 +48,7 @@ function StateSubcontractsPage() {
   const gate = useSubcontractsUnlock();
   const [primeQuery, setPrimeQuery] = useState("");
   const [showAllPrimes, setShowAllPrimes] = useState(false);
+  const megaCount = useMegaCount(d.state?.code ?? "");
   if (!d.state) {
     return (
       <div className="min-h-screen bg-slate-50">
@@ -89,6 +91,11 @@ function StateSubcontractsPage() {
           <a href="#notices" className="rounded-full bg-white/10 px-4 py-2">📣 {notices.length} open subcontract notice{notices.length === 1 ? "" : "s"}</a>
           <a href="#winners" className="rounded-full bg-white/10 px-4 py-2">🏆 {d.winnersTotal} recent winner{d.winnersTotal === 1 ? "" : "s"}</a>
           <a href="#primes" className="rounded-full bg-white/10 px-4 py-2">🏢 {d.primesTotal} prime{d.primesTotal === 1 ? "" : "s"} with sub plans</a>
+          {megaCount ? (
+            <a href={`/megaprojects?state=${code}`} className="rounded-full bg-amber-400/20 px-4 py-2 text-amber-200">
+              🏗️ {megaCount} megaproject{megaCount === 1 ? "" : "s"} hiring local subs
+            </a>
+          ) : null}
         </div>
       </section>
 
@@ -256,4 +263,21 @@ function StateSubcontractsPage() {
       </main>
     </div>
   );
+}
+
+/** How many megaprojects are in this state (src/lib/megaprojects.ts); 0 until the list loads. */
+function useMegaCount(state: string): number {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (!state) return;
+    let alive = true;
+    fetch(MEGAPROJECTS_URL)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d: Megaproject[]) => alive && setN(Array.isArray(d) ? d.filter((p) => p.state === state).length : 0))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [state]);
+  return n;
 }

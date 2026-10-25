@@ -1,0 +1,1469 @@
+[
+  {
+    "slug": "micron-clay-ny",
+    "company": "Micron",
+    "project": "Memory chip megafab",
+    "city": "Clay",
+    "state": "NY",
+    "sector": "semiconductors",
+    "amount": 100000000000,
+    "amountNote": "up to, over 20+ years, for as many as four fabs",
+    "jobs": 9000,
+    "jobsNote": "direct Micron jobs; about 50,000 statewide counting suppliers and community jobs",
+    "status": "Under construction since January 2026; first fab expected around 2030",
+    "summary": "The largest private investment in New York history: up to four memory chip fabs near Syracuse, built in phases over two decades.",
+    "generalContractor": {
+      "name": "Bechtel",
+      "url": "https://www.enr.com/articles/63140-bechtel-award-advances-micron-100b-new-york-megafab-toward-first-construction"
+    },
+    "supplierUrl": {
+      "label": "Micron supplier information",
+      "url": "https://www.micron.com/about/company/suppliers"
+    },
+    "source": {
+      "name": "Micron groundbreaking coverage (Verdict)",
+      "url": "https://www.verdict.co.uk/micron-breaks-ground-megafab/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "micron-boise-id",
+    "company": "Micron",
+    "project": "Boise memory fabs",
+    "city": "Boise",
+    "state": "ID",
+    "sector": "semiconductors",
+    "amount": null,
+    "amountNote": null,
+    "jobs": 2000,
+    "jobsNote": "direct, per the 2022 announcement",
+    "status": "First fab output mid-2027; second fab under construction since 2026",
+    "summary": "Two leading-edge memory fabs at Micron's Boise headquarters. Micron announced $15 billion for the first in 2022; the second is part of its 2025 U.S. expansion.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Micron supplier information",
+      "url": "https://www.micron.com/about/company/suppliers"
+    },
+    "source": {
+      "name": "Micron press release (SEC), Jun 2025",
+      "url": "https://www.sec.gov/Archives/edgar/data/0000723125/000110465925058741/tm2517778d1_ex99-1.htm"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "micron-manassas-va",
+    "company": "Micron",
+    "project": "Manassas DRAM fab expansion",
+    "city": "Manassas",
+    "state": "VA",
+    "sector": "semiconductors",
+    "amount": 2000000000,
+    "amountNote": "more than",
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Expanding; new DRAM production started May 2026",
+    "summary": "An expansion of Micron's existing Manassas fab to make advanced DRAM memory chips.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Micron supplier information",
+      "url": "https://www.micron.com/about/company/suppliers"
+    },
+    "source": {
+      "name": "Evertiq, May 2026",
+      "url": "https://evertiq.com/design/2026-05-26-micron-starts-1a-dram-production-at-virginia-fab-in-usd-2-billion-expansion"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "tsmc-phoenix-az",
+    "company": "TSMC",
+    "project": "Arizona chip fab complex",
+    "city": "Phoenix",
+    "state": "AZ",
+    "sector": "semiconductors",
+    "amount": 165000000000,
+    "amountNote": "total in Arizona: six fabs, two packaging plants and an R&D center",
+    "jobs": 40000,
+    "jobsNote": "construction jobs over four years",
+    "status": "First fab producing; more fabs under construction through the end of the decade",
+    "summary": "The world's biggest chipmaker's U.S. campus in north Phoenix, the largest foreign direct investment in U.S. history.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "TSMC filing (SEC), March 2025",
+      "url": "https://www.sec.gov/Archives/edgar/data/1046179/000104617925000024/tsmcexpandinvestmentintheu.htm"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "apple-houston-tx",
+    "company": "Apple",
+    "project": "Houston AI server plant",
+    "city": "Houston",
+    "state": "TX",
+    "sector": "tech",
+    "amount": null,
+    "amountNote": null,
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Operating since October 2025; Mac mini production added in 2026",
+    "summary": "Apple builds AI servers for its data centers here, part of its $600 billion U.S. investment commitment.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Apple Newsroom, February 2026",
+      "url": "https://www.apple.com/newsroom/2026/02/apple-accelerates-us-manufacturing-with-mac-mini-production/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "hyundai-translead-joliet-il",
+    "company": "Hyundai Translead",
+    "project": "Will County trailer plants",
+    "city": "Joliet",
+    "state": "IL",
+    "sector": "manufacturing",
+    "amount": 600000000,
+    "amountNote": "raised from $450 million, adding a third shift",
+    "jobs": 3750,
+    "jobsNote": "full-time",
+    "status": "Announced; two former plants being refitted, production by 2027",
+    "summary": "Commercial trailers, truck bodies and flatbeds at two retrofitted plants in Will County.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Herald-News, Oct 22, 2026",
+      "url": "https://www.shawlocal.com/the-herald-news/2026/10/22/pritzker-says-new-will-county-hyundai-plant-will-create-3750-new-jobs/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "carrier-fort-worth-tx",
+    "company": "Carrier",
+    "project": "Fort Worth chiller plant",
+    "city": "Fort Worth",
+    "state": "TX",
+    "sector": "manufacturing",
+    "amount": 600000000,
+    "amountNote": "more than, over three years",
+    "jobs": 1500,
+    "jobsNote": "manufacturing, engineering and support",
+    "status": "Announced October 2026; operations expected in 2027",
+    "summary": "Over a million square feet at AllianceTexas making commercial chillers for data centers, hospitals, schools and industry.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Carrier press release, Oct 2026",
+      "url": "https://www.carrier.com/us/en/news/corporate/2026/carrierto-invest-more-than-600-million-to-expand-advanced-us-manufacturing-and-engineering-capacity/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "blue-bird-fort-valley-ga",
+    "company": "Blue Bird",
+    "project": "Fort Valley school bus plant",
+    "city": "Fort Valley",
+    "state": "GA",
+    "sector": "automotive",
+    "amount": 300000000,
+    "amountNote": "estimated",
+    "jobs": 375,
+    "jobsNote": "over three years",
+    "status": "Announced October 2026; construction to begin early 2027",
+    "summary": "A former motorhome plant becomes a million-square-foot factory for Type C school buses (diesel, gas, propane and electric).",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Blue Bird supplier portal",
+      "url": "https://service.blue-bird.com/Portal/Supplier-Portal.aspx"
+    },
+    "source": {
+      "name": "Georgia Dept. of Economic Development, Oct 2026",
+      "url": "https://georgia.org/press-releases/2026/blue-bird-invests-300-million-peach-county"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "stellantis-belvidere-il",
+    "company": "Stellantis",
+    "project": "Belvidere Assembly reopening",
+    "city": "Belvidere",
+    "state": "IL",
+    "sector": "automotive",
+    "amount": 600000000,
+    "amountNote": "more than",
+    "jobs": 3300,
+    "jobsNote": null,
+    "status": "Announced; production expected 2027 to 2028",
+    "summary": "Reopening the idled Belvidere plant to build Jeep models, part of Stellantis' $13 billion U.S. plan.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Stellantis supplier portal",
+      "url": "https://www.esupplierconnect.com"
+    },
+    "source": {
+      "name": "Stellantis announcement, Oct 14, 2025",
+      "url": "https://www.stellantis.com/en/news/press-releases/2025/october/stellantis-to-invest-13-billion-to-grow-in-the-united-states"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "stellantis-toledo-oh",
+    "company": "Stellantis",
+    "project": "Toledo midsize truck",
+    "city": "Toledo",
+    "state": "OH",
+    "sector": "automotive",
+    "amount": 400000000,
+    "amountNote": "about",
+    "jobs": 900,
+    "jobsNote": "about",
+    "status": "Announced; production in 2028",
+    "summary": "A new midsize truck line at the Toledo Assembly Complex.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Stellantis supplier portal",
+      "url": "https://www.esupplierconnect.com"
+    },
+    "source": {
+      "name": "Stellantis announcement, Oct 14, 2025",
+      "url": "https://www.stellantis.com/en/news/press-releases/2025/october/stellantis-to-invest-13-billion-to-grow-in-the-united-states"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "stellantis-detroit-mi",
+    "company": "Stellantis",
+    "project": "Detroit Jefferson next Dodge Durango",
+    "city": "Detroit",
+    "state": "MI",
+    "sector": "automotive",
+    "amount": 130000000,
+    "amountNote": null,
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Announced; production in 2029",
+    "summary": "Tooling up the Jefferson plant for the next-generation Dodge Durango.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Stellantis supplier portal",
+      "url": "https://www.esupplierconnect.com"
+    },
+    "source": {
+      "name": "Stellantis announcement, Oct 14, 2025",
+      "url": "https://www.stellantis.com/en/news/press-releases/2025/october/stellantis-to-invest-13-billion-to-grow-in-the-united-states"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "stellantis-warren-mi",
+    "company": "Stellantis",
+    "project": "Warren Truck large SUV",
+    "city": "Warren",
+    "state": "MI",
+    "sector": "automotive",
+    "amount": 100000000,
+    "amountNote": "about",
+    "jobs": 900,
+    "jobsNote": "about",
+    "status": "Announced; production in 2028",
+    "summary": "A new large SUV at Warren Truck Assembly.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Stellantis supplier portal",
+      "url": "https://www.esupplierconnect.com"
+    },
+    "source": {
+      "name": "Stellantis announcement, Oct 14, 2025",
+      "url": "https://www.stellantis.com/en/news/press-releases/2025/october/stellantis-to-invest-13-billion-to-grow-in-the-united-states"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "stellantis-kokomo-in",
+    "company": "Stellantis",
+    "project": "Kokomo engine plant",
+    "city": "Kokomo",
+    "state": "IN",
+    "sector": "automotive",
+    "amount": 100000000,
+    "amountNote": "more than",
+    "jobs": 100,
+    "jobsNote": "more than",
+    "status": "Announced",
+    "summary": "Production of a new four-cylinder engine in Kokomo.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Stellantis supplier portal",
+      "url": "https://www.esupplierconnect.com"
+    },
+    "source": {
+      "name": "Stellantis announcement, Oct 14, 2025",
+      "url": "https://www.stellantis.com/en/news/press-releases/2025/october/stellantis-to-invest-13-billion-to-grow-in-the-united-states"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "lilly-huntsville-al",
+    "company": "Eli Lilly",
+    "project": "Huntsville medicine plant",
+    "city": "Huntsville",
+    "state": "AL",
+    "sector": "pharma",
+    "amount": 6000000000,
+    "amountNote": "more than",
+    "jobs": 450,
+    "jobsNote": "permanent, plus about 3,000 construction jobs",
+    "status": "Construction from 2026; completion expected 2032",
+    "summary": "A plant making active pharmaceutical ingredients, one of four new U.S. sites in Lilly's $27 billion plan.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Lilly supplier information",
+      "url": "https://www.lilly.com/suppliers"
+    },
+    "source": {
+      "name": "Office of Alabama Gov. Kay Ivey, Dec 2025",
+      "url": "https://governor.alabama.gov/newsroom/2025/12/governor-ivey-announces-pharmaceutical-giant-lilly-plans-6-billion-advanced-manufacturing-plant-in-huntsville/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "lilly-houston-tx",
+    "company": "Eli Lilly",
+    "project": "Houston Generation Park plant",
+    "city": "Houston",
+    "state": "TX",
+    "sector": "pharma",
+    "amount": 6500000000,
+    "amountNote": null,
+    "jobs": 615,
+    "jobsNote": "permanent, plus about 4,000 construction jobs",
+    "status": "Announced September 2025; operating within about five years",
+    "summary": "A plant making active pharmaceutical ingredients at Generation Park in northeast Houston.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Lilly supplier information",
+      "url": "https://www.lilly.com/suppliers"
+    },
+    "source": {
+      "name": "Lilly press release, Sep 2025",
+      "url": "https://www.nasdaq.com/press-release/lilly-plans-build-new-65-billion-facility-manufacture-active-pharmaceutical"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "lilly-goochland-va",
+    "company": "Eli Lilly",
+    "project": "Goochland medicine plant",
+    "city": "Goochland",
+    "state": "VA",
+    "sector": "pharma",
+    "amount": 5000000000,
+    "amountNote": null,
+    "jobs": 650,
+    "jobsNote": "permanent, plus about 1,800 construction jobs",
+    "status": "Announced September 2025; completion within about five years",
+    "summary": "A new medicine plant at West Creek Business Park, west of Richmond.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Lilly supplier information",
+      "url": "https://www.lilly.com/suppliers"
+    },
+    "source": {
+      "name": "Lilly press release, Sep 2025",
+      "url": "https://investor.lilly.com/news-releases/news-release-details/lilly-announces-plans-build-5-billion-manufacturing-facility"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "rivian-stanton-springs-ga",
+    "company": "Rivian",
+    "project": "Georgia EV plant",
+    "city": "Social Circle",
+    "state": "GA",
+    "sector": "automotive",
+    "amount": 5000000000,
+    "amountNote": null,
+    "jobs": 7500,
+    "jobsNote": "by 2030",
+    "status": "Under construction since September 2025; production in 2028",
+    "summary": "Rivian's East Coast factory at Stanton Springs North, east of Atlanta, for its R2 and R3 vehicles.",
+    "generalContractor": {
+      "name": "Clayco",
+      "url": "https://www.costar.com/article/522835006/rivian-to-open-east-coast-headquarters-in-atlanta-with-factory-construction-set-for-next-year"
+    },
+    "supplierUrl": {
+      "label": "Clayco subcontractor prequalification",
+      "url": "https://claycorp.com/contact-us/subcontractor-pre-qual"
+    },
+    "source": {
+      "name": "Rivian press release, Sep 2025",
+      "url": "https://www.businesswire.com/news/home/20250916595109/en"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "hadrian-cherokee-al",
+    "company": "Hadrian",
+    "project": "Submarine parts factory",
+    "city": "Cherokee",
+    "state": "AL",
+    "sector": "aerospace-defense",
+    "amount": 2400000000,
+    "amountNote": "$900 million from the Navy plus $1.5 billion private",
+    "jobs": 1000,
+    "jobsNote": "up to",
+    "status": "Opened March 2026; ramping up",
+    "summary": "An automated factory making parts for the Navy's Columbia- and Virginia-class submarine programs.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "U.S. Navy press release, Mar 2026",
+      "url": "https://www.navy.mil/Press-Office/Press-Releases/display-pressreleases/Article/4439992/advanced-shipbuilding-factory-of-the-future-opens-in-alabama/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "valeo-mcallen-tx",
+    "company": "Valeo",
+    "project": "McAllen vehicle computer plant",
+    "city": "McAllen",
+    "state": "TX",
+    "sector": "automotive",
+    "amount": 225000000,
+    "amountNote": "over five years",
+    "jobs": 500,
+    "jobsNote": "up to",
+    "status": "Under construction since March 2026; production late 2027",
+    "summary": "A plant making central computers for software-defined vehicles.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Valeo press release, Mar 2026",
+      "url": "https://www.barchart.com/story/news/932442/valeo-breaks-ground-on-225-million-high-tech-plant-in-mcallen-texas-for-software-defined-vehicle-technology"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "aerovironment-albuquerque-nm",
+    "company": "AeroVironment",
+    "project": "Albuquerque defense campus expansion",
+    "city": "Albuquerque",
+    "state": "NM",
+    "sector": "aerospace-defense",
+    "amount": 30000000,
+    "amountNote": "more than",
+    "jobs": 450,
+    "jobsNote": "more than, over ten years",
+    "status": "Announced March 2026",
+    "summary": "Expanding defense manufacturing (optics, ground terminals and RF systems) at Sandia Science & Technology Park.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "AeroVironment supplier portal",
+      "url": "https://suppliers.avinc.com/"
+    },
+    "source": {
+      "name": "New Mexico Economic Development Dept., Mar 2026",
+      "url": "https://edd.newmexico.gov/press-releases/av-to-expand-abq-defense-manufacturing-campus/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "niagara-elsmere-ky",
+    "company": "Niagara Bottling",
+    "project": "Elsmere bottled water plant",
+    "city": "Elsmere",
+    "state": "KY",
+    "sector": "food",
+    "amount": 141000000,
+    "amountNote": null,
+    "jobs": 60,
+    "jobsNote": "full-time",
+    "status": "Opened October 2026",
+    "summary": "Niagara's first Kentucky plant: 436,000 square feet of beverage production and distribution at the C5 Airport East Logistics Center in Kenton County.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Northern Kentucky Tribune, Oct 2026",
+      "url": "https://nkytribune.com/2026/10/niagara-bottling-celebrates-grand-opening-of-new-141-million-production-facility-in-elsmere/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "primo-hot-springs-ar",
+    "company": "Primo Brands",
+    "project": "Mountain Valley spring water plant",
+    "city": "Hot Springs",
+    "state": "AR",
+    "sector": "food",
+    "amount": null,
+    "amountNote": null,
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Opened October 14, 2026",
+    "summary": "A 200,000-square-foot plant with three production lines plus warehouse and logistics space for Mountain Valley spring and sparkling water. Primo didn't disclose the investment or job count.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Primo Brands press release, Oct 2026",
+      "url": "https://www.bevnet.com/pr/2026/10/15/primo-brands-opens-new-mountain-valley-factory-as-demand-gro"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "lh-battery-jeffersonville-oh",
+    "company": "Honda & LG Energy Solution",
+    "project": "L-H Battery cell plant",
+    "city": "Jeffersonville",
+    "state": "OH",
+    "sector": "battery",
+    "amount": 4400000000,
+    "amountNote": "more than",
+    "jobs": 2200,
+    "jobsNote": "at full capacity; more than 1,000 working there now",
+    "status": "Mass production of energy-storage battery cells began July 2026",
+    "summary": "A Honda and LG battery joint venture in Fayette County, now making cells for energy storage, with hybrid vehicle cells planned.",
+    "generalContractor": {
+      "name": "Turner, Yates and Kokosing (joint venture)",
+      "url": "https://digital.bnpmedia.com/article/Manufacturing/4391225/769576/article.html"
+    },
+    "supplierUrl": {
+      "label": "Turner subcontractor registration guide",
+      "url": "https://www.turnerconstruction.com/uploads/Vertikal-Subcontractor-Navigation-Guide.pdf"
+    },
+    "source": {
+      "name": "Record-Herald, Jul 2026",
+      "url": "https://www.recordherald.com/2026/07/01/l-h-battery-company-begins-mass-production-of-battery-cells-in-fayette-county/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "ford-marshall-mi",
+    "company": "Ford",
+    "project": "BlueOval Battery Park Michigan",
+    "city": "Marshall",
+    "state": "MI",
+    "sector": "battery",
+    "amount": 3500000000,
+    "amountNote": "as announced in 2023; the plant has since been scaled back",
+    "jobs": 1700,
+    "jobsNote": "cut from 2,500 originally",
+    "status": "Started making LFP battery cells in June 2026",
+    "summary": "Lithium-iron-phosphate battery cells for a Ford midsize EV pickup and for home energy storage.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Bridge Michigan, Dec 2025",
+      "url": "https://bridgemi.com/business-watch/ford-retreats-from-evs-after-michigan-spends-big-on-subsidies-for-battery-plants/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "redwood-ridgeville-sc",
+    "company": "Redwood Materials",
+    "project": "South Carolina battery materials campus",
+    "city": "Ridgeville",
+    "state": "SC",
+    "sector": "battery",
+    "amount": 3500000000,
+    "amountNote": "total for the campus",
+    "jobs": 1500,
+    "jobsNote": "over about 10 years",
+    "status": "First facility started up November 2025",
+    "summary": "Recycles used lithium-ion batteries into lithium, cobalt, nickel and copper on a 600-acre Berkeley County campus.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Recycling Today, Nov 2025",
+      "url": "https://www.recyclingtoday.com/news/redwood-starts-up-south-carolina-operations"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "lilly-fogelsville-pa",
+    "company": "Eli Lilly",
+    "project": "Lehigh Valley injectable medicine plant",
+    "city": "Fogelsville",
+    "state": "PA",
+    "sector": "pharma",
+    "amount": 3500000000,
+    "amountNote": "more than",
+    "jobs": 850,
+    "jobsNote": "plus about 2,000 construction jobs",
+    "status": "Announced January 2026; construction from mid-2026, operating in 2031",
+    "summary": "Injectable medicines and delivery devices, including next-generation weight-loss drugs, in Upper Macungie Township.",
+    "generalContractor": null,
+    "supplierUrl": {
+      "label": "Lilly supplier information",
+      "url": "https://www.lilly.com/suppliers"
+    },
+    "source": {
+      "name": "Philadelphia Inquirer, Jan 2026",
+      "url": "https://www.inquirer.com/health/eli-lilly-lehigh-valley-pharma-plant-weight-loss-20260130.html"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "shintech-plaquemine-la",
+    "company": "Shintech",
+    "project": "Plaquemine plant expansion",
+    "city": "Plaquemine",
+    "state": "LA",
+    "sector": "manufacturing",
+    "amount": 3400000000,
+    "amountNote": null,
+    "jobs": 163,
+    "jobsNote": "new direct jobs; about 725 existing jobs kept",
+    "status": "Announced March 2026; first phase finishes in 2030",
+    "summary": "Adds ethylene and chlor-alkali units to an existing PVC plant in Iberville Parish.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Louisiana Economic Development, Mar 2026",
+      "url": "https://www.opportunitylouisiana.gov/news/shintech-louisiana-announces-3-4-billion-expansion-building-on-25-years-of-growth-and-commitment"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "lg-chem-clarksville-tn",
+    "company": "LG Chem",
+    "project": "Clarksville cathode plant",
+    "city": "Clarksville",
+    "state": "TN",
+    "sector": "battery",
+    "amount": 3200000000,
+    "amountNote": "total plan; the first phase was scaled down",
+    "jobs": 860,
+    "jobsNote": null,
+    "status": "Under construction since December 2023; production targeted for 2026",
+    "summary": "Cathode material for EV batteries.",
+    "generalContractor": {
+      "name": "J.E. Dunn",
+      "url": "https://theconstructionbroadsheet.com/lg-chem-dunn-break-ground-for-b-tennessee-factory-p1644-174.htm"
+    },
+    "supplierUrl": null,
+    "source": {
+      "name": "Tennessee Dept. of Economic & Community Development, Nov 2022",
+      "url": "https://tnecd.com/news/governor-lee-commissioner-mcwhorter-announce-lg-chem-to-invest-more-than-3-billion-to-establish-manufacturing-operations-in-clarksville/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "us-steel-big-river-2-osceola-ar",
+    "company": "U.S. Steel",
+    "project": "Big River 2 steel mill",
+    "city": "Osceola",
+    "state": "AR",
+    "sector": "metals",
+    "amount": 3000000000,
+    "amountNote": null,
+    "jobs": 900,
+    "jobsNote": "projected at groundbreaking",
+    "status": "Completed and in full production in 2026",
+    "summary": "An electric arc furnace flat-rolled steel mill next to the original Big River Steel Works.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Arkansas Business, 2026",
+      "url": "https://www.arkansasbusiness.com/article/land-of-steel-expands-osceola-big-river-steel-direct-reduced-iron/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "us-steel-big-river-dri-osceola-ar",
+    "company": "U.S. Steel",
+    "project": "Big River iron (DRI) plant",
+    "city": "Osceola",
+    "state": "AR",
+    "sector": "metals",
+    "amount": 1900000000,
+    "amountNote": null,
+    "jobs": 200,
+    "jobsNote": "full-time, plus about 2,000 construction jobs",
+    "status": "Announced April 2026; construction to follow",
+    "summary": "A new plant on the same Big River Steel campus making direct reduced iron to feed the steel furnaces. Separate from the Big River 2 mill.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "U.S. Steel, Apr 2026",
+      "url": "https://www.ussteel.com/media/newsroom/-/blogs/u-s-steel-announces-first-of-its-kind-in-the-united-states-dri-facility-at-big-river-steel-works"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "starplus-kokomo-in",
+    "company": "StarPlus Energy (Stellantis and Samsung SDI)",
+    "project": "Kokomo battery plants",
+    "city": "Kokomo",
+    "state": "IN",
+    "sector": "battery",
+    "amount": 6300000000,
+    "amountNote": "more than, for both plants",
+    "jobs": 2800,
+    "jobsNote": "both plants",
+    "status": "Under construction; Stellantis was reported in February 2026 to be exploring an exit from the joint venture",
+    "summary": "Two lithium-ion battery cell plants for Stellantis vehicles and energy storage.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Stellantis and Samsung SDI, Oct 2023",
+      "url": "https://media.stellantisnorthamerica.com/pdf.do?id=25371"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "qcells-cartersville-ga",
+    "company": "Qcells",
+    "project": "Cartersville and Dalton solar plants",
+    "city": "Cartersville",
+    "state": "GA",
+    "sector": "energy",
+    "amount": 2500000000,
+    "amountNote": "more than",
+    "jobs": 2500,
+    "jobsNote": "new jobs across both sites",
+    "status": "Ramping up production in 2026",
+    "summary": "Solar ingots, wafers, cells and panels at a new Cartersville plant and an expanded Dalton plant.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Office of Georgia Gov. Brian Kemp, Jan 2023",
+      "url": "https://gov.georgia.gov/press-releases/2023-01-11/gov-kemp-qcells-more-double-production-georgia-create-2500-new-jobs"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "scout-blythewood-sc",
+    "company": "Scout Motors",
+    "project": "Blythewood plant and supplier park",
+    "city": "Blythewood",
+    "state": "SC",
+    "sector": "automotive",
+    "amount": 2300000000,
+    "amountNote": "$2 billion plant plus a $300 million supplier park",
+    "jobs": 4000,
+    "jobsNote": "more than, plus about 1,000 at the supplier park",
+    "status": "Under construction; production in 2027",
+    "summary": "Volkswagen's Scout brand plant for electric and range-extended SUVs and pickups.",
+    "generalContractor": {
+      "name": "Evans General Contractors (supplier park)",
+      "url": "https://www.wistv.com/2025/09/18/scout-motors-announces-additional-300m-investment-into-blythewood-facility"
+    },
+    "supplierUrl": {
+      "label": "SC Commerce supplier requests",
+      "url": "https://scbizdev.sccommerce.com/suppliers/active-requests"
+    },
+    "source": {
+      "name": "WIS-TV, Sep 2025",
+      "url": "https://www.wistv.com/2025/09/18/scout-motors-announces-additional-300m-investment-into-blythewood-facility"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "aesc-bowling-green-ky",
+    "company": "AESC",
+    "project": "Bowling Green battery plant",
+    "city": "Bowling Green",
+    "state": "KY",
+    "sector": "battery",
+    "amount": 2000000000,
+    "amountNote": null,
+    "jobs": 2000,
+    "jobsNote": null,
+    "status": "Status unclear: building topped out in 2023; work was reported halted in 2025, which the company disputed",
+    "summary": "A planned EV battery cell and module plant at the Kentucky Transpark.",
+    "generalContractor": {
+      "name": "Yates Construction",
+      "url": "https://digital.bnpmedia.com/article/Manufacturing/4391225/769576/article.html"
+    },
+    "supplierUrl": null,
+    "source": {
+      "name": "Bowling Green Daily News, Jun 2025",
+      "url": "https://bgdailynews.com/2025/06/22/news_aesc061925/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "gotion-manteno-il",
+    "company": "Gotion",
+    "project": "Manteno battery plant",
+    "city": "Manteno",
+    "state": "IL",
+    "sector": "battery",
+    "amount": 2000000000,
+    "amountNote": null,
+    "jobs": 2600,
+    "jobsNote": "long-term goal; about 300 working there in late 2025",
+    "status": "Operating; assembling energy-storage systems, battery cell production planned",
+    "summary": "Battery energy-storage systems and planned lithium-ion cell production in a converted Kankakee County plant.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Daily Journal (Kankakee), Nov 2025",
+      "url": "https://www.shawlocal.com/daily-journal/2025/11/18/gotion-gives-updates-on-manteno-plant/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "ucb-rowen-ga",
+    "company": "UCB",
+    "project": "Rowen biologics campus",
+    "city": "Rowen (Gwinnett County)",
+    "state": "GA",
+    "sector": "pharma",
+    "amount": 2000000000,
+    "amountNote": null,
+    "jobs": 330,
+    "jobsNote": "more than, plus more than 1,000 construction jobs",
+    "status": "Announced March 2026; design and construction over about 5 to 7 years",
+    "summary": "The Belgian drugmaker's first U.S. biologics plant, 460,000 square feet on about 79 acres.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Gwinnett County, Mar 2026",
+      "url": "https://www.gwinnettcounty.com/-/news-events/news-releases/news-details/gwinnett-county-announces-2-billion-ucb-manufacturing-facility-at-rowen"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "jnj-wilson-nc",
+    "company": "Johnson & Johnson",
+    "project": "Wilson biologics campus",
+    "city": "Wilson",
+    "state": "NC",
+    "sector": "pharma",
+    "amount": 2000000000,
+    "amountNote": "more than, for the first plant",
+    "jobs": 420,
+    "jobsNote": "first plant; a second plant announced in 2026 adds up to 500 more",
+    "status": "First plant under construction (operating around 2028); second plant announced January 2026",
+    "summary": "Biologic medicines, with a second plant for cancer and neurology drugs.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "NC Commerce, Oct 2024",
+      "url": "https://www.commerce.nc.gov/news/press-releases/2024/10/01/governor-cooper-announces-2-billion-wilson-county-investment-johnson-johnson-new-manufacturing"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "lego-chesterfield-va",
+    "company": "LEGO",
+    "project": "LEGO Manufacturing Virginia",
+    "city": "Chesterfield County",
+    "state": "VA",
+    "sector": "manufacturing",
+    "amount": 1500000000,
+    "amountNote": "more than, including a distribution center",
+    "jobs": 1700,
+    "jobsNote": "more than, over 10 years",
+    "status": "Topped out October 2025; production starts in 2027",
+    "summary": "LEGO's first U.S. factory, molding and packaging LEGO bricks.",
+    "generalContractor": {
+      "name": "Gray | Hourigan",
+      "url": "https://www.lego.com/en-us/aboutus/news/2024/february/lego-announces-program-lead-and-appoints-gc-at-virginia-site"
+    },
+    "supplierUrl": null,
+    "source": {
+      "name": "LEGO Group, Oct 2025",
+      "url": "https://www.lego.com/aboutus/news/2025/october/lego-manufacturing-virginia-reaches-major-construction-milestone-at-new-u-s-factory-ahead-of-2027-opening"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "arcelormittal-calvert-al",
+    "company": "ArcelorMittal",
+    "project": "Calvert electrical steel mill",
+    "city": "Calvert",
+    "state": "AL",
+    "sector": "metals",
+    "amount": 1200000000,
+    "amountNote": null,
+    "jobs": 200,
+    "jobsNote": "more than, plus up to 1,300 construction jobs",
+    "status": "Under construction; production targeted for 2027",
+    "summary": "Electrical steel for EV motors, about 150,000 tons a year, in Mobile County.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Made in Alabama, Feb 2025",
+      "url": "https://www.madeinalabama.com/2025/02/arcelormittal-plans-1-2-billion-alabama-mill-to-produce-electrical-steel/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "chobani-rome-ny",
+    "company": "Chobani",
+    "project": "Rome dairy plant",
+    "city": "Rome",
+    "state": "NY",
+    "sector": "food",
+    "amount": 1200000000,
+    "amountNote": null,
+    "jobs": 1000,
+    "jobsNote": "more than",
+    "status": "Site work began March 2026; first phase construction from spring 2027",
+    "summary": "A 1.4 million square foot yogurt and dairy plant at Griffiss Business & Technology Park, processing over 12 million pounds of milk a day.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Food Processing, Aug 2026",
+      "url": "https://www.foodprocessing.com/business-of-food-beverage/capital-spending/news/55397882/chobani-updates-construction-status-on-12-billion-rome-new-york-facility"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "first-solar-lawrence-county-al",
+    "company": "First Solar",
+    "project": "Alabama solar panel plant",
+    "city": "Lawrence County",
+    "state": "AL",
+    "sector": "energy",
+    "amount": 1100000000,
+    "amountNote": null,
+    "jobs": 800,
+    "jobsNote": "more than",
+    "status": "Operating since September 2024",
+    "summary": "Thin-film solar panels, 3.5 gigawatts a year.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "First Solar, Sep 2024",
+      "url": "https://investor.firstsolar.com/news/news-details/2024/First-Solar-Inaugurates-1.1-Billion-Alabama-Facility-Adds-3.5-GW-of-Vertically-Integrated-American-Solar-Manufacturing-Capacity/default.aspx"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "first-solar-new-iberia-la",
+    "company": "First Solar",
+    "project": "Louisiana solar panel plant",
+    "city": "New Iberia",
+    "state": "LA",
+    "sector": "energy",
+    "amount": 1100000000,
+    "amountNote": null,
+    "jobs": 800,
+    "jobsNote": "more than",
+    "status": "Operating since November 2025",
+    "summary": "Thin-film solar panels, 3.5 gigawatts a year at full output.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "First Solar (Business Wire), Nov 2025",
+      "url": "https://www.businesswire.com/news/home/20251121295144/en"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "merck-durham-nc",
+    "company": "Merck",
+    "project": "Durham vaccine plant",
+    "city": "Durham",
+    "state": "NC",
+    "sector": "pharma",
+    "amount": 1000000000,
+    "amountNote": null,
+    "jobs": 400,
+    "jobsNote": "nearly",
+    "status": "Operating since March 2025",
+    "summary": "Vaccines, including Gardasil.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Merck U.S. investment fact sheet, Apr 2025",
+      "url": "https://www.merck.com/wp-content/uploads/sites/124/2025/04/MerckUSCapitalInvestmentFactSheet.pdf"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "merck-wilmington-de",
+    "company": "Merck",
+    "project": "Wilmington biologics center",
+    "city": "Wilmington",
+    "state": "DE",
+    "sector": "pharma",
+    "amount": 1000000000,
+    "amountNote": null,
+    "jobs": 500,
+    "jobsNote": "more than, plus about 4,000 construction jobs",
+    "status": "Under construction since April 2025; labs in 2028, production by 2030",
+    "summary": "A 470,000 square foot biologics plant at Chestnut Run, planned as the future U.S. home of Keytruda production.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Contract Pharma, Apr 2025",
+      "url": "https://www.contractpharma.com/breaking-news/merck-breaks-ground-on-1b-biologics-center-of-excellence-in-wilmington-de/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "leprino-lubbock-tx",
+    "company": "Leprino Foods",
+    "project": "Lubbock cheese plant",
+    "city": "Lubbock",
+    "state": "TX",
+    "sector": "food",
+    "amount": 1000000000,
+    "amountNote": null,
+    "jobs": 600,
+    "jobsNote": "expected after the second phase",
+    "status": "First phase operating since January 2025; second phase to follow",
+    "summary": "Mozzarella cheese and dairy ingredients.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "KCBD, Jan 2025",
+      "url": "https://www.kcbd.com/2025/01/15/leprino-foods-world-leader-production-mozzarella-cheese-celebrates-opening-lubbock"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "ti-sherman-tx",
+    "company": "Texas Instruments",
+    "project": "Sherman chip fabs",
+    "city": "Sherman",
+    "state": "TX",
+    "sector": "semiconductors",
+    "amount": 40000000000,
+    "amountNote": "potential total for up to four fabs",
+    "jobs": 3000,
+    "jobsNote": "new TI jobs",
+    "status": "First fab producing since December 2025; second under construction; two more planned",
+    "summary": "Analog and embedded processing chips on 300mm wafers, at up to four connected fabs.",
+    "generalContractor": {
+      "name": "Austin Commercial",
+      "url": "https://enr.com/articles/54315-65b-texas-instruments-fab-could-be-first-of-four-at-site-totaling-30b"
+    },
+    "supplierUrl": null,
+    "source": {
+      "name": "Texas Instruments, Sherman site page",
+      "url": "https://www.ti.com/about-ti/manufacturing/sherman.html"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "intel-new-albany-oh",
+    "company": "Intel",
+    "project": "Ohio One chip fabs",
+    "city": "New Albany",
+    "state": "OH",
+    "sector": "semiconductors",
+    "amount": 28000000000,
+    "amountNote": "reported total for two fabs",
+    "jobs": 3000,
+    "jobsNote": "planned permanent jobs; about 7,000 construction jobs",
+    "status": "Under construction; first fab now targeted for 2030 to 2031",
+    "summary": "Two planned leading-edge chip fabs east of Columbus, years behind the original schedule.",
+    "generalContractor": {
+      "name": "Gilbane-led team (early site work)",
+      "url": "https://enr.com/articles/54198-intel-picks-gilbane-for-phase-one-of-20b-ohio-chip-plants"
+    },
+    "supplierUrl": null,
+    "source": {
+      "name": "CNBC, Oct 2026",
+      "url": "https://www.cnbc.com/2026/10/21/intel-hits-construction-milestone-at-delayed-ohio-chip-fab-.html"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "intel-chandler-az",
+    "company": "Intel",
+    "project": "Ocotillo Fabs 52 and 62",
+    "city": "Chandler",
+    "state": "AZ",
+    "sector": "semiconductors",
+    "amount": 20000000000,
+    "amountNote": "announced in 2021 for two fabs",
+    "jobs": 3000,
+    "jobsNote": "permanent, per the 2021 announcement",
+    "status": "Fab 52 in high-volume production since 2025",
+    "summary": "Leading-edge chip fabs making Intel's 18A processors.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Intel press kit, Sep 2021",
+      "url": "https://www.intel.com/content/www/us/en/newsroom/resources/press-kit-intel-builds-arizona.html"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "samsung-taylor-tx",
+    "company": "Samsung",
+    "project": "Taylor chip fab",
+    "city": "Taylor",
+    "state": "TX",
+    "sector": "semiconductors",
+    "amount": 37000000000,
+    "amountNote": "total central Texas investment",
+    "jobs": 2000,
+    "jobsNote": "more than",
+    "status": "Limited operations began in early 2026; a second fab is planned",
+    "summary": "A foundry fab for advanced 2nm-class chips northeast of Austin.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Austin American-Statesman, 2026",
+      "url": "https://www.statesman.com/business/technology/article/samsung-taylor-chip-operations-21342594.php"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "toyota-liberty-nc",
+    "company": "Toyota",
+    "project": "North Carolina battery plant",
+    "city": "Liberty",
+    "state": "NC",
+    "sector": "battery",
+    "amount": 13900000000,
+    "amountNote": null,
+    "jobs": 5100,
+    "jobsNote": "up to",
+    "status": "Opened November 2025; ramping up through 2030",
+    "summary": "Toyota's first North American battery plant, for hybrids, plug-in hybrids and EVs, in Randolph County.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Office of NC Gov. Josh Stein, Nov 2025",
+      "url": "https://governor.nc.gov/news/press-releases/2025/11/12/governor-stein-celebrates-grand-opening-toyota-battery-plant-randolph-county"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "globalfoundries-malta-ny",
+    "company": "GlobalFoundries",
+    "project": "Fab 8 expansion",
+    "city": "Malta",
+    "state": "NY",
+    "sector": "semiconductors",
+    "amount": 11600000000,
+    "amountNote": "more than, over 10 years",
+    "jobs": 1500,
+    "jobsNote": "more than, direct",
+    "status": "Expanding; part of GlobalFoundries' $16 billion New York and Vermont plan",
+    "summary": "Expanding a chip foundry near Saratoga Springs and adding an advanced packaging center.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Office of NY Gov. Kathy Hochul, 2024",
+      "url": "https://regionalcouncils.ny.gov/press-release/governor-hochul-celebrates-globalfoundries-116-billion-investment-expand"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "ti-lehi-ut",
+    "company": "Texas Instruments",
+    "project": "Lehi chip fab (LFAB2)",
+    "city": "Lehi",
+    "state": "UT",
+    "sector": "semiconductors",
+    "amount": 11000000000,
+    "amountNote": null,
+    "jobs": 800,
+    "jobsNote": "about",
+    "status": "Under construction since November 2023",
+    "summary": "A second 300mm fab connected to TI's existing Lehi fab.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Texas Instruments, Feb 2023",
+      "url": "https://www.ti.com/about-ti/newsroom/news-releases/2023/2023-02-15-texas-instruments-selects-lehi--utah--for-its-next-300-millimeter-semiconductor-wafer-fab.html"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "hyundai-metaplant-ellabell-ga",
+    "company": "Hyundai Motor Group",
+    "project": "Metaplant America",
+    "city": "Ellabell",
+    "state": "GA",
+    "sector": "automotive",
+    "amount": 7590000000,
+    "amountNote": "for the vehicle plant",
+    "jobs": 8500,
+    "jobsNote": "at least, on site by 2031",
+    "status": "Opened March 2025; expansion announced",
+    "summary": "EV and hybrid assembly plant in Bryan County, near Savannah.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Georgia Dept. of Economic Development",
+      "url": "https://georgia.org/hyundai-motor-group-metaplant-america"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "globalwafers-sherman-tx",
+    "company": "GlobalWafers",
+    "project": "Sherman silicon wafer plant",
+    "city": "Sherman",
+    "state": "TX",
+    "sector": "semiconductors",
+    "amount": 3500000000,
+    "amountNote": "for the first plant; more announced in 2025",
+    "jobs": 650,
+    "jobsNote": "up to, by end of 2028",
+    "status": "Opened May 2025",
+    "summary": "300mm silicon wafers for U.S. chipmakers.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Manufacturing Dive, May 2025",
+      "url": "https://www.manufacturingdive.com/news/globalwafers-to-spend-additional-4-billion-us-operations-sherman-texas/748338/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "gm-orion-mi",
+    "company": "General Motors",
+    "project": "Orion Assembly retooling",
+    "city": "Orion Township",
+    "state": "MI",
+    "sector": "automotive",
+    "amount": null,
+    "amountNote": null,
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Retooling; gas pickups and SUVs start early 2027",
+    "summary": "Part of GM's $4 billion, three-plant plan: Orion switches from planned EVs to full-size gas pickups and SUVs.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Michigan Advance, Jun 2025",
+      "url": "https://michiganadvance.com/2025/06/11/gm-announces-4-billion-investment-in-u-s-manufacturing-plants-including-in-lake-orion-township/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "hyundai-steel-donaldsonville-la",
+    "company": "Hyundai Steel",
+    "project": "Louisiana steel mill",
+    "city": "Donaldsonville",
+    "state": "LA",
+    "sector": "metals",
+    "amount": 5800000000,
+    "amountNote": null,
+    "jobs": 1300,
+    "jobsNote": "more than, direct",
+    "status": "Groundbreaking September 2026; production targeted for 2029",
+    "summary": "An electric arc furnace mill making automotive sheet steel in Ascension Parish.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Louisiana Economic Development, Mar 2025",
+      "url": "https://opportunitylouisiana.gov/news/louisiana-wins-again-governor-jeff-landry-led-secure-5-8-billion-hyundai-steel-plant"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "ford-stanton-tn",
+    "company": "Ford",
+    "project": "Tennessee Truck Center (BlueOval City)",
+    "city": "Stanton",
+    "state": "TN",
+    "sector": "automotive",
+    "amount": 5600000000,
+    "amountNote": "for the campus",
+    "jobs": 5800,
+    "jobsNote": "pledged by end of decade",
+    "status": "Built; switching to gas trucks, production targeted later this decade",
+    "summary": "Ford's West Tennessee truck campus, renamed after moving from EVs to gas-powered trucks.",
+    "generalContractor": {
+      "name": "Walbridge",
+      "url": "https://www.enr.com/articles/53494-ford-picks-walbridge-as-general-contractor-for-56b-tennessee-plant"
+    },
+    "supplierUrl": null,
+    "source": {
+      "name": "Tennessee Lookout, Jul 2026",
+      "url": "https://tennesseelookout.com/2026/07/23/what-to-know-about-fords-blueoval-city-plant-5-years-later/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "lges-queen-creek-az",
+    "company": "LG Energy Solution",
+    "project": "Arizona battery plant",
+    "city": "Queen Creek",
+    "state": "AZ",
+    "sector": "battery",
+    "amount": 5500000000,
+    "amountNote": "for both plants; the energy-storage plant is paused",
+    "jobs": null,
+    "jobsNote": null,
+    "status": "EV cell plant nearing completion, production expected 2026",
+    "summary": "Cylindrical EV battery cells, with a planned energy-storage cell plant on hold.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "ABC15 Arizona, 2025",
+      "url": "https://www.abc15.com/news/business/lg-energy-solutions-queen-creek-battery-plant-nears-completion-hiring-ramps-up"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "wolfspeed-siler-city-nc",
+    "company": "Wolfspeed",
+    "project": "Siler City silicon carbide plant",
+    "city": "Siler City",
+    "state": "NC",
+    "sector": "semiconductors",
+    "amount": 5000000000,
+    "amountNote": null,
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Producing since 2025; the company restructured in 2025",
+    "summary": "Grows silicon carbide crystals and makes 200mm wafers in Chatham County.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Wolfspeed facility page",
+      "url": "https://www.wolfspeed.com/company/about/chatham-county-materials-facility"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "novelis-bay-minette-al",
+    "company": "Novelis",
+    "project": "Bay Minette aluminum plant",
+    "city": "Bay Minette",
+    "state": "AL",
+    "sector": "metals",
+    "amount": 5000000000,
+    "amountNote": null,
+    "jobs": 1000,
+    "jobsNote": "up to",
+    "status": "First coil produced October 2026; shipments in 2027",
+    "summary": "Aluminum rolling and can recycling for beverage-can sheet in Baldwin County.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "SupplyChain247, Oct 2026",
+      "url": "https://www.supplychain247.com/article/novelis-first-coil-alabama-aluminum-plant/news"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "jetzero-greensboro-nc",
+    "company": "JetZero",
+    "project": "Aircraft factory",
+    "city": "Greensboro",
+    "state": "NC",
+    "sector": "aerospace-defense",
+    "amount": 4700000000,
+    "amountNote": null,
+    "jobs": 14500,
+    "jobsNote": "planned over about a decade",
+    "status": "Broke ground June 2026; first assembly line targeted for 2029",
+    "summary": "A factory for JetZero's blended-wing passenger jet at Piedmont Triad airport.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "ENR, Jun 2026",
+      "url": "https://www.enr.com/articles/63189-jetzero-starts-work-on-47b-greensboro-nc-aircraft-campus"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "globalfoundries-essex-junction-vt",
+    "company": "GlobalFoundries",
+    "project": "Vermont fab modernization",
+    "city": "Essex Junction",
+    "state": "VT",
+    "sector": "semiconductors",
+    "amount": 900000000,
+    "amountNote": null,
+    "jobs": 400,
+    "jobsNote": "around",
+    "status": "Modernizing with CHIPS Act support",
+    "summary": "Upgrading the Essex Junction fab to make gallium nitride chips.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "VTDigger, Mar 2024",
+      "url": "https://vtdigger.org/2024/03/01/globalfoundries-state-officials-celebrate-funding-for-essex-junction-chip-plant/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "panasonic-de-soto-ks",
+    "company": "Panasonic Energy",
+    "project": "De Soto battery plant",
+    "city": "De Soto",
+    "state": "KS",
+    "sector": "battery",
+    "amount": 4000000000,
+    "amountNote": null,
+    "jobs": 4000,
+    "jobsNote": "projected",
+    "status": "Opened July 2025; full output delayed",
+    "summary": "Cylindrical EV battery cells, mainly for Tesla.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Battery Technology, Jul 2025",
+      "url": "https://www.batterytechonline.com/battery-manufacturing/panasonic-opens-kansas-ev-battery-plant-while-delaying-full-production-timeline"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "nucor-apple-grove-wv",
+    "company": "Nucor",
+    "project": "West Virginia sheet steel mill",
+    "city": "Apple Grove",
+    "state": "WV",
+    "sector": "metals",
+    "amount": 4000000000,
+    "amountNote": "about",
+    "jobs": 800,
+    "jobsNote": "up to",
+    "status": "Furnace fired up August 2026; shipments from early 2027",
+    "summary": "A 3-million-ton electric arc furnace sheet mill in Mason County on the Ohio River.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Steel Market Update, Aug 2026",
+      "url": "https://www.steelmarketupdate.com/2026/08/27/steel-summit-nucor-fires-up-west-virginia-eaf-as-sheet-mill-ramp-approaches/"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "tesla-nevada",
+    "company": "Tesla",
+    "project": "Gigafactory Nevada expansion",
+    "city": "Sparks",
+    "state": "NV",
+    "sector": "automotive",
+    "amount": 3600000000,
+    "amountNote": "more than",
+    "jobs": 3000,
+    "jobsNote": null,
+    "status": "Semi truck deliveries began September 2026",
+    "summary": "A high-volume Tesla Semi factory and a 4680 battery cell plant east of Reno.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Manufacturing Dive, Jan 2023",
+      "url": "https://www.manufacturingdive.com/news/tesla-ev-semi-truck-battery-cell-new-gigafactory-nevada/641181"
+    },
+    "checked": "2026-10-25"
+  },
+  {
+    "slug": "intel-rio-rancho-nm",
+    "company": "Intel",
+    "project": "Fab 9 chip packaging",
+    "city": "Rio Rancho",
+    "state": "NM",
+    "sector": "semiconductors",
+    "amount": 3500000000,
+    "amountNote": "total New Mexico investment",
+    "jobs": 700,
+    "jobsNote": "at least",
+    "status": "Operating since January 2024",
+    "summary": "High-volume 3D chip packaging.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Intel Newsroom, Jan 2024",
+      "url": "https://newsroom.intel.com/corporate/intel-opens-fab-9-in-new-mexico"
+    },
+    "checked": "2026-10-25"
+  }
+]

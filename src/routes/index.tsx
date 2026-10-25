@@ -285,6 +285,8 @@ const FREE_TOOLS = [
   { label: "What's your town buying?", body: "Open contracts near any ZIP code", href: "/town" },
   // Owner 2026-10-25: a small homepage card for the industry day calendar.
   { label: "📅 Industry days", body: "Meet the buyers and primes before the bid drops", href: "/industry-days" },
+  // Owner 2026-10-25: private megaprojects hiring local subs.
+  { label: "🏗️ Megaprojects", body: "Billion-dollar plants near you that need local subs", href: "/megaprojects" },
   { label: "Contrax Grants", body: "Federal grants, free for verified nonprofits", href: "/grants" },
 ];
 
@@ -292,7 +294,7 @@ function FreeToolsStrip() {
   return (
     <section aria-label="Free courses and tools" className="mx-auto mt-12 mb-12 max-w-[1120px] px-4 sm:px-6">
       <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400">Free from Contrax</p>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {FREE_TOOLS.map((t) => (
           <a
             key={t.href}

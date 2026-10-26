@@ -148,6 +148,8 @@ export interface OnlineVisitor {
   at: string;
   /** Hot Lead Radar score (src/lib/hot-leads.ts). */
   lead?: Lead;
+  /** Pinned in the scraper tracker (src/lib/scraper-watch.ts). */
+  tracked?: boolean;
 }
 
 // The projection /us-states-albers.json was drawn with (us-atlas: d3

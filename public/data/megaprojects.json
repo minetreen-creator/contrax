@@ -1486,5 +1486,173 @@
       "url": "https://www.cnbc.com/2026/10/24/trump-audi-factory-georgia.html"
     },
     "checked": "2026-10-26"
+  },
+  {
+    "slug": "csl-kankakee-il",
+    "company": "CSL",
+    "project": "Plasma therapy plant expansion",
+    "city": "Kankakee",
+    "state": "IL",
+    "sector": "pharma",
+    "amount": 1500000000,
+    "amountNote": null,
+    "jobs": 300,
+    "jobsNote": "permanent jobs; about 800 construction jobs during the build",
+    "status": "Broke ground March 9, 2026; expected to be operational by 2031",
+    "summary": "A major expansion of CSL's plasma-derived therapy and albumin plant, with about 800 construction jobs during the build.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "CSL newsroom",
+      "url": "https://newsroom.csl.com/2026-03-09-CSL-announces-expansion-of-Illinois-plasma-therapy-manufacturing-facility"
+    },
+    "checked": "2026-10-26"
+  },
+  {
+    "slug": "chobani-la-colombe-norton-shores-mi",
+    "company": "Chobani (La Colombe)",
+    "project": "Ready-to-drink coffee plant expansion",
+    "city": "Norton Shores",
+    "state": "MI",
+    "sector": "food",
+    "amount": 567000000,
+    "amountNote": null,
+    "jobs": 337,
+    "jobsNote": "new jobs; 312 existing jobs retained",
+    "status": "Announced March 24, 2026; multi-phase build",
+    "summary": "More than 200,000 square feet of new production space for La Colombe lattes, plus state-funded wastewater upgrades.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Office of Governor Whitmer",
+      "url": "https://www.michigan.gov/whitmer/news/press-releases/2026/03/24/whitmer-announces-337-jobs-with-chobani-expansion-of-la-colombe-muskegon-wastewater-improvements"
+    },
+    "checked": "2026-10-26"
+  },
+  {
+    "slug": "iko-chester-sc",
+    "company": "IKO",
+    "project": "Fiberglass and glass mat plants",
+    "city": "Chester County",
+    "state": "SC",
+    "sector": "manufacturing",
+    "amount": 500000000,
+    "amountNote": "more than",
+    "jobs": 200,
+    "jobsNote": "nearly",
+    "status": "Opened March 25, 2026",
+    "summary": "A fiberglass plant and a 325,000-square-foot glass mat plant that supply IKO's shingle operations.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "IKO",
+      "url": "https://www.iko.com/na/iko-celebrates-grand-opening-of-new-fiberglass-and-fiberglass-mat-manufacturing-facilities-in-south-carolina/"
+    },
+    "checked": "2026-10-26"
+  },
+  {
+    "slug": "terrapower-isotopes-philadelphia-pa",
+    "company": "TerraPower Isotopes",
+    "project": "Actinium-225 medical isotope plant (Bellwether Laboratory)",
+    "city": "Philadelphia",
+    "state": "PA",
+    "sector": "pharma",
+    "amount": 450000000,
+    "amountNote": null,
+    "jobs": 225,
+    "jobsNote": "permanent jobs; about 500 construction jobs",
+    "status": "Broke ground May 6, 2026; production expected in 2029",
+    "summary": "A 250,000-square-foot plant in the Bellwether District making a cancer-therapy isotope, with about 500 construction jobs.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "TerraPower",
+      "url": "https://www.terrapower.com/TerraPower-Isotopes-Breaks-Ground-on-Worlds-Largest-Actinium-225-Manufacturing-Facility-in-Philadelphia"
+    },
+    "checked": "2026-10-26"
+  },
+  {
+    "slug": "conagra-fayetteville-ar",
+    "company": "Conagra Brands",
+    "project": "Frozen meals plant expansion",
+    "city": "Fayetteville",
+    "state": "AR",
+    "sector": "food",
+    "amount": 220000000,
+    "amountNote": null,
+    "jobs": 100,
+    "jobsNote": "more than, over five years",
+    "status": "Announced March 6, 2026; construction expected to start later in 2026",
+    "summary": "A multi-year expansion of the plant that makes Hungry-Man, Banquet and Healthy Choice meals.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Conagra Brands",
+      "url": "https://www.conagrabrands.com/news-room/news-conagra-brands-to-expand-manufacturing-operations-in-fayetteville-arkansas"
+    },
+    "checked": "2026-10-26"
+  },
+  {
+    "slug": "schreiber-shippensburg-pa",
+    "company": "Schreiber Foods",
+    "project": "Yogurt plant expansion",
+    "city": "Shippensburg",
+    "state": "PA",
+    "sector": "food",
+    "amount": 132900000,
+    "amountNote": null,
+    "jobs": 47,
+    "jobsNote": "new jobs; 516 retained",
+    "status": "Announced March 10, 2026",
+    "summary": "New yogurt production lines that let the plant process another 109,000 pounds of milk a day.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Office of Governor Shapiro",
+      "url": "https://pa.gov/governor/newsroom/2026-press-releases/gov-shapiro-secures--132-9-million-investment-from-schreiber-foo"
+    },
+    "checked": "2026-10-26"
+  },
+  {
+    "slug": "fanuc-michigan",
+    "company": "FANUC America",
+    "project": "Robot manufacturing facility",
+    "city": "Michigan (site not yet named)",
+    "state": "MI",
+    "sector": "manufacturing",
+    "amount": 90000000,
+    "amountNote": null,
+    "jobs": 225,
+    "jobsNote": null,
+    "status": "Announced March 24, 2026; completion targeted for late 2027",
+    "summary": "Land purchase and a new 840,000-square-foot facility to add U.S. robot production capacity.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "FANUC America",
+      "url": "https://fanucamerica.com/news-resources/fanuc-america-press-releases/2026/03/24/fanuc-america-invests-90-million-robot-manufacturing-expansion"
+    },
+    "checked": "2026-10-26"
+  },
+  {
+    "slug": "wilmington-pharmatech-newark-de",
+    "company": "Wilmington PharmaTech",
+    "project": "API manufacturing expansion",
+    "city": "Newark",
+    "state": "DE",
+    "sector": "pharma",
+    "amount": 50000000,
+    "amountNote": null,
+    "jobs": null,
+    "jobsNote": null,
+    "status": "Announced March 23, 2026; new suites expected online in Q3 2027",
+    "summary": "Two new 10,000-liter reactor suites that more than double the campus's drug-ingredient capacity and roughly double its workforce.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "Business Wire",
+      "url": "https://businesswire.com/news/home/20260323322230/en/Wilmington-PharmaTech-Launches-%2450-Million-Expansion-to-Double-U.S.-Small-Molecule-API-Manufacturing-Capacity-in-Delaware"
+    },
+    "checked": "2026-10-26"
   }
 ]

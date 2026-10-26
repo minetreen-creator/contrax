@@ -7,6 +7,8 @@ import { adminFunnelExclusionSQL, qaExternalUserSQL, qaFunnelExclusionSQL } from
 import { TRIAL_DAYS } from "~/lib/trial";
 import { dataCenterLocation, sameMinuteClusters } from "~/lib/visitor-intel";
 import { getStripe } from "~/lib/stripe";
+import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
+import type { TrackedVisitor } from "~/lib/scraper-watch";
 import { STARTER_FIRST_MONTH_COUPON } from "~/lib/starter-offer";
 import {
   firstMonthStats,
@@ -323,6 +325,46 @@ async function handler({ request }: { request: Request }) {
       })(),
     }));
 
+    // Scraper tracker (owner 2026-10-26): visitors pinned with Track, whether
+    // they're on now and whether they came back after being tracked. Shown
+    // even when the scanner rules hide them from "On the site now".
+    let tracked: TrackedVisitor[] = [];
+    try {
+      await ensureTrackedVisitorsTable();
+      const rows = (await db`
+        SELECT t.visitor_id, t.tracked_at, t.note, v.city, v.region, v.country,
+               act.last_seen, act.views24h
+        FROM tracked_visitors t
+        LEFT JOIN visitors v ON v.visitor_id = t.visitor_id
+        LEFT JOIN LATERAL (
+          SELECT MAX(created_at) AS last_seen,
+                 COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '24 hours')::int AS views24h
+          FROM page_views WHERE visitor_id = t.visitor_id
+        ) act ON TRUE
+        ORDER BY act.last_seen DESC NULLS LAST
+        LIMIT 50
+      `) as { visitor_id: string; tracked_at: string; note: string | null; city: string | null; region: string | null; country: string | null; last_seen: string | null; views24h: number | null }[];
+      tracked = rows.map((r) => {
+        const last = r.last_seen ? new Date(r.last_seen).getTime() : null;
+        const at = new Date(r.tracked_at).getTime();
+        return {
+          vid: r.visitor_id,
+          place: placeLabel(r.city, r.region),
+          country: r.country,
+          note: r.note,
+          trackedAt: new Date(at).toISOString(),
+          lastSeen: last ? new Date(last).toISOString() : null,
+          views24h: Number(r.views24h ?? 0),
+          online: !!last && now - last <= 5 * 60_000,
+          returned: !!last && last > at + 30 * 60_000,
+        };
+      });
+    } catch (e) {
+      console.error("[api/admin/live-console] tracked visitors unavailable:", e);
+    }
+    const trackedIds = new Set(tracked.map((t) => t.vid));
+    for (const v of online) if (trackedIds.has(v.vid)) v.tracked = true;
+
     // Money panel: the last 7 days from the plans to checkout, unique
     // visitors, same bot/QA/admin exclusions as the feed; paying = active
     // subscriptions among real accounts.
@@ -372,6 +414,7 @@ async function handler({ request }: { request: Request }) {
       onlineCount: people.length,
       scannersHidden: scanners.size,
       online,
+      tracked,
       feed: sortFeed(feed).slice(0, 60),
       trials: sortTrials(trials),
     });

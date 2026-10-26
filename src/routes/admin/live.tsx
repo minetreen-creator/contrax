@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { cleanBody, OWNER_POLL_MS, type ChatMessage } from "~/lib/live-chat";
 import { afterWakeWord, bootReport, isWakePhrase, JARVIS_VISUALS, type JarvisAction, type JarvisServerStats, type JarvisSnapshot, type JarvisVisual, type SimMonth, type SimResult } from "~/lib/jarvis";
 import { announcements, isRedAlert, HOT_SCORE, pageName, radarSpot, type Announcement, type AnnounceState, type LeadLevel } from "~/lib/hot-leads";
-import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Volume2, VolumeX, Crosshair } from "lucide-react";
+import { Search, UserPlus, Timer, CreditCard, PartyPopper, Radio, Flame, Map as MapIcon, Users, DollarSign, MessageCircle, Send, X, Volume2, VolumeX, Crosshair, ScanEye } from "lucide-react";
 import { getCurrentUser } from "~/lib/auth";
 import { TRIAL_DAYS } from "~/lib/trial";
 import { AdminHeader, AdminTabs, MrrScoreboard, SectionError, SectionLoading } from "~/components/AdminShared";
@@ -25,6 +25,7 @@ import {
   type TrialCard,
   type TrialHeat,
 } from "~/lib/live-console";
+import type { TrackedVisitor, VisitorTrail } from "~/lib/scraper-watch";
 
 /**
  * /admin/live — the owner console's live activity feed and trial countdown
@@ -38,6 +39,7 @@ interface LiveData {
   onlineCount: number;
   scannersHidden?: number;
   online: OnlineVisitor[];
+  tracked?: TrackedVisitor[];
   feed: FeedItem[];
   trials: TrialCard[];
   money?: MoneyStats | null;
@@ -234,7 +236,7 @@ function SearchMap({ stats, visitors, now, onChat }: { stats: StateSearchStat[];
   );
 }
 
-function OnlineNow({ count, visitors, now, hidden, onChat }: { count: number; visitors: OnlineVisitor[]; now: number; hidden: number; onChat: (v: OnlineVisitor) => void }) {
+function OnlineNow({ count, visitors, now, hidden, onChat, onTrack }: { count: number; visitors: OnlineVisitor[]; now: number; hidden: number; onChat: (v: OnlineVisitor) => void; onTrack: (v: OnlineVisitor) => void }) {
   return (
     <div className="live-online">
       <div className="flex items-baseline gap-3">
@@ -254,6 +256,9 @@ function OnlineNow({ count, visitors, now, hidden, onChat }: { count: number; vi
               <span className="truncate text-slate-200">{v.place ?? "Unknown location"}</span>
               <span className="truncate font-mono text-sky-300">{v.path}</span>
               <span className="ml-auto shrink-0 text-slate-500">{agoLabel(v.at, now)}</span>
+              <button type="button" onClick={() => onTrack(v)} className={`live-track${v.tracked ? " is-on" : ""}`} title="See what this visitor is doing and keep tabs on them">
+                <ScanEye size={12} aria-hidden="true" /> {v.tracked ? "Tracked" : "Track"}
+              </button>
               <button type="button" onClick={() => onChat(v)} className="live-sayhi" title="Send this visitor a message">
                 <MessageCircle size={12} aria-hidden="true" /> Say hi
               </button>
@@ -264,6 +269,175 @@ function OnlineNow({ count, visitors, now, hidden, onChat }: { count: number; vi
         <p className="mt-3 text-xs text-slate-500">Nobody right now.</p>
       )}
     </div>
+  );
+}
+
+/** Scraper tracker list (src/lib/scraper-watch.ts): pinned visitors, live or not. */
+function TrackedList({ tracked, now, onOpen }: { tracked: TrackedVisitor[]; now: number; onOpen: (vid: string, label: string) => void }) {
+  if (!tracked.length) return null;
+  return (
+    <div className="mt-4">
+      <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-slate-400">
+        <ScanEye size={13} aria-hidden="true" /> Tracked · {tracked.length}
+      </p>
+      <ul className="space-y-1.5">
+        {tracked.map((t) => {
+          const label = `${t.place ?? "Unknown location"}${t.country && t.country !== "US" ? ` (${t.country})` : ""}`;
+          return (
+            <li key={t.vid}>
+              <button type="button" onClick={() => onOpen(t.vid, label)} className="live-tracked-row">
+                <span className={`h-2 w-2 shrink-0 rounded-full ${t.online ? "bg-emerald-400" : "bg-slate-600"}`} aria-hidden="true" />
+                <span className="min-w-0 flex-1 truncate text-left text-slate-200">
+                  {label}
+                  {t.note ? <span className="text-slate-500"> · {t.note}</span> : null}
+                </span>
+                {t.returned ? <span className="shrink-0 text-[10px] font-bold uppercase text-amber-300">came back</span> : null}
+                <span className="shrink-0 text-slate-500">{t.online ? "on now" : agoLabel(t.lastSeen, now)}</span>
+                <span className="shrink-0 text-slate-500">{t.views24h} views/24h</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+/** One visitor's trail: what they hit, how fast, from where, and which bot signals fired. */
+function TrackDrawer({ vid, label, onClose, onChanged }: { vid: string; label: string; onClose: () => void; onChanged: () => void }) {
+  const [trail, setTrail] = useState<VisitorTrail | null>(null);
+  const [error, setError] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const now = useNow(1000);
+
+  const load = useCallback(() => {
+    fetch(`/api/admin/track-visitor?vid=${encodeURIComponent(vid)}`)
+      .then(async (r) => {
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) throw new Error(d.error || "Could not load this visitor");
+        setTrail(d as VisitorTrail);
+        setError("");
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Could not load this visitor"));
+  }, [vid]);
+  useEffect(() => {
+    load();
+    const t = setInterval(load, POLL_MS);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const toggle = async () => {
+    if (!trail || saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/track-visitor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vid, action: trail.tracked ? "untrack" : "track", note: note || (trail.likelyScraper ? "likely scraper" : "") }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Could not save");
+      load();
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <aside className="live-chat-drawer" aria-label="Visitor trail">
+      <header className="flex items-start justify-between gap-2 border-b border-slate-700/60 px-4 py-3">
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-sm font-bold text-white">
+            <ScanEye size={15} aria-hidden="true" /> Visitor trail
+          </p>
+          <p className="truncate text-xs text-slate-400">{label}</p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close" className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white">
+          <X size={18} />
+        </button>
+      </header>
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 py-3 text-xs">
+        {error ? <p className="text-rose-300">{error}</p> : null}
+        {!trail ? (
+          !error ? <p className="text-slate-500">Loading…</p> : null
+        ) : (
+          <>
+            <div className={`rounded-xl border px-3 py-2 ${trail.likelyScraper ? "border-rose-500/40 bg-rose-500/10" : "border-slate-700 bg-slate-800/40"}`}>
+              <p className={`text-sm font-bold ${trail.likelyScraper ? "text-rose-200" : "text-slate-200"}`}>
+                {trail.likelyScraper ? "Likely a scraper" : trail.signals.length ? "Some bot signals" : "Looks like a person"}
+              </p>
+              {trail.signals.length ? (
+                <ul className="mt-1 list-disc space-y-0.5 pl-4 text-slate-300">
+                  {trail.signals.map((sig) => <li key={sig.key}>{sig.label}</li>)}
+                </ul>
+              ) : (
+                <p className="mt-1 text-slate-400">No bot signals so far.</p>
+              )}
+            </div>
+
+            <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1">
+              <dt className="text-slate-500">Where</dt><dd className="text-slate-200">{trail.place ?? "Unknown"}{trail.country ? ` · ${trail.country}` : ""} <span className="text-slate-500">(from IP, approximate)</span></dd>
+              <dt className="text-slate-500">IP</dt><dd className="font-mono text-slate-200">{trail.ip ?? "not kept"}{trail.sameIpVisitors ? <span className="text-slate-500"> · {trail.sameIpVisitors} other id{trail.sameIpVisitors === 1 ? "" : "s"} today</span> : null}</dd>
+              <dt className="text-slate-500">Browser</dt><dd className="text-slate-200">{[trail.browser, trail.device].filter(Boolean).join(" · ") || "Unknown"}</dd>
+              <dt className="text-slate-500">First seen</dt><dd className="text-slate-200">{agoLabel(trail.firstSeen, now)}</dd>
+              <dt className="text-slate-500">Last seen</dt><dd className="text-slate-200">{agoLabel(trail.lastSeen, now)}</dd>
+              <dt className="text-slate-500">Pages</dt><dd className="text-slate-200">{trail.viewsTotal} total · {trail.viewsHour} this hour{trail.medianGap !== null ? ` · ~${Math.round(trail.medianGap)}s apart` : ""}</dd>
+            </dl>
+            {trail.userAgent ? <p className="break-all font-mono text-[10px] leading-relaxed text-slate-500">{trail.userAgent}</p> : null}
+
+            <div>
+              <p className="mb-1 font-bold uppercase tracking-wide text-slate-400">Pages hit</p>
+              <ul className="space-y-0.5">
+                {trail.pages.map((p) => (
+                  <li key={p.path} className="flex gap-2">
+                    <span className="min-w-0 flex-1 truncate font-mono text-sky-300">{p.path}</span>
+                    <span className="shrink-0 text-slate-400">×{p.views}</span>
+                    <span className="shrink-0 text-slate-500">{agoLabel(p.lastAt, now)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {trail.searches.length ? (
+              <div>
+                <p className="mb-1 font-bold uppercase tracking-wide text-slate-400">Radar searches</p>
+                <ul className="space-y-0.5">
+                  {trail.searches.map((r, i) => (
+                    <li key={i} className="flex gap-2">
+                      <span className="min-w-0 flex-1 truncate text-slate-200">{r.trade}{r.state ? ` · ${r.state}` : ""}</span>
+                      <span className="shrink-0 text-slate-400">{r.matched} match{r.matched === 1 ? "" : "es"}</span>
+                      <span className="shrink-0 text-slate-500">{agoLabel(r.at, now)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
+      {trail ? (
+        <div className="flex items-center gap-2 border-t border-slate-700/60 px-3 py-3">
+          {!trail.tracked ? (
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder={trail.likelyScraper ? "likely scraper" : "Note (optional)"}
+              maxLength={200}
+              className="min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-900 px-2 py-1.5 text-xs text-slate-100 placeholder:text-slate-500"
+            />
+          ) : (
+            <p className="min-w-0 flex-1 truncate text-xs text-slate-400">Tracked {agoLabel(trail.trackedAt, now)}{trail.note ? ` · ${trail.note}` : ""}</p>
+          )}
+          <button type="button" onClick={toggle} disabled={saving} className={`live-track${trail.tracked ? " is-on" : ""} !px-3 !py-1.5 !text-xs`}>
+            <ScanEye size={13} aria-hidden="true" /> {trail.tracked ? "Stop tracking" : "Track"}
+          </button>
+        </div>
+      ) : null}
+    </aside>
   );
 }
 
@@ -1422,6 +1596,9 @@ function LivePage() {
   const [chat, setChat] = useState<{ vid: string; label: string } | null>(null);
   const [threads, setThreads] = useState<ChatThread[]>([]);
   const openChat = (v: OnlineVisitor) => setChat({ vid: v.vid, label: `${v.place ?? "Unknown location"} · ${v.path}` });
+  const [track, setTrack] = useState<{ vid: string; label: string } | null>(null);
+  const [reload, setReload] = useState(0);
+  const openTrack = (v: OnlineVisitor) => setTrack({ vid: v.vid, label: `${v.place ?? "Unknown location"} · ${v.path}` });
   const voice = useVoiceAnnouncer();
   const sayRef = useRef(voice.say);
   sayRef.current = voice.say;
@@ -1475,7 +1652,7 @@ function LivePage() {
       stop = true;
       clearInterval(t);
     };
-  }, []);
+  }, [reload]);
 
   const counts = data
     ? {
@@ -1540,7 +1717,8 @@ function LivePage() {
                 <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-slate-300">
                   <Users size={15} aria-hidden="true" /> On the site now
                 </h2>
-                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} onChat={openChat} />
+                <OnlineNow count={data.onlineCount} visitors={data.online.slice(0, 12)} now={now} hidden={data.scannersHidden ?? 0} onChat={openChat} onTrack={openTrack} />
+                <TrackedList tracked={data.tracked ?? []} now={now} onOpen={(vid, label) => setTrack({ vid, label })} />
                 <Conversations threads={threads} online={data.online} onOpen={(vid, label) => setChat({ vid, label })} />
               </div>
             </div>
@@ -1605,6 +1783,7 @@ function LivePage() {
         />
       ) : null}
       {chat ? <ChatDrawer vid={chat.vid} label={chat.label} onClose={() => setChat(null)} /> : null}
+      {track ? <TrackDrawer vid={track.vid} label={track.label} onClose={() => setTrack(null)} onChanged={() => setReload((n) => n + 1)} /> : null}
     </div>
   );
 }

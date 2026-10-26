@@ -209,6 +209,12 @@ describe("Max: pick of the day and bid pages", () => {
     expect(g).toBe('Hi, I\'m Max. My pick of the day: "Janitorial services for the county courthouse" from Henrico County. Tell me what your business does and I\'ll find more like it.');
     expect(maxPickGreeting(pick, "Virginia", "es", now)).toMatch(/^¡Hola! Soy Max\. Mi selección del día en Virginia/);
   });
+  test("a placeholder value is never read out as a value", () => {
+    for (const value of ["Not specified", "N/A", "TBD", "See solicitation"]) {
+      expect(maxPickGreeting({ ...pick, value }, "Ohio", "en", now)).not.toContain("listed value");
+    }
+    expect(maxPickGreeting({ ...pick, value: "$250,000" }, "Ohio", "en", now)).toContain("the listed value is $250,000");
+  });
   test("bid context only for a real id", () => {
     expect(maxBidContext(123)).toContain('explain_bid with ref "123"');
     expect(maxBidContext("x")).toBe("");

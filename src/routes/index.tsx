@@ -209,23 +209,20 @@ function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Navbar />
-      <HomeContractFinder sample={sample} />
+      <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
       {/* Max, the public AI assistant (owner 2026-10-25: "something high tech"). */}
       <MaxAssistant />
+      {/* Owner 2026-10-26 ("all of it"): one clear path down the page: search,
+          Max, the proof, how it works, Bid Scout. The other ways in ("Open near
+          you", the ZIP box, free tools) follow instead of competing up top. */}
+      <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
+      <HowItWorks />
+      <BidScoutCallout />
       {/* "What's open near you?" (owner 2026-10-21): real open-bid count for the
           visitor's state, client-fetched; renders nothing until it has one. */}
       <NearYouCard />
       {/* "What's Your Town Buying?" (owner 2026-10-23). */}
       <TownBuyingCallout />
-      {/* Shorter homepage (owner 2026-10-17): the stats row folds into the
-          money counter, and its "contracts ending" figure replaces the
-          separate Contracts Ending Soon box. */}
-      <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
-      <HowItWorks />
-      <BidScoutCallout />
-      {/* Shorter homepage (owner 2026-10-23): the Launchpad section and the
-          "More from Contrax" cards fold into one strip of links; the Opportunity
-          Explorer and the partnership banner left the page (their pages stay). */}
       <FreeToolsStrip />
       <Footer />
     </div>

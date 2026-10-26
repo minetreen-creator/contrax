@@ -583,7 +583,7 @@ export function RfpBriefSections({ data }: { data: RfpSummary }) {
                       {m.date || "Not specified"}
                     </span>
                   </div>
-                  {m.source && (
+                  {m.source && !isRawFieldQuote(m.source) && (
                     <p className="mt-1 pl-4 text-xs italic text-slate-500">
                       “{m.source}”
                     </p>
@@ -649,4 +649,13 @@ function Part({ title, children }: { title: string; children: ReactNode }) {
       <div className="mt-1.5">{children}</div>
     </div>
   );
+}
+
+/**
+ * A milestone "quote" that is a stored field rather than solicitation text, e.g.
+ * "due_date: Fri Aug 14 2026 11:59:59 GMT+0000 (Coordinated Universal Time)".
+ * The date chip already shows it; the raw dump is hidden (owner 2026-10-26).
+ */
+export function isRawFieldQuote(source: string): boolean {
+  return /^[a-z]+_[a-z_]+:/i.test(source.trim()) || /GMT[+-]\d{4}/.test(source);
 }

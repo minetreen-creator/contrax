@@ -6,6 +6,7 @@ import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusio
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
 import { computeLeadScore, bidIdsFromPaths, getWatchedMap, spanSeconds, sameMinuteClusters, dataCenterLocation, sourceLabel, isActiveRadarEvent, isQaSource, sameDeviceDuplicates, type ClusterCandidate } from "~/lib/visitor-intel";
+import { blockedIps } from "~/lib/ip-block.server";
 import { buildConversionOpportunity, type ConversionOpportunity } from "~/lib/conversion-opportunity";
 
 /**
@@ -1204,6 +1205,7 @@ async function handler({ request }: { request: Request }) {
       (admin_user_id, admin_email, visitor_id)
       VALUES (${user.id}, ${user.email}, ${"*journeys-board*"})`;
 
+    const blocked = await blockedIps();
     return Response.json({
       rangeDays,
       from: fromIso,
@@ -1211,7 +1213,12 @@ async function handler({ request }: { request: Request }) {
       funnel,
       maxFunnel,
       radarLeadStages,
-      journeys: all.map((j) => ({ ...j, radar_lead_stage: radarLeadStagesMap.get(j.visitor_id) ?? null })),
+      journeys: all.map((j) => ({
+        ...j,
+        radar_lead_stage: radarLeadStagesMap.get(j.visitor_id) ?? null,
+        // Site-wide IP block (owner 2026-10-26): the Block button's state.
+        ip_blocked: !!((j.last_ip && blocked.has(j.last_ip)) || (j.first_ip && blocked.has(j.first_ip))),
+      })),
       watched_returned: watchedReturned,
     }, { headers: { "Cache-Control": "private, no-store, max-age=0" } });
   } catch (err) {

@@ -1465,5 +1465,26 @@
       "url": "https://newsroom.intel.com/corporate/intel-opens-fab-9-in-new-mexico"
     },
     "checked": "2026-10-25"
+  },
+  {
+    "slug": "audi-fort-valley-ga",
+    "company": "Audi",
+    "project": "First U.S. vehicle assembly plant",
+    "city": "Fort Valley (Middle Georgia Megasite, near Macon)",
+    "state": "GA",
+    "sector": "automotive",
+    "amount": 4200000000,
+    "amountNote": null,
+    "jobs": 4500,
+    "jobsNote": null,
+    "status": "Announced October 24, 2026; construction expected to begin in 2027, production in the early 2030s",
+    "summary": "Audi's first U.S. factory, at the Middle Georgia Megasite in Peach County, planned to build about 200,000 SUVs a year.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "CNBC",
+      "url": "https://www.cnbc.com/2026/10/24/trump-audi-factory-georgia.html"
+    },
+    "checked": "2026-10-26"
   }
 ]

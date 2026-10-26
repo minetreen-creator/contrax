@@ -1283,7 +1283,7 @@ function SignupPage() {
               ? "Create your free account to save this bid"
               : score_rec
               ? "Get your Technical Approach in 60 seconds."
-              : contextualHeader || "Your government-contracting workflow starts here."}
+              : contextualHeader || "Create your free Contrax account"}
           </h1>
           {save_bid && (
             <p className="mt-2 text-sm text-slate-700">
@@ -1398,21 +1398,9 @@ function SignupPage() {
                   so on a phone it is not mistaken for a tap target above the email box. */}
               {!save_bid && <p className="mt-1.5 rounded-md bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
                 {selectedPlan === "basic"
-                  ? "🔒 100% Free Forever • Zero Credit Card Required"
+                  ? "🔒 Free account • No credit card"
                   : "🔒 7-day trial starts today • No credit card"}
               </p>}
-              {/* Honest scope on the free forever claim — Basic is free and never
-                  expires, but it is LIMITED: capped at 1 saved bid, with AI
-                  Executive Briefs / Incumbent Intelligence / AI Match Scoring gated
-                  on Professional and drafting / pipeline CSV export gated on Bid
-                  Scout (the ratified gate map, src/lib/plan-gates.ts). Kept small
-                  (text-xs) and only on the Basic branch so the badge is never read
-                  as "everything is free". */}
-              {!save_bid && selectedPlan === "basic" && (
-                <p className="mt-1.5 text-xs text-gray-500">
-                  Basic includes 1 saved bid. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
-                </p>
-              )}
               <input
                 id="email"
                 name="email"
@@ -1514,6 +1502,14 @@ function SignupPage() {
               )}
             </button>
 
+            {/* Owner 2026-10-26: 25 of 32 visitors left /signup without typing; this
+                scope note sat between the badge and the email box. It stays (the
+                free plan is limited) but under the button. */}
+            {!save_bid && selectedPlan === "basic" && (
+              <p className="text-center text-xs text-gray-500">
+                After the trial, free Basic includes 1 saved bid. AI Executive Briefs, Incumbent Intelligence, and AI Match Scoring are on Professional. Proposal drafting and pipeline CSV export are on Bid Scout.
+              </p>
+            )}
             {/* Trial trust row — one visible line near the CTA. Communicates
                 all three free/basic assurances: no card, free forever, and fast
                 (takes under 30 seconds). Paid plans keep honest 14-day-trial

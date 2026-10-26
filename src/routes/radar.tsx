@@ -463,10 +463,13 @@ export const getLiveStateBids = createServerFn({ method: "GET" }).handler(
       const [rows, count] = await Promise.all([
         // Notices of intent to award / sole source are announcements nobody can
         // bid on, so the proof box leaves them out (owner 2026-10-20 audit).
+        // Owner 2026-10-26: it led with "30--GEAR SECTOR,SPUR" and "O Ring"; parts
+        // buys (numeric supply-class prefix) and bare part names are left out too.
         s`SELECT id, title, agency, due_date FROM bids
           WHERE normalized_state = ${state} AND due_date > NOW() + INTERVAL '3 days'
             AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
             AND title !~* '(intent to (sole[ -]source|award)|sole[ -]source)'
+            AND title !~ '^[0-9]{2}--' AND length(title) >= 15
           ORDER BY created_at DESC LIMIT 3`,
         s`SELECT COUNT(*)::int AS n FROM bids
           WHERE normalized_state = ${state} AND due_date > NOW()

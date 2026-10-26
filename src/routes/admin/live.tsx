@@ -327,6 +327,27 @@ function TrackDrawer({ vid, label, onClose, onChanged }: { vid: string; label: s
     return () => clearInterval(t);
   }, [load]);
 
+  const block = async () => {
+    if (!trail || saving) return;
+    if (!trail.ipBlocked && !window.confirm(`Block ${trail.ip ?? "this IP"} from the whole site? Anyone on that address gets "Access denied." Takes effect within a minute.`)) return;
+    setSaving(true);
+    try {
+      const res = await fetch("/api/admin/track-visitor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vid, action: trail.ipBlocked ? "unblock" : "block", note: note || "blocked" }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Could not save the block");
+      load();
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not save the block");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const toggle = async () => {
     if (!trail || saving) return;
     setSaving(true);
@@ -381,7 +402,7 @@ function TrackDrawer({ vid, label, onClose, onChanged }: { vid: string; label: s
 
             <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1">
               <dt className="text-slate-500">Where</dt><dd className="text-slate-200">{trail.place ?? "Unknown"}{trail.country ? ` · ${trail.country}` : ""} <span className="text-slate-500">(from IP, approximate)</span></dd>
-              <dt className="text-slate-500">IP</dt><dd className="font-mono text-slate-200">{trail.ip ?? "not kept"}{trail.sameIpVisitors ? <span className="text-slate-500"> · {trail.sameIpVisitors} other id{trail.sameIpVisitors === 1 ? "" : "s"} today</span> : null}</dd>
+              <dt className="text-slate-500">IP</dt><dd className="font-mono text-slate-200">{trail.ip ?? "not kept"}{trail.ipBlocked ? <span className="ml-1 font-sans text-[10px] font-bold uppercase text-rose-300">blocked</span> : null}{trail.sameIpVisitors ? <span className="text-slate-500"> · {trail.sameIpVisitors} other id{trail.sameIpVisitors === 1 ? "" : "s"} today</span> : null}</dd>
               <dt className="text-slate-500">Browser</dt><dd className="text-slate-200">{[trail.browser, trail.device].filter(Boolean).join(" · ") || "Unknown"}</dd>
               <dt className="text-slate-500">First seen</dt><dd className="text-slate-200">{agoLabel(trail.firstSeen, now)}</dd>
               <dt className="text-slate-500">Last seen</dt><dd className="text-slate-200">{agoLabel(trail.lastSeen, now)}</dd>
@@ -432,6 +453,11 @@ function TrackDrawer({ vid, label, onClose, onChanged }: { vid: string; label: s
           ) : (
             <p className="min-w-0 flex-1 truncate text-xs text-slate-400">Tracked {agoLabel(trail.trackedAt, now)}{trail.note ? ` · ${trail.note}` : ""}</p>
           )}
+          {trail.ip ? (
+            <button type="button" onClick={block} disabled={saving} className={`live-block${trail.ipBlocked ? " is-on" : ""}`} title="Block or unblock this visitor's IP across the whole site">
+              {trail.ipBlocked ? "Unblock IP" : "Block IP"}
+            </button>
+          ) : null}
           <button type="button" onClick={toggle} disabled={saving} className={`live-track${trail.tracked ? " is-on" : ""} !px-3 !py-1.5 !text-xs`}>
             <ScanEye size={13} aria-hidden="true" /> {trail.tracked ? "Stop tracking" : "Track"}
           </button>

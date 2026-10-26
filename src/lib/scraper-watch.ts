@@ -119,6 +119,8 @@ export interface VisitorTrail {
   country: string | null;
   /** Raw IP: admin-only, audited, purged after the retention window. */
   ip: string | null;
+  /** This IP is on the site-wide blocklist (src/lib/ip-block.server.ts). */
+  ipBlocked: boolean;
   browser: string | null;
   device: string | null;
   userAgent: string | null;

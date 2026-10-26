@@ -4,12 +4,16 @@ import { sql } from "~/db";
 import { placeLabel } from "~/lib/live-console";
 import { isLikelyScraper, medianGapSeconds, scraperSignals, type VisitorTrail } from "~/lib/scraper-watch";
 import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
+import { clearIpBlockCache, ensureBlockedIpsTable, isIpBlocked } from "~/lib/ip-block.server";
+import { getClientIp } from "~/lib/request-ip";
 
 /**
  * Scraper tracker (src/lib/scraper-watch.ts). Admin only.
  *
  * GET  /api/admin/track-visitor?vid=<id>   → the visitor's trail (VisitorTrail)
- * POST /api/admin/track-visitor { vid, action: "track" | "untrack", note? }
+ * POST /api/admin/track-visitor { vid, action: "track" | "untrack" | "block" | "unblock", note? }
+ *   block / unblock put the visitor's latest IP on or off the site-wide
+ *   blocklist (src/lib/ip-block.server.ts). You can't block your own IP.
  *
  * Unlike "Watch visitor" there is no lead-score gate: the point is to keep an
  * eye on traffic that is NOT a lead. The trail includes the raw IP, so every
@@ -137,6 +141,7 @@ async function GET({ request }: { request: Request }) {
       place: placeLabel(agg?.city ?? v?.city, agg?.region ?? v?.region),
       country: v?.country ?? null,
       ip,
+      ipBlocked: ip ? await isIpBlocked(ip) : false,
       browser: v?.browser_label ?? null,
       device: v?.device_type ?? null,
       userAgent: agg?.ua ? String(agg.ua).slice(0, 300) : null,
@@ -169,20 +174,50 @@ async function POST({ request }: { request: Request }) {
   }
   const vid = cleanVid(body.vid);
   if (!vid) return Response.json({ error: "vid is required" }, { status: 400 });
-  if (body.action !== "track" && body.action !== "untrack") {
-    return Response.json({ error: 'action must be "track" or "untrack"' }, { status: 400 });
+  const action = body.action;
+  if (action !== "track" && action !== "untrack" && action !== "block" && action !== "unblock") {
+    return Response.json({ error: 'action must be "track", "untrack", "block" or "unblock"' }, { status: 400 });
   }
   const note = typeof body.note === "string" ? body.note.trim().slice(0, 200) || null : null;
   const db = sql();
+  if (action === "block" || action === "unblock") {
+    try {
+      const [row] = (await db`
+        SELECT ip FROM page_views WHERE visitor_id = ${vid} AND ip IS NOT NULL AND ip <> ''
+        ORDER BY created_at DESC LIMIT 1
+      `) as { ip: string }[];
+      const ip = row?.ip ?? null;
+      if (!ip) return Response.json({ error: "No IP on file for this visitor" }, { status: 404 });
+      await ensureBlockedIpsTable();
+      if (action === "block") {
+        if (ip === getClientIp(request)) {
+          return Response.json({ error: "That's your own IP, so it wasn't blocked" }, { status: 400 });
+        }
+        await db`INSERT INTO blocked_ips (ip, visitor_id, note) VALUES (${ip}, ${vid}, ${note})
+          ON CONFLICT (ip) DO NOTHING`;
+        // Blocked visitors stay on the tracked list so you can see if they try a new IP.
+        await ensureTrackedVisitorsTable();
+        await db`INSERT INTO tracked_visitors (visitor_id, note) VALUES (${vid}, ${note ?? "blocked"})
+          ON CONFLICT (visitor_id) DO NOTHING`;
+      } else {
+        await db`DELETE FROM blocked_ips WHERE ip = ${ip}`;
+      }
+      clearIpBlockCache();
+      return Response.json({ ok: true, vid, ip, blocked: action === "block" });
+    } catch (err) {
+      console.error("[api/admin/track-visitor] block failed:", err);
+      return Response.json({ error: "Could not save the block" }, { status: 500 });
+    }
+  }
   try {
     await ensureTrackedVisitorsTable();
-    if (body.action === "track") {
+    if (action === "track") {
       await db`INSERT INTO tracked_visitors (visitor_id, note) VALUES (${vid}, ${note})
         ON CONFLICT (visitor_id) DO UPDATE SET note = COALESCE(EXCLUDED.note, tracked_visitors.note)`;
     } else {
       await db`DELETE FROM tracked_visitors WHERE visitor_id = ${vid}`;
     }
-    return Response.json({ ok: true, vid, tracked: body.action === "track" });
+    return Response.json({ ok: true, vid, tracked: action === "track" });
   } catch (err) {
     console.error("[api/admin/track-visitor] write failed:", err);
     return Response.json({ error: "Could not save" }, { status: 500 });

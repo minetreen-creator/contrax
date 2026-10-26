@@ -25,7 +25,7 @@ export const PATH_CHECKS: readonly PathCheck[] = [
   { name: "Signup", path: "/signup?plan=basic", expectStatus: 200, mustContain: "Continue with Google" },
   { name: "Sign in", path: "/login", expectStatus: 200, mustContain: "Password" },
   { name: "Pricing", path: "/pricing", expectStatus: 200, mustContain: "Start Starter for $" },
-  { name: "Plan page", path: "/upgrade", expectStatus: 200, mustContain: "Keep going with Contrax" },
+  { name: "Plan page", path: "/upgrade", expectStatus: 200, mustContain: "Try Contrax free for 7 days" },
   {
     name: "Checkout (signed out is refused)",
     path: "/api/stripe/create-checkout-session",

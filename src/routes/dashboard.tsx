@@ -1667,7 +1667,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
       <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
         <div className="mx-auto max-w-5xl px-4 py-3 flex items-center justify-between">
           <a href="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+            <img src="/logo-horizontal.png" alt="Contrax" className="h-6 w-auto" />
           </a>
           <div className="flex items-center gap-4">
             <a href="/alerts" className="text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors">🔔 Alerts {data?.unreadAlerts ? <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">{data.unreadAlerts}</span> : null}</a>

@@ -165,7 +165,7 @@ function BlogPostPage() {
       <footer className="border-t border-gray-800 bg-slate-900 py-10">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 sm:flex-row">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" className="h-7 w-auto" />
+            <img src="/logo-horizontal.png" alt="Contrax" className="h-6 w-auto" />
           </div>
           <p className="text-sm text-gray-400">&copy; {new Date().getFullYear()} Contrax LLC. All rights reserved.</p>
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">

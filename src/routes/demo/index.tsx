@@ -134,7 +134,7 @@ function DemoPage() {
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <a href="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" height={44} className="block h-11 w-auto mix-blend-multiply" />
+            <img src="/logo-horizontal.png" alt="Contrax" height={32} className="block h-8 w-auto mix-blend-multiply" />
           </a>
           <nav className="flex items-center gap-4 text-sm">
             <a href="/#features" className="text-slate-500 hover:text-slate-900">Features</a>

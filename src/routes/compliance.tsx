@@ -444,7 +444,7 @@ function CompliancePage() {
       <header className="border-b border-slate-200 bg-white sticky top-0 z-10">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
           <a href="/dashboard" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+            <img src="/logo-horizontal.png" alt="Contrax" className="h-6 w-auto" />
           </a>
           <div className="flex items-center gap-4">
             <a href="/dashboard" className="text-sm font-medium text-slate-400 hover:text-slate-600 transition-colors">Dashboard</a>

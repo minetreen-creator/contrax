@@ -594,7 +594,7 @@ function SettingsPage({ currentUser }: { currentUser: AuthUser }) {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-7xl px-6 py-4 flex items-center justify-between">
           <a href="/dashboard" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+            <img src="/logo-horizontal.png" alt="Contrax" className="h-6 w-auto" />
           </a>
           <div>
             <span className="text-sm text-slate-500">{currentUser.email}</span>

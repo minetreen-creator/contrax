@@ -64,7 +64,7 @@ function ResetPasswordPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <a href="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" height={44} className="block h-11 w-auto mix-blend-multiply" />
+            <img src="/logo-horizontal.png" alt="Contrax" height={32} className="block h-8 w-auto mix-blend-multiply" />
           </a>
         </div>
 

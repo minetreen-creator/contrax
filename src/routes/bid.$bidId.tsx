@@ -19,6 +19,9 @@ import { applyHeadStart } from "~/lib/head-start";
 import { hasPaidBidAccess } from "~/lib/head-start.server";
 import { HeadStartLock } from "~/components/HeadStartLock";
 import { trackEvent } from "~/lib/track";
+import { LOW_CONTENT_SQL } from "~/lib/low-content";
+import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
+import { SIMILAR_BIDS_LIMIT, similarNaicsPrefixes, similarRadarHref } from "~/lib/similar-bids";
 import {
   effectiveAutopsyTier,
   LEARNING_TIERS,
@@ -88,6 +91,70 @@ interface PublicBid extends Omit<BidDetail, "learned" | "contact"> {
   naics_code: string | null;
   /** True when a point of contact is on file — the details themselves are paid-only. */
   has_contact: boolean;
+  /** Open bids like this one in the same state (src/lib/similar-bids.ts). */
+  similar: SimilarBids;
+}
+
+interface SimilarBid {
+  id: number;
+  title: string;
+  agency: string | null;
+  due_date: string | null;
+}
+
+interface SimilarBids {
+  /** "naics": same NAICS code or industry group; "state": other open bids in the state. */
+  scope: "naics" | "state" | null;
+  total: number;
+  bids: SimilarBid[];
+}
+
+const NO_SIMILAR: SimilarBids = { scope: null, total: 0, bids: [] };
+
+/** Up to three real open bids in the same state, closest NAICS match first. */
+async function loadSimilar(id: number, state: string | null, naics: string | null): Promise<SimilarBids> {
+  if (!state) return NO_SIMILAR;
+  const s = sql();
+  const open = s`due_date > NOW() + INTERVAL '2 days' AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}`;
+  const pick = (rows: any[]): SimilarBid[] => {
+    const seen = new Set<string>();
+    const out: SimilarBid[] = [];
+    for (const r of rows) {
+      const title = String(r.title ?? "").trim();
+      const key = title.toLowerCase();
+      if (!title || seen.has(key)) continue;
+      seen.add(key);
+      out.push({ id: Number(r.id), title, agency: r.agency ? String(r.agency) : null, due_date: r.due_date ? new Date(r.due_date).toISOString() : null });
+      if (out.length === SIMILAR_BIDS_LIMIT) break;
+    }
+    return out;
+  };
+  try {
+    for (const prefix of similarNaicsPrefixes(naics)) {
+      const like = `${prefix}%`;
+      const [rows, count] = await Promise.all([
+        s`SELECT id, title, agency, due_date FROM bids
+          WHERE normalized_state = ${state} AND naics_code LIKE ${like} AND id <> ${id} AND ${open}
+          ORDER BY due_date ASC LIMIT 12`,
+        s`SELECT COUNT(*)::int AS n FROM bids
+          WHERE normalized_state = ${state} AND naics_code LIKE ${like} AND id <> ${id} AND ${open}`,
+      ]);
+      const bids = pick(rows as any[]);
+      if (bids.length) return { scope: "naics", total: Number((count as any[])[0]?.n ?? bids.length), bids };
+    }
+    const [rows, count] = await Promise.all([
+      s`SELECT id, title, agency, due_date FROM bids
+        WHERE normalized_state = ${state} AND id <> ${id} AND ${open}
+          AND title !~ '^[0-9]{2}--' AND length(title) >= 15
+        ORDER BY created_at DESC LIMIT 12`,
+      s`SELECT COUNT(*)::int AS n FROM bids WHERE normalized_state = ${state} AND id <> ${id} AND ${open}`,
+    ]);
+    const bids = pick(rows as any[]);
+    return bids.length ? { scope: "state", total: Number((count as any[])[0]?.n ?? bids.length), bids } : NO_SIMILAR;
+  } catch (e) {
+    console.error("[bid/$id] similar bids failed:", e);
+    return NO_SIMILAR;
+  }
 }
 
 /**
@@ -136,6 +203,7 @@ const getPublicBid = createServerFn({ method: "GET" })
         state_code: code ?? null,
         naics_code: r.naics_code ? String(r.naics_code) : null,
         has_contact: (await loadContact(id)) !== null,
+        similar: await loadSimilar(Number(r.id), code ?? null, r.naics_code ? String(r.naics_code) : null),
       };
     } catch (e) {
       console.error("[bid/$id] public load failed:", e);
@@ -332,6 +400,13 @@ function BidDetailPage() {
               {bid.has_contact && contact !== undefined && <BidContactPanel contact={contact} bidId={bid.id} />}
             </article>
 
+            <SimilarBidsBox
+              similar={bid.similar}
+              stateName={bid.state_name}
+              radarHref={similarRadarHref(bid.naics_code, bid.state_code)}
+              stateHref={stateHref}
+            />
+
             {stateHref && bid.state_name && (
               <p className="mt-4 text-sm">
                 <a href={stateHref} className="font-semibold text-amber-400 hover:text-amber-300">
@@ -356,6 +431,60 @@ function BidDetailPage() {
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * "Similar open bids" (owner 2026-10-26): Radar visitors who opened a bid from
+ * the "Open now" box left from this page. Real open bids only; hidden when none.
+ */
+function SimilarBidsBox({
+  similar,
+  stateName,
+  radarHref,
+  stateHref,
+}: {
+  similar: SimilarBids;
+  stateName: string | null;
+  radarHref: string | null;
+  stateHref: string | null;
+}) {
+  if (!similar?.bids.length) return null;
+  const where = stateName ? ` in ${stateName}` : "";
+  const heading = similar.scope === "naics" ? `Similar open bids${where}` : `More open bids${where}`;
+  const allHref = similar.scope === "naics" && radarHref ? radarHref : stateHref;
+  const due = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }) : null;
+  return (
+    <section aria-label={heading} className="mt-6 rounded-2xl border border-amber-500/40 bg-slate-900 px-5 py-4">
+      <h2 className="text-sm font-bold uppercase tracking-wide text-amber-300">{heading}</h2>
+      <ul className="mt-3 divide-y divide-slate-800">
+        {similar.bids.map((b) => (
+          <li key={b.id} className="py-2.5">
+            <a
+              href={`/bid/${b.id}`}
+              onClick={() => trackEvent("bid_similar_click", String(b.id))}
+              className="block text-sm font-semibold leading-snug text-white hover:text-amber-300"
+            >
+              {b.title}
+            </a>
+            <span className="text-xs text-slate-400">
+              {b.agency || "Government buyer"}
+              {due(b.due_date) ? ` · due ${due(b.due_date)}` : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {allHref && similar.total > similar.bids.length && (
+        <a
+          href={allHref}
+          onClick={() => trackEvent("bid_similar_all", similar.scope ?? "")}
+          className="mt-2 inline-block text-sm font-bold text-amber-400 hover:text-amber-300"
+        >
+          See all {similar.total.toLocaleString("en-US")} →
+        </a>
+      )}
+    </section>
   );
 }
 

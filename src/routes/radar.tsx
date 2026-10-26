@@ -2135,40 +2135,6 @@ function RadarLanding() {
                     : `${scan.matches.length} ${scan.matches.length === 1 ? "match" : "matches"} found for you`}
               </p>
             )}
-            {scan.matches.length > 0 && <ShareResultsButton trade={trade} state={state} />}
-
-            {/* Soft, NON-BLOCKING nudge — appears after the FIRST match is revealed.
-                Dismissible; never a hard gate. The full locked-results card still
-                only appears past the free cap (anonymous, real matches > cap).
-                F2 (funnel QA 2026-09-26): ANONYMOUS ONLY — a just-signed-up user
-                landed on /radar?first_run=1 by definition already has an account,
-                so asking them to "Choose a plan" above the Save Opportunity
-                primary was both confusing and wrong. Signed-in users never see it. */}
-            {isAnonymous && scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (
-              <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
-                <p className="text-sm leading-relaxed text-slate-200">
-                  <span className="font-semibold text-amber-400">Keep these matches.</span>{" "}
-                  Create your account to save opportunities and get deadline alerts.
-                </p>
-                <div className="flex shrink-0 items-center gap-2">
-                  <a
-                    href={radarSignupHref({ trade, state, cert, sizePref })}
-                    onClick={() => trackEvent("radar_nudge_cta", scan.certLabel)}
-                    className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 transition-colors hover:bg-amber-400"
-                  >
-                    Create account
-                  </a>
-                  <button
-                    type="button"
-                    aria-label="Dismiss"
-                    onClick={() => { setNudgeDismissed(true); trackEvent("radar_nudge_dismiss", scan.certLabel); }}
-                    className="px-1 text-slate-400 transition-colors hover:text-slate-200"
-                  >
-                    ✕
-                  </button>
-                </div>
-              </div>
-            )}
 
             {scan.matches.length === 0 && (
               <div className="mt-8 rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 px-5 py-10 text-center text-sm text-slate-300">
@@ -2342,6 +2308,42 @@ function RadarLanding() {
             {/* The email unlock card above already asks for the email (and
                 signs it up for new-match emails), so the separate "by email
                 instead?" alert card no longer shows under locked results. */}
+            {/* Owner 2026-10-26: share buttons and the account nudge sat above the
+                first bid, pushing it below the fold on a phone; they follow the bids. */}
+            {scan.matches.length > 0 && <ShareResultsButton trade={trade} state={state} />}
+
+            {/* Soft, NON-BLOCKING nudge — appears after the FIRST match is revealed.
+                Dismissible; never a hard gate. The full locked-results card still
+                only appears past the free cap (anonymous, real matches > cap).
+                F2 (funnel QA 2026-09-26): ANONYMOUS ONLY — a just-signed-up user
+                landed on /radar?first_run=1 by definition already has an account,
+                so asking them to "Choose a plan" above the Save Opportunity
+                primary was both confusing and wrong. Signed-in users never see it. */}
+            {isAnonymous && scan.matches.length > 0 && revealed >= 0 && !nudgeDismissed && (
+              <div className="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-500/40 bg-slate-900 px-4 py-3">
+                <p className="text-sm leading-relaxed text-slate-200">
+                  <span className="font-semibold text-amber-400">Keep these matches.</span>{" "}
+                  Create your account to save opportunities and get deadline alerts.
+                </p>
+                <div className="flex shrink-0 items-center gap-2">
+                  <a
+                    href={radarSignupHref({ trade, state, cert, sizePref })}
+                    onClick={() => trackEvent("radar_nudge_cta", scan.certLabel)}
+                    className="whitespace-nowrap rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-bold text-slate-950 transition-colors hover:bg-amber-400"
+                  >
+                    Create account
+                  </a>
+                  <button
+                    type="button"
+                    aria-label="Dismiss"
+                    onClick={() => { setNudgeDismissed(true); trackEvent("radar_nudge_dismiss", scan.certLabel); }}
+                    className="px-1 text-slate-400 transition-colors hover:text-slate-200"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+            )}
             {wantsRadarMore(scan.matches.length, state) && (
               <RadarMoreOptions
                 trade={trade.trim()}

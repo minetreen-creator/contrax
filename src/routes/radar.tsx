@@ -1480,6 +1480,18 @@ function RadarLanding() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Owner 2026-10-26: 952 visitors landed here in 30 days and 58 searched.
+  // The state starts as the visitor's own (as the "Open now in" box already
+  // does) instead of "nationwide", so a trade tap is all a search needs.
+  // Never overrides a link's state, saved answers, or the visitor's choice.
+  useEffect(() => {
+    if (urlState || autoScan || prefilledRef.current || didInteract.current) return;
+    withTimeout(getVisitorStateHint(), 1500).then((st) => {
+      if (st && !didInteract.current && !prefilledRef.current) setState((cur) => cur || st);
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // A returning anonymous visitor came back for the value they already found,
   // not for another blank questionnaire. Restore only a timestamped, <=72h
   // browser snapshot whose opportunity deadlines are still open. The snapshot
@@ -1744,7 +1756,7 @@ function RadarLanding() {
                 button below the first screen; a short line stands in. */}
             <p className="mt-3 hidden text-sm leading-relaxed text-slate-300 sm:block">{opening.intro}</p>
             <p className="mt-2 text-sm leading-relaxed text-slate-300 sm:hidden">
-              Pick your trade and state. Free to search, no signup.
+              Tap your trade to see open bids. Free to search, no signup.
             </p>
 
             {/* FIRST-SEARCH GUIDANCE (owner rework 2026-09-26, PR-A, item 2):
@@ -1800,7 +1812,9 @@ function RadarLanding() {
                         setTrade(t.q);
                         setTradeHint(false);
                         trackEvent("radar_quick_trade", t.q);
-
+                        // Owner 2026-10-26: one tap searches (state already set,
+                        // or nationwide); no second "See my matches" press.
+                        runScan({ trade: t.q, state, cert: cert ?? DEFAULT_RADAR_CERT, sizePref: sizePref ?? DEFAULT_RADAR_SIZE });
                       }}
                       aria-pressed={trade.trim().toLowerCase() === t.q.toLowerCase()}
                       className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors sm:px-3 sm:py-1.5 sm:text-sm ${

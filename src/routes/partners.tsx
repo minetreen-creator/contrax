@@ -75,13 +75,15 @@ const TITLE = "Partners — Contrax";
 const DESC = "Find complementary prime contractors and subcontractors matched to your capabilities, NAICS codes, and government contracting opportunities.";
 
 export const Route = createFileRoute("/partners")({
-  loader: async ({ location }) => { const user = await getCurrentUser(); if (!user) throw redirect({ to: "/login" }); return findPartners({ data: { bid_id: Number(new URLSearchParams(location.search).get("bid_id")) || undefined } }); },
+  // Hidden (owner 2026-10-25): this page showed made-up sample companies.
+  // Everyone goes to the real primes directory instead.
+  loader: async (): Promise<Awaited<ReturnType<typeof findPartners>>> => { throw redirect({ to: "/subcontracts" }); },
   component: PartnersPage,
   head: () => ({
     meta: [
       { title: TITLE },
       { name: "description", content: DESC },
-      { name: "robots", content: "index, follow" },
+      { name: "robots", content: "noindex" },
       { property: "og:type", content: "website" },
       { property: "og:url", content: `${PROD_URL}/partners` },
       { property: "og:title", content: TITLE },

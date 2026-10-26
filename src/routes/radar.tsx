@@ -47,6 +47,7 @@ import { matchPriorLoss, type PriorLossBadge, type PriorLossRow } from "~/lib/aw
 import { expandTrade, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERMS, isCourierFamilyNaics, tradeExpresslyCourier, type TradeExpansion, type TradeMatchProvenance } from "~/lib/trade-registry";
 import { TRADE_SUGGESTIONS } from "~/lib/trade-suggestions";
 import { STATE_NAMES } from "~/lib/contract-map";
+import { wantsRadarMore } from "~/lib/radar-more";
 import {
   normalizeStateInput,
   resolveBidState,
@@ -2308,6 +2309,17 @@ function RadarLanding() {
             {/* The email unlock card above already asks for the email (and
                 signs it up for new-match emails), so the separate "by email
                 instead?" alert card no longer shows under locked results. */}
+            {wantsRadarMore(scan.matches.length, state) && (
+              <RadarMoreOptions
+                trade={trade.trim()}
+                state={state}
+                onPickState={(s) => {
+                  trackEvent("radar_more_nearby", `${trade.trim()}|${state}>${s}`);
+                  setState(s);
+                  runScan({ trade: trade.trim(), state: s, cert: cert ?? DEFAULT_RADAR_CERT, sizePref: sizePref ?? DEFAULT_RADAR_SIZE });
+                }}
+              />
+            )}
             {/* RELATED opportunities (owner v6.1) — adjacent work in the
                 requested state, explicitly labeled, NEVER default matches. An
                 empty section is an honest, documented outcome (current data/
@@ -3711,5 +3723,80 @@ function LiveStateBids() {
       </ul>
       <p className="mt-1 text-xs text-slate-400">Pick your trade above to see the ones that fit your business.</p>
     </div>
+  );
+}
+
+type RadarMore = {
+  nearby: { state: string; count: number }[];
+  rebids: { trade: string; count: number; total: number; list: { incumbent: string; amount: number; agency: string | null; ends: string }[] } | null;
+  events: { count: number; list: { title: string; agency: string; date: string | null; url: string | null }[] };
+};
+
+const moneyShort = (n: number) =>
+  n >= 1e9 ? `$${(n / 1e9).toFixed(1)}B` : n >= 1e6 ? `$${(n / 1e6).toFixed(1)}M` : n >= 1e3 ? `$${Math.round(n / 1e3)}K` : `$${Math.round(n)}`;
+
+/**
+ * Owner 2026-10-26 ("visitors run Radar and then leave"): a search with 0–3
+ * bids in a state ends with real next steps instead of a dead end. Data from
+ * /api/radar/more; each block hides when it has nothing.
+ */
+function RadarMoreOptions({ trade, state, onPickState }: { trade: string; state: string; onPickState: (s: string) => void }) {
+  const [more, setMore] = useState<RadarMore | null>(null);
+  useEffect(() => {
+    let live = true;
+    setMore(null);
+    fetch(`/api/radar/more?${new URLSearchParams({ trade, state })}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (live && d && !d.error) setMore(d); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [trade, state]);
+  if (!more || (!more.nearby.length && !more.rebids && !more.events.count)) return null;
+  const stateName = STATE_NAMES[state] ?? state;
+  return (
+    <section aria-label="More options near you" className="mt-8 rounded-2xl border border-amber-500/40 bg-slate-900/60 px-5 py-5 text-left">
+      <h3 className="text-sm font-bold uppercase tracking-wide text-amber-300">More work near you</h3>
+      {more.nearby.length > 0 && (
+        <div className="mt-3">
+          <p className="text-sm text-slate-300">Open {trade || "matching"} bids in neighboring states:</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {more.nearby.map((n) => (
+              <button key={n.state} type="button" onClick={() => onPickState(n.state)}
+                className="rounded-xl border border-slate-600 bg-slate-800 px-3 py-2 text-sm font-semibold text-white hover:border-amber-400">
+                {STATE_NAMES[n.state] ?? n.state} · {n.count} open →
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {more.rebids && (
+        <div className="mt-5">
+          <p className="text-sm text-slate-300">
+            <strong className="text-white">{more.rebids.count}</strong> federal {more.rebids.count === 1 ? "contract" : "contracts"} in {stateName} ({moneyShort(more.rebids.total)}) end within 12 months and usually go back out to bid:
+          </p>
+          <ul className="mt-2 space-y-1 text-xs text-slate-400">
+            {more.rebids.list.map((r, i) => (
+              <li key={i}>{r.incumbent} · {moneyShort(r.amount)} · {r.agency ?? "Federal agency"} · ends {r.ends.slice(0, 10)}</li>
+            ))}
+          </ul>
+          <a href={`/recompetes?trade=${more.rebids.trade}&state=${state}`} onClick={() => trackEvent("radar_more_rebids", `${trade}|${state}`)}
+            className="mt-2 inline-block text-sm font-semibold text-amber-300 underline">See contracts ending soon →</a>
+        </div>
+      )}
+      {more.events.count > 0 && (
+        <div className="mt-5">
+          <p className="text-sm text-slate-300">
+            {more.events.count} upcoming {more.events.count === 1 ? "industry day" : "industry days"} in {stateName}, where buyers meet contractors:
+          </p>
+          <ul className="mt-2 space-y-1 text-xs text-slate-400">
+            {more.events.list.map((e, i) => (
+              <li key={i}>{e.title.slice(0, 90)} · {e.agency}{e.date ? ` · ${e.date.slice(0, 10)}` : ""}</li>
+            ))}
+          </ul>
+          <a href="/industry-days" onClick={() => trackEvent("radar_more_events", state)}
+            className="mt-2 inline-block text-sm font-semibold text-amber-300 underline">See industry days →</a>
+        </div>
+      )}
+    </section>
   );
 }

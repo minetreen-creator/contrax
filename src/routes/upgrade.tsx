@@ -11,11 +11,16 @@ import { STARTER_FIRST_MONTH_NOTE, STARTER_FIRST_MONTH_PRICE } from "~/lib/start
 
 const getStatus = createServerFn({ method: "GET" }).handler(async () => {
   const u = await getCurrentUser();
-  if (!u) return { status: null, pitch: null };
+  if (!u) return { status: null, pitch: null, signedIn: false };
   const { loadUpgradePitch } = await import("~/lib/upgrade-pitch.server");
   const [status, pitch] = await Promise.all([checkTrial(), loadUpgradePitch(u.id, u.created_at)]);
-  return { status, pitch };
+  return { status, pitch, signedIn: true };
 });
+
+// Owner 2026-10-26: 11 Radar visitors reached /upgrade and none bought. Signed-out
+// visitors get the free trial first; each plan shows its top features, the rest folded.
+const TOP_FEATURES = 4;
+const TRIAL_SIGNUP_HREF = `/signup?plan=basic&next=${encodeURIComponent("/radar?first_run=1")}`;
 
 export const Route = createFileRoute("/upgrade")({
   head: () => ({ meta: [{ name: "robots", content: "noindex, nofollow" }] }),
@@ -36,7 +41,7 @@ const plans = [
 ] as const;
 
 function Upgrade() {
-  const { status, pitch } = Route.useLoaderData();
+  const { status, pitch, signedIn } = Route.useLoaderData();
   const { checkout, plan } = Route.useSearch();
   const [pendingPlan, setPendingPlan] = useState<string | null>(null);
   const [interval, setInterval] = useState<"month" | "year">("month");
@@ -52,14 +57,16 @@ function Upgrade() {
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-16">
       <div className="mx-auto max-w-6xl">
-        <a href="/dashboard" className="text-sm text-slate-500">
-          ← Dashboard
+        <a href={signedIn ? "/dashboard" : "/radar"} className="text-sm text-slate-500">
+          {signedIn ? "← Dashboard" : "← Back to Radar"}
         </a>
         <h1 className="mt-8 text-center text-3xl font-bold text-slate-900">
-          Keep going with Contrax
+          {signedIn ? "Keep going with Contrax" : "Try Contrax free for 7 days"}
         </h1>
         <p className="mt-3 text-center text-slate-600">
-          {plan && checkout !== "cancelled" ? "Continue with your selected plan, or explore Contrax first." : status?.active
+          {!signedIn
+            ? "No card needed. Pick a plan later, or never: after the trial your account stays free for search."
+            : plan && checkout !== "cancelled" ? "Continue with your selected plan, or explore Contrax first." : status?.active
             ? `Your trial ends in ${status.daysLeft} day${status.daysLeft === 1 ? "" : "s"}${
                 endsLabel ? ` (${endsLabel})` : ""
               }. Choose a plan to keep going.`
@@ -78,6 +85,21 @@ function Upgrade() {
             </a>
           </div>
         )}
+        {!signedIn && (
+          <div className="mx-auto mt-6 max-w-xl rounded-2xl border border-amber-300 bg-amber-50 p-6 text-center">
+            <p className="text-sm text-slate-700">
+              Every new account starts with a 7-day Professional trial: unlimited Radar searches, every state and trade,
+              and the 6 AM email of new bids.
+            </p>
+            <a href={TRIAL_SIGNUP_HREF} className="mt-4 inline-block rounded-xl bg-amber-500 px-6 py-3 font-bold text-slate-950 hover:bg-amber-400">
+              Start my free trial
+            </a>
+            <p className="mt-3 text-xs text-slate-500">
+              Already have an account? <a href="/login?redirect=%2Fupgrade" className="underline">Sign in</a>
+            </p>
+          </div>
+        )}
+        {!signedIn && <h2 className="mt-12 text-center text-lg font-semibold text-slate-700">Or choose a plan now</h2>}
         {pitch && <YourMatches pitch={pitch} />}
         <div className="mt-8 flex justify-center">
           <div role="radiogroup" aria-label="Billing period" className="inline-flex rounded-full border border-slate-200 bg-white p-1 text-sm font-semibold shadow-sm">
@@ -138,14 +160,7 @@ function Upgrade() {
                   </>
                 )}
                 {/* What the plan includes (owner 2026-10-19): the same list as /pricing. */}
-                <ul className="mt-5 space-y-2 text-sm text-slate-700">
-                  {upgradeFeatures(PLAN_COPY[p.id].features).map((f) => (
-                    <li key={f} className="flex gap-2">
-                      <span aria-hidden="true" className="text-emerald-600">✓</span>
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
+                <FeatureList features={upgradeFeatures(PLAN_COPY[p.id].features)} />
                 <button
                   disabled={pendingPlan !== null}
                   onClick={async () => {
@@ -169,6 +184,27 @@ function Upgrade() {
         </div>
       </div>
     </div>
+  );
+}
+
+function FeatureList({ features }: { features: string[] }) {
+  const item = (f: string) => (
+    <li key={f} className="flex gap-2">
+      <span aria-hidden="true" className="text-emerald-600">✓</span>
+      <span>{f}</span>
+    </li>
+  );
+  const rest = features.slice(TOP_FEATURES);
+  return (
+    <>
+      <ul className="mt-5 space-y-2 text-sm text-slate-700">{features.slice(0, TOP_FEATURES).map(item)}</ul>
+      {rest.length > 0 && (
+        <details className="mt-2 text-sm text-slate-700">
+          <summary className="cursor-pointer font-semibold text-blue-700">+{rest.length} more</summary>
+          <ul className="mt-2 space-y-2">{rest.map(item)}</ul>
+        </details>
+      )}
+    </>
   );
 }
 

@@ -60,7 +60,7 @@ const card = (b: SeoBid): MaxBidCard => ({
 const OPEN = () => `${OPEN_BID_SQL} AND ${LOW_CONTENT_SQL} AND ${AWARD_EXCLUSION_SQL} AND ${AWARD_NOTICE_EXCLUSION_SQL} AND ${CLOSED_EXCLUSION_SQL}`;
 
 /** Open bids for a trade/keyword, the same match the /contracts-in pages and Radar use. */
-async function searchOpenBids(query: string, state: string | null, setAside: string): Promise<SeoBid[]> {
+export async function searchOpenBids(query: string, state: string | null, setAside: string): Promise<SeoBid[]> {
   const expansion = expandTrade(query);
   const db = sql;
   const aside = setAside === "small_business" ? db().unsafe("AND set_aside IS NOT NULL") : setAside && setAside !== "any" ? setAsidePred(setAside, db) : db()``;

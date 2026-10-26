@@ -4,7 +4,6 @@ import type { SampleBid } from "~/lib/sample-bids";
 import type { RadarMatch } from "~/routes/radar";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { US_STATES } from "~/lib/states";
-import { suggestHomepageTrade } from "~/lib/home-contract-finder";
 import {
   saveRadarAnswers,
   saveRadarSeen,
@@ -40,11 +39,13 @@ function deadline(bid: Pick<RadarMatch, "due_date" | "source">): string {
     : `Due ${date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}`;
 }
 
-export function HomeContractFinder({ sample }: { sample: SampleBid[] }) {
-  const [description, setDescription] = useState("");
+// Owner 2026-10-26: one-tap trades instead of a "describe your business" box,
+// the same picks as the Radar first screen.
+const QUICK_TRADES = ["Janitorial", "Landscaping", "Construction", "HVAC", "Trucking", "Security guards", "IT services"];
+
+export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBid[]; openTotal?: number }) {
   const [trade, setTrade] = useState("");
   const [state, setState] = useState("");
-  const [small, setSmall] = useState(false);
   const [busy, setBusy] = useState(false);
   const running = useRef(false);
   const [error, setError] = useState("");
@@ -58,7 +59,7 @@ export function HomeContractFinder({ sample }: { sample: SampleBid[] }) {
       trade: trade.trim(),
       state,
       cert: "sb",
-      sizePref: small ? "under250k" : "any",
+      sizePref: "any",
     };
     if (!answers.trade) {
       setError("Enter the service or six-digit NAICS code you want to search.");
@@ -157,14 +158,23 @@ export function HomeContractFinder({ sample }: { sample: SampleBid[] }) {
           </p>
           <h1
             id="first-contract-title"
-            className="mt-6 max-w-2xl text-4xl font-extrabold leading-[1.06] tracking-tight sm:text-6xl lg:text-7xl"
+            className="mt-6 max-w-2xl text-4xl font-extrabold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl"
           >
-            Your next government customer{" "}
-            <span className="text-blue-400">starts here.</span>
+            {openTotal > 0 ? (
+              <>
+                {openTotal.toLocaleString("en-US")} government bids open right now.{" "}
+                <span className="text-blue-400">See the ones for your business.</span>
+              </>
+            ) : (
+              <>
+                Your next government customer{" "}
+                <span className="text-blue-400">starts here.</span>
+              </>
+            )}
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-lg">
-            Tell us what you do. Find real government bids and a clearer next
-            step.
+            Federal, state, city, county and school bids in all 50 states,
+            matched to your trade.
           </p>
           <div className="mt-7 hidden flex-wrap gap-x-5 gap-y-3 text-sm text-blue-100 sm:flex">
             {[
@@ -199,44 +209,32 @@ export function HomeContractFinder({ sample }: { sample: SampleBid[] }) {
           <h2 className="mt-2 text-2xl font-bold tracking-tight">
             What does your business do?
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            Describe your services, confirm the search trade, and choose where
-            you work.
-          </p>
           <form
             onSubmit={search}
             className="mt-5 space-y-4"
             aria-label="Find my first contract"
             aria-busy={busy}
           >
-            <div>
-              <label
-                htmlFor="home-business"
-                className="mb-2 block text-sm font-semibold"
-              >
-                Your business, in your words
-              </label>
-              <textarea
-                id="home-business"
-                rows={2}
-                maxLength={300}
-                disabled={busy}
-                value={description}
-                onChange={(e) => {
-                  setDescription(e.target.value);
-                  setTrade(suggestHomepageTrade(e.target.value));
-                }}
-                placeholder="I run a cleaning company and want smaller contracts."
-                className={FIELD}
-              />
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Popular trades">
+              {QUICK_TRADES.map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  disabled={busy}
+                  aria-pressed={trade === t}
+                  onClick={() => { setTrade(t); setError(""); }}
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition ${
+                    trade === t ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white text-slate-700 hover:border-blue-400"
+                  }`}
+                >
+                  {t}
+                </button>
+              ))}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label
-                  htmlFor="home-trade"
-                  className="mb-2 block text-sm font-semibold"
-                >
-                  Search trade or NAICS
+                <label htmlFor="home-trade" className="sr-only">
+                  Trade or NAICS code
                 </label>
                 <input
                   id="home-trade"
@@ -245,17 +243,13 @@ export function HomeContractFinder({ sample }: { sample: SampleBid[] }) {
                   disabled={busy}
                   value={trade}
                   onChange={(e) => setTrade(e.target.value)}
-                  placeholder="e.g. janitorial"
-                  aria-describedby="home-trade-help"
+                  placeholder="Or type: roofing, catering, NAICS 561720"
                   className={FIELD}
                 />
               </div>
               <div>
-                <label
-                  htmlFor="home-state"
-                  className="mb-2 block text-sm font-semibold"
-                >
-                  Where you work
+                <label htmlFor="home-state" className="sr-only">
+                  Your state
                 </label>
                 <select
                   id="home-state"
@@ -273,20 +267,6 @@ export function HomeContractFinder({ sample }: { sample: SampleBid[] }) {
                 </select>
               </div>
             </div>
-            <p id="home-trade-help" className="text-xs text-slate-500">
-              Trade suggestions are editable. Choose one service per search;
-              select your state separately.
-            </p>
-            <label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={small}
-                disabled={busy}
-                onChange={(e) => setSmall(e.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-blue-600"
-              />
-              Prefer contracts under $250,000
-            </label>
             <button
               disabled={busy}
               className="flex min-h-14 w-full items-center justify-center gap-3 rounded-xl bg-blue-600 px-5 py-4 text-base font-bold text-white transition hover:bg-blue-700 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 disabled:cursor-wait disabled:opacity-70"
@@ -307,9 +287,7 @@ export function HomeContractFinder({ sample }: { sample: SampleBid[] }) {
               )}
             </button>
             <p className="text-center text-xs leading-relaxed text-slate-500">
-              Preview your top match without an account. Search limits
-              apply. A match is a starting point; verify eligibility in the
-              official notice.
+              Free to search. No card, no signup to see your top matches.
             </p>
             {error && (
               <p role="alert" className="text-sm text-red-700">

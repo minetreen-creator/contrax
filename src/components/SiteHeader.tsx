@@ -29,8 +29,13 @@ export function SiteHeader({ user: userProp }: { user?: HeaderUser }) {
   return (
     <header className="border-b border-[#dde3ec] bg-white text-[#0f1f38]">
       <div className="mx-auto flex h-[68px] max-w-[1120px] items-center justify-between gap-4 px-4 sm:px-6">
-        <a href="/" className="block shrink-0" aria-label="Contrax home">
-          <img src="/logo.png" alt="Contrax" height={36} className="block h-11 w-auto" />
+        {/* Owner 2026-10-26: the stacked logo (mark, name, tagline, URL) shrank to
+            an unreadable 44px; the header shows the mark beside the name instead. */}
+        <a href="/" className="flex shrink-0 items-center gap-2 no-underline" aria-label="Contrax home">
+          <img src="/logo-mark.png" alt="" height={32} width={51} className="block h-8 w-auto" />
+          <span className="text-xl font-extrabold tracking-[0.12em] text-[#0f1f38]">
+            CONTRA<span className="text-[#1677ff]">X</span>
+          </span>
         </a>
         <nav className="flex items-center gap-4 text-sm sm:gap-[26px] sm:text-[15px]">
           <a href="/radar" className={link}>Contracts</a>

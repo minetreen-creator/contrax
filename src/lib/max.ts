@@ -268,7 +268,7 @@ export function maxPickGreeting(pick: MaxPick, stateName: string | null, lang: M
   const why: string[] = [];
   if (days != null && days > 0) why.push(es ? `cierra en ${days} días, tiempo de sobra para prepararte` : `it closes in ${days} days, so there's time to prepare`);
   if (program !== "open" && program !== "other") why.push(es ? `está reservado para ${program === "small" ? "pequeños negocios" : `negocios ${PROGRAM_NAME[program]}`}` : `it's set aside for ${program === "small" ? "small businesses" : `${PROGRAM_NAME[program]} businesses`}`);
-  if (pick.value) why.push(es ? `el valor publicado es ${pick.value}` : `the listed value is ${pick.value}`);
+  if (pick.value && !/not (specified|available|listed)|n\/a|tbd|see (the )?solicitation|unknown/i.test(pick.value)) why.push(es ? `el valor publicado es ${pick.value}` : `the listed value is ${pick.value}`);
   if (pick.postedDaysAgo != null && pick.postedDaysAgo <= 3) why.push(es ? "se publicó hace poco" : "it just posted");
   const where = stateName ? (es ? ` en ${stateName}` : ` in ${stateName}`) : "";
   const buyer = pick.agency ? (es ? ` de ${pick.agency}` : ` from ${pick.agency}`) : "";

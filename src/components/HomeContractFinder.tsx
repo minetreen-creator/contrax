@@ -243,7 +243,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
                   disabled={busy}
                   value={trade}
                   onChange={(e) => setTrade(e.target.value)}
-                  placeholder="Or type: roofing, catering, NAICS 561720"
+                  placeholder="Or type your trade or NAICS"
                   className={FIELD}
                 />
               </div>

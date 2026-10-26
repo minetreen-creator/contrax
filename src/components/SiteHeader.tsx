@@ -33,7 +33,7 @@ export function SiteHeader({ user: userProp }: { user?: HeaderUser }) {
             an unreadable 44px; the header shows the mark beside the name instead. */}
         <a href="/" className="flex shrink-0 items-center gap-2 no-underline" aria-label="Contrax home">
           <img src="/logo-mark.png" alt="" height={32} width={51} className="block h-8 w-auto" />
-          <span className="text-xl font-extrabold tracking-[0.12em] text-[#0f1f38]">
+          <span className="hidden text-xl font-extrabold tracking-[0.12em] text-[#0f1f38] min-[420px]:inline">
             CONTRA<span className="text-[#1677ff]">X</span>
           </span>
         </a>

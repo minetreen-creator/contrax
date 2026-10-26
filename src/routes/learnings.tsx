@@ -104,7 +104,7 @@ function LearningsPage() {
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
             <a href="/dashboard" className="flex items-center gap-2">
-              <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+              <img src="/logo-horizontal.png" alt="Contrax" className="h-6 w-auto" />
             </a>
           </div>
         </header>
@@ -129,7 +129,7 @@ function LearningsPage() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
           <a href="/dashboard" className="flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+            <img src="/logo-horizontal.png" alt="Contrax" className="h-6 w-auto" />
           </a>
           <div className="flex items-center gap-4 text-sm">
             <a href="/dashboard" className="text-slate-500 hover:text-slate-900">Dashboard</a>

@@ -193,7 +193,7 @@ function ClauseOrPartPage() {
           <header className="border-b border-slate-200 bg-white">
             <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
               <a href="/" className="inline-flex items-center gap-2">
-                <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+                <img src="/logo-horizontal.png" alt="Contrax" className="h-6 w-auto" />
               </a>
               <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">
                 Dashboard
@@ -231,7 +231,7 @@ function ClausePageInner({ d }: { d: ClausePageData }) {
         <header className="border-b border-slate-200 bg-white">
           <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
             <a href="/" className="inline-flex items-center gap-2">
-              <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+              <img src="/logo-horizontal.png" alt="Contrax" className="h-6 w-auto" />
             </a>
             <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">
               Dashboard
@@ -265,7 +265,7 @@ function ClausePageInner({ d }: { d: ClausePageData }) {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
           <a href="/" className="inline-flex items-center gap-2">
-            <img src="/logo.png" alt="Contrax" className="h-8 w-auto" />
+            <img src="/logo-horizontal.png" alt="Contrax" className="h-6 w-auto" />
           </a>
           <a href="/dashboard" className="text-sm font-medium text-slate-500 hover:text-slate-700">
             Dashboard

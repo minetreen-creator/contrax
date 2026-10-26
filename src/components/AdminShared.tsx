@@ -17,7 +17,7 @@ export function AdminHeader({ scoreboard }: { scoreboard?: ReactNode }) {
     <header className="admin-header sticky top-0 z-10">
       <div className="admin-header-inner">
         <a href="/" className="admin-brand">
-          <span className="admin-logo"><img src="/logo.png" alt="Contrax" className="h-8 w-auto" /></span>
+          <span className="admin-logo"><img src="/logo-mark.png" alt="Contrax" className="h-8 w-auto" /></span>
           <span className="admin-brand-copy">CONTRAX<span>OWNER CONSOLE</span></span>
         </a>
         <div className="admin-header-actions">

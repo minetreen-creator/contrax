@@ -60,6 +60,8 @@ interface Journey {
   same_device_browsers?: number;
   first_ip?: string | null;
   last_ip?: string | null;
+  /** This visitor's IP is on the site-wide blocklist (src/lib/ip-block.server.ts). */
+  ip_blocked?: boolean;
   device_type: string | null;
   browser_label: string | null;
   radar: boolean;
@@ -580,6 +582,28 @@ function JourneyRow({ j }: { j: Journey }) {
   const [events, setEvents] = useState<TimelineItem[] | null>(null);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineError, setTimelineError] = useState("");
+  const [blocked, setBlocked] = useState(!!j.ip_blocked);
+  const [blocking, setBlocking] = useState(false);
+  const ip = j.last_ip ?? j.first_ip ?? null;
+  const toggleBlock = async () => {
+    if (blocking) return;
+    if (!blocked && !window.confirm(`Block ${ip ?? "this visitor's IP"} from the whole site? Anyone on that address gets "Access denied." Takes effect within a minute.`)) return;
+    setBlocking(true);
+    try {
+      const res = await fetch("/api/admin/track-visitor", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vid: j.visitor_id, action: blocked ? "unblock" : "block", note: "blocked from Visitors board" }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Could not save the block");
+      setBlocked(!!d.blocked);
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : "Could not save the block");
+    } finally {
+      setBlocking(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -618,6 +642,22 @@ function JourneyRow({ j }: { j: Journey }) {
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="font-medium text-slate-800">{j.label}</span>
             {abroad && <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700">{abroad}</span>}
+            {ip && (
+              <button
+                type="button"
+                disabled={blocking}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleBlock();
+                }}
+                title={blocked ? "Let this IP back onto the site" : "Block this visitor's IP from the whole site"}
+                className={blocked
+                  ? "rounded-full border border-rose-300 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 hover:bg-rose-50"
+                  : "rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-500 hover:border-rose-300 hover:text-rose-700"}
+              >
+                {blocking ? "…" : blocked ? "⛔ Blocked · undo" : "Block"}
+              </button>
+            )}
             {opp && (
               <button
                 type="button"

@@ -39,6 +39,11 @@ async function blockedSet(): Promise<Set<string>> {
   return ips;
 }
 
+/** Every blocked IP right now (cached like isIpBlocked). */
+export async function blockedIps(): Promise<Set<string>> {
+  return blockedSet();
+}
+
 /** True when this exact IP is blocked. An empty IP is never blocked. */
 export async function isIpBlocked(ip: string | null | undefined): Promise<boolean> {
   const v = String(ip ?? "").trim();

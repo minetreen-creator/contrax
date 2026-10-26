@@ -48,6 +48,7 @@ import { expandTrade, tradeProvenanceFor, isStrongTradeMatch, RELATED_TRADE_TERM
 import { TRADE_SUGGESTIONS } from "~/lib/trade-suggestions";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { wantsRadarMore } from "~/lib/radar-more";
+import { broaderRadarTrade } from "~/lib/radar-fallback";
 import {
   normalizeStateInput,
   resolveBidState,
@@ -1321,6 +1322,8 @@ function RadarLanding() {
   const autoScan = urlTrade !== "";
   const [step, setStep] = useState<Step>(autoScan ? 2 : 1);
   const [trade, setTrade] = useState(urlTrade);
+  // The niche trade a search fell back from (src/lib/radar-fallback.ts), for the notice.
+  const [fallbackFrom, setFallbackFrom] = useState<string | null>(null);
   const [tradeHint, setTradeHint] = useState(false);
   const [state, setState] = useState(urlState);
   const [cert, setCert] = useState<RadarCert | null>(urlCert ?? DEFAULT_RADAR_CERT);
@@ -1549,8 +1552,9 @@ function RadarLanding() {
 
   const runScan = (
     input: { trade: string; state: string; cert: RadarCert; sizePref: SizeId },
-    opts?: { timeoutMs?: number; unlock?: boolean },
+    opts?: { timeoutMs?: number; unlock?: boolean; fallbackFrom?: string },
   ) => {
+    setFallbackFrom(opts?.fallbackFrom ?? null);
     // A visitor-initiated scan is real activity — from here on the save effect
     // may persist the criteria (and runScan itself persists the SEEN matches).
     didInteract.current = true;
@@ -1637,6 +1641,16 @@ function RadarLanding() {
           shownCount: res.matches.length,
         }),
       }).catch(() => { /* analytics must never break Radar */ });
+      // Owner 2026-10-26: a niche trade with nothing open ("siding") re-runs
+      // once on its broader trade ("construction") instead of a dead end. A
+      // zero result does not use the free search, so the retry is free too.
+      const broader = !opts?.fallbackFrom && res.matches.length === 0 ? broaderRadarTrade(input.trade) : null;
+      if (broader) {
+        trackEvent("radar_trade_fallback", `${input.trade.slice(0, 60)}>${broader}`);
+        setTrade(broader);
+        runScan({ ...input, trade: broader }, { ...opts, fallbackFrom: input.trade });
+        return;
+      }
       setScan({
         status: "done",
         matches: res.matches,
@@ -2033,6 +2047,12 @@ function RadarLanding() {
             <div className="mt-4 flex items-end justify-between gap-3">
               <div>
                 <h2 className="text-xl font-bold text-white sm:text-2xl">Your top matches</h2>
+                {fallbackFrom && (
+                  <p className="mt-2 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-100">
+                    No open &ldquo;{fallbackFrom.slice(0, 40)}&rdquo; bids right now, so here are {tradeLabel(trade)} bids,
+                    which often include that work.
+                  </p>
+                )}
                 <p className="mt-1 text-sm text-slate-400">
                   {scan.certLabel}{stateLabel} · {tradeLabel(track)} · real scores
                 </p>

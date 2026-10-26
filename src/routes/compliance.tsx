@@ -451,7 +451,6 @@ function CompliancePage() {
             <a href="/awards" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Awards</a>
             <a href="/losses" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Losses</a>
             <a href="/compliance" className="text-sm font-medium text-amber-600 hidden sm:inline transition-colors">Compliance</a>
-            <a href="/partners" className="text-sm font-medium text-slate-400 hover:text-slate-600 hidden sm:inline transition-colors">Partners</a>
             <span className="text-sm text-slate-400 hidden sm:inline">{allHistory.length} check{allHistory.length !== 1 ? "s" : ""}</span>
           </div>
         </div>

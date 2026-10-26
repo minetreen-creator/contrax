@@ -17,7 +17,6 @@ describe("free Radar match alerts are weekly", () => {
 
   test("the sign-up box, confirmation and alert emails say weekly", () => {
     const radar = read("src/routes/radar.tsx");
-    expect(radar).toContain("weekly email of new");
     expect(radar).toContain("One email a week with your new matches");
     expect(radar).not.toContain("matching opportunities as\n            they open");
     const email = read("src/lib/email.ts");

@@ -150,8 +150,9 @@ describe("committed baseline (.github/typecheck-baseline.txt)", () => {
   test("fingerprinting preserves every baseline line (no loss, no false collapse)", () => {
     const set = fingerprintSet(raw);
     expect(set).toHaveLength(rawLines.length);
-    // spot-check a committed item (the radar.tsx one from #394 has since been fixed)
-    expect(set).toContain(FP.learnings);
+    // The baseline is empty since #854 took typecheck to zero; an empty file
+    // must still fingerprint to nothing.
+    if (rawLines.length === 0) expect(set).toEqual([]);
   });
 
   test("the normalized baseline is a fixed point (running the normalizer twice changes nothing)", () => {
@@ -163,8 +164,11 @@ describe("committed baseline (.github/typecheck-baseline.txt)", () => {
 // ── 3. (b) a line-number shift is a 0-delta PASS against the REAL baseline ───
 
 describe("gate — line-number shift (proof b)", () => {
-  test("every real baseline error shifted by +1000 lines → PASS, 0 delta", () => {
-    const raw = readFileSync(BASELINE, "utf8");
+  test("every baseline error shifted by +1000 lines → PASS, 0 delta", () => {
+    // The real baseline when it lists errors; a fixture once it is empty (#854).
+    const committed = readFileSync(BASELINE, "utf8");
+    const baselineFile = committed.trim() ? BASELINE : writeBaseline([RAW.radar901, RAW.learnings]);
+    const raw = readFileSync(baselineFile, "utf8");
     const shifted = raw
       .split("\n")
       .filter((l) => l.trim() !== "")
@@ -172,9 +176,9 @@ describe("gate — line-number shift (proof b)", () => {
       .join("\n");
 
     // sanity: the shifted text is genuinely different from the baseline
-    expect(shifted).not.toBe(readFileSync(BASELINE, "utf8").trim());
+    expect(shifted).not.toBe(raw.trim());
 
-    const res = runGate(shifted + "\n", BASELINE);
+    const res = runGate(shifted + "\n", baselineFile);
     expect(res.status).toBe(0);
     expect(res.stdout).toContain("delta vs committed baseline: 0");
     expect(res.stdout).not.toContain("^\n"); // no diff hunks

@@ -463,10 +463,13 @@ export const getLiveStateBids = createServerFn({ method: "GET" }).handler(
       const [rows, count] = await Promise.all([
         // Notices of intent to award / sole source are announcements nobody can
         // bid on, so the proof box leaves them out (owner 2026-10-20 audit).
+        // Owner 2026-10-26: it led with "30--GEAR SECTOR,SPUR" and "O Ring"; parts
+        // buys (numeric supply-class prefix) and bare part names are left out too.
         s`SELECT id, title, agency, due_date FROM bids
           WHERE normalized_state = ${state} AND due_date > NOW() + INTERVAL '3 days'
             AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
             AND title !~* '(intent to (sole[ -]source|award)|sole[ -]source)'
+            AND title !~ '^[0-9]{2}--' AND length(title) >= 15
           ORDER BY created_at DESC LIMIT 3`,
         s`SELECT COUNT(*)::int AS n FROM bids
           WHERE normalized_state = ${state} AND due_date > NOW()
@@ -2212,6 +2215,23 @@ function RadarLanding() {
             )}
             {isAnonymous && scan.matches.length > 0 && (
               <div className="mt-6 flex flex-col gap-5">
+                {/* Owner 2026-10-26: the unlock card sat under three full cards and
+                    most visitors left within seconds; this bar puts it in view. */}
+                {locked > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      trackEvent("radar_unlock_bar_click", String(locked));
+                      const input = document.getElementById("radar-unlock-email");
+                      input?.scrollIntoView({ behavior: "smooth", block: "center" });
+                      input?.focus({ preventScroll: true });
+                    }}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-amber-400/60 bg-amber-500/10 px-4 py-3 text-left text-sm font-semibold text-amber-200 hover:bg-amber-500/20"
+                  >
+                    <span>Showing {visibleCount} of {visibleCount + locked} matching bids</span>
+                    <span className="whitespace-nowrap text-amber-300">See all {visibleCount + locked} free →</span>
+                  </button>
+                )}
                 {scan.matches.slice(0, visibleCount).map((m, i) => (
                   <RadarCard
                     key={m.id}
@@ -3622,9 +3642,7 @@ export function MatchAlertsCard({
         <div>
           <h3 className="text-base font-bold text-white">{heading}</h3>
           <p className="mt-1 text-sm leading-relaxed text-slate-300">
-            {fewMatches || noMatches
-              ? "New bids post every day. Leave your email and we'll send you a weekly email when new matching opportunities open. No account required."
-              : "Leave your email and we'll send you a weekly email of new matching opportunities. No account required."}
+            One email a week with your new matches. No account required; unsubscribe anytime.
           </p>
         </div>
         <button
@@ -3636,8 +3654,8 @@ export function MatchAlertsCard({
           ✕
         </button>
       </div>
-      <form onSubmit={submit} className="mt-4 space-y-3">
-        <div>
+      <form onSubmit={submit} className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+        <div className="min-w-0 flex-1">
           <label htmlFor="radar-lead-email" className="sr-only">
             Email address
           </label>
@@ -3652,22 +3670,18 @@ export function MatchAlertsCard({
             className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-sm text-white placeholder-slate-500 outline-none focus:border-amber-400"
           />
         </div>
-        <p className="text-xs leading-relaxed text-slate-500">
-          No account required. One email a week with your new matches —
-          unsubscribe anytime.
-        </p>
-        {status === "error" && error && (
-          <p className="text-sm font-medium text-red-400" role="alert">
-            {error}
-          </p>
-        )}
         <button
           type="submit"
           disabled={status === "submitting"}
-          className="w-full rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:opacity-60"
+          className="rounded-xl bg-amber-500 px-6 py-3 text-base font-bold text-slate-950 transition-all hover:bg-amber-400 active:scale-[0.98] disabled:opacity-60"
         >
           {status === "submitting" ? "Sending…" : fewMatches || noMatches ? "Email me new matches →" : "Send My Matches →"}
         </button>
+        {status === "error" && error && (
+          <p className="w-full text-sm font-medium text-red-400" role="alert">
+            {error}
+          </p>
+        )}
       </form>
     </section>
   );

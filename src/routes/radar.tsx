@@ -53,8 +53,8 @@ import {
   resolveBidState,
   locationConflict,
   matchGeographyBucket,
-  STATE_NAME_TO_CODE,
   displayPlaceOfPerformance,
+  STATE_CODE_TO_NAME,
 } from "~/lib/location-state";
 import {
   runRelatedScanQuery,
@@ -1260,10 +1260,6 @@ type ScanResult = {
    *  server-side allowance, so the block screen states the real number. */
   freeSearchLimit?: number;
 };
-/** USPS code → full state name (for section labels). */
-const STATE_CODE_TO_NAME: Record<string, string> = Object.fromEntries(
-  Object.entries(STATE_NAME_TO_CODE).map(([name, code]) => [code, name]),
-);
 
 // OWNER 09-15/09-16 (everyday-service trades + canonical NAICS presentation):
 // the datalist suggestions come from ONE shared source (~/lib/trade-suggestions)

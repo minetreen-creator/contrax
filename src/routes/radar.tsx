@@ -2102,10 +2102,9 @@ function RadarLanding() {
                   </div>
                 ) : (
                   <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                    No open {STATE_CODE_TO_NAME[state] ?? state}-local{" "}
-                    {trade.trim() ? `"${trade.trim()}" ` : ""}opportunities right now — this is the
-                    honest, unfiltered result: the database currently has no open state-located
-                    row matching your trade and certification.
+                    Nothing open in {STATE_CODE_TO_NAME[state] ?? state}
+                    {trade.trim() ? ` for "${trade.trim()}"` : ""} right now. Here&apos;s what&apos;s
+                    open nationwide, with more options near you below.
                   </p>
                 )}
               </section>

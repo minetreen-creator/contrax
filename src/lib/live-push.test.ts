@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-import { alertEligible, alertText, hotAlertText, hotPushPage, parseSubscription, subscriptionExpired } from "./live-push";
+import { alertEligible, alertText, chatReplyAlertText, hotAlertText, hotPushPage, parseSubscription, subscriptionExpired } from "./live-push";
 
 const visit = { ip: "73.12.34.56", path: "/radar", city: "Denver", region: "CO", internal: false, verifiedHuman: true };
 
@@ -94,5 +94,19 @@ describe("hot-lead push (owner 2026-10-27)", () => {
     expect(t.title).toBe("🔥 Hot lead on Contrax");
     expect(t.body).toBe("Miami, FL · Mobile · now on /pricing. Open Mission Control to say hi.");
     expect(t.tag).toBe("hot-v1");
+  });
+});
+
+describe("chatReplyAlertText", () => {
+  test("quotes the reply, opens Mission Control, one card per visitor", () => {
+    const t = chatReplyAlertText({ visitorId: "v123", body: "  Yes, I do\n roofing in Tucson " });
+    expect(t.title).toBe("💬 A visitor replied on Contrax");
+    expect(t.body).toBe('"Yes, I do roofing in Tucson" Open Mission Control to answer.');
+    expect(t.tag).toBe("chat-v123");
+    expect(t.url).toBe("/admin/live");
+  });
+  test("long replies are cut short", () => {
+    const t = chatReplyAlertText({ visitorId: "v", body: "x".repeat(500) });
+    expect(t.body.startsWith(`"${"x".repeat(139)}…"`)).toBe(true);
   });
 });

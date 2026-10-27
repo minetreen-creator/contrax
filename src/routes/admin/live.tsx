@@ -1643,6 +1643,7 @@ function LivePage() {
   const [fresh, setFresh] = useState<Set<string>>(new Set());
   const [chat, setChat] = useState<{ vid: string; label: string } | null>(null);
   const [threads, setThreads] = useState<ChatThread[]>([]);
+  const replySeen = useRef<Map<string, number> | null>(null);
   const openChat = (v: OnlineVisitor) => setChat({ vid: v.vid, label: `${v.place ?? "Unknown location"} · ${v.path}` });
   const [track, setTrack] = useState<{ vid: string; label: string } | null>(null);
   const [reload, setReload] = useState(0);
@@ -1660,7 +1661,18 @@ function LivePage() {
     const load = () =>
       fetch("/api/admin/live-chat")
         .then((r) => (r.ok ? r.json() : null))
-        .then((d) => !stop && d?.threads && setThreads(d.threads))
+        .then((d) => {
+          if (stop || !d?.threads) return;
+          const list = d.threads as ChatThread[];
+          // A visitor answered "Say hi": say so out loud (push covers the phone).
+          if (replySeen.current) {
+            const prev = replySeen.current;
+            const replied = list.filter((t) => t.lastSender === "visitor" && t.unread > (prev.get(t.visitorId) ?? 0));
+            if (replied.length) sayRef.current(replied.map((t) => ({ text: `A visitor replied in live chat: ${t.lastBody}`, tone: "blip" as const })));
+          }
+          replySeen.current = new Map(list.map((t) => [t.visitorId, t.unread]));
+          setThreads(list);
+        })
         .catch(() => {});
     load();
     const t = setInterval(load, POLL_MS);

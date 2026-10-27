@@ -28,7 +28,11 @@ async function POST({ request }: { request: Request }) {
   try {
     if (!visitorMayReply(await chatThread(vid))) return Response.json({ error: "No conversation" }, { status: 403 });
     if (overReplyLimit(await recentVisitorReplies(vid))) return Response.json({ error: "Too many messages, try again later" }, { status: 429 });
-    return Response.json({ message: await addChatMessage(vid, "visitor", body) });
+    const message = await addChatMessage(vid, "visitor", body);
+    // Owner 2026-10-27: a reply to "Say hi" pushes to the owner's phone.
+    const { alertChatReply } = await import("~/lib/live-push.server");
+    await alertChatReply({ visitorId: vid, body });
+    return Response.json({ message });
   } catch (err) {
     console.error("[api/live-chat] reply failed:", err);
     return Response.json({ error: "Could not send" }, { status: 500 });

@@ -28,7 +28,7 @@ function boardConfig(b: Board): BonfireConfig {
   };
 }
 
-const STATE_ABBR: Record<string, string> = { Texas: "TX", Florida: "FL", Georgia: "GA", Tennessee: "TN", Arizona: "AZ" };
+const STATE_ABBR: Record<string, string> = { Texas: "TX", Florida: "FL", Georgia: "GA", Tennessee: "TN", Arizona: "AZ", Missouri: "MO" };
 
 const BOARDS: Board[] = [
   { tenant: "harriscountytx", source: "tx_harris_bonfire", stateName: "Texas", place: "Harris County", buyer: "Harris County, Texas", idPrefix: "harriscountytxbonfire" },
@@ -51,6 +51,12 @@ const BOARDS: Board[] = [
   { tenant: "goodyearaz", source: "az_goodyear_bonfire", stateName: "Arizona", place: "Goodyear", buyer: "City of Goodyear, Arizona", idPrefix: "goodyearazbonfire" },
   { tenant: "pinalcountyaz", source: "az_pinal_bonfire", stateName: "Arizona", place: "Pinal County", buyer: "Pinal County, Arizona", idPrefix: "pinalcountyazbonfire" },
   { tenant: "sedonaaz", source: "az_sedona_bonfire", stateName: "Arizona", place: "Sedona", buyer: "City of Sedona, Arizona", idPrefix: "sedonaazbonfire" },
+  // Missouri (owner 2026-10-27).
+  { tenant: "kcmo", source: "mo_kansas_city_bonfire", stateName: "Missouri", place: "Kansas City", buyer: "City of Kansas City, Missouri", idPrefix: "kcmobonfire" },
+  { tenant: "stlouiscountymo", source: "mo_st_louis_county_bonfire", stateName: "Missouri", place: "St. Louis County", buyer: "St. Louis County, Missouri", idPrefix: "stlouiscountymobonfire" },
+  { tenant: "jacksongov", source: "mo_jackson_county_bonfire", stateName: "Missouri", place: "Jackson County", buyer: "Jackson County, Missouri", idPrefix: "jacksongovbonfire" },
+  { tenant: "jeffersoncitymo", source: "mo_jefferson_city_bonfire", stateName: "Missouri", place: "Jefferson City", buyer: "City of Jefferson City, Missouri", idPrefix: "jeffersoncitymobonfire" },
+  { tenant: "slps", source: "mo_slps_bonfire", stateName: "Missouri", place: "Saint Louis Public Schools", buyer: "Saint Louis Public Schools", idPrefix: "slpsbonfire", location: "St. Louis, MO" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

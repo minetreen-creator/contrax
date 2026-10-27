@@ -47,6 +47,13 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("az_lake_havasu", "www.lhcaz.gov", "City of Lake Havasu City", "Lake Havasu City, AZ", "lakehavasucivic"),
   board("az_casa_grande", "www.casagrandeaz.gov", "City of Casa Grande", "Casa Grande, AZ", "casagrandecivic"),
   board("az_douglas", "www.douglasaz.gov", "City of Douglas", "Douglas, AZ", "douglascivic"),
+  // Missouri (owner 2026-10-27).
+  board("mo_springfield", "www.springfieldmo.gov", "City of Springfield", "Springfield, MO", "springfieldcivic"),
+  board("mo_st_charles_county", "www.sccmo.org", "St. Charles County", "St. Charles County, MO", "stcharlescountycivic"),
+  board("mo_st_charles", "www.stcharlescitymo.gov", "City of St. Charles", "St. Charles, MO", "stcharlescivic"),
+  board("mo_liberty", "www.libertymissouri.gov", "City of Liberty", "Liberty, MO", "libertycivic"),
+  board("mo_ozark", "www.ozarkmissouri.com", "City of Ozark", "Ozark, MO", "ozarkcivic"),
+  board("mo_ballwin", "www.ballwin.mo.us", "City of Ballwin", "Ballwin, MO", "ballwincivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

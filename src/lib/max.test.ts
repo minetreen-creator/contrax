@@ -7,6 +7,8 @@ import {
   fitCerts,
   maxBidContext,
   maxEasterEgg,
+  maxLang,
+  maxLocale,
   maxPickGreeting,
   maxPrompt,
   mergeCapability,
@@ -209,6 +211,13 @@ describe("Max: pick of the day and bid pages", () => {
     expect(g).toBe('Hi, I\'m Max. My pick of the day: "Janitorial services for the county courthouse" from Henrico County. Tell me what your business does and I\'ll find more like it.');
     expect(maxPickGreeting(pick, "Virginia", "es", now)).toMatch(/^¡Hola! Soy Max\. Mi selección del día en Virginia/);
   });
+  test("Mandarin pick of the day (2026-10-27)", () => {
+    const g = maxPickGreeting(pick, "弗吉尼亚州", "zh", now);
+    expect(g).toBe(
+      "你好，我是 Max。今天的精选项目（弗吉尼亚州）：“Janitorial services for the county courthouse”，发布方：Henrico County。我推荐它，因为还有 19 天截止，准备时间充足，这是专门留给小企业的项目，公布金额为 $250,000，刚刚发布。告诉我你的公司做什么，我帮你找更多类似的项目。",
+    );
+    expect(maxPickGreeting({ ...pick, value: "Not specified" }, null, "zh", now)).not.toContain("公布金额");
+  });
   test("a placeholder value is never read out as a value", () => {
     for (const value of ["Not specified", "N/A", "TBD", "See solicitation"]) {
       expect(maxPickGreeting({ ...pick, value }, "Ohio", "en", now)).not.toContain("listed value");
@@ -236,5 +245,27 @@ describe("Max: tiers", () => {
     const bids = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, due_date: new Date(now + (10 + i) * 86_400_000).toISOString(), set_aside: null, estimated_value: null }));
     expect(rankFit(bids, [], now).top).toHaveLength(3);
     expect(rankFit(bids, [], now, 10).top).toHaveLength(10);
+  });
+});
+
+describe("Max: Mandarin (owner 2026-10-27)", () => {
+  test("language parsing and locales", () => {
+    expect(maxLang("zh")).toBe("zh");
+    expect(maxLang("es")).toBe("es");
+    expect(maxLang("fr")).toBe("en");
+    expect(maxLang(undefined)).toBe("en");
+    expect(maxLocale("zh")).toBe("zh-CN");
+    expect(maxLocale("es")).toBe("es-US");
+    expect(maxLocale("en")).toBe("en-US");
+  });
+  test("a Mandarin reply keeps lang zh, and the fallback is in Mandarin", () => {
+    expect(parseMaxReply(JSON.stringify({ say: "你好", lang: "zh" })).lang).toBe("zh");
+    expect(parseMaxReply(JSON.stringify({ say: "你好" }), "zh").lang).toBe("zh");
+    expect(parseMaxReply("", "zh").say).toBe("抱歉，我刚才走神了。能再问一次吗？");
+  });
+  test("the prompt tells Max how to answer in Mandarin", () => {
+    const p = maxPrompt("Tuesday");
+    expect(p).toMatch(/Mandarin Chinese in Simplified characters/);
+    expect(p).toMatch(/"lang": "en" \| "es" \| "zh"/);
   });
 });

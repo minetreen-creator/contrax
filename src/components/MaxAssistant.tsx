@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { KONAMI, maxEasterEgg, mergeCapability, type MaxCapability, type MaxCta, type MaxEffect, type MaxLang } from "~/lib/max";
+import { KONAMI, maxEasterEgg, maxLocale, mergeCapability, type MaxCapability, type MaxCta, type MaxEffect, type MaxLang } from "~/lib/max";
 import { LAUNCHPAD_KEY, emptyLaunchpad, parseLaunchpad } from "~/lib/launchpad";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
@@ -48,7 +48,7 @@ function makeRecognizer(lang: MaxLang = "en"): Recognizer | null {
   const C = W.SpeechRecognition ?? W.webkitSpeechRecognition;
   if (!C) return null;
   const r = new C();
-  r.lang = lang === "es" ? "es-US" : "en-US";
+  r.lang = maxLocale(lang);
   r.interimResults = false;
   r.continuous = false;
   return r;
@@ -67,11 +67,18 @@ const SUGGESTIONS: Record<MaxLang, string[]> = {
     "¿Quién está ganando contratos de jardinería en Florida?",
     "Ayúdame a escribir mi declaración de capacidades",
   ],
+  zh: [
+    "弗吉尼亚州有清洁类的政府合同吗？",
+    "我在德克萨斯州做建筑公司，应该投哪些标？",
+    "谁在赢得佛罗里达州的园林绿化合同？",
+    "帮我写一份公司能力说明书",
+  ],
 };
 
 const BID_SUGGESTIONS: Record<MaxLang, string[]> = {
   en: ["Explain this bid in plain English", "Is this worth bidding on for a small business?", "Who already does this kind of work?", "What do I need to bid on this?"],
   es: ["Explícame esta oferta en palabras simples", "¿Vale la pena para un pequeño negocio?", "¿Quién ya hace este tipo de trabajo?", "¿Qué necesito para ofertar?"],
+  zh: ["用简单的话解释这个招标", "这个项目适合小企业投标吗？", "谁已经在做这类工作？", "投这个标需要准备什么？"],
 };
 
 const T = {
@@ -121,13 +128,37 @@ const T = {
     micBlocked: "Permite el micrófono para hablar con Max, o escribe abajo.",
     due: "Vence",
   },
+  // Mandarin, Simplified (owner 2026-10-27: "teach Max to speak Mandarin").
+  zh: {
+    idleMic: "点击核心开始说话，或直接输入",
+    idle: "输入你的问题",
+    listening: "正在听…",
+    thinking: "正在搜索实时政府数据…",
+    speaking: "正在说话… 点击停止",
+    speaks: "Max 会朗读回答",
+    title: ["认识一下 ", "Max", "。关于政府合同，尽管问他。"],
+    sub: "他会搜索全美 50 个州的实时招标、中标者和活动，告诉你哪些适合你的公司，还能解释你粘贴的任何招标。",
+    you: "你",
+    placeholder: "例如：里士满附近有园林绿化招标吗？或粘贴一个招标链接",
+    ask: "提问",
+    remind: "⏰ 提醒我",
+    disclaimer: "Max 根据 Contrax 实时数据回答，可能会出错。请务必查看官方公告。",
+    limit: "今天我已经回答了很多问题。请在 Contract Radar 查看完整列表，或稍后再来。",
+    limitEmail: "聊得很开心！在下面留下你的邮箱，我会继续免费帮你，还会把匹配的新招标发给你。",
+    limitPaid: "今天的免费回答已经用完了。付费方案可以无限使用，还能看到所有匹配项目。或者明天再来！",
+    oops: "抱歉，出了点问题。",
+    offline: "连接失败。请检查网络后重试。",
+    noMic: "语音功能支持 Chrome、Edge 和 Safari。你也可以在下面输入。",
+    micBlocked: "允许使用麦克风即可和 Max 对话，或在下面输入。",
+    due: "截止",
+  },
 } as const;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function dueLabel(d: string | null, lang: MaxLang = "en"): string {
   if (!d) return "";
-  return `${T[lang].due} ${new Date(`${d}T12:00:00Z`).toLocaleDateString(lang === "es" ? "es-US" : "en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
+  return `${T[lang].due} ${new Date(`${d}T12:00:00Z`).toLocaleDateString(maxLocale(lang), { month: "short", day: "numeric", timeZone: "UTC" })}`;
 }
 
 export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = {}) {
@@ -155,8 +186,9 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
   // greets with his pick of the day (shown, not spoken: browsers block sound
   // until the visitor interacts).
   useEffect(() => {
-    const l: MaxLang = typeof navigator !== "undefined" && navigator.language?.toLowerCase().startsWith("es") ? "es" : "en";
-    if (l === "es") setLang("es");
+    const nav = typeof navigator !== "undefined" ? navigator.language?.toLowerCase() ?? "" : "";
+    const l: MaxLang = nav.startsWith("es") ? "es" : nav.startsWith("zh") ? "zh" : "en";
+    if (l !== "en") setLang(l);
     if (bid) return;
     let alive = true;
     fetch(`/api/max/pick?lang=${l}`)
@@ -208,10 +240,10 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
     new Promise<void>((done) => {
       if (!("speechSynthesis" in window)) return done();
       const u = new SpeechSynthesisUtterance(text);
-      u.lang = l === "es" ? "es-US" : "en-US";
+      u.lang = maxLocale(l);
       // Backup voice: the most natural one the browser has (Edge's "Natural"
       // voices, Chrome's Google voices, Apple's Siri/Samantha), not the first.
-      const voices = window.speechSynthesis.getVoices().filter((x) => (l === "es" ? x.lang.startsWith("es") : x.lang === "en-US"));
+      const voices = window.speechSynthesis.getVoices().filter((x) => (l === "es" ? x.lang.startsWith("es") : l === "zh" ? /^(zh|cmn)/i.test(x.lang) : x.lang === "en-US"));
       const rank = (x: SpeechSynthesisVoice) => (/natural|neural|online/i.test(x.name) ? 0 : /google/i.test(x.name) ? 1 : /siri|samantha|alex|aaron|nicky/i.test(x.name) ? 2 : 3);
       const v = voices.sort((a, b) => rank(a) - rank(b))[0];
       if (v) u.voice = v;
@@ -261,7 +293,7 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
         trackEvent("max_easter_egg", egg.effect ?? q.slice(0, 30));
         fire(egg.effect);
         setTurns((t) => [...t, { role: "assistant" as const, content: egg.say }].slice(-8));
-        await speak(egg.say, /[¿¡ñáéíóú]/.test(egg.say) ? "es" : lang);
+        await speak(egg.say, /[¿¡ñáéíóú]/.test(egg.say) ? "es" : /[\u4e00-\u9fff]/.test(egg.say) ? "zh" : lang);
         return;
       }
       trackEvent("max_ask", q.slice(0, 80));
@@ -278,7 +310,7 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
         await speak(say);
         return;
       }
-      const replyLang: MaxLang = j.lang === "es" || j.lang === "en" ? j.lang : lang;
+      const replyLang: MaxLang = j.lang === "es" || j.lang === "en" || j.lang === "zh" ? j.lang : lang;
       if (replyLang !== lang) {
         setLang(replyLang);
         trackEvent("max_lang", replyLang);
@@ -375,7 +407,7 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
             {t.speaks}
           </label>
           <div className="mt-3 inline-flex rounded-full border border-cyan-400/30 p-0.5 text-xs font-bold" role="group" aria-label="Language">
-            {(["en", "es"] as const).map((l) => (
+            {(["en", "es", "zh"] as const).map((l) => (
               <button
                 key={l}
                 type="button"
@@ -386,7 +418,7 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
                 }}
                 className={`rounded-full px-3 py-1 ${lang === l ? "bg-cyan-400 text-slate-950" : "text-cyan-200"}`}
               >
-                {l === "en" ? "English" : "Español"}
+                {l === "en" ? "English" : l === "es" ? "Español" : "中文"}
               </button>
             ))}
           </div>
@@ -395,9 +427,9 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
         <div className="min-w-0">
           {bid ? (
             <h2 className="text-2xl font-extrabold tracking-tight" lang={lang}>
-              {lang === "es" ? "Pregúntale a " : "Ask "}
+              {lang === "es" ? "Pregúntale a " : lang === "zh" ? "问问 " : "Ask "}
               <span className="text-cyan-300">Max</span>
-              {lang === "es" ? " sobre esta oferta" : " about this bid"}
+              {lang === "es" ? " sobre esta oferta" : lang === "zh" ? " 关于这个招标" : " about this bid"}
             </h2>
           ) : (
             <>
@@ -499,10 +531,11 @@ export function MaxAssistant({ bid }: { bid?: { id: number; title: string } } = 
 
 function MaxEmail({ trade, state, lang }: { trade: string | null; state: string | null; lang: MaxLang }) {
   const es = lang === "es";
+  const zh = lang === "zh";
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
   if (status === "done")
-    return <p className="mt-4 rounded-xl bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200">{es ? "¡Listo! Sigue preguntando. Las nuevas ofertas llegarán a tu correo; revísalo para confirmar." : "Done! Keep asking. New matching bids will come to your inbox; check it to confirm."}</p>;
+    return <p className="mt-4 rounded-xl bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200">{es ? "¡Listo! Sigue preguntando. Las nuevas ofertas llegarán a tu correo; revísalo para confirmar." : zh ? "好了！继续提问吧。匹配的新招标会发到你的邮箱，请查收确认邮件。" : "Done! Keep asking. New matching bids will come to your inbox; check it to confirm."}</p>;
   return (
     <form
       className="mt-4 rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4"
@@ -530,7 +563,7 @@ function MaxEmail({ trade, state, lang }: { trade: string | null; state: string 
       }}
     >
       <p className="text-sm font-bold text-amber-200">
-        {es ? `📬 ¿Quieres que Max te envíe las nuevas ofertas${trade ? ` de ${trade}` : ""}${state ? ` en ${state}` : ""} cuando se publiquen? Gratis.` : `📬 Want Max to send you new ${trade ?? "matching"} bids${state ? ` in ${state}` : ""} as they post? Free.`}
+        {es ? `📬 ¿Quieres que Max te envíe las nuevas ofertas${trade ? ` de ${trade}` : ""}${state ? ` en ${state}` : ""} cuando se publiquen? Gratis.` : zh ? `📬 想让 Max 在${state ? ` ${state} ` : ""}有新的${trade ? ` ${trade} ` : ""}招标发布时发给你吗？免费。` : `📬 Want Max to send you new ${trade ?? "matching"} bids${state ? ` in ${state}` : ""} as they post? Free.`}
       </p>
       <div className="mt-2 flex gap-2">
         <label htmlFor="max-email" className="sr-only">
@@ -538,10 +571,10 @@ function MaxEmail({ trade, state, lang }: { trade: string | null; state: string 
         </label>
         <input id="max-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-white placeholder:text-slate-400" />
         <button type="submit" disabled={status === "sending"} className="rounded-xl bg-amber-500 px-4 py-2.5 font-bold text-slate-950">
-          {status === "sending" ? "…" : es ? "Envíamelas" : "Send them"}
+          {status === "sending" ? "…" : es ? "Envíamelas" : zh ? "发给我" : "Send them"}
         </button>
       </div>
-      {status === "error" ? <p className="mt-2 text-xs text-red-300">{es ? "Escribe un correo válido e inténtalo de nuevo." : "Please enter a valid email and try again."}</p> : null}
+      {status === "error" ? <p className="mt-2 text-xs text-red-300">{es ? "Escribe un correo válido e inténtalo de nuevo." : zh ? "请输入有效的邮箱后重试。" : "Please enter a valid email and try again."}</p> : null}
     </form>
   );
 }
@@ -549,6 +582,7 @@ function MaxEmail({ trade, state, lang }: { trade: string | null; state: string 
 /** The capability statement coach's handoff: fill Launchpad's empty fields, then open it. */
 function MaxCapabilityCard({ cap, lang }: { cap: MaxCapability; lang: MaxLang }) {
   const es = lang === "es";
+  const zh = lang === "zh";
   const [error, setError] = useState(false);
   const open = () => {
     try {
@@ -568,17 +602,17 @@ function MaxCapabilityCard({ cap, lang }: { cap: MaxCapability; lang: MaxLang })
   };
   return (
     <div className="mt-4 rounded-2xl border border-emerald-400/40 bg-emerald-400/10 p-4">
-      <p className="text-sm font-bold text-emerald-200">📄 {es ? "Tu borrador de declaración de capacidades está listo" : "Your capability statement draft is ready"}</p>
+      <p className="text-sm font-bold text-emerald-200">📄 {es ? "Tu borrador de declaración de capacidades está listo" : zh ? "你的公司能力说明书草稿已经准备好了" : "Your capability statement draft is ready"}</p>
       <p className="mt-1 text-sm text-emerald-100/80">
         <b>{cap.company}</b>
         {cap.trade ? ` · ${cap.trade}` : ""}
         {cap.summary ? ` — ${cap.summary.slice(0, 160)}${cap.summary.length > 160 ? "…" : ""}` : ""}
       </p>
       <button type="button" onClick={open} className="mt-3 rounded-xl bg-emerald-400 px-4 py-2.5 font-bold text-slate-950">
-        {es ? "Terminarla en Launchpad →" : "Finish it in Launchpad →"}
+        {es ? "Terminarla en Launchpad →" : zh ? "在 Launchpad 完成 →" : "Finish it in Launchpad →"}
       </button>
-      <p className="mt-2 text-xs text-emerald-100/60">{es ? "Gratis. Agregas tus datos de contacto y la imprimes. Nada de lo que ya escribiste se reemplaza." : "Free. Add your contact details and print it. Anything you already typed there is kept."}</p>
-      {error ? <p className="mt-2 text-xs text-red-300">{es ? "Tu navegador bloqueó el guardado. Abre Launchpad y copia el borrador." : "Your browser blocked saving. Open Launchpad and copy the draft in."}</p> : null}
+      <p className="mt-2 text-xs text-emerald-100/60">{es ? "Gratis. Agregas tus datos de contacto y la imprimes. Nada de lo que ya escribiste se reemplaza." : zh ? "免费。补充联系方式即可打印，你已填写的内容都会保留。" : "Free. Add your contact details and print it. Anything you already typed there is kept."}</p>
+      {error ? <p className="mt-2 text-xs text-red-300">{es ? "Tu navegador bloqueó el guardado. Abre Launchpad y copia el borrador." : zh ? "你的浏览器阻止了保存。请打开 Launchpad 并复制草稿。" : "Your browser blocked saving. Open Launchpad and copy the draft in."}</p> : null}
     </div>
   );
 }
@@ -586,14 +620,15 @@ function MaxCapabilityCard({ cap, lang }: { cap: MaxCapability; lang: MaxLang })
 /** "Remind me before it closes" (src/lib/max-reminders.server.ts). */
 function MaxRemind({ bidId, title, lang, email, onEmail }: { bidId: number; title: string | null; lang: MaxLang; email: string; onEmail: (v: string) => void }) {
   const es = lang === "es";
+  const zh = lang === "zh";
   const [status, setStatus] = useState<"idle" | "sending" | "pending" | "confirmed" | "error">("idle");
   const [msg, setMsg] = useState("");
   const [when, setWhen] = useState("");
   if (status === "pending" || status === "confirmed") {
-    const confirm = status === "pending" ? (es ? " Primero confirma tu correo (te acabo de enviar el enlace)." : " First confirm your email (I just sent you the link).") : "";
+    const confirm = status === "pending" ? (es ? " Primero confirma tu correo (te acabo de enviar el enlace)." : zh ? " 请先确认你的邮箱（我刚把链接发给你了）。" : " First confirm your email (I just sent you the link).") : "";
     return (
       <p className="mt-4 rounded-xl bg-emerald-500/15 p-3 text-sm font-semibold text-emerald-200">
-        {es ? `⏰ ¡Hecho! Te enviaré un recordatorio el ${when}.${confirm}` : `⏰ Got it! I'll email you a reminder on ${when}.${confirm}`}
+        {es ? `⏰ ¡Hecho! Te enviaré un recordatorio el ${when}.${confirm}` : zh ? `⏰ 好的！我会在 ${when} 给你发提醒邮件。${confirm}` : `⏰ Got it! I'll email you a reminder on ${when}.${confirm}`}
       </p>
     );
   }
@@ -604,7 +639,7 @@ function MaxRemind({ bidId, title, lang, email, onEmail }: { bidId: number; titl
         e.preventDefault();
         const v = email.trim().toLowerCase();
         if (!EMAIL_PATTERN.test(v)) {
-          setMsg(es ? "Escribe un correo válido." : "Please enter a valid email.");
+          setMsg(es ? "Escribe un correo válido." : zh ? "请输入有效的邮箱。" : "Please enter a valid email.");
           return setStatus("error");
         }
         setStatus("sending");
@@ -616,21 +651,21 @@ function MaxRemind({ bidId, title, lang, email, onEmail }: { bidId: number; titl
           });
           const j = (await res.json().catch(() => null)) as { success?: boolean; lead?: string; remindAt?: string; error?: string } | null;
           if (!res.ok || !j?.success || !j.remindAt) {
-            setMsg(j?.error ?? (es ? "Algo salió mal. Inténtalo de nuevo." : "Something went wrong. Please try again."));
+            setMsg(j?.error ?? (es ? "Algo salió mal. Inténtalo de nuevo." : zh ? "出了点问题，请重试。" : "Something went wrong. Please try again."));
             return setStatus("error");
           }
-          setWhen(new Date(j.remindAt).toLocaleDateString(es ? "es-US" : "en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "America/New_York" }));
+          setWhen(new Date(j.remindAt).toLocaleDateString(maxLocale(lang), { weekday: "long", month: "short", day: "numeric", timeZone: "America/New_York" }));
           markEmailGiven();
           trackEvent("max_remind", String(bidId));
           setStatus(j.lead === "confirmed" ? "confirmed" : "pending");
         } catch {
-          setMsg(es ? "No pude conectarme. Inténtalo de nuevo." : "I couldn't connect. Please try again.");
+          setMsg(es ? "No pude conectarme. Inténtalo de nuevo." : zh ? "连接失败，请重试。" : "I couldn't connect. Please try again.");
           setStatus("error");
         }
       }}
     >
       <p className="text-sm font-bold text-amber-200">
-        {es ? "⏰ Te aviso 3 días antes de que cierre" : "⏰ I'll email you 3 days before it closes"}
+        {es ? "⏰ Te aviso 3 días antes de que cierre" : zh ? "⏰ 截止前 3 天我会发邮件提醒你" : "⏰ I'll email you 3 days before it closes"}
         {title ? <span className="block font-normal text-amber-100/80">{title}</span> : null}
       </p>
       <div className="mt-2 flex gap-2">
@@ -639,7 +674,7 @@ function MaxRemind({ bidId, title, lang, email, onEmail }: { bidId: number; titl
         </label>
         <input id="max-remind-email" type="email" autoComplete="email" value={email} onChange={(e) => onEmail(e.target.value)} placeholder="you@company.com" className="min-w-0 flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-white placeholder:text-slate-400" />
         <button type="submit" disabled={status === "sending"} className="rounded-xl bg-amber-500 px-4 py-2.5 font-bold text-slate-950">
-          {status === "sending" ? "…" : es ? "Recordarme" : "Remind me"}
+          {status === "sending" ? "…" : es ? "Recordarme" : zh ? "提醒我" : "Remind me"}
         </button>
       </div>
       {status === "error" ? <p className="mt-2 text-xs text-red-300">{msg}</p> : null}

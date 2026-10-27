@@ -15,6 +15,7 @@ import {
   MAX_TOOLS,
   fitCerts,
   maxBidContext,
+  maxLang,
   maxPrompt,
   parseBidRef,
   parseMaxReply,
@@ -292,10 +293,10 @@ async function answer(model: string, messages: ChatMsg[], tier: MaxTier): Promis
 /** One visitor question in, Max's reply and the bid cards to show out. */
 export async function askMax(input: { question: string; history: unknown; lang?: MaxLang; bidId?: unknown; tier?: MaxTier }): Promise<MaxReply & { bids: MaxBidCard[] }> {
   const tier: MaxTier = input.tier ?? "free";
-  const lang: MaxLang = input.lang === "es" ? "es" : "en";
+  const lang: MaxLang = maxLang(input.lang);
   const now = new Date().toLocaleString("en-US", { timeZone: "America/New_York", weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const messages: ChatMsg[] = [
-    { role: "system", content: maxPrompt(now) + (lang === "es" ? "\nThe visitor chose Spanish on the page." : "") + maxBidContext(input.bidId) },
+    { role: "system", content: maxPrompt(now) + (lang === "es" ? "\nThe visitor chose Spanish on the page." : lang === "zh" ? "\nThe visitor chose Mandarin Chinese on the page." : "") + maxBidContext(input.bidId) },
     ...sanitizeMaxHistory(input.history),
     { role: "user", content: input.question.trim().slice(0, MAX_QUESTION_CHARS) },
   ];
@@ -306,7 +307,12 @@ export async function askMax(input: { question: string; history: unknown; lang?:
     const status = (err as { status?: number }).status;
     if (status !== 400 && status !== 404) {
       console.error("[max] failed:", sanitizeLogString(err));
-      const say = lang === "es" ? "Perdón, no puedo conectarme ahora mismo. Inténtalo de nuevo en un momento." : "Sorry, I'm having trouble reaching my brain right now. Try me again in a moment.";
+      const say =
+        lang === "es"
+          ? "Perdón, no puedo conectarme ahora mismo. Inténtalo de nuevo en un momento."
+          : lang === "zh"
+            ? "抱歉，我现在连接不上。请稍后再试。"
+            : "Sorry, I'm having trouble reaching my brain right now. Try me again in a moment.";
       return { say, cta: null, trade: null, state: null, remindBid: null, lang, capability: null, bids: [] };
     }
     out = await answer(FALLBACK_MODEL, [...messages], tier).catch(() => ({ raw: "", cards: [] }));
@@ -323,8 +329,11 @@ const MAX_STYLE =
 const MAX_STYLE_ES =
   "Voice: a friendly, confident man in his thirties speaking natural, neutral Latin American Spanish. Upbeat, warm and clear, like a sharp business advisor talking to a small business owner. Natural pace, conversational.";
 
+const MAX_STYLE_ZH =
+  "Voice: a friendly, confident man in his thirties speaking clear, natural Standard Mandarin (Putonghua). Warm and upbeat, like a sharp business advisor talking to a small business owner. Natural pace, conversational; read English names and numbers naturally.";
+
 export function maxSpeech(text: string, lang: MaxLang = "en") {
-  return speechWithStatus(text, { voice: MAX_VOICE, style: lang === "es" ? MAX_STYLE_ES : MAX_STYLE });
+  return speechWithStatus(text, { voice: MAX_VOICE, style: lang === "es" ? MAX_STYLE_ES : lang === "zh" ? MAX_STYLE_ZH : MAX_STYLE });
 }
 
 /**

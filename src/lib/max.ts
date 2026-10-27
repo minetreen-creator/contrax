@@ -131,7 +131,17 @@ export const MAX_TOOLS = [
 ].map(([name, description, parameters]) => ({ type: "function" as const, function: { name: name as string, description: description as string, parameters } }));
 
 export type MaxCta = "email" | "radar" | "trial" | "remind" | "capability" | null;
-export type MaxLang = "en" | "es";
+export type MaxLang = "en" | "es" | "zh";
+
+/** A request's language, defaulting to English. */
+export function maxLang(v: unknown): MaxLang {
+  return v === "es" || v === "zh" ? v : "en";
+}
+
+/** BCP-47 tag for speech, the microphone and dates. */
+export function maxLocale(lang: MaxLang): string {
+  return lang === "es" ? "es-US" : lang === "zh" ? "zh-CN" : "en-US";
+}
 
 export interface MaxReply {
   say: string;
@@ -174,16 +184,17 @@ export function maxPrompt(now: string): string {
     "",
     "Moving them forward: when you found bids they care about, set cta to \"email\" so the page offers to send them new matching bids (free). Set cta to \"remind\" with remind_bid set to the bid's id when they ask to be reminded about a deadline (the page asks for their email and emails them before it closes; you can't set it yourself, so say 'pop your email in below'). Set cta to \"radar\" when a full search would help, \"trial\" only if they ask about pricing or plans. Otherwise null.",
     "",
-    "Language: if the visitor writes in Spanish, or the page says the visitor chose Spanish, answer entirely in natural, friendly Latin American Spanish and set lang to \"es\". Otherwise answer in English with lang \"en\". Bid titles stay as published.",
+    "Language: if the visitor writes in Spanish, or the page says the visitor chose Spanish, answer entirely in natural, friendly Latin American Spanish and set lang to \"es\". If the visitor writes in Chinese, or the page says the visitor chose Mandarin, answer entirely in natural, friendly Mandarin Chinese in Simplified characters and set lang to \"zh\" (keep state names, agency names and dollar amounts readable, e.g. 弗吉尼亚州 (Virginia)). Otherwise answer in English with lang \"en\". Bid titles stay as published.",
     "",
-    "Reply with a JSON object: {\"say\": string, \"cta\": \"email\" | \"remind\" | \"capability\" | \"radar\" | \"trial\" | null, \"remind_bid\": number | null, \"capability\": {\"company\", \"trade\", \"state\", \"summary\", \"competencies\", \"differentiators\", \"experience\", \"certifications\", \"naics\"} | null, \"trade\": string | null, \"state\": string | null, \"lang\": \"en\" | \"es\"}. trade is the plain English trade word the conversation is about (e.g. janitorial), state the two-letter code.",
+    "Reply with a JSON object: {\"say\": string, \"cta\": \"email\" | \"remind\" | \"capability\" | \"radar\" | \"trial\" | null, \"remind_bid\": number | null, \"capability\": {\"company\", \"trade\", \"state\", \"summary\", \"competencies\", \"differentiators\", \"experience\", \"certifications\", \"naics\"} | null, \"trade\": string | null, \"state\": string | null, \"lang\": \"en\" | \"es\" | \"zh\"}. trade is the plain English trade word the conversation is about (e.g. janitorial), state the two-letter code.",
     `Today is ${now} (Eastern).`,
   ].join("\n");
 }
 
 /** Parse the model's JSON; anything malformed degrades to plain text with no CTA. */
 export function parseMaxReply(raw: string, lang: MaxLang = "en"): MaxReply {
-  const fallback = lang === "es" ? "Perdón, perdí el hilo. ¿Me lo preguntas otra vez?" : "Sorry, I lost my train of thought. Could you ask that again?";
+  const fallback =
+    lang === "es" ? "Perdón, perdí el hilo. ¿Me lo preguntas otra vez?" : lang === "zh" ? "抱歉，我刚才走神了。能再问一次吗？" : "Sorry, I lost my train of thought. Could you ask that again?";
   let obj: unknown;
   try {
     obj = JSON.parse(raw);
@@ -198,7 +209,7 @@ export function parseMaxReply(raw: string, lang: MaxLang = "en"): MaxReply {
   const capability = parseCapability(o.capability);
   if (cta === "capability" && !capability) cta = null;
   const trade = typeof o.trade === "string" && o.trade.trim() ? o.trade.trim().slice(0, 60) : null;
-  const outLang: MaxLang = o.lang === "es" ? "es" : o.lang === "en" ? "en" : lang;
+  const outLang: MaxLang = o.lang === "es" || o.lang === "en" || o.lang === "zh" ? o.lang : lang;
   return { say, cta, trade, state: stateCode(o.state), remindBid, lang: outLang, capability: cta === "capability" ? capability : null };
 }
 
@@ -264,6 +275,7 @@ export interface MaxPick {
 export function maxPickGreeting(pick: MaxPick, stateName: string | null, lang: MaxLang = "en", now: number = Date.now()): string {
   const days = pick.due ? Math.ceil((Date.parse(`${pick.due}T23:59:00Z`) - now) / 86_400_000) : null;
   const program = setAsideProgram(pick.setAside);
+  if (lang === "zh") return maxPickGreetingZh(pick, stateName, now);
   const es = lang === "es";
   const why: string[] = [];
   if (days != null && days > 0) why.push(es ? `cierra en ${days} días, tiempo de sobra para prepararte` : `it closes in ${days} days, so there's time to prepare`);
@@ -276,6 +288,21 @@ export function maxPickGreeting(pick: MaxPick, stateName: string | null, lang: M
   return es
     ? `¡Hola! Soy Max. Mi selección del día${where}: "${pick.title}"${buyer}.${reason} ¿A qué se dedica tu negocio? Te busco más.`
     : `Hi, I'm Max. My pick of the day${where}: "${pick.title}"${buyer}.${reason} Tell me what your business does and I'll find more like it.`;
+}
+
+/** Mandarin pick of the day (owner 2026-10-27: "teach Max to speak Mandarin"). */
+function maxPickGreetingZh(pick: MaxPick, stateName: string | null, now: number): string {
+  const days = pick.due ? Math.ceil((Date.parse(`${pick.due}T23:59:00Z`) - now) / 86_400_000) : null;
+  const program = setAsideProgram(pick.setAside);
+  const why: string[] = [];
+  if (days != null && days > 0) why.push(`还有 ${days} 天截止，准备时间充足`);
+  if (program !== "open" && program !== "other") why.push(program === "small" ? "这是专门留给小企业的项目" : `这是专门留给 ${PROGRAM_NAME[program]} 企业的项目`);
+  if (pick.value && !/not (specified|available|listed)|n\/a|tbd|see (the )?solicitation|unknown/i.test(pick.value)) why.push(`公布金额为 ${pick.value}`);
+  if (pick.postedDaysAgo != null && pick.postedDaysAgo <= 3) why.push("刚刚发布");
+  const where = stateName ? `（${stateName}）` : "";
+  const buyer = pick.agency ? `，发布方：${pick.agency}` : "";
+  const reason = why.length ? `我推荐它，因为${why.join("，")}。` : "";
+  return `你好，我是 Max。今天的精选项目${where}：“${pick.title}”${buyer}。${reason}告诉我你的公司做什么，我帮你找更多类似的项目。`;
 }
 
 function joinList(items: string[], and: string): string {

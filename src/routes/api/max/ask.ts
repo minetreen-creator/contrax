@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { checkIpLimit } from "~/lib/rate-limit";
-import { MAX_TIER_LIMITS } from "~/lib/max";
+import { maxLang, MAX_TIER_LIMITS } from "~/lib/max";
 import { askMax, resolveMaxTier } from "~/lib/max.server";
 
 /**
@@ -28,7 +28,7 @@ async function handler({ request }: { request: Request }) {
   const body = (await request.json().catch(() => ({}))) as { question?: unknown; history?: unknown; lang?: unknown; bid_id?: unknown };
   const question = String(body.question ?? "").trim();
   if (!question) return Response.json({ error: "Ask me something" }, { status: 400 });
-  const reply = await askMax({ question, history: body.history, lang: body.lang === "es" ? "es" : "en", bidId: body.bid_id, tier });
+  const reply = await askMax({ question, history: body.history, lang: maxLang(body.lang), bidId: body.bid_id, tier });
   return Response.json({ ...reply, tier });
 }
 

@@ -1,17 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { stateFromGeoHeaders } from "~/lib/radar-geo";
 import { STATE_CODE_TO_NAME } from "~/lib/location-state";
-import { maxPickGreeting } from "~/lib/max";
+import { maxLang, maxPickGreeting } from "~/lib/max";
 import { maxPickOfTheDay } from "~/lib/max.server";
 
 /**
- * GET /api/max/pick?lang=en|es — Max's pick of the day for the homepage
+ * GET /api/max/pick?lang=en|es|zh — Max's pick of the day for the homepage
  * greeting (src/lib/max.ts maxPickGreeting): one open bid in the visitor's
  * state from Vercel's IP geo, nationwide when unknown. No AI call. Returns
  * { pick: null } when nothing fits; the page then shows the usual chips.
  */
 async function handler({ request }: { request: Request }) {
-  const lang = new URL(request.url).searchParams.get("lang") === "es" ? "es" : "en";
+  const lang = maxLang(new URL(request.url).searchParams.get("lang"));
   const state = stateFromGeoHeaders(request.headers.get("x-vercel-ip-country"), request.headers.get("x-vercel-ip-country-region")) || null;
   try {
     const local = state ? await maxPickOfTheDay(state) : null;

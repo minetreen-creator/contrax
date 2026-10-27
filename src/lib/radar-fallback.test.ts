@@ -12,6 +12,10 @@ describe("Radar trade fallback", () => {
     expect(broaderRadarTrade("tree removal")).toBe("landscaping");
     expect(broaderRadarTrade("pressure washing")).toBe("janitorial");
     expect(broaderRadarTrade("junk removal")).toBe("trucking");
+    expect(broaderRadarTrade("towing")).toBe("trucking");
+    expect(broaderRadarTrade("tow truck service")).toBe("trucking");
+    expect(broaderRadarTrade("wrecker")).toBe("trucking");
+    expect(broaderRadarTrade("stowage")).toBeNull();
   });
   test("no fallback for broad trades themselves, NAICS codes, or unknown trades", () => {
     expect(broaderRadarTrade("construction")).toBe(null);

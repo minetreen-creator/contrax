@@ -54,6 +54,15 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("mo_liberty", "www.libertymissouri.gov", "City of Liberty", "Liberty, MO", "libertycivic"),
   board("mo_ozark", "www.ozarkmissouri.com", "City of Ozark", "Ozark, MO", "ozarkcivic"),
   board("mo_ballwin", "www.ballwin.mo.us", "City of Ballwin", "Ballwin, MO", "ballwincivic"),
+  // Indiana (owner 2026-10-27).
+  board("in_lafayette", "www.lafayette.in.gov", "City of Lafayette", "Lafayette, IN", "lafayettecivic"),
+  board("in_zionsville", "www.zionsville-in.gov", "Town of Zionsville", "Zionsville, IN", "zionsvillecivic"),
+  board("in_carmel", "www.carmel.in.gov", "City of Carmel", "Carmel, IN", "carmelcivic"),
+  board("in_hamilton_county", "www.hamiltoncounty.in.gov", "Hamilton County", "Hamilton County, IN", "hamiltoncountycivic"),
+  board("in_tippecanoe_county", "www.tippecanoe.in.gov", "Tippecanoe County", "Tippecanoe County, IN", "tippecanoecountycivic"),
+  board("in_anderson", "www.cityofanderson.com", "City of Anderson", "Anderson, IN", "andersoncivic"),
+  board("in_avon", "www.avonindiana.gov", "Town of Avon", "Avon, IN", "avoncivic"),
+  board("in_brownsburg", "www.brownsburg.org", "Town of Brownsburg", "Brownsburg, IN", "brownsburgcivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

@@ -39,3 +39,14 @@ civic | www.libertymissouri.gov | rows=2 | parsed=2 | skipped={} | final=https:/
 civic | www.ozarkmissouri.com | rows=2 | parsed=2 | skipped={} | final=https://www.ozarkmissouri.com/bids.aspx | site=City of Ozark
 civic | www.ballwin.mo.us | rows=1 | parsed=1 | skipped={} | final=https://www.ballwin.mo.us/bids.aspx | site=Ballwin, MO
 Jefferson County (jeffcomo.org -> jeffcomo.gov) and Festus (-> http://www.festusmo.gov) redirected, so they were not captured.
+
+Indiana boards, captured 2026-10-27 by the same job pattern (54 Bonfire names, 45 CivicEngage sites; no Indiana Bonfire tenant answered):
+civic | www.lafayette.in.gov | rows=1 | parsed=1 | skipped={} | final=https://www.lafayette.in.gov/bids.aspx | site=Lafayette, IN
+civic | www.zionsville-in.gov | rows=1 | parsed=1 | skipped={} | final=https://www.zionsville-in.gov/bids.aspx | site=Zionsville, IN
+civic | www.carmel.in.gov | rows=0 | parsed=0 | skipped={} | final=https://www.carmel.in.gov/bids.aspx | site=Carmel, IN
+civic | www.hamiltoncounty.in.gov | rows=0 | parsed=0 | skipped={} | final=https://www.hamiltoncounty.in.gov/bids.aspx | site=Hamilton County, IN
+civic | www.tippecanoe.in.gov | rows=0 | parsed=0 | skipped={} | final=https://www.tippecanoe.in.gov/bids.aspx | site=Tippecanoe County, IN
+civic | www.cityofanderson.com | rows=0 | parsed=0 | skipped={} | final=https://www.cityofanderson.com/bids.aspx | site=Anderson, IN
+civic | www.avonindiana.gov | rows=0 | parsed=0 | skipped={} | final=https://www.avonindiana.gov/bids.aspx | site=Avon, IN
+civic | www.brownsburg.org | rows=0 | parsed=1 | skipped={"closed":1} | final=https://www.brownsburg.org/bids.aspx | site=Brownsburg, IN
+Only Lafayette and Zionsville had open bids, so only their captures are kept; the other six boards are real and scheduled so new bids flow in.

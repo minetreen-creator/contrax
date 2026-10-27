@@ -26,16 +26,19 @@ const OPEN: Record<string, number> = {
   tx_league_city: 5, tx_longview: 2, tx_midland: 4, tx_odessa: 3,
   az_lake_havasu: 5, az_casa_grande: 3, az_douglas: 6,
   mo_springfield: 9, mo_st_charles_county: 4, mo_st_charles: 3, mo_liberty: 2, mo_ozark: 2, mo_ballwin: 1,
+  in_lafayette: 1, in_zionsville: 1,
 };
+// Real boards with nothing open at capture (scheduled so new bids flow in), so no file.
+const NO_CAPTURE = new Set(["in_carmel", "in_hamilton_county", "in_tippecanoe_county", "in_anderson", "in_avon", "in_brownsburg"]);
 
 describe("county CivicEngage boards", () => {
-  test("twenty-seven boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(27);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(27);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(27);
+  test("thirty-five boards with unique sources and id prefixes", () => {
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(35);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(35);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(35);
   });
 
-  for (const cfg of COUNTY_CIVICENGAGE_CONFIGS) {
+  for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {
     test(`${cfg.source}: captured board parses to its open competitive bids`, () => {
       const { rows } = parseCountyCivicEngage(cfg.source, capture(cfg.host, 1), now);
       expect(rows).toHaveLength(OPEN[cfg.source]);

@@ -7,16 +7,21 @@ import {
   type Snapshot,
 } from "./model";
 const API = "https://api.usaspending.gov/api/v2";
+// USAspending starts closing sockets after a few minutes of steady paging
+// (2026-10-26: every county after the first ~4 minutes failed, run after run).
+// Waits of 0.5 s and 1 s were too short to outlast that, so back off longer.
+// Only the hourly sync job calls this, so the extra wait never reaches a visitor.
+export const RETRY_DELAYS_MS = [2_000, 10_000, 30_000];
 export async function post(
   path: string,
   body: unknown,
   signal?: AbortSignal,
 ): Promise<any> {
   let last: unknown;
-  for (let attempt = 0; attempt < 3; attempt++) {
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt++) {
     if (signal?.aborted) throw new Error("Spending refresh timed out");
     if (attempt)
-      await new Promise((resolve) => setTimeout(resolve, 500 * attempt));
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt - 1]));
     try {
       const response = await fetch(`${API}${path}`, {
         method: "POST",

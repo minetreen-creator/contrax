@@ -9,7 +9,7 @@
 const FALLBACKS: [RegExp, string][] = [
   [/janitor|custodial|cleaning|housekeep|pressure wash|power wash/, "janitorial"],
   [/landscap|lawn|mow|grounds|tree|sod|irrigation|mulch|snow/, "landscaping"],
-  [/junk|debris|haul|dumpster|moving|movers/, "trucking"],
+  [/junk|debris|haul|dumpster|moving|movers|\btow(ing)?\b|wrecker|roadside/, "trucking"],
   [
     /siding|roof|gutter|window|door|shutter|insulation|spray foam|drywall|plaster|paint|floor|tile|carpet|masonry|brick|stone|concrete|paving|asphalt|sealcoat|stripin|deck|fence|remodel|renovat|restoration|handyman|carpent|framing|demolition|grading|excavat|well|septic|inspection|waterproof|cabinet|kitchen|bath/,
     "construction",

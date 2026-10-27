@@ -135,7 +135,19 @@ export interface CivicEngageBoardConfig {
   location: string;
   /** `external_id` prefix, e.g. `loudoun` → `loudoun-1107`. Stable = upsert, never dup. */
   idPrefix: string;
+  /**
+   * Group headers that are not open competitions (owner 2026-10-27: Petersburg's
+   * board is all "Emergency" / "Sole Source" notices; Danville lists plan-holder
+   * sheets and closed results). Rows under a matching group are skipped, and a
+   * bid listed under two groups is emitted once. Unset = the original behavior,
+   * so the boards shipped before this field are unchanged.
+   */
+  excludeGroup?: RegExp;
 }
+
+/** The usual non-competition group headers on CivicEngage boards (2026-10-27 captures). */
+export const CIVICENGAGE_NOT_A_BID_GROUP =
+  /emergency|sole[- ]source|bid results|responders|plan ?holders|pre-?bid attendees|notice of (intent|award)|intent to award|award|cancell?ation|cooperative|closed/i;
 
 /** One row exactly as the board presents it (pre-guard, for tests/diagnostics). */
 export interface CivicEngageBoardRow {
@@ -313,6 +325,7 @@ export function parseCivicEngageBoard(
   const region = html.slice(start, end);
   let group: string | null = null;
   let groupCountText: string | null = null;
+  const emitted = new Set<string>();
 
   for (const part of region.split(BLOCK_SPLIT)) {
     if (/^\s*<div class="bidsHeader listHeader"/.test(part)) {
@@ -410,6 +423,18 @@ export function parseCivicEngageBoard(
     if (status.trim().toLowerCase() !== "open") {
       recordSkip(skipped, skippedRows, rowId, "not_open");
       continue;
+    }
+
+    if (config.excludeGroup) {
+      if (config.excludeGroup.test(group)) {
+        recordSkip(skipped, skippedRows, rowId, "not_a_bid_group");
+        continue;
+      }
+      if (emitted.has(rowId)) {
+        recordSkip(skipped, skippedRows, rowId, "duplicate_listing");
+        continue;
+      }
+      emitted.add(rowId);
     }
 
     // "Parse or NULL" — never map a sentinel to a fabricated date.

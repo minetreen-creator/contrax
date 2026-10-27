@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { expandTrade, termMatches, termNeedsWordStart, termWordStartRegex, tradeTextIncludes } from "./trade-registry";
+import { expandTrade, isStrongTradeMatch, termMatches, termNeedsWordStart, termWordStartRegex, tradeTextIncludes } from "./trade-registry";
 import { mapCategory } from "./trade-classification";
 
 // Owner 2026-10-06: /contracts-in/virginia/hvac listed French fries ("duct" in
@@ -85,5 +85,22 @@ describe("mapCategory: lawn, tree and repair titles (owner 2026-10-27, county Bo
   test("an electrical job named after its building keeps its trade", () => {
     expect(c("Tenney Pavilion PV Removal and Reinstall")).toBe("Plumbing & Electrical");
     expect(c("Interdisciplinary Research Building Replacement of the Fire Alarm System")).toBe("Plumbing & Electrical");
+  });
+});
+
+describe("Radar terms: paving, utility, restroom, mowing and tree titles (owner 2026-10-27)", () => {
+  const construction = expandTrade("construction");
+  const landscaping = expandTrade("landscaping");
+  const hit = (title: string, ex: ReturnType<typeof expandTrade>) => isStrongTradeMatch(title, null, "", null, ex);
+  test("Arizona board titles now match a construction search", () => {
+    for (const t of ["Crack Fill and Seal", "FY2026-27 Chip Seal Program", "Manhole Rehabilitation", "Centennial Park Restroom Upgrades", "Pavement Marking (2027-2028)", "Pavement Replacement North End Phase II"]) {
+      expect(hit(t, construction)).toBe(true);
+    }
+    expect(hit("Employee Benefits- Medical/Rx/EAP", construction)).toBe(false);
+  });
+  test("mowing, tree and brush titles match a landscaping search", () => {
+    for (const t of ["Landfill Vegetation Mowing and Brush Removal", "Estrella Mountain Community College Tree Replacement", "Tree Trimming and Removal Services"]) {
+      expect(hit(t, landscaping)).toBe(true);
+    }
   });
 });

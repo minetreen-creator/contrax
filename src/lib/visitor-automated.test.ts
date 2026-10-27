@@ -216,6 +216,10 @@ describe("admin counting fixes (owner 2026-10-13)", () => {
     expect(dataCenterLocation("Ashburn", "VA")).toContain("Ashburn, VA");
     expect(dataCenterLocation("Ashburn", "GA")).toBeNull();
   });
+  test("Boydton, VA (Microsoft Safe Links) is a data-center town", () => {
+    expect(dataCenterLocation("Boydton", "VA")).toContain("Boydton, VA");
+    expect(dataCenterLocation("Boydton", "Virginia")).toContain("Boydton, VA");
+  });
 
   test("qa_ and qa- sources are QA traffic", () => {
     expect(isQaSource("qa_radar_gate")).toBe(true);

@@ -24,13 +24,14 @@ const OPEN: Record<string, number> = {
   fl_bay_county: 1, fl_titusville: 4,
   ga_hall_county: 2, ga_barrow_county: 7,
   tx_league_city: 5, tx_longview: 2, tx_midland: 4, tx_odessa: 3,
+  az_lake_havasu: 5, az_casa_grande: 3, az_douglas: 6,
 };
 
 describe("county CivicEngage boards", () => {
-  test("eighteen boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(18);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(18);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(18);
+  test("twenty-one boards with unique sources and id prefixes", () => {
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(21);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(21);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(21);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS) {

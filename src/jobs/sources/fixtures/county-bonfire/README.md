@@ -17,3 +17,15 @@ co-hood-tx | title=Portal — Open Opportunities - Hood County | open=1 | same=t
 parkercountytx | title=Portal — Open Opportunities - Parker County, Texas | open=2 | same=true | sha=266f1d0c475828d4
 cityofalpharetta | title=Portal — Open Opportunities - City of Alpharetta, Georgia | open=2 | same=true | sha=537a78e1b3fbc283
 dentoncounty | title=Portal — Open Opportunities - Denton County | open=3 | same=true | sha=1ef666e5732633fa
+
+Arizona boards, captured 2026-10-27 by the same job pattern (owner: "we need arizona sources"):
+bonfire | yumaaz | title=Portal — Open Opportunities - City of Yuma, AZ | open=4 | same=true
+bonfire | buckeyeaz | title=Portal — Open Opportunities - City of Buckeye | open=1 | same=true
+bonfire | maricopa | title=Portal — Open Opportunities - Maricopa County Community Colleges | open=5 | same=true
+bonfire | prescottvalleyaz | title=Portal — Open Opportunities - Prescott Valley, AZ | open=2 | same=true
+bonfire | peoriaaz | title=Portal — Open Opportunities - City of Peoria, AZ | open=2 | same=true
+bonfire | scottsdaleaz | title=Portal — Open Opportunities - City of Scottsdale, AZ | open=5 | same=true
+bonfire | goodyearaz | title=Portal — Open Opportunities - City of Goodyear | open=1 | same=true
+bonfire | pinalcountyaz | title=Portal — Open Opportunities - Pinal County | open=0 | same=true
+bonfire | sedonaaz | title=Portal — Open Opportunities - City of Sedona | open=0 | same=true
+pinalcountyaz and sedonaaz had no open projects, so no capture file is kept for them.

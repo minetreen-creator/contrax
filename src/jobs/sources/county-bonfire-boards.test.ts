@@ -26,16 +26,25 @@ const CAPTURED: Record<string, number> = {
   tx_parker_bonfire: 2,
   ga_alpharetta_bonfire: 2,
   tx_denton_bonfire: 3,
+  az_yuma_bonfire: 4,
+  az_buckeye_bonfire: 1,
+  az_mcccd_bonfire: 5,
+  az_prescott_valley_bonfire: 2,
+  az_peoria_bonfire: 2,
+  az_scottsdale_bonfire: 5,
+  az_goodyear_bonfire: 1,
 };
+// Real Arizona tenants with nothing open at capture (portal title confirmed), so no file.
+const NO_CAPTURE = new Set(["az_pinal_bonfire", "az_sedona_bonfire"]);
 
 describe("county Bonfire boards", () => {
-  test("ten boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(10);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(10);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(10);
+  test("nineteen boards, unique sources and id prefixes", () => {
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(19);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(19);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(19);
   });
 
-  for (const cfg of COUNTY_BONFIRE_CONFIGS) {
+  for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {
     test(`${cfg.source}: both captures match and every row is well formed`, () => {
       const t = tenantOf(cfg.host);
       expect(capture(t, 1)).toEqual(capture(t, 2));
@@ -63,6 +72,8 @@ describe("county Bonfire boards", () => {
     expect(harris.agencyName("Purchasing")).toBe("Harris County Purchasing");
     expect(harris.agencyName("Harris County Flood Control District")).toBe("Harris County Flood Control District");
     expect(COUNTY_BONFIRE_CONFIGS.find((c) => c.source === "ga_alpharetta_bonfire")!.locationName).toBe("Alpharetta, GA");
+    expect(COUNTY_BONFIRE_CONFIGS.find((c) => c.source === "az_prescott_valley_bonfire")!.locationName).toBe("Prescott Valley, AZ");
+    expect(COUNTY_BONFIRE_CONFIGS.find((c) => c.source === "az_mcccd_bonfire")!.locationName).toBe("Maricopa County, AZ");
   });
 
   test("every board is scheduled, classified, placed in its state, and has an agency page", () => {

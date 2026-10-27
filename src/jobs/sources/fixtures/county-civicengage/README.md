@@ -25,3 +25,8 @@ TX | www.leaguecitytx.gov | rows=5 | parsed=5 | skipped={} | final=https://www.l
 TX | www.longviewtexas.gov | rows=2 | parsed=2 | skipped={} | final=https://www.longviewtexas.gov/bids.aspx | site=Longview, TX
 TX | www.midlandtexas.gov | rows=6 | parsed=6 | skipped={} | final=https://www.midlandtexas.gov/bids.aspx | site=Midland, TX
 TX | www.odessa-tx.gov | rows=3 | parsed=3 | skipped={} | final=https://www.odessa-tx.gov/bids.aspx | site=Odessa, TX
+
+Arizona boards, captured 2026-10-27 by the same job pattern:
+civic | www.lhcaz.gov | rows=5 | parsed=5 | skipped={} | final=https://www.lhcaz.gov/bids.aspx | site=Lake Havasu City, AZ
+civic | www.casagrandeaz.gov | rows=3 | parsed=3 | skipped={} | final=https://www.casagrandeaz.gov/bids.aspx | site=Casa Grande, AZ
+civic | www.douglasaz.gov | rows=6 | parsed=6 | skipped={} | final=https://www.douglasaz.gov/bids.aspx | site=Douglas, AZ

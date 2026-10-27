@@ -43,6 +43,10 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("tx_longview", "www.longviewtexas.gov", "City of Longview", "Longview, TX", "longviewcivic"),
   board("tx_midland", "www.midlandtexas.gov", "City of Midland", "Midland, TX", "midlandcivic"),
   board("tx_odessa", "www.odessa-tx.gov", "City of Odessa", "Odessa, TX", "odessacivic"),
+  // Arizona (owner 2026-10-27).
+  board("az_lake_havasu", "www.lhcaz.gov", "City of Lake Havasu City", "Lake Havasu City, AZ", "lakehavasucivic"),
+  board("az_casa_grande", "www.casagrandeaz.gov", "City of Casa Grande", "Casa Grande, AZ", "casagrandecivic"),
+  board("az_douglas", "www.douglasaz.gov", "City of Douglas", "Douglas, AZ", "douglascivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

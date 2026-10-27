@@ -81,7 +81,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + Broward County's BPRO Bonfire board (fl_broward_bonfire), 2026-10-27 (225 → 226).
     // + ten county/city Bonfire boards (county-bonfire-boards.ts), 2026-10-27 (226 → 236).
     // + eighteen county/city CivicEngage boards (county-civicengage-boards.ts), 2026-10-27 (236 → 254).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(254);
+    // + twelve Arizona Bonfire and CivicEngage boards, 2026-10-27 (254 → 266).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(266);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -155,7 +156,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + Broward County's BPRO Bonfire board (fl_broward_bonfire), 2026-10-27 (143 → 144).
     // + ten county/city Bonfire boards (county-bonfire-boards.ts), 2026-10-27 (144 → 154).
     // + eighteen county/city CivicEngage boards (county-civicengage-boards.ts), 2026-10-27 (154 → 172).
-    expect(TAIL_SOURCES.length).toBe(172);
+    // + twelve Arizona Bonfire and CivicEngage boards, 2026-10-27 (172 → 184).
+    expect(TAIL_SOURCES.length).toBe(184);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

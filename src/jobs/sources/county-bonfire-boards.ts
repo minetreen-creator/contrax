@@ -9,7 +9,7 @@
 import type { FetchResult } from "../runner";
 import { bonfireAgencyName, fetchBonfireBids, parseBonfire, type BonfireConfig, type BonfirePayload } from "./bonfire-public";
 
-type Board = { tenant: string; source: string; stateName: string; place: string; buyer: string; idPrefix: string };
+type Board = { tenant: string; source: string; stateName: string; place: string; buyer: string; idPrefix: string; location?: string };
 
 /** Department names are prefixed with the buyer's place unless they already name it. */
 function boardConfig(b: Board): BonfireConfig {
@@ -18,7 +18,7 @@ function boardConfig(b: Board): BonfireConfig {
     host: `https://${b.tenant}.bonfirehub.com`,
     idPrefix: b.idPrefix,
     stateName: b.stateName,
-    locationName: b.buyer.replace(/, ([A-Za-z ]+)$/, (_, st: string) => `, ${STATE_ABBR[st] ?? st}`).replace(/^City of /, ""),
+    locationName: b.location ?? b.buyer.replace(/, ([A-Za-z ]+)$/, (_, st: string) => `, ${STATE_ABBR[st] ?? st}`).replace(/^(City|Town) of /, ""),
     buyerName: b.buyer,
     portalName: `the ${b.buyer} procurement portal (Bonfire)`,
     agencyName: (dept) => {
@@ -28,7 +28,7 @@ function boardConfig(b: Board): BonfireConfig {
   };
 }
 
-const STATE_ABBR: Record<string, string> = { Texas: "TX", Florida: "FL", Georgia: "GA", Tennessee: "TN" };
+const STATE_ABBR: Record<string, string> = { Texas: "TX", Florida: "FL", Georgia: "GA", Tennessee: "TN", Arizona: "AZ" };
 
 const BOARDS: Board[] = [
   { tenant: "harriscountytx", source: "tx_harris_bonfire", stateName: "Texas", place: "Harris County", buyer: "Harris County, Texas", idPrefix: "harriscountytxbonfire" },
@@ -41,6 +41,16 @@ const BOARDS: Board[] = [
   { tenant: "parkercountytx", source: "tx_parker_bonfire", stateName: "Texas", place: "Parker County", buyer: "Parker County, Texas", idPrefix: "parkercountytxbonfire" },
   { tenant: "cityofalpharetta", source: "ga_alpharetta_bonfire", stateName: "Georgia", place: "Alpharetta", buyer: "City of Alpharetta, Georgia", idPrefix: "cityofalpharettabonfire" },
   { tenant: "dentoncounty", source: "tx_denton_bonfire", stateName: "Texas", place: "Denton County", buyer: "Denton County, Texas", idPrefix: "dentoncountybonfire" },
+  // Arizona (owner 2026-10-27: "we need arizona sources").
+  { tenant: "yumaaz", source: "az_yuma_bonfire", stateName: "Arizona", place: "Yuma", buyer: "City of Yuma, Arizona", idPrefix: "yumaazbonfire" },
+  { tenant: "buckeyeaz", source: "az_buckeye_bonfire", stateName: "Arizona", place: "Buckeye", buyer: "City of Buckeye, Arizona", idPrefix: "buckeyeazbonfire" },
+  { tenant: "maricopa", source: "az_mcccd_bonfire", stateName: "Arizona", place: "Maricopa County Community Colleges", buyer: "Maricopa County Community Colleges", idPrefix: "maricopabonfire", location: "Maricopa County, AZ" },
+  { tenant: "prescottvalleyaz", source: "az_prescott_valley_bonfire", stateName: "Arizona", place: "Prescott Valley", buyer: "Town of Prescott Valley, Arizona", idPrefix: "prescottvalleyazbonfire" },
+  { tenant: "peoriaaz", source: "az_peoria_bonfire", stateName: "Arizona", place: "Peoria", buyer: "City of Peoria, Arizona", idPrefix: "peoriaazbonfire" },
+  { tenant: "scottsdaleaz", source: "az_scottsdale_bonfire", stateName: "Arizona", place: "Scottsdale", buyer: "City of Scottsdale, Arizona", idPrefix: "scottsdaleazbonfire" },
+  { tenant: "goodyearaz", source: "az_goodyear_bonfire", stateName: "Arizona", place: "Goodyear", buyer: "City of Goodyear, Arizona", idPrefix: "goodyearazbonfire" },
+  { tenant: "pinalcountyaz", source: "az_pinal_bonfire", stateName: "Arizona", place: "Pinal County", buyer: "Pinal County, Arizona", idPrefix: "pinalcountyazbonfire" },
+  { tenant: "sedonaaz", source: "az_sedona_bonfire", stateName: "Arizona", place: "Sedona", buyer: "City of Sedona, Arizona", idPrefix: "sedonaazbonfire" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

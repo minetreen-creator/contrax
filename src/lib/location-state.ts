@@ -1051,6 +1051,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   va_fairfax_bonfire: "VA",
   va_alexandria_bonfire: "VA",
   va_botetourt_bonfire: "VA",
+  fl_broward_bonfire: "FL",
   va_eva: "VA",
   tx_esbd: "TX",
   fl_mfmp: "FL",

@@ -60,6 +60,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "va_fairfax_bonfire", slug: "fairfax-county", name: "Fairfax County" },
   { source: "va_alexandria_bonfire", slug: "city-of-alexandria", name: "City of Alexandria" },
   { source: "va_botetourt_bonfire", slug: "botetourt-county", name: "Botetourt County" },
+  { source: "fl_broward_bonfire", slug: "broward-county", name: "Broward County" },
   { source: "oh_worthington", slug: "city-of-worthington", name: "City of Worthington" },
   { source: "oh_franklin_county", slug: "franklin-county-oh", name: "Franklin County, Ohio" },
   { source: "nj_harrison", slug: "town-of-harrison-nj", name: "Town of Harrison, New Jersey" },

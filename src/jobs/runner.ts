@@ -67,6 +67,7 @@ import { fetchLouisvilleBonfireBids } from "./sources/ky-louisville-bonfire";
 import { fetchVaFairfaxBonfireBids } from "./sources/va-fairfax-bonfire";
 import { fetchVaAlexandriaBonfireBids } from "./sources/va-alexandria-bonfire";
 import { fetchVaBotetourtBonfireBids } from "./sources/va-botetourt-bonfire";
+import { fetchFlBrowardBonfireBids } from "./sources/fl-broward-bonfire";
 import { fetchVaVtJaggaerBids, fetchVaGmuBonfireBids, fetchVaNsuBonfireBids } from "./sources/va-university-portals";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import { fetchVaEvaBids } from "./sources/va-eva";
@@ -533,6 +534,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "va_fairfax_bonfire", fetchFn: fetchVaFairfaxBonfireBids },
   { name: "va_alexandria_bonfire", fetchFn: fetchVaAlexandriaBonfireBids },
   { name: "va_botetourt_bonfire", fetchFn: fetchVaBotetourtBonfireBids },
+  { name: "fl_broward_bonfire", fetchFn: fetchFlBrowardBonfireBids },
   { name: "va_vt_jaggaer", fetchFn: fetchVaVtJaggaerBids },
   { name: "va_gmu_bonfire", fetchFn: fetchVaGmuBonfireBids },
   { name: "va_nsu_bonfire", fetchFn: fetchVaNsuBonfireBids },

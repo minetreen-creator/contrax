@@ -29,3 +29,11 @@ bonfire | goodyearaz | title=Portal — Open Opportunities - City of Goodyear | 
 bonfire | pinalcountyaz | title=Portal — Open Opportunities - Pinal County | open=0 | same=true
 bonfire | sedonaaz | title=Portal — Open Opportunities - City of Sedona | open=0 | same=true
 pinalcountyaz and sedonaaz had no open projects, so no capture file is kept for them.
+
+Missouri boards, captured 2026-10-27 by the same job pattern (owner: "what do we have for MO?"):
+bonfire | kcmo | title=Portal — Open Opportunities - Kansas City, MO | open=7 | same=true
+bonfire | stlouiscountymo | title=Portal — Open Opportunities - St. Louis County | open=9 | same=true
+bonfire | jacksongov | title=Portal — Open Opportunities - Jackson County | open=12 | same=true
+bonfire | jeffersoncitymo | title=Portal — Open Opportunities - Jefferson City, MO | open=5 | same=true
+bonfire | slps | title=Portal — Open Opportunities - Saint Louis Public Schools | open=0 | same=true
+slps had no open projects, so no capture file is kept for it.

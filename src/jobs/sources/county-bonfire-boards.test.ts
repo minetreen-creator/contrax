@@ -33,15 +33,19 @@ const CAPTURED: Record<string, number> = {
   az_peoria_bonfire: 2,
   az_scottsdale_bonfire: 5,
   az_goodyear_bonfire: 1,
+  mo_kansas_city_bonfire: 7,
+  mo_st_louis_county_bonfire: 9,
+  mo_jackson_county_bonfire: 12,
+  mo_jefferson_city_bonfire: 5,
 };
 // Real Arizona tenants with nothing open at capture (portal title confirmed), so no file.
-const NO_CAPTURE = new Set(["az_pinal_bonfire", "az_sedona_bonfire"]);
+const NO_CAPTURE = new Set(["az_pinal_bonfire", "az_sedona_bonfire", "mo_slps_bonfire"]);
 
 describe("county Bonfire boards", () => {
-  test("nineteen boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(19);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(19);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(19);
+  test("twenty-four boards, unique sources and id prefixes", () => {
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(24);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(24);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(24);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

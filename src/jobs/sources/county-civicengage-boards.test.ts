@@ -25,13 +25,14 @@ const OPEN: Record<string, number> = {
   ga_hall_county: 2, ga_barrow_county: 7,
   tx_league_city: 5, tx_longview: 2, tx_midland: 4, tx_odessa: 3,
   az_lake_havasu: 5, az_casa_grande: 3, az_douglas: 6,
+  mo_springfield: 9, mo_st_charles_county: 4, mo_st_charles: 3, mo_liberty: 2, mo_ozark: 2, mo_ballwin: 1,
 };
 
 describe("county CivicEngage boards", () => {
-  test("twenty-one boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(21);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(21);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(21);
+  test("twenty-seven boards with unique sources and id prefixes", () => {
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(27);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(27);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(27);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS) {

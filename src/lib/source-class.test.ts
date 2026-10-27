@@ -82,7 +82,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + ten county/city Bonfire boards (county-bonfire-boards.ts), 2026-10-27 (226 → 236).
     // + eighteen county/city CivicEngage boards (county-civicengage-boards.ts), 2026-10-27 (236 → 254).
     // + twelve Arizona Bonfire and CivicEngage boards, 2026-10-27 (254 → 266).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(266);
+    // + eleven Missouri Bonfire and CivicEngage boards, 2026-10-27 (266 → 277).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(277);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -157,7 +158,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + ten county/city Bonfire boards (county-bonfire-boards.ts), 2026-10-27 (144 → 154).
     // + eighteen county/city CivicEngage boards (county-civicengage-boards.ts), 2026-10-27 (154 → 172).
     // + twelve Arizona Bonfire and CivicEngage boards, 2026-10-27 (172 → 184).
-    expect(TAIL_SOURCES.length).toBe(184);
+    // + eleven Missouri Bonfire and CivicEngage boards, 2026-10-27 (184 → 195).
+    expect(TAIL_SOURCES.length).toBe(195);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

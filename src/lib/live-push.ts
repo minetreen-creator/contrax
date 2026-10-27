@@ -55,6 +55,31 @@ export function alertText(v: { city: string | null; region: string | null; devic
   };
 }
 
+/**
+ * Hot-lead pages (owner 2026-10-27: "on mobile, it should stay on"): a real
+ * visitor reaching one of these gets a second, louder-titled push once per
+ * visit, because a phone can't keep the Mission Control siren running in a
+ * locked or background tab. Mirrors the buy / Bid Scout pages that score a
+ * lead hot in hot-leads.ts, plus the founding offer and the data API page.
+ */
+const HOT_PUSH_PAGE = /^\/(pricing|upgrade|signup|post-checkout|bid-scout|bid-fit-review|founding-businesses|data)(\/|$)/;
+
+export function hotPushPage(path: string): boolean {
+  return HOT_PUSH_PAGE.test((path.split("?")[0] || "/").toLowerCase());
+}
+
+/** Lock-screen text for a hot lead. Never an IP or email. */
+export function hotAlertText(v: { city: string | null; region: string | null; device: string | null; path: string; visitId: string }): AlertText {
+  const place = [v.city, v.region].filter(Boolean).join(", ") || "Unknown location";
+  const device = v.device ? v.device.charAt(0).toUpperCase() + v.device.slice(1).toLowerCase() : "Device unknown";
+  const page = v.path.split("?")[0].slice(0, 60) || "/";
+  return {
+    title: "🔥 Hot lead on Contrax",
+    body: `${place} · ${device} · now on ${page}. Open Mission Control to say hi.`,
+    tag: `hot-${v.visitId}`.slice(0, 64),
+  };
+}
+
 export interface PushSubscriptionInput {
   endpoint: string;
   p256dh: string;

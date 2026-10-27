@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
-import { alertEligible, alertText, parseSubscription, subscriptionExpired } from "./live-push";
+import { alertEligible, alertText, hotAlertText, hotPushPage, parseSubscription, subscriptionExpired } from "./live-push";
 
 const visit = { ip: "73.12.34.56", path: "/radar", city: "Denver", region: "CO", internal: false, verifiedHuman: true };
 
@@ -77,5 +77,22 @@ describe("expired devices and authorization", () => {
     expect(src).toContain("saveSubscription(a.userId, sub)");
     const server = readFileSync("src/lib/live-push.server.ts", "utf8");
     expect(server).toContain("ON CONFLICT DO NOTHING RETURNING visitor_id");
+  });
+});
+
+describe("hot-lead push (owner 2026-10-27)", () => {
+  test("buy, Bid Scout, founding and data pages are hot; reading bids is not", () => {
+    for (const p of ["/pricing", "/upgrade?plan=starter", "/signup", "/bid-scout", "/founding-businesses", "/data", "/post-checkout"]) {
+      expect(hotPushPage(p)).toBe(true);
+    }
+    for (const p of ["/", "/radar", "/bid/123", "/contracts-in/texas/construction", "/admin/live", "/database"]) {
+      expect(hotPushPage(p)).toBe(false);
+    }
+  });
+  test("lock-screen text names place, device and page, never an IP", () => {
+    const t = hotAlertText({ city: "Miami", region: "FL", device: "mobile", path: "/pricing?x=1", visitId: "v1" });
+    expect(t.title).toBe("🔥 Hot lead on Contrax");
+    expect(t.body).toBe("Miami, FL · Mobile · now on /pricing. Open Mission Control to say hi.");
+    expect(t.tag).toBe("hot-v1");
   });
 });

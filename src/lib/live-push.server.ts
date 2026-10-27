@@ -14,7 +14,7 @@
  */
 import webpush from "web-push";
 import { sql } from "~/db";
-import { alertText, subscriptionExpired, type PushSubscriptionInput } from "~/lib/live-push";
+import { alertText, hotAlertText, subscriptionExpired, type PushSubscriptionInput } from "~/lib/live-push";
 
 let ready: Promise<void> | null = null;
 function ensureTables(): Promise<void> {
@@ -153,6 +153,41 @@ export async function sendTest(userId: number): Promise<number> {
  * Alert the owner about a visit, once. Called from visitor intake after the
  * page view is stored and exclusions passed; never throws.
  */
+/**
+ * One "🔥 Hot lead" push per visit when a real visitor reaches a hot page.
+ * Same idempotency table as visit alerts, keyed `<visit_id>#hot`, so it never
+ * repeats however many hot pages the visit opens. Never throws.
+ */
+export async function alertHotLead(v: {
+  visitorId: string;
+  visitId: string;
+  path: string;
+  city: string | null;
+  region: string | null;
+  device: string | null;
+}): Promise<void> {
+  try {
+    await ensureTables();
+    const subs = (await sql()`SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE enabled`) as {
+      id: number;
+      endpoint: string;
+      p256dh: string;
+      auth: string;
+    }[];
+    if (!subs.length) return;
+    const key = `${v.visitId}#hot`;
+    const claimed = (await sql()`
+      INSERT INTO visit_alerts (visitor_id, visit_id) VALUES (${v.visitorId}, ${key})
+      ON CONFLICT DO NOTHING RETURNING visitor_id
+    `) as unknown[];
+    if (!claimed.length) return;
+    const sent = await sendTo(subs, hotAlertText(v));
+    await sql()`UPDATE visit_alerts SET sent = ${sent} WHERE visitor_id = ${v.visitorId} AND visit_id = ${key}`;
+  } catch (err) {
+    console.error("[live-push] hot-lead alert failed (non-fatal):", err);
+  }
+}
+
 export async function alertNewVisit(v: {
   visitorId: string;
   visitId: string;

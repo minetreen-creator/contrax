@@ -313,9 +313,12 @@ export const DATA_CENTER_LOCATIONS: ReadonlySet<string> = new Set([
   // (AWS us-east-1 and many others). Paid ad clicks from there stay visible under
   // the owner's 2026-10-05 rule; this flags the rest.
   "ashburn|va",
+  // Boydton, VA (owner 2026-10-27, "bots"): Microsoft's Azure East US 2 campus;
+  // the repeat /bid-scout "visitors" there are Safe Links scanning our emails.
+  "boydton|va",
 ]);
 
-const REGION_CODES: Record<string, string> = { oregon: "OR" };
+const REGION_CODES: Record<string, string> = { oregon: "OR", virginia: "VA" };
 
 /** Evidence string when the visitor's IP-derived city is a data-center town, else null. */
 export function dataCenterLocation(city: string | null | undefined, region: string | null | undefined): string | null {

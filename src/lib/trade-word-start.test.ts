@@ -49,3 +49,27 @@ describe("IT Services category needs real IT wording", () => {
     expect(mapCategory("", "Information Technology Consulting", "")).toBe("IT Services");
   });
 });
+
+describe("mapCategory: lawn, tree and repair titles (owner 2026-10-27, county Bonfire boards)", () => {
+  const c = (title: string) => mapCategory("", title, "");
+  test("lawn, mowing, tree and brush work is Landscaping", () => {
+    expect(c("Lawn Care Services")).toBe("Landscaping");
+    expect(c("Collegewide Lawncare Services")).toBe("Landscaping");
+    expect(c("Landfill Vegetation Mowing and Brush Removal")).toBe("Landscaping");
+    expect(c("LOCAL LET MAINTENANCE CONTRACT, COLORADO CO, TREE TRIMMING AND BRUSH REMOVAL")).toBe("Landscaping");
+    expect(c("Tate's Hell Roadside Ditch Debrushing 2027")).toBe("Landscaping");
+  });
+  test("repair and build titles that were Other are Construction", () => {
+    expect(c("Post Road South Widening - SR 9/S Atlanta Road to CR 5/Kelly Mill Road")).toBe("Construction");
+    expect(c("Countywide Fire Hydrant Replacement - WORCS-5")).toBe("Construction");
+    expect(c("Low Pressure Sewer System Installations and Repairs (WORCS-2)")).toBe("Construction");
+    expect(c("Indian River Marina Bulkhead Repairs")).toBe("Construction");
+    expect(c("Alligator Creek Weir Structure Repairs")).toBe("Construction");
+    expect(c("Invitation to Bid: BDC06-26-27 Letchworth - Pavilion - Hurricane Debby")).toBe("Construction");
+    expect(c("CFRC Lake Monroe Drawbridge Painting")).toBe("Construction");
+  });
+  test("an electrical job named after its building keeps its trade", () => {
+    expect(c("Tenney Pavilion PV Removal and Reinstall")).toBe("Plumbing & Electrical");
+    expect(c("Interdisciplinary Research Building Replacement of the Fire Alarm System")).toBe("Plumbing & Electrical");
+  });
+});

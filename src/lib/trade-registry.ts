@@ -344,6 +344,15 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "grounds keeping",
       "groundskeeping",
       "snow removal",
+      // Owner 2026-10-27: mowing, tree and brush titles carry no "lawn" or
+      // "landscap" (e.g. "Landfill Vegetation Mowing and Brush Removal").
+      "mowing",
+      "tree trimming",
+      "tree removal",
+      "tree replacement",
+      "brush removal",
+      "vegetation management",
+      "debrushing",
     ],
     naics: ["561730"],
   },
@@ -761,6 +770,16 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "sitework",
       "building repairs",
       "facility repairs",
+      // Owner 2026-10-27 (new Arizona and county boards): titles that are
+      // construction but carry none of the words above. Phrases only.
+      "crack seal",
+      "crack fill",
+      "chip seal",
+      "pavement replacement",
+      "pavement marking",
+      "manhole",
+      "roof repair",
+      "restroom upgrade",
     ],
     naics: ["236210", "236220", "237110", "237310", "237990", "238990"],
     exactOnly: true,

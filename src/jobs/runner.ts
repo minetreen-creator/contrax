@@ -69,6 +69,7 @@ import { fetchVaAlexandriaBonfireBids } from "./sources/va-alexandria-bonfire";
 import { fetchVaBotetourtBonfireBids } from "./sources/va-botetourt-bonfire";
 import { fetchFlBrowardBonfireBids } from "./sources/fl-broward-bonfire";
 import { COUNTY_BONFIRE_SOURCES } from "./sources/county-bonfire-boards";
+import { COUNTY_CIVICENGAGE_SOURCES } from "./sources/county-civicengage-boards";
 import { fetchVaVtJaggaerBids, fetchVaGmuBonfireBids, fetchVaNsuBonfireBids } from "./sources/va-university-portals";
 import { fetchVaEvirginia } from "./sources/va-ev";
 import { fetchVaEvaBids } from "./sources/va-eva";
@@ -538,6 +539,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "fl_broward_bonfire", fetchFn: fetchFlBrowardBonfireBids },
   // Ten more county/city Bonfire boards (owner 2026-10-27; county-bonfire-boards.ts).
   ...COUNTY_BONFIRE_SOURCES,
+  // Eighteen county/city CivicEngage boards (owner 2026-10-27; county-civicengage-boards.ts).
+  ...COUNTY_CIVICENGAGE_SOURCES,
   { name: "va_vt_jaggaer", fetchFn: fetchVaVtJaggaerBids },
   { name: "va_gmu_bonfire", fetchFn: fetchVaGmuBonfireBids },
   { name: "va_nsu_bonfire", fetchFn: fetchVaNsuBonfireBids },

@@ -80,7 +80,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + the five Virginia IT SAM.gov passes (sam_naics_*_va), 2026-10-23 (220 → 225).
     // + Broward County's BPRO Bonfire board (fl_broward_bonfire), 2026-10-27 (225 → 226).
     // + ten county/city Bonfire boards (county-bonfire-boards.ts), 2026-10-27 (226 → 236).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(236);
+    // + eighteen county/city CivicEngage boards (county-civicengage-boards.ts), 2026-10-27 (236 → 254).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(254);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -153,7 +154,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + the 38 remaining BidNet Direct purchasing groups (<st>_bidnet), 2026-10-22 (105 → 143).
     // + Broward County's BPRO Bonfire board (fl_broward_bonfire), 2026-10-27 (143 → 144).
     // + ten county/city Bonfire boards (county-bonfire-boards.ts), 2026-10-27 (144 → 154).
-    expect(TAIL_SOURCES.length).toBe(154);
+    // + eighteen county/city CivicEngage boards (county-civicengage-boards.ts), 2026-10-27 (154 → 172).
+    expect(TAIL_SOURCES.length).toBe(172);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

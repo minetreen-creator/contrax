@@ -519,7 +519,7 @@ jobs:
       # wired into `validate:live-bids-sources`) and must never run here.
       # Named EXPLICITLY: a deterministic suite that no workflow names runs nowhere.
       - name: Virginia locality Bonfire portal tests (unit, deterministic, zero network)
-        run: bun test src/jobs/sources/va-fairfax-bonfire.test.ts src/jobs/sources/va-alexandria-bonfire.test.ts src/jobs/sources/va-botetourt-bonfire.test.ts src/jobs/sources/fl-broward-bonfire.test.ts src/jobs/sources/county-bonfire-boards.test.ts src/jobs/sources/va-university-portals.test.ts
+        run: bun test src/jobs/sources/va-fairfax-bonfire.test.ts src/jobs/sources/va-alexandria-bonfire.test.ts src/jobs/sources/va-botetourt-bonfire.test.ts src/jobs/sources/fl-broward-bonfire.test.ts src/jobs/sources/county-bonfire-boards.test.ts src/jobs/sources/county-civicengage-boards.test.ts src/jobs/sources/va-university-portals.test.ts
       # Wisconsin DOA VendorNet Bids (wi_vendornet) - the FIRST browser-rendered
       # source in the bids family. This suite is the PARSER half only, deterministic
       # and zero-network/zero-browser by construction: it reads ONE committed capture

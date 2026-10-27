@@ -1,0 +1,63 @@
+/**
+ * County and city CivicEngage bid boards (owner 2026-10-27: more counties in the
+ * outreach states). Each is the jurisdiction's own public `bids.aspx` board, read
+ * with the shared reader (bare URL only, open-status and deadline guards). Group
+ * headers that are not open competitions (emergency, sole source, results,
+ * plan holders, awards) are skipped via CIVICENGAGE_NOT_A_BID_GROUP. Captured
+ * 2026-10-27 (fixtures/county-civicengage); no logins, detail pages or documents.
+ */
+import type { FetchResult } from "../runner";
+import {
+  CIVICENGAGE_NOT_A_BID_GROUP,
+  fetchCivicEngageBoard,
+  parseCivicEngageBoard,
+  type CivicEngageBoardConfig,
+} from "./civicengage-bids";
+
+const board = (source: string, host: string, agency: string, location: string, idPrefix: string): CivicEngageBoardConfig => ({
+  source,
+  endpoint: `https://${host}/bids.aspx`,
+  host,
+  agency,
+  location,
+  idPrefix,
+  excludeGroup: CIVICENGAGE_NOT_A_BID_GROUP,
+});
+
+export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
+  board("va_hopewell", "www.hopewellva.gov", "City of Hopewell", "Hopewell, VA", "hopewellcivic"),
+  board("va_danville", "www.danville-va.gov", "City of Danville", "Danville, VA", "danvillecivic"),
+  board("va_salem", "www.salemva.gov", "City of Salem", "Salem, VA", "salemcivic"),
+  board("va_pittsylvania", "www.pittsylvaniacountyva.gov", "Pittsylvania County", "Pittsylvania County, VA", "pittsylvaniacivic"),
+  board("va_williamsburg", "www.williamsburgva.gov", "City of Williamsburg", "Williamsburg, VA", "williamsburgcivic"),
+  board("md_hagerstown", "www.hagerstownmd.org", "City of Hagerstown", "Hagerstown, MD", "hagerstowncivic"),
+  board("md_queen_annes", "www.qac.org", "Queen Anne's County", "Queen Anne's County, MD", "queenannescivic"),
+  board("md_college_park", "www.collegeparkmd.gov", "City of College Park", "College Park, MD", "collegeparkcivic"),
+  board("nc_high_point", "www.highpointnc.gov", "City of High Point", "High Point, NC", "highpointcivic"),
+  board("nc_pitt_county", "www.pittcountync.gov", "Pitt County", "Pitt County, NC", "pittcountycivic"),
+  board("fl_bay_county", "www.baycountyfl.gov", "Bay County", "Bay County, FL", "baycountycivic"),
+  board("fl_titusville", "www.titusville.com", "City of Titusville", "Titusville, FL", "titusvillecivic"),
+  board("ga_hall_county", "www.hallcounty.org", "Hall County", "Hall County, GA", "hallcountycivic"),
+  board("ga_barrow_county", "www.barrowga.org", "Barrow County", "Barrow County, GA", "barrowcountycivic"),
+  board("tx_league_city", "www.leaguecitytx.gov", "City of League City", "League City, TX", "leaguecitycivic"),
+  board("tx_longview", "www.longviewtexas.gov", "City of Longview", "Longview, TX", "longviewcivic"),
+  board("tx_midland", "www.midlandtexas.gov", "City of Midland", "Midland, TX", "midlandcivic"),
+  board("tx_odessa", "www.odessa-tx.gov", "City of Odessa", "Odessa, TX", "odessacivic"),
+];
+
+export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {
+  const cfg = COUNTY_CIVICENGAGE_CONFIGS.find((c) => c.source === source);
+  if (!cfg) throw new Error(`unknown county CivicEngage source ${source}`);
+  return cfg;
+}
+
+export function parseCountyCivicEngage(source: string, html: string, now = Date.now()) {
+  return parseCivicEngageBoard(html, countyCivicEngageConfig(source), now);
+}
+
+/** One scheduled entry per board, so each source fails and reports on its own. */
+export const COUNTY_CIVICENGAGE_SOURCES: readonly { name: string; fetchFn: (now?: number) => Promise<FetchResult> }[] =
+  COUNTY_CIVICENGAGE_CONFIGS.map((cfg) => ({
+    name: cfg.source,
+    fetchFn: (now: number = Date.now()) => fetchCivicEngageBoard(cfg, now),
+  }));

@@ -782,8 +782,13 @@ export async function handleIntake(request: Request, kindOverride?: IntakeKind, 
     if (kind === "page" && visitorId && visitId && pagePath) {
       const { alertEligible } = await import("~/lib/live-push");
       if (alertEligible({ ip, path: pagePath, city: ctx.city, region: ctx.region, internal: isTestOrAdminEmail(userEmail), verifiedHuman: botState.verifiedHuman })) {
-        const { alertNewVisit } = await import("~/lib/live-push.server");
+        const { alertNewVisit, alertHotLead } = await import("~/lib/live-push.server");
         await alertNewVisit({ visitorId, visitId, path: pagePath, city: ctx.city, region: ctx.region, device: ctx.device_type });
+        // Owner 2026-10-27: a second push when the visit reaches a buy page.
+        const { hotPushPage } = await import("~/lib/live-push");
+        if (hotPushPage(pagePath)) {
+          await alertHotLead({ visitorId, visitId, path: pagePath, city: ctx.city, region: ctx.region, device: ctx.device_type });
+        }
       }
     }
 

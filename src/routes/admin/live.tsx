@@ -798,6 +798,28 @@ function useVoiceAnnouncer() {
     }
   }, []);
 
+  // Voice remembered as "on" after a reload: the siren's AudioContext only
+  // exists after a click (browsers block sound until then), so the Red Alert
+  // siren stayed silent until voice was toggled off and on (owner 2026-10-27:
+  // "make an alarm sound for a hot lead"). Unlock it on the first click or key.
+  useEffect(() => {
+    if (!on || audio.current) return;
+    const unlock = () => {
+      try {
+        audio.current ??= new AudioContext();
+        audio.current.resume().catch(() => {});
+      } catch {
+        /* no WebAudio */
+      }
+    };
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
+  }, [on]);
+
   const next = () => {
     const line = queue.current.shift();
     if (!line) {

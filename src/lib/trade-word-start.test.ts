@@ -68,6 +68,20 @@ describe("mapCategory: lawn, tree and repair titles (owner 2026-10-27, county Bo
     expect(c("Invitation to Bid: BDC06-26-27 Letchworth - Pavilion - Hurricane Debby")).toBe("Construction");
     expect(c("CFRC Lake Monroe Drawbridge Painting")).toBe("Construction");
   });
+  test("Arizona board titles that were Other (2026-10-27)", () => {
+    expect(c("Manhole Rehabilitation")).toBe("Construction");
+    expect(c("FY2026-27 Chip Seal Program")).toBe("Construction");
+    expect(c("Crack Fill and Seal")).toBe("Construction");
+    expect(c("Pavement Replacement North End Phase II")).toBe("Construction");
+    expect(c("Pavement Marking (2027-2028)")).toBe("Construction");
+    expect(c("Centennial Park Restroom Upgrades")).toBe("Construction");
+    expect(c("DESERT WELL 25 – EQUIPPING and DESERT WELLS 26 - EQUIPPING")).toBe("Construction");
+    expect(c("Glass Repair, Replacement, Tinting and Maintenance Services")).toBe("Construction");
+    expect(c("Estrella Mountain Community College Tree Replacement")).toBe("Landscaping");
+    // Not trade work: stays Other.
+    expect(c("Employee Benefits- Medical/Rx/EAP")).toBe("Other");
+    expect(c("Drone Show Services")).toBe("Other");
+  });
   test("an electrical job named after its building keeps its trade", () => {
     expect(c("Tenney Pavilion PV Removal and Reinstall")).toBe("Plumbing & Electrical");
     expect(c("Interdisciplinary Research Building Replacement of the Fire Alarm System")).toBe("Plumbing & Electrical");

@@ -477,17 +477,19 @@ const CONSTRUCTION_TITLE_WORDS =
  * Owner 2026-10-27 (new county Bonfire boards): repair and build jobs that were
  * still "Other" — road widening, hydrant and sewer-system work, bulkheads,
  * seawalls, weirs, erosion and structural repairs, pavilions, platforms,
- * building replacements, bid packages and painting of structures. Title only.
+ * building replacements, bid packages and painting of structures; then (Arizona
+ * boards) manholes, chip seal, crack fill and seal, pavement replacement and
+ * marking, restroom upgrades, well equipping and glass repair. Title only.
  */
 const MORE_CONSTRUCTION_TITLE_WORDS =
-  /\b(widening|hydrants?|sewer system|bulkheads?|seawalls?|boardwalks?|docks? (repair|replacement)|weirs?|erosion (repair|control)|structural (repair|improvement)s?|pavilions?|viewing platforms?|fence line|building replacement|bid pack(age)?s?|(bridge|drawbridge|tower|tank|exterior|interior) painting|dredg(e|ing)|drainage|(capital|facility|park|ferry|corridor|site) improvements?)\b/;
+  /\b(widening|hydrants?|sewer system|bulkheads?|seawalls?|boardwalks?|docks? (repair|replacement)|weirs?|erosion (repair|control)|structural (repair|improvement)s?|pavilions?|viewing platforms?|fence line|building replacement|bid pack(age)?s?|(bridge|drawbridge|tower|tank|exterior|interior) painting|dredg(e|ing)|drainage|(capital|facility|park|ferry|corridor|site) improvements?|manholes?|chip seal|crack (fill|seal)|pavement (replacement|reconstruction|rehabilitation|marking)|restroom (upgrades?|renovation|remodel|replacement)|wells?[\s\d#–-]{1,12}(equipping|drilling|rehabilitation)|glass (repair|replacement)|glazing)\b/;
 /**
  * Owner 2026-10-27: lawn, mowing, tree and brush work is landscaping (it was
  * "Other" because only "landscap" / "grounds main" matched). Title only, so a
  * description that mentions mowing does not move a different job.
  */
 const LANDSCAPING_TITLE_WORDS =
-  /\b(lawn ?care|lawn (maintenance|services?)|mowing|tree (trimming|removal|services?|care|maintenance)|vegetation (management|control|removal|maintenance)|brush (removal|clearing|cutting)|debrushing|right[- ]of[- ]way maintenance)\b/;
+  /\b(lawn ?care|lawn (maintenance|services?)|mowing|tree (trimming|removal|services?|care|maintenance)|vegetation (management|control|removal|maintenance)|brush (removal|clearing|cutting)|debrushing|right[- ]of[- ]way maintenance|tree (replacement|planting))\b/;
 /** Solar / photovoltaic installation work → Plumbing & Electrical (owner 2026-10-07). */
 const ELECTRICAL_WORDS = /\b(photovoltaic|solar (panel|array|pv|installation)|pv (removal|installation|system))\b/;
 /** Owner 2026-10-08 (Georgia): lighting, generator and fire-alarm jobs, title only. */

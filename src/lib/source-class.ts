@@ -652,6 +652,13 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  fl_broward_bonfire: {
+    class: "local",
+    city: "Broward County",
+    scopeState: "FL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   va_alexandria_bonfire: {
     class: "local",
     city: "Alexandria",

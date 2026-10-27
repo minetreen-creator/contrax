@@ -78,7 +78,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     //   (tx_bidnet, oh_bidnet, pa_bidnet), 2026-10-22 (179 → 182).
     // + the 38 remaining BidNet Direct purchasing groups (<st>_bidnet), 2026-10-22 (182 → 220).
     // + the five Virginia IT SAM.gov passes (sam_naics_*_va), 2026-10-23 (220 → 225).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(225);
+    // + Broward County's BPRO Bonfire board (fl_broward_bonfire), 2026-10-27 (225 → 226).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(226);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -149,7 +150,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + BidNet Direct's Texas, Ohio and Pennsylvania Purchasing Groups
     //   (tx_bidnet, oh_bidnet, pa_bidnet), 2026-10-22 (102 → 105).
     // + the 38 remaining BidNet Direct purchasing groups (<st>_bidnet), 2026-10-22 (105 → 143).
-    expect(TAIL_SOURCES.length).toBe(143);
+    // + Broward County's BPRO Bonfire board (fl_broward_bonfire), 2026-10-27 (143 → 144).
+    expect(TAIL_SOURCES.length).toBe(144);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

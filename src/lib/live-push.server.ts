@@ -14,7 +14,7 @@
  */
 import webpush from "web-push";
 import { sql } from "~/db";
-import { alertText, hotAlertText, subscriptionExpired, type PushSubscriptionInput } from "~/lib/live-push";
+import { alertText, chatReplyAlertText, hotAlertText, subscriptionExpired, type PushSubscriptionInput } from "~/lib/live-push";
 
 let ready: Promise<void> | null = null;
 function ensureTables(): Promise<void> {
@@ -110,7 +110,7 @@ export async function deviceStatus(userId: number, endpoint: string | null): Pro
 /** Send one payload to the given subscriptions; returns how many accepted it. */
 async function sendTo(
   subs: { id: number; endpoint: string; p256dh: string; auth: string }[],
-  payload: { title: string; body: string; tag: string },
+  payload: { title: string; body: string; tag: string; url?: string },
 ): Promise<number> {
   await getVapid();
   let ok = 0;
@@ -185,6 +185,23 @@ export async function alertHotLead(v: {
     await sql()`UPDATE visit_alerts SET sent = ${sent} WHERE visitor_id = ${v.visitorId} AND visit_id = ${key}`;
   } catch (err) {
     console.error("[live-push] hot-lead alert failed (non-fatal):", err);
+  }
+}
+
+/** Push the owner a visitor's live-chat reply. No dedupe: replies are already capped per hour. Never throws. */
+export async function alertChatReply(v: { visitorId: string; body: string }): Promise<void> {
+  try {
+    await ensureTables();
+    const subs = (await sql()`SELECT id, endpoint, p256dh, auth FROM push_subscriptions WHERE enabled`) as {
+      id: number;
+      endpoint: string;
+      p256dh: string;
+      auth: string;
+    }[];
+    if (!subs.length) return;
+    await sendTo(subs, chatReplyAlertText(v));
+  } catch (err) {
+    console.error("[live-push] chat reply alert failed (non-fatal):", err);
   }
 }
 

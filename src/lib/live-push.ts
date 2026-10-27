@@ -80,6 +80,23 @@ export function hotAlertText(v: { city: string | null; region: string | null; de
   };
 }
 
+/**
+ * A visitor answered the owner's "Say hi" chat (owner 2026-10-27: "when I say
+ * hi, I should be notified when they respond"). One push per reply; the tag is
+ * per visitor so a burst of replies stacks into one lock-screen card. The
+ * reply text is the visitor's own words shown only on the owner's devices.
+ */
+export function chatReplyAlertText(v: { visitorId: string; body: string }): AlertText & { url: string } {
+  const text = v.body.replace(/\s+/g, " ").trim();
+  const quote = text.length > 140 ? `${text.slice(0, 139)}…` : text;
+  return {
+    title: "💬 A visitor replied on Contrax",
+    body: `"${quote}" Open Mission Control to answer.`,
+    tag: `chat-${v.visitorId}`.slice(0, 64),
+    url: "/admin/live",
+  };
+}
+
 export interface PushSubscriptionInput {
   endpoint: string;
   p256dh: string;

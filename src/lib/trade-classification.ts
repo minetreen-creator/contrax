@@ -473,6 +473,21 @@ const CONSTRUCTION_WORDS =
  */
 const CONSTRUCTION_TITLE_WORDS =
   /\b(resurfac(e|ing)|asphalt(ic)?|milling|striping|sidewalks?|streetscapes?|culverts?|roundabouts?|lmig|roadway|intersection improvements?|(road|street|drainage|stormwater|flood|sewer|water system|pedestrian|parking lot|driveway) improvements?|road (work|project|patching|widening|maintenance)|patching and repair|pavement (repair|preservation|upgrades?)|dirt to pave|water (main|lines?|distribution)|sewer (rehabilitation|lines?|main)|lift station|force main|pump station|roof replacement|bridge (replacement|rehabilitation)|site development|pad preparation|design[- ]build|cmar|general contractors?|addition)\b/;
+/**
+ * Owner 2026-10-27 (new county Bonfire boards): repair and build jobs that were
+ * still "Other" — road widening, hydrant and sewer-system work, bulkheads,
+ * seawalls, weirs, erosion and structural repairs, pavilions, platforms,
+ * building replacements, bid packages and painting of structures. Title only.
+ */
+const MORE_CONSTRUCTION_TITLE_WORDS =
+  /\b(widening|hydrants?|sewer system|bulkheads?|seawalls?|boardwalks?|docks? (repair|replacement)|weirs?|erosion (repair|control)|structural (repair|improvement)s?|pavilions?|viewing platforms?|fence line|building replacement|bid pack(age)?s?|(bridge|drawbridge|tower|tank|exterior|interior) painting|dredg(e|ing)|drainage|(capital|facility|park|ferry|corridor|site) improvements?)\b/;
+/**
+ * Owner 2026-10-27: lawn, mowing, tree and brush work is landscaping (it was
+ * "Other" because only "landscap" / "grounds main" matched). Title only, so a
+ * description that mentions mowing does not move a different job.
+ */
+const LANDSCAPING_TITLE_WORDS =
+  /\b(lawn ?care|lawn (maintenance|services?)|mowing|tree (trimming|removal|services?|care|maintenance)|vegetation (management|control|removal|maintenance)|brush (removal|clearing|cutting)|debrushing|right[- ]of[- ]way maintenance)\b/;
 /** Solar / photovoltaic installation work → Plumbing & Electrical (owner 2026-10-07). */
 const ELECTRICAL_WORDS = /\b(photovoltaic|solar (panel|array|pv|installation)|pv (removal|installation|system))\b/;
 /** Owner 2026-10-08 (Georgia): lighting, generator and fire-alarm jobs, title only. */
@@ -485,7 +500,7 @@ export function mapCategory(typeValue: string, title: string, description: strin
   const titleLc = (title || "").toLowerCase();
   const full = (titleLc + " " + (description || "").toLowerCase()).trim();
 
-  if (full.includes("landscap") || full.includes("grounds main")) return "Landscaping";
+  if (full.includes("landscap") || full.includes("grounds main") || LANDSCAPING_TITLE_WORDS.test(titleLc)) return "Landscaping";
   if (isTransportationWork(titleLc, full)) return "Transportation";
   // Owner 09-21: janitorial = custodial service work only (no bare "cleaning").
   // S5: moved AHEAD of the construction/type fallbacks (D3).
@@ -494,6 +509,14 @@ export function mapCategory(typeValue: string, title: string, description: strin
   // Owner 2026-10-07: Wisconsin's VendorNet labeled remodels, paving, fencing and
   // roofing jobs "Other". Whole-word building-trade terms only.
   if (CONSTRUCTION_WORDS.test(full) || CONSTRUCTION_TITLE_WORDS.test(titleLc)) return "Construction";
+  // The 2026-10-27 words are broad ("pavilion", "building replacement"), so an
+  // electrical or HVAC job named after its building keeps its own trade.
+  if (
+    MORE_CONSTRUCTION_TITLE_WORDS.test(titleLc) &&
+    !ELECTRICAL_WORDS.test(titleLc) &&
+    !ELECTRICAL_TITLE_WORDS.test(titleLc) &&
+    !HVAC_TITLE_WORDS.test(titleLc)
+  ) return "Construction";
   // Owner 2026-10-06: the old `includes("it ")` test matched "submit", "credit",
   // "permit" and "unit", so VDOT snow-removal notices ("how to submit via …
   // Services") were labeled IT Services. Require real IT wording.

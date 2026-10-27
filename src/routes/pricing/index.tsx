@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { BidValueCalculator } from "~/components/BidValueCalculator";
 import { GrantsPricing } from "~/components/GrantsPricing";
 import { resolveGrantsUpgradeEnabled } from "~/lib/grants-upgrade-signal";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -331,6 +332,9 @@ function PricingPage() {
               </div>
             ))}
           </div>
+
+          {/* Owner 2026-10-27: the visitor's own numbers, next to the Starter price. */}
+          <BidValueCalculator />
 
           {/* Footer notes */}
           <p className="mt-8 text-center text-sm text-gray-500">Plans are billed monthly or yearly. Cancel anytime.</p>

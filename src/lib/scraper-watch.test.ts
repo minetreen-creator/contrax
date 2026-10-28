@@ -34,6 +34,9 @@ describe("scraperSignals", () => {
   });
   test("outside the US", () => {
     expect(keys({ country: "ZW" })).toEqual(["abroad"]);
+    // US territories are not abroad (a San Juan visitor, 2026-10-28).
+    expect(keys({ country: "PR" })).toEqual([]);
+    expect(keys({ country: "GU" })).toEqual([]);
   });
   test("fast clicking: many pages or tiny gaps", () => {
     expect(keys({ hitTimesHour: Array.from({ length: 30 }, (_, i) => i * 60_000) })).toEqual(["fast"]);

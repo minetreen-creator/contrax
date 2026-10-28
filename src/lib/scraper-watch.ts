@@ -68,6 +68,14 @@ export function medianGapSeconds(times: number[]): number | null {
 }
 
 /**
+ * The US and its territories (owner 2026-10-28: a San Juan visitor was flagged
+ * "outside the US"). Puerto Rico, Guam, the USVI, American Samoa and the
+ * Northern Mariana Islands get their own IP country codes, but businesses there
+ * bid on federal contracts like any state's.
+ */
+const US_COUNTRY_CODES = new Set(["US", "PR", "GU", "VI", "AS", "MP"]);
+
+/**
  * Which bot signals fire for one visitor. Signed-in visitors only get the
  * automation signal: a paying customer abroad or clicking fast is a customer.
  */
@@ -77,7 +85,7 @@ export function scraperSignals(t: TrailInput): ScraperSignal[] {
   if (marker) out.push({ key: "automation", label: `Automated browser (${marker})` });
   if (t.signedIn) return out;
   const country = String(t.country ?? "").trim().toUpperCase();
-  if (country && country !== "US") out.push({ key: "abroad", label: `Outside the US (${country}) on a US-only bid tool` });
+  if (country && !US_COUNTRY_CODES.has(country)) out.push({ key: "abroad", label: `Outside the US (${country}) on a US-only bid tool` });
   const gap = medianGapSeconds(t.hitTimesHour);
   if (t.hitTimesHour.length >= 30 || (gap !== null && gap < 3)) {
     out.push({

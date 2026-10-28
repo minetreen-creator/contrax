@@ -194,6 +194,16 @@ describe("notice → bids row", () => {
     expect(noPop.normalized_state).not.toBe("OR");
   });
 
+  test("a US territory with no PopState is placed by its PopCountry", () => {
+    const guam = csvNoticeToBid({ ...base, popState: null, popCity: "Dededo", popCountry: "GUM" }, now)!;
+    expect(guam.location).toBe("Dededo, GU");
+    expect(guam.normalized_state).toBe("GU");
+    expect(csvNoticeToBid({ ...base, popState: "PR", popCity: "San Juan", popCountry: "USA" }, now)!.location).toBe("San Juan, PR");
+    expect(csvNoticeToBid({ ...base, popState: null, popCity: null, popCountry: "VIR" }, now)!.location).toBe("VI");
+    // Any other country still stays blank.
+    expect(csvNoticeToBid({ ...base, popState: null, popCity: "Tokyo", popCountry: "JPN" }, now)!.location).toBe("");
+  });
+
   test("a foreign / non-US place of performance is never a state", () => {
     const foreign = csvNoticeToBid({ ...base, popState: "JP-01", popCity: "Tokyo" }, now)!;
     expect(foreign.location).toBe("");

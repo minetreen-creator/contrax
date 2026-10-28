@@ -197,6 +197,8 @@ export interface SamCsvNotice {
   psc: string | null;
   popCity: string | null;
   popState: string | null;
+  /** Place-of-performance country (ISO alpha-3); read only to place the US territories. */
+  popCountry?: string | null;
   /** The OFFICE state column — parsed to prove it is never used (spec §2). */
   officeState: string | null;
   link: string | null;
@@ -245,6 +247,7 @@ export function parseSamCsvRecord(
     psc: PSC_RE.test(psc) ? psc : null,
     popCity: cell(record, index, "PopCity") || null,
     popState: cell(record, index, "PopState") || null,
+    popCountry: cell(record, index, "PopCountry") || null,
     // Parsed ONLY so the test can prove the ingest never reads it for state.
     officeState: cell(record, index, "State") || null,
     link: cell(record, index, "Link") || null,
@@ -463,13 +466,26 @@ export function csvDateOnly(raw: string | null | undefined): string | null {
  * (`State`/`City`/`ZipCode`) are never read here, and no agency-text fallback is
  * applied, so a row's state is exactly what SAM published for the work site.
  */
+/** SAM's place-of-performance country codes for the US territories. */
+export const TERRITORY_BY_POP_COUNTRY: Readonly<Record<string, string>> = {
+  PRI: "PR",
+  GUM: "GU",
+  VIR: "VI",
+  ASM: "AS",
+  MNP: "MP",
+};
+
 export function csvNoticeToBid(
   notice: SamCsvNotice,
   now: Date = new Date(),
 ): SamCsvBidRow | null {
   if (noticeSkipReason(notice, now) !== null) return null;
 
-  const state = normalizeStateInput(notice.popState); // "" unless a real USPS code
+  // "" unless a real USPS code. A territory notice often publishes no PopState,
+  // only its own country code (owner 2026-10-28: "do them all").
+  const state =
+    normalizeStateInput(notice.popState) ||
+    (TERRITORY_BY_POP_COUNTRY[String(notice.popCountry ?? "").trim().toUpperCase()] ?? "");
   const location = state
     ? notice.popCity
       ? `${notice.popCity}, ${state}`

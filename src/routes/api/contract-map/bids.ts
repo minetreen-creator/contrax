@@ -8,7 +8,7 @@ import {
   CLOSED_EXCLUSION_SQL,
 } from "~/lib/open-bids";
 import { deriveStateCode, STATE_NAMES } from "~/lib/contract-map";
-import { US_STATES } from "~/lib/states";
+import { US_PLACES } from "~/lib/states";
 
 /**
  * GET /api/contract-map/bids?state=VA
@@ -24,7 +24,7 @@ const UNSPECIFIED = "UNSPECIFIED";
 async function handler({ request }: { request: Request }) {
   const url = new URL(request.url);
   const raw = (url.searchParams.get("state") || "").trim().toUpperCase();
-  if (raw !== UNSPECIFIED && (!/^[A-Z]{2}$/.test(raw) || !US_STATES.includes(raw as any))) {
+  if (raw !== UNSPECIFIED && (!/^[A-Z]{2}$/.test(raw) || !US_PLACES.includes(raw as any))) {
     return Response.json({ error: "Unknown state code" }, { status: 400 });
   }
   const isUnspecified = raw === UNSPECIFIED;

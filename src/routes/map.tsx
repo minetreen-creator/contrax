@@ -18,7 +18,7 @@ import {
   type StateAggregate,
 } from "~/lib/contract-map";
 import { US_MAP_VIEWBOX, US_STATE_PATHS } from "~/lib/us-states-map";
-import { US_STATES } from "~/lib/states";
+import { US_PLACES } from "~/lib/states";
 // Raw close-date render gate (owner ruling 2026-10-08): a zone-unverified
 // source's stored instant is the published Eastern wall-clock read as UTC, so
 // the drill-down card must render its date in UTC, not the reader's zone.
@@ -79,7 +79,7 @@ const getStateBids = createServerFn({ method: "GET" })
   async ({ data }: { data: { state: string } }): Promise<{ state: string; name: string; bids: DrillBid[] }> => {
     const raw = (data.state || "").toUpperCase();
     const isUnspecified = raw === UNSPECIFIED;
-    if (!isUnspecified && (!/^[A-Z]{2}$/.test(raw) || !US_STATES.includes(raw as any))) {
+    if (!isUnspecified && (!/^[A-Z]{2}$/.test(raw) || !US_PLACES.includes(raw as any))) {
       return { state: raw, name: "", bids: [] };
     }
     const rows = await sql()`
@@ -137,7 +137,7 @@ export const Route = createFileRoute("/map")({
     let initialBids: { state: string; name: string; bids: DrillBid[] } | null = null;
     if (searchState === UNSPECIFIED) {
       initialBids = await getStateBids({ data: { state: UNSPECIFIED } });
-    } else if (searchState && /^[A-Z]{2}$/.test(searchState) && US_STATES.includes(searchState as any)) {
+    } else if (searchState && /^[A-Z]{2}$/.test(searchState) && US_PLACES.includes(searchState as any)) {
       initialBids = await getStateBids({ data: { state: searchState } });
     }
     return { aggregate, initialBids };

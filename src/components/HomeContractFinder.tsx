@@ -3,7 +3,7 @@ import { ArrowRight, Radar, CheckCircle2, LoaderCircle } from "lucide-react";
 import type { SampleBid } from "~/lib/sample-bids";
 import type { RadarMatch } from "~/routes/radar";
 import { STATE_NAMES } from "~/lib/contract-map";
-import { US_STATES } from "~/lib/states";
+import { US_PLACES } from "~/lib/states";
 import {
   saveRadarAnswers,
   saveRadarSeen,
@@ -14,7 +14,7 @@ import { raceRadarScan } from "~/lib/radar-scan-runner";
 import { getTrackingUser } from "~/lib/identity";
 import { trackEvent } from "~/lib/track";
 
-const STATES = [...US_STATES].sort((a, b) =>
+const STATES = [...US_PLACES].sort((a, b) =>
   (STATE_NAMES[a] ?? a).localeCompare(STATE_NAMES[b] ?? b),
 );
 const FIELD =

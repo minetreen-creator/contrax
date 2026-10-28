@@ -18,11 +18,11 @@
  *  - Negative dollar figures are data artifacts (e.g. "$-60,909") and are
  *    treated as not-disclosed rather than subtracted from the stated total.
  */
-import { US_STATES } from "~/lib/states";
+import { US_PLACES, US_TERRITORY_NAMES } from "~/lib/states";
 import { isFederalLabel } from "~/lib/source-class";
 
-/** Canonical 2-letter codes we recognise (50 states + DC). */
-const CODES = new Set<string>(US_STATES);
+/** Canonical 2-letter codes we recognise (50 states, DC and the territories). */
+const CODES = new Set<string>(US_PLACES);
 
 /** Full state name per code, for tooltips ("Virginia", "North Carolina", ...). */
 export const STATE_NAMES: Record<string, string> = {
@@ -37,6 +37,7 @@ export const STATE_NAMES: Record<string, string> = {
   SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VT: "Vermont",
   VA: "Virginia", WA: "Washington", WV: "West Virginia", WI: "Wisconsin", WY: "Wyoming",
   DC: "District of Columbia",
+  ...US_TERRITORY_NAMES,
 };
 
 // name (lowercased) -> code, for the many rows whose `location` is a bare state
@@ -54,7 +55,7 @@ const NAME_TO_CODE: Record<string, string> = Object.fromEntries(
  *  2. A full state name mentioned in the string (handles bare "Virginia",
  *     "North Carolina", "District of Columbia", ...).
  * Unparseable / nationwide / empty → null (goes to the "not specified" bucket).
- * Non-state 2-letter tokens (AE, GU, MP, PR, RC, ...) are intentionally ignored.
+ * Non-US 2-letter tokens (AE, RC, ...) are intentionally ignored; territory codes (PR, GU, VI, AS, MP) count.
  */
 export function deriveStateCode(location: string | null | undefined): string | null {
   const loc = String(location ?? "").trim();

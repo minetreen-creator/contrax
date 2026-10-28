@@ -30,6 +30,8 @@ const US_STATES = [
   "MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
   "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC",
   "SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
+  // US territories (owner 2026-10-28).
+  "PR","GU","VI","AS","MP",
 ];
 
 // CERTIFICATIONS is imported from ~/lib/certifications (shared with the

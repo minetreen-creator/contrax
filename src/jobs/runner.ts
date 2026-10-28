@@ -83,6 +83,7 @@ import { fetchOhOdotBids } from "./sources/oh-odot";
 import { fetchNyNyscrBids } from "./sources/ny-nyscr";
 import { fetchMiSigmaBids } from "./sources/mi-sigma";
 import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
+import { fetchPrAsgBids } from "./sources/pr-asg";
 import { isBidnetRefusal, isBidnetSource, planBidnetSources } from "./bidnet-cadence";
 import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
@@ -368,6 +369,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   // Periscope S2G state marketplaces: MA COMMBUYS, NJ NJSTART, IL BidBuy,
   // OregonBuys, NevadaEPro, ARBuy (src/jobs/sources/periscope-states.ts).
   ...PERISCOPE_TAIL_SOURCES,
+  // Puerto Rico's central procurement portal, ASG (src/jobs/sources/pr-asg.ts).
+  { name: "pr_asg", fetchFn: () => fetchPrAsgBids() },
   { name: "ma_boston", fetchFn: fetchBostonBids },
   { name: "al_mobile", fetchFn: fetchMobileBids },
   // Georgia Procurement Registry: open state and local bidding events.

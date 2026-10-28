@@ -193,6 +193,7 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
   ma_boston: { class: "local", city: "Boston", scopeState: "MA", searchScope: "city-open-data", recordType: "opportunity" },
   ma_commbuys: { class: "state", scopeState: "MA", searchScope: "state-portal", recordType: "opportunity" },
   nj_njstart: { class: "state", scopeState: "NJ", searchScope: "state-portal", recordType: "opportunity" },
+  pr_asg: { class: "state", scopeState: "PR", searchScope: "state-portal", recordType: "opportunity" },
   il_bidbuy: { class: "state", scopeState: "IL", searchScope: "state-portal", recordType: "opportunity" },
   or_oregonbuys: { class: "state", scopeState: "OR", searchScope: "state-portal", recordType: "opportunity" },
   nv_nevadaepro: { class: "state", scopeState: "NV", searchScope: "state-portal", recordType: "opportunity" },

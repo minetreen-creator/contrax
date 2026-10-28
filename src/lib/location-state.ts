@@ -1151,6 +1151,7 @@ export const SOURCE_HOME_JURISDICTIONS: Record<string, string> = {
   ma_boston: "MA",
   ma_commbuys: "MA",
   nj_njstart: "NJ",
+  pr_asg: "PR",
   il_bidbuy: "IL",
   or_oregonbuys: "OR",
   nv_nevadaepro: "NV",

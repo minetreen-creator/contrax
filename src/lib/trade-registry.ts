@@ -75,6 +75,30 @@ export const MAX_TRADE_LENGTH = 120;
 export const MAX_EXPANDED_TERMS = 28;
 
 /**
+ * Spanish trade terms (owner 2026-10-28: Puerto Rico's ASG portal posts every
+ * title in Spanish). Added AFTER the English list and outside its
+ * MAX_EXPANDED_TERMS cap, so no English term is displaced. Accent-free stems
+ * ("construcci" for construcción/construccion) where a word has an accent, and
+ * phrases where a single word is too broad ("seguridad" alone is in agency
+ * names; "guardias de seguridad" is the service).
+ */
+export const SPANISH_TRADE_TERMS: Readonly<Record<string, readonly string[]>> = {
+  construction: [
+    "construcci", "remodelaci", "rehabilitaci", "demolici", "restauraci",
+    "impermeabilizaci", "pavimentaci", "asfalto", "techado",
+  ],
+  "janitorial-cleaning-services": ["limpieza", "conserjer"],
+  "landscaping-grounds": [
+    "jardiner", "desyerbo", "mantenimiento de áreas verdes", "mantenimiento de areas verdes", "corte de grama", "poda de árboles", "poda de arboles",
+  ],
+  "hvac-mechanical": ["acondicionado", "acondicionadores de aire", "climatizaci", "refrigeraci"],
+  "security-guards-patrol": ["guardias de seguridad", "servicios de seguridad", "vigilancia"],
+  "trucking-hauling": ["acarreo"],
+  "solid-waste-collection": ["desperdicios", "recogido de basura"],
+};
+export const MAX_SPANISH_TERMS = 12;
+
+/**
  * OWNER PRECISION CONSTRAINT (09-07) — structurally enforced.
  *
  * Ultra-generic trade words that are NEVER sufficient alone as a match term.
@@ -907,6 +931,11 @@ export function expandTrade(original: string): TradeExpansion {
   //    trucking's synonym "freight"), and "freight delivery" resolves to the
   //    freight-delivery sub-term exactly — no 488510 from the logistics stem.
   const registryEntries = Object.values(TRADE_ALIASES);
+  const spanish: string[] = [];
+  const addSpanish = (entry: TradeAliasEntry) => {
+    const key = Object.keys(TRADE_ALIASES).find((k) => TRADE_ALIASES[k] === entry);
+    for (const t of (key && SPANISH_TRADE_TERMS[key]) || []) if (!spanish.includes(t)) spanish.push(t);
+  };
   const exactHits = registryEntries.filter((entry) =>
     entry.synonyms.some((s) => s.toLowerCase() === lower),
   );
@@ -917,6 +946,7 @@ export function expandTrade(original: string): TradeExpansion {
     if (hitDirect) {
       for (const s of synonyms) if (!terms.includes(s)) terms.push(s);
       for (const code of entry.naics) if (!naicsCodes.includes(code)) naicsCodes.push(code);
+      addSpanish(entry);
       continue;
     }
     // No exact phrase anywhere → the first-word stem may fire, EXCEPT for
@@ -940,6 +970,7 @@ export function expandTrade(original: string): TradeExpansion {
     if (!hitStem) continue;
     for (const s of synonyms) if (!terms.includes(s)) terms.push(s);
     for (const code of entry.naics) if (!naicsCodes.includes(code)) naicsCodes.push(code);
+    addSpanish(entry);
   }
 
   // 2) Infer-map fallback: when the query equals one of the curated keywords
@@ -973,7 +1004,10 @@ export function expandTrade(original: string): TradeExpansion {
   return {
     original: raw,
     isNaics: false,
-    terms: [verbatim, ...filtered].slice(0, MAX_EXPANDED_TERMS),
+    terms: [
+      ...[verbatim, ...filtered].slice(0, MAX_EXPANDED_TERMS),
+      ...spanish.filter((t) => t !== verbatim).slice(0, MAX_SPANISH_TERMS),
+    ],
     naicsCodes,
   };
 }
@@ -1312,7 +1346,7 @@ export function tradeKeywordPred(sql: any, expansion: TradeExpansion): any {
   const s = typeof (sql as any)?.unsafe === "function" ? sql : sql();
   if (expansion.isNaics || expansion.terms.length === 0) return s``;
   const clauses: any[] = [];
-  for (const term of expansion.terms.slice(0, MAX_EXPANDED_TERMS)) {
+  for (const term of expansion.terms.slice(0, MAX_EXPANDED_TERMS + MAX_SPANISH_TERMS)) {
     if (!term || term.length < 2) continue;
     clauses.push(
       termNeedsWordStart(term)

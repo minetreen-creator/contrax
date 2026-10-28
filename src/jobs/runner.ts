@@ -68,6 +68,7 @@ import { fetchVaFairfaxBonfireBids } from "./sources/va-fairfax-bonfire";
 import { fetchVaAlexandriaBonfireBids } from "./sources/va-alexandria-bonfire";
 import { fetchVaBotetourtBonfireBids } from "./sources/va-botetourt-bonfire";
 import { fetchFlBrowardBonfireBids } from "./sources/fl-broward-bonfire";
+import { fetchNjPanynjBonfireBids } from "./sources/nj-panynj-bonfire";
 import { COUNTY_BONFIRE_SOURCES } from "./sources/county-bonfire-boards";
 import { COUNTY_CIVICENGAGE_SOURCES } from "./sources/county-civicengage-boards";
 import { fetchVaVtJaggaerBids, fetchVaGmuBonfireBids, fetchVaNsuBonfireBids } from "./sources/va-university-portals";
@@ -537,6 +538,7 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "va_alexandria_bonfire", fetchFn: fetchVaAlexandriaBonfireBids },
   { name: "va_botetourt_bonfire", fetchFn: fetchVaBotetourtBonfireBids },
   { name: "fl_broward_bonfire", fetchFn: fetchFlBrowardBonfireBids },
+  { name: "nj_panynj_bonfire", fetchFn: fetchNjPanynjBonfireBids },
   // Ten more county/city Bonfire boards (owner 2026-10-27; county-bonfire-boards.ts).
   ...COUNTY_BONFIRE_SOURCES,
   // Eighteen county/city CivicEngage boards (owner 2026-10-27; county-civicengage-boards.ts).

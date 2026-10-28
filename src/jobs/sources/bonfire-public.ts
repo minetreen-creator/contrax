@@ -111,6 +111,14 @@ export interface BonfireConfig {
    * `stateName`: never derived from a row's text.
    */
   locationName?: string;
+  /**
+   * Per-row place for a buyer that spans states (owner 2026-10-28: the Port
+   * Authority of New York and New Jersey). Read from the facility the title
+   * names; when set it replaces `locationName` / `stateName` for that row.
+   */
+  placeFor?: (title: string) => { location: string; stateName: string };
+  /** Titles on the board that are not competitions (information pages, lease offerings). */
+  skipTitle?: RegExp;
   /** Agency fallback for a row whose department names none, e.g. "State of Utah". */
   buyerName: string;
   /** Portal name used in the description, e.g. "U3P (Bonfire)". */
@@ -200,6 +208,10 @@ export function parseBonfire(
       recordSkip(result, rowId, "not_competitive");
       continue;
     }
+    if (cfg.skipTitle?.test(title)) {
+      recordSkip(result, rowId, "not_a_bid");
+      continue;
+    }
     const closeMs = bonfireCloseMs(p.DateClose);
     if (!Number.isFinite(closeMs)) {
       recordSkip(result, rowId, "bad_date");
@@ -211,8 +223,9 @@ export function parseBonfire(
     }
     const agency = cfg.agencyName(departments[String(p.DepartmentID ?? "")]?.DepartmentName);
     const ref = String(p.ReferenceID ?? "").trim() || null;
+    const place = cfg.placeFor?.(title);
     const description = [
-      `${cfg.stateName} public procurement opportunity${ref ? ` ${ref}` : ""} posted by ${agency} on ${cfg.portalName}.`,
+      `${place?.stateName ?? cfg.stateName} public procurement opportunity${ref ? ` ${ref}` : ""} posted by ${agency} on ${cfg.portalName}.`,
       "Documents and responses through the Bonfire portal (free vendor account; see source link).",
     ].join(" ");
     result.rows.push({
@@ -220,7 +233,7 @@ export function parseBonfire(
       title,
       agency,
       description,
-      location: cfg.locationName ?? cfg.stateName,
+      location: place?.location ?? cfg.locationName ?? cfg.stateName,
       category: mapCategory("", title, description),
       due_date: new Date(closeMs).toISOString(),
       estimated_value: "Not specified",

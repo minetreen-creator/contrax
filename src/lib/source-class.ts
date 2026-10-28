@@ -659,6 +659,15 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Bi-state agency (owner 2026-10-28). Listed under New Jersey for its agency
+  // page; each row's own state comes from the facility in its title.
+  nj_panynj_bonfire: {
+    class: "local",
+    city: "Port Authority of NY & NJ",
+    scopeState: "NJ",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   tx_harris_bonfire: {
     class: "local",
     city: "Harris County",

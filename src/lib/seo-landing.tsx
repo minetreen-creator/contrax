@@ -222,6 +222,8 @@ export const REGION_CODES = [
   "RI", "MA", "WI", "AR", "TN", "AK", "IN", "UT", "NE", "WV",
   "MS", "CT", "MN", "WY", "IA", "ME", "NV", "KY", "VT", "DE",
   "SD",
+  // US territories (owner 2026-10-28): federal work in each, own pages.
+  "PR", "GU", "VI", "AS", "MP",
 ] as const;
 export const REGION_SET = new Set<string>(REGION_CODES);
 

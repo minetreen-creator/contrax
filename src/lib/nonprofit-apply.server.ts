@@ -45,7 +45,7 @@ import {
   type NonprofitVerificationOutcome,
   type VerifyNonprofitApplicationInput,
 } from "~/lib/nonprofit-verification.server";
-import { US_STATES } from "~/lib/states";
+import { US_PLACES } from "~/lib/states";
 import {
   NONPROFIT_APPLY_REVIEW_WINDOW,
   NONPROFIT_APPLY_VALIDATION,
@@ -131,7 +131,7 @@ export function validateNonprofitApplyFields(body: unknown): NonprofitApplyValid
   }
 
   const stateRaw = asString(raw.state).toUpperCase();
-  const state = stateRaw.length > 0 && (US_STATES as readonly string[]).includes(stateRaw) ? stateRaw : null;
+  const state = stateRaw.length > 0 && (US_PLACES as readonly string[]).includes(stateRaw) ? stateRaw : null;
   if (!state) errors.state = NONPROFIT_APPLY_VALIDATION.state;
 
   const contactName = asString(raw.contactName ?? raw.contact_name);

@@ -5,7 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { setAsideCardLabel, setAsideEvidence } from "~/lib/cert-matching";
 import { isCountdownSuppressed } from "~/lib/deadline-label";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
-import { US_STATES } from "~/lib/states";
+import { US_PLACES } from "~/lib/states";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
@@ -1876,7 +1876,7 @@ function RadarLanding() {
                   className="mt-2 w-full rounded-2xl border-2 border-slate-700 bg-slate-900 px-5 py-3 text-base text-white focus:border-amber-500 sm:py-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
                 >
                   <option value="">Any state (nationwide)</option>
-                  {US_STATES.map((s) => (
+                  {US_PLACES.map((s) => (
                     <option key={s} value={s}>{s}</option>
                   ))}
                 </select>

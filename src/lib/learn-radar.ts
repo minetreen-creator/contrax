@@ -1,8 +1,8 @@
-import { US_STATES } from "./states";
+import { US_PLACES } from "./states";
 export const LEARN_RADAR_COURSES = ["construction-v1", "government-bids-intermediate-v1", "government-strategy-advanced-v1"] as const;
 export function learnBusinessSearch(search: Record<string, unknown>): {state:string;trade:string} {
   const state=typeof search.state === "string" ? search.state.trim().toUpperCase() : "";
-  return {state:(US_STATES as readonly string[]).includes(state)?state:"",trade:typeof search.trade === "string"?search.trade.trim().slice(0,120):""};
+  return {state:(US_PLACES as readonly string[]).includes(state)?state:"",trade:typeof search.trade === "string"?search.trade.trim().slice(0,120):""};
 }
 export function learnRadarHref(course: string, search: Record<string,unknown>): string {
   const {state,trade}=learnBusinessSearch(search);

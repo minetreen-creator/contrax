@@ -47,7 +47,7 @@
  * city raises the flag for audit).
  */
 
-import { US_STATES } from "~/lib/states";
+import { US_PLACES, US_TERRITORIES } from "~/lib/states";
 
 /** Full state name (case-insensitive at use) → USPS code. 50 states + DC. */
 export const STATE_NAME_TO_CODE: Record<string, string> = {
@@ -102,6 +102,12 @@ export const STATE_NAME_TO_CODE: Record<string, string> = {
   wisconsin: "WI",
   wyoming: "WY",
   "district of columbia": "DC",
+  // US territories (owner 2026-10-28).
+  "puerto rico": "PR",
+  guam: "GU",
+  "virgin islands": "VI",
+  "american samoa": "AS",
+  "northern mariana islands": "MP",
 };
 
 /** Full state names, longest-first so "West Virginia" beats "Virginia". */
@@ -109,8 +115,14 @@ export const STATE_FULL_NAMES: string[] = Object.keys(STATE_NAME_TO_CODE).sort(
   (a, b) => b.length - a.length,
 );
 
-/** Set of valid USPS codes (from the shared US_STATES constant). */
-const STATE_CODES = new Set<string>(US_STATES);
+/** Set of valid USPS codes: states, DC and territories (shared US_PLACES). */
+const STATE_CODES = new Set<string>(US_PLACES);
+/**
+ * Territory codes double as common abbreviations ("PR" purchase request, EPA
+ * "Region VI", "AS needed"), so in free text they only count in the
+ * "City, XX" form; their full names always count.
+ */
+const TERRITORY_CODES = new Set<string>(US_TERRITORIES);
 
 /**
  * Normalize a user-entered state to a 2-letter USPS code. Accepts the code
@@ -146,7 +158,9 @@ export function resolveStateFromText(text: string | null | undefined): string | 
   let m: RegExpExecArray | null;
   while ((m = re.exec(t)) !== null) {
     const code = m[1].toUpperCase();
-    if (STATE_CODES.has(code)) return code;
+    if (!STATE_CODES.has(code)) continue;
+    if (TERRITORY_CODES.has(code) && !/,\s*$/.test(t.slice(0, m.index + m[0].indexOf(m[1])))) continue;
+    return code;
   }
   return null;
 }

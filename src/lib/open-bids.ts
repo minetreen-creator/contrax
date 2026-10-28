@@ -11,7 +11,7 @@
  * (homepage instant search).
  */
 
-import { US_STATES } from "~/lib/states";
+import { US_PLACES, US_STATES } from "~/lib/states";
 
 /**
  * The state-abbreviation location regex used to TARGET a bid's geography
@@ -20,7 +20,7 @@ import { US_STATES } from "~/lib/states";
  * filter uses the identical rule.
  */
 export const STATE_LOCATION_REGEX = new RegExp(
-  `(?:^|,\\s*)(${US_STATES.join("|")})(?:$|\\s|,)`,
+  `(?:^|,\\s*)(${US_PLACES.join("|")})(?:$|\\s|,)`,
   "i",
 );
 
@@ -44,7 +44,8 @@ export const STATE_LOCATION_REGEX = new RegExp(
  */
 export function shouldApplyStateFilter(states: readonly string[]): boolean {
   if (!states || states.length === 0) return false;
-  if (states.length === US_STATES.length) return false;
+  // Every state selected (with or without the territories) is nationwide.
+  if (US_STATES.every((s) => states.includes(s))) return false;
   return true;
 }
 

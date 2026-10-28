@@ -31,7 +31,7 @@
 import { resolveBidState, STATE_NAME_TO_CODE } from "./location-state";
 import { locationMatchesStates, setAsideLikeClauses, shouldApplyStateFilter } from "./open-bids";
 import { isStateLocalLabel, SOURCE_CLASSES } from "./source-class";
-import { US_STATES } from "./states";
+import { US_PLACES } from "./states";
 import { expandTrade, TRADE_ALIASES, type TradeExpansion } from "./trade-registry";
 
 export interface MatchProfile {
@@ -50,7 +50,7 @@ export function profileStateCodes(locations: readonly string[] | null | undefine
   for (const raw of locations ?? []) {
     const t = String(raw ?? "").trim();
     const code = /^[A-Za-z]{2}$/.test(t) ? t.toUpperCase() : STATE_NAME_TO_CODE[t.toLowerCase()];
-    if (code && (US_STATES as readonly string[]).includes(code)) out.add(code);
+    if (code && (US_PLACES as readonly string[]).includes(code)) out.add(code);
   }
   return [...out];
 }

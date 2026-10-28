@@ -16,7 +16,7 @@
  * text. A bid that publishes NO place-of-performance state is qualified by
  * trade ALONE: its state, cert and size dimensions may not admit it.
  */
-import { US_STATES } from "~/lib/states";
+import { US_PLACES } from "~/lib/states";
 import { expandTrade, tradeProvenanceFor } from "~/lib/trade-registry";
 
 /** The lead's Radar profile, as stored in radar_leads.radar_profile. */
@@ -66,7 +66,7 @@ const SIZE_CAPS: Record<string, number> = {
 };
 
 const STATE_LOCATION_REGEX = new RegExp(
-  `(?:^|,\\s*)(${US_STATES.join("|")})(?:$|\\s|,)`,
+  `(?:^|,\\s*)(${US_PLACES.join("|")})(?:$|\\s|,)`,
   "i",
 );
 

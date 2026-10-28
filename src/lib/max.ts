@@ -12,7 +12,7 @@
  *
  * PURE: the tools, the prompt, reply parsing, fit scoring.
  */
-import { US_STATES } from "./states";
+import { US_PLACES } from "./states";
 import type { LaunchpadData, LaunchpadProfile } from "./launchpad";
 
 export const MAX_QUESTION_CHARS = 300;
@@ -27,7 +27,7 @@ export const MAX_RECOMPETE_TRADES = ["janitorial", "security-guard", "trucking",
 /** Two-letter state code, or null for anything else. */
 export function stateCode(v: unknown): string | null {
   const s = String(v ?? "").trim().toUpperCase();
-  return (US_STATES as readonly string[]).includes(s) ? s : null;
+  return (US_PLACES as readonly string[]).includes(s) ? s : null;
 }
 
 /** The conversation so far, as the page sends it: only user/assistant text, trimmed. */

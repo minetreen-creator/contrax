@@ -50,3 +50,12 @@ civic | www.cityofanderson.com | rows=0 | parsed=0 | skipped={} | final=https://
 civic | www.avonindiana.gov | rows=0 | parsed=0 | skipped={} | final=https://www.avonindiana.gov/bids.aspx | site=Avon, IN
 civic | www.brownsburg.org | rows=0 | parsed=1 | skipped={"closed":1} | final=https://www.brownsburg.org/bids.aspx | site=Brownsburg, IN
 Only Lafayette and Zionsville had open bids, so only their captures are kept; the other six boards are real and scheduled so new bids flow in.
+
+## New Jersey, 2026-10-28
+
+Same method (bare /bids.aspx, twice, 3 s apart) after a read-only probe of 83 NJ
+municipal sites; these 14 CivicEngage boards had open bids. Parsed open counts:
+Cherry Hill 16, Trenton 7, Cranford 13, Fort Lee 3, West Orange 3, Princeton 3,
+Millville 4, Livingston 2, Mahwah 4, Wall 1, Ridgewood 2, Westfield 1,
+Montgomery 1, East Brunswick 1. Cherry Hill's www.cherryhill-nj.com redirects to
+www.chnj.gov, which is read directly.

@@ -63,6 +63,21 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("in_anderson", "www.cityofanderson.com", "City of Anderson", "Anderson, IN", "andersoncivic"),
   board("in_avon", "www.avonindiana.gov", "Town of Avon", "Avon, IN", "avoncivic"),
   board("in_brownsburg", "www.brownsburg.org", "Town of Brownsburg", "Brownsburg, IN", "brownsburgcivic"),
+  // New Jersey (owner 2026-10-28: NJ had almost no local bids).
+  board("nj_cherry_hill", "www.chnj.gov", "Cherry Hill Township", "Cherry Hill, NJ", "cherryhillcivic"),
+  board("nj_trenton", "www.trentonnj.org", "City of Trenton", "Trenton, NJ", "trentoncivic"),
+  board("nj_cranford", "www.cranfordnj.org", "Township of Cranford", "Cranford, NJ", "cranfordcivic"),
+  board("nj_fort_lee", "www.fortleenj.org", "Borough of Fort Lee", "Fort Lee, NJ", "fortleecivic"),
+  board("nj_west_orange", "www.westorange.org", "Township of West Orange", "West Orange, NJ", "westorangecivic"),
+  board("nj_princeton", "www.princetonnj.gov", "Municipality of Princeton", "Princeton, NJ", "princetoncivic"),
+  board("nj_millville", "www.millvillenj.gov", "City of Millville", "Millville, NJ", "millvillecivic"),
+  board("nj_livingston", "www.livingstonnj.org", "Township of Livingston", "Livingston, NJ", "livingstoncivic"),
+  board("nj_mahwah", "www.mahwahtwp.org", "Township of Mahwah", "Mahwah, NJ", "mahwahcivic"),
+  board("nj_wall", "www.wallnj.gov", "Wall Township", "Wall Township, NJ", "wallcivic"),
+  board("nj_ridgewood", "www.ridgewoodnj.net", "Village of Ridgewood", "Ridgewood, NJ", "ridgewoodcivic"),
+  board("nj_westfield", "www.westfieldnj.gov", "Town of Westfield", "Westfield, NJ", "westfieldcivic"),
+  board("nj_montgomery", "www.montgomerynj.gov", "Montgomery Township", "Montgomery Township, NJ", "montgomerycivic"),
+  board("nj_east_brunswick", "www.eastbrunswick.org", "Township of East Brunswick", "East Brunswick, NJ", "eastbrunswickcivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

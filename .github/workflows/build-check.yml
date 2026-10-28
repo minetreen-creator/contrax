@@ -765,6 +765,8 @@ jobs:
         run: bun test src/lib/live-chat.test.ts
       - name: Mission Control live alerts rules (unit, deterministic, zero network)
         run: bun test src/lib/live-push.test.ts
+      - name: Checkout follow-up email rules (unit, deterministic, zero network)
+        run: bun test src/lib/checkout-followup.test.ts
       - name: Homepage near-you card links (unit, deterministic, zero network)
         run: bun test src/lib/near-you.test.ts
       - name: Mobile public bid source tests

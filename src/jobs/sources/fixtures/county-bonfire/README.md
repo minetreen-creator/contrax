@@ -37,3 +37,13 @@ bonfire | jacksongov | title=Portal — Open Opportunities - Jackson County | op
 bonfire | jeffersoncitymo | title=Portal — Open Opportunities - Jefferson City, MO | open=5 | same=true
 bonfire | slps | title=Portal — Open Opportunities - Saint Louis Public Schools | open=0 | same=true
 slps had no open projects, so no capture file is kept for it.
+
+## Port Authority of NY & NJ, 2026-10-28
+
+`panynj/`: the public open-opportunities list at
+https://panynj.bonfirehub.com/PublicPortal/getOpenPublicOpportunitiesSectionData,
+retrieved twice 6 s apart by a GitHub Actions job and written byte-for-byte.
+89 open projects; 3 are not competitions (an information-only page, a notice of
+intent to release an RFP, and a development lease offering) and are skipped.
+Read by src/jobs/sources/nj-panynj-bonfire.ts, which places each row by the
+facility its title names.

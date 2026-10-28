@@ -767,6 +767,8 @@ jobs:
         run: bun test src/lib/live-push.test.ts
       - name: Checkout follow-up email rules (unit, deterministic, zero network)
         run: bun test src/lib/checkout-followup.test.ts
+      - name: Port Authority of NY & NJ Bonfire board (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/nj-panynj-bonfire.test.ts
       - name: Homepage near-you card links (unit, deterministic, zero network)
         run: bun test src/lib/near-you.test.ts
       - name: Mobile public bid source tests

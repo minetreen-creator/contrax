@@ -28,7 +28,7 @@ const OPEN: Record<string, number> = {
   mo_springfield: 9, mo_st_charles_county: 4, mo_st_charles: 3, mo_liberty: 2, mo_ozark: 2, mo_ballwin: 1,
   in_lafayette: 1, in_zionsville: 1,
   // New Jersey, captured 2026-10-28.
-  nj_cherry_hill: 16, nj_trenton: 7, nj_cranford: 13, nj_fort_lee: 3, nj_west_orange: 3, nj_princeton: 3, nj_millville: 4,
+  nj_cherry_hill: 16, nj_trenton: 7, nj_cranford: 12, nj_fort_lee: 3, nj_west_orange: 3, nj_princeton: 3, nj_millville: 4,
   nj_livingston: 2, nj_mahwah: 4, nj_wall: 1, nj_ridgewood: 2, nj_westfield: 1, nj_montgomery: 1, nj_east_brunswick: 1,
 };
 // Real boards with nothing open at capture (scheduled so new bids flow in), so no file.

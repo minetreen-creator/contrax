@@ -147,7 +147,7 @@ export interface CivicEngageBoardConfig {
 
 /** The usual non-competition group headers on CivicEngage boards (2026-10-27 captures). */
 export const CIVICENGAGE_NOT_A_BID_GROUP =
-  /emergency|sole[- ]source|bid results|responders|plan ?holders|pre-?bid attendees|notice of (intent|award)|intent to award|award|cancell?ation|cooperative|closed/i;
+  /emergency|sole[- ]source|bid results|responders|plan ?holders|pre-?bid attendees|notice of (intent|award)|intent to award|award|cancell?ation|cooperative|closed|legal notices/i;
 
 /** One row exactly as the board presents it (pre-guard, for tests/diagnostics). */
 export interface CivicEngageBoardRow {

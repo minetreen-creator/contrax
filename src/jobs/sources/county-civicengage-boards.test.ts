@@ -27,15 +27,18 @@ const OPEN: Record<string, number> = {
   az_lake_havasu: 5, az_casa_grande: 3, az_douglas: 6,
   mo_springfield: 9, mo_st_charles_county: 4, mo_st_charles: 3, mo_liberty: 2, mo_ozark: 2, mo_ballwin: 1,
   in_lafayette: 1, in_zionsville: 1,
+  // New Jersey, captured 2026-10-28.
+  nj_cherry_hill: 16, nj_trenton: 7, nj_cranford: 13, nj_fort_lee: 3, nj_west_orange: 3, nj_princeton: 3, nj_millville: 4,
+  nj_livingston: 2, nj_mahwah: 4, nj_wall: 1, nj_ridgewood: 2, nj_westfield: 1, nj_montgomery: 1, nj_east_brunswick: 1,
 };
 // Real boards with nothing open at capture (scheduled so new bids flow in), so no file.
 const NO_CAPTURE = new Set(["in_carmel", "in_hamilton_county", "in_tippecanoe_county", "in_anderson", "in_avon", "in_brownsburg"]);
 
 describe("county CivicEngage boards", () => {
-  test("thirty-five boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(35);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(35);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(35);
+  test("forty-nine boards with unique sources and id prefixes", () => {
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(49);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(49);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(49);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

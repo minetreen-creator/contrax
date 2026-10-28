@@ -771,6 +771,8 @@ jobs:
         run: bun test src/jobs/sources/nj-panynj-bonfire.test.ts
       - name: US territories as searchable places (unit, deterministic, zero network)
         run: bun test src/lib/us-territories.test.ts
+      - name: Puerto Rico ASG portal (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/pr-asg.test.ts
       - name: Homepage near-you card links (unit, deterministic, zero network)
         run: bun test src/lib/near-you.test.ts
       - name: Mobile public bid source tests

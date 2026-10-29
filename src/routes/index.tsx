@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { FoundingWall } from "~/components/FoundingWall";
+import { EndingNearYou } from "~/components/EndingNearYou";
 import { MaxAssistant } from "~/components/MaxAssistant";
 import { MoneyCounter } from "~/components/MoneyCounter";
 import { NearYouCard } from "~/components/NearYouCard";
@@ -217,6 +218,8 @@ function Home() {
           Max, the proof, how it works, Bid Scout. The other ways in ("Open near
           you", the ZIP box, free tools) follow instead of competing up top. */}
       <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
+      {/* Contracts ending near you (owner 2026-10-29); holder locked. */}
+      <EndingNearYou />
       <HowItWorks />
       {/* Founding Businesses wall (owner 2026-10-29); hidden until one is published. */}
       <FoundingWall />

@@ -775,6 +775,8 @@ jobs:
         run: bun test src/jobs/sources/pr-asg.test.ts
       - name: Spanish trade terms (unit, deterministic, zero network)
         run: bun test src/lib/spanish-trade-terms.test.ts
+      - name: Homepage English/Español copy (unit, deterministic, zero network)
+        run: bun test src/lib/home-hero-copy.test.ts
       - name: Homepage near-you card links (unit, deterministic, zero network)
         run: bun test src/lib/near-you.test.ts
       - name: Mobile public bid source tests

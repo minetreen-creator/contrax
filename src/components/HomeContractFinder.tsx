@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowRight, Radar, CheckCircle2, LoaderCircle } from "lucide-react";
 import type { SampleBid } from "~/lib/sample-bids";
 import type { RadarMatch } from "~/routes/radar";
@@ -41,9 +41,89 @@ function deadline(bid: Pick<RadarMatch, "due_date" | "source">): string {
 
 // Owner 2026-10-26: one-tap trades instead of a "describe your business" box,
 // the same picks as the Radar first screen.
-const QUICK_TRADES = ["Janitorial", "Landscaping", "Construction", "HVAC", "Trucking", "Security guards", "IT services"];
+export const QUICK_TRADES = ["Janitorial", "Landscaping", "Construction", "HVAC", "Trucking", "Security guards", "IT services"];
+
+/**
+ * English/Español hero (owner 2026-10-29). Spanish-speaking contractors are a
+ * big share of the Facebook groups we reach, Puerto Rico is covered, and Max
+ * already answers in Spanish. The quick-trade buttons still search their
+ * English term, which also matches Spanish titles (SPANISH_TRADE_TERMS).
+ * Remembered per browser; first visit follows the browser's language.
+ */
+export type HeroLang = "en" | "es";
+export const HERO_LANG_KEY = "contrax_lang";
+export const HERO_COPY = {
+  en: {
+    badge: "Built for small business ambition",
+    titleCount: (n: string) => `${n} government bids open right now.`,
+    titleCountTail: "See the ones for your business.",
+    titleFallback: "Your next government customer",
+    titleFallbackTail: "starts here.",
+    sub: "Federal, state, city, county and school bids in all 50 states, matched to your trade.",
+    checks: ["Real solicitations", "Clear match reasons", "No card to preview"],
+    veteran: "Built with veteran-owned businesses in mind. Open to every small business.",
+    local: "Explore city & county bids →",
+    cardKicker: "Find my first contract",
+    cardTitle: "What does your business do?",
+    tradePlaceholder: "Or type your trade or NAICS",
+    everyState: "Every state",
+    cta: "Find my matches",
+    busy: "Searching live opportunities…",
+    note: "Free to search. No card, no signup to see your top matches.",
+    needTrade: "Enter the service or six-digit NAICS code you want to search.",
+    trades: {} as Record<string, string>,
+  },
+  es: {
+    badge: "Hecho para pequeños negocios con ambición",
+    titleCount: (n: string) => `${n} licitaciones del gobierno abiertas ahora.`,
+    titleCountTail: "Vea las que son para su negocio.",
+    titleFallback: "Su próximo cliente del gobierno",
+    titleFallbackTail: "empieza aquí.",
+    sub: "Licitaciones federales, estatales, municipales, de condados y escuelas en los 50 estados y Puerto Rico, según su oficio.",
+    checks: ["Licitaciones reales", "Razones claras", "Sin tarjeta para ver"],
+    veteran: "Pensado para negocios de veteranos. Abierto a todo pequeño negocio.",
+    local: "Ver licitaciones de ciudades y condados →",
+    cardKicker: "Encuentre su primer contrato",
+    cardTitle: "¿A qué se dedica su negocio?",
+    tradePlaceholder: "O escriba su oficio o código NAICS",
+    everyState: "Todos los estados",
+    cta: "Ver mis oportunidades",
+    busy: "Buscando licitaciones…",
+    note: "Buscar es gratis. Sin tarjeta ni registro para ver sus mejores resultados.",
+    needTrade: "Escriba el servicio o el código NAICS de seis dígitos que quiere buscar.",
+    trades: {
+      Janitorial: "Limpieza",
+      Landscaping: "Jardinería",
+      Construction: "Construcción",
+      HVAC: "Aire acondicionado",
+      Trucking: "Acarreo",
+      "Security guards": "Guardias de seguridad",
+      "IT services": "Servicios de IT",
+    } as Record<string, string>,
+  },
+} as const;
 
 export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBid[]; openTotal?: number }) {
+  const [lang, setLang] = useState<HeroLang>("en");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(HERO_LANG_KEY);
+      if (saved === "es" || saved === "en") return setLang(saved);
+    } catch {
+      /* storage blocked */
+    }
+    if (typeof navigator !== "undefined" && /^es\b/i.test(navigator.language || "")) setLang("es");
+  }, []);
+  const chooseLang = (next: HeroLang) => {
+    setLang(next);
+    trackEvent("home_language", next);
+    try {
+      localStorage.setItem(HERO_LANG_KEY, next);
+    } catch {
+      /* storage blocked */
+    }
+  };
+  const c = HERO_COPY[lang];
   const [trade, setTrade] = useState("");
   const [state, setState] = useState("");
   const [busy, setBusy] = useState(false);
@@ -62,7 +142,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
       sizePref: "any",
     };
     if (!answers.trade) {
-      setError("Enter the service or six-digit NAICS code you want to search.");
+      setError(c.needTrade);
       return;
     }
     running.current = true;
@@ -152,9 +232,21 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
       />
       <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-5 pb-20 pt-8 sm:gap-12 sm:px-8 sm:pt-20 lg:grid-cols-[1.1fr_1fr] lg:gap-16 lg:pb-24">
         <div>
+          <div className="mb-4 inline-flex rounded-full border border-white/20 bg-white/5 p-1 text-xs font-bold" role="group" aria-label="Language / Idioma">
+            {(["en", "es"] as const).map((l) => (
+              <button
+                key={l}
+                type="button"
+                aria-pressed={lang === l}
+                onClick={() => chooseLang(l)}
+                className={`rounded-full px-3 py-1 transition ${lang === l ? "bg-white text-slate-900" : "text-blue-100 hover:text-white"}`}
+              >
+                {l === "en" ? "English" : "Español"}
+              </button>
+            ))}
+          </div>
           <p className="inline-flex items-center gap-2 rounded-full border border-blue-400/30 bg-blue-400/10 px-3 py-2 text-xs font-bold uppercase tracking-widest text-blue-200">
-            <Radar className="h-4 w-4" aria-hidden="true" /> Built for small
-            business ambition
+            <Radar className="h-4 w-4" aria-hidden="true" /> {c.badge}
           </p>
           <h1
             id="first-contract-title"
@@ -162,26 +254,21 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
           >
             {openTotal > 0 ? (
               <>
-                {openTotal.toLocaleString("en-US")} government bids open right now.{" "}
-                <span className="text-blue-400">See the ones for your business.</span>
+                {c.titleCount(openTotal.toLocaleString("en-US"))}{" "}
+                <span className="text-blue-400">{c.titleCountTail}</span>
               </>
             ) : (
               <>
-                Your next government customer{" "}
-                <span className="text-blue-400">starts here.</span>
+                {c.titleFallback}{" "}
+                <span className="text-blue-400">{c.titleFallbackTail}</span>
               </>
             )}
           </h1>
           <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-300 sm:mt-6 sm:text-lg">
-            Federal, state, city, county and school bids in all 50 states,
-            matched to your trade.
+            {c.sub}
           </p>
           <div className="mt-7 hidden flex-wrap gap-x-5 gap-y-3 text-sm text-blue-100 sm:flex">
-            {[
-              "Real solicitations",
-              "Clear match reasons",
-              "No card to preview",
-            ].map((text) => (
+            {c.checks.map((text) => (
               <span key={text} className="inline-flex items-center gap-2">
                 <CheckCircle2
                   aria-hidden="true"
@@ -192,22 +279,21 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
             ))}
           </div>
           <p className="mt-6 hidden text-sm leading-relaxed text-slate-400 sm:block">
-            Built with veteran-owned businesses in mind. Open to every small
-            business.
+            {c.veteran}
           </p>
           <a
             href="/local-bids"
             className="mt-5 hidden text-sm font-semibold text-blue-200 underline underline-offset-4 hover:text-white sm:inline-block"
           >
-            Explore city &amp; county bids →
+            {c.local}
           </a>
         </div>
         <div className="rounded-3xl border border-white/20 bg-white p-6 text-slate-950 shadow-2xl shadow-blue-950/60 sm:p-8">
           <p className="text-xs font-bold uppercase tracking-widest text-blue-700">
-            Find my first contract
+            {c.cardKicker}
           </p>
           <h2 className="mt-2 text-2xl font-bold tracking-tight">
-            What does your business do?
+            {c.cardTitle}
           </h2>
           <form
             onSubmit={search}
@@ -227,7 +313,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
                     trade === t ? "border-blue-600 bg-blue-600 text-white" : "border-slate-300 bg-white text-slate-700 hover:border-blue-400"
                   }`}
                 >
-                  {t}
+                  {c.trades[t] ?? t}
                 </button>
               ))}
             </div>
@@ -243,7 +329,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
                   disabled={busy}
                   value={trade}
                   onChange={(e) => setTrade(e.target.value)}
-                  placeholder="Or type your trade or NAICS"
+                  placeholder={c.tradePlaceholder}
                   className={FIELD}
                 />
               </div>
@@ -258,7 +344,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
                   onChange={(e) => setState(e.target.value)}
                   className={FIELD}
                 >
-                  <option value="">Every state</option>
+                  <option value="">{c.everyState}</option>
                   {STATES.map((code) => (
                     <option key={code} value={code}>
                       {STATE_NAMES[code] ?? code}
@@ -277,17 +363,17 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
                     aria-hidden="true"
                     className="h-5 w-5 motion-safe:animate-spin"
                   />
-                  Searching live opportunities…
+                  {c.busy}
                 </>
               ) : (
                 <>
-                  Find my matches
+                  {c.cta}
                   <ArrowRight aria-hidden="true" className="h-5 w-5" />
                 </>
               )}
             </button>
             <p className="text-center text-xs leading-relaxed text-slate-500">
-              Free to search. No card, no signup to see your top matches.
+              {c.note}
             </p>
             {error && (
               <p role="alert" className="text-sm text-red-700">

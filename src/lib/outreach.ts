@@ -70,9 +70,12 @@ function nameWords(business: string, siteHost: string | null): string[] {
  * scraped from a site that belong to someone else (a font vendor, a web
  * designer…) and hiring mailboxes (jobs@).
  */
+/** Template addresses some sites leave in their pages ("example@yoursite.com"). */
+const PLACEHOLDER_BOX = /^(example|sample|test|your\.?name|your\.?email|email|name|user)$/;
+
 export function emailFitsSite(email: string, siteHost: string | null, business?: string): boolean {
   const [local = "", domain = ""] = email.trim().toLowerCase().split("@");
-  if (!domain || !local || HIRING_BOX.test(local)) return false;
+  if (!domain || !local || HIRING_BOX.test(local) || /%/.test(local) || PLACEHOLDER_BOX.test(local)) return false;
   if (FREE_MAIL.test(domain)) {
     if (business === undefined) return true;
     const box = local.replace(/[^a-z0-9]/g, "");
@@ -88,7 +91,10 @@ export function emailFitsSite(email: string, siteHost: string | null, business?:
  * contractor can win from a cold email.
  */
 export function bidIsServiceJob(title: string): boolean {
-  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|pool only|pre-?qualif\w*)\b/i.test(title);
+  // Owner 2026-10-29: also not invitational bids (only invited firms may bid),
+  // requests for information or sources-sought notices (nothing to win yet),
+  // and filter purchases.
+  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought)\b/i.test(title);
 }
 
 const STATE_WORDS = /^(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|district of columbia|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming|[a-z]{2})$/;

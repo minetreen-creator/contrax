@@ -8,6 +8,11 @@ describe("extractEmails", () => {
     expect(extractEmails(html, "acmeclean.com")).toEqual(["sales@acmeclean.com", "office@gmail.com"]);
   });
 
+  test("a URL-encoded space before an address is dropped; template boxes are skipped (owner 2026-10-29)", () => {
+    const html = `<a href="mailto:%20info@canroofconstruction.com">Email</a> example@thermodirectinc.com`;
+    expect(extractEmails(html, "canroofconstruction.com")).toEqual(["info@canroofconstruction.com"]);
+  });
+
   test("undoes encoded @ and drops images, placeholders and no-reply", () => {
     const html = `info&#64;acme.com bob%40acme.com logo@2x.png name@example.com noreply@acme.com you@domain.com x@sentry.io jane@company.com`;
     expect(extractEmails(html, "acme.com").sort()).toEqual(["bob@acme.com", "info@acme.com"]);

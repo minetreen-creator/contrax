@@ -149,3 +149,16 @@
     #EDF4FF 100%
   );
 }
+
+/* Homepage "Spin the map" (owner 2026-10-29): states light up busiest first. */
+@keyframes home-map-light {
+  from { opacity: 0.12; }
+  to { opacity: 1; }
+}
+.home-map-state {
+  animation: home-map-light 0.5s ease-out both;
+  transition: fill 0.2s, stroke 0.2s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-map-state { animation: none; }
+}

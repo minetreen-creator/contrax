@@ -5,9 +5,9 @@ import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { FoundingWall } from "~/components/FoundingWall";
 import { EndingNearYou } from "~/components/EndingNearYou";
+import { HomeStateMap } from "~/components/HomeStateMap";
 import { MaxAssistant } from "~/components/MaxAssistant";
 import { MoneyCounter } from "~/components/MoneyCounter";
-import { NearYouCard } from "~/components/NearYouCard";
 import { TownBuyingCallout } from "~/components/TownBuyingCallout";
 import { ExampleBrief } from "~/components/ExampleBrief";
 
@@ -94,8 +94,9 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // live-opportunities / alert-count fetches backed sections REMOVED from the page
 // in this restructure, so they are gone here too — fewer DB round-trips per
 // render, no dead fields. contractMap is still fetched: the hero's live
-// "N open opportunities" counter renders from it (the compact homepage map that
-// also used it was removed by owner order 2026-09-23).
+// "N open opportunities" counter renders from it, and so does the "Spin the
+// map" state map (owner 2026-10-29: "Do 3"; an earlier compact map was removed
+// 2026-09-23).
 //
 // NO SESSION READ (owner 2026-10-02): the navbar resolves the viewer in the
 // browser (SiteHeader without a `user` prop), so this render is identical for
@@ -212,6 +213,8 @@ function Home() {
       />
       <Navbar />
       <HomeContractFinder sample={sample} openTotal={contractMap?.totals?.totalOpen ?? 0} />
+      {/* "Spin the map" (owner 2026-10-29: "Do 3"): tap a state, then a trade. */}
+      <HomeStateMap contractMap={contractMap} />
       {/* Max, the public AI assistant (owner 2026-10-25: "something high tech"). */}
       <MaxAssistant />
       {/* Owner 2026-10-26 ("all of it"): one clear path down the page: search,
@@ -224,9 +227,6 @@ function Home() {
       {/* Founding Businesses wall (owner 2026-10-29); hidden until one is published. */}
       <FoundingWall />
       <BidScoutCallout />
-      {/* "What's open near you?" (owner 2026-10-21): real open-bid count for the
-          visitor's state, client-fetched; renders nothing until it has one. */}
-      <NearYouCard />
       {/* "What's Your Town Buying?" (owner 2026-10-23). */}
       <TownBuyingCallout />
       <FreeToolsStrip />

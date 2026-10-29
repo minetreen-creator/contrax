@@ -36,7 +36,7 @@ export function siteHost(url: string): string | null {
 const EMAIL_RE = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi;
 const FILE_TLDS = /\.(png|jpe?g|gif|svg|webp|css|js|ico|bmp|tiff?)$/i;
 const JUNK_DOMAINS = /(^|\.)(example\.(com|org)|domain\.com|(your)?company\.com|website\.com|email\.com|yourdomain\.com|yoursite\.com|sentry\.io|sentry-next\.wixpress\.com|wixpress\.com|wix\.com|godaddy\.com|squarespace\.com|mysite\.com|test\.com)$/i;
-const JUNK_LOCALS = /^(name|user|username|your\.?name|yourname|email|first\.?last|john\.?doe|jane\.?doe|someone|noreply|no-reply|donotreply|do-not-reply)$/i;
+const JUNK_LOCALS = /^(name|user|username|your\.?name|yourname|your\.?email|email|example|sample|test|first\.?last|john\.?doe|jane\.?doe|someone|noreply|no-reply|donotreply|do-not-reply)$/i;
 
 /**
  * Email addresses written on one page: mailto links and plain text, with the
@@ -48,6 +48,8 @@ export function extractEmails(html: string, host: string | null = null): string[
   const text = html
     .replace(/&#0*64;|&#x0*40;|&commat;/gi, "@")
     .replace(/%40/g, "@")
+    // A URL-encoded space glued to an address ("mailto:%20info@…") is not part of it.
+    .replace(/%20/gi, " ")
     .replace(/&#0*46;|&#x0*2e;/gi, ".");
   const seen = new Set<string>();
   for (const m of text.match(EMAIL_RE) ?? []) {

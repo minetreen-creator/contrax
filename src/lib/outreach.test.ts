@@ -113,6 +113,17 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(bidIsServiceJob("Steinmetz HS - Hallway & Stairwell Painting Project - Prequalified Various Trades POOL ONLY")).toBe(false);
     expect(bidIsServiceJob("A26-1115 - Janitorial Services for DOM")).toBe(true);
     expect(bidIsServiceJob("Invitation for Bids for On-Call Plumbing Services")).toBe(true);
+    // Owner 2026-10-29: invitational bids, RFIs, sources sought and filter buys.
+    expect(bidIsServiceJob("DFCM Construction - Invitational - Bridgerland Technical College - HVAC Improvement")).toBe(false);
+    expect(bidIsServiceJob("RFI Process control system plumbing and programming")).toBe(false);
+    expect(bidIsServiceJob("Sources Sought: Grounds Maintenance")).toBe(false);
+    expect(bidIsServiceJob("HVAC Filters for the Hospital and related items")).toBe(false);
+  });
+
+  test("placeholder and garbled addresses are never used (owner 2026-10-29)", () => {
+    expect(emailFitsSite("example@thermodirectinc.com", "thermodirectinc.com")).toBe(false);
+    expect(emailFitsSite("%20info@canroofconstruction.com", "canroofconstruction.com")).toBe(false);
+    expect(emailFitsSite("info@canroofconstruction.com", "canroofconstruction.com")).toBe(true);
   });
 
   test("a place must be a town, county or agency, not a state or purchasing group", () => {

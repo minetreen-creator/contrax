@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { bidFitReviewHref } from "~/lib/bid-fit-review-link";
 import { createServerFn } from "@tanstack/react-start";
+import { FoundingSpotsLine } from "~/components/FoundingSpotsLine";
+import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
 import { RfpSummaryCard } from "~/components/RfpSummaryCard";
@@ -53,6 +55,8 @@ interface BidDetail {
   learned: PriorLossBadge | null;
   /** Point of contact (owner 2026-10-19: paid plans only — never sent to anyone else). */
   contact: BidContact | null;
+  /** The viewer has an account (Basic after its trial), so the lock offers a plan, not a trial. */
+  signed_in: boolean;
 }
 
 interface BidContact {
@@ -84,7 +88,7 @@ async function loadContact(id: number): Promise<BidContact | null> {
 }
 
 /** The public bid fields the page (and Google) sees. No user data. */
-interface PublicBid extends Omit<BidDetail, "learned" | "contact"> {
+interface PublicBid extends Omit<BidDetail, "learned" | "contact" | "signed_in"> {
   state_name: string | null;
   /** For the "Get bids like this by email" box. */
   state_code: string | null;
@@ -238,8 +242,10 @@ const getBid = createServerFn({ method: "GET" })
       // visitors and Basic users get no banner. Failure → no banner.
       let learned: PriorLossBadge | null = null;
       let paid = false;
+      let signedIn = false;
       try {
         const user = await getCurrentUser();
+        signedIn = !!user;
         paid = await hasPaidBidAccess(user);
         if (user) {
           const tier = await effectiveAutopsyTier(user.id, user);
@@ -269,6 +275,7 @@ const getBid = createServerFn({ method: "GET" })
         head_start_until,
         learned,
         contact: paid ? await loadContact(id) : null,
+        signed_in: signedIn,
       };
     } catch (e) {
       console.error("[bid/$id] load failed:", e);
@@ -287,6 +294,7 @@ function BidDetailPage() {
   // False until this viewer's own check returns, so a member never sees the
   // locked panel flash first.
   const [checked, setChecked] = useState(false);
+  const [signedIn, setSignedIn] = useState(false);
   // The point of contact, for paid plans only (fetched per user, never in the HTML).
   // undefined until this viewer's own check returns, so a paying member never
   // sees the locked teaser flash first.
@@ -304,6 +312,7 @@ function BidDetailPage() {
         setLearned(b?.learned ?? null);
         setUnlockedUrl(b?.source_url ?? null);
         setChecked(true);
+        setSignedIn(!!b?.signed_in);
         setContact(b?.contact ?? null);
       });
     }
@@ -391,7 +400,7 @@ function BidDetailPage() {
               )}
               {membersOnly && (
                 <div className="px-5 py-3">
-                  <NoticeLock bidId={bid.id} />
+                  <NoticeLock bidId={bid.id} signedIn={signedIn} />
                 </div>
               )}
               {sourceUrl && (
@@ -578,22 +587,33 @@ export const Route = createFileRoute("/bid/$bidId")({
  * off the free tier"). Free accounts and visitors see what the job is; the
  * trial (no card) or a plan unlocks the link to act on it.
  */
-function NoticeLock({ bidId }: { bidId: number }) {
+function NoticeLock({ bidId, signedIn }: { bidId: number; signedIn: boolean }) {
   const next = encodeURIComponent(`/bid/${bidId}`);
   return (
     <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
       <p className="text-sm font-semibold text-amber-200">🔒 The official notice and bid documents are for members</p>
       <p className="mt-1 text-sm text-slate-300">
-        Start a free 7-day trial (no card) to open this notice, or get Starter for $5 your first month.
+        {signedIn
+          ? `Get Starter for $${STARTER_FIRST_MONTH_PRICE} your first month to open this notice and every other one.`
+          : `Start a free 7-day trial (no card) to open this notice, or get Starter for $${STARTER_FIRST_MONTH_PRICE} your first month.`}
       </p>
       <div className="mt-3 flex flex-wrap gap-3">
-        <a href={`/signup?next=${next}`} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400">
-          Start free trial
-        </a>
-        <a href="/upgrade?plan=starter" className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400">
-          See plans
-        </a>
+        {signedIn ? (
+          <a href="/upgrade?plan=starter" className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400">
+            Get Starter for ${STARTER_FIRST_MONTH_PRICE}
+          </a>
+        ) : (
+          <>
+            <a href={`/signup?next=${next}`} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400">
+              Start free trial
+            </a>
+            <a href="/upgrade?plan=starter" className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400">
+              See plans
+            </a>
+          </>
+        )}
       </div>
+      <FoundingSpotsLine where="notice_lock" className="mt-3 block text-sm font-semibold text-amber-300 hover:text-amber-200" />
     </div>
   );
 }

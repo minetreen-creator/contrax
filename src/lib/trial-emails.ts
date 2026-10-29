@@ -11,6 +11,7 @@
  * never had a trial. Every number in the email is the member's own count;
  * a zero count is left out rather than shown.
  */
+import { STARTER_FIRST_MONTH_PRICE } from "./starter-offer";
 import { DIGEST_TRIAL_DAYS } from "~/lib/digest-recipients";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -94,12 +95,12 @@ export function trialEmailContent(stage: TrialEmailStage, r: TrialRecap): { subj
     stage === "reminder" ? "Your Contrax trial ends soon" : "Your Contrax trial ended: your daily bid email is paused";
   const intro =
     stage === "reminder"
-      ? "Your 7-day Professional trial ends in the next 2 days. Here's where things stand:"
-      : "Your 7-day trial ended, so your account is now on free Basic. Search still works, but your daily bid email is paused and you can keep only 1 saved bid.";
+      ? "Your 7-day Professional trial ends in the next 2 days. When it does, official notice links lock on free Basic. Here's where things stand:"
+      : "Your 7-day trial ended, so your account is now on free Basic. You can still see what each bid is, but official notice links are locked, your daily bid email is paused and you can keep only 1 saved bid.";
   const close =
     stage === "reminder"
-      ? "Keep the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids with Starter for $19/month. Cancel anytime."
-      : "Starter brings back the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids for $19/month. Cancel anytime.";
+      ? `Keep official notice links, the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids with Starter: $${STARTER_FIRST_MONTH_PRICE} your first month, then $19/month. Cancel anytime.`
+      : `Starter unlocks official notice links again and brings back the daily bid email, every state and trade, unlimited saved bids and who to contact on federal bids: $${STARTER_FIRST_MONTH_PRICE} your first month, then $19/month. Cancel anytime.`;
   const cta = stage === "reminder" ? "Keep my bids coming" : "Pick up where I left off";
   const url = "https://www.contrax.company/upgrade?utm_source=email&utm_campaign=trial_" + stage;
   const list = lines.length ? `<ul style="margin:0 0 16px;padding-left:20px;color:#111827;font-size:15px;line-height:1.6;">${lines.map((l) => `<li>${escapeHtml(l)}</li>`).join("")}</ul>` : "";

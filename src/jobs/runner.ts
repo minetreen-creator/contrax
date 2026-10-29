@@ -137,6 +137,8 @@ import { fetchPaBidnetBids } from "./sources/pa-bidnet";
 import { fetchAlBidnetBids } from "./sources/al-bidnet";
 import { fetchAkBidnetBids } from "./sources/ak-bidnet";
 import { fetchAzBidnetBids } from "./sources/az-bidnet";
+import { fetchAzMaricopaBidnetBids } from "./sources/az-maricopa-bidnet";
+import { fetchAzMesaEngineeringBids } from "./sources/az-mesa-engineering";
 import { fetchArBidnetBids } from "./sources/ar-bidnet";
 import { fetchCoBidnetBids } from "./sources/co-bidnet";
 import { fetchCtBidnetBids } from "./sources/ct-bidnet";
@@ -651,6 +653,9 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "al_bidnet", fetchFn: () => fetchAlBidnetBids() }, // 15
   { name: "ak_bidnet", fetchFn: () => fetchAkBidnetBids() }, // 92
   { name: "az_bidnet", fetchFn: () => fetchAzBidnetBids() }, // 251
+  // Maricopa County's own BidNet page and Mesa Engineering's construction bids (owner 2026-10-29).
+  { name: "az_maricopa_bidnet", fetchFn: () => fetchAzMaricopaBidnetBids() },
+  { name: "az_mesa_engineering", fetchFn: () => fetchAzMesaEngineeringBids() },
   { name: "ar_bidnet", fetchFn: () => fetchArBidnetBids() }, // 180
   { name: "co_bidnet", fetchFn: () => fetchCoBidnetBids() }, // 397
   { name: "ct_bidnet", fetchFn: () => fetchCtBidnetBids() }, // 212

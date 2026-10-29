@@ -128,6 +128,14 @@ export interface BidNetGroupConfig {
    * reads 99 pages); every other group keeps the default.
    */
   passTimeoutMs?: number;
+  /**
+   * A single member agency's own BidNet page instead of a whole group (owner
+   * 2026-10-29: Maricopa County). Optional; every group config omits both and
+   * keeps "<groupName> (BidNet Direct)" and the row's own region, unchanged.
+   */
+  agencyName?: string;
+  /** The row's `location` for a member agency's page, e.g. "Maricopa County, AZ". */
+  locationName?: string;
 }
 
 /** One solicitation row of the list page, exactly as the page prints it. */
@@ -360,7 +368,7 @@ export function parseBidNetRowsFor(
       recordSkip(result, rowId, "closed");
       continue;
     }
-    const region = r.region || cfg.stateName;
+    const region = cfg.locationName ?? (r.region || cfg.stateName);
     const description = [
       `Listed by BidNet Direct (bidnetdirect.com), a private third-party bid service — not the State of ${cfg.stateName}'s procurement portal — in its ${cfg.groupName}.`,
       `Published ${r.published || "(not printed)"}; closing ${r.closing}.`,
@@ -370,7 +378,7 @@ export function parseBidNetRowsFor(
     result.rows.push({
       external_id: rowId,
       title: r.title,
-      agency: `${cfg.groupName} (BidNet Direct)`,
+      agency: cfg.agencyName ?? `${cfg.groupName} (BidNet Direct)`,
       description,
       location: region,
       // Contrax's own trade classification of the TITLE (the list publishes none).
@@ -521,7 +529,7 @@ export function createBidNetGroup(cfg: BidNetGroupConfig): BidNetGroup {
     idPrefix: cfg.idPrefix,
     origin: BIDNET_ORIGIN,
     listUrl,
-    agency: `${cfg.groupName} (BidNet Direct)`,
+    agency: cfg.agencyName ?? `${cfg.groupName} (BidNet Direct)`,
     maxPages,
     passTimeoutMs,
     listShapeOk: bidNetListShapeOk,

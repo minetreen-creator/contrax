@@ -773,6 +773,8 @@ jobs:
         run: bun test src/lib/us-territories.test.ts
       - name: Puerto Rico ASG portal (unit, deterministic, zero network)
         run: bun test src/jobs/sources/pr-asg.test.ts
+      - name: Mesa Engineering and Maricopa County BidNet boards (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/az-mesa-engineering.test.ts src/jobs/sources/az-maricopa-bidnet.test.ts
       - name: Miami-Dade County construction solicitations (unit, deterministic, zero network)
         run: bun test src/jobs/sources/fl-miami-dade.test.ts
       - name: Spanish trade terms (unit, deterministic, zero network)

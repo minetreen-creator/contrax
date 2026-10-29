@@ -61,6 +61,7 @@ export const LOCAL_AGENCIES: LocalAgency[] = [
   { source: "va_alexandria_bonfire", slug: "city-of-alexandria", name: "City of Alexandria" },
   { source: "va_botetourt_bonfire", slug: "botetourt-county", name: "Botetourt County" },
   { source: "fl_broward_bonfire", slug: "broward-county", name: "Broward County" },
+  { source: "fl_miami_dade", slug: "miami-dade-county", name: "Miami-Dade County" },
   { source: "nj_panynj_bonfire", slug: "port-authority-ny-nj", name: "Port Authority of New York and New Jersey" },
   { source: "tx_harris_bonfire", slug: "harris-county-tx", name: "Harris County, Texas" },
   { source: "fl_hillsborough_bonfire", slug: "hillsborough-county-fl", name: "Hillsborough County, Florida" },

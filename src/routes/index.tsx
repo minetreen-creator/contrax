@@ -3,6 +3,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { readFile } from "node:fs/promises";
 import { Radar, KanbanSquare, ArrowRight, FileSearch } from "lucide-react";
 import { HomeContractFinder } from "~/components/HomeContractFinder";
+import { FoundingWall } from "~/components/FoundingWall";
 import { MaxAssistant } from "~/components/MaxAssistant";
 import { MoneyCounter } from "~/components/MoneyCounter";
 import { NearYouCard } from "~/components/NearYouCard";
@@ -217,6 +218,8 @@ function Home() {
           you", the ZIP box, free tools) follow instead of competing up top. */}
       <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
       <HowItWorks />
+      {/* Founding Businesses wall (owner 2026-10-29); hidden until one is published. */}
+      <FoundingWall />
       <BidScoutCallout />
       {/* "What's open near you?" (owner 2026-10-21): real open-bid count for the
           visitor's state, client-fetched; renders nothing until it has one. */}

@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, useLocation } from "@tanstack/react-router";
 import { LaunchpadDashboardCard } from "~/components/LaunchpadDashboardCard";
 import { TrialEndedCard } from "~/components/TrialEndedCard";
+import { BasicUpgradeBar } from "~/components/BasicUpgradeBar";
 import { createServerFn } from "@tanstack/react-start";
 import { useState, useCallback, useEffect, useRef, useMemo, type ReactNode } from "react";
 import { sql } from "~/db";
@@ -1848,6 +1849,7 @@ function DashboardPage({ user, trial, onTrialStarted }: { user: AuthUser; trial:
         )}
 
         {trial?.active && <TrialBanner daysLeft={trial.daysLeft} planTier={trial.planTier} endsAt={trial.endsAt} />}
+        {trial?.trialEnded && <BasicUpgradeBar />}
         {trial?.trialEnded && <TrialEndedCard />}
         {trial?.active && <div className="mx-auto max-w-5xl px-4 pt-4"><TrialChecklist /></div>}
 

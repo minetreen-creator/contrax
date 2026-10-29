@@ -6,6 +6,7 @@ import { setAsideCardLabel, setAsideEvidence } from "~/lib/cert-matching";
 import { isCountdownSuppressed } from "~/lib/deadline-label";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import { US_PLACES } from "~/lib/states";
+import { BasicUpgradeBar } from "~/components/BasicUpgradeBar";
 import { NAICS_NAMES } from "~/lib/naics-names";
 import { trackEvent } from "~/lib/track";
 import { trackingIds } from "~/lib/visitor";
@@ -898,10 +899,11 @@ export const runRadarScan = createServerFn({ method: "POST" })
           const createdById = new Map(created.map((r) => [Number(r.id), r.created_at]));
           for (const card of cards) {
             const until = headStartUntil(createdById.get(card.id));
-            if (until) {
-              card.source_url = null;
-              card.head_start_until = until;
-            }
+            if (until) card.head_start_until = until;
+            // Owner 2026-10-29 ("no more living off the free tier"): the
+            // official notice link is for members (paid plans and active
+            // trials); free accounts and visitors open the bid's Contrax page.
+            card.source_url = null;
           }
         }
       }
@@ -1754,6 +1756,7 @@ function RadarLanding() {
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
+      <BasicUpgradeBar />
       <div className="mx-auto flex min-h-screen w-full max-w-xl flex-col px-5 py-4 sm:py-8">
 
         {step === 1 && (
@@ -2828,6 +2831,14 @@ export function RadarCard({
               className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-400 hover:text-amber-300"
             >
               Open original notice <span aria-hidden="true">↗</span>
+            </a>
+          )}
+          {!match.source_url && !match.head_start_until && (
+            <a
+              href={`/bid/${match.id}`}
+              className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-amber-400 hover:text-amber-300"
+            >
+              🔒 Official notice for members: details <span aria-hidden="true">→</span>
             </a>
           )}
         </div>

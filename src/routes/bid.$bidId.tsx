@@ -91,6 +91,8 @@ interface PublicBid extends Omit<BidDetail, "learned" | "contact"> {
   naics_code: string | null;
   /** True when a point of contact is on file — the details themselves are paid-only. */
   has_contact: boolean;
+  /** True when the bid has an official notice link — the link itself is members-only. */
+  has_link: boolean;
   /** Open bids like this one in the same state (src/lib/similar-bids.ts). */
   similar: SimilarBids;
 }
@@ -161,8 +163,10 @@ async function loadSimilar(id: number, state: string | null, naics: string | nul
  * Server-rendered page data (route loader). Public fields only: the paid
  * "learned from your loss" banner is per-user, so it is still fetched in the
  * browser by getBid below and never rendered into the HTML a crawler sees.
- * The public render is always the FREE view, so a bid in its paid head start
- * has no source link here; getBid unlocks it for paying members.
+ * The public render is always the FREE view, so it never carries the official
+ * notice link (owner 2026-10-29: "no more living off the free tier" — free
+ * accounts and visitors see what the job is, members get the link to act on
+ * it). getBid unlocks it for paying members and active trials.
  */
 const getPublicBid = createServerFn({ method: "GET" })
   .validator((d: unknown) => {
@@ -184,7 +188,7 @@ const getPublicBid = createServerFn({ method: "GET" })
       const location = r.location ? String(r.location) : null;
       const agency = r.agency ? String(r.agency) : null;
       const code = resolveBidState(location, agency);
-      const { source_url, head_start_until } = applyHeadStart(
+      const { head_start_until } = applyHeadStart(
         { source_url: r.source_url ? String(r.source_url) : null, created_at: r.created_at ?? null },
         false,
       );
@@ -197,7 +201,8 @@ const getPublicBid = createServerFn({ method: "GET" })
         set_aside: r.set_aside ? String(r.set_aside) : null,
         due_date: r.due_date ? new Date(r.due_date).toISOString() : null,
         estimated_value: r.estimated_value ? String(r.estimated_value) : null,
-        source_url,
+        source_url: null,
+        has_link: !!r.source_url,
         head_start_until,
         state_name: code ? (STATE_CODE_TO_NAME[code] ?? null) : null,
         state_code: code ?? null,
@@ -259,7 +264,8 @@ const getBid = createServerFn({ method: "GET" })
         set_aside: r.set_aside ? String(r.set_aside) : null,
         due_date: r.due_date ? String(r.due_date) : null,
         estimated_value: r.estimated_value ? String(r.estimated_value) : null,
-        source_url,
+        // Members only (paid plans and active trials); see getPublicBid.
+        source_url: paid ? source_url : null,
         head_start_until,
         learned,
         contact: paid ? await loadContact(id) : null,
@@ -278,6 +284,9 @@ function BidDetailPage() {
   // A paying member's own view of the bid unlocks a head-start link the
   // public render withheld.
   const [unlockedUrl, setUnlockedUrl] = useState<string | null>(null);
+  // False until this viewer's own check returns, so a member never sees the
+  // locked panel flash first.
+  const [checked, setChecked] = useState(false);
   // The point of contact, for paid plans only (fetched per user, never in the HTML).
   // undefined until this viewer's own check returns, so a paying member never
   // sees the locked teaser flash first.
@@ -287,12 +296,14 @@ function BidDetailPage() {
     let active = true;
     setLearned(null);
     setUnlockedUrl(null);
+    setChecked(false);
     setContact(undefined);
     if (bidId > 0) {
       getBid({ data: { id: bidId } }).then((b) => {
         if (!active) return;
         setLearned(b?.learned ?? null);
         setUnlockedUrl(b?.source_url ?? null);
+        setChecked(true);
         setContact(b?.contact ?? null);
       });
     }
@@ -303,6 +314,7 @@ function BidDetailPage() {
   const stateHref = stateLandingPath(bid?.state_name);
   const sourceUrl = bid?.source_url ?? unlockedUrl;
   const locked = !!bid?.head_start_until && !sourceUrl;
+  const membersOnly = !!bid?.has_link && !locked && !sourceUrl && checked;
 
   const due = bid?.due_date
     ? new Date(bid.due_date).toLocaleDateString("en-US", {
@@ -375,6 +387,11 @@ function BidDetailPage() {
               {locked && (
                 <div className="px-5 py-3">
                   <HeadStartLock until={bid.head_start_until!} />
+                </div>
+              )}
+              {membersOnly && (
+                <div className="px-5 py-3">
+                  <NoticeLock bidId={bid.id} />
                 </div>
               )}
               {sourceUrl && (
@@ -555,3 +572,29 @@ export const Route = createFileRoute("/bid/$bidId")({
   },
   component: BidDetailPage,
 });
+
+/**
+ * The official notice link is for members (owner 2026-10-29: "no more living
+ * off the free tier"). Free accounts and visitors see what the job is; the
+ * trial (no card) or a plan unlocks the link to act on it.
+ */
+function NoticeLock({ bidId }: { bidId: number }) {
+  const next = encodeURIComponent(`/bid/${bidId}`);
+  return (
+    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3">
+      <p className="text-sm font-semibold text-amber-200">🔒 The official notice and bid documents are for members</p>
+      <p className="mt-1 text-sm text-slate-300">
+        Start a free 7-day trial (no card) to open this notice, or get Starter for $5 your first month.
+      </p>
+      <div className="mt-3 flex flex-wrap gap-3">
+        <a href={`/signup?next=${next}`} className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400">
+          Start free trial
+        </a>
+        <a href="/upgrade?plan=starter" className="rounded-lg border border-slate-600 px-4 py-2 text-sm font-semibold text-slate-200 hover:border-slate-400">
+          See plans
+        </a>
+      </div>
+    </div>
+  );
+}
+

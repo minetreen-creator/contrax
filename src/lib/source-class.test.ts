@@ -87,7 +87,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + fourteen New Jersey CivicEngage boards, 2026-10-28 (285 → 299).
     // + Port Authority of NY & NJ Bonfire board, 2026-10-28 (299 → 300).
     // + Puerto Rico ASG portal, 2026-10-28 (300 → 301).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(301);
+    // + Miami-Dade County construction solicitations, 2026-10-29 (301 → 302).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(302);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -167,7 +168,8 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + fourteen New Jersey CivicEngage boards, 2026-10-28 (203 → 217).
     // + Port Authority of NY & NJ Bonfire board, 2026-10-28 (217 → 218).
     // + Puerto Rico ASG portal, 2026-10-28 (218 → 219).
-    expect(TAIL_SOURCES.length).toBe(219);
+    // + Miami-Dade County construction solicitations, 2026-10-29 (219 → 220).
+    expect(TAIL_SOURCES.length).toBe(220);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

@@ -84,6 +84,7 @@ import { fetchNyNyscrBids } from "./sources/ny-nyscr";
 import { fetchMiSigmaBids } from "./sources/mi-sigma";
 import { PERISCOPE_TAIL_SOURCES } from "./sources/periscope-states";
 import { fetchPrAsgBids } from "./sources/pr-asg";
+import { fetchFlMiamiDadeBids } from "./sources/fl-miami-dade";
 import { isBidnetRefusal, isBidnetSource, planBidnetSources } from "./bidnet-cadence";
 import { fetchGaGprBids } from "./sources/ga-gpr";
 import { fetchWvOasisBids } from "./sources/wv-oasis";
@@ -542,6 +543,8 @@ export const TAIL_SOURCES: SyncSource[] = [
   { name: "va_botetourt_bonfire", fetchFn: fetchVaBotetourtBonfireBids },
   { name: "fl_broward_bonfire", fetchFn: fetchFlBrowardBonfireBids },
   { name: "nj_panynj_bonfire", fetchFn: fetchNjPanynjBonfireBids },
+  // Miami-Dade County construction solicitations (owner 2026-10-29; fl-miami-dade.ts).
+  { name: "fl_miami_dade", fetchFn: () => fetchFlMiamiDadeBids() },
   // Ten more county/city Bonfire boards (owner 2026-10-27; county-bonfire-boards.ts).
   ...COUNTY_BONFIRE_SOURCES,
   // Eighteen county/city CivicEngage boards (owner 2026-10-27; county-civicengage-boards.ts).

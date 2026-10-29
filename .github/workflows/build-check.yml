@@ -773,6 +773,8 @@ jobs:
         run: bun test src/lib/us-territories.test.ts
       - name: Puerto Rico ASG portal (unit, deterministic, zero network)
         run: bun test src/jobs/sources/pr-asg.test.ts
+      - name: Miami-Dade County construction solicitations (unit, deterministic, zero network)
+        run: bun test src/jobs/sources/fl-miami-dade.test.ts
       - name: Spanish trade terms (unit, deterministic, zero network)
         run: bun test src/lib/spanish-trade-terms.test.ts
       - name: Homepage English/Español copy (unit, deterministic, zero network)

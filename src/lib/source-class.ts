@@ -660,6 +660,15 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Miami-Dade County Strategic Procurement, construction solicitations
+  // (src/jobs/sources/fl-miami-dade.ts; owner 2026-10-29).
+  fl_miami_dade: {
+    class: "local",
+    city: "Miami-Dade County",
+    scopeState: "FL",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   // Bi-state agency (owner 2026-10-28). Listed under New Jersey for its agency
   // page; each row's own state comes from the facility in its title.
   nj_panynj_bonfire: {

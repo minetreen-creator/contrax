@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { bidFitReviewHref } from "~/lib/bid-fit-review-link";
 import { createServerFn } from "@tanstack/react-start";
 import { FoundingSpotsLine } from "~/components/FoundingSpotsLine";
+import { WinnerPriceLine } from "~/components/WinnerPriceLine";
+import { deriveWinnerPrice } from "~/lib/winner-price";
+import type { FPDSIntel } from "~/lib/fpds";
 import { STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
 import { useEffect, useState } from "react";
 import { sql } from "~/db";
@@ -283,6 +286,48 @@ const getBid = createServerFn({ method: "GET" })
     }
   });
 
+/**
+ * "What's this job worth?" (owner 2026-10-29): who won this work last time and
+ * for how much, from public FPDS / USAspending records (the same lookup Radar
+ * cards use, cached in fpds_lookups). Members get the line; everyone else
+ * learns only that a record exists, so the response never carries the winner
+ * or amount for a free viewer. Rate-limited per IP because the first lookup
+ * for a bid calls USAspending.
+ */
+const getBidPriceIntel = createServerFn({ method: "GET" })
+  .validator((d: unknown) => {
+    const id = Number((d as any)?.id);
+    return Number.isInteger(id) && id > 0 ? id : -1;
+  })
+  .handler(async ({ data: id }): Promise<{ intel: FPDSIntel | null; hasRecord: boolean }> => {
+    const none = { intel: null, hasRecord: false };
+    if (id <= 0) return none;
+    try {
+      const { getRequest } = await import("@tanstack/react-start/server");
+      const { checkIpLimit } = await import("~/lib/rate-limit");
+      const limit = await checkIpLimit(getRequest(), "bid-price-intel", 60, 3600);
+      if (!limit.allowed) return none;
+      const rows = (await sql()`
+        SELECT title, agency, naics_code, source, external_id FROM bids WHERE id = ${id} LIMIT 1
+      `) as { title: string | null; agency: string | null; naics_code: string | null; source: string | null; external_id: string | null }[];
+      const r = rows[0];
+      if (!r?.naics_code) return none;
+      const { lookupFPDSIntel, FPDS_RADAR_LOOKUP_TIMEOUT_MS } = await import("~/lib/fpds");
+      const res = await lookupFPDSIntel(r.naics_code, r.agency ?? "", r.title ?? "", {
+        totalTimeoutMs: FPDS_RADAR_LOOKUP_TIMEOUT_MS,
+        key: { source: r.source, opportunityId: r.external_id },
+      });
+      const intel = res.status === "ok" ? res.intel : null;
+      const hasRecord = !!deriveWinnerPrice(intel, null);
+      if (!hasRecord) return none;
+      const paid = await hasPaidBidAccess(await getCurrentUser());
+      return { intel: paid ? intel : null, hasRecord: true };
+    } catch (e) {
+      console.error("[bid/$id] price intel failed (nothing shown):", e);
+      return none;
+    }
+  });
+
 function BidDetailPage() {
   const bid = Route.useLoaderData();
   const bidId = bid?.id ?? 0;
@@ -295,6 +340,7 @@ function BidDetailPage() {
   // locked panel flash first.
   const [checked, setChecked] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [price, setPrice] = useState<{ intel: FPDSIntel | null; hasRecord: boolean } | null>(null);
   // The point of contact, for paid plans only (fetched per user, never in the HTML).
   // undefined until this viewer's own check returns, so a paying member never
   // sees the locked teaser flash first.
@@ -306,7 +352,15 @@ function BidDetailPage() {
     setUnlockedUrl(null);
     setChecked(false);
     setContact(undefined);
+    setPrice(null);
     if (bidId > 0) {
+      getBidPriceIntel({ data: { id: bidId } })
+        .then((p) => {
+          if (!active) return;
+          setPrice(p);
+          if (p.hasRecord) trackEvent("bid_price_intel_shown", p.intel ? "full" : "teaser");
+        })
+        .catch(() => {});
       getBid({ data: { id: bidId } }).then((b) => {
         if (!active) return;
         setLearned(b?.learned ?? null);
@@ -424,6 +478,23 @@ function BidDetailPage() {
                 </div>
               )}
               {bid.has_contact && contact !== undefined && <BidContactPanel contact={contact} bidId={bid.id} />}
+              {price?.hasRecord && (
+                <div className="px-5 pb-4">
+                  {price.intel ? (
+                    <WinnerPriceLine intel={price.intel} paidAccess revealed />
+                  ) : (
+                    <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-3">
+                      <p className="text-sm font-semibold text-emerald-200">🏆 What's this job worth? We found who won it last time.</p>
+                      <p className="mt-1 text-sm text-slate-300">
+                        See who won the prior contract for this work and what they were paid, straight from public government records.
+                      </p>
+                      <a href="/upgrade?plan=starter" className="mt-2 inline-block text-sm font-semibold text-emerald-300 hover:text-emerald-200">
+                        Unlock with Starter, ${STARTER_FIRST_MONTH_PRICE} your first month →
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
             </article>
 
             <SimilarBidsBox

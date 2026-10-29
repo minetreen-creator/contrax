@@ -302,6 +302,22 @@ export async function queryRecompetes(q: { trade: string; state: string | null; 
   return { count: c.n, total: c.total, rows: (rows as Record<string, unknown>[]).map(rowToRecompete) };
 }
 
+/**
+ * The biggest federal contracts in one state (any trade) ending within
+ * `months` (owner 2026-10-29: "contracts ending near you" on the homepage).
+ * Null state = nationwide.
+ */
+export async function endingSoonForState(state: string | null, months: number, limit: number): Promise<Recompete[]> {
+  await ensureFederalTradeTables();
+  const s = sql();
+  const statePred = state ? s`AND pop_state = ${state}` : s``;
+  const until = addMonths(new Date().toISOString().slice(0, 10), months);
+  const rows = await s`SELECT * FROM recompete_contracts
+    WHERE end_date >= CURRENT_DATE AND end_date <= ${until} ${statePred}
+    ORDER BY amount DESC LIMIT ${limit}`;
+  return (rows as Record<string, unknown>[]).map(rowToRecompete);
+}
+
 /** Latest fiscal year's spending for a trade in a state, or null when none is stored. */
 export async function tradeSpendingFor(trade: string, state: string): Promise<TradeSpending | null> {
   await ensureFederalTradeTables();

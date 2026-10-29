@@ -1654,5 +1654,26 @@
       "url": "https://businesswire.com/news/home/20260323322230/en/Wilmington-PharmaTech-Launches-%2450-Million-Expansion-to-Double-U.S.-Small-Molecule-API-Manufacturing-Capacity-in-Delaware"
     },
     "checked": "2026-10-26"
+  },
+  {
+    "slug": "honeywell-aerospace-tempe-az",
+    "company": "Honeywell Aerospace",
+    "project": "Tempe advanced manufacturing plant",
+    "city": "Tempe",
+    "state": "AZ",
+    "sector": "aerospace-defense",
+    "amount": 500000000,
+    "amountNote": null,
+    "jobs": 600,
+    "jobsNote": "permanent, plus about 1,000 construction jobs",
+    "status": "Announced Oct 28, 2026; opening planned for late 2028",
+    "summary": "A 300,000-square-foot plant on Honeywell's existing Tempe campus for complex machining and defense production.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "ABC15 Arizona, Oct 2026",
+      "url": "https://www.abc15.com/news/region-southeast-valley/tempe/honeywell-aerospace-to-build-500-million-advanced-manufacturing-facility-in-tempe-adding-600-jobs"
+    },
+    "checked": "2026-10-29"
   }
 ]

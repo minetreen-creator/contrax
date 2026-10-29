@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState, type MouseEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { BidValueCalculator } from "~/components/BidValueCalculator";
@@ -8,6 +8,9 @@ import { SiteHeader } from "~/components/SiteHeader";
 import { PLAN_COPY, upgradeFeatures } from "~/lib/plan-features";
 import { redirectToCheckout } from "~/lib/checkout";
 import { STARTER_FIRST_MONTH_NOTE, STARTER_FIRST_MONTH_PRICE } from "~/lib/starter-offer";
+import { STATE_NAMES } from "~/lib/contract-map";
+import { getNearYou, type NearYou } from "~/lib/near-you";
+import { trackEvent } from "~/lib/track";
 
 const getGrantsPricingData = createServerFn({ method: "GET" }).handler(async () => {
   const grantsUpgradeEnabled = resolveGrantsUpgradeEnabled(
@@ -202,6 +205,29 @@ function PricingPage() {
   // Owner 2026-10-19 (item 3): same Monthly/Yearly switch as /upgrade. The
   // displayed price swaps in place; monthly is the default.
   const [interval, setInterval] = useState<"month" | "year">("month");
+  // Owner 2026-10-29 ("The New York visitor visited pricing and left"): half of
+  // pricing visitors left from it within seconds, and on a phone the first
+  // screen had no price and no button. The hero now carries the visitor's own
+  // state's live open-bid count and the Starter button; client-fetched so the
+  // page stays cacheable, and nothing renders until there is a real count.
+  const [near, setNear] = useState<NearYou | null>(null);
+  useEffect(() => {
+    let alive = true;
+    getNearYou()
+      .then((d) => {
+        if (alive && d.state && d.open > 0) setNear(d);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const starterHref = plans.find((p) => p.slug === "starter")?.href ?? "/signup?plan=starter";
+  const startStarter = (where: string) => (e: MouseEvent) => {
+    trackEvent("pricing_starter_click", where);
+    e.preventDefault();
+    void redirectToCheckout("starter");
+  };
   return (
     <div className="min-h-screen bg-white">
       <script
@@ -221,6 +247,30 @@ function PricingPage() {
             <p className="mt-4 text-lg text-gray-600">
               Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM, for $5 your first month. Every new account also gets a 7-day Professional trial, no credit card. Cancel anytime.
             </p>
+            {near && (
+              <p className="mt-5 text-base font-semibold text-slate-900">
+                📍 {near.open.toLocaleString("en-US")} government bids open right now in {STATE_NAMES[near.state] ?? near.state}
+                {near.newToday > 0 && (
+                  <span className="text-emerald-700"> · {near.newToday.toLocaleString("en-US")} new today</span>
+                )}
+              </p>
+            )}
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <a
+                href={starterHref}
+                onClick={startStarter("hero")}
+                className="inline-block w-full max-w-sm rounded-xl bg-amber-500 px-6 py-4 text-center text-base font-bold text-white shadow-md transition hover:bg-amber-400 active:scale-[0.98]"
+              >
+                Start Starter for ${STARTER_FIRST_MONTH_PRICE} →
+              </a>
+              <a
+                href="/signup"
+                onClick={() => trackEvent("pricing_trial_click", "hero")}
+                className="text-sm font-semibold text-blue-700 hover:text-blue-600"
+              >
+                Or try Professional free for 7 days, no card
+              </a>
+            </div>
           </div>
 
           {/* Billing period (owner 2026-10-19, item 3) — mirrors /upgrade. */}
@@ -292,6 +342,17 @@ function PricingPage() {
                     </p>
                   )}
                 </div>
+                {/* Phones: the Starter button right under the price, so buying
+                    never means scrolling past the whole feature list. */}
+                {plan.slug === "starter" && interval === "month" && (
+                  <a
+                    href={plan.href}
+                    onClick={startStarter("card_top")}
+                    className="mb-4 block w-full rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-white transition-all active:scale-[0.98] md:hidden"
+                  >
+                    Start Starter for ${STARTER_FIRST_MONTH_PRICE}
+                  </a>
+                )}
                 {/* Owner 2026-10-19 (item 1): value anchor, directly under the price. */}
                 {plan.slug !== "agency" && (
                   <p className="mb-6 text-xs leading-relaxed text-gray-500">{VALUE_ANCHOR}</p>

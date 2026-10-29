@@ -8,7 +8,6 @@ import {
   CLICK_IP_WINDOW,
 } from "~/lib/radar-lead-clicks";
 import { checkIpLimit } from "~/lib/rate-limit";
-import { headStartUntil } from "~/lib/head-start";
 
 /**
  * GET /api/radar/opportunity-click?bid=<id>&token=<unsubscribe_token>
@@ -67,10 +66,12 @@ async function handler({ request }: { request: Request }) {
     let sourceUrl: string | null = null;
     try {
       const bid = (await sql()`
-        SELECT source_url, created_at FROM bids WHERE id = ${bidId} LIMIT 1
-      `) as Array<{ source_url: string | null; created_at: string | null }>;
-      sourceUrl = bid[0]?.source_url ?? null;
-      if (bid[0] && headStartUntil(bid[0].created_at)) sourceUrl = `https://www.contrax.company/bid/${bidId}`;
+        SELECT id FROM bids WHERE id = ${bidId} LIMIT 1
+      `) as Array<{ id: number }>;
+      // Free Radar alerts open the bid's Contrax page, never the official
+      // notice: that link is for members (owner 2026-10-29, "no more living off
+      // the free tier"). The page applies the members-only lock.
+      if (bid[0]) sourceUrl = `https://www.contrax.company/bid/${bidId}`;
     } catch (e) {
       console.error("[api/radar/opportunity-click] bid lookup failed (redirecting anyway):", (e as Error).message);
     }

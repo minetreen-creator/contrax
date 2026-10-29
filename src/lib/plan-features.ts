@@ -11,9 +11,10 @@ export interface PlanCopy {
 
 export const PLAN_COPY = {
   basic: {
-    description: "Where your account lands after the 7-day trial if you don't choose a plan: search only.",
+    description: "Where your account lands after the 7-day trial if you don't choose a plan: look around only.",
     features: [
-      "Search every open solicitation (new bids after a 7-day head start)",
+      "See every open solicitation (new bids after a 7-day head start)",
+      "Official notice links and bid documents are for members",
       "2 Radar searches per account",
       "Bid matches for 1 state and 1 trade",
       "1 Saved Bid",
@@ -25,6 +26,7 @@ export const PLAN_COPY = {
     description: "The new bids in your trade and states, in your inbox each morning, 7 days before free accounts see them.",
     features: [
       "Everything in Basic",
+      "Open the official notice and bid documents for every bid",
       "New bids the day they post, 7 days before free accounts",
       "A 6 AM email of new bids in your trade and states",
       "Bid matches for every state and trade you work in",

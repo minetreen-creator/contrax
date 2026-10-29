@@ -129,6 +129,9 @@ export interface SeoBid {
 }
 
 export function mapSeoBid(r: any): SeoBid {
+  // Public pages never carry the official notice link (owner 2026-10-29: "no
+  // more living off the free tier"); each card links to /bid/{id}, where
+  // members and trials get it.
   return applyHeadStart({
     id: Number(r.id),
     title: String(r.title ?? ""),
@@ -139,7 +142,7 @@ export function mapSeoBid(r: any): SeoBid {
     naics_code: r.naics_code ? String(r.naics_code) : null,
     location: r.location ? String(r.location) : null,
     set_aside: r.set_aside ? String(r.set_aside) : null,
-    source_url: r.source_url ? String(r.source_url) : null,
+    source_url: null,
     source: r.source ? String(r.source) : null,
     created_at: r.created_at ?? null,
   }, false);
@@ -675,12 +678,13 @@ export function BidCard({ b }: { b: SeoBid }) {
           </span>
         </a>
       ) : (
-        <div>
+        <a href={`/bid/${b.id}`} className="block transition-colors hover:text-blue-700">
           {title}
           <span className="mt-0.5 block truncate text-xs text-slate-500">
             {b.agency || "Federal agency"}
+            {b.location ? ` · ${b.location}` : ""}
           </span>
-        </div>
+        </a>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-600">
         {due && (

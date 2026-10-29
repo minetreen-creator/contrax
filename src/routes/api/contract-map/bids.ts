@@ -54,7 +54,8 @@ async function handler({ request }: { request: Request }) {
         set_aside: r.set_aside,
         estimated_value: r.estimated_value,
         due_date: r.due_date ? new Date(r.due_date).toISOString() : null,
-        source_url: r.source_url,
+        // Public endpoint: the official link is members-only (owner 2026-10-29).
+        source_url: null,
       }));
     return Response.json({
       state,

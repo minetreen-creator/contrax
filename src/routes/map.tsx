@@ -106,7 +106,9 @@ const getStateBids = createServerFn({ method: "GET" })
         set_aside: r.set_aside,
         estimated_value: r.estimated_value,
         due_date: r.due_date ? new Date(r.due_date).toISOString() : null,
-        source_url: r.source_url,
+        // Public map: the official link is members-only (owner 2026-10-29);
+        // the card links to /bid/{id}, which unlocks it for members.
+        source_url: null as string | null,
         source: r.source ? String(r.source) : null,
       }));
     return {
@@ -209,16 +211,9 @@ function BidCard({ bid }: { bid: DrillBid }) {
         {bid.estimated_value ? <span>{bid.estimated_value}</span> : null}
         <span>Due {publishedDateOnlyFor(bid.due_date, bid.source) ?? fmtDate(bid.due_date)}</span>
       </div>
-      {bid.source_url ? (
-        <a
-          href={bid.source_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-3 inline-block text-xs font-medium text-sky-300 hover:text-sky-200"
-        >
-          Open original notice &rarr;
-        </a>
-      ) : null}
+      <a href={`/bid/${bid.id}`} className="mt-3 inline-block text-xs font-medium text-sky-300 hover:text-sky-200">
+        Details on Contrax &rarr;
+      </a>
     </div>
   );
 }

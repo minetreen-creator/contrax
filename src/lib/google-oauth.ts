@@ -39,8 +39,10 @@ export const getGoogleAuthUrl = createServerFn({ method: "GET" }).handler(async 
     redirect_uri: GOOGLE_REDIRECT_URI,
     response_type: "code",
     scope: "openid email profile",
-    access_type: "offline",
-    prompt: "consent",
+    // Sign-in only: no refresh token is stored, so no offline access, and the
+    // account picker instead of the full consent screen on every visit
+    // (owner 2026-10-29: 3 Google taps, 1 account made).
+    prompt: "select_account",
   });
 
   return `${GOOGLE_AUTH_ENDPOINT}?${params.toString()}`;

@@ -930,6 +930,29 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     searchScope: "city-open-data",
     recordType: "opportunity",
   },
+  // Tempe's Bonfire board, Mesa Engineering's construction bids and Maricopa
+  // County's own BidNet page (owner 2026-10-29).
+  az_tempe_bonfire: {
+    class: "local",
+    city: "Tempe",
+    scopeState: "AZ",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  az_mesa_engineering: {
+    class: "local",
+    city: "Mesa",
+    scopeState: "AZ",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  az_maricopa_bidnet: {
+    class: "local",
+    city: "Maricopa County",
+    scopeState: "AZ",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
   az_sedona_bonfire: {
     class: "local",
     city: "Sedona",

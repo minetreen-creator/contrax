@@ -49,6 +49,7 @@ const BOARDS: Board[] = [
   { tenant: "peoriaaz", source: "az_peoria_bonfire", stateName: "Arizona", place: "Peoria", buyer: "City of Peoria, Arizona", idPrefix: "peoriaazbonfire" },
   { tenant: "scottsdaleaz", source: "az_scottsdale_bonfire", stateName: "Arizona", place: "Scottsdale", buyer: "City of Scottsdale, Arizona", idPrefix: "scottsdaleazbonfire" },
   { tenant: "goodyearaz", source: "az_goodyear_bonfire", stateName: "Arizona", place: "Goodyear", buyer: "City of Goodyear, Arizona", idPrefix: "goodyearazbonfire" },
+  { tenant: "tempe-gov", source: "az_tempe_bonfire", stateName: "Arizona", place: "Tempe", buyer: "City of Tempe, Arizona", idPrefix: "tempegovbonfire" },
   { tenant: "pinalcountyaz", source: "az_pinal_bonfire", stateName: "Arizona", place: "Pinal County", buyer: "Pinal County, Arizona", idPrefix: "pinalcountyazbonfire" },
   { tenant: "sedonaaz", source: "az_sedona_bonfire", stateName: "Arizona", place: "Sedona", buyer: "City of Sedona, Arizona", idPrefix: "sedonaazbonfire" },
   // Missouri (owner 2026-10-27).

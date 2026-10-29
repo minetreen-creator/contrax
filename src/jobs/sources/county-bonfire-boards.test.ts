@@ -14,7 +14,7 @@ const capture = (tenant: string, n: number) => {
 const tenantOf = (host: string) => host.replace("https://", "").replace(".bonfirehub.com", "");
 const now = Date.parse("2026-10-27T02:00:00Z");
 
-// Open projects in each 2026-10-27 capture.
+// Open projects in each 2026-10-27 capture (Tempe: 2026-10-29).
 const CAPTURED: Record<string, number> = {
   tx_harris_bonfire: 34,
   fl_hillsborough_bonfire: 20,
@@ -33,6 +33,7 @@ const CAPTURED: Record<string, number> = {
   az_peoria_bonfire: 2,
   az_scottsdale_bonfire: 5,
   az_goodyear_bonfire: 1,
+  az_tempe_bonfire: 6,
   mo_kansas_city_bonfire: 7,
   mo_st_louis_county_bonfire: 9,
   mo_jackson_county_bonfire: 12,
@@ -42,10 +43,10 @@ const CAPTURED: Record<string, number> = {
 const NO_CAPTURE = new Set(["az_pinal_bonfire", "az_sedona_bonfire", "mo_slps_bonfire"]);
 
 describe("county Bonfire boards", () => {
-  test("twenty-four boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(24);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(24);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(24);
+  test("twenty-five boards, unique sources and id prefixes", () => {
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(25);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(25);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(25);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

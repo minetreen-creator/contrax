@@ -14,7 +14,7 @@ const capture = (tenant: string, n: number) => {
 const tenantOf = (host: string) => host.replace("https://", "").replace(".bonfirehub.com", "");
 const now = Date.parse("2026-10-27T02:00:00Z");
 
-// Open projects in each 2026-10-27 capture (Tempe: 2026-10-29).
+// Open projects in each 2026-10-27 capture (Tempe: 2026-10-29; the boards from md_harford_bonfire on: 2026-10-30).
 const CAPTURED: Record<string, number> = {
   tx_harris_bonfire: 34,
   fl_hillsborough_bonfire: 20,
@@ -38,15 +38,41 @@ const CAPTURED: Record<string, number> = {
   mo_st_louis_county_bonfire: 9,
   mo_jackson_county_bonfire: 12,
   mo_jefferson_city_bonfire: 5,
+  md_harford_bonfire: 5,
+  md_stadium_authority_bonfire: 1,
+  co_boulder_county_bonfire: 11,
+  oh_akron_bonfire: 6,
+  oh_cincinnati_bonfire: 6,
+  oh_westerville_bonfire: 3,
+  tx_galveston_county_bonfire: 4,
+  tx_lewisville_bonfire: 3,
+  az_cochise_county_bonfire: 5,
+  id_bannock_county_bonfire: 1,
+  nm_bernalillo_county_bonfire: 1,
+  ny_rockland_county_bonfire: 6,
+  pa_allegheny_dhs_bonfire: 1,
+  ga_cobb_schools_bonfire: 14,
+  va_fairfax_eda_bonfire: 1,
+  sc_charleston_county_bonfire: 2,
+  nc_wake_county_bonfire: 1,
+  nc_charlotte_bonfire: 29,
+  ga_chatham_county_bonfire: 12,
+  ga_floyd_county_bonfire: 2,
+  ga_roswell_bonfire: 3,
+  wv_marshall_university_bonfire: 1,
 };
-// Real Arizona tenants with nothing open at capture (portal title confirmed), so no file.
-const NO_CAPTURE = new Set(["az_pinal_bonfire", "az_sedona_bonfire", "mo_slps_bonfire"]);
+// Real tenants with nothing open at capture (portal title confirmed), so no file.
+const NO_CAPTURE = new Set([
+  "az_pinal_bonfire", "az_sedona_bonfire", "mo_slps_bonfire",
+  "tx_lubbock_county_bonfire", "tx_reeves_county_bonfire", "tx_hutchins_bonfire", "id_meridian_bonfire",
+  "mi_muskegon_county_bonfire", "ca_solano_county_bonfire", "ga_paulding_schools_bonfire",
+]);
 
 describe("county Bonfire boards", () => {
-  test("twenty-five boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(25);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(25);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(25);
+  test("fifty-four boards, unique sources and id prefixes", () => {
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(54);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(54);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(54);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

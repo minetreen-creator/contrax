@@ -59,3 +59,28 @@ Cherry Hill 16, Trenton 7, Cranford 13, Fort Lee 3, West Orange 3, Princeton 3,
 Millville 4, Livingston 2, Mahwah 4, Wall 1, Ridgewood 2, Westfield 1,
 Montgomery 1, East Brunswick 1. Cherry Hill's www.cherryhill-nj.com redirects to
 www.chnj.gov, which is read directly.
+
+Montana and South Carolina, captured 2026-10-30 (owner: "find more Montana boards too", "what about SC").
+About 25 Montana and 35 South Carolina city and county sites were checked for a public CivicEngage
+bids.aspx board. Parsed open counts: Billings 5, Missoula 4, Butte-Silver Bow 5 (www.co.silverbow.mt.us
+redirects to www.bsbmt.gov, which is read directly), Kalispell 1, Cascade County 1, City of Charleston 7.
+Gallatin County, Spartanburg, Mount Pleasant (www.tompsc.com), Summerville and Fort Mill are CivicEngage
+boards with nothing open at capture, so they are scheduled with no file. Bozeman, Belgrade, Livingston, Aiken
+County, Rock Hill, Spartanburg County, Beaufort County, York County, Dorchester County, Berkeley County,
+Simpsonville and Kershaw County answered 403 to a plain request and are not read.
+
+North Carolina, Georgia and West Virginia, captured 2026-10-30 (owner: "and NC", "and GA", "then WVA").
+About 125 city and county sites were checked. Parsed open counts: Apex 5, Winston-Salem 19 (18 still open by the
+capture time), Brunswick County 6, Peachtree City 1, Lowndes County 1, Lawrenceville 1, Newnan 4, Liberty County 4
+(www.libertycountyga.com redirects to www.libertycountyga.gov, read directly), Fairmont 3, Berkeley County WV 1.
+New Hanover County, Burlington, Iredell County, Jacksonville NC, Rowan County, Savannah, Athens-Clarke, Douglas
+County, Coweta County, Carroll County, Effingham County, Dawson County, Jackson County GA, Rome, Vienna, Weirton
+and Morgantown are CivicEngage boards with nothing open at capture, so they are scheduled with no file.
+
+Tennessee, captured 2026-10-30 (owner: "and Tennessee"). About 67 city and county sites were checked; no
+Tennessee Bonfire tenant was found beyond Montgomery County (already read). Parsed open counts: Pigeon Forge 2,
+La Vergne 1, Mt. Juliet 1, Spring Hill 2, Cookeville 3, Oak Ridge 2, Lebanon 1. Gallatin, Cleveland, Goodlettsville,
+White House, Springfield, Wilson County, Maury County, Washington County and Coffee County are CivicEngage boards
+with nothing open at capture, scheduled with no file. Lawrenceburg's board lists only its purchasing policy and an
+undated RFQ, and Williamson County's says "Bid postings have moved", so neither is read. Bristol and Dyersburg
+answered 403 to a plain request.

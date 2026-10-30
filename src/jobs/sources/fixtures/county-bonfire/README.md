@@ -47,3 +47,15 @@ retrieved twice 6 s apart by a GitHub Actions job and written byte-for-byte.
 intent to release an RFP, and a development lease offering) and are skipped.
 Read by src/jobs/sources/nj-panynj-bonfire.ts, which places each row by the
 facility its title names.
+
+More boards, captured 2026-10-30 by the same job pattern (owner: "we need those bonfire counties", "what about SC").
+Open projects per tenant; both fetches matched for every tenant. Tenants with 0 open are scheduled with no file.
+harfordcountymd 5, mdstad 1, bouldercounty 11, akronohio 6, cincinnati-oh 6, westerville 3, galvestoncountytx 4,
+cityoflewisville 3, cochise 5, bannockcounty 1, bernco 1, rocklandgov 6, alleghenycountydhs 1, cobbk12 14,
+fairfaxcountyeda 1, charlestoncounty 2; lubbock, reevescounty, cityofhutchins, meridiancity, muskegoncounty and
+solanocounty had 0 open. No other South Carolina county guess (Richland, Greenville, Horry, Spartanburg, Berkeley,
+Dorchester, Lexington, York, Beaufort, Anderson, Columbia, North Charleston, Rock Hill) is a Bonfire tenant.
+
+North Carolina, Georgia and West Virginia, captured 2026-10-30 (owner: "and NC", "and GA", "then WVA").
+About 120 likely tenant names were tried; these are real tenants: wake 1, charlottenc 29, chathamcountyga 12,
+floydcountyga 2, roswellgov 3, marshall (Marshall University) 1; pauldingk12 had 0 open. Both fetches matched.

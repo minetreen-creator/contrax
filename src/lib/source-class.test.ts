@@ -89,7 +89,10 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + Puerto Rico ASG portal, 2026-10-28 (300 → 301).
     // + Miami-Dade County construction solicitations, 2026-10-29 (301 → 302).
     // + Tempe Bonfire, Mesa Engineering and Maricopa County BidNet, 2026-10-29 (302 → 305).
-    expect(Object.keys(SOURCE_CLASSES).length).toBe(305);
+    // + 22 Bonfire and 11 CivicEngage county/city boards, 2026-10-30 (305 → 338).
+    // + 7 Bonfire and 27 CivicEngage NC, GA and WV boards, 2026-10-30 (338 → 372).
+    // + 16 Tennessee CivicEngage boards, 2026-10-30 (372 → 388).
+    expect(Object.keys(SOURCE_CLASSES).length).toBe(388);
   });
 
   test("every registry label is classified (no collector is unclassified)", () => {
@@ -171,7 +174,10 @@ describe("SOURCE_CLASSES — the approved class map (policy R8)", () => {
     // + Puerto Rico ASG portal, 2026-10-28 (218 → 219).
     // + Miami-Dade County construction solicitations, 2026-10-29 (219 → 220).
     // + Tempe Bonfire, Mesa Engineering and Maricopa County BidNet, 2026-10-29 (220 → 223).
-    expect(TAIL_SOURCES.length).toBe(223);
+    // + 22 Bonfire and 11 CivicEngage county/city boards, 2026-10-30 (223 → 256).
+    // + 7 Bonfire and 27 CivicEngage NC, GA and WV boards, 2026-10-30 (256 → 290).
+    // + 16 Tennessee CivicEngage boards, 2026-10-30 (290 → 306).
+    expect(TAIL_SOURCES.length).toBe(306);
   });
 
   test("every city registry entry the product fetches is LOCAL with a city name", () => {

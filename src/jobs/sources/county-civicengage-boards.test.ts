@@ -30,15 +30,32 @@ const OPEN: Record<string, number> = {
   // New Jersey, captured 2026-10-28.
   nj_cherry_hill: 16, nj_trenton: 7, nj_cranford: 12, nj_fort_lee: 3, nj_west_orange: 3, nj_princeton: 3, nj_millville: 4,
   nj_livingston: 2, nj_mahwah: 4, nj_wall: 1, nj_ridgewood: 2, nj_westfield: 1, nj_montgomery: 1, nj_east_brunswick: 1,
+  // Montana and South Carolina, captured 2026-10-30.
+  mt_billings: 5, mt_missoula: 4, mt_butte_silver_bow: 5, mt_kalispell: 1, mt_cascade_county: 1, sc_charleston: 7,
+  // North Carolina, Georgia and West Virginia, captured 2026-10-30 (Winston-Salem: one more closed by then).
+  nc_apex: 5, nc_winston_salem: 19, nc_brunswick_county: 6,
+  ga_peachtree_city: 1, ga_lowndes_county: 1, ga_lawrenceville: 1, ga_newnan: 4, ga_liberty_county: 4,
+  wv_fairmont: 3, wv_berkeley_county: 1,
+  // Tennessee, captured 2026-10-30.
+  tn_pigeon_forge: 2, tn_la_vergne: 1, tn_mt_juliet: 1, tn_spring_hill: 2, tn_cookeville: 3, tn_oak_ridge: 2, tn_lebanon: 1,
 };
 // Real boards with nothing open at capture (scheduled so new bids flow in), so no file.
-const NO_CAPTURE = new Set(["in_carmel", "in_hamilton_county", "in_tippecanoe_county", "in_anderson", "in_avon", "in_brownsburg"]);
+const NO_CAPTURE = new Set([
+  "in_carmel", "in_hamilton_county", "in_tippecanoe_county", "in_anderson", "in_avon", "in_brownsburg",
+  "mt_gallatin_county", "sc_spartanburg", "sc_mount_pleasant", "sc_summerville", "sc_fort_mill",
+  "nc_new_hanover_county", "nc_burlington", "nc_iredell_county", "nc_jacksonville", "nc_rowan_county",
+  "ga_savannah", "ga_athens_clarke", "ga_douglas_county", "ga_coweta_county", "ga_carroll_county",
+  "ga_effingham_county", "ga_dawson_county", "ga_jackson_county", "ga_rome",
+  "wv_vienna", "wv_weirton", "wv_morgantown",
+  "tn_gallatin", "tn_cleveland", "tn_goodlettsville", "tn_white_house", "tn_springfield", "tn_wilson_county",
+  "tn_maury_county", "tn_washington_county", "tn_coffee_county",
+]);
 
 describe("county CivicEngage boards", () => {
-  test("forty-nine boards with unique sources and id prefixes", () => {
-    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(49);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(49);
-    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(49);
+  test("one hundred and three boards with unique sources and id prefixes", () => {
+    expect(COUNTY_CIVICENGAGE_CONFIGS).toHaveLength(103);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.source)).size).toBe(103);
+    expect(new Set(COUNTY_CIVICENGAGE_CONFIGS.map((c) => c.idPrefix)).size).toBe(103);
   });
 
   for (const cfg of COUNTY_CIVICENGAGE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

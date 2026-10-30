@@ -28,7 +28,11 @@ function boardConfig(b: Board): BonfireConfig {
   };
 }
 
-const STATE_ABBR: Record<string, string> = { Texas: "TX", Florida: "FL", Georgia: "GA", Tennessee: "TN", Arizona: "AZ", Missouri: "MO" };
+const STATE_ABBR: Record<string, string> = {
+  Texas: "TX", Florida: "FL", Georgia: "GA", Tennessee: "TN", Arizona: "AZ", Missouri: "MO", Maryland: "MD", Colorado: "CO",
+  Ohio: "OH", Idaho: "ID", "New Mexico": "NM", "New York": "NY", "South Carolina": "SC",
+  Michigan: "MI", California: "CA", "North Carolina": "NC", "West Virginia": "WV",
+};
 
 const BOARDS: Board[] = [
   { tenant: "harriscountytx", source: "tx_harris_bonfire", stateName: "Texas", place: "Harris County", buyer: "Harris County, Texas", idPrefix: "harriscountytxbonfire" },
@@ -58,6 +62,37 @@ const BOARDS: Board[] = [
   { tenant: "jacksongov", source: "mo_jackson_county_bonfire", stateName: "Missouri", place: "Jackson County", buyer: "Jackson County, Missouri", idPrefix: "jacksongovbonfire" },
   { tenant: "jeffersoncitymo", source: "mo_jefferson_city_bonfire", stateName: "Missouri", place: "Jefferson City", buyer: "City of Jefferson City, Missouri", idPrefix: "jeffersoncitymobonfire" },
   { tenant: "slps", source: "mo_slps_bonfire", stateName: "Missouri", place: "Saint Louis Public Schools", buyer: "Saint Louis Public Schools", idPrefix: "slpsbonfire", location: "St. Louis, MO" },
+  // More Bonfire buyers (owner 2026-10-30: "we need those bonfire counties", "what about SC").
+  { tenant: "harfordcountymd", source: "md_harford_bonfire", stateName: "Maryland", place: "Harford County", buyer: "Harford County, Maryland", idPrefix: "harfordcountymdbonfire" },
+  { tenant: "mdstad", source: "md_stadium_authority_bonfire", stateName: "Maryland", place: "Maryland Stadium Authority", buyer: "Maryland Stadium Authority", idPrefix: "mdstadbonfire", location: "Baltimore, MD" },
+  { tenant: "bouldercounty", source: "co_boulder_county_bonfire", stateName: "Colorado", place: "Boulder County", buyer: "Boulder County, Colorado", idPrefix: "bouldercountybonfire" },
+  { tenant: "akronohio", source: "oh_akron_bonfire", stateName: "Ohio", place: "Akron", buyer: "City of Akron, Ohio", idPrefix: "akronohiobonfire" },
+  { tenant: "cincinnati-oh", source: "oh_cincinnati_bonfire", stateName: "Ohio", place: "Cincinnati", buyer: "City of Cincinnati, Ohio", idPrefix: "cincinnatiohbonfire" },
+  { tenant: "westerville", source: "oh_westerville_bonfire", stateName: "Ohio", place: "Westerville", buyer: "City of Westerville, Ohio", idPrefix: "westervillebonfire" },
+  { tenant: "galvestoncountytx", source: "tx_galveston_county_bonfire", stateName: "Texas", place: "Galveston County", buyer: "Galveston County, Texas", idPrefix: "galvestoncountytxbonfire" },
+  { tenant: "cityoflewisville", source: "tx_lewisville_bonfire", stateName: "Texas", place: "Lewisville", buyer: "City of Lewisville, Texas", idPrefix: "cityoflewisvillebonfire" },
+  { tenant: "lubbock", source: "tx_lubbock_county_bonfire", stateName: "Texas", place: "Lubbock County", buyer: "Lubbock County, Texas", idPrefix: "lubbockbonfire" },
+  { tenant: "reevescounty", source: "tx_reeves_county_bonfire", stateName: "Texas", place: "Reeves County", buyer: "Reeves County, Texas", idPrefix: "reevescountybonfire" },
+  { tenant: "cityofhutchins", source: "tx_hutchins_bonfire", stateName: "Texas", place: "Hutchins", buyer: "City of Hutchins, Texas", idPrefix: "cityofhutchinsbonfire" },
+  { tenant: "meridiancity", source: "id_meridian_bonfire", stateName: "Idaho", place: "Meridian", buyer: "City of Meridian, Idaho", idPrefix: "meridiancitybonfire" },
+  { tenant: "muskegoncounty", source: "mi_muskegon_county_bonfire", stateName: "Michigan", place: "Muskegon County", buyer: "Muskegon County, Michigan", idPrefix: "muskegoncountybonfire" },
+  { tenant: "solanocounty", source: "ca_solano_county_bonfire", stateName: "California", place: "Solano County", buyer: "Solano County, California", idPrefix: "solanocountybonfire" },
+  { tenant: "cochise", source: "az_cochise_county_bonfire", stateName: "Arizona", place: "Cochise County", buyer: "Cochise County, Arizona", idPrefix: "cochisebonfire" },
+  { tenant: "bannockcounty", source: "id_bannock_county_bonfire", stateName: "Idaho", place: "Bannock County", buyer: "Bannock County, Idaho", idPrefix: "bannockcountybonfire" },
+  { tenant: "bernco", source: "nm_bernalillo_county_bonfire", stateName: "New Mexico", place: "Bernalillo County", buyer: "Bernalillo County, New Mexico", idPrefix: "berncobonfire" },
+  { tenant: "rocklandgov", source: "ny_rockland_county_bonfire", stateName: "New York", place: "Rockland County", buyer: "Rockland County, New York", idPrefix: "rocklandgovbonfire" },
+  { tenant: "alleghenycountydhs", source: "pa_allegheny_dhs_bonfire", stateName: "Pennsylvania", place: "Allegheny County", buyer: "Allegheny County Department of Human Services", idPrefix: "alleghenycountydhsbonfire", location: "Allegheny County, PA" },
+  { tenant: "cobbk12", source: "ga_cobb_schools_bonfire", stateName: "Georgia", place: "Cobb County School District", buyer: "Cobb County School District", idPrefix: "cobbk12bonfire", location: "Cobb County, GA" },
+  { tenant: "fairfaxcountyeda", source: "va_fairfax_eda_bonfire", stateName: "Virginia", place: "Fairfax County", buyer: "Fairfax County Economic Development Authority", idPrefix: "fairfaxcountyedabonfire", location: "Fairfax County, VA" },
+  { tenant: "charlestoncounty", source: "sc_charleston_county_bonfire", stateName: "South Carolina", place: "Charleston County", buyer: "Charleston County, South Carolina", idPrefix: "charlestoncountybonfire" },
+  // North Carolina, Georgia and West Virginia (owner 2026-10-30: "and NC", "and GA", "then WVA").
+  { tenant: "wake", source: "nc_wake_county_bonfire", stateName: "North Carolina", place: "Wake County", buyer: "Wake County, North Carolina", idPrefix: "wakebonfire" },
+  { tenant: "charlottenc", source: "nc_charlotte_bonfire", stateName: "North Carolina", place: "Charlotte", buyer: "City of Charlotte, North Carolina", idPrefix: "charlottencbonfire" },
+  { tenant: "chathamcountyga", source: "ga_chatham_county_bonfire", stateName: "Georgia", place: "Chatham County", buyer: "Chatham County, Georgia", idPrefix: "chathamcountygabonfire" },
+  { tenant: "floydcountyga", source: "ga_floyd_county_bonfire", stateName: "Georgia", place: "Floyd County", buyer: "Floyd County, Georgia", idPrefix: "floydcountygabonfire" },
+  { tenant: "roswellgov", source: "ga_roswell_bonfire", stateName: "Georgia", place: "Roswell", buyer: "City of Roswell, Georgia", idPrefix: "roswellgovbonfire" },
+  { tenant: "pauldingk12", source: "ga_paulding_schools_bonfire", stateName: "Georgia", place: "Paulding County Schools", buyer: "Paulding County Schools", idPrefix: "pauldingk12bonfire", location: "Paulding County, GA" },
+  { tenant: "marshall", source: "wv_marshall_university_bonfire", stateName: "West Virginia", place: "Marshall University", buyer: "Marshall University", idPrefix: "marshallbonfire", location: "Huntington, WV" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

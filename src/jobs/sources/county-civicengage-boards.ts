@@ -136,6 +136,15 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("tn_maury_county", "www.maurycounty-tn.gov", "Maury County", "Maury County, TN", "maurycountycivic"),
   board("tn_washington_county", "www.washingtoncountytn.org", "Washington County", "Washington County, TN", "washingtoncountytncivic"),
   board("tn_coffee_county", "www.coffeecountytn.gov", "Coffee County", "Coffee County, TN", "coffeecountycivic"),
+  // Florida (owner 2026-10-30).
+  board("fl_pensacola", "www.cityofpensacola.com", "City of Pensacola", "Pensacola, FL", "pensacolacivic"),
+  board("fl_florida_city", "www.floridacityfl.gov", "City of Florida City", "Florida City, FL", "floridacitycivic"),
+  board("fl_cocoa", "www.cocoafl.gov", "City of Cocoa", "Cocoa, FL", "cocoacivic"),
+  board("fl_wellington", "www.wellingtonfl.gov", "Village of Wellington", "Wellington, FL", "wellingtoncivic"),
+  board("fl_miami_gardens", "www.miamigardens-fl.gov", "City of Miami Gardens", "Miami Gardens, FL", "miamigardenscivic"),
+  board("fl_casselberry", "www.casselberry.org", "City of Casselberry", "Casselberry, FL", "casselberrycivic"),
+  board("fl_new_smyrna_beach", "www.cityofnsb.com", "City of New Smyrna Beach", "New Smyrna Beach, FL", "newsmyrnabeachcivic"),
+  board("fl_levy_county", "www.levycounty.org", "Levy County", "Levy County, FL", "levycountycivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

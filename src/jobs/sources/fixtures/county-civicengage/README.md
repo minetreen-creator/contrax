@@ -84,3 +84,9 @@ White House, Springfield, Wilson County, Maury County, Washington County and Cof
 with nothing open at capture, scheduled with no file. Lawrenceburg's board lists only its purchasing policy and an
 undated RFQ, and Williamson County's says "Bid postings have moved", so neither is read. Bristol and Dyersburg
 answered 403 to a plain request.
+
+Florida, captured 2026-10-30. About 150 city and county sites were checked. Pensacola had 1 open bid; Florida City,
+Cocoa (www.cocoafl.org redirects to www.cocoafl.gov, read directly), Wellington, Miami Gardens, Casselberry, New
+Smyrna Beach and Levy County are CivicEngage boards with nothing open, scheduled with no file. Many large
+Florida county sites (Lee, Polk, Brevard, Volusia, Sarasota, Charlotte, St. Lucie, Lake, Marion, Clay) and several
+cities answered 403 to a plain request and are not read.

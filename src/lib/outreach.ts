@@ -107,8 +107,10 @@ export function bidIsServiceJob(title: string): boolean {
   // Owner 2026-10-30: nor design, consultant or project-management work (an MTA
   // "Design Services for ... Roof and HVAC Replacements" went to HVAC installers
   // and a "Project Management Consultant Services for Roof Replacement" to
-  // roofers; neither can bid it).
-  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought|design services|consult(ant|ants|ing)|project management|engineering services|a\s?&\s?e services)\b/i.test(title);
+  // roofers; neither can bid it). Nor part orders (NSN), "furnishing" supply
+  // buys, ready-mix concrete by PSI, machining systems or feasibility /
+  // business-feedback market research (all queued for contractors that day).
+  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought|design services|consult(ant|ants|ing)|project management|engineering services|a\s?&\s?e services|nsn|furnish(ing)?|feasibility|business feedback|market research|machining|\d+\s?psi)\b/i.test(title);
 }
 
 /**

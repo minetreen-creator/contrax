@@ -126,6 +126,13 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(bidIsServiceJob("D81802 - Project Management Consultant Services for Roof Replacement at Bathgate (State).")).toBe(false);
     expect(bidIsServiceJob("MFD Station #1 HVAC Remodel")).toBe(true);
     expect(bidIsServiceJob("Fenn Ranger Station roofing replacement")).toBe(true);
+    expect(bidIsServiceJob("NSN 6150-01-685-8736 - Cable Assembly Power, Electrical Bran")).toBe(false);
+    expect(bidIsServiceJob("B21 Utilities & Site Improvements, Communications & Electrical Infrastructure, Dyess AFB OT Feasibility & Business Feedback")).toBe(false);
+    expect(bidIsServiceJob("Large Format Wire Electrical Discharge Machining (EDM) System")).toBe(false);
+    expect(bidIsServiceJob("ARFQ 4000 PSI Air-Entrained Commercial Concrete for WVPA")).toBe(false);
+    expect(bidIsServiceJob("FURNISHING PRECAST CONCRETE METER MANHOLES AND CATCH BASINS")).toBe(false);
+    expect(bidIsServiceJob("HWCB27KR: REPLACEMENT OF CONCRETE, STEEL FACED AND GRANITE CURBS AND RELATED SIDEWALK AND ROADWAY RESTORATION")).toBe(true);
+    expect(bidIsServiceJob("IFB161310 Fencing Services")).toBe(true);
   });
 
   test("the added trades match their bids and stay out of others (owner 2026-10-30)", () => {

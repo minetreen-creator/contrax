@@ -40,6 +40,14 @@ export const OUTREACH_TRADES: readonly OutreachTrade[] = [
   { match: "plumbing", places: "plumbing contractor", label: "plumbing" },
   { match: "snow removal", places: "snow removal", label: "snow removal" },
   { match: "moving services", places: "moving", label: "moving" },
+  // Owner 2026-10-30 ("yes" to more trades after the day's 12 ran dry).
+  { match: "electrical", places: "electrical contractor", label: "electrical" },
+  { match: "security guard", places: "security guard services", label: "security guard" },
+  { match: "guard service", places: "security guard services", label: "security guard" },
+  { match: "fenc", places: "fence contractor", label: "fencing" },
+  { match: "concrete", places: "concrete contractor", label: "concrete" },
+  { match: "tree removal", places: "tree service", label: "tree service" },
+  { match: "tree trimming", places: "tree service", label: "tree service" },
 ];
 
 /** Drafts the daily job may queue (first emails), across all trades. */

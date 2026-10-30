@@ -5,6 +5,7 @@ import {
   daysUntil,
   bidFitsTrade,
   bidIsServiceJob,
+  OUTREACH_TRADES,
   emailFitsSite,
   placeIsLocal,
   followupDue,
@@ -125,6 +126,17 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(bidIsServiceJob("D81802 - Project Management Consultant Services for Roof Replacement at Bathgate (State).")).toBe(false);
     expect(bidIsServiceJob("MFD Station #1 HVAC Remodel")).toBe(true);
     expect(bidIsServiceJob("Fenn Ranger Station roofing replacement")).toBe(true);
+  });
+
+  test("the added trades match their bids and stay out of others (owner 2026-10-30)", () => {
+    const tradeFor = (title: string) => OUTREACH_TRADES.filter((t) => title.toLowerCase().includes(t.match)).map((t) => t.label);
+    expect(tradeFor("Electrical Maintenance Services - City Hall")).toContain("electrical");
+    expect(tradeFor("Unarmed Security Guard Services")).toContain("security guard");
+    expect(tradeFor("Perimeter Fencing Replacement")).toContain("fencing");
+    expect(tradeFor("Concrete Sidewalk Repairs")).toContain("concrete");
+    expect(tradeFor("Tree Removal and Stump Grinding")).toContain("tree service");
+    expect(tradeFor("Street Tree Planting")).not.toContain("tree service");
+    expect(tradeFor("Department of Defense Logistics")).not.toContain("fencing");
   });
 
   test("a roof-top HVAC unit is not roofing work (owner 2026-10-30)", () => {

@@ -90,3 +90,8 @@ Cocoa (www.cocoafl.org redirects to www.cocoafl.gov, read directly), Wellington,
 Smyrna Beach and Levy County are CivicEngage boards with nothing open, scheduled with no file. Many large
 Florida county sites (Lee, Polk, Brevard, Volusia, Sarasota, Charlotte, St. Lucie, Lake, Marion, Clay) and several
 cities answered 403 to a plain request and are not read.
+
+Indiana, captured 2026-10-30. About 85 city and county sites were checked. Crown Point 1 and Shelbyville 1 open;
+Westfield and Crawfordsville are CivicEngage boards with nothing open, scheduled with no file. Fort Wayne, South
+Bend, St. Joseph County, Fishers, Delaware County, Columbus, New Albany and several towns answered 403 to a plain
+request and are not read.

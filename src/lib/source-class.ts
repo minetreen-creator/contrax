@@ -1925,7 +1925,50 @@ export const SOURCE_CLASSES: Record<string, SourceClassRecord> = {
     scopeState: "FL",
     searchScope: "city-open-data",
     recordType: "opportunity",
+  },  // Indiana boards added 2026-10-30 (owner: "sure" to an Indiana board hunt).
+  in_indygo_bonfire: {
+    class: "local",
+    city: "Indianapolis",
+    scopeState: "IN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
   },
+  in_fort_wayne_schools_bonfire: {
+    class: "local",
+    city: "Fort Wayne",
+    scopeState: "IN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  in_crown_point: {
+    class: "local",
+    city: "Crown Point",
+    scopeState: "IN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  in_shelbyville: {
+    class: "local",
+    city: "Shelbyville",
+    scopeState: "IN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  in_westfield: {
+    class: "local",
+    city: "Westfield",
+    scopeState: "IN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+  in_crawfordsville: {
+    class: "local",
+    city: "Crawfordsville",
+    scopeState: "IN",
+    searchScope: "city-open-data",
+    recordType: "opportunity",
+  },
+
 
 
 

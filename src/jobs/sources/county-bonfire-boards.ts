@@ -31,7 +31,7 @@ function boardConfig(b: Board): BonfireConfig {
 const STATE_ABBR: Record<string, string> = {
   Texas: "TX", Florida: "FL", Georgia: "GA", Tennessee: "TN", Arizona: "AZ", Missouri: "MO", Maryland: "MD", Colorado: "CO",
   Ohio: "OH", Idaho: "ID", "New Mexico": "NM", "New York": "NY", "South Carolina": "SC",
-  Michigan: "MI", California: "CA", "North Carolina": "NC", "West Virginia": "WV",
+  Michigan: "MI", California: "CA", "North Carolina": "NC", "West Virginia": "WV", Indiana: "IN",
 };
 
 const BOARDS: Board[] = [
@@ -105,6 +105,9 @@ const BOARDS: Board[] = [
   { tenant: "duvalschools", source: "fl_duval_schools_bonfire", stateName: "Florida", place: "Duval County Public Schools", buyer: "Duval County Public Schools", idPrefix: "duvalschoolsbonfire", location: "Jacksonville, FL" },
   { tenant: "fgcu", source: "fl_fgcu_bonfire", stateName: "Florida", place: "Florida Gulf Coast University", buyer: "Florida Gulf Coast University", idPrefix: "fgcubonfire", location: "Fort Myers, FL" },
   { tenant: "jaxport", source: "fl_jaxport_bonfire", stateName: "Florida", place: "JAXPORT", buyer: "JAXPORT (Jacksonville Port Authority)", idPrefix: "jaxportbonfire", location: "Jacksonville, FL" },
+  // Indiana (owner 2026-10-30: "sure" to an Indiana board hunt after "IT services, IN" returned 2 matches).
+  { tenant: "indygo", source: "in_indygo_bonfire", stateName: "Indiana", place: "IndyGo", buyer: "IndyGo (Indianapolis Public Transportation Corporation)", idPrefix: "indygobonfire", location: "Indianapolis, IN" },
+  { tenant: "fwcs", source: "in_fort_wayne_schools_bonfire", stateName: "Indiana", place: "Fort Wayne Community Schools", buyer: "Fort Wayne Community Schools", idPrefix: "fwcsbonfire", location: "Fort Wayne, IN" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

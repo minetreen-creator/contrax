@@ -66,6 +66,7 @@ const CAPTURED: Record<string, number> = {
   fl_fau_bonfire: 1,
   fl_ucf_bonfire: 2,
   fl_lee_schools_bonfire: 1,
+  in_indygo_bonfire: 4,
 };
 // Real tenants with nothing open at capture (portal title confirmed), so no file.
 const NO_CAPTURE = new Set([
@@ -73,13 +74,14 @@ const NO_CAPTURE = new Set([
   "tx_lubbock_county_bonfire", "tx_reeves_county_bonfire", "tx_hutchins_bonfire", "id_meridian_bonfire",
   "mi_muskegon_county_bonfire", "ca_solano_county_bonfire", "ga_paulding_schools_bonfire",
   "fl_sunrise_bonfire", "fl_plantation_bonfire", "fl_duval_schools_bonfire", "fl_fgcu_bonfire", "fl_jaxport_bonfire",
+  "in_fort_wayne_schools_bonfire",
 ]);
 
 describe("county Bonfire boards", () => {
-  test("sixty-five boards, unique sources and id prefixes", () => {
-    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(65);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(65);
-    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(65);
+  test("sixty-seven boards, unique sources and id prefixes", () => {
+    expect(COUNTY_BONFIRE_CONFIGS).toHaveLength(67);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.source)).size).toBe(67);
+    expect(new Set(COUNTY_BONFIRE_CONFIGS.map((c) => c.idPrefix)).size).toBe(67);
   });
 
   for (const cfg of COUNTY_BONFIRE_CONFIGS.filter((c) => !NO_CAPTURE.has(c.source))) {

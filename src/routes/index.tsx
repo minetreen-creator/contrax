@@ -7,6 +7,7 @@ import { FoundingWall } from "~/components/FoundingWall";
 import { EndingNearYou } from "~/components/EndingNearYou";
 import { HomeStateMap } from "~/components/HomeStateMap";
 import { MoneyJar } from "~/components/MoneyJar";
+import { SubLeads } from "~/components/SubLeads";
 import { MaxAssistant } from "~/components/MaxAssistant";
 import { MoneyCounter } from "~/components/MoneyCounter";
 import { TownBuyingCallout } from "~/components/TownBuyingCallout";
@@ -103,7 +104,7 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, bidStats, contractMap, endingSoon, endingByState, moneyJar] = await Promise.all([
+  const [businessName, bidStats, contractMap, endingSoon, endingByState, moneyJar, subLeads] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -147,8 +148,17 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
         return null;
       }
     })(),
+    // Subcontracting leads (owner 2026-10-30); [] hides the section.
+    (async () => {
+      try {
+        const { recentSubLeads } = await import("~/lib/award-leads.server");
+        return await recentSubLeads(40);
+      } catch {
+        return [];
+      }
+    })(),
   ]);
-  return { businessName, bidStats, contractMap, endingSoon, endingByState, moneyJar };
+  return { businessName, bidStats, contractMap, endingSoon, endingByState, moneyJar, subLeads };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -201,7 +211,7 @@ const BTN =
 
 function Home() {
 
-  const { bidStats, contractMap, endingSoon, endingByState, moneyJar } = Route.useLoaderData();
+  const { bidStats, contractMap, endingSoon, endingByState, moneyJar, subLeads } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -233,6 +243,8 @@ function Home() {
           you", the ZIP box, free tools) follow instead of competing up top. */}
       {/* The money jar (owner 2026-10-30). */}
       <MoneyJar data={moneyJar} />
+      {/* Subcontracting leads (owner 2026-10-30: "for the subs, can we make a list on the homepage?"). */}
+      <SubLeads leads={subLeads} />
       <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
       {/* Contracts ending near you (owner 2026-10-29); holder locked. */}
       <EndingNearYou />

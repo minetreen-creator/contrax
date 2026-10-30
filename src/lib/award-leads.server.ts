@@ -149,3 +149,35 @@ export async function syncAwardLeads(opts: { days?: number; maxPages?: number; d
   }
   return { pages, seen, kept, inserted };
 }
+
+/**
+ * Recent out-of-state service awards for the homepage "Subcontracting leads"
+ * (owner 2026-10-30): the same rule as the prime outreach (primeAwardFits),
+ * one row per company and work state, newest first.
+ */
+export async function recentSubLeads(limit = 40): Promise<import("~/lib/sub-leads").SubLead[]> {
+  await ensureAwardLeadsTable();
+  const { PRIME_TRADES, PRIME_MIN_AMOUNT } = await import("~/lib/outreach");
+  const rows = (await sql()`
+    SELECT DISTINCT ON (LOWER(recipient_name), pop_state)
+      recipient_name, recipient_city, recipient_state, pop_state, amount, agency, sub_agency, naics_code, awarded_on
+    FROM award_leads
+    WHERE awarded_on >= CURRENT_DATE - INTERVAL '30 days'
+      AND naics_code = ANY(${Object.keys(PRIME_TRADES)})
+      AND amount >= ${PRIME_MIN_AMOUNT}
+      AND pop_state ~ '^[A-Z]{2}$' AND recipient_state ~ '^[A-Z]{2}$' AND pop_state <> recipient_state
+    ORDER BY LOWER(recipient_name), pop_state, awarded_on DESC, amount DESC`) as Record<string, unknown>[];
+  return rows
+    .map((r) => ({
+      recipient: String(r.recipient_name),
+      recipientCity: (r.recipient_city as string | null) ?? null,
+      recipientState: String(r.recipient_state),
+      workState: String(r.pop_state),
+      amount: Number(r.amount),
+      agency: ((r.sub_agency ?? r.agency) as string | null) ?? null,
+      naics: String(r.naics_code),
+      awardedOn: r.awarded_on instanceof Date ? r.awarded_on.toISOString().slice(0, 10) : String(r.awarded_on).slice(0, 10),
+    }))
+    .sort((a, b) => b.awardedOn.localeCompare(a.awardedOn) || b.amount - a.amount)
+    .slice(0, limit);
+}

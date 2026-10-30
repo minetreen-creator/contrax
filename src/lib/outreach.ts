@@ -285,7 +285,9 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       `Due: ${due}`,
       ...postingLines,
       "",
-      `I'm Nathaniel, and I run Contrax, a small company that finds government bids for local contractors. If you'd like the other open ${i.tradeLabel} bids near you, just reply "yes" and I'll send them over. No charge, no catch.`,
+      // Owner 2026-10-30: "I'm not sending out bids for free" → "yes change it":
+      // the ask is the $5 pass, not a free list by reply.
+      `I'm Nathaniel, and I run Contrax, a small company that finds government bids for local contractors. If you'd like new ${i.tradeLabel} bids near you every morning, Contrax emails them at 6 AM. Your first 30 days are $5, with no automatic renewal: ${link("/pricing", i.kind, i.contactId)}`,
       "",
       "Good luck if you go for it.",
     ];
@@ -297,9 +299,7 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       `Quick follow-up on the ${i.bidTitle} bid. It's due ${due}, so there's still time if you want to go for it.`,
       ...postingLines,
       "",
-      `My offer stands: reply "yes" and I'll send you the other open ${i.tradeLabel} bids near you, free.`,
-      "",
-      `If you'd rather have them every morning, Contrax Starter is $5 for 30 days with no automatic renewal: ${link("/pricing", i.kind, i.contactId)}`,
+      `If you'd like new ${i.tradeLabel} bids near you every morning, Contrax Starter is $5 for your first 30 days with no automatic renewal: ${link("/pricing", i.kind, i.contactId)}`,
       "",
       `Or, if you don't have time to dig through bids at all, Bid Scout sends you 5 handpicked for ${i.business} every Friday, each with the requirements in plain English and what to do next. First month $49 for our founding customers: ${link("/bid-scout?source=outreach", i.kind, i.contactId)}`,
       "",

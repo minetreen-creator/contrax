@@ -661,9 +661,15 @@ function MoneyPanel({ money, trials, now }: { money: MoneyStats; trials: TrialCa
               </span>
             ))}
           </div>
+          {money.starterPass ? (
+            <p className="mt-2 text-xs text-slate-300">
+              <b className="text-amber-300">$5 for 30 days:</b> {money.starterPass.bought} bought · {money.starterPass.activeNow} active now ·{" "}
+              {money.starterPass.continued} continued at $19 · {money.starterPass.ended} ended
+            </p>
+          ) : null}
           {money.firstMonth ? (
             <p className="mt-2 text-xs text-slate-300">
-              <b className="text-emerald-300">$5 first month:</b> {money.firstMonth.started} started · {money.firstMonth.payingNow} paying now ·{" "}
+              <b className="text-emerald-300">$5 first month (before Oct 30):</b> {money.firstMonth.started} started · {money.firstMonth.payingNow} paying now ·{" "}
               {money.firstMonth.pastMonthOne} past month one at $19 · {money.firstMonth.canceled} canceled
             </p>
           ) : null}

@@ -76,6 +76,8 @@ const PLACEHOLDER_BOX = /^(example|sample|test|your\.?name|your\.?email|email|na
 export function emailFitsSite(email: string, siteHost: string | null, business?: string): boolean {
   const [local = "", domain = ""] = email.trim().toLowerCase().split("@");
   if (!domain || !local || HIRING_BOX.test(local) || /%/.test(local) || PLACEHOLDER_BOX.test(local)) return false;
+  // "admin@www.example.biz" is a web address glued to a mailbox; it bounces.
+  if (domain.startsWith("www.")) return false;
   if (FREE_MAIL.test(domain)) {
     if (business === undefined) return true;
     const box = local.replace(/[^a-z0-9]/g, "");
@@ -111,8 +113,20 @@ export function placeIsLocal(place: string): boolean {
   // ("Texas Department of Transportation", "Office of Injured Employee
   // Counsel") don't say where the work is.
   if (/_/.test(p) || /\b(department|dept|office of|central management|state of|commonwealth of)\b/.test(p)) return false;
+  // A buying office is not the job site (owner 2026-10-30: VA "Network Contract
+  // Office 15" found roofers near the office, not the hospital).
+  if (/\b(network contract office|contracting office|contract office|contracting activity|contracting squadron)\b/.test(p)) return false;
   if (STATE_WORDS.test(p)) return false;
   return true;
+}
+
+/**
+ * The two-letter state in a Google Places address ("12 Main St, Nashville, TN
+ * 37201, USA" → "TN"), or null when it has none. PURE.
+ */
+export function addressState(address: string | null | undefined): string | null {
+  const m = /,\s*([A-Z]{2})\s+\d{5}(?:-\d{4})?\s*(?:,|$)/.exec(address ?? "");
+  return m ? m[1] : null;
 }
 
 /** Follow-up is queued this many days after the first email... */

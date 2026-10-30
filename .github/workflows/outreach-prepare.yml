@@ -52,3 +52,8 @@ jobs:
 
       - name: Queue drafts
         run: bun run outreach-prepare
+
+      # Owner 2026-10-30: companies that just won out-of-state service
+      # contracts get a "free local subcontractor list" offer (drafts only).
+      - name: Queue prime-contractor drafts
+        run: bun run prime-outreach-prepare

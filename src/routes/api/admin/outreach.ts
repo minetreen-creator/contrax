@@ -22,8 +22,9 @@ async function get({ request }: { request: Request }) {
   try {
     const o = await outreachOverview();
     const address = o.postalAddress ?? "[mailing address not set]";
-    const postings = await postingUrls(o.drafts.map((d) => d.bid_id));
-    const drafts = o.drafts.map((d) => ({ ...d, preview: renderContact(d, address, postings.get(d.bid_id) ?? null) }));
+    // Prime rows carry an award id in bid_id, so they never look up a posting.
+    const postings = await postingUrls(o.drafts.filter((d) => d.kind !== "prime").map((d) => d.bid_id));
+    const drafts = o.drafts.map((d) => ({ ...d, preview: renderContact(d, address, d.kind === "prime" ? null : postings.get(d.bid_id) ?? null) }));
     return Response.json({ ...o, drafts });
   } catch (err) {
     console.error("[api/admin/outreach] load error:", err);

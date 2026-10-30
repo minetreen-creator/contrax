@@ -224,6 +224,11 @@ function PricingPage() {
     };
   }, []);
   const starterHref = plans.find((p) => p.slug === "starter")?.href ?? "/signup?plan=starter";
+  // Owner 2026-10-30 ("3"): the button says what $5 opens in the visitor's own
+  // state, using the same live count as the line above it.
+  const starterLabel = near
+    ? `See all ${near.open.toLocaleString("en-US")} ${STATE_NAMES[near.state] ?? near.state} bids for $${STARTER_FIRST_MONTH_PRICE}`
+    : `Start Starter for $${STARTER_FIRST_MONTH_PRICE}`;
   const startStarter = (where: string) => (e: MouseEvent) => {
     trackEvent("pricing_starter_click", where);
     e.preventDefault();
@@ -262,7 +267,7 @@ function PricingPage() {
                 onClick={startStarter("hero")}
                 className="inline-block w-full max-w-sm rounded-xl bg-amber-500 px-6 py-4 text-center text-base font-bold text-white shadow-md transition hover:bg-amber-400 active:scale-[0.98]"
               >
-                Start Starter for ${STARTER_FIRST_MONTH_PRICE} →
+                {starterLabel} →
               </a>
               <a
                 href="/signup"
@@ -353,7 +358,7 @@ function PricingPage() {
                     onClick={startStarter("card_top")}
                     className="mb-4 block w-full rounded-xl bg-amber-500 px-6 py-3 text-center text-sm font-semibold text-white transition-all active:scale-[0.98] md:hidden"
                   >
-                    Start Starter for ${STARTER_FIRST_MONTH_PRICE}
+                    {starterLabel}
                   </a>
                 )}
                 {/* Owner 2026-10-19 (item 1): value anchor, directly under the price. */}

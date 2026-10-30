@@ -32,6 +32,10 @@ export const BOT_EXCLUSION_SQL = `
     -- signup abandon was a Claude Code mobile screenshot run). Never a customer.
     OR ip LIKE '160.79.104.%' OR ip LIKE '160.79.105.%' OR ip LIKE '160.79.106.%' OR ip LIKE '160.79.107.%'
     OR ip LIKE '160.79.108.%' OR ip LIKE '160.79.109.%' OR ip LIKE '160.79.110.%' OR ip LIKE '160.79.111.%'
+    -- One-page site scanner on two server networks (owner 2026-10-30: Houston
+    -- 69.25.91.x and Fremont 155.103.64.x "visitors" on 2023 desktop browsers,
+    -- one page each, no searches; ~26 visitor ids that morning).
+    OR ip LIKE '69.25.91.%' OR ip LIKE '155.103.64.%'
     -- Search-engine crawler IP prefixes: Googlebot + common Bing ranges.
     OR ip LIKE '66.249.%'
     -- Google ad review / page-preview fetchers (headless Chrome on Google addresses;

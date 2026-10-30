@@ -71,8 +71,12 @@ export const MAX_TRADE_LENGTH = 120;
  *
  *  RAISED 16 → 28 (owner 2026-10-17): the janitorial entry gained eight
  *  everyday phrasings (window washing, day porter, …), taking it to 26 terms;
- *  at 16 they would have been silently dropped, exactly as above. */
-export const MAX_EXPANDED_TERMS = 28;
+ *  at 16 they would have been silently dropped, exactly as above.
+ *
+ *  RAISED 28 → 64 (owner 2026-10-30, "IT services, FL" returned 5 matches):
+ *  the IT entry grew to 58 phrases; at 28 its new ones were dropped the same
+ *  silent way. trade-term-cap.test.ts now fails if any entry outgrows the cap. */
+export const MAX_EXPANDED_TERMS = 64;
 
 /**
  * Spanish trade terms (owner 2026-10-28: Puerto Rico's ASG portal posts every
@@ -755,6 +759,46 @@ export const TRADE_ALIASES: Record<string, TradeAliasEntry> = {
       "data center",
       "computer services",
       "technology services",
+      // Owner 2026-10-30: a Fort Lauderdale visitor searched "IT services, FL"
+      // and got 5 matches. Florida's MFMP rows carry no NAICS, and common IT
+      // titles matched nothing: "Electronic Health Record (EHR) System",
+      // "Cloud-Based Communications Platform", "Website Redesign and Hosting",
+      // "Microsoft 365 Licenses", "IT Staff Augmentation", "Laptops and
+      // Desktops". Specific phrases only: a bare "system", "platform" or
+      // "management system" would pull in HVAC, stormwater and alarm work.
+      "it staff",
+      "cloud-based",
+      "cloud based",
+      "web hosting",
+      "and hosting",
+      "hosting services",
+      "website",
+      "web development",
+      "web design",
+      "web portal",
+      "online portal",
+      "microsoft 365",
+      "office 365",
+      "software licenses",
+      "software license",
+      "electronic health record",
+      "ehr system",
+      "case management system",
+      "learning management system",
+      "records management system",
+      "document management system",
+      "asset management system",
+      "content management system",
+      "customer relationship management",
+      "crm system",
+      "data analytics",
+      "business intelligence",
+      "computer hardware",
+      "computer equipment",
+      "laptops",
+      "desktop computers",
+      "network equipment",
+      "wireless network",
     ],
     naics: ["541511", "541512", "541513", "541519", "518210"],
     exactOnly: true,

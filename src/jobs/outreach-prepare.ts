@@ -18,6 +18,7 @@ import {
   addressState,
   BUSINESSES_PER_BID,
   DAILY_FIRST_EMAILS,
+  bidFitsTrade,
   bidIsServiceJob,
   emailFitsSite,
   MAX_DAYS_TO_DUE,
@@ -30,8 +31,12 @@ import { bidPlace, placesQuery, siteHost } from "~/lib/prospect-finder";
 import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { searchPlaces, siteEmails } from "./prospect-finder";
 
-/** Bids looked at per trade per day; spreads the 30 drafts across trades. */
-const BIDS_PER_TRADE = 3;
+/** Bids looked at per trade per day; spreads the 30 drafts across trades. A
+ *  "more" run (owner 2026-10-30: "do 25 more") looks at twice as many. */
+const BIDS_PER_TRADE = process.env.MORE_DRAFTS === "true" ? 6 : 3;
+/** How recently a bid must have been saved to count as fresh. The daily run
+ *  keeps 3 days; a "more" run reaches back 10 so it isn't left with nothing. */
+const FRESH_DAYS = process.env.MORE_DRAFTS === "true" ? 10 : 3;
 /** Candidates read per trade before the "is this local?" filter. */
 const CANDIDATES_PER_TRADE = 25;
 
@@ -65,7 +70,7 @@ async function freshBids(match: string, limit: number): Promise<BidRow[]> {
     WHERE normalized_state ~ '^[A-Z]{2}$'
       AND due_date >= NOW() + ${`${MIN_DAYS_TO_DUE} days`}::interval
       AND due_date <= NOW() + ${`${MAX_DAYS_TO_DUE} days`}::interval
-      AND created_at >= NOW() - INTERVAL '3 days'
+      AND created_at >= NOW() - ${`${FRESH_DAYS} days`}::interval
       AND LOWER(title) LIKE ${like}
       AND ${s.unsafe(LOW_CONTENT_SQL)} AND ${s.unsafe(AWARD_EXCLUSION_SQL)}
       AND NOT EXISTS (SELECT 1 FROM outreach_contacts c WHERE c.bid_id = bids.id)
@@ -84,13 +89,13 @@ async function main() {
   // queued before a rule existed (owner 2026-10-29: a placeholder address, an
   // invitational bid) never reaches the send list.
   const waiting = (await sql()`
-    SELECT id, email, website, business, bid_title FROM outreach_contacts
+    SELECT id, email, website, business, bid_title, trade_label FROM outreach_contacts
     WHERE status = 'draft' AND kind = 'first'
-  `) as { id: number; email: string; website: string | null; business: string; bid_title: string }[];
+  `) as { id: number; email: string; website: string | null; business: string; bid_title: string; trade_label: string }[];
   let dropped = 0;
   for (const d of waiting) {
     const host = d.website ? siteHost(d.website) : null;
-    if (bidIsServiceJob(d.bid_title) && emailFitsSite(d.email, host, d.business)) continue;
+    if (bidIsServiceJob(d.bid_title) && bidFitsTrade(d.trade_label, d.bid_title) && emailFitsSite(d.email, host, d.business)) continue;
     await skipDraft(d.id);
     dropped++;
     console.log(`Skipped waiting draft #${d.id}: ${d.business} <${d.email}> — ${d.bid_title}`);
@@ -113,7 +118,7 @@ async function main() {
     // Only bids whose place is a real town, county or agency: a statewide
     // purchasing group or a bare state name would make "near you" untrue.
     const bids = (await freshBids(trade.match, CANDIDATES_PER_TRADE))
-      .filter((b) => bidIsServiceJob(b.title) && outreachPlace(b) !== null)
+      .filter((b) => bidIsServiceJob(b.title) && bidFitsTrade(trade.label, b.title) && outreachPlace(b) !== null)
       .slice(0, BIDS_PER_TRADE);
     console.log(`\n${trade.label}: ${bids.length} fresh local bid(s)`);
     for (const b of bids) {

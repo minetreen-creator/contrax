@@ -96,7 +96,21 @@ export function bidIsServiceJob(title: string): boolean {
   // Owner 2026-10-29: also not invitational bids (only invited firms may bid),
   // requests for information or sources-sought notices (nothing to win yet),
   // and filter purchases.
-  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought)\b/i.test(title);
+  // Owner 2026-10-30: nor design, consultant or project-management work (an MTA
+  // "Design Services for ... Roof and HVAC Replacements" went to HVAC installers
+  // and a "Project Management Consultant Services for Roof Replacement" to
+  // roofers; neither can bid it).
+  return !/\b(suppl(y|ies)|materials?|parts|products|equipment|filters?|pool only|pre-?qualif\w*|invitational|rfi|request for information|sources? sought|design services|consult(ant|ants|ing)|project management|engineering services|a\s?&\s?e services)\b/i.test(title);
+}
+
+/**
+ * A bid's title matched a trade's word but names another trade's work (owner
+ * 2026-10-30: an Oswego "Heat Pump and Roof Top Unit (RTU) Replacement" is HVAC
+ * work, not roofing). PURE.
+ */
+export function bidFitsTrade(tradeLabel: string, title: string): boolean {
+  if (tradeLabel === "roofing" && /\broof[\s-]?top units?\b|\brtus?\b/i.test(title)) return false;
+  return true;
 }
 
 const STATE_WORDS = /^(alabama|alaska|arizona|arkansas|california|colorado|connecticut|delaware|district of columbia|florida|georgia|hawaii|idaho|illinois|indiana|iowa|kansas|kentucky|louisiana|maine|maryland|massachusetts|michigan|minnesota|mississippi|missouri|montana|nebraska|nevada|new hampshire|new jersey|new mexico|new york|north carolina|north dakota|ohio|oklahoma|oregon|pennsylvania|rhode island|south carolina|south dakota|tennessee|texas|utah|vermont|virginia|washington|west virginia|wisconsin|wyoming|[a-z]{2})$/;

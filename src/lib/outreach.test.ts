@@ -3,6 +3,7 @@ import {
   addressState,
   CONTACTED_BY_HAND,
   daysUntil,
+  bidFitsTrade,
   bidIsServiceJob,
   emailFitsSite,
   placeIsLocal,
@@ -119,6 +120,18 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(bidIsServiceJob("RFI Process control system plumbing and programming")).toBe(false);
     expect(bidIsServiceJob("Sources Sought: Grounds Maintenance")).toBe(false);
     expect(bidIsServiceJob("HVAC Filters for the Hospital and related items")).toBe(false);
+    // Owner 2026-10-30: design, consultant and project-management work.
+    expect(bidIsServiceJob("Design Services for Hillside Support Facility Roof and HVAC Replacements (STATE)")).toBe(false);
+    expect(bidIsServiceJob("D81802 - Project Management Consultant Services for Roof Replacement at Bathgate (State).")).toBe(false);
+    expect(bidIsServiceJob("MFD Station #1 HVAC Remodel")).toBe(true);
+    expect(bidIsServiceJob("Fenn Ranger Station roofing replacement")).toBe(true);
+  });
+
+  test("a roof-top HVAC unit is not roofing work (owner 2026-10-30)", () => {
+    expect(bidFitsTrade("roofing", "E-911 Heat Pump and Roof Top Unit (RTU) Replacement")).toBe(false);
+    expect(bidFitsTrade("roofing", "Rooftop Units Replacement - Library")).toBe(false);
+    expect(bidFitsTrade("roofing", "MU27MSCROOF Memorial Student Center Roof Replacement")).toBe(true);
+    expect(bidFitsTrade("HVAC", "E-911 Heat Pump and Roof Top Unit (RTU) Replacement")).toBe(true);
   });
 
   test("a web address glued to a mailbox is never used (owner 2026-10-30)", () => {

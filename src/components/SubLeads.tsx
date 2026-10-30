@@ -118,7 +118,8 @@ export function SubLeads({ leads }: { leads: SubLead[] | null | undefined }) {
               className="font-semibold text-emerald-300 underline"
             >
               Ask for my list
-            </a>
+            </a>{" "}
+            · Need more cities? <a href="/sub-list" className="font-semibold text-emerald-300 underline">$49 per list</a>
           </div>
         </div>
         <p className="mt-3 text-xs text-slate-500">Source: USAspending.gov award records. Company names and amounts as reported.</p>

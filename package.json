@@ -25,6 +25,7 @@
     "prospect-finder": "bun run src/jobs/prospect-finder.ts",
     "outreach-prepare": "bun run src/jobs/outreach-prepare.ts",
     "prime-outreach-prepare": "bun run src/jobs/prime-outreach-prepare.ts",
+    "leads-outreach-prepare": "bun run src/jobs/leads-outreach-prepare.ts",
     "account-set-trade": "bun run src/jobs/account-set-trade.ts",
     "award-check": "bun run src/jobs/check-awards.ts",
     "crm-reminders": "bun run src/jobs/crm-reminder-send.ts",

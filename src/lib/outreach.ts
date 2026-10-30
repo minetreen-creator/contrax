@@ -160,7 +160,7 @@ export const FOLLOWUP_MIN_DAYS_TO_DUE = 2;
 /** Most emails one "send" click may send. */
 export const MAX_SEND_PER_BATCH = 50;
 
-export type OutreachKind = "first" | "followup" | "prime";
+export type OutreachKind = "first" | "followup" | "prime" | "leads";
 
 export interface OutreachEmailInput {
   kind: OutreachKind;
@@ -235,7 +235,25 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
   const firstSubject = outreachSubject(i);
   let subject: string;
   let body: string[];
-  if (i.kind === "prime") {
+  if (i.kind === "leads") {
+    // Owner 2026-10-30 ("find me the revenue" → "2,3"): businesses that sell TO
+    // contractors (bonds, insurance, equipment, staffing) get a free state list
+    // of new federal contract winners; the paid product is /leads.
+    const place = (i.place ?? "").trim() || "your state";
+    const why = LEADS_BUYERS.find((b) => b.label === i.tradeLabel)?.why ?? "";
+    subject = `New federal contract winners in ${place}`.slice(0, 140);
+    body = [
+      "Hi,",
+      "",
+      `${i.bidTitle}.`,
+      "",
+      `${why} Contrax tracks these winners every weekday: company, city, amount, agency and where the work is, each linked to the public federal record.`,
+      "",
+      `If you'd like the ${place} list, reply "yes" and I'll send it over. No charge, no catch.`,
+      "",
+      `More about it: ${link("/leads", i.kind, i.contactId)}`,
+    ];
+  } else if (i.kind === "prime") {
     // Owner 2026-10-30 ("We should do primes all over the US" → "first list
     // free, build it"): a company that just won a service contract in another
     // state usually needs a local subcontractor there. One ask, no price.
@@ -317,6 +335,23 @@ export const PRIME_TRADES: Readonly<Record<string, { label: string }>> = {
   "562111": { label: "waste hauling" },
   "238220": { label: "HVAC" },
 };
+
+/**
+ * Businesses that sell to contractors, for the Award Leads outreach (owner
+ * 2026-10-30). `places` is the Google Places search; `why` opens the email.
+ */
+export const LEADS_BUYERS: readonly { label: string; places: string; why: string }[] = [
+  { label: "surety bond", places: "surety bond agency", why: "Contract winners often need performance and payment bonds." },
+  { label: "contractor insurance", places: "contractor insurance agency", why: "Contract winners often need more liability and workers comp coverage." },
+  { label: "equipment financing", places: "equipment financing company", why: "Contract winners often need trucks and equipment fast." },
+  { label: "staffing", places: "construction staffing agency", why: "Contract winners often need extra crews to start the work." },
+];
+
+/** "41 companies based in Texas won $28.4 million in federal contracts in the last 30 days". PURE. */
+export function leadsHeadline(count: number, total: number, stateName: string): string {
+  const money = total >= 1e9 ? `$${(total / 1e9).toFixed(1).replace(/\.0$/, "")} billion` : `$${(total / 1e6).toFixed(1).replace(/\.0$/, "")} million`;
+  return `${count} ${count === 1 ? "company" : "companies"} based in ${stateName} won ${money} in federal contracts in the last 30 days`;
+}
 
 /** Smallest award worth a prime email (the award-lead floor). */
 export const PRIME_MIN_AMOUNT = 25_000;

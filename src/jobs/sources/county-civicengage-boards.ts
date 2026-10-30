@@ -145,6 +145,11 @@ export const COUNTY_CIVICENGAGE_CONFIGS: readonly CivicEngageBoardConfig[] = [
   board("fl_casselberry", "www.casselberry.org", "City of Casselberry", "Casselberry, FL", "casselberrycivic"),
   board("fl_new_smyrna_beach", "www.cityofnsb.com", "City of New Smyrna Beach", "New Smyrna Beach, FL", "newsmyrnabeachcivic"),
   board("fl_levy_county", "www.levycounty.org", "Levy County", "Levy County, FL", "levycountycivic"),
+  // Indiana (owner 2026-10-30).
+  board("in_crown_point", "www.crownpoint.in.gov", "City of Crown Point", "Crown Point, IN", "crownpointcivic"),
+  board("in_shelbyville", "www.cityofshelbyvillein.com", "City of Shelbyville", "Shelbyville, IN", "shelbyvilleincivic"),
+  board("in_westfield", "www.westfield.in.gov", "City of Westfield", "Westfield, IN", "westfieldincivic"),
+  board("in_crawfordsville", "www.crawfordsville.in.gov", "City of Crawfordsville", "Crawfordsville, IN", "crawfordsvillecivic"),
 ];
 
 export function countyCivicEngageConfig(source: string): CivicEngageBoardConfig {

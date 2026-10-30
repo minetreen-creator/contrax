@@ -63,3 +63,6 @@ floydcountyga 2, roswellgov 3, marshall (Marshall University) 1; pauldingk12 had
 Florida, captured 2026-10-30 (owner: "Yes" to a Florida board hunt). About 130 likely tenant names were tried;
 real tenants: pascocountyfl 4, indianriver 1, talgov 6, fau 1, ucf 2, leeschools 1; sunrisefl, plantation,
 duvalschools, fgcu and jaxport had 0 open. Both fetches matched.
+
+Indiana, captured 2026-10-30 (owner: "sure" to an Indiana board hunt). About 100 likely tenant names were tried;
+real tenants: indygo (IndyGo, Indianapolis' transit agency) 4 open; fwcs (Fort Wayne Community Schools) 0 open.

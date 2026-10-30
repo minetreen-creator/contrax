@@ -45,6 +45,8 @@ export async function ensureOutreach(): Promise<void> {
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`;
   await db`CREATE UNIQUE INDEX IF NOT EXISTS outreach_contacts_email_kind ON outreach_contacts (LOWER(email), kind)`;
+  // Prime emails (owner 2026-10-30): the state the awarded work is in.
+  await db`ALTER TABLE outreach_contacts ADD COLUMN IF NOT EXISTS place TEXT`;
   await db`CREATE TABLE IF NOT EXISTS outreach_suppressions (
     email TEXT PRIMARY KEY,
     reason TEXT NOT NULL,
@@ -152,6 +154,33 @@ export async function queueFirst(p: QueuedProspect): Promise<boolean> {
   return rows.length > 0;
 }
 
+export interface QueuedPrime {
+  email: string;
+  business: string;
+  website: string | null;
+  /** award_leads.id (kept in bid_id; prime rows never look up a bid). */
+  awardId: number;
+  description: string;
+  agency: string | null;
+  place: string;
+  tradeLabel: string;
+}
+
+/**
+ * Queue a prime-contractor draft (owner 2026-10-30). There is no deadline, so
+ * due_date holds the day the draft goes stale (30 days out), which keeps it on
+ * the send list until then. False when the address is already known.
+ */
+export async function queuePrime(p: QueuedPrime): Promise<boolean> {
+  if (!(await isNewAddress(p.email))) return false;
+  const rows = (await sql()`
+    INSERT INTO outreach_contacts (email, kind, business, website, bid_id, bid_title, buyer, due_date, trade_label, place)
+    VALUES (${p.email.trim().toLowerCase()}, 'prime', ${p.business}, ${p.website}, ${p.awardId}, ${p.description}, ${p.agency},
+            CURRENT_DATE + 30, ${p.tradeLabel}, ${p.place})
+    ON CONFLICT DO NOTHING RETURNING id`) as unknown[];
+  return rows.length > 0;
+}
+
 /** Queue follow-up drafts for first emails sent FOLLOWUP_AFTER_DAYS ago whose bid is still open. */
 export async function queueFollowups(): Promise<number> {
   await ensureOutreach();
@@ -181,6 +210,7 @@ export interface ContactRow {
   buyer: string | null;
   due_date: string;
   trade_label: string;
+  place?: string | null;
   status: string;
   error: string | null;
   sent_at: string | null;
@@ -257,6 +287,7 @@ export function renderContact(row: ContactRow, postalAddress: string, sourceUrl:
     buyer: row.buyer,
     due: row.due_date,
     tradeLabel: row.trade_label,
+    place: row.place ?? null,
     postalAddress,
     unsubscribeUrl: unsubscribeUrl(row.email),
     contactId: row.id,
@@ -303,7 +334,9 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
       continue;
     }
     const row = normalize(claimed[0]!);
-    const mail = renderContact(row, postal!, (await postingUrls([row.bid_id])).get(row.bid_id) ?? null);
+    // A prime row's bid_id is an award id, never a bid: no posting lookup.
+    const posting = row.kind === "prime" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
+    const mail = renderContact(row, postal!, posting);
     const unsub = unsubscribeUrl(row.email);
     try {
       const { data, error } = await resend.emails.send({

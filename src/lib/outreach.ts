@@ -160,7 +160,7 @@ export const FOLLOWUP_MIN_DAYS_TO_DUE = 2;
 /** Most emails one "send" click may send. */
 export const MAX_SEND_PER_BATCH = 50;
 
-export type OutreachKind = "first" | "followup";
+export type OutreachKind = "first" | "followup" | "prime";
 
 export interface OutreachEmailInput {
   kind: OutreachKind;
@@ -182,6 +182,8 @@ export interface OutreachEmailInput {
    * click lands on a lock.
    */
   sourceUrl?: string | null;
+  /** Prime emails: the state where the awarded work is ("Texas"). */
+  place?: string | null;
 }
 
 /** Only a plain http(s) link goes in an email. */
@@ -233,7 +235,26 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
   const firstSubject = outreachSubject(i);
   let subject: string;
   let body: string[];
-  if (i.kind === "first") {
+  if (i.kind === "prime") {
+    // Owner 2026-10-30 ("We should do primes all over the US" → "first list
+    // free, build it"): a company that just won a service contract in another
+    // state usually needs a local subcontractor there. One ask, no price.
+    const place = (i.place ?? "").trim() || "the work site";
+    const agency = (i.buyer ?? "").trim();
+    subject = `Local ${i.tradeLabel} subcontractor for your ${place} contract?`.slice(0, 140);
+    body = [
+      "Hi,",
+      "",
+      `Congratulations on your recent ${agency ? `${agency} ` : ""}${i.tradeLabel} contract in ${place}:`,
+      primeDescription(i.bidTitle),
+      "",
+      `If you're lining up a local subcontractor for the work, I can put together a short list of ${i.tradeLabel} companies near the site, with their websites and contact info. The first list is free. Just reply with the city and I'll send it over.`,
+      "",
+      "I'm Nathaniel, and I run Contrax, a small company that tracks government contracts and the local contractors who do the work.",
+      "",
+      "Good luck with the contract.",
+    ];
+  } else if (i.kind === "first") {
     // Owner 2026-10-25 review: one ask (reply "yes"), no prices in a cold
     // first email, and the official posting itself.
     subject = firstSubject.slice(0, 140);
@@ -274,6 +295,58 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
     .map((l, idx, all) => (idx >= all.length - 2 ? `<div style="font-size:12px;color:#64748b">${l}</div>` : `<div>${l}</div>`))
     .join("")}</div>`;
   return { subject, text, html };
+}
+
+/** An award description as one readable line: whitespace collapsed, cut at 140. PURE. */
+export function primeDescription(d: string): string {
+  const one = d.replace(/\s+/g, " ").trim();
+  return one.length > 140 ? `${one.slice(0, 137).replace(/\s+\S*$/, "")}...` : one;
+}
+
+/**
+ * Service work a prime usually hands to a local subcontractor, by NAICS code
+ * (owner 2026-10-30). `places` is the Google Places word for the trade.
+ */
+export const PRIME_TRADES: Readonly<Record<string, { label: string }>> = {
+  "561720": { label: "janitorial" },
+  "561730": { label: "landscaping" },
+  "561612": { label: "security guard" },
+  "561710": { label: "pest control" },
+  "561790": { label: "building maintenance" },
+  "561210": { label: "facilities maintenance" },
+  "562111": { label: "waste hauling" },
+  "238220": { label: "HVAC" },
+};
+
+/** Smallest award worth a prime email (the award-lead floor). */
+export const PRIME_MIN_AMOUNT = 25_000;
+
+/**
+ * An award whose winner likely needs a local subcontractor: subcontractable
+ * service work, big enough to matter, performed in a different state from
+ * where the winner is based. PURE.
+ */
+export function primeAwardFits(a: { naics_code: string | null; recipient_state: string | null; pop_state: string | null; amount: number }): boolean {
+  if (!a.naics_code || !PRIME_TRADES[a.naics_code]) return false;
+  if (!a.recipient_state || !a.pop_state || a.recipient_state === a.pop_state) return false;
+  return a.amount >= PRIME_MIN_AMOUNT;
+}
+
+/** Words of a company name that identify it ("Acme Facility Services LLC" → acme, facility). PURE. */
+export function companyWords(name: string): string[] {
+  const stop = new Set(["llc", "inc", "corp", "corporation", "co", "company", "ltd", "lp", "llp", "the", "and", "of", "group", "services", "service", "solutions", "enterprises", "incorporated"]);
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length >= 3 && !stop.has(w));
+}
+
+/** True when a Places result is plausibly the awarded company (shares its first identifying word). PURE. */
+export function sameCompany(awardee: string, placeName: string): boolean {
+  const a = companyWords(awardee);
+  const p = new Set(companyWords(placeName));
+  return a.length > 0 && p.has(a[0]!);
 }
 
 /** True when a first email sent at `sentAt` is due a follow-up at `now`. */

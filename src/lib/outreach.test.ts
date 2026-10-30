@@ -6,6 +6,9 @@ import {
   bidFitsTrade,
   bidIsServiceJob,
   OUTREACH_TRADES,
+  primeAwardFits,
+  primeDescription,
+  sameCompany,
   emailFitsSite,
   placeIsLocal,
   followupDue,
@@ -226,5 +229,45 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     const m = outreachEmail({ ...base, kind: "followup", sourceUrl: "https://example.gov/b" });
     expect(m.text).toContain("Official posting: https://example.gov/b");
     expect(m.text.indexOf('reply "yes"')).toBeLessThan(m.text.indexOf("Starter"));
+  });
+
+  test("prime outreach: which awards qualify (owner 2026-10-30)", () => {
+    const base = { naics_code: "561720", recipient_state: "FL", pop_state: "TX", amount: 250_000 };
+    expect(primeAwardFits(base)).toBe(true);
+    expect(primeAwardFits({ ...base, pop_state: "FL" })).toBe(false); // works in its own state
+    expect(primeAwardFits({ ...base, naics_code: "541512" })).toBe(false); // IT, not subcontractable trade work
+    expect(primeAwardFits({ ...base, amount: 10_000 })).toBe(false);
+    expect(primeAwardFits({ ...base, recipient_state: null })).toBe(false);
+  });
+
+  test("prime outreach: only the awarded company's own listing is used", () => {
+    expect(sameCompany("ACME FACILITY SERVICES LLC", "Acme Facility Services")).toBe(true);
+    expect(sameCompany("The Bellwether Group, Inc.", "Bellwether Janitorial")).toBe(true);
+    expect(sameCompany("ACME FACILITY SERVICES LLC", "Best Janitorial of Houston")).toBe(false);
+    expect(primeDescription("JANITORIAL   SERVICES\nFOR BLDG 12")).toBe("JANITORIAL SERVICES FOR BLDG 12");
+    expect(primeDescription("x ".repeat(200)).length).toBeLessThanOrEqual(140);
+  });
+
+  test("prime outreach email: one free-list ask, no price, no bid link", () => {
+    const mail = outreachEmail({
+      kind: "prime",
+      business: "Acme Facility Services LLC",
+      bidId: 991,
+      bidTitle: "JANITORIAL SERVICES FOR THE GALVESTON FEDERAL BUILDING",
+      buyer: "General Services Administration",
+      due: "2026-11-29",
+      tradeLabel: "janitorial",
+      place: "Texas",
+      postalAddress: "203 Homestead Dr, Colonial Heights VA 23834",
+      unsubscribeUrl: "https://www.contrax.company/api/outreach/unsubscribe?t=x",
+      contactId: 1,
+    });
+    expect(mail.subject).toBe("Local janitorial subcontractor for your Texas contract?");
+    expect(mail.text).toContain("Congratulations on your recent General Services Administration janitorial contract in Texas:");
+    expect(mail.text).toContain("The first list is free.");
+    expect(mail.text).toContain("Unsubscribe: https://www.contrax.company/api/outreach/unsubscribe?t=x");
+    expect(mail.text).toContain("203 Homestead Dr");
+    expect(mail.text).not.toContain("/bid/");
+    expect(mail.text).not.toContain("$");
   });
 });

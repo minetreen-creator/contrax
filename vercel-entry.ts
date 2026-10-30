@@ -29,6 +29,7 @@ import { isPublicSsrCacheable } from "./src/lib/ssr-cache-policy";
 import { anonHintClearCookie, issuesSession } from "./src/lib/anon-hint";
 // Site-wide IP block (owner console Block button; src/lib/ip-block.server.ts).
 import { isIpBlocked } from "./src/lib/ip-block.server";
+import { blockedUserAgent } from "./src/lib/blocked-user-agents";
 
 // ── Client asset references for the static SEO pages ─────────────────────────
 // The entry chunk / CSS / preload filenames come from vercel-entry.assets.json,
@@ -892,7 +893,8 @@ export default async function vercelHandler(
 
     // Blocked IPs get nothing from the function: no pages, no API, no
     // searches. Fails open on any blocklist error (see ip-block.server.ts).
-    if (await isIpBlocked(getClientIp(req.headers))) {
+    // Blocked browser signatures too (src/lib/blocked-user-agents.ts).
+    if (blockedUserAgent(String(req.headers["user-agent"] ?? "")) || (await isIpBlocked(getClientIp(req.headers)))) {
       res.statusCode = 403;
       res.setHeader("content-type", "text/plain; charset=utf-8");
       res.setHeader("cache-control", "no-store");

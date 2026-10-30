@@ -15,8 +15,10 @@ export const ADMIN_EMAILS: ReadonlySet<string> = new Set([
   // Founder / owner. Add additional admin emails here as needed.
   "hello@contrax.company",
   "minetreen@gmail.com",
-  // Contrax company inbox (owner 2026-10-02).
+  // Contrax company inbox (owner 2026-10-02), and the same Gmail inbox
+  // without the dot, as Google may report it (owner 2026-10-30).
   "contrax.companyllc@gmail.com",
+  "contraxcompanyllc@gmail.com",
 ]);
 
 export function isAdminEmail(email: string): boolean {

@@ -94,4 +94,14 @@ export const adminFunnelExclusionSQL = (alias = "") => {
  * not an admin, not the demo account, and not a QA/test account.
  */
 export const qaExternalUserSQL = (alias = "") =>
-  `is_admin = false AND plan_tier <> 'demo' AND ${qaUserExclusionSQL(alias)}`;
+  `is_admin = false AND plan_tier <> 'demo' AND ${qaUserExclusionSQL(alias)} AND ${adminUserEmailExclusionSQL(alias)}`;
+
+/**
+ * users-table predicate: not an ADMIN_EMAILS address (owner 2026-10-30: the
+ * owner's own Google sign-in test must never count as a new customer, even
+ * when the account's is_admin column is false).
+ */
+export const adminUserEmailExclusionSQL = (alias = "") => {
+  if (ADMIN_EMAILS.size === 0) return "TRUE";
+  return `LOWER(COALESCE(${alias}email, '')) NOT IN (${[...ADMIN_EMAILS].map((e) => `'${e.toLowerCase()}'`).join(", ")})`;
+};

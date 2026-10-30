@@ -402,6 +402,7 @@ async function handler({ request }: { request: Request }) {
         signinRequired: Number(ev?.signin ?? 0),
         failed: Number(ev?.failed ?? 0),
         firstMonth: await loadFirstMonthStats(now),
+        starterPass: await loadStarterPassStats(),
       };
     } catch (e) {
       console.error("[api/admin/live-console] money panel unavailable:", e);
@@ -427,6 +428,27 @@ async function handler({ request }: { request: Request }) {
 export const Route = createFileRoute("/api/admin/live-console")({
   server: { handlers: { GET: handler } },
 });
+
+/** $5 30-day Starter passes, from the accounts table (owner and test accounts left out); null on any error. */
+async function loadStarterPassStats() {
+  try {
+    const { ensureStarterPassColumns } = await import("~/lib/starter-pass.server");
+    await ensureStarterPassColumns();
+    const db = sql();
+    const [r] = (await db`
+      SELECT COUNT(*)::int AS bought,
+             COUNT(*) FILTER (WHERE starter_pass_ends_at > NOW())::int AS active_now,
+             COUNT(*) FILTER (WHERE subscription_status = 'active' AND stripe_subscription_id IS NOT NULL)::int AS continued,
+             COUNT(*) FILTER (WHERE subscription_status = 'pass_ended')::int AS ended
+      FROM users
+      WHERE starter_pass_bought_at IS NOT NULL AND ${db.unsafe(qaExternalUserSQL())}
+    `) as { bought: number; active_now: number; continued: number; ended: number }[];
+    return { bought: r?.bought ?? 0, activeNow: r?.active_now ?? 0, continued: r?.continued ?? 0, ended: r?.ended ?? 0 };
+  } catch (e) {
+    console.error("[api/admin/live-console] starter pass stats unavailable:", e);
+    return null;
+  }
+}
 
 /** $5 first-month Starter subscriptions, read live from Stripe; null on any error. */
 async function loadFirstMonthStats(now: number) {

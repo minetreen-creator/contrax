@@ -221,6 +221,20 @@ export interface MoneyStats {
   failed: number;
   /** "$5 first month" Starter subscriptions (Stripe), or null when Stripe could not be read. */
   firstMonth?: FirstMonthStats | null;
+  /** $5 30-day Starter passes (owner 2026-10-30), from the accounts table; null when unreadable. */
+  starterPass?: StarterPassStats | null;
+}
+
+/** The $5 30-day Starter pass (src/lib/starter-pass.ts). Passes are one-time payments, not Stripe subscriptions. */
+export interface StarterPassStats {
+  /** Accounts that bought a pass. */
+  bought: number;
+  /** Pass still running. */
+  activeNow: number;
+  /** Bought a pass, then subscribed at $19/month. */
+  continued: number;
+  /** Pass ran out without a subscription (back on free Basic). */
+  ended: number;
 }
 
 /** The $5 first-month Starter offer, read from Stripe subscription metadata. */

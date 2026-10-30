@@ -15,6 +15,7 @@
 import { sql } from "~/db";
 import { LOW_CONTENT_SQL } from "~/lib/low-content";
 import {
+  addressState,
   BUSINESSES_PER_BID,
   DAILY_FIRST_EMAILS,
   bidIsServiceJob,
@@ -132,6 +133,13 @@ async function main() {
         if (forBid >= BUSINESSES_PER_BID || queued >= DAILY_FIRST_EMAILS) break;
         const host = p.website ? siteHost(p.website) : null;
         if (!p.website || !host || seenHosts.has(host)) continue;
+        // A business in another state is not "near" the job (owner 2026-10-30:
+        // a Nashville HVAC firm matched to a Warner Robins, GA job).
+        const placeState = addressState(p.address);
+        if (placeState && placeState !== b.normalized_state) {
+          console.log(`    skipped ${p.name}: in ${placeState}, job in ${b.normalized_state}`);
+          continue;
+        }
         seenHosts.add(host);
         const { emails } = await siteEmails(p.website);
         const email = emails.find((e) => emailFitsSite(e, host, p.name));

@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  addressState,
   CONTACTED_BY_HAND,
   daysUntil,
   bidIsServiceJob,
@@ -118,6 +119,19 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(bidIsServiceJob("RFI Process control system plumbing and programming")).toBe(false);
     expect(bidIsServiceJob("Sources Sought: Grounds Maintenance")).toBe(false);
     expect(bidIsServiceJob("HVAC Filters for the Hospital and related items")).toBe(false);
+  });
+
+  test("a web address glued to a mailbox is never used (owner 2026-10-30)", () => {
+    expect(emailFitsSite("admin@www.advancedroofing.biz", "advancedroofing.biz")).toBe(false);
+    expect(emailFitsSite("admin@advancedroofing.biz", "advancedroofing.biz")).toBe(true);
+  });
+
+  test("a business's state comes from its Places address; a buying office is not a place (owner 2026-10-30)", () => {
+    expect(addressState("123 Main St, Nashville, TN 37201, USA")).toBe("TN");
+    expect(addressState("9 Elm Rd, Warner Robins, GA 31088-1234, USA")).toBe("GA");
+    expect(addressState("Somewhere, USA")).toBeNull();
+    expect(placeIsLocal("255-NETWORK CONTRACT OFFICE 15 (36C255), MO")).toBe(false);
+    expect(placeIsLocal("City of Norwalk, CT")).toBe(true);
   });
 
   test("placeholder and garbled addresses are never used (owner 2026-10-29)", () => {

@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { addMissingWebhookEvents, dataFeedWebhookStatus } from "~/lib/data-feed-billing.server";
-import { grantDataAccess, listDataAccess, revokeDataAccess } from "~/lib/data-feed.server";
+import { deleteDataFeedRequest, grantDataAccess, listDataAccess, revokeDataAccess } from "~/lib/data-feed.server";
 import { fixStripeSetup, stripeSetupStatus } from "~/lib/stripe-setup.server";
 
 /**
  * GET  /api/admin/data-access → data feed access requests + active grants
  * POST /api/admin/data-access → { action: "grant", email, note? } issues a key
  *                               (returned once) | { action: "revoke", userId }
+ *                               | { action: "delete-request", requestId }
  *                               | { action: "webhook-check" | "webhook-fix" }
  *                               | { action: "stripe-setup-check" | "stripe-setup-fix" }
  *                                 (stripe-setup.server.ts; owner 2026-10-22)
@@ -40,6 +41,7 @@ async function post({ request }: { request: Request }) {
       email?: string;
       note?: string;
       userId?: number;
+      requestId?: number;
       governmentOnly?: boolean;
       dailyLimit?: number | null;
     };
@@ -57,6 +59,12 @@ async function post({ request }: { request: Request }) {
       if (!Number.isInteger(id) || id <= 0) return Response.json({ error: "userId is required." }, { status: 400 });
       await revokeDataAccess(id);
       return Response.json({ ok: true });
+    }
+    if (body.action === "delete-request") {
+      const id = Number(body.requestId);
+      if (!Number.isInteger(id) || id <= 0) return Response.json({ error: "requestId is required." }, { status: 400 });
+      const deleted = await deleteDataFeedRequest(id);
+      return deleted ? Response.json({ ok: true }) : Response.json({ error: "Request not found." }, { status: 404 });
     }
     if (body.action === "webhook-check" || body.action === "webhook-fix") {
       try {

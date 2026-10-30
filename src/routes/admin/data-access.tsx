@@ -133,6 +133,15 @@ function DataAccessPage() {
                     <span className="text-slate-600">{r.name} · <a className="text-blue-700" href={`mailto:${r.email}`}>{r.email}</a></span>
                     <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${r.status === "granted" ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"}`}>{r.status}</span>
                     <span className="ml-auto text-xs text-slate-400">{timeFmt(r.created_at)}</span>
+                    <button
+                      disabled={busy}
+                      onClick={() => {
+                        if (window.confirm(`Delete the request from ${r.company} (${r.email})? This can't be undone.`)) void act({ action: "delete-request", requestId: r.id });
+                      }}
+                      className="rounded-lg border border-rose-200 px-2 py-0.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                    >
+                      Delete
+                    </button>
                   </div>
                   <p className="mt-1 text-slate-600">{[r.use_case, r.states && `States: ${r.states}`].filter(Boolean).join(" · ")}</p>
                   {r.message && <p className="mt-1 text-slate-500">{r.message}</p>}

@@ -256,6 +256,13 @@ export async function grantDataAccess(
   return { ok: true, key, userEmail: u.email };
 }
 
+/** Remove a data feed request from the admin list (owner 2026-10-30: dead leads). */
+export async function deleteDataFeedRequest(id: number): Promise<boolean> {
+  await ensureDataFeedTables();
+  const rows = (await sql()`DELETE FROM data_feed_requests WHERE id = ${id} RETURNING id`) as unknown[];
+  return rows.length > 0;
+}
+
 export async function revokeDataAccess(userId: number): Promise<void> {
   await ensureDataFeedTables();
   await sql()`UPDATE data_feed_access SET active = FALSE WHERE user_id = ${userId}`;

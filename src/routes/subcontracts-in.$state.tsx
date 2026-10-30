@@ -8,6 +8,7 @@ import { moneyText, PRIMES_SHOWN, searchPrimes, titleCase, WINNER_DAYS, WINNERS_
 import { trackEvent } from "~/lib/track";
 import { FREE_NOTICES, FREE_WINNERS, gateSplit } from "~/lib/subcontracts/email-gate";
 import { SubcontractsEmailGate, useSubcontractsUnlock } from "~/components/SubcontractsEmailGate";
+import { SubLeads } from "~/components/SubLeads";
 
 /**
  * /subcontracts-in/:state — one state's subcontracting work: open SBA SUBNet
@@ -98,6 +99,9 @@ function StateSubcontractsPage() {
           ) : null}
         </div>
       </section>
+
+      {/* Out-of-state winners in this state (owner 2026-10-30); hidden when there are none. */}
+      <SubLeads onlyState={code} />
 
       <main className="mx-auto max-w-4xl space-y-10 px-4 py-10">
         <section id="notices">

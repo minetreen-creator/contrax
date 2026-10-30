@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { getNearYou } from "~/lib/near-you";
+import { getSubLeads } from "~/lib/sub-leads-fn";
 import { companyDisplayName, orderForState, shortAmount, subLeadTrade, type SubLead } from "~/lib/sub-leads";
 import { trackEvent } from "~/lib/track";
 
@@ -13,22 +14,36 @@ const PRIME_EMAIL = "contrax.companyllc@gmail.com";
  * outside their home state usually need a local crew; the visitor's state is
  * listed first. Public award records (USAspending); nobody's email is shown.
  */
-export function SubLeads({ leads }: { leads: SubLead[] | null | undefined }) {
-  const [state, setState] = useState("");
+export function SubLeads({ leads: given, onlyState }: { leads?: SubLead[] | null; onlyState?: string }) {
+  const [state, setState] = useState(onlyState ?? "");
+  const [fetched, setFetched] = useState<SubLead[] | null>(null);
   const [all, setAll] = useState(false);
   const shown = useRef(false);
 
   useEffect(() => {
     let alive = true;
-    getNearYou()
-      .then((d) => alive && d.state && setState(d.state))
-      .catch(() => {});
+    // A state page names its state; elsewhere the visitor's own state goes first.
+    if (!onlyState) {
+      getNearYou()
+        .then((d) => alive && d.state && setState(d.state))
+        .catch(() => {});
+    }
+    // The /subcontracts pages (owner 2026-10-30) load the list after the page is up.
+    if (given === undefined) {
+      getSubLeads()
+        .then((rows) => alive && setFetched(rows))
+        .catch(() => {});
+    }
     return () => {
       alive = false;
     };
-  }, []);
+  }, [onlyState, given]);
 
-  const ordered = useMemo(() => orderForState(leads ?? [], state), [leads, state]);
+  const leads = given === undefined ? fetched : given;
+  const ordered = useMemo(() => {
+    const rows = leads ?? [];
+    return onlyState ? rows.filter((l) => l.workState === onlyState) : orderForState(rows, state);
+  }, [leads, state, onlyState]);
   const inState = state ? ordered.filter((l) => l.workState === state).length : 0;
 
   useEffect(() => {
@@ -46,12 +61,14 @@ export function SubLeads({ leads }: { leads: SubLead[] | null | undefined }) {
       <div className="rounded-3xl border border-emerald-400/30 bg-[#0a1a24] p-5 text-white shadow-[0_10px_40px_rgba(16,185,129,0.15)] sm:p-8">
         <p className="text-xs font-bold uppercase tracking-widest text-emerald-300">Subcontracting leads · updated weekdays</p>
         <h2 id="sub-leads-title" className="mt-2 text-2xl font-extrabold sm:text-3xl">
-          These companies just won work far from home. They may need your crew.
+          {onlyState
+            ? `These out-of-state companies just won work in ${stateName}. They may need your crew.`
+            : "These companies just won work far from home. They may need your crew."}
         </h2>
         <p className="mt-2 max-w-3xl text-sm text-slate-300">
           Federal service contracts won in the last 30 days by companies based in another state. Winners like these
           usually hire a local subcontractor to do the work.
-          {stateName && inState > 0 ? ` ${inState} ${inState === 1 ? "is" : "are"} in ${stateName}, listed first.` : ""}
+          {!onlyState && stateName && inState > 0 ? ` ${inState} ${inState === 1 ? "is" : "are"} in ${stateName}, listed first.` : ""}
         </p>
 
         <ul className="mt-5 divide-y divide-white/10">

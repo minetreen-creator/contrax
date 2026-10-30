@@ -10,7 +10,7 @@
  * is estimated. A field the source doesn't give stays null and the page says
  * nothing about it.
  */
-export type MegaSector = "semiconductors" | "tech" | "manufacturing" | "automotive" | "pharma" | "aerospace-defense" | "battery" | "metals" | "energy" | "food";
+export type MegaSector = "semiconductors" | "tech" | "manufacturing" | "automotive" | "pharma" | "aerospace-defense" | "battery" | "metals" | "energy" | "food" | "entertainment";
 
 export interface Megaproject {
   slug: string;
@@ -45,6 +45,7 @@ export const MEGA_SECTORS: Record<MegaSector, { label: string; icon: string }> =
   metals: { label: "Steel & metals", icon: "🏗️" },
   energy: { label: "Energy", icon: "☀️" },
   food: { label: "Food & beverage", icon: "🥤" },
+  entertainment: { label: "Entertainment venues", icon: "🎤" },
 };
 
 /** The kinds of local work a site like this typically buys (general guidance, not a promise from the company). */

@@ -1675,5 +1675,26 @@
       "url": "https://www.abc15.com/news/region-southeast-valley/tempe/honeywell-aerospace-to-build-500-million-advanced-manufacturing-facility-in-tempe-adding-600-jobs"
     },
     "checked": "2026-10-29"
+  },
+  {
+    "slug": "sphere-national-harbor-md",
+    "company": "Sphere Entertainment",
+    "project": "Sphere National Harbor venue",
+    "city": "National Harbor",
+    "state": "MD",
+    "sector": "entertainment",
+    "amount": 1400000000,
+    "amountNote": "estimated",
+    "jobs": null,
+    "jobsNote": null,
+    "status": "County financing approved Oct 27, 2026; groundbreaking planned for 2027, opening targeted for 2030",
+    "summary": "A 6,000-seat Sphere venue, about 302 feet tall, on roughly 14 acres north of MGM National Harbor. Prince George's County approved up to $215 million in bonds for the project.",
+    "generalContractor": null,
+    "supplierUrl": null,
+    "source": {
+      "name": "FOX5 Las Vegas, Oct 2026",
+      "url": "https://www.fox5vegas.com/2026/10/28/sphere-national-harbor-gets-final-approval-funding-construction/"
+    },
+    "checked": "2026-10-30"
   }
 ]

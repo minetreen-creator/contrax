@@ -11,6 +11,7 @@ describe("homepage subcontracting leads (owner 2026-10-30)", () => {
     expect(companyDisplayName("DIDLAKE INC")).toBe("Didlake INC");
     expect(companyDisplayName("Viking Pest Control")).toBe("Viking Pest Control");
     expect(companyDisplayName("JLL USA LLC")).toBe("JLL USA LLC");
+    expect(companyDisplayName("CBG-PEGASUS JV, LLC")).toBe("CBG-Pegasus JV, LLC");
   });
 
   test("amounts and trades", () => {

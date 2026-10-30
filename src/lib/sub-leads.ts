@@ -31,11 +31,17 @@ export function companyDisplayName(name: string): string {
   if (n !== n.toUpperCase()) return n;
   return n
     .split(" ")
-    .map((w) => {
-      const core = w.replace(/[^A-Z0-9&]/g, "");
-      if (KEEP_UPPER.has(core) || (core.length <= 3 && !/[AEIOU]/.test(core))) return w;
-      return w.charAt(0) + w.slice(1).toLowerCase();
-    })
+    .map((w) =>
+      // Each part of a hyphenated name on its own ("CBG-PEGASUS" → "CBG-Pegasus").
+      w
+        .split("-")
+        .map((part) => {
+          const core = part.replace(/[^A-Z0-9&]/g, "");
+          if (KEEP_UPPER.has(core) || (core.length <= 3 && !/[AEIOU]/.test(core))) return part;
+          return part.charAt(0) + part.slice(1).toLowerCase();
+        })
+        .join("-"),
+    )
     .join(" ");
 }
 

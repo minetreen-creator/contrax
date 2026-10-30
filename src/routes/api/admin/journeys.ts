@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
+import { BLOCKED_USER_AGENT_SQL } from "~/lib/blocked-user-agents";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
@@ -741,6 +742,20 @@ async function handler({ request }: { request: Request }) {
       FROM visitors
       WHERE last_seen_at >= ${fromIso}`;
 
+    // Blocked browser signatures (owner 2026-10-30: the Redmi + Chrome 106 proxy
+    // bot): the summary row has no user agent, so read the visitor ids from their
+    // page views and leave them off the board and out of the funnel.
+    const blockedUaVids = new Set<string>();
+    try {
+      const rows: any[] = await sql()`
+        SELECT DISTINCT visitor_id FROM page_views
+        WHERE created_at >= ${fromIso} AND visitor_id IS NOT NULL
+          AND ${sql().unsafe(BLOCKED_USER_AGENT_SQL)}`;
+      for (const r of rows) blockedUaVids.add(String(r.visitor_id));
+    } catch (e) {
+      console.error("[api/admin/journeys] blocked-user-agent lookup failed (continuing):", e);
+    }
+
     // In-window, FILTERED event sets over the detail tables (bot/QA/admin
     // exclusions applied — same as the timeline legibility rule). Used for the
     // 'Success' display guard (an un-filtered detail signup_success must not
@@ -855,6 +870,7 @@ async function handler({ request }: { request: Request }) {
       // user was deleted) falls through to the anonymous label, exactly like a
       // never-converted row.
       if (isBotVisitorRow(v)) continue;
+      if (vid && blockedUaVids.has(String(vid))) continue;
       const resolvedUserId = converted ? String(v.converted_user_id) : null;
       // READ-side exclusion: drop any converted row whose linked email is a
       // @test.contrax / admin account (belt-and-suspenders on top of write-time).

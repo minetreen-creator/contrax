@@ -611,6 +611,8 @@ jobs:
       # DATABASE_URL), which is the second half of why it was unrun.
       - name: Radar search regression tests (unit half; deterministic, zero network, no DATABASE_URL)
         run: bun test src/lib/radar-search.regression.test.ts
+      - name: Radar query shapes (several NAICS codes, joined trades; unit, deterministic, zero network)
+        run: bun test src/lib/trade-query-shapes.test.ts
       # State grants (owner R3 order, 2026-09-19): the unit half (schema.sql
       # mirror assertions, parsers, search/coverage shaping) always runs; the
       # DB-backed half — including state-grants-bootstrap.test.ts, which builds a

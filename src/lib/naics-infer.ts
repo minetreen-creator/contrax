@@ -48,7 +48,7 @@ const KEYWORD_OVERRIDES: Record<string, string[]> = {
   "237130": ["power line", "communication line", "utility line construction", "electric utility"],
   "237310": ["highway", "bridge", "roadway", "asphalt", "paving", "road construction", "pavement", "street construction"],
   "237990": ["heavy civil", "civil construction", "marine construction", "dredging"],
-  "238110": ["poured concrete", "concrete", "concrete work", "structural concrete"],
+  "238110": ["poured concrete", "concrete", "concrete work", "structural concrete", "concrete polishing", "polished concrete"],
   "238120": ["structural steel", "steel erection", "ironwork", "structural steel fabrication", "erection"],
   "238140": ["masonry", "brickwork", "brick", "block work", "stone masonry"],
   "238150": ["glass", "glazing", "glazier"],

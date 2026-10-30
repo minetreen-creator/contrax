@@ -910,7 +910,57 @@ export interface TradeExpansion {
  *     generically across every NAICS_NAMES code.
  *   - terms are lowercased + deduped; the original term is kept first.
  */
+/**
+ * Owner 2026-10-30 (Mission Control map: zero-result searches). Two query
+ * shapes used to fall through as one literal phrase and match nothing:
+ *  - several NAICS codes in one box ("423840 423850 423710") → each code is an
+ *    implied NAICS (the verbatim text stays as terms[0], so the keyword
+ *    predicate still applies and the codes match by naics_code);
+ *  - two trades joined by "/", ",", "&", "+", " and ", " or " ("it / software")
+ *    when the whole phrase expands to nothing → each part is expanded and the
+ *    results merged. A phrase the registry knows is never split.
+ */
 export function expandTrade(original: string): TradeExpansion {
+  const whole = expandTradeSingle(original);
+  const lower = whole.original.toLowerCase();
+  const codes = lower.split(/[\s,;/|]+/).filter(Boolean);
+  if (codes.length > 1 && codes.every((c) => NAICS_RE.test(c))) {
+    return { original: whole.original, isNaics: false, terms: [lower], naicsCodes: [...new Set(codes)] };
+  }
+  if (whole.isNaics) return whole;
+  const parts = lower.split(/\s*(?:\/|,|&|\+|\band\b|\bor\b)\s*/).map((p) => p.trim()).filter((p) => p.length >= 2);
+  if (parts.length < 2) return whole;
+  // A joined phrase that is itself a known trade name ("snow and ice removal")
+  // keeps its own expansion.
+  const known =
+    Object.values(TRADE_ALIASES).some((e) => e.synonyms.some((s) => s.toLowerCase() === lower)) || !!TRADE_KEYWORD_MAP[lower];
+  if (known) return whole;
+  const terms = [...whole.terms];
+  const naicsCodes = [...whole.naicsCodes];
+  for (const part of parts) {
+    const e = expandTradeSingle(part);
+    if (e.isNaics) {
+      if (!naicsCodes.includes(part)) naicsCodes.push(part);
+      continue;
+    }
+    // A part that expands to nothing keeps its own words only when they are
+    // specific: a bare "it" would match "item", "unit", "facility"...
+    const bare = e.terms.length <= 1 && e.naicsCodes.length === 0;
+    for (const t of e.terms) {
+      if (t === part && bare && (part.length < 4 || GENERIC_TRADE_TERMS.has(part))) continue;
+      if (!terms.includes(t)) terms.push(t);
+    }
+    for (const c of e.naicsCodes) if (!naicsCodes.includes(c)) naicsCodes.push(c);
+  }
+  return {
+    original: whole.original,
+    isNaics: false,
+    terms: terms.slice(0, MAX_EXPANDED_TERMS + MAX_SPANISH_TERMS),
+    naicsCodes,
+  };
+}
+
+function expandTradeSingle(original: string): TradeExpansion {
   const raw = String(original ?? "").trim();
   const lower = raw.toLowerCase();
   if (!raw) return { original: raw, isNaics: false, terms: [], naicsCodes: [] };

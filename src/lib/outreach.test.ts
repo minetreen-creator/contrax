@@ -49,7 +49,7 @@ describe("daily bid outreach (owner 2026-10-23)", () => {
     expect(m.text).toContain("Botetourt County, Virginia has an open bid that looks like a fit for Acme Cleaning");
     expect(m.text).toContain("Due: Nov 5, 2026");
     expect(m.text).toContain("https://www.contrax.company/bid/123?utm_source=email&utm_medium=outreach&utm_campaign=bid_outreach_first&oc=7");
-    expect(m.text).toContain("other open janitorial bids");
+    expect(m.text).toContain("new janitorial bids near you every morning");
   });
 
   test("follow-up offers Bid Scout and threads under the first subject", () => {
@@ -206,13 +206,14 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     unsubscribeUrl: "https://www.contrax.company/api/outreach/unsubscribe?t=x",
     contactId: 7,
   };
-  test("the first email hands over the official posting and makes one ask, no prices", () => {
+  test("the first email hands over the official posting and makes one ask: the $5 pass (owner 2026-10-30)", () => {
     const m = outreachEmail({ ...base, sourceUrl: "https://www.botetourtva.gov/bids/123" });
     expect(m.text).toContain("Official posting: https://www.botetourtva.gov/bids/123");
     expect(m.text).toContain("Summary on Contrax: https://www.contrax.company/bid/123");
-    expect(m.text).toContain('reply "yes"');
-    expect(m.text).not.toContain("$");
-    expect(m.text).not.toContain("/pricing");
+    expect(m.text).toContain("Your first 30 days are $5, with no automatic renewal: https://www.contrax.company/pricing?");
+    // "I'm not sending out bids for free": no free list by reply.
+    expect(m.text).not.toContain('reply "yes"');
+    expect(m.text).not.toContain("No charge");
   });
   test("without a usable posting link it falls back to the Contrax page", () => {
     for (const sourceUrl of [null, "javascript:alert(1)", "not a url"]) {
@@ -225,10 +226,12 @@ describe("outreach review fixes (owner 2026-10-25)", () => {
     const m = outreachEmail({ ...base, buyer: "Department of General Services, Division of Purchases and Supply" });
     expect(m.subject).toBe("Open janitorial bid, due Nov 5");
   });
-  test("the follow-up keeps the free offer first and the official link", () => {
+  test("the follow-up keeps the official link and offers no free bids", () => {
     const m = outreachEmail({ ...base, kind: "followup", sourceUrl: "https://example.gov/b" });
     expect(m.text).toContain("Official posting: https://example.gov/b");
-    expect(m.text.indexOf('reply "yes"')).toBeLessThan(m.text.indexOf("Starter"));
+    expect(m.text).toContain("Starter is $5 for your first 30 days");
+    expect(m.text).not.toContain('reply "yes"');
+    expect(m.text).not.toContain("free");
   });
 
   test("prime outreach: which awards qualify (owner 2026-10-30)", () => {

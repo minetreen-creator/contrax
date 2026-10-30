@@ -6,6 +6,7 @@ import { HomeContractFinder } from "~/components/HomeContractFinder";
 import { FoundingWall } from "~/components/FoundingWall";
 import { EndingNearYou } from "~/components/EndingNearYou";
 import { HomeStateMap } from "~/components/HomeStateMap";
+import { MoneyJar } from "~/components/MoneyJar";
 import { MaxAssistant } from "~/components/MaxAssistant";
 import { MoneyCounter } from "~/components/MoneyCounter";
 import { TownBuyingCallout } from "~/components/TownBuyingCallout";
@@ -102,7 +103,7 @@ const getBidStats = async (): Promise<{ activeCount: number; agencyCount: number
 // browser (SiteHeader without a `user` prop), so this render is identical for
 // every visitor and can be served from the edge cache.
 const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
-  const [businessName, bidStats, contractMap, endingSoon, endingByState] = await Promise.all([
+  const [businessName, bidStats, contractMap, endingSoon, endingByState, moneyJar] = await Promise.all([
     (async () => {
       try {
         const cfg = JSON.parse(await readFile("site.json", "utf8")) as {
@@ -136,8 +137,18 @@ const getLandingData = createServerFn({ method: "GET" }).handler(async () => {
         return {};
       }
     })(),
+    // Money jar (owner 2026-10-30): last fiscal year's federal spending in our
+    // trades; null hides the jar.
+    (async () => {
+      try {
+        const { moneyJarYear } = await import("~/lib/federal-trade-data.server");
+        return await moneyJarYear();
+      } catch {
+        return null;
+      }
+    })(),
   ]);
-  return { businessName, bidStats, contractMap, endingSoon, endingByState };
+  return { businessName, bidStats, contractMap, endingSoon, endingByState, moneyJar };
 });
 
 // ── Route ─────────────────────────────────────────────────────────────────────
@@ -190,7 +201,7 @@ const BTN =
 
 function Home() {
 
-  const { bidStats, contractMap, endingSoon, endingByState } = Route.useLoaderData();
+  const { bidStats, contractMap, endingSoon, endingByState, moneyJar } = Route.useLoaderData();
   const { sample } = Route.useLoaderData();
 
   const jsonLd = {
@@ -220,6 +231,8 @@ function Home() {
       {/* Owner 2026-10-26 ("all of it"): one clear path down the page: search,
           Max, the proof, how it works, Bid Scout. The other ways in ("Open near
           you", the ZIP box, free tools) follow instead of competing up top. */}
+      {/* The money jar (owner 2026-10-30). */}
+      <MoneyJar data={moneyJar} />
       <MoneyCounter contractMap={contractMap} ending={endingSoon} endingByState={endingByState} agencyCount={bidStats.agencyCount} />
       {/* Contracts ending near you (owner 2026-10-29); holder locked. */}
       <EndingNearYou />

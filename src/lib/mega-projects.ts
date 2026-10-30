@@ -221,6 +221,63 @@ export const MEGA_PROJECTS: MegaProject[] = [
     ],
     verifiedOn: "2026-10-24",
   },
+  {
+    slug: "johnston-willis-brain-spine-center-chesterfield-va",
+    name: "Johnston-Willis Hospital Brain and Spine Center expansion, Chesterfield",
+    owner: "Johnston-Willis Hospital (HCA Virginia)",
+    summary:
+      "A more than $24 million expansion of the Brain and Spine Center at Johnston-Willis Hospital: a specialized MRI, plus replacement and upgraded equipment for gamma knife treatment and focused ultrasound therapy, with the aim of shorter waits for neurological care.",
+    place: "Chesterfield County",
+    stateCode: "VA",
+    investment: 24_000_000,
+    status: "announced",
+    groundbreaking: null,
+    expectedOpen: "Summer 2027",
+    constructionJobs: null,
+    permanentJobs: null,
+    generalContractor: null,
+    address: null,
+    knownFirms: [],
+    trades: [
+      "Selective demolition with infection-control barriers",
+      "MRI room construction: RF shielding, magnetic shielding and quench venting",
+      "Heavy equipment rigging and structural reinforcement for imaging and radiosurgery equipment",
+      "Radiation shielding for the gamma knife suite",
+      "Healthcare HVAC and controls, including dedicated equipment cooling",
+      "Electrical, emergency power and low voltage",
+      "Plumbing and medical gas",
+      "Framing, drywall, ceilings, flooring and finishes",
+    ],
+    howToGetIn: [
+      "Construction is expected to take about 10 months, ahead of a planned summer 2027 opening, so trade packages are likely bought soon. Watch for the general contractor to be named; it buys almost every trade package.",
+      "Imaging and radiosurgery suites need specialists (RF and magnetic shielding, rigging, radiation shielding). If that's your trade, contact the equipment makers' installation partners and Richmond-area healthcare builders now.",
+      "Hospital work inside an open building usually requires infection-control (ICRA) training and healthcare experience. Have your certifications, safety record (EMR) and similar past work ready.",
+      "Get certified as a Virginia small, women- or minority-owned business (SWaM) if you qualify, and bid the public work around Richmond listed below.",
+    ],
+    nearbyAgencySlugs: ["city-of-richmond", "richmond-public-schools", "henrico-county", "powhatan-county", "city-of-hopewell"],
+    statewideAgencies: [
+      {
+        source: "va_eva",
+        agencyName: "Virginia Department of Transportation",
+        slug: "virginia-department-of-transportation",
+        name: "Virginia Department of Transportation (VDOT)",
+        via: "eVA, Virginia's procurement portal",
+      },
+    ],
+    // The hospital's county and city, the neighbors on the nearby list, and VDOT's Richmond District.
+    areaTerms: ["Chesterfield", "Richmond", "Midlothian", "Henrico", "Powhatan", "Hopewell", "Richmond District"],
+    sources: [
+      {
+        label: "WTVR CBS 6 (Oct 30, 2026)",
+        url: "https://www.wtvr.com/news/local-news/johnston-willis-hospital-investing-24m-to-expand-brain-and-spine-center-with-cutting-edge-treatments",
+      },
+      {
+        label: "Richmond BizSense: HCA's 2023 project at Johnston-Willis (owner)",
+        url: "https://richmondbizsense.com/2023/08/09/hca-planning-9m-expansion-and-renovation-project-at-johnston-willis/",
+      },
+    ],
+    verifiedOn: "2026-10-30",
+  },
 ];
 
 export const MEGA_PROJECT_BY_SLUG: Record<string, MegaProject> = Object.fromEntries(

@@ -32,3 +32,14 @@ export function blockedUserAgent(userAgent: string | null | undefined): string |
 
 /** The same signature as a SQL predicate on a `user_agent` column (for BOT_EXCLUSION_SQL). */
 export const BLOCKED_USER_AGENT_SQL = `(COALESCE(user_agent,'') LIKE '%Android 9; Redmi %' AND COALESCE(user_agent,'') LIKE '%Chrome/106.0.0.0 Mobile Safari/%')`;
+
+/**
+ * Hidden, not blocked (owner 2026-10-30: "2"). Android "Chrome 138" visitors who
+ * arrive on a paid ad. A read-only check (30 days): 132 visitor ids, first seen
+ * Oct 6 (the Redmi bot's first day), spiking on the Redmi bot's days, 100% from
+ * Google Ads (mostly YouTube), ~50 s between pages like the Redmi bot, 2 checkout
+ * starts and 0 accounts. Real people on that browser can still use the site and
+ * still count when they arrive any other way; only the ad-click rows are left
+ * out of visitor counts.
+ */
+export const HIDDEN_AD_CLICK_SQL = `(COALESCE(user_agent,'') LIKE '%Android 10; K)%Chrome/138.0.0.0 Mobile Safari/%' AND COALESCE(medium,'') = 'cpc')`;

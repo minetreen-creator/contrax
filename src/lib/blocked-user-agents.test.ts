@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import { BLOCKED_USER_AGENT_SQL, blockedUserAgent } from "./blocked-user-agents";
 import { BOT_EXCLUSION_SQL } from "./bot-exclusion";
 import { automationMarker } from "./scraper-watch";
@@ -41,5 +42,11 @@ describe("blocked user agents", () => {
     }
     expect(automationMarker(SEEN[0])).toBe("Redmi + Chrome 106 proxy bot");
     expect(automationMarker(REAL[0])).toBeNull();
+  });
+
+  test("the Visitors board drops them too (its summary rows carry no user agent)", () => {
+    const src = readFileSync(new URL("../routes/api/admin/journeys.ts", import.meta.url), "utf8");
+    expect(src).toContain("BLOCKED_USER_AGENT_SQL");
+    expect(src).toContain("blockedUaVids.has(");
   });
 });

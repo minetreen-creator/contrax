@@ -30,7 +30,7 @@ export function BasicUpgradeBar() {
         onClick={() => trackEvent("basic_upgrade_bar_click")}
         className="underline underline-offset-2 hover:no-underline"
       >
-        Get Starter for ${STARTER_FIRST_MONTH_PRICE} your first month →
+        Get Starter for ${STARTER_FIRST_MONTH_PRICE} for 30 days →
       </a>
       <FoundingSpotsLine where="basic_bar" className="ml-2 underline underline-offset-2 hover:no-underline" />
     </div>

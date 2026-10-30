@@ -2,6 +2,7 @@ import { useEffect, useState, type MouseEvent } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { BidValueCalculator } from "~/components/BidValueCalculator";
+import { EmailSample } from "~/components/EmailSample";
 import { GrantsPricing } from "~/components/GrantsPricing";
 import { resolveGrantsUpgradeEnabled } from "~/lib/grants-upgrade-signal";
 import { SiteHeader } from "~/components/SiteHeader";
@@ -245,7 +246,7 @@ function PricingPage() {
               Never miss a bid in your trade again
             </h2>
             <p className="mt-4 text-lg text-gray-600">
-              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM, for $5 your first month. Every new account also gets a 7-day Professional trial, no credit card. Cancel anytime.
+              Most businesses start with Starter: every new bid in your trade and states, in your inbox at 6 AM. Your first 30 days are $5, one time, with no automatic renewal. Every new account also gets a 7-day Professional trial, no credit card.
             </p>
             {near && (
               <p className="mt-5 text-base font-semibold text-slate-900">
@@ -271,6 +272,8 @@ function PricingPage() {
                 Or try Professional free for 7 days, no card
               </a>
             </div>
+            {/* Owner 2026-10-30 (item 4): the merchandise before the plan cards. */}
+            <EmailSample />
           </div>
 
           {/* Billing period (owner 2026-10-19, item 3) — mirrors /upgrade. */}
@@ -312,7 +315,7 @@ function PricingPage() {
               >
                 {plan.featured && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-white shadow-md">
-                    {plan.slug === "starter" && interval === "month" ? "$5 first month" : "Recommended"}
+                    {plan.slug === "starter" && interval === "month" ? "$5 for 30 days" : "Recommended"}
                   </div>
                 )}
                 <div className="mb-6">

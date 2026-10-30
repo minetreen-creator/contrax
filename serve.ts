@@ -113,7 +113,11 @@ async function handleCreateCheckoutSession(req: Request): Promise<Response> {
 
     const normalized = (body.promoCode ?? "").trim().toLowerCase();
     const promoCode = normalized === "vad26" ? "VAD26" : undefined;
+    // Starter 30-day pass (owner 2026-10-30, src/lib/starter-pass.ts).
+    const { starterCheckoutOptions } = await import("./src/lib/starter-pass.server.ts");
+    const starterOpts = await starterCheckoutOptions(body, userId ?? null);
     const result = await createCheckoutSession(body.planTier as any, {
+      ...starterOpts,
       ...(userId != null ? { userId } : {}),
       mode: body.mode ?? "subscription",
       interval: body.interval === "year" ? "year" : "month",

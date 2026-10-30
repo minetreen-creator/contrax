@@ -19,6 +19,13 @@ import {
   STARTER_FIRST_MONTH_COUPON,
   starterFirstMonthApplies,
 } from "~/lib/starter-offer";
+import {
+  CHECKOUT_SUBMIT_MESSAGE,
+  STARTER_PASS_AMOUNT,
+  STARTER_PASS_FLAG,
+  STARTER_PASS_PRODUCT_DESCRIPTION,
+  STARTER_PASS_PRODUCT_NAME,
+} from "~/lib/starter-pass";
 
 // ── Client Initialization ──────────────────────────────────────────────────────
 
@@ -435,6 +442,14 @@ export interface CreateCheckoutSessionOptions {
    * FOUNDING_MEMBER_LIMIT spots are held or when the count cannot be read.
    */
   founding?: boolean;
+  /**
+   * Starter 30-day pass (owner 2026-10-30, src/lib/starter-pass.ts): a one-time
+   * $5 payment for 30 days of Starter, no automatic renewal. Monthly Starter
+   * only; the route decides who gets it (starterCheckoutKind).
+   */
+  starterPass?: boolean;
+  /** A monthly Starter subscription without the $5 first-month coupon (a returning pass buyer). */
+  fullPrice?: boolean;
 }
 
 /**
@@ -559,7 +574,29 @@ export async function createCheckoutSession(
       }
     }
 
+    // Starter 30-day pass: one-time $5 on the Starter product, no subscription.
+    const starterPass = opts.starterPass === true && planTier === "starter" && interval === "month" && !isVad && !founding;
+    if (opts.starterPass === true && !starterPass) {
+      return { success: false, error: "The $5 pass is for monthly Starter only." };
+    }
+    if (starterPass) {
+      lineItem = {
+        price_data: {
+          currency: "usd",
+          unit_amount: STARTER_PASS_AMOUNT,
+          product_data: {
+            name: STARTER_PASS_PRODUCT_NAME,
+            description: STARTER_PASS_PRODUCT_DESCRIPTION,
+            metadata: { plan_tier: "starter", [STARTER_PASS_FLAG]: "true" },
+          },
+        },
+        quantity: 1,
+      };
+    }
+    const sessionMode: CheckoutMode = starterPass ? "payment" : mode;
+
     const metadata: Record<string, string> = { plan_tier: planTier };
+    if (starterPass) metadata[STARTER_PASS_FLAG] = "true";
     if (interval === "year") {
       metadata.billing_interval = "year";
     }
@@ -576,15 +613,19 @@ export async function createCheckoutSession(
       metadata.promo_code = "VAD26";
     }
 
-    const firstMonth = starterFirstMonthApplies({ planTier, interval, mode, vad: isVad });
+    const firstMonth = !starterPass && opts.fullPrice !== true && starterFirstMonthApplies({ planTier, interval, mode, vad: isVad });
     if (firstMonth) {
       metadata.first_month_offer = STARTER_FIRST_MONTH_COUPON;
       await ensureStarterFirstMonthCoupon();
     }
 
     const session = await getStripe().checkout.sessions.create({
-      mode,
+      mode: sessionMode,
       line_items: [lineItem],
+      // Owner 2026-10-30 (item 3): what happens next, under the pay button.
+      ...(planTier !== "savings_premium" ? { custom_text: { submit: { message: CHECKOUT_SUBMIT_MESSAGE } } } : {}),
+      // A pass buyer keeps a Stripe customer, so continuing at $19 later reuses it.
+      ...(starterPass ? { customer_creation: "always" as const } : {}),
       ...(firstMonth ? { discounts: [{ coupon: STARTER_FIRST_MONTH_COUPON }] } : {}),
       metadata,
       // Carry the SAME attribution metadata on the SUBSCRIPTION (not just the
@@ -593,7 +634,7 @@ export async function createCheckoutSession(
       // checkout — the Grants checkout has always done this. `subscription_data`
       // is only valid in subscription mode (a one-time price would be rejected),
       // so it is omitted for mode="payment".
-      ...(mode === "subscription" ? { subscription_data: { metadata } } : {}),
+      ...(sessionMode === "subscription" ? { subscription_data: { metadata } } : {}),
       success_url: `${BASE_URL}/post-checkout?session_id={CHECKOUT_SESSION_ID}&plan=${planTier}`,
       // Send canceled buyers back to the offer they were considering (#441).
       cancel_url: isVad
@@ -811,6 +852,10 @@ export async function handleStripeWebhook(
       userId = (inserted[0] as { id: number }).id;
       createdByCheckout = true;
     }
+
+    // Starter 30-day pass dates (or clear them when this is a subscription).
+    const { recordCheckoutPass } = await import("~/lib/starter-pass.server");
+    await recordCheckoutPass(userId, session);
 
     // Create session token
     const token = crypto.randomUUID();

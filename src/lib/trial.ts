@@ -240,6 +240,8 @@ export function needsFirstTrial(r: {
     !r.trial_started_at &&
     r.subscription_status !== "active" &&
     r.subscription_status !== "trialing" &&
+    // A finished $5 Starter pass already had its paid month (starter-pass.ts).
+    r.subscription_status !== "pass_ended" &&
     !r.access_expires_at &&
     !r.full_access
   );
@@ -328,6 +330,8 @@ export async function ensureTrialStarted(userId: number): Promise<string | null>
     if (!r) return null;
     // A paying (active-subscription) user has no trial to start.
     if (r.subscription_status === "active") return null;
+    // A finished $5 Starter pass does not restart as a free trial.
+    if (r.subscription_status === "pass_ended") return null;
     // Demo / admin internal accounts should not lazily start trials.
     if (r.plan_tier === "demo") return null;
     // If the trial already started, reuse it (expired stays expired).

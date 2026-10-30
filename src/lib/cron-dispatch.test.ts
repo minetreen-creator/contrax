@@ -50,7 +50,7 @@ describe("dispatchWorkflow", () => {
 });
 
 describe("wiring", () => {
-  test("the build registers the morning email, bid sync, SAM import and checkout follow-up crons", () => {
+  test("the build registers the morning email, bid sync, SAM import, checkout follow-up and Starter pass crons", () => {
     const sh = readFileSync("build-vercel.sh", "utf8");
     const json = sh.slice(sh.indexOf("cat > .vercel/output/config.json <<'JSON'") + "cat > .vercel/output/config.json <<'JSON'".length);
     const cfg = JSON.parse(json.slice(0, json.indexOf("\nJSON")));
@@ -61,6 +61,7 @@ describe("wiring", () => {
       { path: "/api/cron/sync-bids?slot=weekend", schedule: "0 15 * * 0,6" },
       { path: "/api/cron/sam-csv", schedule: "17 5 * * *" },
       { path: "/api/cron/checkout-followup", schedule: "23 * * * *" },
+      { path: "/api/cron/starter-pass", schedule: "41 14 * * *" },
     ]);
   });
   test("the workflow passes the gated input to the gate", () => {

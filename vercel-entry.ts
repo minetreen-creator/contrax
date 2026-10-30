@@ -639,7 +639,11 @@ async function handleCreateCheckoutSession(
 
     const normalized = (parsed.promoCode ?? "").trim().toLowerCase();
     const promoCode = normalized === "vad26" ? "VAD26" : undefined;
+    // Starter 30-day pass (owner 2026-10-30, src/lib/starter-pass.ts).
+    const { starterCheckoutOptions } = await import("./src/lib/starter-pass.server.ts");
+    const starterOpts = await starterCheckoutOptions(parsed, userId ?? null);
     const result = await createCheckoutSession(parsed.planTier as any, {
+      ...starterOpts,
       ...(userId != null ? { userId } : {}),
       mode: parsed.mode ?? "subscription",
       interval: parsed.interval === "year" ? "year" : "month",

@@ -162,3 +162,17 @@
 @media (prefers-reduced-motion: reduce) {
   .home-map-state { animation: none; }
 }
+
+/* Homepage money jar (owner 2026-10-30): a coin falls into the jar's mouth. */
+@keyframes money-jar-drop {
+  0% { transform: translateY(-30px) rotate(0deg); opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateY(150px) rotate(540deg); opacity: 0; }
+}
+.money-jar-coin {
+  animation: money-jar-drop 1.05s cubic-bezier(0.5, 0, 0.9, 0.6) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .money-jar-coin { animation: none; display: none; }
+}

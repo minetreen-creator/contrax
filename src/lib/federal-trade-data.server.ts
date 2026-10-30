@@ -369,3 +369,22 @@ export async function activeContractAmounts(trade: string, state: string): Promi
     WHERE trade_slug = ${trade} AND pop_state = ${state} AND end_date >= CURRENT_DATE`) as { amount: number }[];
   return rows.map((r) => Number(r.amount)).filter((n) => Number.isFinite(n) && n > 0);
 }
+
+/**
+ * Homepage money jar (src/lib/money-jar.ts): last complete fiscal year's federal
+ * contract spending across the trades Contrax covers, each dollar once.
+ * Null when nothing is stored.
+ */
+export async function moneyJarYear(): Promise<{ fiscalYear: number; total: number; trades: number } | null> {
+  await ensureFederalTradeTables();
+  const { distinctTrades } = await import("~/lib/money-jar");
+  const trades = distinctTrades(FEDERAL_TRADE_NAICS);
+  const r = (await sql()`
+    SELECT fiscal_year, COALESCE(SUM(total_amount), 0)::float AS total FROM federal_trade_spending
+    WHERE trade_slug = ANY(${trades})
+      AND fiscal_year = (SELECT MAX(fiscal_year) FROM federal_trade_spending)
+    GROUP BY fiscal_year`) as { fiscal_year: number; total: number }[];
+  const row = r[0];
+  if (!row || !(row.total > 0)) return null;
+  return { fiscalYear: Number(row.fiscal_year), total: Number(row.total), trades: trades.length };
+}

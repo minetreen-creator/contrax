@@ -1,3 +1,5 @@
+import { BLOCKED_USER_AGENT_SQL } from "./blocked-user-agents";
+
 /**
  * Bot/crawler exclusion predicate against the analytics tables' shared columns
  * (ip / user_agent / referrer). Used by the admin metrics + acquisition slices so
@@ -18,6 +20,9 @@
  */
 export const BOT_EXCLUSION_SQL = `
   (
+    -- Blocked browser signatures (src/lib/blocked-user-agents.ts): the
+    -- Redmi + Chrome 106 proxy bot (owner 2026-10-30).
+    ${BLOCKED_USER_AGENT_SQL} OR
     -- Our own test / scraper IP (exclude always). The owner's home address
     -- 73.40.36.204 was removed 2026-10-20 (owner: count household visits);
     -- the owner's own browsing stays out through the admin-email exclusion.

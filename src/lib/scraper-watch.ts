@@ -8,6 +8,7 @@
  * page_views / visitors / radar_search_log row; nothing is guessed. Signals
  * flag, they never block: a flagged visitor still gets the site.
  */
+import { blockedUserAgent } from "./blocked-user-agents";
 
 export interface TrailInput {
   /** visitors.country (two-letter, from the IP geo). */
@@ -53,6 +54,8 @@ const AUTOMATION_UA = [
 
 /** The user-agent fragment that looks automated, or null. */
 export function automationMarker(userAgent: string | null | undefined): string | null {
+  const blocked = blockedUserAgent(userAgent);
+  if (blocked) return blocked;
   const ua = String(userAgent ?? "").toLowerCase();
   if (!ua) return "no user agent";
   return AUTOMATION_UA.find((m) => ua.includes(m)) ?? null;

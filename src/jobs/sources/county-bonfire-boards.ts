@@ -93,6 +93,18 @@ const BOARDS: Board[] = [
   { tenant: "roswellgov", source: "ga_roswell_bonfire", stateName: "Georgia", place: "Roswell", buyer: "City of Roswell, Georgia", idPrefix: "roswellgovbonfire" },
   { tenant: "pauldingk12", source: "ga_paulding_schools_bonfire", stateName: "Georgia", place: "Paulding County Schools", buyer: "Paulding County Schools", idPrefix: "pauldingk12bonfire", location: "Paulding County, GA" },
   { tenant: "marshall", source: "wv_marshall_university_bonfire", stateName: "West Virginia", place: "Marshall University", buyer: "Marshall University", idPrefix: "marshallbonfire", location: "Huntington, WV" },
+  // Florida (owner 2026-10-30: "Yes" to a Florida board hunt after "IT services, FL" returned 5 matches).
+  { tenant: "pascocountyfl", source: "fl_pasco_county_bonfire", stateName: "Florida", place: "Pasco County", buyer: "Pasco County, Florida", idPrefix: "pascocountyflbonfire" },
+  { tenant: "indianriver", source: "fl_indian_river_county_bonfire", stateName: "Florida", place: "Indian River County", buyer: "Indian River County, Florida", idPrefix: "indianriverbonfire" },
+  { tenant: "talgov", source: "fl_tallahassee_bonfire", stateName: "Florida", place: "Tallahassee", buyer: "City of Tallahassee, Florida", idPrefix: "talgovbonfire" },
+  { tenant: "fau", source: "fl_fau_bonfire", stateName: "Florida", place: "Florida Atlantic University", buyer: "Florida Atlantic University", idPrefix: "faubonfire", location: "Boca Raton, FL" },
+  { tenant: "ucf", source: "fl_ucf_bonfire", stateName: "Florida", place: "University of Central Florida", buyer: "University of Central Florida", idPrefix: "ucfbonfire", location: "Orlando, FL" },
+  { tenant: "leeschools", source: "fl_lee_schools_bonfire", stateName: "Florida", place: "The School District of Lee County", buyer: "The School District of Lee County", idPrefix: "leeschoolsbonfire", location: "Lee County, FL" },
+  { tenant: "sunrisefl", source: "fl_sunrise_bonfire", stateName: "Florida", place: "Sunrise", buyer: "City of Sunrise, Florida", idPrefix: "sunriseflbonfire" },
+  { tenant: "plantation", source: "fl_plantation_bonfire", stateName: "Florida", place: "Plantation", buyer: "City of Plantation, Florida", idPrefix: "plantationbonfire" },
+  { tenant: "duvalschools", source: "fl_duval_schools_bonfire", stateName: "Florida", place: "Duval County Public Schools", buyer: "Duval County Public Schools", idPrefix: "duvalschoolsbonfire", location: "Jacksonville, FL" },
+  { tenant: "fgcu", source: "fl_fgcu_bonfire", stateName: "Florida", place: "Florida Gulf Coast University", buyer: "Florida Gulf Coast University", idPrefix: "fgcubonfire", location: "Fort Myers, FL" },
+  { tenant: "jaxport", source: "fl_jaxport_bonfire", stateName: "Florida", place: "JAXPORT", buyer: "JAXPORT (Jacksonville Port Authority)", idPrefix: "jaxportbonfire", location: "Jacksonville, FL" },
 ];
 
 export const COUNTY_BONFIRE_CONFIGS: readonly BonfireConfig[] = BOARDS.map(boardConfig);

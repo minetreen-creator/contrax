@@ -15,7 +15,8 @@ export const STARTER_FIRST_MONTH_AMOUNT_OFF = 1400;
 export const STARTER_FIRST_MONTH_PRICE = 5;
 
 /** Short line under the Starter price. */
-export const STARTER_FIRST_MONTH_NOTE = "$5 for your first month, then $19/month. Cancel anytime.";
+/** Owner 2026-10-30: the $5 is now a 30-day pass with no automatic renewal (starter-pass.ts). */
+export const STARTER_FIRST_MONTH_NOTE = "$5 for your first 30 days. No automatic renewal: we'll ask before charging $19/month.";
 
 /**
  * Monthly Starter subscriptions only: not yearly (already 2 months free), not

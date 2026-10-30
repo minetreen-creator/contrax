@@ -156,6 +156,12 @@ const resolveCheckoutSession = createServerFn({ method: "POST" })
       userId = row.id;
     }
 
+    // Starter 30-day pass dates (idempotent; the webhook records the same).
+    if (userId != null) {
+      const { recordCheckoutPass } = await import("~/lib/starter-pass.server");
+      await recordCheckoutPass(userId, session);
+    }
+
     // Create session token
     const token = crypto.randomUUID();
     const expiresAt = new Date(

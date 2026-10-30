@@ -489,7 +489,7 @@ function BidDetailPage() {
                         See who won the prior contract for this work and what they were paid, straight from public government records.
                       </p>
                       <a href="/upgrade?plan=starter" className="mt-2 inline-block text-sm font-semibold text-emerald-300 hover:text-emerald-200">
-                        Unlock with Starter, ${STARTER_FIRST_MONTH_PRICE} your first month →
+                        Unlock with Starter, ${STARTER_FIRST_MONTH_PRICE} for 30 days →
                       </a>
                     </div>
                   )}
@@ -665,8 +665,8 @@ function NoticeLock({ bidId, signedIn }: { bidId: number; signedIn: boolean }) {
       <p className="text-sm font-semibold text-amber-200">🔒 The official notice and bid documents are for members</p>
       <p className="mt-1 text-sm text-slate-300">
         {signedIn
-          ? `Get Starter for $${STARTER_FIRST_MONTH_PRICE} your first month to open this notice and every other one.`
-          : `Start a free 7-day trial (no card) to open this notice, or get Starter for $${STARTER_FIRST_MONTH_PRICE} your first month.`}
+          ? `Get Starter for $${STARTER_FIRST_MONTH_PRICE} for 30 days to open this notice and every other one. No automatic renewal.`
+          : `Start a free 7-day trial (no card) to open this notice, or get Starter for $${STARTER_FIRST_MONTH_PRICE} for 30 days.`}
       </p>
       <div className="mt-3 flex flex-wrap gap-3">
         {signedIn ? (

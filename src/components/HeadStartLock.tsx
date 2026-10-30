@@ -31,7 +31,7 @@ export function HeadStartLock({ until, compact = false }: { until: string; compa
         href="/pricing?source=head_start"
         className="mt-2 inline-block rounded-md bg-amber-600 px-3 py-1.5 font-semibold text-white hover:bg-amber-500"
       >
-        See it now with Starter, $5 your first month
+        See it now with Starter, $5 for 30 days
       </a>
     </div>
   );

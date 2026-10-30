@@ -197,3 +197,31 @@ describe("Starter $5 first month", () => {
     } finally { couponAmountOff = 1400; }
   });
 });
+
+describe("Starter $5 30-day pass (owner 2026-10-30)", () => {
+  test("a pass is a one-time $5 payment on the Starter product, with no coupon and no subscription", async () => {
+    created.length = 0;
+    expect((await stripeLib.createCheckoutSession("starter", { starterPass: true })).success).toBe(true);
+    const s = created[0];
+    expect(s.mode).toBe("payment");
+    expect(s.line_items[0].price_data.unit_amount).toBe(500);
+    expect(s.line_items[0].price_data.recurring).toBeUndefined();
+    expect(s.line_items[0].price_data.product_data.name).toBe("Contrax Starter: 30 days of bid emails");
+    expect(s.discounts).toBeUndefined();
+    expect(s.subscription_data).toBeUndefined();
+    expect(s.metadata.starter_pass).toBe("true");
+    expect(s.customer_creation).toBe("always");
+    expect(s.custom_text.submit.message).toContain("6 AM");
+  });
+
+  test("a returning pass buyer continues at full price; the pass is never yearly or Professional", async () => {
+    created.length = 0;
+    expect((await stripeLib.createCheckoutSession("starter", { userId: 7, fullPrice: true })).success).toBe(true);
+    expect(created[0].mode).toBe("subscription");
+    expect(created[0].discounts).toBeUndefined();
+    created.length = 0;
+    expect((await stripeLib.createCheckoutSession("professional", { userId: 7, starterPass: true })).success).toBe(false);
+    expect((await stripeLib.createCheckoutSession("starter", { userId: 7, starterPass: true, interval: "year" })).success).toBe(false);
+    expect(created).toHaveLength(0);
+  });
+});

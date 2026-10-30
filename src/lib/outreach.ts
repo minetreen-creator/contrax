@@ -222,7 +222,7 @@ export function outreachEmail(i: OutreachEmailInput): { subject: string; text: s
       "",
       `My offer stands: reply "yes" and I'll send you the other open ${i.tradeLabel} bids near you, free.`,
       "",
-      `If you'd rather have them every morning, Contrax Starter is $5 for the first month, then $19/month, cancel anytime: ${link("/pricing", i.kind, i.contactId)}`,
+      `If you'd rather have them every morning, Contrax Starter is $5 for 30 days with no automatic renewal: ${link("/pricing", i.kind, i.contactId)}`,
       "",
       `Or, if you don't have time to dig through bids at all, Bid Scout sends you 5 handpicked for ${i.business} every Friday, each with the requirements in plain English and what to do next. First month $49 for our founding customers: ${link("/bid-scout?source=outreach", i.kind, i.contactId)}`,
       "",

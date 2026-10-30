@@ -181,6 +181,32 @@ export async function queuePrime(p: QueuedPrime): Promise<boolean> {
   return rows.length > 0;
 }
 
+export interface QueuedLeadsBuyer {
+  email: string;
+  business: string;
+  website: string | null;
+  /** leadsHeadline(...) for the state. */
+  headline: string;
+  place: string;
+  /** LEADS_BUYERS label. */
+  tradeLabel: string;
+}
+
+/**
+ * Queue an Award Leads draft (owner 2026-10-30). No bid and no deadline: bid_id
+ * is 0 and due_date is the day the draft goes stale. False when the address is
+ * already known.
+ */
+export async function queueLeadsBuyer(p: QueuedLeadsBuyer): Promise<boolean> {
+  if (!(await isNewAddress(p.email))) return false;
+  const rows = (await sql()`
+    INSERT INTO outreach_contacts (email, kind, business, website, bid_id, bid_title, buyer, due_date, trade_label, place)
+    VALUES (${p.email.trim().toLowerCase()}, 'leads', ${p.business}, ${p.website}, 0, ${p.headline}, NULL,
+            CURRENT_DATE + 30, ${p.tradeLabel}, ${p.place})
+    ON CONFLICT DO NOTHING RETURNING id`) as unknown[];
+  return rows.length > 0;
+}
+
 /** Queue follow-up drafts for first emails sent FOLLOWUP_AFTER_DAYS ago whose bid is still open. */
 export async function queueFollowups(): Promise<number> {
   await ensureOutreach();
@@ -334,8 +360,8 @@ export async function sendDrafts(ids: number[]): Promise<{ sent: number; failed:
       continue;
     }
     const row = normalize(claimed[0]!);
-    // A prime row's bid_id is an award id, never a bid: no posting lookup.
-    const posting = row.kind === "prime" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
+    // Prime and Award Leads rows have no bid behind bid_id: no posting lookup.
+    const posting = row.kind === "prime" || row.kind === "leads" ? null : (await postingUrls([row.bid_id])).get(row.bid_id) ?? null;
     const mail = renderContact(row, postal!, posting);
     const unsub = unsubscribeUrl(row.email);
     try {

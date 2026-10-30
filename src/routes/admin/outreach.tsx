@@ -22,7 +22,7 @@ export const Route = createFileRoute("/admin/outreach")({
 interface Draft {
   id: number;
   email: string;
-  kind: "first" | "followup" | "prime";
+  kind: "first" | "followup" | "prime" | "leads";
   business: string;
   website: string | null;
   bid_title: string;
@@ -184,8 +184,8 @@ function OutreachPage() {
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-slate-900">
                         {d.business}{" "}
-                        <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${d.kind === "followup" ? "bg-amber-100 text-amber-800" : d.kind === "prime" ? "bg-emerald-50 text-emerald-700" : "bg-blue-50 text-blue-700"}`}>
-                          {d.kind === "followup" ? "Follow-up" : d.kind === "prime" ? "Prime: free sub list" : "First email"}
+                        <span className={`ml-1 rounded-full px-2 py-0.5 text-xs ${d.kind === "followup" ? "bg-amber-100 text-amber-800" : d.kind === "prime" ? "bg-emerald-50 text-emerald-700" : d.kind === "leads" ? "bg-violet-50 text-violet-700" : "bg-blue-50 text-blue-700"}`}>
+                          {d.kind === "followup" ? "Follow-up" : d.kind === "prime" ? "Prime: free sub list" : d.kind === "leads" ? "Award Leads: free state list" : "First email"}
                         </span>
                       </p>
                       <p className="text-xs text-slate-500">
@@ -198,7 +198,9 @@ function OutreachPage() {
                         )}
                       </p>
                       <p className="mt-1 text-sm text-slate-700">
-                        {d.kind === "prime"
+                        {d.kind === "leads"
+                          ? `${d.trade_label} · ${d.place ?? "—"} · ${d.bid_title}`
+                          : d.kind === "prime"
                           ? `${d.bid_title} · ${d.buyer ?? "—"} · work in ${d.place ?? "—"} · ${d.trade_label}`
                           : `${d.bid_title} · ${d.buyer ?? "—"} · due ${d.due_date} · ${d.trade_label}`}
                       </p>
@@ -239,7 +241,7 @@ function OutreachPage() {
               {data.recent.map((r) => (
                 <li key={r.id} className="flex flex-wrap justify-between gap-2 py-2">
                   <span>
-                    {r.business} <span className="text-slate-500">({r.email})</span> · {r.kind === "followup" ? "follow-up" : r.kind === "prime" ? "prime" : "first"}
+                    {r.business} <span className="text-slate-500">({r.email})</span> · {r.kind === "followup" ? "follow-up" : r.kind === "prime" ? "prime" : r.kind === "leads" ? "award leads" : "first"}
                   </span>
                   <span className={r.status === "failed" ? "text-red-700" : "text-slate-500"}>
                     {r.status === "failed" ? `failed: ${r.error ?? ""}` : r.sent_at ? timeFmt(r.sent_at) : ""}

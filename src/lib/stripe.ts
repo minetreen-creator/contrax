@@ -692,6 +692,10 @@ export async function handleStripeWebhook(
   const { handleReviewPaymentEvent } = await import("~/lib/bid-fit-review-flow.server");
   if (await handleReviewPaymentEvent(event)) return { success: true };
 
+  // Paid local-subcontractor list (owner 2026-10-30): product "sub_list".
+  const { handleSubListEvent } = await import("~/lib/sub-list.server");
+  if (await handleSubListEvent(event)) return { success: true };
+
   // Bid Scout is a SEPARATE product (not a Contrax user plan) — consume its
   // events (checkout.session.completed / customer.subscription.deleted /
   // invoice.payment_failed) here and NEVER fall through to the user-account

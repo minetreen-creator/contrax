@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { BLOCKED_USER_AGENT_SQL, blockedUserAgent } from "./blocked-user-agents";
+import { BLOCKED_USER_AGENT_SQL, HIDDEN_AD_CLICK_SQL, blockedUserAgent } from "./blocked-user-agents";
 import { BOT_EXCLUSION_SQL } from "./bot-exclusion";
 import { automationMarker } from "./scraper-watch";
 
@@ -56,5 +56,15 @@ describe("blocked user agents", () => {
     const src = readFileSync(new URL("../routes/api/admin/journeys.ts", import.meta.url), "utf8");
     expect(src).toContain('ip.startsWith("69.25.91.")');
     expect(src).toContain('ip.startsWith("155.103.64.")');
+  });
+
+  test("Chrome 138 ad clicks are hidden from counts but never blocked", () => {
+    const c138 = "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Mobile Safari/537.36";
+    expect(blockedUserAgent(c138)).toBeNull();
+    expect(automationMarker(c138)).toBeNull();
+    expect(BOT_EXCLUSION_SQL).toContain(HIDDEN_AD_CLICK_SQL);
+    expect(HIDDEN_AD_CLICK_SQL).toContain("medium,'') = 'cpc'");
+    const src = readFileSync(new URL("../routes/api/admin/journeys.ts", import.meta.url), "utf8");
+    expect(src).toContain("HIDDEN_AD_CLICK_SQL");
   });
 });

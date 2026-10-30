@@ -1,4 +1,4 @@
-import { BLOCKED_USER_AGENT_SQL } from "./blocked-user-agents";
+import { BLOCKED_USER_AGENT_SQL, HIDDEN_AD_CLICK_SQL } from "./blocked-user-agents";
 
 /**
  * Bot/crawler exclusion predicate against the analytics tables' shared columns
@@ -23,6 +23,8 @@ export const BOT_EXCLUSION_SQL = `
     -- Blocked browser signatures (src/lib/blocked-user-agents.ts): the
     -- Redmi + Chrome 106 proxy bot (owner 2026-10-30).
     ${BLOCKED_USER_AGENT_SQL} OR
+    -- Its likely twin on Chrome 138, hidden only when it arrives on a paid ad.
+    ${HIDDEN_AD_CLICK_SQL} OR
     -- Our own test / scraper IP (exclude always). The owner's home address
     -- 73.40.36.204 was removed 2026-10-20 (owner: count household visits);
     -- the owner's own browsing stays out through the admin-email exclusion.

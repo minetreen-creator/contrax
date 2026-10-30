@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { sql } from "~/db";
 import { getUserFromRequest } from "~/lib/api-auth";
 import { BOT_EXCLUSION_SQL } from "~/lib/bot-exclusion";
-import { BLOCKED_USER_AGENT_SQL } from "~/lib/blocked-user-agents";
+import { BLOCKED_USER_AGENT_SQL, HIDDEN_AD_CLICK_SQL } from "~/lib/blocked-user-agents";
 import { qaFunnelExclusionSQL, adminFunnelExclusionSQL } from "~/lib/qa-exclusion";
 import { ADMIN_EMAILS } from "~/lib/admin";
 import { ensureVisitorsTable } from "~/lib/tracking-intake";
@@ -745,14 +745,14 @@ async function handler({ request }: { request: Request }) {
       WHERE last_seen_at >= ${fromIso}`;
 
     // Blocked browser signatures (owner 2026-10-30: the Redmi + Chrome 106 proxy
-    // bot): the summary row has no user agent, so read the visitor ids from their
+    // bot, and its Chrome 138 ad-click twin): the summary row has no user agent, so read the visitor ids from their
     // page views and leave them off the board and out of the funnel.
     const blockedUaVids = new Set<string>();
     try {
       const rows: any[] = await sql()`
         SELECT DISTINCT visitor_id FROM page_views
         WHERE created_at >= ${fromIso} AND visitor_id IS NOT NULL
-          AND ${sql().unsafe(BLOCKED_USER_AGENT_SQL)}`;
+          AND (${sql().unsafe(BLOCKED_USER_AGENT_SQL)} OR ${sql().unsafe(HIDDEN_AD_CLICK_SQL)})`;
       for (const r of rows) blockedUaVids.add(String(r.visitor_id));
     } catch (e) {
       console.error("[api/admin/journeys] blocked-user-agent lookup failed (continuing):", e);

@@ -1,3 +1,4 @@
+import { SubLeads } from "~/components/SubLeads";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -934,6 +935,12 @@ function SubcontractsPage() {
             {payload ? noticeCountText(payload.counts.total) : "reading the stored notices"}
           </p>
           <StatePicker />
+        </div>
+
+        {/* Out-of-state winners who may need local crews (owner 2026-10-30: a Las
+            Vegas visitor came back 21 times to these pages). */}
+        <div className="-mx-4 sm:-mx-6">
+          <SubLeads />
         </div>
 
         {loadFailed ? (

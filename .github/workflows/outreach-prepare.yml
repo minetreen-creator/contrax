@@ -16,6 +16,10 @@ on:
         description: "Skip every waiting draft before queuing new ones"
         type: boolean
         default: false
+      more:
+        description: "A second batch: look at more bids per trade, saved in the last 10 days"
+        type: boolean
+        default: false
 
 concurrency:
   group: outreach-prepare
@@ -33,6 +37,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       GOOGLE_PLACES_API_KEY: ${{ secrets.GOOGLE_PLACES_API_KEY }}
       RESET_DRAFTS: ${{ inputs.reset && 'true' || 'false' }}
+      MORE_DRAFTS: ${{ inputs.more && 'true' || 'false' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

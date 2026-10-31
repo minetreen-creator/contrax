@@ -43,7 +43,7 @@
  */
 
 import { NAICS_NAMES } from "~/lib/naics-names";
-import { NAICS_INFER_MAP } from "~/lib/naics-infer";
+import { NAICS_INFER_MAP, isFigurativeLandscapeOnly } from "~/lib/naics-infer";
 import {
   hasExplicitJanitorialServicePhrase,
   isHvacNonWork,
@@ -1398,6 +1398,10 @@ export function isStrongTradeMatch(
   if (expansion.isNaics) return true; // exact NAICS equality — strong by construction
   const titleText = String(title ?? "").toLowerCase();
   if (isNonCarrierFreightWork(titleText, expansion)) return false;
+  // "Binding Landscape Emulators" is research, not grounds work (owner
+  // 2026-10-31). No NAICS rescue: a stored 561730 on such a row was inferred
+  // from that same figurative word.
+  if (expansion.naicsCodes.includes("561730") && isFigurativeLandscapeOnly(titleText)) return false;
   const terms = expansion.terms.filter((t) => t && t.length >= 2);
   // QA re-verification N1/F8 (PR #414): a TITLE-TERM hit on the janitorial
   // expansion must survive the purchased-service guards before it counts as a

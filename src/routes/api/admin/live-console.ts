@@ -7,11 +7,13 @@ import { adminFunnelExclusionSQL, qaExternalUserSQL, qaFunnelExclusionSQL } from
 import { TRIAL_DAYS } from "~/lib/trial";
 import { dataCenterLocation, sameMinuteClusters } from "~/lib/visitor-intel";
 import { getStripe } from "~/lib/stripe";
+import { isAdminEmail } from "~/lib/admin";
 import { ensureTrackedVisitorsTable } from "~/lib/scraper-watch.server";
 import type { TrackedVisitor } from "~/lib/scraper-watch";
 import { STARTER_FIRST_MONTH_COUPON } from "~/lib/starter-offer";
 import {
   firstMonthStats,
+  paidCheckoutCount,
   mapPoint,
   FEED_EVENTS,
   FEED_EVENT_NAMES,
@@ -411,6 +413,7 @@ async function handler({ request }: { request: Request }) {
     return Response.json({
       generatedAt: new Date(now).toISOString(),
       money,
+      paid48h: await loadPaid48h(now),
       map,
       onlineCount: people.length,
       scannersHidden: scanners.size,
@@ -451,6 +454,29 @@ async function loadStarterPassStats() {
 }
 
 /** $5 first-month Starter subscriptions, read live from Stripe; null on any error. */
+/** Paid Stripe checkouts in the last 48 hours, or null when Stripe could not be read. */
+async function loadPaid48h(now: number): Promise<number | null> {
+  try {
+    const since = Math.floor(now / 1000) - 48 * 60 * 60;
+    const sessions: { payment_status?: string | null; customer_details?: { email?: string | null } | null }[] = [];
+    let after: string | undefined;
+    for (let i = 0; i < 5; i++) {
+      const res = await getStripe().checkout.sessions.list({
+        created: { gte: since },
+        limit: 100,
+        ...(after ? { starting_after: after } : {}),
+      });
+      sessions.push(...res.data);
+      if (!res.has_more || !res.data.length) break;
+      after = res.data[res.data.length - 1].id;
+    }
+    return paidCheckoutCount(sessions, isAdminEmail);
+  } catch (e) {
+    console.error("[api/admin/live-console] paid checkouts unavailable:", e);
+    return null;
+  }
+}
+
 async function loadFirstMonthStats(now: number) {
   try {
     const subs: { status: string; created: number }[] = [];

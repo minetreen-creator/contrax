@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
 import {
   firstMonthStats,
+  paidCheckoutCount,
   mapPoint,
   FEED_EVENTS,
   agoLabel,
@@ -177,5 +179,31 @@ describe("mapPoint", () => {
     expect(mapPoint(21.3, -157.9)).toBeNull();
     expect(mapPoint(51.5, -0.1)).toBeNull();
     expect(mapPoint(null, -100)).toBeNull();
+  });
+});
+
+describe("paid vs checkout opens (owner 2026-10-31)", () => {
+  const admin = (e: string) => e === "minetreen@gmail.com";
+  test("counts only paid Stripe sessions, minus admin and test buyers", () => {
+    expect(
+      paidCheckoutCount(
+        [
+          { payment_status: "paid", customer_details: { email: "buyer@biz.com" } },
+          { payment_status: "unpaid", customer_details: { email: "left@biz.com" } },
+          { payment_status: "paid", customer_details: { email: "Minetreen@gmail.com" } },
+          { payment_status: "paid", customer_details: { email: "qa@test.contrax" } },
+          { payment_status: "no_payment_required", customer_details: null },
+          { payment_status: "paid", customer_details: null },
+        ],
+        admin,
+      ),
+    ).toBe(2);
+  });
+  test("the console labels checkout opens as such and shows a separate Paid count", () => {
+    const page = readFileSync("src/routes/admin/live.tsx", "utf8");
+    expect(page).not.toContain("Money moments");
+    expect(page).toContain('{ label: "Checkout opens", value: counts.checkoutOpens');
+    expect(page).toContain('{ label: "Paid", value: counts.paid ?? "—"');
+    expect(readFileSync("src/routes/api/admin/live-console.ts", "utf8")).toContain("paid48h: await loadPaid48h(now)");
   });
 });

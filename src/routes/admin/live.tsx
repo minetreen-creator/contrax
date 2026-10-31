@@ -43,6 +43,8 @@ interface LiveData {
   feed: FeedItem[];
   trials: TrialCard[];
   money?: MoneyStats | null;
+  /** Paid Stripe checkouts in the last 48 hours; null when Stripe could not be read. */
+  paid48h?: number | null;
 }
 
 const POLL_MS = 15_000;
@@ -1725,7 +1727,8 @@ function LivePage() {
         searches: data.feed.filter((f) => f.kind === "search").length,
         zero: data.feed.filter((f) => f.kind === "search" && f.detail === "0 matches").length,
         signups: data.feed.filter((f) => f.kind === "signup").length,
-        money: data.feed.filter((f) => f.money).length,
+        checkoutOpens: data.feed.filter((f) => f.kind === "checkout").length,
+        paid: data.paid48h ?? null,
       }
     : null;
 
@@ -1746,12 +1749,14 @@ function LivePage() {
               </div>
             </div>
             {counts ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
                 {[
                   { label: "Searches", value: counts.searches, color: "#38bdf8" },
                   { label: "Zero results", value: counts.zero, color: "#fb7185" },
                   { label: "Signups", value: counts.signups, color: "#a78bfa" },
-                  { label: "Money moments", value: counts.money, color: "#fbbf24" },
+                  // Opened or clicked toward Stripe checkout; not a payment (owner 2026-10-31).
+                  { label: "Checkout opens", value: counts.checkoutOpens, color: "#fbbf24" },
+                  { label: "Paid", value: counts.paid ?? "—", color: "#4ade80" },
                 ].map((s) => (
                   <div key={s.label} className="live-stat" style={{ ["--kind" as string]: s.color }}>
                     <span className="text-xl font-extrabold" style={{ color: s.color }}>{s.value}</span>

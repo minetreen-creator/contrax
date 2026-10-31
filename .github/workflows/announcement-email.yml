@@ -4,11 +4,19 @@ name: Announcement Email
 # Run by hand from the Actions tab. Leave "send" unticked for a dry run that
 # only prints how many accounts would get it. Each address reached is logged in
 # announcement_log, so running it again never emails anyone twice.
-# Recipient rules and copy: src/lib/announcement-email.ts.
+# Recipient rules and copy: src/lib/announcement-email.ts. "starter-pass" (owner
+# 2026-10-31) offers the $5 30-day pass and skips paying and pass accounts.
 
 on:
   workflow_dispatch:
     inputs:
+      announcement:
+        description: "Which announcement"
+        type: choice
+        options:
+          - starter-pass
+          - federal-coverage
+        default: starter-pass
       send:
         description: "Actually send (unticked = dry run, count only)"
         type: boolean
@@ -30,6 +38,7 @@ jobs:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       SEND: ${{ inputs.send && 'true' || 'false' }}
+      ANNOUNCEMENT: ${{ inputs.announcement }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

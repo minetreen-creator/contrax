@@ -1727,7 +1727,6 @@ function LivePage() {
         searches: data.feed.filter((f) => f.kind === "search").length,
         zero: data.feed.filter((f) => f.kind === "search" && f.detail === "0 matches").length,
         signups: data.feed.filter((f) => f.kind === "signup").length,
-        checkoutOpens: data.feed.filter((f) => f.kind === "checkout").length,
         paid: data.paid48h ?? null,
       }
     : null;
@@ -1749,13 +1748,11 @@ function LivePage() {
               </div>
             </div>
             {counts ? (
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                 {[
                   { label: "Searches", value: counts.searches, color: "#38bdf8" },
                   { label: "Zero results", value: counts.zero, color: "#fb7185" },
                   { label: "Signups", value: counts.signups, color: "#a78bfa" },
-                  // Opened or clicked toward Stripe checkout; not a payment (owner 2026-10-31).
-                  { label: "Checkout opens", value: counts.checkoutOpens, color: "#fbbf24" },
                   { label: "Paid", value: counts.paid ?? "—", color: "#4ade80" },
                 ].map((s) => (
                   <div key={s.label} className="live-stat" style={{ ["--kind" as string]: s.color }}>

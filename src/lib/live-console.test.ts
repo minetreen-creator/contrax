@@ -199,10 +199,10 @@ describe("paid vs checkout opens (owner 2026-10-31)", () => {
       ),
     ).toBe(2);
   });
-  test("the console labels checkout opens as such and shows a separate Paid count", () => {
+  test("the console shows a Paid count and no checkout-opens tile (owner 2026-10-31)", () => {
     const page = readFileSync("src/routes/admin/live.tsx", "utf8");
     expect(page).not.toContain("Money moments");
-    expect(page).toContain('{ label: "Checkout opens", value: counts.checkoutOpens');
+    expect(page).not.toContain("Checkout opens");
     expect(page).toContain('{ label: "Paid", value: counts.paid ?? "—"');
     expect(readFileSync("src/routes/api/admin/live-console.ts", "utf8")).toContain("paid48h: await loadPaid48h(now)");
   });

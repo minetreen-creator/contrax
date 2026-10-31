@@ -5,6 +5,7 @@ import { AWARD_EXCLUSION_SQL } from "~/lib/source-class";
 import { isProductBuy } from "~/lib/trade-classification";
 import { cleanBidTitle, fixTitleTypos, isCodeHeavyTitle } from "~/lib/bid-title";
 import { displayAgency, displayLocation } from "~/lib/agency-display";
+import { isAggregatorMirror } from "~/lib/notice-dedupe";
 
 // Live sample of REAL open SDVOSB set-asides, NEWEST first (owner 2026-10-03:
 // "closing soonest" showed the same five rows day after day until each aged
@@ -89,16 +90,23 @@ export const EVERYDAY_SAMPLE_TRADES: { naics: string; label: string }[] = [
 
 export type EverydaySampleBid = SampleBid & { trade: string };
 
-/** One row per trade, in EVERYDAY_SAMPLE_TRADES order, skipping unreadable titles. PURE. */
+/**
+ * One row per trade, in EVERYDAY_SAMPLE_TRADES order, skipping unreadable
+ * titles. A bid listed by the agency itself wins over an aggregator copy
+ * ("Washington Purchasing Group (BidNet Direct)"), which is used only when a
+ * trade has nothing else (owner 2026-10-31). PURE.
+ */
 export function pickEverydaySample(
-  rows: readonly { naics_code: string | null; title: string | null; agency: string | null }[],
+  rows: readonly { naics_code: string | null; title: string | null; agency: string | null; source?: string | null }[],
 ): number[] {
   const picked: number[] = [];
   for (const { naics } of EVERYDAY_SAMPLE_TRADES) {
-    const i = rows.findIndex((r) => {
+    const fits = (r: (typeof rows)[number]) => {
       const title = String(r.title ?? "");
       return r.naics_code === naics && !!title && !isProductListingTitle(title) && !isCodeHeavyTitle(title);
-    });
+    };
+    let i = rows.findIndex((r) => fits(r) && !isAggregatorMirror(r));
+    if (i < 0) i = rows.findIndex(fits);
     if (i >= 0) picked.push(i);
   }
   return picked;
@@ -110,7 +118,7 @@ export const getEverydaySample = createServerFn({ method: "GET" }).handler(
       const { sql } = await import("~/db");
       const codes = EVERYDAY_SAMPLE_TRADES.map((t) => t.naics);
       const rows = (await sql()`
-        SELECT id, title, agency, location, due_date, set_aside, source_url, created_at, naics_code
+        SELECT id, title, agency, location, due_date, set_aside, source_url, created_at, naics_code, source
         FROM bids
         WHERE due_date::date >= (NOW() + INTERVAL '2 days')::date
           AND naics_code = ANY(${codes})
@@ -118,7 +126,7 @@ export const getEverydaySample = createServerFn({ method: "GET" }).handler(
           AND ${sql().unsafe(LOW_CONTENT_SQL)}
           AND ${sql().unsafe(AWARD_EXCLUSION_SQL)}
         ORDER BY created_at DESC NULLS LAST, id DESC
-        LIMIT 200
+        LIMIT 600
       `) as any[];
       const label = new Map(EVERYDAY_SAMPLE_TRADES.map((t) => [t.naics, t.label]));
       return pickEverydaySample(rows).map((i) => {

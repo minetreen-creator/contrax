@@ -15,6 +15,14 @@ describe("homepage examples are everyday trades, not SDVOSB jargon", () => {
     expect(pickEverydaySample(rows)).toEqual([2, 0, 4]);
     expect(EVERYDAY_SAMPLE_TRADES.map((t) => t.label)).toContain("Janitorial");
   });
+  test("an agency's own listing beats an aggregator copy; the copy is the fallback", () => {
+    const rows = [
+      { naics_code: "561720", title: "Research Park Custodial Services", agency: "Washington Purchasing Group (BidNet Direct)", source: "wa_bidnet" },
+      { naics_code: "561720", title: "Custodial Services for City Hall", agency: "City of Raleigh", source: "nc_raleigh" },
+      { naics_code: "561730", title: "Lawn Weed Control Bid", agency: "Utah Purchasing Group (BidNet Direct)", source: "ut_bidnet" },
+    ];
+    expect(pickEverydaySample(rows)).toEqual([1, 2]);
+  });
   test("the homepage uses the everyday sample and plain-English label", () => {
     const page = readFileSync("src/routes/index.tsx", "utf8");
     const finder = readFileSync("src/components/HomeContractFinder.tsx", "utf8");

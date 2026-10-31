@@ -1,0 +1,41 @@
+import { describe, expect, test } from "bun:test";
+import { readFileSync } from "node:fs";
+import { EVERYDAY_SAMPLE_TRADES, pickEverydaySample } from "./sample-bids";
+
+// Owner 2026-10-31 homepage review: "fix all".
+describe("homepage examples are everyday trades, not SDVOSB jargon", () => {
+  test("one row per trade, in trade order, skipping unreadable titles", () => {
+    const rows = [
+      { naics_code: "561730", title: "Landscape Maintenance for Neighborhood Parcels", agency: "City of Virginia Beach" },
+      { naics_code: "561720", title: "59--ACCESSORY KIT", agency: "DLA" },
+      { naics_code: "561720", title: "Custodial Services for City Hall", agency: "Town of Cary" },
+      { naics_code: "561730", title: "Mowing Services", agency: "County" },
+      { naics_code: "561612", title: "Security Guard Services", agency: "Port Authority" },
+    ];
+    expect(pickEverydaySample(rows)).toEqual([2, 0, 4]);
+    expect(EVERYDAY_SAMPLE_TRADES.map((t) => t.label)).toContain("Janitorial");
+  });
+  test("the homepage uses the everyday sample and plain-English label", () => {
+    const page = readFileSync("src/routes/index.tsx", "utf8");
+    const finder = readFileSync("src/components/HomeContractFinder.tsx", "utf8");
+    expect(page).toContain("getEverydaySample()");
+    expect(page).not.toContain("getSdvosbSample");
+    expect(finder).toContain("Open right now · a few real examples");
+    expect(finder).not.toContain("Live SDVOSB opportunities");
+  });
+});
+
+describe("homepage length and the phone chat bubble", () => {
+  test("the example AI brief is collapsed behind one tap", () => {
+    const page = readFileSync("src/routes/index.tsx", "utf8");
+    const open = page.indexOf("<details");
+    expect(open).toBeGreaterThan(-1);
+    expect(page.indexOf('<ExampleBrief variant="embed" />')).toBeGreaterThan(open);
+    expect(page).toContain("Show an example AI brief");
+  });
+  test("on phones the bubble tucks away while scrolling down", () => {
+    const widget = readFileSync("src/components/ChatWidget.tsx", "utf8");
+    expect(widget).toContain("setScrollingDown(y > lastY)");
+    expect(widget).toContain('open || (scrolledPastFold && !scrollingDown) ? "" : "max-sm:hidden"');
+  });
+});

@@ -25,7 +25,7 @@ import {
   buildContractMap,
   type ContractMapAggregate,
 } from "~/lib/contract-map";
-import { getSdvosbSample } from "~/lib/sample-bids";
+import { getEverydaySample } from "~/lib/sample-bids";
 
 // ── Server Functions ──────────────────────────────────────────────────────────
 
@@ -158,7 +158,7 @@ const PAGE_DESCRIPTION =
 
 export const Route = createFileRoute("/")({
   loader: async () => {
-    const [landing, sample] = await Promise.all([getLandingData(), getSdvosbSample()]);
+    const [landing, sample] = await Promise.all([getLandingData(), getEverydaySample()]);
     return { ...landing, sample };
   },
   component: Home,
@@ -281,17 +281,25 @@ function HowItWorks() {
           cached example exists — that honesty contract is untouched and nothing
           here is fabricated or screenshotted. When it hides itself, only the
           link to the standalone page (which has an honest empty state) remains. */}
-      <div className="mt-6">
-        <ExampleBrief variant="embed" />
-        <p className="mt-4 text-center text-sm">
-          <a
-            href="/example-brief"
-            className="font-semibold text-blue-700 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:text-blue-300"
-          >
-            See the full example brief →
-          </a>
-        </p>
-      </div>
+      {/* Collapsed by default (owner 2026-10-31: the open brief was the longest
+          block on a 14-screen homepage); one tap opens it in place. */}
+      <details className="group mt-6">
+        <summary className="cursor-pointer list-none text-center text-sm font-semibold text-blue-700 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:text-blue-300">
+          <span className="group-open:hidden">Show an example AI brief ↓</span>
+          <span className="hidden group-open:inline">Hide the example brief ↑</span>
+        </summary>
+        <div className="mt-4">
+          <ExampleBrief variant="embed" />
+          <p className="mt-4 text-center text-sm">
+            <a
+              href="/example-brief"
+              className="font-semibold text-blue-700 hover:text-blue-600 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-blue-600 dark:text-blue-300"
+            >
+              See the full example brief →
+            </a>
+          </p>
+        </div>
+      </details>
     </section>
   );
 }

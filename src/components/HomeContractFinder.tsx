@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ArrowRight, Radar, CheckCircle2, LoaderCircle } from "lucide-react";
-import type { SampleBid } from "~/lib/sample-bids";
+import type { EverydaySampleBid } from "~/lib/sample-bids";
 import type { RadarMatch } from "~/routes/radar";
 import { STATE_NAMES } from "~/lib/contract-map";
 import { US_PLACES } from "~/lib/states";
@@ -103,7 +103,15 @@ export const HERO_COPY = {
   },
 } as const;
 
-export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBid[]; openTotal?: number }) {
+/** "Due Nov 12" from a stored due date, or null. */
+function dueLabel(due: string | null): string | null {
+  if (!due) return null;
+  const d = new Date(due);
+  if (Number.isNaN(d.getTime())) return null;
+  return `Due ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })}`;
+}
+
+export function HomeContractFinder({ sample, openTotal = 0 }: { sample: EverydaySampleBid[]; openTotal?: number }) {
   const [lang, setLang] = useState<HeroLang>("en");
   useEffect(() => {
     try {
@@ -550,7 +558,7 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
         ) : !busy && sample.length > 0 ? (
           <div className="border-t border-white/15 pt-7">
             <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-              Live SDVOSB opportunities · Examples, not personalized matches
+              Open right now · a few real examples
             </p>
             <div className="mt-4 grid gap-4 md:grid-cols-3">
               {sample.slice(0, 3).map((bid) => (
@@ -559,11 +567,14 @@ export function HomeContractFinder({ sample, openTotal = 0 }: { sample: SampleBi
                   href={`/bid/${bid.id}`}
                   className="rounded-xl border border-white/15 bg-white/5 p-4 transition hover:bg-white/10"
                 >
+                  {bid.trade ? (
+                    <span className="mb-1.5 block text-[11px] font-bold uppercase tracking-wide text-blue-300">{bid.trade}</span>
+                  ) : null}
                   <span className="line-clamp-2 text-sm font-semibold">
                     {bid.title}
                   </span>
                   <span className="mt-2 block text-xs text-slate-400">
-                    {[bid.agency, bid.location].filter(Boolean).join(" · ")}
+                    {[bid.agency, bid.location, dueLabel(bid.due_date)].filter(Boolean).join(" · ")}
                   </span>
                 </a>
               ))}

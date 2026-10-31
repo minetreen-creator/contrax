@@ -23,6 +23,10 @@ export function ChatWidget() {
   // the state dropdown at the bottom of the first screen. Below `sm` it stays
   // out of the way until the visitor scrolls past the first screen.
   const [scrolledPastFold, setScrolledPastFold] = useState(false);
+  // Phones (owner 2026-10-31): past the fold the bubble covered the right edge
+  // of whatever the visitor was reading (it hid "No automatic renewal" on the
+  // $5 offer). It now tucks away while scrolling down and returns on scroll up.
+  const [scrollingDown, setScrollingDown] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -33,7 +37,15 @@ export function ChatWidget() {
   }, [messages, loading, open]);
 
   useEffect(() => {
-    const onScroll = () => setScrolledPastFold(window.scrollY > window.innerHeight * 0.9);
+    let lastY = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      setScrolledPastFold(y > window.innerHeight * 0.9);
+      if (Math.abs(y - lastY) > 6) {
+        setScrollingDown(y > lastY);
+        lastY = y;
+      }
+    };
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
@@ -72,7 +84,7 @@ export function ChatWidget() {
   return (
     <div
       className={`fixed right-4 bottom-4 z-50 flex flex-col items-end gap-3 sm:right-5 sm:bottom-5 ${
-        open || scrolledPastFold ? "" : "max-sm:hidden"
+        open || (scrolledPastFold && !scrollingDown) ? "" : "max-sm:hidden"
       }`}
     >
       {open && (

@@ -5,14 +5,19 @@
  * Without SEND=true it is a dry run: it only prints how many accounts would
  * get the email. Each address reached is recorded in `announcement_log` under
  * ANNOUNCEMENT_KEY, so a second run (or a retry after a failure) emails only
- * the accounts not yet reached. Recipient rules: ~/lib/announcement-email.
+ * the accounts not yet reached. ANNOUNCEMENT picks which one (default
+ * federal-coverage). Recipient rules: ~/lib/announcement-email.
  */
 import { sql } from "~/db";
 import { sendAnnouncementEmail } from "~/lib/email";
-import { ANNOUNCEMENT_KEY, announcementRecipients, federalUpgradeEmail, type AnnouncementUserRow } from "~/lib/announcement-email";
+import { ANNOUNCEMENTS, announcementRecipients, type AnnouncementName, type AnnouncementUserRow } from "~/lib/announcement-email";
 import { weeklyUnsubscribeUrl } from "~/lib/weekly-digest";
 
-export async function sendAnnouncement(send: boolean): Promise<{ recipients: number; sent: number }> {
+export async function sendAnnouncement(
+  send: boolean,
+  name: AnnouncementName = "federal-coverage",
+): Promise<{ recipients: number; sent: number }> {
+  const { key: ANNOUNCEMENT_KEY, fits, email: buildEmail } = ANNOUNCEMENTS[name];
   await sql()`
     CREATE TABLE IF NOT EXISTS announcement_log (
       announcement TEXT NOT NULL,
@@ -28,7 +33,10 @@ export async function sendAnnouncement(send: boolean): Promise<{ recipients: num
       weekly_digest_unsubscribed_at TIMESTAMPTZ
     )
   `;
-  const users = (await sql()`SELECT email, is_admin FROM users`) as AnnouncementUserRow[];
+  await sql()`ALTER TABLE users ADD COLUMN IF NOT EXISTS starter_pass_bought_at TIMESTAMPTZ`;
+  const users = (await sql()`
+    SELECT email, is_admin, subscription_status, starter_pass_bought_at FROM users ORDER BY id
+  `) as AnnouncementUserRow[];
   const optedOut = (await sql()`
     SELECT email_lower FROM email_preferences WHERE weekly_digest_unsubscribed_at IS NOT NULL
   `) as { email_lower: string }[];
@@ -39,9 +47,10 @@ export async function sendAnnouncement(send: boolean): Promise<{ recipients: num
     users,
     new Set(optedOut.map((r) => r.email_lower)),
     new Set(done.map((r) => r.email_lower)),
+    fits,
   );
   console.log(
-    `📣 ${ANNOUNCEMENT_KEY}: ${users.length} account(s); ${optedOut.length} unsubscribed; ${done.length} already sent; ${recipients.length} to send`,
+    `📣 ${ANNOUNCEMENT_KEY}: ${users.length} account(s); ${users.filter((u) => !fits(u)).length} not this offer's audience; ${optedOut.length} unsubscribed; ${done.length} already sent; ${recipients.length} to send`,
   );
   if (!send) {
     console.log("📣 Dry run (SEND is not true): nothing sent.");
@@ -65,7 +74,7 @@ export async function sendAnnouncement(send: boolean): Promise<{ recipients: num
     const token = tokenOf.get(email.toLowerCase());
     if (!token) continue;
     const unsubscribeUrl = weeklyUnsubscribeUrl(token);
-    const ok = await sendAnnouncementEmail(email, federalUpgradeEmail(unsubscribeUrl), unsubscribeUrl);
+    const ok = await sendAnnouncementEmail(email, buildEmail(unsubscribeUrl), unsubscribeUrl);
     if (!ok) continue;
     await sql()`
       INSERT INTO announcement_log (announcement, email_lower) VALUES (${ANNOUNCEMENT_KEY}, ${email.toLowerCase()})
@@ -81,7 +90,9 @@ export async function sendAnnouncement(send: boolean): Promise<{ recipients: num
 
 if (import.meta.main) {
   try {
-    await sendAnnouncement(process.env.SEND === "true");
+    const name = (process.env.ANNOUNCEMENT || "federal-coverage") as AnnouncementName;
+    if (!(name in ANNOUNCEMENTS)) throw new Error(`Unknown ANNOUNCEMENT "${name}"; one of: ${Object.keys(ANNOUNCEMENTS).join(", ")}`);
+    await sendAnnouncement(process.env.SEND === "true", name);
     process.exit(0);
   } catch (e) {
     console.error("💥 Announcement crashed:", e);
